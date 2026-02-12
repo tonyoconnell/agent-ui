@@ -3,6 +3,8 @@ import Layout from "../layouts/Layout.astro";
 import { ColonyCanvas } from "../components/flow/ColonyCanvas";
 import { TaskFlowCanvas } from "../components/flow/TaskFlowCanvas";
 import { AntColonyFlow } from "../components/flow/AntColonyFlow";
+import { AntStigmergy } from "../components/flow/AntStigmergy";
+import { AntNetwork } from "../components/flow/AntNetwork";
 ---
 
 <Layout title="Ant Colony Envelope System">
@@ -23,28 +25,28 @@ import { AntColonyFlow } from "../components/flow/AntColonyFlow";
         <!-- View tabs -->
         <div class="flex items-center gap-1 p-1 bg-[#0a0a0f] rounded-lg border border-[#1e293b]">
           <button
-            id="tab-relay"
+            id="tab-network"
             class="tab-btn active px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2"
-            data-view="relay"
+            data-view="network"
           >
             <span class="text-amber-400">🐜</span>
-            Ant Relay
+            Network
           </button>
           <button
-            id="tab-envelopes"
+            id="tab-stigmergy"
             class="tab-btn px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2"
-            data-view="envelopes"
+            data-view="stigmergy"
+          >
+            <span class="text-green-400">✦</span>
+            Emergence
+          </button>
+          <button
+            id="tab-relay"
+            class="tab-btn px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2"
+            data-view="relay"
           >
             <span class="text-blue-400">⚙</span>
-            Agents
-          </button>
-          <button
-            id="tab-colony"
-            class="tab-btn px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2"
-            data-view="colony"
-          >
-            <span class="text-green-400">🌿</span>
-            Colony
+            Relay
           </button>
           <button
             id="tab-tasks"
@@ -60,19 +62,19 @@ import { AntColonyFlow } from "../components/flow/AntColonyFlow";
 
     <!-- Main content area -->
     <main class="flex-1 relative overflow-hidden">
-      <!-- Ant Relay view (default) - Ants passing envelopes -->
-      <div id="view-relay" class="view-panel absolute inset-0">
+      <!-- Network view (default) - Ants ARE nodes, passing envelopes -->
+      <div id="view-network" class="view-panel absolute inset-0">
+        <AntNetwork client:load />
+      </div>
+
+      <!-- Stigmergy view - Watch emergence from chaos -->
+      <div id="view-stigmergy" class="view-panel absolute inset-0 hidden">
+        <AntStigmergy client:load />
+      </div>
+
+      <!-- Relay view - Task stations with ants -->
+      <div id="view-relay" class="view-panel absolute inset-0 hidden">
         <AntColonyFlow client:load />
-      </div>
-
-      <!-- Agents view - Data Processor, Router, Validator -->
-      <div id="view-envelopes" class="view-panel absolute inset-0 hidden">
-        <ColonyCanvas client:load initialQuery="envelope_system" />
-      </div>
-
-      <!-- Colony view - Full ant colony with scouts/workers -->
-      <div id="view-colony" class="view-panel absolute inset-0 hidden">
-        <ColonyCanvas client:load initialQuery="full_colony" />
       </div>
 
       <!-- Tasks view - Project tasks with dependencies -->
@@ -85,13 +87,17 @@ import { AntColonyFlow } from "../components/flow/AntColonyFlow";
     <footer class="flex-none px-6 py-2 border-t border-[#1e293b] bg-[#0f0f14]">
       <div class="flex items-center justify-between text-[10px] text-slate-500">
         <div class="flex items-center gap-4">
-          <span>Ants follow pheromone trails, strongest paths get reinforced</span>
+          <span class="text-amber-400/70">🐜 Ants = Nodes</span>
           <span class="text-slate-600">|</span>
-          <span>Envelope → Ant → Process → Pass → Next Ant</span>
+          <span>📦 Envelopes flow along pheromone edges</span>
+          <span class="text-slate-600">|</span>
+          <span>🔄 Loops create cyclic processing</span>
+          <span class="text-slate-600">|</span>
+          <span class="text-amber-400/70">🛣️ Superhighways emerge</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-          <span>Stigmergic Coordination</span>
+          <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+          <span class="text-amber-400/70">Stigmergic Network</span>
         </div>
       </div>
     </footer>
