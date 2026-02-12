@@ -147,12 +147,14 @@ function AgentGrid({
   const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
 
   return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center animate-fadeIn">
-        <h1 className="text-3xl font-light text-white mb-2 tracking-tight">Envelope System</h1>
-        <p className="text-slate-500 text-sm mb-16">Select an agent to view its execution flow</p>
+    <div className="flex-1 flex items-center justify-center p-6">
+      <div className="w-full max-w-4xl animate-fadeIn">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-light text-white mb-2 tracking-tight">Envelope System</h1>
+          <p className="text-slate-500 text-sm">Select an agent to view its execution flow</p>
+        </div>
 
-        <div className="flex gap-6 justify-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {agents.map((agent, index) => {
             const isOpen = openTabs.includes(agent.id);
 
@@ -163,8 +165,8 @@ function AgentGrid({
                 onMouseEnter={() => setHoveredAgent(agent.id)}
                 onMouseLeave={() => setHoveredAgent(null)}
                 className={cn(
-                  "group relative bg-[#161622] border rounded-2xl p-8 w-56 text-left transition-all duration-300",
-                  "hover:scale-105 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20",
+                  "group relative bg-[#161622] border rounded-2xl p-6 sm:p-8 text-left transition-all duration-300",
+                  "hover:scale-[1.02] hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20",
                   isOpen
                     ? "border-blue-500/50 hover:border-blue-400"
                     : "border-[#252538] hover:border-slate-500"
@@ -252,13 +254,13 @@ function JsonField({ label, data, variant = "default" }: { label: string; data: 
       <button
         onClick={() => isLong && setExpanded(!expanded)}
         className={cn(
-          "w-full text-left font-mono text-xs p-3 rounded-lg transition-all duration-200",
-          "bg-[#0f0f17] border border-transparent",
+          "w-full text-left font-mono text-xs p-2 sm:p-3 rounded-lg transition-all duration-200",
+          "bg-[#0f0f17] border border-transparent overflow-x-auto",
           isLong && "hover:border-slate-700 cursor-pointer",
           variant === "success" ? "text-green-400" : "text-slate-400"
         )}
       >
-        <pre className={cn("overflow-hidden transition-all duration-300", expanded ? "max-h-96" : "max-h-16")}>
+        <pre className={cn("overflow-hidden transition-all duration-300 whitespace-pre-wrap break-all sm:whitespace-pre sm:break-normal", expanded ? "max-h-96" : "max-h-16")}>
           {json}
         </pre>
         {isLong && !expanded && <span className="text-slate-600 text-xs">Click to expand...</span>}
@@ -284,7 +286,7 @@ function EnvelopeColumn({
   return (
     <div
       className={cn(
-        "flex-1 bg-[#161622] border rounded-2xl p-6 min-h-[400px] transition-all duration-500",
+        "flex-1 bg-[#161622] border rounded-2xl p-4 sm:p-6 lg:min-h-[400px] transition-all duration-500",
         isActive ? "border-blue-500/50 shadow-lg shadow-blue-500/10" : "border-[#252538]"
       )}
       style={{
@@ -293,7 +295,7 @@ function EnvelopeColumn({
         opacity: 0,
       }}
     >
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div className="text-xs text-slate-500 uppercase tracking-wider">{label}</div>
         {envelope && (
           <div className="flex items-center gap-2">
@@ -304,16 +306,16 @@ function EnvelopeColumn({
       </div>
 
       {!envelope ? (
-        <div className="text-slate-600 text-sm flex items-center justify-center h-64">No envelope</div>
+        <div className="text-slate-600 text-sm flex items-center justify-center h-32 lg:h-64">No envelope</div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div>
             <div className="text-slate-500 text-xs mb-1">ID</div>
-            <code className="text-slate-300 font-mono text-sm">{envelope.id}</code>
+            <code className="text-slate-300 font-mono text-xs sm:text-sm break-all">{envelope.id}</code>
           </div>
           <div>
             <div className="text-slate-500 text-xs mb-1">Action</div>
-            <div className="text-white font-semibold text-xl">{envelope.env.action}</div>
+            <div className="text-white font-semibold text-lg sm:text-xl">{envelope.env.action}</div>
           </div>
           <JsonField label="Inputs" data={envelope.env.inputs} />
           {envelope.payload.results && <JsonField label="Results" data={envelope.payload.results} variant="success" />}
@@ -356,15 +358,15 @@ function LogicColumn({ delay = 0, activeStep = -1 }: { delay?: number; activeSte
 
   return (
     <div
-      className="flex-1 bg-[#161622] border border-[#252538] rounded-2xl p-6 min-h-[400px]"
+      className="flex-1 bg-[#161622] border border-[#252538] rounded-2xl p-4 sm:p-6 lg:min-h-[400px]"
       style={{
         animationDelay: `${delay}ms`,
         animation: "slideIn 0.6s ease-out forwards",
         opacity: 0,
       }}
     >
-      <div className="text-xs text-slate-500 uppercase tracking-wider mb-6">Logic</div>
-      <div className="space-y-2 font-mono text-sm">
+      <div className="text-xs text-slate-500 uppercase tracking-wider mb-4 sm:mb-6">Logic</div>
+      <div className="space-y-1 sm:space-y-2 font-mono text-xs sm:text-sm overflow-x-auto">
         {steps.map((step, i) => (
           <div
             key={i}
@@ -392,25 +394,35 @@ function LogicColumn({ delay = 0, activeStep = -1 }: { delay?: number; activeSte
 }
 
 // ============================================
-// Animated Arrow
+// Animated Arrow (responsive - horizontal on lg, vertical on small)
 // ============================================
 function ColumnArrow({ delay = 0, active = false }: { delay?: number; active?: boolean }) {
   return (
     <div
-      className="flex items-center justify-center w-12"
+      className="flex items-center justify-center w-full lg:w-12 py-2 lg:py-0"
       style={{
         animationDelay: `${delay}ms`,
         animation: "fadeIn 0.4s ease-out forwards",
         opacity: 0,
       }}
     >
+      {/* Horizontal arrow for large screens */}
       <svg
-        className={cn("w-8 h-8 transition-all duration-300", active ? "text-blue-400 scale-110" : "text-slate-600")}
+        className={cn("hidden lg:block w-8 h-8 transition-all duration-300", active ? "text-blue-400 scale-110" : "text-slate-600")}
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
       >
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+      </svg>
+      {/* Vertical arrow for small screens */}
+      <svg
+        className={cn("lg:hidden w-6 h-6 transition-all duration-300", active ? "text-blue-400 scale-110" : "text-slate-600")}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
       </svg>
 
       <style>{`
@@ -454,13 +466,13 @@ function FlowView({ agent }: { agent: DeterministicAgent }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-6 overflow-auto">
+    <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <StatusDot status={agent.status} animate />
           <h2 className="text-lg font-medium text-white">{agent.name}</h2>
-          <span className="text-slate-500 text-sm font-mono">
+          <span className="text-slate-500 text-sm font-mono hidden sm:inline">
             {Object.keys(agent.actions).join(", ")}
           </span>
         </div>
@@ -469,7 +481,7 @@ function FlowView({ agent }: { agent: DeterministicAgent }) {
           onClick={runAnimation}
           disabled={isAnimating}
           className={cn(
-            "px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300",
+            "px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 w-full sm:w-auto",
             isAnimating
               ? "bg-slate-800 text-slate-500 cursor-not-allowed"
               : "bg-blue-600 text-white hover:bg-blue-500 hover:scale-105"
@@ -479,8 +491,8 @@ function FlowView({ agent }: { agent: DeterministicAgent }) {
         </button>
       </div>
 
-      {/* Three columns */}
-      <div className="flex-1 flex gap-4 items-start">
+      {/* Three columns - vertical on mobile, horizontal on desktop */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-2 lg:gap-4 items-stretch lg:items-start">
         <EnvelopeColumn envelope={envelope} label="Envelope" delay={0} isActive={activeStep >= 0 && activeStep <= 2} />
         <ColumnArrow delay={200} active={activeStep >= 0 && activeStep <= 2} />
         <LogicColumn delay={300} activeStep={activeStep} />
