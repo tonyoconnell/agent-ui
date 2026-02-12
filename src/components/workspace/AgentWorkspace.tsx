@@ -288,7 +288,7 @@ function EnvelopeColumn({
   return (
     <div
       className={cn(
-        "flex-1 bg-[#161622] border rounded-2xl p-4 sm:p-6 lg:min-h-[400px] transition-all duration-500",
+        "envelope-col flex-1 bg-[#161622] border rounded-2xl p-4 sm:p-6 transition-all duration-500",
         isActive ? "border-blue-500/50 shadow-lg shadow-blue-500/10" : "border-[#252538]"
       )}
       style={{
@@ -319,7 +319,8 @@ function EnvelopeColumn({
       </div>
 
       {!envelope ? (
-        <div className="text-slate-600 text-sm flex items-center justify-center h-32 lg:h-64">
+        <div className="empty-state text-slate-600 text-sm flex items-center justify-center h-32">
+          <style>{`@media (min-width: 800px) { .empty-state { height: 16rem; } }`}</style>
           {isInput ? "Awaiting envelope..." : "No output yet"}
         </div>
       ) : (
@@ -359,6 +360,9 @@ function EnvelopeColumn({
           from { opacity: 0; transform: translateX(-20px); }
           to { opacity: 1; transform: translateX(0); }
         }
+        @media (min-width: 800px) {
+          .envelope-col { min-height: 400px; }
+        }
       `}</style>
     </div>
   );
@@ -385,13 +389,18 @@ function LogicColumn({ delay = 0, activeStep = -1 }: { delay?: number; activeSte
 
   return (
     <div
-      className="flex-1 bg-[#161622] border border-[#252538] rounded-2xl p-4 sm:p-6 lg:min-h-[400px]"
+      className="logic-col flex-1 bg-[#161622] border border-[#252538] rounded-2xl p-4 sm:p-6"
       style={{
         animationDelay: `${delay}ms`,
         animation: "slideIn 0.6s ease-out forwards",
         opacity: 0,
       }}
     >
+      <style>{`
+        @media (min-width: 800px) {
+          .logic-col { min-height: 400px; }
+        }
+      `}</style>
       <div className="flex items-center gap-2 mb-4 sm:mb-6">
         <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs">
           ⚡
@@ -438,30 +447,30 @@ function LogicColumn({ delay = 0, activeStep = -1 }: { delay?: number; activeSte
 }
 
 // ============================================
-// Animated Arrow (responsive - horizontal on lg, vertical on small)
+// Animated Arrow (horizontal at 800px+, vertical below)
 // ============================================
 function ColumnArrow({ delay = 0, active = false }: { delay?: number; active?: boolean }) {
   return (
     <div
-      className="flex items-center justify-center w-full lg:w-12 py-2 lg:py-0"
+      className={cn("arrow-container flex items-center justify-center", active && "active")}
       style={{
         animationDelay: `${delay}ms`,
         animation: "fadeIn 0.4s ease-out forwards",
         opacity: 0,
       }}
     >
-      {/* Horizontal arrow for large screens */}
+      {/* Horizontal arrow (800px+) */}
       <svg
-        className={cn("hidden lg:block w-8 h-8 transition-all duration-300", active ? "text-blue-400 scale-110" : "text-slate-600")}
+        className="arrow-h w-8 h-8 transition-all duration-300"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
       >
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
       </svg>
-      {/* Vertical arrow for small screens */}
+      {/* Vertical arrow (below 800px) */}
       <svg
-        className={cn("lg:hidden w-6 h-6 transition-all duration-300", active ? "text-blue-400 scale-110" : "text-slate-600")}
+        className="arrow-v w-6 h-6 transition-all duration-300"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -473,6 +482,16 @@ function ColumnArrow({ delay = 0, active = false }: { delay?: number; active?: b
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        .arrow-container { width: 100%; padding: 0.5rem 0; }
+        .arrow-container .arrow-h { display: none; color: #475569; }
+        .arrow-container .arrow-v { display: block; color: #475569; }
+        .arrow-container.active .arrow-h,
+        .arrow-container.active .arrow-v { color: #60a5fa; transform: scale(1.1); }
+        @media (min-width: 800px) {
+          .arrow-container { width: 3rem; padding: 0; }
+          .arrow-container .arrow-h { display: block; }
+          .arrow-container .arrow-v { display: none; }
         }
       `}</style>
     </div>
@@ -536,7 +555,12 @@ function FlowView({ agent }: { agent: DeterministicAgent }) {
       </div>
 
       {/* The Relay: Envelope IN → Transform → Envelope OUT */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-2 lg:gap-4 items-stretch lg:items-start">
+      <div className="relay-columns flex-1 flex flex-col gap-2 items-stretch">
+        <style>{`
+          @media (min-width: 800px) {
+            .relay-columns { flex-direction: row; gap: 1rem; align-items: flex-start; }
+          }
+        `}</style>
         <EnvelopeColumn envelope={envelope} direction="in" delay={0} isActive={activeStep >= 0 && activeStep <= 5} />
         <ColumnArrow delay={200} active={activeStep >= 3 && activeStep <= 5} />
         <LogicColumn delay={300} activeStep={activeStep} />
