@@ -1,7 +1,148 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import AgentWorkspace from "../components/workspace/AgentWorkspace";
+import { ColonyCanvas } from "../components/flow/ColonyCanvas";
+import { TaskFlowCanvas } from "../components/flow/TaskFlowCanvas";
+import { AntColonyFlow } from "../components/flow/AntColonyFlow";
 ---
-<Layout title="Envelope System">
-  <AgentWorkspace client:load />
+
+<Layout title="Ant Colony Envelope System">
+  <div class="h-screen w-screen flex flex-col overflow-hidden">
+    <!-- Header -->
+    <header class="flex-none px-6 py-3 border-b border-[#1e293b] bg-[#0f0f14]">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <h1 class="text-xl font-semibold text-white flex items-center gap-2">
+            <span class="text-2xl">🐜</span>
+            Ant Colony Envelope System
+          </h1>
+          <span class="text-xs text-slate-500 px-2 py-1 rounded bg-slate-500/10 border border-slate-500/20">
+            TypeQL → JSON → ReactFlow
+          </span>
+        </div>
+
+        <!-- View tabs -->
+        <div class="flex items-center gap-1 p-1 bg-[#0a0a0f] rounded-lg border border-[#1e293b]">
+          <button
+            id="tab-relay"
+            class="tab-btn active px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2"
+            data-view="relay"
+          >
+            <span class="text-amber-400">🐜</span>
+            Ant Relay
+          </button>
+          <button
+            id="tab-envelopes"
+            class="tab-btn px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2"
+            data-view="envelopes"
+          >
+            <span class="text-blue-400">⚙</span>
+            Agents
+          </button>
+          <button
+            id="tab-colony"
+            class="tab-btn px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2"
+            data-view="colony"
+          >
+            <span class="text-green-400">🌿</span>
+            Colony
+          </button>
+          <button
+            id="tab-tasks"
+            class="tab-btn px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2"
+            data-view="tasks"
+          >
+            <span class="text-purple-400">✓</span>
+            Tasks
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main content area -->
+    <main class="flex-1 relative overflow-hidden">
+      <!-- Ant Relay view (default) - Ants passing envelopes -->
+      <div id="view-relay" class="view-panel absolute inset-0">
+        <AntColonyFlow client:load />
+      </div>
+
+      <!-- Agents view - Data Processor, Router, Validator -->
+      <div id="view-envelopes" class="view-panel absolute inset-0 hidden">
+        <ColonyCanvas client:load initialQuery="envelope_system" />
+      </div>
+
+      <!-- Colony view - Full ant colony with scouts/workers -->
+      <div id="view-colony" class="view-panel absolute inset-0 hidden">
+        <ColonyCanvas client:load initialQuery="full_colony" />
+      </div>
+
+      <!-- Tasks view - Project tasks with dependencies -->
+      <div id="view-tasks" class="view-panel absolute inset-0 hidden">
+        <TaskFlowCanvas client:load />
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="flex-none px-6 py-2 border-t border-[#1e293b] bg-[#0f0f14]">
+      <div class="flex items-center justify-between text-[10px] text-slate-500">
+        <div class="flex items-center gap-4">
+          <span>Ants follow pheromone trails, strongest paths get reinforced</span>
+          <span class="text-slate-600">|</span>
+          <span>Envelope → Ant → Process → Pass → Next Ant</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          <span>Stigmergic Coordination</span>
+        </div>
+      </div>
+    </footer>
+  </div>
 </Layout>
+
+<style is:global>
+  .react-flow__attribution { display: none !important; }
+  .react-flow__panel { margin: 16px; }
+
+  @keyframes pulse-subtle {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1); }
+  }
+
+  .animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
+  .react-flow__edge-textwrapper { pointer-events: none; }
+
+  .tab-btn { color: #64748b; }
+  .tab-btn:hover { color: #94a3b8; background-color: rgba(30, 41, 59, 0.5); }
+  .tab-btn.active { color: #fff; background-color: #1e293b; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    height: 4px;
+    background: #1e293b;
+    border-radius: 2px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  const tabs = document.querySelectorAll('.tab-btn');
+  const views = document.querySelectorAll('.view-panel');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const viewName = tab.getAttribute('data-view');
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      views.forEach(view => {
+        view.id === `view-${viewName}` ? view.classList.remove('hidden') : view.classList.add('hidden');
+      });
+      window.dispatchEvent(new Event('resize'));
+    });
+  });
+</script>
