@@ -274,15 +274,17 @@ function JsonField({ label, data, variant = "default" }: { label: string; data: 
 // ============================================
 function EnvelopeColumn({
   envelope,
-  label,
+  direction,
   delay = 0,
   isActive = false
 }: {
   envelope: Envelope | null;
-  label: string;
+  direction: "in" | "out";
   delay?: number;
   isActive?: boolean;
 }) {
+  const isInput = direction === "in";
+
   return (
     <div
       className={cn(
@@ -295,8 +297,19 @@ function EnvelopeColumn({
         opacity: 0,
       }}
     >
+      {/* Header with direction indicator */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <div className="text-xs text-slate-500 uppercase tracking-wider">{label}</div>
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "w-6 h-6 rounded-full flex items-center justify-center text-xs",
+            isInput ? "bg-blue-500/20 text-blue-400" : "bg-green-500/20 text-green-400"
+          )}>
+            {isInput ? "↓" : "↑"}
+          </div>
+          <div className="text-xs text-slate-500 uppercase tracking-wider">
+            {isInput ? "Received" : "Dispatched"}
+          </div>
+        </div>
         {envelope && (
           <div className="flex items-center gap-2">
             <StatusDot status={envelope.payload.status} animate={isActive} />
@@ -306,28 +319,37 @@ function EnvelopeColumn({
       </div>
 
       {!envelope ? (
-        <div className="text-slate-600 text-sm flex items-center justify-center h-32 lg:h-64">No envelope</div>
+        <div className="text-slate-600 text-sm flex items-center justify-center h-32 lg:h-64">
+          {isInput ? "Awaiting envelope..." : "No output yet"}
+        </div>
       ) : (
         <div className="space-y-3 sm:space-y-4">
-          <div>
-            <div className="text-slate-500 text-xs mb-1">ID</div>
-            <code className="text-slate-300 font-mono text-xs sm:text-sm break-all">{envelope.id}</code>
+          {/* From/To - the relay participants */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-slate-600">{isInput ? "from" : "to"}</span>
+            <span className={cn(
+              "font-mono px-2 py-0.5 rounded",
+              isInput ? "bg-blue-500/10 text-blue-400" : "bg-green-500/10 text-green-400"
+            )}>
+              {isInput ? envelope.metadata?.sender : envelope.metadata?.receiver}
+            </span>
           </div>
+
+          {/* Action - what to do */}
           <div>
             <div className="text-slate-500 text-xs mb-1">Action</div>
             <div className="text-white font-semibold text-lg sm:text-xl">{envelope.env.action}</div>
           </div>
-          <JsonField label="Inputs" data={envelope.env.inputs} />
-          {envelope.payload.results && <JsonField label="Results" data={envelope.payload.results} variant="success" />}
-          {envelope.callback && (
-            <div className="pt-4 border-t border-[#252538]">
-              <div className="text-slate-500 text-xs mb-1">Chains to</div>
-              <div className="text-slate-400 font-mono text-sm flex items-center gap-2">
-                <span className="text-blue-400">{envelope.callback.env.action}</span>
-                <span className="text-slate-600">→</span>
-                <span className="text-slate-500">{envelope.callback.metadata?.receiver}</span>
-              </div>
-            </div>
+
+          {/* Inputs/Outputs */}
+          <JsonField
+            label={isInput ? "Inputs" : "Transformed Inputs"}
+            data={envelope.env.inputs}
+          />
+
+          {/* Results only on input envelope after processing */}
+          {isInput && envelope.payload.results && (
+            <JsonField label="Results" data={envelope.payload.results} variant="success" />
           )}
         </div>
       )}
@@ -343,17 +365,22 @@ function EnvelopeColumn({
 }
 
 // ============================================
-// Logic Column (Animated)
+// Logic Column (Animated) - The transformation step
 // ============================================
 function LogicColumn({ delay = 0, activeStep = -1 }: { delay?: number; activeStep?: number }) {
+  // The relay logic: receive → transform → dispatch
   const steps = [
-    { code: "const { action, inputs } = envelope.env;", comment: "// Extract" },
-    { code: "let result = await this.actions[action](inputs);", comment: "// Execute" },
-    { code: "envelope.payload.results = result;", comment: "// Store" },
-    { code: "if (callback) {", comment: "" },
-    { code: "  this.substitute(callback, result);", comment: "// Substitute" },
-    { code: "  await this.route(callback);", comment: "// Route" },
-    { code: "}", comment: "" },
+    { code: "// 1. RECEIVE", comment: "", isHeader: true },
+    { code: "const { action, inputs } = envelope.env;", comment: "" },
+    { code: "", comment: "" },
+    { code: "// 2. TRANSFORM", comment: "", isHeader: true },
+    { code: "let result = this.actions[action](inputs);", comment: "" },
+    { code: "envelope.payload.results = result;", comment: "" },
+    { code: "", comment: "" },
+    { code: "// 3. DISPATCH", comment: "", isHeader: true },
+    { code: "let next = envelope.callback;", comment: "" },
+    { code: "next.env.inputs = substitute(next, result);", comment: "" },
+    { code: "this.route(next);", comment: "// → next agent" },
   ];
 
   return (
@@ -365,22 +392,39 @@ function LogicColumn({ delay = 0, activeStep = -1 }: { delay?: number; activeSte
         opacity: 0,
       }}
     >
-      <div className="text-xs text-slate-500 uppercase tracking-wider mb-4 sm:mb-6">Logic</div>
-      <div className="space-y-1 sm:space-y-2 font-mono text-xs sm:text-sm overflow-x-auto">
-        {steps.map((step, i) => (
-          <div
-            key={i}
-            className={cn(
-              "flex items-center gap-3 py-1 px-2 rounded transition-all duration-300",
-              activeStep === i && "bg-blue-500/10 border-l-2 border-blue-500"
-            )}
-          >
-            <span className={cn("transition-colors duration-300", activeStep === i ? "text-white" : "text-slate-400")}>
-              {step.code}
-            </span>
-            {step.comment && <span className="text-slate-600 text-xs">{step.comment}</span>}
-          </div>
-        ))}
+      <div className="flex items-center gap-2 mb-4 sm:mb-6">
+        <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs">
+          ⚡
+        </div>
+        <div className="text-xs text-slate-500 uppercase tracking-wider">Transform</div>
+      </div>
+      <div className="space-y-0.5 font-mono text-xs sm:text-sm overflow-x-auto">
+        {steps.map((step, i) => {
+          const isHeader = (step as { isHeader?: boolean }).isHeader;
+          const isEmpty = step.code === "";
+
+          if (isEmpty) return <div key={i} className="h-2" />;
+
+          return (
+            <div
+              key={i}
+              className={cn(
+                "py-1 px-2 rounded transition-all duration-300",
+                isHeader ? "mt-2" : "",
+                activeStep === i && !isHeader && "bg-blue-500/10 border-l-2 border-blue-500"
+              )}
+            >
+              <span className={cn(
+                "transition-colors duration-300",
+                isHeader ? "text-slate-500 text-xs" :
+                activeStep === i ? "text-white" : "text-slate-400"
+              )}>
+                {step.code}
+              </span>
+              {step.comment && <span className="text-green-600 ml-2">{step.comment}</span>}
+            </div>
+          );
+        })}
       </div>
 
       <style>{`
@@ -453,7 +497,7 @@ function FlowView({ agent }: { agent: DeterministicAgent }) {
     let i = 0;
     const interval = setInterval(() => {
       i++;
-      if (i >= 7) {
+      if (i >= 11) { // 11 steps now: receive(3) + transform(3) + dispatch(3) + headers
         clearInterval(interval);
         setTimeout(() => {
           setActiveStep(-1);
@@ -462,7 +506,7 @@ function FlowView({ agent }: { agent: DeterministicAgent }) {
       } else {
         setActiveStep(i);
       }
-    }, 500);
+    }, 400);
   };
 
   return (
@@ -491,13 +535,13 @@ function FlowView({ agent }: { agent: DeterministicAgent }) {
         </button>
       </div>
 
-      {/* Three columns - vertical on mobile, horizontal on desktop */}
+      {/* The Relay: Envelope IN → Transform → Envelope OUT */}
       <div className="flex-1 flex flex-col lg:flex-row gap-2 lg:gap-4 items-stretch lg:items-start">
-        <EnvelopeColumn envelope={envelope} label="Envelope" delay={0} isActive={activeStep >= 0 && activeStep <= 2} />
-        <ColumnArrow delay={200} active={activeStep >= 0 && activeStep <= 2} />
+        <EnvelopeColumn envelope={envelope} direction="in" delay={0} isActive={activeStep >= 0 && activeStep <= 5} />
+        <ColumnArrow delay={200} active={activeStep >= 3 && activeStep <= 5} />
         <LogicColumn delay={300} activeStep={activeStep} />
-        <ColumnArrow delay={400} active={activeStep >= 4} />
-        <EnvelopeColumn envelope={callback} label="Callback" delay={500} isActive={activeStep >= 4} />
+        <ColumnArrow delay={400} active={activeStep >= 7} />
+        <EnvelopeColumn envelope={callback} direction="out" delay={500} isActive={activeStep >= 7} />
       </div>
     </div>
   );
