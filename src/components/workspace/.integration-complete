@@ -1,0 +1,37 @@
+Integration completed by P3: INTEGRATION agent
+Timestamp: 2026-02-12
+
+Completed tasks:
+- INT-001: Created AgentWorkspace.tsx (src/components/workspace/AgentWorkspace.tsx)
+  - Main page component that initializes Runtime on mount
+  - Creates 3 sample agents and registers them
+  - Sends sample envelope chain through the system
+  - Calls runtime.toUISchema() to get JSON
+  - Renders using component library (AgentCard, PromiseTracker, EnvelopeList, LogicViewer)
+  - Manages tab state for agent selection
+
+- INT-002: Sample agents implemented
+  - agent-a "Data Processor": actions = { processData, validate }
+  - agent-b "Router": actions = { routeEnvelope }
+  - agent-c "Validator": actions = { signPayload }
+
+- INT-003: Sample envelope chain created
+  - Envelope 1 -> agent-a: action=processData, inputs={ source: "api/feed", limit: 100 }
+  - Callback -> agent-b: action=routeEnvelope, inputs={ target: "agent-c", data: "{{ env-1.results }}" }
+  - Callback -> agent-c: action=signPayload, inputs={ payload: "{{ env-2.results }}" }
+
+- INT-004: Created index.astro page (src/pages/index.astro)
+  - Uses Layout component
+  - Renders AgentWorkspace with client:load directive
+
+- INT-005: Verification completed
+  - Build successful with no errors or warnings
+  - Dev server runs on localhost:4321 or 4322
+  - Page loads with correct structure
+  - SSR rendering shows loading state
+  - Client-side hydration initializes runtime
+
+Dependencies installed:
+- @tailwindcss/typography
+- All missing @radix-ui packages
+- embla-carousel-react, cmdk, vaul, sonner, recharts, etc.
