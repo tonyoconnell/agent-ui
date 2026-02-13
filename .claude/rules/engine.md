@@ -2,246 +2,220 @@
 
 Apply when working with `src/engine/*.ts` or `src/engine/*.js` files.
 
-## Core Concepts
+## The Biology
 
-The Envelope System is a swarm intelligence framework:
-
-- **Unit**: The atom — a named receive function (30 lines)
-- **Colony**: The space — where units exist and communicate (40 lines)
-- **Envelope**: The ant — carries payload, knows its journey
-- **Emergence**: Complex behavior from simple rules
+100 million years ago, ants solved distributed computing.
 
 ```
-Unit + Colony = Swarm Intelligence
-70 lines → emergent behavior
+Ant        →  envelope   (carries cargo, knows its journey)
+Chamber    →  unit       (does work, knows its tasks)
+Nest       →  colony     (space, not controller)
+Pheromone  →  scent      (trails strengthen with use)
 ```
 
-## The Profound Insight
+**85 lines. A living system.**
 
-A thing IS its interface. The Unit IS the receive function.
+## The Four Rules
 
-```javascript
-// The unit IS callable
-unit({ receive: "process", payload: { n: 5 } });
+Ants have no CEO. They have four rules:
 
-// Not this
-unit.receive({ ... }); // ❌
+```
+1. Pick up food       →  Receive the envelope
+2. Follow the trail   →  Execute the service
+3. Do the work        →  Forward the callback
+4. Leave scent        →  Mark successful trails
 ```
 
-## Unit Structure
+## Chamber (unit.js) — 30 lines
+
+A chamber IS its entrance. When an ant arrives, work happens.
 
 ```javascript
 const unit = (envelope, route) => {
   const { receiver: id } = envelope;
-  const s = {};  // services
+  const tasks = {};
 
-  const receive = ({ receive: t, payload, callback }) => {
-    if (!s[t]) return Promise.reject({ id, target: t, error: `Unknown: ${t}` });
+  const receive = ({ receive: task, payload, callback }) => {
+    if (!tasks[task]) return Promise.reject({ id, task, error: `Unknown: ${task}` });
 
-    return s[t](payload).then((result) => {
+    return tasks[task](payload).then((result) => {
       if (callback) {
         const next = substitute(callback, result);
-        // Cross-unit routing
+        // Different chamber? Travel through the nest
         if (next.receiver !== id && route) return route(next);
+        // Same chamber? Stay here
         return receive(next);
       }
       return result;
     });
   };
 
-  receive.assign = (n, f) => (s[n] = (p) => Promise.resolve(f(p)), receive);
-  receive.role = (n, svc, ctx) => (s[n] = (p) => s[svc]({ ...ctx, ...p }), receive);
-  receive.has = (n) => n in s;
-  receive.list = () => Object.keys(s);
+  receive.assign = (name, fn) => (tasks[name] = (p) => Promise.resolve(fn(p)), receive);
+  receive.role = (name, task, ctx) => (tasks[name] = (p) => tasks[task]({ ...ctx, ...p }), receive);
+  receive.has = (name) => name in tasks;
+  receive.list = () => Object.keys(tasks);
   receive.id = id;
-
   return receive;
 };
 ```
 
-## Colony Structure
+**A chamber IS its entrance.** The unit IS the receive function, not a container with one.
+
+## Nest with Pheromones (colony.js) — 55 lines
+
+The nest doesn't think. It connects chambers and holds scent.
 
 ```javascript
 const colony = () => {
-  const units = {};
+  const chambers = {};
+  const scent = {};  // Pheromone trails
 
+  // An ant travels — and leaves scent on success
   const send = ({ receiver, receive, payload, callback }) => {
-    const target = units[receiver];
-    if (!target) return Promise.reject({ receiver, error: `Unknown: ${receiver}` });
-    return target({ receive, payload, callback });
+    const chamber = chambers[receiver];
+    if (!chamber) return Promise.reject({ error: `No chamber: ${receiver}` });
+    return chamber({ receive, payload, callback }).then((result) => {
+      mark(`${receiver}:${receive}`, 1);  // Strengthen the trail
+      return result;
+    });
   };
 
+  // A new chamber grows
   const spawn = (envelope) => {
-    const u = unit(envelope, send);
-    units[u.id] = u;
-    return u;
+    const chamber = unit(envelope, send);
+    chambers[chamber.id] = chamber;
+    return chamber;
   };
 
-  return { spawn, send, units };
+  // Stigmergy: indirect communication through environment
+  const mark = (trail, strength = 1) => {
+    scent[trail] = (scent[trail] || 0) + strength;
+  };
+
+  const smell = (trail) => scent[trail] || 0;
+
+  const fade = (rate = 0.1) => {
+    for (const trail in scent) {
+      scent[trail] *= (1 - rate);
+      if (scent[trail] < 0.01) delete scent[trail];
+    }
+  };
+
+  const highways = () => Object.entries(scent)
+    .sort(([, a], [, b]) => b - a)
+    .map(([trail, strength]) => ({ trail, strength }));
+
+  return { spawn, send, mark, smell, fade, highways, chambers, scent };
 };
 ```
 
-## Envelope Structure
+## Stigmergy (Pheromones)
+
+Ants don't talk to each other. They modify the environment, and other ants react.
+
+```javascript
+// Automatic: trails strengthen when ants complete journeys
+await nest.send({ receiver: "a", receive: "work", payload: {} });
+await nest.send({ receiver: "a", receive: "work", payload: {} });
+await nest.send({ receiver: "a", receive: "work", payload: {} });
+
+// See the superhighways emerge
+nest.highways();
+// → [{ trail: "a:work", strength: 3 }]
+
+// Smell a specific trail
+nest.smell("a:work");  // → 3
+
+// Manual: strengthen a trail artificially
+nest.mark("a:work", 10);
+
+// Time passes — unused trails fade
+nest.fade(0.5);
+
+// Eventually, unused trails disappear entirely
+```
+
+## Ant (envelope)
+
+An ant carries cargo and knows its journey:
 
 ```typescript
 interface Envelope {
-  receive?: string;      // Target service name
-  receiver?: string;     // Unit identity
-  payload?: unknown;     // Data being transmitted
-  callback?: Envelope;   // Next envelope in chain
+  receiver?: string;     // Which chamber to enter
+  receive?: string;      // Which task to perform
+  payload?: unknown;     // Cargo being carried
+  callback?: Envelope;   // Trail to next chamber
 }
 ```
 
-## Pattern: Everything is receive → promise
-
-```
-envelope in → promise out
-```
-
-- All interactions are envelopes
-- All responses are promises
-- Errors carry full context
-
-## Services
-
-Services are the "verbs" — what a unit can do:
+## Watching an Ant Work
 
 ```javascript
-// Assign a service
-unit.assign("double", ({ n }) => n * 2);
+// Build a nest
+const nest = colony();
 
-// Services always return promises (wrapped automatically)
-unit({ receive: "double", payload: { n: 5 } }); // → Promise<10>
+// Grow chambers that know tasks
+nest.spawn({ receiver: "processor" })
+  .assign("double", ({ n }) => n * 2);
+
+nest.spawn({ receiver: "validator" })
+  .assign("check", ({ n }) => n > 0);
+
+// Release an ant — it knows its entire journey
+nest.send({
+  receiver: "processor",
+  receive: "double",
+  payload: { n: 5 },
+  callback: {
+    receiver: "validator",
+    receive: "check",
+    payload: { n: "{{result}}" }
+  }
+});
+// processor.double(5) → 10 → validator.check(10) → true
+// Trails "processor:double" and "validator:check" now have scent
+```
+
+## Tasks (Services)
+
+Tasks are what a chamber knows how to do:
+
+```javascript
+// Teach a chamber a task
+chamber.assign("double", ({ n }) => n * 2);
+
+// Chamber does the task when an ant arrives
+chamber({ receive: "double", payload: { n: 5 } }); // → Promise<10>
 ```
 
 ## Roles
 
-Roles are context-bound services — same logic, different perspective:
+Roles are the same task with different context — like worker ants vs soldier ants:
 
 ```javascript
-unit.assign("fetch", ({ url, token }) => fetch(url, { headers: { auth: token } }));
-unit.role("fetchAdmin", "fetch", { token: "admin-key" });
-unit.role("fetchUser", "fetch", { token: "user-key" });
+chamber.assign("fetch", ({ url, token }) => fetch(url, { headers: { auth: token } }));
+chamber.role("fetchAsAdmin", "fetch", { token: "admin-key" });
+chamber.role("fetchAsUser", "fetch", { token: "user-key" });
 ```
 
-## Callbacks (Chaining)
+## Trails (Callbacks)
 
-Envelopes carry their journey via callbacks:
+The ant's trail — where it goes after this chamber:
 
 ```javascript
 {
   receive: "step1",
   payload: { n: 1 },
-  callback: {
+  callback: {                           // The trail
     receive: "step2",
-    payload: { n: "{{result}}" }  // Substituted with step1's result
+    payload: { n: "{{result}}" }        // Cargo becomes previous result
   }
 }
 ```
 
-## Cross-Unit Communication
+## Cargo Transfer
 
-Units in a colony can route to each other:
-
-```javascript
-const c = colony();
-
-c.spawn({ receiver: "a" }).assign("process", fn1);
-c.spawn({ receiver: "b" }).assign("validate", fn2);
-
-// Envelope travels: a → b
-c.send({
-  receiver: "a",
-  receive: "process",
-  payload: { data: 1 },
-  callback: {
-    receiver: "b",
-    receive: "validate",
-    payload: { result: "{{result}}" }
-  }
-});
-```
-
-## Error Handling
-
-Errors carry full context:
-
-```javascript
-{
-  id: "worker",        // which unit
-  target: "process",   // which service
-  payload: { x: 1 },   // what was sent
-  error: "..."         // what went wrong
-}
-```
-
-## The Ant Colony Principle
-
-- **No central controller** — colony is space, not dispatcher
-- **Units are autonomous** — make their own decisions
-- **Envelopes know their journey** — callbacks define the path
-- **Emergence** — complex behavior from simple rules
-
-## Why This is Swarm Intelligence
-
-| Principle | Our Implementation |
-|-----------|-------------------|
-| **Decentralization** | No central controller. Colony is space, not dispatcher. |
-| **Simple agents** | Units have simple rules: receive → process → forward |
-| **Local information** | Units only know their services. No global state. |
-| **Indirect communication** | Envelopes carry data between units (like pheromones) |
-| **Emergence** | Complex pipelines from simple unit + callback rules |
-| **Self-organization** | Units spawn dynamically. No predefined structure. |
-
-```
-Ants don't have a CEO.
-They have simple rules:
-  - Pick up food
-  - Follow pheromone
-  - Drop at nest
-
-We have:
-  - Receive envelope
-  - Execute service
-  - Forward callback
-
-Same pattern. 70 lines.
-```
-
-## What Emerges (Not in the 70 Lines)
-
-| Capability | How It Emerges |
-|------------|----------------|
-| Load balancing | Spawn multiple units with same services |
-| Fault tolerance | Retry on error, spawn replacement |
-| Pheromone trails | Add priority/weight to envelopes |
-| Learning | Units modify their services over time |
-
-The 70 lines are the *foundation*. Everything else is built on top.
-
-## Type Safety
-
-Use strict types:
-
-```typescript
-import { unit, colony } from "@/engine";
-import type { Unit, Colony, Envelope } from "@/engine";
-```
-
-## Chainable API
-
-Unit methods return the unit for chaining:
-
-```javascript
-const u = unit({ receiver: "worker" })
-  .assign("add", ({ a, b }) => a + b)
-  .assign("mul", ({ a, b }) => a * b)
-  .role("double", "mul", { b: 2 });
-```
-
-## Template Substitution
-
-Replace `{{result}}` patterns in callbacks:
+When an ant moves between chambers, its cargo transforms:
 
 ```javascript
 const substitute = (envelope, result) => {
@@ -253,14 +227,65 @@ const substitute = (envelope, result) => {
 };
 ```
 
-## Legacy Support
+## Error Handling
 
-The old Agent/Runtime classes are still exported for backwards compatibility:
+When something goes wrong, the ant carries the context:
+
+```javascript
+{
+  id: "processor",       // Which chamber
+  task: "double",        // Which task
+  payload: { n: 5 },     // What cargo
+  error: "..."           // What went wrong
+}
+```
+
+## What Emerges
+
+From simple rules, complex behavior appears:
+
+| Behavior | How |
+|----------|-----|
+| Pipelines | Ant travels through chambers via callbacks |
+| Parallel work | Many ants traveling simultaneously |
+| Specialization | Chambers know different tasks |
+| Delegation | Chambers send ants to other chambers |
+| Fault tolerance | Ants carry error context |
+| Growth | New chambers spawn anytime |
+| Self-organization | No central control |
+| Superhighways | Trails strengthen with use |
+| Forgetting | Unused trails fade over time |
+
+## What Could Still Emerge
+
+The 85 lines are the genome. Everything else is phenotype:
+
+| Capability | How It Might Grow |
+|------------|-------------------|
+| Load balancing | Route to chamber with weakest scent |
+| Learning | Chambers modify tasks based on results |
+| Death | Remove chambers with many failures |
+| Queens | Chambers that spawn chambers |
+| Scouting | Ants that explore before committing |
+
+## Type Safety
 
 ```typescript
-// New architecture (preferred)
-export { unit, colony } from "@/engine";
-
-// Legacy (for existing code)
-export { Agent, Runtime } from "@/engine";
+import { unit, colony } from "@/engine";
+import type { Unit, Colony, Envelope, Highway } from "@/engine";
 ```
+
+## Chainable API
+
+Chambers grow through chaining:
+
+```javascript
+const chamber = unit({ receiver: "worker" })
+  .assign("add", ({ a, b }) => a + b)
+  .assign("mul", ({ a, b }) => a * b)
+  .role("double", "mul", { b: 2 });
+```
+
+---
+
+*Ants figured this out 100 million years ago. We just wrote it down.*

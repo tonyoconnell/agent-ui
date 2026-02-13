@@ -10,27 +10,24 @@
  *   - Envelopes (ants) know their journey
  *   - The colony just provides the space for interaction
  *
- * The colony enables emergence:
- *   Simple units + simple routing = complex behavior
+ * STIGMERGY: Indirect communication through the environment.
+ * Ants don't talk to each other — they leave scent trails.
+ * Other ants smell the trails and follow strong ones.
+ * This is how superhighways emerge.
  */
 
 import { unit } from "./unit.js";
 
 /**
  * Create a colony - a space for units to exist and communicate.
- *
- * @returns {Object} Colony with spawn, send, and units
  */
 const colony = () => {
-  // All units in this colony, indexed by id
   const units = {};
+  const scent = {};  // The shared environment — pheromone trails
 
   /**
    * Route an envelope to its receiver.
-   * This is the shared "air" through which envelopes travel.
-   *
-   * @param {Object} envelope - { receiver, receive, payload, callback }
-   * @returns {Promise} Result of the receiving unit
+   * When an ant completes its journey, it strengthens the trail.
    */
   const send = ({ receiver, receive, payload, callback }) => {
     const target = units[receiver];
@@ -44,34 +41,27 @@ const colony = () => {
     }
 
     // Forward to the target unit
-    return target({ receive, payload, callback });
+    return target({ receive, payload, callback }).then((result) => {
+      // Ant completed journey — strengthen the trail
+      mark(`${receiver}:${receive}`, 1);
+      return result;
+    });
   };
 
   /**
    * Spawn a unit into the colony.
-   * The unit is born with awareness of the colony's routing.
-   *
-   * @param {Object} envelope - Birth envelope { receiver: id }
-   * @returns {Function} The spawned unit
    */
   const spawn = (envelope) => {
-    // Create unit with colony's send as its route function
     const u = unit(envelope, send);
-    // Register in the colony
     units[u.id] = u;
     return u;
   };
 
   /**
    * Spawn a unit from JSON data (static actions).
-   * Actions return predetermined results.
-   *
-   * @param {Object} data - { id, name, actions: { name: result } }
-   * @returns {Function} The spawned unit
    */
   const spawnFromJSON = (data) => {
     const u = spawn({ receiver: data.id });
-    // Each action returns its static result
     for (const [name, result] of Object.entries(data.actions || {})) {
       u.assign(name, () => result);
     }
@@ -79,28 +69,65 @@ const colony = () => {
   };
 
   /**
-   * Check if a unit exists in the colony.
+   * Mark a trail with scent (deposit pheromone).
+   * Called automatically when ants complete journeys.
+   * Can also be called manually to influence routing.
    */
+  const mark = (trail, strength = 1) => {
+    scent[trail] = (scent[trail] || 0) + strength;
+  };
+
+  /**
+   * Smell a trail (read pheromone strength).
+   * Stronger scent = more ants have traveled this path.
+   */
+  const smell = (trail) => scent[trail] || 0;
+
+  /**
+   * Fade all trails (pheromone evaporation).
+   * Call periodically to let unused paths weaken.
+   * This is how the colony forgets old routes.
+   */
+  const fade = (rate = 0.1) => {
+    for (const trail in scent) {
+      scent[trail] *= (1 - rate);
+      if (scent[trail] < 0.01) delete scent[trail];
+    }
+  };
+
+  /**
+   * Get the strongest trails (emergent superhighways).
+   */
+  const highways = (limit = 10) => {
+    return Object.entries(scent)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([trail, strength]) => ({ trail, strength }));
+  };
+
+  // Chamber introspection
   const has = (id) => id in units;
-
-  /**
-   * List all unit ids in the colony.
-   */
   const list = () => Object.keys(units);
-
-  /**
-   * Get a unit by id.
-   */
   const get = (id) => units[id];
 
   return {
-    spawn,        // Birth a unit into the colony
-    spawnFromJSON,// Birth from static JSON
-    send,         // Route an envelope
-    has,          // Check if unit exists
-    list,         // List all unit ids
-    get,          // Get unit by id
-    units         // Direct access (for introspection)
+    // Chambers
+    spawn,
+    spawnFromJSON,
+    has,
+    list,
+    get,
+    units,
+
+    // Movement
+    send,
+
+    // Stigmergy (the missing 20%)
+    mark,
+    smell,
+    fade,
+    highways,
+    scent
   };
 };
 
