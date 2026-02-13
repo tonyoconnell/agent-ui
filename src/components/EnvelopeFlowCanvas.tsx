@@ -3,8 +3,9 @@ import { ReactFlow, Background, useNodesState, useEdgesState, Handle, Position, 
 import "@xyflow/react/dist/style.css"
 import { cn } from "@/lib/utils"
 
-// Types
+// Types - index signatures required for ReactFlow compatibility
 interface EnvelopeData {
+  [key: string]: unknown
   direction: "in" | "out"
   status: string
   id?: string
@@ -17,6 +18,7 @@ interface EnvelopeData {
 }
 
 interface LogicData {
+  [key: string]: unknown
   step: number
 }
 
@@ -147,7 +149,7 @@ const edges: Edge[] = [
 ]
 
 function buildNodes(env: EnvelopeInput | null): Node[] {
-  const empty = { id: "—", action: "—", inputs: {}, status: "pending" as const }
+  const empty = { id: "—", action: "—", inputs: {}, status: "pending" as const, results: undefined }
   const e = env || empty
   return [
     { id: "envelope", type: "envelope", position: { x: 0, y: 0 }, data: {

@@ -1,128 +1,168 @@
 # Envelope System
 
-100 million years ago, ants solved distributed computing.
+## The Substrate
 
-No central brain. No master plan. Just simple creatures following simple rules — and somehow, cathedrals of cooperation emerge.
+100 million years ago, ants discovered a pattern.
+500 million years ago, brains discovered the same pattern.
+In 2017, transformers rediscovered it.
+
+```
+Nodes that compute.
+Edges that connect.
+Weights that learn.
+Signals that flow.
+No controller.
+```
 
 This is that pattern, in 85 lines of code.
 
 ---
 
-## The Biology
-
-An **ant** carries food through the nest. It knows where it's going and what to do when it gets there. When the work is done, it follows the trail to the next chamber.
-
-A **chamber** is a place in the nest where work happens. Each chamber knows certain tasks. When an ant arrives, the chamber does its work and sends the ant on its way.
-
-The **nest** is just space — tunnels connecting chambers. It doesn't control anything. It just lets ants find their way.
-
-**Pheromones** are how ants communicate without talking. When an ant completes a journey, it leaves scent on the trail. Other ants smell the scent and follow strong trails. This is how superhighways emerge — no one plans them.
+## The Structure
 
 ```
-Ant        →  envelope   (carries cargo, knows its journey)
-Chamber    →  unit       (does work, knows its tasks)
-Nest       →  colony     (space, not controller)
-Pheromone  →  scent      (trails strengthen with use)
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   CHAMBER          EDGE + WEIGHT          CHAMBER               │
+│   (node)           (connection)           (node)                │
+│                                                                 │
+│   ┌───────┐       ════════════►          ┌────────┐            │
+│   │ scout │──scent: 47──────────────────►│ analyst│            │
+│   └───────┘                              └────────┘            │
+│                                              │                  │
+│                   ════════════►              │                  │
+│                   scent: 23                  ▼                  │
+│                                         ┌────────┐             │
+│                                         │ trader │             │
+│                                         └────────┘             │
+│                                                                 │
+│   Pheromones are on EDGES, not nodes.                          │
+│   Like weights in a neural network.                            │
+│   Like synaptic strength in a brain.                           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+| Ant Colony | Neural Network | Brain | Our System |
+|------------|---------------|-------|------------|
+| Chamber | Neuron | Neuron | `unit` |
+| Trail | Synapse | Axon | edge |
+| Pheromone | Weight | Synaptic strength | `scent[edge]` |
+| Ant | Signal | Action potential | `envelope` |
+| Colony | Network | Connectome | `colony` |
+
+**The same pattern. Always.**
 
 ---
 
-## Watch an Ant Work
+## The Loop
 
-```javascript
-// Build a nest
-const nest = colony();
-
-// Grow chambers that know tasks
-nest.spawn({ receiver: "processor" })
-  .assign("double", ({ n }) => n * 2);
-
-nest.spawn({ receiver: "validator" })
-  .assign("check", ({ n }) => n > 0);
-
-// Release an ant — it knows its entire journey
-nest.send({
-  receiver: "processor",      // first chamber
-  receive: "double",          // task to perform
-  payload: { n: 5 },          // cargo it carries
-  callback: {                 // trail to next chamber
-    receiver: "validator",
-    receive: "check",
-    payload: { n: "{{result}}" }  // cargo becomes previous result
-  }
-});
-
-// The ant travels: processor → validator
-// processor.double(5) → 10 → validator.check(10) → true
-```
-
----
-
-## Watch Superhighways Emerge
-
-```javascript
-const nest = colony();
-
-nest.spawn({ receiver: "a" }).assign("work", () => "done");
-nest.spawn({ receiver: "b" }).assign("work", () => "done");
-
-// Ants travel — trails strengthen automatically
-await nest.send({ receiver: "a", receive: "work", payload: {} });
-await nest.send({ receiver: "a", receive: "work", payload: {} });
-await nest.send({ receiver: "a", receive: "work", payload: {} });
-await nest.send({ receiver: "b", receive: "work", payload: {} });
-
-// See the superhighways
-nest.highways();
-// → [{ trail: "a:work", strength: 3 }, { trail: "b:work", strength: 1 }]
-
-// Smell a specific trail
-nest.smell("a:work");  // → 3
-
-// Time passes — unused trails fade
-nest.fade(0.5);
-nest.smell("a:work");  // → 1.5
-```
-
-No one planned the highway. It emerged from ants doing their work.
-
----
-
-## What Evolution Discovered
-
-Ants have no CEO. No project manager. No central nervous system running the colony.
-
-They have three rules:
+This is how intelligence emerges. It's a feedback loop.
 
 ```
-1. Pick up food
-2. Follow the trail
-3. Do the work
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│                        THE LOOP                                 │
+│                                                                 │
+│         ┌──────────────────────────────────┐                   │
+│         │                                  │                   │
+│         ▼                                  │                   │
+│   ┌──────────┐    ┌──────────┐    ┌───────┴────┐              │
+│   │  Signal  │───▶│  Edge    │───▶│  Stronger  │              │
+│   │  travels │    │  gains   │    │  edge      │              │
+│   │  edge    │    │  scent   │    │  attracts  │              │
+│   └──────────┘    └──────────┘    │  more      │              │
+│                                   │  signals   │              │
+│                                   └────────────┘              │
+│                                                                 │
+│   More traffic  →  More pheromone  →  More traffic  →  ...    │
+│                                                                 │
+│   This is how highways form.                                   │
+│   This is how brains learn.                                    │
+│   This is how intelligence emerges.                            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-We have the same:
+**The highway IS the learning.**
 
 ```
-1. Receive the envelope
-2. Execute the service
-3. Forward the callback
+                    WEAK EDGE
+    ┌────┐        (scent: 2)          ┌────┐
+    │ A  │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ▶│ B  │
+    └────┘         dirt path          └────┘
+
+
+                  STRONG EDGE
+    ┌────┐       (scent: 10,000)      ┌────┐
+    │ A  │ ══════════════════════════▶│ C  │
+    └────┘        SUPERHIGHWAY        └────┘
 ```
 
-And one more for stigmergy:
+Ants don't remember paths. The *path* remembers itself.
+Neurons don't store knowledge. The *connections* store it.
+The network doesn't think. The *edges* think.
+
+**Two loops, one system:**
 
 ```
-4. Leave scent on the trail
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  REINFORCEMENT LOOP              DECAY LOOP                    │
+│  (learning)                      (forgetting)                  │
+│                                                                 │
+│  signal succeeds                 time passes                   │
+│       │                               │                        │
+│       ▼                               ▼                        │
+│  edge strengthens                edge weakens                  │
+│       │                               │                        │
+│       ▼                               ▼                        │
+│  more signals follow             signals find other paths      │
+│       │                               │                        │
+│       ▼                               ▼                        │
+│  SUPERHIGHWAY                    edge disappears               │
+│                                                                 │
+│  Used paths grow.                Unused paths die.             │
+│  This is learning.               This is forgetting.           │
+│  Both are essential.             Both are essential.           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-That's it. That's 100 million years of optimization.
+**Without forgetting, no learning.**
+Old paths would never fade. New patterns could never emerge.
+The colony would be trapped by its history.
+
+**Without reinforcement, no memory.**
+Useful paths would never strengthen. Knowledge could never accumulate.
+The colony would never learn.
+
+**Both loops. Always. That's intelligence.**
 
 ---
 
 ## The Code
 
-### Chamber (unit.js) — 30 lines
+### Signal (envelope)
 
-A chamber IS its entrance. When an ant arrives, work happens.
+An ant carries cargo and knows its journey:
+
+```javascript
+{
+  receiver: "analyst",           // which node to enter
+  receive: "evaluate",           // which computation to trigger
+  payload: { price: 100 },       // cargo being carried
+  callback: {                    // where to go next
+    receiver: "trader",
+    receive: "execute",
+    payload: { data: "{{result}}" }
+  }
+}
+```
+
+### Node (unit) — 30 lines
+
+A node IS its entrance. When a signal arrives, computation happens.
 
 ```javascript
 const unit = (envelope, route) => {
@@ -135,9 +175,7 @@ const unit = (envelope, route) => {
     return tasks[task](payload).then((result) => {
       if (callback) {
         const next = substitute(callback, result);
-        // Different chamber? Travel through the nest
         if (next.receiver !== id && route) return route(next);
-        // Same chamber? Stay here
         return receive(next);
       }
       return result;
@@ -150,87 +188,137 @@ const unit = (envelope, route) => {
 };
 ```
 
-### Nest with Pheromones (colony.js) — 55 lines
+### Network (colony) — 55 lines
 
-The nest doesn't think. It just connects chambers and holds scent.
+The network doesn't think. It connects nodes and learns which edges matter.
 
 ```javascript
 const colony = () => {
-  const chambers = {};
-  const scent = {};  // Pheromone trails
+  const chambers = {};   // Nodes
+  const scent = {};      // Edge weights
 
-  // An ant travels — and leaves scent on success
-  const send = ({ receiver, receive, payload, callback }) => {
-    const chamber = chambers[receiver];
-    if (!chamber) return Promise.reject({ error: `No chamber: ${receiver}` });
-    return chamber({ receive, payload, callback }).then((result) => {
-      mark(`${receiver}:${receive}`, 1);  // Strengthen the trail
+  const send = ({ receiver, receive, payload, callback }, from = "entry") => {
+    const target = chambers[receiver];
+    if (!target) return Promise.reject({ error: `No node: ${receiver}` });
+
+    const currentNode = `${receiver}:${receive}`;
+
+    return target({ receive, payload, callback }).then((result) => {
+      // LEARNING: Strengthen the edge that was just traversed
+      const edge = `${from} → ${currentNode}`;
+      scent[edge] = (scent[edge] || 0) + 1;
       return result;
     });
   };
 
-  // A new chamber grows
   const spawn = (envelope) => {
-    const chamber = unit(envelope, send);
-    chambers[chamber.id] = chamber;
-    return chamber;
+    const node = unit(envelope, send);
+    chambers[node.id] = node;
+    return node;
   };
-
-  // Stigmergy: indirect communication through environment
-  const mark = (trail, strength = 1) => {
-    scent[trail] = (scent[trail] || 0) + strength;
-  };
-
-  const smell = (trail) => scent[trail] || 0;
 
   const fade = (rate = 0.1) => {
-    for (const trail in scent) {
-      scent[trail] *= (1 - rate);
-      if (scent[trail] < 0.01) delete scent[trail];
+    for (const edge in scent) {
+      scent[edge] *= (1 - rate);
+      if (scent[edge] < 0.01) delete scent[edge];
     }
   };
 
   const highways = () => Object.entries(scent)
     .sort(([, a], [, b]) => b - a)
-    .map(([trail, strength]) => ({ trail, strength }));
+    .map(([edge, strength]) => ({ edge, strength }));
 
-  return { spawn, send, mark, smell, fade, highways, chambers, scent };
+  return { spawn, send, fade, highways, chambers, scent };
 };
 ```
 
-**85 lines. A living system.**
+**85 lines. The substrate for emergent intelligence.**
+
+---
+
+## Watch It Learn
+
+```javascript
+const net = colony();
+
+// Create nodes
+net.spawn({ receiver: "scout" }).assign("observe", fn1);
+net.spawn({ receiver: "analyst" }).assign("evaluate", fn2);
+net.spawn({ receiver: "trader" }).assign("execute", fn3);
+
+// Send signals — edges strengthen automatically
+await net.send({
+  receiver: "scout",
+  receive: "observe",
+  payload: { tick: 1 },
+  callback: {
+    receiver: "analyst",
+    receive: "evaluate",
+    payload: { data: "{{result}}" },
+    callback: {
+      receiver: "trader",
+      receive: "execute",
+      payload: { signal: "{{result}}" }
+    }
+  }
+});
+
+// See what the network learned
+net.highways();
+// → [
+//   { edge: "entry → scout:observe", strength: 1 },
+//   { edge: "scout:observe → analyst:evaluate", strength: 1 },
+//   { edge: "analyst:evaluate → trader:execute", strength: 1 }
+// ]
+
+// Send more signals through the same path
+// ... (repeat 100 times)
+
+net.highways();
+// → [
+//   { edge: "scout:observe → analyst:evaluate", strength: 100 },
+//   { edge: "analyst:evaluate → trader:execute", strength: 100 },
+//   { edge: "entry → scout:observe", strength: 100 }
+// ]
+
+// Superhighways emerge. The network learned.
+
+// Time passes — unused edges fade
+net.fade(0.1);
+
+// The network forgets what doesn't matter.
+```
 
 ---
 
 ## What Emerges
 
-From these simple rules, complex behavior appears — the same way millions of ants build bridges, farms, and highways without a blueprint.
+From 85 lines, these behaviors appear without being programmed:
 
-| Behavior | How It Happens |
-|----------|----------------|
-| **Pipelines** | Ant carries cargo through chambers via callbacks |
-| **Parallel work** | Many ants traveling simultaneously |
-| **Specialization** | Chambers know different tasks |
-| **Delegation** | Chambers can send ants to other chambers |
-| **Fault tolerance** | If a chamber fails, the ant carries the error |
-| **Growth** | New chambers spawn anytime |
-| **Self-organization** | No central control, ever |
-| **Superhighways** | Trails strengthen with use |
-| **Forgetting** | Unused trails fade over time |
+| Behavior | How |
+|----------|-----|
+| **Learning** | Edges strengthen with use |
+| **Forgetting** | Unused edges fade |
+| **Highways** | High-traffic paths emerge |
+| **Load balancing** | Route to weak-scent nodes |
+| **Specialization** | Nodes develop strong incoming edges |
+| **Fault tolerance** | Failed paths weaken, alternatives strengthen |
+| **Self-organization** | No central controller, ever |
 
 ---
 
-## What Could Still Emerge
+## The Insight
 
-The 85 lines are the genome. Everything else is phenotype.
+```
+Ants don't talk to each other.
+Neurons don't talk to each other.
+They modify the connections between them.
+Other signals read those modifications.
 
-| Capability | How It Might Grow |
-|------------|-------------------|
-| **Load balancing** | Route to chamber with weakest scent (least busy) |
-| **Learning** | Chambers modify their own tasks based on results |
-| **Death** | Remove chambers with too many failures |
-| **Queens** | Chambers that spawn other chambers |
-| **Scouting** | Ants that explore before committing |
+That's intelligence.
+That's what we built.
+That's 85 lines.
+```
 
 ---
 
@@ -256,14 +344,42 @@ bun dev        # → localhost:4321
 
 ```
 src/engine/
-├── unit.js      # Chamber (30 lines)
-├── colony.js    # Nest + Pheromones (55 lines)
+├── unit.js      # Node (30 lines)
+├── colony.js    # Network + Learning (55 lines)
 └── index.ts     # Exports
 
-public/
-└── agents.json  # The ants and their journeys
+docs/
+├── PLAN-emerge.md  # How to build everything from the 85 lines
+└── examples.md     # Trading, swarms, task pheromones
 ```
 
 ---
 
-*Ants figured this out 100 million years ago. We just wrote it down.*
+## The Plan
+
+See [docs/PLAN-emerge.md](docs/PLAN-emerge.md) — how to build everything from the 85 lines:
+
+```
+agents.tql    →  What CAN exist (schema)
+agents.json   →  What DOES exist (data)
+colony.js     →  What LIVES (runtime)
+components/   →  What you SEE (UI)
+```
+
+---
+
+## Examples
+
+See [docs/examples.md](docs/examples.md):
+
+| Example | What It Does |
+|---------|--------------|
+| **Trading Swarm** | Ticks flow through nodes. Profitable edges strengthen. |
+| **Agent Coordination** | Agents cluster around hot edges. Idle agents get recruited. |
+| **Task Pheromones** | Success strengthens edges. Failure weakens them. |
+
+---
+
+*Ants discovered this 100 million years ago.*
+*Brains discovered it 500 million years ago.*
+*We wrote it down in 85 lines.*

@@ -1,64 +1,104 @@
 /**
- * COLONY - The Shared Space Where Units Exist
+ * COLONY - The Substrate for Emergent Intelligence
  *
- * A Colony is not a controller. It is a space.
- * Units are born into the colony. Envelopes travel through it.
+ * This is the pattern that ants discovered 100 million years ago.
+ * The same pattern brains use. The same pattern neural networks use.
  *
- * Like an ant colony:
- *   - No central dispatcher
- *   - Units are autonomous
- *   - Envelopes (ants) know their journey
- *   - The colony just provides the space for interaction
+ * Nodes that compute.
+ * Edges that connect.
+ * Weights that learn.
+ * Signals that flow.
+ * No controller.
  *
- * STIGMERGY: Indirect communication through the environment.
- * Ants don't talk to each other — they leave scent trails.
- * Other ants smell the trails and follow strong ones.
- * This is how superhighways emerge.
+ * 85 lines. The foundation of emergent AI.
  */
 
 import { unit } from "./unit.js";
 
-/**
- * Create a colony - a space for units to exist and communicate.
- */
 const colony = () => {
-  const units = {};
-  const scent = {};  // The shared environment — pheromone trails
+  const chambers = {};   // Nodes: where computation happens
+  const scent = {};      // Edge weights: learned importance of paths
+  let lastVisited = null; // Track the previous node for edge marking
 
   /**
-   * Route an envelope to its receiver.
-   * When an ant completes its journey, it strengthens the trail.
+   * Mark an edge with scent (strengthen the weight).
+   * Like synaptic plasticity: paths that fire together wire together.
    */
-  const send = ({ receiver, receive, payload, callback }) => {
-    const target = units[receiver];
+  const mark = (edge, strength = 1) => {
+    scent[edge] = (scent[edge] || 0) + strength;
+  };
+
+  /**
+   * Smell an edge (read the weight).
+   */
+  const smell = (edge) => scent[edge] || 0;
+
+  /**
+   * Fade all edges (weights decay over time).
+   * The colony forgets unused paths. This is essential.
+   */
+  const fade = (rate = 0.1) => {
+    for (const edge in scent) {
+      scent[edge] *= (1 - rate);
+      if (scent[edge] < 0.01) delete scent[edge];
+    }
+  };
+
+  /**
+   * Get the strongest edges (emergent superhighways).
+   * These are the paths the swarm has learned matter most.
+   */
+  const highways = (limit = 10) => {
+    return Object.entries(scent)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([edge, strength]) => ({ edge, strength }));
+  };
+
+  /**
+   * Route a signal through the network.
+   * When an ant completes a journey, the EDGE strengthens — not the node.
+   * This is how the network learns.
+   */
+  const send = ({ receiver, receive, payload, callback }, from = "entry") => {
+    const target = chambers[receiver];
 
     if (!target) {
       return Promise.reject({
         receiver,
         receive,
-        error: `Unknown unit: ${receiver}`
+        error: `Unknown chamber: ${receiver}`
       });
     }
 
-    // Forward to the target unit
+    const currentNode = `${receiver}:${receive}`;
+
     return target({ receive, payload, callback }).then((result) => {
-      // Ant completed journey — strengthen the trail
-      mark(`${receiver}:${receive}`, 1);
+      // Mark the EDGE from previous node to current node
+      const edge = `${from} → ${currentNode}`;
+      mark(edge, 1);
+
+      // Remember this node for the next edge
+      lastVisited = currentNode;
+
       return result;
     });
   };
 
   /**
-   * Spawn a unit into the colony.
+   * Spawn a chamber (node) into the colony.
    */
   const spawn = (envelope) => {
-    const u = unit(envelope, send);
-    units[u.id] = u;
-    return u;
+    const chamber = unit(envelope, (env) => {
+      // When routing between chambers, track the edge
+      return send(env, lastVisited || "entry");
+    });
+    chambers[chamber.id] = chamber;
+    return chamber;
   };
 
   /**
-   * Spawn a unit from JSON data (static actions).
+   * Spawn from JSON data.
    */
   const spawnFromJSON = (data) => {
     const u = spawn({ receiver: data.id });
@@ -68,66 +108,31 @@ const colony = () => {
     return u;
   };
 
-  /**
-   * Mark a trail with scent (deposit pheromone).
-   * Called automatically when ants complete journeys.
-   * Can also be called manually to influence routing.
-   */
-  const mark = (trail, strength = 1) => {
-    scent[trail] = (scent[trail] || 0) + strength;
-  };
-
-  /**
-   * Smell a trail (read pheromone strength).
-   * Stronger scent = more ants have traveled this path.
-   */
-  const smell = (trail) => scent[trail] || 0;
-
-  /**
-   * Fade all trails (pheromone evaporation).
-   * Call periodically to let unused paths weaken.
-   * This is how the colony forgets old routes.
-   */
-  const fade = (rate = 0.1) => {
-    for (const trail in scent) {
-      scent[trail] *= (1 - rate);
-      if (scent[trail] < 0.01) delete scent[trail];
-    }
-  };
-
-  /**
-   * Get the strongest trails (emergent superhighways).
-   */
-  const highways = (limit = 10) => {
-    return Object.entries(scent)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, limit)
-      .map(([trail, strength]) => ({ trail, strength }));
-  };
-
-  // Chamber introspection
-  const has = (id) => id in units;
-  const list = () => Object.keys(units);
-  const get = (id) => units[id];
+  // Introspection
+  const has = (id) => id in chambers;
+  const list = () => Object.keys(chambers);
+  const get = (id) => chambers[id];
 
   return {
-    // Chambers
+    // The graph
+    chambers,     // Nodes
+    scent,        // Edge weights
+
+    // Build
     spawn,
     spawnFromJSON,
     has,
     list,
     get,
-    units,
 
-    // Movement
+    // Signal flow
     send,
 
-    // Stigmergy (the missing 20%)
+    // Learning (stigmergy)
     mark,
     smell,
     fade,
-    highways,
-    scent
+    highways
   };
 };
 

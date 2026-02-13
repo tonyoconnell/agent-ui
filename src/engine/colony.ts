@@ -1,121 +1,138 @@
 /**
- * COLONY - The Shared Space Where Units Exist
+ * COLONY - The Substrate for Emergent Intelligence
  *
- * A Colony is not a controller. It is a space.
- * Units are born into the colony. Envelopes travel through it.
+ * This is the pattern that ants discovered 100 million years ago.
+ * The same pattern brains use. The same pattern neural networks use.
  *
- * Like an ant colony:
- *   - No central dispatcher
- *   - Units are autonomous
- *   - Envelopes (ants) know their journey
- *   - The colony just provides the space for interaction
+ * Nodes that compute.
+ * Edges that connect.
+ * Weights that learn.
+ * Signals that flow.
+ * No controller.
  *
- * STIGMERGY: Indirect communication through the environment.
- * Ants don't talk to each other — they leave scent trails.
- * Other ants smell the trails and follow strong ones.
- * This is how superhighways emerge.
+ * 85 lines. The foundation of emergent AI.
  */
 
 import { unit } from "./unit";
 import type { Envelope, Unit } from "./unit";
 
-/**
- * Colony Error - when routing fails
- */
 interface ColonyError {
   receiver: string;
   receive?: string;
   error: string;
 }
 
-/**
- * JSON format for spawning units from static data
- */
 interface UnitJSON {
   id: string;
   name?: string;
   actions?: Record<string, unknown>;
 }
 
-/**
- * A trail with its scent strength
- */
-interface Highway {
-  trail: string;
+interface Edge {
+  edge: string;
   strength: number;
 }
 
-/**
- * Colony - the space where units exist
- */
 interface Colony {
-  // Chambers
+  // The graph
+  chambers: Record<string, Unit>;
+  scent: Record<string, number>;
+
+  // Build
   spawn: (envelope: Envelope) => Unit;
   spawnFromJSON: (data: UnitJSON) => Unit;
   has: (id: string) => boolean;
   list: () => string[];
   get: (id: string) => Unit | undefined;
-  units: Record<string, Unit>;
 
-  // Movement
-  send: (envelope: Envelope) => Promise<unknown>;
+  // Signal flow
+  send: (envelope: Envelope, from?: string) => Promise<unknown>;
 
-  // Stigmergy
-  mark: (trail: string, strength?: number) => void;
-  smell: (trail: string) => number;
+  // Learning (stigmergy)
+  mark: (edge: string, strength?: number) => void;
+  smell: (edge: string) => number;
   fade: (rate?: number) => void;
-  highways: (limit?: number) => Highway[];
-  scent: Record<string, number>;
+  highways: (limit?: number) => Edge[];
 }
 
-/**
- * Create a colony - a space for units to exist and communicate.
- */
 const colony = (): Colony => {
-  const units: Record<string, Unit> = {};
-  const scent: Record<string, number> = {};  // The shared environment — pheromone trails
+  const chambers: Record<string, Unit> = {};  // Nodes
+  const scent: Record<string, number> = {};   // Edge weights
+  let lastVisited: string | null = null;      // Track previous node
 
   /**
-   * Mark a trail with scent (deposit pheromone).
+   * Mark an edge with scent (strengthen the weight).
    */
-  const mark = (trail: string, strength: number = 1): void => {
-    scent[trail] = (scent[trail] || 0) + strength;
+  const mark = (edge: string, strength: number = 1): void => {
+    scent[edge] = (scent[edge] || 0) + strength;
   };
 
   /**
-   * Route an envelope to its receiver.
-   * When an ant completes its journey, it strengthens the trail.
+   * Smell an edge (read the weight).
    */
-  const send = ({ receiver, receive, payload, callback }: Envelope): Promise<unknown> => {
-    const target = units[receiver!];
+  const smell = (edge: string): number => scent[edge] || 0;
+
+  /**
+   * Fade all edges (weights decay over time).
+   */
+  const fade = (rate: number = 0.1): void => {
+    for (const edge in scent) {
+      scent[edge] *= (1 - rate);
+      if (scent[edge] < 0.01) delete scent[edge];
+    }
+  };
+
+  /**
+   * Get the strongest edges (emergent superhighways).
+   */
+  const highways = (limit: number = 10): Edge[] => {
+    return Object.entries(scent)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([edge, strength]) => ({ edge, strength }));
+  };
+
+  /**
+   * Route a signal through the network.
+   * Edge strengthens on successful traversal.
+   */
+  const send = ({ receiver, receive, payload, callback }: Envelope, from: string = "entry"): Promise<unknown> => {
+    const target = chambers[receiver!];
 
     if (!target) {
       return Promise.reject({
         receiver,
         receive,
-        error: `Unknown unit: ${receiver}`
+        error: `Unknown chamber: ${receiver}`
       } as ColonyError);
     }
 
-    // Forward to the target unit
+    const currentNode = `${receiver}:${receive}`;
+
     return target({ receive, payload, callback }).then((result) => {
-      // Ant completed journey — strengthen the trail
-      mark(`${receiver}:${receive}`, 1);
+      // Mark the EDGE from previous node to current node
+      const edge = `${from} → ${currentNode}`;
+      mark(edge, 1);
+
+      lastVisited = currentNode;
+
       return result;
     });
   };
 
   /**
-   * Spawn a unit into the colony.
+   * Spawn a chamber (node) into the colony.
    */
   const spawn = (envelope: Envelope): Unit => {
-    const u = unit(envelope, send);
-    units[u.id] = u;
-    return u;
+    const chamber = unit(envelope, (env: Envelope) => {
+      return send(env, lastVisited || "entry");
+    });
+    chambers[chamber.id] = chamber;
+    return chamber;
   };
 
   /**
-   * Spawn a unit from JSON data (static actions).
+   * Spawn from JSON data.
    */
   const spawnFromJSON = (data: UnitJSON): Unit => {
     const u = spawn({ receiver: data.id });
@@ -125,56 +142,26 @@ const colony = (): Colony => {
     return u;
   };
 
-  /**
-   * Smell a trail (read pheromone strength).
-   */
-  const smell = (trail: string): number => scent[trail] || 0;
-
-  /**
-   * Fade all trails (pheromone evaporation).
-   */
-  const fade = (rate: number = 0.1): void => {
-    for (const trail in scent) {
-      scent[trail] *= (1 - rate);
-      if (scent[trail] < 0.01) delete scent[trail];
-    }
-  };
-
-  /**
-   * Get the strongest trails (emergent superhighways).
-   */
-  const highways = (limit: number = 10): Highway[] => {
-    return Object.entries(scent)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, limit)
-      .map(([trail, strength]) => ({ trail, strength }));
-  };
-
-  // Chamber introspection
-  const has = (id: string): boolean => id in units;
-  const list = (): string[] => Object.keys(units);
-  const get = (id: string): Unit | undefined => units[id];
+  // Introspection
+  const has = (id: string): boolean => id in chambers;
+  const list = (): string[] => Object.keys(chambers);
+  const get = (id: string): Unit | undefined => chambers[id];
 
   return {
-    // Chambers
+    chambers,
+    scent,
     spawn,
     spawnFromJSON,
     has,
     list,
     get,
-    units,
-
-    // Movement
     send,
-
-    // Stigmergy
     mark,
     smell,
     fade,
-    highways,
-    scent
+    highways
   };
 };
 
 export { colony };
-export type { Colony, ColonyError, UnitJSON, Highway };
+export type { Colony, ColonyError, UnitJSON, Edge };

@@ -1,43 +1,46 @@
 {
   "agents": [
     {
-      "id": "agent-a",
-      "name": "Data Processor",
+      "id": "scout",
+      "name": "Scout",
+      "status": "ready",
       "actions": {
-        "processData": { "processed": true, "count": 42 }
-      }
+        "observe": { "processed": true, "data": "market-tick" }
+      },
+      "envelopes": []
     },
     {
-      "id": "agent-b",
-      "name": "Router",
+      "id": "analyst",
+      "name": "Analyst",
+      "status": "ready",
       "actions": {
-        "routeEnvelope": { "routed": true }
-      }
+        "evaluate": { "signal": "strong", "confidence": 0.85 }
+      },
+      "envelopes": []
     },
     {
-      "id": "agent-c",
-      "name": "Validator",
+      "id": "trader",
+      "name": "Trader",
+      "status": "ready",
       "actions": {
-        "signPayload": { "signed": true, "hash": "0xabc..." }
-      }
+        "execute": { "executed": true, "orderId": "123" }
+      },
+      "envelopes": []
     }
   ],
   "envelopes": [
     {
-      "action": "processData",
-      "inputs": { "source": "api/feed", "limit": 100 },
-      "sender": "system",
-      "receiver": "agent-a",
+      "receiver": "scout",
+      "receive": "observe",
+      "payload": { "source": "api/feed" },
       "callback": {
-        "action": "routeEnvelope",
-        "inputs": { "target": "agent-c", "data": "{{ results }}" },
-        "sender": "agent-a",
-        "receiver": "agent-b",
+        "receiver": "analyst",
+        "receive": "evaluate",
+        "payload": { "data": "{{result}}" },
         "callback": {
-          "action": "signPayload",
-          "inputs": { "payload": "{{ results }}" },
-          "sender": "agent-b",
-          "receiver": "agent-c"
+          "receiver": "trader",
+          "receive": "execute",
+          "payload": { "signal": "{{result}}" }
         }
       }
     }
