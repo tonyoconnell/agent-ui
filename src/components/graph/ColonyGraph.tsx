@@ -1,19 +1,24 @@
-import { useMemo, useCallback } from "react"
+import { useMemo, useCallback, useState } from "react"
 import {
   ReactFlow,
   Background,
   Controls,
+  MiniMap,
   Handle,
   Position,
   MarkerType,
+  getBezierPath,
+  BaseEdge,
+  EdgeLabelRenderer,
   type Node,
   type Edge as FlowEdge,
+  type EdgeProps,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 import type { Edge } from "@/engine"
 import { cn } from "@/lib/utils"
 
-// Agent data structure
+// Types
 interface AgentData {
   id: string
   name: string
@@ -27,7 +32,6 @@ interface ColonyGraphProps {
   onSelectAgent?: (id: string) => void
 }
 
-// Node data types
 interface ChamberData {
   id: string
   label: string
@@ -35,8 +39,7 @@ interface ChamberData {
   actions: string[]
   incomingStrength: number
   outgoingStrength: number
-  incomingEdges: number
-  outgoingEdges: number
+  isHighway: boolean
   [key: string]: unknown
 }
 
@@ -45,138 +48,146 @@ interface EntryData {
   [key: string]: unknown
 }
 
-// Status dot component
-function Dot({ status, pulse, size = "sm" }: { status: string; pulse?: boolean; size?: "sm" | "md" }) {
-  const colors: Record<string, string> = {
-    ready: "bg-emerald-500",
-    active: "bg-blue-500",
-    idle: "bg-slate-500",
-    error: "bg-red-500",
-  }
-  const color = colors[status] || colors.idle
-  const sizeClass = size === "md" ? "h-3 w-3" : "h-2 w-2"
+// Custom flow edge with particles
+function FlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, data }: EdgeProps) {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX, sourceY, sourcePosition,
+    targetX, targetY, targetPosition,
+    curvature: 0.2,
+  })
+
+  const strength = (data?.strength as number) || 0
+  const isHighway = strength > 50
+  const isMedium = strength > 20
+  const label = data?.label as string
 
   return (
-    <span className={cn("relative flex", sizeClass)}>
-      {pulse && <span className={cn("animate-ping absolute inset-0 rounded-full opacity-75", color)} />}
-      <span className={cn("relative rounded-full", sizeClass, color)} />
-    </span>
+    <>
+      {isHighway && (
+        <path d={edgePath} fill="none" stroke="#3b82f6" strokeWidth={12} strokeOpacity={0.1} />
+      )}
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        style={{
+          strokeWidth: Math.max(1.5, Math.min(strength / 12, 6)),
+          stroke: isHighway ? "#3b82f6" : isMedium ? "#6366f1" : "#374151",
+        }}
+        markerEnd={markerEnd}
+      />
+      {isHighway && (
+        <>
+          <circle r="3" fill="#60a5fa">
+            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+          </circle>
+          <circle r="2" fill="#93c5fd">
+            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} begin="0.5s" />
+          </circle>
+        </>
+      )}
+      <EdgeLabelRenderer>
+        <div
+          className={cn(
+            "absolute px-1.5 py-0.5 rounded text-[9px] font-mono pointer-events-none",
+            isHighway ? "bg-blue-500/20 text-blue-300" : "bg-[#0a0a0f]/90 text-slate-500"
+          )}
+          style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
+        >
+          {label}
+        </div>
+      </EdgeLabelRenderer>
+    </>
   )
 }
 
-// Strength bar component
-function StrengthBar({ value, max = 100, label }: { value: number; max?: number; label?: string }) {
+// Compact strength bar
+function StrengthBar({ value, max = 100 }: { value: number; max?: number }) {
   const pct = Math.min((value / max) * 100, 100)
   const isHigh = value > 50
 
   return (
-    <div className="flex items-center gap-2">
-      {label && <span className="text-[10px] text-slate-500 w-8">{label}</span>}
-      <div className="flex-1 h-1.5 bg-[#252538] rounded-full overflow-hidden">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all duration-500",
-            isHigh ? "bg-gradient-to-r from-blue-500 to-cyan-400" : "bg-slate-600"
-          )}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className={cn("text-[10px] w-6 text-right", isHigh ? "text-blue-400" : "text-slate-500")}>
-        {value.toFixed(0)}
-      </span>
+    <div className="h-1 bg-[#1a1a2e] rounded-full overflow-hidden flex-1">
+      <div
+        className={cn("h-full rounded-full", isHigh ? "bg-blue-500" : "bg-slate-600")}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   )
 }
 
-// Rich chamber node - represents an agent
+// Compact chamber node
 function ChamberNode({ data }: { data: ChamberData }) {
+  const [hovered, setHovered] = useState(false)
   const isActive = data.incomingStrength > 50 || data.outgoingStrength > 50
-  const totalTraffic = data.incomingStrength + data.outgoingStrength
+  const total = data.incomingStrength + data.outgoingStrength
 
   return (
     <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={cn(
-        "bg-[#161622] rounded-2xl p-4 min-w-[180px] border transition-all duration-300",
-        isActive
-          ? "border-blue-500/50 shadow-xl shadow-blue-500/20"
-          : "border-[#252538] hover:border-[#3b3b5c]"
+        "bg-[#12121a] rounded-xl p-3 w-[160px] border transition-all cursor-pointer",
+        isActive ? "border-blue-500/50 shadow-lg shadow-blue-500/20" :
+        hovered ? "border-slate-600" : "border-[#252538]"
       )}
     >
-      {/* Connection handles */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-left-1.5"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!bg-emerald-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-right-1.5"
-      />
+      <Handle type="target" position={Position.Left}
+        className={cn("!w-2.5 !h-2.5 !border-2 !-left-1", isActive ? "!bg-blue-400 !border-blue-900" : "!bg-slate-500 !border-[#12121a]")} />
+      <Handle type="source" position={Position.Right}
+        className={cn("!w-2.5 !h-2.5 !border-2 !-right-1", isActive ? "!bg-emerald-400 !border-emerald-900" : "!bg-slate-500 !border-[#12121a]")} />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Dot status={data.status} pulse={isActive} size="md" />
-          <span className="text-white font-semibold">{data.label}</span>
+          <span className={cn("w-2 h-2 rounded-full", isActive ? "bg-blue-500 animate-pulse" : "bg-slate-600")} />
+          <span className="text-white font-semibold text-sm truncate">{data.label}</span>
         </div>
-        {totalTraffic > 0 && (
-          <span className={cn(
-            "text-[10px] px-2 py-0.5 rounded-full",
-            isActive ? "bg-blue-500/20 text-blue-400" : "bg-slate-800 text-slate-500"
-          )}>
-            {totalTraffic.toFixed(0)}
+        {total > 0 && (
+          <span className={cn("text-[10px] font-mono", isActive ? "text-blue-400" : "text-slate-500")}>
+            {total.toFixed(0)}
           </span>
         )}
       </div>
 
       {/* Actions */}
-      <div className="mb-3">
-        <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Actions</div>
-        <div className="flex flex-wrap gap-1">
-          {data.actions.map((action) => (
-            <span
-              key={action}
-              className="text-[10px] px-2 py-0.5 bg-[#252538] text-slate-400 rounded font-mono"
-            >
-              {action}
-            </span>
-          ))}
-        </div>
+      <div className="flex flex-wrap gap-1 mb-2">
+        {data.actions.slice(0, 2).map((a) => (
+          <span key={a} className="text-[9px] px-1.5 py-0.5 bg-[#252538] text-slate-400 rounded font-mono">{a}</span>
+        ))}
+        {data.actions.length > 2 && (
+          <span className="text-[9px] text-slate-600">+{data.actions.length - 2}</span>
+        )}
       </div>
 
-      {/* Traffic stats */}
-      {(data.incomingStrength > 0 || data.outgoingStrength > 0) && (
-        <div className="pt-3 border-t border-[#252538] space-y-1.5">
-          <StrengthBar value={data.incomingStrength} label="IN" />
-          <StrengthBar value={data.outgoingStrength} label="OUT" />
-        </div>
+      {/* Traffic bars */}
+      <div className="flex items-center gap-2 text-[8px] text-slate-500">
+        <span>IN</span>
+        <StrengthBar value={data.incomingStrength} />
+        <span className="text-slate-600">{data.incomingStrength.toFixed(0)}</span>
+      </div>
+      <div className="flex items-center gap-2 text-[8px] text-slate-500 mt-1">
+        <span>OUT</span>
+        <StrengthBar value={data.outgoingStrength} />
+        <span className="text-slate-600">{data.outgoingStrength.toFixed(0)}</span>
+      </div>
+
+      {data.isHighway && (
+        <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-blue-500 rounded-full border-2 border-[#12121a]" />
       )}
-
-      {/* Edge counts */}
-      <div className="mt-2 flex justify-between text-[10px] text-slate-600">
-        <span>{data.incomingEdges} incoming</span>
-        <span>{data.outgoingEdges} outgoing</span>
-      </div>
     </div>
   )
 }
 
-// Entry point node - where signals originate
+// Compact entry node
 function EntryNode({ data }: { data: EntryData }) {
   return (
-    <div className="bg-gradient-to-r from-emerald-900/50 to-emerald-800/30 rounded-xl px-5 py-3 border border-emerald-500/30">
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!bg-emerald-400 !w-3 !h-3 !border-[3px] !border-emerald-900 !-right-1.5"
-      />
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-          <span className="text-emerald-400 text-lg">→</span>
-        </div>
+    <div className="bg-gradient-to-r from-emerald-900/50 to-emerald-800/30 rounded-xl px-4 py-2.5 border border-emerald-500/30">
+      <Handle type="source" position={Position.Right}
+        className="!bg-emerald-400 !w-2.5 !h-2.5 !border-2 !border-emerald-900 !-right-1" />
+      <div className="flex items-center gap-2">
+        <span className="text-emerald-400 text-lg">→</span>
         <div>
-          <div className="text-emerald-400 text-sm font-medium uppercase tracking-wide">Entry</div>
+          <div className="text-emerald-300 text-xs font-bold uppercase">Entry</div>
           <div className="text-emerald-600 text-[10px]">{data.totalSignals} signals</div>
         </div>
       </div>
@@ -184,92 +195,95 @@ function EntryNode({ data }: { data: EntryData }) {
   )
 }
 
-const nodeTypes = {
-  chamber: ChamberNode,
-  entry: EntryNode,
-}
+const nodeTypes = { chamber: ChamberNode, entry: EntryNode }
+const edgeTypes = { flow: FlowEdge }
 
-/**
- * ColonyGraph - Rich network visualization of the colony
- *
- * Features:
- * - Agents displayed as rich nodes with traffic stats
- * - Edge thickness indicates signal strength (learning)
- * - Animated edges for "superhighways" (strength > 50)
- * - Entry node shows signal origin
- * - Real-time strength bars
- */
 export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProps) {
-  // Calculate traffic stats per agent
+  // Calculate traffic stats
   const trafficStats = useMemo(() => {
-    const stats: Record<string, {
-      incoming: number
-      outgoing: number
-      inEdges: number
-      outEdges: number
-    }> = {}
+    const stats: Record<string, { incoming: number; outgoing: number; isHighway: boolean }> = {}
+    agents.forEach((a) => { stats[a.id] = { incoming: 0, outgoing: 0, isHighway: false } })
+    stats["entry"] = { incoming: 0, outgoing: 0, isHighway: false }
 
-    // Initialize all agents
-    agents.forEach((a) => {
-      stats[a.id] = { incoming: 0, outgoing: 0, inEdges: 0, outEdges: 0 }
-    })
-    stats["entry"] = { incoming: 0, outgoing: 0, inEdges: 0, outEdges: 0 }
-
-    // Calculate from highways
     for (const { edge, strength } of highways) {
       const [from, to] = edge.split(" → ")
       if (!from || !to) continue
-
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
 
       if (stats[sourceId]) {
         stats[sourceId].outgoing += strength
-        stats[sourceId].outEdges++
+        if (strength > 50) stats[sourceId].isHighway = true
       }
       if (stats[targetId]) {
         stats[targetId].incoming += strength
-        stats[targetId].inEdges++
+        if (strength > 50) stats[targetId].isHighway = true
       }
     }
-
     return stats
   }, [highways, agents])
 
-  // Create nodes with smart layout
+  // Smart layout - entry left, then flow left-to-right based on connections
   const nodes = useMemo((): Node[] => {
-    // Calculate positions based on signal flow (left to right)
-    const positions: Record<string, { x: number; y: number }> = {}
+    // Calculate node depths based on connections
+    const depths: Record<string, number> = { entry: 0 }
+    const processed = new Set<string>(["entry"])
 
-    // Entry on the left
-    positions["entry"] = { x: 0, y: 150 }
+    // BFS to assign depths
+    let queue = ["entry"]
+    while (queue.length > 0) {
+      const nextQueue: string[] = []
+      for (const nodeId of queue) {
+        for (const { edge } of highways) {
+          const [from, to] = edge.split(" → ")
+          const sourceId = from === "entry" ? "entry" : from.split(":")[0]
+          const targetId = to.split(":")[0]
 
-    // Position agents based on their traffic patterns
-    const agentsByTraffic = [...agents].sort((a, b) => {
-      const aTotal = (trafficStats[a.id]?.incoming || 0) + (trafficStats[a.id]?.outgoing || 0)
-      const bTotal = (trafficStats[b.id]?.incoming || 0) + (trafficStats[b.id]?.outgoing || 0)
-      return bTotal - aTotal
+          if (sourceId === nodeId && !processed.has(targetId)) {
+            depths[targetId] = (depths[nodeId] || 0) + 1
+            processed.add(targetId)
+            nextQueue.push(targetId)
+          }
+        }
+      }
+      queue = nextQueue
+    }
+
+    // Assign default depth to unconnected nodes
+    agents.forEach((a) => {
+      if (depths[a.id] === undefined) depths[a.id] = 1
     })
 
-    // Create a flow-based layout
-    const cols = Math.ceil(Math.sqrt(agents.length))
-    const spacingX = 280
-    const spacingY = 200
+    // Group by depth
+    const byDepth: Record<number, string[]> = {}
+    Object.entries(depths).forEach(([id, d]) => {
+      if (!byDepth[d]) byDepth[d] = []
+      byDepth[d].push(id)
+    })
 
-    agentsByTraffic.forEach((agent, i) => {
-      const col = i % cols
-      const row = Math.floor(i / cols)
-      positions[agent.id] = {
-        x: 200 + col * spacingX,
-        y: 50 + row * spacingY,
-      }
+    // Position nodes
+    const positions: Record<string, { x: number; y: number }> = {}
+    const colWidth = 220
+    const rowHeight = 140
+    const startX = 50
+    const startY = 80
+
+    Object.entries(byDepth).forEach(([depthStr, nodeIds]) => {
+      const depth = parseInt(depthStr)
+      const x = startX + depth * colWidth
+      const totalHeight = (nodeIds.length - 1) * rowHeight
+      const offsetY = -totalHeight / 2
+
+      nodeIds.forEach((id, i) => {
+        positions[id] = { x, y: startY + offsetY + i * rowHeight + 150 }
+      })
     })
 
     // Build nodes
     const chamberNodes: Node<ChamberData>[] = agents.map((agent) => ({
       id: agent.id,
       type: "chamber",
-      position: positions[agent.id],
+      position: positions[agent.id] || { x: startX + colWidth, y: startY },
       data: {
         id: agent.id,
         label: agent.name,
@@ -277,8 +291,7 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
         actions: Object.keys(agent.actions),
         incomingStrength: trafficStats[agent.id]?.incoming || 0,
         outgoingStrength: trafficStats[agent.id]?.outgoing || 0,
-        incomingEdges: trafficStats[agent.id]?.inEdges || 0,
-        outgoingEdges: trafficStats[agent.id]?.outEdges || 0,
+        isHighway: trafficStats[agent.id]?.isHighway || false,
       },
     }))
 
@@ -286,124 +299,101 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
       id: "entry",
       type: "entry",
       position: positions["entry"],
-      data: {
-        totalSignals: trafficStats["entry"]?.outEdges || 0,
-      },
+      data: { totalSignals: trafficStats["entry"]?.outgoing > 0 ? highways.filter(h => h.edge.startsWith("entry")).length : 0 },
     }
 
     return [entryNode, ...chamberNodes]
-  }, [agents, trafficStats])
+  }, [agents, trafficStats, highways])
 
-  // Create rich edges
+  // Create edges
   const edges = useMemo((): FlowEdge[] => {
-    const result: FlowEdge[] = []
-    const edgeGroups: Record<string, { strength: number; tasks: string[] }> = {}
+    const groups: Record<string, { strength: number; task: string }> = {}
 
-    // Group edges by source-target pair
     for (const { edge, strength } of highways) {
       const [from, to] = edge.split(" → ")
       if (!from || !to) continue
-
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
-      const sourceTask = from.split(":")[1] || ""
-      const targetTask = to.split(":")[1] || ""
-
       if (sourceId === targetId) continue
 
       const key = `${sourceId}->${targetId}`
-      if (!edgeGroups[key]) {
-        edgeGroups[key] = { strength: 0, tasks: [] }
+      if (!groups[key]) {
+        const task = from.includes(":") && to.includes(":")
+          ? `${from.split(":")[1]}→${to.split(":")[1]}`
+          : ""
+        groups[key] = { strength: 0, task }
       }
-      edgeGroups[key].strength += strength
-      if (sourceTask && targetTask) {
-        edgeGroups[key].tasks.push(`${sourceTask}→${targetTask}`)
-      }
+      groups[key].strength += strength
     }
 
-    // Create edges from groups
-    for (const [key, { strength, tasks }] of Object.entries(edgeGroups)) {
-      const [sourceId, targetId] = key.split("->")
-
-      // Verify nodes exist
-      const sourceExists = sourceId === "entry" || agents.some((a) => a.id === sourceId)
-      const targetExists = agents.some((a) => a.id === targetId)
-      if (!sourceExists || !targetExists) continue
-
-      const isHighway = strength > 50
-      const isMedium = strength > 20
-
-      result.push({
-        id: key,
-        source: sourceId,
-        target: targetId,
-        label: tasks.length > 0 ? `${tasks[0]} (${strength.toFixed(0)})` : strength.toFixed(0),
-        type: "default",
-        style: {
-          strokeWidth: Math.max(2, Math.min(strength / 8, 10)),
-          stroke: isHighway ? "#3b82f6" : isMedium ? "#6366f1" : "#475569",
-        },
-        animated: isHighway,
-        labelStyle: {
-          fill: isHighway ? "#60a5fa" : "#94a3b8",
-          fontSize: 11,
-          fontWeight: isHighway ? 600 : 400,
-          fontFamily: "monospace",
-        },
-        labelBgStyle: {
-          fill: "#0f0f17",
-          fillOpacity: 0.9,
-        },
-        labelBgPadding: [6, 4] as [number, number],
-        labelBgBorderRadius: 4,
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: isHighway ? "#3b82f6" : isMedium ? "#6366f1" : "#475569",
-          width: 20,
-          height: 20,
-        },
+    return Object.entries(groups)
+      .filter(([key]) => {
+        const [src, tgt] = key.split("->")
+        return (src === "entry" || agents.some(a => a.id === src)) && agents.some(a => a.id === tgt)
       })
-    }
-
-    return result
+      .map(([key, { strength, task }]) => {
+        const [source, target] = key.split("->")
+        return {
+          id: key,
+          source,
+          target,
+          type: "flow",
+          data: { strength, label: task ? `${task} (${strength.toFixed(0)})` : strength.toFixed(0) },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: strength > 50 ? "#3b82f6" : strength > 20 ? "#6366f1" : "#374151",
+            width: 16,
+            height: 16,
+          },
+        }
+      })
   }, [highways, agents])
 
-  // Handle node click
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    if (node.id !== "entry" && onSelectAgent) {
-      onSelectAgent(node.id)
-    }
+    if (node.id !== "entry" && onSelectAgent) onSelectAgent(node.id)
   }, [onSelectAgent])
 
-  // Network stats
-  const stats = useMemo(() => {
-    const totalStrength = highways.reduce((sum, h) => sum + h.strength, 0)
-    const highwayCount = highways.filter((h) => h.strength > 50).length
-    return { totalStrength, highwayCount, edgeCount: highways.length }
-  }, [highways])
+  const stats = useMemo(() => ({
+    total: highways.reduce((s, h) => s + h.strength, 0),
+    highways: highways.filter(h => h.strength > 50).length,
+    edges: highways.length,
+  }), [highways])
 
   return (
     <div className="h-full w-full relative">
-      {/* Stats overlay */}
-      <div className="absolute top-4 left-4 z-10 bg-[#161622]/90 backdrop-blur rounded-xl p-4 border border-[#252538]">
-        <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">Network Stats</div>
-        <div className="space-y-1 text-sm">
-          <div className="flex justify-between gap-6">
-            <span className="text-slate-400">Agents</span>
-            <span className="text-white font-mono">{agents.length}</span>
-          </div>
-          <div className="flex justify-between gap-6">
-            <span className="text-slate-400">Edges</span>
-            <span className="text-white font-mono">{stats.edgeCount}</span>
-          </div>
-          <div className="flex justify-between gap-6">
-            <span className="text-slate-400">Highways</span>
-            <span className="text-blue-400 font-mono">{stats.highwayCount}</span>
-          </div>
-          <div className="flex justify-between gap-6">
-            <span className="text-slate-400">Total Flow</span>
-            <span className="text-emerald-400 font-mono">{stats.totalStrength.toFixed(0)}</span>
-          </div>
+      {/* Compact stats */}
+      <div className="absolute top-3 left-3 z-10 flex gap-3 text-[10px]">
+        <div className="bg-[#12121a]/90 backdrop-blur px-3 py-1.5 rounded-lg border border-[#252538] flex items-center gap-2">
+          <span className="text-slate-500">Agents</span>
+          <span className="text-white font-mono font-bold">{agents.length}</span>
+        </div>
+        <div className="bg-[#12121a]/90 backdrop-blur px-3 py-1.5 rounded-lg border border-[#252538] flex items-center gap-2">
+          <span className="text-slate-500">Flow</span>
+          <span className="text-emerald-400 font-mono font-bold">{stats.total.toFixed(0)}</span>
+        </div>
+        <div className="bg-[#12121a]/90 backdrop-blur px-3 py-1.5 rounded-lg border border-[#252538] flex items-center gap-2">
+          <span className="text-slate-500">Highways</span>
+          <span className="text-blue-400 font-mono font-bold">{stats.highways}</span>
+        </div>
+      </div>
+
+      {/* Compact legend */}
+      <div className="absolute bottom-3 left-3 z-10 bg-[#12121a]/90 backdrop-blur px-3 py-2 rounded-lg border border-[#252538] flex items-center gap-4 text-[9px]">
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0.5 bg-blue-500 rounded-full" />
+          <span className="text-slate-400">Highway</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0.5 bg-indigo-500 rounded-full" />
+          <span className="text-slate-400">Active</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0.5 bg-slate-600 rounded-full" />
+          <span className="text-slate-400">Weak</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="text-slate-400">Entry</span>
         </div>
       </div>
 
@@ -411,9 +401,10 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodeClick={onNodeClick}
         fitView
-        fitViewOptions={{ padding: 0.4 }}
+        fitViewOptions={{ padding: 0.15, minZoom: 0.5, maxZoom: 1.2 }}
         proOptions={{ hideAttribution: true }}
         nodesDraggable
         nodesConnectable={false}
@@ -421,10 +412,21 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
         zoomOnScroll
         minZoom={0.3}
         maxZoom={1.5}
-        style={{ background: "#0a0a0f" }}
+        style={{ background: "#08080c" }}
+        defaultEdgeOptions={{ type: "flow" }}
       >
-        <Background color="#1e293b" gap={30} size={1} />
-        <Controls className="[&>button]:!bg-[#161622] [&>button]:!border-[#252538] [&>button]:!text-slate-400" />
+        <Background color="#1a1a2e" gap={30} size={1} />
+        <Controls
+          position="bottom-right"
+          className="[&>button]:!bg-[#12121a] [&>button]:!border-[#252538] [&>button]:!text-slate-400 [&>button]:!w-7 [&>button]:!h-7"
+        />
+        <MiniMap
+          position="top-right"
+          nodeColor={(n) => n.id === "entry" ? "#10b981" : (n.data as ChamberData)?.isHighway ? "#3b82f6" : "#374151"}
+          maskColor="rgba(0,0,0,0.85)"
+          style={{ background: "#0a0a0f", border: "1px solid #252538", width: 120, height: 80 }}
+          className="!rounded-lg"
+        />
       </ReactFlow>
     </div>
   )
