@@ -1,46 +1,23 @@
 import { useEffect, useState } from "react"
 import { Runtime, Agent, createEnvelope } from "@/engine"
 import { cn } from "@/lib/utils"
-import { EnvelopeFlowCanvas } from "@/components/flow/EnvelopeFlowCanvas"
+import { EnvelopeFlowCanvas } from "@/components/EnvelopeFlowCanvas"
 
-// Sample data
-function setup() {
+// Load from JSON
+async function load() {
+  const res = await fetch("/agents.json")
+  const data = await res.json()
+
   const runtime = new Runtime()
+  const agents = data.agents.map((a: { id: string; name: string; actions: Record<string, unknown> }) => Agent.fromJSON(a))
+  agents.forEach((a: Agent) => runtime.register(a))
 
-  const agents = [
-    new Agent("agent-a", "Data Processor", {
-      processData: () => ({ processed: true, count: 42 }),
-    }),
-    new Agent("agent-b", "Router", {
-      routeEnvelope: (i) => ({ routed: true, target: (i as { target?: string }).target }),
-    }),
-    new Agent("agent-c", "Validator", {
-      signPayload: () => ({ signed: true, hash: "0xabc..." }),
-    }),
-  ]
+  // Process all envelope chains
+  for (const env of data.envelopes) {
+    await runtime.send(createEnvelope(env))
+  }
 
-  agents.forEach((a) => runtime.register(a))
-
-  const chain = createEnvelope({
-    action: "processData",
-    inputs: { source: "api/feed", limit: 100 },
-    sender: "system",
-    receiver: "agent-a",
-    callback: createEnvelope({
-      action: "routeEnvelope",
-      inputs: { target: "agent-c", data: "{{ results }}" },
-      sender: "agent-a",
-      receiver: "agent-b",
-      callback: createEnvelope({
-        action: "signPayload",
-        inputs: { payload: "{{ results }}" },
-        sender: "agent-b",
-        receiver: "agent-c",
-      }),
-    }),
-  })
-
-  return { runtime, agents, chain }
+  return { runtime, agents }
 }
 
 // Status dot
@@ -168,8 +145,7 @@ export default function AgentWorkspace() {
   const [active, setActive] = useState<string | null>(null)
 
   useEffect(() => {
-    const { runtime, agents, chain } = setup()
-    runtime.send(chain).then(() => setState({ runtime, agents }))
+    load().then(setState)
   }, [])
 
   if (!state) return <div className="h-screen bg-[#0f0f17] flex items-center justify-center text-slate-600">Loading...</div>
