@@ -11,11 +11,109 @@ Envelope → Agent → Execute → Callback → Next Agent
 | Layer | Tech |
 |-------|------|
 | Runtime | [Bun](https://bun.sh) |
-| Framework | [Astro 5](https://astro.build) + SSR |
+| Framework | [Astro 5](https://astro.build) |
 | UI | [React 19](https://react.dev) + [shadcn/ui](https://ui.shadcn.com) |
 | Styling | [Tailwind CSS 4](https://tailwindcss.com) |
 | Visualization | [ReactFlow](https://reactflow.dev) |
 | Schema | [TypeDB 3.0](https://typedb.com) / TypeQL |
+
+## Run
+
+```bash
+bun install
+bun dev        # → localhost:4321
+```
+
+---
+
+## Development Process
+
+This project is built with **Claude agents and skills**.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                                                         │
+│   1. PLAN    →    2. TODO    →    3. BUILD             │
+│                                                         │
+│   docs/Plan.md    docs/TODO.md    parallel agents      │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Step 1: Make the PLAN
+
+Write `docs/Plan.md` — the architecture and approach.
+
+```markdown
+# Plan: Feature Name
+
+## Goal
+What we're building and why.
+
+## Architecture
+How it fits together.
+
+## Approach
+Key decisions and patterns.
+```
+
+### Step 2: Make the TODO
+
+Write `docs/TODO.md` — break the plan into tasks.
+
+```markdown
+## P0: SETUP
+| Status | ID | Task | Depends | Parallel |
+|:------:|:---|:-----|:--------|:--------:|
+| `[ ]` | SET-001 | Create project structure | — | ✓ |
+| `[ ]` | SET-002 | Install dependencies | SET-001 | ✓ |
+
+## P1: ENGINE
+| Status | ID | Task | Depends | Parallel |
+|:------:|:---|:-----|:--------|:--------:|
+| `[ ]` | ENG-001 | Create types.ts | SET-002 | ✓ |
+| `[ ]` | ENG-002 | Create Agent.ts | ENG-001 | ✓ |
+```
+
+**Phases**: P0 Setup → P1 Engine → P2 Components → P3 Integration
+
+**Columns**:
+- `Status` — `[x]` done, `[ ]` pending
+- `ID` — `{PHASE}-{NUMBER}`
+- `Depends` — must complete first
+- `Parallel` — `✓` can run with others
+
+### Step 3: BUILD with Agents
+
+Claude agents execute tasks in parallel waves:
+
+```
+WAVE 1                    WAVE 2                    WAVE 3
+├── Agent A: ENG-001      ├── Agent A: ENG-003      ├── Sequential
+├── Agent B: ENG-002      ├── Agent B: CMP-001      │   tasks that
+├── Agent C: CMP-001      ├── Agent C: CMP-002      │   depend on
+└── Agent D: CMP-002      └── Agent D: CMP-003      │   everything
+```
+
+Up to 4 agents run simultaneously. Dependencies determine waves.
+
+---
+
+## Skills
+
+Claude Code skills in `.claude/skills/`:
+
+| Command | Description |
+|---------|-------------|
+| `/astro` | Astro pages, components, islands |
+| `/react19` | Actions, use(), transitions |
+| `/shadcn` | shadcn/ui components |
+| `/reactflow` | Node-based visualization |
+| `/typedb` | TypeQL schema and queries |
+| `/dev` | Start dev server |
+| `/build` | Build project |
+
+---
 
 ## Architecture
 
@@ -41,86 +139,6 @@ if (envelope.callback) {
   route(callback)               // → next agent
 }
 ```
-
-## Run
-
-```bash
-bun install
-bun dev        # → localhost:4321
-bun build      # production
-```
-
----
-
-## Agent Teams
-
-Tasks execute in parallel waves. Each wave runs up to 4 agents simultaneously.
-
-```
-WAVE 1: Foundation
-├── Agent A: types.ts
-├── Agent B: AgentCard
-├── Agent C: EnvelopeCard
-└── Agent D: LogicViewer
-
-WAVE 2: Core
-├── Agent A: Envelope.ts
-├── Agent B: Agent.ts
-├── Agent C: PromiseTracker.ts
-└── Agent D: PromiseRow
-
-WAVE 3: Integration
-└── Sequential: Runtime → JsonRenderer → AgentWorkspace
-```
-
-## Skills
-
-Claude Code skills for this project:
-
-| Command | Description |
-|---------|-------------|
-| `/astro` | Astro pages, components, islands |
-| `/react19` | Actions, use(), transitions, ref-as-prop |
-| `/shadcn` | shadcn/ui components, dark theme |
-| `/reactflow` | Node-based visualization |
-| `/typedb` | TypeQL schema, queries, inference |
-| `/build` | Build project |
-| `/dev` | Start dev server |
-
-Skills live in `.claude/skills/`. Each has a `SKILL.md` with patterns and examples.
-
-## Planning System
-
-```
-docs/
-├── Plan.md    # Architecture, skeleton setup
-└── TODO.md    # Task tracking with waves
-```
-
-### TODO Format
-
-```markdown
-| Status | ID | Task | Depends | Parallel |
-|:------:|:---|:-----|:--------|:--------:|
-| `[x]` | ENG-001 | Create types.ts | SET-008 | ✓ |
-| `[ ]` | ENG-002 | Create Envelope.ts | ENG-001 | ✓ |
-```
-
-- **Status**: `[x]` done, `[ ]` pending
-- **ID**: `{PHASE}-{NUMBER}` (SET, ENG, CMP, INT)
-- **Depends**: Must complete before this task
-- **Parallel**: `✓` can run with other tasks, `✗` sequential
-
-### Waves
-
-```
-P0: SETUP       → Foundation (configs, deps)
-P1: ENGINE      → Runtime core (types, classes)
-P2: COMPONENTS  → UI layer (React components)
-P3: INTEGRATION → Wire everything together
-```
-
----
 
 ## Schema (TypeQL 3.0)
 
@@ -156,8 +174,6 @@ relation chain,
 }
 ```
 
-UI loads JSON. Agents appear. Click to see flow.
-
 ---
 
-*TypeQL writes JSON. React renders it. Agents execute envelopes.*
+*PLAN → TODO → BUILD. TypeQL writes JSON. React renders it.*
