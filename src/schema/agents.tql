@@ -1,0 +1,134 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENVELOPE SYSTEM SCHEMA
+# TypeDB 3.0 / TypeQL 3.0
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# The Envelope System models agent-to-agent communication via envelopes.
+# Each agent has actions it can execute. Envelopes carry instructions
+# between agents, forming chains via callbacks.
+#
+# Core flow:
+#   1. Envelope arrives at agent (receiver)
+#   2. Agent executes the action with inputs
+#   3. Results stored in envelope payload
+#   4. If callback exists, substitute {{ results }} and route to next agent
+#
+# This schema generates agents.json for the React frontend.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+define
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ATTRIBUTES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Identifiers
+attribute id, value string;
+attribute name, value string;
+
+# Agent attributes
+attribute status, value string;      # ready | idle | error
+
+# Action attributes
+attribute action-name, value string;
+attribute result, value string;      # JSON string of return value
+
+# Envelope attributes
+attribute inputs, value string;      # JSON string
+attribute results, value string;     # JSON string
+attribute payload-status, value string;  # pending | resolved | rejected
+attribute timestamp, value datetime;
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTITIES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Agent - executes actions when it receives envelopes
+# ─────────────────────────────────────────────────────────────────────────────
+entity agent,
+    owns id @key,
+    owns name,
+    owns status,
+    plays capability:executor,
+    plays routing:sender,
+    plays routing:receiver;
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Action - something an agent can do
+# Actions return static results (defined in the schema, not computed)
+# ─────────────────────────────────────────────────────────────────────────────
+entity action,
+    owns action-name @key,
+    owns result,
+    plays capability:action;
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Envelope - unit of communication between agents
+# Contains: action to execute, inputs, and optional callback chain
+# ─────────────────────────────────────────────────────────────────────────────
+entity envelope,
+    owns id @key,
+    owns action-name,
+    owns inputs,
+    owns results,
+    owns payload-status,
+    owns timestamp,
+    plays chain:parent,
+    plays chain:child,
+    plays routing:message;
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RELATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Capability - links agents to their actions
+# An agent can have many actions, an action belongs to one agent
+# ─────────────────────────────────────────────────────────────────────────────
+relation capability,
+    relates executor,
+    relates action;
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Routing - tracks envelope flow between agents
+# sender → message → receiver
+# ─────────────────────────────────────────────────────────────────────────────
+relation routing,
+    relates sender,
+    relates receiver,
+    relates message;
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chain - callback relationship between envelopes
+# When parent completes, child envelope is dispatched
+# The child's inputs may contain {{ results }} for substitution
+# ─────────────────────────────────────────────────────────────────────────────
+relation chain,
+    relates parent,
+    relates child;
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INFERENCE RULES (future)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# rule envelope-completion:
+#     when {
+#         $e isa envelope, has payload-status "resolved";
+#         (parent: $e, child: $c) isa chain;
+#         $c has payload-status "pending";
+#     } then {
+#         # Trigger routing of child envelope
+#     };
+#
+# rule agent-ready:
+#     when {
+#         (receiver: $a, message: $e) isa routing;
+#         $e has payload-status "pending";
+#     } then {
+#         # Agent should execute this envelope
+#     };

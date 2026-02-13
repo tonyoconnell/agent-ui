@@ -1,67 +1,44 @@
-# Claude Code Configuration for Envelope System
+# Claude Code Configuration
 
-This directory contains Claude Code skills for **Astro 5 + React 19 + shadcn/ui + ReactFlow** development.
-
-## Tech Stack
-
-- **Framework**: Astro 5 with React 19 integration
-- **UI**: shadcn/ui + Tailwind CSS 4
-- **Visualization**: ReactFlow for envelope chain graphs
-- **Language**: TypeScript (strict mode)
-- **State**: React useState/useReducer
+Skills for **Bun + Astro 5 + React 19 + shadcn/ui + ReactFlow + TypeQL** development.
 
 ## Skills
 
 | Command | Description |
 |---------|-------------|
-| `/astro` | Create Astro pages, components, and islands |
-| `/react19` | React 19 patterns (Actions, use(), transitions) |
-| `/shadcn` | shadcn/ui component usage and customization |
-| `/reactflow` | ReactFlow node-based visualization |
-| `/build` | Build the project |
-| `/dev` | Start development server |
-| `/lint` | Run linting |
+| `/astro` | Astro pages, components, islands |
+| `/react19` | Actions, use(), transitions |
+| `/shadcn` | shadcn/ui components |
+| `/reactflow` | Node-based visualization |
+| `/typedb` | TypeQL schema and queries |
+| `/build` | Build project |
+| `/dev` | Start dev server |
 
 ## Project Structure
 
 ```
-envelope-system/
-├── src/
-│   ├── components/
-│   │   ├── ui/                 ← shadcn components
-│   │   ├── agents/             ← agent UI components
-│   │   ├── envelopes/          ← envelope display
-│   │   ├── logic/              ← code viewers
-│   │   ├── promises/           ← promise tracking
-│   │   ├── renderer/           ← JSON → component renderer
-│   │   └── workspace/          ← main workspace
-│   ├── engine/                 ← runtime engine (Agent, Envelope, Router)
-│   ├── layouts/                ← Astro layouts
-│   ├── pages/                  ← Astro pages
-│   └── styles/                 ← global CSS
-└── .claude/
-    └── skills/                 ← development skills
+src/
+├── schema/agents.tql     # TypeQL schema
+├── engine/               # Agent, Envelope, Runtime
+├── components/           # AgentWorkspace, EnvelopeFlowCanvas
+├── pages/index.astro     # Entry
+├── layouts/Layout.astro  # Base layout
+└── lib/utils.ts          # cn() helper
+
+public/agents.json        # Data (generated from TypeQL)
 ```
 
-## Quick Start
+## Commands
 
 ```bash
-# Development
-bun dev
-
-# Build
-bun run build
-
-# Preview production build
-bun preview
+bun dev       # Development
+bun build     # Production build
+bun preview   # Preview build
 ```
 
-## Architecture
+## Rules
 
-The Envelope System is a deterministic agent-to-agent communication system:
-
-```
-Agent A → Envelope → Router → Agent B → Callback Envelope → Agent C
-```
-
-The UI is entirely JSON-driven via `runtime.toUISchema()` → `JsonRenderer`.
+See `.claude/rules/` for file-specific patterns:
+- `astro.md` — Astro component patterns
+- `react.md` — React 19 patterns
+- `engine.md` — Engine class patterns
