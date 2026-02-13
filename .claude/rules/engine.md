@@ -1,116 +1,266 @@
 # Engine Development Rules
 
-Apply when working with `src/engine/*.ts` files.
+Apply when working with `src/engine/*.ts` or `src/engine/*.js` files.
 
 ## Core Concepts
 
-The Envelope System has these core types:
+The Envelope System is a swarm intelligence framework:
 
-- **Envelope**: Unit of agent communication
-- **Agent**: Executes actions from envelopes
-- **Router**: Routes envelopes between agents
-- **PromiseTracker**: Tracks async resolution
-- **Runtime**: Orchestrates everything
+- **Unit**: The atom — a named receive function (30 lines)
+- **Colony**: The space — where units exist and communicate (40 lines)
+- **Envelope**: The ant — carries payload, knows its journey
+- **Emergence**: Complex behavior from simple rules
+
+```
+Unit + Colony = Swarm Intelligence
+70 lines → emergent behavior
+```
+
+## The Profound Insight
+
+A thing IS its interface. The Unit IS the receive function.
+
+```javascript
+// The unit IS callable
+unit({ receive: "process", payload: { n: 5 } });
+
+// Not this
+unit.receive({ ... }); // ❌
+```
+
+## Unit Structure
+
+```javascript
+const unit = (envelope, route) => {
+  const { receiver: id } = envelope;
+  const s = {};  // services
+
+  const receive = ({ receive: t, payload, callback }) => {
+    if (!s[t]) return Promise.reject({ id, target: t, error: `Unknown: ${t}` });
+
+    return s[t](payload).then((result) => {
+      if (callback) {
+        const next = substitute(callback, result);
+        // Cross-unit routing
+        if (next.receiver !== id && route) return route(next);
+        return receive(next);
+      }
+      return result;
+    });
+  };
+
+  receive.assign = (n, f) => (s[n] = (p) => Promise.resolve(f(p)), receive);
+  receive.role = (n, svc, ctx) => (s[n] = (p) => s[svc]({ ...ctx, ...p }), receive);
+  receive.has = (n) => n in s;
+  receive.list = () => Object.keys(s);
+  receive.id = id;
+
+  return receive;
+};
+```
+
+## Colony Structure
+
+```javascript
+const colony = () => {
+  const units = {};
+
+  const send = ({ receiver, receive, payload, callback }) => {
+    const target = units[receiver];
+    if (!target) return Promise.reject({ receiver, error: `Unknown: ${receiver}` });
+    return target({ receive, payload, callback });
+  };
+
+  const spawn = (envelope) => {
+    const u = unit(envelope, send);
+    units[u.id] = u;
+    return u;
+  };
+
+  return { spawn, send, units };
+};
+```
 
 ## Envelope Structure
 
 ```typescript
 interface Envelope {
-  id: string;                       // "env-xxx"
-  env: {
-    envelope: string;               // Self-reference
-    action: string;                 // Action to execute
-    inputs: Record<string, any>;    // Parameters
-  };
-  payload: {
-    status: "pending" | "resolved" | "rejected";
-    results: any | null;
-  };
-  callback: Envelope | null;        // Chain to next envelope
-  metadata?: {
-    sender: string;
-    receiver: string;
-    timestamp: number;
-  };
+  receive?: string;      // Target service name
+  receiver?: string;     // Unit identity
+  payload?: unknown;     // Data being transmitted
+  callback?: Envelope;   // Next envelope in chain
 }
 ```
 
-## Agent Execute Logic
+## Pattern: Everything is receive → promise
 
-The core execution pattern from the whiteboard:
+```
+envelope in → promise out
+```
 
-```typescript
-async execute(envelope: Envelope): Promise<void> {
-  // 1. Destructure
-  const { action, inputs } = envelope.env;
-  const { callback } = envelope;
+- All interactions are envelopes
+- All responses are promises
+- Errors carry full context
 
-  // 2. Execute action
-  let result = await this.actions[action](inputs);
+## Services
 
-  // 3. Update payload
-  envelope.payload.status = "resolved";
-  envelope.payload.results = result;
+Services are the "verbs" — what a unit can do:
 
-  // 4. Chain to callback if exists
-  if (callback) {
-    callback.payload.results = { ...result };
-    this.substitute(callback, result);
-    await this.route(callback);
+```javascript
+// Assign a service
+unit.assign("double", ({ n }) => n * 2);
+
+// Services always return promises (wrapped automatically)
+unit({ receive: "double", payload: { n: 5 } }); // → Promise<10>
+```
+
+## Roles
+
+Roles are context-bound services — same logic, different perspective:
+
+```javascript
+unit.assign("fetch", ({ url, token }) => fetch(url, { headers: { auth: token } }));
+unit.role("fetchAdmin", "fetch", { token: "admin-key" });
+unit.role("fetchUser", "fetch", { token: "user-key" });
+```
+
+## Callbacks (Chaining)
+
+Envelopes carry their journey via callbacks:
+
+```javascript
+{
+  receive: "step1",
+  payload: { n: 1 },
+  callback: {
+    receive: "step2",
+    payload: { n: "{{result}}" }  // Substituted with step1's result
   }
 }
 ```
 
-## ID Generation
+## Cross-Unit Communication
 
-Use consistent ID patterns:
+Units in a colony can route to each other:
+
+```javascript
+const c = colony();
+
+c.spawn({ receiver: "a" }).assign("process", fn1);
+c.spawn({ receiver: "b" }).assign("validate", fn2);
+
+// Envelope travels: a → b
+c.send({
+  receiver: "a",
+  receive: "process",
+  payload: { data: 1 },
+  callback: {
+    receiver: "b",
+    receive: "validate",
+    payload: { result: "{{result}}" }
+  }
+});
+```
+
+## Error Handling
+
+Errors carry full context:
+
+```javascript
+{
+  id: "worker",        // which unit
+  target: "process",   // which service
+  payload: { x: 1 },   // what was sent
+  error: "..."         // what went wrong
+}
+```
+
+## The Ant Colony Principle
+
+- **No central controller** — colony is space, not dispatcher
+- **Units are autonomous** — make their own decisions
+- **Envelopes know their journey** — callbacks define the path
+- **Emergence** — complex behavior from simple rules
+
+## Why This is Swarm Intelligence
+
+| Principle | Our Implementation |
+|-----------|-------------------|
+| **Decentralization** | No central controller. Colony is space, not dispatcher. |
+| **Simple agents** | Units have simple rules: receive → process → forward |
+| **Local information** | Units only know their services. No global state. |
+| **Indirect communication** | Envelopes carry data between units (like pheromones) |
+| **Emergence** | Complex pipelines from simple unit + callback rules |
+| **Self-organization** | Units spawn dynamically. No predefined structure. |
+
+```
+Ants don't have a CEO.
+They have simple rules:
+  - Pick up food
+  - Follow pheromone
+  - Drop at nest
+
+We have:
+  - Receive envelope
+  - Execute service
+  - Forward callback
+
+Same pattern. 70 lines.
+```
+
+## What Emerges (Not in the 70 Lines)
+
+| Capability | How It Emerges |
+|------------|----------------|
+| Load balancing | Spawn multiple units with same services |
+| Fault tolerance | Retry on error, spawn replacement |
+| Pheromone trails | Add priority/weight to envelopes |
+| Learning | Units modify their services over time |
+
+The 70 lines are the *foundation*. Everything else is built on top.
+
+## Type Safety
+
+Use strict types:
 
 ```typescript
-// Envelopes
-const envId = `env-${crypto.randomUUID().slice(0, 8)}`;
+import { unit, colony } from "@/engine";
+import type { Unit, Colony, Envelope } from "@/engine";
+```
 
-// Promises
-const promiseId = `p-${crypto.randomUUID().slice(0, 6)}`;
+## Chainable API
 
-// Agents (readable names)
-const agentId = "agent-processor";
+Unit methods return the unit for chaining:
+
+```javascript
+const u = unit({ receiver: "worker" })
+  .assign("add", ({ a, b }) => a + b)
+  .assign("mul", ({ a, b }) => a * b)
+  .role("double", "mul", { b: 2 });
 ```
 
 ## Template Substitution
 
-Replace `{{ }}` patterns in inputs:
+Replace `{{result}}` patterns in callbacks:
 
-```typescript
-substitute(envelope: Envelope, previousResults: any): void {
-  const inputs = envelope.env.inputs;
-  for (const key in inputs) {
-    if (typeof inputs[key] === "string" &&
-        inputs[key].startsWith("{{") &&
-        inputs[key].endsWith("}}")) {
-      inputs[key] = previousResults;
-    }
+```javascript
+const substitute = (envelope, result) => {
+  const payload = {};
+  for (const [k, v] of Object.entries(envelope.payload || {})) {
+    payload[k] = v === "{{result}}" ? result : v;
   }
-}
+  return { ...envelope, payload };
+};
 ```
 
-## Event Logging
+## Legacy Support
 
-Log all significant events:
-
-```typescript
-this.log("info", `Envelope created: ${envelope.id}`);
-this.log("ok", `Promise ${promise.id} resolved`);
-this.log("error", `Promise ${promise.id} rejected: ${e.message}`);
-```
-
-## Type Safety
-
-Use strict types, no `any` except where interfaces specify:
+The old Agent/Runtime classes are still exported for backwards compatibility:
 
 ```typescript
-// Good
-type ActionHandler = (inputs: Record<string, any>) => any | Promise<any>;
+// New architecture (preferred)
+export { unit, colony } from "@/engine";
 
-// Bad - untyped
-function processEnvelope(env) { ... }
+// Legacy (for existing code)
+export { Agent, Runtime } from "@/engine";
 ```
