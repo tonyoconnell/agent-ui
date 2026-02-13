@@ -1,101 +1,89 @@
-# React 19 Development Rules
+# React 19 Rules
 
-Apply when working with `*.tsx` files.
+Apply to `*.tsx`
 
-## TypeScript
+---
 
-Always type props with interfaces:
+## Types
 
 ```tsx
-// Good
-interface AgentCardProps {
-  agent: Agent;
-  onSelect?: (id: string) => void;
+interface Props {
+  agent: Agent
+  onSelect?: (id: string) => void
 }
 
-export function AgentCard({ agent, onSelect }: AgentCardProps) { ... }
-
-// Bad - no types
-export function AgentCard({ agent, onSelect }) { ... }
+export function AgentCard({ agent, onSelect }: Props) { ... }
 ```
 
-## State Management
+Always type props. Always.
 
-Use the right hook for the job:
+---
 
-```tsx
-// Simple state
-const [isOpen, setIsOpen] = useState(false);
-
-// Complex state with multiple actions
-const [state, dispatch] = useReducer(reducer, initialState);
-
-// Async data with Actions (React 19)
-const [state, formAction, isPending] = useActionState(asyncFn, initialState);
-```
-
-## React 19 Features
-
-Use new React 19 patterns:
-
-```tsx
-// Forms with Actions (not onSubmit)
-<form action={formAction}>
-
-// Read promises with use()
-const data = use(promise); // inside Suspense boundary
-
-// Transitions for non-blocking updates
-const [isPending, startTransition] = useTransition();
-
-// Optimistic updates
-const [optimistic, addOptimistic] = useOptimistic(state, updateFn);
-
-// ref as prop (no forwardRef needed)
-function Input({ ref, ...props }) { ... }
-```
-
-## Component Structure
+## Structure
 
 ```tsx
 // 1. Imports
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { useState } from 'react'
+import { Card } from '@/components/ui/card'
 
 // 2. Types
 interface Props { ... }
 
 // 3. Component
-export function ComponentName({ prop1, prop2 }: Props) {
-  // 3a. Hooks
-  const [state, setState] = useState();
+export function Component({ prop }: Props) {
+  // Hooks
+  const [state, setState] = useState()
 
-  // 3b. Handlers
-  const handleClick = () => { ... };
+  // Handlers
+  const handle = () => { ... }
 
-  // 3c. Render
-  return ( ... );
+  // Render
+  return ( ... )
 }
 ```
 
-## Exports
+---
 
-Use named exports for components:
+## React 19
 
 ```tsx
-// Good
-export function AgentCard() { ... }
+// Actions (not onSubmit)
+<form action={formAction}>
 
-// Avoid default exports
-export default function AgentCard() { ... }
+// use() for promises
+const data = use(promise)  // in Suspense
+
+// Transitions
+const [isPending, startTransition] = useTransition()
+
+// Optimistic
+const [optimistic, addOptimistic] = useOptimistic(state, fn)
+
+// ref as prop (no forwardRef)
+function Input({ ref, ...props }) { ... }
 ```
+
+---
+
+## State
+
+```tsx
+// Simple
+const [open, setOpen] = useState(false)
+
+// Complex
+const [state, dispatch] = useReducer(reducer, init)
+
+// Async (React 19)
+const [state, action, pending] = useActionState(fn, init)
+```
+
+---
 
 ## Styling
 
-Use Tailwind with `cn()` utility:
-
 ```tsx
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils'
 
 <div className={cn(
   "base-classes",
@@ -103,3 +91,42 @@ import { cn } from '@/lib/utils';
   className
 )} />
 ```
+
+---
+
+## Exports
+
+```tsx
+// Named (good)
+export function AgentCard() { ... }
+
+// Default (avoid)
+export default function AgentCard() { ... }
+```
+
+---
+
+## With Substrate
+
+```tsx
+import { colony } from '@/engine/substrate'
+
+export function SwarmView() {
+  const [net] = useState(() => colony())
+  const [highways, setHighways] = useState([])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      net.fade(0.1)
+      setHighways(net.highways(10))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [net])
+
+  return <Graph edges={highways} />
+}
+```
+
+---
+
+*React 19. Typed. Clean.*

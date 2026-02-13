@@ -1,10 +1,10 @@
 /**
  * THE SUBSTRATE
  *
- * 50 lines. Zero returns. Two fields.
+ * 70 lines. Zero returns. Two fields. Concurrency safe.
  *
- * receiver: who
- * payload: what
+ * receiver: who (unit:task)
+ * payload: what (anything)
  *
  * That's all that flows.
  */
@@ -14,14 +14,18 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 export type Envelope = { receiver: string; payload?: unknown }
-type Task = (p: unknown) => Promise<unknown>
+export type Emit = (e: Envelope) => void
+type Task = (payload: unknown, emit: Emit, ctx: { from: string; self: string }) => Promise<unknown>
 type Template = (result: unknown) => Envelope
-type Route = (e: Envelope) => void
+type Route = (e: Envelope, from: string) => void
 
 export interface Unit {
-  (e: Envelope): void
-  on: (name: string, fn: (p: unknown) => unknown) => Unit
+  (e: Envelope, from?: string): void
+  on: (name: string, fn: (p: unknown, emit: Emit, ctx: { from: string; self: string }) => unknown) => Unit
   then: (name: string, template: Template) => Unit
+  role: (name: string, task: string, ctx: Record<string, unknown>) => Unit
+  has: (name: string) => boolean
+  list: () => string[]
   id: string
 }
 
@@ -30,49 +34,70 @@ export interface Colony {
   scent: Record<string, number>
   spawn: (id: string) => Unit
   send: (e: Envelope, from?: string) => void
+  mark: (edge: string, strength?: number) => void
+  smell: (edge: string) => number
   fade: (rate?: number) => void
   highways: (limit?: number) => { edge: string; strength: number }[]
+  has: (id: string) => boolean
+  list: () => string[]
+  get: (id: string) => Unit | undefined
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// UNIT — 15 lines
+// UNIT
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const unit = (id: string, route?: Route): Unit => {
   const tasks: Record<string, Task> = {}
   const next: Record<string, Template> = {}
 
-  const u: Unit = ({ receiver, payload }) => {
-    const task = tasks[receiver] || tasks.default
-    task?.(payload).then(result =>
-      next[receiver] && route?.(next[receiver](result))
+  const u: Unit = ({ receiver, payload }, from = 'entry') => {
+    const taskName = receiver.includes(':') ? receiver.split(':')[1] : 'default'
+    const task = tasks[taskName] || tasks.default
+
+    // emit carries the current receiver as origin
+    const emit: Emit = e => route?.(e, receiver)
+    const ctx = { from, self: receiver }
+
+    task?.(payload, emit, ctx).then(result =>
+      next[taskName] && route?.(next[taskName](result), receiver)
     )
   }
 
-  u.on = (n, f) => (tasks[n] = p => Promise.resolve(f(p)), u)
+  u.on = (n, f) => (tasks[n] = (p, e, c) => Promise.resolve(f(p, e, c)), u)
   u.then = (n, t) => (next[n] = t, u)
+  u.role = (n, t, ctx) => (tasks[n] = (p, e, c) => tasks[t]?.({ ...ctx, ...(p as object) }, e, c) ?? Promise.resolve(null), u)
+  u.has = n => n in tasks
+  u.list = () => Object.keys(tasks)
   u.id = id
   return u
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COLONY — 25 lines
+// COLONY
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const colony = (): Colony => {
   const units: Record<string, Unit> = {}
   const scent: Record<string, number> = {}
 
+  const mark = (edge: string, strength = 1) => {
+    scent[edge] = (scent[edge] || 0) + strength
+  }
+
+  const smell = (edge: string) => scent[edge] || 0
+
   const send = ({ receiver, payload }: Envelope, from = 'entry') => {
-    const target = units[receiver]
+    const unitId = receiver.includes(':') ? receiver.split(':')[0] : receiver
+    const target = units[unitId]
     target && (
-      scent[`${from}→${receiver}`] = (scent[`${from}→${receiver}`] || 0) + 1,
-      target({ receiver, payload })
+      mark(`${from}→${receiver}`),
+      target({ receiver, payload }, from)
     )
   }
 
   const spawn = (id: string) => {
-    const u = unit(id, e => send(e, id))
+    const u = unit(id, (e, from) => send(e, from))
     units[id] = u
     return u
   }
@@ -88,9 +113,13 @@ export const colony = (): Colony => {
       .slice(0, limit)
       .map(([edge, strength]) => ({ edge, strength }))
 
-  return { units, scent, spawn, send, fade, highways }
+  const has = (id: string) => id in units
+  const list = () => Object.keys(units)
+  const get = (id: string) => units[id]
+
+  return { units, scent, spawn, send, mark, smell, fade, highways, has, list, get }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 50 lines. Two fields. The substrate.
+// 70 lines. Concurrency safe. Context aware.
 // ═══════════════════════════════════════════════════════════════════════════

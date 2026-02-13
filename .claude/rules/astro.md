@@ -1,79 +1,118 @@
-# Astro Development Rules
+# Astro Rules
 
-Apply when working with `*.astro` files.
+Apply to `*.astro`
 
-## File Structure
+---
 
-- Pages go in `src/pages/`
-- Layouts go in `src/layouts/`
-- Astro components can go anywhere in `src/components/`
+## Structure
+
+```
+src/pages/       # Routes
+src/layouts/     # Layouts
+src/components/  # Components
+```
+
+---
 
 ## Frontmatter
 
-Always use TypeScript in frontmatter:
-
 ```astro
 ---
-// Good
 interface Props {
-  title: string;
+  title: string
 }
-const { title } = Astro.props;
-
-// Bad - no types
-const { title } = Astro.props;
+const { title } = Astro.props
 ---
 ```
 
-## Client Directives
+Always TypeScript. Always typed.
 
-Choose the right hydration:
+---
 
-| Directive | Use When |
-|-----------|----------|
-| `client:load` | Critical, above-fold interactive UI |
-| `client:visible` | Below-fold content |
-| `client:idle` | Non-critical widgets |
-| `client:only="react"` | Client-only, no SSR needed |
+## Hydration
+
+```
+┌────────────────────┬─────────────────────────────────────┐
+│ client:load        │ Critical, above-fold, interactive   │
+├────────────────────┼─────────────────────────────────────┤
+│ client:visible     │ Below-fold, lazy                    │
+├────────────────────┼─────────────────────────────────────┤
+│ client:idle        │ Non-critical widgets                │
+├────────────────────┼─────────────────────────────────────┤
+│ client:only="react"│ Client-only, skip SSR               │
+└────────────────────┴─────────────────────────────────────┘
+```
+
+---
+
+## Islands
+
+```astro
+<!-- Static — no JS shipped -->
+<AgentCard agent={agent} />
+
+<!-- Interactive — hydrates -->
+<AgentCard client:load agent={agent} onClick={handle} />
+
+<!-- Lazy — hydrates when visible -->
+<ColonyGraph client:visible highways={highways} />
+```
+
+Only add `client:*` when interactivity is needed.
+
+---
 
 ## Imports
 
-Use path aliases:
-
 ```astro
 ---
-// Good
-import Layout from "@/layouts/Layout.astro";
-import AgentCard from "@/components/agents/AgentCard";
+// Good — path aliases
+import Layout from "@/layouts/Layout.astro"
+import { ColonyEditor } from "@/components/graph/ColonyEditor"
 
-// Bad
-import Layout from "../../../layouts/Layout.astro";
+// Bad — relative paths
+import Layout from "../../../layouts/Layout.astro"
 ---
 ```
 
-## React Islands
-
-Only add `client:*` when interactivity is needed:
-
-```astro
-<!-- Static - no JS -->
-<AgentCard agent={agent} />
-
-<!-- Interactive - needs JS -->
-<AgentCard client:load agent={agent} onClick={handleClick} />
-```
+---
 
 ## Styles
 
-Use Tailwind classes directly or scoped styles:
-
 ```astro
+<!-- Scoped -->
 <style>
-  /* Scoped to this component */
   .container { ... }
 </style>
 
+<!-- Global (sparingly) -->
 <style is:global>
-  /* Global styles - use sparingly */
+  .colony-graph { ... }
 </style>
+
+<!-- Tailwind (preferred) -->
+<div class="bg-[#0a0a0f] p-4 rounded-lg">
 ```
+
+---
+
+## With Substrate
+
+```astro
+---
+import Layout from "@/layouts/Layout.astro"
+import { ColonyEditor } from "@/components/graph/ColonyEditor"
+---
+
+<Layout title="Colony">
+  <ColonyEditor client:load />
+</Layout>
+```
+
+- `client:load` — interactive graph needs JS
+- Colony state lives in React component
+- Astro handles routing, layout, SSR shell
+
+---
+
+*Astro 5. Islands. Fast.*

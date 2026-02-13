@@ -1,301 +1,199 @@
-# Engine Development Rules
+# Engine Rules
 
-Apply when working with `src/engine/*.ts` or `src/engine/*.js` files.
+Apply to `src/engine/*.ts`
+
+---
 
 ## The Substrate
 
-This is the pattern that ants discovered 100 million years ago.
-The same pattern brains use. The same pattern neural networks use.
-
 ```
-Nodes that compute.
-Edges that connect.
-Weights that learn.
-Signals that flow.
-No controller.
-```
+70 lines.  Zero returns.  Two fields.
 
-**85 lines. The foundation of emergent AI.**
+{ receiver, payload }
 
-## The Structure
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│   NODE             EDGE + WEIGHT           NODE                 │
-│   (chamber)        (trail + scent)         (chamber)            │
-│                                                                 │
-│   ┌───────┐       ════════════►           ┌────────┐           │
-│   │ scout │──strength: 47────────────────►│ analyst│           │
-│   └───────┘                               └────────┘           │
-│                                                                 │
-│   Weights are on EDGES, not nodes.                             │
-│   Like synapses in a brain.                                    │
-│   Like attention in transformers.                              │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-| Ant Colony | Neural Network | Our System |
-|------------|---------------|------------|
-| Chamber | Neuron | `unit` |
-| Trail | Synapse | edge |
-| Pheromone | Weight | `scent[edge]` |
-| Ant | Signal | `envelope` |
-| Colony | Network | `colony` |
-
-## The Loop
-
-Intelligence emerges from two feedback loops:
-
-```
-REINFORCEMENT LOOP              DECAY LOOP
-(learning)                      (forgetting)
-
-signal succeeds                 time passes
-     │                               │
-     ▼                               ▼
-edge strengthens                edge weakens
-     │                               │
-     ▼                               ▼
-more signals follow             signals find other paths
-     │                               │
-     ▼                               ▼
-SUPERHIGHWAY                    edge disappears
-```
-
-**More traffic → More pheromone → More traffic → HIGHWAY**
-
-```
-WEAK EDGE (scent: 2)
-┌────┐ ─ ─ ─ ─ ─ ─ ─ ─ ▶ ┌────┐
-│ A  │    dirt path      │ B  │
-└────┘                   └────┘
-
-STRONG EDGE (scent: 10,000)
-┌────┐ ══════════════════ ┌────┐
-│ A  │   SUPERHIGHWAY     │ C  │
-└────┘                    └────┘
-```
-
-The path remembers itself. The edges think.
-
-## Node (unit.js) — 30 lines
-
-A node IS its entrance. When a signal arrives, computation happens.
-
-```javascript
-const unit = (envelope, route) => {
-  const { receiver: id } = envelope;
-  const tasks = {};
-
-  const receive = ({ receive: task, payload, callback }) => {
-    if (!tasks[task]) return Promise.reject({ id, task, error: `Unknown: ${task}` });
-
-    return tasks[task](payload).then((result) => {
-      if (callback) {
-        const next = substitute(callback, result);
-        if (next.receiver !== id && route) return route(next);
-        return receive(next);
-      }
-      return result;
-    });
-  };
-
-  receive.assign = (name, fn) => (tasks[name] = (p) => Promise.resolve(fn(p)), receive);
-  receive.role = (name, task, ctx) => (tasks[name] = (p) => tasks[task]({ ...ctx, ...p }), receive);
-  receive.has = (name) => name in tasks;
-  receive.list = () => Object.keys(tasks);
-  receive.id = id;
-  return receive;
-};
-```
-
-**A node IS its entrance.** The unit IS the receive function.
-
-## Network (colony.js) — 55 lines
-
-The network connects nodes and learns which edges matter.
-
-```javascript
-const colony = () => {
-  const chambers = {};   // Nodes
-  const scent = {};      // Edge weights
-
-  const send = ({ receiver, receive, payload, callback }, from = "entry") => {
-    const target = chambers[receiver];
-    if (!target) return Promise.reject({ error: `No node: ${receiver}` });
-
-    const currentNode = `${receiver}:${receive}`;
-
-    return target({ receive, payload, callback }).then((result) => {
-      // LEARNING: Strengthen the edge just traversed
-      const edge = `${from} → ${currentNode}`;
-      scent[edge] = (scent[edge] || 0) + 1;
-      return result;
-    });
-  };
-
-  const fade = (rate = 0.1) => {
-    for (const edge in scent) {
-      scent[edge] *= (1 - rate);
-      if (scent[edge] < 0.01) delete scent[edge];
-    }
-  };
-
-  const highways = () => Object.entries(scent)
-    .sort(([, a], [, b]) => b - a)
-    .map(([edge, strength]) => ({ edge, strength }));
-
-  return { spawn, send, fade, highways, chambers, scent, mark, smell };
-};
-```
-
-## Signal (envelope)
-
-A signal carries data and knows its journey:
-
-```typescript
-interface Envelope {
-  receiver?: string;     // Which node to enter
-  receive?: string;      // Which computation to trigger
-  payload?: unknown;     // Data being carried
-  callback?: Envelope;   // Where to go next (the path)
-}
-```
-
-## Edge Learning
-
-Edges strengthen when signals traverse them. This is learning.
-
-```javascript
-// Before: no edges
-net.highways();
-// → []
-
-// Send a signal through scout → analyst → trader
-await net.send({
-  receiver: "scout",
-  receive: "observe",
-  callback: {
-    receiver: "analyst",
-    receive: "evaluate",
-    callback: {
-      receiver: "trader",
-      receive: "execute"
-    }
-  }
-});
-
-// After: edges have weight
-net.highways();
-// → [
-//   { edge: "entry → scout:observe", strength: 1 },
-//   { edge: "scout:observe → analyst:evaluate", strength: 1 },
-//   { edge: "analyst:evaluate → trader:execute", strength: 1 }
-// ]
-
-// Send 100 more signals through same path
-// ...
-
-net.highways();
-// → [
-//   { edge: "scout:observe → analyst:evaluate", strength: 100 },
-//   ...
-// ]
-
-// Superhighways emerge. The network learned.
-```
-
-## Edge Fading
-
-Unused edges weaken over time. This is forgetting.
-
-```javascript
-// Edges fade
-net.fade(0.1);  // 10% decay
-
-// Eventually, unused edges disappear
-net.fade(0.5);  // 50% decay
-net.highways();
-// → only frequently-used edges remain
-```
-
-## Tasks (Computations)
-
-Tasks are what a node computes:
-
-```javascript
-node.assign("double", ({ n }) => n * 2);
-node.assign("validate", ({ n }) => n > 0);
-```
-
-## Roles (Context-Bound Tasks)
-
-Same computation, different context:
-
-```javascript
-node.assign("fetch", ({ url, token }) => fetch(url, { headers: { auth: token } }));
-node.role("fetchAsAdmin", "fetch", { token: "admin-key" });
-node.role("fetchAsUser", "fetch", { token: "user-key" });
-```
-
-## Cargo Transfer
-
-When a signal moves between nodes, its cargo transforms:
-
-```javascript
-const substitute = (envelope, result) => {
-  const payload = {};
-  for (const [k, v] of Object.entries(envelope.payload || {})) {
-    payload[k] = v === "{{result}}" ? result : v;
-  }
-  return { ...envelope, payload };
-};
-```
-
-## What Emerges
-
-From 85 lines:
-
-| Behavior | How |
-|----------|-----|
-| Learning | Edges strengthen with use |
-| Forgetting | Unused edges fade |
-| Highways | High-traffic paths emerge |
-| Load balancing | Route to weak-scent nodes |
-| Fault tolerance | Failed paths weaken |
-| Self-organization | No central controller |
-
-## The Insight
-
-```
-Ants don't talk to each other.
-Neurons don't talk to each other.
-They modify the connections between them.
-Other signals read those modifications.
-
-That's intelligence.
-That's what this is.
-That's 85 lines.
-```
-
-## Type Safety
-
-```typescript
-import { unit, colony } from "@/engine";
-import type { Unit, Colony, Envelope, Edge } from "@/engine";
-```
-
-## Chainable API
-
-```javascript
-const node = unit({ receiver: "worker" })
-  .assign("add", ({ a, b }) => a + b)
-  .assign("mul", ({ a, b }) => a * b)
-  .role("double", "mul", { b: 2 });
+That's all that flows.
 ```
 
 ---
 
-*The substrate for emergent intelligence.*
+## Envelope
+
+```typescript
+type Envelope = {
+  receiver: string      // "unit" or "unit:task"
+  payload?: unknown     // anything
+}
+```
+
+---
+
+## Unit
+
+```typescript
+unit(id, route?)
+  .on(name, fn)           // define task
+  .then(name, template)   // define continuation
+  .role(name, task, ctx)  // context-bound task
+  .has(name)              // introspection
+  .list()                 // introspection
+  .id                     // identity
+```
+
+### Task Signature
+
+```typescript
+(payload, emit, ctx) => result
+
+payload   // the data
+emit      // (envelope) => void — fan out
+ctx       // { from: string, self: string }
+```
+
+---
+
+## Colony
+
+```typescript
+colony()
+  .spawn(id)              // create unit
+  .send(envelope, from?)  // flow signal
+  .mark(edge, strength?)  // strengthen edge
+  .smell(edge)            // read weight
+  .fade(rate?)            // decay all edges
+  .highways(limit?)       // top edges
+  .has(id)                // introspection
+  .list()                 // introspection
+  .get(id)                // direct access
+```
+
+---
+
+## Zero Returns
+
+Positive flow only. Silence is valid.
+
+```typescript
+// GOOD
+task?.(payload, emit, ctx).then(result =>
+  next[name] && route?.(next[name](result), receiver)
+)
+
+// GOOD
+target && (mark(edge), target(env))
+
+// BAD
+if (!task) return reject(...)
+if (!target) throw new Error(...)
+```
+
+Missing handler? Signal dissolves. Swarm continues.
+
+---
+
+## Continuations
+
+Defined at setup, not at send:
+
+```typescript
+// Setup
+.on('observe', ({ tick }) => ({ data: tick }))
+.then('observe', r => ({ receiver: 'analyst', payload: r }))
+
+// Send (minimal)
+{ receiver: 'scout:observe', payload: { tick: 42 } }
+```
+
+Templates are functions. Full control.
+
+---
+
+## Context Flow
+
+```
+send(env, from='entry')
+  → unit(env, from)
+    → task(payload, emit, {from, self})
+      → emit(env)  // carries self as new from
+        → send(env, from=self)
+```
+
+Concurrency safe. No global state.
+
+---
+
+## Patterns
+
+### Request / Response
+
+```typescript
+.on('ask', ({ q }, emit, { self }) => {
+  emit({ receiver: 'oracle', payload: { q, replyTo: self } })
+})
+
+.on('answer', ({ q, replyTo }, emit) => {
+  emit({ receiver: replyTo, payload: { a: compute(q) } })
+})
+```
+
+### Claim
+
+```typescript
+.on('claim', ({ id }, emit, { from }) => {
+  !claims[id] && (claims[id] = from,
+    emit({ receiver: from, payload: { claimed: id } }))
+})
+```
+
+### Payment
+
+```typescript
+.on('pay', ({ to, amount }, emit, { from }) => {
+  bal[from] >= amount && (
+    bal[from] -= amount,
+    bal[to] += amount,
+    emit({ receiver: to, payload: { received: amount } }))
+})
+```
+
+### Stream
+
+```typescript
+.on('ingest', async ({ url }, emit) => {
+  const s = await connect(url)
+  s.on('data', d => emit({ receiver: 'process', payload: d }))
+})
+```
+
+---
+
+## Types
+
+```typescript
+import { colony, unit } from "@/engine/substrate"
+import type { Colony, Unit, Envelope, Emit } from "@/engine/substrate"
+
+// Aliases
+import { swarm, atom } from "@/engine"
+import type { Swarm, Atom, Signal } from "@/engine"
+```
+
+---
+
+## The Loop
+
+```
+REINFORCE              DECAY
+    │                     │
+    ▼                     ▼
+edge++               edge *= 0.9
+    │                     │
+    ▼                     ▼
+more traffic         reroute
+    │                     │
+    ▼                     ▼
+HIGHWAY              delete
+```
+
+---
+
+*70 lines. The substrate.*
