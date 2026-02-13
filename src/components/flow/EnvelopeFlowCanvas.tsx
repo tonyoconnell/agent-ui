@@ -1,12 +1,9 @@
 // EnvelopeFlowCanvas - Simple envelope → logic → envelope visualization
-// Shows the core relay pattern: Receive → Transform → Dispatch
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   ReactFlow,
   Background,
-  Controls,
-  Panel,
   useNodesState,
   useEdgesState,
   Handle,
@@ -24,16 +21,18 @@ import { cn } from "@/lib/utils";
 interface EnvelopeData {
   direction: "in" | "out";
   status: "pending" | "resolved" | "rejected";
-  agent: string;
+  id?: string;
   action: string;
   inputs: Record<string, unknown>;
   results?: Record<string, unknown>;
+  chainsTo?: { action: string; receiver: string };
   isActive?: boolean;
+  highlightInputs?: boolean;
+  highlightResults?: boolean;
 }
 
 interface LogicData {
   activeStep: number;
-  isAnimating: boolean;
 }
 
 // ============================================
@@ -64,38 +63,28 @@ function StatusDot({ status, pulse = false }: { status: string; pulse?: boolean 
 
 function JsonBlock({
   data,
-  variant = "default"
+  variant = "default",
+  highlight = false,
 }: {
   data: unknown;
-  variant?: "default" | "success"
+  variant?: "default" | "success";
+  highlight?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const json = JSON.stringify(data, null, 2);
-  const lines = json.split("\n");
-  const isLong = lines.length > 4;
 
   return (
-    <button
-      onClick={() => isLong && setExpanded(!expanded)}
-      className={cn(
-        "w-full text-left font-mono text-[11px] leading-relaxed p-3 rounded-lg transition-all duration-200",
-        "bg-black/30 border border-white/5",
-        isLong && "hover:bg-black/40 cursor-pointer",
-        variant === "success" ? "text-emerald-300/90" : "text-slate-300/80"
-      )}
-    >
-      <pre className={cn(
-        "overflow-hidden transition-all duration-300",
-        expanded ? "max-h-64" : "max-h-20"
-      )}>
-        {json}
-      </pre>
-      {isLong && !expanded && (
-        <span className="text-slate-500 text-[10px] mt-1 block">
-          Click to expand...
-        </span>
-      )}
-    </button>
+    <div className={cn(
+      "font-mono text-[11px] leading-relaxed p-3 rounded-xl transition-all duration-500",
+      "border",
+      highlight
+        ? variant === "success"
+          ? "bg-emerald-500/20 border-emerald-500/40 shadow-lg shadow-emerald-500/10 text-emerald-300"
+          : "bg-blue-500/20 border-blue-500/40 shadow-lg shadow-blue-500/10 text-blue-300"
+        : "bg-black/30 border-white/5",
+      !highlight && (variant === "success" ? "text-emerald-300/70" : "text-slate-400")
+    )}>
+      <pre className="whitespace-pre-wrap">{json}</pre>
+    </div>
   );
 }
 
@@ -104,116 +93,86 @@ function JsonBlock({
 // ============================================
 function EnvelopeNode({ data }: NodeProps<Node<EnvelopeData>>) {
   const isInput = data.direction === "in";
-
-  const accentColor = isInput ? "blue" : "emerald";
-  const accentClasses = {
-    blue: {
-      bg: "bg-blue-500/10",
-      text: "text-blue-400",
-      border: "border-blue-500/30",
-      glow: "shadow-blue-500/20",
-    },
-    emerald: {
-      bg: "bg-emerald-500/10",
-      text: "text-emerald-400",
-      border: "border-emerald-500/30",
-      glow: "shadow-emerald-500/20",
-    },
-  }[accentColor];
+  const label = isInput ? "Envelope" : "Callback";
 
   return (
     <div
       className={cn(
-        "relative bg-[#12121a] rounded-2xl p-5 w-[260px] transition-all duration-500",
-        "border border-white/[0.06]",
-        "shadow-xl shadow-black/20",
-        data.isActive && [
-          accentClasses.border,
-          "shadow-2xl",
-          accentClasses.glow,
-        ]
+        "relative bg-[#161622] rounded-2xl p-6 w-[280px] min-h-[400px] transition-all duration-500",
+        "border",
+        data.isActive
+          ? "border-blue-500/50 shadow-lg shadow-blue-500/10"
+          : "border-[#252538]"
       )}
     >
-      {/* Subtle gradient overlay */}
-      <div className={cn(
-        "absolute inset-0 rounded-2xl opacity-50 pointer-events-none",
-        "bg-gradient-to-br from-white/[0.02] to-transparent"
-      )} />
-
       {/* Handles */}
       {!isInput && (
         <Handle
           type="target"
           position={Position.Left}
-          className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#12121a] !-left-1.5"
+          className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-left-1.5"
         />
       )}
       {isInput && (
         <Handle
           type="source"
           position={Position.Right}
-          className="!bg-emerald-400 !w-3 !h-3 !border-[3px] !border-[#12121a] !-right-1.5"
+          className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-right-1.5"
         />
       )}
 
       {/* Header */}
-      <div className="relative flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2.5">
-          <div className={cn(
-            "w-7 h-7 rounded-lg flex items-center justify-center text-sm font-medium",
-            accentClasses.bg,
-            accentClasses.text
-          )}>
-            {isInput ? "↓" : "↑"}
-          </div>
-          <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
-            {isInput ? "Received" : "Dispatched"}
-          </span>
-        </div>
+      <div className="flex items-center justify-between mb-6">
+        <span className="text-xs text-slate-500 uppercase tracking-wider">
+          {label}
+        </span>
         <div className="flex items-center gap-2">
           <StatusDot status={data.status} pulse={data.isActive} />
-          <span className="text-[10px] text-slate-500 capitalize">{data.status}</span>
+          <span className="text-xs text-slate-500">{data.status}</span>
         </div>
       </div>
 
-      <div className="relative space-y-4">
-        {/* From/To */}
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-500 w-8">{isInput ? "from" : "to"}</span>
-          <span className={cn(
-            "font-mono text-xs px-2.5 py-1 rounded-md",
-            accentClasses.bg,
-            accentClasses.text
-          )}>
-            {data.agent}
-          </span>
+      <div className="space-y-4">
+        {/* ID */}
+        <div>
+          <div className="text-slate-500 text-xs mb-1">ID</div>
+          <code className="text-slate-300 font-mono text-sm">{data.id || "env-abc123"}</code>
         </div>
 
         {/* Action */}
         <div>
-          <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1.5">
-            Action
-          </div>
-          <div className="text-white text-lg font-semibold tracking-tight">
+          <div className="text-slate-500 text-xs mb-1">Action</div>
+          <div className={cn(
+            "text-xl font-semibold transition-colors duration-500",
+            data.isActive ? "text-white" : "text-slate-300"
+          )}>
             {data.action}
           </div>
         </div>
 
         {/* Inputs */}
         <div>
-          <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1.5">
-            {isInput ? "Inputs" : "Transformed Inputs"}
-          </div>
-          <JsonBlock data={data.inputs} />
+          <div className="text-slate-500 text-xs mb-1">Inputs</div>
+          <JsonBlock data={data.inputs} highlight={data.highlightInputs} />
         </div>
 
-        {/* Results (only for input envelope) */}
-        {isInput && data.results && (
+        {/* Results */}
+        {data.results && (
           <div>
-            <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1.5">
-              Results
+            <div className="text-slate-500 text-xs mb-1">Results</div>
+            <JsonBlock data={data.results} variant="success" highlight={data.highlightResults} />
+          </div>
+        )}
+
+        {/* Chains to (for input envelope) */}
+        {isInput && data.chainsTo && (
+          <div className="pt-4 border-t border-[#252538]">
+            <div className="text-slate-500 text-xs mb-1">Chains to</div>
+            <div className="text-slate-400 font-mono text-sm flex items-center gap-2">
+              <span className="text-blue-400">{data.chainsTo.action}</span>
+              <span className="text-slate-600">→</span>
+              <span className="text-slate-500">{data.chainsTo.receiver}</span>
             </div>
-            <JsonBlock data={data.results} variant="success" />
           </div>
         )}
       </div>
@@ -226,78 +185,60 @@ function EnvelopeNode({ data }: NodeProps<Node<EnvelopeData>>) {
 // ============================================
 function LogicNode({ data }: NodeProps<Node<LogicData>>) {
   const steps = [
-    { code: "// 1. RECEIVE", isHeader: true },
-    { code: "const { action, inputs } = envelope.env;" },
-    { code: "" },
-    { code: "// 2. TRANSFORM", isHeader: true },
-    { code: "let result = this.actions[action](inputs);" },
-    { code: "envelope.payload.results = result;" },
-    { code: "" },
-    { code: "// 3. DISPATCH", isHeader: true },
-    { code: "let next = envelope.callback;" },
-    { code: "next.env.inputs = substitute(next, result);" },
-    { code: "this.route(next);", comment: "// → next agent" },
+    { code: "const { action, inputs } = envelope.env;", comment: "// Extract" },
+    { code: "let result = await this.actions[action](inputs);", comment: "// Execute" },
+    { code: "envelope.payload.results = result;", comment: "// Store" },
+    { code: "if (callback) {", comment: "" },
+    { code: "  this.substitute(callback, result);", comment: "// Substitute" },
+    { code: "  await this.route(callback);", comment: "// Route" },
+    { code: "}", comment: "" },
   ];
 
   return (
     <div className={cn(
-      "relative bg-[#12121a] rounded-2xl p-5 w-[320px] transition-all duration-500",
-      "border border-white/[0.06]",
-      "shadow-xl shadow-black/20"
+      "relative bg-[#161622] rounded-2xl p-6 w-[340px] min-h-[400px] transition-all duration-500",
+      "border border-[#252538]"
     )}>
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 rounded-2xl opacity-50 pointer-events-none bg-gradient-to-br from-white/[0.02] to-transparent" />
-
       {/* Handles */}
       <Handle
         type="target"
         position={Position.Left}
-        className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#12121a] !-left-1.5"
+        className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-left-1.5"
       />
       <Handle
         type="source"
         position={Position.Right}
-        className="!bg-emerald-400 !w-3 !h-3 !border-[3px] !border-[#12121a] !-right-1.5"
+        className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-right-1.5"
       />
 
       {/* Header */}
-      <div className="relative flex items-center gap-2.5 mb-5">
-        <div className="w-7 h-7 rounded-lg bg-violet-500/15 text-violet-400 flex items-center justify-center text-sm">
-          ⚡
-        </div>
-        <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
-          Transform
+      <div className="mb-6">
+        <span className="text-xs text-slate-500 uppercase tracking-wider">
+          Logic
         </span>
       </div>
 
       {/* Code */}
-      <div className="relative space-y-0.5 font-mono text-[11px] leading-relaxed">
+      <div className="space-y-2 font-mono text-sm">
         {steps.map((step, i) => {
-          if (step.code === "") return <div key={i} className="h-3" />;
-
-          const isActive = data.activeStep === i && !step.isHeader;
+          const isActive = data.activeStep === i;
 
           return (
             <div
               key={i}
               className={cn(
-                "py-1 px-2.5 rounded-md transition-all duration-300",
-                step.isHeader && "mt-1",
-                isActive && "bg-blue-500/15 border-l-2 border-blue-400 -ml-0.5 pl-2"
+                "flex items-center gap-3 py-1 px-2 rounded transition-all duration-300",
+                isActive && "bg-blue-500/10 border-l-2 border-blue-500"
               )}
             >
               <span className={cn(
                 "transition-colors duration-300",
-                step.isHeader
-                  ? "text-slate-500 text-[10px] font-semibold uppercase tracking-wider"
-                  : isActive
-                    ? "text-white"
-                    : "text-slate-400"
+                isActive ? "text-white" : "text-slate-400"
               )}>
                 {step.code}
               </span>
               {step.comment && (
-                <span className="text-emerald-500/70 ml-2">{step.comment}</span>
+                <span className="text-slate-600 text-xs">{step.comment}</span>
               )}
             </div>
           );
@@ -316,83 +257,151 @@ const nodeTypes = {
 };
 
 // ============================================
-// Initial Data
+// Build nodes from envelope data
 // ============================================
-const initialNodes: Node[] = [
-  {
-    id: "received",
-    type: "envelope",
-    position: { x: 0, y: 40 },
-    data: {
-      direction: "in",
-      status: "resolved",
-      agent: "system",
-      action: "processData",
-      inputs: { source: "api/feed", limit: 100 },
-      results: { processed: true, count: 42 },
-      isActive: false,
-    },
-  },
-  {
-    id: "transform",
-    type: "logic",
-    position: { x: 340, y: 0 },
-    data: {
-      activeStep: -1,
-      isAnimating: false,
-    },
-  },
-  {
-    id: "dispatched",
-    type: "envelope",
-    position: { x: 740, y: 40 },
-    data: {
-      direction: "out",
-      status: "resolved",
-      agent: "agent-b",
-      action: "routeEnvelope",
-      inputs: {
-        target: "agent-c",
-        data: { processed: true, count: 42 },
-      },
-      isActive: false,
-    },
-  },
-];
+interface EnvelopeInput {
+  id: string;
+  action: string;
+  inputs: Record<string, unknown>;
+  results?: Record<string, unknown>;
+  status: "pending" | "resolved" | "rejected";
+  callback?: {
+    id: string;
+    action: string;
+    inputs: Record<string, unknown>;
+    receiver?: string;
+  } | null;
+}
 
-const initialEdges: Edge[] = [
+function buildNodes(envelope: EnvelopeInput | null): Node[] {
+  if (!envelope) {
+    return [
+      {
+        id: "envelope",
+        type: "envelope",
+        position: { x: 0, y: 0 },
+        data: {
+          direction: "in",
+          status: "pending",
+          id: "—",
+          action: "awaiting...",
+          inputs: {},
+          isActive: false,
+          highlightInputs: false,
+          highlightResults: false,
+        },
+      },
+      {
+        id: "logic",
+        type: "logic",
+        position: { x: 340, y: 0 },
+        data: { activeStep: -1 },
+      },
+      {
+        id: "callback",
+        type: "envelope",
+        position: { x: 740, y: 0 },
+        data: {
+          direction: "out",
+          status: "pending",
+          id: "—",
+          action: "—",
+          inputs: {},
+          isActive: false,
+          highlightInputs: false,
+        },
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "envelope",
+      type: "envelope",
+      position: { x: 0, y: 0 },
+      data: {
+        direction: "in",
+        status: envelope.status,
+        id: envelope.id,
+        action: envelope.action,
+        inputs: envelope.inputs,
+        results: envelope.results,
+        chainsTo: envelope.callback
+          ? { action: envelope.callback.action, receiver: envelope.callback.receiver || "next" }
+          : undefined,
+        isActive: false,
+        highlightInputs: false,
+        highlightResults: false,
+      },
+    },
+    {
+      id: "logic",
+      type: "logic",
+      position: { x: 340, y: 0 },
+      data: { activeStep: -1 },
+    },
+    {
+      id: "callback",
+      type: "envelope",
+      position: { x: 740, y: 0 },
+      data: {
+        direction: "out",
+        status: "pending",
+        id: envelope.callback?.id || "—",
+        action: envelope.callback?.action || "—",
+        inputs: envelope.callback?.inputs || {},
+        isActive: false,
+        highlightInputs: false,
+      },
+    },
+  ];
+}
+
+const defaultEdges: Edge[] = [
   {
     id: "e1",
-    source: "received",
-    target: "transform",
+    source: "envelope",
+    target: "logic",
     animated: false,
     style: { stroke: "#60a5fa", strokeWidth: 2 },
   },
   {
     id: "e2",
-    source: "transform",
-    target: "dispatched",
+    source: "logic",
+    target: "callback",
     animated: false,
-    style: { stroke: "#34d399", strokeWidth: 2 },
+    style: { stroke: "#60a5fa", strokeWidth: 2 },
   },
 ];
 
 // ============================================
 // Main Component
 // ============================================
-export function EnvelopeFlowCanvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+interface EnvelopeFlowCanvasProps {
+  envelope?: EnvelopeInput | null;
+}
+
+export function EnvelopeFlowCanvas({ envelope = null }: EnvelopeFlowCanvasProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(buildNodes(envelope));
+  const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const [isAnimating, setIsAnimating] = useState(false);
 
+  // Rebuild nodes when envelope changes
+  useEffect(() => {
+    setNodes(buildNodes(envelope));
+  }, [envelope, setNodes]);
+
   const runFlow = useCallback(() => {
-    if (isAnimating) return;
+    if (isAnimating || !envelope) return;
     setIsAnimating(true);
 
-    // Activate received envelope
+    const callbackInputs = envelope.callback?.inputs || {};
+    const results = envelope.results || {};
+
+    // Activate envelope, start first edge animation
     setNodes((nds) =>
       nds.map((n) =>
-        n.id === "received" ? { ...n, data: { ...n.data, isActive: true } } : n
+        n.id === "envelope" ? { ...n, data: { ...n.data, isActive: true, highlightInputs: true } } : n
       )
     );
     setEdges((eds) =>
@@ -403,50 +412,62 @@ export function EnvelopeFlowCanvas() {
     const interval = setInterval(() => {
       step++;
 
-      if (step <= 10) {
+      // Steps 0-6 animate through the logic code
+      if (step <= 6) {
         setNodes((nds) =>
-          nds.map((n) =>
-            n.id === "transform"
-              ? { ...n, data: { ...n.data, activeStep: step } }
-              : n
-          )
+          nds.map((n) => {
+            if (n.id === "logic") {
+              return { ...n, data: { ...n.data, activeStep: step - 1 } };
+            }
+            if (n.id === "envelope" && step === 3) {
+              // Show results after "Store" step
+              return { ...n, data: { ...n.data, highlightInputs: false, highlightResults: true } };
+            }
+            return n;
+          })
         );
       }
 
-      if (step === 6) {
+      // Step 5: Start second edge animation (after substitute)
+      if (step === 5) {
         setEdges((eds) =>
           eds.map((e) => (e.id === "e2" ? { ...e, animated: true } : e))
         );
       }
 
-      if (step === 8) {
+      // Step 6: Activate callback envelope with substituted results
+      if (step === 6) {
         setNodes((nds) =>
           nds.map((n) =>
-            n.id === "dispatched"
-              ? { ...n, data: { ...n.data, isActive: true } }
+            n.id === "callback"
+              ? { ...n, data: { ...n.data, isActive: true, highlightInputs: true, status: "resolved", inputs: results } }
               : n
           )
         );
       }
 
-      if (step >= 12) {
+      // Reset after animation completes
+      if (step >= 9) {
         clearInterval(interval);
         setTimeout(() => {
-          setNodes((nds) =>
-            nds.map((n) => ({
-              ...n,
-              data: { ...n.data, isActive: false, activeStep: -1 },
-            }))
-          );
+          setNodes(buildNodes(envelope));
           setEdges((eds) => eds.map((e) => ({ ...e, animated: false })));
           setIsAnimating(false);
         }, 1000);
       }
-    }, 350);
-  }, [isAnimating, setNodes, setEdges]);
+    }, 500);
+  }, [isAnimating, envelope, setNodes, setEdges]);
+
+  // Auto-start animation when envelope is present
+  useEffect(() => {
+    if (envelope) {
+      const timer = setTimeout(runFlow, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [envelope]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="h-full w-full bg-[#08080c]">
+    <div className="h-full w-full bg-[#0f0f17]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -454,71 +475,18 @@ export function EnvelopeFlowCanvas() {
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.4 }}
+        fitViewOptions={{ padding: 0.3 }}
         proOptions={{ hideAttribution: true }}
-        className="bg-[#08080c]"
+        className="bg-[#0f0f17]"
+        nodesDraggable={true}
+        nodesConnectable={false}
+        elementsSelectable={true}
+        panOnDrag={true}
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={true}
       >
-        <Background color="#1a1a24" gap={32} size={1} />
-        <Controls className="!bg-[#12121a] !border-white/[0.06] !rounded-xl !shadow-xl [&>button]:!bg-[#12121a] [&>button]:!border-white/[0.06] [&>button]:!fill-slate-400 [&>button:hover]:!bg-[#1a1a24] [&>button]:!rounded-lg" />
-
-        {/* Header Panel */}
-        <Panel position="top-left">
-          <div className="p-5 bg-[#12121a] border border-white/[0.06] rounded-2xl shadow-2xl shadow-black/30 min-w-[200px]">
-            {/* Title */}
-            <div className="flex items-center gap-3 mb-1">
-              <StatusDot status="resolved" pulse />
-              <span className="text-white text-lg font-semibold tracking-tight">
-                Data Processor
-              </span>
-            </div>
-
-            {/* Actions */}
-            <div className="text-slate-500 text-xs font-mono mb-5 pl-5">
-              processData, validate
-            </div>
-
-            {/* Run Button */}
-            <button
-              onClick={runFlow}
-              disabled={isAnimating}
-              className={cn(
-                "w-full px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300",
-                "flex items-center justify-center gap-2",
-                isAnimating
-                  ? "bg-slate-800/50 text-slate-500 cursor-not-allowed"
-                  : "bg-blue-500 text-white hover:bg-blue-400 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
-              )}
-            >
-              {isAnimating ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
-                  Running...
-                </>
-              ) : (
-                <>
-                  <span>▶</span>
-                  Run Flow
-                </>
-              )}
-            </button>
-          </div>
-        </Panel>
-
-        {/* Legend */}
-        <Panel position="bottom-left">
-          <div className="px-4 py-3 bg-[#12121a]/80 backdrop-blur-sm border border-white/[0.06] rounded-xl">
-            <div className="flex items-center gap-6 text-[10px]">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-blue-400 rounded-full" />
-                <span className="text-slate-500">Receive</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-emerald-400 rounded-full" />
-                <span className="text-slate-500">Dispatch</span>
-              </div>
-            </div>
-          </div>
-        </Panel>
+        <Background color="#1e293b" gap={40} size={1} />
       </ReactFlow>
     </div>
   );
