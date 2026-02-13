@@ -150,7 +150,7 @@ function AgentGrid({
     <div className="flex-1 flex items-center justify-center p-6">
       <div className="w-full max-w-4xl animate-fadeIn">
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-light text-white mb-2 tracking-tight">Envelope System</h1>
+          <h1 className="text-3xl font-light text-white mb-2 tracking-tight">Agents</h1>
           <p className="text-slate-500 text-sm">Select an agent to view its execution flow</p>
         </div>
 
