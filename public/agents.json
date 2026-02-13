@@ -1,0 +1,45 @@
+{
+  "agents": [
+    {
+      "id": "agent-a",
+      "name": "Data Processor",
+      "actions": {
+        "processData": { "processed": true, "count": 42 }
+      }
+    },
+    {
+      "id": "agent-b",
+      "name": "Router",
+      "actions": {
+        "routeEnvelope": { "routed": true }
+      }
+    },
+    {
+      "id": "agent-c",
+      "name": "Validator",
+      "actions": {
+        "signPayload": { "signed": true, "hash": "0xabc..." }
+      }
+    }
+  ],
+  "envelopes": [
+    {
+      "action": "processData",
+      "inputs": { "source": "api/feed", "limit": 100 },
+      "sender": "system",
+      "receiver": "agent-a",
+      "callback": {
+        "action": "routeEnvelope",
+        "inputs": { "target": "agent-c", "data": "{{ results }}" },
+        "sender": "agent-a",
+        "receiver": "agent-b",
+        "callback": {
+          "action": "signPayload",
+          "inputs": { "payload": "{{ results }}" },
+          "sender": "agent-b",
+          "receiver": "agent-c"
+        }
+      }
+    }
+  ]
+}
