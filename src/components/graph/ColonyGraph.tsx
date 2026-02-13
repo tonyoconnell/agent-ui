@@ -14,12 +14,17 @@ import { useMemo, useCallback, useState } from "react"
 import {
   ReactFlow,
   Background,
+  Controls,
+  MiniMap,
+  Panel,
   Handle,
   Position,
   MarkerType,
   getBezierPath,
   BaseEdge,
   EdgeLabelRenderer,
+  useNodesState,
+  useEdgesState,
   type Node,
   type Edge as FlowEdge,
   type EdgeProps,
@@ -173,11 +178,11 @@ function ChamberNode({ data, selected }: NodeProps) {
     <div
       onClick={() => setExpanded(!expanded)}
       className={cn(
-        "bg-gradient-to-b from-[#14141c] to-[#0c0c12] rounded-xl border-2 transition-all duration-300",
-        "w-[200px] cursor-pointer",
-        isActive && "shadow-xl shadow-blue-500/20",
-        selected ? "border-blue-500 ring-2 ring-blue-500/30" :
-        isActive ? "border-blue-500/50" : "border-slate-700/50 hover:border-slate-600"
+        "bg-gradient-to-b from-[#16161f] to-[#0e0e14] rounded-xl border transition-all duration-200",
+        "w-[180px] cursor-pointer select-none",
+        isActive && "shadow-lg shadow-blue-500/30",
+        selected ? "border-blue-500 ring-2 ring-blue-500/20" :
+        isActive ? "border-blue-500/40" : "border-slate-700/40 hover:border-slate-500/60"
       )}
     >
       {/* Handles */}
@@ -185,55 +190,53 @@ function ChamberNode({ data, selected }: NodeProps) {
         type="target"
         position={Position.Left}
         className={cn(
-          "!w-3 !h-3 !border-2 !-left-1.5 transition-all",
-          d.incoming.strength > 0 ? "!bg-blue-400 !border-blue-900" : "!bg-slate-600 !border-slate-800"
+          "!w-2.5 !h-2.5 !border-2 !-left-1 transition-all",
+          d.incoming.strength > 0 ? "!bg-blue-400 !border-[#16161f]" : "!bg-slate-600 !border-[#16161f]"
         )}
       />
       <Handle
         type="source"
         position={Position.Right}
         className={cn(
-          "!w-3 !h-3 !border-2 !-right-1.5 transition-all",
-          d.outgoing.strength > 0 ? "!bg-emerald-400 !border-emerald-900" : "!bg-slate-600 !border-slate-800"
+          "!w-2.5 !h-2.5 !border-2 !-right-1 transition-all",
+          d.outgoing.strength > 0 ? "!bg-emerald-400 !border-[#16161f]" : "!bg-slate-600 !border-[#16161f]"
         )}
       />
 
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-700/50">
+      <div className="px-3 py-2.5 border-b border-slate-700/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={cn(
-              "w-2.5 h-2.5 rounded-full transition-all",
-              isActive ? "bg-blue-500 shadow-lg shadow-blue-500/50" : "bg-slate-600"
+              "w-2 h-2 rounded-full transition-all",
+              isActive ? "bg-blue-500 shadow-md shadow-blue-500/50" : "bg-slate-600"
             )}>
               {isActive && <div className="w-full h-full rounded-full bg-blue-400 animate-ping" />}
             </div>
-            <span className="text-white font-semibold">{d.name}</span>
+            <span className="text-white font-medium text-sm">{d.name}</span>
           </div>
           {totalStrength > 0 && (
             <span className={cn(
-              "text-xs font-mono px-2 py-0.5 rounded-full",
+              "text-[10px] font-mono px-1.5 py-0.5 rounded",
               isActive ? "bg-blue-500/20 text-blue-300" : "bg-slate-800 text-slate-400"
             )}>
               {totalStrength.toFixed(0)}
             </span>
           )}
         </div>
-        <div className="text-[10px] text-slate-500 font-mono mt-1">{d.id}</div>
       </div>
 
-      {/* Actions - what this unit can compute */}
-      <div className="px-4 py-2 border-b border-slate-700/50">
-        <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1.5">Actions</div>
+      {/* Actions - compact */}
+      <div className="px-3 py-2 border-b border-slate-700/30">
         <div className="flex flex-wrap gap-1">
           {d.actions.map(({ name }) => (
             <span
               key={name}
               className={cn(
-                "text-[10px] px-2 py-0.5 rounded-md font-mono transition-all",
+                "text-[9px] px-1.5 py-0.5 rounded font-mono",
                 isActive
-                  ? "bg-blue-500/10 text-blue-300 border border-blue-500/20"
-                  : "bg-slate-800/50 text-slate-400 border border-slate-700/50"
+                  ? "bg-blue-500/15 text-blue-300"
+                  : "bg-slate-800/60 text-slate-400"
               )}
             >
               {name}
@@ -242,46 +245,39 @@ function ChamberNode({ data, selected }: NodeProps) {
         </div>
       </div>
 
-      {/* Traffic visualization */}
-      <div className="px-4 py-2 space-y-1.5">
-        {/* Incoming */}
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] text-slate-500 w-6">IN</span>
-          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+      {/* Traffic - compact */}
+      <div className="px-3 py-2 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[8px] text-slate-500 w-5">IN</span>
+          <div className="flex-1 h-1 bg-slate-800/60 rounded-full overflow-hidden">
             <div
               className={cn(
-                "h-full rounded-full transition-all duration-500",
-                d.incoming.strength > 50
-                  ? "bg-gradient-to-r from-blue-600 to-blue-400"
-                  : "bg-slate-600"
+                "h-full rounded-full transition-all",
+                d.incoming.strength > 50 ? "bg-blue-500" : "bg-slate-600"
               )}
               style={{ width: `${Math.min(d.incoming.strength, 100)}%` }}
             />
           </div>
           <span className={cn(
-            "text-[9px] font-mono w-6 text-right",
+            "text-[8px] font-mono w-5 text-right",
             d.incoming.strength > 50 ? "text-blue-400" : "text-slate-500"
           )}>
             {d.incoming.strength.toFixed(0)}
           </span>
         </div>
-
-        {/* Outgoing */}
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] text-slate-500 w-6">OUT</span>
-          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[8px] text-slate-500 w-5">OUT</span>
+          <div className="flex-1 h-1 bg-slate-800/60 rounded-full overflow-hidden">
             <div
               className={cn(
-                "h-full rounded-full transition-all duration-500",
-                d.outgoing.strength > 50
-                  ? "bg-gradient-to-r from-emerald-600 to-emerald-400"
-                  : "bg-slate-600"
+                "h-full rounded-full transition-all",
+                d.outgoing.strength > 50 ? "bg-emerald-500" : "bg-slate-600"
               )}
               style={{ width: `${Math.min(d.outgoing.strength, 100)}%` }}
             />
           </div>
           <span className={cn(
-            "text-[9px] font-mono w-6 text-right",
+            "text-[8px] font-mono w-5 text-right",
             d.outgoing.strength > 50 ? "text-emerald-400" : "text-slate-500"
           )}>
             {d.outgoing.strength.toFixed(0)}
@@ -291,22 +287,19 @@ function ChamberNode({ data, selected }: NodeProps) {
 
       {/* Expanded details */}
       {expanded && d.actions.length > 0 && (
-        <div className="px-4 py-2 border-t border-slate-700/50 bg-slate-900/30">
-          <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1.5">Results</div>
+        <div className="px-3 py-2 border-t border-slate-700/30 bg-slate-900/20">
           {d.actions.slice(0, 2).map(({ name, result }) => (
-            <div key={name} className="text-[10px] font-mono">
-              <span className="text-slate-500">{name}: </span>
-              <span className="text-emerald-400">{JSON.stringify(result)}</span>
+            <div key={name} className="text-[9px] font-mono truncate">
+              <span className="text-slate-500">{name}:</span>
+              <span className="text-emerald-400 ml-1">{JSON.stringify(result)}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Superhighway indicator */}
+      {/* Superhighway badge */}
       {d.isSuperhighway && (
-        <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-blue-500 text-white text-[8px] font-bold rounded-full uppercase tracking-wider">
-          Superhighway
-        </div>
+        <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50" />
       )}
     </div>
   )
@@ -320,27 +313,24 @@ function EntryNode({ data }: NodeProps) {
   const d = data as EntryNodeData
   return (
     <div className={cn(
-      "bg-gradient-to-br from-emerald-900/40 to-emerald-950/60 rounded-2xl border-2 border-emerald-500/30",
-      "px-5 py-4 shadow-xl shadow-emerald-500/10"
+      "bg-gradient-to-br from-emerald-900/30 to-emerald-950/50 rounded-xl border border-emerald-500/30",
+      "px-4 py-3 shadow-lg shadow-emerald-500/10 select-none"
     )}>
       <Handle
         type="source"
         position={Position.Right}
-        className="!bg-emerald-400 !w-3 !h-3 !border-2 !border-emerald-900 !-right-1.5"
+        className="!bg-emerald-400 !w-2.5 !h-2.5 !border-2 !border-emerald-900 !-right-1"
       />
 
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
-          <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
         </div>
         <div>
-          <div className="text-emerald-300 font-bold uppercase tracking-wide">Entry</div>
-          <div className="text-emerald-500/80 text-xs font-mono">{d.signals} signals</div>
-          {d.strength > 0 && (
-            <div className="text-emerald-600 text-[10px]">→ {d.targets.join(", ")}</div>
-          )}
+          <div className="text-emerald-300 font-semibold text-sm uppercase tracking-wide">Entry</div>
+          <div className="text-emerald-500/70 text-[10px] font-mono">{d.signals} signals</div>
         </div>
       </div>
     </div>
@@ -404,19 +394,29 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
 
   // Smart layout based on signal flow topology
   const nodes = useMemo((): Node[] => {
-    // Compute ranks (depth from entry)
+    // Build adjacency from highways: who sends to whom
+    const outgoing: Record<string, Set<string>> = { entry: new Set() }
+    agents.forEach(a => { outgoing[a.id] = new Set() })
+
+    for (const { edge } of highways) {
+      const [from, to] = edge.split(" → ")
+      const sourceId = from === "entry" ? "entry" : from.split(":")[0]
+      const targetId = to.split(":")[0]
+      if (outgoing[sourceId]) {
+        outgoing[sourceId].add(targetId)
+      }
+    }
+
+    // BFS to compute ranks (depth from entry)
     const ranks: Record<string, number> = { entry: 0 }
     const queue = ["entry"]
     const visited = new Set(["entry"])
 
     while (queue.length) {
       const current = queue.shift()!
-      for (const { edge } of highways) {
-        const [from, to] = edge.split(" → ")
-        const sourceId = from === "entry" ? "entry" : from.split(":")[0]
-        const targetId = to.split(":")[0]
-
-        if (sourceId === current && !visited.has(targetId)) {
+      const targets = outgoing[current] || new Set()
+      for (const targetId of targets) {
+        if (!visited.has(targetId)) {
           ranks[targetId] = (ranks[current] || 0) + 1
           visited.add(targetId)
           queue.push(targetId)
@@ -424,8 +424,13 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
       }
     }
 
-    // Assign unvisited agents
-    agents.forEach(a => { if (ranks[a.id] === undefined) ranks[a.id] = 1 })
+    // Fallback: assign sequential ranks to unvisited agents based on array order
+    let nextRank = 1
+    agents.forEach(a => {
+      if (ranks[a.id] === undefined) {
+        ranks[a.id] = nextRank++
+      }
+    })
 
     // Group by rank
     const byRank: Record<number, string[]> = {}
@@ -434,7 +439,7 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
       byRank[r].push(id)
     })
 
-    // Sort within ranks by total traffic (most active at top)
+    // Sort within ranks by total traffic
     Object.values(byRank).forEach(group => {
       group.sort((a, b) => {
         const aStrength = (agentStats[a]?.incoming.strength || 0) + (agentStats[a]?.outgoing.strength || 0)
@@ -443,28 +448,23 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
       })
     })
 
-    // Layout configuration - generous spacing
-    const startX = 100
-    const startY = 250
-    const colWidth = 350  // Horizontal spacing between ranks
-    const rowHeight = 280 // Vertical spacing between nodes in same rank
+    // Layout: horizontal flow left to right
+    const colWidth = 280       // Space between columns
+    const rowHeight = 200      // Space between rows in same column
+    const startX = 80
+    const centerY = 250
     const positions: Record<string, { x: number; y: number }> = {}
-
-    // Find max rank for centering
-    const maxRank = Math.max(...Object.keys(byRank).map(Number))
 
     Object.entries(byRank).forEach(([rankStr, ids]) => {
       const rank = parseInt(rankStr)
       const count = ids.length
-
-      // Center nodes vertically within their column
       const totalHeight = (count - 1) * rowHeight
-      const offsetY = -totalHeight / 2
+      const baseY = centerY - totalHeight / 2
 
       ids.forEach((id, i) => {
         positions[id] = {
           x: startX + rank * colWidth,
-          y: startY + offsetY + i * rowHeight
+          y: baseY + i * rowHeight
         }
       })
     })
@@ -629,17 +629,53 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
         onNodeClick={onNodeClick}
         defaultEdgeOptions={{ type: "trail" }}
         fitView
-        fitViewOptions={{ padding: 0.4, minZoom: 0.5, maxZoom: 1 }}
+        fitViewOptions={{ padding: 0.3, minZoom: 0.4, maxZoom: 1.2 }}
         proOptions={{ hideAttribution: true }}
         minZoom={0.2}
-        maxZoom={1.5}
+        maxZoom={2}
         nodesDraggable
         nodesConnectable={false}
         panOnDrag
         zoomOnScroll
+        selectNodesOnDrag={false}
+        snapToGrid
+        snapGrid={[20, 20]}
+        nodeOrigin={[0.5, 0.5]}
         className="colony-graph"
       >
-        <Background color="#161625" gap={50} size={1.5} />
+        <Background color="#12121a" gap={40} size={1} />
+
+        {/* Controls - zoom, fit, lock */}
+        <Controls
+          showZoom
+          showFitView
+          showInteractive
+          className="!bg-[#0f0f14] !border-[#252538] !shadow-lg !rounded-lg"
+        />
+
+        {/* MiniMap - overview navigation */}
+        <MiniMap
+          nodeColor={(node) => {
+            if (node.id === "entry") return "#22c55e"
+            if ((node.data as ChamberNodeData)?.isSuperhighway) return "#3b82f6"
+            return "#334155"
+          }}
+          nodeStrokeColor="#0f0f14"
+          nodeBorderRadius={8}
+          maskColor="rgba(6, 6, 8, 0.85)"
+          className="!bg-[#0a0a0f] !border-[#252538] !rounded-lg"
+          pannable
+          zoomable
+        />
+
+        {/* Keyboard shortcuts panel */}
+        <Panel position="bottom-left" className="!m-4">
+          <div className="bg-[#0a0a0f]/90 border border-[#252538] rounded-lg px-3 py-2 text-[10px] text-slate-500 space-y-1">
+            <div><kbd className="px-1 bg-slate-800 rounded">scroll</kbd> zoom</div>
+            <div><kbd className="px-1 bg-slate-800 rounded">drag</kbd> pan</div>
+            <div><kbd className="px-1 bg-slate-800 rounded">click</kbd> select agent</div>
+          </div>
+        </Panel>
       </ReactFlow>
     </div>
   )

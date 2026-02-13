@@ -6,6 +6,7 @@ import { EnvelopeFlowCanvas } from "@/components/EnvelopeFlowCanvas"
 import { HighwayPanel } from "@/components/panels/HighwayPanel"
 import { EdgeInfo } from "@/components/EdgeInfo"
 import { ColonyGraph } from "@/components/graph/ColonyGraph"
+import { ColonyEditor } from "@/components/graph/ColonyEditor"
 
 // Agent data from JSON (plain object, not a class instance)
 interface AgentData {
@@ -268,7 +269,13 @@ export default function AgentWorkspace() {
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 h-full">
           {active === "colony" ? (
-            <ColonyGraph agents={state.agents} highways={state.highways} onSelectAgent={openAgent} />
+            <ColonyEditor
+              colony={state.colony}
+              agents={state.agents}
+              highways={state.highways}
+              onAgentSelect={openAgent}
+              onColonyChange={() => setState(prev => prev ? { ...prev, highways: state.colony.highways(20) } : null)}
+            />
           ) : activeAgent ? (
             <Flow agent={activeAgent} highways={state.highways} />
           ) : (
