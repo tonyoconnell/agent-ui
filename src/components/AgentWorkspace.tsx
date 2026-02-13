@@ -87,12 +87,14 @@ function Tabs({ tabs, active, onSelect, onClose }: {
   onClose: (id: string) => void
 }) {
   return (
-    <div className="flex bg-[#0f0f17] border-b border-[#1e293b] px-2">
+    <div className="flex items-center bg-[#0a0a0f] border-b border-[#252538] px-4 h-14">
       <button
         onClick={() => onSelect("colony")}
         className={cn(
-          "px-4 py-3 text-sm font-medium border-b-2 -mb-px",
-          active === "colony" ? "text-white border-blue-500" : "text-slate-500 border-transparent hover:text-slate-300"
+          "px-5 py-2 text-base font-semibold rounded-lg mr-2 transition-all",
+          active === "colony"
+            ? "text-white bg-blue-500/20 border border-blue-500/50"
+            : "text-slate-400 hover:text-white hover:bg-slate-800"
         )}
       >
         Colony
@@ -100,26 +102,31 @@ function Tabs({ tabs, active, onSelect, onClose }: {
       <button
         onClick={() => onSelect(null)}
         className={cn(
-          "px-4 py-3 text-sm font-medium border-b-2 -mb-px",
-          active === null ? "text-white border-blue-500" : "text-slate-500 border-transparent hover:text-slate-300"
+          "px-5 py-2 text-base font-semibold rounded-lg mr-2 transition-all",
+          active === null
+            ? "text-white bg-slate-700/50 border border-slate-600"
+            : "text-slate-400 hover:text-white hover:bg-slate-800"
         )}
       >
         Agents
       </button>
+      {tabs.length > 0 && <div className="w-px h-6 bg-slate-700 mx-2" />}
       {tabs.map((t) => (
         <div
           key={t.id}
           onClick={() => onSelect(t.id)}
           className={cn(
-            "group flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px cursor-pointer",
-            active === t.id ? "text-white border-blue-500" : "text-slate-500 border-transparent hover:text-slate-300"
+            "group flex items-center gap-2 px-4 py-2 text-base font-medium rounded-lg mx-1 cursor-pointer transition-all",
+            active === t.id
+              ? "text-white bg-emerald-500/20 border border-emerald-500/50"
+              : "text-slate-400 hover:text-white hover:bg-slate-800"
           )}
         >
           <Dot status={t.status} />
           <span>{t.name}</span>
           <button
             onClick={(e) => { e.stopPropagation(); onClose(t.id) }}
-            className="ml-1 text-slate-600 hover:text-white opacity-0 group-hover:opacity-100"
+            className="ml-2 w-5 h-5 flex items-center justify-center rounded text-slate-500 hover:text-white hover:bg-slate-700 opacity-0 group-hover:opacity-100 transition-all"
           >
             ×
           </button>
@@ -228,7 +235,12 @@ export default function AgentWorkspace() {
       callback: {
         receiver: "analyst",
         receive: "evaluate",
-        payload: { data: "{{result}}" }
+        payload: { data: "{{result}}" },
+        callback: {
+          receiver: "trader",
+          receive: "execute",
+          payload: { signal: "{{result}}" }
+        }
       }
     })
     setState(prev => prev ? { ...prev, highways: state.colony.highways(20) } : null)

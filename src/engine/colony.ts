@@ -109,14 +109,20 @@ const colony = (): Colony => {
 
     const currentNode = `${receiver}:${receive}`;
 
+    // Mark edge BEFORE processing so callbacks have correct "from"
+    const edge = `${from} → ${currentNode}`;
+    mark(edge, 1);
+
+    // Update lastVisited BEFORE unit processes (so callbacks route correctly)
+    const previousNode = lastVisited;
+    lastVisited = currentNode;
+
     return target({ receive, payload, callback }).then((result) => {
-      // Mark the EDGE from previous node to current node
-      const edge = `${from} → ${currentNode}`;
-      mark(edge, 1);
-
-      lastVisited = currentNode;
-
       return result;
+    }).catch((error) => {
+      // Restore on error
+      lastVisited = previousNode;
+      return Promise.reject(error);
     });
   };
 
