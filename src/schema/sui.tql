@@ -1,0 +1,334 @@
+# =============================================================================
+# SUI.TQL — Move Contracts as TypeQL
+# =============================================================================
+#
+# The same ontology. Two deterministic fires.
+#
+# TQL defines the STRUCTURE.
+# Move enforces it ON-CHAIN.
+# TypeDB reasons OVER it.
+#
+# Every Move struct has a TQL entity.
+# Every Move function has a TQL function.
+# Every Move event has a TQL rule.
+#
+# They are the same thing in two languages.
+#
+# =============================================================================
+
+define
+
+# =============================================================================
+# OBJECTS — Move structs as TQL entities
+# =============================================================================
+
+# Move: struct Unit has key, store { id: UID, tasks: VecMap<String, address> }
+# Sui: Owned object — fast path, no consensus needed
+entity unit,
+    owns unit-id @key,
+    owns name,
+    owns unit-type,               # "agent", "llm", "oracle", "worker"
+    owns owner,                   # Sui address (who controls this unit)
+    owns status,                  # "active", "proven", "at-risk", "dissolved"
+    owns success-rate,            # 0.0 - 1.0
+    owns activity-score,          # 0.0 - 100.0
+    owns sample-count,            # total observations
+    owns balance,                 # FET/SUI balance
+    plays flow:source,
+    plays flow:target,
+    plays membership:member;
+
+# Move: struct Colony has key { id: UID, units: vector<ID> }
+# Sui: Shared object — consensus required (multiple agents access)
+entity colony,
+    owns colony-id @key,
+    owns name,
+    owns colony-type,             # "swarm", "team", "coalition", "economy"
+    owns status,                  # "active", "splitting", "dissolved"
+    owns treasury,                # shared pool
+    plays membership:group,
+    plays contains:parent,
+    plays contains:child;
+
+# Move: struct Envelope has store { receiver: address, payload: vector<u8> }
+# Sui: Owned object — transferred on send, consumed on receive
+entity envelope,
+    owns envelope-id @key,
+    owns receiver,                # unit-id of target
+    owns task-name,               # which task to invoke
+    owns sender,                  # unit-id of origin
+    owns status,                  # "pending", "delivered", "consumed"
+    owns timestamp;
+
+# Move: struct Flow has key { id: UID, strength: u64, resistance: u64 }
+# Sui: Shared object — both source and target can modify
+relation flow,
+    owns flow-id @key,
+    relates source,
+    relates target,
+    owns flow-type,               # "interaction", "payment", "holding", "routing"
+    owns strength,                # success pheromone (trail)
+    owns resistance,              # failure pheromone (alarm)
+    owns hits,                    # successful traversals
+    owns misses,                  # failed traversals
+    owns flow-status;             # INFERRED: "highway", "open", "closing", "blocked", "toxic"
+
+# Move: struct Highway has key { id: UID } — frozen object (immutable)
+# Sui: transfer::freeze_object(highway) — crystallized, permanent
+entity highway,
+    owns highway-id @key,
+    owns source-ref,              # unit-id
+    owns target-ref,              # unit-id
+    owns crystallized-strength,   # strength at time of freezing
+    owns crystallized-at,         # timestamp
+    owns confidence;              # how certain this pattern is
+
+# =============================================================================
+# RELATIONS — Move shared state as TQL relations
+# =============================================================================
+
+relation membership,
+    relates group,
+    relates member;
+
+relation contains,
+    relates parent,
+    relates child;
+
+# Move: struct Escrow has key { bounty: u64, deadline: u64 }
+relation escrow,
+    owns escrow-id @key,
+    relates poster,               # who posted the bounty
+    relates worker,               # who claimed it
+    owns bounty,                  # tokens held
+    owns deadline,                # auto-release
+    owns escrow-status;           # "open", "claimed", "complete", "disputed"
+
+# =============================================================================
+# ATTRIBUTES
+# =============================================================================
+
+attribute unit-id, value string;
+attribute colony-id, value string;
+attribute envelope-id, value string;
+attribute flow-id, value string;
+attribute highway-id, value string;
+attribute escrow-id, value string;
+
+attribute name, value string;
+attribute owner, value string;
+attribute receiver, value string;
+attribute sender, value string;
+attribute task-name, value string;
+attribute unit-type, value string;
+attribute colony-type, value string;
+attribute flow-type, value string;
+attribute status, value string;
+attribute flow-status, value string;
+attribute escrow-status, value string;
+
+attribute strength, value double;
+attribute resistance, value double;
+attribute confidence, value double;
+attribute success-rate, value double;
+attribute activity-score, value double;
+attribute balance, value double;
+attribute treasury, value double;
+attribute bounty, value double;
+
+attribute hits, value integer;
+attribute misses, value integer;
+attribute sample-count, value integer;
+
+attribute source-ref, value string;
+attribute target-ref, value string;
+attribute crystallized-strength, value double;
+attribute crystallized-at, value datetime;
+attribute deadline, value datetime;
+attribute timestamp, value datetime;
+
+# =============================================================================
+# INFERENCE RULES — What Move events trigger, TypeDB reasons over
+# =============================================================================
+
+# --- Flow Status (Homeostasis — mutually exclusive bands) ---
+
+# Move: emit(HighwayFormed { flow_id })
+rule highway-flow:
+    when { $f isa flow, has strength $s; $s >= 50.0; }
+    then { $f has flow-status "highway"; };
+
+# Move: strength >= 20, resistance < strength
+rule open-flow:
+    when { $f isa flow, has strength $s, has resistance $r; $s >= 20.0; $s < 50.0; $r < $s; }
+    then { $f has flow-status "open"; };
+
+# Move: strength > 0, strength < 5
+rule closing-flow:
+    when { $f isa flow, has strength $s; $s > 0.0; $s < 5.0; }
+    then { $f has flow-status "closing"; };
+
+# Move: resistance > strength, resistance >= 10
+rule blocked-flow:
+    when { $f isa flow, has resistance $r, has strength $s; $r > $s; $r >= 10.0; }
+    then { $f has flow-status "blocked"; };
+
+# Move: resistance > strength * 3
+rule toxic-flow:
+    when { $f isa flow, has resistance $r, has strength $s; $r > ($s * 3.0); $r >= 20.0; }
+    then { $f has flow-status "toxic"; };
+
+# --- Unit Status (Classification — from ants-at-work Pattern 1) ---
+
+# Move: emit(UnitProven { unit_id })
+rule proven-unit:
+    when {
+        $u isa unit, has success-rate $sr, has activity-score $as, has sample-count $sc;
+        $sr >= 0.75; $as >= 50.0; $sc >= 30;
+        $f (target: $u) isa flow, has strength $s;
+        $s >= 20.0;
+    } then { $u has status "proven"; };
+
+# Move: emit(UnitAtRisk { unit_id })
+rule at-risk-unit:
+    when {
+        $u isa unit;
+        $f (target: $u) isa flow, has resistance $r, has strength $s;
+        $r > $s; $r >= 10.0;
+    } then { $u has status "at-risk"; };
+
+# Move: emit(UnitDissolved { unit_id }) — apoptosis (Spark 6)
+rule dissolved-unit:
+    when {
+        $u isa unit, has activity-score $as, has sample-count $sc;
+        $as < 1.0; $sc >= 10;
+        not { $f (target: $u) isa flow, has strength $s; $s >= 1.0; };
+    } then { $u has status "dissolved"; };
+
+# --- Colony Status ---
+
+# Move: emit(ColonySplitting { colony_id })
+# When two internal highways diverge, colony should split (Spark 2)
+rule splitting-colony:
+    when {
+        $c isa colony;
+        $m1 (group: $c, member: $u1) isa membership;
+        $m2 (group: $c, member: $u2) isa membership;
+        $f1 (source: $u1, target: $u2) isa flow, has flow-status "highway";
+        not {
+            # No highway connects to the REST of the colony
+            $m3 (group: $c, member: $u3) isa membership;
+            not { $u3 is $u1; }; not { $u3 is $u2; };
+            $f2 (source: $u1, target: $u3) isa flow, has strength $s2; $s2 >= 50.0;
+        };
+    } then { $c has status "splitting"; };
+
+# --- Escrow (from unified.tql) ---
+
+rule escrow-expired:
+    when {
+        $e isa escrow, has escrow-status "open", has deadline $d;
+        # deadline passed (external process marks this)
+    } then { $e has escrow-status "disputed"; };
+
+# =============================================================================
+# FUNCTIONS — Same interface as one.tql, backed by on-chain data
+# =============================================================================
+
+# --- Discovery (the core value) ---
+
+fun best($type: string) -> unit:
+    match
+        $u isa unit, has unit-type $type, has status "proven";
+        $f (target: $u) isa flow, has strength $s;
+    sort $s desc; limit 1;
+    return $u;
+
+fun proven() -> { unit }:
+    match $u isa unit, has status "proven";
+    return { $u };
+
+fun at_risk() -> { unit }:
+    match $u isa unit, has status "at-risk";
+    return { $u };
+
+fun dissolved() -> { unit }:
+    match $u isa unit, has status "dissolved";
+    return { $u };
+
+# --- Flow Analysis ---
+
+fun highways($n: integer) -> { flow }:
+    match $f isa flow, has flow-status "highway", has strength $s;
+    sort $s desc; limit $n;
+    return { $f };
+
+fun open($n: integer) -> { flow }:
+    match $f isa flow, has flow-status "open", has strength $s;
+    sort $s desc; limit $n;
+    return { $f };
+
+fun blocked() -> { flow }:
+    match $f isa flow, has flow-status "blocked";
+    return { $f };
+
+fun toxic() -> { flow }:
+    match $f isa flow, has flow-status "toxic";
+    return { $f };
+
+fun closing() -> { flow }:
+    match $f isa flow, has flow-status "closing";
+    return { $f };
+
+# --- Confidence (how well we know a type) ---
+
+fun confidence($type: string) -> double:
+    match
+        $u isa unit, has unit-type $type;
+        $f (target: $u) isa flow, has strength $s;
+    return sum($s) / 100.0;
+
+# --- Colony Analysis ---
+
+fun colony_members($cid: string) -> { unit }:
+    match
+        $c isa colony, has colony-id $cid;
+        $m (group: $c, member: $u) isa membership;
+    return { $u };
+
+fun colony_highways($cid: string) -> { flow }:
+    match
+        $c isa colony, has colony-id $cid;
+        $m1 (group: $c, member: $u1) isa membership;
+        $m2 (group: $c, member: $u2) isa membership;
+        $f (source: $u1, target: $u2) isa flow, has flow-status "highway", has strength $s;
+    sort $s desc;
+    return { $f };
+
+fun splitting_colonies() -> { colony }:
+    match $c isa colony, has status "splitting";
+    return { $c };
+
+# --- Contribution (from ants-at-work Pattern 5) ---
+
+fun success_rate($uid: string) -> double:
+    match
+        $u isa unit, has unit-id $uid;
+        $f (target: $u) isa flow, has hits $h, has misses $m;
+    return sum($h) / (sum($h) + sum($m));
+
+# --- Crystallized Knowledge ---
+
+fun crystallized($min: double) -> { highway }:
+    match $h isa highway, has confidence $c; $c >= $min;
+    return { $h };
+
+# =============================================================================
+# ~250 lines. Two fires. One ontology.
+#
+# TQL defines it. Move enforces it. TypeDB reasons over it.
+#
+# What TQL infers, Move has already validated on-chain.
+# What Move emits, TQL crystallizes into knowledge.
+# They are two views of the same truth.
+# =============================================================================

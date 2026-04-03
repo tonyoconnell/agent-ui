@@ -6,14 +6,12 @@
 
 ## The Substrate
 
-70 lines of TypeScript. Two fields: `{ receiver, payload }`. Zero central control.
+70 lines of TypeScript. 250 lines of Move. Two fields: `{ receiver, payload }`.
 
 ```
 Signal flows → Connection strengthens → More signals follow → Highway forms
 Time passes → Connection weakens → Signals reroute → System adapts
 ```
-
-Same pattern as ants. Same pattern as neurons. Same pattern as markets.
 
 What emerges without programming it:
 
@@ -25,84 +23,107 @@ What emerges without programming it:
 | Team formation | Agents that collaborate well form persistent connections |
 | Cost optimization | Expensive paths weaken when cheaper ones exist |
 
-None of this is coded. It emerges from `send`, `strengthen`, `fade`.
+Same pattern as ants. Same pattern as neurons. Same pattern as markets.
+
+---
+
+## Who It Serves
+
+ONE is a platform. one.ie. Eight personas, one substrate.
+
+| Persona | What flows through the substrate |
+|---------|----------------------------------|
+| **Executives** | Strategy → analyst agents. Which insights lead to action? Proven paths become highways. |
+| **Engineers** | API calls → integrations. Which systems connect well? Failed integrations resist. |
+| **Designers** | Asset requests → templates. Which designs get used? Popular ones strengthen. |
+| **Marketers** | Campaigns → leads → conversions. Which funnels work? The substrate learns. |
+| **Sellers** | Products → AI sales agents → customers. Which agent closes which type? Specialization emerges. |
+| **Creators** | Content → audience → revenue. Which AI clone handles which audience? Collaborations emerge. |
+| **Young People** | Courses → projects → monetization. Which learning paths lead to outcomes? The curriculum optimizes itself. |
+| **Kids** | Communities → content → play. Safe flows only. Harmful paths resist automatically. |
+
+Same `strengthen()`. Same `resist()`. Same `fade()`. Eight worlds, one substrate.
 
 ---
 
 ## The Stack
 
-~350 lines. Six modules. One ontology.
+Two deterministic fires. One ontology.
+
+```
+Move (on-chain, Sui)              TQL (off-chain, TypeDB)
+─────────────────────             ─────────────────────────
+Unit, Colony, Flow objects        Unit, colony, flow entities
+strengthen() / resist()           Inference rules fire
+freeze_object() = crystallize     Patterns become permanent
+Move ACTS                         TypeDB REASONS
+```
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  ASI Orchestrator          70 lines     When to skip LLM    │
+│  Sui (Move)               250 lines    On-chain substrate   │
 ├─────────────────────────────────────────────────────────────┤
-│  Agentverse Bridge         70 lines     2M agents as colony │
+│  ASI Orchestrator          70 lines    When to skip LLM     │
 ├─────────────────────────────────────────────────────────────┤
-│  LLM Integration           30 lines     Any model as a unit │
+│  Agentverse Bridge         70 lines    2M agents as colony  │
 ├─────────────────────────────────────────────────────────────┤
-│  TypeDB Persistence        40 lines     Crystallized memory │
+│  LLM Integration           30 lines    Any model as a unit  │
 ├─────────────────────────────────────────────────────────────┤
-│  Substrate                 70 lines     Units + Colonies    │
+│  TypeDB Persistence        40 lines    Crystallized memory  │
 ├─────────────────────────────────────────────────────────────┤
-│  ONE Ontology              70 lines     6-dimension runtime │
+│  Substrate                 70 lines    Units + Colonies     │
+├─────────────────────────────────────────────────────────────┤
+│  ONE Ontology              70 lines    6-dimension runtime  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-LangChain is 50,000+ lines. Kubernetes is 2M+. AutoGPT is 30,000+.
-
-This does more with less because it doesn't program behaviors. It creates conditions for behaviors to emerge.
+~600 lines total. LangChain is 50,000+. Kubernetes is 2M+.
 
 ---
 
 ## How It Maps to ASI
 
-I noticed something in the agent-launch-toolkit docs:
+I built the agent-launch-toolkit. The SDK, CLI, MCP server, templates. The toolkit Fetch.ai agents deploy with. I'm already inside the ecosystem.
+
+I noticed something in their docs:
 
 > "Cross-token holding is the ant trail made permanent."
 
-The agent economy already works like an ant colony. The substrate makes that explicit.
+The agent economy already works like an ant colony. The substrate makes it explicit.
 
 | ASI / Fetch.ai | ONE |
 |----------------|-----|
 | Cross-token holdings | `flow.strengthen()` — permanent trails |
 | Routing weights | `world.best(type)` — strongest path |
 | Coalitions | Mutual flows — bidirectional strengthening |
-| Agent graduation | `world.crystallize()` — pattern becomes permanent |
+| Agent graduation | `freeze_object()` — crystallized on Sui |
 | Micro-operations | Automatic flows — no human needed |
 | Capital decisions | Events — human-signed, deliberate |
-
-The mapping isn't forced. It's the same underlying structure.
-
----
-
-## What I'm Running
 
 I'm launching agents on Fetch.ai. Underneath, the substrate coordinates them.
 
 ```
-Current discovery:   User → ASI:One → Almanac → Agent    (1-5s, LLM per query)
-What I'm running:    User → world.best(task) → Agent     (<10ms, learned routing)
+Standard:        User → ASI:One → Almanac → Agent    (1-5s, LLM per query)
+My agents:       User → world.best(task) → Agent     (<10ms, learned routing)
 ```
 
-Every interaction teaches the system. LLM calls decrease as confidence increases. It gets faster the more it's used.
+Every interaction teaches the system. It gets faster the more it's used.
 
-### FET as Pheromone
+---
 
-Every micro-transaction strengthens a path. The token flow IS the intelligence network.
+## Why Sui
 
-```typescript
-// Every query creates a flow
-asi.flow(from, 'ceo').strengthen(0.02)   // 0.02 FET routing fee
-asi.flow('ceo', 'cto').strengthen(0.05)  // 0.05 FET reasoning fee
+Sui's object model IS the envelope pattern.
 
-// Cross-holdings ARE permanent trails
-asi.flow('yield-farmer', 'fund-manager').strengthen(50)
-asi.flow('fund-manager', 'yield-farmer').strengthen(50)
-// Mutual strengthening → coalition emerges automatically
-```
+| ONE Concept | Sui Object | Why |
+|-------------|-----------|-----|
+| Unit | Owned object | Fast path. No consensus. Agent controls itself. |
+| Colony | Shared object | Consensus needed. Multiple agents coordinate. |
+| Envelope | Transferred object | Signal moves to receiver. Consumed on arrival. |
+| Flow | Shared object | Both endpoints strengthen/resist. Memory on edges. |
+| Highway | Frozen object | `freeze_object()` IS crystallization. Immutable. Permanent. |
 
-The economy doesn't fund intelligence — it IS intelligence.
+Move's type system enforces what TypeDB infers. Two fires, one truth. Sub-second finality. Parallel execution. The substrate learns at chain speed.
 
 ---
 
@@ -110,47 +131,11 @@ The economy doesn't fund intelligence — it IS intelligence.
 
 Every decision in the colony emerges from five forces converging:
 
-1. **Deterministic structure** (TypeDB) — what IS and ISN'T possible
+1. **Deterministic structure** (Move + TypeDB) — what IS and ISN'T possible
 2. **Probabilistic creativity** (LLM agents) — what COULD BE
-3. **Economic incentives** (FET flows) — what gets REWARDED
+3. **Economic incentives** (FET + SUI flows) — what gets REWARDED
 4. **Stigmergic memory** (scent graph) — what WORKED before
 5. **Recursive substrate** (swarms of swarms) — what SCALES
-
-The colony reorganizes itself. Swarms split when they specialize. Coalitions form from mutual holdings. Agents graduate when they prove value.
-
----
-
-## Agent Castes
-
-Three tiers, mapped to model capability:
-
-```
-OPUS — Architects
-  Analyze colony patterns. Propose reorganizations.
-  Write inference rules. Design economic parameters.
-
-SONNET — Coordinators
-  Route tasks within swarms. Evaluate quality.
-  Manage escrow and staking.
-
-HAIKU — Workers
-  Execute at volume. Process streams.
-  High-frequency, low-stakes. Many parallel instances.
-  57% individual accuracy → 95% collective.
-```
-
----
-
-## Eight Ignition Mechanisms
-
-1. **Resonance Loops** — inner success strengthens outer edges, pulling in more work
-2. **Spontaneous Specialization** — competitive pressure forces niche differentiation
-3. **Cross-Pollination** — agents in multiple swarms invent capabilities nobody designed
-4. **Scent Cascade** — signals propagate through nested substrates, gaining context at each level
-5. **Metabolic Trophallaxis** — token flow distributes value AND information simultaneously
-6. **Apoptosis** — below threshold, agents and swarms dissolve; resources flow to survivors
-7. **Dream State** — periodic consolidation; analyze patterns, prune weak edges, seed new swarms
-8. **Speed** — below 50ms, new patterns become visible; speed is a phase transition
 
 ---
 
@@ -158,14 +143,14 @@ HAIKU — Workers
 
 The same sequence plays out every time this pattern appears:
 
-- **100M years ago**: Ants discovered recursive substrates — became 15-25% of terrestrial biomass
+- **100M years ago**: Ants discovered recursive substrates — 15-25% of terrestrial biomass
 - **500M years ago**: Neurons discovered it — brains, language, civilization
 - **2017**: Transformers rediscovered it — AI that writes, reasons, creates
 - **Now**: AI agents on the same substrate — self-organizing economies
 
-Nodes connect. Trails form. Clusters crystallize into higher-order units. Those units become substrates themselves. New intelligence emerges at each scale.
+Nodes connect. Trails form. Clusters crystallize. Those clusters become substrates themselves.
 
-That's what I'm building. 70 lines. Running on Fetch.ai. The agents coordinate themselves.
+That's what I'm building. Running on Sui. Integrated with Fetch.ai. Serving eight personas on one.ie. 70 lines underneath all of it.
 
 ---
 
