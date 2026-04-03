@@ -10,7 +10,7 @@ This document teaches you everything you need to understand to refactor the enti
 
 1. [The Philosophy](#1-the-philosophy)
 2. [The Data Model](#2-the-data-model)
-3. [The Envelope](#3-the-envelope)
+3. [The Signal](#3-the-signal)
 4. [The TypeQL Schema](#4-the-typeql-schema)
 5. [The Python Substrate](#5-the-python-substrate)
 6. [How Signals Flow](#6-how-signals-flow)
@@ -67,7 +67,7 @@ They differ only in their `kind` attribute, not their structure.
 The substrate doesn't care WHAT flows through it.
 It only cares WHERE things go and WHAT WORKS.
 
-Everything else is payload.
+Everything else is data.
 ```
 
 ---
@@ -133,36 +133,36 @@ You can add more kinds. The substrate doesn't care.
 
 ---
 
-## 3. The Envelope
+## 3. The Signal
 
-The envelope is the signal that flows through the substrate.
+The signal is what flows through the substrate.
 
 ```python
 @dataclass
-class Envelope:
+class Signal:
     receiver: str       # "unit:task" or just "unit"
-    payload: Any = None # anything
+    data: Any = None    # anything
 ```
 
 ### Receiver Format
 
 ```
-"scout"           → send to scout's default task
-"scout:observe"   → send to scout's observe task
-"payment:stripe"  → send to payment unit's stripe task
+"scout"           → signal to scout's default task
+"scout:observe"   → signal to scout's observe task
+"payment:stripe"  → signal to payment unit's stripe task
 ```
 
 ### Examples
 
 ```python
 # Simple
-Envelope("scout", {"tick": 42500})
+Signal("scout", {"tick": 42500})
 
 # With task
-Envelope("scout:observe", {"tick": 42500})
+Signal("scout:observe", {"tick": 42500})
 
-# With complex payload
-Envelope("payment:stripe", {
+# With complex data
+Signal("payment:stripe", {
     "amount": 1000,
     "currency": "usd",
     "metadata": {"order_id": "abc123"}
@@ -175,7 +175,7 @@ Envelope("payment:stripe", {
 Two fields. That's all that flows.
 
 receiver: who
-payload: what
+data: what
 ```
 
 ---
@@ -286,13 +286,13 @@ fun best($cat: string) -> node:
 
 ### Core Classes
 
-#### Envelope
+#### Signal
 
 ```python
 @dataclass
-class Envelope:
+class Signal:
     receiver: str
-    payload: Any = None
+    data: Any = None
 ```
 
 #### Unit
@@ -332,10 +332,10 @@ class Colony:
     def spawn(self, id: str) -> Unit:
         """Create a new unit."""
 
-    def send(self, envelope: Envelope, from_: str = "entry") -> None:
+    def signal(self, signal: Signal, from_: str = "entry") -> None:
         """Send a signal through the substrate."""
 
-    def mark(self, edge: str, hit: bool = True) -> None:
+    def drop(self, edge: str, hit: bool = True) -> None:
         """Reinforce or weaken an edge."""
 
     def fade(self, rate: float = 0.1) -> None:
@@ -358,16 +358,16 @@ def colony(db=None) -> Colony:
 Every task handler receives three arguments:
 
 ```python
-def my_task(payload, emit, ctx):
-    # payload: the data from the envelope
-    # emit: function to send more envelopes
+def my_task(data, emit, ctx):
+    # data: the data from the signal
+    # emit: function to send more signals
     # ctx: {"from": "who sent this", "self": "my address"}
 
     # Do work...
-    result = process(payload)
+    result = process(data)
 
     # Optionally emit more signals
-    emit(Envelope("other:task", {"data": result}))
+    emit(Signal("other:task", {"data": result}))
 
     # Return result (used by continuations)
     return result
@@ -380,29 +380,29 @@ def my_task(payload, emit, ctx):
 ### Step by Step
 
 ```
-1. SEND
-   colony.send(Envelope("scout:observe", {"tick": 42500}))
+1. SIGNAL
+   colony.signal(Signal("scout:observe", {"tick": 42500}))
 
 2. PARSE
    receiver = "scout:observe"
    unit_id = "scout"
    task_name = "observe"
 
-3. MARK
+3. DROP
    edge = "entry->scout:observe"
    scent[edge] += 1.0
 
 4. DISPATCH
    unit = units["scout"]
-   unit(envelope, from_="entry")
+   unit(signal, from_="entry")
 
 5. EXECUTE
    task = unit._tasks["observe"]
-   result = task(payload, emit, ctx)
+   result = task(data, emit, ctx)
 
 6. CONTINUE (if .then defined)
-   next_envelope = unit._next["observe"](result)
-   colony.send(next_envelope, from_="scout:observe")
+   next_signal = unit._next["observe"](result)
+   colony.signal(next_signal, from_="scout:observe")
 ```
 
 ### Visual Flow
@@ -416,7 +416,7 @@ def my_task(payload, emit, ctx):
          │   │observe│      │ analyze │      │execute│
          │   └───────┘      └─────────┘      └──────┘ │
          │       │               │              │     │
-         │    mark()          mark()         mark()   │
+         │    drop()          drop()         drop()   │
          │       │               │              │     │
          │       ▼               ▼              ▼     │
          │   ┌─────────────────────────────────────┐  │
@@ -434,12 +434,12 @@ def my_task(payload, emit, ctx):
 Every task knows who it is and who called it:
 
 ```python
-.on("observe", lambda payload, emit, ctx: (
+.on("observe", lambda data, emit, ctx: (
     # ctx["from"] = "entry" (who sent the signal)
     # ctx["self"] = "scout:observe" (my full address)
 
     # Reply to sender
-    emit(Envelope(ctx["from"], {"response": "done"}))
+    emit(Signal(ctx["from"], {"response": "done"}))
 ))
 ```
 
@@ -453,11 +453,11 @@ Weight can come from multiple sources. The substrate doesn't care.
 
 ```python
 # Every signal strengthens the edge
-def send(self, envelope, from_="entry"):
+def signal(self, sig, from_="entry"):
     if target:
-        edge = f"{from_}->{envelope.receiver}"
-        self.mark(edge)  # +1.0 weight
-        target(envelope, from_)
+        edge = f"{from_}->{sig.receiver}"
+        self.drop(edge)  # +1.0 weight
+        target(sig, from_)
 
 # Periodic decay
 def fade(self, rate=0.1):
@@ -494,7 +494,7 @@ colony.withdraw("agent", "task")       # edge → balance
 
 ```python
 # Activity adds weight
-colony.send(envelope)           # +1
+colony.signal(sig)              # +1
 
 # Success/failure multiplies weight
 colony.resolve(agent, task, success=True)   # ×1.2
@@ -561,7 +561,7 @@ fun best($cat) -> node:
 ```python
 net.spawn("client") \
     .on("ask", lambda p, emit, ctx:
-        emit(Envelope("server:answer", {
+        emit(Signal("server:answer", {
             "question": p["q"],
             "reply_to": ctx["self"]  # include return address
         }))
@@ -572,13 +572,13 @@ net.spawn("client") \
 
 net.spawn("server") \
     .on("answer", lambda p, emit, ctx:
-        emit(Envelope(p["reply_to"], {
+        emit(Signal(p["reply_to"], {
             "answer": compute(p["question"])
         }))
     )
 
 # Use
-net.send(Envelope("client:ask", {"q": "What is 2+2?"}))
+net.signal(Signal("client:ask", {"q": "What is 2+2?"}))
 ```
 
 ### Pattern 2: Pipeline (Continuations)
@@ -586,17 +586,17 @@ net.send(Envelope("client:ask", {"q": "What is 2+2?"}))
 ```python
 net.spawn("ingest") \
     .on("data", lambda p, emit, ctx: parse(p)) \
-    .then("data", lambda r: Envelope("transform:process", r))
+    .then("data", lambda r: Signal("transform:process", r))
 
 net.spawn("transform") \
     .on("process", lambda p, emit, ctx: transform(p)) \
-    .then("process", lambda r: Envelope("store:save", r))
+    .then("process", lambda r: Signal("store:save", r))
 
 net.spawn("store") \
     .on("save", lambda p, emit, ctx: save(p))
 
 # One signal flows through entire pipeline
-net.send(Envelope("ingest:data", raw_data))
+net.signal(Signal("ingest:data", raw_data))
 ```
 
 ### Pattern 3: Fan Out
@@ -604,9 +604,9 @@ net.send(Envelope("ingest:data", raw_data))
 ```python
 net.spawn("broadcaster") \
     .on("publish", lambda p, emit, ctx: (
-        emit(Envelope("subscriber1:notify", p)),
-        emit(Envelope("subscriber2:notify", p)),
-        emit(Envelope("subscriber3:notify", p)),
+        emit(Signal("subscriber1:notify", p)),
+        emit(Signal("subscriber2:notify", p)),
+        emit(Signal("subscriber3:notify", p)),
     ))
 ```
 
@@ -619,14 +619,14 @@ net.spawn("coordinator") \
     .on("claim", lambda p, emit, ctx: (
         # First to claim wins
         claims.setdefault(p["task_id"], ctx["from"]) == ctx["from"] and
-        emit(Envelope(ctx["from"], {"status": "claimed", "task": p["task_id"]}))
+        emit(Signal(ctx["from"], {"status": "claimed", "task": p["task_id"]}))
     ))
 ```
 
 ### Pattern 5: Protocol Selection (ONE Protocol)
 
 ```python
-async def smart_send(colony, category, payload, db):
+async def smart_signal(colony, category, data, db):
     # Query TypeDB for best protocol
     best = await db.query(f"""
         match let $n = best("{category}");
@@ -635,10 +635,10 @@ async def smart_send(colony, category, payload, db):
     """)
 
     if best:
-        colony.send(Envelope(f"{category}:{best['id']}", payload))
+        colony.signal(Signal(f"{category}:{best['id']}", data))
     else:
         # Fallback to first available
-        colony.send(Envelope(f"{category}:default", payload))
+        colony.signal(Signal(f"{category}:default", data))
 ```
 
 ### Pattern 6: Self-Healing
@@ -648,9 +648,9 @@ net.spawn("payment") \
     .on("process", lambda p, emit, ctx: (
         try_payment(p) or (
             # Mark failure
-            colony.mark(f"{ctx['from']}->{ctx['self']}", hit=False),
+            colony.drop(f"{ctx['from']}->{ctx['self']}", hit=False),
             # Try fallback
-            emit(Envelope("payment:fallback", p))
+            emit(Signal("payment:fallback", p))
         )
     )) \
     .on("fallback", lambda p, emit, ctx:
@@ -686,8 +686,8 @@ net.spawn("payment") \
 | `colony()` | `Colony` class |
 | `scent: Record<string, number>` | `self.scent: dict` |
 | `spawn(id)` | `colony.spawn(id)` |
-| `send(envelope)` | `colony.send(envelope)` |
-| `mark(edge)` | `colony.mark(edge)` |
+| `signal(signal)` | `colony.signal(signal)` |
+| `drop(edge)` | `colony.drop(edge)` |
 | `fade(rate)` | `colony.fade(rate)` |
 | `highways()` | `colony.highways()` |
 
@@ -750,7 +750,7 @@ insert $e (source: $a, target: $b) isa edge,
 ### Create Colony
 
 ```python
-from unified import colony, Envelope
+from unified import colony, Signal
 
 net = colony()
 ```
@@ -766,16 +766,16 @@ net.spawn("unit_id") \
 ### Handler Function
 
 ```python
-def handler(payload, emit, ctx):
-    # payload: the data
-    # emit: function to send more envelopes
+def handler(data, emit, ctx):
+    # data: the data
+    # emit: function to send more signals
     # ctx: {"from": sender, "self": my_address}
 
     # Do work
-    result = process(payload)
+    result = process(data)
 
     # Emit signals
-    emit(Envelope("other:task", data))
+    emit(Signal("other:task", result))
 
     # Return for continuation
     return result
@@ -784,7 +784,7 @@ def handler(payload, emit, ctx):
 ### Send Signal
 
 ```python
-net.send(Envelope("receiver:task", payload))
+net.signal(Signal("receiver:task", data))
 ```
 
 ### Check Learning
@@ -794,7 +794,7 @@ net.send(Envelope("receiver:task", payload))
 net.highways()  # [("entry->scout", 15.2), ...]
 
 # Specific edge
-net.smell("entry->scout")  # 15.2
+net.follow("entry->scout")  # 15.2
 ```
 
 ### Decay
@@ -854,11 +854,11 @@ match let $n = fallback("payment-stripe"); $n has id $id; fetch $id;
 │                                                                 │
 │   ONE entity:    node (id, kind, category, schema, status)      │
 │   ONE relation:  edge (source, target, weight, hits, misses)    │
-│   ONE signal:    { receiver, payload }                          │
+│   ONE signal:    { receiver, data }                             │
 │                                                                 │
 │   TWO MODES:                                                    │
 │   ──────────                                                    │
-│   Simple:   send() → +1, fade() → ×0.9                          │
+│   Simple:   signal() → +1, fade() → ×0.9                         │
 │   Staking:  stake() → risk, resolve() → +20%/-10%               │
 │                                                                 │
 │   Weight is weight. Tokens or pheromone. Same math.             │
@@ -878,3 +878,14 @@ match let $n = fallback("payment-stripe"); $n has id $id; fetch $id;
 ---
 
 *~200 lines. One entity. One relation. Two modes. The substrate.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How nodes and edges flow through the complete lifecycle
+- [code.md](code.md) — Concise 70-line substrate reference
+- [tutorial.md](tutorial.md) — Quick-start introduction
+- [metaphors.md](metaphors.md) — Same substrate, seven domain vocabularies
+- [ai-training.md](ai-training.md) — ML training as path-weight accumulation
+- [ontology.md](ontology.md) — TypeDB schema for inference

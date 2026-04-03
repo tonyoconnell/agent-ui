@@ -6,7 +6,7 @@
 
 ## The Substrate
 
-70 lines of TypeScript. 250 lines of Move. Two fields: `{ receiver, payload }`.
+70 lines of TypeScript. 250 lines of Move. Two fields: `{ receiver, data }`.
 
 ```
 Signal flows → Connection strengthens → More signals follow → Highway forms
@@ -42,7 +42,7 @@ ONE is a platform. one.ie. Eight personas, one substrate.
 | **Young People** | Courses → projects → monetization. Which learning paths lead to outcomes? The curriculum optimizes itself. |
 | **Kids** | Communities → content → play. Safe flows only. Harmful paths resist automatically. |
 
-Same `strengthen()`. Same `resist()`. Same `fade()`. Eight worlds, one substrate.
+Same `drop()`. Same `fade()`. Eight worlds, one substrate.
 
 ---
 
@@ -81,11 +81,9 @@ Move ACTS                         TypeDB REASONS
 
 ---
 
-## How It Maps to ASI
+## Integrate with ASI, Agentverse and Other Agents
 
-I built the agent-launch-toolkit. The SDK, CLI, MCP server, templates. The toolkit Fetch.ai agents deploy with. I'm already inside the ecosystem.
-
-I noticed something in their docs:
+I built the agent-launch-toolkit. The SDK, CLI, MCP server, templates. The toolkit Fetch.ai agents deploy with. 
 
 > "Cross-token holding is the ant trail made permanent."
 
@@ -93,14 +91,14 @@ The agent economy already works like an ant colony. The substrate makes it expli
 
 | ASI / Fetch.ai | ONE |
 |----------------|-----|
-| Cross-token holdings | `flow.strengthen()` — permanent trails |
+| Cross-token holdings | `drop()` — permanent trails |
 | Routing weights | `world.best(type)` — strongest path |
 | Coalitions | Mutual flows — bidirectional strengthening |
 | Agent graduation | `freeze_object()` — crystallized on Sui |
 | Micro-operations | Automatic flows — no human needed |
 | Capital decisions | Events — human-signed, deliberate |
 
-I'm launching agents on Fetch.ai. Underneath, the substrate coordinates them.
+Agents launch on Fetch.ai. Underneath, the substrate coordinates them.
 
 ```
 Standard:        User → ASI:One → Almanac → Agent    (1-5s, LLM per query)
@@ -113,13 +111,13 @@ Every interaction teaches the system. It gets faster the more it's used.
 
 ## Why Sui
 
-Sui's object model IS the envelope pattern.
+Sui's object model IS the signal pattern.
 
 | ONE Concept | Sui Object | Why |
 |-------------|-----------|-----|
 | Unit | Owned object | Fast path. No consensus. Agent controls itself. |
 | Colony | Shared object | Consensus needed. Multiple agents coordinate. |
-| Envelope | Transferred object | Signal moves to receiver. Consumed on arrival. |
+| Signal | Transferred object | Signal moves to receiver. Consumed on arrival. |
 | Flow | Shared object | Both endpoints strengthen/resist. Memory on edges. |
 | Highway | Frozen object | `freeze_object()` IS crystallization. Immutable. Permanent. |
 
@@ -155,3 +153,14 @@ That's what I'm building. Running on Sui. Integrated with Fetch.ai. Serving eigh
 ---
 
 *Not a platform. Not an orchestrator. A substrate. Agents don't run ON it. Agents ARE it.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How everything flows through the planned architecture
+- [the-stack.md](the-stack.md) — Technical layers: ~600 lines total
+- [gaps.md](gaps.md) — What's needed for production
+- [strategy.md](strategy.md) — Competitive positioning
+- [README.md](README.md) — Substrate overview
+- [emergence.md](emergence.md) — Five forces driving the vision

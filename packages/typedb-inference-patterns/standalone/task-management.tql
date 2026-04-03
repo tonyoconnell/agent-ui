@@ -1,0 +1,601 @@
+# =============================================================================
+# LESSON 4: Task Management with Dependencies
+# =============================================================================
+#
+# DIFFICULTY: Intermediate
+# PREREQUISITE: hypothesis-lifecycle.tql (Lesson 3 — teaches state machines)
+# NEXT: contribution-tracking.tql (Lesson 5)
+#
+# WHAT YOU'LL LEARN:
+#   The NEGATION pattern — how to find entities that DON'T have a relationship.
+#   "Ready to work" = task with status "todo" AND no incomplete blockers.
+#   PHEROMONE-WEIGHTED TASK SELECTION — tasks aren't just "available", they're
+#   "attractive" or "repelled" based on the colony's memory of what worked.
+#   Also: parameterized functions, aggregate counts, multi-relation queries.
+#
+# BIOLOGY (Chapter 2 — Task Allocation Without Instructions):
+#   THIS IS THE DIRECT PARALLEL. Gordon's central discovery: ants allocate
+#   themselves to tasks using only local information. No ant gives instructions.
+#   An ant encounters the colony's state (what tasks are being done, what
+#   isn't being done) and selects work based on what's AVAILABLE — meaning
+#   tasks that have no blockers and aren't already being performed by enough
+#   nestmates.
+#
+#   In TypeDB: ready_tasks() finds work with status "todo" AND no incomplete
+#   blockers — the same negation pattern ants use. "What needs doing?"
+#   is answered by detecting the ABSENCE of blocking conditions, not by
+#   following instructions from a manager.
+#
+#   The assignee entity supports types ("human", "bot", "team") — parallel
+#   to ant castes (forager, patroller, nest maintenance). Different castes
+#   have different task affinities, but any ant CAN switch if conditions
+#   demand it.
+#
+#   Reference: https://ants-at-work.com/book/2/
+#
+# USE CASES:
+#   - Project management systems
+#   - Issue trackers
+#   - Sprint planning tools
+#   - Workflow engines
+#   - CI/CD pipeline stages
+#   - Ant colony task allocation (this IS the pattern)
+#
+# KEY PATTERNS:
+#   - Relation-based dependencies (blocker/dependent)
+#   - Negation in functions (NOT blocked = ready)
+#   - Pheromone trails on edges (trail-pheromone + alarm-pheromone)
+#   - Inference rules for trail status (proven/fresh/fading/dead)
+#   - Attractive/repelled task inference from pheromone signals
+#   - Multi-relation queries (category + milestone + tag + assignment)
+#   - Aggregate functions (count, completion percentage)
+#
+# AFTER LOADING, TEST WITH:
+#   match let $t in ready_tasks(); $t has title $title; select $title;
+#   # Expected: Tasks with status "todo" and NO incomplete blocking dependencies.
+#
+#   match let $t in attractive_tasks(); $t has title $title; select $title;
+#   # Expected: Ready tasks with trail-pheromone >= 50.0 on incoming edges.
+#
+#   match let $t in exploratory_tasks(); $t has title $title; select $title;
+#   # Expected: Ready tasks with NO pheromone trail — needs a scout.
+#
+# =============================================================================
+
+define
+
+# --- Core Entities ---
+
+entity task,
+    owns task-id @key,
+    owns title,
+    owns description,
+    owns status,                # "todo", "in_progress", "complete", "blocked"
+    owns priority,              # "P0", "P1", "P2", "P3"
+    owns importance,            # 1-10 numeric score
+    owns estimated-effort,      # effort units (story points, hours, etc.)
+    owns effort-size,           # "micro", "small", "medium", "large"
+    owns source-file,           # origin document or system
+    owns blocked-reason,
+    owns attractive,            # INFERRED: ready + strong pheromone trail leading here
+    owns repelled,              # INFERRED: high alarm pheromone on paths leading here
+    owns created-at,
+    owns updated-at,
+    owns completed-at,
+    plays dependency:dependent,
+    plays dependency:blocker,
+    plays assignment:assigned-task,
+    plays categorization:categorized-task,
+    plays milestone-membership:member-task,
+    plays tag-association:tagged-task,
+    plays pheromone-trail:source-task,
+    plays pheromone-trail:destination-task;
+
+entity task-category,
+    owns category-id @key,
+    owns category-name,
+    owns category-description,
+    owns parent-category,
+    plays categorization:category;
+
+entity milestone,
+    owns milestone-id @key,
+    owns milestone-name,
+    owns milestone-description,
+    owns target-date,
+    owns completion-percentage,
+    owns status,
+    plays milestone-membership:milestone;
+
+entity task-tag,
+    owns tag-id @key,
+    owns tag-name,
+    owns tag-color,
+    plays tag-association:tag;
+
+entity assignee,
+    owns assignee-id @key,
+    owns assignee-name,
+    owns assignee-type,         # "human", "bot", "team"
+    plays assignment:assigned-to;
+
+
+# --- Attributes ---
+
+attribute task-id, value string;
+attribute title, value string;
+attribute description, value string;
+attribute status, value string;
+attribute priority, value string;
+attribute importance, value integer;
+attribute estimated-effort, value integer;
+attribute effort-size, value string;
+attribute source-file, value string;
+attribute blocked-reason, value string;
+attribute created-at, value datetime;
+attribute updated-at, value datetime;
+attribute completed-at, value datetime;
+
+attribute category-id, value string;
+attribute category-name, value string;
+attribute category-description, value string;
+attribute parent-category, value string;
+
+attribute milestone-id, value string;
+attribute milestone-name, value string;
+attribute milestone-description, value string;
+attribute target-date, value datetime;
+attribute completion-percentage, value double;
+
+attribute tag-id, value string;
+attribute tag-name, value string;
+attribute tag-color, value string;
+
+attribute assignee-id, value string;
+attribute assignee-name, value string;
+attribute assignee-type, value string;
+
+attribute attractive, value boolean;
+attribute repelled, value boolean;
+
+# Pheromone trail attributes (live on EDGES between tasks, not on tasks)
+attribute trail-pheromone, value double;     # 0.0 - 100.0 (positive reinforcement)
+attribute alarm-pheromone, value double;     # 0.0 - 100.0 (negative reinforcement)
+attribute completions, value integer;        # how many times source→destination succeeded
+attribute failures, value integer;           # how many times source→destination failed
+attribute trail-status, value string;        # "fresh", "proven", "fading", "dead" (INFERRED)
+
+
+# --- Relations ---
+
+# Task A blocks Task B
+relation dependency,
+    relates dependent,
+    relates blocker;
+
+# Task assigned to an actor
+relation assignment,
+    relates assigned-task,
+    relates assigned-to;
+
+# Task belongs to a category
+relation categorization,
+    relates categorized-task,
+    relates category;
+
+# Task belongs to a milestone
+relation milestone-membership,
+    relates member-task,
+    relates milestone;
+
+# Task has a tag
+relation tag-association,
+    relates tagged-task,
+    relates tag;
+
+
+# =============================================================================
+# PHEROMONE TRAILS — The Ant Colony Task Selection Mechanism
+# =============================================================================
+#
+# Pheromone lives on EDGES, not nodes. When completing task A leads to
+# successfully completing task B, the trail from A→B gets reinforced.
+# When A→B leads to failure, alarm pheromone accumulates instead.
+#
+# Ants (agents) follow strong trails and avoid alarmed paths.
+# Over time, trails decay — forcing the colony to keep re-validating
+# what works. Forgetting is intelligence.
+#
+# BIOLOGY: "The task an ant is performing depends not on any property of
+#          the individual ant, but on what the ant has experienced recently."
+#          — Deborah Gordon
+#
+# In practice: after completing a task, query attractive_tasks() to find
+# the next task with the strongest pheromone trail leading to it.
+# The colony's memory of "what works after what" guides task selection
+# without any central planner giving instructions.
+
+relation pheromone-trail,
+    relates source-task,            # completing this task...
+    relates destination-task,       # ...leads to this next task
+    owns trail-pheromone,           # positive reinforcement (success)
+    owns alarm-pheromone,           # negative reinforcement (failure)
+    owns completions,               # times this sequence succeeded
+    owns failures,                  # times this sequence failed
+    owns trail-status;              # inferred: "proven", "fresh", "fading", "dead"
+
+
+# =============================================================================
+# PHEROMONE INFERENCE RULES
+# =============================================================================
+
+# --- Trail Status Classification ---
+#
+# Proven trail: high pheromone, many completions, few failures
+# This is a superhighway — the colony has validated this path repeatedly.
+#
+rule proven-trail:
+    when {
+        $trail isa pheromone-trail,
+            has trail-pheromone $tp,
+            has completions $c,
+            has failures $f;
+        $tp >= 70.0;
+        $c >= 10;
+        $f < $c;
+    } then {
+        $trail has trail-status "proven";
+    };
+
+# Fresh trail: recently created, not enough data yet
+rule fresh-trail:
+    when {
+        $trail isa pheromone-trail,
+            has trail-pheromone $tp,
+            has completions $c;
+        $tp >= 10.0;
+        $tp < 70.0;
+        $c < 10;
+    } then {
+        $trail has trail-status "fresh";
+    };
+
+# Fading trail: pheromone decaying, needs reinforcement or it dies
+rule fading-trail:
+    when {
+        $trail isa pheromone-trail,
+            has trail-pheromone $tp;
+        $tp > 0.0;
+        $tp < 10.0;
+    } then {
+        $trail has trail-status "fading";
+    };
+
+# Dead trail: no pheromone left — the colony forgot this path
+rule dead-trail:
+    when {
+        $trail isa pheromone-trail,
+            has trail-pheromone $tp;
+        $tp <= 0.0;
+    } then {
+        $trail has trail-status "dead";
+    };
+
+
+# --- Task Attractiveness (Pheromone-Weighted Selection) ---
+#
+# A task is ATTRACTIVE when:
+#   1. It's ready to work on (status "todo", no incomplete blockers)
+#   2. At least one proven trail leads to it
+#
+# This is how ants choose: they don't pick randomly from available tasks.
+# They follow the strongest pheromone trail. attractive_tasks() returns
+# the tasks the colony's memory says are worth doing next.
+#
+rule attractive-task:
+    when {
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $blocker) isa dependency;
+            $blocker isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+        $trail (destination-task: $t) isa pheromone-trail,
+            has trail-pheromone $tp;
+        $tp >= 50.0;
+    } then {
+        $t has attractive true;
+    };
+
+# A task is REPELLED when alarm pheromone dominates — previous attempts
+# at this task (from the current context) led to failure.
+# Alarm pheromone decays faster than trail pheromone (80% vs 95%),
+# so the colony will retry failed paths eventually — but not soon.
+#
+rule repelled-task:
+    when {
+        $t isa task, has status "todo";
+        $trail (destination-task: $t) isa pheromone-trail,
+            has alarm-pheromone $ap,
+            has trail-pheromone $tp;
+        $ap >= 30.0;
+        $ap > $tp;
+    } then {
+        $t has repelled true;
+    };
+
+
+# =============================================================================
+# QUERY FUNCTIONS
+# =============================================================================
+
+# Get tasks by priority
+fun tasks_by_priority($p: string) -> { task }:
+    match
+        $t isa task, has priority $p;
+    return { $t };
+
+# Get tasks by status
+fun tasks_by_status($s: string) -> { task }:
+    match
+        $t isa task, has status $s;
+    return { $t };
+
+# Get blocked tasks
+fun blocked_tasks() -> { task }:
+    match
+        $t isa task, has status "blocked";
+    return { $t };
+
+# Get tasks blocking a specific task
+fun blockers_of($task_id: string) -> { task }:
+    match
+        $dependent isa task, has task-id $task_id;
+        $dep(dependent: $dependent, blocker: $blocker) isa dependency;
+        $blocker isa task;
+    return { $blocker };
+
+# Get tasks blocked by a specific task
+fun dependents_of($blocker_id: string) -> { task }:
+    match
+        $blocker isa task, has task-id $blocker_id;
+        $dep(dependent: $dependent, blocker: $blocker) isa dependency;
+        $dependent isa task;
+    return { $dependent };
+
+# Get tasks by category
+fun tasks_by_category($cat_name: string) -> { task }:
+    match
+        $cat isa task-category, has category-name $cat_name;
+        $rel(categorized-task: $t, category: $cat) isa categorization;
+        $t isa task;
+    return { $t };
+
+# Get tasks by milestone
+fun tasks_by_milestone($ms_name: string) -> { task }:
+    match
+        $ms isa milestone, has milestone-name $ms_name;
+        $rel(member-task: $t, milestone: $ms) isa milestone-membership;
+        $t isa task;
+    return { $t };
+
+# Get tasks by tag
+fun tasks_by_tag($tag_name: string) -> { task }:
+    match
+        $tag isa task-tag, has tag-name $tag_name;
+        $rel(tagged-task: $t, tag: $tag) isa tag-association;
+        $t isa task;
+    return { $t };
+
+# Get tasks assigned to someone
+fun tasks_by_assignee($name: string) -> { task }:
+    match
+        $a isa assignee, has assignee-name $name;
+        $rel(assigned-task: $t, assigned-to: $a) isa assignment;
+        $t isa task;
+    return { $t };
+
+# Count tasks by status
+fun count_by_status($s: string) -> integer:
+    match
+        $t isa task, has status $s;
+    return count($t);
+
+# Count tasks by priority
+fun count_by_priority($p: string) -> integer:
+    match
+        $t isa task, has priority $p;
+    return count($t);
+
+# Get high-importance tasks (above threshold)
+fun high_importance_tasks($threshold: integer) -> { task }:
+    match
+        $t isa task, has importance $imp;
+        $imp >= $threshold;
+    return { $t };
+
+# Get urgent tasks (P0 or P1, not complete)
+fun urgent_tasks() -> { task }:
+    match
+        $t isa task, has priority $p, has status $s;
+        { $p == "P0"; } or { $p == "P1"; };
+        not { $s == "complete"; };
+    return { $t };
+
+# Get category completion percentage
+fun category_completion($cat_name: string) -> double:
+    match
+        $cat isa task-category, has category-name $cat_name;
+        $rel(categorized-task: $t, category: $cat) isa categorization;
+        $t isa task, has status $s;
+    return count(filter($t, $s == "complete")) / count($t);
+
+# Get tasks ready to work on (no incomplete blockers)
+fun ready_tasks() -> { task }:
+    match
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $blocker) isa dependency;
+            $blocker isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+    return { $t };
+
+
+# =============================================================================
+# PHEROMONE-WEIGHTED TASK SELECTION
+# =============================================================================
+#
+# These functions implement ant colony task allocation:
+#   attractive_tasks()  = "follow the strong trail" (exploit)
+#   repelled_tasks()    = "avoid the alarm" (learn from failure)
+#   exploratory_tasks() = "no trail exists — scout" (explore)
+#
+# The colony doesn't just ask "what's available?" — it asks
+# "what's available AND what does our memory say about it?"
+
+# Tasks the colony's memory says are worth doing next
+# (ready + strong pheromone trail leading here)
+fun attractive_tasks() -> { task }:
+    match
+        $t isa task,
+            has attractive true;
+    return { $t };
+
+# Tasks the colony's memory says to avoid
+# (alarm pheromone dominates — previous failures)
+fun repelled_tasks() -> { task }:
+    match
+        $t isa task,
+            has repelled true;
+    return { $t };
+
+# Tasks with NO pheromone trail at all — unexplored territory.
+# These need scouts: agents with high exploration bias.
+# In ant colonies, ~5-10% of foragers are scouts who ignore
+# pheromone trails and search randomly for new food sources.
+fun exploratory_tasks() -> { task }:
+    match
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $blocker) isa dependency;
+            $blocker isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+        not {
+            $trail (destination-task: $t) isa pheromone-trail;
+        };
+    return { $t };
+
+# Get trail strength between two specific tasks
+fun trail_strength($from_id: string, $to_id: string) -> double:
+    match
+        $from isa task, has task-id $from_id;
+        $to isa task, has task-id $to_id;
+        $trail (source-task: $from, destination-task: $to) isa pheromone-trail,
+            has trail-pheromone $tp;
+    return $tp;
+
+# Get all proven trails (superhighways — the colony's best paths)
+fun superhighway_trails() -> { pheromone-trail }:
+    match
+        $trail isa pheromone-trail,
+            has trail-status "proven";
+    return { $trail };
+
+# Get fading trails (need reinforcement or they die)
+fun fading_trails() -> { pheromone-trail }:
+    match
+        $trail isa pheromone-trail,
+            has trail-status "fading";
+    return { $trail };
+
+
+# =============================================================================
+# PHEROMONE OPERATIONS (run externally, not inference)
+# =============================================================================
+#
+# Reinforcement (after successful task completion):
+#
+#   match
+#       $from isa task, has task-id "TASK-A";
+#       $to isa task, has task-id "TASK-B";
+#       $trail (source-task: $from, destination-task: $to) isa pheromone-trail,
+#           has trail-pheromone $old_tp,
+#           has completions $old_c;
+#       let $new_tp = $old_tp + 5.0;
+#       let $new_c = $old_c + 1;
+#   delete $old_tp of $trail; delete $old_c of $trail;
+#   insert $trail has trail-pheromone $new_tp, has completions $new_c;
+#
+# Alarm deposit (after failed task attempt):
+#
+#   match
+#       $trail (source-task: $from, destination-task: $to) isa pheromone-trail,
+#           has alarm-pheromone $old_ap,
+#           has failures $old_f;
+#       let $new_ap = $old_ap + 8.0;
+#       let $new_f = $old_f + 1;
+#   delete $old_ap of $trail; delete $old_f of $trail;
+#   insert $trail has alarm-pheromone $new_ap, has failures $new_f;
+#
+# Decay (run periodically — forgetting is intelligence):
+#
+#   match
+#       $trail isa pheromone-trail,
+#           has trail-pheromone $old_tp,
+#           has alarm-pheromone $old_ap;
+#       $old_tp > 0.0;
+#       let $new_tp = $old_tp * 0.95;      # trail decays 5% per cycle
+#       let $new_ap = $old_ap * 0.80;      # alarm decays 20% per cycle (faster)
+#   delete $old_tp of $trail; delete $old_ap of $trail;
+#   insert $trail has trail-pheromone $new_tp, has alarm-pheromone $new_ap;
+#
+# Why asymmetric decay? Alarm pheromone decays FASTER than trail pheromone.
+# The colony forgets failures sooner than successes — encouraging retry
+# of previously-failed paths after conditions may have changed.
+# This matches real ant behavior: alarm pheromones are volatile compounds
+# that evaporate quickly, while trail pheromones persist longer.
+
+
+# =============================================================================
+# USAGE EXAMPLES
+# =============================================================================
+#
+# Get all P0 tasks:
+#   match let $t in tasks_by_priority("P0"); $t has title $title; select $title;
+#
+# Get ready-to-work tasks (basic — no pheromone awareness):
+#   match let $t in ready_tasks(); $t has title $title, has priority $p; select $title, $p;
+#
+# Get ATTRACTIVE tasks (pheromone-weighted — what the colony recommends):
+#   match let $t in attractive_tasks(); $t has title $title; select $title;
+#
+# Get tasks to AVOID (alarm pheromone — colony says these failed before):
+#   match let $t in repelled_tasks(); $t has title $title; select $title;
+#
+# Get UNEXPLORED tasks (no trail — needs a scout):
+#   match let $t in exploratory_tasks(); $t has title $title; select $title;
+#
+# Check trail strength between two tasks:
+#   match let $strength = trail_strength("TASK-A", "TASK-B"); select $strength;
+#
+# Find superhighways (proven task sequences):
+#   match let $trail in superhighway_trails();
+#       $trail (source-task: $from, destination-task: $to);
+#       $from has title $from_title; $to has title $to_title;
+#   select $from_title, $to_title;
+#
+# Get urgent incomplete tasks:
+#   match let $t in urgent_tasks(); $t has title $title; select $title;
+#
+# Get tasks blocking "TASK-123":
+#   match let $t in blockers_of("TASK-123"); $t has title $title; select $title;
+#
+# Count complete vs total:
+#   match let $done = count_by_status("complete"); select $done;
+#
+# Get category completion:
+#   match let $pct = category_completion("Backend"); select $pct;
+#
+# =============================================================================

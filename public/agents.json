@@ -1,29 +1,101 @@
 {
   "agents": [
     {
-      "id": "scout",
-      "name": "Scout",
+      "id": "queen",
+      "name": "Queen",
+      "caste": "queen",
       "status": "ready",
       "actions": {
-        "observe": { "processed": true, "data": "market-tick" }
+        "orchestrate": { "routed": true, "strategy": "adaptive" },
+        "crystallize": { "patterns": 3, "superhighways": 1 }
+      },
+      "envelopes": []
+    },
+    {
+      "id": "scout",
+      "name": "Scout",
+      "caste": "scout",
+      "status": "ready",
+      "actions": {
+        "observe": { "processed": true, "data": "market-tick" },
+        "scan": { "regions": 4, "threats": 0 }
       },
       "envelopes": []
     },
     {
       "id": "analyst",
       "name": "Analyst",
+      "caste": "harvester",
       "status": "ready",
       "actions": {
-        "evaluate": { "signal": "strong", "confidence": 0.85 }
+        "evaluate": { "signal": "strong", "confidence": 0.85 },
+        "regime": { "current": "bull", "volatility": "low" }
       },
       "envelopes": []
     },
     {
       "id": "trader",
       "name": "Trader",
+      "caste": "major-worker",
       "status": "ready",
       "actions": {
-        "execute": { "executed": true, "orderId": "123" }
+        "execute": { "executed": true, "orderId": "123" },
+        "position": { "size": 0.02, "direction": "long" }
+      },
+      "envelopes": []
+    },
+    {
+      "id": "forager",
+      "name": "Forager",
+      "caste": "forager",
+      "status": "ready",
+      "actions": {
+        "search": { "sources": ["onchain", "sentiment", "funding"], "found": 7 },
+        "harvest": { "patterns": 2, "quality": 0.72 }
+      },
+      "envelopes": []
+    },
+    {
+      "id": "relay",
+      "name": "Relay",
+      "caste": "relay",
+      "status": "ready",
+      "actions": {
+        "broadcast": { "recipients": 4, "delivered": true },
+        "gossip": { "colonies": 2, "shared": 3 }
+      },
+      "envelopes": []
+    },
+    {
+      "id": "nurse",
+      "name": "Nurse",
+      "caste": "nurse",
+      "status": "ready",
+      "actions": {
+        "heal": { "target": "scout", "restored": 15.0 },
+        "monitor": { "unhealthy": 0, "checked": 8 }
+      },
+      "envelopes": []
+    },
+    {
+      "id": "soldier",
+      "name": "Soldier",
+      "caste": "soldier",
+      "status": "ready",
+      "actions": {
+        "defend": { "threats": 0, "blocked": 0 },
+        "validate": { "signals": 5, "rejected": 1 }
+      },
+      "envelopes": []
+    },
+    {
+      "id": "sentinel",
+      "name": "Sentinel",
+      "caste": "minor-worker",
+      "status": "ready",
+      "actions": {
+        "circuit": { "halted": false, "dailyPnl": 2.3 },
+        "risk": { "exposure": 0.04, "maxDrawdown": 0.08 }
       },
       "envelopes": []
     }
@@ -32,7 +104,7 @@
     {
       "receiver": "scout",
       "receive": "observe",
-      "payload": { "source": "api/feed" },
+      "payload": { "source": "api/feed", "chain": "market" },
       "callback": {
         "receiver": "analyst",
         "receive": "evaluate",
@@ -41,6 +113,61 @@
           "receiver": "trader",
           "receive": "execute",
           "payload": { "signal": "{{result}}" }
+        }
+      }
+    },
+    {
+      "receiver": "forager",
+      "receive": "search",
+      "payload": { "source": "onchain", "chain": "intelligence" },
+      "callback": {
+        "receiver": "relay",
+        "receive": "broadcast",
+        "payload": { "patterns": "{{result}}" },
+        "callback": {
+          "receiver": "queen",
+          "receive": "orchestrate",
+          "payload": { "intel": "{{result}}" }
+        }
+      }
+    },
+    {
+      "receiver": "soldier",
+      "receive": "validate",
+      "payload": { "signals": "all", "chain": "defense" },
+      "callback": {
+        "receiver": "sentinel",
+        "receive": "risk",
+        "payload": { "validated": "{{result}}" },
+        "callback": {
+          "receiver": "sentinel",
+          "receive": "circuit",
+          "payload": { "risk": "{{result}}" }
+        }
+      }
+    },
+    {
+      "receiver": "nurse",
+      "receive": "monitor",
+      "payload": { "colony": "all", "chain": "care" },
+      "callback": {
+        "receiver": "nurse",
+        "receive": "heal",
+        "payload": { "unhealthy": "{{result}}" }
+      }
+    },
+    {
+      "receiver": "scout",
+      "receive": "scan",
+      "payload": { "source": "sentiment", "chain": "recon" },
+      "callback": {
+        "receiver": "forager",
+        "receive": "harvest",
+        "payload": { "regions": "{{result}}" },
+        "callback": {
+          "receiver": "queen",
+          "receive": "crystallize",
+          "payload": { "patterns": "{{result}}" }
         }
       }
     }

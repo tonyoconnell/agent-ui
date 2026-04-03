@@ -2,7 +2,7 @@
 
 An agent is a unit with tasks. That's it.
 
-In ONE Protocol terms: an agent is an **Actor** (dimension 2). Actors are authorization entities that include users, AI agents, and system processes. The substrate treats them identically—all receive envelopes, all emit envelopes.
+An agent is an **Actor** (dimension 2). The substrate treats users, AI agents, and system processes identically — all sense signals, all drop signals.
 
 ## Anatomy
 
@@ -20,71 +20,50 @@ const agent = unit('translator')
 │                                              │
 │   id: "translator"                           │
 │                                              │
-│   ┌─────────────────────────────────────┐   │
-│   │ TASKS                                │   │
-│   │                                      │   │
-│   │   translate(payload, emit, ctx)      │   │
-│   │   detect(payload, emit, ctx)         │   │
-│   │                                      │   │
-│   └─────────────────────────────────────┘   │
+│   TASKS                                      │
+│     translate(data, drop, ctx)               │
+│     detect(data, drop, ctx)                  │
 │                                              │
-│   ┌─────────────────────────────────────┐   │
-│   │ CONTINUATIONS                        │   │
-│   │                                      │   │
-│   │   translate → { receiver, payload }  │   │
-│   │                                      │   │
-│   └─────────────────────────────────────┘   │
+│   CONTINUATIONS                              │
+│     translate → { receiver, data }           │
 │                                              │
-│   IN:  Envelope { receiver, payload }        │
-│   OUT: Envelope { receiver, payload }        │
+│   IN:  Signal { receiver, data }             │
+│   OUT: Signal { receiver, data }             │
 │                                              │
 └─────────────────────────────────────────────┘
 ```
 
-## Creating an Agent
+## Tasks
 
 ```typescript
-import { unit } from '@/engine'
-
-const agent = unit('my-agent')
-```
-
-## Adding Tasks
-
-```typescript
-agent.on('taskName', (payload, emit, ctx) => {
-  // payload — the data sent to this task
-  // emit    — function to send envelopes
-  // ctx     — { from: sender, self: this receiver }
+agent.on('taskName', (data, drop, ctx) => {
+  // data — the data signaled to this task
+  // drop — function to drop signals (like pheromones)
+  // ctx  — { from: sender, self: this receiver }
   
-  // Do work...
-  
-  // Respond
-  emit({ receiver: ctx.from, payload: { result } })
+  drop({ receiver: ctx.from, data: { result } })
 })
 ```
-
-### Task Examples
 
 **Simple transform:**
 ```typescript
-agent.on('double', ({ n }, emit, ctx) => {
-  emit({ receiver: ctx.from, payload: { result: n * 2 } })
+agent.on('double', ({ n }, drop, ctx) => {
+  drop({ receiver: ctx.from, data: { result: n * 2 } })
 })
 ```
 
-**Async work:**
+**Async:**
 ```typescript
-agent.on('fetch', async ({ url }, emit, ctx) => {
+agent.on('fetch', async ({ url }, drop, ctx) => {
   const data = await fetch(url).then(r => r.json())
-  emit({ receiver: ctx.from, payload: { data } })
+  drop({ receiver: ctx.from, data: { data } })
 })
 ```
 
 **Fan out:**
 ```typescript
-agent.on('broadcast', ({ message, targets }, emit) => {
-  targets.forEach(t => emit({ receiver: t, payload: { message } }))
+agent.on('broadcast', ({ message, targets }, drop) => {
+  targets.forEach(t => drop({ receiver: t, data: { message } }))
 })
 ```
 
@@ -92,36 +71,27 @@ agent.on('broadcast', ({ message, targets }, emit) => {
 ```typescript
 agent.on('log', ({ message }) => {
   console.log(message)
-  // No emit — silence is valid
+  // No drop — silence is valid
 })
 ```
 
 ## Continuations
 
-Define what happens after a task completes. Each completion is an **Event** (ONE dimension 5)—an immutable record that something happened.
-
 ```typescript
 agent
   .on('analyze', ({ data }) => ({ insights: extract(data) }))
-  .then('analyze', result => ({
-    receiver: 'reporter',
-    payload: result
-  }))
+  .then('analyze', result => ({ receiver: 'reporter', data: result }))
 ```
-
-The continuation template receives the task's return value and produces the next envelope.
 
 **Chaining:**
 ```typescript
 agent
   .on('step1', () => ({ a: 1 }))
-  .then('step1', r => ({ receiver: 'self:step2', payload: r }))
-  
+  .then('step1', r => ({ receiver: 'self:step2', data: r }))
   .on('step2', ({ a }) => ({ b: a + 1 }))
-  .then('step2', r => ({ receiver: 'self:step3', payload: r }))
-  
-  .on('step3', ({ b }, emit, ctx) => {
-    emit({ receiver: ctx.from, payload: { final: b } })
+  .then('step2', r => ({ receiver: 'self:step3', data: r }))
+  .on('step3', ({ b }, drop, ctx) => {
+    drop({ receiver: ctx.from, data: { final: b } })
   })
 ```
 
@@ -131,271 +101,143 @@ Preconfigured task variants:
 
 ```typescript
 agent
-  .on('translate', ({ text, to, fast }, emit, ctx) => {
+  .on('translate', ({ text, to, fast }, drop, ctx) => {
     const result = fast ? quickTranslate(text, to) : deepTranslate(text, to)
-    emit({ receiver: ctx.from, payload: { result } })
+    drop({ receiver: ctx.from, data: { result } })
   })
   .role('quick', 'translate', { fast: true })
   .role('thorough', 'translate', { fast: false })
-```
 
-Now you can call:
-```typescript
-{ receiver: 'translator:quick', payload: { text, to } }
-{ receiver: 'translator:thorough', payload: { text, to } }
+// Signal via:
+{ receiver: 'translator:quick', data: { text, to } }
+{ receiver: 'translator:thorough', data: { text, to } }
 ```
 
 ## Introspection
 
 ```typescript
 agent.has('translate')  // true
-agent.has('unknown')    // false
 agent.list()            // ['translate', 'detect', 'quick', 'thorough']
 agent.id                // 'translator'
 ```
 
 ## Agent Types
 
-### Worker Agent
-Does one thing well:
-
+**Worker** — does one thing well:
 ```typescript
 const hasher = unit('hasher')
-  .on('hash', ({ data, algo = 'sha256' }, emit, ctx) => {
+  .on('hash', ({ data, algo = 'sha256' }, drop, ctx) => {
     const hash = crypto.createHash(algo).update(data).digest('hex')
-    emit({ receiver: ctx.from, payload: { hash } })
+    drop({ receiver: ctx.from, data: { hash } })
   })
 ```
 
-### Router Agent
-Directs traffic:
-
+**Router** — directs traffic:
 ```typescript
 const router = unit('router')
-  .on('route', ({ task, payload }, emit) => {
-    const target = selectBest(task)  // Use trails
-    emit({ receiver: `${target}:${task}`, payload })
+  .on('route', ({ task, data }, drop) => {
+    const target = selectBest(task)  // Use paths
+    drop({ receiver: `${target}:${task}`, data })
   })
 ```
 
-### Aggregator Agent
-Collects results:
-
+**Aggregator** — collects results:
 ```typescript
 const aggregator = unit('aggregator')
-  .on('collect', ({ id, data }) => {
-    results[id] = data
-  })
-  .on('finalize', (_, emit, ctx) => {
-    emit({ receiver: ctx.from, payload: { results } })
+  .on('collect', ({ id, data }) => { results[id] = data })
+  .on('finalize', (_, drop, ctx) => {
+    drop({ receiver: ctx.from, data: { results } })
     results = {}
   })
 ```
 
-### Supervisor Agent
-Manages others:
-
+**Supervisor** — manages others:
 ```typescript
 const supervisor = unit('supervisor')
-  .on('assign', ({ task, workers }, emit) => {
-    workers.forEach((w, i) => 
-      emit({ receiver: w, payload: { task, chunk: i } })
-    )
-  })
-  .on('report', ({ worker, status }) => {
-    workerStatus[worker] = status
+  .on('assign', ({ task, workers }, drop) => {
+    workers.forEach((w, i) => drop({ receiver: w, data: { task, chunk: i } }))
   })
 ```
 
-### LLM Agent
-Wraps a model:
-
+**LLM** — wraps a model:
 ```typescript
 const llmAgent = unit('claude')
-  .on('complete', async ({ prompt, system }, emit, ctx) => {
+  .on('complete', async ({ prompt, system }, drop, ctx) => {
     const response = await anthropic.complete(prompt, { system })
-    emit({ receiver: ctx.from, payload: { response } })
-  })
-  .on('stream', async ({ prompt, onChunk }, emit, ctx) => {
-    let full = ''
-    await anthropic.stream(prompt, chunk => {
-      full += chunk
-      onChunk?.(chunk)
-    })
-    emit({ receiver: ctx.from, payload: { response: full } })
+    drop({ receiver: ctx.from, data: { response } })
   })
 ```
 
 ## Context
 
-Every task receives context:
-
 ```typescript
-agent.on('task', (payload, emit, ctx) => {
-  ctx.from   // Who sent this envelope
+agent.on('task', (data, drop, ctx) => {
+  ctx.from   // Who signaled this
   ctx.self   // This receiver (agent:task)
 })
 ```
 
-Use `ctx.from` for replies:
-```typescript
-emit({ receiver: ctx.from, payload: { result } })
-```
-
-Use `ctx.self` for self-reference:
-```typescript
-emit({ receiver: 'logger', payload: { source: ctx.self, event: 'started' } })
-```
-
 ## Patterns
 
-### Request-Response
-```typescript
-agent.on('ask', ({ question }, emit, ctx) => {
-  const answer = compute(question)
-  emit({ receiver: ctx.from, payload: { answer } })
-})
-```
+**Request-Response:** `drop({ receiver: ctx.from, data: { answer } })`
+**Fire-and-Forget:** No drop. Silence is valid.
+**Forward:** `drop({ receiver: 'next-agent', data })`
+**Enrich:** `drop({ receiver: 'next-agent', data: { ...data, extra: compute(data) } })`
+**Split:** `items.forEach(item => drop({ receiver: 'worker', data: { item } }))`
 
-### Fire-and-Forget
-```typescript
-agent.on('notify', ({ event }) => {
-  log(event)
-  // No emit
-})
-```
-
-### Forward
-```typescript
-agent.on('forward', (payload, emit) => {
-  emit({ receiver: 'next-agent', payload })
-})
-```
-
-### Enrich
-```typescript
-agent.on('enrich', (payload, emit) => {
-  emit({ 
-    receiver: 'next-agent', 
-    payload: { ...payload, enriched: compute(payload) } 
-  })
-})
-```
-
-### Split
-```typescript
-agent.on('split', ({ items }, emit) => {
-  items.forEach((item, i) => 
-    emit({ receiver: `worker-${i % 3}`, payload: { item } })
-  )
-})
-```
-
-### Timeout
-```typescript
-agent.on('withTimeout', async (payload, emit, ctx) => {
-  const result = await Promise.race([
-    doWork(payload),
-    new Promise((_, reject) => 
-      setTimeout(() => reject('timeout'), 5000)
-    )
-  ]).catch(() => null)
-  
-  emit({ receiver: ctx.from, payload: { result } })
-})
-```
-
-## Lifecycle
-
-```
-              unit(id)
-                 │
-                 ▼
-            ┌─────────┐
-            │ CREATED │
-            └────┬────┘
-                 │ .on() / .then() / .role()
-                 ▼
-            ┌─────────┐
-            │CONFIGURED│
-            └────┬────┘
-                 │ added to colony
-                 ▼
-            ┌─────────┐
-            │  ACTIVE │ ←── receives envelopes
-            └─────────┘
-```
-
-## In a Swarm (Group)
-
-A swarm is a **Group** (ONE dimension 1)—multi-tenant isolation for agents. Each group contains its own actors, connections, and events.
+## In a Colony
 
 ```typescript
-const swarm = colony()
+const c = colony()
+const agent = c.spawn('translator').on('translate', handler)
 
-// Create and configure
-const agent = swarm.spawn('translator')
-  .on('translate', handler)
-  .on('detect', handler)
-
-// Send to it
-swarm.send({ receiver: 'translator:translate', payload: { text, to } })
-
-// Check it exists
-swarm.has('translator')  // true
-
-// List all agents
-swarm.list()  // ['translator', ...]
-
-// Direct access
-swarm.get('translator')  // the unit
+c.signal({ receiver: 'translator:translate', data: { text, to } })
+c.has('translator')   // true
+c.list()              // ['translator', ...]
+c.get('translator')   // the unit
 ```
-
-Agent interactions within the swarm create **Flows** (Connections)—the edges that strengthen with use. These flows are ONE dimension 4: relationships between actors.
 
 ## The Truth
 
 ```
 Agent = Unit + Tasks
-Task = (payload, emit, ctx) => void
-Envelope = { receiver, payload }
-
-That's all.
+Task = (data, drop, ctx) => void
+Signal = { receiver, data }
 ```
 
-No base classes. No decorators. No configuration files. No lifecycle hooks.
+No base classes. No decorators. No configuration. Just functions that sense signals and drop signals.
 
-Just functions that receive data and emit data.
+---
 
-## ONE Protocol Mapping
+## Biological Grounding
 
-Agents map cleanly to the ONE ontology:
+From Deborah Gordon's research on ant colonies:
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                    ONE DIMENSIONS                           │
-├────────────────────────────────────────────────────────────┤
-│                                                             │
-│   1. GROUPS        Colony / Swarm                           │
-│                    Multi-tenant isolation                   │
-│                                                             │
-│   2. ACTORS        Agent / Unit                             │
-│                    The foundation—receives & emits          │
-│                                                             │
-│   4. CONNECTIONS   Flows / Edges                            │
-│                    Agent interactions, strengthened by use  │
-│                                                             │
-│   5. EVENTS        Task completions                         │
-│                    Immutable audit of what happened         │
-│                                                             │
-│   6. KNOWLEDGE     Proven patterns                          │
-│                    Highways that emerge from success        │
-│                                                             │
-└────────────────────────────────────────────────────────────┘
-```
+- **No ant sends messages** — they DROP signals (pheromones)
+- **Others FOLLOW the weighted paths** — sensing, not receiving
+- **Return rate activates** — more foraging (positive feedback)
+- **Absence of signal IS a signal** — paths fade without reinforcement
+- **Intelligence lives in paths, not nodes** — the network learns
 
-When agents consistently succeed, their patterns become **Knowledge** (ONE dimension 6)—proven paths that the system remembers. Highways are knowledge made visible.
+THE VERBS:
+- `signal` — move through the colony
+- `drop` — add weight to a path (leave pheromone)
+- `follow` — traverse weighted path
+- `sense` — perceive environment
+- `fade` — decay over time
 
 ---
 
 *An agent is an Actor with tasks.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Actor lifecycle: spawn, sense, act, learn, specialize, crystallize
+- [signal.md](signal.md) — What agents receive and emit
+- [code.md](code.md) — TypeScript implementation of unit/colony
+- [swarm.md](swarm.md) — Many agents coordinating
+- [ants.md](ants.md) — Biological grounding: nine castes, five chains
+- [agent-launch.md](agent-launch.md) — Bridge to AgentLaunch SDK
+- [emergence.md](emergence.md) — How agent intelligence emerges

@@ -1,0 +1,179 @@
+# =============================================================================
+# DOMAIN EXAMPLE: E-Commerce Product & Customer Intelligence
+# =============================================================================
+#
+# Shows inference patterns applied to e-commerce:
+#   - Customer segmentation (VIP, standard, at-risk, churned)
+#   - Product health scoring
+#   - Recommendation readiness
+#   - Cross-sell opportunity detection
+#
+# Based on: classification.tql, quality-rules.tql
+# =============================================================================
+
+define
+
+# --- Entities ---
+
+entity customer,
+    owns customer-id @key,
+    owns customer-name,
+    owns customer-email,
+    owns total-orders,
+    owns total-spend,
+    owns average-order-value,
+    owns days-since-last-order,
+    owns return-rate,             # 0.0 - 1.0
+    owns customer-tier,           # INFERRED: "vip", "standard", "at-risk", "churned"
+    plays purchased:buyer;
+
+entity product,
+    owns product-id @key,
+    owns product-name,
+    owns product-category,
+    owns units-sold,
+    owns review-score,            # 0.0 - 5.0
+    owns review-count,
+    owns return-rate,
+    owns product-health,          # INFERRED: "healthy", "warning", "critical"
+    plays purchased:item,
+    plays cross-sell:source-product,
+    plays cross-sell:target-product;
+
+relation purchased,
+    relates buyer,
+    relates item,
+    owns purchase-date,
+    owns purchase-amount;
+
+relation cross-sell,
+    relates source-product,
+    relates target-product,
+    owns co-purchase-count,
+    owns co-purchase-rate;
+
+# Attributes
+attribute customer-id, value string;
+attribute customer-name, value string;
+attribute customer-email, value string;
+attribute total-orders, value integer;
+attribute total-spend, value double;
+attribute average-order-value, value double;
+attribute days-since-last-order, value integer;
+attribute return-rate, value double;
+attribute customer-tier, value string;
+
+attribute product-id, value string;
+attribute product-name, value string;
+attribute product-category, value string;
+attribute units-sold, value integer;
+attribute review-score, value double;
+attribute review-count, value integer;
+attribute product-health, value string;
+
+attribute purchase-date, value datetime;
+attribute purchase-amount, value double;
+attribute co-purchase-count, value integer;
+attribute co-purchase-rate, value double;
+
+
+# =============================================================================
+# CUSTOMER SEGMENTATION RULES
+# =============================================================================
+
+# VIP: High spend, frequent orders, low returns
+rule vip-customer:
+    when {
+        $c isa customer,
+            has total-orders $orders,
+            has total-spend $spend,
+            has return-rate $rr;
+        $orders >= 10;
+        $spend >= 1000.0;
+        $rr < 0.10;
+    } then {
+        $c has customer-tier "vip";
+    };
+
+# At-risk: Haven't ordered in 60+ days
+rule at-risk-customer:
+    when {
+        $c isa customer,
+            has days-since-last-order $days,
+            has total-orders $orders;
+        $days >= 60;
+        $days < 180;
+        $orders >= 2;
+    } then {
+        $c has customer-tier "at-risk";
+    };
+
+# Churned: Haven't ordered in 180+ days
+rule churned-customer:
+    when {
+        $c isa customer,
+            has days-since-last-order $days;
+        $days >= 180;
+    } then {
+        $c has customer-tier "churned";
+    };
+
+# =============================================================================
+# PRODUCT HEALTH RULES
+# =============================================================================
+
+# Healthy: Good reviews, low returns, decent sales
+rule healthy-product:
+    when {
+        $p isa product,
+            has review-score $rs,
+            has review-count $rc,
+            has return-rate $rr;
+        $rs >= 4.0;
+        $rc >= 10;
+        $rr < 0.05;
+    } then {
+        $p has product-health "healthy";
+    };
+
+# Critical: Bad reviews or high returns
+rule critical-product:
+    when {
+        $p isa product,
+            has review-score $rs,
+            has return-rate $rr,
+            has review-count $rc;
+        $rc >= 5;
+        { $rs < 2.5; } or { $rr >= 0.20; };
+    } then {
+        $p has product-health "critical";
+    };
+
+
+# =============================================================================
+# QUERY FUNCTIONS
+# =============================================================================
+
+# Get VIP customers
+fun vip_customers() -> { customer }:
+    match $c isa customer, has customer-tier "vip";
+    return { $c };
+
+# Get at-risk customers (for retention campaigns)
+fun at_risk_customers() -> { customer }:
+    match $c isa customer, has customer-tier "at-risk";
+    return { $c };
+
+# Get cross-sell opportunities for a product
+fun cross_sell_for($product_id: string) -> { product }:
+    match
+        $source isa product, has product-id $product_id;
+        $rel(source-product: $source, target-product: $target) isa cross-sell,
+            has co-purchase-rate $rate;
+        $rate >= 0.15;
+    return { $target };
+
+# Get critical products needing attention
+fun critical_products() -> { product }:
+    match $p isa product, has product-health "critical";
+    return { $p };

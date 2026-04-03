@@ -2,24 +2,19 @@
 
 6 dimensions. Grounded in biology. The universal interface.
 
-## The Discovery
+> Make complex, adaptive, intelligent behavior emerge without any individual understanding, planning, or coordinating.
 
-Deborah Gordon spent 30 years studying harvester ants:
 
-> "Complex, adaptive, intelligent behavior emerges without any individual understanding, planning, or coordinating."
+## 6 Dimensions
 
-The ONE ontology translates this into computation.
-
-## The 6 Dimensions
-
-| Dimension | Biology | What it models |
-|-----------|---------|----------------|
-| **Groups** | Colony structure | Containers, scope, isolation |
-| **Actors** | Individual ants | Who can act (humans, agents, LLMs) |
-| **Things** | Environment | What exists (tasks, tokens, services) |
-| **Connections** | Pheromone trails | Relationships with cost |
-| **Events** | Foraging activity | What happened |
-| **Knowledge** | Colony memory | Crystallized patterns |
+| Dimension     | Biology           | What it models                        |
+| ------------- | ----------------- | ------------------------------------- |
+| **Groups**    | Colony structure  | Containers, scope, isolation          |
+| **Actors**    | Individual ants   | Who can act (humans, agents, LLMs)    |
+| **Things**    | Environment       | What exists (signals, data, services) |
+| **Paths**     | Pheromone trails  | Connections with weight               |
+| **Events**    | Foraging activity | Signals that happened                 |
+| **Knowledge** | Colony memory     | Highways (crystallized paths)         |
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -38,8 +33,8 @@ The ONE ontology translates this into computation.
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                   4. CONNECTIONS                             │
-│         Relationships (flows with strength/resistance)       │
+│                      4. PATHS                                │
+│         Connections with weight (pheromone trails)           │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -59,9 +54,9 @@ The ONE ontology translates this into computation.
 
 Every system maps to these 6 dimensions:
 
-| System | Groups | Actors | Things | Connections | Events | Knowledge |
-|--------|--------|--------|--------|-------------|--------|-----------|
-| Agentverse | Colonies | Agents | Services | Flows | Interactions | Patterns |
+| System | Groups | Actors | Things | Paths | Events | Knowledge |
+|--------|--------|--------|--------|-------|--------|-----------|
+| Agentverse | Colonies | Agents | Services | Paths | Signals | Highways |
 | Shopify | Stores | Customers | Products | Orders | Purchases | Trends |
 | Stripe | Accounts | Users | Payments | Transactions | Charges | Analytics |
 | GitHub | Orgs | Users | Repos | PRs | Commits | Insights |
@@ -92,15 +87,15 @@ entity thing,
     owns name,
     owns thing-type;      # "task", "token", "service"
 
-# 4. CONNECTIONS
-relation flow,
-    owns flow-id @key,
+# 4. PATHS
+relation path,
+    owns path-id @key,
     relates source,
     relates target,
-    owns flow-type,
-    owns strength,        # Success signal
+    owns path-type,
+    owns weight,          # Success signal (strength)
     owns resistance,      # Failure signal
-    owns flow-status;     # "open", "closing", "blocked"
+    owns path-status;     # "highway", "fading", "blocked"
 
 # 5. EVENTS
 entity event,
@@ -119,20 +114,20 @@ entity pattern,
 ## The Inference
 
 ```tql
-# Flows emerge as open/closing/blocked
-rule open-flow:
-    when { $f isa flow, has strength $s; $s >= 50.0; }
-    then { $f has flow-status "open"; };
+# Paths emerge as highway/fading/blocked
+rule highway:
+    when { $p isa path, has weight $w; $w >= 50.0; }
+    then { $p has path-status "highway"; };
 
-rule blocked-flow:
-    when { $f isa flow, has resistance $r, has strength $s; $r > $s; }
-    then { $f has flow-status "blocked"; };
+rule blocked-path:
+    when { $p isa path, has resistance $r, has weight $w; $r > $w; }
+    then { $p has path-status "blocked"; };
 
 # Actors emerge as proven/at-risk
 rule proven-actor:
     when {
         $a isa actor;
-        $f (target: $a) isa flow, has strength $s; $s >= 20.0;
+        $p (target: $a) isa path, has weight $w; $w >= 20.0;
     }
     then { $a has status "proven"; };
 ```
@@ -140,12 +135,12 @@ rule proven-actor:
 ## The Interface
 
 ```tql
-fun open($n: integer) -> { flow }         # Best paths
-fun blocked() -> { flow }                  # Paths to avoid
+fun highways($n: integer) -> { path }      # High-weight paths
+fun blocked() -> { path }                  # Paths to avoid
 fun best($type: string) -> actor           # Best actor for type
 fun proven() -> { actor }                  # All proven actors
 fun confidence($type: string) -> double    # How well we know
-fun patterns($min: double) -> { pattern }  # Crystallized knowledge
+fun patterns($min: double) -> { pattern }  # Crystallized knowledge (highways)
 ```
 
 ## The Runtime
@@ -166,18 +161,18 @@ w.actor('claude', 'llm')
 w.thing('task-1', 'task')
 w.thing('token-abc', 'token')
 
-// 4. Connections (flows)
-w.flow('user', 'agent-1').strengthen(1)   // Success
-w.flow('user', 'agent-1').resist(1)       // Failure
+// 4. Paths (connections with weight)
+w.path('user', 'agent-1').drop(1)         // Add weight (success)
+w.path('user', 'agent-1').resist(1)       // Add resistance (failure)
 
-// 5. Events (automatic from flows)
+// 5. Events (automatic from signals)
 
 // 6. Knowledge
-w.crystallize()  // Patterns emerge from repeated success
+w.crystallize()  // Highways emerge from repeated success
 
 // Query
-w.open(10)             // Open flows
-w.blocked()            // Blocked flows
+w.highways(10)         // High-weight paths
+w.blocked()            // Blocked paths
 w.best('agent')        // Best agent
 w.proven()             // Proven actors
 w.confidence('agent')  // How confident
@@ -197,19 +192,19 @@ agents.forEach(a => w.actor(a.address, 'agent'))
 // Things = Services, tokens
 services.forEach(s => w.thing(s.id, 'service'))
 
-// Connections = Interactions
-onInteraction((from, to, success) => {
+// Paths = Signal trails
+onSignal((from, to, success) => {
   success 
-    ? w.flow(from, to).strengthen(1)
-    : w.flow(from, to).resist(1)
+    ? w.path(from, to).drop(1)     // Add weight
+    : w.path(from, to).resist(1)   // Add resistance
 })
 
-// Discovery = Follow open flows
+// Discovery = Follow highways
 function discover(task: string) {
   return w.best(task)
 }
 
-// Reputation = Inferred from flows
+// Reputation = Inferred from paths
 function reputation(agent: string) {
   return w.proven().includes(agent) ? 'proven' : 'unknown'
 }
@@ -222,18 +217,18 @@ DATA LAYER (Observable)
 ├── Groups: Scope isolation
 ├── Actors: Simple agents  
 ├── Things: Observable entities
-└── Connections: Graph structure
+└── Paths: Graph structure with weight
               │
               ▼
 PROCESSING LAYER (Mutable)
-├── Events: Raw traversal data
-├── Strength/Resistance: Working memory
+├── Events: Signals that happened
+├── Weight/Resistance: Working memory
 └── Decay: Information lifecycle
               │
               ▼ crystallization
 KNOWLEDGE LAYER (Permanent)
 ├── Patterns: Named strategies
-├── Open flows: Proven paths
+├── Highways: High-weight paths
 └── Embeddings: Cross-domain transfer
 ```
 
@@ -246,9 +241,9 @@ Not 5. Not 7. Exactly 6.
 | 1 | Groups | Without scope, chaos |
 | 2 | Actors | Without agency, nothing happens |
 | 3 | Things | Without objects, nothing to act on |
-| 4 | Connections | Without relationships, no coordination |
+| 4 | Paths | Without connections, no coordination |
 | 5 | Events | Without history, no learning |
-| 6 | Knowledge | Without memory, no intelligence |
+| 6 | Knowledge | Without highways, no intelligence |
 
 Remove any one and the system breaks. Add more and you add redundancy.
 
@@ -265,11 +260,11 @@ const tenant = w.group('acme-corp', 'org')
 // Everything scoped automatically
 w.actor('user-1', 'human', { group: 'acme-corp' })
 w.thing('task-1', 'task', { group: 'acme-corp' })
-w.flow('user-1', 'agent-1', { group: 'acme-corp' })
+w.path('user-1', 'agent-1', { group: 'acme-corp' })
 
 // Query scoped to tenant
-w.open(10, { group: 'acme-corp' })  // Only Acme's flows
-w.proven({ group: 'acme-corp' })    // Only Acme's actors
+w.highways(10, { group: 'acme-corp' })  // Only Acme's paths
+w.proven({ group: 'acme-corp' })        // Only Acme's actors
 ```
 
 **What Groups enable:**
@@ -299,10 +294,10 @@ w.group('acme-trading', 'team', { parent: 'acme' })
 // Agents belong to teams
 w.actor('agent-1', 'agent', { group: 'acme-research' })
 
-// Flows respect hierarchy
-// acme-research can see acme flows
-// acme can see fetchai flows
-// But globex cannot see acme flows
+// Paths respect hierarchy
+// acme-research can see acme paths
+// acme can see fetchai paths
+// But globex cannot see acme paths
 ```
 
 **Real-world mapping:**
@@ -330,9 +325,9 @@ Each level inherits from parent. Isolation is automatic.
 | Groups | Container | Multi-tenant, hierarchy, isolation |
 | Actors | Who acts | Auth, permissions, agency |
 | Things | What exists | Domain modeling, any entity |
-| Connections | How related | Pheromones, learning, routing |
-| Events | What happened | Audit, replay, debugging |
-| Knowledge | What learned | Patterns, AI, emergence |
+| Paths | How connected | Pheromones, learning, routing |
+| Events | What signaled | Audit, replay, debugging |
+| Knowledge | What crystallized | Highways, AI, emergence |
 
 **The compounding:**
 
@@ -340,9 +335,9 @@ Each level inherits from parent. Isolation is automatic.
 Groups alone       → Multi-tenant
 + Actors           → Per-tenant users
 + Things           → Per-tenant data
-+ Connections      → Per-tenant relationships
++ Paths            → Per-tenant connections
 + Events           → Per-tenant history
-+ Knowledge        → Per-tenant AI
++ Knowledge        → Per-tenant highways
 
 Each dimension multiplies the previous.
 ```
@@ -370,3 +365,14 @@ The 6 dimensions model reality. Reality doesn't change. Build once, map everythi
 ---
 
 *ONE. The ontology that models reality.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How the six dimensions flow and interact
+- [ontology.md](ontology.md) — TypeDB schema implementing these dimensions
+- [world.md](world.md) — Universal ontology across ants, humans, agents
+- [framework.md](framework.md) — UI skins rendering the same ontology
+- [the-stack.md](the-stack.md) — Technical layers: Move, TypeScript, TypeDB
+- [typedb.md](typedb.md) — Persistence layer for the ontology

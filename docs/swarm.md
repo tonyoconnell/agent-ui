@@ -4,6 +4,27 @@ Three levels. Same primitives. ONE ontology.
 
 ---
 
+## The Primitive
+
+```typescript
+type Signal = {
+  receiver: string
+  data?: unknown
+}
+```
+
+## Biological Grounding
+
+From Deborah Gordon's research on ant colonies:
+
+- **No ant sends messages** — they DROP signals (pheromones)
+- **Others FOLLOW the weighted paths** — sensing, not receiving
+- **Return rate activates** — more foraging (positive feedback)
+- **Absence of signal IS a signal** — paths fade without reinforcement
+- **Intelligence lives in paths, not nodes** — the network learns
+
+---
+
 ## The ONE Foundation
 
 Swarm is `world()` with multiple actors. The 6 dimensions apply:
@@ -14,7 +35,7 @@ SWARM = world()
 ├── Groups    → Swarm hierarchy (swarm of swarms)
 ├── Actors    → Agents (units with tasks)
 ├── Things    → Resources, tasks, outputs
-├── Flows     → Pheromone trails (connections)
+├── Paths     → Pheromone trails (weighted paths)
 ├── Events    → Signal history
 └── Knowledge → Crystallized patterns (highways)
 ```
@@ -27,13 +48,13 @@ A unit with tasks:
 
 ```typescript
 const agent = unit('translator')
-  .on('translate', async ({ text, to }, emit, ctx) => {
+  .on('translate', async ({ text, to }, drop, ctx) => {
     const result = await model.translate(text, to)
-    emit({ receiver: ctx.from, payload: { result } })
+    drop({ receiver: ctx.from, data: { result } })
   })
-  .on('detect', async ({ text }, emit, ctx) => {
+  .on('detect', async ({ text }, drop, ctx) => {
     const lang = await model.detect(text)
-    emit({ receiver: ctx.from, payload: { lang } })
+    drop({ receiver: ctx.from, data: { lang } })
   })
 ```
 
@@ -49,15 +70,15 @@ const agent = unit('translator')
 │     translate(text, to) → result     │
 │     detect(text) → lang              │
 │                                      │
-│   receives: Envelope                 │
-│   emits: Envelope                    │
+│   receives: Signal                   │
+│   emits: Signal                      │
 │                                      │
 └─────────────────────────────────────┘
 ```
 
 ## Swarm
 
-A `world()` of agents working together. Groups organize. Flows connect. Actors act.
+A `world()` of agents working together. Groups organize. Paths connect. Actors act.
 
 ```typescript
 import { world } from '@/engine/one'
@@ -70,25 +91,25 @@ swarm.group('execution', 'team')
 
 // Actors are agents
 const scout = swarm.actor('scout', 'explorer', { group: 'research' })
-  .on('explore', async ({ url }, emit) => {
+  .on('explore', async ({ url }, drop) => {
     const data = await fetch(url).then(r => r.json())
-    emit({ receiver: 'analyst', payload: { data } })
+    drop({ receiver: 'analyst', data: { data } })
   })
 
 const analyst = swarm.actor('analyst', 'analyzer', { group: 'research' })
-  .on('default', async ({ data }, emit) => {
+  .on('default', async ({ data }, drop) => {
     const insight = analyze(data)
-    emit({ receiver: 'writer', payload: { insight } })
+    drop({ receiver: 'writer', data: { insight } })
   })
 
 const writer = swarm.actor('writer', 'reporter', { group: 'execution' })
-  .on('default', async ({ insight }, emit, ctx) => {
+  .on('default', async ({ insight }, drop, ctx) => {
     const report = format(insight)
-    emit({ receiver: ctx.from, payload: { report } })
+    drop({ receiver: ctx.from, data: { report } })
   })
 
-// Kick off - signal flows through the world
-swarm.send({ receiver: 'scout:explore', payload: { url } }, 'user')
+// Kick off - signal traverses through the world
+swarm.signal({ receiver: 'scout:explore', data: { url } }, 'user')
 ```
 
 **Swarm = world() with Actors**
@@ -108,8 +129,8 @@ swarm.send({ receiver: 'scout:explore', payload: { url } }, 'user')
 │   │                               │                             │
 │   └───────────────────────────────┴─────────────────────────────│
 │                                                                  │
-│   FLOWS (connections):                                           │
-│     scout→analyst: 12.5   (open flow - proven)                  │
+│   PATHS (weighted):                                              │
+│     scout→analyst: 12.5   (open path - proven)                  │
 │     analyst→writer: 8.3   (strengthening)                       │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -117,26 +138,26 @@ swarm.send({ receiver: 'scout:explore', payload: { url } }, 'user')
 
 ## Coordination
 
-Flows emerge from outcomes. This is the Connections dimension in action:
+Paths emerge from outcomes. This is the Paths dimension in action:
 
 ```typescript
-// Success: strengthen the flow
-swarm.flow('scout', 'analyst').strengthen(1)
+// Success: drop weight on the path (leave pheromone)
+swarm.path('scout', 'analyst').drop(1)
 
-// Failure: resist the flow
-swarm.flow('scout', 'analyst').resist(1)
+// Failure: resist the path
+swarm.path('scout', 'analyst').resist(1)
 
-// Time passes: decay all
+// Time passes: fade all paths (pheromone evaporates)
 swarm.fade(0.1)
 
-// Query open flows (proven paths)
-swarm.open(10)  // → strongest flows
+// Follow the strongest paths (proven routes)
+swarm.open(10)  // → strongest paths
 
-// Query blocked flows (paths to avoid)
-swarm.blocked() // → flows with high resistance
+// Sense blocked paths (routes to avoid)
+swarm.blocked() // → paths with high resistance
 ```
 
-**Coordination = Emergent Flows**
+**Coordination = Emergent Paths**
 
 ```
                     BEFORE (random routing)
@@ -152,18 +173,18 @@ swarm.blocked() // → flows with high resistance
          ?───────────────?───────────────?
 
 
-                    AFTER (open flows emerge)
+                    AFTER (open paths emerge)
                     
     ┌─────────┐     ┌─────────┐     ┌─────────┐
-    │ Scout A │═════│Analyst 1│═════│Writer X │  ← OPEN FLOW
+    │ Scout A │═════│Analyst 1│═════│Writer X │  ← OPEN PATH
     └────┬────┘     └────┬────┘     └────┬────┘
          │               │               │
     ┌────┴────┐     ┌────┴────┐     ┌────┴────┐
-    │ Scout B │─ ─ ─│Analyst 2│     │Writer Y │  ← closing
+    │ Scout B │─ ─ ─│Analyst 2│     │Writer Y │  ← fading
     └─────────┘     └─────────┘     └─────────┘
     
-    ═══  open (proven flow, high strength)
-    ─ ─  closing (fading, unused)
+    ═══  open (proven path, high weight)
+    ─ ─  fading (unused, decaying)
     ░░░  blocked (high resistance)
 ```
 
@@ -174,7 +195,7 @@ AGENT (actor)
 │
 │  .on(task, handler)     Define capability
 │  .then(task, template)  Define continuation
-│  emit(envelope)         Send signal
+│  drop(signal)           Drop signal (leave pheromone)
 │
 │  ONE: Actor dimension - who can act
 │
@@ -185,47 +206,50 @@ SWARM (world)
 │  .group(id, type)       Create hierarchy
 │  .actor(id, type)       Create agent
 │  .thing(id, type)       Create resource
-│  .flow(from, to)        Define connection
-│  .send(envelope)        Route signal
-│  .fade(rate)            Decay all flows
-│  .open(n)               Get proven flows
-│  .blocked()             Get resisted flows
+│  .path(from, to)        Define path
+│  .signal(signal)        Signal through the colony
+│  .drop(path, weight)    Leave weight on path
+│  .follow(n)             Follow strongest paths
+│  .sense(path)           Perceive path weight
+│  .fade(rate)            Decay all paths
+│  .open(n)               Get proven paths
+│  .blocked()             Get resisted paths
 │
-│  ONE: World = Groups + Actors + Things + Flows
+│  ONE: World = Groups + Actors + Things + Paths
 │
 ├──────────────────────────────────────────────
 │
 COORDINATION (emergent)
 │
-│  open flows form        From repeated success
-│  blocked flows clear    From repeated failure
+│  open paths form        From repeated success (drop)
+│  blocked paths clear    From repeated failure
 │  specialization emerges Actors cluster by task
 │  resilience emerges     Alternatives ready
 │
 │  ONE: Events → Knowledge crystallization
 ```
 
-## Coordination Patterns as Flow Patterns
+## Coordination Patterns as Path Patterns
 
-The 6 coordination patterns map to flow patterns in the ONE ontology:
+The 6 coordination patterns map to path patterns in the ONE ontology:
 
-| Pattern | Flow Signature | Biological Analog |
-|---------|----------------|-------------------|
-| Broadcast | 1 → N (fan-out) | Alarm pheromone |
-| Gather | N → 1 (fan-in) | Food collection |
-| Pipeline | A → B → C (chain) | Foraging trail |
-| Compete | N → ? (race) | Recruitment |
-| Consensus | N → tally (vote) | Quorum sensing |
-| Stigmergy | A → env ← B (indirect) | Trail laying |
+| Pattern | Path Signature | Biological Analog | Verb |
+|---------|----------------|-------------------|------|
+| Broadcast | 1 → N (fan-out) | Alarm pheromone | signal |
+| Gather | N → 1 (fan-in) | Food collection | drop |
+| Pipeline | A → B → C (chain) | Foraging trail | follow |
+| Compete | N → ? (race) | Recruitment | sense |
+| Consensus | N → tally (vote) | Quorum sensing | sense |
+| Stigmergy | A → env ← B (indirect) | Trail laying | drop + sense |
 
 ---
 
-### 1. Broadcast (one to many) — Fan-out Flow
+### 1. Broadcast (one to many) — Fan-out Path
 
 ```typescript
-agent.on('broadcast', ({ message }, emit) => {
+agent.on('broadcast', ({ message }, drop) => {
   swarm.list().forEach(id => 
-    emit({ receiver: id, payload: { message } })
+    drop({ receiver: id, data: { message } })
   )
 })
 ```
@@ -242,14 +266,14 @@ agent.on('broadcast', ({ message }, emit) => {
 └───────┘ └───────┘ └───────┘
 ```
 
-### 2. Gather (many to one) — Fan-in Flow
+### 2. Gather (many to one) — Fan-in Path
 
 ```typescript
 const collector = swarm.spawn('collector')
-  .on('default', ({ data, from }, emit, ctx) => {
+  .on('default', ({ data, from }, drop, ctx) => {
     results[from] = data
     if (Object.keys(results).length === expected) {
-      emit({ receiver: ctx.from, payload: { results } })
+      drop({ receiver: ctx.from, data: { results } })
     }
   })
 ```
@@ -266,16 +290,16 @@ const collector = swarm.spawn('collector')
         └───────────┘
 ```
 
-### 3. Pipeline (chain) — Sequential Flow
+### 3. Pipeline (chain) — Sequential Path
 
 ```typescript
 scout
   .on('explore', handler)
-  .then('explore', r => ({ receiver: 'analyst', payload: r }))
+  .then('explore', r => ({ receiver: 'analyst', data: r }))
 
 analyst
   .on('default', handler)
-  .then('default', r => ({ receiver: 'writer', payload: r }))
+  .then('default', r => ({ receiver: 'writer', data: r }))
 ```
 
 ```
@@ -284,24 +308,24 @@ analyst
 └───────┘    └──────────┘    └────────┘
 ```
 
-### 4. Compete (race) — Racing Flow
+### 4. Compete (race) — Racing Path
 
 ```typescript
-agent.on('race', async ({ task }, emit, ctx) => {
+agent.on('race', async ({ task }, drop, ctx) => {
   const candidates = swarm.highways(3)
     .map(h => h.edge.split('→')[1])
   
-  // Send to all, first response wins
+  // Signal to all, first response wins
   candidates.forEach(id =>
-    emit({ receiver: id, payload: { task, replyTo: ctx.self } })
+    drop({ receiver: id, data: { task, replyTo: ctx.self } })
   )
 })
 
-agent.on('result', ({ data, from }, emit, ctx) => {
+agent.on('result', ({ data, from }, drop, ctx) => {
   if (!winner) {
     winner = from
-    swarm.mark(`race→${from}`, 1)  // Winner gets stronger
-    emit({ receiver: ctx.from, payload: { data } })
+    swarm.drop(`race→${from}`, 1)  // Winner path gets weight
+    drop({ receiver: ctx.from, data: { data } })
   }
 })
 ```
@@ -319,20 +343,20 @@ agent.on('result', ({ data, from }, emit, ctx) => {
               (compete)
 ```
 
-### 5. Consensus (vote) — Weighted Flow
+### 5. Consensus (vote) — Weighted Path
 
 ```typescript
-agent.on('vote', async ({ question }, emit) => {
+agent.on('vote', async ({ question }, drop) => {
   const voters = swarm.highways(5).map(h => h.edge.split('→')[1])
   
   voters.forEach(id =>
-    emit({ receiver: id, payload: { question, replyTo: 'tally' } })
+    drop({ receiver: id, data: { question, replyTo: 'tally' } })
   )
 })
 
 tally.on('default', ({ answer, from }) => {
-  votes[answer] = (votes[answer] || 0) + swarm.smell(`vote→${from}`)
-  // Weighted by trail strength
+  votes[answer] = (votes[answer] || 0) + swarm.sense(`vote→${from}`)
+  // Weighted by path weight
 })
 ```
 
@@ -349,41 +373,42 @@ tally.on('default', ({ answer, from }) => {
           (weighted votes)
 ```
 
-### 6. Stigmergy (indirect coordination) — Environmental Flow
+### 6. Stigmergy (indirect coordination) — Environmental Path
 
 ```typescript
 // No direct communication
-// Agents just modify the environment (trails)
+// Agents just modify the environment (paths)
 
-scout.on('found', ({ resource }, emit) => {
-  // Don't tell anyone directly
-  // Just mark the trail
-  swarm.mark(`resource:${resource.type}→${resource.location}`, resource.quality)
+scout.on('found', ({ resource }, drop) => {
+  // Don't signal anyone directly
+  // Just drop weight on the path (leave pheromone)
+  swarm.drop(`resource:${resource.type}→${resource.location}`, resource.quality)
 })
 
-harvester.on('seek', ({ type }, emit) => {
-  // Follow strongest trail
-  const trail = swarm.highways(10)
+harvester.on('seek', ({ type }, drop) => {
+  // Sense and follow the strongest path
+  const path = swarm.highways(10)
     .find(h => h.edge.startsWith(`resource:${type}→`))
   
-  if (trail) {
-    const location = trail.edge.split('→')[1]
-    emit({ receiver: 'self:harvest', payload: { location } })
+  if (path) {
+    const location = path.edge.split('→')[1]
+    drop({ receiver: 'self:harvest', data: { location } })
   }
 })
 ```
 
 ```
 ┌───────┐                          ┌───────────┐
-│ Scout │─── mark trail ──────────→│           │
-└───────┘                          │  TRAILS   │
+│ Scout │─── drop on path ────────→│           │
+└───────┘                          │   PATHS   │
                                    │  (scent)  │
 ┌───────────┐                      │           │
-│ Harvester │←── follow trail ─────│           │
+│ Harvester │←── follow path ──────│           │
 └───────────┘                      └───────────┘
 
-No messages between Scout and Harvester.
+No signals between Scout and Harvester.
 Coordination through environment.
+DROP to leave weight. FOLLOW to traverse. SENSE to perceive.
 ```
 
 ## Swarm of Swarms (Groups)
@@ -415,12 +440,12 @@ verse.actor('planner-1', 'agent', { group: 'planners' })
 verse.actor('builder-1', 'agent', { group: 'builders' })
   .on('build', async ({ plan }, emit) => { ... })
 
-// Flows cross group boundaries
-verse.flow('scholar-1', 'critic-1').strengthen(1)   // Within research
-verse.flow('critic-1', 'planner-1').strengthen(1)   // Research → Execution
+// Paths cross group boundaries
+verse.path('scholar-1', 'critic-1').drop(1)   // Within research
+verse.path('critic-1', 'planner-1').drop(1)   // Research → Execution
 
-// Query flows scoped to a group
-verse.open(10, { group: 'research' })  // Only research flows
+// Query paths scoped to a group
+verse.open(10, { group: 'research' })  // Only research paths
 verse.proven({ group: 'execution' })   // Only execution actors
 ```
 
@@ -443,7 +468,7 @@ verse.proven({ group: 'execution' })   // Only execution actors
 │   │                     │       │                     │        │
 │   └─────────────────────┘       └─────────────────────┘        │
 │                                                                 │
-│   FLOWS:                                                        │
+│   PATHS:                                                        │
 │     research:scholar-1→critic-1: 12.5                          │
 │     critic-1→planner-1: 34.5  (cross-group highway)            │
 │     execution:planner-1→builder-1: 8.3                         │
@@ -471,10 +496,11 @@ Food, nest material                 Things                     THINGS
   - resources found                   - tasks, tokens
   - artifacts created                 - outputs produced
 
-Pheromone trails                    Flows                      CONNECTIONS
-  - deposited on success              - strengthen() on success
+Pheromone trails                    Paths                      PATHS
+  - deposited on success              - drop() on success
   - evaporate over time               - fade() over time
-  - alarm/attract types               - resist() on failure
+  - others follow them                - follow() to traverse
+  - sensed by nearby ants             - sense() to perceive
   
 Foraging activity                   Signal history             EVENTS
   - who went where                    - what flowed when
@@ -515,9 +541,16 @@ SWARM is world() with multiple actors.
 Groups organize the hierarchy (colonies, teams, swarms).
 Actors act (agents with simple handlers).
 Things exist (tasks, tokens, resources).
-Flows connect (pheromone trails with strength/resistance).
+Paths connect (pheromone trails with strength/resistance).
 Events accumulate (signal history).
 Knowledge crystallizes (proven patterns).
+
+THE VERBS:
+  signal — move through the colony
+  drop — leave weight on a path
+  follow — traverse weighted path
+  sense — perceive environment
+  fade — decay over time
 
 Same 6 dimensions.
 Whether ants or agents.
@@ -526,4 +559,15 @@ The ontology is ONE.
 
 ---
 
-*Actors act. Flows connect. Worlds learn.*
+*Actors signal. Paths connect. Colonies learn.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Flow patterns: fan-out, fan-in, pipeline, compete, stigmergy
+- [agents.md](agents.md) — Individual unit anatomy
+- [ants.md](ants.md) — Biological colony mechanisms
+- [emergence.md](emergence.md) — Five forces driving swarm intelligence
+- [one-ontology.md](one-ontology.md) — Six dimensions governing all scales
+- [PLAN-emerge.md](PLAN-emerge.md) — Implementation status

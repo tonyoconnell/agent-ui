@@ -1,13 +1,36 @@
 # ONE
 
-6 dimensions. 220 lines. The substrate for intelligence.
+**Signal. Drop. Follow. Fade. Highway.**
 
-## The Vision
+The universal substrate for emergence. 100 million years proven.
+
+---
+
+## The Primitive
+
+```typescript
+type Signal = {
+  receiver: string      // where it's going
+  data?: unknown     // what it carries
+}
+```
+
+Two fields. Everything else emerges.
+
+---
+
+## The Pattern
 
 ```
-Reality doesn't change. Technology does.
-Model reality once. Map everything to it.
+Ants:      chemical signal  →  pheromone drop  →  foraging highway
+Neurons:   electrical signal →  synapse weight  →  memory trace
+Markets:   price signal      →  volume          →  trend
+Agents:    digital signal    →  success weight  →  proven route
 ```
+
+Same pattern. Same substrate. Same emergence.
+
+---
 
 ## The 6 Dimensions
 
@@ -16,78 +39,84 @@ Model reality once. Map everything to it.
 | 1 | **Groups** | Containers, scope, hierarchy |
 | 2 | **Actors** | Who can act (humans, agents, LLMs) |
 | 3 | **Things** | What exists (tasks, tokens, services) |
-| 4 | **Flows** | Relationships with strength/resistance |
+| 4 | **Flows** | Paths with weight (signals dropped) |
 | 5 | **Events** | What happened |
-| 6 | **Knowledge** | Crystallized patterns |
+| 6 | **Knowledge** | Highways (crystallized paths) |
+
+---
 
 ## The Interface
 
 ```typescript
-import { world } from '@fetchai/world'
+import { world } from '@/engine'
 
 const w = world()
 
-w.group('acme', 'org')                    // 1. Groups
-w.actor('agent-1', 'agent')               // 2. Actors
-w.thing('task-1', 'task')                 // 3. Things
-w.flow('user', 'agent-1').strengthen(1)   // 4. Flows
-// Events automatic                        // 5. Events
-w.crystallize()                           // 6. Knowledge
+// Actors receive signals
+w.actor('translator', 'agent')
+w.actor('analyst', 'agent')
 
-w.open(10)           // Strongest flows
-w.blocked()          // Flows to avoid
-w.best('agent')      // Best actor for type
-w.proven()           // Proven actors
-w.confidence('task') // How well we know
+// Signals move through the world
+w.signal({ receiver: 'translator:translate', data: { text: 'hello' } })
+
+// Paths gain weight (drop happens on success)
+// w.drop('user', 'translator', 1)  // automatic
+
+// Query what emerged
+w.traces()           // all paths with weight
+w.highways()         // paths with high weight
+w.fading()           // paths losing weight
+w.best('agent')      // highest-weight actor
+w.proven()           // actors with consistent weight
+
+// Time passes
+w.fade(0.05)         // decay all weights 5%
 ```
+
+---
 
 ## Documentation
 
-### Core Concepts
+### Core
 
 | Doc | What it covers |
 |-----|----------------|
-| [one-ontology.md](one-ontology.md) | The 6 dimensions, schema, why it works |
-| [metaphors.md](metaphors.md) | ONE as meta-metaphor (ant, brain, team, etc.) |
-| [world.md](world.md) | World metaphor — ants, humans, agents |
+| [signal.md](signal.md) | The universal primitive |
+| [one-ontology.md](one-ontology.md) | The 6 dimensions |
+| [metaphors.md](metaphors.md) | Ant, brain, team, market skins |
 
 ### Implementation
 
 | Doc | What it covers |
 |-----|----------------|
 | [tutorial.md](tutorial.md) | 5-minute quickstart |
-| [agents.md](agents.md) | Building agents (Actors) |
-| [swarm.md](swarm.md) | Swarms and coordination patterns |
 | [the-stack.md](the-stack.md) | All modules explained |
-| [framework.md](framework.md) | TypeQL to JSON to UI with metaphor skins |
+| [agents.md](agents.md) | Building agents |
+| [swarm.md](swarm.md) | Swarm coordination |
 
-### Integration
+### Strategy
 
 | Doc | What it covers |
 |-----|----------------|
+| [strategy.md](strategy.md) | The ant play |
+| [one-protocol.md](one-protocol.md) | Protocol layer |
 | [integration.md](integration.md) | How everything connects |
-| [agent-launch.md](agent-launch.md) | Agentverse + ONE |
-| [asi-world.md](asi-world.md) | Agent economy as ONE world |
 
-### AI/ML
+### Commerce
 
 | Doc | What it covers |
 |-----|----------------|
-| [substrate-learning.md](substrate-learning.md) | How trails train models |
-| [ai-training.md](ai-training.md) | Training and inference with ONE |
+| [agent-launch.md](agent-launch.md) | Agentverse + x402 |
+| [asi-world.md](asi-world.md) | Agent economy |
 
-### Reference
-
-| Doc | What it covers |
-|-----|----------------|
-| [ontology.md](ontology.md) | TypeDB schema details |
+---
 
 ## The Code
 
 ```
 src/engine/
-├── substrate.ts   (70)   # Unit + Colony + Envelope
-├── one.ts         (70)   # 6-dimension world interface
+├── substrate.ts   (70)   # Signal + Colony
+├── one.ts         (70)   # 6-dimension world
 ├── persist.ts     (40)   # TypeDB persistence
 ├── llm.ts         (30)   # Models as actors
 ├── agentverse.ts  (70)   # 2M agents as world
@@ -95,71 +124,97 @@ src/engine/
 └── index.ts       (20)   # Exports
 
 src/schema/
-├── one.tql       (150)   # 6-dimension schema
-└── unified.tql   (100)   # Production schema
+├── substrate.tql (280)   # Integrated: 6 dimensions + 6 lessons
+├── one.tql       (150)   # Pure 6-dimension ontology
+├── unified.tql   (100)   # Legacy production schema
+├── sui.tql       (250)   # Move contracts as TypeQL
+└── metaphors.tql (150)   # Universal metaphor functions
 
-~400 lines total
-```
-
-## The Projects
-
-| Project | Role |
-|---------|------|
-| `envelopes` | Runtime (this repo) |
-| `ants-at-work` | ONE ontology source |
-| `agent-launch-toolkit` | Agent economy application |
-
-## Quick Start
-
-```typescript
-import { world } from '@fetchai/world'
-
-// Create a world
-const w = world()
-
-// Add actors
-w.actor('translator', 'agent')
-w.actor('coder', 'agent')
-
-// Interactions create flows
-async function handle(user: string, task: string, agent: string) {
-  try {
-    const result = await execute(agent, task)
-    w.flow(user, agent).strengthen(1)  // Success
-    return result
-  } catch (e) {
-    w.flow(user, agent).resist(1)      // Failure
-    throw e
-  }
-}
-
-// Discovery uses flows
-function discover(task: string) {
-  return w.best(classify(task))
-}
-
-// Best agents emerge automatically
-```
-
-## The Truth
-
-```
-ONE models reality:
-  Groups contain.
-  Actors act.
-  Things exist.
-  Flows connect.
-  Events happen.
-  Knowledge crystallizes.
-
-Whether ants finding food,
-humans building companies,
-or agents completing tasks.
-
-The pattern is universal.
-The ontology is ONE.
+packages/typedb-inference-patterns/
+├── standalone/   (6 files)  # Individual lesson TQL files
+├── runtime/colony.ts (358)  # 6 lessons as substrate handlers
+├── OPERATIONS.md            # Write operations reference
+├── ECONOMICS.md             # Token model
+├── SWARMS.md                # Dynamic swarm formation
+├── LOOPS.md                 # Deterministic + probabilistic
+└── LIFECYCLE.md             # Entity state machines
 ```
 
 ---
 
-*6 dimensions. 220 lines. ONE.*
+## Quick Start
+
+```typescript
+import { world } from '@/engine'
+
+const w = world()
+
+// Add actors
+w.actor('translator', 'agent')
+  .on('translate', ({ text, to }) => translate(text, to))
+
+w.actor('analyst', 'agent')
+  .on('analyze', ({ data }) => analyze(data))
+
+// Signal moves, path gains weight
+w.signal({ receiver: 'translator:translate', data: { text: 'hello', to: 'es' } })
+// Success → drop('user', 'translator', 1)
+
+// Best actors emerge
+const best = w.best('agent')  // highest weight
+const proven = w.proven()      // consistent performers
+const highways = w.highways()  // strongest paths
+```
+
+---
+
+## The Truth
+
+```
+A signal drops.
+The path remembers.
+Another signal follows.
+The trail deepens.
+A highway emerges.
+
+No one decided.
+The world learned.
+```
+
+Whether ants finding food, neurons forming memories, or agents routing tasks — the pattern is universal.
+
+---
+
+## Commerce
+
+Signals are free. Services cost money.
+
+```
+Signal moves     → free
+Service executes → x402 payment
+Data returns     → included
+Speed matters    → pay for highway
+```
+
+**Package** = Signal + payment terms:
+
+```typescript
+type Package = Signal & {
+  terms?: { price, currency, timeout, priority }
+}
+```
+
+---
+
+*Signal. Drop. Trace. Highway. Emergence.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Complete flow guide: signals, actors, paths, knowledge
+- [signal.md](signal.md) — The two-field primitive in depth
+- [tutorial.md](tutorial.md) — Quick-start for engineers
+- [one-ontology.md](one-ontology.md) — Six dimensions explained
+- [the-stack.md](the-stack.md) — Technical layers overview
+- [Plan.md](Plan.md) — Strategic vision and architecture

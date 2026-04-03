@@ -8,7 +8,7 @@ TypeDB stores reality. TypeQL queries it. JSON renders it. The UI skins it.
 ┌─────────────────────────────────────────────────────────────────┐
 │                         TypeDB                                   │
 │  one.tql / metaphors.tql — stores the 6 dimensions              │
-│  Actors, Groups, Flows, Things, Events, Knowledge               │
+│  Groups, Actors, Things, Paths, Events, Knowledge               │
 └────────────────────────────┬────────────────────────────────────┘
                              │ TypeQL
                              ▼
@@ -21,7 +21,7 @@ TypeDB stores reality. TypeQL queries it. JSON renders it. The UI skins it.
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                      UI Components                               │
-│  ColonyEditor / ColonyGraph / EnvelopeFlowCanvas                │
+│  ColonyEditor / ColonyGraph / PathFlowCanvas                    │
 │  ReactFlow nodes, edges, animations                              │
 └────────────────────────────┬────────────────────────────────────┘
                              │ Metaphor
@@ -41,11 +41,11 @@ TypeDB stores reality. TypeQL queries it. JSON renders it. The UI skins it.
 # Get the world for UI rendering
 match
   $a isa actor, has actor-id $id, has actor-name $name, has actor-status $status;
-  $c (source: $src, target: $tgt) isa connection,
-      has weight $w, has alarm $al, has connection-status $cs;
+  $p (source: $src, target: $tgt) isa path,
+      has weight $w, has alarm $al, has path-status $ps;
   $src has actor-id $src-id;
   $tgt has actor-id $tgt-id;
-select $id, $name, $status, $src-id, $tgt-id, $w, $al, $cs;
+select $id, $name, $status, $src-id, $tgt-id, $w, $al, $ps;
 ```
 
 ### JSON Output
@@ -57,10 +57,10 @@ select $id, $name, $status, $src-id, $tgt-id, $w, $al, $cs;
     { "id": "analyst", "name": "Analyst", "status": "active", "kind": "agent" },
     { "id": "trader", "name": "Trader", "status": "proven", "kind": "agent" }
   ],
-  "flows": [
-    { "from": "scout", "to": "analyst", "strength": 75, "resistance": 2, "status": "open" },
-    { "from": "analyst", "to": "trader", "strength": 60, "resistance": 5, "status": "open" },
-    { "from": "scout", "to": "trader", "strength": 8, "resistance": 25, "status": "blocked" }
+  "paths": [
+    { "from": "scout", "to": "analyst", "weight": 75, "status": "open" },
+    { "from": "analyst", "to": "trader", "weight": 60, "status": "open" },
+    { "from": "scout", "to": "trader", "weight": 8, "status": "fading" }
   ],
   "patterns": [
     { "id": "scout-analyst-highway", "confidence": 0.95, "count": 150 }
@@ -82,14 +82,15 @@ interface MetaphorSkin {
   // Entity labels
   actor: string       // "ant" | "neuron" | "agent" | "mailbox" | "pool" | "receiver"
   group: string       // "colony" | "network" | "team" | "office" | "watershed" | "network"
-  flow: string        // "trail" | "synapse" | "workflow" | "route" | "channel" | "frequency"
-  carrier: string     // "scent" | "impulse" | "task" | "envelope" | "drop" | "signal"
+  path: string        // "trail" | "synapse" | "workflow" | "route" | "channel" | "frequency"
+  carrier: string     // "scent" | "impulse" | "task" | "letter" | "drop" | "signal"
   
-  // Action labels
-  send: string        // "forage" | "fire" | "delegate" | "deliver" | "flow" | "transmit"
-  strengthen: string  // "deposit" | "potentiate" | "commend" | "stamp" | "carve" | "boost"
-  weaken: string      // "alarm" | "inhibit" | "flag" | "return" | "dam" | "jam"
-  decay: string       // "evaporate" | "decay" | "forget" | "archive" | "dry" | "attenuate"
+  // Action labels (THE VERBS)
+  signal: string      // "forage" | "fire" | "delegate" | "deliver" | "flow" | "transmit"
+  drop: string        // "deposit" | "potentiate" | "commend" | "stamp" | "carve" | "boost"
+  fade: string        // "evaporate" | "decay" | "forget" | "archive" | "dry" | "attenuate"
+  follow: string      // "smell" | "sense" | "query" | "track" | "follow" | "scan"
+  sense: string       // "smell" | "sense" | "query" | "track" | "follow" | "scan"
   
   // Status labels
   open: string        // "trail" | "pathway" | "go-to" | "express" | "river" | "clear"
@@ -98,9 +99,9 @@ interface MetaphorSkin {
   // Colors
   colors: {
     primary: string       // Actor nodes
-    secondary: string     // Flows
-    success: string       // Open flows
-    danger: string        // Blocked flows
+    secondary: string     // Paths
+    success: string       // Open paths
+    danger: string        // Blocked paths
     background: string    // Canvas
   }
   
@@ -108,74 +109,74 @@ interface MetaphorSkin {
   icons: {
     actor: string
     group: string
-    flow: string
+    path: string
     entry: string
   }
 }
 ```
 
-### The 6 Skins
+### 6 Skins
 
 ```typescript
 const skins: Record<string, MetaphorSkin> = {
   ant: {
     id: 'ant',
     name: 'Ant Colony',
-    actor: 'ant', group: 'colony', flow: 'trail', carrier: 'scent',
-    send: 'forage', strengthen: 'deposit', weaken: 'alarm', decay: 'evaporate',
+    actor: 'ant', group: 'colony', path: 'trail', carrier: 'scent',
+    signal: 'forage', drop: 'deposit', fade: 'evaporate', follow: 'smell', sense: 'smell',
     open: 'trail', blocked: 'toxic',
     colors: { primary: '#84cc16', secondary: '#65a30d', success: '#22c55e', danger: '#ef4444', background: '#1a1a0a' },
-    icons: { actor: '🐜', group: '🏔️', flow: '~~~', entry: '🌱' }
+    icons: { actor: '🐜', group: '🏔️', path: '~~~', entry: '🌱' }
   },
   
   brain: {
     id: 'brain',
     name: 'Neural Network',
-    actor: 'neuron', group: 'network', flow: 'synapse', carrier: 'impulse',
-    send: 'fire', strengthen: 'potentiate', weaken: 'inhibit', decay: 'decay',
+    actor: 'neuron', group: 'network', path: 'synapse', carrier: 'impulse',
+    signal: 'fire', drop: 'potentiate', fade: 'decay', follow: 'sense', sense: 'sense',
     open: 'pathway', blocked: 'dead',
     colors: { primary: '#a855f7', secondary: '#9333ea', success: '#c084fc', danger: '#f87171', background: '#0f0a1a' },
-    icons: { actor: '🔮', group: '🧠', flow: '⚡', entry: '👁️' }
+    icons: { actor: '🔮', group: '🧠', path: '⚡', entry: '👁️' }
   },
   
   team: {
     id: 'team',
     name: 'Organization',
-    actor: 'agent', group: 'team', flow: 'workflow', carrier: 'task',
-    send: 'delegate', strengthen: 'commend', weaken: 'flag', decay: 'forget',
+    actor: 'agent', group: 'team', path: 'workflow', carrier: 'task',
+    signal: 'delegate', drop: 'commend', fade: 'forget', follow: 'query', sense: 'query',
     open: 'go-to', blocked: 'flagged',
     colors: { primary: '#3b82f6', secondary: '#2563eb', success: '#60a5fa', danger: '#f87171', background: '#0a0a14' },
-    icons: { actor: '👤', group: '🏢', flow: '→', entry: '📥' }
+    icons: { actor: '👤', group: '🏢', path: '→', entry: '📥' }
   },
   
   mail: {
     id: 'mail',
     name: 'Postal System',
-    actor: 'mailbox', group: 'office', flow: 'route', carrier: 'envelope',
-    send: 'deliver', strengthen: 'stamp', weaken: 'return', decay: 'archive',
+    actor: 'mailbox', group: 'office', path: 'route', carrier: 'letter',
+    signal: 'deliver', drop: 'stamp', fade: 'archive', follow: 'track', sense: 'track',
     open: 'express', blocked: 'returned',
     colors: { primary: '#f59e0b', secondary: '#d97706', success: '#fbbf24', danger: '#dc2626', background: '#14100a' },
-    icons: { actor: '📬', group: '🏤', flow: '✉️', entry: '📮' }
+    icons: { actor: '📬', group: '🏤', path: '✉️', entry: '📮' }
   },
   
   water: {
     id: 'water',
     name: 'Watershed',
-    actor: 'pool', group: 'watershed', flow: 'channel', carrier: 'drop',
-    send: 'flow', strengthen: 'carve', weaken: 'dam', decay: 'dry',
+    actor: 'pool', group: 'watershed', path: 'channel', carrier: 'drop',
+    signal: 'flow', drop: 'carve', fade: 'dry', follow: 'follow', sense: 'follow',
     open: 'river', blocked: 'dammed',
     colors: { primary: '#06b6d4', secondary: '#0891b2', success: '#22d3ee', danger: '#f87171', background: '#0a1014' },
-    icons: { actor: '💧', group: '🌊', flow: '〰️', entry: '🌧️' }
+    icons: { actor: '💧', group: '🌊', path: '〰️', entry: '🌧️' }
   },
   
   signal: {
     id: 'signal',
     name: 'Signal Network',
-    actor: 'receiver', group: 'network', flow: 'frequency', carrier: 'signal',
-    send: 'transmit', strengthen: 'boost', weaken: 'jam', decay: 'attenuate',
+    actor: 'receiver', group: 'network', path: 'frequency', carrier: 'signal',
+    signal: 'transmit', drop: 'boost', fade: 'attenuate', follow: 'scan', sense: 'scan',
     open: 'clear', blocked: 'jammed',
     colors: { primary: '#10b981', secondary: '#059669', success: '#34d399', danger: '#f87171', background: '#0a140f' },
-    icons: { actor: '📡', group: '🛰️', flow: '〜', entry: '📻' }
+    icons: { actor: '📡', group: '🛰️', path: '〜', entry: '📻' }
   }
 }
 ```
@@ -200,7 +201,7 @@ export function MetaphorProvider({ children }: { children: React.ReactNode }) {
   const [skinId, setSkinId] = useState('team')
   const skin = skins[skinId]
   
-  const t = (key: string) => skin[key as keyof MetaphorSkin] as string || key
+  const t = (key: string) => (skin as Record<string, unknown>)[key] as string || key
   
   return (
     <MetaphorContext.Provider value={{ skin, setSkin: setSkinId, t }}>
@@ -235,7 +236,7 @@ function ActorNode({ data }: NodeProps) {
       </div>
       
       <div className="flex items-center gap-1">
-        <span className="text-xs">IN {t('flow')}s:</span>
+        <span className="text-xs">IN {t('path')}s:</span>
         <Bar value={data.incoming} color={skin.colors.success} />
       </div>
     </div>
@@ -247,9 +248,9 @@ function ActorNode({ data }: NodeProps) {
 
 ```typescript
 // TrailEdge becomes skinnable
-function FlowEdge(props: EdgeProps) {
+function PathEdge(props: EdgeProps) {
   const { skin, t } = useMetaphor()
-  const { strength, resistance, status } = props.data
+  const { weight, status } = props.data
   
   const color = status === 'open' 
     ? skin.colors.success 
@@ -259,12 +260,12 @@ function FlowEdge(props: EdgeProps) {
   
   return (
     <g>
-      <BaseEdge {...props} style={{ stroke: color, strokeWidth: Math.max(1, strength / 10) }} />
+      <BaseEdge {...props} style={{ stroke: color, strokeWidth: Math.max(1, weight / 10) }} />
       <EdgeLabelRenderer>
         <div style={{ background: `${color}30` }}>
-          <span>{t('flow')}</span>
-          <span>{strength.toFixed(0)}</span>
-          {status === 'open' && <span>{skin.icons.flow} {t('open')}</span>}
+          <span>{t('path')}</span>
+          <span>{weight.toFixed(0)}</span>
+          {status === 'open' && <span>{skin.icons.path} {t('open')}</span>}
           {status === 'blocked' && <span>⛔ {t('blocked')}</span>}
         </div>
       </EdgeLabelRenderer>
@@ -323,46 +324,45 @@ match
 select $id, $name, $kind, $status;
 ```
 
-### flows.json
+### paths.json
 
 ```typeql
-# Generate flows for UI
-fun ui_flows($limit: integer) -> { connection }:
+# Generate paths for UI
+fun ui_paths($limit: integer) -> { path }:
   match
-    $c isa connection,
-        has connection-id $id,
+    $p isa path,
+        has path-id $id,
         has weight $w,
-        has alarm $al,
-        has connection-status $status;
-    $c (source: $src, target: $tgt);
+        has path-status $status;
+    $p (source: $src, target: $tgt);
     $src has actor-id $src-id;
     $tgt has actor-id $tgt-id;
   sort $w desc;
   limit $limit;
-  return { $c };
+  return { $p };
 
 # With source/target
 match
-  let $flows in ui_flows(50);
-  $flows (source: $src, target: $tgt),
-      has weight $w, has alarm $al, has connection-status $status;
+  let $paths in ui_paths(50);
+  $paths (source: $src, target: $tgt),
+      has weight $w, has path-status $status;
   $src has actor-id $src-id;
   $tgt has actor-id $tgt-id;
-select $src-id, $tgt-id, $w, $al, $status;
+select $src-id, $tgt-id, $w, $status;
 ```
 
 ### world.json (Complete)
 
 ```typeql
 # Complete world state for UI
-fun ui_world($group_id: string) -> { actor, connection, pattern }:
+fun ui_world($group_id: string) -> { actor, path, pattern }:
   match
     $g isa group, has group-id $group_id;
     (group: $g, member: $a) isa membership;
     $a isa actor;
-    $c (source: $src, target: $tgt) isa connection;
+    $p (source: $src, target: $tgt) isa path;
     { $src = $a; } or { $tgt = $a; };
-  return { $a, $c };
+  return { $a, $p };
 ```
 
 ## JSON Schema
@@ -378,17 +378,17 @@ interface WorldState {
   }
   
   actors: Actor[]
-  flows: Flow[]
+  paths: Path[]
   patterns: Pattern[]
   
   stats: {
     totalActors: number
     provenActors: number
     atRiskActors: number
-    openFlows: number
-    blockedFlows: number
-    closingFlows: number
-    totalStrength: number
+    openPaths: number
+    blockedPaths: number
+    fadingPaths: number
+    totalWeight: number
     avgConfidence: number
   }
 }
@@ -404,17 +404,15 @@ interface Actor {
   heatLevel?: number
 }
 
-interface Flow {
+interface Path {
   id: string
   from: string
   to: string
   fromTask?: string
   toTask?: string
-  strength: number
-  resistance: number
-  status: 'open' | 'closing' | 'blocked'
-  hits?: number
-  misses?: number
+  weight: number
+  status: 'open' | 'fading' | 'blocked'
+  traversals?: number
 }
 
 interface Pattern {
@@ -422,7 +420,7 @@ interface Pattern {
   name: string
   confidence: number
   discoveryCount: number
-  sourceFlow: string
+  sourcePath: string
 }
 ```
 
@@ -494,8 +492,8 @@ export function useWorld(groupId: string) {
 
 // Delta types
 interface WorldDelta {
-  type: 'actor-update' | 'flow-update' | 'pattern-created'
-  payload: Partial<Actor | Flow | Pattern>
+  type: 'actor-update' | 'path-update' | 'pattern-created'
+  data: Partial<Actor | Path | Pattern>
 }
 ```
 
@@ -504,7 +502,7 @@ interface WorldDelta {
 ```
 src/
 ├── engine/
-│   ├── substrate.ts      # 70 lines - unit + colony + envelope
+│   ├── substrate.ts      # 70 lines - unit + colony + paths
 │   ├── one.ts            # 70 lines - world() interface
 │   └── persist.ts        # 40 lines - TypeDB persistence
 │
@@ -524,17 +522,17 @@ src/
 │   ├── graph/
 │   │   ├── WorldGraph.tsx      # Main visualization
 │   │   ├── ActorNode.tsx       # Skinnable actor node
-│   │   ├── FlowEdge.tsx        # Skinnable flow edge
+│   │   ├── PathEdge.tsx        # Skinnable path edge
 │   │   └── EntryNode.tsx       # Skinnable entry point
 │   │
 │   ├── panels/
-│   │   ├── FlowPanel.tsx       # Open/blocked flows
+│   │   ├── PathPanel.tsx       # Open/blocked paths
 │   │   ├── ActorPanel.tsx      # Proven/at-risk actors
-│   │   └── PatternPanel.tsx    # Crystallized knowledge
+│   │   └── PatternPanel.tsx    # Crystallized knowledge (highways)
 │   │
 │   └── controls/
 │       ├── SkinSwitcher.tsx    # Metaphor selector
-│       ├── FlowEditor.tsx      # Adjust strength/resistance
+│       ├── PathEditor.tsx      # Adjust weight
 │       └── SignalInjector.tsx  # Test signals
 │
 └── skins/
@@ -554,7 +552,7 @@ src/
 | `one.tql` | Schema, inference rules | TypeDB |
 | `metaphors.tql` | Universal functions | Query layer |
 | `ui_world()` | JSON state | React components |
-| `WorldContext` | Actor/flow state | Nodes, edges |
+| `WorldContext` | Actor/path state | Nodes, edges |
 | `MetaphorContext` | Labels, colors | All components |
 | `skins/*.ts` | Skin definitions | SkinSwitcher |
 
@@ -565,7 +563,7 @@ User selects metaphor: "Ant Colony"
                 ↓
 UI applies skin: green tones, ant emoji, "trail" labels
                 ↓
-Same TypeDB data: actors, flows, patterns
+Same TypeDB data: actors, paths, patterns
                 ↓
 Same inference: open/blocked/proven/at-risk
                 ↓
@@ -574,12 +572,12 @@ Different experience: intuitive to domain expert
 
 Switch to "Neural Network":
 - Actors become neurons
-- Flows become synapses
+- Paths become synapses
 - Trails become pathways
 - Colors shift to purple
 - Same data, different lens
 
-## The Truth
+## Architecture
 
 ```
 TypeDB stores ONE ontology (universal)
@@ -595,3 +593,14 @@ The views are many.
 ---
 
 *One database. Many metaphors. Infinite clarity.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Data flows from substrate through layers to UI
+- [metaphors.md](metaphors.md) — Seven metaphor vocabularies the framework renders
+- [one-ontology.md](one-ontology.md) — Six dimensions the UI visualizes
+- [the-stack.md](the-stack.md) — Full technical stack: Move, TS, TypeDB, UI
+- [ontology.md](ontology.md) — TypeDB queries feeding the JSON layer
+- [ui-plan.md](ui-plan.md) — Vision for the living interface

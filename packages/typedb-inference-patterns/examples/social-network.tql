@@ -1,0 +1,175 @@
+# =============================================================================
+# DOMAIN EXAMPLE: Social Network / Community Intelligence
+# =============================================================================
+#
+# Shows inference patterns applied to social/community platforms:
+#   - User reputation tiers (trusted, standard, new, flagged)
+#   - Content quality scoring
+#   - Community health metrics
+#   - Influence detection
+#
+# Based on: classification.tql, contribution-tracking.tql
+# =============================================================================
+
+define
+
+# --- Entities ---
+
+entity community-member,
+    owns member-id @key,
+    owns display-name,
+    owns joined-at,
+    owns posts-count,
+    owns helpful-votes,
+    owns report-count,
+    owns reputation-score,         # computed from activity
+    owns reputation-tier,          # INFERRED: "trusted", "standard", "new", "flagged"
+    owns moderator-eligible,       # INFERRED: boolean
+    plays follows:follower,
+    plays follows:followed,
+    plays authored:author;
+
+entity content-item,
+    owns content-id @key,
+    owns content-type,             # "post", "comment", "answer"
+    owns content-text,
+    owns upvotes,
+    owns downvotes,
+    owns report-count,
+    owns created-at,
+    owns content-quality,          # INFERRED: "high", "standard", "low", "spam"
+    plays authored:content;
+
+# --- Attributes ---
+attribute member-id, value string;
+attribute display-name, value string;
+attribute joined-at, value datetime;
+attribute posts-count, value integer;
+attribute helpful-votes, value integer;
+attribute report-count, value integer;
+attribute reputation-score, value double;
+attribute reputation-tier, value string;
+attribute moderator-eligible, value boolean;
+
+attribute content-id, value string;
+attribute content-type, value string;
+attribute content-text, value string;
+attribute upvotes, value integer;
+attribute downvotes, value integer;
+attribute created-at, value datetime;
+attribute content-quality, value string;
+
+# --- Relations ---
+
+relation follows,
+    relates follower,
+    relates followed;
+
+relation authored,
+    relates author,
+    relates content;
+
+
+# =============================================================================
+# REPUTATION RULES
+# =============================================================================
+
+# Trusted: High reputation, many posts, few reports
+rule trusted-member:
+    when {
+        $m isa community-member,
+            has reputation-score $rs,
+            has posts-count $pc,
+            has report-count $rc;
+        $rs >= 100.0;
+        $pc >= 50;
+        $rc < 3;
+    } then {
+        $m has reputation-tier "trusted";
+    };
+
+# Flagged: Many reports relative to activity
+rule flagged-member:
+    when {
+        $m isa community-member,
+            has report-count $rc,
+            has posts-count $pc;
+        $rc >= 5;
+        $pc >= 1;
+    } then {
+        $m has reputation-tier "flagged";
+    };
+
+# Moderator eligible: Trusted + high helpful votes
+rule moderator-candidate:
+    when {
+        $m isa community-member,
+            has reputation-tier "trusted",
+            has helpful-votes $hv;
+        $hv >= 200;
+    } then {
+        $m has moderator-eligible true;
+    };
+
+# =============================================================================
+# CONTENT QUALITY RULES
+# =============================================================================
+
+# High quality: Many upvotes, few downvotes
+rule high-quality-content:
+    when {
+        $c isa content-item,
+            has upvotes $up,
+            has downvotes $down,
+            has report-count $rc;
+        $up >= 10;
+        $down < 3;
+        $rc == 0;
+    } then {
+        $c has content-quality "high";
+    };
+
+# Spam: Reported multiple times
+rule spam-content:
+    when {
+        $c isa content-item,
+            has report-count $rc;
+        $rc >= 3;
+    } then {
+        $c has content-quality "spam";
+    };
+
+
+# =============================================================================
+# QUERY FUNCTIONS
+# =============================================================================
+
+# Get trusted members
+fun trusted_members() -> { community-member }:
+    match $m isa community-member, has reputation-tier "trusted";
+    return { $m };
+
+# Get flagged members for review
+fun flagged_members() -> { community-member }:
+    match $m isa community-member, has reputation-tier "flagged";
+    return { $m };
+
+# Get moderator candidates
+fun moderator_candidates() -> { community-member }:
+    match $m isa community-member, has moderator-eligible true;
+    return { $m };
+
+# Get high-quality content
+fun quality_content() -> { content-item }:
+    match $c isa content-item, has content-quality "high";
+    return { $c };
+
+# Get spam content for removal
+fun spam_content() -> { content-item }:
+    match $c isa content-item, has content-quality "spam";
+    return { $c };
+
+# Count members by tier
+fun members_by_tier($tier: string) -> integer:
+    match $m isa community-member, has reputation-tier $tier;
+    return count($m);

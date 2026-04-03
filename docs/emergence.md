@@ -10,6 +10,10 @@ Consolidated from Update Plan.md and PLAN-emerge.md.
 
 Every organizational decision emerges from five forces converging:
 
+swtch 
+
+ what IS and ISN'T possible - **Deterministic Structure** (Move + TypeDB) — reorder the following sentence
+
 1. **Deterministic Structure** (Move + TypeDB) — what IS and ISN'T possible
 2. **Probabilistic Creativity** (LLM agents) — what COULD BE
 3. **Economic Incentives** (FET + SUI flows) — what gets REWARDED
@@ -145,3 +149,14 @@ Same sequence: nodes connect → trails form → clusters crystallize → cluste
 ---
 
 *70 lines. Real emergence. Inevitable scale.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — The complete flow from signal to crystallized knowledge
+- [swarm.md](swarm.md) — Multi-scale coordination patterns
+- [ants.md](ants.md) — Biological mechanisms enabling emergence
+- [PLAN-emerge.md](PLAN-emerge.md) — Implementation roadmap and status
+- [substrate-learning.md](substrate-learning.md) — Learning without gradients
+- [one-ontology.md](one-ontology.md) — Six dimensions as emergence scaffold

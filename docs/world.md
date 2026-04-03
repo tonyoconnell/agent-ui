@@ -1,6 +1,51 @@
 # World
 
-A living world. Ants, humans, agents. Same ontology.
+A living world. Ants, humans, agents. Same ontology. **Same words.**
+
+## The Vocabulary
+
+The same core words work across ALL worlds:
+
+| Concept | Word | Ants | Humans | Agents |
+|---------|------|------|--------|--------|
+| The thing | **Signal** | pheromone | message | request |
+| What it carries | **Data** | chemical info | content | payload |
+| Who acts | **Actor** | ant | person | agent |
+| Connection | **Path** | trail | relationship | route |
+| Accumulated | **Weight** | intensity | trust | score |
+| Strong path | **Highway** | foraging trail | friendship | proven |
+
+The primitive:
+
+```typescript
+type Signal = {
+  receiver: string
+  data?: unknown
+}
+```
+
+## The Verbs
+
+Five actions. Universal across all worlds.
+
+| Verb | Meaning | Ants | Humans | Agents |
+|------|---------|------|--------|--------|
+| **signal** | move through world | forage | communicate | request |
+| **drop** | leave weight on path | deposit scent | build trust | score |
+| **follow** | traverse weighted path | smell trail | follow relationship | query route |
+| **fade** | decay over time | evaporate | forget | expire |
+| **sense** | perceive environment | antennae | observe | monitor |
+
+```typescript
+// The five operations
+w.signal({ receiver: 'x', data })  // Move
+w.drop('a→b', 1)                   // Weight
+w.follow('a→b')                    // Query
+w.fade(0.1)                        // Decay
+w.sense('x')                       // Perceive
+```
+
+Whether ants finding food or agents completing tasks, the verbs are the same.
 
 ## The Metaphor
 
@@ -9,7 +54,7 @@ World      = the container of all
 Groups     = regions, colonies, nations
 Actors     = inhabitants (ants, humans, agents)
 Things     = resources, artifacts, creations
-Flows      = paths, relationships, trade
+Paths      = trails, relationships, routes
 Events     = history, what happened
 Knowledge  = collective memory, culture
 ```
@@ -34,9 +79,9 @@ antWorld.actor('queen-1', 'queen', { group: 'colony-alpha' })
 antWorld.thing('food-source-1', 'food')
 antWorld.thing('nest-entrance', 'structure')
 
-// Flows = pheromone trails
-antWorld.flow('scout-1', 'food-source-1').strengthen(1)  // Found food
-antWorld.flow('food-source-1', 'nest-entrance').strengthen(1)  // Path home
+// Paths = pheromone trails
+antWorld.path('scout-1', 'food-source-1').strengthen(1)  // Found food
+antWorld.path('food-source-1', 'nest-entrance').strengthen(1)  // Path home
 
 // Events = foraging activity
 // Knowledge = colony memory (proven trails)
@@ -60,9 +105,9 @@ humanWorld.actor('bob', 'customer')
 humanWorld.thing('product-1', 'product')
 humanWorld.thing('service-1', 'service')
 
-// Flows = relationships, transactions
-humanWorld.flow('bob', 'product-1').strengthen(1)  // Purchased
-humanWorld.flow('alice', 'bob').strengthen(1)  // Served
+// Paths = relationships, transactions
+humanWorld.path('bob', 'product-1').strengthen(1)  // Purchased
+humanWorld.path('alice', 'bob').strengthen(1)  // Served
 
 // Events = transactions, interactions
 // Knowledge = market patterns, culture
@@ -86,9 +131,9 @@ agentWorld.actor('claude', 'llm')
 agentWorld.thing('task-1', 'task')
 agentWorld.thing('token-abc', 'token')
 
-// Flows = interactions, delegations
-agentWorld.flow('user', 'translator-1').strengthen(1)  // Success
-agentWorld.flow('translator-1', 'coder-1').strengthen(1)  // Collaboration
+// Paths = interactions, delegations
+agentWorld.path('user', 'translator-1').strengthen(1)  // Success
+agentWorld.path('translator-1', 'coder-1').strengthen(1)  // Collaboration
 
 // Events = completions, trades
 // Knowledge = proven routes, expertise
@@ -114,7 +159,7 @@ agentWorld.flow('translator-1', 'coder-1').strengthen(1)  // Collaboration
 │   THINGS (Resources)                                         │
 │   └── What exists to be used, created, traded               │
 │                                                              │
-│   FLOWS (Paths)                                              │
+│   PATHS (Connections)                                        │
 │   └── How inhabitants connect, trade, communicate           │
 │                                                              │
 │   EVENTS (History)                                           │
@@ -156,8 +201,8 @@ verse.thing('task-translate', 'task')
 verse.thing('token-acme', 'token')
 
 // Paths form from interactions
-verse.flow('user', 'translator-1').strengthen(1)
-verse.flow('translator-1', 'coder-1').strengthen(1)
+verse.path('user', 'translator-1').strengthen(1)
+verse.path('translator-1', 'coder-1').strengthen(1)
 
 // Highways emerge (proven collaborations)
 // Toxic paths clear (failed agents)
@@ -204,8 +249,8 @@ const ethWorld = world()
 
 // Bridge between worlds
 function bridge(from: World, to: World, event: Event) {
-  // Flows in one world create flows in another
-  to.flow(event.from, event.to).strengthen(event.strength * 0.5)
+  // Paths in one world create paths in another
+  to.path(event.from, event.to).strengthen(event.strength * 0.5)
 }
 
 // Cross-world discovery
@@ -219,15 +264,29 @@ function universalBest(type: string, worlds: World[]) {
 
 ## The Vocabulary
 
+### Nouns (What exists)
+
 | Generic | Ant | Human | Agent |
 |---------|-----|-------|-------|
 | world | world | world | verse |
 | group | colony | nation/org | platform/swarm |
 | actor | ant | person | agent |
 | thing | food/nest | product | task/token |
-| flow | trail | relationship | interaction |
+| signal | pheromone | message | request |
+| data | chemical | content | payload |
+| path | trail | relationship | route |
 | event | forage | transaction | completion |
 | knowledge | colony memory | culture | patterns |
+
+### Verbs (What happens)
+
+| Generic | Ant | Human | Agent |
+|---------|-----|-------|-------|
+| signal | forage | communicate | request |
+| drop | deposit | build trust | score |
+| follow | smell | follow | query |
+| fade | evaporate | forget | expire |
+| sense | antennae | observe | monitor |
 
 ## API Design
 
@@ -244,7 +303,7 @@ const org = organization()    // Same thing, different name
 w.group()      // verse.platform()   / colony.nest()     / org.division()
 w.actor()      // verse.agent()      / colony.ant()      / org.employee()
 w.thing()      // verse.task()       / colony.food()     / org.product()
-w.flow()       // verse.interact()   / colony.trail()    / org.transact()
+w.path()       // verse.route()      / colony.trail()    / org.relationship()
 w.open()       // verse.discover()   / colony.highways() / org.bestPractices()
 ```
 
@@ -255,16 +314,23 @@ An ant colony is a world.
 A human organization is a world.
 An agent verse is a world.
 
-Same 6 dimensions.
+Same dimensions.
+Same verbs.
 Same emergence.
-Same learning.
 
 Groups contain.
 Actors act.
 Things exist.
-Flows connect.
+Signals flow.
+Paths connect.
 Events happen.
 Knowledge crystallizes.
+
+signal → move through world
+drop   → leave weight on path
+follow → traverse weighted path
+fade   → decay over time
+sense  → perceive environment
 
 Whether ants finding food,
 humans building companies,
@@ -276,4 +342,15 @@ The ontology is ONE.
 
 ---
 
-*ONE world. Many inhabitants. Same laws.*
+*ONE world. Many inhabitants. Same words. Same verbs.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How actors, signals, and paths flow through the world
+- [signal.md](signal.md) — The universal primitive that moves through every world
+- [one-ontology.md](one-ontology.md) — Six dimensions that structure any world
+- [asi-world.md](asi-world.md) — The agent economy mapped to this ontology
+- [metaphors.md](metaphors.md) — Same world, seven lenses
+- [integration.md](integration.md) — Connecting the world to real systems

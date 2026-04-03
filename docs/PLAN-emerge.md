@@ -7,7 +7,7 @@
 │                                                                             │
 │   70 lines.  Two fields.  Concurrency safe.  AI agents.                     │
 │                                                                             │
-│   { receiver, payload }                                                     │
+│   { receiver, data }                                                        │
 │                                                                             │
 │   Everything else emerges.                                                  │
 │                                                                             │
@@ -23,6 +23,21 @@ src/engine/substrate.ts    →  70 lines, the substrate
 src/engine/unit.ts         →  Legacy compatible
 src/engine/colony.ts       →  Legacy compatible
 ```
+
+## The Primitive
+
+```typescript
+type Signal = {
+  receiver: string
+  data?: unknown
+}
+```
+
+**The Verbs:**
+- **signal** - move through world
+- **drop** - add weight to path
+- **fade** - decay
+- **trace** - query
 
 ---
 
@@ -49,11 +64,11 @@ src/engine/colony.ts       →  Legacy compatible
 ### Substrate (70 lines)
 
 ```typescript
-{ receiver, payload }              // Two fields
-.on(name, (p, emit, ctx) => r)     // Define task
-.then(name, r => envelope)         // Define continuation
+{ receiver, data }                 // Two fields
+.on(name, (d, emit, ctx) => r)     // Define task
+.then(name, r => signal)           // Define continuation
 ctx: { from, self }                // Know identity
-emit(envelope)                     // Fan out
+emit(signal)                       // Fan out
 ```
 
 ### Colony Editor (Interactive)
@@ -142,33 +157,33 @@ The substrate supports all planned AI agent patterns:
 ```typescript
 // Request / Response
 .on('ask', ({ q }, emit, { self }) => {
-  emit({ receiver: 'oracle', payload: { q, replyTo: self } })
+  emit({ receiver: 'oracle', data: { q, replyTo: self } })
 })
 
 // Claim Task
 .on('claim', ({ id }, emit, { from }) => {
   !claims[id] && (claims[id] = from,
-    emit({ receiver: from, payload: { claimed: id } }))
+    emit({ receiver: from, data: { claimed: id } }))
 })
 
 // Payment
 .on('pay', ({ to, amount }, emit, { from }) => {
   bal[from] >= amount && (
     bal[from] -= amount, bal[to] += amount,
-    emit({ receiver: to, payload: { received: amount } }))
+    emit({ receiver: to, data: { received: amount } }))
 })
 
 // Swarm Formation
 .on('join', ({ capabilities }, emit, { from }) => {
   registry[from] = capabilities
   Object.keys(registry).forEach(id =>
-    emit({ receiver: id, payload: { joined: from } }))
+    emit({ receiver: id, data: { joined: from } }))
 })
 
 // Streaming
 .on('ingest', async ({ url }, emit) => {
   const s = await connect(url)
-  s.on('data', d => emit({ receiver: 'process', payload: d }))
+  s.on('data', d => emit({ receiver: 'process', data: d }))
 })
 ```
 
@@ -207,23 +222,23 @@ docs/
 
 ```typescript
 // YouTube streams
-net.send({ receiver: 'ingest:youtube', payload: { url: 'https://...' } })
+net.send({ receiver: 'ingest:youtube', data: { url: 'https://...' } })
 
 // Hyperliquid ticks
-net.send({ receiver: 'ingest:hyperliquid', payload: { market: 'BTC-USD' } })
+net.send({ receiver: 'ingest:hyperliquid', data: { market: 'BTC-USD' } })
 
 // Twitter firehose
-net.send({ receiver: 'ingest:twitter', payload: { query: '#bitcoin' } })
+net.send({ receiver: 'ingest:twitter', data: { query: '#bitcoin' } })
 
 // RSS feeds
-net.send({ receiver: 'ingest:rss', payload: { feeds: [...] } })
+net.send({ receiver: 'ingest:rss', data: { feeds: [...] } })
 ```
 
 ### Phase 8: Multi-Colony
 
 ```typescript
 // Federation between colonies
-colonyA.send({ receiver: 'bridge:colonyB', payload: { ... } })
+colonyA.send({ receiver: 'bridge:colonyB', data: { ... } })
 
 // Cross-colony highways
 colonyA.highways() + colonyB.highways()
@@ -264,3 +279,14 @@ AI agents can:
 Two fields.
 Everything emerges.
 ```
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How signals flow through the built substrate
+- [emergence.md](emergence.md) — Theory behind the emergent intelligence system
+- [TODO-emerge.md](TODO-emerge.md) — Detailed task tracking
+- [agents.md](agents.md) — Agent patterns implemented in the substrate
+- [swarm.md](swarm.md) — Coordination patterns the colony enables
+- [code.md](code.md) — The 70-line substrate implementation

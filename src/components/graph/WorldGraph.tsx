@@ -167,7 +167,6 @@ function FlowEdge(props: EdgeProps) {
             borderColor: isOpen ? skin.colors.success + "50" : skin.colors.muted + "30",
             color: isOpen ? skin.colors.success : skin.colors.muted,
             boxShadow: isOpen ? `0 0 15px ${skin.colors.success}30` : undefined,
-            ringColor: skin.colors.primary,
           }}
         >
           <span style={{ color: skin.colors.muted }}>{fromTask}</span>

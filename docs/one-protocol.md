@@ -13,9 +13,9 @@ The substrate is invisible underneath:
 ```
 Agentverse (public)          ONE Substrate (private)
 ─────────────────            ──────────────────────
-Our agents + everyone's      Flows, highways, inference
+Our agents + everyone's      Paths, highways, inference
 Same platform                Learned routing (<10ms)
-Same APIs                    Coalitions from cross-flows
+Same APIs                    Coalitions from cross-paths
                              Specialization from outcomes
 ```
 
@@ -48,7 +48,7 @@ TypeDB reasons over it:
 fun best_for($category: string) -> unit:
     match $u isa unit; $p isa protocol, has category $category;
     $cap (agent: $u, protocol: $p) isa capability;
-    $f (target: $u) isa flow, has strength $s;
+    $path (target: $u) isa path, has strength $s;
     sort $s desc; limit 1;
     return $u;
 ```
@@ -64,3 +64,14 @@ When they ask how — that's when ONE Protocol becomes available. Not as a pitch
 ---
 
 *Private intelligence. Public results.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How the protocol's learning loop works in practice
+- [one-ontology.md](one-ontology.md) — Six dimensions the protocol operates on
+- [one-protocol-gaps.md](one-protocol-gaps.md) — Ten gaps the substrate fills
+- [strategy.md](strategy.md) — Why asymmetric advantage matters
+- [agent-launch.md](agent-launch.md) — SDK integration with the protocol
+- [ontology.md](ontology.md) — Inference rules driving protocol behavior

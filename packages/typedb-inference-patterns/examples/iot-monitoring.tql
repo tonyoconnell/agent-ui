@@ -1,0 +1,170 @@
+# =============================================================================
+# DOMAIN EXAMPLE: IoT Device Monitoring & Anomaly Detection
+# =============================================================================
+#
+# Shows inference patterns applied to IoT:
+#   - Device health classification (healthy, degraded, critical, offline)
+#   - Anomaly detection via threshold rules
+#   - Maintenance scheduling (predictive)
+#   - Fleet-wide health aggregation
+#
+# Based on: classification.tql, quality-rules.tql, autonomous-goals.tql
+# =============================================================================
+
+define
+
+# --- Entities ---
+
+entity device,
+    owns device-id @key,
+    owns device-name,
+    owns device-type,              # "sensor", "actuator", "gateway"
+    owns location,
+    owns uptime-percentage,        # 0.0 - 100.0
+    owns error-rate,               # errors per hour
+    owns avg-response-ms,          # average response latency
+    owns last-heartbeat,
+    owns readings-count,
+    owns device-health,            # INFERRED: "healthy", "degraded", "critical"
+    owns maintenance-due,          # INFERRED: boolean
+    plays device-group-membership:member,
+    plays device-alert:alerting-device;
+
+entity device-group,
+    owns group-id @key,
+    owns group-name,
+    owns group-location,
+    plays device-group-membership:group;
+
+entity alert,
+    owns alert-id @key,
+    owns alert-type,               # "threshold", "anomaly", "heartbeat"
+    owns alert-severity,           # "info", "warning", "critical"
+    owns alert-message,
+    owns triggered-at,
+    owns acknowledged,
+    owns resolved-at,
+    plays device-alert:alert-record;
+
+# --- Attributes ---
+attribute device-id, value string;
+attribute device-name, value string;
+attribute device-type, value string;
+attribute location, value string;
+attribute uptime-percentage, value double;
+attribute error-rate, value double;
+attribute avg-response-ms, value double;
+attribute last-heartbeat, value datetime;
+attribute readings-count, value integer;
+attribute device-health, value string;
+attribute maintenance-due, value boolean;
+
+attribute group-id, value string;
+attribute group-name, value string;
+attribute group-location, value string;
+
+attribute alert-id, value string;
+attribute alert-type, value string;
+attribute alert-severity, value string;
+attribute alert-message, value string;
+attribute triggered-at, value datetime;
+attribute acknowledged, value boolean;
+attribute resolved-at, value datetime;
+
+# --- Relations ---
+
+relation device-group-membership,
+    relates member,
+    relates group;
+
+relation device-alert,
+    relates alerting-device,
+    relates alert-record;
+
+
+# =============================================================================
+# DEVICE HEALTH RULES
+# =============================================================================
+
+# Healthy: High uptime, low errors, fast response
+rule healthy-device:
+    when {
+        $d isa device,
+            has uptime-percentage $up,
+            has error-rate $er,
+            has avg-response-ms $ms,
+            has readings-count $rc;
+        $up >= 99.0;
+        $er < 1.0;
+        $ms < 100.0;
+        $rc >= 100;
+    } then {
+        $d has device-health "healthy";
+    };
+
+# Degraded: Moderate issues
+rule degraded-device:
+    when {
+        $d isa device,
+            has uptime-percentage $up,
+            has error-rate $er;
+        { $up < 99.0; $up >= 95.0; } or { $er >= 1.0; $er < 10.0; };
+    } then {
+        $d has device-health "degraded";
+    };
+
+# Critical: Major issues
+rule critical-device:
+    when {
+        $d isa device,
+            has uptime-percentage $up,
+            has error-rate $er;
+        { $up < 95.0; } or { $er >= 10.0; };
+    } then {
+        $d has device-health "critical";
+    };
+
+# Maintenance due: Degraded with enough data
+rule maintenance-needed:
+    when {
+        $d isa device,
+            has device-health "degraded",
+            has readings-count $rc;
+        $rc >= 1000;
+    } then {
+        $d has maintenance-due true;
+    };
+
+
+# =============================================================================
+# QUERY FUNCTIONS
+# =============================================================================
+
+# Get all critical devices
+fun critical_devices() -> { device }:
+    match $d isa device, has device-health "critical";
+    return { $d };
+
+# Get devices needing maintenance
+fun maintenance_queue() -> { device }:
+    match $d isa device, has maintenance-due true;
+    return { $d };
+
+# Get devices in a specific group
+fun devices_in_group($group_name: string) -> { device }:
+    match
+        $g isa device-group, has group-name $group_name;
+        $rel(member: $d, group: $g) isa device-group-membership;
+    return { $d };
+
+# Count devices by health status
+fun count_by_health($health: string) -> integer:
+    match
+        $d isa device, has device-health $health;
+    return count($d);
+
+# Get unacknowledged alerts
+fun unacked_alerts() -> { alert }:
+    match
+        $a isa alert, has acknowledged false;
+    return { $a };

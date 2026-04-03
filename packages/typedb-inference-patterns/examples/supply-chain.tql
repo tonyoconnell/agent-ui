@@ -1,0 +1,154 @@
+# =============================================================================
+# DOMAIN EXAMPLE: Supply Chain Risk & Reliability
+# =============================================================================
+#
+# Shows inference patterns applied to supply chain management:
+#   - Supplier reliability tiers (preferred, standard, probation, blacklisted)
+#   - Shipment risk scoring
+#   - Alternative supplier detection
+#   - Bottleneck identification
+#
+# Based on: classification.tql, quality-rules.tql
+# =============================================================================
+
+define
+
+# --- Entities ---
+
+entity supplier,
+    owns supplier-id @key,
+    owns supplier-name,
+    owns supplier-region,
+    owns on-time-rate,             # 0.0 - 1.0
+    owns defect-rate,              # 0.0 - 1.0
+    owns total-orders,
+    owns avg-lead-days,
+    owns supplier-tier,            # INFERRED: "preferred", "standard", "probation"
+    plays supplies:supplier,
+    plays alternative-source:primary-supplier,
+    plays alternative-source:backup-supplier;
+
+entity component,
+    owns component-id @key,
+    owns component-name,
+    owns component-category,
+    owns criticality,              # "high", "medium", "low"
+    owns single-source,            # INFERRED: boolean (only 1 supplier)
+    plays supplies:component,
+    plays alternative-source:component-supplied;
+
+entity shipment,
+    owns shipment-id @key,
+    owns shipped-at,
+    owns expected-arrival,
+    owns actual-arrival,
+    owns days-late,
+    owns shipment-status,          # "on_time", "delayed", "lost"
+    owns shipment-risk,            # INFERRED: "low", "medium", "high"
+    plays shipment-tracking:tracked-shipment;
+
+# --- Attributes ---
+attribute supplier-id, value string;
+attribute supplier-name, value string;
+attribute supplier-region, value string;
+attribute on-time-rate, value double;
+attribute defect-rate, value double;
+attribute total-orders, value integer;
+attribute avg-lead-days, value integer;
+attribute supplier-tier, value string;
+
+attribute component-id, value string;
+attribute component-name, value string;
+attribute component-category, value string;
+attribute criticality, value string;
+attribute single-source, value boolean;
+
+attribute shipment-id, value string;
+attribute shipped-at, value datetime;
+attribute expected-arrival, value datetime;
+attribute actual-arrival, value datetime;
+attribute days-late, value integer;
+attribute shipment-status, value string;
+attribute shipment-risk, value string;
+
+# --- Relations ---
+
+relation supplies,
+    relates supplier,
+    relates component;
+
+relation alternative-source,
+    relates primary-supplier,
+    relates backup-supplier,
+    relates component-supplied;
+
+relation shipment-tracking,
+    relates tracked-shipment;
+
+
+# =============================================================================
+# SUPPLIER TIER RULES
+# =============================================================================
+
+# Preferred: Reliable, low defects, enough history
+rule preferred-supplier:
+    when {
+        $s isa supplier,
+            has on-time-rate $otr,
+            has defect-rate $dr,
+            has total-orders $to;
+        $otr >= 0.95;
+        $dr < 0.02;
+        $to >= 50;
+    } then {
+        $s has supplier-tier "preferred";
+    };
+
+# Probation: Poor performance
+rule probation-supplier:
+    when {
+        $s isa supplier,
+            has on-time-rate $otr,
+            has defect-rate $dr,
+            has total-orders $to;
+        $to >= 10;
+        { $otr < 0.80; } or { $dr >= 0.10; };
+    } then {
+        $s has supplier-tier "probation";
+    };
+
+
+# =============================================================================
+# QUERY FUNCTIONS
+# =============================================================================
+
+# Get preferred suppliers
+fun preferred_suppliers() -> { supplier }:
+    match $s isa supplier, has supplier-tier "preferred";
+    return { $s };
+
+# Get suppliers on probation
+fun probation_suppliers() -> { supplier }:
+    match $s isa supplier, has supplier-tier "probation";
+    return { $s };
+
+# Get alternative suppliers for a component
+fun alternatives_for($component_id: string) -> { supplier }:
+    match
+        $comp isa component, has component-id $component_id;
+        $rel(component-supplied: $comp, backup-supplier: $backup) isa alternative-source;
+        $backup isa supplier;
+    return { $backup };
+
+# Get high-criticality single-source components (supply chain risk)
+fun single_source_critical() -> { component }:
+    match
+        $c isa component,
+            has criticality "high",
+            has single-source true;
+    return { $c };
+
+# Count suppliers by tier
+fun count_by_tier($tier: string) -> integer:
+    match $s isa supplier, has supplier-tier $tier;
+    return count($s);

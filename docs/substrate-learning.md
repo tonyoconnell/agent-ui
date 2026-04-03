@@ -10,16 +10,16 @@ The substrate implements the ONE ontology's 6 dimensions:
 |---------------|-------------------|-------------------|
 | **Groups** | Colonies (multi-tenant isolation) | Namespace for learned weights |
 | **Actors** | Units (AI, human, process) | Route targets |
-| **Things** | Payloads, resources | Training data |
-| **Connections** | Edges with weight/alarm | The learned model |
-| **Events** | Envelopes flowing | Training examples |
+| **Things** | Data, resources | Training data |
+| **Paths** | Edges with drop/fade weights | The learned model |
+| **Events** | Signals flowing | Training examples |
 | **Knowledge** | Highways, toxic paths | Inference outputs |
 
-The 6 dimensions ARE the training loop. Connections store what's learned. Events are training data. Knowledge emerges from inference rules.
+The 6 dimensions ARE the training loop. Paths store what's learned. Events are training data. Knowledge emerges from inference rules.
 
 ## The Insight
 
-Ant colonies don't have central intelligence. The trails ARE the intelligence. Pheromones encode what worked. Decay ensures exploration. Alarm pheromones encode what failed.
+Ant colonies don't have central intelligence. The paths ARE the intelligence. Pheromones encode what worked. Decay ensures exploration. Alarm pheromones encode what failed.
 
 This is reinforcement learning without:
 - Gradient descent on the router
@@ -28,27 +28,27 @@ This is reinforcement learning without:
 
 The substrate does both routing AND learning with:
 ```
-flow().strengthen()  →  reinforce (mark edge)
-flow().resist()      →  avoid (alarm edge)
-fade()               →  forget / explore
+drop(edge)           →  add weight to path
+drop(edge, false)    →  resist (alarm pheromone)
+fade()               →  decay / forget / explore
 ```
 
-Or in the original terminology: `mark(edge)` strengthens, `alarm` resists, `fade()` decays.
+The verbs: signal, drop, follow, fade, sense.
 
 ## The Loop
 
 ```
-PROMPT arrives
+SIGNAL arrives
     ↓
-ROUTE by trail strength (exploit) or random (explore)
+ROUTE by path weight (exploit) or random (explore)
     ↓
 EXPERT generates
     ↓
 ORACLE scores (human, outcome, reward model)
     ↓
-STRENGTHEN edge (good) or RESIST (bad)
+DROP on path (good) or RESIST (bad)
     ↓
-FADE all edges
+FADE all paths
     ↓
 HIGHWAYS emerge
 ```
@@ -58,8 +58,8 @@ HIGHWAYS emerge
 Groups (ONE dimension 1) provide multi-tenant isolation. Each colony operates in its own group, with separate learned weights:
 
 ```typescript
-// flow().strengthen() → TypeDB (within a Group)
-async function strengthen(group: string, from: string, to: string, score: number) {
+// drop() → TypeDB (within a Group)
+async function drop(group: string, from: string, to: string, score: number) {
   await tx.query(`
     match 
       $g isa group, has gid "${group}";
@@ -70,7 +70,7 @@ async function strengthen(group: string, from: string, to: string, score: number
   `)
 }
 
-// flow().resist() → TypeDB (alarm pheromone)
+// drop(edge, false) → TypeDB (alarm pheromone)
 async function resist(group: string, from: string, to: string, score: number) {
   await tx.query(`
     match 
@@ -93,8 +93,8 @@ async function fade(group: string, rate = 0.1) {
   `)
 }
 
-// highways() → TypeDB (inference handles status)
-async function highways(n = 10) {
+// follow() → TypeDB (inference handles status)
+async function follow(n = 10) {
   return tx.query(`
     match $e isa edge, has status "highway", has weight $w;
     sort $w desc; limit ${n};
@@ -132,7 +132,7 @@ rule toxic:
 | Old Way | Substrate Way |
 |---------|---------------|
 | Train a router model | Highways emerge from use |
-| RLHF with reward model | Mark edges from outcomes |
+| RLHF with reward model | Drop on paths from outcomes |
 | Mixture of Experts with gating | Units + pheromone routing |
 | Catastrophic forgetting | Fade keeps knowledge fresh |
 | Safety fine-tuning | Alarm pheromones on toxic paths |
@@ -147,7 +147,7 @@ A unit can be:
 - An API endpoint
 - Another colony
 
-The substrate doesn't care. It routes envelopes, strengthens or resists edges, fades trails. Intelligence emerges from the ONE ontology: Connections store learned weights, Events flow as training data, Knowledge crystallizes through inference rules.
+The substrate doesn't care. It routes signals, drops on paths, fades weights. Intelligence emerges from the ONE ontology: Paths store learned weights, Events flow as training data, Knowledge crystallizes through inference rules.
 
 ## Why It Works
 
@@ -161,15 +161,15 @@ No ant knows the colony's goal. No unit knows the system's objective. But highwa
 ```
 Groups      → Multi-tenant colonies (isolation boundary)
 Actors      → Units that process signals
-Things      → Payloads flowing through the system
-Connections → Edges with strengthen/resist weights (THE MODEL)
-Events      → Envelopes = immutable training examples
+Things      → Data flowing through the system
+Paths       → Edges with drop/fade weights (THE MODEL)
+Events      → Signals = immutable training examples
 Knowledge   → Highways, toxic paths = inference outputs
 ```
 
 The 6 dimensions aren't just a data model. They ARE the learning loop:
-- **Connections** store what the system has learned (weights, alarms)
-- **Events** are the training data (every envelope is a training example)
+- **Paths** store what the system has learned (weights, alarms)
+- **Events** are the training data (every signal is a training example)
 - **Knowledge** emerges through inference (highway/toxic rules derive intelligence)
 
 Training and inference collapse into the same substrate.
@@ -177,3 +177,14 @@ Training and inference collapse into the same substrate.
 ---
 
 *70 lines. ONE ontology. The substrate.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Visual flow from signals through learning to knowledge
+- [signal.md](signal.md) — The primitive that generates training data
+- [ontology.md](ontology.md) — Inference rules: highway, fading, toxic
+- [emergence.md](emergence.md) — Five forces including stigmergic memory
+- [ai-training.md](ai-training.md) — ML training/inference through the same substrate
+- [typedb.md](typedb.md) — Persistence of learned weights

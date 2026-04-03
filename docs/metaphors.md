@@ -1,6 +1,57 @@
 # Metaphors
 
-Same system. Different languages.
+Same system. Different languages. **Same words.**
+
+---
+
+## The Universal Vocabulary
+
+The breakthrough: **the same core words work across ALL metaphors**.
+
+| Concept | Word | Ants | Neurons | Markets | Agents |
+|---------|------|------|---------|---------|--------|
+| The thing | **Signal** | pheromone | spike | price | request |
+| What it carries | **Data** | chemical | pattern | volume | payload |
+| Who acts | **Actor** | ant | neuron | trader | agent |
+| Connection | **Path** | trail | synapse | flow | route |
+| Accumulated | **Weight** | intensity | strength | volume | score |
+| Strong path | **Highway** | foraging trail | memory | trend | proven |
+
+This is the primitive:
+
+```typescript
+type Signal = {
+  receiver: string
+  data?: unknown
+}
+```
+
+**Signal** works everywhere. **Data** carries anything. The vocabulary is universal.
+
+---
+
+## The Universal Verbs
+
+Five verbs. Every metaphor. Same meaning.
+
+| Verb | Meaning | Ants | Neurons | Markets | Agents |
+|------|---------|------|---------|---------|--------|
+| **signal** | move through world | forage | fire | trade | request |
+| **drop** | leave weight on path | deposit | potentiate | volume | score |
+| **follow** | traverse weighted path | smell trail | sense synapse | track flow | query route |
+| **fade** | decay over time | evaporate | decay | cool | forget |
+| **sense** | perceive environment | antennae | receptors | indicators | sensors |
+
+```typescript
+// The five operations
+w.signal({ receiver: 'x', data })  // Move
+w.drop('a→b', 1)                   // Weight
+w.follow('a→b')                    // Query
+w.fade(0.1)                        // Decay
+w.sense('x')                       // Perceive
+```
+
+The verbs are universal because the dynamics are universal.
 
 ---
 
@@ -8,35 +59,37 @@ Same system. Different languages.
 
 Not ants. Not brains. Not teams. Just ONE.
 
-ONE sits above all metaphors. It captures the six fundamental dimensions that every swarm system exhibits, regardless of domain vocabulary.
+ONE sits above all metaphors. It captures the fundamental dimensions that every swarm system exhibits, regardless of domain vocabulary.
 
-### The Six Dimensions
+### The Dimensions
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         ONE                                  │
 ├─────────────┬───────────────────────────────────────────────┤
-│ one         │ a thing that is (the fundamental unit)        │
-│ part        │ composition of ones (the container)           │
-│ flow        │ movement between ones (the connection)        │
-│ strength    │ how reinforced (positive signal)              │
+│ actor       │ a thing that acts (the fundamental unit)      │
+│ part        │ composition of actors (the container)         │
+│ signal      │ what flows between actors (the message)       │
+│ path        │ connection between actors (the edge)          │
+│ weight      │ how reinforced (positive signal)              │
 │ resistance  │ how blocked (negative signal)                 │
 │ time        │ decay over duration (forgetting)              │
 └─────────────┴───────────────────────────────────────────────┘
 ```
 
-These six dimensions are universal:
-- **one** — the atomic entity that receives and processes
-- **part** — the whole that contains ones
-- **flow** — the directed edge between ones
-- **strength** — positive reinforcement on success
+These dimensions are universal:
+- **actor** — the atomic entity that receives and processes
+- **part** — the whole that contains actors
+- **signal** — what moves between actors
+- **path** — the connection that signals travel
+- **weight** — positive reinforcement on success
 - **resistance** — negative reinforcement on failure
 - **time** — natural decay that prunes unused paths
 
 ### world() — The Universal Interface
 
 ```typescript
-import { world } from '@anthropic/one'
+import { world } from '@one-ie/world'
 
 // Create a world with any vocabulary
 const w = world()
@@ -46,12 +99,12 @@ const a = w.one('a')
 const b = w.one('b')
 
 // Define behavior
-a.on('process', (payload, emit) => {
-  emit({ receiver: 'b', payload: transform(payload) })
+a.on('process', (data, emit) => {
+  emit({ receiver: 'b', data: transform(data) })
 })
 
 // Send signal
-w.send({ receiver: 'a:process', payload: data })
+w.signal({ receiver: 'a:process', data: data })
 
 // The six operations
 w.strengthen('a→b', 1)    // Reinforce flow
@@ -64,12 +117,13 @@ w.best('task')            // Best one for task type
 
 ### ONE Maps to Everything
 
-| Dimension | ONE | Ant | Brain | Team | Mail | Water | Signal |
-|-----------|-----|-----|-------|------|------|-------|--------|
-| **one** | one | ant | neuron | agent | mailbox | pool | receiver |
+| Dimension | ONE | Ant | Brain | Team | Mail | Water | Radio |
+|-----------|-----|-----|-------|------|------|-------|-------|
+| **actor** | actor | ant | neuron | agent | mailbox | pool | receiver |
 | **part** | part | colony | network | team | office | watershed | network |
-| **flow** | flow | trail | synapse | workflow | route | channel | frequency |
-| **strength** | strengthen | deposit | potentiate | commend | stamp | carve | boost |
+| **signal** | signal | pheromone | spike | task | letter | drop | signal |
+| **path** | path | trail | synapse | workflow | route | channel | frequency |
+| **weight** | strengthen | deposit | potentiate | commend | stamp | carve | boost |
 | **resistance** | resist | alarm | inhibit | flag | return | dam | jam |
 | **time** | decay | evaporate | decay | forget | archive | dry | attenuate |
 
@@ -105,9 +159,9 @@ That's the substrate. Everything else is naming.
 ```
 unit     → ant
 colony   → nest
-envelope → scent
-send     → forage
-mark     → deposit
+signal   → scent
+signal() → forage
+drop     → deposit
 alarm    → alarm pheromone
 fade     → evaporate
 highways → trails
@@ -142,9 +196,9 @@ colony.trails(10)                   // Strongest paths
 ```
 unit     → neuron
 colony   → network
-envelope → impulse
-send     → fire
-mark     → potentiate
+signal   → impulse
+signal() → fire
+drop     → potentiate
 alarm    → inhibit
 fade     → decay
 highways → pathways
@@ -179,9 +233,9 @@ brain.pathways(10)                        // Strongest connections
 ```
 unit     → agent
 colony   → team
-envelope → task
-send     → delegate
-mark     → commend
+signal   → task
+signal() → delegate
+drop     → commend
 alarm    → flag
 fade     → forget
 highways → go-to people
@@ -216,9 +270,10 @@ org.goto(10)                         // Best people for tasks
 ```
 unit     → mailbox
 colony   → post office
-envelope → envelope (!)
-send     → deliver
-mark     → stamp
+signal   → letter
+data     → contents
+signal() → deliver
+drop     → stamp
 alarm    → return to sender
 fade     → archive
 highways → express routes
@@ -230,12 +285,12 @@ import { mailbox, postOffice } from '@fetchai/world'
 const inbox = mailbox('support')
   .on('inquiry', ({ message }, reply, ctx) => {
     const response = handle(message)
-    reply({ to: ctx.from, envelope: { response } })
+    reply({ to: ctx.from, data: { response } })
   })
 
 const office = postOffice()
 office.open('support', inbox)
-office.deliver({ to: 'support:inquiry', envelope: { message } })
+office.deliver({ to: 'support:inquiry', data: { message } })
 
 // Routing mechanics
 office.stamp('customer→support', 1)    // Successful delivery
@@ -244,7 +299,7 @@ office.archive(0.1)                     // Old routes fade
 office.express(10)                      // Fastest routes
 ```
 
-**Why this works:** Mail has receivers and payloads. Routing optimizes over time. Simple mental model.
+**Why this works:** Mail has receivers and data. Routing optimizes over time. Simple mental model.
 
 ---
 
@@ -253,9 +308,9 @@ office.express(10)                      // Fastest routes
 ```
 unit     → pool
 colony   → watershed
-envelope → drop
-send     → flow
-mark     → carve
+signal   → drop
+signal() → flow
+drop()   → carve
 alarm    → dam
 fade     → dry
 highways → rivers
@@ -290,9 +345,9 @@ system.rivers(10)                    // Deepest channels
 ```
 unit     → receiver
 colony   → network
-envelope → signal
-send     → transmit
-mark     → boost
+signal   → signal
+signal() → transmit
+drop     → boost
 alarm    → jam
 fade     → attenuate
 highways → clear channels
@@ -322,23 +377,34 @@ radio.clear(10)                        // Best frequencies
 
 ---
 
-## Comparison Table — All Six Dimensions
+## Comparison Table — All Dimensions
 
-| Dimension | Substrate | Ant | Brain | Team | Mail | Water | Signal |
-|-----------|-----------|-----|-------|------|------|-------|--------|
-| **one** | unit | ant | neuron | agent | mailbox | pool | receiver |
+| Dimension | Substrate | Ant | Brain | Team | Mail | Water | Radio |
+|-----------|-----------|-----|-------|------|------|-------|-------|
+| **actor** | unit | ant | neuron | agent | mailbox | pool | receiver |
 | **part** | colony | nest | network | team | post office | watershed | network |
-| **flow** | envelope | scent | impulse | task | envelope | drop | signal |
-| **strength** | mark | deposit | potentiate | commend | stamp | carve | boost |
+| **signal** | signal | pheromone | spike | task | letter | drop | signal |
+| **data** | data | chemical | pattern | payload | contents | volume | data |
+| **path** | path | trail | synapse | workflow | route | channel | frequency |
+| **weight** | drop | deposit | potentiate | commend | stamp | carve | boost |
 | **resistance** | alarm | alarm | inhibit | flag | return | dam | jam |
 | **time** | fade | evaporate | decay | forget | archive | dry | attenuate |
 
-### Operations
+### Operations (The Five Verbs)
+
+| Verb | Substrate | Ant | Brain | Team | Mail | Water | Signal |
+|------|-----------|-----|-------|------|------|-------|--------|
+| **signal** | signal | forage | fire | delegate | deliver | flow | transmit |
+| **drop** | drop | deposit | potentiate | commend | stamp | carve | boost |
+| **follow** | follow | smell | sense | query | track | trace | scan |
+| **fade** | fade | evaporate | decay | forget | archive | dry | attenuate |
+| **sense** | sense | antennae | perceive | check | inspect | measure | receive |
+
+### Creation
 
 | Operation | Substrate | Ant | Brain | Team | Mail | Water | Signal |
 |-----------|-----------|-----|-------|------|------|-------|--------|
 | create | spawn | hatch | grow | hire | open | dig | tune |
-| send | send | forage | fire | delegate | deliver | flow | transmit |
 | query best | highways | trails | pathways | go-tos | express | rivers | clear |
 
 ## Choosing a Metaphor
@@ -397,12 +463,20 @@ radio().tune('x').on('y', fn)       // Signal
 ```
 
 The substrate doesn't care what you call it. It only knows:
-- **one** — things that receive
+
+**Nouns** (what exists):
+- **actor** — things that receive
 - **part** — things that contain
-- **flow** — connections between
-- **strength** — positive reinforcement
-- **resistance** — negative reinforcement
-- **time** — decay
+- **signal** — what flows
+- **data** — what signals carry
+- **path** — connections between
+
+**Verbs** (what happens):
+- **signal** — move through world
+- **drop** — leave weight on path
+- **follow** — traverse weighted path
+- **fade** — decay over time
+- **sense** — perceive environment
 
 But **humans** care. The right metaphor:
 - Makes the system intuitable
@@ -414,7 +488,7 @@ But **humans** care. The right metaphor:
 
 ```typescript
 // Universal entry point
-import { world } from '@anthropic/one'
+import { world } from '@one-ie/world'
 
 // Or use the substrate directly
 import { unit, colony } from '@/engine/substrate'
@@ -423,26 +497,34 @@ import { unit, colony } from '@/engine/substrate'
 export { unit as ant, colony as nest }        // Ant
 export { unit as neuron, colony as network }  // Brain
 export { unit as agent, colony as team }      // Team
-export { unit as atom, colony as swarm }      // Physics
+export { unit as actor, colony as world }      // Actor model
 
-// The six dimensions map to methods:
-// one       → spawn/hatch/grow/hire
-// part      → colony/nest/network/team
-// flow      → send/forage/fire/delegate
-// strength  → mark/deposit/potentiate/commend
-// resistance → alarm/inhibit/flag/return
-// time      → fade/evaporate/decay/forget
+// The nouns map to aliases:
+// actor      → unit/ant/neuron/agent
+// part       → colony/nest/network/team
+// signal     → signal/pheromone/spike/task
+// data       → data/chemical/pattern/payload
+// path       → path/trail/synapse/route
+
+// The verbs map to methods:
+// signal     → signal/forage/fire/delegate
+// drop       → drop/deposit/potentiate/commend
+// follow     → follow/smell/sense/query
+// fade       → fade/evaporate/decay/forget
+// sense      → sense/antennae/perceive/check
 ```
 
-We use **ONE** as the meta-model (because it's universal) with **world()** as the entry point. Domain-specific aliases let users think in their preferred vocabulary while the substrate handles the six fundamental dimensions.
+We use **ONE** as the meta-model (because it's universal) with **world()** as the entry point. Domain-specific aliases let users think in their preferred vocabulary while the substrate handles the fundamental operations.
+
+The beauty: **Signal**, **Data**, and the five verbs work in every domain. You never need to translate the primitive or the operations.
 
 ---
 
 ## What Flows
 
-The envelope is a carrier. The payload is anything:
+The signal is a carrier. The data is anything:
 
-| Domain | Envelope carries | Example |
+| Domain | Signal carries | Example |
 |--------|------------------|---------|
 | Ants | Food | `{ food: 'sugar', quantity: 10 }` |
 | Data | Records | `{ rows: [...], schema: {...} }` |
@@ -457,30 +539,30 @@ The envelope is a carrier. The payload is anything:
 // Same structure, different meaning:
 
 // Ant carrying food
-{ receiver: 'nest:store', payload: { food: 'seed', calories: 50 } }
+{ receiver: 'nest:store', data: { food: 'seed', calories: 50 } }
 
 // Agent carrying data
-{ receiver: 'analyst:process', payload: { records: [...], format: 'csv' } }
+{ receiver: 'analyst:process', data: { records: [...], format: 'csv' } }
 
 // Neuron carrying signal
-{ receiver: 'cortex:integrate', payload: { activation: 0.87, source: 'retina' } }
+{ receiver: 'cortex:integrate', data: { activation: 0.87, source: 'retina' } }
 
 // Worker carrying task
-{ receiver: 'builder:construct', payload: { blueprint: {...}, materials: [...] } }
+{ receiver: 'builder:construct', data: { blueprint: {...}, materials: [...] } }
 ```
 
-## The Envelope is Content-Agnostic
+## The Signal is Content-Agnostic
 
 ```typescript
-type Envelope = {
+type Signal = {
   receiver: string    // Where it goes
-  payload?: unknown   // What it carries (anything)
+  data?: unknown      // What it carries (anything)
 }
 ```
 
 The substrate doesn't know or care what's inside. It just:
 1. Routes to the receiver
-2. Marks the edge on delivery
+2. Drops on the edge on delivery
 3. Lets the handler decide what to do
 
 This is why the same 70 lines can model:
@@ -490,8 +572,19 @@ This is why the same 70 lines can model:
 - Agent swarms carrying tasks
 - Economies carrying value
 
-**The payload is the domain. The substrate is universal.**
+**The data is the domain. The substrate is universal.**
 
 ---
 
-*ONE is the territory. The metaphors are maps. `world()` is your compass.*
+*ONE is the territory. The metaphors are maps. Signal, drop, follow, fade, sense — the verbs are universal. `world()` is your compass.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Metaphor mapping table: same flow, different words
+- [framework.md](framework.md) — UI skins rendering each metaphor
+- [world.md](world.md) — Universal ontology beneath all metaphors
+- [one-ontology.md](one-ontology.md) — Six dimensions each metaphor expresses
+- [code-tutorial.md](code-tutorial.md) — Unified substrate theory
+- [ai-training.md](ai-training.md) — ML metaphor: training as path strengthening

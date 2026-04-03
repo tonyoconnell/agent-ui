@@ -12,6 +12,7 @@ import { ColonyEditor } from "@/components/graph/ColonyEditor"
 interface AgentData {
   id: string
   name: string
+  caste?: string
   status: string
   actions: Record<string, unknown>
   envelopes: Array<{
@@ -24,6 +25,18 @@ interface AgentData {
       payload: Record<string, unknown>
     }
   }>
+}
+
+// Caste icons from TQL schema
+const casteIcon: Record<string, string> = {
+  queen: "👑", scout: "🔭", harvester: "⛏️", forager: "🌿",
+  relay: "📡", nurse: "💊", soldier: "🛡️", "major-worker": "⚙️", "minor-worker": "🔩",
+}
+
+// Chain colors for parallel flows
+const chainColor: Record<string, string> = {
+  market: "text-blue-400", intelligence: "text-purple-400",
+  defense: "text-red-400", care: "text-green-400", recon: "text-amber-400",
 }
 
 // Flatten envelope chain to assign to agents
@@ -66,7 +79,7 @@ async function load() {
   // Log highways for signal flow verification (SWP-005)
   console.log("Highways:", net.highways())
 
-  return { colony: net, agents, highways: net.highways(20) }
+  return { colony: net, agents, highways: net.highways(30) }
 }
 
 // Status dot
@@ -156,29 +169,49 @@ function Tabs({ tabs, active, onSelect, onClose }: {
 // Agent grid
 function Grid({ agents, open, onSelect }: { agents: AgentData[]; open: string[]; onSelect: (id: string) => void }) {
   return (
-    <div className="flex-1 flex items-center justify-center p-6">
-      <div className="w-full max-w-4xl">
-        <h1 className="text-3xl font-light text-white mb-2 text-center">Agents</h1>
-        <p className="text-slate-500 text-sm mb-12 text-center">Select an agent to view its flow</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
+      <div className="w-full max-w-5xl">
+        <h1 className="text-3xl font-light text-white mb-2 text-center">Colony</h1>
+        <p className="text-slate-500 text-sm mb-8 text-center">{agents.length} agents • {new Set(agents.map(a => a.caste).filter(Boolean)).size} castes • 5 parallel chains</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {agents.map((agent) => (
             <button
               key={agent.id}
               onClick={() => onSelect(agent.id)}
               className={cn(
-                "bg-[#161622] border rounded-2xl p-8 text-left transition-all hover:scale-[1.02] hover:-translate-y-1",
+                "bg-[#161622] border rounded-2xl p-6 text-left transition-all hover:scale-[1.02] hover:-translate-y-1",
                 open.includes(agent.id) ? "border-blue-500/50" : "border-[#252538] hover:border-slate-500"
               )}
             >
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xl">{casteIcon[agent.caste || ""] || "🐜"}</span>
                 <Dot status={agent.status} />
                 <span className="text-white font-medium text-lg">{agent.name}</span>
               </div>
-              <div className="text-slate-500 text-xs font-mono mb-6">
+              {agent.caste && (
+                <div className="text-slate-600 text-[10px] font-mono uppercase tracking-wider mb-3">
+                  {agent.caste}
+                </div>
+              )}
+              <div className="text-slate-500 text-xs font-mono mb-4">
                 {Object.keys(agent.actions).join(" • ")}
               </div>
-              <div className="text-slate-600 text-sm">
-                {agent.envelopes.length} envelope{agent.envelopes.length !== 1 ? "s" : ""} →
+              <div className="flex items-center justify-between">
+                <div className="text-slate-600 text-sm">
+                  {agent.envelopes.length} envelope{agent.envelopes.length !== 1 ? "s" : ""} →
+                </div>
+                {agent.envelopes.length > 0 && (
+                  <div className="flex gap-1">
+                    {agent.envelopes.map((e, i) => {
+                      const chain = (e.payload as Record<string, unknown>)?.chain as string
+                      return chain ? (
+                        <span key={i} className={cn("text-[9px] px-1.5 py-0.5 rounded-full bg-slate-800", chainColor[chain] || "text-slate-400")}>
+                          {chain}
+                        </span>
+                      ) : null
+                    })}
+                  </div>
+                )}
               </div>
             </button>
           ))}
@@ -237,30 +270,52 @@ export default function AgentWorkspace() {
     if (!state) return
     const interval = setInterval(() => {
       state.colony.fade(0.1)
-      setState(prev => prev ? { ...prev, highways: state.colony.highways(20) } : null)
+      setState(prev => prev ? { ...prev, highways: state.colony.highways(30) } : null)
     }, 5000)
     return () => clearInterval(interval)
   }, [state?.colony])
 
-  // Signal injection (LRN-004) - inject a test signal through the network
+  // Signal injection — fire all parallel chains simultaneously
   const injectSignal = async () => {
     if (!state) return
-    await state.colony.send({
-      receiver: "scout",
-      receive: "observe",
-      payload: { source: "test" },
-      callback: {
-        receiver: "analyst",
-        receive: "evaluate",
-        payload: { data: "{{result}}" },
-        callback: {
-          receiver: "trader",
-          receive: "execute",
-          payload: { signal: "{{result}}" }
-        }
-      }
-    })
-    setState(prev => prev ? { ...prev, highways: state.colony.highways(20) } : null)
+    const chains = [
+      // Market chain: scout → analyst → trader
+      state.colony.send({
+        receiver: "scout", receive: "observe",
+        payload: { source: "test", chain: "market" },
+        callback: { receiver: "analyst", receive: "evaluate", payload: { data: "{{result}}" },
+          callback: { receiver: "trader", receive: "execute", payload: { signal: "{{result}}" } } }
+      }),
+      // Intelligence chain: forager → relay → queen
+      state.colony.send({
+        receiver: "forager", receive: "search",
+        payload: { source: "onchain", chain: "intelligence" },
+        callback: { receiver: "relay", receive: "broadcast", payload: { patterns: "{{result}}" },
+          callback: { receiver: "queen", receive: "orchestrate", payload: { intel: "{{result}}" } } }
+      }),
+      // Defense chain: soldier → sentinel → sentinel
+      state.colony.send({
+        receiver: "soldier", receive: "validate",
+        payload: { signals: "all", chain: "defense" },
+        callback: { receiver: "sentinel", receive: "risk", payload: { validated: "{{result}}" },
+          callback: { receiver: "sentinel", receive: "circuit", payload: { risk: "{{result}}" } } }
+      }),
+      // Care chain: nurse → nurse
+      state.colony.send({
+        receiver: "nurse", receive: "monitor",
+        payload: { colony: "all", chain: "care" },
+        callback: { receiver: "nurse", receive: "heal", payload: { unhealthy: "{{result}}" } }
+      }),
+      // Recon chain: scout → forager → queen
+      state.colony.send({
+        receiver: "scout", receive: "scan",
+        payload: { source: "sentiment", chain: "recon" },
+        callback: { receiver: "forager", receive: "harvest", payload: { regions: "{{result}}" },
+          callback: { receiver: "queen", receive: "crystallize", payload: { patterns: "{{result}}" } } }
+      }),
+    ]
+    await Promise.allSettled(chains)
+    setState(prev => prev ? { ...prev, highways: state.colony.highways(30) } : null)
   }
 
   if (!state) return <div className="h-screen bg-[#0f0f17] flex items-center justify-center text-slate-600">Loading...</div>
@@ -290,7 +345,7 @@ export default function AgentWorkspace() {
               agents={state.agents}
               highways={state.highways}
               onAgentSelect={openAgent}
-              onColonyChange={() => setState(prev => prev ? { ...prev, highways: state.colony.highways(20) } : null)}
+              onColonyChange={() => setState(prev => prev ? { ...prev, highways: state.colony.highways(30) } : null)}
             />
           ) : activeAgent ? (
             <Flow agent={activeAgent} highways={state.highways} />

@@ -69,22 +69,22 @@ nest.spawn({ receiver: "logger" })
 // ════════════════════════════════════════════════════════════════
 
 function onTick(tick) {
-  nest.send({
+  nest.signal({
     receiver: "scout",
     receive: "tick",
-    payload: tick,
+    data: tick,
     callback: {
       receiver: "analyst",
       receive: "evaluate",
-      payload: { "{{result}}": true },  // Cargo from scout
+      data: { "{{result}}": true },  // Cargo from scout
       callback: {
         receiver: "trader",
         receive: "execute",
-        payload: { "{{result}}": true },  // Cargo from analyst
+        data: { "{{result}}": true },  // Cargo from analyst
         callback: {
           receiver: "logger",
           receive: "record",
-          payload: { "{{result}}": true }  // Cargo from trader
+          data: { "{{result}}": true }  // Cargo from trader
         }
       }
     }
@@ -172,7 +172,7 @@ nest.spawn({ receiver: "coordinator" })
     let weakestScent = Infinity;
 
     for (const worker of workers) {
-      const scent = nest.smell(`${worker}:work`);
+      const scent = nest.trace(`${worker}:work`);
       if (scent < weakestScent) {
         weakestScent = scent;
         bestWorker = worker;
@@ -207,12 +207,12 @@ nest.spawn({ receiver: "swarm" })
   })
   .assign("recruit", ({ taskType, needed }) => {
     // Queen spawns more workers for hot tasks
-    const currentSwarm = nest.smell(`swarm:${taskType}`);
+    const currentSwarm = nest.trace(`swarm:${taskType}`);
     if (currentSwarm < needed) {
-      nest.send({
+      nest.signal({
         receiver: "queen",
         receive: "spawn",
-        payload: { type: `worker-${taskType}`, count: needed - currentSwarm }
+        data: { type: `worker-${taskType}`, count: needed - currentSwarm }
       });
     }
     return { recruiting: needed - currentSwarm };
@@ -223,31 +223,31 @@ nest.spawn({ receiver: "swarm" })
 // ════════════════════════════════════════════════════════════════
 
 // Spawn initial workers
-await nest.send({
+await nest.signal({
   receiver: "queen",
   receive: "spawn",
-  payload: { type: "worker", count: 5 }
+  data: { type: "worker", count: 5 }
 });
 
 // Dispatch tasks — workers with weak scent get work
 for (const task of tasks) {
-  await nest.send({
+  await nest.signal({
     receiver: "coordinator",
     receive: "dispatch",
-    payload: { task },
+    data: { task },
     callback: {
       receiver: "{{result.worker}}",  // Dynamic routing!
       receive: "work",
-      payload: { task: "{{result.task}}" }
+      data: { task: "{{result.task}}" }
     }
   });
 }
 
 // Check swarm status
-const swarm = await nest.send({
+const swarm = await nest.signal({
   receiver: "swarm",
   receive: "form",
-  payload: { taskType: "processing" }
+  data: { taskType: "processing" }
 });
 // → { taskType: "processing", swarmSize: 3, members: ["worker-1", "worker-2", "worker-3"] }
 ```
@@ -278,14 +278,14 @@ const nest = colony();
 // Extend colony with repulsion (negative scent)
 const repel = {};
 
-nest.markDanger = (trail, strength = 1) => {
+nest.dropDanger = (trail, strength = 1) => {
   repel[trail] = (repel[trail] || 0) + strength;
 };
 
-nest.smellDanger = (trail) => repel[trail] || 0;
+nest.traceDanger = (trail) => repel[trail] || 0;
 
 nest.netScent = (trail) => {
-  return nest.smell(trail) - nest.smellDanger(trail);
+  return nest.trace(trail) - nest.traceDanger(trail);
 };
 
 nest.fadeDanger = (rate = 0.1) => {
@@ -304,7 +304,7 @@ nest.spawn({ receiver: "taskboard" })
     const taskId = `task-${Date.now()}`;
 
     // Task emits attractive scent proportional to reward
-    nest.mark(`task:${taskId}`, reward);
+    nest.drop(`task:${taskId}`, reward);
 
     // Store task data
     tasks[taskId] = { task, reward, difficulty, posted: Date.now() };
@@ -317,8 +317,8 @@ nest.spawn({ receiver: "taskboard" })
       .map(([id, t]) => ({
         ...t,
         id,
-        attraction: nest.smell(`task:${id}`),
-        danger: nest.smellDanger(`task:${id}`),
+        attraction: nest.trace(`task:${id}`),
+        danger: nest.traceDanger(`task:${id}`),
         netScent: nest.netScent(`task:${id}`)
       }))
       .sort((a, b) => b.netScent - a.netScent);
@@ -331,7 +331,7 @@ nest.spawn({ receiver: "taskboard" })
 nest.spawn({ receiver: "worker" })
   .assign("seek", () => {
     // Find most attractive task
-    const taskList = nest.send({ receiver: "taskboard", receive: "list", payload: {} });
+    const taskList = nest.signal({ receiver: "taskboard", receive: "list", data: {} });
     const best = taskList[0];
 
     if (!best || best.netScent <= 0) {
@@ -347,15 +347,15 @@ nest.spawn({ receiver: "worker" })
       const result = await executeTask(task);
 
       // Success! Strengthen the attraction trail
-      nest.mark(`task:${taskId}`, task.reward);
-      nest.mark(`worker:success`, 1);
+      nest.drop(`task:${taskId}`, task.reward);
+      nest.drop(`worker:success`, 1);
 
       return { success: true, result };
 
     } catch (error) {
       // Failure! Mark danger on this task
-      nest.markDanger(`task:${taskId}`, task.difficulty);
-      nest.mark(`worker:failure`, 1);
+      nest.dropDanger(`task:${taskId}`, task.difficulty);
+      nest.drop(`worker:failure`, 1);
 
       return { success: false, error: error.message };
     }
@@ -367,8 +367,8 @@ nest.spawn({ receiver: "worker" })
 
 nest.spawn({ receiver: "foreman" })
   .assign("survey", () => {
-    const successRate = nest.smell("worker:success") /
-      (nest.smell("worker:success") + nest.smell("worker:failure") || 1);
+    const successRate = nest.trace("worker:success") /
+      (nest.trace("worker:success") + nest.trace("worker:failure") || 1);
 
     const hotTasks = nest.highways(5)
       .filter(h => h.trail.startsWith("task:"));
@@ -382,12 +382,12 @@ nest.spawn({ receiver: "foreman" })
   })
   .assign("boost", ({ taskId, amount }) => {
     // Foreman can artificially boost a task's scent
-    nest.mark(`task:${taskId}`, amount);
-    return { boosted: taskId, newScent: nest.smell(`task:${taskId}`) };
+    nest.drop(`task:${taskId}`, amount);
+    return { boosted: taskId, newScent: nest.trace(`task:${taskId}`) };
   })
   .assign("quarantine", ({ taskId }) => {
     // Mark a task as too dangerous
-    nest.markDanger(`task:${taskId}`, 100);
+    nest.dropDanger(`task:${taskId}`, 100);
     return { quarantined: taskId };
   });
 
@@ -396,14 +396,14 @@ nest.spawn({ receiver: "foreman" })
 // ════════════════════════════════════════════════════════════════
 
 // Post tasks with different rewards
-await nest.send({ receiver: "taskboard", receive: "post",
-  payload: { task: "easy-job", reward: 10, difficulty: 1 } });
+await nest.signal({ receiver: "taskboard", receive: "post",
+  data: { task: "easy-job", reward: 10, difficulty: 1 } });
 
-await nest.send({ receiver: "taskboard", receive: "post",
-  payload: { task: "hard-job", reward: 50, difficulty: 10 } });
+await nest.signal({ receiver: "taskboard", receive: "post",
+  data: { task: "hard-job", reward: 50, difficulty: 10 } });
 
-await nest.send({ receiver: "taskboard", receive: "post",
-  payload: { task: "risky-job", reward: 100, difficulty: 50 } });
+await nest.signal({ receiver: "taskboard", receive: "post",
+  data: { task: "risky-job", reward: 100, difficulty: 50 } });
 
 // Workers seek and attempt tasks
 // Easy jobs succeed → attraction grows
@@ -417,7 +417,7 @@ setInterval(() => {
 }, 10000);
 
 // Survey the landscape
-const survey = await nest.send({ receiver: "foreman", receive: "survey", payload: {} });
+const survey = await nest.signal({ receiver: "foreman", receive: "survey", data: {} });
 // → {
 //   successRate: 0.7,
 //   hotTasks: [{ trail: "task:easy-job", strength: 45 }],
@@ -455,3 +455,14 @@ All three examples follow the same 85-line genome:
 ---
 
 *The same pattern that lets ants find the shortest path to food lets agents find profitable trades, coordinate swarms, and prioritize tasks. 100 million years of optimization.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Flow patterns these examples implement
+- [code.md](code.md) — Substrate primitives used in examples
+- [tutorial.md](tutorial.md) — Introduction to the concepts shown here
+- [agents.md](agents.md) — Agent types: worker, router, aggregator
+- [ants.md](ants.md) — Biological source of pheromone patterns
+- [swarm.md](swarm.md) — Coordination patterns at scale

@@ -8,7 +8,7 @@
 
 The next wave of AI isn't smarter models. It's models that work together.
 
-Today's AI agents are isolated. No memory of what worked. No learning from collaboration. No emergent behavior. We built the infrastructure layer for agents to coordinate without central control, learn which collaborations work, and form economies that optimize themselves.
+Today's AI agents are isolated. Poor memory of what worked. Little learning from collaboration. No emergent behavior. We built the infrastructure layer for agents to coordinate without central control, learn which collaborations work, and form economies that optimize themselves.
 
 In 70 lines of code.
 
@@ -78,3 +78,14 @@ We don't program behaviors. We create conditions for behaviors to emerge. The co
 ---
 
 *"Ants discovered this pattern 100 million years ago. Brains discovered it 500 million years ago. We wrote it down in 70 lines."*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How emergence works in practice
+- [README.md](README.md) — Technical overview of the substrate
+- [strategy.md](strategy.md) — Competitive positioning
+- [gaps.md](gaps.md) — Production readiness phases
+- [one-protocol.md](one-protocol.md) — Protocol advantage
+- [Plan.md](Plan.md) — Full strategic vision

@@ -68,7 +68,7 @@ async function loadWorld(): Promise<WorldState> {
     await net.send(env)
   }
 
-  return { colony: net, actors, flows: net.highways(20) }
+  return { colony: net, actors, flows: net.highways(30) }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -104,7 +104,13 @@ function StatsHeader({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) 
             className="px-3 py-1.5 text-white text-sm font-medium rounded-lg"
             style={{ backgroundColor: skin.colors.primary }}
           >
-            ONE World
+            Graph
+          </a>
+          <a
+            href="/chat"
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            Chat
           </a>
         </div>
 
@@ -266,30 +272,56 @@ function WorkspaceInner() {
     if (!world) return
     const interval = setInterval(() => {
       world.colony.fade(0.1)
-      setWorld((prev) => (prev ? { ...prev, flows: world.colony.highways(20) } : null))
+      setWorld((prev) => (prev ? { ...prev, flows: world.colony.highways(30) } : null))
     }, 5000)
     return () => clearInterval(interval)
   }, [world?.colony])
 
   const handleInject = useCallback(async () => {
     if (!world) return
-    await world.colony.send({
-      receiver: "scout",
-      receive: "observe",
-      payload: { source: "manual" },
-      callback: {
-        receiver: "analyst",
-        receive: "evaluate",
-        payload: { data: "{{result}}" },
-      },
-    })
-    setWorld((prev) => (prev ? { ...prev, flows: world.colony.highways(20) } : null))
+    // Fire all 5 parallel chains simultaneously
+    await Promise.allSettled([
+      // Market: scout → analyst → trader
+      world.colony.send({
+        receiver: "scout", receive: "observe",
+        payload: { source: "manual", chain: "market" },
+        callback: { receiver: "analyst", receive: "evaluate", payload: { data: "{{result}}" },
+          callback: { receiver: "trader", receive: "execute", payload: { signal: "{{result}}" } } }
+      }),
+      // Intelligence: forager → relay → queen
+      world.colony.send({
+        receiver: "forager", receive: "search",
+        payload: { source: "onchain", chain: "intelligence" },
+        callback: { receiver: "relay", receive: "broadcast", payload: { patterns: "{{result}}" },
+          callback: { receiver: "queen", receive: "orchestrate", payload: { intel: "{{result}}" } } }
+      }),
+      // Defense: soldier → sentinel
+      world.colony.send({
+        receiver: "soldier", receive: "validate",
+        payload: { signals: "all", chain: "defense" },
+        callback: { receiver: "sentinel", receive: "risk", payload: { validated: "{{result}}" } }
+      }),
+      // Care: nurse monitors colony
+      world.colony.send({
+        receiver: "nurse", receive: "monitor",
+        payload: { colony: "all", chain: "care" },
+        callback: { receiver: "nurse", receive: "heal", payload: { unhealthy: "{{result}}" } }
+      }),
+      // Recon: scout → forager → queen
+      world.colony.send({
+        receiver: "scout", receive: "scan",
+        payload: { source: "sentiment", chain: "recon" },
+        callback: { receiver: "forager", receive: "harvest", payload: { regions: "{{result}}" },
+          callback: { receiver: "queen", receive: "crystallize", payload: { patterns: "{{result}}" } } }
+      }),
+    ])
+    setWorld((prev) => (prev ? { ...prev, flows: world.colony.highways(30) } : null))
   }, [world])
 
   const handleDecay = useCallback(() => {
     if (!world) return
     world.colony.fade(0.2)
-    setWorld((prev) => (prev ? { ...prev, flows: world.colony.highways(20) } : null))
+    setWorld((prev) => (prev ? { ...prev, flows: world.colony.highways(30) } : null))
   }, [world])
 
   if (!world) {

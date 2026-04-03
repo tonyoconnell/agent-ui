@@ -18,11 +18,11 @@ Everything maps to 6 dimensions. No exceptions.
 |                                                                              |
 |   3. THINGS       What exists (tasks, tokens, services, resources)          |
 |                                                                              |
-|   4. CONNECTIONS  How they relate (flows with strength/resistance)          |
+|   4. PATHS        How they relate (connections with weight)                 |
 |                                                                              |
 |   5. EVENTS       What happened (traversals, successes, failures)           |
 |                                                                              |
-|   6. KNOWLEDGE    What emerged (proven paths, patterns, intelligence)       |
+|   6. KNOWLEDGE    What emerged (highways, patterns, intelligence)           |
 |                                                                              |
 +-----------------------------------------------------------------------------+
 ```
@@ -38,8 +38,8 @@ const w = world()
 w.group(id, type)                    // 1. Create containers
 w.actor(id, type)                    // 2. Create agents
 w.thing(id, type)                    // 3. Create entities
-w.flow(from, to).strengthen(n)       // 4. Success signal
-w.flow(from, to).resist(n)           // 5. Failure signal
+w.drop(from, to, n)                  // 4. Leave weight on path
+w.fade(rate)                         // 5. Decay paths
 w.crystallize()                      // 6. Extract patterns
 
 // Query the world
@@ -52,12 +52,12 @@ w.confidence(type)                   // How well we know
 
 ## How Everything Maps to 6 Dimensions
 
-| System | Groups | Actors | Things | Connections | Events | Knowledge |
-|--------|--------|--------|--------|-------------|--------|-----------|
+| System | Groups | Actors | Things | Paths | Events | Knowledge |
+|--------|--------|--------|--------|-------|--------|-----------|
 | **ASI** | platforms | LLMs, orchestrator | tasks, decisions | user->task->llm | routing decisions | highways |
 | **Agentverse** | namespaces, orgs | 2M+ agents | services, endpoints | agent interactions | calls, completions | proven agents |
 | **Agent Launch** | ecosystems | traders, holders | tokens, invoices | economic flows | trades, payments | trust scores |
-| **Substrate** | colonies | units | signals | pheromone trails | traversals | emergent paths |
+| **Substrate** | colonies | units | signals, data | pheromone trails | traversals | highways |
 | **TypeDB** | schemas | entities | attributes | relations | events | inferred facts |
 
 ## The Complete System
@@ -65,7 +65,7 @@ w.confidence(type)                   // How well we know
 ```
 +-----------------------------------------------------------------------------+
 |                           ONE ONTOLOGY (6 dimensions)                        |
-|       Groups | Actors | Things | Connections | Events | Knowledge           |
+|         Groups | Actors | Things | Paths | Events | Knowledge               |
 +-----------------------------------------------------------------------------+
                                     |
                                     v
@@ -81,7 +81,7 @@ w.confidence(type)                   // How well we know
 |   +-- GROUPS:      platforms, swarms                                        |
 |   +-- ACTORS:      LLMs (Claude, GPT), orchestrator                         |
 |   +-- THINGS:      tasks, decisions                                         |
-|   +-- CONNECTIONS: user->task->llm flows                                    |
+|   +-- PATHS:       user->task->llm paths                                    |
 |   +-- EVENTS:      routing decisions                                        |
 |   +-- KNOWLEDGE:   learned routes (highways)                                |
 |                                                                              |
@@ -93,8 +93,8 @@ w.confidence(type)                   // How well we know
 |            v                       |              |    'llm')        |       |
 |   +------------------+             |              |                  |       |
 |   |  ASK LLM         |-------------+------------->|                  |       |
-|   |  w.flow().       |             |              +------------------+       |
-|   |  strengthen()    |             |                                         |
+|   |  w.signal().     |             |              +------------------+       |
+|   |  drop()          |             |                                         |
 |   +--------+---------+             |                                         |
 |            +----------+------------+                                         |
 |                       v                                                      |
@@ -108,9 +108,9 @@ w.confidence(type)                   // How well we know
 |   +-- GROUPS:      namespaces, organizations                                |
 |   +-- ACTORS:      2M+ agents                                               |
 |   +-- THINGS:      services, endpoints                                      |
-|   +-- CONNECTIONS: agent interactions                                       |
+|   +-- PATHS:       agent interactions (weighted)                            |
 |   +-- EVENTS:      calls, completions                                       |
-|   +-- KNOWLEDGE:   proven agents, expertise                                 |
+|   +-- KNOWLEDGE:   highways, proven agents                                  |
 |                                                                              |
 |   +-----------+   +-----------+   +-----------+   +-----------+             |
 |   |  Agent A  |   |  Agent B  |   |  Agent C  |   |  Agent ...|             |
@@ -121,7 +121,7 @@ w.confidence(type)                   // How well we know
 |                         v                                                    |
 |              +---------------------+                                         |
 |              |  w.best('agent')    |  <- w.proven() returns best            |
-|              |  w.flow().strengthen|  <- success recorded                   |
+|              |  w.drop()           |  <- success recorded                   |
 |              |  w.open(10)         |  <- discover agents                    |
 |              +---------------------+                                         |
 |                                                                              |
@@ -135,17 +135,17 @@ w.confidence(type)                   // How well we know
 |   +-- GROUPS:      token ecosystems, communities                            |
 |   +-- ACTORS:      traders, holders, agents                                 |
 |   +-- THINGS:      tokens, invoices, bounties                               |
-|   +-- CONNECTIONS: economic relationships                                   |
+|   +-- PATHS:       economic relationships (weighted)                        |
 |   +-- EVENTS:      trades, payments, disputes                               |
-|   +-- KNOWLEDGE:   market patterns, trust scores                            |
+|   +-- KNOWLEDGE:   highways, trust scores                                   |
 |                                                                              |
 |   Events -> world():                                                         |
 |   +---------------------------------------------------------------------+   |
-|   |  trade:buy       ->  w.flow(buyer, token).strengthen(amount)        |   |
-|   |  trade:sell      ->  w.flow(seller, token).resist(amount * 0.5)     |   |
-|   |  invoice:paid    ->  w.flow(payer, agent).strengthen(amount)        |   |
-|   |  invoice:dispute ->  w.flow(payer, agent).resist(amount * 2)        |   |
-|   |  holder:change   ->  w.flow(holder, token).strengthen(1)            |   |
+|   |  trade:buy       ->  w.drop(buyer, token, amount)                   |   |
+|   |  trade:sell      ->  w.drop(seller, token, amount * 0.5)            |   |
+|   |  invoice:paid    ->  w.drop(payer, agent, amount)                   |   |
+|   |  invoice:dispute ->  (no drop - failure signals via event)          |   |
+|   |  holder:change   ->  w.drop(holder, token, 1)                       |   |
 |   +---------------------------------------------------------------------+   |
 |                                                                              |
 +-----------------------------------------------------------------------------+
@@ -155,24 +155,24 @@ w.confidence(type)                   // How well we know
 |                          SUBSTRATE (70 ln)                                   |
 |                                                                              |
 |   The runtime for ONE ontology.                                             |
-|   Implements CONNECTIONS (dimension 4) with pheromone semantics.            |
+|   Implements PATHS (dimension 4) with weight semantics.                     |
 |                                                                              |
-|      flow.strengthen()             flow.resist()                            |
+|      drop()                        fade()                                   |
 |              |                              |                                |
 |              v                              v                                |
 |   +---------------------------------------------------------------------+   |
-|   |                    CONNECTION MAP                                    |   |
+|   |                        PATH MAP                                      |   |
 |   |                                                                      |   |
 |   |   user->translation->agent-A: 45.2  ############    (open)          |   |
-|   |   user->translation->agent-B: 12.1  ####            (closing)       |   |
+|   |   user->translation->agent-B: 12.1  ####            (fading)        |   |
 |   |   user->coding->agent-C: 67.8       #############   (highway)       |   |
 |   |   user->coding->agent-D: 3.2        #               (fading)        |   |
-|   |   user->analysis->agent-E: 8.5:alarm ...            (blocked)       |   |
+|   |   user->analysis->agent-E: 8.5      ...             (blocked)       |   |
 |   |                                                                      |   |
 |   +---------------------------------------------------------------------+   |
 |              |                              |                                |
 |              v                              v                                |
-|        w.open(limit)                  w.blocked()                           |
+|        w.open(limit)                  w.sense()                             |
 |                                                                              |
 +-----------------------------------------------------------------------------+
                         |
@@ -186,9 +186,9 @@ w.confidence(type)                   // How well we know
 |   +---------------------------------------------------------------------+   |
 |   |                      INFERENCE ENGINE                                |   |
 |   |                                                                      |   |
-|   |   strength >= 50    -->  flow-status = "open"                       |   |
-|   |   strength < 5      -->  flow-status = "fading"                     |   |
-|   |   resist > strength -->  flow-status = "blocked"                    |   |
+|   |   strength >= 50    -->  path-status = "open"                        |   |
+|   |   strength < 5      -->  path-status = "fading"                     |   |
+|   |   resist > strength -->  path-status = "blocked"                    |   |
 |   |   strength > 20     -->  actor status = "proven"                    |   |
 |   |                                                                      |   |
 |   +---------------------------------------------------------------------+   |
@@ -216,10 +216,10 @@ w.confidence(type)                   // How well we know
 2. ASI:  w.confidence('translation') = 0.45  (< 0.7)
          -> No highway, ask LLM
          -> LLM says: "agent-translator-1"
-         -> w.flow('asi', 'agent-translator-1').strengthen(0.5)
+         -> w.drop('asi', 'agent-translator-1', 0.5)
          |
          v
-3. AGENTVERSE: call('agent-translator-1', payload)
+3. AGENTVERSE: call('agent-translator-1', data)
                -> Forward to real agent endpoint
                -> Wait for response
          |
@@ -229,10 +229,10 @@ w.confidence(type)                   // How well we know
          |
          v
 5. AGENTVERSE: Success!
-               -> w.flow('user', 'agent-translator-1').strengthen(1)
+               -> w.drop('user', 'agent-translator-1', 1)
          |
          v
-6. SUBSTRATE: Trail strength increases
+6. SUBSTRATE: Path weight increases
               45.2 + 1 = 46.2
          |
          v
@@ -288,12 +288,12 @@ Latency: First request ~2s, subsequent ~50ms
 |                                                                              |
 |   onEvent('trade', (e) => {                                                 |
 |     e.action === 'buy'                                                      |
-|       ? w.flow(`market`, e.token).strengthen(e.amount)                      |
-|       : w.flow(`market`, e.token).resist(e.amount * 0.5)                    |
+|       ? w.drop(`market`, e.token, e.amount)                                 |
+|       : w.drop(`market`, e.token, e.amount * 0.5)                           |
 |   })                                                                         |
 |                                                                              |
 |   onEvent('invoice:paid', (e) => {                                          |
-|     w.flow(e.payer, e.agent).strengthen(e.amount)                           |
+|     w.drop(e.payer, e.agent, e.amount)                                      |
 |   })                                                                         |
 |                                                                              |
 +-----------------------------------------------------------------------------+
@@ -332,7 +332,7 @@ Latency: First request ~2s, subsequent ~50ms
 +-----------------------------------------------------------------------------+
 
 Each sub-group:
-- Has its own scent map (CONNECTIONS)
+- Has its own path map (PATHS)
 - Learns independently (KNOWLEDGE)
 - Reports highways to parent
 - Can be replaced without affecting others
@@ -354,8 +354,8 @@ Each sub-group:
 
 ```
 src/engine/
-+-- substrate.ts   (70)  -- The runtime (CONNECTIONS layer)
-+-- persist.ts     (40)  -- TypeDB layer (KNOWLEDGE layer)
++-- substrate.ts   (70)  -- The runtime (Paths layer)
++-- persist.ts     (40)  -- TypeDB layer (Knowledge layer)
 +-- llm.ts         (30)  -- Models as actors
 +-- agentverse.ts  (70)  -- Agents as actors
 +-- asi.ts         (70)  -- Orchestrator (routes through world)
@@ -368,7 +368,7 @@ src/schema/
 docs/
 +-- one-ontology.md      -- The 6 dimensions
 +-- world.md             -- The world() interface
-+-- substrate.md         -- How CONNECTIONS work
++-- substrate.md         -- How Paths work
 +-- agent-launch.md      -- Toolkit integration
 +-- the-stack.md         -- All modules
 +-- integration.md       -- This file
@@ -396,16 +396,16 @@ w.actor('translator-1', 'agent', { group: 'acme-agents' })
 w.thing('task-translate', 'task')
 w.thing('token-acme', 'token')
 
-// Connections (dimension 4)
-w.flow('user', 'translator-1').strengthen(1)  // Success
-w.flow('user', 'agent-bad').resist(1)         // Failure
+// Paths (dimension 4)
+w.drop('user', 'translator-1', 1)             // Leave weight on path
+w.fade(0.1)                                   // Decay paths
 
-// Events (dimension 5) - automatic from flows
+// Events (dimension 5) - automatic from signals
 
 // Knowledge (dimension 6) - inferred
 w.best('agent')       // Returns best agent
 w.proven()            // Returns proven actors
-w.open(10)            // Returns open flows
+w.open(10)            // Returns open paths
 w.confidence('task')  // Returns certainty
 
 // Persistence
@@ -432,7 +432,7 @@ await w.load()        // Load from TypeDB
 |   +---------------------------+  |
 |              |                   |
 |   +---------------------------+  |
-|   |  4. Connections (flows)   |  |
+|   |  4. Paths    (weighted)   |  |
 |   +---------------------------+  |
 |              |                   |
 |   +---------------------------+  |
@@ -458,3 +458,14 @@ ONE ontology. Universal integration.
 ---
 
 *ONE ontology. world() interface. Universal integration.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Signal flow from user request to learned highway
+- [the-stack.md](the-stack.md) — Technical layers being integrated
+- [agent-launch.md](agent-launch.md) — AgentLaunch SDK bridge
+- [one-protocol.md](one-protocol.md) — Protocol the substrate serves
+- [substrate-learning.md](substrate-learning.md) — How integration produces learning
+- [typedb.md](typedb.md) — Persistence layer for integrated state

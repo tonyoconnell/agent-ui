@@ -44,7 +44,7 @@ entity node owns id @key, owns kind;  # "agent", "llm", "human", "swarm"
 entity task owns id @key, owns status;
 entity token owns address @key, owns price;
 
-# 4. CONNECTIONS — relationships (where pheromones live)
+# 4. PATHS — connections with weight (where pheromones live)
 relation edge relates source, target, owns weight, owns alarm;
 
 # 5. EVENTS — state changes
@@ -69,15 +69,15 @@ llm(id, complete)           // → entity node, owns kind "llm"
 agent(address)              // → entity node, owns kind "agent"
 
 // 3. THINGS
-envelope({ receiver, payload })  // → not persisted, ephemeral
+signal({ receiver, data })  // → not persisted, ephemeral
 
-// 4. CONNECTIONS
-mark(edge, strength)        // → relation edge, owns weight
+// 4. PATHS
+drop(edge, weight)          // → relation edge, owns weight
 alarm(edge, strength)       // → relation edge, owns alarm
 highways()                  // → match $e isa edge, has status "highway"
 
 // 5. EVENTS
-send(envelope)              // → insert traversal
+signal(signal)              // → insert traversal
 onSuccess/onFailure         // → update traversal, owns success
 
 // 6. KNOWLEDGE
@@ -245,7 +245,7 @@ entity task owns id @key, owns task-type, owns status;
 entity token owns address @key, owns price, owns market-cap, owns holder;
 
 # ─────────────────────────────────────────────────────────────────
-# CONNECTIONS
+# PATHS
 # ─────────────────────────────────────────────────────────────────
 relation edge
     owns eid @key,
@@ -381,3 +381,14 @@ Change the schema, change the behavior.
 ---
 
 *The schema thinks. The code executes.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How inference rules drive path formation and knowledge
+- [one-ontology.md](one-ontology.md) — Biological grounding of the six dimensions
+- [substrate-learning.md](substrate-learning.md) — Ontology as reinforcement learning
+- [typedb.md](typedb.md) — TypeDB 3.0 schema and inference functions
+- [framework.md](framework.md) — How UI consumes ontology queries
+- [one-protocol.md](one-protocol.md) — Protocol built on this ontology

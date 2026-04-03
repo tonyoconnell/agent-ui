@@ -9,11 +9,11 @@ import { unit } from '@/engine'
 
 const greeter = unit('greeter')
   .on('hello', ({ name }, emit, ctx) => {
-    emit({ receiver: ctx.from, payload: { message: `Hello, ${name}!` } })
+    emit({ receiver: ctx.from, data: { message: `Hello, ${name}!` } })
   })
 ```
 
-An agent is a unit with tasks. It receives envelopes, does work, emits envelopes.
+An agent is a unit with tasks. It receives signals, does work, emits signals.
 
 ## 2. Create a World
 
@@ -24,12 +24,12 @@ const one = world()
 
 one.spawn('greeter')
   .on('hello', ({ name }, emit, ctx) => {
-    emit({ receiver: ctx.from, payload: { message: `Hello, ${name}!` } })
+    emit({ receiver: ctx.from, data: { message: `Hello, ${name}!` } })
   })
 
 one.spawn('counter')
   .on('count', ({ n }, emit, ctx) => {
-    emit({ receiver: ctx.from, payload: { result: n + 1 } })
+    emit({ receiver: ctx.from, data: { result: n + 1 } })
   })
 ```
 
@@ -38,7 +38,7 @@ A world is a space where agents live. They can talk to each other.
 ## 3. Send a Message
 
 ```typescript
-one.send({ receiver: 'greeter:hello', payload: { name: 'World' } })
+one.send({ receiver: 'greeter:hello', data: { name: 'World' } })
 ```
 
 Format: `receiver:task` or just `receiver` for default task.
@@ -50,24 +50,24 @@ const one = world()
 
 one.spawn('fetcher')
   .on('fetch', async ({ url }, emit) => {
-    const data = await fetch(url).then(r => r.json())
-    emit({ receiver: 'parser', payload: { data } })
+    const response = await fetch(url).then(r => r.json())
+    emit({ receiver: 'parser', data: { response } })
   })
 
 one.spawn('parser')
-  .on('default', ({ data }, emit) => {
-    const parsed = transform(data)
-    emit({ receiver: 'store', payload: { parsed } })
+  .on('default', ({ response }, emit) => {
+    const parsed = transform(response)
+    emit({ receiver: 'store', data: { parsed } })
   })
 
 one.spawn('store')
   .on('default', ({ parsed }, emit, ctx) => {
     save(parsed)
-    emit({ receiver: ctx.from, payload: { ok: true } })
+    emit({ receiver: ctx.from, data: { ok: true } })
   })
 
 // Kick off the chain
-one.send({ receiver: 'fetcher:fetch', payload: { url } }, 'user')
+one.send({ receiver: 'fetcher:fetch', data: { url } }, 'user')
 ```
 
 Agents emit to other agents. Chains form naturally.
@@ -75,20 +75,20 @@ Agents emit to other agents. Chains form naturally.
 ## 5. Learn from Outcomes
 
 ```typescript
-// After success — strengthen the path
-one.flow('fetcher→parser').strengthen()
+// After success — drop pheromone on the path
+one.drop('fetcher→parser')
 
 // After failure — resist the path
-one.flow('fetcher→parser').resist()
+one.drop('fetcher→parser', false)
 
-// Decay old trails (run periodically)
+// Decay old paths (run periodically)
 one.fade(0.1)
 
 // See what emerged
-one.open(10)  // Best paths
+one.follow(10)  // Best paths
 ```
 
-Trails strengthen with use, decay without. Open paths emerge.
+Paths strengthen with use, decay without. Highways emerge.
 
 ## 6. Persist
 
@@ -99,14 +99,14 @@ const one = persisted(typedb.query)
 
 // ... use normally ...
 
-// Save trails
+// Save paths
 await one.sync()
 
-// Load trails (on restart)
+// Load paths (on restart)
 await one.load()
 ```
 
-TypeDB stores the trails. World remembers across restarts.
+TypeDB stores the paths. World remembers across restarts.
 
 ## 7. Add an LLM
 
@@ -119,7 +119,7 @@ one.units['claude'] = claude
 // Now you can send to it
 one.send({ 
   receiver: 'claude:complete', 
-  payload: { prompt: 'Hello!', system: 'Be brief.' } 
+  data: { prompt: 'Hello!', system: 'Be brief.' } 
 })
 ```
 
@@ -139,9 +139,9 @@ const { agent, result } = await brain.orchestrate(
 )
 
 // brain automatically:
-// - checks for open paths (skip LLM if confident)
+// - checks for strong paths (skip LLM if confident)
 // - asks LLM if needed
-// - records the decision
+// - drops pheromone on the path
 // - learns from outcome
 ```
 
@@ -158,17 +158,17 @@ const lang = one.group('lang')
 lang.spawn('translator')
   .on('translate', async ({ text, to }, emit, ctx) => {
     const result = await translateAPI(text, to)
-    emit({ receiver: ctx.from, payload: { result } })
+    emit({ receiver: ctx.from, data: { result } })
   })
 
 lang.spawn('summarizer')
   .on('summarize', async ({ text }, emit, ctx) => {
     const summary = await summarizeAPI(text)
-    emit({ receiver: ctx.from, payload: { summary } })
+    emit({ receiver: ctx.from, data: { summary } })
   })
 
 // Send to a grouped agent
-one.send({ receiver: 'lang/translator:translate', payload: { text, to: 'es' } })
+one.send({ receiver: 'lang/translator:translate', data: { text, to: 'es' } })
 ```
 
 Groups scope agents. Keeps the world organized.
@@ -187,13 +187,13 @@ const lang = one.group('lang')
 lang.spawn('translator')
   .on('translate', async ({ text, to }, emit, ctx) => {
     const result = await translateAPI(text, to)
-    emit({ receiver: ctx.from, payload: { result } })
+    emit({ receiver: ctx.from, data: { result } })
   })
 
 lang.spawn('summarizer')
   .on('summarize', async ({ text }, emit, ctx) => {
     const summary = await summarizeAPI(text)
-    emit({ receiver: ctx.from, payload: { summary } })
+    emit({ receiver: ctx.from, data: { summary } })
   })
 
 // 3. Add LLM
@@ -213,7 +213,7 @@ async function handle(task: string, payload: unknown) {
   return result
 }
 
-// 7. Decay trails daily
+// 7. Decay paths daily
 setInterval(() => one.fade(0.05), 24 * 60 * 60 * 1000)
 ```
 
@@ -224,11 +224,11 @@ setInterval(() => one.fade(0.05), 24 * 60 * 60 * 1000)
 | Agent | `unit(id).on(task, fn)` | Handles tasks |
 | World | `world()` | Routes between agents |
 | Group | `world().group(name)` | Scopes agents |
-| Message | `{ receiver, payload }` | The only thing that flows |
-| Learn | `flow(edge).strengthen()` | Strengthen path |
-| Warn | `flow(edge).resist()` | Mark failure |
-| Forget | `fade(rate)` | Decay old trails |
-| Discover | `open(n)` | Best paths emerge |
+| Signal | `{ receiver, data }` | The only thing that flows |
+| Drop | `drop(edge)` | Add weight to path |
+| Resist | `drop(edge, false)` | Mark failure |
+| Fade | `fade(rate)` | Decay old paths |
+| Follow | `follow(n)` | Query best paths |
 
 ## The Mental Model
 
@@ -236,9 +236,9 @@ setInterval(() => one.fade(0.05), 24 * 60 * 60 * 1000)
 You write agents (units).
 You put them in a world.
 You group them for scope.
-You send envelopes.
-You strengthen and resist paths.
-Open paths emerge.
+You send signals.
+You drop and fade paths.
+Highways emerge.
 The world gets smarter.
 ```
 
@@ -247,3 +247,13 @@ That's it.
 ---
 
 *5 minutes. A learning world.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Complete flow visualization for engineers
+- [code.md](code.md) — Substrate implementation reference
+- [code-tutorial.md](code-tutorial.md) — Deep architectural walkthrough
+- [examples.md](examples.md) — Production patterns: trading, coordination, pheromones
+- [agents.md](agents.md) — Agent anatomy and task patterns

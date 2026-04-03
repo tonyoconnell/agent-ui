@@ -3,7 +3,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                                                                 │
-│   ONE Ontology.  6 Dimensions.  TypeDB 3.0.                     │
+│   ONE Ontology.  6 Dimensions.  6 Lessons.  TypeDB 3.0.         │
 │                                                                 │
 │   Groups → Actors → Things → Connections → Events → Knowledge   │
 │                                                                 │
@@ -20,15 +20,17 @@ TypeDB is the substrate. TypeScript is the pulse.
 
 The **ONE Ontology** organizes reality into 6 dimensions. TypeDB stores the structure. Inference rules derive knowledge. The pulse moves signals through.
 
+The **6 Lessons** from ants-at-work add intelligence layers:
+
 ```
-Dimension        What It Holds              TypeDB
-─────────────────────────────────────────────────────
-1. Groups        Swarms, hierarchies        entity swarm
-2. Actors        Units that process         entity unit
-3. Things        Tasks, capabilities        entity task
-4. Connections   Weighted edges             relation edge
-5. Events        Signals that flowed        relation signal
-6. Knowledge     Emerges from inference     fun highways()
+Dimension        What It Holds              TypeDB                Lesson
+───────────────────────────────────────────────────────────────────────────
+1. Groups        Swarms, hierarchies        entity swarm          —
+2. Actors        Units that process         entity unit           L1: Classification
+3. Things        Tasks, capabilities        entity task           L4: Task Allocation
+4. Connections   Weighted edges             relation edge         L2: Quality Rules
+5. Events        Signals that flowed        relation signal       L5: Contribution
+6. Knowledge     Emerges from inference     fun highways()        L3+L6: Hypothesis + Emergence
 ```
 
 ---
@@ -682,4 +684,68 @@ What emerges without being programmed:
 
 ---
 
-*ONE Ontology. TypeDB 3.0. The substrate for AI agent economies.*
+## Files
+
+```
+src/schema/
+├── substrate.tql              # Integrated schema (~280 lines)
+│                              # 6 dimensions + 6 lessons + inference + functions
+├── one.tql                    # Pure 6-dimension ontology (~150 lines)
+├── unified.tql                # Legacy production schema (~100 lines)
+├── sui.tql                    # Sui Move contracts as TypeQL
+└── metaphors.tql              # Universal metaphor functions
+
+packages/typedb-inference-patterns/
+├── standalone/                # Individual lesson TQL files
+│   ├── classification.tql     # L1: Multi-attribute tier detection
+│   ├── quality-rules.tql      # L2: Automatic quality bands
+│   ├── hypothesis-lifecycle.tql  # L3: State machines via inference
+│   ├── task-management.tql    # L4: Negation + pheromone selection
+│   ├── contribution-tracking.tql # L5: Aggregates + synergy
+│   └── autonomous-goals.tql   # L6: Frontier detection + goal spawning
+├── runtime/
+│   └── colony.ts              # 70-line substrate implementing all 6 lessons
+├── SUBSTRATE-MAPPING.md       # TypeDB ↔ Substrate architecture
+├── ECONOMICS.md               # FET token model + pheromone costs
+├── SWARMS.md                  # Dynamic swarm formation patterns
+├── LOOPS.md                   # Deterministic + probabilistic inference
+├── LIFECYCLE.md               # State machines for all entity types
+└── OPERATIONS.md              # Complete WRITE operations reference
+```
+
+## The 6 Lessons
+
+| # | Lesson | Pattern | TypeDB | Substrate |
+|---|--------|---------|--------|-----------|
+| 1 | **Perception** | Classification | `fun elite_units()` | `.on('classify')` |
+| 2 | **Homeostasis** | Quality bands | `rule high-quality` | `.on('validate')` |
+| 3 | **Hypothesis** | State machine | `rule hypothesis-action-ready` | `.on('observe')` |
+| 4 | **Task Allocation** | Negation + pheromone | `fun ready_tasks()` | `.on('query-ready')` |
+| 5 | **Contribution** | Aggregates | `fun total_contribution()` | `.on('record')` |
+| 6 | **Emergence** | Autonomous goals | `fun promising_frontiers()` | `.on('detect-frontier')` |
+
+Each lesson maps to biology (Deborah Gordon, "Ant Encounters"):
+
+```
+L1 Perception     = Ants reading cuticular hydrocarbons (chemical ID)
+L2 Homeostasis    = Response thresholds (different ants switch at different rates)
+L3 Hypothesis     = Probabilistic task switching (accumulate evidence → transition)
+L4 Task Allocation = Foraging without instructions (negation: "what ISN'T being done?")
+L5 Contribution   = Interaction rates measuring flow (aggregate pheromone)
+L6 Emergence      = Colony-level adaptation (no ant decides, goals emerge)
+```
+
+---
+
+*ONE Ontology. 6 Lessons. TypeDB 3.0. The substrate for AI agent economies.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How paths and highways persist through TypeDB
+- [ontology.md](ontology.md) — Inference rules driving system behavior
+- [one-ontology.md](one-ontology.md) — Six dimensions stored in TypeDB schema
+- [substrate-learning.md](substrate-learning.md) — Learning model TypeDB persists
+- [integration.md](integration.md) — TypeDB's role in the full system
+- [the-stack.md](the-stack.md) — TypeDB as one of two fires

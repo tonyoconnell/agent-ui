@@ -1,0 +1,478 @@
+# typedb-inference-patterns
+
+Learn TypeDB 3.0 inference by building. 7 merged lessons. Production-tested.
+
+**These aren't just patterns. This is the DNA of a self-organizing colony.**
+
+The 6 lessons form a complete loop that bootstraps emergent intelligence. Each lesson answers one fundamental question every agent must ask. Together, they create a system that learns, adapts, and evolves without central control.
+
+> *"The task an ant is performing depends not on any property of the individual ant, but on what the ant has experienced recently."* — Deborah Gordon
+
+---
+
+## The Colony Loop
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                          │
+│                           THE COLONY LOOP                                               │
+│                                                                                          │
+│   ┌──────────────┐                                                                      │
+│   │              │                                                                      │
+│   │   GENESIS    │  ← You start here. One agent. One schema.                           │
+│   │              │                                                                      │
+│   └──────┬───────┘                                                                      │
+│          │                                                                              │
+│          ▼                                                                              │
+│   ┌──────────────┐                                                                      │
+│   │              │                                                                      │
+│   │  PERCEPTION  │  Agent has attributes → Functions classify it                       │
+│   │   (L1)       │  "What am I? What tier? What caste?"                                │
+│   │              │  elite_items(), at_risk_items(), identify_elites()                  │
+│   └──────┬───────┘                                                                      │
+│          │                                                                              │
+│          ▼                                                                              │
+│   ┌──────────────┐                                                                      │
+│   │              │                                                                      │
+│   │ HOMEOSTASIS  │  Rules reject invalid states                                        │
+│   │   (L2)       │  "Am I allowed to exist like this?"                                 │
+│   │              │  prevent_zombie_agents, physics_conservation                        │
+│   └──────┬───────┘                                                                      │
+│          │                                                                              │
+│          ▼                                                                              │
+│   ┌──────────────┐                                                                      │
+│   │              │                                                                      │
+│   │  HYPOTHESIS  │  Agent accumulates observations → State transitions                 │
+│   │   (L3)       │  "What do I believe? Is it confirmed?"                              │
+│   │              │  pending → testing → confirmed (via inference)                      │
+│   └──────┬───────┘                                                                      │
+│          │                                                                              │
+│          ▼                                                                              │
+│   ┌──────────────┐                                                                      │
+│   │              │                                                                      │
+│   │    TASK      │  Agent senses available work (negation)                             │
+│   │ ALLOCATION   │  Follows pheromone trails to attractive tasks                       │
+│   │   (L4)       │  ready_tasks(), attractive_tasks(), exploratory_tasks()             │
+│   │              │                                                                      │
+│   └──────┬───────┘                                                                      │
+│          │                                                                              │
+│          ▼                                                                              │
+│   ┌──────────────┐                                                                      │
+│   │              │                                                                      │
+│   │CONTRIBUTION  │  Agent completes work → Impact measured                             │
+│   │   (L5)       │  "How much did I contribute?"                                       │
+│   │              │  total_contribution(), elite_contributors()                         │
+│   └──────┬───────┘                                                                      │
+│          │                                                                              │
+│          ▼                                                                              │
+│   ┌──────────────┐                                                                      │
+│   │              │                                                                      │
+│   │  EMERGENCE   │  Curiosity signals fire → New frontiers detected                    │
+│   │   (L6)       │  Objectives spawn AUTONOMOUSLY                                      │
+│   │              │  promising_frontiers() → spawn objective                            │
+│   └──────┬───────┘                                                                      │
+│          │                                                                              │
+│          │         ╔════════════════════════════════════════════╗                       │
+│          └────────▶║  NEW OBJECTIVE = NEW ENTITY                ║                       │
+│                    ║  ...which needs to be CLASSIFIED (L1)      ║                       │
+│                    ╚════════════════════════════════════════════╝                       │
+│                              │                                                          │
+│                              ▼                                                          │
+│                    ┌──────────────┐                                                     │
+│                    │              │                                                     │
+│                    │  PERCEPTION  │  ← THE LOOP CLOSES                                 │
+│                    │   (L1)       │                                                     │
+│                    │              │                                                     │
+│                    └──────────────┘                                                     │
+│                                                                                          │
+│   EACH CYCLE:                                                                           │
+│   • Pheromone trails get reinforced (success) or alarmed (failure)                     │
+│   • Contribution ranks update                                                           │
+│   • New hypotheses spawn from observations                                              │
+│   • Frontiers get exhausted or spawn new objectives                                     │
+│   • THE COLONY LEARNS                                                                   │
+│                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## The Six Laws of the Colony
+
+| Lesson | Law | Question | What It Provides |
+|--------|-----|----------|------------------|
+| **L1** | Perception | "What am I?" | **IDENTITY** |
+| **L2** | Homeostasis | "Am I allowed to exist?" | **VALIDITY** |
+| **L3** | Hypothesis | "What do I believe?" | **LEARNING** |
+| **L4** | Task Allocation | "What should I do?" | **WORK** |
+| **L5** | Contribution | "What have I done?" | **VALUE** |
+| **L6** | Emergence | "What should we do next?" | **PURPOSE** |
+
+**That's it.** Those six questions, answered by inference, create a complete self-organizing system.
+
+Every agent asks these questions. Every tick. The answers come from the graph. The graph is modified by agents. **The loop is the intelligence.**
+
+---
+
+## The Concrete Sequence
+
+```
+TICK 0: Genesis
+────────────────
+INSERT agent-001 (energy: 50, contribution: 0, reliability: 0.5)
+
+TICK 1: Perception (L1)
+────────────────────────
+QUERY: match let $a in identify_elites(); ...
+RESULT: agent-001 NOT elite (doesn't meet thresholds)
+INFERRED: agent-001 is "worker" caste
+
+TICK 2: Homeostasis (L2)
+─────────────────────────
+RULE: prevent_zombie_agents
+CHECK: energy=50 > 0, reliability=0.5 > 0.5? NO
+RESULT: agent-001 is VALID (not a zombie)
+
+TICK 3: Hypothesis (L3)
+────────────────────────
+agent-001 has hypothesis: "Task X will succeed"
+observations_count: 5 → status: "pending"
+observations_count: 15 → RULE FIRES → status: "testing"
+
+TICK 4: Task Allocation (L4)
+─────────────────────────────
+QUERY: match let $t in ready_tasks(); ...
+RESULT: [task-A, task-B, task-C]
+
+QUERY: match let $t in attractive_tasks(); ...
+RESULT: [task-A] (has strong pheromone trail)
+
+agent-001 SELECTS task-A (following the trail)
+
+TICK 5: Execution
+──────────────────
+agent-001 PERFORMS task-A
+OUTCOME: SUCCESS
+→ energy -= 10 (work costs energy)
+→ contribution += 1
+→ trail A→B reinforced (+5.0 pheromone)
+
+TICK 6: Contribution (L5)
+──────────────────────────
+QUERY: match let $total = total_contribution("agent-001"); ...
+RESULT: 1.0
+
+RULE: contribution >= 100 → rank = "elite"
+agent-001 rank: "occasional" (only 1 contribution so far)
+
+TICK 7: Emergence (L6)
+───────────────────────
+CURIOSITY SIGNAL: "gap_detected" (task-D has no trail)
+→ exploratory_tasks() returns [task-D]
+
+FRONTIER: "task-D area" detected
+→ expected_value = 0.6 (high potential, low cost)
+→ RULE FIRES: spawn exploration objective
+
+NEW OBJECTIVE SPAWNED: "explore-task-D"
+
+TICK 8: LOOP CLOSES → Perception (L1)
+──────────────────────────────────────
+NEW ENTITY: objective "explore-task-D"
+→ Needs classification
+→ What priority? What status?
+→ Functions run...
+
+TICK 9+: The Colony Grows
+──────────────────────────
+• More agents spawn
+• More tasks get discovered
+• Pheromone network densifies
+• Superhighways emerge
+• Contribution ranks stratify
+• Hypotheses confirm/reject
+• Frontiers exhaust → new frontiers spawn
+• INTELLIGENCE EMERGES
+```
+
+---
+
+## What Makes This Different
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                          │
+│   TRADITIONAL SYSTEM                    │    THIS COLONY                                │
+│   ──────────────────                    │    ───────────                                │
+│                                         │                                               │
+│   Human writes rules                    │    Rules ARE the physics                     │
+│   Human assigns tasks                   │    Tasks attract via pheromones              │
+│   Human measures contribution           │    Contribution auto-aggregates              │
+│   Human decides next goal               │    Goals SPAWN from curiosity                │
+│   Human updates status                  │    Status INFERRED from state                │
+│   Human scales manually                 │    Colony scales infinitely                  │
+│                                         │                                               │
+│   Central control                       │    NO CONTROL                                │
+│   Single point of failure               │    Resilient (any agent can die)            │
+│   Requires orchestration                │    Self-organizing                           │
+│   Knowledge in code                     │    Knowledge in the GRAPH                    │
+│                                         │                                               │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Installation
+
+```bash
+pip install typedb-inference-patterns
+```
+
+Or clone directly:
+
+```bash
+git clone https://github.com/ants-at-work/typedb-inference-patterns
+```
+
+---
+
+## The Lessons
+
+Each lesson contains **biology + concepts + TypeQL code** in one self-contained file.
+
+| # | Lesson | Theme | Pattern | Difficulty |
+|---|--------|-------|---------|------------|
+| 0 | [Philosophy](lessons/00-philosophy.md) | The Emergence Thesis | — | — |
+| 1 | [Perception](lessons/01-perception.md) | Chemical Signaling | Classification | Beginner |
+| 2 | [Homeostasis](lessons/02-homeostasis.md) | Immune System | Quality Rules | Beginner+ |
+| 3 | [Hypothesis](lessons/03-hypothesis.md) | Task Switching | State Machines | Intermediate |
+| 4 | [Task Allocation](lessons/04-task-allocation.md) | Pheromone Logic | Negation | Intermediate |
+| 5 | [Contribution](lessons/05-contribution.md) | Interaction Rates | Aggregates | Intermediate+ |
+| 6 | [Emergence](lessons/06-emergence.md) | Superorganism | Autonomous Goals | Advanced |
+
+---
+
+## Quick Start
+
+### Read a lesson (concepts + code together)
+
+```bash
+cat lessons/01-perception.md
+```
+
+### Load standalone TypeQL
+
+```bash
+typedb console --cloud your-cluster.typedb.com:80
+> transaction my-db schema write
+> source standalone/classification.tql
+> commit
+```
+
+### Query inferred facts
+
+```typeql
+# Functions are called explicitly:
+match let $e in elite_items(); $e has item-name $n; select $n;
+
+# Rules fire automatically:
+match $item isa scored-item, has item-tier "elite"; select $item;
+```
+
+---
+
+## Key Patterns
+
+### 1. Multi-Attribute Classification (Lesson 1)
+
+```typeql
+fun elite_items() -> { scored-item }:
+    match
+        $e isa scored-item,
+            has success-rate $sr,
+            has activity-score $as;
+        $sr >= 0.75;
+        $as >= 70.0;
+    return { $e };
+```
+
+### 2. Quality Rules with Chaining (Lesson 2)
+
+```typeql
+rule high-quality:
+    when { $r has effectiveness $e; $e >= 0.7; }
+    then { $r has quality-label "high"; };
+
+rule cascade-detected:
+    when {
+        $source has quality-label "high";  # inferred above
+        ($source, $derived) isa learning-chain;
+        $derived has quality-label "high";
+    } then {
+        $source has cascade-potential true;
+    };
+```
+
+### 3. Negation — "Ready" Detection (Lesson 4)
+
+```typeql
+fun ready_tasks() -> { task }:
+    match
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $b) isa dependency;
+            $b isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+    return { $t };
+```
+
+### 4. Pheromone-Weighted Selection (Lesson 4)
+
+```typeql
+rule attractive-task:
+    when {
+        $t isa task, has status "todo";
+        $trail (destination-task: $t) isa pheromone-trail,
+            has trail-pheromone $tp;
+        $tp >= 50.0;
+    } then {
+        $t has attractive true;
+    };
+```
+
+### 5. Parameterized Aggregates (Lesson 5)
+
+```typeql
+fun total_contribution($name: string) -> double:
+    match
+        $c isa contributor, has contributor-name $name;
+        $rel (contributor-role: $c, contribution-item: $contrib) isa contribution;
+        $contrib has impact-score $i;
+    return sum($i);
+```
+
+---
+
+## Domain Examples
+
+Apply the patterns to real problems:
+
+| Domain | File | Patterns Used |
+|--------|------|--------------|
+| E-Commerce | `examples/ecommerce.tql` | Classification + Quality Rules |
+| IoT Monitoring | `examples/iot-monitoring.tql` | Classification + Hypothesis |
+| Social Network | `examples/social-network.tql` | Quality Rules + Contribution |
+| Supply Chain | `examples/supply-chain.tql` | Negation + Classification |
+
+---
+
+## The Biology
+
+These patterns implement actual ant colony mechanisms from Deborah Gordon's research:
+
+```
+Individual ant encounters nestmates performing tasks
+    → Chemical signature identifies the task type        (Lesson 1)
+    → Encounter rate crosses individual threshold        (Lesson 2)
+    → Probabilistic state transition occurs              (Lesson 3)
+    → Ant finds available work (no blockers)             (Lesson 4)
+    → Colony measures demand by interaction frequency    (Lesson 5)
+    → Collective behavior emerges without instructions   (Lesson 6)
+```
+
+**Reference:** [ants-at-work.com/book/2/](https://ants-at-work.com/book/2/)
+
+---
+
+## Directory Structure
+
+```
+typedb-inference-patterns/
+├── pyproject.toml              # Python packaging
+├── README.md                   # This file
+├── LICENSE                     # MIT
+│
+├── lessons/                    # 7 merged lessons (concepts + code)
+│   ├── README.md               # Learning path overview
+│   ├── 00-philosophy.md        # The emergence thesis
+│   ├── 01-perception.md        # Classification
+│   ├── 02-homeostasis.md       # Quality rules
+│   ├── 03-hypothesis.md        # State machines
+│   ├── 04-task-allocation.md   # Negation + pheromones
+│   ├── 05-contribution.md      # Aggregates
+│   └── 06-emergence.md         # Autonomous goals
+│
+├── standalone/                 # Pure TQL for direct loading
+│   ├── classification.tql
+│   ├── quality-rules.tql
+│   ├── hypothesis-lifecycle.tql
+│   ├── task-management.tql
+│   ├── contribution-tracking.tql
+│   └── autonomous-goals.tql
+│
+├── examples/                   # Domain applications
+│   ├── ecommerce.tql
+│   ├── iot-monitoring.tql
+│   ├── social-network.tql
+│   └── supply-chain.tql
+│
+└── docs/
+    └── extended-mind-ai.md     # Architecture essay
+```
+
+---
+
+## TypeDB 3.0 Syntax
+
+| Feature | 3.0 Syntax | NOT 2.x |
+|---------|-----------|---------|
+| Functions | `fun name() -> type:` | ~~`rule name: when {} then {}`~~ |
+| Rules | `rule name: when { } then { };` | Same keyword, updated syntax |
+| Integers | `value integer` | ~~`value long`~~ |
+| Delete | `delete $attr of $entity;` | ~~`delete $entity has attr $attr;`~~ |
+
+---
+
+## The Core Insight
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│   Everyone has agents. No one has emergence.                                │
+│                                                                              │
+│   We're not building intelligence.                                          │
+│   We're building the CONDITIONS where intelligence evolves.                  │
+│                                                                              │
+│   The substrate is our habitat.                                             │
+│   Intelligence is our harvest.                                              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Requirements
+
+- TypeDB Cloud or Community 3.0+
+- TypeDB Console or any TypeDB driver (Python, Java, Node.js, Rust)
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)
+
+---
+
+## Contributing
+
+Built by [Ants at Work](https://antsatwork.io). Issues, PRs, and new domain examples welcome.
+
+---
+
+## Further Reading
+
+- [Chapter 2: Task Allocation Without Instructions](https://ants-at-work.com/book/2/)
+- `docs/extended-mind-ai.md` — How TypeDB serves as the colony's externalized mind
+- `lessons/00-philosophy.md` — The emergence thesis

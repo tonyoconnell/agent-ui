@@ -9,21 +9,23 @@ Apply to `src/engine/*.ts`
 ```
 70 lines.  Zero returns.  Two fields.
 
-{ receiver, payload }
+{ receiver, data }
 
 That's all that flows.
 ```
 
 ---
 
-## Envelope
+## Signal
 
 ```typescript
-type Envelope = {
+type Signal = {
   receiver: string      // "unit" or "unit:task"
-  payload?: unknown     // anything
+  data?: unknown     // anything
 }
 ```
+
+The universal primitive. Ants drop chemical signals. Neurons fire electrical signals. Agents move digital signals.
 
 ---
 
@@ -42,10 +44,10 @@ unit(id, route?)
 ### Task Signature
 
 ```typescript
-(payload, emit, ctx) => result
+(data, emit, ctx) => result
 
-payload   // the data
-emit      // (envelope) => void — fan out
+data   // the data
+emit      // (signal) => void — fan out
 ctx       // { from: string, self: string }
 ```
 
@@ -56,11 +58,12 @@ ctx       // { from: string, self: string }
 ```typescript
 colony()
   .spawn(id)              // create unit
-  .send(envelope, from?)  // flow signal
-  .mark(edge, strength?)  // strengthen edge
-  .smell(edge)            // read weight
-  .fade(rate?)            // decay all edges
-  .highways(limit?)       // top edges
+  .signal(signal, from?)  // move signal through world
+  .drop(edge, weight?)    // leave weight on path (pheromone)
+  .follow(type)           // traverse weighted path to best
+  .sense(edge)            // read weight
+  .fade(rate?)            // decay all paths
+  .highways(limit?)       // top weighted paths
   .has(id)                // introspection
   .list()                 // introspection
   .get(id)                // direct access
@@ -74,12 +77,12 @@ Positive flow only. Silence is valid.
 
 ```typescript
 // GOOD
-task?.(payload, emit, ctx).then(result =>
+task?.(data, emit, ctx).then(result =>
   next[name] && route?.(next[name](result), receiver)
 )
 
 // GOOD
-target && (mark(edge), target(env))
+target && (drop(edge), target(sig))
 
 // BAD
 if (!task) return reject(...)
@@ -97,24 +100,25 @@ Defined at setup, not at send:
 ```typescript
 // Setup
 .on('observe', ({ tick }) => ({ data: tick }))
-.then('observe', r => ({ receiver: 'analyst', payload: r }))
+.then('observe', r => ({ receiver: 'analyst', data: r }))
 
-// Send (minimal)
-{ receiver: 'scout:observe', payload: { tick: 42 } }
+// Signal (minimal)
+{ receiver: 'scout:observe', data: { tick: 42 } }
 ```
 
 Templates are functions. Full control.
 
 ---
 
-## Context Flow
+## Signal Flow
 
 ```
-send(env, from='entry')
-  → unit(env, from)
-    → task(payload, emit, {from, self})
-      → emit(env)  // carries self as new from
-        → send(env, from=self)
+signal(sig, from='entry')
+  → unit(sig, from)
+    → task(data, emit, {from, self})
+      → emit(sig)  // carries self as new from
+        → signal(sig, from=self)
+          → drop(edge)  // path remembers
 ```
 
 Concurrency safe. No global state.
@@ -127,11 +131,11 @@ Concurrency safe. No global state.
 
 ```typescript
 .on('ask', ({ q }, emit, { self }) => {
-  emit({ receiver: 'oracle', payload: { q, replyTo: self } })
+  emit({ receiver: 'oracle', data: { q, replyTo: self } })
 })
 
 .on('answer', ({ q, replyTo }, emit) => {
-  emit({ receiver: replyTo, payload: { a: compute(q) } })
+  emit({ receiver: replyTo, data: { a: compute(q) } })
 })
 ```
 
@@ -140,7 +144,7 @@ Concurrency safe. No global state.
 ```typescript
 .on('claim', ({ id }, emit, { from }) => {
   !claims[id] && (claims[id] = from,
-    emit({ receiver: from, payload: { claimed: id } }))
+    emit({ receiver: from, data: { claimed: id } }))
 })
 ```
 
@@ -151,7 +155,7 @@ Concurrency safe. No global state.
   bal[from] >= amount && (
     bal[from] -= amount,
     bal[to] += amount,
-    emit({ receiver: to, payload: { received: amount } }))
+    emit({ receiver: to, data: { received: amount } }))
 })
 ```
 
@@ -160,7 +164,7 @@ Concurrency safe. No global state.
 ```typescript
 .on('ingest', async ({ url }, emit) => {
   const s = await connect(url)
-  s.on('data', d => emit({ receiver: 'process', payload: d }))
+  s.on('data', d => emit({ receiver: 'process', data: d }))
 })
 ```
 
@@ -170,11 +174,11 @@ Concurrency safe. No global state.
 
 ```typescript
 import { colony, unit } from "@/engine/substrate"
-import type { Colony, Unit, Envelope, Emit } from "@/engine/substrate"
+import type { Colony, Unit, Signal, Emit } from "@/engine/substrate"
 
 // Aliases
-import { swarm, atom } from "@/engine"
-import type { Swarm, Atom, Signal } from "@/engine"
+import { world, actor } from "@/engine"
+import type { World, Actor } from "@/engine"
 ```
 
 ---
@@ -182,18 +186,18 @@ import type { Swarm, Atom, Signal } from "@/engine"
 ## The Loop
 
 ```
-REINFORCE              DECAY
-    │                     │
-    ▼                     ▼
-edge++               edge *= 0.9
-    │                     │
-    ▼                     ▼
-more traffic         reroute
-    │                     │
-    ▼                     ▼
-HIGHWAY              delete
+DROP                   FADE
+  │                     │
+  ▼                     ▼
+weight++           weight *= 0.95
+  │                     │
+  ▼                     ▼
+more signals       reroute
+  │                     │
+  ▼                     ▼
+HIGHWAY            dissolve
 ```
 
 ---
 
-*70 lines. The substrate.*
+*Signal. Drop. Follow. Fade. Highway. 70 lines.*

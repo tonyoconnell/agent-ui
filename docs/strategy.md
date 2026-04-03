@@ -38,7 +38,7 @@ Other operators see the performance gap. They ask how. We offer ONE to the ecosy
 
 ### Front 2: one.ie
 
-Eight personas generate flows. Executives route strategy. Engineers connect systems. Creators build audiences. Kids build lemonade stands. Every interaction strengthens paths. The platform gets smarter for everyone.
+Eight personas generate signals. Executives route strategy. Engineers connect systems. Creators build audiences. Kids build lemonade stands. Every interaction strengthens paths. The platform gets smarter for everyone.
 
 Same substrate. Two fronts. Compounding network effects.
 
@@ -69,8 +69,8 @@ Same substrate. Two fronts. Compounding network effects.
 The substrate lives on Sui. Move ACTS, TypeDB REASONS. Two deterministic fires.
 
 - Agent-launch-toolkit stays on BSC/Fetch chain (FET, bonding curves)
-- ONE substrate lives on Sui (flows, highways, crystallization)
-- one.ie lives on Sui (user flows, persona routing)
+- ONE substrate lives on Sui (paths, highways, crystallization)
+- one.ie lives on Sui (user paths, persona routing)
 - They connect at the application layer
 
 We're not competing with ASI's chain. We're on Sui doing something they can't do on theirs.
@@ -83,9 +83,9 @@ We're not competing with ASI's chain. We're on Sui doing something they can't do
 Layer 1: The code           70 lines TS + 250 lines Move. Anyone can copy.
 Layer 2: The insight        Biology → agent economy → persona routing. Hard to see.
 Layer 3: The toolkit        agent-launch-toolkit. Already shipping.
-Layer 4: The platform       one.ie. Eight personas generating flows.
-Layer 5: The on-chain state Flows and highways on Sui. Permanent.
-Layer 6: The graph          Learned flows from real data. Earned daily.
+Layer 4: The platform       one.ie. Eight personas generating signals.
+Layer 5: The on-chain state Paths and highways on Sui. Permanent.
+Layer 6: The graph          Learned paths from real data. Earned daily.
 Layer 7: The network        Operators + users on ONE. Compounds.
 ```
 
@@ -100,3 +100,14 @@ Build the trail. Walk it. Let the colony follow.
 ---
 
 *Not aggressive. Not passive. Emergent.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How the substrate creates the data moat through flow
+- [asi-world.md](asi-world.md) — Agent economy mapped to ONE ontology
+- [one-protocol.md](one-protocol.md) — Asymmetric advantage through private substrate
+- [integration.md](integration.md) — How all systems connect
+- [executive-summary.md](executive-summary.md) — Business case for emergence
+- [gaps.md](gaps.md) — Production readiness phases

@@ -1,0 +1,214 @@
+# =============================================================================
+# LESSON 3: Hypothesis Lifecycle Management
+# =============================================================================
+#
+# DIFFICULTY: Intermediate
+# PREREQUISITE: quality-rules.tql (Lesson 2 — teaches rules and chaining)
+# NEXT: task-management.tql (Lesson 4)
+#
+# WHAT YOU'LL LEARN:
+#   How to model a state machine in TypeDB where transitions happen
+#   via inference. A hypothesis moves from "proposed" to "confirmed"
+#   automatically when it has enough observations and statistical significance.
+#
+# BIOLOGY (Chapter 2 — Task Allocation Without Instructions):
+#   Ant task switching is PROBABILISTIC, not deterministic. An ant doesn't
+#   switch tasks after exactly N encounters — it accumulates evidence
+#   (encounter frequency) until a probabilistic threshold is crossed.
+#   The transition from "performing task A" to "performing task B" is a
+#   state machine driven by accumulated observations.
+#
+#   In TypeDB: a hypothesis accumulates observations and transitions through
+#   states (pending → testing → confirmed) when statistical thresholds are
+#   met. The "action-ready" rule fires only when p-value <= 0.05 AND
+#   observations >= 50 — preventing premature transitions, just as ants
+#   require sustained encounter rates before committing to a task switch.
+#
+#   Reference: https://ants-at-work.com/book/2/
+#
+# USE CASES:
+#   - A/B testing frameworks
+#   - Scientific experiment tracking
+#   - Feature flag evaluation
+#   - Machine learning experiment management
+#   - Product hypothesis validation
+#
+# AFTER LOADING, TEST WITH:
+#   match $h isa hypothesis, has hyp-status "actionable"; select $h;
+#   # Expected: Returns hypotheses with confidence >= 0.95 AND observations >= 100
+#   #           that were auto-promoted by inference rules.
+#
+# =============================================================================
+
+define
+
+# --- Schema ---
+
+entity hypothesis,
+    owns hypothesis-id @key,
+    owns hypothesis-statement,     # "Users who see banner X convert 20% more"
+    owns test-condition,           # How to test it
+    owns hypothesis-status,        # "pending", "testing", "confirmed", "rejected"
+    owns observations-count,       # Total observations
+    owns success-count,
+    owns failure-count,
+    owns p-value,                  # Statistical significance
+    owns generated-by,             # "human", "algorithm", "llm"
+    owns action-if-confirmed,      # What to do if true
+    owns resulting-action,         # What was actually done
+    owns action-ready,             # INFERRED: ready for action?
+    owns created-at,
+    owns concluded-at,
+    plays tests:hypothesis,
+    plays generates:output;
+
+attribute hypothesis-id, value string;
+attribute hypothesis-statement, value string;
+attribute test-condition, value string;
+attribute hypothesis-status, value string;
+attribute observations-count, value integer;
+attribute success-count, value integer;
+attribute failure-count, value integer;
+attribute p-value, value double;
+attribute generated-by, value string;
+attribute action-if-confirmed, value string;
+attribute resulting-action, value string;
+attribute action-ready, value boolean;
+attribute created-at, value datetime;
+attribute concluded-at, value datetime;
+
+# Observation records linked to hypotheses
+entity observation,
+    owns observation-id @key,
+    owns observed-at,
+    owns outcome,                  # "success", "failure"
+    owns context-data,             # JSON or descriptive string
+    plays tests:observation;
+
+attribute observation-id, value string;
+attribute observed-at, value datetime;
+attribute outcome, value string;
+attribute context-data, value string;
+
+relation tests,
+    relates hypothesis,
+    relates observation;
+
+# What hypotheses generate (actions, rules, etc.)
+entity generated-artifact,
+    owns artifact-id @key,
+    owns artifact-type,            # "rule", "config_change", "feature_flag"
+    owns artifact-content,
+    owns generation-quality,
+    plays generates:output;
+
+attribute artifact-id, value string;
+attribute artifact-type, value string;
+attribute artifact-content, value string;
+attribute generation-quality, value double;
+
+relation generates,
+    relates source,
+    relates output;
+
+hypothesis plays generates:source;
+
+
+# =============================================================================
+# RULE: Hypothesis Ready for Action
+# =============================================================================
+#
+# A hypothesis is action-ready when:
+#   1. Status is "confirmed"
+#   2. p-value <= 0.05 (statistically significant at 95% confidence)
+#   3. observations >= 50 (enough data)
+#
+# This prevents premature action on hypotheses that are "confirmed"
+# but haven't been tested thoroughly enough.
+#
+rule hypothesis-action-ready:
+    when {
+        $h isa hypothesis,
+            has hypothesis-status "confirmed",
+            has p-value $p,
+            has observations-count $n;
+        $p <= 0.05;
+        $n >= 50;
+    } then {
+        $h has action-ready true;
+    };
+
+
+# =============================================================================
+# QUERY FUNCTIONS
+# =============================================================================
+
+# Get hypotheses ready for action (inferred)
+fun actionable_hypotheses() -> { hypothesis }:
+    match
+        $h isa hypothesis,
+            has action-ready true;
+    return { $h };
+
+# Get hypotheses currently being tested
+fun active_tests() -> { hypothesis }:
+    match
+        $h isa hypothesis,
+            has hypothesis-status "testing";
+    return { $h };
+
+# Get pending hypotheses (not yet started)
+fun pending_hypotheses() -> { hypothesis }:
+    match
+        $h isa hypothesis,
+            has hypothesis-status "pending";
+    return { $h };
+
+# Get confirmation rate across all concluded hypotheses
+fun confirmation_rate() -> double:
+    match
+        $h isa hypothesis,
+            has hypothesis-status $s;
+        $s in ["confirmed", "rejected"];
+        let $confirmed = count($h) filter ($s == "confirmed");
+        let $total = count($h);
+    return $confirmed / $total;
+
+# Get hypotheses by generator
+fun hypotheses_by_source($source: string) -> { hypothesis }:
+    match
+        $h isa hypothesis,
+            has generated-by $source;
+    return { $h };
+
+
+# =============================================================================
+# USAGE EXAMPLES
+# =============================================================================
+#
+# Insert a new hypothesis:
+#   insert $h isa hypothesis,
+#       has hypothesis-id "hyp-001",
+#       has hypothesis-statement "Dark mode increases session duration by 15%",
+#       has test-condition "Compare session_duration for dark vs light mode users",
+#       has hypothesis-status "pending",
+#       has observations-count 0,
+#       has success-count 0,
+#       has failure-count 0,
+#       has generated-by "human",
+#       has action-if-confirmed "Enable dark mode as default",
+#       has created-at 2026-02-01T00:00:00;
+#
+# Record an observation:
+#   match $h isa hypothesis, has hypothesis-id "hyp-001";
+#   insert $o isa observation,
+#       has observation-id "obs-001",
+#       has observed-at 2026-02-01T12:00:00,
+#       has outcome "success",
+#       has context-data "session_duration: 45min (dark), 38min (light)";
+#   (tests: $h, observation: $o) isa tests;
+#
+# Get actionable hypotheses:
+#   match let $h in actionable_hypotheses(); $h has hypothesis-statement $s; select $s;
+#
+# =============================================================================

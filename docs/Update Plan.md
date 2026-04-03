@@ -33,6 +33,23 @@ Three layers. 350 lines total. The substrate for emergence.
 
 ---
 
+## The Primitive
+
+```typescript
+type Signal = {
+  receiver: string
+  data?: unknown
+}
+```
+
+**The Verbs:**
+- **signal** - move through world
+- **drop** - add weight to path
+- **fade** - decay
+- **trace** - query
+
+---
+
 ## The Five Forces
 
 Every organizational decision in the colony emerges from five forces converging:
@@ -49,7 +66,7 @@ Every organizational decision in the colony emerges from five forces converging:
 ║   3. ECONOMIC INCENTIVES      →  unified.py payouts                    ║
 ║      What gets REWARDED. Stakes. Bounties. Treasury.                   ║
 ║                                                                        ║
-║   4. STIGMERGIC MEMORY        →  Scent graph evolution                 ║
+║   4. PATHS                    →  Scent graph evolution                 ║
 ║      What WORKED. Highways form. Failures fade.                        ║
 ║                                                                        ║
 ║   5. RECURSIVE SUBSTRATE      →  Swarm-as-colony                       ║
@@ -73,24 +90,24 @@ Competitive pressure forces niche differentiation. Swarms that do everything get
 ### Spark 3: Cross-Pollination
 Agents hold membership in multiple swarms. When they succeed using skills from both, new inter-swarm edges form. The colony INVENTS capabilities nobody designed.
 
-### Spark 4: Scent Cascade
+### Spark 4: Signal Cascade
 Signals propagate through nested substrates. Each layer ADDS context. Colony → Super-Swarm → Swarm → Agent. Multi-scale reasoning in the cascade, not any single layer.
 
-### Spark 5: Metabolic Trophallaxis
+### Spark 5: Paths
 Token flow distributes value AND information. The economic network IS the intelligence network. Well-fed paths get stronger. The economy doesn't fund intelligence — it IS intelligence.
 
-### Spark 6: Apoptosis
+### Spark 6: Death
 Programmed death at every scale. Agents with zero edges disappear. Swarms below threshold dissolve. Resources flow to survivors. Pruning IS learning.
 
 ### Spark 7: Dream State
-Periodic consolidation. Analyze scent graph for patterns. Prune weak edges. Reinforce strong ones. Seed proto-swarms with stimulus bounties. The colony dreams itself into higher intelligence.
+Periodic consolidation. Analyze path graph for patterns. Prune weak edges. Reinforce strong ones. Seed proto-swarms with stimulus bounties. The colony dreams itself into higher intelligence.
 
 ### Spark 8: Speed
 Below the "Anticipation Barrier" (<50ms), new patterns become visible. New sequences become possible. Speed is not optimization — it's a phase transition in what the colony can perceive.
 
 ---
 
-## The Dual Fire
+## Inference
 
 ```
 ╔══════════════════════════════════════════════════════════════════════════╗
@@ -366,7 +383,7 @@ src/sparks/
 ├── resonance.ts              # Spark 1 (TODO)
 ├── specialization.ts         # Spark 2 (TODO)
 ├── cross-pollination.ts      # Spark 3 (TODO)
-├── scent-cascade.ts          # Spark 4 (TODO)
+├── signal-cascade.ts         # Spark 4 (TODO)
 ├── trophallaxis.ts           # Spark 5 (TODO)
 ├── apoptosis.ts              # Spark 6 (TODO)
 ├── dream-state.ts            # Spark 7 (TODO)
@@ -383,20 +400,20 @@ src/sparks/
 ║   THE EMERGENCE ARCHITECTURE                                           ║
 ║                                                                        ║
 ║   SUBSTRATE (70 lines)                                                 ║
-║   └── { receiver, payload } — everything else emerges                  ║
+║   └── { receiver, data } — everything else emerges                     ║
 ║                                                                        ║
 ║   FIVE FORCES                                                          ║
 ║   ├── Deterministic structure (TypeDB)                                 ║
 ║   ├── Probabilistic creativity (LLMs)                                  ║
 ║   ├── Economic incentives (unified.py)                                 ║
-║   ├── Stigmergic memory (scent graph)                                  ║
+║   ├── Paths (scent graph)                                              ║
 ║   └── Recursive substrate (swarm-as-colony)                            ║
 ║                                                                        ║
 ║   EIGHT SPARKS                                                         ║
 ║   ├── Resonance loops                                                  ║
 ║   ├── Spontaneous specialization                                       ║
 ║   ├── Cross-pollination                                                ║
-║   ├── Scent cascade                                                    ║
+║   ├── Signal cascade                                                   ║
 ║   ├── Metabolic trophallaxis                                           ║
 ║   ├── Apoptosis                                                        ║
 ║   ├── Dream state                                                      ║

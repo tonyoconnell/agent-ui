@@ -6,15 +6,15 @@
 
 ## Code
 
-| Module | Lines | What | Where |
-|--------|-------|------|-------|
-| `one.move` | 250 | On-chain substrate | Sui |
-| `one.ts` | 70 | world() — 6 dimensions | Runtime |
-| `substrate.ts` | 70 | Unit + Colony + scent graph | Runtime |
-| `agentverse.ts` | 70 | 2M agents as colony | Fetch.ai |
-| `asi.ts` | 70 | Orchestrator | Fetch.ai |
-| `persist.ts` | 40 | TypeDB sync | Knowledge |
-| `llm.ts` | 30 | Any model as a unit | Runtime |
+| Module          | Lines | What                        | Where     |
+| --------------- | ----- | --------------------------- | --------- |
+| `one.move`      | 250   | On-chain substrate          | Sui       |
+| `one.ts`        | 70    | world() — 6 dimensions      | Runtime   |
+| `substrate.ts`  | 70    | Unit + Colony + scent graph | Runtime   |
+| `agentverse.ts` | 70    | 2M agents as colony         | Fetch.ai  |
+| `asi.ts`        | 70    | Orchestrator                | Fetch.ai  |
+| save.ts`        | 40    | TypeDB sync                 | Knowledge |
+| `llm.ts`        | 30    | Any model as a unit         | Runtime   |
 
 ## Schema
 
@@ -38,8 +38,8 @@ Two views.          One truth.
 |--------|------|-------|
 | Unit | Owned | Fast path (no consensus) |
 | Colony | Shared | Consensus required |
-| Envelope | Transferred | Consumed on arrival |
-| Flow | Shared | Both endpoints modify |
+| Signal | Transferred | Consumed on arrival |
+| Path | Shared | Both endpoints modify |
 | Highway | Frozen | Immutable forever |
 
 ## One Interface
@@ -47,14 +47,24 @@ Two views.          One truth.
 ```typescript
 const w = world()
 w.actor(id, type)                    // create
-w.send({ receiver, payload })        // signal
-w.flow(from, to).strengthen(n)       // success
-w.flow(from, to).resist(n)           // failure
+w.signal({ receiver, data })         // move through world
+w.drop(from, to, n)                  // leave weight on path
 w.fade(rate)                         // decay
-w.best(type)                         // discover
+w.follow(type)                       // traverse paths
 w.crystallize()                      // persist
 ```
 
 ---
 
 *~600 lines. The whole stack.*
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — How signals flow through the stack layers
+- [code.md](code.md) — TypeScript substrate implementation
+- [Plan.md](Plan.md) — Strategic context for the stack
+- [one-ontology.md](one-ontology.md) — Six dimensions the stack implements
+- [typedb.md](typedb.md) — TypeDB schema layer
+- [framework.md](framework.md) — UI rendering layer

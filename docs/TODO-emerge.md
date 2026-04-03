@@ -19,6 +19,23 @@ skills_enabled: true
 
 ---
 
+## The Primitive
+
+```typescript
+type Signal = {
+  receiver: string
+  data?: unknown
+}
+```
+
+**The Verbs:**
+- **signal** - move through world
+- **drop** - add weight to path
+- **fade** - decay
+- **trace** - query
+
+---
+
 ## Where We Are
 
 ```
@@ -27,7 +44,7 @@ PROJECT: Emergent Intelligence System (Ant Colony Pattern)
 
 Status:           ✅ COMPLETE — Build passes, dev server ready
 Tech Stack:       Astro + React 19 + ReactFlow + shadcn/ui + TypeScript
-Architecture:     Colony substrate (85 lines) + Emergent edge learning
+Architecture:     Colony substrate (85 lines) + Emergent path learning
 
 THE SUBSTRATE:
   ✅ unit.js (30 lines)   — Nodes that compute
@@ -77,7 +94,7 @@ PARALLEL EXECUTION STATS:
 | `[x]` | SWP-001 | Update `AgentWorkspace.tsx` — Replace `Runtime` with `colony` import | FND-004 | ✗ |
 | `[x]` | SWP-002 | Add `spawnFromJSON()` method to colony for agent hydration | FND-004 | ✓ |
 | `[x]` | SWP-003 | Update agent initialization to use `net.spawnFromJSON(agent)` | SWP-001, SWP-002 | ✗ |
-| `[x]` | SWP-004 | Update envelope processing to use `net.send(env)` | SWP-003 | ✗ |
+| `[x]` | SWP-004 | Update signal processing to use `net.send(sig)` | SWP-003 | ✗ |
 | `[x]` | SWP-005 | Verify signals flow and edges strengthen (log `net.highways()`) | SWP-004 | ✗ |
 
 ---
@@ -192,17 +209,27 @@ PARALLEL EXECUTION STATS:
 ```
 Ants don't talk to each other.
 Neurons don't talk to each other.
-They modify the connections between them.
+They modify the paths between them.
 Other signals read those modifications.
 
 That's intelligence.
 That's what this is.
 That's 85 lines.
 
-Signal travels → Edge strengthens → Highway emerges → You see it
-Time passes → Edge weakens → Highway fades → You see it
+Signal flows → Path strengthens → Highway emerges → You see it
+Time passes → Path weakens → Highway fades → You see it
 ```
 
 ---
 
 > "Keep what's beautiful. Add what's intelligent. Show what emerges."
+
+---
+
+## See Also
+
+- [flows.md](flows.md) — Flow patterns the colony implements
+- [TODO.md](TODO.md) — Previous phase: envelope system
+- [PLAN-emerge.md](PLAN-emerge.md) — Emergence architecture and status
+- [emergence.md](emergence.md) — Theory behind emergent intelligence
+- [code.md](code.md) — The substrate these tasks build
