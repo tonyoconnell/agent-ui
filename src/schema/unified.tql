@@ -1,0 +1,134 @@
+# =============================================================================
+# UNIFIED.TQL - Production Schema. Secure. Stable. Fast.
+# =============================================================================
+
+define
+
+# =============================================================================
+# NODE - agents, tasks, protocols, swarms
+# =============================================================================
+
+entity node,
+    owns id @key,
+    owns kind,          # "agent", "task", "protocol", "swarm"
+    owns category,      # for routing/grouping
+    owns pubkey,        # cryptographic identity
+    owns reputation,    # earned trust score
+    owns balance,       # token balance
+    owns status,        # "active", "suspended"
+    owns created,       # timestamp
+    plays edge:source,
+    plays edge:target;
+
+# =============================================================================
+# EDGE - weighted connections (pheromone trails)
+# =============================================================================
+
+relation edge,
+    owns eid @key,
+    relates source,
+    relates target,
+    owns weight,        # strength (success pheromone)
+    owns alarm,         # failure pheromone (avoid this path)
+    owns hits,          # successful traversals
+    owns misses,        # failed traversals
+    owns status;        # "highway", "fading", "toxic" (inferred)
+
+# =============================================================================
+# ESCROW - task bounties held until completion
+# =============================================================================
+
+entity escrow,
+    owns task-id @key,
+    owns bounty,        # tokens held
+    owns deadline,      # auto-release timestamp
+    owns requester,     # who posted
+    owns status;        # "open", "complete", "disputed"
+
+# =============================================================================
+# ATTRIBUTES
+# =============================================================================
+
+attribute id, value string;
+attribute eid, value string;
+attribute task-id, value string;
+attribute kind, value string;
+attribute category, value string;
+attribute pubkey, value string;
+attribute reputation, value double;
+attribute balance, value double;
+attribute bounty, value double;
+attribute weight, value double;
+attribute alarm, value double;
+attribute hits, value integer;
+attribute misses, value integer;
+attribute status, value string;
+attribute created, value datetime;
+attribute deadline, value datetime;
+attribute requester, value string;
+
+# =============================================================================
+# INFERENCE RULES
+# =============================================================================
+
+rule highway:
+    when { $e isa edge, has weight $w; $w >= 50.0; }
+    then { $e has status "highway"; };
+
+rule fading:
+    when { $e isa edge, has weight $w; $w > 0.0; $w < 5.0; }
+    then { $e has status "fading"; };
+
+rule toxic:
+    when { $e isa edge, has alarm $a, has weight $w; $a > $w; $a >= 10.0; }
+    then { $e has status "toxic"; };
+
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
+
+# Best node for a category (by edge weight)
+fun best($cat: string) -> node:
+    match
+        $n isa node, has kind "protocol", has category $cat, has status "active";
+        (target: $n) isa edge, has weight $w;
+    sort $w desc; limit 1;
+    return $n;
+
+# Fallback node
+fun fallback($primary_id: string) -> node:
+    match
+        $p isa node, has id $primary_id, has category $cat;
+        $alt isa node, has kind "protocol", has category $cat, has status "active";
+        not { $alt has id $primary_id; };
+        (target: $alt) isa edge, has weight $w;
+    sort $w desc; limit 1;
+    return $alt;
+
+# Top highways
+fun highways($n: integer) -> { edge }:
+    match $e isa edge, has weight $w; $w >= 10.0;
+    sort $w desc; limit $n;
+    return { $e };
+
+# Success rate for a node
+fun rate($node_id: string) -> double:
+    match
+        $n isa node, has id $node_id;
+        (target: $n) isa edge, has hits $h, has misses $m;
+    return $h / ($h + $m);
+
+# Agents by reputation
+fun top_agents($n: integer) -> { node }:
+    match $a isa node, has kind "agent", has reputation $r;
+    sort $r desc; limit $n;
+    return { $a };
+
+# Open escrows
+fun open_escrows() -> { escrow }:
+    match $e isa escrow, has status "open";
+    return { $e };
+
+# =============================================================================
+# ~100 lines. The substrate schema.
+# =============================================================================

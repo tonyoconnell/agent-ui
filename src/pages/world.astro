@@ -1,0 +1,42 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import WorldWorkspace from "@/components/WorldWorkspace"
+---
+
+<Layout title="ONE World">
+  <WorldWorkspace client:load />
+</Layout>
+
+<style is:global>
+  /* Metaphor skin animations */
+  @keyframes particle-burst {
+    0% {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(var(--tx), var(--ty)) scale(0);
+      opacity: 0;
+    }
+  }
+
+  @keyframes sparkle {
+    0% {
+      transform: scale(0) rotate(0deg);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.5) rotate(180deg);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  /* Smooth skin transitions */
+  .skin-transition {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
+</style>

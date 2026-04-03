@@ -89,6 +89,22 @@ function Tabs({ tabs, active, onSelect, onClose }: {
 }) {
   return (
     <div className="flex items-center bg-[#0a0a0f] border-b border-[#252538] px-4 h-14">
+      {/* Navigation */}
+      <a
+        href="/"
+        className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg mr-2"
+      >
+        Agents
+      </a>
+      <a
+        href="/world"
+        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg mr-4 transition-colors"
+      >
+        ONE World
+      </a>
+
+      <div className="w-px h-6 bg-slate-700 mr-4" />
+
       <button
         onClick={() => onSelect("colony")}
         className={cn(

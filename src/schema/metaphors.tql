@@ -1,0 +1,301 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# METAPHORS.TQL — Core Ontology for All Domains
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# One schema. Many interpretations.
+#
+#   Ant Colony:  ant, nest, scent, trail, forage
+#   Brain:       neuron, network, impulse, pathway, fire
+#   Team:        agent, team, task, workflow, delegate
+#   Mail:        mailbox, office, envelope, route, deliver
+#   Water:       pool, watershed, drop, channel, flow
+#   Signal:      receiver, network, signal, frequency, transmit
+#
+# The ontology doesn't care. It models:
+#   - Actors that process
+#   - Carriers that flow
+#   - Connections that strengthen or weaken
+#   - Patterns that emerge
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+define
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ACTORS — Things that process
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+#   ant / neuron / agent / mailbox / pool / receiver
+#
+
+entity actor,
+    owns actor-id @key,
+    owns actor-name,
+    owns actor-kind,          # "ant", "neuron", "agent", "llm", "tool"
+    owns actor-status,        # "active", "idle", "proven", "at-risk" (inferred)
+    owns capacity,            # throughput limit
+    owns created-at,
+    plays connection:source,
+    plays connection:target,
+    plays membership:member;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROUPS — Collections of actors
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+#   nest / network / team / office / watershed / network
+#
+
+entity group,
+    owns group-id @key,
+    owns group-name,
+    owns group-kind,          # "colony", "swarm", "team", "org"
+    plays membership:group;
+
+relation membership,
+    relates group,
+    relates member;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CARRIERS — Things that flow
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+#   scent / impulse / task / envelope / drop / signal
+#
+# Note: Carriers are ephemeral in runtime, but we track their patterns here
+#
+
+entity carrier-type,
+    owns type-id @key,
+    owns type-name,           # "food", "data", "prompt", "order", "reading"
+    owns schema-hint;         # JSON schema for payload validation
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONNECTIONS — Weighted paths between actors
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+#   trail / synapse / workflow / route / channel / frequency
+#
+
+relation connection,
+    owns connection-id @key,
+    relates source,
+    relates target,
+    owns carrier-kind,        # What type flows here
+    owns weight,              # Success strength (pheromone / potential)
+    owns alarm,               # Failure strength (alarm / inhibition)
+    owns hits,                # Successful traversals
+    owns misses,              # Failed traversals
+    owns connection-status;   # "highway", "fading", "toxic" (inferred)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EVENTS — Traversals through connections
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+#   forage / fire / delegate / deliver / flow / transmit
+#
+
+entity traversal,
+    owns traversal-id @key,
+    owns connection-ref,      # Which connection was used
+    owns success,             # Did it work?
+    owns latency,             # How long?
+    owns timestamp;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PATTERNS — Crystallized knowledge
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+#   superhighway / pathway / best-practice / express-route / river / clear-channel
+#
+
+entity pattern,
+    owns pattern-id @key,
+    owns pattern-name,
+    owns confidence,          # How proven?
+    owns discovery-count,     # How many times observed?
+    owns source-connection;   # Which connection spawned this?
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ATTRIBUTES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+attribute actor-id, value string;
+attribute actor-name, value string;
+attribute actor-kind, value string;
+attribute actor-status, value string;
+attribute capacity, value double;
+
+attribute group-id, value string;
+attribute group-name, value string;
+attribute group-kind, value string;
+
+attribute type-id, value string;
+attribute type-name, value string;
+attribute schema-hint, value string;
+
+attribute connection-id, value string;
+attribute carrier-kind, value string;
+attribute weight, value double;
+attribute alarm, value double;
+attribute hits, value integer;
+attribute misses, value integer;
+attribute connection-status, value string;
+
+attribute traversal-id, value string;
+attribute connection-ref, value string;
+attribute success, value boolean;
+attribute latency, value double;
+attribute timestamp, value datetime;
+
+attribute pattern-id, value string;
+attribute pattern-name, value string;
+attribute confidence, value double;
+attribute discovery-count, value integer;
+attribute source-connection, value string;
+
+attribute created-at, value datetime;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INFERENCE RULES — Emergent classification
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Highway: strong success signal
+rule highway:
+    when {
+        $c isa connection, has weight $w;
+        $w >= 50.0;
+    }
+    then { $c has connection-status "highway"; };
+
+# Fading: weak signal, needs reinforcement
+rule fading:
+    when {
+        $c isa connection, has weight $w;
+        $w > 0.0;
+        $w < 5.0;
+    }
+    then { $c has connection-status "fading"; };
+
+# Toxic: failure dominates success
+rule toxic:
+    when {
+        $c isa connection, has alarm $a, has weight $w;
+        $a > $w;
+        $a >= 10.0;
+    }
+    then { $c has connection-status "toxic"; };
+
+# Proven actor: consistent success
+rule proven-actor:
+    when {
+        $a isa actor;
+        $c (target: $a) isa connection, has weight $w, has alarm $al;
+        $w >= 20.0;
+        $w > ($al * 2.0);
+    }
+    then { $a has actor-status "proven"; };
+
+# At-risk actor: consistent failure
+rule at-risk-actor:
+    when {
+        $a isa actor;
+        $c (target: $a) isa connection, has alarm $al, has weight $w;
+        $al >= 10.0;
+        $al > $w;
+    }
+    then { $a has actor-status "at-risk"; };
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INFERENCE FUNCTIONS — Query interface
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Get all highways
+fun highways($limit: integer) -> { connection }:
+    match
+        $c isa connection, has connection-status "highway", has weight $w;
+    sort $w desc;
+    limit $limit;
+    return { $c };
+
+# Get toxic paths (to avoid)
+fun toxic() -> { connection }:
+    match $c isa connection, has connection-status "toxic";
+    return { $c };
+
+# Get fading paths (need reinforcement or will die)
+fun fading() -> { connection }:
+    match $c isa connection, has connection-status "fading";
+    return { $c };
+
+# Best actor for a carrier type
+fun best($carrier: string) -> actor:
+    match
+        $a isa actor, has actor-status "proven";
+        $c (target: $a) isa connection,
+            has carrier-kind $carrier,
+            has weight $w;
+    sort $w desc;
+    limit 1;
+    return $a;
+
+# All actors for a carrier type, ranked
+fun actors_for($carrier: string, $limit: integer) -> { actor }:
+    match
+        $a isa actor;
+        $c (target: $a) isa connection,
+            has carrier-kind $carrier,
+            has weight $w;
+    sort $w desc;
+    limit $limit;
+    return { $a };
+
+# Proven actors
+fun proven_actors() -> { actor }:
+    match $a isa actor, has actor-status "proven";
+    return { $a };
+
+# At-risk actors
+fun at_risk_actors() -> { actor }:
+    match $a isa actor, has actor-status "at-risk";
+    return { $a };
+
+# Confidence for a carrier type (how well do we know this domain?)
+fun confidence($carrier: string) -> double:
+    match
+        $c isa connection, has carrier-kind $carrier, has weight $w;
+    return sum($w) / 100.0;
+
+# Success rate for an actor
+fun success_rate($actor_id: string) -> double:
+    match
+        $a isa actor, has actor-id $actor_id;
+        $c (target: $a) isa connection, has hits $h, has misses $m;
+    return sum($h) / (sum($h) + sum($m));
+
+# Active patterns (crystallized knowledge)
+fun patterns($min_confidence: double) -> { pattern }:
+    match
+        $p isa pattern, has confidence $c;
+        $c >= $min_confidence;
+    return { $p };
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# METAPHOR ALIASES — Same queries, different vocabulary
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Ant Colony
+fun trails($n: integer) -> { connection }: match let $c in highways($n); return { $c };
+fun ants() -> { actor }: match $a isa actor, has actor-kind "ant"; return { $a };
+
+# Brain
+fun pathways($n: integer) -> { connection }: match let $c in highways($n); return { $c };
+fun neurons() -> { actor }: match $a isa actor, has actor-kind "neuron"; return { $a };
+
+# Team
+fun workflows($n: integer) -> { connection }: match let $c in highways($n); return { $c };
+fun agents() -> { actor }: match $a isa actor, has actor-kind "agent"; return { $a };
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ~150 lines. One ontology. All metaphors.
+# ═══════════════════════════════════════════════════════════════════════════════

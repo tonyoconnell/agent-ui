@@ -1,0 +1,217 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# ONE.TQL — The 6-Dimension Ontology
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Grounded in biology. Deborah Gordon's 30 years of ant research.
+#
+# "Complex, adaptive, intelligent behavior emerges without any individual
+#  understanding, planning, or coordinating."
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+define
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 1. GROUPS — Containers (Colony structure)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+entity group,
+    owns group-id @key,
+    owns name,
+    owns group-type,      # "colony", "team", "org", "dao", "swarm"
+    owns status,
+    plays contains:container,
+    plays contains:contained;
+
+relation contains,
+    relates container,
+    relates contained;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 2. ACTORS — Who can act (Individual ants)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+entity actor,
+    owns actor-id @key,
+    owns name,
+    owns actor-type,      # "human", "agent", "llm", "system"
+    owns status,          # "active", "proven", "at-risk"
+    plays membership:member,
+    plays flow:source,
+    plays flow:target;
+
+relation membership,
+    relates group,
+    relates member;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 3. THINGS — What exists (Environment)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+entity thing,
+    owns thing-id @key,
+    owns name,
+    owns thing-type,      # "task", "token", "service", "resource"
+    owns status,
+    plays flow:source,
+    plays flow:target,
+    plays ownership:owned;
+
+relation ownership,
+    relates owner,
+    relates owned;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 4. CONNECTIONS — Relationships (Pheromone trails)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+relation flow,
+    owns flow-id @key,
+    relates source,
+    relates target,
+    owns flow-type,       # "interaction", "payment", "delegation"
+    owns strength,        # Success pheromone
+    owns resistance,      # Failure pheromone
+    owns flow-status;     # "open", "closing", "blocked"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 5. EVENTS — What happened (Foraging activity)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+entity event,
+    owns event-id @key,
+    owns event-type,      # "traversal", "success", "failure", "timeout"
+    owns flow-ref,
+    owns timestamp,
+    owns success,
+    owns latency;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 6. KNOWLEDGE — Crystallized wisdom (Colony memory)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+entity pattern,
+    owns pattern-id @key,
+    owns name,
+    owns description,
+    owns confidence,
+    owns discovery-count,
+    owns source-flow;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ATTRIBUTES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+attribute group-id, value string;
+attribute actor-id, value string;
+attribute thing-id, value string;
+attribute flow-id, value string;
+attribute event-id, value string;
+attribute pattern-id, value string;
+
+attribute name, value string;
+attribute description, value string;
+attribute group-type, value string;
+attribute actor-type, value string;
+attribute thing-type, value string;
+attribute flow-type, value string;
+attribute event-type, value string;
+attribute status, value string;
+attribute flow-status, value string;
+
+attribute strength, value double;
+attribute resistance, value double;
+attribute confidence, value double;
+attribute latency, value double;
+attribute discovery-count, value integer;
+
+attribute flow-ref, value string;
+attribute source-flow, value string;
+attribute success, value boolean;
+attribute timestamp, value datetime;
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INFERENCE — Emergence
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Flow status
+rule open-flow:
+    when { $f isa flow, has strength $s; $s >= 50.0; }
+    then { $f has flow-status "open"; };
+
+rule closing-flow:
+    when { $f isa flow, has strength $s; $s > 0.0; $s < 5.0; }
+    then { $f has flow-status "closing"; };
+
+rule blocked-flow:
+    when { $f isa flow, has resistance $r, has strength $s; $r > $s; $r >= 10.0; }
+    then { $f has flow-status "blocked"; };
+
+# Actor status
+rule proven-actor:
+    when {
+        $a isa actor;
+        $f (target: $a) isa flow, has strength $s, has resistance $r;
+        $s >= 20.0;
+        $s > ($r * 2.0);
+    }
+    then { $a has status "proven"; };
+
+rule at-risk-actor:
+    when {
+        $a isa actor;
+        $f (target: $a) isa flow, has resistance $r, has strength $s;
+        $r >= 10.0;
+        $r > $s;
+    }
+    then { $a has status "at-risk"; };
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FUNCTIONS — The interface
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Flows
+fun open($n: integer) -> { flow }:
+    match $f isa flow, has flow-status "open", has strength $s;
+    sort $s desc; limit $n;
+    return { $f };
+
+fun blocked() -> { flow }:
+    match $f isa flow, has flow-status "blocked";
+    return { $f };
+
+fun closing() -> { flow }:
+    match $f isa flow, has flow-status "closing";
+    return { $f };
+
+# Actors
+fun best($type: string) -> actor:
+    match
+        $a isa actor, has status "proven", has actor-type $type;
+        $f (target: $a) isa flow, has strength $s;
+    sort $s desc; limit 1;
+    return $a;
+
+fun proven() -> { actor }:
+    match $a isa actor, has status "proven";
+    return { $a };
+
+fun at_risk() -> { actor }:
+    match $a isa actor, has status "at-risk";
+    return { $a };
+
+# Confidence
+fun confidence($type: string) -> double:
+    match
+        $a isa actor, has actor-type $type;
+        $f (target: $a) isa flow, has strength $s;
+    return sum($s) / 100.0;
+
+# Patterns (crystallized knowledge)
+fun patterns($min: double) -> { pattern }:
+    match $p isa pattern, has confidence $c; $c >= $min;
+    return { $p };
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ~150 lines. 6 dimensions. ONE.
+# ═══════════════════════════════════════════════════════════════════════════════

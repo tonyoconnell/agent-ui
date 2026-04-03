@@ -1,15 +1,54 @@
-// Legacy exports (for backwards compatibility)
-export type { Envelope, ActionHandler } from "./types"
-export { Agent } from "./agent"
-export { Runtime } from "./runtime"
-export { createEnvelope } from "./envelope"
+// ============================================================
+// ONE — The Recommended Interface
+// ============================================================
+// world() is the primary entry point. It unifies all layers:
+// substrate, persistence, LLM, agentverse, and ASI.
+//
+// Usage:
+//   import { world } from "@/engine"
+//   const w = world()
+// ============================================================
 
-// New architecture: unit + colony
+export { world } from "./one"
+export type { One, World } from "./one"
+
+// ============================================================
+// Substrate Layer (backwards compatibility)
+// ============================================================
+// The 70-line foundation. Use world() instead for new code.
+
+export { unit as atom, colony as swarm } from "./substrate"
+export type { Unit as Atom, Colony as Swarm, Envelope as Signal } from "./substrate"
+
+// Unit + Colony (direct access when needed)
 export { unit } from "./unit"
 export { colony } from "./colony"
 export type { Unit, UnitError, RouteFn } from "./unit"
 export type { Colony, ColonyError, UnitJSON, Edge } from "./colony"
 
-// The Substrate: 50 lines, zero returns, two fields
-export { unit as atom, colony as swarm } from "./substrate"
-export type { Unit as Atom, Colony as Swarm, Envelope as Signal } from "./substrate"
+// ============================================================
+// Extension Layers (backwards compatibility)
+// ============================================================
+
+// Persistence: TypeDB layer
+export { persisted } from "./persist"
+
+// LLM: any model as a unit
+export { llm, anthropic, openai } from "./llm"
+
+// Agentverse: 2M agents as a colony
+export { agentverse, sync as syncAgentverse } from "./agentverse"
+export type { Agentverse } from "./agentverse"
+
+// ASI: orchestrator as a unit
+export { asi } from "./asi"
+export type { ASI } from "./asi"
+
+// ============================================================
+// Legacy Exports (deprecated, for migration support)
+// ============================================================
+
+export type { Envelope, ActionHandler } from "./types"
+export { Agent } from "./agent"
+export { Runtime } from "./runtime"
+export { createEnvelope } from "./envelope"
