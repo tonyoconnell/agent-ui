@@ -4,12 +4,12 @@
  * 70 lines. Routes tasks. Learns from outcomes.
  */
 
-import { colony, unit, type Colony, type Envelope } from './substrate'
+import { colony, unit, type Colony, type Signal } from './substrate'
 
 type Complete = (prompt: string) => Promise<string>
 
 export interface ASI extends Colony {
-  orchestrate: (task: string, payload: unknown, from?: string) => Promise<{ agent: string; result: unknown }>
+  orchestrate: (task: string, data: unknown, from?: string) => Promise<{ agent: string; result: unknown }>
   confidence: (taskType: string) => number
 }
 
@@ -25,19 +25,17 @@ export const asi = (complete: Complete): ASI => {
   }
 
   // Core orchestration
-  const orchestrate = async (task: string, payload: unknown, from = 'user') => {
+  const orchestrate = async (task: string, data: unknown, from = 'user') => {
     const taskType = task.split(' ')[0].toLowerCase()
 
-    // Fast path: highway exists with high confidence
-    const highway = net.highways(20).find(h =>
-      h.edge.includes(`→${taskType}→`) && h.strength > 20
-    )
+    // Fast path: follow the highway if confidence is high
+    const best = net.follow(taskType)
 
     let agent: string
 
-    if (highway && confidence(taskType) > 0.7) {
+    if (best && confidence(taskType) > 0.7) {
       // Substrate knows — skip LLM
-      agent = highway.edge.split('→').pop()!
+      agent = best
     } else {
       // Ask LLM for routing decision
       const context = net.highways(10)
@@ -64,7 +62,7 @@ Return ONLY the agent address to route to.`
         })
 
       net.units[responseHandler.id] = responseHandler
-      net.send({ receiver: agent, payload: { ...payload as object, replyTo: responseHandler.id } }, from)
+      net.signal({ receiver: agent, data: { ...(data as object), replyTo: responseHandler.id } }, from)
 
       // Timeout → alarm
       setTimeout(() => {

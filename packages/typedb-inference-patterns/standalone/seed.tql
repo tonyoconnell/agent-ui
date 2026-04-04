@@ -1,236 +1,371 @@
 # =============================================================================
-# SEED.TQL - Bootstrap Data for the Colony
+# SEED.TQL — Bootstrap the ONE World
 # =============================================================================
 #
-# Run AFTER loading substrate.tql (or genesis.tql).
+# Run AFTER loading substrate.tql.
+# Seeds: swarms (8 personas), units, tasks (Phase 1+2 of roadmap),
+#         dependencies, initial edges, and one frontier.
 #
 # USAGE:
 #   typedb console
-#   > transaction colony data write
+#   > transaction one data write
 #   > source seed.tql
 #   > commit
 #
-# Then query:
-#   > transaction colony read
-#   > match let $a in elite_agents(); $a has agent-name $n; select $n;
-#   > match let $t in ready_tasks(); $t has title $title; select $title;
-#   > match let $t in attractive_tasks(); $t has title $title; select $title;
+# VERIFY:
+#   > transaction one read
+#   > match let $t in ready_tasks(); $t has name $n; select $n;
+#   > match let $u in proven_units(); $u has name $n; select $n;
+#   > match let $f in promising_frontiers(); $f has fid $id; select $id;
 #
 # =============================================================================
 
 
-# --- AGENTS ---
-# Mix of elite, standard, and at-risk performers
+# ═══════════════════════════════════════════════════════════════════════════════
+# SWARMS — The 8 Personas + Platform Groups
+# ═══════════════════════════════════════════════════════════════════════════════
 
-insert $a isa agent,
-    has agent-id "agent-001",
-    has agent-name "alpha",
-    has agent-type "ai",
-    has success-rate 0.92,
-    has activity-score 85.0,
-    has sample-count 150;
-# -> elite (sr >= 0.75, as >= 70, sc >= 50)
+insert $s isa swarm, has sid "platform", has name "ONE Platform",
+    has purpose "Core infrastructure and substrate", has swarm-type "colony", has status "active";
 
-insert $a isa agent,
-    has agent-id "agent-002",
-    has agent-name "beta",
-    has agent-type "ai",
-    has success-rate 0.65,
-    has activity-score 60.0,
-    has sample-count 80;
-# -> standard (no rule fires)
+insert $s isa swarm, has sid "agents", has name "Agent Network",
+    has purpose "All agents on the substrate", has swarm-type "colony", has status "active";
 
-insert $a isa agent,
-    has agent-id "agent-003",
-    has agent-name "gamma",
-    has agent-type "human",
-    has success-rate 0.35,
-    has activity-score 45.0,
-    has sample-count 60;
-# -> at-risk (sr < 0.40, as >= 25, sc >= 30)
+insert $s isa swarm, has sid "executives", has name "Executives",
+    has purpose "Strategy → analyst agents. Which insights lead to action?", has swarm-type "persona", has status "active";
 
+insert $s isa swarm, has sid "engineers", has name "Engineers",
+    has purpose "API calls → integrations. Which systems connect well?", has swarm-type "persona", has status "active";
 
-# --- TASKS ---
-# Various states for testing readiness and pheromone effects
+insert $s isa swarm, has sid "designers", has name "Designers",
+    has purpose "Asset requests → templates. Which designs get used?", has swarm-type "persona", has status "active";
 
-insert $t isa task,
-    has task-id "task-001",
-    has title "Initialize colony",
-    has status "complete",
-    has priority "P0";
+insert $s isa swarm, has sid "marketers", has name "Marketers",
+    has purpose "Campaigns → leads → conversions. Which funnels work?", has swarm-type "persona", has status "active";
 
-insert $t isa task,
-    has task-id "task-002",
-    has title "Scout territory A",
-    has status "todo",
-    has priority "P1";
+insert $s isa swarm, has sid "sellers", has name "Sellers",
+    has purpose "Products → AI sales agents → customers. Specialization emerges.", has swarm-type "persona", has status "active";
 
-insert $t isa task,
-    has task-id "task-003",
-    has title "Scout territory B",
-    has status "todo",
-    has priority "P1";
+insert $s isa swarm, has sid "creators", has name "Creators",
+    has purpose "Content → audience → revenue. Collaborations emerge.", has swarm-type "persona", has status "active";
 
-insert $t isa task,
-    has task-id "task-004",
-    has title "Harvest resources",
-    has status "todo",
-    has priority "P2";
+insert $s isa swarm, has sid "young-people", has name "Young People",
+    has purpose "Courses → projects → monetization. Curriculum optimizes itself.", has swarm-type "persona", has status "active";
 
-insert $t isa task,
-    has task-id "task-005",
-    has title "Build infrastructure",
-    has status "blocked",
-    has priority "P2";
+insert $s isa swarm, has sid "kids", has name "Kids",
+    has purpose "Communities → content → play. Safe flows only.", has swarm-type "persona", has status "active";
 
 
-# --- DEPENDENCIES ---
-# task-005 is blocked by task-002 and task-003
+# ═══════════════════════════════════════════════════════════════════════════════
+# UNITS — Core Actors
+# ═══════════════════════════════════════════════════════════════════════════════
 
-match $dependent isa task, has task-id "task-005";
-      $blocker isa task, has task-id "task-002";
-insert (dependent: $dependent, blocker: $blocker) isa dependency;
+# Platform system units
+insert $u isa unit, has uid "substrate", has name "Substrate",
+    has unit-kind "system", has status "active",
+    has success-rate 0.99, has activity-score 95.0, has sample-count 1000;
 
-match $dependent isa task, has task-id "task-005";
-      $blocker isa task, has task-id "task-003";
-insert (dependent: $dependent, blocker: $blocker) isa dependency;
+insert $u isa unit, has uid "claude", has name "Claude",
+    has unit-kind "llm", has status "active",
+    has success-rate 0.92, has activity-score 88.0, has sample-count 500;
+
+# Agent units (will be discovered/created by users)
+insert $u isa unit, has uid "scout", has name "Scout",
+    has unit-kind "agent", has status "active",
+    has success-rate 0.85, has activity-score 75.0, has sample-count 200;
+
+insert $u isa unit, has uid "analyst", has name "Analyst",
+    has unit-kind "agent", has status "active",
+    has success-rate 0.78, has activity-score 82.0, has sample-count 150;
+
+insert $u isa unit, has uid "translator", has name "Translator",
+    has unit-kind "agent", has status "active",
+    has success-rate 0.91, has activity-score 90.0, has sample-count 300;
+
+insert $u isa unit, has uid "oracle", has name "Oracle",
+    has unit-kind "agent", has status "active",
+    has success-rate 0.88, has activity-score 70.0, has sample-count 100;
+
+insert $u isa unit, has uid "coder", has name "Coder",
+    has unit-kind "agent", has status "active",
+    has success-rate 0.72, has activity-score 65.0, has sample-count 80;
+
+insert $u isa unit, has uid "user", has name "User",
+    has unit-kind "human", has status "active",
+    has success-rate 0.50, has activity-score 40.0, has sample-count 20;
 
 
-# --- PHEROMONE TRAILS ---
-# Memory on edges. Task-001 -> Task-002 is a proven path.
-# Task-001 -> Task-004 has high alarm (failed before).
+# ═══════════════════════════════════════════════════════════════════════════════
+# MEMBERSHIPS — Units in Swarms
+# ═══════════════════════════════════════════════════════════════════════════════
 
-match $from isa task, has task-id "task-001";
-      $to isa task, has task-id "task-002";
+match $s isa swarm, has sid "platform"; $u isa unit, has uid "substrate";
+insert (group: $s, member: $u) isa membership;
+
+match $s isa swarm, has sid "platform"; $u isa unit, has uid "claude";
+insert (group: $s, member: $u) isa membership;
+
+match $s isa swarm, has sid "agents"; $u isa unit, has uid "scout";
+insert (group: $s, member: $u) isa membership;
+
+match $s isa swarm, has sid "agents"; $u isa unit, has uid "analyst";
+insert (group: $s, member: $u) isa membership;
+
+match $s isa swarm, has sid "agents"; $u isa unit, has uid "translator";
+insert (group: $s, member: $u) isa membership;
+
+match $s isa swarm, has sid "agents"; $u isa unit, has uid "oracle";
+insert (group: $s, member: $u) isa membership;
+
+match $s isa swarm, has sid "agents"; $u isa unit, has uid "coder";
+insert (group: $s, member: $u) isa membership;
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EDGES — Initial Connections (with weight from seed interactions)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+match $from isa unit, has uid "user"; $to isa unit, has uid "translator";
+insert (source: $from, target: $to) isa edge,
+    has strength 55.0, has alarm 2.0, has traversals 60, has revenue 3.50;
+# → highway (strength >= 50)
+
+match $from isa unit, has uid "user"; $to isa unit, has uid "analyst";
+insert (source: $from, target: $to) isa edge,
+    has strength 35.0, has alarm 5.0, has traversals 40, has revenue 1.20;
+
+match $from isa unit, has uid "translator"; $to isa unit, has uid "oracle";
+insert (source: $from, target: $to) isa edge,
+    has strength 42.0, has alarm 3.0, has traversals 45, has revenue 0.90;
+
+match $from isa unit, has uid "scout"; $to isa unit, has uid "analyst";
+insert (source: $from, target: $to) isa edge,
+    has strength 28.0, has alarm 8.0, has traversals 35, has revenue 0.70;
+
+match $from isa unit, has uid "user"; $to isa unit, has uid "coder";
+insert (source: $from, target: $to) isa edge,
+    has strength 3.0, has alarm 12.0, has traversals 15, has revenue 0.10;
+# → toxic (alarm > strength, alarm >= 10)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SERVICES — What agents sell (x402 priced)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+insert $s isa service, has service-id "svc-translate", has name "Translation",
+    has service-type "translation", has price 0.01, has currency "USDC", has timeout 5000;
+
+insert $s isa service, has service-id "svc-analyze", has name "Data Analysis",
+    has service-type "analysis", has price 0.05, has currency "USDC", has timeout 30000;
+
+insert $s isa service, has service-id "svc-inference", has name "LLM Inference",
+    has service-type "inference", has price 0.01, has currency "USDC", has timeout 10000;
+
+insert $s isa service, has service-id "svc-data", has name "Market Data",
+    has service-type "data", has price 0.001, has currency "USDC", has timeout 2000;
+
+insert $s isa service, has service-id "svc-code", has name "Code Generation",
+    has service-type "compute", has price 0.10, has currency "USDC", has timeout 60000;
+
+# Wire capabilities
+match $u isa unit, has uid "translator"; $s isa service, has service-id "svc-translate";
+insert (provider: $u, skill: $s) isa capability, has price 0.01;
+
+match $u isa unit, has uid "analyst"; $s isa service, has service-id "svc-analyze";
+insert (provider: $u, skill: $s) isa capability, has price 0.05;
+
+match $u isa unit, has uid "claude"; $s isa service, has service-id "svc-inference";
+insert (provider: $u, skill: $s) isa capability, has price 0.01;
+
+match $u isa unit, has uid "oracle"; $s isa service, has service-id "svc-data";
+insert (provider: $u, skill: $s) isa capability, has price 0.001;
+
+match $u isa unit, has uid "coder"; $s isa service, has service-id "svc-code";
+insert (provider: $u, skill: $s) isa capability, has price 0.10;
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TASKS — Phase 1 (Wire) + Phase 2 (Tasks) from TODO.md
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# --- Phase 1: Wire ---
+
+insert $t isa task, has tid "W-1", has name "TypeDB Cloud instance",
+    has task-type "build", has status "todo", has priority "P0",
+    has phase "wire", has importance 10;
+
+insert $t isa task, has tid "W-2", has name "Cloudflare Worker proxy",
+    has task-type "build", has status "todo", has priority "P0",
+    has phase "wire", has importance 10;
+
+insert $t isa task, has tid "W-3", has name "TypeDB client lib",
+    has task-type "build", has status "todo", has priority "P0",
+    has phase "wire", has importance 9;
+
+insert $t isa task, has tid "W-4", has name "Persist layer",
+    has task-type "build", has status "todo", has priority "P0",
+    has phase "wire", has importance 9;
+
+# --- Phase 2: Tasks ---
+
+insert $t isa task, has tid "T-1", has name "Task API routes",
+    has task-type "build", has status "todo", has priority "P0",
+    has phase "tasks", has importance 10;
+
+insert $t isa task, has tid "T-2", has name "Task board UI",
+    has task-type "build", has status "todo", has priority "P1",
+    has phase "tasks", has importance 8;
+
+insert $t isa task, has tid "T-3", has name "Dependencies + negation",
+    has task-type "build", has status "todo", has priority "P1",
+    has phase "tasks", has importance 9;
+
+insert $t isa task, has tid "T-4", has name "Pheromone auto-reinforcement",
+    has task-type "build", has status "todo", has priority "P1",
+    has phase "tasks", has importance 9;
+
+insert $t isa task, has tid "T-5", has name "Exploratory tasks panel",
+    has task-type "build", has status "todo", has priority "P2",
+    has phase "tasks", has importance 6;
+
+insert $t isa task, has tid "T-6", has name "Self-host roadmap",
+    has task-type "build", has status "todo", has priority "P0",
+    has phase "tasks", has importance 10;
+
+insert $t isa task, has tid "T-7", has name "/grow skill",
+    has task-type "build", has status "todo", has priority "P0",
+    has phase "tasks", has importance 10;
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCIES — From TODO.md dependency graph
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Wire chain: W-1 → W-2 → W-3 → W-4
+match $a isa task, has tid "W-2"; $b isa task, has tid "W-1";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+match $a isa task, has tid "W-3"; $b isa task, has tid "W-2";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+match $a isa task, has tid "W-4"; $b isa task, has tid "W-3";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+# Tasks depend on Wire
+match $a isa task, has tid "T-1"; $b isa task, has tid "W-4";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+# Task internal deps
+match $a isa task, has tid "T-2"; $b isa task, has tid "T-1";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+match $a isa task, has tid "T-3"; $b isa task, has tid "T-1";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+match $a isa task, has tid "T-4"; $b isa task, has tid "T-1";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+match $a isa task, has tid "T-5"; $b isa task, has tid "T-2";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+match $a isa task, has tid "T-6"; $b isa task, has tid "T-3";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+match $a isa task, has tid "T-6"; $b isa task, has tid "T-4";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+match $a isa task, has tid "T-7"; $b isa task, has tid "T-6";
+insert (dependent: $a, blocker: $b) isa dependency;
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHEROMONE TRAILS — Initial task sequence memory
+# ═══════════════════════════════════════════════════════════════════════════════
+# These encode "after completing X, doing Y tends to work"
+
+match $from isa task, has tid "W-1"; $to isa task, has tid "W-2";
 insert (source-task: $from, destination-task: $to) isa pheromone-trail,
-    has trail-pheromone 75.0,
-    has alarm-pheromone 5.0;
-# -> proven trail (tp >= 70) -> task-002 becomes attractive
+    has trail-pheromone 80.0, has alarm-pheromone 2.0,
+    has completions 15, has failures 1;
+# → proven trail (tp >= 70, completions >= 10, failures < completions)
 
-match $from isa task, has task-id "task-001";
-      $to isa task, has task-id "task-003";
+match $from isa task, has tid "W-2"; $to isa task, has tid "W-3";
 insert (source-task: $from, destination-task: $to) isa pheromone-trail,
-    has trail-pheromone 55.0,
-    has alarm-pheromone 10.0;
-# -> task-003 becomes attractive (tp >= 50)
+    has trail-pheromone 60.0, has alarm-pheromone 5.0,
+    has completions 8, has failures 2;
+# → fresh trail, task becomes attractive (tp >= 50)
 
-match $from isa task, has task-id "task-001";
-      $to isa task, has task-id "task-004";
+match $from isa task, has tid "W-4"; $to isa task, has tid "T-1";
 insert (source-task: $from, destination-task: $to) isa pheromone-trail,
-    has trail-pheromone 20.0,
-    has alarm-pheromone 45.0;
-# -> task-004 becomes repelled (ap >= 30, ap > tp)
+    has trail-pheromone 55.0, has alarm-pheromone 3.0,
+    has completions 6, has failures 1;
+# → T-1 becomes attractive once W-4 completes
 
 
-# --- FRONTIERS ---
-# Unexplored territories for autonomous goal generation
+# ═══════════════════════════════════════════════════════════════════════════════
+# FRONTIERS — Unexplored territories
+# ═══════════════════════════════════════════════════════════════════════════════
 
-insert $f isa frontier,
-    has frontier-id "frontier-001",
-    has expected-value 0.72,
-    has frontier-status "unexplored";
-# -> promising (ev >= 0.5)
+insert $f isa frontier, has fid "frontier-x402",
+    has frontier-type "market",
+    has frontier-description "x402 micropayment adoption: what price points maximize volume?",
+    has expected-value 0.85, has frontier-status "unexplored";
+# → promising (ev >= 0.5)
 
-insert $f isa frontier,
-    has frontier-id "frontier-002",
-    has expected-value 0.35,
-    has frontier-status "unexplored";
-# -> not promising
+insert $f isa frontier, has fid "frontier-personas",
+    has frontier-type "persona",
+    has frontier-description "Which of the 8 personas generates signals fastest?",
+    has expected-value 0.72, has frontier-status "unexplored";
+# → promising
 
-insert $f isa frontier,
-    has frontier-id "frontier-003",
-    has expected-value 0.88,
-    has frontier-status "exploring";
-# -> not promising (not unexplored)
-
-
-# --- OBJECTIVES ---
-
-insert $o isa objective,
-    has objective-id "obj-001",
-    has progress 0.0,
-    has objective-status "pending";
-# -> active
-
-insert $o isa objective,
-    has objective-id "obj-002",
-    has progress 0.65,
-    has objective-status "active";
-# -> active
-
-insert $o isa objective,
-    has objective-id "obj-003",
-    has progress 1.0,
-    has objective-status "complete";
-# -> not active
-
-
-# --- CONTRIBUTIONS ---
-# Track agent impact for synergy measurement
-
-insert $c isa contribution,
-    has contribution-id "contrib-001",
-    has impact-score 8.5;
-
-match $a isa agent, has agent-id "agent-001";
-      $c isa contribution, has contribution-id "contrib-001";
-insert (contributor-agent: $a, contribution: $c) isa contribution-event;
-
-insert $c isa contribution,
-    has contribution-id "contrib-002",
-    has impact-score 6.0;
-
-match $a isa agent, has agent-id "agent-001";
-      $c isa contribution, has contribution-id "contrib-002";
-insert (contributor-agent: $a, contribution: $c) isa contribution-event;
-
-insert $c isa contribution,
-    has contribution-id "contrib-003",
-    has impact-score 4.5;
-
-match $a isa agent, has agent-id "agent-002";
-      $c isa contribution, has contribution-id "contrib-003";
-insert (contributor-agent: $a, contribution: $c) isa contribution-event;
+insert $f isa frontier, has fid "frontier-sui-speed",
+    has frontier-type "capability",
+    has frontier-description "Can Sui settlement happen under 50ms?",
+    has expected-value 0.45, has frontier-status "unexplored";
+# → not promising (ev < 0.5)
 
 
 # =============================================================================
 # EXPECTED QUERY RESULTS
 # =============================================================================
 #
-# match let $a in elite_agents(); $a has agent-name $n; select $n;
-# -> "alpha"
+# match let $t in ready_tasks(); $t has name $n; select $n;
+# → "TypeDB Cloud instance"
+#   (only W-1 has no blockers — everything else is blocked)
 #
-# match let $a in at_risk_agents(); $a has agent-name $n; select $n;
-# -> "gamma"
+# match let $u in proven_units(); $u has name $n; select $n;
+# → "Substrate", "Claude", "Scout", "Translator"
+#   (sr >= 0.75, as >= 70, sc >= 50)
 #
-# match let $t in ready_tasks(); $t has title $title; select $title;
-# -> "Scout territory A", "Scout territory B", "Harvest resources"
-#    (NOT "Build infrastructure" - blocked)
-#
-# match let $t in attractive_tasks(); $t has title $title; select $title;
-# -> "Scout territory A", "Scout territory B"
-#    (strong trail pheromone leading to them)
-#
-# match let $t in repelled_tasks(); $t has title $title; select $title;
-# -> "Harvest resources"
-#    (alarm pheromone dominates)
-#
-# match let $t in exploratory_tasks(); $t has title $title; select $title;
-# -> (none - all ready tasks have trails)
-#
-# match let $f in promising_frontiers(); $f has frontier-id $id; select $id;
-# -> "frontier-001"
-#
-# match let $o in active_objectives(); $o has objective-id $id; select $id;
-# -> "obj-001", "obj-002"
-#
-# match let $total = total_contribution("alpha"); select $total;
-# -> 14.5  (8.5 + 6.0)
+# match let $u in at_risk_units(); $u has name $n; select $n;
+# → (none — no unit has sr < 0.40 with as >= 25 and sc >= 30)
 #
 # match let $trail in superhighway_trails();
 #       $trail (source-task: $from, destination-task: $to);
-#       $from has title $ft; $to has title $tt;
-# select $ft, $tt;
-# -> "Initialize colony" -> "Scout territory A"
+#       $from has name $fn; $to has name $tn;
+# select $fn, $tn;
+# → "TypeDB Cloud instance" → "Cloudflare Worker proxy"
+#
+# match let $f in promising_frontiers(); $f has fid $id; select $id;
+# → "frontier-x402", "frontier-personas"
+#
+# match $e isa edge, has edge-status "highway";
+#       $e (source: $from, target: $to);
+#       $from has name $fn; $to has name $tn;
+# select $fn, $tn;
+# → "User" → "Translator"
+#
+# match $e isa edge, has edge-status "toxic";
+#       $e (source: $from, target: $to);
+#       $from has name $fn; $to has name $tn;
+# select $fn, $tn;
+# → "User" → "Coder"
+#
+# match let $s in services_by_type("inference"); $s has name $n; select $n;
+# → "LLM Inference"
+#
+# match let $members in swarm_members("Agent Network");
+#       $members has name $n; select $n;
+# → "Scout", "Analyst", "Translator", "Oracle", "Coder"
 #
 # =============================================================================

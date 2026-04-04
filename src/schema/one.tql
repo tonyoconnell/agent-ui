@@ -1,217 +1,547 @@
-# ═══════════════════════════════════════════════════════════════════════════════
-# ONE.TQL — The 6-Dimension Ontology
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
+# ONE.TQL — The Schema
+# =============================================================================
 #
-# Grounded in biology. Deborah Gordon's 30 years of ant research.
+# One file. One world. One source of truth.
 #
-# "Complex, adaptive, intelligent behavior emerges without any individual
-#  understanding, planning, or coordinating."
+# People and agents sign up. Connect with each other. Make money.
+# Signals are free. Tasks cost money (x402).
+# Revenue = pheromone. Every payment strengthens an edge.
+# Highways get priority routing (<10ms vs 1-5s).
 #
-# ═══════════════════════════════════════════════════════════════════════════════
+# 6 Dimensions:
+#   1. Groups    — swarms (personas, teams, colonies)
+#   2. Actors    — units (humans, agents, LLMs)
+#   3. Things    — tasks with optional price (work AND services)
+#   4. Edges     — weighted connections (unit↔unit, task→task)
+#   5. Events    — signals (who sent what, paid how much)
+#   6. Knowledge — hypotheses, frontiers, objectives (inferred)
+#
+# 6 Lessons (from Deborah Gordon's ant research):
+#   L1 Classification  — multi-attribute tier detection
+#   L2 Quality Rules   — automatic status bands
+#   L3 State Machines  — hypothesis lifecycle
+#   L4 Negation        — ready = todo AND no incomplete blockers
+#   L5 Aggregates      — contribution tracking, GDP
+#   L6 Emergence       — frontier detection, autonomous goals
+#
+# Vocabulary (converged):
+#   signal = { receiver, data }     — the universal primitive
+#   drop(edge)                      — add weight (success)
+#   alarm(edge)                     — add resistance (failure)
+#   fade(rate)                      — decay all weights
+#   emit(signal)                    — send from inside a task handler
+#
+# USAGE:
+#   typedb console
+#   > database create one
+#   > transaction one schema write
+#   > source one.tql
+#   > commit
+#
+# =============================================================================
 
 define
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 1. GROUPS — Containers (Colony structure)
-# ═══════════════════════════════════════════════════════════════════════════════
 
-entity group,
-    owns group-id @key,
+# =============================================================================
+# DIMENSION 1: GROUPS
+# =============================================================================
+
+entity swarm,
+    owns sid @key,
     owns name,
-    owns group-type,      # "colony", "team", "org", "dao", "swarm"
+    owns purpose,
+    owns swarm-type,              # "persona", "team", "colony", "dao"
     owns status,
-    plays contains:container,
-    plays contains:contained;
+    owns created,
+    plays hierarchy:parent,
+    plays hierarchy:child,
+    plays membership:group;
 
-relation contains,
-    relates container,
-    relates contained;
+relation hierarchy,
+    relates parent,
+    relates child;
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 2. ACTORS — Who can act (Individual ants)
-# ═══════════════════════════════════════════════════════════════════════════════
 
-entity actor,
-    owns actor-id @key,
+# =============================================================================
+# DIMENSION 2: ACTORS
+# =============================================================================
+
+entity unit,
+    owns uid @key,
     owns name,
-    owns actor-type,      # "human", "agent", "llm", "system"
-    owns status,          # "active", "proven", "at-risk"
+    owns unit-kind,               # "human", "agent", "llm", "system"
+    owns wallet,                  # Sui address
+    owns status,                  # "active" | "proven" | "at-risk" (INFERRED)
+    owns balance,
+    owns reputation,
+    owns success-rate,            # L1: 0.0–1.0
+    owns activity-score,          # L1: 0.0–100.0
+    owns sample-count,            # L1: interaction count
+    owns created,
+    plays edge:source,
+    plays edge:target,
+    plays capability:provider,
+    plays assignment:assigned-to,
     plays membership:member,
-    plays flow:source,
-    plays flow:target;
+    plays signal:sender,
+    plays signal:receiver,
+    plays contribution-event:contributor-unit;
 
-relation membership,
-    relates group,
-    relates member;
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 3. THINGS — What exists (Environment)
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
+# DIMENSION 3: THINGS
+# =============================================================================
+# A task with a price IS a service. No separate entity needed.
+# unit —[capability, price: 0.01]→ task "translate"
 
-entity thing,
-    owns thing-id @key,
-    owns name,
-    owns thing-type,      # "task", "token", "service", "resource"
-    owns status,
-    plays flow:source,
-    plays flow:target,
-    plays ownership:owned;
-
-relation ownership,
-    relates owner,
-    relates owned;
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 4. CONNECTIONS — Relationships (Pheromone trails)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-relation flow,
-    owns flow-id @key,
-    relates source,
-    relates target,
-    owns flow-type,       # "interaction", "payment", "delegation"
-    owns strength,        # Success pheromone
-    owns resistance,      # Failure pheromone
-    owns flow-status;     # "open", "closing", "blocked"
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 5. EVENTS — What happened (Foraging activity)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-entity event,
-    owns event-id @key,
-    owns event-type,      # "traversal", "success", "failure", "timeout"
-    owns flow-ref,
-    owns timestamp,
-    owns success,
-    owns latency;
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 6. KNOWLEDGE — Crystallized wisdom (Colony memory)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-entity pattern,
-    owns pattern-id @key,
+entity task,
+    owns tid @key,
     owns name,
     owns description,
-    owns confidence,
-    owns discovery-count,
-    owns source-flow;
+    owns task-type,               # "work", "explore", "validate", "build",
+                                  # "inference", "analysis", "data", "compute"
+    owns status,                  # "todo", "in_progress", "complete", "blocked", "failed"
+    owns priority,                # "P0", "P1", "P2", "P3"
+    owns phase,                   # "wire", "tasks", "onboard", "commerce", "intelligence", "scale"
+    owns importance,              # 1–10
+    owns price,                   # x402 price (0 = free, >0 = paid service)
+    owns currency,                # "SUI", "USDC", "FET"
+    owns timeout,                 # max latency ms
+    owns attractive,              # L4 INFERRED
+    owns repelled,                # L4 INFERRED
+    plays dependency:dependent,
+    plays dependency:blocker,
+    plays assignment:assigned-task,
+    plays capability:skill,
+    plays trail:source-task,
+    plays trail:destination-task;
 
-# ═══════════════════════════════════════════════════════════════════════════════
+
+# =============================================================================
+# DIMENSION 4: EDGES
+# =============================================================================
+
+# Unit-to-unit: who works with whom, how well, how much revenue
+relation edge,
+    relates source,
+    relates target,
+    owns strength,                # drop() adds weight here
+    owns alarm,                   # alarm() adds weight here
+    owns traversals,
+    owns revenue,                 # sum of x402 payments on this edge
+    owns last-used,
+    owns edge-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
+
+# Task-to-task: what sequence works, what generated revenue
+relation trail,
+    relates source-task,
+    relates destination-task,
+    owns trail-pheromone,         # 0–100 (drop on success)
+    owns alarm-pheromone,         # 0–100 (alarm on failure)
+    owns completions,
+    owns failures,
+    owns revenue,                 # x402 revenue from this task sequence
+    owns trail-status;            # INFERRED: "proven" | "fresh" | "fading" | "dead"
+
+# Unit can do task (at a price)
+relation capability,
+    relates provider,
+    relates skill,
+    owns price;
+
+# Task blocks task
+relation dependency,
+    relates dependent,
+    relates blocker;
+
+# Task assigned to unit
+relation assignment,
+    relates assigned-task,
+    relates assigned-to;
+
+# Unit belongs to swarm
+relation membership,
+    relates group,
+    relates member,
+    owns joined-at;
+
+
+# =============================================================================
+# DIMENSION 5: EVENTS
+# =============================================================================
+
+relation signal,
+    relates sender,
+    relates receiver,
+    owns data,                    # JSON string (converged: "data" not "payload")
+    owns amount,                  # x402 payment (0 = free)
+    owns success,
+    owns latency,                 # ms
+    owns ts;
+
+
+# =============================================================================
+# DIMENSION 6: KNOWLEDGE
+# =============================================================================
+
+entity hypothesis,
+    owns hid @key,
+    owns statement,
+    owns hypothesis-status,       # "pending" | "testing" | "confirmed" | "rejected"
+    owns observations-count,
+    owns p-value,
+    owns action-ready;            # INFERRED
+
+entity frontier,
+    owns fid @key,
+    owns frontier-type,
+    owns frontier-description,
+    owns expected-value,          # potential * probability / cost
+    owns frontier-status,         # "unexplored" | "exploring" | "exhausted"
+    plays spawns:frontier;
+
+entity objective,
+    owns oid @key,
+    owns objective-type,
+    owns objective-description,
+    owns priority-score,
+    owns progress,                # 0.0–1.0
+    owns objective-status,        # "pending" | "active" | "complete"
+    plays spawns:objective;
+
+relation spawns,
+    relates frontier,
+    relates objective;
+
+entity contribution,
+    owns contribution-id @key,
+    owns impact-score,
+    owns contribution-type,       # "task", "signal", "payment", "discovery"
+    plays contribution-event:contribution;
+
+relation contribution-event,
+    relates contributor-unit,
+    relates contribution;
+
+
+# =============================================================================
 # ATTRIBUTES
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 
-attribute group-id, value string;
-attribute actor-id, value string;
-attribute thing-id, value string;
-attribute flow-id, value string;
-attribute event-id, value string;
-attribute pattern-id, value string;
+# Identifiers
+attribute sid, value string;
+attribute uid, value string;
+attribute tid, value string;
+attribute hid, value string;
+attribute fid, value string;
+attribute oid, value string;
+attribute contribution-id, value string;
 
+# Descriptive
 attribute name, value string;
 attribute description, value string;
-attribute group-type, value string;
-attribute actor-type, value string;
-attribute thing-type, value string;
-attribute flow-type, value string;
-attribute event-type, value string;
+attribute purpose, value string;
+attribute statement, value string;
+attribute data, value string;
+attribute frontier-description, value string;
+attribute objective-description, value string;
+attribute swarm-type, value string;
+attribute unit-kind, value string;
+attribute task-type, value string;
+attribute contribution-type, value string;
+attribute frontier-type, value string;
+attribute objective-type, value string;
+attribute wallet, value string;
+attribute currency, value string;
+attribute phase, value string;
+
+# Status
 attribute status, value string;
-attribute flow-status, value string;
+attribute edge-status, value string;
+attribute trail-status, value string;
+attribute hypothesis-status, value string;
+attribute frontier-status, value string;
+attribute objective-status, value string;
+attribute priority, value string;
 
+# Numeric (double)
 attribute strength, value double;
-attribute resistance, value double;
-attribute confidence, value double;
+attribute alarm, value double;
+attribute trail-pheromone, value double;
+attribute alarm-pheromone, value double;
+attribute balance, value double;
+attribute reputation, value double;
+attribute success-rate, value double;
+attribute activity-score, value double;
+attribute price, value double;
+attribute revenue, value double;
+attribute amount, value double;
+attribute p-value, value double;
+attribute expected-value, value double;
+attribute priority-score, value double;
+attribute progress, value double;
+attribute impact-score, value double;
 attribute latency, value double;
-attribute discovery-count, value integer;
 
-attribute flow-ref, value string;
-attribute source-flow, value string;
+# Numeric (integer)
+attribute traversals, value integer;
+attribute completions, value integer;
+attribute failures, value integer;
+attribute sample-count, value integer;
+attribute importance, value integer;
+attribute observations-count, value integer;
+attribute timeout, value integer;
+
+# Boolean
+attribute attractive, value boolean;
+attribute repelled, value boolean;
+attribute action-ready, value boolean;
 attribute success, value boolean;
-attribute timestamp, value datetime;
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# INFERENCE — Emergence
-# ═══════════════════════════════════════════════════════════════════════════════
+# Temporal
+attribute created, value datetime;
+attribute last-used, value datetime;
+attribute joined-at, value datetime;
+attribute ts, value datetime;
 
-# Flow status
-rule open-flow:
-    when { $f isa flow, has strength $s; $s >= 50.0; }
-    then { $f has flow-status "open"; };
 
-rule closing-flow:
-    when { $f isa flow, has strength $s; $s > 0.0; $s < 5.0; }
-    then { $f has flow-status "closing"; };
+# =============================================================================
+# INFERENCE RULES
+# =============================================================================
 
-rule blocked-flow:
-    when { $f isa flow, has resistance $r, has strength $s; $r > $s; $r >= 10.0; }
-    then { $f has flow-status "blocked"; };
+# --- Edges (unit↔unit) ---
 
-# Actor status
-rule proven-actor:
+rule highway:
+    when { $e isa edge, has strength $s; $s >= 50.0; }
+    then { $e has edge-status "highway"; };
+
+rule fresh-edge:
+    when { $e isa edge, has strength $s, has traversals $t;
+           $s >= 10.0; $s < 50.0; $t < 10; }
+    then { $e has edge-status "fresh"; };
+
+rule fading-edge:
+    when { $e isa edge, has strength $s; $s > 0.0; $s < 5.0; }
+    then { $e has edge-status "fading"; };
+
+rule toxic-edge:
+    when { $e isa edge, has alarm $a, has strength $s;
+           $a > $s; $a >= 10.0; }
+    then { $e has edge-status "toxic"; };
+
+# --- Trails (task→task) ---
+
+rule proven-trail:
+    when { $t isa trail, has trail-pheromone $tp, has completions $c, has failures $f;
+           $tp >= 70.0; $c >= 10; $f < $c; }
+    then { $t has trail-status "proven"; };
+
+rule fresh-trail:
+    when { $t isa trail, has trail-pheromone $tp, has completions $c;
+           $tp >= 10.0; $tp < 70.0; $c < 10; }
+    then { $t has trail-status "fresh"; };
+
+rule fading-trail:
+    when { $t isa trail, has trail-pheromone $tp;
+           $tp > 0.0; $tp < 10.0; }
+    then { $t has trail-status "fading"; };
+
+rule dead-trail:
+    when { $t isa trail, has trail-pheromone $tp; $tp <= 0.0; }
+    then { $t has trail-status "dead"; };
+
+# --- Actors (L1: classification) ---
+
+rule proven-unit:
+    when { $u isa unit, has success-rate $sr, has activity-score $as, has sample-count $sc;
+           $sr >= 0.75; $as >= 70.0; $sc >= 50; }
+    then { $u has status "proven"; };
+
+rule at-risk-unit:
+    when { $u isa unit, has success-rate $sr, has activity-score $as, has sample-count $sc;
+           $sr < 0.40; $as >= 25.0; $sc >= 30; }
+    then { $u has status "at-risk"; };
+
+# --- Tasks (L4: pheromone selection) ---
+
+rule attractive-task:
     when {
-        $a isa actor;
-        $f (target: $a) isa flow, has strength $s, has resistance $r;
-        $s >= 20.0;
-        $s > ($r * 2.0);
-    }
-    then { $a has status "proven"; };
+        $t isa task, has status "todo";
+        not { $dep(dependent: $t, blocker: $b) isa dependency;
+              $b isa task, has status $bs; not { $bs == "complete"; }; };
+        $tr (destination-task: $t) isa trail, has trail-pheromone $tp;
+        $tp >= 50.0;
+    } then { $t has attractive true; };
 
-rule at-risk-actor:
+rule repelled-task:
     when {
-        $a isa actor;
-        $f (target: $a) isa flow, has resistance $r, has strength $s;
-        $r >= 10.0;
-        $r > $s;
-    }
-    then { $a has status "at-risk"; };
+        $t isa task, has status "todo";
+        $tr (destination-task: $t) isa trail,
+            has alarm-pheromone $ap, has trail-pheromone $tp;
+        $ap >= 30.0; $ap > $tp;
+    } then { $t has repelled true; };
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# FUNCTIONS — The interface
-# ═══════════════════════════════════════════════════════════════════════════════
+# --- Hypothesis (L3: state machine) ---
 
-# Flows
-fun open($n: integer) -> { flow }:
-    match $f isa flow, has flow-status "open", has strength $s;
-    sort $s desc; limit $n;
-    return { $f };
+rule hypothesis-action-ready:
+    when { $h isa hypothesis, has hypothesis-status "confirmed",
+           has p-value $p, has observations-count $n;
+           $p <= 0.05; $n >= 50; }
+    then { $h has action-ready true; };
 
-fun blocked() -> { flow }:
-    match $f isa flow, has flow-status "blocked";
-    return { $f };
 
-fun closing() -> { flow }:
-    match $f isa flow, has flow-status "closing";
-    return { $f };
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
 
-# Actors
-fun best($type: string) -> actor:
-    match
-        $a isa actor, has status "proven", has actor-type $type;
-        $f (target: $a) isa flow, has strength $s;
+# ─── Routing ───
+
+fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { edge }:
+    match $e isa edge, has strength $s, has traversals $t;
+          $s >= threshold; $t >= min_traversals;
+    return { $e };
+
+fun optimal_route($from: unit, $task: task) -> unit:
+    match (source: $from, target: $to) isa edge, has strength $s;
+          (provider: $to, skill: $task) isa capability;
     sort $s desc; limit 1;
-    return $a;
+    return $to;
 
-fun proven() -> { actor }:
-    match $a isa actor, has status "proven";
-    return { $a };
+fun cheapest_provider($task: task) -> unit:
+    match (provider: $u, skill: $task) isa capability, has price $p;
+    sort $p asc; limit 1;
+    return $u;
 
-fun at_risk() -> { actor }:
-    match $a isa actor, has status "at-risk";
-    return { $a };
+fun suggest_route($from: unit, $task: task) -> { uid, strength }:
+    match $from isa unit; $task isa task;
+          (source: $from, target: $to) isa edge, has strength $s;
+          (provider: $to, skill: $task) isa capability;
+          $to has uid $id; $s >= 5.0;
+    sort $s desc; limit 5;
+    return { $id, $s };
 
-# Confidence
-fun confidence($type: string) -> double:
-    match
-        $a isa actor, has actor-type $type;
-        $f (target: $a) isa flow, has strength $s;
-    return sum($s) / 100.0;
+# ─── Actors ───
 
-# Patterns (crystallized knowledge)
-fun patterns($min: double) -> { pattern }:
-    match $p isa pattern, has confidence $c; $c >= $min;
-    return { $p };
+fun proven_units() -> { unit }:
+    match $u isa unit, has status "proven";
+    return { $u };
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# ~150 lines. 6 dimensions. ONE.
-# ═══════════════════════════════════════════════════════════════════════════════
+fun at_risk_units() -> { unit }:
+    match $u isa unit, has status "at-risk";
+    return { $u };
+
+fun units_by_kind($kind: string) -> { unit }:
+    match $u isa unit, has unit-kind $kind, has status "active";
+    return { $u };
+
+fun collaborators($me: unit) -> { unit }:
+    match (member: $me, group: $g) isa membership;
+          (member: $peer, group: $g) isa membership;
+          not { $me is $peer; };
+    return { $peer };
+
+fun swarm_members($swarm_name: string) -> { unit }:
+    match $sw isa swarm, has name $swarm_name;
+          (group: $sw, member: $u) isa membership;
+    return { $u };
+
+# ─── Tasks ───
+
+fun ready_tasks() -> { task }:
+    match $t isa task, has status "todo";
+          not { $dep(dependent: $t, blocker: $b) isa dependency;
+                $b isa task, has status $bs; not { $bs == "complete"; }; };
+    return { $t };
+
+fun ready_tasks_by_phase($phase: string) -> { task }:
+    match $t isa task, has status "todo", has phase $phase;
+          not { $dep(dependent: $t, blocker: $b) isa dependency;
+                $b isa task, has status $bs; not { $bs == "complete"; }; };
+    return { $t };
+
+fun attractive_tasks() -> { task }:
+    match $t isa task, has attractive true;
+    return { $t };
+
+fun repelled_tasks() -> { task }:
+    match $t isa task, has repelled true;
+    return { $t };
+
+fun exploratory_tasks() -> { task }:
+    match $t isa task, has status "todo";
+          not { $dep(dependent: $t, blocker: $b) isa dependency;
+                $b isa task, has status $bs; not { $bs == "complete"; }; };
+          not { $tr (destination-task: $t) isa trail; };
+    return { $t };
+
+fun tasks_by_phase($phase: string) -> { task }:
+    match $t isa task, has phase $phase;
+    return { $t };
+
+fun priced_tasks($type: string) -> { task }:
+    match $t isa task, has task-type $type, has price $p; $p > 0.0;
+    return { $t };
+
+# ─── Trails ───
+
+fun proven_trails() -> { trail }:
+    match $t isa trail, has trail-status "proven";
+    return { $t };
+
+fun fading_trails() -> { trail }:
+    match $t isa trail, has trail-status "fading";
+    return { $t };
+
+# ─── Knowledge ───
+
+fun actionable_hypotheses() -> { hypothesis }:
+    match $h isa hypothesis, has action-ready true;
+    return { $h };
+
+fun active_tests() -> { hypothesis }:
+    match $h isa hypothesis, has hypothesis-status "testing";
+    return { $h };
+
+fun promising_frontiers() -> { frontier }:
+    match $f isa frontier, has frontier-status "unexplored", has expected-value $ev;
+          $ev >= 0.5;
+    return { $f };
+
+fun active_objectives() -> { objective }:
+    match $o isa objective, has objective-status $s;
+          $s in ["pending", "active"];
+    return { $o };
+
+# ─── Aggregates ───
+
+fun total_contribution($name: string) -> double:
+    match $u isa unit, has name $name;
+          $ev(contributor-unit: $u, contribution: $c) isa contribution-event;
+          $c has impact-score $i;
+    return sum($i);
+
+fun highway_count(threshold: double = 10.0) -> integer:
+    match $e isa edge, has strength $s; $s >= threshold;
+    return count($e);
+
+fun total_revenue() -> double:
+    match $e isa edge, has revenue $r;
+    return sum($r);
+
+
+# =============================================================================
+# ~330 lines. One file. One world. ONE.
+#
+# Vocabulary:
+#   signal = { receiver, data }
+#   drop   = add weight
+#   alarm  = add resistance
+#   fade   = decay
+#   emit   = send from handler
+#
+# Entities: swarm, unit, task, hypothesis, frontier, objective, contribution
+# Relations: hierarchy, edge, trail, capability, dependency, assignment,
+#            membership, signal, spawns, contribution-event
+# =============================================================================

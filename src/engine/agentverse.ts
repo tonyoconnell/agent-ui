@@ -4,7 +4,7 @@
  * 70 lines. Registry + routing + discovery.
  */
 
-import { colony, unit, type Colony, type Unit, type Envelope } from './substrate'
+import { colony, unit, type Colony, type Unit, type Signal } from './substrate'
 
 type AgentMeta = {
   address: string
@@ -13,12 +13,12 @@ type AgentMeta = {
   endpoint?: string
 }
 
-type Fetch = (address: string, payload: unknown) => Promise<unknown>
+type Fetch = (address: string, data: unknown) => Promise<unknown>
 
 export interface Agentverse extends Colony {
   register: (meta: AgentMeta) => Unit
   discover: (domain: string, limit?: number) => AgentMeta[]
-  call: (address: string, task: string, payload: unknown) => Promise<unknown>
+  call: (address: string, task: string, data: unknown) => Promise<unknown>
 }
 
 export const agentverse = (fetch: Fetch): Agentverse => {
@@ -31,9 +31,9 @@ export const agentverse = (fetch: Fetch): Agentverse => {
     const u = net.spawn(m.address)
 
     // Default handler: forward to real agent endpoint
-    u.on('default', async (payload, emit, ctx) => {
-      const result = await fetch(m.address, payload)
-      emit({ receiver: ctx.from, payload: result })
+    u.on('default', async (data, emit, ctx) => {
+      const result = await fetch(m.address, data)
+      emit({ receiver: ctx.from, data: result })
     })
 
     // Index by domains
@@ -52,11 +52,11 @@ export const agentverse = (fetch: Fetch): Agentverse => {
   }
 
   // Call agent and record outcome
-  const call = async (address: string, task: string, payload: unknown): Promise<unknown> => {
+  const call = async (address: string, task: string, data: unknown): Promise<unknown> => {
     const edge = `call:${task}→${address}`
 
     try {
-      const result = await fetch(address, payload)
+      const result = await fetch(address, data)
       net.mark(edge, 1)  // Success strengthens trail
       return result
     } catch (e) {

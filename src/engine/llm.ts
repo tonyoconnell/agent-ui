@@ -12,7 +12,7 @@ export const llm = (id: string, complete: Complete): Unit => {
   return unit(id)
     .on('complete', async ({ prompt, system, history }, emit, ctx) => {
       const response = await complete(prompt, { system, history })
-      emit({ receiver: ctx.from, payload: { response } })
+      emit({ receiver: ctx.from, data: { response } })
     })
     .on('stream', async ({ prompt, system, onChunk }, emit, ctx) => {
       let full = ''
@@ -20,7 +20,7 @@ export const llm = (id: string, complete: Complete): Unit => {
         system,
         onToken: (t: string) => { full += t; onChunk?.(t) }
       })
-      emit({ receiver: ctx.from, payload: { response: full } })
+      emit({ receiver: ctx.from, data: { response: full } })
     })
 }
 

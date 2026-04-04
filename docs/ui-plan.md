@@ -194,7 +194,7 @@ type WorldCommand =
 
 ### Phase 1: Foundation ✓
 - [x] ONE ontology engine (one.ts)
-- [x] TypeDB schemas (one.tql, metaphors.tql)
+- [x] TypeDB schemas (one.tql, skins.tql)
 - [x] WorldGraph with metaphor skins
 - [x] SkinSwitcher component
 - [x] Basic signal injection

@@ -1,20 +1,15 @@
 /**
  * COLONY - The Substrate for Emergent Intelligence
  *
- * This is the pattern that ants discovered 100 million years ago.
- * The same pattern brains use. The same pattern neural networks use.
- *
- * Nodes that compute.
- * Edges that connect.
- * Weights that learn.
- * Signals that flow.
+ * Nodes that compute. Edges that connect.
+ * Weights that learn. Signals that flow.
  * No controller.
  *
- * 85 lines. The foundation of emergent AI.
+ * Signal. Mark. Follow. Fade. Highway.
  */
 
 import { unit } from "./unit";
-import type { Envelope, Unit } from "./unit";
+import type { Signal, Unit } from "./unit";
 
 interface ColonyError {
   receiver: string;
@@ -39,42 +34,37 @@ interface Colony {
   scent: Record<string, number>;
 
   // Build
-  spawn: (envelope: Envelope) => Unit;
+  spawn: (signal: Signal) => Unit;
   spawnFromJSON: (data: UnitJSON) => Unit;
   has: (id: string) => boolean;
   list: () => string[];
   get: (id: string) => Unit | undefined;
 
   // Signal flow
-  send: (envelope: Envelope, from?: string) => Promise<unknown>;
+  signal: (signal: Signal, from?: string) => Promise<unknown>;
+
+  // Backwards compat
+  send: (signal: Signal, from?: string) => Promise<unknown>;
 
   // Learning (stigmergy)
   mark: (edge: string, strength?: number) => void;
-  smell: (edge: string) => number;
+  sense: (edge: string) => number;
+  follow: (type?: string) => string | null;
   fade: (rate?: number) => void;
   highways: (limit?: number) => Edge[];
 }
 
 const colony = (): Colony => {
-  const chambers: Record<string, Unit> = {};  // Nodes
-  const scent: Record<string, number> = {};   // Edge weights
-  let lastVisited: string | null = null;      // Track previous node
+  const chambers: Record<string, Unit> = {};
+  const scent: Record<string, number> = {};
+  let lastVisited: string | null = null;
 
-  /**
-   * Mark an edge with scent (strengthen the weight).
-   */
   const mark = (edge: string, strength: number = 1): void => {
     scent[edge] = (scent[edge] || 0) + strength;
   };
 
-  /**
-   * Smell an edge (read the weight).
-   */
-  const smell = (edge: string): number => scent[edge] || 0;
+  const sense = (edge: string): number => scent[edge] || 0;
 
-  /**
-   * Fade all edges (weights decay over time).
-   */
   const fade = (rate: number = 0.1): void => {
     for (const edge in scent) {
       scent[edge] *= (1 - rate);
@@ -82,9 +72,6 @@ const colony = (): Colony => {
     }
   };
 
-  /**
-   * Get the strongest edges (emergent superhighways).
-   */
   const highways = (limit: number = 10): Edge[] => {
     return Object.entries(scent)
       .sort(([, a], [, b]) => b - a)
@@ -92,11 +79,15 @@ const colony = (): Colony => {
       .map(([edge, strength]) => ({ edge, strength }));
   };
 
-  /**
-   * Route a signal through the network.
-   * Edge strengthens on successful traversal.
-   */
-  const send = ({ receiver, receive, payload, callback }: Envelope, from: string = "entry"): Promise<unknown> => {
+  // STAN: follow strongest trail matching a type
+  const follow = (type?: string): string | null => {
+    const trails = Object.entries(scent)
+      .filter(([e]) => !type || e.includes(type))
+      .sort(([, a], [, b]) => b - a);
+    return trails[0]?.[0].split(' → ').pop()?.split(':')[0] || null;
+  };
+
+  const signal = ({ receiver, receive, data, payload, callback }: Signal, from: string = "entry"): Promise<unknown> => {
     const target = chambers[receiver!];
 
     if (!target) {
@@ -108,47 +99,36 @@ const colony = (): Colony => {
     }
 
     const currentNode = `${receiver}:${receive}`;
-
-    // Mark edge BEFORE processing so callbacks have correct "from"
     const edge = `${from} → ${currentNode}`;
     mark(edge, 1);
 
-    // Update lastVisited BEFORE unit processes (so callbacks route correctly)
     const previousNode = lastVisited;
     lastVisited = currentNode;
 
-    return target({ receive, payload, callback }).then((result) => {
+    return target({ receive, data: data ?? payload, callback }).then((result) => {
       return result;
     }).catch((error) => {
-      // Restore on error
       lastVisited = previousNode;
       return Promise.reject(error);
     });
   };
 
-  /**
-   * Spawn a chamber (node) into the colony.
-   */
-  const spawn = (envelope: Envelope): Unit => {
-    const chamber = unit(envelope, (env: Envelope) => {
-      return send(env, lastVisited || "entry");
+  const spawn = (sig: Signal): Unit => {
+    const chamber = unit(sig, (s: Signal) => {
+      return signal(s, lastVisited || "entry");
     });
     chambers[chamber.id] = chamber;
     return chamber;
   };
 
-  /**
-   * Spawn from JSON data.
-   */
-  const spawnFromJSON = (data: UnitJSON): Unit => {
-    const u = spawn({ receiver: data.id });
-    for (const [name, result] of Object.entries(data.actions || {})) {
+  const spawnFromJSON = (json: UnitJSON): Unit => {
+    const u = spawn({ receiver: json.id });
+    for (const [name, result] of Object.entries(json.actions || {})) {
       u.assign(name, () => result);
     }
     return u;
   };
 
-  // Introspection
   const has = (id: string): boolean => id in chambers;
   const list = (): string[] => Object.keys(chambers);
   const get = (id: string): Unit | undefined => chambers[id];
@@ -161,9 +141,11 @@ const colony = (): Colony => {
     has,
     list,
     get,
-    send,
+    signal,
+    send: signal,  // backwards compat
     mark,
-    smell,
+    sense,
+    follow,
     fade,
     highways
   };

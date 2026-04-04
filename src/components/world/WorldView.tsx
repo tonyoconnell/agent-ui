@@ -57,6 +57,8 @@ type WorldCommand =
   | { type: "send"; to: string; data?: unknown }
   | { type: "strengthen"; from: string; to: string }
   | { type: "query"; query: "open" | "blocked" | "proven" }
+  | { type: "decay" }
+  | { type: "inject" }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CHAT PANEL
@@ -270,11 +272,26 @@ function parseCommand(text: string): WorldCommand | null {
   }
 
   // Query: "show highways/open/blocked"
-  if (lower.includes("highway") || lower.includes("open") || lower.includes("best")) {
+  if (lower.includes("highway") || lower.includes("open") || lower.includes("best") || lower.includes("show")) {
     return { type: "query", query: "open" }
   }
   if (lower.includes("blocked") || lower.includes("toxic")) {
     return { type: "query", query: "blocked" }
+  }
+
+  // List: "list agents" or "who"
+  if (lower.includes("list") || lower.includes("who") || lower.includes("agents")) {
+    return { type: "query", query: "proven" }
+  }
+
+  // Decay: "decay" or "fade"
+  if (lower.includes("decay") || lower.includes("fade")) {
+    return { type: "decay" } as unknown as WorldCommand
+  }
+
+  // Inject: "inject" or "burst" or "fire"
+  if (lower.includes("inject") || lower.includes("burst") || lower.includes("fire")) {
+    return { type: "inject" } as unknown as WorldCommand
   }
 
   return null
@@ -473,15 +490,46 @@ function WorldViewInner() {
             break
           }
           case "query": {
-            const flows = world.colony.highways(10)
-            response = `${skin.icons.open} Top ${t("flow")}s:\n${flows
-              .map((f) => `  ${f.edge}: ${f.strength.toFixed(0)}`)
-              .join("\n")}`
+            if (command.query === "proven") {
+              response = `${skin.icons.group} ${t("actor")}s:\n${world.actors
+                .map((a) => `  ${skin.icons.actor} ${a.name} (${a.id})`)
+                .join("\n")}`
+            } else {
+              const flows = world.colony.highways(10)
+              response = `${skin.icons.open} Top ${t("flow")}s:\n${flows
+                .map((f) => `  ${f.edge}: ${f.strength.toFixed(0)}`)
+                .join("\n")}`
+            }
+            break
+          }
+          case "decay": {
+            world.colony.fade(0.2)
+            setWorld((prev) =>
+              prev ? { ...prev, flows: world.colony.highways(30) } : null
+            )
+            response = `⏱️ Applied decay (20%). Trails fading...`
+            break
+          }
+          case "inject": {
+            // Fire signals through all agents
+            await Promise.all(
+              world.actors.map((a) =>
+                world.colony.send({
+                  receiver: a.id,
+                  receive: Object.keys(a.actions)[0] || "signal",
+                  payload: { burst: true },
+                })
+              )
+            )
+            setWorld((prev) =>
+              prev ? { ...prev, flows: world.colony.highways(30) } : null
+            )
+            response = `${skin.icons.entry} Burst! Signals sent to all ${world.actors.length} ${t("actor")}s`
             break
           }
         }
       } else {
-        response = `I understand commands like:\n• "Create a scout agent"\n• "Connect scout to analyst"\n• "Send signal to trader"\n• "Show highways"`
+        response = `Commands:\n• "Create a scout" - spawn agent\n• "Connect scout to analyst" - create flow\n• "Send signal to trader" - transmit\n• "Show highways" - view flows\n• "List agents" - who's here\n• "Decay" - fade trails\n• "Inject" - burst to all`
       }
 
       // Add assistant message

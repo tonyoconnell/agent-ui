@@ -7,7 +7,7 @@ TypeDB stores reality. TypeQL queries it. JSON renders it. The UI skins it.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         TypeDB                                   │
-│  one.tql / metaphors.tql — stores the 6 dimensions              │
+│  one.tql / skins.tql — stores the 6 dimensions              │
 │  Groups, Actors, Things, Paths, Events, Knowledge               │
 └────────────────────────────┬────────────────────────────────────┘
                              │ TypeQL
@@ -430,7 +430,7 @@ interface Pattern {
 ┌──────────────────┐
 │     TypeDB       │
 │  one.tql schema  │
-│  metaphors.tql   │
+│  skins.tql   │
 └────────┬─────────┘
          │ store
          ▼
@@ -508,7 +508,7 @@ src/
 │
 ├── schema/
 │   ├── one.tql           # 150 lines - 6 dimensions
-│   └── metaphors.tql     # 150 lines - universal ontology
+│   └── skins.tql     # 150 lines - universal ontology
 │
 ├── api/
 │   ├── world.ts          # TypeQL → JSON
@@ -550,7 +550,7 @@ src/
 | Source | Provides | Consumers |
 |--------|----------|-----------|
 | `one.tql` | Schema, inference rules | TypeDB |
-| `metaphors.tql` | Universal functions | Query layer |
+| `skins.tql` | Universal functions | Query layer |
 | `ui_world()` | JSON state | React components |
 | `WorldContext` | Actor/path state | Nodes, edges |
 | `MetaphorContext` | Labels, colors | All components |

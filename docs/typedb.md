@@ -688,12 +688,10 @@ What emerges without being programmed:
 
 ```
 src/schema/
-├── substrate.tql              # Integrated schema (~280 lines)
-│                              # 6 dimensions + 6 lessons + inference + functions
-├── one.tql                    # Pure 6-dimension ontology (~150 lines)
-├── unified.tql                # Legacy production schema (~100 lines)
+├── one.tql                    # THE schema (~330 lines)
+│                              # 6 dimensions + 6 lessons + commerce + inference + functions
 ├── sui.tql                    # Sui Move contracts as TypeQL
-└── metaphors.tql              # Universal metaphor functions
+└── skins.tql              # Universal metaphor functions
 
 packages/typedb-inference-patterns/
 ├── standalone/                # Individual lesson TQL files

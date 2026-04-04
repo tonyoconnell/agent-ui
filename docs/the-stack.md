@@ -20,9 +20,9 @@
 
 | File | Lines | What |
 |------|-------|------|
+| `one.tql` | 330 | THE schema (6 dimensions + 6 lessons + commerce) |
 | `sui.tql` | 250 | Move contracts as TypeQL |
-| `one.tql` | 150 | 6-dimension ontology |
-| `unified.tql` | 130 | Production schema |
+| `skins.tql` | 150 | 6 metaphor skins |
 
 ## Two Fires
 

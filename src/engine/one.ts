@@ -102,3 +102,6 @@ export const world = (): World => {
 
   return { ...net, group, actor, thing, flow, crystallize, open, blocked, best, proven, confidence }
 }
+
+// Legacy alias
+export type One = World

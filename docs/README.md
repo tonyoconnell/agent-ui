@@ -124,11 +124,10 @@ src/engine/
 └── index.ts       (20)   # Exports
 
 src/schema/
-├── substrate.tql (280)   # Integrated: 6 dimensions + 6 lessons
-├── one.tql       (150)   # Pure 6-dimension ontology
-├── unified.tql   (100)   # Legacy production schema
+├── one.tql       (330)   # THE schema: 6 dimensions + 6 lessons + commerce
 ├── sui.tql       (250)   # Move contracts as TypeQL
-└── metaphors.tql (150)   # Universal metaphor functions
+├── skins.tql     (150)   # 6 metaphor skins (ant, brain, team, mail, water, signal)
+└── agents.tql             # Agent definitions
 
 packages/typedb-inference-patterns/
 ├── standalone/   (6 files)  # Individual lesson TQL files

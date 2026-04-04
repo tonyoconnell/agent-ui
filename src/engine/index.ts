@@ -18,13 +18,16 @@ export type { One, World } from "./one"
 // The 70-line foundation. Use world() instead for new code.
 
 export { unit as atom, colony as swarm } from "./substrate"
-export type { Unit as Atom, Colony as Swarm, Envelope as Signal } from "./substrate"
+export type { Unit as Atom, Colony as Swarm, Signal } from "./substrate"
 
 // Unit + Colony (direct access when needed)
 export { unit } from "./unit"
 export { colony } from "./colony"
 export type { Unit, UnitError, RouteFn } from "./unit"
 export type { Colony, ColonyError, UnitJSON, Edge } from "./colony"
+
+// Legacy type alias
+export type { Signal as Envelope } from "./substrate"
 
 // ============================================================
 // Extension Layers (backwards compatibility)
@@ -48,7 +51,7 @@ export type { ASI } from "./asi"
 // Legacy Exports (deprecated, for migration support)
 // ============================================================
 
-export type { Envelope, ActionHandler } from "./types"
+export type { Signal as ActionHandler } from "./unit"
 export { Agent } from "./agent"
 export { Runtime } from "./runtime"
 export { createEnvelope } from "./envelope"

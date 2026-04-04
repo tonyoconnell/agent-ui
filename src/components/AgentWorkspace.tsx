@@ -111,9 +111,15 @@ function Tabs({ tabs, active, onSelect, onClose }: {
       </a>
       <a
         href="/world"
+        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg mr-2 transition-colors"
+      >
+        Graph
+      </a>
+      <a
+        href="/chat"
         className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg mr-4 transition-colors"
       >
-        ONE World
+        Chat
       </a>
 
       <div className="w-px h-6 bg-slate-700 mr-4" />
