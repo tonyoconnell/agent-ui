@@ -2,10 +2,10 @@
  * COLONY - The Substrate for Emergent Intelligence
  *
  * Nodes that compute. Edges that connect.
- * Weights that learn. Signals that flow.
+ * Dual scent: trail + alarm. Marks gate.
  * No controller.
  *
- * Signal. Mark. Follow. Fade. Highway.
+ * Signal. Mark. Alarm. Follow. Fade. Highway.
  */
 
 import { unit } from "./unit";
@@ -28,10 +28,14 @@ interface Edge {
   strength: number;
 }
 
+type SignalData = { marks?: boolean; weight?: number; [k: string]: unknown }
+const asData = (d: unknown): SignalData => (d && typeof d === 'object' ? d as SignalData : {})
+
 interface Colony {
   // The graph
   chambers: Record<string, Unit>;
   scent: Record<string, number>;
+  alarm: Record<string, number>;
 
   // Build
   spawn: (signal: Signal) => Unit;
@@ -48,7 +52,9 @@ interface Colony {
 
   // Learning (stigmergy)
   mark: (edge: string, strength?: number) => void;
+  warn: (edge: string, strength?: number) => void;
   sense: (edge: string) => number;
+  danger: (edge: string) => number;
   follow: (type?: string) => string | null;
   fade: (rate?: number) => void;
   highways: (limit?: number) => Edge[];
@@ -57,19 +63,24 @@ interface Colony {
 const colony = (): Colony => {
   const chambers: Record<string, Unit> = {};
   const scent: Record<string, number> = {};
+  const alarm: Record<string, number> = {};
   let lastVisited: string | null = null;
 
   const mark = (edge: string, strength: number = 1): void => {
     scent[edge] = (scent[edge] || 0) + strength;
   };
 
-  const sense = (edge: string): number => scent[edge] || 0;
+  const warn = (edge: string, strength: number = 1): void => {
+    alarm[edge] = (alarm[edge] || 0) + strength;
+  };
 
+  const sense = (edge: string): number => scent[edge] || 0;
+  const danger = (edge: string): number => alarm[edge] || 0;
+
+  // asymmetric: alarm decays 2x faster (failures forgive)
   const fade = (rate: number = 0.1): void => {
-    for (const edge in scent) {
-      scent[edge] *= (1 - rate);
-      if (scent[edge] < 0.01) delete scent[edge];
-    }
+    for (const edge in scent) { scent[edge] *= (1 - rate); if (scent[edge] < 0.01) delete scent[edge]; }
+    for (const edge in alarm) { alarm[edge] *= (1 - rate * 2); if (alarm[edge] < 0.01) delete alarm[edge]; }
   };
 
   const highways = (limit: number = 10): Edge[] => {
@@ -79,10 +90,12 @@ const colony = (): Colony => {
       .map(([path, strength]) => ({ path, strength }));
   };
 
-  // STAN: follow strongest trail matching a type
+  // follow strongest trail, penalized by alarm
   const follow = (type?: string): string | null => {
     const trails = Object.entries(scent)
       .filter(([e]) => !type || e.includes(type))
+      .map(([e, s]) => [e, s - (alarm[e] || 0)] as const)
+      .filter(([, s]) => s > 0)
       .sort(([, a], [, b]) => b - a);
     return trails[0]?.[0].split(' → ').pop()?.split(':')[0] || null;
   };
@@ -100,7 +113,10 @@ const colony = (): Colony => {
 
     const currentNode = `${receiver}:${receive}`;
     const edge = `${from} → ${currentNode}`;
-    mark(edge, 1);
+
+    // marks gate: only drop pheromone on production signals
+    const d = asData(data ?? payload);
+    d.marks !== false && mark(edge, d.weight ?? 1);
 
     const previousNode = lastVisited;
     lastVisited = currentNode;
@@ -136,6 +152,7 @@ const colony = (): Colony => {
   return {
     chambers,
     scent,
+    alarm,
     spawn,
     spawnFromJSON,
     has,
@@ -144,7 +161,9 @@ const colony = (): Colony => {
     signal,
     send: signal,  // backwards compat
     mark,
+    warn,
     sense,
+    danger,
     follow,
     fade,
     highways

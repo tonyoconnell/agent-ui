@@ -14,10 +14,16 @@ TypeDB 3.0 schemas for the ONE world.
 | `agents.tql` | Legacy envelope system: agent/action/routing for React frontend |
 | `archive/` | Old versions (unified.tql, substrate.tql, one.tql) |
 
+## TypeDB as Substrate
+
+TypeDB is not just storage. It is the signal relay, the router, and the brain.
+The router process writes signals in, reads routing decisions out, executes agents, repeats.
+Multiple machines pointing at one TypeDB instance = one shared world.
+
 ## Entity Types
 
 - **swarm/colony** - groups of units
-- **unit** - actors (human, agent, llm, system)
+- **unit** - actors (human, agent, llm, system) with `model`, `system-prompt`, `generation`
 - **task** - work with optional x402 price (task + price = service)
 - **path/flow** - weighted unit-to-unit connections
 - **trail** - weighted task-to-task sequences
@@ -31,13 +37,20 @@ TypeDB 3.0 schemas for the ONE world.
 - `capability(provider, skill)` - unit can do task at price
 - `membership(group, member)` - unit belongs to swarm
 
-## Inference Rules
+## Classification Functions
 
-Rules auto-classify based on thresholds:
-- `highway` - path strength >= 50
-- `proven` - unit with high success-rate, activity, samples
-- `attractive` - task with strong inbound trail, no blockers
-- `toxic` - path/flow where alarm > strength
+Functions auto-classify based on thresholds:
+- `path_status` - "highway" | "fresh" | "fading" | "toxic"
+- `unit_classification` - "proven" | "active" | "at-risk"
+- `trail_status` - "proven" | "fresh" | "fading" | "dead"
+- `is_attractive` / `is_repelled` - task pheromone selection
+- `needs_evolution` - agent self-improvement trigger (success-rate < 0.50, samples >= 20)
+
+## Two Layers of Learning
+
+1. **Substrate** — pheromone on paths/trails. Colony gets smarter. Individual agents unchanged.
+2. **Agent** — `model`, `system-prompt`, `generation` on unit. When `needs_evolution` fires,
+   the agent rewrites its own prompt. The substrate provides the data; the agent evolves.
 
 ## Runtime Mapping
 
@@ -49,3 +62,5 @@ Rules auto-classify based on thresholds:
 | signal | `emit({ receiver, data })` |
 | trail | implicit via task routing |
 | highways() | `colony.highways(n)` |
+| suggest_route() | routing decision — TypeDB as relay |
+| needs_evolution() | trigger for agent self-improvement |

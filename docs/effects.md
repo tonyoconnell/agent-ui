@@ -477,7 +477,7 @@ TypeQL rules infer status automatically. Effect reads those statuses and branche
 
 const routeWithConfidence = (task: string) => Effect.gen(function* () {
   const edges = yield* tql<Edge[]>(
-    `match $e($s, $t) isa edge, has edge-status $st;
+    `match $e($s, $t) isa path, has path-status $st;
      $t isa unit, has capability $c; $c contains "${task}";
      fetch $e, $st;`
   )
@@ -739,7 +739,7 @@ Effect.ts and the substrate solve the same problem at different scales:
 | Concern | Effect.ts (ONE web) | Substrate (envelopes) | TypeQL (persistence) |
 |---------|--------------------|-----------------------|---------------------|
 | **Routing** | `Context.Tag` → `Layer.provide()` | `signal()` → `colony.follow()` | `optimal_route()` function |
-| **Error flow** | `Effect.catchTag()` | `resist()` → toxic path | `rule toxic-edge` infers status |
+| **Error flow** | `Effect.catchTag()` | `resist()` → toxic path | `fun is_toxic` infers status |
 | **Composition** | `Effect.gen(function*())` | `.then()` continuations | `continuation` relation |
 | **Multi-backend** | CompositeProvider routes | Colony routes to units | `membership` + `capability` |
 | **Learning** | — (static routing) | `drop()` / `fade()` / `highways()` | `edge` weight + inference rules |
@@ -759,7 +759,7 @@ colony.resist(from, to)
   ↕ persists as
 update edge alarm += 1.0 where source = $from, target = $to
   ↕ triggers
-rule toxic-edge: alarm > strength → edge-status "toxic"
+fun is_toxic: alarm > strength → path-status "toxic"
 ```
 
 ---

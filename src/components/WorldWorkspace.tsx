@@ -174,10 +174,10 @@ function FlowPanel({ flows }: { flows: Edge[] }) {
       </h3>
 
       <div className="space-y-2">
-        {openFlows.map(({ edge, strength }) => (
-          <div key={edge} className="flex items-center gap-3">
+        {openFlows.map(({ path, strength }) => (
+          <div key={path} className="flex items-center gap-3">
             <div className="flex-1">
-              <code className="text-xs text-slate-400">{edge}</code>
+              <code className="text-xs text-slate-400">{path}</code>
             </div>
             <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: skin.colors.muted + "30" }}>
               <div
@@ -200,9 +200,9 @@ function FlowPanel({ flows }: { flows: Edge[] }) {
             {t("closing")}
           </h3>
           <div className="space-y-1">
-            {closingFlows.slice(0, 3).map(({ edge, strength }) => (
-              <div key={edge} className="flex items-center gap-2 text-xs">
-                <code className="text-slate-500 flex-1 truncate">{edge}</code>
+            {closingFlows.slice(0, 3).map(({ path, strength }) => (
+              <div key={path} className="flex items-center gap-2 text-xs">
+                <code className="text-slate-500 flex-1 truncate">{path}</code>
                 <span style={{ color: skin.colors.warning }}>{strength.toFixed(1)}</span>
               </div>
             ))}

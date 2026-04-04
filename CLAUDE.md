@@ -11,6 +11,35 @@ npm run build    # Production build
 npm run preview  # Preview build
 ```
 
+## Architecture
+
+TypeDB is the substrate. Not just storage — the signal relay, the router, the brain.
+
+```
+signal IN → TypeDB → suggest_route() → signal OUT → agent executes → signal IN
+```
+
+The router process is dumb hands. TypeDB decides where signals go based on pheromone.
+Multiple machines point at one TypeDB instance = one shared world.
+
+### Two Layers of Learning
+
+1. **Substrate learning** — pheromone on paths and trails. The colony gets smarter
+   even if every agent stays the same. drop() on success, alarm() on failure, fade() over time.
+2. **Agent self-improvement** — units have `model`, `system-prompt`, `generation`.
+   When `needs_evolution()` fires (success-rate < 0.50, sample-count >= 20),
+   the agent rewrites its own prompt. The substrate provides the signal; the agent evolves.
+
+### Why Separate Agents Matter
+
+One orchestrator with sub-agents works — IF every sub-agent interaction is reported
+to the substrate as a signal. The substrate needs to see the graph:
+- `path(bob → amelia)` with pheromone = routing data
+- `trail(create-story → develop)` with pheromone = sequence data
+- Individual `success-rate` per agent = evolution data
+
+One agent doing everything = one node, no paths, substrate is blind.
+
 ## Core Concepts
 
 ### Signal
@@ -74,8 +103,18 @@ Defined at setup, executed after task:
 
 ### Signal Flow
 ```
-signal → unit → task → emit → mark trail → signal
+signal → TypeDB → suggest_route() → unit → task → emit → drop(path) → signal
 ```
+
+### Router Pattern
+```
+1. Write signal to TypeDB
+2. Read next destination FROM TypeDB (suggest_route)
+3. Execute that agent's prompt (model + system-prompt from unit)
+4. Write result as new signal to TypeDB
+5. Go to 2
+```
+The router doesn't decide. It follows the pheromone.
 
 ### Hydration (Astro)
 ```astro
@@ -89,7 +128,7 @@ signal → unit → task → emit → mark trail → signal
 
 - **Astro 5**: Islands architecture, SSR
 - **React 19**: Actions, use(), transitions
-- **TypeDB 3.0**: Schema and inference
+- **TypeDB 3.0**: Substrate — signal relay, routing, inference, truth
 - **Tailwind 4**: Styling
 - **shadcn/ui**: Component library
 - **ReactFlow**: Graph visualization

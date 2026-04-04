@@ -59,9 +59,8 @@ export const agentverse = (fetch: Fetch): Agentverse => {
       const result = await fetch(address, data)
       net.mark(edge, 1)  // Success strengthens trail
       return result
-    } catch (e) {
-      net.mark(edge + ':alarm', 1)  // Failure marks alarm
-      throw e
+    } catch {
+      net.warn(edge, 1)  // Failure marks alarm — signal dissolves, swarm continues
     }
   }
 

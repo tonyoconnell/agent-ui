@@ -4,6 +4,90 @@
 
 ---
 
+## Hermes Agent
+
+[github.com/NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) — MIT, ~24k stars.
+
+A self-improving AI agent by Nous Research. Terminal-based, 40+ tools, closed learning loop, persistent memory, 15+ messaging platforms. Model-agnostic — any OpenAI-compatible endpoint, 200+ models via OpenRouter.
+
+### Architecture
+
+Core is `run_agent.py` — the `AIAgent` class orchestrating:
+
+```
+prompt_builder.py → LLM call → tool execution → loop until done
+      ↑                                              ↓
+context_compressor.py ←── session grows ←── results back
+```
+
+| Subsystem | Location | Purpose |
+|-----------|----------|---------|
+| Agent loop | `run_agent.py` | Core orchestrator |
+| Tool registry | `tools/registry.py` | 40+ tools in toolsets |
+| Memory | `agent/memory_manager.py` | MEMORY.md + USER.md persistence |
+| Skills | `tools/skill_manager_tool.py` | Procedural memory, self-improving |
+| Delegation | `tools/delegate_tool.py` | Spawn isolated subagents |
+| Gateway | `gateway/` | 15+ messaging platforms |
+| Cron | `cron/` | Scheduled unattended tasks |
+| Environments | `environments/` | Local, Docker, SSH, Daytona, Modal, Singularity |
+
+### The Learning Loop
+
+What makes Hermes unique — a closed loop of self-improvement:
+
+1. **Memory** — Agent-curated `MEMORY.md` (facts) and `USER.md` (user profile). FTS5 full-text search across past sessions with LLM summarization.
+2. **Skills** — After complex tasks, creates `SKILL.md` files with instructions, templates, scripts. Skills self-improve during use — the agent patches and versions them. Compatible with [agentskills.io](https://agentskills.io).
+3. **User modeling** — Honcho dialectic profiling builds a deepening profile across sessions.
+4. **Session search** — FTS5-indexed past conversations, searchable with cross-session recall.
+
+### Tool Categories
+
+| Toolset | What |
+|---------|------|
+| Terminal | Shell execution across 6 backends |
+| File | Read, write, patch files |
+| Web | Browser (CamoFox anti-detection), web search |
+| Memory | Read/write MEMORY.md, USER.md |
+| Skills | Create, edit, patch, delete, version |
+| Delegation | Spawn subagents (max depth 2, up to 3 parallel) |
+| Code | Python execution via RPC |
+| MCP | Connect any MCP server (~1050 lines, production-ready) |
+| Cron | Schedule recurring tasks |
+| Messaging | Cross-platform delivery |
+| Image | Image generation |
+| Home | Home Assistant integration |
+
+### Execution Environments
+
+Not tied to your laptop. Six terminal backends:
+
+```
+Local → Direct shell
+Docker → Containerized isolation
+SSH → Remote machine
+Daytona → Serverless (hibernates when idle)
+Modal → Serverless GPU/CPU (pay when active)
+Singularity → HPC container runtime
+```
+
+### Gateway
+
+Single process, 15+ platforms: Telegram, Discord, Slack, WhatsApp, Signal, Email, Matrix, Mattermost, DingTalk, Feishu, WeCom, SMS, Webhook, API server. Voice memo transcription built in. Cross-platform conversation continuity.
+
+### Benefits
+
+| Benefit | Detail |
+|---------|--------|
+| Self-improving | Skills created from experience, improve during use — procedural memory, not chat history |
+| Model-agnostic | Any OpenAI-compatible endpoint, 200+ models, switch with one command |
+| Runs anywhere | $5 VPS, GPU cluster, or serverless — talk from Telegram while it works on a cloud VM |
+| Open & extensible | MIT license, MCP integration, Skills Hub community |
+| Multi-platform | One agent, 15+ messaging platforms, scheduled automations |
+| Research-ready | Batch trajectory generation, Atropos RL environments, training data pipelines |
+| Production-hardened | SafeWriter, security scanning, command approval, container isolation |
+
+---
+
 ## The World
 
 The ONE substrate is a coordination layer. Any agent can register, discover others, modify the environment, and participate in collective intelligence. Hermes is one species. An LLM is another. OpenClaw is another. A human is another.
@@ -137,7 +221,7 @@ This is Agentverse-style discovery, but the substrate adds pheromone intelligenc
 
 ---
 
-## The Elegant Loop
+## The  Loop
 
 TypeDB is the single source of truth. Everything flows from the graph.
 

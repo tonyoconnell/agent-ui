@@ -63,7 +63,7 @@ async function drop(group: string, from: string, to: string, score: number) {
   await tx.query(`
     match 
       $g isa group, has gid "${group}";
-      $e isa edge, has eid "${from}→${to}";
+      $e isa path, has eid "${from}→${to}";
       (container: $g, member: $e) isa membership;
       ?current = $e.weight;
     update $e has weight (?current + ${score});
@@ -75,7 +75,7 @@ async function resist(group: string, from: string, to: string, score: number) {
   await tx.query(`
     match 
       $g isa group, has gid "${group}";
-      $e isa edge, has eid "${from}→${to}";
+      $e isa path, has eid "${from}→${to}";
       (container: $g, member: $e) isa membership;
       ?current = $e.alarm;
     update $e has alarm (?current + ${score});
@@ -87,7 +87,7 @@ async function fade(group: string, rate = 0.1) {
   await tx.query(`
     match 
       $g isa group, has gid "${group}";
-      $e isa edge, has weight $w, has alarm $a;
+      $e isa path, has weight $w, has alarm $a;
       (container: $g, member: $e) isa membership;
     update $e has weight ($w * ${1 - rate}), has alarm ($a * ${1 - rate});
   `)
@@ -96,7 +96,7 @@ async function fade(group: string, rate = 0.1) {
 // follow() → TypeDB (inference handles status)
 async function follow(n = 10) {
   return tx.query(`
-    match $e isa edge, has status "highway", has weight $w;
+    match $e isa path, has status "highway", has weight $w;
     sort $w desc; limit ${n};
     return { $e };
   `)
@@ -105,26 +105,23 @@ async function follow(n = 10) {
 // toxic() → TypeDB (inference handles status)
 async function toxic() {
   return tx.query(`
-    match $e isa edge, has status "toxic";
+    match $e isa path, has status "toxic";
     return { $e };
   `)
 }
 ```
 
-## The Three Rules (from unified.tql)
+## Classification Functions (TypeDB 3.x — replaces rules)
 
 ```tql
-rule highway:
-    when { $e isa edge, has weight $w; $w >= 50.0; }
-    then { $e has status "highway"; };
-
-rule fading:
-    when { $e isa edge, has weight $w; $w > 0.0; $w < 5.0; }
-    then { $e has status "fading"; };
-
-rule toxic:
-    when { $e isa edge, has alarm $a, has weight $w; $a > $w; $a >= 10.0; }
-    then { $e has status "toxic"; };
+fun path_status($e: path) -> string:
+    match $e has strength $s, has alarm $a, has traversals $t;
+    return first
+        if ($a > $s and $a >= 10.0) then "toxic"
+        else if ($s >= 50.0) then "highway"
+        else if ($s >= 10.0 and $t < 10) then "fresh"
+        else if ($s > 0.0 and $s < 5.0) then "fading"
+        else "active";
 ```
 
 ## What This Means

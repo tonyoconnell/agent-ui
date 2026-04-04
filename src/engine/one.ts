@@ -4,11 +4,12 @@
  * 70 lines. Groups, Actors, Things, Connections, Events, Knowledge.
  */
 
-import { colony, unit, type Colony, type Unit } from './substrate'
+import { type Unit } from './substrate'
+import { persisted, type PersistedColony } from './persist'
 
 type Opts = { group?: string }
 
-export interface World extends Colony {
+export interface World extends PersistedColony {
   // 1. Groups
   group: (id: string, type?: string, opts?: { parent?: string }) => void
 
@@ -38,7 +39,7 @@ export interface World extends Colony {
 }
 
 export const world = (): World => {
-  const net = colony()
+  const net = persisted()
   const groups: Record<string, { type: string; parent?: string }> = {}
   const actors: Record<string, { type: string; group?: string }> = {}
   const things: Record<string, { type: string; group?: string }> = {}
@@ -60,7 +61,7 @@ export const world = (): World => {
     const key = opts?.group ? `${opts.group}:${from}→${to}` : `${from}→${to}`
     return {
       strengthen: (n = 1) => net.mark(key, n),
-      resist: (n = 1) => net.mark(key + ':resist', n),
+      resist: (n = 1) => net.warn(key, n),
     }
   }
 
@@ -80,10 +81,10 @@ export const world = (): World => {
       })
 
   const blocked = (opts?: Opts) =>
-    Object.entries(net.scent)
-      .filter(([e]) => e.endsWith(':resist') && (!opts?.group || e.startsWith(`${opts.group}:`)))
+    Object.entries(net.alarm)
+      .filter(([e, a]) => a > (net.scent[e] || 0) && (!opts?.group || e.startsWith(`${opts.group}:`)))
       .map(([e]) => {
-        const [from, to] = e.replace(':resist', '').replace(/^[^:]+:/, '').split('→')
+        const [from, to] = e.replace(/^[^:]+:/, '').split('→')
         return { from, to }
       })
 

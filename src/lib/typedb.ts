@@ -126,7 +126,8 @@ export async function writeBatch(queries: string[]): Promise<void> {
 }
 
 /**
- * Asymmetric decay: trail fades slow (5%), alarm fades fast (20%).
+ * Asymmetric decay: trail fades slow, alarm fades 2x faster.
+ * Per-path fade-rate when set, falls back to global defaults.
  * From ant biology: success persists, failure forgives.
  */
 export async function decay(trailRate = 0.05, alarmRate = 0.20): Promise<void> {
@@ -134,16 +135,31 @@ export async function decay(trailRate = 0.05, alarmRate = 0.20): Promise<void> {
   const af = 1 - alarmRate
 
   await Promise.all([
+    // Paths WITH per-path fade-rate: use it
+    writeSilent(`
+      match $e isa path, has strength $s, has fade-rate $r; $s > 0.01;
+      delete $s of $e;
+      insert $e has strength ($s * (1.0 - $r));
+    `),
+    writeSilent(`
+      match $e isa path, has alarm $a, has fade-rate $r; $a > 0.01;
+      delete $a of $e;
+      insert $e has alarm ($a * (1.0 - $r * 2.0));
+    `),
+    // Paths WITHOUT fade-rate: use global defaults
     writeSilent(`
       match $e isa path, has strength $s; $s > 0.01;
+      not { $e has fade-rate $r; };
       delete $s of $e;
       insert $e has strength ($s * ${tf});
     `),
     writeSilent(`
       match $e isa path, has alarm $a; $a > 0.01;
+      not { $e has fade-rate $r; };
       delete $a of $e;
       insert $e has alarm ($a * ${af});
     `),
+    // Trails: always global (no per-trail fade-rate)
     writeSilent(`
       match $t isa trail, has trail-pheromone $tp; $tp > 0.01;
       delete $tp of $t;

@@ -12,7 +12,44 @@ Apply to `src/engine/*.ts`
 { receiver, data }
 
 That's all that flows.
+TypeDB is the relay. The router follows pheromone. The ant doesn't decide.
 ```
+
+---
+
+## TypeDB as Signal Relay
+
+```
+1. Write signal to TypeDB
+2. TypeDB → suggest_route($from, $task) → next destination
+3. Execute agent prompt (model + system-prompt from unit)
+4. Write result as new signal
+5. Repeat
+```
+
+The router process is dumb hands. TypeDB is the brain.
+Multiple machines, one TypeDB instance = one shared world.
+
+---
+
+## Agent Self-Improvement
+
+Units have `model`, `system-prompt`, `generation`.
+The substrate measures performance. When it's bad enough, the agent evolves.
+
+```typescript
+// Substrate detects
+needs_evolution(unit) → success-rate < 0.50, sample-count >= 20
+
+// Agent responds
+unit.system-prompt = rewrite(old-prompt, failures)
+unit.generation++
+// Optional: unit.model = upgrade("haiku" → "sonnet")
+```
+
+Two layers of learning:
+- **Substrate** — pheromone on paths/trails. Colony gets smarter.
+- **Agent** — prompt/model evolution. Individual ant gets smarter.
 
 ---
 
@@ -200,4 +237,21 @@ HIGHWAY            dissolve
 
 ---
 
-*Signal. Drop. Follow. Fade. Highway. 70 lines.*
+## Multi-Machine Collaboration
+
+```
+Machine A (Tony)                    Machine B (David)
+┌──────────┐                        ┌──────────┐
+│  Hermes  │──signal──→ TypeDB ←──signal──│ Theodore │
+│ (router) │←─route───→   ↕   ←──route──│ (router) │
+└──────────┘           paths &       └──────────┘
+                       trails
+```
+
+Each machine runs one router process. TypeDB is shared.
+Hermes writes signals. Theodore reads them. Pheromone builds across machines.
+The substrate learns end-to-end paths regardless of which machine runs which agent.
+
+---
+
+*Signal. Drop. Follow. Fade. Highway. Evolve. 70 lines.*

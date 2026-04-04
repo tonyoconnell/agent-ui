@@ -249,7 +249,7 @@ colonyA.highways() + colonyB.highways()
 ```typescript
 // TypeDB integration
 typedb.insert(colony.scent)
-typedb.query('match $e isa edge, has strength > 50')
+typedb.query('match $e isa path, has strength > 50')
 ```
 
 ---

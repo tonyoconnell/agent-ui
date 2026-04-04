@@ -1,12 +1,14 @@
 /**
  * THE SUBSTRATE
  *
- * 70 lines. Two fields. Concurrency safe.
+ * Two fields. Dual scent. Concurrency safe.
  *
  * receiver: who (unit:task)
  * data: what (anything)
+ * data.marks: false to observe without marking trails
+ * data.weight: override default drop amount
  *
- * Signal. Mark. Follow. Fade. Highway.
+ * Signal. Mark. Alarm. Follow. Fade. Highway.
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -15,9 +17,13 @@
 
 export type Signal = { receiver: string; data?: unknown }
 export type Emit = (s: Signal) => void
+export type Edge = { path: string; strength: number }
 type Task = (data: unknown, emit: Emit, ctx: { from: string; self: string }) => Promise<unknown>
 type Template = (result: unknown) => Signal
 type Route = (s: Signal, from: string) => void
+
+type SignalData = { marks?: boolean; weight?: number; [k: string]: unknown }
+const asData = (d: unknown): SignalData => (d && typeof d === 'object' ? d as SignalData : {})
 
 export interface Unit {
   (s: Signal, from?: string): void
@@ -32,10 +38,13 @@ export interface Unit {
 export interface Colony {
   units: Record<string, Unit>
   scent: Record<string, number>
+  alarm: Record<string, number>
   spawn: (id: string) => Unit
   signal: (s: Signal, from?: string) => void
   mark: (path: string, strength?: number) => void
+  warn: (path: string, strength?: number) => void
   sense: (path: string) => number
+  danger: (path: string) => number
   follow: (type?: string) => string | null
   fade: (rate?: number) => void
   highways: (limit?: number) => { path: string; strength: number }[]
@@ -80,20 +89,31 @@ export const unit = (id: string, route?: Route): Unit => {
 export const colony = (): Colony => {
   const units: Record<string, Unit> = {}
   const scent: Record<string, number> = {}
+  const alarm: Record<string, number> = {}
 
   const mark = (path: string, strength = 1) => {
     scent[path] = (scent[path] || 0) + strength
   }
 
+  const warn = (path: string, strength = 1) => {
+    alarm[path] = (alarm[path] || 0) + strength
+  }
+
   const sense = (path: string) => scent[path] || 0
+  const danger = (path: string) => alarm[path] || 0
 
   const signal = ({ receiver, data }: Signal, from = 'entry') => {
     const unitId = receiver.includes(':') ? receiver.split(':')[0] : receiver
     const target = units[unitId]
-    target && (
-      mark(`${from}→${receiver}`),
-      target({ receiver, data }, from)
-    )
+    if (!target) return
+
+    const d = asData(data)
+    const edge = `${from}→${receiver}`
+
+    // marks gate: only drop pheromone on production signals
+    d.marks !== false && mark(edge, d.weight ?? 1)
+
+    target({ receiver, data }, from)
   }
 
   const spawn = (id: string) => {
@@ -102,19 +122,21 @@ export const colony = (): Colony => {
     return u
   }
 
-  // STAN: follow strongest trail matching a type
-  // effective_cost = base / (1 + pheromone * 0.7)
+  // follow strongest trail, penalized by alarm
   const follow = (type?: string) => {
     const trails = Object.entries(scent)
       .filter(([e]) => !type || e.includes(type))
+      .map(([e, s]) => [e, s - (alarm[e] || 0)] as const)
+      .filter(([, s]) => s > 0)
       .sort(([, a], [, b]) => b - a)
     return trails[0]?.[0].split('→').pop()?.split(':')[0] || null
   }
 
-  const fade = (r = 0.1) => Object.keys(scent).forEach(e => {
-    scent[e] *= (1 - r)
-    scent[e] < 0.01 && delete scent[e]
-  })
+  // asymmetric: alarm decays 2x faster (failures forgive)
+  const fade = (r = 0.1) => {
+    for (const e in scent) { scent[e] *= (1 - r); scent[e] < 0.01 && delete scent[e] }
+    for (const e in alarm) { alarm[e] *= (1 - r * 2); alarm[e] < 0.01 && delete alarm[e] }
+  }
 
   const highways = (limit = 10) =>
     Object.entries(scent)
@@ -126,9 +148,9 @@ export const colony = (): Colony => {
   const list = () => Object.keys(units)
   const get = (id: string) => units[id]
 
-  return { units, scent, spawn, signal, mark, sense, follow, fade, highways, has, list, get }
+  return { units, scent, alarm, spawn, signal, mark, warn, sense, danger, follow, fade, highways, has, list, get }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 70 lines. Signal. Mark. Follow. Fade.
+// Signal. Mark. Alarm. Follow. Fade. Highway.
 // ═══════════════════════════════════════════════════════════════════════════

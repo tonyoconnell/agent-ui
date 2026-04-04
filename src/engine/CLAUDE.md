@@ -2,15 +2,31 @@
 
 **Skills: `/react19` for hooks/state, `/typedb` for persist layer queries.**
 
-70 lines. Two fields. Signal flows.
+70 lines. Two fields. Signal flows. TypeDB is the relay.
 
 ## Core Types
 
 ```typescript
 Signal = { receiver: string, data?: unknown }  // universal primitive
-Unit   = callable + tasks + continuations      // entity
+Unit   = callable + tasks + continuations      // entity with model + system-prompt + generation
 Colony = units + scent + stigmergy             // swarm
 ```
+
+## TypeDB as Substrate
+
+The router process is dumb hands. TypeDB decides routing via pheromone.
+```
+1. Write signal to TypeDB
+2. TypeDB → suggest_route() → next destination
+3. Execute agent prompt (model + system-prompt from unit entity)
+4. Write result as new signal
+5. Repeat
+```
+
+## Two Layers of Learning
+
+- **Substrate** — drop()/alarm()/fade() on paths and trails. Colony intelligence.
+- **Agent** — needs_evolution() triggers prompt rewrite. generation++. Individual intelligence.
 
 ## Task Signature
 

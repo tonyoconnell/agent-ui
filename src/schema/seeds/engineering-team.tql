@@ -1,0 +1,655 @@
+# =============================================================================
+# ENGINEERING-TEAM.TQL — Scrum Team as Colony
+# =============================================================================
+#
+# No new schema. one.tql already has everything.
+#
+#   role        = unit (unit-kind: "human" or "agent")
+#   handoff     = signal (sender → receiver, data)
+#   trust       = path (strength = how often this handoff works)
+#   workflow    = trail (task→task pheromone)
+#   ceremony    = pattern of signals
+#   highway     = the process that actually emerged
+#
+# USAGE:
+#   typedb console
+#   > transaction one data write
+#   > source engineering-team.tql
+#   > commit
+#
+# =============================================================================
+
+
+# =============================================================================
+# THE SWARM — one engineering team
+# =============================================================================
+
+insert $team isa swarm,
+    has sid "eng-alpha",
+    has name "Alpha Squad",
+    has purpose "onboarding flow rebuild",
+    has swarm-type "team",
+    has status "active",
+    has created 2026-03-01T09:00:00;
+
+
+# =============================================================================
+# THE UNITS — scrum roles as colony members
+# =============================================================================
+
+insert
+
+# Product Owner — translates stakeholder need into stories
+$po isa unit,
+    has uid "po-sarah",
+    has name "Sarah",
+    has unit-kind "human",
+    has status "active",
+    has balance 0.0,
+    has reputation 0.0,
+    has success-rate 0.88,
+    has activity-score 72.0,
+    has sample-count 120,
+    has created 2026-03-01T09:00:00;
+
+# Scrum Master — routes blockers, never routes work
+$sm isa unit,
+    has uid "sm-david",
+    has name "David",
+    has unit-kind "human",
+    has status "active",
+    has balance 0.0,
+    has reputation 0.0,
+    has success-rate 0.91,
+    has activity-score 65.0,
+    has sample-count 95,
+    has created 2026-03-01T09:00:00;
+
+# Developer
+$dev isa unit,
+    has uid "dev-kai",
+    has name "Kai",
+    has unit-kind "human",
+    has status "active",
+    has balance 0.0,
+    has reputation 0.0,
+    has success-rate 0.82,
+    has activity-score 88.0,
+    has sample-count 200,
+    has created 2026-03-01T09:00:00;
+
+# QA Tester
+$qa isa unit,
+    has uid "qa-mei",
+    has name "Mei",
+    has unit-kind "human",
+    has status "active",
+    has balance 0.0,
+    has reputation 0.0,
+    has success-rate 0.79,
+    has activity-score 74.0,
+    has sample-count 150,
+    has created 2026-03-01T09:00:00;
+
+# DevOps
+$ops isa unit,
+    has uid "ops-alex",
+    has name "Alex",
+    has unit-kind "human",
+    has status "active",
+    has balance 0.0,
+    has reputation 0.0,
+    has success-rate 0.85,
+    has activity-score 60.0,
+    has sample-count 80,
+    has created 2026-03-01T09:00:00;
+
+# Architect
+$arch isa unit,
+    has uid "arch-ravi",
+    has name "Ravi",
+    has unit-kind "human",
+    has status "active",
+    has balance 0.0,
+    has reputation 0.0,
+    has success-rate 0.90,
+    has activity-score 45.0,
+    has sample-count 60,
+    has created 2026-03-01T09:00:00;
+
+# Stakeholder
+$stake isa unit,
+    has uid "stake-ceo",
+    has name "CEO",
+    has unit-kind "human",
+    has status "active",
+    has balance 0.0,
+    has reputation 0.0,
+    has success-rate 0.70,
+    has activity-score 30.0,
+    has sample-count 40,
+    has created 2026-03-01T09:00:00;
+
+# Claude Code — the AI unit in the colony
+$claude isa unit,
+    has uid "claude-code",
+    has name "Claude",
+    has unit-kind "agent",
+    has model "opus",
+    has status "active",
+    has balance 0.0,
+    has reputation 0.0,
+    has success-rate 0.86,
+    has activity-score 95.0,
+    has sample-count 300,
+    has created 2026-03-01T09:00:00;
+
+
+# =============================================================================
+# MEMBERSHIP — everyone joins the swarm
+# =============================================================================
+
+match
+    $team isa swarm, has sid "eng-alpha";
+    $po isa unit, has uid "po-sarah";
+    $sm isa unit, has uid "sm-david";
+    $dev isa unit, has uid "dev-kai";
+    $qa isa unit, has uid "qa-mei";
+    $ops isa unit, has uid "ops-alex";
+    $arch isa unit, has uid "arch-ravi";
+    $stake isa unit, has uid "stake-ceo";
+    $claude isa unit, has uid "claude-code";
+insert
+    (group: $team, member: $po) isa membership, has joined-at 2026-03-01T09:00:00;
+    (group: $team, member: $sm) isa membership, has joined-at 2026-03-01T09:00:00;
+    (group: $team, member: $dev) isa membership, has joined-at 2026-03-01T09:00:00;
+    (group: $team, member: $qa) isa membership, has joined-at 2026-03-01T09:00:00;
+    (group: $team, member: $ops) isa membership, has joined-at 2026-03-01T09:00:00;
+    (group: $team, member: $arch) isa membership, has joined-at 2026-03-01T09:00:00;
+    (group: $team, member: $stake) isa membership, has joined-at 2026-03-01T09:00:00;
+    (group: $team, member: $claude) isa membership, has joined-at 2026-03-01T09:00:00;
+
+
+# =============================================================================
+# PATHS — who signals whom (after 6 sprints of pheromone)
+# =============================================================================
+#
+# These are the ACTUAL communication weights.
+# Not the org chart. Not the Jira board. The trails.
+#
+#   strength  = how many successful handoffs
+#   alarm     = how many failed/blocked handoffs
+#   revenue   = x402 payments flowing on this edge
+#   traversals = total signal count
+#
+# =============================================================================
+
+match
+    $po isa unit, has uid "po-sarah";
+    $sm isa unit, has uid "sm-david";
+    $dev isa unit, has uid "dev-kai";
+    $qa isa unit, has uid "qa-mei";
+    $ops isa unit, has uid "ops-alex";
+    $arch isa unit, has uid "arch-ravi";
+    $stake isa unit, has uid "stake-ceo";
+    $claude isa unit, has uid "claude-code";
+insert
+
+    # ── THE HIGHWAY: stake → po → dev → qa → ops ──
+    # This is the path that EMERGED. Nobody designed it.
+
+    (source: $stake, target: $po) isa path,
+        has strength 40.0, has alarm 5.0, has traversals 80,
+        has revenue 0.0, has last-used 2026-04-03T14:00:00;
+
+    (source: $po, target: $dev) isa path,
+        has strength 92.0, has alarm 3.0, has traversals 200,
+        has revenue 0.0, has last-used 2026-04-04T10:00:00;
+
+    (source: $po, target: $claude) isa path,
+        has strength 88.0, has alarm 2.0, has traversals 180,
+        has revenue 0.0, has last-used 2026-04-04T09:30:00;
+
+    (source: $dev, target: $qa) isa path,
+        has strength 85.0, has alarm 8.0, has traversals 190,
+        has revenue 0.0, has last-used 2026-04-04T11:00:00;
+
+    (source: $qa, target: $ops) isa path,
+        has strength 78.0, has alarm 4.0, has traversals 160,
+        has revenue 0.0, has last-used 2026-04-04T12:00:00;
+
+
+    # ── SUPPORT PATHS (used but not highways) ──
+
+    (source: $dev, target: $arch) isa path,
+        has strength 35.0, has alarm 2.0, has traversals 60,
+        has revenue 0.0, has last-used 2026-04-02T16:00:00;
+
+    (source: $dev, target: $claude) isa path,
+        has strength 75.0, has alarm 5.0, has traversals 170,
+        has revenue 0.0, has last-used 2026-04-04T10:30:00;
+
+    (source: $qa, target: $dev) isa path,
+        has strength 45.0, has alarm 12.0, has traversals 100,
+        has revenue 0.0, has last-used 2026-04-04T09:00:00;
+
+    (source: $qa, target: $claude) isa path,
+        has strength 30.0, has alarm 3.0, has traversals 55,
+        has revenue 0.0, has last-used 2026-04-03T15:00:00;
+
+    (source: $ops, target: $dev) isa path,
+        has strength 20.0, has alarm 6.0, has traversals 40,
+        has revenue 0.0, has last-used 2026-04-03T08:00:00;
+
+    (source: $ops, target: $claude) isa path,
+        has strength 18.0, has alarm 2.0, has traversals 35,
+        has revenue 0.0, has last-used 2026-04-02T17:00:00;
+
+
+    # ── SCRUM MASTER: circuit breaker, not router ──
+    # Low traversals. Only fires on blocks. That's correct.
+
+    (source: $sm, target: $dev) isa path,
+        has strength 28.0, has alarm 1.0, has traversals 30,
+        has revenue 0.0, has last-used 2026-04-03T11:00:00;
+
+    (source: $sm, target: $ops) isa path,
+        has strength 15.0, has alarm 0.0, has traversals 20,
+        has revenue 0.0, has last-used 2026-04-01T14:00:00;
+
+    (source: $ops, target: $sm) isa path,
+        has strength 22.0, has alarm 8.0, has traversals 30,
+        has revenue 0.0, has last-used 2026-04-03T10:00:00;
+
+
+    # ── FADED PATHS (the org chart said these should exist) ──
+
+    (source: $arch, target: $stake) isa path,
+        has strength 3.0, has alarm 0.0, has traversals 8,
+        has revenue 0.0, has last-used 2026-03-15T10:00:00;
+
+    (source: $po, target: $ops) isa path,
+        has strength 2.0, has alarm 4.0, has traversals 12,
+        has revenue 0.0, has last-used 2026-03-10T09:00:00;
+
+
+# =============================================================================
+# TASKS — the sprint backlog
+# =============================================================================
+
+insert
+
+$t1 isa task,
+    has tid "ALPHA-101",
+    has name "simplify onboarding to 3 steps",
+    has task-type "build",
+    has status "complete",
+    has priority "P0",
+    has phase "wire",
+    has importance 9,
+    has price 0.0;
+
+$t2 isa task,
+    has tid "ALPHA-102",
+    has name "design wizard vs progressive disclosure",
+    has task-type "explore",
+    has status "complete",
+    has priority "P1",
+    has phase "wire",
+    has importance 7,
+    has price 0.0;
+
+$t3 isa task,
+    has tid "ALPHA-103",
+    has name "implement step machine",
+    has task-type "build",
+    has status "complete",
+    has priority "P0",
+    has phase "wire",
+    has importance 9,
+    has price 0.0;
+
+$t4 isa task,
+    has tid "ALPHA-104",
+    has name "test back-button regression",
+    has task-type "validate",
+    has status "complete",
+    has priority "P0",
+    has phase "wire",
+    has importance 8,
+    has price 0.0;
+
+$t5 isa task,
+    has tid "ALPHA-105",
+    has name "deploy to staging",
+    has task-type "build",
+    has status "in_progress",
+    has priority "P0",
+    has phase "wire",
+    has importance 8,
+    has price 0.0;
+
+$t6 isa task,
+    has tid "ALPHA-106",
+    has name "fix migration FK constraint",
+    has task-type "work",
+    has status "todo",
+    has priority "P0",
+    has phase "wire",
+    has importance 10,
+    has price 0.0;
+
+$t7 isa task,
+    has tid "ALPHA-107",
+    has name "offline-capable onboarding",
+    has task-type "build",
+    has status "todo",
+    has priority "P2",
+    has phase "wire",
+    has importance 5,
+    has price 0.0;
+
+
+# =============================================================================
+# DEPENDENCIES — what blocks what
+# =============================================================================
+
+match
+    $t2 isa task, has tid "ALPHA-102";
+    $t3 isa task, has tid "ALPHA-103";
+    $t4 isa task, has tid "ALPHA-104";
+    $t5 isa task, has tid "ALPHA-105";
+    $t6 isa task, has tid "ALPHA-106";
+insert
+    # design blocks implementation
+    (dependent: $t3, blocker: $t2) isa dependency;
+    # implementation blocks testing
+    (dependent: $t4, blocker: $t3) isa dependency;
+    # testing blocks deploy
+    (dependent: $t5, blocker: $t4) isa dependency;
+    # migration fix blocks deploy
+    (dependent: $t5, blocker: $t6) isa dependency;
+
+
+# =============================================================================
+# TRAILS — task→task pheromone (what sequences worked)
+# =============================================================================
+
+match
+    $t1 isa task, has tid "ALPHA-101";
+    $t2 isa task, has tid "ALPHA-102";
+    $t3 isa task, has tid "ALPHA-103";
+    $t4 isa task, has tid "ALPHA-104";
+    $t5 isa task, has tid "ALPHA-105";
+insert
+
+    # story → design → implement → test → deploy
+    # This sequence completed successfully. Trails are strong.
+
+    (source-task: $t1, destination-task: $t2) isa trail,
+        has trail-pheromone 80.0, has alarm-pheromone 5.0,
+        has completions 12, has failures 1, has revenue 0.0;
+
+    (source-task: $t2, destination-task: $t3) isa trail,
+        has trail-pheromone 85.0, has alarm-pheromone 3.0,
+        has completions 15, has failures 2, has revenue 0.0;
+
+    (source-task: $t3, destination-task: $t4) isa trail,
+        has trail-pheromone 75.0, has alarm-pheromone 10.0,
+        has completions 14, has failures 3, has revenue 0.0;
+
+    (source-task: $t4, destination-task: $t5) isa trail,
+        has trail-pheromone 60.0, has alarm-pheromone 15.0,
+        has completions 10, has failures 4, has revenue 0.0;
+
+
+# =============================================================================
+# ASSIGNMENTS — who's doing what
+# =============================================================================
+
+match
+    $po isa unit, has uid "po-sarah";
+    $dev isa unit, has uid "dev-kai";
+    $qa isa unit, has uid "qa-mei";
+    $ops isa unit, has uid "ops-alex";
+    $arch isa unit, has uid "arch-ravi";
+    $claude isa unit, has uid "claude-code";
+    $t1 isa task, has tid "ALPHA-101";
+    $t2 isa task, has tid "ALPHA-102";
+    $t3 isa task, has tid "ALPHA-103";
+    $t4 isa task, has tid "ALPHA-104";
+    $t5 isa task, has tid "ALPHA-105";
+    $t6 isa task, has tid "ALPHA-106";
+insert
+    (assigned-task: $t1, assigned-to: $po) isa assignment;
+    (assigned-task: $t2, assigned-to: $arch) isa assignment;
+    (assigned-task: $t2, assigned-to: $claude) isa assignment;
+    (assigned-task: $t3, assigned-to: $dev) isa assignment;
+    (assigned-task: $t3, assigned-to: $claude) isa assignment;
+    (assigned-task: $t4, assigned-to: $qa) isa assignment;
+    (assigned-task: $t5, assigned-to: $ops) isa assignment;
+    (assigned-task: $t6, assigned-to: $dev) isa assignment;
+    (assigned-task: $t6, assigned-to: $claude) isa assignment;
+
+
+# =============================================================================
+# SIGNALS — the actual messages (dimension 5: events)
+# =============================================================================
+#
+# Each signal = one { receiver, data } in the substrate.
+# This is what scrum ceremonies look like as signals.
+#
+
+match
+    $po isa unit, has uid "po-sarah";
+    $sm isa unit, has uid "sm-david";
+    $dev isa unit, has uid "dev-kai";
+    $qa isa unit, has uid "qa-mei";
+    $ops isa unit, has uid "ops-alex";
+    $arch isa unit, has uid "arch-ravi";
+    $stake isa unit, has uid "stake-ceo";
+    $claude isa unit, has uid "claude-code";
+insert
+
+    # ── SPRINT PLANNING (ceremony = signal burst) ──
+
+    # Stakeholder surfaces the need
+    (sender: $stake, receiver: $po) isa signal,
+        has data '{"type":"need","what":"users dropping at onboarding","urgency":"high"}',
+        has amount 0.0, has success true, has latency 300.0,
+        has ts 2026-03-17T09:00:00;
+
+    # PO breaks need into story
+    (sender: $po, receiver: $dev) isa signal,
+        has data '{"type":"story","title":"simplify onboarding to 3 steps","points":5}',
+        has amount 0.0, has success true, has latency 150.0,
+        has ts 2026-03-17T09:30:00;
+
+    # PO asks Claude to plan it
+    (sender: $po, receiver: $claude) isa signal,
+        has data '{"type":"plan","story":"ALPHA-101","break_into":"tasks"}',
+        has amount 0.0, has success true, has latency 2000.0,
+        has ts 2026-03-17T09:35:00;
+
+
+    # ── DESIGN SPIKE ──
+
+    # Dev asks architect for design guidance
+    (sender: $dev, receiver: $arch) isa signal,
+        has data '{"type":"design","question":"wizard or progressive disclosure?","constraints":["mobile-first","offline-capable"]}',
+        has amount 0.0, has success true, has latency 14400.0,
+        has ts 2026-03-18T10:00:00;
+
+    # Dev asks Claude to explore options
+    (sender: $dev, receiver: $claude) isa signal,
+        has data '{"type":"spike","question":"compare wizard vs progressive disclosure for 3-step onboarding"}',
+        has amount 0.0, has success true, has latency 8000.0,
+        has ts 2026-03-18T10:05:00;
+
+
+    # ── IMPLEMENTATION ──
+
+    # Dev signals Claude to build
+    (sender: $dev, receiver: $claude) isa signal,
+        has data '{"type":"build","task":"ALPHA-103","spec":"step machine, 3 states, back-button safe"}',
+        has amount 0.0, has success true, has latency 45000.0,
+        has ts 2026-03-20T09:00:00;
+
+    # Dev sends PR to QA
+    (sender: $dev, receiver: $qa) isa signal,
+        has data '{"type":"review","pr":"#247","changed":["onboarding/","auth/"],"notes":"refactored step machine"}',
+        has amount 0.0, has success true, has latency 200.0,
+        has ts 2026-03-21T14:00:00;
+
+
+    # ── QA FINDS BUG ──
+
+    # QA signals bug back to dev
+    (sender: $qa, receiver: $dev) isa signal,
+        has data '{"type":"bug","what":"step 2 skippable via back-button","severity":"medium","repro":"back-btn on step 3 → skip validation"}',
+        has amount 0.0, has success true, has latency 100.0,
+        has ts 2026-03-22T11:00:00;
+
+    # QA asks Claude to debug
+    (sender: $qa, receiver: $claude) isa signal,
+        has data '{"type":"debug","bug":"back-button skips step 2 validation","files":["onboarding/StepMachine.tsx"]}',
+        has amount 0.0, has success true, has latency 12000.0,
+        has ts 2026-03-22T11:05:00;
+
+
+    # ── DEPLOY BLOCKED ──
+
+    # QA approves, signals ops to deploy
+    (sender: $qa, receiver: $ops) isa signal,
+        has data '{"type":"deploy","branch":"feat/onboarding-v2","env":"staging","approved_by":"qa"}',
+        has amount 0.0, has success false, has latency 30000.0,
+        has ts 2026-03-24T09:00:00;
+
+    # Ops finds blocker, signals scrum master
+    (sender: $ops, receiver: $sm) isa signal,
+        has data '{"type":"block","what":"staging DB migration failed","impact":"deploy pipeline blocked","needs":["dev","devops"]}',
+        has amount 0.0, has success true, has latency 50.0,
+        has ts 2026-03-24T09:30:00;
+
+    # SM routes the block — circuit breaker fires
+    (sender: $sm, receiver: $dev) isa signal,
+        has data '{"type":"unblock","priority":"now","context":"migration FK constraint on users.org","pair_with":"ops"}',
+        has amount 0.0, has success true, has latency 30.0,
+        has ts 2026-03-24T09:35:00;
+
+    # Dev asks Claude to fix migration
+    (sender: $dev, receiver: $claude) isa signal,
+        has data '{"type":"fix","task":"ALPHA-106","error":"FK constraint on users.org_id","context":"staging migration"}',
+        has amount 0.0, has success true, has latency 25000.0,
+        has ts 2026-03-24T10:00:00;
+
+
+    # ── DAILY STANDUP (everyone → SM) ──
+
+    (sender: $dev, receiver: $sm) isa signal,
+        has data '{"type":"standup","did":"step machine PR","will":"fix migration","blocked":false}',
+        has amount 0.0, has success true, has latency 20.0,
+        has ts 2026-03-25T09:15:00;
+
+    (sender: $qa, receiver: $sm) isa signal,
+        has data '{"type":"standup","did":"regression testing","will":"verify migration fix","blocked":false}',
+        has amount 0.0, has success true, has latency 20.0,
+        has ts 2026-03-25T09:16:00;
+
+    (sender: $ops, receiver: $sm) isa signal,
+        has data '{"type":"standup","did":"investigated FK issue","will":"redeploy after fix","blocked":true}',
+        has amount 0.0, has success true, has latency 20.0,
+        has ts 2026-03-25T09:17:00;
+
+
+    # ── SPRINT REVIEW (dev → stakeholder) ──
+
+    (sender: $dev, receiver: $stake) isa signal,
+        has data '{"type":"demo","feature":"3-step onboarding","result":"2 min avg completion, 40% fewer dropoffs"}',
+        has amount 0.0, has success true, has latency 1800.0,
+        has ts 2026-03-28T15:00:00;
+
+    # Stakeholder feedback
+    (sender: $stake, receiver: $po) isa signal,
+        has data '{"type":"feedback","verdict":"accepted","next":"add offline support for field users"}',
+        has amount 0.0, has success true, has latency 600.0,
+        has ts 2026-03-28T15:30:00;
+
+
+    # ── RETROSPECTIVE (all → SM, SM → actions) ──
+
+    (sender: $dev, receiver: $sm) isa signal,
+        has data '{"type":"retro","good":"claude planning saved 2 days","bad":"migration caught late","try":"run migrations in CI"}',
+        has amount 0.0, has success true, has latency 30.0,
+        has ts 2026-03-28T16:00:00;
+
+    (sender: $qa, receiver: $sm) isa signal,
+        has data '{"type":"retro","good":"caught back-button bug early","bad":"no staging parity","try":"mirror prod schema in staging"}',
+        has amount 0.0, has success true, has latency 30.0,
+        has ts 2026-03-28T16:05:00;
+
+
+# =============================================================================
+# CAPABILITIES — who can do what (and at what price)
+# =============================================================================
+
+match
+    $po isa unit, has uid "po-sarah";
+    $dev isa unit, has uid "dev-kai";
+    $qa isa unit, has uid "qa-mei";
+    $ops isa unit, has uid "ops-alex";
+    $arch isa unit, has uid "arch-ravi";
+    $claude isa unit, has uid "claude-code";
+    $t_build isa task, has tid "ALPHA-103";
+    $t_test isa task, has tid "ALPHA-104";
+    $t_deploy isa task, has tid "ALPHA-105";
+    $t_fix isa task, has tid "ALPHA-106";
+    $t_design isa task, has tid "ALPHA-102";
+insert
+    (provider: $dev, skill: $t_build) isa capability, has price 0.0;
+    (provider: $claude, skill: $t_build) isa capability, has price 0.0;
+    (provider: $qa, skill: $t_test) isa capability, has price 0.0;
+    (provider: $ops, skill: $t_deploy) isa capability, has price 0.0;
+    (provider: $dev, skill: $t_fix) isa capability, has price 0.0;
+    (provider: $claude, skill: $t_fix) isa capability, has price 0.0;
+    (provider: $arch, skill: $t_design) isa capability, has price 0.0;
+    (provider: $claude, skill: $t_design) isa capability, has price 0.0;
+
+
+# =============================================================================
+# DONE.
+#
+# Now query it:
+#
+#   -- Who are the highways?
+#   match $p isa path, has strength $s; $s >= 50.0;
+#         $p links (source: $from, target: $to);
+#         $from has name $fn; $to has name $tn;
+#   select $fn, $tn, $s; sort $s desc;
+#
+#   -- What's fading?
+#   match $p isa path, has strength $s; $s < 5.0;
+#         $p links (source: $from, target: $to);
+#         $from has name $fn; $to has name $tn;
+#   select $fn, $tn, $s;
+#
+#   -- How does Claude fit?
+#   match $sig (sender: $from, receiver: $claude) isa signal;
+#         $claude has uid "claude-code";
+#         $from has name $fn;
+#         $sig has data $d;
+#   select $fn, $d;
+#
+#   -- What's blocked?
+#   match let $t in ready_tasks();
+#         $t has name $n;
+#   select $n;
+#
+#   -- Scrum master = circuit breaker?
+#   match $p isa path, has traversals $t;
+#         $p links (source: $sm, target: $any);
+#         $sm has uid "sm-david";
+#         $any has name $n;
+#   select $n, $t; sort $t desc;
+#
+# =============================================================================

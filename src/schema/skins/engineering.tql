@@ -1,0 +1,425 @@
+# =============================================================================
+# ENGINEERING.TQL — The Scrum DSL
+# =============================================================================
+#
+# This is YOUR language. Not the substrate's.
+#
+# You say "sprint".      The substrate hears "swarm".
+# You say "story".       The substrate hears "task".
+# You say "handoff".     The substrate hears "signal".
+# You say "PR review".   The substrate hears "signal with data.type = review".
+# You say "velocity".    The substrate hears "sum of completed trail weight".
+# You say "retro".       The substrate hears "mark + alarm + fade".
+#
+# YOUR DSL                          one.tql
+# ───────────────────────────────────────────────────────────
+# sprint                            swarm (swarm-type: "sprint")
+# epic                              swarm (swarm-type: "epic")
+# story / bug / spike / chore       task (task-type: ...)
+# role (PO, SM, Dev, QA, Ops)       unit (unit-kind: "human")
+# AI pair (Claude)                  unit (unit-kind: "agent")
+# handoff                           signal
+# trust                             path.strength
+# friction                          path.alarm
+# workflow                          trail (task→task)
+# ceremony                          signal burst (same ts window)
+# definition of done                dependency chain fully complete
+# velocity                          completed trail-pheromone / sprint
+# cycle time                        first signal ts → last signal ts
+# blocker                           dependency + task.status != "complete"
+# impediment                        signal(type: "block") → SM
+# highway                           path.strength >= 50
+# code smell                        path.alarm > path.strength
+#
+# WHAT THE SUBSTRATE ADDS THAT SCRUM DOESN'T HAVE:
+#   - Pheromone on every handoff (not just "done" / "not done")
+#   - Alarm on every failure (not just "blocked")
+#   - Fade on unused paths (not just "this sprint")
+#   - Highways that emerge without anyone designing them
+#   - The org chart VERSUS the actual flow — visible in data
+#
+# =============================================================================
+
+define
+
+
+# =============================================================================
+# SCRUM ENTITIES — subtypes of one.tql primitives
+# =============================================================================
+
+# A sprint is a time-boxed swarm. Same schema, scoped context.
+entity sprint sub swarm,
+    owns sprint-number,
+    owns sprint-goal,
+    owns velocity,
+    owns capacity-points,
+    owns started,
+    owns ended;
+
+# An epic is a swarm of stories. Grouping, not time-boxing.
+entity epic sub swarm,
+    owns epic-key;
+
+# ── Stories, Bugs, Spikes — all tasks with a role ──
+
+entity story sub task,
+    owns story-points,
+    owns acceptance-criteria,
+    owns definition-of-done;
+
+entity bug sub task,
+    owns severity,
+    owns repro-steps,
+    owns found-in;                # sprint where it was found
+
+entity spike sub task,
+    owns timebox,                 # max hours allowed
+    owns question,
+    owns outcome;                 # what was learned
+
+entity chore sub task,
+    owns justification;           # why this isn't a story
+
+
+# =============================================================================
+# SCRUM ROLES — unit-kind values, not separate types
+# =============================================================================
+#
+# Roles are NOT separate entity types. They're units with a role attribute.
+# Why? Because David might be SM on Alpha Squad and Dev on Beta Squad.
+# The role is contextual. The unit is the person.
+#
+# Instead, we track role-per-swarm via a relation:
+#
+
+relation role-assignment,
+    relates sprint-context,       # which sprint
+    relates role-holder,          # which unit
+    owns scrum-role;              # "po", "sm", "dev", "qa", "ops", "arch"
+
+entity sprint,
+    plays role-assignment:sprint-context;
+
+entity unit,                      # already defined in one.tql
+    plays role-assignment:role-holder;
+
+
+# =============================================================================
+# SCRUM CEREMONIES — named signal patterns
+# =============================================================================
+#
+# A ceremony isn't a new entity. It's a PATTERN of signals
+# that happen in a time window. We name the pattern.
+#
+
+entity ceremony,
+    owns ceremony-id @key,
+    owns ceremony-type,           # "planning", "standup", "review", "retro", "grooming"
+    owns ceremony-date,
+    owns duration-minutes,
+    owns outcome-summary,
+    plays ceremony-signal:ceremony-context;
+
+# Links signals to the ceremony they belong to
+relation ceremony-signal,
+    relates ceremony-context,
+    relates ceremony-event;       # the signal
+
+relation signal,                  # already in one.tql
+    plays ceremony-signal:ceremony-event;
+
+
+# =============================================================================
+# SCRUM-SPECIFIC SIGNAL TYPES (data.type vocabulary)
+# =============================================================================
+#
+# These aren't schema types. They're the VALUES in signal.data.
+# Documented here as the DSL contract.
+#
+#   ┌──────────────┬──────────────────────┬──────────────────────────────┐
+#   │ data.type    │ From → To            │ What it carries              │
+#   ├──────────────┼──────────────────────┼──────────────────────────────┤
+#   │ need         │ stakeholder → PO     │ what, why, urgency           │
+#   │ story        │ PO → dev             │ title, acceptance, points    │
+#   │ groom        │ PO → team            │ story, questions, context    │
+#   │ estimate     │ dev → PO             │ story, points, assumptions   │
+#   │ pull         │ dev ← backlog        │ story, sprint                │
+#   │ plan         │ PO → claude          │ story, break into tasks      │
+#   │ design       │ dev → arch           │ question, constraints        │
+#   │ spike        │ dev → claude/arch    │ question, timebox            │
+#   │ build        │ dev → claude         │ task, spec, context          │
+#   │ commit       │ dev → repo           │ branch, message, files       │
+#   │ review       │ dev → qa/peer        │ pr, changed, notes           │
+#   │ approve      │ qa → dev             │ pr, approved                 │
+#   │ request-chg  │ qa → dev             │ pr, comments, must-fix       │
+#   │ bug          │ qa → dev             │ what, severity, repro        │
+#   │ debug        │ qa/dev → claude      │ bug, files, context          │
+#   │ fix          │ claude/dev → qa      │ pr, what-changed, root-cause │
+#   │ deploy       │ qa → ops             │ branch, env, approved-by     │
+#   │ ship         │ ops → team           │ env, version, url            │
+#   │ rollback     │ ops → team           │ env, reason, version         │
+#   │ alert        │ ops → sm             │ what, severity, impact       │
+#   │ block        │ anyone → sm          │ what, impact, needs          │
+#   │ unblock      │ sm → assignee        │ priority, context, pair-with │
+#   │ standup      │ anyone → sm          │ did, will, blocked           │
+#   │ demo         │ dev → stakeholder    │ feature, result, metrics     │
+#   │ accept       │ PO → dev             │ story, verdict               │
+#   │ reject       │ PO → dev             │ story, reason, redo          │
+#   │ feedback     │ stakeholder → PO     │ verdict, next                │
+#   │ retro-good   │ anyone → sm          │ what worked, strengthen      │
+#   │ retro-bad    │ anyone → sm          │ what failed, weaken          │
+#   │ retro-try    │ sm → team            │ action, owner, due           │
+#   └──────────────┴──────────────────────┴──────────────────────────────┘
+#
+# Each of these is a { receiver, data } signal.
+# The table above IS the DSL. The substrate doesn't care about the names.
+# You care about the names. That's why this file exists.
+#
+
+
+# =============================================================================
+# SCRUM METRICS — functions in your language
+# =============================================================================
+
+# ── Velocity: how many points shipped per sprint ──
+
+fun velocity($sprint_id: string) -> double:
+    match
+        $sp isa sprint, has sid $sprint_id;
+        (group: $sp, member: $u) isa membership;
+        (assigned-task: $s, assigned-to: $u) isa assignment;
+        $s isa story, has story-points $pts, has status "complete";
+    return sum($pts);
+
+
+# ── Cycle time: how long from first signal to done ──
+
+fun cycle_time($task_id: string) -> double:
+    match
+        $t isa task, has tid $task_id;
+        $sig1 (receiver: $first_unit) isa signal, has ts $start;
+        (assigned-task: $t, assigned-to: $first_unit) isa assignment;
+        $sig2 isa signal,
+            has data $d, has ts $end;
+        $d contains $task_id;
+        $d contains "complete";
+    return first $end - $start;
+
+
+# ── Burndown: remaining points in sprint ──
+
+fun burndown($sprint_id: string) -> double:
+    match
+        $sp isa sprint, has sid $sprint_id, has capacity-points $cap;
+        (group: $sp, member: $u) isa membership;
+        (assigned-task: $s, assigned-to: $u) isa assignment;
+        $s isa story, has story-points $pts, has status "complete";
+        let $done = sum($pts);
+    return first $cap - $done;
+
+
+# ── Blockers: what's stuck right now ──
+
+fun blockers() -> { task }:
+    match
+        $t isa task, has status "todo";
+        (dependent: $t, blocker: $b) isa dependency;
+        $b has status $bs;
+        not { $bs == "complete"; };
+    return { $t };
+
+
+# ── Impediments: blocks that hit the scrum master ──
+
+fun impediments($sprint_id: string) -> { signal }:
+    match
+        $sp isa sprint, has sid $sprint_id;
+        $sm isa unit;
+        (sprint-context: $sp, role-holder: $sm) isa role-assignment,
+            has scrum-role "sm";
+        $sig (receiver: $sm) isa signal, has data $d;
+        $d contains "block";
+    return { $sig };
+
+
+# ── Definition of Done: is every dependency complete? ──
+
+fun is_done($task_id: string) -> boolean:
+    match
+        $t isa task, has tid $task_id, has status "complete";
+        not {
+            (dependent: $t, blocker: $b) isa dependency;
+            $b has status $bs;
+            not { $bs == "complete"; };
+        };
+    return first true;
+
+
+# ── Who actually does the work? (vs who the org chart says) ──
+
+fun actual_workflow($sprint_id: string) -> { string, string, double }:
+    match
+        $sp isa sprint, has sid $sprint_id;
+        (group: $sp, member: $from) isa membership;
+        (group: $sp, member: $to) isa membership;
+        (source: $from, target: $to) isa path, has strength $s;
+        $from has name $fn; $to has name $tn;
+        $s >= 10.0;
+    sort $s desc;
+    return { $fn, $tn, $s };
+
+
+# ── Org chart vs reality ──
+
+fun org_chart_drift($sprint_id: string) -> { string, string, double }:
+    match
+        $sp isa sprint, has sid $sprint_id;
+        (group: $sp, member: $from) isa membership;
+        (group: $sp, member: $to) isa membership;
+        (source: $from, target: $to) isa path, has strength $s;
+        $s < 5.0;
+        $from has name $fn; $to has name $tn;
+    return { $fn, $tn, $s };
+
+
+# ── Who should pick up this story? ──
+# Route by trail strength, not by assignment.
+
+fun best_for_story($story_id: string) -> unit:
+    match
+        $s isa story, has tid $story_id;
+        (provider: $u, skill: $s) isa capability;
+        (source: $any, target: $u) isa path, has strength $w;
+    sort $w desc;
+    limit 1;
+    return $u;
+
+
+# ── Retro: what to strengthen, weaken, explore ──
+
+fun retro_strengthen($sprint_id: string) -> { string, string, double }:
+    match
+        $sp isa sprint, has sid $sprint_id;
+        (group: $sp, member: $from) isa membership;
+        (group: $sp, member: $to) isa membership;
+        (source: $from, target: $to) isa path,
+            has strength $s, has alarm $a;
+        $s >= 50.0; $a < 10.0;
+        $from has name $fn; $to has name $tn;
+    sort $s desc;
+    return { $fn, $tn, $s };
+
+fun retro_weaken($sprint_id: string) -> { string, string, double }:
+    match
+        $sp isa sprint, has sid $sprint_id;
+        (group: $sp, member: $from) isa membership;
+        (group: $sp, member: $to) isa membership;
+        (source: $from, target: $to) isa path,
+            has strength $s, has alarm $a;
+        $a > $s;
+        $from has name $fn; $to has name $tn;
+    return { $fn, $tn, $a };
+
+fun retro_explore($sprint_id: string) -> { string, string }:
+    match
+        $sp isa sprint, has sid $sprint_id;
+        (group: $sp, member: $from) isa membership;
+        (group: $sp, member: $to) isa membership;
+        not { (source: $from, target: $to) isa path; };
+        not { $from is $to; };
+        $from has name $fn; $to has name $tn;
+    return { $fn, $tn };
+
+
+# ── Claude's role in the sprint (how AI fits the team) ──
+
+fun claude_load($sprint_id: string) -> { string, integer }:
+    match
+        $sp isa sprint, has sid $sprint_id;
+        $claude isa unit, has unit-kind "agent";
+        $sig (sender: $from, receiver: $claude) isa signal, has data $d;
+        (group: $sp, member: $from) isa membership;
+        $from has name $fn;
+    reduce $count = count groupby $fn;
+    return { $fn, $count };
+
+
+# =============================================================================
+# SCRUM ATTRIBUTES
+# =============================================================================
+
+attribute sprint-number, value integer;
+attribute sprint-goal, value string;
+attribute velocity, value double;
+attribute capacity-points, value double;
+attribute started, value datetime;
+attribute ended, value datetime;
+attribute epic-key, value string;
+attribute story-points, value double;
+attribute acceptance-criteria, value string;
+attribute definition-of-done, value string;
+attribute severity, value string;
+attribute repro-steps, value string;
+attribute found-in, value string;
+attribute timebox, value integer;
+attribute question, value string;
+attribute outcome, value string;
+attribute justification, value string;
+attribute scrum-role, value string;
+attribute ceremony-id, value string;
+attribute ceremony-type, value string;
+attribute ceremony-date, value datetime;
+attribute duration-minutes, value integer;
+attribute outcome-summary, value string;
+
+
+# =============================================================================
+# THE MAPPING — your words, the substrate's plumbing
+# =============================================================================
+#
+#  ┌─────────────────────────────────────────────────────────────────────┐
+#  │                                                                     │
+#  │   YOUR DSL              SUBSTRATE              WHAT HAPPENS         │
+#  │   ────────              ─────────              ──────────────       │
+#  │                                                                     │
+#  │   "groom story"    →    PO emits signal    →   path(PO→team) += 1  │
+#  │   "estimate 5pts"  →    dev emits signal   →   story.points = 5    │
+#  │   "pull to sprint" →    membership insert  →   story joins swarm   │
+#  │   "start work"     →    assignment insert  →   unit↔task linked    │
+#  │   "ask claude"     →    signal to agent    →   path(dev→claude)++  │
+#  │   "PR review"      →    signal dev→qa      →   path(dev→qa) += 1  │
+#  │   "approve"        →    signal qa→dev      →   trail pheromone++   │
+#  │   "request changes"→    signal qa→dev      →   trail alarm++       │
+#  │   "bug found"      →    signal qa→dev      →   alarm(qa→dev) += 1 │
+#  │   "deploy"         →    signal qa→ops      →   path(qa→ops) += 1  │
+#  │   "blocked"        →    signal any→sm      →   alarm(any→sm) += 1 │
+#  │   "unblocked"      →    signal sm→dev      →   path(sm→dev) += 1  │
+#  │   "ship"           →    signal ops→team    →   trail complete++    │
+#  │   "demo"           →    signal dev→stake   →   path(dev→stake)++  │
+#  │   "accept"         →    signal po→dev      →   drop(trail) +++    │
+#  │   "reject"         →    signal po→dev      →   alarm(trail) +++   │
+#  │   "retro good"     →    mark(path)         →   strength += 5      │
+#  │   "retro bad"      →    alarm(path)        →   alarm += 5         │
+#  │   "retro try"      →    new path created   →   strength = 1 (exp) │
+#  │   "next sprint"    →    fade(0.1)          →   all paths *= 0.9   │
+#  │                                                                     │
+#  │   SCRUM SEES:            SUBSTRATE SEES:                            │
+#  │   "we shipped 34pts"     trail-pheromone on proven sequences        │
+#  │   "QA is a bottleneck"   alarm(dev→qa) rising, path fading         │
+#  │   "Claude helps most     path(po→claude) and path(dev→claude)      │
+#  │    with planning"         are the strongest AI edges                │
+#  │   "SM barely needed"     sm paths have low traversals (correct!)   │
+#  │   "arch is consulted     arch paths are moderate, on-demand        │
+#  │    not embedded"                                                    │
+#  │                                                                     │
+#  │   THE ORG CHART SAID:    THE TRAILS SAID:                          │
+#  │   PO → SM → Dev          PO → Dev (SM is a breaker)               │
+#  │   Dev → QA → Ops         Dev → Claude → QA → Ops                  │
+#  │   Arch reviews all       Arch consulted twice this sprint          │
+#  │                                                                     │
+#  │   Nobody designed the highway.                                      │
+#  │   The retrospective just confirmed what the trails already knew.   │
+#  │                                                                     │
+#  └─────────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================

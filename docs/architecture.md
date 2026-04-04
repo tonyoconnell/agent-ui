@@ -1,0 +1,265 @@
+# Architecture
+
+Source of truth: `src/schema/one.tql`
+
+---
+
+## TypeDB is the Substrate
+
+TypeDB is not storage. It is the signal relay, the router, and the brain.
+
+```
+signal IN → TypeDB → suggest_route() → signal OUT → agent executes → signal IN
+```
+
+The router process on each machine is dumb hands. TypeDB decides where signals go
+based on pheromone. Multiple machines, one TypeDB instance = one shared world.
+
+---
+
+## 6 Dimensions
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        ONE World                         │
+│                                                          │
+│  1. GROUPS     swarm         — personas, teams, colonies │
+│  2. ACTORS     unit          — humans, agents, LLMs      │
+│  3. THINGS     task          — work + services (x402)    │
+│  4. PATHS      path, trail   — weighted connections      │
+│  5. EVENTS     signal        — who sent what, paid what  │
+│  6. KNOWLEDGE  hypothesis,   — inferred beliefs & goals  │
+│                frontier,                                 │
+│                objective                                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Dimension 1: Groups
+
+```
+entity swarm
+  owns sid @key, name, purpose, swarm-type, status, created
+  plays hierarchy:parent, hierarchy:child, membership:group
+```
+
+`swarm-type`: "persona", "team", "colony", "dao"
+
+Swarms nest via `hierarchy(parent, child)`. Units join via `membership(group, member)`.
+
+---
+
+## Dimension 2: Actors
+
+```
+entity unit
+  owns uid @key, name, unit-kind, wallet, status, balance, reputation
+  owns success-rate, activity-score, sample-count
+  owns model, system-prompt, generation
+  owns created
+```
+
+`unit-kind`: "human", "agent", "llm", "system"
+
+Every actor in the system is a unit. Humans and agents are peers.
+Units have brains (`model`, `system-prompt`) that can evolve (`generation`).
+
+---
+
+## Dimension 3: Things
+
+```
+entity task
+  owns tid @key, name, description, task-type, status, priority, phase
+  owns importance, price, currency, timeout
+  owns attractive, repelled    (INFERRED)
+```
+
+A task with `price > 0` is a service. No separate entity needed.
+
+`task-type`: "work", "explore", "validate", "build", "inference", "analysis", "data", "compute"
+
+`phase`: "wire", "tasks", "onboard", "commerce", "intelligence", "scale"
+
+---
+
+## Dimension 4: Paths
+
+### path (unit ↔ unit)
+
+```
+relation path
+  relates source, target
+  owns strength, alarm, traversals, revenue, last-used, fade-rate, path-status
+```
+
+- `strength` — drop() adds weight on success
+- `alarm` — alarm() adds weight on failure
+- `fade-rate` — per-path decay rate (production=0.05, support=0.15, alarm=2x)
+- `revenue` — sum of x402 payments on this path
+- `path-status` — INFERRED: "highway" | "fresh" | "fading" | "toxic"
+
+### trail (task → task)
+
+```
+relation trail
+  relates source-task, destination-task
+  owns trail-pheromone, alarm-pheromone, completions, failures, revenue, trail-status
+```
+
+- `trail-pheromone` — 0–100, drop on success
+- `alarm-pheromone` — 0–100, alarm on failure
+- `trail-status` — INFERRED: "proven" | "fresh" | "fading" | "dead"
+
+### Other relations
+
+```
+capability(provider: unit, skill: task)    owns price
+dependency(dependent: task, blocker: task)
+assignment(assigned-task, assigned-to)
+membership(group: swarm, member: unit)     owns joined-at
+```
+
+---
+
+## Dimension 5: Events
+
+```
+relation signal
+  relates sender: unit, receiver: unit
+  owns data, amount, success, latency, ts
+```
+
+Signals are free. Tasks cost money (x402). `amount > 0` = payment.
+
+---
+
+## Dimension 6: Knowledge
+
+```
+entity hypothesis    owns hid @key, statement, hypothesis-status, observations-count, p-value, action-ready
+entity frontier      owns fid @key, frontier-type, frontier-description, expected-value, frontier-status
+entity objective     owns oid @key, objective-type, objective-description, priority-score, progress, objective-status
+relation spawns      relates frontier, objective
+entity contribution  owns contribution-id @key, impact-score, contribution-type
+relation contribution-event  relates contributor-unit, contribution
+```
+
+Hypotheses: `pending → testing → confirmed | rejected`
+Frontiers: `unexplored → exploring → exhausted`
+Objectives: `pending → active → complete`
+
+---
+
+## Two Layers of Learning
+
+### 1. Substrate Learning (colony gets smarter)
+
+```
+signal succeeds → drop(path)  → strength++  → more signals routed here → highway
+signal fails    → alarm(path) → alarm++     → fewer signals routed     → toxic
+time passes     → fade(rate)  → strength--  → stale paths dissolve
+```
+
+Same for trails: `trail-pheromone` and `alarm-pheromone` on task sequences.
+The colony learns which paths and sequences work. Individual agents unchanged.
+
+### 2. Agent Self-Improvement (ant gets smarter)
+
+```
+unit does 100 tasks → success-rate drops → needs_evolution() fires
+→ agent rewrites own system-prompt → generation++ → agent performs better
+→ optional: model upgraded ("haiku" → "sonnet" → "opus")
+```
+
+The substrate provides the signal (who is failing). The agent evolves itself.
+
+---
+
+## Classification Functions
+
+| Function | Input | Output | Trigger |
+|----------|-------|--------|---------|
+| `path_status(path)` | strength, alarm, traversals | "highway" / "fresh" / "fading" / "toxic" | Routing decisions |
+| `trail_status(trail)` | trail-pheromone, completions, failures | "proven" / "fresh" / "fading" / "dead" | Sequence selection |
+| `unit_classification(unit)` | success-rate, activity-score, sample-count | "proven" / "active" / "at-risk" | Trust & routing |
+| `is_attractive(task)` | todo + no blockers + trail pheromone >= 50 | boolean | Task selection |
+| `is_repelled(task)` | alarm-pheromone > trail-pheromone | boolean | Task avoidance |
+| `is_action_ready(hypothesis)` | confirmed + p-value <= 0.05 + n >= 50 | boolean | Knowledge → action |
+| `needs_evolution(unit)` | success-rate < 0.50 + sample-count >= 20 | boolean | Agent self-improvement |
+
+---
+
+## Routing Functions
+
+| Function | What it does |
+|----------|--------------|
+| `highways(threshold, min_traversals)` | All paths above strength threshold |
+| `optimal_route($from, $task)` | Best unit for task via path strength |
+| `cheapest_provider($task)` | Cheapest unit that can do task |
+| `suggest_route($from, $task)` | Top 5 candidates with strength scores |
+| `ready_tasks()` | Todo tasks with no incomplete blockers |
+| `attractive_tasks()` | Tasks with strong inbound pheromone |
+| `exploratory_tasks()` | Ready tasks with no trail history |
+| `proven_trails()` | Task sequences that reliably work |
+
+---
+
+## Router Pattern
+
+The process running on each machine:
+
+```
+1. Write signal to TypeDB
+2. Read next destination FROM TypeDB (suggest_route)
+3. Load agent config from unit entity (model, system-prompt)
+4. Execute agent prompt
+5. Write result as new signal to TypeDB
+6. drop() or alarm() the path based on outcome
+7. Go to 2
+```
+
+The router doesn't decide. It follows the pheromone.
+
+---
+
+## Multi-Machine Collaboration
+
+```
+Machine A (Tony)                    Machine B (David)
+┌──────────┐                        ┌──────────┐
+│  Hermes  │──signal──→ TypeDB ←──signal──│ Theodore │
+│ (router) │←─route───→   ↕   ←──route──│ (router) │
+└──────────┘           paths &       └──────────┘
+                       trails
+```
+
+Each machine runs one router. TypeDB is shared. Pheromone builds across machines.
+The substrate learns end-to-end paths regardless of which machine runs which agent.
+
+---
+
+## Vocabulary
+
+```
+signal = { receiver, data }     — the universal primitive
+drop(path)                      — add weight (success)
+alarm(path)                     — add resistance (failure)
+fade(rate)                      — decay all weights
+emit(signal)                    — send from inside a task handler
+```
+
+---
+
+## Entities
+
+swarm, unit, task, hypothesis, frontier, objective, contribution
+
+## Relations
+
+hierarchy, path, trail, capability, dependency, assignment, membership, signal, spawns, contribution-event
+
+---
+
+*Source of truth: `src/schema/one.tql`. Everything else derives from it.*

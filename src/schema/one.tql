@@ -135,6 +135,7 @@ relation path,
     owns traversals,
     owns revenue,                 # sum of x402 payments on this path
     owns last-used,
+    owns fade-rate,               # per-path decay (production=0.05, support=0.15, alarm=2x)
     owns path-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
 
 # Task-to-task: what sequence works, what generated revenue
@@ -274,6 +275,7 @@ attribute priority, value string;
 # Numeric (double)
 attribute strength, value double;
 attribute alarm, value double;
+attribute fade-rate, value double;
 attribute trail-pheromone, value double;
 attribute alarm-pheromone, value double;
 attribute balance, value double;
