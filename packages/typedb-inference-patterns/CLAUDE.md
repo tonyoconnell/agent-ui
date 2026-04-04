@@ -1,49 +1,53 @@
 # TypeDB Inference Patterns
 
-TypeDB 3.0 inference patterns implementing ant colony algorithms. Six lessons form a self-organizing loop: Perception, Homeostasis, Hypothesis, Task Allocation, Contribution, Emergence.
+**Skill: `/typedb` — Use for ALL TQL work. These files are REFERENCE ONLY.**
 
-## Pattern Categories
+REFERENCE MATERIAL for the 6 lessons from Deborah Gordon's ant research.
 
-| Lesson | Pattern | Core Concept |
-|--------|---------|--------------|
-| L1 | Classification | Multi-attribute functions (`elite_items()`) |
-| L2 | Quality Rules | Rule chaining, rejection via `reject` |
-| L3 | Hypothesis | State machines via inference rules |
-| L4 | Task Allocation | Negation (`not {}`), pheromone trails |
-| L5 | Contribution | Parameterized aggregates (`sum($i)`) |
-| L6 | Emergence | Autonomous goal spawning |
+## Canonical Schema
 
-## Key Files
+The production schema is `src/schema/one.tql`. These standalone files are REFERENCE ONLY — they use different entity names and cannot be loaded alongside one.tql.
 
-- `lessons/*.md` - Concepts + TypeQL in one file per lesson
-- `standalone/*.tql` - Pure schemas for direct loading
-- `examples/*.tql` - Domain applications (ecommerce, IoT, social, supply chain)
-- `SUBSTRATE-MAPPING.md` - How patterns map to 70-line substrate
+## How Lessons Map to one.tql
 
-## Standalone Schemas
+| Lesson | Pattern | one.tql Entity | Standalone Reference |
+|--------|---------|----------------|---------------------|
+| L1 | Classification | `unit` (success-rate, activity-score, sample-count) | `classification.tql` (uses `scored-item`) |
+| L2 | Quality Rules | `edge` (highway/fresh/fading/toxic rules) | `quality-rules.tql` (uses `learning-record`) |
+| L3 | State Machines | `hypothesis` (pending→confirmed) | `hypothesis-lifecycle.tql` |
+| L4 | Negation + Pheromone | `task` + `trail` + `dependency` | `task-management.tql` (uses `pheromone-trail`) |
+| L5 | Aggregates | `contribution` + `contribution-event` | `contribution-tracking.tql` |
+| L6 | Emergence | `frontier` + `objective` + `spawns` | `autonomous-goals.tql` |
 
-```bash
-typedb console --cloud cluster.typedb.com:80
-> transaction my-db schema write
-> source standalone/classification.tql
-> commit
+## Vocabulary (converged)
+
+```
+signal = { receiver, data }    — NOT payload
+drop/mark = add weight         — runtime uses mark()
+alarm = add resistance
+fade = decay
+emit = send from handler
+edge = unit↔unit connection
+trail = task→task sequence      — NOT pheromone-trail
 ```
 
-| File | Purpose |
-|------|---------|
-| `classification.tql` | Tier functions (elite/standard/at-risk) |
-| `quality-rules.tql` | Rule chaining, cascade detection |
-| `hypothesis-lifecycle.tql` | pending -> testing -> confirmed |
-| `task-management.tql` | Negation, pheromone-weighted selection |
-| `contribution-tracking.tql` | Impact aggregation, ranking |
-| `autonomous-goals.tql` | Frontier detection, objective spawning |
-| `genesis.tql` | Complete unified schema (1400+ lines) |
+## Files
 
-## Extending Patterns
-
-1. Copy closest `standalone/*.tql` as base
-2. Adapt entity/attribute names to your domain
-3. Preserve function signatures for substrate compatibility
-4. Test with `match let $x in your_function(); select $x;`
-
-TypeDB 3.0 syntax: `fun name() -> type:`, `value integer` (not `long`), rules fire automatically on query.
+| File | Purpose | Loadable? |
+|------|---------|-----------|
+| `standalone/seed.tql` | Bootstrap data for one.tql | YES — load after one.tql |
+| `standalone/substrate.tql` | DEPRECATED — pointer to one.tql | NO |
+| `standalone/classification.tql` | L1 reference (different entities) | NO — reference only |
+| `standalone/quality-rules.tql` | L2 reference | NO — reference only |
+| `standalone/hypothesis-lifecycle.tql` | L3 reference | NO — reference only |
+| `standalone/task-management.tql` | L4 reference | NO — reference only |
+| `standalone/contribution-tracking.tql` | L5 reference | NO — reference only |
+| `standalone/autonomous-goals.tql` | L6 reference | NO — reference only |
+| `standalone/genesis.tql` | Legacy complete schema | NO — reference only |
+| `standalone/launchpad.tql` | Token launch intelligence | NO — reference only |
+| `runtime/colony.ts` | 70-line substrate with all 6 lessons | TS runtime |
+| `OPERATIONS.md` | Write operations reference | Documentation |
+| `LIFECYCLE.md` | Entity state machines | Documentation |
+| `LOOPS.md` | Deterministic + probabilistic | Documentation |
+| `SWARMS.md` | Dynamic swarm formation | Documentation |
+| `ECONOMICS.md` | Token model | Documentation |

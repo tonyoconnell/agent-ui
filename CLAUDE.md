@@ -101,6 +101,20 @@ import { colony } from "@/engine/substrate"
 import { Card } from "@/components/ui/card"
 ```
 
+## Skills (USE THESE)
+
+Always use the relevant skill when working in that domain:
+
+| Skill | Trigger | What it provides |
+|-------|---------|-----------------|
+| `/typedb` | Any TQL, schema, query, TypeDB work | TypeDB 3.0 syntax, functions (NOT rules), driver patterns |
+| `/reactflow` | Graph visualization, nodes, edges | Custom nodes, dark theme, ReactFlow patterns |
+| `/react19` | React components, hooks, actions | React 19 patterns, use(), transitions |
+| `/astro` | Pages, layouts, islands, SSR | Astro 5 hydration, frontmatter, islands |
+| `/shadcn` | UI components, cards, tabs | shadcn/ui dark theme patterns |
+
+**CRITICAL: TypeDB 3.x removed `rule` syntax. Use `fun` (functions) only. The `/typedb` skill has correct patterns.**
+
 ## Rules
 
 See `.claude/rules/` for framework-specific patterns:

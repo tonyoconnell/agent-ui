@@ -381,4 +381,14 @@ Start here, follow the flow:
 
 ---
 
+## See Also
+
+- [signal.md](signal.md) — The primitive
+- [agents.md](agents.md) — Unit anatomy and tasks
+- [swarm.md](swarm.md) — Multi-agent coordination
+- [revenue.md](revenue.md) — How signals become highways become revenue
+- [emergence.md](emergence.md) — Five forces driving intelligence
+
+---
+
 *Signal. Drop. Follow. Fade. Highway. Everything flows.*

@@ -1,0 +1,160 @@
+# =============================================================================
+# LESSON 5: Contribution Tracking & AI Synergy
+# =============================================================================
+#
+# DIFFICULTY: Intermediate-Advanced
+# PREREQUISITE: task-management.tql (Lesson 4 — teaches negation and aggregates)
+# NEXT: autonomous-goals.tql (Lesson 6)
+#
+# WHAT YOU'LL LEARN:
+#   Parameterized aggregate functions — pass arguments and get computed values.
+#   Multi-variable returns from functions. Measuring synergy between pairs
+#   of contributors by comparing combined output to individual output.
+#
+# BIOLOGY (Chapter 2 — Task Allocation Without Instructions):
+#   Gordon measures colony behavior by INTERACTION RATES — how often ants
+#   encounter nestmates performing specific tasks. High encounter frequency
+#   with foragers means "foraging is well-staffed." Low encounter frequency
+#   with nest maintenance workers means "nest maintenance needs help."
+#
+#   The colony doesn't track individual contributions — it measures FLOW.
+#   How much value moves between task groups? Which interactions produce
+#   the most benefit? The best_synergy() function measures exactly this:
+#   which pair of contributors creates the most combined value through
+#   their interaction chain.
+#
+#   This is also how pheromone trails work: the strength of a trail isn't
+#   about any single ant's contribution — it's the aggregate of all ants
+#   that reinforced that path. total_contribution() is the pheromone
+#   sum on an edge.
+#
+#   Reference: https://ants-at-work.com/book/2/
+#
+# USE CASES:
+#   - Multi-agent AI system contribution tracking
+#   - Open source contributor impact analysis
+#   - Team collaboration effectiveness measurement
+#   - Multi-model AI pipeline evaluation
+#   - Cross-department value attribution
+#
+# KEY PATTERNS:
+#   - Aggregate functions (sum, count)
+#   - Parameterized functions
+#   - Relation-based value chains
+#   - Multi-variable returns
+#
+# AFTER LOADING, TEST WITH:
+#   match let $total = total_contribution("agent-alpha"); select $total;
+#   # Expected: Sum of all impact-score values for the named contributor.
+#
+# =============================================================================
+
+define
+
+# --- Schema ---
+
+entity contribution,
+    owns contribution-id @key,
+    owns contributor-name,        # who/what contributed
+    owns contribution-type,       # "code", "review", "hypothesis", "data"
+    owns contribution-timestamp,
+    owns impact-score,            # 0.0 - 10.0
+    owns contribution-detail,
+    plays contribution-chain:contributor,
+    plays contribution-chain:beneficiary;
+
+attribute contribution-id, value string;
+attribute contributor-name, value string;
+attribute contribution-type, value string;
+attribute contribution-timestamp, value datetime;
+attribute impact-score, value double;
+attribute contribution-detail, value string;
+
+# How one contribution enabled/helped another
+relation contribution-chain,
+    relates contributor,
+    relates beneficiary,
+    owns chain-value,
+    owns chain-type;              # "direct", "indirect", "synergistic"
+
+attribute chain-value, value double;
+attribute chain-type, value string;
+
+
+# =============================================================================
+# FUNCTION 1: Total Contribution by System/Person
+# =============================================================================
+#
+# Sum all impact scores for a given contributor.
+# Parameterized function — pass the contributor name.
+#
+fun total_contribution($name: string) -> double:
+    match
+        $c isa contribution,
+            has contributor-name $name,
+            has impact-score $i;
+    return sum($i);
+
+
+# =============================================================================
+# FUNCTION 2: Best Synergy Pair
+# =============================================================================
+#
+# Find which pair of contributors creates the most combined value
+# when their contributions chain together.
+#
+# Returns: contributor names + total chain value
+#
+fun best_synergy() -> { string, string, double }:
+    match
+        $chain (contributor: $a, beneficiary: $b) isa contribution-chain,
+            has chain-value $v;
+        $a has contributor-name $name_a;
+        $b has contributor-name $name_b;
+    return { $name_a, $name_b, sum($v) };
+
+
+# =============================================================================
+# FUNCTION 3: Contributions by Type
+# =============================================================================
+#
+# Get all contributions of a specific type.
+#
+fun contributions_by_type($type: string) -> { contribution }:
+    match
+        $c isa contribution,
+            has contribution-type $type;
+    return { $c };
+
+
+# =============================================================================
+# FUNCTION 4: High-Impact Contributions
+# =============================================================================
+#
+# Contributions above an impact threshold.
+#
+fun high_impact_contributions($threshold: double) -> { contribution }:
+    match
+        $c isa contribution,
+            has impact-score $i;
+        $i >= $threshold;
+    return { $c };
+
+
+# =============================================================================
+# USAGE EXAMPLES
+# =============================================================================
+#
+# Get total impact for "team-alpha":
+#   match let $total = total_contribution("team-alpha"); select $total;
+#
+# Find best synergy pair:
+#   match let $a, $b, $v in best_synergy(); select $a, $b, $v;
+#
+# Get all code contributions:
+#   match let $c in contributions_by_type("code"); $c has impact-score $i; select $c, $i;
+#
+# Get high-impact contributions (score > 7):
+#   match let $c in high_impact_contributions(7.0); $c has contributor-name $n; select $n;
+#
+# =============================================================================

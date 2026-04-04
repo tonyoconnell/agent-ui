@@ -68,14 +68,14 @@ export const world = (): World => {
     // Patterns emerge from strong flows - future: persist to Knowledge dimension
   }
 
-  const filterByGroup = (edges: { edge: string; strength: number }[], group?: string) =>
-    group ? edges.filter(e => e.edge.startsWith(`${group}:`)) : edges
+  const filterByGroup = (edges: { path: string; strength: number }[], group?: string) =>
+    group ? edges.filter(e => e.path.startsWith(`${group}:`)) : edges
 
   const open = (n = 10, opts?: Opts) =>
     filterByGroup(net.highways(n * 2), opts?.group)
       .slice(0, n)
       .map(h => {
-        const [from, to] = h.edge.replace(/^[^:]+:/, '').split('→')
+        const [from, to] = h.path.replace(/^[^:]+:/, '').split('→')
         return { from, to, strength: h.strength }
       })
 

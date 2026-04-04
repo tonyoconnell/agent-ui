@@ -1,0 +1,245 @@
+# =============================================================================
+# LESSON 6: Autonomous Goal Generation & Exploration (Advanced)
+# =============================================================================
+#
+# DIFFICULTY: Advanced
+# PREREQUISITE: contribution-tracking.tql (Lesson 5 — teaches parameterized aggregates)
+# NEXT: See examples/ for domain applications of all 6 patterns.
+#
+# WHAT YOU'LL LEARN:
+#   The capstone pattern. Systems that generate their own objectives by
+#   combining everything from Lessons 1-5: classification (frontiers),
+#   rules (auto-promotion), state machines (goal lifecycle), negation
+#   (unexplored detection), and aggregation (expected value calculation).
+#
+# BIOLOGY (Chapter 2 — Task Allocation Without Instructions):
+#   This is the full picture. No ant decides what the colony should do.
+#   Yet the colony as a whole adapts its task distribution to changing
+#   conditions — allocating more foragers when food is abundant, more
+#   nest maintenance workers after a disturbance, more patrollers when
+#   threats increase. Goals EMERGE from the interaction of simple agents
+#   following local rules.
+#
+#   In TypeDB: exploration frontiers are detected (classification),
+#   evaluated (quality rules), tested (hypothesis lifecycle), scheduled
+#   (task management), measured (contribution tracking) — and objectives
+#   spawn AUTONOMOUSLY from the combination of all these mechanisms.
+#   No central planner. No instructions. The database's inference rules
+#   ARE the colony's distributed decision-making.
+#
+#   Curiosity signals parallel Gordon's observation that ants increase
+#   patrolling when they detect novel stimuli. The colony doesn't decide
+#   to explore — exploration emerges from unresolved signals.
+#
+#   Reference: https://ants-at-work.com/book/2/
+#
+# USE CASES:
+#   - Autonomous AI agents (self-directed exploration)
+#   - Research portfolio management (frontier detection)
+#   - Product discovery (opportunity scoring)
+#   - Exploration vs exploitation balancing
+#   - Self-improving systems
+#
+# KEY CONCEPTS:
+#   - Expected value = potential * probability / cost
+#   - Curiosity signals trigger exploration
+#   - Frontiers spawn objectives autonomously
+#   - Self-model snapshots track system health over time
+#
+# AFTER LOADING, TEST WITH:
+#   match let $f in active_frontiers(); $f has frontier-name $n; select $n;
+#   # Expected: Frontiers with status "active" and exploration-priority > 0.
+#
+# =============================================================================
+
+define
+
+# --- Exploration Frontiers ---
+
+entity exploration-frontier,
+    owns frontier-id @key,
+    owns frontier-type,            # "market", "technology", "user_segment"
+    owns frontier-description,
+    owns exploration-potential,    # 0.0 - 1.0
+    owns uncertainty-level,        # 0.0 - 1.0
+    owns discovery-probability,    # P(valuable | explore)
+    owns resource-cost,            # estimated cost to explore
+    owns expected-value,           # potential * probability / cost
+    owns discovered-at,
+    owns last-explored,
+    owns exploration-count,
+    owns frontier-status,          # "unexplored", "exploring", "exhausted"
+    plays spawns:frontier;
+
+attribute frontier-id, value string;
+attribute frontier-type, value string;
+attribute frontier-description, value string;
+attribute exploration-potential, value double;
+attribute uncertainty-level, value double;
+attribute discovery-probability, value double;
+attribute resource-cost, value double;
+attribute expected-value, value double;
+attribute discovered-at, value datetime;
+attribute last-explored, value datetime;
+attribute exploration-count, value integer;
+attribute frontier-status, value string;
+
+# --- Autonomous Objectives ---
+
+entity autonomous-objective,
+    owns objective-id @key,
+    owns objective-type,           # "explore", "optimize", "validate"
+    owns objective-description,
+    owns priority-score,           # 0.0 - 1.0 (from expected value)
+    owns generated-at,
+    owns source-frontier-id,
+    owns allocated-resources,
+    owns progress,                 # 0.0 - 1.0
+    owns objective-outcome,        # "success", "failure", "partial"
+    owns completed-at,
+    owns objective-status,         # "pending", "active", "complete"
+    plays spawns:objective;
+
+attribute objective-id, value string;
+attribute objective-type, value string;
+attribute objective-description, value string;
+attribute priority-score, value double;
+attribute generated-at, value datetime;
+attribute source-frontier-id, value string;
+attribute allocated-resources, value double;
+attribute progress, value double;
+attribute objective-outcome, value string;
+attribute completed-at, value datetime;
+attribute objective-status, value string;
+
+# --- Curiosity Signals ---
+
+entity curiosity-signal,
+    owns signal-id @key,
+    owns signal-type,              # "gap_detected", "plateau", "anomaly"
+    owns trigger-condition,
+    owns triggered-at,
+    owns intensity,                # 0.0 - 1.0
+    owns signal-duration-seconds,
+    owns resolved,
+    owns resolved-by-objective-id;
+
+attribute signal-id, value string;
+attribute signal-type, value string;
+attribute trigger-condition, value string;
+attribute triggered-at, value datetime;
+attribute intensity, value double;
+attribute signal-duration-seconds, value integer;
+attribute resolved, value boolean;
+attribute resolved-by-objective-id, value string;
+
+# --- Self-Model Snapshots ---
+
+entity self-model-snapshot,
+    owns snapshot-id @key,
+    owns captured-at,
+    owns overall-health,           # composite score
+    owns component-scores,         # JSON or structured
+    owns total-entities,
+    owns active-objectives,
+    owns learning-velocity,        # rate of improvement
+    owns improvement-acceleration, # rate of rate of improvement
+    owns threshold-level,          # "T1", "T2", "T3" etc.
+    plays snapshot-sequence:previous-snapshot,
+    plays snapshot-sequence:next-snapshot;
+
+attribute snapshot-id, value string;
+attribute captured-at, value datetime;
+attribute overall-health, value double;
+attribute component-scores, value string;
+attribute total-entities, value integer;
+attribute active-objectives, value integer;
+attribute learning-velocity, value double;
+attribute improvement-acceleration, value double;
+attribute threshold-level, value string;
+
+
+# --- Relations ---
+
+# Frontiers spawn objectives
+relation spawns,
+    relates frontier,
+    relates objective;
+
+# Track snapshots over time
+relation snapshot-sequence,
+    relates previous-snapshot,
+    relates next-snapshot;
+
+
+# =============================================================================
+# QUERY FUNCTIONS
+# =============================================================================
+
+# Get high-value unexplored frontiers (expected value >= 0.5)
+fun promising_frontiers() -> { exploration-frontier }:
+    match
+        $f isa exploration-frontier,
+            has frontier-status "unexplored",
+            has expected-value $ev;
+        $ev >= 0.5;
+    return { $f };
+
+# Get active objectives (pending or in progress)
+fun active_objectives() -> { autonomous-objective }:
+    match
+        $o isa autonomous-objective,
+            has objective-status $s;
+        $s in ["pending", "active"];
+    return { $o };
+
+# Calculate composite score from components
+fun composite_score($a: double, $b: double, $c: double, $d: double, $e: double) -> double:
+    return $a * $b * $c * $d * $e;
+
+# Get unresolved curiosity signals
+fun unresolved_signals() -> { curiosity-signal }:
+    match
+        $s isa curiosity-signal,
+            has resolved false;
+    return { $s };
+
+# Get high-intensity curiosity signals
+fun urgent_signals($threshold: double) -> { curiosity-signal }:
+    match
+        $s isa curiosity-signal,
+            has resolved false,
+            has intensity $i;
+        $i >= $threshold;
+    return { $s };
+
+
+# =============================================================================
+# USAGE EXAMPLES
+# =============================================================================
+#
+# Insert a new frontier:
+#   insert $f isa exploration-frontier,
+#       has frontier-id "front-001",
+#       has frontier-type "technology",
+#       has frontier-description "WebGPU for client-side ML inference",
+#       has exploration-potential 0.8,
+#       has uncertainty-level 0.6,
+#       has discovery-probability 0.4,
+#       has resource-cost 100.0,
+#       has expected-value 0.32,
+#       has discovered-at 2026-02-01T00:00:00,
+#       has exploration-count 0,
+#       has frontier-status "unexplored";
+#
+# Get promising frontiers:
+#   match let $f in promising_frontiers();
+#       $f has frontier-description $d, has expected-value $ev;
+#   select $d, $ev;
+#
+# Get active objectives:
+#   match let $o in active_objectives();
+#       $o has objective-description $d, has progress $p;
+#   select $d, $p;
+#
+# =============================================================================

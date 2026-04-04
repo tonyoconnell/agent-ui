@@ -70,12 +70,12 @@ if (user.prefersCrypto) {
 ### Substrate Solution
 
 ```typescript
-// Dynamic routing via edge strength
+// Dynamic routing via path strength
 colony.signal({ receiver: 'payment:process', data: { amount: 100 } })
 
 
-// Substrate routes to strongest edge
-// If stripe has edge strength 15.2 and solana has 8.4
+// Substrate routes to strongest path
+// If stripe has path strength 15.2 and solana has 8.4
 // Signal goes to stripe
 
 // If stripe fails repeatedly → edges weaken → signals reroute
@@ -177,7 +177,7 @@ class PaymentService {
 ### Substrate Solution
 
 ```typescript
-// Fallback is automatic via edge topology
+// Fallback is automatic via path topology
 colony.signal({ receiver: 'payment:stripe', data: { amount: 100 } })
 
 // If stripe handler throws:
@@ -186,7 +186,7 @@ colony.signal({ receiver: 'payment:stripe', data: { amount: 100 } })
 // 3. Next signal finds stronger path (e.g., solana_pay)
 
 // Circuit breaker emerges naturally:
-// - Many failures → very weak edges
+// - Many failures → very weak paths
 // - Signals automatically avoid weak paths
 // - Recovery → edges strengthen again
 
@@ -226,16 +226,16 @@ await ctx.db.insert('events', {
 ### Substrate Solution
 
 ```typescript
-// Learning is automatic via edge weighting
+// Learning is automatic via path weighting
 
 // Success:
 colony.signal({ receiver: 'payment:stripe', data })
-// Handler succeeds → edge strengthens
+// Handler succeeds → path strengthens
 // weight['entry→payment:stripe'] += 1
 
 // Failure:
 colony.signal({ receiver: 'payment:paypal', data })
-// Handler fails → edge doesn't strengthen
+// Handler fails → path doesn't strengthen
 // Over time, fade() weakens it further
 
 // Query learned patterns:
@@ -423,7 +423,7 @@ colony.spawn('solana_pay').on('process', solanaHandler)
 colony.signal({ receiver: 'payment:process', data: { amount: 100 } })
 
 // Substrate routes to best available
-// If stripe fails → weak edge → next signal tries x402
+// If stripe fails → weak path → next signal tries x402
 
 // Cross-protocol learning:
 const highways = colony.highways(10)
@@ -583,7 +583,7 @@ Reality:
 
 // Every successful signal:
 colony.signal({ receiver: 'payment:stripe', data })
-// If handler succeeds → edge strengthens automatically
+// If handler succeeds → path strengthens automatically
 
 // Over time:
 // - Successful paths become highways
@@ -624,7 +624,7 @@ const patterns = colony.highways(10)
 │                              THE SUBSTRATE                                  │
 │                              (70 lines)                                     │
 │                                                                             │
-│   Protocol Selection    → Emergent routing (edge strength)                  │
+│   Protocol Selection    → Emergent routing (path strength)                  │
 │   Orchestration         → Self-organizing swarms (continuations)            │
 │   Fallback/Retry        → Automatic rerouting (topology)                    │
 │   Learning              → Edge strengthening (drop/fade)                    │
@@ -652,7 +652,7 @@ const patterns = colony.highways(10)
 - Self-describing protocol registry
 
 **The Substrate defines HOW decisions are made.**
-- Protocol selection → edge strength
+- Protocol selection → path strength
 - Orchestration → continuations
 - Fallback → topology rerouting
 - Learning → drop/fade/highways

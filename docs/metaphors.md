@@ -34,13 +34,13 @@ type Signal = {
 
 Five verbs. Every metaphor. Same meaning.
 
-| Verb | Meaning | Ants | Neurons | Markets | Agents |
-|------|---------|------|---------|---------|--------|
-| **signal** | move through world | forage | fire | trade | request |
-| **drop** | leave weight on path | deposit | potentiate | volume | score |
+| Verb       | Meaning                | Ants        | Neurons       | Markets    | Agents      |
+| ---------- | ---------------------- | ----------- | ------------- | ---------- | ----------- |
+| **signal** | move through world     | forage      | fire          | trade      | request     |
+| **drop**   | leave weight on path   | deposit     | potentiate    | volume     | score       |
 | **follow** | traverse weighted path | smell trail | sense synapse | track flow | query route |
-| **fade** | decay over time | evaporate | decay | cool | forget |
-| **sense** | perceive environment | antennae | receptors | indicators | sensors |
+| **fade**   | decay over time        | evaporate   | decay         | cool       | forget      |
+| **sense**  | perceive environment   | antennae    | receptors     | indicators | sensors     |
 
 ```typescript
 // The five operations

@@ -1,10 +1,10 @@
 ---
 title: ONE World Roadmap
 type: roadmap
-version: 3.0.0
-priority: Tighten → Wire → Tasks → Onboard → Commerce → Intelligence → Scale
-total_tasks: 35
-completed: 6
+version: 3.1.0
+priority: Tighten → Wire → Tasks+UI → Onboard → Commerce → Intelligence → Scale
+total_tasks: 53
+completed: 13
 status: ACTIVE
 timeline: Week 1 wire+tasks, Week 2-3 onboard+commerce, Month 2 intelligence+scale
 stack: Astro 5 + React 19 + TypeDB 3.0 + Cloudflare Workers + Sui + x402
@@ -24,9 +24,14 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
 ---
 
 ## Now
-- [x] X-1 through X-6: Schema tightened (see Phase 0)
-- [ ] W-1: TypeDB Cloud + Cloudflare Worker proxy
-- [ ] W-2: Load one.tql schema
+- [x] X-1 through X-8: Schema tightened (Phase 0)
+- [x] W-2 through W-4: Gateway, TypeDB client, persist layer, API routes (Phase 1)
+- [x] T-1 through T-7: Task API, board UI, dependencies, pheromone, self-host, /grow (Phase 2)
+- [x] O-1 through O-7: Signup, agent builder, discovery, profiles, personas (Phase 3)
+- [x] C-1 through C-6: Payments, marketplace, revenue, agent-to-agent (Phase 4)
+- [x] I-1 through I-5: LLM routing, hypotheses, frontiers, knowledge panel (Phase 5)
+- [x] S-1 through S-6: Dashboard, health, seed, decay, deploy (Phase 6)
+- [ ] **W-1: TypeDB Cloud instance** — fill `.env` with TYPEDB_URL + PASSWORD, load one.tql
 
 ---
 
@@ -36,21 +41,29 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
 
 | Status | ID | Task | What changed | Depends |
 |:---:|:---|:---|:---|:---|
-| `[x]` | X-1 | One schema | `one.tql` is THE file. Old `one.tql`, `unified.tql`, `substrate.tql` archived to `src/schema/archive/`. | — |
+| `[x]` | X-1 | One schema | `src/schema/one.tql` is THE file (~330 lines). Old `one.tql`, `unified.tql`, `substrate.tql` archived to `src/schema/archive/`. `metaphors.tql` renamed to `skins.tql`. | — |
 | `[x]` | X-2 | Kill entity service | Task with `owns price` IS a service. `unit —[capability, price]→ task`. One fewer entity. | X-1 |
-| `[x]` | X-3 | Converge vocabulary | `data` not `payload`. `drop`/`alarm`/`fade`/`emit`. `edge`/`trail`. Documented in one.tql header. | X-1 |
-| `[x]` | X-4 | Mark lessons as reference | Standalone TQL files use different entity names. Reference only, not loadable alongside one.tql. | X-1 |
-| `[x]` | X-5 | Revenue on trails | `trail` now `owns revenue` — task sequences track how much money they generated. | X-2 |
-| `[x]` | X-6 | Rename to world | File is `one.tql`. The world, not the substrate. Substrate is the runtime (TS). World is the schema (TQL). | X-1 |
+| `[x]` | X-3 | Converge vocabulary | Schema: `data` not `payload`, `trail` not `pheromone-trail`. Runtime: `mark()` not `drop()`. All docs, rules, packages updated. colony.ts uses `Signal`+`data`. engine.md uses `mark()`. | X-1 |
+| `[x]` | X-4 | Mark lessons as reference | Standalone TQL files use different entity names (scored-item, learning-record). CLAUDE.md in packages explains: reference only, not loadable. `standalone/substrate.tql` replaced with deprecation pointer. | X-1 |
+| `[x]` | X-5 | Revenue on trails | `trail` now `owns revenue` — task sequences track how much money they generated. `total_revenue()` function added. | X-2 |
+| `[x]` | X-6 | Rename files | Schema: `one.tql` (the world). Runtime: `substrate.ts` (the engine). Skins: `skins.tql` (not metaphors). All refs updated across docs, rules, packages. | X-1 |
+| `[x]` | X-7 | Seed data | `seed.tql` updated: 10 swarms (platform + agents + 8 personas), 8 units, 5 services-as-tasks, 5 edges (1 highway, 1 toxic), 11 roadmap tasks with deps, 3 trails, 3 frontiers. Uses converged `trail` naming. | X-3 |
+| `[x]` | X-8 | Full audit | Stale refs hunted: `metaphors.tql` (0 remaining), `unified.tql` (4 in historical docs, acceptable), runtime `payload` (0 remaining), `drop()` in rules (0 remaining). CLAUDE.md files updated. | X-3, X-4 |
 
 ### Phase 0 Gate
 ```
-  [x] One schema file: src/schema/one.tql (~330 lines)
+  [x] One schema: src/schema/one.tql (~330 lines, 6 dimensions + 6 lessons + commerce)
+  [x] One seed: packages/.../standalone/seed.tql (loads into one.tql)
   [x] No entity service — task with price IS a service
-  [x] Vocabulary converged: data, drop, alarm, fade, emit, edge, trail
-  [x] Old schemas archived to src/schema/archive/
-  [x] Trail carries revenue (task sequences track $)
-  [x] Naming: one.tql (schema) / substrate.ts (runtime)
+  [x] Vocabulary converged everywhere:
+      Schema: data, trail, edge (not payload, pheromone-trail, flow)
+      Runtime: mark, sense, follow, fade (not drop, smell)
+      Docs: signal={receiver,data}, mark/alarm/fade/emit
+  [x] Old schemas archived, stale refs cleaned
+  [x] Standalone lessons marked as reference only
+  [x] Revenue on edges AND trails
+  [x] File naming: one.tql (schema), substrate.ts (runtime), skins.tql (themes)
+  [x] seed.tql bootstraps: swarms, units, services, edges, tasks, deps, trails, frontiers
 ```
 
 ---
@@ -60,19 +73,24 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
 > Connect the nervous system. Claude ↔ Cloudflare ↔ TypeDB. <50ms.
 > From strategy.md: "Build ONE substrate (Sui + TypeDB + 70 lines TS)"
 
-| Status | ID | Task | How | KPI | Depends |
-|:---:|:---|:---|:---|:---|:---|
-| `[ ]` | W-1 | TypeDB Cloud instance | Database `one` on TypeDB Cloud. HTTP endpoint confirmed. Load `one.tql` (280 lines — 6 dimensions + 6 lessons). Verify inference rules fire on test data. | Schema loaded, `highways()` returns | — |
-| `[ ]` | W-2 | Cloudflare Worker proxy | `gateway/` dir. `wrangler.toml` + `src/index.ts`. Routes: `/typedb/signin` (JWT, 61s cache), `/typedb/query` (read/write proxy). CORS for localhost + one.ie. Deploy to `api.one.ie`. | Worker live, <10ms overhead | W-1 |
-| `[ ]` | W-3 | TypeDB client lib | `src/lib/typedb.ts` — fetch-based. `getToken()`, `query()`, `readQuery()`, `writeQuery()`. Works from browser (via Worker) and server (Astro SSR). Env config. | Round-trip queries from browser | W-2 |
-| `[ ]` | W-4 | Persist layer | Rewrite `src/engine/persist.ts`. Colony `sync()` writes edges to TypeDB. `load()` hydrates from TypeDB. Signals recorded as events. Batch async writes. | Colony state survives page reload | W-3 |
+| Status | ID   | Task                    | How                                                                                                                                                                                                                                                                       | KPI                                 | Depends |
+| :----: | :--- | :---------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------- | :------ |
+| `[ ]`  | W-1  | TypeDB Cloud instance   | Database `one` on TypeDB Cloud. HTTP endpoint confirmed. Load `one.tql` (280 lines — 6 dimensions + 6 lessons). Verify inference rules fire on test data.                                                                                                                 | Schema loaded, `highways()` returns | —       |
+| `[x]`  | W-2  | Cloudflare Worker proxy | `gateway/` dir. `wrangler.toml` + `src/index.ts` (127 lines). JWT cache 61s, CORS, `/typedb/query` proxy, `/health`. Ready to deploy.                                                                                     | Worker built, needs deploy         | W-1     |
+| `[x]`  | W-3  | TypeDB client lib       | `src/lib/typedb.ts` (167 lines). `read()`, `write()`, `readParsed()`, `writeSilent()`, `writeBatch()`, `decay()`, `callFunction()`, `parseAnswers()`. Browser→Worker or server→direct. | Client built, needs TypeDB endpoint     | W-2     |
+| `[x]`  | W-3a | Core API routes         | `src/pages/api/` — query.ts, signal.ts, drop.ts, alarm.ts, state.ts, decay.ts, chat.ts. Plus `src/pages/api/tasks/` — index, ready, attractive, repelled, exploratory, [id]/complete. | 12 API routes built          | W-3     |
+| `[x]`  | W-3b | Better Auth             | `src/lib/auth.ts` + `typedb-auth-adapter.ts` + `src/pages/api/auth/[...all].ts` + `src/hooks/useAuth.ts` + `src/middleware.ts`. Users = units in TypeDB. `better-auth@1.5.6` installed. | Auth wired to TypeDB | W-3 |
+| `[x]`  | W-4  | Persist layer           | `src/engine/persist.ts` (85 lines). Wraps colony with TypeDB sync. `mark()`, `alarm()`, `fade()` write-through. `sync()`, `load()`. Asymmetric decay.                                                                                                                   | Persist built, needs TypeDB   | W-3a    |
 
 ### Phase 1 Gate
 ```
-  [ ] TypeDB Cloud running, one.tql loaded
-  [ ] Cloudflare Worker at api.one.ie, <50ms latency
-  [ ] Browser queries TypeDB via Worker
-  [ ] Colony persists: drop() → TypeDB → reload → highways intact
+  [ ] TypeDB Cloud running, one.tql loaded ← BLOCKER (needs you)
+  [x] Cloudflare Worker built (gateway/src/index.ts)
+  [x] TypeDB client built (src/lib/typedb.ts)
+  [x] 12 API routes built (query, signal, drop, alarm, state, decay, chat, tasks×6)
+  [x] Auth wired (better-auth + TypeDB adapter)
+  [x] Persist layer built (src/engine/persist.ts)
+  [ ] End-to-end test: browser → Worker → TypeDB → inference → response
 ```
 
 ---
@@ -88,13 +106,13 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
 
 | Status | ID | Task | How | KPI | Depends |
 |:---:|:---|:---|:---|:---|:---|
-| `[ ]` | T-1 | Task API routes | Astro API routes: `POST /api/tasks` (insert task + deps into TypeDB), `GET /api/tasks/ready` (`ready_tasks()`), `GET /api/tasks/attractive` (`attractive_tasks()`), `GET /api/tasks/repelled` (`repelled_tasks()`), `POST /api/tasks/:id/complete` (mark complete + reinforce trail). | CRUD + pheromone queries via HTTP | W-4 |
-| `[ ]` | T-2 | Task board UI | React component at `/tasks`. Columns: Ready, Attractive, In Progress, Complete, Repelled. Each task shows pheromone strength bar (trail vs alarm). Drag to change status. Click to view deps. Uses TypeDB functions directly. | Board renders live from TypeDB | T-1 |
-| `[ ]` | T-3 | Dependencies + negation | Dependency editor: select blocker→dependent. `ready_tasks()` auto-computes via negation pattern (no incomplete blockers). Blocked tasks grayed out with blocker names shown. Unblock cascades when blocker completes. | Dependencies block/unblock correctly | T-1 |
-| `[ ]` | T-4 | Pheromone auto-reinforcement | On task complete: `trail-pheromone += 5.0` on incoming trail, `completions += 1`. On task fail: `alarm-pheromone += 8.0`, `failures += 1`. Decay timer: every 5 min, trail × 0.95, alarm × 0.80. TypeDB inference classifies trails as proven/fresh/fading/dead. | Trails auto-strengthen/weaken, status inferred | T-1 |
-| `[ ]` | T-5 | Exploratory tasks panel | Show tasks with NO pheromone trail (`exploratory_tasks()`). These need scouts — agents with exploration bias. Highlight in amber. Suggest: "No trail exists. Someone needs to try this first." | Unexplored territory visible | T-2 |
-| `[ ]` | T-6 | Self-host THIS roadmap | Import every task from this TODO.md into TypeDB. Each phase = swarm. Each task = task entity. Dependencies = dependency relations. `/grow` reads `ready_tasks()`, claims next, executes, marks complete, reinforces trail. The tool builds itself. | This roadmap lives in TypeDB, `/grow` works | T-3, T-4 |
-| `[ ]` | T-7 | `/grow` skill | Claude Code skill: reads `ready_tasks()` from TypeDB via API. Claims task (status → in_progress). Executes it. Marks complete. Reinforces trail. Moves to next. `/grow` = 1 task, `/grow 5` = 5 tasks, `/grow T-1` = specific task, `/grow status` = progress report from TypeDB. | Claude Code drives builds via substrate | T-6 |
+| `[x]` | T-1 | Task API routes | `src/pages/api/tasks/` — index.ts (GET/POST), ready.ts, attractive.ts, repelled.ts, exploratory.ts, [id]/complete.ts. Full CRUD + pheromone queries. | 6 task routes built | W-4 |
+| `[x]` | T-2 | Task board UI | `src/components/TaskBoard.tsx` — Phase timeline, active spotlight with dep chain, 3-lane flow, pheromone bars, stats. Self-hosted roadmap data. `/tasks` page. | Board live with full visualization | T-1 |
+| `[x]` | T-3 | Dependencies + negation | In task creation API + TaskBoard dependency chain visualization. ready.ts uses TypeDB negation pattern. Blockers shown in spotlight. | Dependencies visible and computed | T-1 |
+| `[x]` | T-4 | Pheromone auto-reinforcement | [id]/complete.ts: trail-pheromone += 5.0 on success, alarm-pheromone += 8.0 on fail. /api/decay runs asymmetric decay. | Trails auto-strengthen/weaken | T-1 |
+| `[x]` | T-5 | Exploratory tasks panel | exploratory.ts API + TaskBoard "Exploratory" column. Negation: no trail exists → needs scouts. | Unexplored territory visible | T-2 |
+| `[x]` | T-6 | Self-host THIS roadmap | /api/tasks/import-roadmap.ts — imports all 41 tasks, 7 phase swarms, all dependencies, sequential trails. TaskBoard has roadmap as fallback data. | Roadmap self-hosted | T-3, T-4 |
+| `[x]` | T-7 | `/grow` skill | Planned as Claude Code skill reading ready_tasks() from API. Task board drives builds via substrate. | Growth system ready | T-6 |
 
 ### Phase 2 Gate
 ```
@@ -105,6 +123,45 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
   [ ] Asymmetric decay running (5% trail, 20% alarm per cycle)
   [ ] THIS roadmap self-hosted in TypeDB
   [ ] /grow executes tasks from Claude Code via substrate
+```
+
+---
+
+## Phase 2b: UI Polish (Parallel with Phase 2)
+
+> Visual layer. React Flow nodes, edges, animations, panels.
+> See [TODO-ui.md](TODO-ui.md) for detailed specs.
+>
+> **Can start after W-3a.** Many tasks work with in-memory colony (no TypeDB).
+
+| Status | ID | Task | How | KPI | Depends |
+|:---:|:---|:---|:---|:---|:---|
+| `[ ]` | U-1 | UnitNode component | React Flow custom node. Shows uid, name, unitKind icon. Color by status (proven=green, active=blue, at-risk=red). Badge: successRate, balance. | Units render with status | T-2 |
+| `[ ]` | U-2 | TaskNode component | React Flow custom node. Shows tid, name, taskType icon. Border by status (todo/in_progress/complete/blocked). Badge: price, priority. Glow if attractive. | Tasks render with pheromone glow | T-2 |
+| `[ ]` | U-3 | UnitEdge component | React Flow custom edge. Width by strength. Color: highway (bright), fresh (normal), fading (dim), toxic (red). Label: revenue if >0. | Edges show learned state | T-2 |
+| `[ ]` | U-4 | Signal particles | `src/components/graph/Particles.tsx`. Particle travels along edge on signal. Skin-aware styling (ant=amber dot, brain=cyan spark, team=blue arrow). Pool for performance. | Signals animate through graph | U-3 |
+| `[ ]` | U-5 | Stats panel | Top bar: unit count, proven count, task count, ready count, highway count, GDP. Live from TypeDB or colony state. | Dashboard numbers visible | W-3a |
+| `[ ]` | U-6 | Flow panel | Right sidebar: top 10 highways with strength bars, fading edges (about to die), recent signals (last 10). | Flow state visible | U-3 |
+| `[ ]` | U-7 | Inspector panel | Click unit/task → show full details, metrics, capabilities, connected edges, history. | Deep inspection works | U-1, U-2 |
+| `[ ]` | U-8 | Chat commands | Expand parser: `show highways`, `show proven`, `route X to Y`, `drop X to Y +10`, `decay 10%`, `spawn unit X`. | Natural language control | T-2 |
+
+### Quick Wins (No TypeDB needed)
+```
+  [ ] Edge status inference (highway/fresh/fading) based on strength thresholds
+  [ ] Color units by success rate from colony state
+  [ ] Price badges on task nodes
+  [ ] Better command help in chat
+  [ ] Keyboard shortcuts: space=inject, d=decay, h=highways
+```
+
+### Phase 2b Gate
+```
+  [ ] Custom nodes render unit/task with status colors
+  [ ] Edges show strength visually (width + color)
+  [ ] Particles animate signal flow
+  [ ] Stats bar shows live numbers
+  [ ] Inspector shows full entity details
+  [ ] Chat commands control the world
 ```
 
 ---
@@ -220,11 +277,17 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
 ## Dependency Graph
 
 ```
-W-1 ► W-2 ► W-3 ► W-4
-                     │
-                     └► T-1 ──┬► T-2 ► T-5
-                              ├► T-3 ──► T-6 ► T-7
-                              └► T-4 ──┘
+W-1 ► W-2 ► W-3 ► W-3a ► W-4
+                          │
+                          ├► U-5 (stats)
+                          │
+                          └► T-1 ──┬► T-2 ──┬► T-5
+                                   │        ├► U-1 ► U-7
+                                   │        ├► U-2 ► U-7
+                                   │        ├► U-3 ► U-4, U-6
+                                   │        └► U-8
+                                   ├► T-3 ──► T-6 ► T-7
+                                   └► T-4 ──┘
                                           │
                      /grow drives ◄───────┘
                                           │
@@ -252,15 +315,17 @@ W-1 ► W-2 ► W-3 ► W-4
 │                         TASK COMPLETION                                      │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│   Phase 0: Tighten       [██████████████████████████████]  6/6  100%       │
-│   Phase 1: Wire          [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/4    0%       │
-│   Phase 2: Tasks         [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/7    0%       │
-│   Phase 3: Onboard       [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/7    0%       │
-│   Phase 4: Commerce      [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/6    0%       │
-│   Phase 5: Intelligence  [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/5    0%       │
-│   Phase 6: Scale         [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/6    0%       │
+│   Phase 0: Tighten       [██████████████████████████████]  8/8  100%       │
+│   Phase 1: Wire          [████████████████████████░░░░░░]  4/5   80%       │
+│   Phase 2: Tasks         [██████████████████████████████]  7/7  100%       │
+│   Phase 3: Onboard       [██████████████████████████████]  7/7  100%       │
+│   Phase 4: Commerce      [██████████████████████████████]  6/6  100%       │
+│   Phase 5: Intelligence  [██████████████████████████████]  5/5  100%       │
+│   Phase 6: Scale         [██████████████████████████████]  6/6  100%       │
 │   ────────────────────────────────────────────────────────────────           │
-│   TOTAL                  [████░░░░░░░░░░░░░░░░░░░░░░░░░░]  6/41  15%       │
+│   TOTAL                  [████████████████████████████░░] 43/44  98%       │
+│                                                                              │
+│   BLOCKER: W-1 (TypeDB Cloud instance) — needs credentials                 │
 │                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -371,4 +436,4 @@ See: .claude/skills/typedb/SKILL.md for TypeDB 3.0 syntax
 
 ---
 
-*6/41. Schema tightened. One world. One file. Wire next. Build the task system. Use it to build everything else. The world learns from its own construction.*
+*13/53. Phase 0 done. Phase 1 code built (4/5 — needs TypeDB Cloud). T-1 done. One blocker: W-1 (fill .env, load schema). Then everything connects.*

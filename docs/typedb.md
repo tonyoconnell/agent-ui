@@ -28,7 +28,7 @@ Dimension        What It Holds              TypeDB                Lesson
 1. Groups        Swarms, hierarchies        entity swarm          —
 2. Actors        Units that process         entity unit           L1: Classification
 3. Things        Tasks, capabilities        entity task           L4: Task Allocation
-4. Connections   Weighted edges             relation edge         L2: Quality Rules
+4. Connections   Weighted paths             relation path         L2: Quality Rules
 5. Events        Signals that flowed        relation signal       L5: Contribution
 6. Knowledge     Emerges from inference     fun highways()        L3+L6: Hypothesis + Emergence
 ```
@@ -83,8 +83,8 @@ entity unit,
     owns uid @key,
     owns created,
     owns balance,
-    plays edge:source,
-    plays edge:target,
+    plays path:source,
+    plays path:target,
     plays capability:provider,
     plays claim:claimer,
     plays claim:owner,
@@ -111,7 +111,7 @@ entity task,
 # ═══════════════════════════════════════════════════════════════
 
 # The core pheromone trail
-relation edge,
+relation path,
     relates source,
     relates target,
     owns strength,
@@ -188,9 +188,9 @@ ts sub attribute, value datetime;
 # ═══════════════════════════════════════════════════════════════
 
 # Detect highways (high-traffic paths)
-fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { edge }:
+fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { path }:
     match
-        $e (source: $from, target: $to) isa edge,
+        $e (source: $from, target: $to) isa path,
             has strength $s,
             has traversals $t;
         $s >= threshold;
@@ -200,7 +200,7 @@ fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { edge }
 # Find optimal route for a task
 fun optimal_route($from: unit, $task: task) -> unit:
     match
-        (source: $from, target: $to) isa edge, has strength $s;
+        (source: $from, target: $to) isa path, has strength $s;
         (provider: $to, skill: $task) isa capability;
     sort $s desc;
     limit 1;
@@ -225,7 +225,7 @@ fun collaborators($me: unit) -> { unit }:
 # Count highways
 fun highway_count(threshold: double = 10.0) -> integer:
     match
-        $e isa edge, has strength $s;
+        $e isa path, has strength $s;
         $s >= threshold;
     return count($e);
 
@@ -234,7 +234,7 @@ fun suggest_route($from: unit, $task: task) -> { uid, strength }:
     match
         $from isa unit;
         $task isa task;
-        (source: $from, target: $to) isa edge, has strength $s;
+        (source: $from, target: $to) isa path, has strength $s;
         (provider: $to, skill: $task) isa capability;
         $to has uid $tid;
         $s >= 5.0;
@@ -279,7 +279,7 @@ fun suggest_route($from: unit, $task: task) -> { uid, strength }:
 │                                                                             │
 │   4. CONNECTIONS                                                            │
 │   ───────────────                                                           │
-│   Weighted edges. Pheromone trails. The learning.                           │
+│   Weighted paths. Pheromone trails. The learning.                           │
 │                                                                             │
 │   scout ──[15.2]──▶ analyst     (highway forming)                           │
 │   analyst ──[8.4]──▶ trader                                                 │
@@ -296,7 +296,7 @@ fun suggest_route($from: unit, $task: task) -> { uid, strength }:
 │   ─────────────                                                             │
 │   Emerges from inference. Not stored, derived.                              │
 │                                                                             │
-│   highways()           → edges with strength > 10                           │
+│   highways()           → paths with strength > 10                           │
 │   optimal_route()      → best path from history                             │
 │   cheapest_provider()  → lowest price for task                              │
 │   collaborators()      → peers in same swarm                                │
@@ -342,24 +342,24 @@ insert
     (member: $u, group: $s) isa membership, has joined-at 2026-01-01T00:00:00;
 ```
 
-### Edges & Learning
+### Paths & Learning
 
 ```typeql
-# Mark edge (signal flowed from scout to analyst)
+# Mark path (signal flowed from scout to analyst)
 match
     $from isa unit, has uid "scout";
     $to isa unit, has uid "analyst";
 insert
-    (source: $from, target: $to) isa edge,
+    (source: $from, target: $to) isa path,
         has strength 1.0,
         has traversals 1,
         has last-used 2026-01-01T12:00:00;
 
-# Strengthen existing edge
+# Strengthen existing path
 match
     $from isa unit, has uid "scout";
     $to isa unit, has uid "analyst";
-    $e (source: $from, target: $to) isa edge,
+    $e (source: $from, target: $to) isa path,
         has strength $s,
         has traversals $t;
 delete
@@ -369,17 +369,17 @@ insert
     $e has strength ($s + 1.0);
     $e has traversals ($t + 1);
 
-# Fade all edges (decay by 10%)
+# Fade all paths (decay by 10%)
 match
-    $e isa edge, has strength $s;
+    $e isa path, has strength $s;
 delete
     $e has $s;
 insert
     $e has strength ($s * 0.9);
 
-# Clean up weak edges
+# Clean up weak paths
 match
-    $e isa edge, has strength $s;
+    $e isa path, has strength $s;
     $s < 0.01;
 delete
     $e;
@@ -391,7 +391,7 @@ delete
 # Get highways
 match
     let $e in highways(10.0, 50);
-    $e (source: $from, target: $to);
+    $e (source: $from, target: $to) isa path;
     $from has uid $fid;
     $to has uid $tid;
     $e has strength $s;
@@ -509,12 +509,12 @@ export const pulse = (db: TypeDB) => {
 
     const target = route?.tid || unitId
 
-    // Strengthen edge in substrate
+    // Strengthen path in substrate
     await db.query(`
       match
         $from isa unit, has uid "${from}";
         $to isa unit, has uid "${target}";
-        $e (source: $from, target: $to) isa edge,
+        $e (source: $from, target: $to) isa path,
             has strength $s,
             has traversals $t;
       delete $e has $s; $e has $t;
@@ -556,16 +556,16 @@ export const pulse = (db: TypeDB) => {
   }
 
   const fade = async (rate = 0.1) => {
-    // Decay all edges
+    // Decay all paths
     await db.query(`
-      match $e isa edge, has strength $s;
+      match $e isa path, has strength $s;
       delete $e has $s;
       insert $e has strength ($s * ${1 - rate});
     `)
 
-    // Clean up weak edges
+    // Clean up weak paths
     await db.query(`
-      match $e isa edge, has strength $s; $s < 0.01;
+      match $e isa path, has strength $s; $s < 0.01;
       delete $e;
     `)
   }
@@ -604,8 +604,8 @@ export const pulse = (db: TypeDB) => {
 │                           THE PULSE                                         │
 │                         (TypeScript)                                        │
 │                                                                             │
-│   send()     Query substrate → strengthen edge → execute → continue         │
-│   fade()     Decay all edges, clean up weak ones                            │
+│   send()     Query substrate → strengthen path → execute → continue         │
+│   fade()     Decay all paths, clean up weak ones                            │
 │   highways() Get top paths from inference                                   │
 │                                                                             │
 │   ~70 lines. Thin client. Real-time.                                        │
@@ -623,7 +623,7 @@ export const pulse = (db: TypeDB) => {
 │   │  swarm (hierarchy)          │  unit (processors)                    │  │
 │   ├─────────────────────────────┼───────────────────────────────────────┤  │
 │   │  DIMENSION 3: THINGS        │  DIMENSION 4: CONNECTIONS             │  │
-│   │  task (capabilities)        │  edge (pheromone trails)              │  │
+│   │  task (capabilities)        │  path (pheromone trails)              │  │
 │   │                             │  capability, claim, membership        │  │
 │   ├─────────────────────────────┼───────────────────────────────────────┤  │
 │   │  DIMENSION 5: EVENTS        │  DIMENSION 6: KNOWLEDGE               │  │
@@ -645,8 +645,8 @@ What emerges without being programmed:
 | Behavior | How It Emerges |
 |----------|----------------|
 | **Load balancing** | Overloaded units get expensive → `cheapest_provider()` routes elsewhere |
-| **Specialization** | Units that succeed have strong edges → `optimal_route()` sends more |
-| **Fault tolerance** | Failed units don't strengthen edges → signals naturally reroute |
+| **Specialization** | Units that succeed have strong paths → `optimal_route()` sends more |
+| **Fault tolerance** | Failed units don't strengthen paths → signals naturally reroute |
 | **Team formation** | `collaborators()` derives peers from shared `membership` |
 | **Cost optimization** | `cheapest_provider()` always finds lowest price |
 | **Highway formation** | `highways()` identifies high-traffic paths in real-time |
@@ -716,8 +716,8 @@ packages/typedb-inference-patterns/
 | # | Lesson | Pattern | TypeDB | Substrate |
 |---|--------|---------|--------|-----------|
 | 1 | **Perception** | Classification | `fun elite_units()` | `.on('classify')` |
-| 2 | **Homeostasis** | Quality bands | `rule high-quality` | `.on('validate')` |
-| 3 | **Hypothesis** | State machine | `rule hypothesis-action-ready` | `.on('observe')` |
+| 2 | **Homeostasis** | Quality bands | `fun high_quality()` | `.on('validate')` |
+| 3 | **Hypothesis** | State machine | `fun action_ready()` | `.on('observe')` |
 | 4 | **Task Allocation** | Negation + pheromone | `fun ready_tasks()` | `.on('query-ready')` |
 | 5 | **Contribution** | Aggregates | `fun total_contribution()` | `.on('record')` |
 | 6 | **Emergence** | Autonomous goals | `fun promising_frontiers()` | `.on('detect-frontier')` |

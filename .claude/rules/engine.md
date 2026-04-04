@@ -59,7 +59,7 @@ ctx       // { from: string, self: string }
 colony()
   .spawn(id)              // create unit
   .signal(signal, from?)  // move signal through world
-  .drop(edge, weight?)    // leave weight on path (pheromone)
+  .mark(edge, strength?)  // leave weight on path (pheromone)
   .follow(type)           // traverse weighted path to best
   .sense(edge)            // read weight
   .fade(rate?)            // decay all paths

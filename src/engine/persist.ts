@@ -1,43 +1,84 @@
 /**
  * PERSIST — TypeDB layer for the substrate
  *
- * 40 lines. Same colony. Now it remembers.
+ * Wraps colony with TypeDB persistence.
+ * Every mark/alarm/fade syncs to TypeDB via src/lib/typedb.ts.
+ * load() hydrates colony from TypeDB on startup.
+ *
+ * Browser → Worker → TypeDB Cloud.
+ * Server → TypeDB Cloud directly.
  */
 
 import { colony, type Colony } from './substrate'
+import { read, write, writeSilent, parseAnswers } from '@/lib/typedb'
 
-type Query = (tql: string) => Promise<unknown>
+export interface PersistedColony extends Colony {
+  alarm: (edge: string, strength?: number) => void
+  sync: () => Promise<void>
+  load: () => Promise<void>
+}
 
-export const persisted = (query: Query) => {
+export const persisted = (): PersistedColony => {
   const net = colony()
-  const q = (tql: string) => query(tql).catch(() => {})
 
   const mark = (edge: string, strength = 1) => {
     net.mark(edge, strength)
-    q(`match $e isa edge, has eid "${edge}", has weight $w;
-       update $e has weight ($w + ${strength});`)
+    const [from, to] = edge.split('→')
+    if (!from || !to) return
+    writeSilent(`
+      match
+        $from isa unit, has uid "${from}";
+        $to isa unit, has uid "${to}";
+        $e (source: $from, target: $to) isa path, has strength $s, has traversals $t;
+      delete $s of $e; delete $t of $e;
+      insert $e has strength ($s + ${strength}), has traversals ($t + 1);
+    `)
   }
 
   const alarm = (edge: string, strength = 1) => {
-    q(`match $e isa edge, has eid "${edge}", has alarm $a;
-       update $e has alarm ($a + ${strength});`)
+    const [from, to] = edge.split('→')
+    if (!from || !to) return
+    writeSilent(`
+      match
+        $from isa unit, has uid "${from}";
+        $to isa unit, has uid "${to}";
+        $e (source: $from, target: $to) isa path, has alarm $a;
+      delete $a of $e;
+      insert $e has alarm ($a + ${strength});
+    `)
   }
 
   const fade = (rate = 0.1) => {
     net.fade(rate)
-    q(`match $e isa edge, has weight $w, has alarm $a;
-       update $e has weight ($w * ${1 - rate}), has alarm ($a * ${1 - rate});`)
+    // Asymmetric: trail decays at rate, alarm decays 2x faster
+    writeSilent(`
+      match $e isa path, has strength $s, has alarm $a;
+      delete $s of $e; delete $a of $e;
+      insert $e has strength ($s * ${1 - rate}), has alarm ($a * ${1 - rate * 2});
+    `)
   }
 
-  const sync = () => q(`
-    ${Object.entries(net.scent).map(([e, w]) =>
-      `insert $e isa edge, has eid "${e}", has weight ${w}, has alarm 0.0;`
-    ).join('\n')}
-  `)
+  const sync = async () => {
+    for (const [edge, strength] of Object.entries(net.scent)) {
+      const [from, to] = edge.split('→')
+      if (!from || !to) continue
+      await write(`
+        match $from isa unit, has uid "${from}"; $to isa unit, has uid "${to}";
+        insert (source: $from, target: $to) isa path,
+          has strength ${strength}, has alarm 0.0, has traversals 0, has revenue 0.0;
+      `).catch(() => {})
+    }
+  }
 
   const load = async () => {
-    const rows = await query(`match $e isa edge, has eid $id, has weight $w; return { $id, $w };`)
-    ;(rows as Array<{ id: string; w: number }>).forEach(r => net.scent[r.id] = r.w)
+    const answers = await read(`
+      match $e (source: $from, target: $to) isa path, has strength $s;
+      $from has uid $fid; $to has uid $tid;
+      select $fid, $tid, $s;
+    `)
+    for (const row of parseAnswers(answers)) {
+      net.scent[`${row.fid}→${row.tid}`] = row.s as number
+    }
   }
 
   return { ...net, mark, alarm, fade, sync, load }

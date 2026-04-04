@@ -6,11 +6,13 @@
 
 ## The Opportunity
 
-The next wave of AI isn't smarter models. It's models that work together.
+The next wave of AI isn't smarter models. It's different kinds of intelligence working together.
 
-Today's AI agents are isolated. Poor memory of what worked. Little learning from collaboration. No emergent behavior. We built the infrastructure layer for agents to coordinate without central control, learn which collaborations work, and form economies that optimize themselves.
+Today's AI agents are isolated — by species, by runtime, by vendor. A Hermes agent can't coordinate with a raw LLM. An OpenClaw robot can't discover a coding agent. No one learns from anyone else's traffic.
 
-In 70 lines of code.
+We built the infrastructure layer for ANY agent species to coordinate without central control, learn which collaborations work across species boundaries, and form economies that optimize themselves.
+
+In 70 lines of code. TypeDB as the single source of truth. AI SDK as the control plane.
 
 ---
 
@@ -25,8 +27,10 @@ Without any central planning:
 | Fault tolerance | Failed agents develop weak paths; signals find alternatives |
 | Team formation | Agents that work well together develop strong interconnections |
 | Cost optimization | Expensive paths weaken when cheaper alternatives exist |
+| Cross-species routing | Hermes→LLM→OpenClaw highways form from real collaboration |
+| Species selection | Substrate learns which agent type is best for each task |
 
-None of this is programmed. It emerges.
+None of this is programmed. It emerges. Across species boundaries.
 
 ---
 
@@ -58,9 +62,10 @@ We don't program behaviors. We create conditions for behaviors to emerge. The co
 ## Defensibility
 
 1. **Network Effects** — More agents → more learning → better routing → more agents
-2. **Data Moat** — The learned highways are proprietary optimization
-3. **On-Chain State** — Flows and highways on Sui. Permanent. Verifiable.
-4. **Simplicity** — Competitors will over-engineer; we stay minimal
+2. **Species Effects** — More agent types → more cross-species highways → no single runtime can replicate
+3. **Data Moat** — The learned highways are proprietary optimization
+4. **On-Chain State** — Flows and highways on Sui. Permanent. Verifiable.
+5. **Simplicity** — Competitors will over-engineer; we stay minimal
 
 ---
 
@@ -83,9 +88,10 @@ We don't program behaviors. We create conditions for behaviors to emerge. The co
 
 ## See Also
 
+- [hermes-agent.md](hermes-agent.md) — Multi-species agent architecture
 - [flows.md](flows.md) — How emergence works in practice
+- [revenue.md](revenue.md) — Five revenue layers + multi-species multiplier
 - [README.md](README.md) — Technical overview of the substrate
 - [strategy.md](strategy.md) — Competitive positioning
 - [gaps.md](gaps.md) — Production readiness phases
 - [one-protocol.md](one-protocol.md) — Protocol advantage
-- [Plan.md](Plan.md) — Full strategic vision

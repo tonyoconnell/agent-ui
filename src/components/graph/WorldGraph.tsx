@@ -433,8 +433,10 @@ export function WorldGraph({ colony, agents, highways, onSelectAgent }: WorldGra
     const stats: Record<string, { incoming: number; outgoing: number; isOpen: boolean }> = {}
     agents.forEach((a) => (stats[a.id] = { incoming: 0, outgoing: 0, isOpen: false }))
 
-    for (const { edge, strength } of highways) {
-      const [from, to] = edge.split(" → ")
+    for (const h of highways) {
+      if (!h.path) continue
+      const { path, strength } = h
+      const [from, to] = path.split(" → ")
       if (!from || !to) continue
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
@@ -462,8 +464,10 @@ export function WorldGraph({ colony, agents, highways, onSelectAgent }: WorldGra
     const outgoing: Record<string, Set<string>> = { entry: new Set() }
     agents.forEach((a) => (outgoing[a.id] = new Set()))
 
-    for (const { edge } of highways) {
-      const [from, to] = edge.split(" → ")
+    for (const h of highways) {
+      if (!h.path) continue
+      const [from, to] = h.path.split(" → ")
+      if (!from || !to) continue
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
       if (outgoing[sourceId]) outgoing[sourceId].add(targetId)
@@ -507,7 +511,7 @@ export function WorldGraph({ colony, agents, highways, onSelectAgent }: WorldGra
       id: "entry",
       type: "entry",
       position: positions["entry"] || { x: 100, y: 200 },
-      data: { signals: highways.filter((h) => h.edge.startsWith("entry")).length },
+      data: { signals: highways.filter((h) => h.path.startsWith("entry")).length },
     }
 
     const actorNodes: Node[] = agents.map((agent) => ({
@@ -532,8 +536,10 @@ export function WorldGraph({ colony, agents, highways, onSelectAgent }: WorldGra
   const initialEdges = useMemo((): FlowEdge[] => {
     const edgeMap: Record<string, { strength: number; fromTask: string; toTask: string }> = {}
 
-    for (const { edge, strength } of highways) {
-      const [from, to] = edge.split(" → ")
+    for (const h of highways) {
+      if (!h.path) continue
+      const { path, strength } = h
+      const [from, to] = path.split(" → ")
       if (!from || !to) continue
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]

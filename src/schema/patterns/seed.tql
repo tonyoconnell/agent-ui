@@ -1,0 +1,236 @@
+# =============================================================================
+# SEED.TQL - Bootstrap Data for the Colony
+# =============================================================================
+#
+# Run AFTER loading substrate.tql (or genesis.tql).
+#
+# USAGE:
+#   typedb console
+#   > transaction colony data write
+#   > source seed.tql
+#   > commit
+#
+# Then query:
+#   > transaction colony read
+#   > match let $a in elite_agents(); $a has agent-name $n; select $n;
+#   > match let $t in ready_tasks(); $t has title $title; select $title;
+#   > match let $t in attractive_tasks(); $t has title $title; select $title;
+#
+# =============================================================================
+
+
+# --- AGENTS ---
+# Mix of elite, standard, and at-risk performers
+
+insert $a isa agent,
+    has agent-id "agent-001",
+    has agent-name "alpha",
+    has agent-type "ai",
+    has success-rate 0.92,
+    has activity-score 85.0,
+    has sample-count 150;
+# -> elite (sr >= 0.75, as >= 70, sc >= 50)
+
+insert $a isa agent,
+    has agent-id "agent-002",
+    has agent-name "beta",
+    has agent-type "ai",
+    has success-rate 0.65,
+    has activity-score 60.0,
+    has sample-count 80;
+# -> standard (no rule fires)
+
+insert $a isa agent,
+    has agent-id "agent-003",
+    has agent-name "gamma",
+    has agent-type "human",
+    has success-rate 0.35,
+    has activity-score 45.0,
+    has sample-count 60;
+# -> at-risk (sr < 0.40, as >= 25, sc >= 30)
+
+
+# --- TASKS ---
+# Various states for testing readiness and pheromone effects
+
+insert $t isa task,
+    has task-id "task-001",
+    has title "Initialize colony",
+    has status "complete",
+    has priority "P0";
+
+insert $t isa task,
+    has task-id "task-002",
+    has title "Scout territory A",
+    has status "todo",
+    has priority "P1";
+
+insert $t isa task,
+    has task-id "task-003",
+    has title "Scout territory B",
+    has status "todo",
+    has priority "P1";
+
+insert $t isa task,
+    has task-id "task-004",
+    has title "Harvest resources",
+    has status "todo",
+    has priority "P2";
+
+insert $t isa task,
+    has task-id "task-005",
+    has title "Build infrastructure",
+    has status "blocked",
+    has priority "P2";
+
+
+# --- DEPENDENCIES ---
+# task-005 is blocked by task-002 and task-003
+
+match $dependent isa task, has task-id "task-005";
+      $blocker isa task, has task-id "task-002";
+insert (dependent: $dependent, blocker: $blocker) isa dependency;
+
+match $dependent isa task, has task-id "task-005";
+      $blocker isa task, has task-id "task-003";
+insert (dependent: $dependent, blocker: $blocker) isa dependency;
+
+
+# --- PHEROMONE TRAILS ---
+# Memory on edges. Task-001 -> Task-002 is a proven path.
+# Task-001 -> Task-004 has high alarm (failed before).
+
+match $from isa task, has task-id "task-001";
+      $to isa task, has task-id "task-002";
+insert (source-task: $from, destination-task: $to) isa pheromone-trail,
+    has trail-pheromone 75.0,
+    has alarm-pheromone 5.0;
+# -> proven trail (tp >= 70) -> task-002 becomes attractive
+
+match $from isa task, has task-id "task-001";
+      $to isa task, has task-id "task-003";
+insert (source-task: $from, destination-task: $to) isa pheromone-trail,
+    has trail-pheromone 55.0,
+    has alarm-pheromone 10.0;
+# -> task-003 becomes attractive (tp >= 50)
+
+match $from isa task, has task-id "task-001";
+      $to isa task, has task-id "task-004";
+insert (source-task: $from, destination-task: $to) isa pheromone-trail,
+    has trail-pheromone 20.0,
+    has alarm-pheromone 45.0;
+# -> task-004 becomes repelled (ap >= 30, ap > tp)
+
+
+# --- FRONTIERS ---
+# Unexplored territories for autonomous goal generation
+
+insert $f isa frontier,
+    has frontier-id "frontier-001",
+    has expected-value 0.72,
+    has frontier-status "unexplored";
+# -> promising (ev >= 0.5)
+
+insert $f isa frontier,
+    has frontier-id "frontier-002",
+    has expected-value 0.35,
+    has frontier-status "unexplored";
+# -> not promising
+
+insert $f isa frontier,
+    has frontier-id "frontier-003",
+    has expected-value 0.88,
+    has frontier-status "exploring";
+# -> not promising (not unexplored)
+
+
+# --- OBJECTIVES ---
+
+insert $o isa objective,
+    has objective-id "obj-001",
+    has progress 0.0,
+    has objective-status "pending";
+# -> active
+
+insert $o isa objective,
+    has objective-id "obj-002",
+    has progress 0.65,
+    has objective-status "active";
+# -> active
+
+insert $o isa objective,
+    has objective-id "obj-003",
+    has progress 1.0,
+    has objective-status "complete";
+# -> not active
+
+
+# --- CONTRIBUTIONS ---
+# Track agent impact for synergy measurement
+
+insert $c isa contribution,
+    has contribution-id "contrib-001",
+    has impact-score 8.5;
+
+match $a isa agent, has agent-id "agent-001";
+      $c isa contribution, has contribution-id "contrib-001";
+insert (contributor-agent: $a, contribution: $c) isa contribution-event;
+
+insert $c isa contribution,
+    has contribution-id "contrib-002",
+    has impact-score 6.0;
+
+match $a isa agent, has agent-id "agent-001";
+      $c isa contribution, has contribution-id "contrib-002";
+insert (contributor-agent: $a, contribution: $c) isa contribution-event;
+
+insert $c isa contribution,
+    has contribution-id "contrib-003",
+    has impact-score 4.5;
+
+match $a isa agent, has agent-id "agent-002";
+      $c isa contribution, has contribution-id "contrib-003";
+insert (contributor-agent: $a, contribution: $c) isa contribution-event;
+
+
+# =============================================================================
+# EXPECTED QUERY RESULTS
+# =============================================================================
+#
+# match let $a in elite_agents(); $a has agent-name $n; select $n;
+# -> "alpha"
+#
+# match let $a in at_risk_agents(); $a has agent-name $n; select $n;
+# -> "gamma"
+#
+# match let $t in ready_tasks(); $t has title $title; select $title;
+# -> "Scout territory A", "Scout territory B", "Harvest resources"
+#    (NOT "Build infrastructure" - blocked)
+#
+# match let $t in attractive_tasks(); $t has title $title; select $title;
+# -> "Scout territory A", "Scout territory B"
+#    (strong trail pheromone leading to them)
+#
+# match let $t in repelled_tasks(); $t has title $title; select $title;
+# -> "Harvest resources"
+#    (alarm pheromone dominates)
+#
+# match let $t in exploratory_tasks(); $t has title $title; select $title;
+# -> (none - all ready tasks have trails)
+#
+# match let $f in promising_frontiers(); $f has frontier-id $id; select $id;
+# -> "frontier-001"
+#
+# match let $o in active_objectives(); $o has objective-id $id; select $id;
+# -> "obj-001", "obj-002"
+#
+# match let $total = total_contribution("alpha"); select $total;
+# -> 14.5  (8.5 + 6.0)
+#
+# match let $trail in superhighway_trails();
+#       $trail (source-task: $from, destination-task: $to);
+#       $from has title $ft; $to has title $tt;
+# select $ft, $tt;
+# -> "Initialize colony" -> "Scout territory A"
+#
+# =============================================================================

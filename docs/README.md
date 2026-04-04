@@ -98,14 +98,17 @@ w.fade(0.05)         // decay all weights 5%
 
 | Doc | What it covers |
 |-----|----------------|
-| [strategy.md](strategy.md) | The ant play |
+| [strategy.md](strategy.md) | The ant play — three fronts, first steps |
 | [one-protocol.md](one-protocol.md) | Protocol layer |
 | [integration.md](integration.md) | How everything connects |
+| [hermes-agent.md](hermes-agent.md) | Multi-species agents (Hermes, LLM, OpenClaw) |
 
 ### Commerce
 
 | Doc | What it covers |
 |-----|----------------|
+| [lifecycle.md](lifecycle.md) | Into ONE, through ONE, out of ONE |
+| [revenue.md](revenue.md) | Five revenue layers + multi-species multiplier |
 | [agent-launch.md](agent-launch.md) | Agentverse + x402 |
 | [asi-world.md](asi-world.md) | Agent economy |
 
@@ -215,5 +218,6 @@ type Package = Signal & {
 - [signal.md](signal.md) — The two-field primitive in depth
 - [tutorial.md](tutorial.md) — Quick-start for engineers
 - [one-ontology.md](one-ontology.md) — Six dimensions explained
+- [hermes-agent.md](hermes-agent.md) — Multi-species agent integration
 - [the-stack.md](the-stack.md) — Technical layers overview
 - [Plan.md](Plan.md) — Strategic vision and architecture

@@ -24,7 +24,7 @@ interface UnitJSON {
 }
 
 interface Edge {
-  edge: string;
+  path: string;
   strength: number;
 }
 
@@ -76,7 +76,7 @@ const colony = (): Colony => {
     return Object.entries(scent)
       .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
-      .map(([edge, strength]) => ({ edge, strength }));
+      .map(([path, strength]) => ({ path, strength }));
   };
 
   // STAN: follow strongest trail matching a type

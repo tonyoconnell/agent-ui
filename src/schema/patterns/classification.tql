@@ -1,0 +1,217 @@
+# =============================================================================
+# LESSON 1: Entity Classification via Inference Functions
+# =============================================================================
+#
+# DIFFICULTY: Beginner
+# PREREQUISITE: None (start here)
+# NEXT: quality-rules.tql (Lesson 2)
+#
+# WHAT YOU'LL LEARN:
+#   How to classify entities into tiers using TypeDB 3.0 functions.
+#   Functions return filtered entity streams — the database does the work.
+#
+# BIOLOGY (Chapter 2 — Task Allocation Without Instructions):
+#   Ants identify task types by reading cuticular hydrocarbons — chemical
+#   signatures on each ant's exoskeleton that encode what task they perform.
+#   This is multi-attribute classification: the ant reads several chemical
+#   properties simultaneously and classifies the encountered nestmate.
+#
+#   In TypeDB: functions read multiple attributes (success-rate, activity-score,
+#   sample-count) and classify entities into tiers. Same pattern — read
+#   properties, identify what something IS.
+#
+#   Reference: https://ants-at-work.com/book/2/
+#
+# USE CASES:
+#   - Customer segmentation (VIP, standard, at-risk)
+#   - Content quality tiers (premium, standard, low)
+#   - Employee performance bands (top, average, underperforming)
+#   - Product health scoring (healthy, warning, critical)
+#
+# PATTERN: Define numeric thresholds across multiple attributes.
+#          Combine them in a function to return classified entities.
+#
+# AFTER LOADING, TEST WITH:
+#   match let $e in elite_items(); $e has item-name $n; select $n;
+#   # Expected: Returns items with success-rate >= 0.75, activity >= 70, samples >= 50
+#
+# =============================================================================
+
+define
+
+# --- Schema (adapt entity/attribute names to your domain) ---
+
+entity scored-item,
+    owns item-id @key,
+    owns item-name,
+    owns success-rate,        # 0.0 - 1.0
+    owns activity-score,      # 0.0 - 100.0
+    owns sample-count,        # number of observations
+    owns item-tier,           # "elite", "standard", "at-risk" (can be inferred)
+    owns promotion-ready;     # boolean (can be inferred)
+
+attribute item-id, value string;
+attribute item-name, value string;
+attribute success-rate, value double;
+attribute activity-score, value double;
+attribute sample-count, value integer;
+attribute item-tier, value string;
+attribute promotion-ready, value boolean;
+
+
+# =============================================================================
+# FUNCTION 1: Elite / Top-Tier Detection
+# =============================================================================
+#
+# Returns entities that meet ALL elite criteria simultaneously.
+# This is a multi-attribute threshold filter — the core classification pattern.
+#
+# Thresholds (customize per domain):
+#   success-rate  >= 0.75   (75% success)
+#   activity-score >= 70.0  (high engagement)
+#   sample-count  >= 50     (statistically significant)
+#
+fun elite_items() -> { scored-item }:
+    match
+        $e isa scored-item,
+            has success-rate $sr,
+            has activity-score $as,
+            has sample-count $sc;
+        $sr >= 0.75;
+        $as >= 70.0;
+        $sc >= 50;
+    return { $e };
+
+
+# =============================================================================
+# FUNCTION 2: At-Risk / Danger Zone Detection
+# =============================================================================
+#
+# Flag entities performing poorly with enough data to be confident.
+#
+# Thresholds:
+#   success-rate  < 0.40    (below 40%)
+#   activity-score >= 25.0  (not inactive — actively failing)
+#   sample-count  >= 30     (enough data to be sure)
+#
+fun at_risk_items() -> { scored-item }:
+    match
+        $e isa scored-item,
+            has success-rate $sr,
+            has activity-score $as,
+            has sample-count $sc;
+        $sr < 0.40;
+        $as >= 25.0;
+        $sc >= 30;
+    return { $e };
+
+
+# =============================================================================
+# FUNCTION 3: Promotion Candidates
+# =============================================================================
+#
+# Items that are elite AND have very high activity — ready for promotion
+# to a higher tier, permanent status, or special treatment.
+#
+# This demonstrates CHAINED classification: elite + additional criteria.
+#
+fun promotion_candidates() -> { scored-item }:
+    match
+        $e isa scored-item,
+            has item-tier "elite",
+            has activity-score $as,
+            has sample-count $sc;
+        $as >= 80.0;
+        $sc >= 100;
+    return { $e };
+
+
+# =============================================================================
+# FUNCTION 4: High-Traffic / Superhighway Detection
+# =============================================================================
+#
+# Entities with extremely high activity and usage — the "superhighways"
+# of your system that carry the most traffic/value.
+#
+fun high_traffic_items() -> { scored-item }:
+    match
+        $e isa scored-item,
+            has activity-score $as,
+            has sample-count $sc;
+        $as >= 85.0;
+        $sc >= 100;
+    return { $e };
+
+
+# =============================================================================
+# FUNCTION 5: Transfer Candidates
+# =============================================================================
+#
+# Elite items suitable for reuse in other contexts/domains.
+# Useful for knowledge transfer, template creation, or cross-project sharing.
+#
+fun transfer_candidates() -> { scored-item }:
+    match
+        $e isa scored-item,
+            has item-tier "elite",
+            has success-rate $sr;
+        $sr >= 0.70;
+    return { $e };
+
+
+# =============================================================================
+# UTILITY: Count Functions
+# =============================================================================
+
+# Count elite items
+fun elite_count() -> integer:
+    match
+        $e isa scored-item,
+            has success-rate $sr,
+            has activity-score $as,
+            has sample-count $sc;
+        $sr >= 0.75;
+        $as >= 70.0;
+        $sc >= 50;
+    return count($e);
+
+# Count at-risk items
+fun at_risk_count() -> integer:
+    match
+        $e isa scored-item,
+            has success-rate $sr,
+            has activity-score $as,
+            has sample-count $sc;
+        $sr < 0.40;
+        $as >= 25.0;
+        $sc >= 30;
+    return count($e);
+
+# Count high-traffic items
+fun high_traffic_count() -> integer:
+    match
+        $e isa scored-item,
+            has activity-score $as,
+            has sample-count $sc;
+        $as >= 85.0;
+        $sc >= 100;
+    return count($e);
+
+
+# =============================================================================
+# USAGE EXAMPLES
+# =============================================================================
+#
+# Get all elite items with their names:
+#   match let $e in elite_items(); $e has item-name $n; select $n;
+#
+# Get at-risk items with success rates:
+#   match let $e in at_risk_items(); $e has item-name $n, has success-rate $sr; select $n, $sr;
+#
+# Count elites:
+#   match let $count = elite_count(); select $count;
+#
+# Find promotion candidates:
+#   match let $e in promotion_candidates(); $e has item-id $id; select $id;
+#
+# =============================================================================

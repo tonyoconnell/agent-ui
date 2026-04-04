@@ -1,6 +1,41 @@
 # ONE UI Integration TODO
 
+> **Synced with [TODO.md](TODO.md) Phase 2b (U-1 through U-8)**
+> This file contains detailed specs. Main tracking in TODO.md.
+
 Full integration of `one.tql` schema into the visual interface.
+
+## The Vision
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Stats Bar: units:12 proven:8 tasks:45 ready:12 highways:5 $1.2k  │
+├──────────────────────────────────────────────┬──────────────────────┤
+│                                              │                      │
+│                                              │   Flow Panel         │
+│          GRAPH CANVAS                        │   ├─ Highways        │
+│                                              │   ├─ Fading          │
+│    [Unit] ══════════> [Unit]                 │   └─ Recent          │
+│      │                  │                    │                      │
+│      │    ╭─ particle   │                    │   Knowledge Panel    │
+│      │    │  travels    │                    │   ├─ Hypotheses      │
+│      │    ╰─────────────╯                    │   ├─ Frontiers       │
+│      v                                       │   └─ Objectives      │
+│    [Task] ─ ─ ─ ─ ─ ─> [Task]               │                      │
+│                                              │   Inspector          │
+│                                              │   └─ Selected item   │
+│                                              │                      │
+├──────────────────────────────────────────────┴──────────────────────┤
+│  💬 Chat: "create scout" "connect scout to analyst" "show highways" │
+│  🎤 Voice                                              [Send →]     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## Related Docs
+
+- **[one.tql](../src/schema/one.tql)** — Full TypeDB schema
+- **[flow.md](flow.md)** — Animation & sequence design
+- **[framework.md](framework.md)** — Architecture overview
 
 ## Current State
 
@@ -9,6 +44,15 @@ Full integration of `one.tql` schema into the visual interface.
 - [x] Chat with voice input
 - [x] Simple command parser
 - [x] TypeScript types (`src/types/one.ts`)
+- [x] Animation design (`docs/flow.md`)
+- [x] TypeDB HTTP client (`src/lib/typedb.ts`)
+- [x] Colony patterns (`src/engine/colony-patterns.ts`)
+- [x] AI components (43 files from ONE)
+- [x] UI components (15 shadcn components)
+- [x] Chat API routes (chat.ts, chat-claude-code.ts)
+- [x] Tools registry (`src/lib/tools/`)
+- [x] Hooks (useVoiceInput, useAIChat, useMobile, useToast)
+- [x] Lib/AI (chat-engine, stream-parser, model-config)
 
 ## Phase 1: TypeDB Connection
 
@@ -151,39 +195,111 @@ Expand command parser to match TypeQL functions:
 - [ ] Revenue flows update edges
 - [ ] GDP tracking
 
+## Schema Integration
+
+### Three TypeQL Schemas
+
+| Schema | Purpose | UI Mapping |
+|--------|---------|------------|
+| `one.tql` | 6 dimensions | Main data model |
+| `skins.tql` | Metaphor aliases | Query wrappers |
+| `agents.tql` | Agent/action/routing | agents.json shape |
+
+### Metaphor → TypeQL Function Mapping
+
+```typescript
+// Skin-aware queries use aliases from skins.tql
+const queries = {
+  ant: { actors: 'ants()', highways: 'trails($n)' },
+  brain: { actors: 'neurons()', highways: 'pathways($n)' },
+  team: { actors: 'agents()', highways: 'workflows($n)' },
+  // ... etc - all call same underlying data
+}
+```
+
+### agents.json Structure
+
+```json
+{
+  "agents": [
+    {
+      "id": "scout",
+      "name": "Scout",
+      "caste": "scout",
+      "status": "ready",
+      "actions": { "observe": {}, "scan": {} }
+    }
+  ],
+  "envelopes": [
+    {
+      "receiver": "scout",
+      "receive": "observe",
+      "payload": { "chain": "market" },
+      "callback": { "receiver": "analyst", "receive": "evaluate", ... }
+    }
+  ]
+}
+```
+
 ## File Structure
 
 ```
 src/
 ├── types/
-│   └── one.ts              ✓ Complete
+│   └── one.ts              ✓ Complete (6 dimensions)
+├── skins/
+│   └── index.ts            ✓ Complete (6 skins)
 ├── lib/
-│   └── typedb.ts           □ TODO
+│   ├── typedb.ts           ✓ Complete (HTTP client + token cache)
+│   ├── ai/                 ✓ Complete (chat-engine, stream-parser, model-config)
+│   ├── tools/              ✓ Complete (registry, executor, crypto, data, utilities)
+│   └── animation.ts        □ TODO (timing constants)
 ├── components/
 │   ├── graph/
 │   │   ├── WorldGraph.tsx  ✓ Basic
-│   │   ├── UnitNode.tsx    □ TODO
+│   │   ├── ActorNode.tsx   ✓ Exists (rename to UnitNode?)
+│   │   ├── UnitNode.tsx    □ TODO (full one.tql fields)
 │   │   ├── TaskNode.tsx    □ TODO
-│   │   ├── SwarmNode.tsx   □ TODO
-│   │   ├── UnitEdge.tsx    □ TODO
-│   │   └── TrailEdge.tsx   □ TODO
+│   │   ├── SwarmNode.tsx   □ TODO (collapsible container)
+│   │   ├── KnowledgeNode.tsx □ TODO (hypothesis/frontier)
+│   │   ├── UnitEdge.tsx    □ TODO (strength/alarm/revenue)
+│   │   ├── TrailEdge.tsx   □ TODO (task→task)
+│   │   ├── Particles.tsx   □ TODO (signal flow animation)
+│   │   └── GraphEffects.tsx □ TODO (inject/decay waves)
 │   ├── panels/
 │   │   ├── StatsPanel.tsx  □ TODO
-│   │   ├── FlowPanel.tsx   □ TODO (partial in WorldWorkspace)
+│   │   ├── FlowPanel.tsx   ✓ Partial (in WorldWorkspace)
 │   │   ├── KnowledgePanel.tsx  □ TODO
 │   │   ├── UnitInspector.tsx   □ TODO
 │   │   └── TaskInspector.tsx   □ TODO
 │   └── world/
-│       └── WorldView.tsx   ✓ Chat + Graph
+│       ├── WorldView.tsx   ✓ Chat + Graph
+│       └── SandboxDrawer.tsx □ TODO (agent preview)
+├── hooks/
+│   ├── ai/                 ✓ Complete (useAIChat, basic, premium)
+│   ├── use-voice-input.ts  ✓ Complete
+│   ├── use-mobile.tsx      ✓ Complete
+│   └── use-toast.ts        ✓ Complete
 ├── pages/
 │   ├── api/
-│   │   ├── query.ts        □ TODO
-│   │   ├── signal.ts       □ TODO
-│   │   └── state.ts        □ TODO
+│   │   ├── chat.ts         ✓ Complete (OpenRouter multi-model)
+│   │   ├── chat-claude-code.ts ✓ Complete (Claude Code with tools)
+│   │   ├── query.ts        ✓ Exists (TypeDB)
+│   │   ├── signal.ts       ✓ Exists
+│   │   ├── drop.ts         ✓ Exists
+│   │   ├── alarm.ts        ✓ Exists
+│   │   ├── decay.ts        ✓ Exists
+│   │   └── state.ts        ✓ Exists
 │   ├── world.astro         ✓ Complete
-│   └── chat.astro          ✓ Complete
-└── schema/
-    └── one.tql             ✓ Complete
+│   ├── chat.astro          ✓ Complete
+│   ├── tasks.astro         □ TODO (task board)
+│   └── discover.astro      □ TODO (agent discovery)
+├── schema/
+│   ├── one.tql             ✓ Complete (6 dimensions)
+│   ├── skins.tql           ✓ Complete (metaphors)
+│   └── agents.tql          ✓ Complete (routing)
+└── public/
+    └── agents.json         ✓ Complete (9 agents)
 ```
 
 ## Phase 7: Visual Effects

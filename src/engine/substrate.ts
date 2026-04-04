@@ -34,11 +34,11 @@ export interface Colony {
   scent: Record<string, number>
   spawn: (id: string) => Unit
   signal: (s: Signal, from?: string) => void
-  mark: (edge: string, strength?: number) => void
-  sense: (edge: string) => number
+  mark: (path: string, strength?: number) => void
+  sense: (path: string) => number
   follow: (type?: string) => string | null
   fade: (rate?: number) => void
-  highways: (limit?: number) => { edge: string; strength: number }[]
+  highways: (limit?: number) => { path: string; strength: number }[]
   has: (id: string) => boolean
   list: () => string[]
   get: (id: string) => Unit | undefined
@@ -81,11 +81,11 @@ export const colony = (): Colony => {
   const units: Record<string, Unit> = {}
   const scent: Record<string, number> = {}
 
-  const mark = (edge: string, strength = 1) => {
-    scent[edge] = (scent[edge] || 0) + strength
+  const mark = (path: string, strength = 1) => {
+    scent[path] = (scent[path] || 0) + strength
   }
 
-  const sense = (edge: string) => scent[edge] || 0
+  const sense = (path: string) => scent[path] || 0
 
   const signal = ({ receiver, data }: Signal, from = 'entry') => {
     const unitId = receiver.includes(':') ? receiver.split(':')[0] : receiver
@@ -120,7 +120,7 @@ export const colony = (): Colony => {
     Object.entries(scent)
       .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
-      .map(([edge, strength]) => ({ edge, strength }))
+      .map(([path, strength]) => ({ path, strength }))
 
   const has = (id: string) => id in units
   const list = () => Object.keys(units)

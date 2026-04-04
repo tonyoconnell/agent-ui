@@ -368,8 +368,8 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
     })
 
     // Compute from highways
-    for (const { edge, strength } of highways) {
-      const [from, to] = edge.split(" → ")
+    for (const { path, strength } of highways) {
+      const [from, to] = path.split(" → ")
       if (!from || !to) continue
 
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
@@ -398,8 +398,8 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
     const outgoing: Record<string, Set<string>> = { entry: new Set() }
     agents.forEach(a => { outgoing[a.id] = new Set() })
 
-    for (const { edge } of highways) {
-      const [from, to] = edge.split(" → ")
+    for (const { path } of highways) {
+      const [from, to] = path.split(" → ")
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
       if (outgoing[sourceId]) {
@@ -471,12 +471,12 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
 
     // Build entry node
     const entryTargets = highways
-      .filter(h => h.edge.startsWith("entry"))
-      .map(h => h.edge.split(" → ")[1]?.split(":")[0])
+      .filter(h => h.path.startsWith("entry"))
+      .map(h => h.path.split(" → ")[1]?.split(":")[0])
       .filter(Boolean)
 
     const entryStrength = highways
-      .filter(h => h.edge.startsWith("entry"))
+      .filter(h => h.path.startsWith("entry"))
       .reduce((s, h) => s + h.strength, 0)
 
     const entryNode: Node<EntryNodeData> = {
@@ -515,8 +515,8 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
     // Group by source-target pair, aggregate strength
     const edgeMap: Record<string, { strength: number; fromTask: string; toTask: string }> = {}
 
-    for (const { edge, strength } of highways) {
-      const [from, to] = edge.split(" → ")
+    for (const { path, strength } of highways) {
+      const [from, to] = path.split(" → ")
       if (!from || !to) continue
 
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]

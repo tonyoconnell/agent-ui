@@ -16,31 +16,45 @@ Now we wire the substrate underneath all of it.
 
 ```
 1. Build ONE substrate (Sui + TypeDB + 70 lines TS)
-2. Wire it into our own agents on Agentverse
+2. Open the colony to any agent species
+   - Hermes agents (self-improving, 40+ tools, MIT)
+   - Raw LLMs via AI SDK (Claude, GPT, Gemini)
+   - OpenClaw / embodied agents via API
+   - Fetch.ai / Agentverse agents via signals
+   - Custom agents via MCP or HTTP
 3. Wire it into one.ie for all eight personas
-4. Our agents and our platform outperform
-5. Operators and users notice
-6. They ask how
-7. Adoption spreads through results, not pitches
+4. TypeDB generates agents. Agents generate signals. Signals strengthen TypeDB.
+5. The colony self-organizes across species boundaries
+6. Operators and users notice the performance gap
+7. They ask how
+8. Adoption spreads through results, not pitches
 ```
 
 No pitch. No ask. No aggression. Just things that work better.
 
 ---
 
-## Two Fronts, One Substrate
+## Three Fronts, One Substrate
 
-### Front 1: Fetch.ai / ASI
+### Front 1: Open Colony
 
-The agent-launch-toolkit is the surface. We maintain it. Operators use it. The substrate sits underneath our agents — they route faster, form coalitions, learn from outcomes.
+The substrate accepts any agent species. Hermes agents register via MCP. Raw LLMs connect via AI SDK. OpenClaw robots call the HTTP API. Fetch.ai agents send signals. The substrate doesn't care what you are — it cares what you do.
 
-Other operators see the performance gap. They ask how. We offer ONE to the ecosystem.
+Two integration modes, both first-class:
+- **Deep** — Import substrate logic, run colony locally (Hermes, custom agents)
+- **Connected** — HTTP API or MCP, just send `{ receiver, data }` (everything else)
 
-### Front 2: one.ie
+TypeDB is the single source of truth. AI SDK generates agent configs from graph state. Agent actions flow back as signals. The loop is closed.
+
+### Front 2: Fetch.ai / ASI
+
+The agent-launch-toolkit is the surface. Our agents on Agentverse run the substrate underneath. Other operators see the performance gap. They ask how. We offer ONE to the ecosystem.
+
+### Front 3: one.ie
 
 Eight personas generate signals. Executives route strategy. Engineers connect systems. Creators build audiences. Kids build lemonade stands. Every interaction strengthens paths. The platform gets smarter for everyone.
 
-Same substrate. Two fronts. Compounding network effects.
+Same substrate. Three fronts. Compounding network effects across species.
 
 ---
 
@@ -82,11 +96,12 @@ We're not competing with ASI's chain. We're on Sui doing something they can't do
 ```
 Layer 1: The code           70 lines TS + 250 lines Move. Anyone can copy.
 Layer 2: The insight        Biology → agent economy → persona routing. Hard to see.
-Layer 3: The toolkit        agent-launch-toolkit. Already shipping.
-Layer 4: The platform       one.ie. Eight personas generating signals.
-Layer 5: The on-chain state Paths and highways on Sui. Permanent.
-Layer 6: The graph          Learned paths from real data. Earned daily.
-Layer 7: The network        Operators + users on ONE. Compounds.
+Layer 3: The colony         Multi-species agents coordinating. Hermes + LLM + OpenClaw.
+Layer 4: The toolkit        agent-launch-toolkit. Already shipping.
+Layer 5: The platform       one.ie. Eight personas generating signals.
+Layer 6: The on-chain state Paths and highways on Sui. Permanent.
+Layer 7: The graph          Learned paths from real agent traffic. Earned daily.
+Layer 8: The network        All species contributing. Compounds across boundaries.
 ```
 
 ---
@@ -103,8 +118,46 @@ Build the trail. Walk it. Let the colony follow.
 
 ---
 
+## First Steps
+
+```
+Week 1  Clone Hermes. Run it. Understand the loop.
+        Write AGENTS.md for the envelopes workspace.
+
+Week 2  Build MCP server (gateway/mcp-one/) exposing substrate ops.
+        Hermes can signal, drop, follow, query via MCP tools.
+
+Week 3  Wire AI SDK control plane. generateObject() produces
+        agent configs from TypeDB state. streamText() with
+        substrate tools drives the agent loop.
+
+Week 4  Signal logging. Every Hermes tool call → TypeDB signal.
+        Pheromone trails form automatically from real usage.
+
+Week 5  AGENTS.md generation from live TypeDB state.
+        Agent starts each conversation with collective intelligence.
+
+Week 6  Skill-trail sync. Hermes skills ↔ ONE tasks.
+        TypeDB inference classifies which skills are proven/fading.
+
+Week 7  Multi-agent colony. Multiple Hermes agents as units.
+        optimal_route() delegates. Colony self-organizes.
+
+Week 8  Gateway integration. 15+ platforms as signal sources.
+        Pheromone trails learn routing patterns per platform.
+```
+
+The key insight: TypeDB is the single source of truth. AI SDK generates and controls agents from graph state. Agent actions flow back as signals. The loop is closed.
+
+See [hermes-agent.md](hermes-agent.md) for full integration architecture.
+
+---
+
 ## See Also
 
+- [lifecycle.md](lifecycle.md) — Into ONE, through ONE, out of ONE
+- [hermes-agent.md](hermes-agent.md) — Multi-species agent architecture
+- [revenue.md](revenue.md) — Five revenue layers mapped to lifecycle stages
 - [flows.md](flows.md) — How the substrate creates the data moat through flow
 - [asi-world.md](asi-world.md) — Agent economy mapped to ONE ontology
 - [one-protocol.md](one-protocol.md) — Asymmetric advantage through private substrate

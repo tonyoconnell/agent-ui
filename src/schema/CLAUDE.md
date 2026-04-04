@@ -1,12 +1,14 @@
 # Schema Directory
 
-TypeDB 3.0 schemas for the ONE substrate.
+**Skill: `/typedb` — Use for ALL TQL work. TypeDB 3.x uses `fun` NOT `rule`.**
+
+TypeDB 3.0 schemas for the ONE world.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `one.tql` | Main schema: 6 dimensions (groups, actors, things, edges, events, knowledge) |
+| `one.tql` | Main schema: 6 dimensions (groups, actors, things, paths, events, knowledge) |
 | `skins.tql` | Metaphor layer: actor/group/carrier/connection patterns for any domain |
 | `sui.tql` | On-chain mirror: Move structs as TQL entities, same inference rules |
 | `agents.tql` | Legacy envelope system: agent/action/routing for React frontend |
@@ -17,14 +19,14 @@ TypeDB 3.0 schemas for the ONE substrate.
 - **swarm/colony** - groups of units
 - **unit** - actors (human, agent, llm, system)
 - **task** - work with optional x402 price (task + price = service)
-- **edge/flow** - weighted unit-to-unit connections
+- **path/flow** - weighted unit-to-unit connections
 - **trail** - weighted task-to-task sequences
 - **signal** - event records (sender, receiver, data, amount)
 - **hypothesis/frontier/objective** - inferred knowledge
 
 ## Relation Patterns
 
-- `edge(source, target)` - pheromone between units (strength, alarm, revenue)
+- `path(source, target)` - pheromone between units (strength, alarm, revenue)
 - `trail(source-task, destination-task)` - pheromone between tasks
 - `capability(provider, skill)` - unit can do task at price
 - `membership(group, member)` - unit belongs to swarm
@@ -32,18 +34,18 @@ TypeDB 3.0 schemas for the ONE substrate.
 ## Inference Rules
 
 Rules auto-classify based on thresholds:
-- `highway` - edge strength >= 50
+- `highway` - path strength >= 50
 - `proven` - unit with high success-rate, activity, samples
 - `attractive` - task with strong inbound trail, no blockers
-- `toxic` - edge/flow where alarm > strength
+- `toxic` - path/flow where alarm > strength
 
 ## Runtime Mapping
 
 | Schema | Runtime (`src/engine/substrate.ts`) |
 |--------|-------------------------------------|
 | unit | `unit(id)` |
-| edge.strength | `drop(edge)` increments |
-| edge.alarm | `alarm(edge)` increments |
+| path.strength | `drop(path)` increments |
+| path.alarm | `alarm(path)` increments |
 | signal | `emit({ receiver, data })` |
 | trail | implicit via task routing |
 | highways() | `colony.highways(n)` |

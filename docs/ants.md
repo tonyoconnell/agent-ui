@@ -325,7 +325,7 @@ Generates hypotheses. Confirms after 30 observations.
 ### Phase D: Crystallization (Permanence)
 
 ```
-signal-edge (ephemeral)
+signal-path (ephemeral)
   --> tier derived: elite | danger | promising
     --> superhighway: trail >= 85, traversals >= 100
       --> crystallization-ready: elite + 100 traversals + trail >= 80
@@ -456,7 +456,7 @@ DIMENSION      SUBSTRATE API
 Groups         colony()
 Actors         colony.spawn(id)
 Things         colony.spawn(id)  // things are units too
-Connections    colony.drop(edge, weight)
+Connections    colony.drop(path, weight)
 Events         colony.signal(signal, from)
 Knowledge      colony.highways() + crystallize()
 ```

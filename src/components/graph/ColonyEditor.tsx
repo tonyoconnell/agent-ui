@@ -872,8 +872,8 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
 
     agents.forEach(a => { stats[a.id] = { incoming: 0, outgoing: 0, isSuperhighway: false, heatLevel: 0 } })
 
-    for (const { edge, strength } of highways) {
-      const [from, to] = edge.split(" → ")
+    for (const { path, strength } of highways) {
+      const [from, to] = path.split(" → ")
       if (!from || !to) continue
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
@@ -909,8 +909,8 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     const outgoing: Record<string, Set<string>> = { entry: new Set() }
     agents.forEach(a => { outgoing[a.id] = new Set() })
 
-    for (const { edge } of highways) {
-      const [from, to] = edge.split(" → ")
+    for (const { path } of highways) {
+      const [from, to] = path.split(" → ")
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
       if (outgoing[sourceId]) outgoing[sourceId].add(targetId)
@@ -955,7 +955,7 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
       id: "entry",
       type: "entry",
       position: positions["entry"] || { x: 80, y: 200 },
-      data: { signals: highways.filter(h => h.edge.startsWith("entry")).length }
+      data: { signals: highways.filter(h => h.path.startsWith("entry")).length }
     }
 
     const chamberNodes: Node[] = agents.map(agent => ({
@@ -981,8 +981,8 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
   const initialEdges = useMemo((): FlowEdge[] => {
     const edgeMap: Record<string, { strength: number; fromTask: string; toTask: string }> = {}
 
-    for (const { edge, strength } of highways) {
-      const [from, to] = edge.split(" → ")
+    for (const { path, strength } of highways) {
+      const [from, to] = path.split(" → ")
       if (!from || !to) continue
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
@@ -1083,7 +1083,7 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
 
     setEdges(eds => eds.map(edge => {
       const highway = highways.find(h => {
-        const [from, to] = h.edge.split(" → ")
+        const [from, to] = h.path.split(" → ")
         const sourceId = from === "entry" ? "entry" : from.split(":")[0]
         const targetId = to.split(":")[0]
         return edge.source === sourceId && edge.target === targetId

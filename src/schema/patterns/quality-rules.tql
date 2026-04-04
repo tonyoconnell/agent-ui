@@ -1,0 +1,257 @@
+# =============================================================================
+# LESSON 2: Quality Classification via Inference Rules
+# =============================================================================
+#
+# DIFFICULTY: Beginner-Intermediate
+# PREREQUISITE: classification.tql (Lesson 1)
+# NEXT: hypothesis-lifecycle.tql (Lesson 3)
+#
+# WHAT YOU'LL LEARN:
+#   How rules differ from functions: rules fire AUTOMATICALLY on every query.
+#   You insert data, and quality labels appear without explicit classification.
+#   Also: how to chain rules so one rule's output feeds another.
+#
+# BIOLOGY (Chapter 2 — Task Allocation Without Instructions):
+#   Individual ants have different RESPONSE THRESHOLDS for switching tasks.
+#   Some ants switch at low encounter rates (sensitive), others require many
+#   encounters before switching (persistent). These thresholds create bands:
+#   high-sensitivity ants respond to weak signals, low-sensitivity ants only
+#   respond to strong signals.
+#
+#   In TypeDB: inference rules fire automatically at different thresholds.
+#   High quality >= 0.7, medium >= 0.4, low < 0.4. Each band triggers a
+#   different response — exactly like ants with different switching thresholds.
+#   The key insight: mutually exclusive bands prevent oscillation. An entity
+#   is classified once, not constantly reclassified.
+#
+#   Population variance in thresholds is ESSENTIAL. If all rules fire at
+#   the same threshold, the system can't distinguish signal from noise.
+#
+#   Reference: https://ants-at-work.com/book/2/
+#
+# USE CASES:
+#   - Learning system quality tracking (high/medium/low)
+#   - Content moderation tiers
+#   - Service level classification
+#   - Performance review bands
+#
+# KEY CONCEPT: Rules with OVERLAPPING conditions must be mutually exclusive.
+#              Use >= and < together to create clean bands.
+#
+# AFTER LOADING, TEST WITH:
+#   match $r isa learning-rule, has quality-label $q; select $r, $q;
+#   # Expected: Each rule automatically gets "high", "medium", or "low"
+#   #           based on its effectiveness attribute. No manual labeling needed.
+#
+# =============================================================================
+
+define
+
+# --- Schema ---
+
+entity learning-record,
+    owns record-id @key,
+    owns record-type,          # "insight", "rule", "hypothesis"
+    owns source-system,        # which system generated this
+    owns applied,              # has this been put into practice?
+    owns effectiveness,        # 0.0 - 1.0 (measured after application)
+    owns quality-label,        # "high", "medium", "low" (INFERRED)
+    owns cascade-potential,    # does this lead to further learnings? (INFERRED)
+    owns insight-text,
+    plays learning-chain:source,
+    plays learning-chain:derived;
+
+attribute record-id, value string;
+attribute record-type, value string;
+attribute source-system, value string;
+attribute applied, value boolean;
+attribute effectiveness, value double;
+attribute quality-label, value string;
+attribute cascade-potential, value boolean;
+attribute insight-text, value string;
+
+# Chain of derived learnings
+relation learning-chain,
+    relates source,
+    relates derived,
+    owns chain-strength,
+    owns chain-timestamp;
+
+attribute chain-strength, value double;
+attribute chain-timestamp, value datetime;
+
+
+# =============================================================================
+# RULE 1: High Quality
+# =============================================================================
+#
+# Applied learnings with effectiveness >= 70% are high quality.
+# Both conditions (applied=true AND effectiveness >= 0.7) must hold.
+#
+rule high-quality-record:
+    when {
+        $r isa learning-record,
+            has applied true,
+            has effectiveness $e;
+        $e >= 0.7;
+    } then {
+        $r has quality-label "high";
+    };
+
+
+# =============================================================================
+# RULE 2: Medium Quality
+# =============================================================================
+#
+# Applied learnings with 40% <= effectiveness < 70%.
+# Note the UPPER BOUND (< 0.7) prevents overlap with high quality.
+#
+rule medium-quality-record:
+    when {
+        $r isa learning-record,
+            has applied true,
+            has effectiveness $e;
+        $e >= 0.4;
+        $e < 0.7;
+    } then {
+        $r has quality-label "medium";
+    };
+
+
+# =============================================================================
+# RULE 3: Low Quality
+# =============================================================================
+#
+# Applied learnings with effectiveness < 40%.
+#
+rule low-quality-record:
+    when {
+        $r isa learning-record,
+            has applied true,
+            has effectiveness $e;
+        $e < 0.4;
+    } then {
+        $r has quality-label "low";
+    };
+
+
+# =============================================================================
+# RULE 4: Cascade Detection (Chained Rules)
+# =============================================================================
+#
+# A learning has cascade potential when:
+#   1. It is high quality (derived by rules above)
+#   2. It led to ANOTHER high-quality learning
+#
+# This demonstrates CHAINED INFERENCE: Rule 4 depends on Rules 1-3.
+# TypeDB resolves the dependency automatically.
+#
+rule cascade-detected:
+    when {
+        $source isa learning-record, has quality-label "high";
+        $chain (source: $source, derived: $derived) isa learning-chain;
+        $derived isa learning-record, has quality-label "high";
+    } then {
+        $source has cascade-potential true;
+    };
+
+
+# =============================================================================
+# PATTERN: Cycle/Sprint Quality Assessment
+# =============================================================================
+
+entity work-cycle,
+    owns cycle-id @key,
+    owns cycle-timestamp,
+    owns cycle-duration-seconds,
+    owns items-completed,
+    owns items-tested,
+    owns items-created,
+    owns accuracy-before,
+    owns accuracy-after,
+    owns improvement-delta,     # after - before
+    owns cycle-quality;         # "excellent", "good", "average", "poor" (INFERRED)
+
+attribute cycle-id, value string;
+attribute cycle-timestamp, value datetime;
+attribute cycle-duration-seconds, value integer;
+attribute items-completed, value integer;
+attribute items-tested, value integer;
+attribute items-created, value integer;
+attribute accuracy-before, value double;
+attribute accuracy-after, value double;
+attribute improvement-delta, value double;
+attribute cycle-quality, value string;
+
+
+# =============================================================================
+# RULES 5-8: Cycle Quality Bands
+# =============================================================================
+#
+# Classify work cycles by improvement delta.
+# Four mutually exclusive bands with no gaps.
+#
+
+# Excellent: improvement >= 5%
+rule excellent-cycle:
+    when {
+        $c isa work-cycle,
+            has improvement-delta $d;
+        $d >= 0.05;
+    } then {
+        $c has cycle-quality "excellent";
+    };
+
+# Good: 2% <= improvement < 5%
+rule good-cycle:
+    when {
+        $c isa work-cycle,
+            has improvement-delta $d;
+        $d >= 0.02;
+        $d < 0.05;
+    } then {
+        $c has cycle-quality "good";
+    };
+
+# Average: 0% <= improvement < 2%
+rule average-cycle:
+    when {
+        $c isa work-cycle,
+            has improvement-delta $d;
+        $d >= 0.0;
+        $d < 0.02;
+    } then {
+        $c has cycle-quality "average";
+    };
+
+# Poor: improvement < 0% (regression)
+rule poor-cycle:
+    when {
+        $c isa work-cycle,
+            has improvement-delta $d;
+        $d < 0.0;
+    } then {
+        $c has cycle-quality "poor";
+    };
+
+
+# =============================================================================
+# USAGE EXAMPLES
+# =============================================================================
+#
+# Get high-quality learnings (quality-label is inferred, not inserted):
+#   match $r isa learning-record, has quality-label "high"; select $r;
+#
+# Find cascade learnings:
+#   match $r isa learning-record, has cascade-potential true; select $r;
+#
+# Get excellent cycles:
+#   match $c isa work-cycle, has cycle-quality "excellent"; select $c;
+#
+# Get poor cycles (regressions):
+#   match $c isa work-cycle, has cycle-quality "poor"; select $c;
+#
+# Count by quality:
+#   match $r isa learning-record, has quality-label "high"; reduce $n = count($r);
+#
+# =============================================================================

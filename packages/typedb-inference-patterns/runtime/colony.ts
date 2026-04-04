@@ -18,14 +18,14 @@
 // TYPES (same as substrate.ts)
 // ═══════════════════════════════════════════════════════════════════════════
 
-type Envelope = { receiver: string; payload?: unknown }
-type Emit = (e: Envelope) => void
+type Signal = { receiver: string; data?: unknown }
+type Emit = (e: Signal) => void
 type Ctx = { from: string; self: string }
-type Task = (payload: unknown, emit: Emit, ctx: Ctx) => Promise<unknown>
-type Template = (result: unknown) => Envelope
+type Task = (data: unknown, emit: Emit, ctx: Ctx) => Promise<unknown>
+type Template = (result: unknown) => Signal
 
 interface Unit {
-  (e: Envelope, from?: string): void
+  (e: Signal, from?: string): void
   on: (name: string, fn: (p: unknown, emit: Emit, ctx: Ctx) => unknown) => Unit
   then: (name: string, template: Template) => Unit
   id: string
@@ -34,7 +34,7 @@ interface Unit {
 
 interface Colony {
   spawn: (id: string) => Unit
-  send: (e: Envelope, from?: string) => void
+  send: (e: Signal, from?: string) => void
   mark: (edge: string, strength?: number) => void
   smell: (edge: string) => number
   fade: (rate?: number) => void
@@ -46,16 +46,16 @@ interface Colony {
 // SUBSTRATE (70 lines, adapted for TypeDB patterns)
 // ═══════════════════════════════════════════════════════════════════════════
 
-const unit = (id: string, route: (e: Envelope, from: string) => void): Unit => {
+const unit = (id: string, route: (e: Signal, from: string) => void): Unit => {
   const tasks: Record<string, Task> = {}
   const next: Record<string, Template> = {}
   const state: Record<string, unknown> = {}
 
-  const u: Unit = ({ receiver, payload }, from = 'entry') => {
+  const u: Unit = ({ receiver, data }, from = 'entry') => {
     const taskName = receiver.includes(':') ? receiver.split(':')[1] : 'default'
     const task = tasks[taskName] || tasks.default
     const emit: Emit = e => route(e, receiver)
-    task?.(payload, emit, { from, self: receiver }).then(result =>
+    task?.(data, emit, { from, self: receiver }).then(result =>
       next[taskName] && route(next[taskName](result), receiver)
     )
   }
@@ -81,10 +81,10 @@ const colony = (): Colony => {
     Object.entries(scent).sort(([, a], [, b]) => b - a).slice(0, limit)
       .map(([edge, strength]) => ({ edge, strength }))
 
-  const send = ({ receiver, payload }: Envelope, from = 'entry') => {
+  const send = ({ receiver, data }: Signal, from = 'entry') => {
     const unitId = receiver.includes(':') ? receiver.split(':')[0] : receiver
     const target = units[unitId]
-    target && (mark(`${from}→${receiver}`), target({ receiver, payload }, from))
+    target && (mark(`${from}→${receiver}`), target({ receiver, data }, from))
   }
 
   const spawn = (id: string) => {
@@ -117,7 +117,7 @@ const setupPerception = (c: Colony) => {
     })
     .then('classify', ({ tier }) => ({
       receiver: 'registry:update-tier',
-      payload: { tier }
+      data: { tier }
     }))
 }
 
@@ -158,7 +158,7 @@ const setupHypothesis = (c: Colony) => {
       const h = ctx.self // hypothesis state would be stored
       // State machine: pending → testing → confirmed/rejected
       // Transitions based on accumulated observations
-      emit({ receiver: 'hypothesis:evaluate', payload: { id, outcome } })
+      emit({ receiver: 'hypothesis:evaluate', data: { id, outcome } })
     })
     .on('evaluate', ({ id, pValue, observationCount, status }: any) => {
       // pending → testing (obs >= 10)
@@ -334,23 +334,23 @@ export const createColony = () => {
 const c = createColony()
 
 // Classify an agent (L1)
-c.send({ receiver: 'classifier:classify', payload: { successRate: 0.85, activityScore: 80, sampleCount: 100 } })
+c.send({ receiver: 'classifier:classify', data: { successRate: 0.85, activityScore: 80, sampleCount: 100 } })
 
 // Register tasks with dependencies (L4)
-c.send({ receiver: 'taskManager:register', payload: { id: 'task-1', blockers: [] } })
-c.send({ receiver: 'taskManager:register', payload: { id: 'task-2', blockers: ['task-1'] } })
+c.send({ receiver: 'taskManager:register', data: { id: 'task-1', blockers: [] } })
+c.send({ receiver: 'taskManager:register', data: { id: 'task-2', blockers: ['task-1'] } })
 
 // Query ready tasks (L4 - negation pattern)
-c.send({ receiver: 'taskManager:query-ready', payload: {} })
+c.send({ receiver: 'taskManager:query-ready', data: {} })
 
 // Record contribution (L5)
-c.send({ receiver: 'ledger:record', payload: { agent: 'alpha', impact: 8.5 } })
+c.send({ receiver: 'ledger:record', data: { agent: 'alpha', impact: 8.5 } })
 
 // Detect frontier (L6 - emergence)
-c.send({ receiver: 'emergence:detect-frontier', payload: { id: 'f-1', potential: 0.8, probability: 0.7, cost: 1.0 } })
+c.send({ receiver: 'emergence:detect-frontier', data: { id: 'f-1', potential: 0.8, probability: 0.7, cost: 1.0 } })
 
 // Decay pheromones
-c.send({ receiver: 'taskManager:decay', payload: {} })
+c.send({ receiver: 'taskManager:decay', data: {} })
 
 // Get highways (strongest signal paths)
 console.log(c.highways(5))

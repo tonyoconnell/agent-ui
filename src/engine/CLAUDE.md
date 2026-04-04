@@ -1,5 +1,7 @@
 # Engine
 
+**Skills: `/react19` for hooks/state, `/typedb` for persist layer queries.**
+
 70 lines. Two fields. Signal flows.
 
 ## Core Types
@@ -75,6 +77,6 @@ signal(sig, from)
   -> unit(sig, from)
     -> task(data, emit, ctx)
       -> emit(sig)           // fan out
-        -> mark(edge)        // trail strengthens
+        -> mark(path)        // trail strengthens
           -> signal(...)     // recursion
 ```

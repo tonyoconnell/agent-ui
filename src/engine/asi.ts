@@ -19,7 +19,7 @@ export const asi = (complete: Complete): ASI => {
 
   // Confidence based on trail strength
   const confidence = (taskType: string): number => {
-    const trails = net.highways(50).filter(h => h.edge.includes(`→${taskType}→`))
+    const trails = net.highways(50).filter(h => h.path.includes(`→${taskType}→`))
     if (!trails.length) return 0
     return Math.min(1, trails[0].strength / 50)
   }
@@ -39,8 +39,8 @@ export const asi = (complete: Complete): ASI => {
     } else {
       // Ask LLM for routing decision
       const context = net.highways(10)
-        .filter(h => h.edge.includes(`→${taskType}→`))
-        .map(h => `${h.edge}: ${h.strength.toFixed(1)}`)
+        .filter(h => h.path.includes(`→${taskType}→`))
+        .map(h => `${h.path}: ${h.strength.toFixed(1)}`)
         .join('\n')
 
       const prompt = `Task: ${task}

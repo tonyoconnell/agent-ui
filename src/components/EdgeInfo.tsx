@@ -7,8 +7,8 @@ interface EdgeInfoProps {
 }
 
 export function EdgeInfo({ highways, agentId, direction }: EdgeInfoProps) {
-  const edges = highways.filter(({ edge }) => {
-    const [from, to] = edge.split(" → ")
+  const edges = highways.filter(({ path }) => {
+    const [from, to] = path.split(" → ")
     if (direction === "incoming") {
       return to.startsWith(agentId + ":")
     } else {
@@ -22,9 +22,9 @@ export function EdgeInfo({ highways, agentId, direction }: EdgeInfoProps) {
         {direction === "incoming" ? "Incoming Edges" : "Outgoing Edges"}
       </div>
       <div className="space-y-1">
-        {edges.map(({ edge, strength }) => (
-          <div key={edge} className="flex items-center gap-2 text-xs">
-            <code className="text-slate-400 flex-1 truncate">{edge}</code>
+        {edges.map(({ path, strength }) => (
+          <div key={path} className="flex items-center gap-2 text-xs">
+            <code className="text-slate-400 flex-1 truncate">{path}</code>
             <div className="w-16 h-1.5 bg-[#252538] rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full"

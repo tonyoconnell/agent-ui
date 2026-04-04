@@ -5,27 +5,13 @@
  * Speak or type commands. Watch the world respond.
  */
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { colony } from "@/engine"
 import type { Colony, Edge } from "@/engine"
-import { cn } from "@/lib/utils"
 import { MetaphorProvider, useMetaphor } from "@/contexts/MetaphorContext"
 import { SkinSwitcher } from "@/components/controls/SkinSwitcher"
 import { WorldGraph } from "@/components/graph/WorldGraph"
-
-// Web Speech API types
-interface SpeechRecognitionEvent {
-  results: { [key: number]: { [key: number]: { transcript: string } } }
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean
-  interimResults: boolean
-  onresult: ((e: SpeechRecognitionEvent) => void) | null
-  onend: (() => void) | null
-  start: () => void
-  stop: () => void
-}
+import { WorldChat } from "@/components/world/WorldChat"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -44,258 +30,6 @@ interface WorldState {
   flows: Edge[]
 }
 
-interface Message {
-  id: string
-  role: "user" | "assistant" | "system"
-  content: string
-  command?: WorldCommand
-}
-
-type WorldCommand =
-  | { type: "spawn"; id: string; kind: string }
-  | { type: "connect"; from: string; to: string }
-  | { type: "send"; to: string; data?: unknown }
-  | { type: "strengthen"; from: string; to: string }
-  | { type: "query"; query: "open" | "blocked" | "proven" }
-  | { type: "decay" }
-  | { type: "inject" }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CHAT PANEL
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function ChatPanel({
-  messages,
-  onSend,
-  isLoading,
-}: {
-  messages: Message[]
-  onSend: (text: string) => void
-  isLoading: boolean
-}) {
-  const { skin, t } = useMetaphor()
-  const [input, setInput] = useState("")
-  const [listening, setListening] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
-
-  // Auto-scroll
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  // Voice input
-  useEffect(() => {
-    if ("webkitSpeechRecognition" in window) {
-      const recognition = new (window as any).webkitSpeechRecognition()
-      recognition.continuous = false
-      recognition.interimResults = false
-      recognition.onresult = (e: any) => {
-        const text = e.results[0][0].transcript
-        setInput((prev) => prev + " " + text)
-        setListening(false)
-      }
-      recognition.onend = () => setListening(false)
-      recognitionRef.current = recognition
-    }
-  }, [])
-
-  const toggleVoice = () => {
-    if (listening) {
-      recognitionRef.current?.stop()
-    } else {
-      recognitionRef.current?.start()
-    }
-    setListening(!listening)
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
-    onSend(input.trim())
-    setInput("")
-  }
-
-  return (
-    <div
-      className="flex flex-col h-full border-r"
-      style={{
-        backgroundColor: skin.colors.background,
-        borderColor: skin.colors.muted + "30",
-      }}
-    >
-      {/* Header */}
-      <div
-        className="px-4 py-3 border-b flex items-center gap-2"
-        style={{ borderColor: skin.colors.muted + "30" }}
-      >
-        <span className="text-xl">{skin.icons.group}</span>
-        <span className="font-medium text-white">World Chat</span>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 && (
-          <div className="text-center py-8" style={{ color: skin.colors.muted }}>
-            <p className="text-sm">Speak or type to command the world</p>
-            <p className="text-xs mt-2 opacity-60">
-              "Create a scout agent" · "Connect scout to analyst" · "Send a signal"
-            </p>
-          </div>
-        )}
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={cn(
-              "rounded-lg px-3 py-2 max-w-[85%]",
-              msg.role === "user" ? "ml-auto" : "mr-auto"
-            )}
-            style={{
-              backgroundColor:
-                msg.role === "user"
-                  ? skin.colors.primary + "30"
-                  : skin.colors.surface,
-              borderColor:
-                msg.role === "user"
-                  ? skin.colors.primary + "50"
-                  : skin.colors.muted + "30",
-              borderWidth: 1,
-            }}
-          >
-            <p className="text-sm text-white">{msg.content}</p>
-            {msg.command && (
-              <div
-                className="mt-2 text-xs px-2 py-1 rounded"
-                style={{
-                  backgroundColor: skin.colors.success + "20",
-                  color: skin.colors.success,
-                }}
-              >
-                {skin.icons.actor} {msg.command.type}:{" "}
-                {JSON.stringify(msg.command).slice(0, 50)}
-              </div>
-            )}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input */}
-      <form
-        onSubmit={handleSubmit}
-        className="p-3 border-t"
-        style={{ borderColor: skin.colors.muted + "30" }}
-      >
-        <div className="flex gap-2">
-          {/* Voice button */}
-          <button
-            type="button"
-            onClick={toggleVoice}
-            className={cn(
-              "px-3 py-2 rounded-lg transition-all",
-              listening && "animate-pulse"
-            )}
-            style={{
-              backgroundColor: listening
-                ? "#ef4444"
-                : skin.colors.muted + "30",
-              color: listening ? "white" : skin.colors.muted,
-            }}
-          >
-            {listening ? "🔴" : "🎤"}
-          </button>
-
-          {/* Text input */}
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={`${t("send")} a command...`}
-            disabled={isLoading}
-            className="flex-1 px-3 py-2 rounded-lg text-sm text-white placeholder:text-slate-500 outline-none"
-            style={{
-              backgroundColor: skin.colors.surface,
-              borderColor: skin.colors.muted + "30",
-              borderWidth: 1,
-            }}
-          />
-
-          {/* Send button */}
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
-            style={{
-              backgroundColor: skin.colors.primary,
-              color: "white",
-            }}
-          >
-            {isLoading ? "..." : "→"}
-          </button>
-        </div>
-      </form>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// COMMAND PARSER (Simple pattern matching for demo)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function parseCommand(text: string): WorldCommand | null {
-  const lower = text.toLowerCase()
-
-  // Spawn: "create/spawn a scout/analyst/trader"
-  const spawnMatch = lower.match(/(create|spawn|add)\s+(?:a\s+)?(\w+)(?:\s+agent)?/)
-  if (spawnMatch) {
-    const kind = spawnMatch[2]
-    const id = `${kind}-${Date.now().toString(36)}`
-    return { type: "spawn", id, kind }
-  }
-
-  // Connect: "connect scout to analyst"
-  const connectMatch = lower.match(/connect\s+(\w+)\s+to\s+(\w+)/)
-  if (connectMatch) {
-    return { type: "connect", from: connectMatch[1], to: connectMatch[2] }
-  }
-
-  // Send: "send signal to scout"
-  const sendMatch = lower.match(/send\s+(?:a\s+)?(?:signal|message)\s+to\s+(\w+)/)
-  if (sendMatch) {
-    return { type: "send", to: sendMatch[1] }
-  }
-
-  // Strengthen: "strengthen scout to analyst"
-  const strengthenMatch = lower.match(/strengthen\s+(\w+)\s+to\s+(\w+)/)
-  if (strengthenMatch) {
-    return { type: "strengthen", from: strengthenMatch[1], to: strengthenMatch[2] }
-  }
-
-  // Query: "show highways/open/blocked"
-  if (lower.includes("highway") || lower.includes("open") || lower.includes("best") || lower.includes("show")) {
-    return { type: "query", query: "open" }
-  }
-  if (lower.includes("blocked") || lower.includes("toxic")) {
-    return { type: "query", query: "blocked" }
-  }
-
-  // List: "list agents" or "who"
-  if (lower.includes("list") || lower.includes("who") || lower.includes("agents")) {
-    return { type: "query", query: "proven" }
-  }
-
-  // Decay: "decay" or "fade"
-  if (lower.includes("decay") || lower.includes("fade")) {
-    return { type: "decay" } as unknown as WorldCommand
-  }
-
-  // Inject: "inject" or "burst" or "fire"
-  if (lower.includes("inject") || lower.includes("burst") || lower.includes("fire")) {
-    return { type: "inject" } as unknown as WorldCommand
-  }
-
-  return null
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // STATS BAR
@@ -372,25 +106,25 @@ function StatsBar({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function WorldViewInner() {
-  const { skin, t } = useMetaphor()
+  const { skin } = useMetaphor()
   const [world, setWorld] = useState<WorldState | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isLoading, setIsLoading] = useState(false)
 
   // Initialize world
   useEffect(() => {
     const net = colony()
 
-    // Spawn some initial actors
+    // Spawn initial actors
     const actors: ActorData[] = [
       { id: "scout", name: "Scout", status: "ready", actions: { observe: {}, scan: {} } },
       { id: "analyst", name: "Analyst", status: "ready", actions: { evaluate: {} } },
       { id: "trader", name: "Trader", status: "ready", actions: { execute: {} } },
+      { id: "forager", name: "Forager", status: "ready", actions: { search: {}, harvest: {} } },
+      { id: "relay", name: "Relay", status: "ready", actions: { broadcast: {} } },
     ]
 
     actors.forEach((a) => net.spawnFromJSON(a))
 
-    // Send initial signals to create flows
+    // Create initial flows
     net.send({ receiver: "scout", receive: "observe", payload: { init: true } })
     net.send({
       receiver: "scout",
@@ -414,136 +148,13 @@ function WorldViewInner() {
     return () => clearInterval(interval)
   }, [world?.colony])
 
-  // Handle chat message
-  const handleSend = useCallback(
-    async (text: string) => {
-      if (!world) return
-
-      // Add user message
-      const userMsg: Message = {
-        id: `user-${Date.now()}`,
-        role: "user",
-        content: text,
-      }
-      setMessages((prev) => [...prev, userMsg])
-      setIsLoading(true)
-
-      // Parse command
-      const command = parseCommand(text)
-
-      // Execute command
-      let response = ""
-      if (command) {
-        switch (command.type) {
-          case "spawn": {
-            const newActor: ActorData = {
-              id: command.id,
-              name: command.kind.charAt(0).toUpperCase() + command.kind.slice(1),
-              status: "ready",
-              actions: { default: {} },
-            }
-            world.colony.spawnFromJSON(newActor)
-            setWorld((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    actors: [...prev.actors, newActor],
-                    flows: world.colony.highways(30),
-                  }
-                : null
-            )
-            response = `${skin.icons.actor} Spawned ${command.kind}: ${command.id}`
-            break
-          }
-          case "connect": {
-            // Send a signal to create the flow
-            await world.colony.send({
-              receiver: command.from,
-              receive: "connect",
-              payload: { target: command.to },
-              callback: { receiver: command.to, receive: "connected", payload: {} },
-            })
-            setWorld((prev) =>
-              prev ? { ...prev, flows: world.colony.highways(30) } : null
-            )
-            response = `${skin.icons.flow} Connected: ${command.from} → ${command.to}`
-            break
-          }
-          case "send": {
-            await world.colony.send({
-              receiver: command.to,
-              receive: "signal",
-              payload: command.data || { ping: true },
-            })
-            setWorld((prev) =>
-              prev ? { ...prev, flows: world.colony.highways(30) } : null
-            )
-            response = `${skin.icons.entry} Signal sent to ${command.to}`
-            break
-          }
-          case "strengthen": {
-            world.colony.mark(`${command.from}:task → ${command.to}:task`, 10)
-            setWorld((prev) =>
-              prev ? { ...prev, flows: world.colony.highways(30) } : null
-            )
-            response = `${skin.icons.open} Strengthened: ${command.from} → ${command.to}`
-            break
-          }
-          case "query": {
-            if (command.query === "proven") {
-              response = `${skin.icons.group} ${t("actor")}s:\n${world.actors
-                .map((a) => `  ${skin.icons.actor} ${a.name} (${a.id})`)
-                .join("\n")}`
-            } else {
-              const flows = world.colony.highways(10)
-              response = `${skin.icons.open} Top ${t("flow")}s:\n${flows
-                .map((f) => `  ${f.edge}: ${f.strength.toFixed(0)}`)
-                .join("\n")}`
-            }
-            break
-          }
-          case "decay": {
-            world.colony.fade(0.2)
-            setWorld((prev) =>
-              prev ? { ...prev, flows: world.colony.highways(30) } : null
-            )
-            response = `⏱️ Applied decay (20%). Trails fading...`
-            break
-          }
-          case "inject": {
-            // Fire signals through all agents
-            await Promise.all(
-              world.actors.map((a) =>
-                world.colony.send({
-                  receiver: a.id,
-                  receive: Object.keys(a.actions)[0] || "signal",
-                  payload: { burst: true },
-                })
-              )
-            )
-            setWorld((prev) =>
-              prev ? { ...prev, flows: world.colony.highways(30) } : null
-            )
-            response = `${skin.icons.entry} Burst! Signals sent to all ${world.actors.length} ${t("actor")}s`
-            break
-          }
-        }
-      } else {
-        response = `Commands:\n• "Create a scout" - spawn agent\n• "Connect scout to analyst" - create flow\n• "Send signal to trader" - transmit\n• "Show highways" - view flows\n• "List agents" - who's here\n• "Decay" - fade trails\n• "Inject" - burst to all`
-      }
-
-      // Add assistant message
-      const assistantMsg: Message = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: response,
-        command: command || undefined,
-      }
-      setMessages((prev) => [...prev, assistantMsg])
-      setIsLoading(false)
-    },
-    [world, skin, t]
-  )
+  // Update world state (called by WorldChat after commands)
+  const handleWorldUpdate = useCallback(() => {
+    if (!world) return
+    setWorld((prev) =>
+      prev ? { ...prev, flows: world.colony.highways(30) } : null
+    )
+  }, [world])
 
   if (!world) {
     return (
@@ -563,11 +174,11 @@ function WorldViewInner() {
     >
       <StatsBar actors={world.actors} flows={world.flows} />
       <div className="flex-1 flex min-h-0">
-        <div className="w-[320px]">
-          <ChatPanel
-            messages={messages}
-            onSend={handleSend}
-            isLoading={isLoading}
+        <div className="w-[360px] border-r" style={{ borderColor: skin.colors.muted + '20' }}>
+          <WorldChat
+            colony={world.colony}
+            agents={world.actors}
+            onWorldUpdate={handleWorldUpdate}
           />
         </div>
         <div className="flex-1">

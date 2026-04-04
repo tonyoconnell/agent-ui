@@ -45,9 +45,9 @@ export const agentverse = (fetch: Fetch): Agentverse => {
   // Discover by domain using pheromone trails
   const discover = (domain: string, limit = 10): AgentMeta[] => {
     return net.highways(100)
-      .filter(h => h.edge.startsWith(`domain:${domain}→`))
+      .filter(h => h.path.startsWith(`domain:${domain}→`))
       .slice(0, limit)
-      .map(h => meta[h.edge.split('→')[1]])
+      .map(h => meta[h.path.split('→')[1]])
       .filter(Boolean)
   }
 

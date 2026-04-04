@@ -2,6 +2,55 @@
 
 The ONE interface breathes. Signals pulse. Trails form. Highways glow.
 
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                              USER ACTION                                  │
+│                    (click, voice, chat command)                          │
+└───────────────────────────────┬──────────────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                           COMMAND PARSER                                  │
+│              parseCommand(text) → WorldCommand                           │
+│  "create scout" → { type: "spawn", id: "scout-xxx", kind: "scout" }     │
+└───────────────────────────────┬──────────────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                            COLONY ENGINE                                  │
+│                    colony.send({ receiver, data })                       │
+│                    colony.drop(edge, weight)                             │
+│                    colony.fade(rate)                                     │
+└───────────────────────────────┬──────────────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          ANIMATION QUEUE                                  │
+│    enqueue({ type: "signal", from, to, data, ts })                      │
+│    enqueue({ type: "drop", edge, delta, ts })                           │
+│    enqueue({ type: "fade", rate, ts })                                  │
+└───────────────────────────────┬──────────────────────────────────────────┘
+                                │
+                    ┌───────────┴───────────┐
+                    ▼                       ▼
+┌─────────────────────────────┐ ┌─────────────────────────────┐
+│      PARTICLE SYSTEM        │ │      NODE ANIMATOR          │
+│  - spawn particle           │ │  - pulse node               │
+│  - move along path          │ │  - shake on alarm           │
+│  - burst on arrive          │ │  - glow on highway          │
+└─────────────────────────────┘ └─────────────────────────────┘
+                    │                       │
+                    └───────────┬───────────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                            REACT FLOW                                     │
+│                    nodes[], edges[], viewport                            │
+│                    Custom: UnitNode, UnitEdge, FlowEdge                  │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
 ## The Heartbeat
 
 ```
@@ -271,6 +320,215 @@ Sounds should be:
   --highway-glow: 0 0 15px var(--color-success);
   --alarm-glow: 0 0 10px var(--color-danger);
 }
+```
+
+## Implementation Snippets
+
+### Animation Queue (`src/lib/animation.ts`)
+
+```typescript
+type AnimationEvent =
+  | { type: 'signal'; from: string; to: string; data?: unknown }
+  | { type: 'drop'; edge: string; delta: number }
+  | { type: 'fade'; rate: number }
+  | { type: 'spawn'; id: string; kind: string }
+  | { type: 'alarm'; edge: string; delta: number }
+
+class AnimationQueue {
+  private queue: AnimationEvent[] = []
+  private processing = false
+
+  enqueue(event: AnimationEvent) {
+    this.queue.push(event)
+    if (!this.processing) this.process()
+  }
+
+  private async process() {
+    this.processing = true
+    while (this.queue.length > 0) {
+      const event = this.queue.shift()!
+      await this.animate(event)
+    }
+    this.processing = false
+  }
+
+  private animate(event: AnimationEvent): Promise<void> {
+    switch (event.type) {
+      case 'signal':
+        return this.animateSignal(event.from, event.to)
+      case 'drop':
+        return this.animateDrop(event.edge, event.delta)
+      case 'fade':
+        return this.animateFade(event.rate)
+      // ...
+    }
+  }
+}
+
+export const animationQueue = new AnimationQueue()
+```
+
+### Particle Component (`src/components/graph/Particle.tsx`)
+
+```tsx
+import { motion } from 'framer-motion'
+import { useMetaphor } from '@/contexts/MetaphorContext'
+
+interface ParticleProps {
+  path: string  // SVG path from edge
+  duration: number
+  onComplete: () => void
+}
+
+export function Particle({ path, duration, onComplete }: ParticleProps) {
+  const { skin } = useMetaphor()
+
+  return (
+    <motion.div
+      className="absolute w-2 h-2 rounded-full pointer-events-none"
+      style={{
+        backgroundColor: skin.colors.primary,
+        boxShadow: `0 0 8px ${skin.colors.primary}`,
+        offsetPath: `path('${path}')`,
+      }}
+      initial={{ offsetDistance: '0%', opacity: 1 }}
+      animate={{ offsetDistance: '100%', opacity: 0.8 }}
+      transition={{ duration: duration / 1000, ease: 'linear' }}
+      onAnimationComplete={onComplete}
+    />
+  )
+}
+```
+
+### Node Pulse Hook (`src/hooks/useNodePulse.ts`)
+
+```typescript
+import { useState, useCallback } from 'react'
+
+export function useNodePulse() {
+  const [pulsing, setPulsing] = useState(false)
+
+  const pulse = useCallback(() => {
+    setPulsing(true)
+    setTimeout(() => setPulsing(false), 150)
+  }, [])
+
+  const pulseStyle = pulsing ? {
+    transform: 'scale(1.1)',
+    transition: 'transform 75ms ease-out',
+  } : {
+    transform: 'scale(1)',
+    transition: 'transform 75ms ease-in',
+  }
+
+  return { pulse, pulsing, pulseStyle }
+}
+```
+
+### Skinned Keyframes (`src/styles/animations.css`)
+
+```css
+/* Ant Colony */
+.skin-ant .particle { background: #fbbf24; }
+.skin-ant .trail { stroke: #84cc16; }
+.skin-ant .highway { filter: drop-shadow(0 0 8px #fbbf24); }
+
+/* Brain */
+.skin-brain .particle { background: #22d3ee; }
+.skin-brain .trail { stroke: #a855f7; }
+.skin-brain .highway { filter: drop-shadow(0 0 8px #c084fc); }
+
+/* Team */
+.skin-team .particle { background: #3b82f6; }
+.skin-team .trail { stroke: #60a5fa; }
+.skin-team .highway { filter: drop-shadow(0 0 8px #3b82f6); }
+
+/* Generic animations */
+@keyframes node-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes edge-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+@keyframes particle-trail {
+  0% { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.5); }
+}
+```
+
+## React Flow Integration
+
+### Custom Node with Animation
+
+```tsx
+import { Handle, Position, NodeProps } from '@xyflow/react'
+import { useNodePulse } from '@/hooks/useNodePulse'
+import { useMetaphor } from '@/contexts/MetaphorContext'
+
+export function UnitNode({ data }: NodeProps) {
+  const { skin } = useMetaphor()
+  const { pulse, pulseStyle } = useNodePulse()
+
+  // Expose pulse function to parent
+  useEffect(() => {
+    data.onPulse = pulse
+  }, [pulse, data])
+
+  return (
+    <div
+      className="px-4 py-2 rounded-lg border"
+      style={{
+        ...pulseStyle,
+        backgroundColor: skin.colors.surface,
+        borderColor: data.status === 'proven' 
+          ? skin.colors.success 
+          : skin.colors.muted,
+      }}
+    >
+      <Handle type="target" position={Position.Left} />
+      <div className="flex items-center gap-2">
+        <span>{skin.icons.actor}</span>
+        <span>{data.name}</span>
+      </div>
+      <Handle type="source" position={Position.Right} />
+    </div>
+  )
+}
+```
+
+### Triggering Animations from Colony
+
+```typescript
+// In WorldView.tsx
+const handleSend = useCallback(async (text: string) => {
+  const command = parseCommand(text)
+  
+  if (command?.type === 'send') {
+    // Trigger animation BEFORE engine call
+    animationQueue.enqueue({
+      type: 'signal',
+      from: 'entry',
+      to: command.to,
+    })
+    
+    // Execute in engine
+    await world.colony.send({
+      receiver: command.to,
+      receive: 'signal',
+      payload: command.data,
+    })
+    
+    // Update state after animation completes
+    setWorld(prev => prev ? {
+      ...prev,
+      flows: world.colony.highways(30)
+    } : null)
+  }
+}, [world])
 ```
 
 ---

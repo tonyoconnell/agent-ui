@@ -1,5 +1,7 @@
 # Components
 
+**Skills: `/react19` for React patterns, `/reactflow` for graphs, `/shadcn` for UI components.**
+
 ## Organization
 
 ```

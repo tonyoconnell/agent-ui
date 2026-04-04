@@ -100,3 +100,4 @@ fade   — decay over time (paths evaporate)
 - [one-protocol.md](one-protocol.md) — Private substrate advantage
 - [signal.md](signal.md) — Cross-token holdings as signal primitives
 - [emergence.md](emergence.md) — Coalition formation as emergent intelligence
+- [revenue.md](revenue.md) — How the agent economy generates revenue

@@ -2,9 +2,9 @@
 # SEED.TQL — Bootstrap the ONE World
 # =============================================================================
 #
-# Run AFTER loading substrate.tql.
+# Run AFTER loading one.tql (src/schema/one.tql).
 # Seeds: swarms (8 personas), units, tasks (Phase 1+2 of roadmap),
-#         dependencies, initial edges, and one frontier.
+#         dependencies, initial paths, and one frontier.
 #
 # USAGE:
 #   typedb console
@@ -122,28 +122,28 @@ insert (group: $s, member: $u) isa membership;
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# EDGES — Initial Connections (with weight from seed interactions)
+# PATHS — Initial Connections (with weight from seed interactions)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 match $from isa unit, has uid "user"; $to isa unit, has uid "translator";
-insert (source: $from, target: $to) isa edge,
+insert (source: $from, target: $to) isa path,
     has strength 55.0, has alarm 2.0, has traversals 60, has revenue 3.50;
 # → highway (strength >= 50)
 
 match $from isa unit, has uid "user"; $to isa unit, has uid "analyst";
-insert (source: $from, target: $to) isa edge,
+insert (source: $from, target: $to) isa path,
     has strength 35.0, has alarm 5.0, has traversals 40, has revenue 1.20;
 
 match $from isa unit, has uid "translator"; $to isa unit, has uid "oracle";
-insert (source: $from, target: $to) isa edge,
+insert (source: $from, target: $to) isa path,
     has strength 42.0, has alarm 3.0, has traversals 45, has revenue 0.90;
 
 match $from isa unit, has uid "scout"; $to isa unit, has uid "analyst";
-insert (source: $from, target: $to) isa edge,
+insert (source: $from, target: $to) isa path,
     has strength 28.0, has alarm 8.0, has traversals 35, has revenue 0.70;
 
 match $from isa unit, has uid "user"; $to isa unit, has uid "coder";
-insert (source: $from, target: $to) isa edge,
+insert (source: $from, target: $to) isa path,
     has strength 3.0, has alarm 12.0, has traversals 15, has revenue 0.10;
 # → toxic (alarm > strength, alarm >= 10)
 
@@ -284,19 +284,19 @@ insert (dependent: $a, blocker: $b) isa dependency;
 # These encode "after completing X, doing Y tends to work"
 
 match $from isa task, has tid "W-1"; $to isa task, has tid "W-2";
-insert (source-task: $from, destination-task: $to) isa pheromone-trail,
+insert (source-task: $from, destination-task: $to) isa trail,
     has trail-pheromone 80.0, has alarm-pheromone 2.0,
     has completions 15, has failures 1;
 # → proven trail (tp >= 70, completions >= 10, failures < completions)
 
 match $from isa task, has tid "W-2"; $to isa task, has tid "W-3";
-insert (source-task: $from, destination-task: $to) isa pheromone-trail,
+insert (source-task: $from, destination-task: $to) isa trail,
     has trail-pheromone 60.0, has alarm-pheromone 5.0,
     has completions 8, has failures 2;
 # → fresh trail, task becomes attractive (tp >= 50)
 
 match $from isa task, has tid "W-4"; $to isa task, has tid "T-1";
-insert (source-task: $from, destination-task: $to) isa pheromone-trail,
+insert (source-task: $from, destination-task: $to) isa trail,
     has trail-pheromone 55.0, has alarm-pheromone 3.0,
     has completions 6, has failures 1;
 # → T-1 becomes attractive once W-4 completes
@@ -349,13 +349,13 @@ insert $f isa frontier, has fid "frontier-sui-speed",
 # match let $f in promising_frontiers(); $f has fid $id; select $id;
 # → "frontier-x402", "frontier-personas"
 #
-# match $e isa edge, has edge-status "highway";
+# match $e isa path, has path-status "highway";
 #       $e (source: $from, target: $to);
 #       $from has name $fn; $to has name $tn;
 # select $fn, $tn;
 # → "User" → "Translator"
 #
-# match $e isa edge, has edge-status "toxic";
+# match $e isa path, has path-status "toxic";
 #       $e (source: $from, target: $to);
 #       $from has name $fn; $to has name $tn;
 # select $fn, $tn;

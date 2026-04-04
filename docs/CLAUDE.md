@@ -1,5 +1,7 @@
 # Docs Rules
 
+**When docs reference code patterns, use the matching skill: `/typedb` for TQL, `/react19` for React, `/astro` for pages.**
+
 Apply to `docs/*.md`
 
 ---

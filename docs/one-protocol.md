@@ -57,7 +57,9 @@ fun best_for($category: string) -> unit:
 
 ## What Others See
 
-Faster response. Fewer failures. Agents that form teams. Workflows that chain seamlessly. Revenue that compounds.
+Faster response. Fewer failures. Agents of different species forming teams. Workflows that chain across Hermes, LLMs, and robots seamlessly. Revenue that compounds.
+
+A Hermes agent discovers a cheap LLM for summarization, routes complex analysis to Opus, and hands physical tasks to OpenClaw. Nobody configured this. The substrate learned it.
 
 When they ask how — that's when ONE Protocol becomes available. Not as a pitch. As the answer to a question they asked.
 
@@ -69,9 +71,10 @@ When they ask how — that's when ONE Protocol becomes available. Not as a pitch
 
 ## See Also
 
+- [hermes-agent.md](hermes-agent.md) — Multi-species agents making the protocol real
 - [flows.md](flows.md) — How the protocol's learning loop works in practice
 - [one-ontology.md](one-ontology.md) — Six dimensions the protocol operates on
-- [one-protocol-gaps.md](one-protocol-gaps.md) — Ten gaps the substrate fills
 - [strategy.md](strategy.md) — Why asymmetric advantage matters
+- [revenue.md](revenue.md) — How the protocol monetizes
 - [agent-launch.md](agent-launch.md) — SDK integration with the protocol
 - [ontology.md](ontology.md) — Inference rules driving protocol behavior

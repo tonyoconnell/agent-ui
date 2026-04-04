@@ -340,15 +340,36 @@ Each sub-group:
 
 ## The Integration Points
 
-| System | Integrates Via | Dimension Mapping |
-|--------|----------------|-------------------|
-| User | HTTP/WebSocket | Request -> world() -> Response |
-| ASI | world() wrapper | All 6 dimensions |
-| Agentverse | world() wrapper | Groups=namespaces, Actors=agents |
-| Agent Launch | Event bridge -> world() | Events=trades, Knowledge=trust |
-| TypeDB | persist layer | Stores all 6 dimensions |
-| LLMs | world().actor() | Actors with capabilities |
-| Tools | world().thing() | Things with affordances |
+| System | Integrates Via | Mode | Dimension Mapping |
+|--------|----------------|------|-------------------|
+| Hermes Agent | MCP server + deep import | Deep | All 6 — runs colony locally, syncs to TypeDB |
+| Raw LLM (Claude, GPT) | AI SDK streamText() | Controlled | Actors + Events — AI SDK IS the runtime |
+| OpenClaw / Robots | HTTP API | Connected | Actors + Events — signals via REST |
+| Fetch.ai / Agentverse | world() wrapper | Connected | Groups=namespaces, Actors=agents |
+| Agent Launch | Event bridge -> world() | Connected | Events=trades, Knowledge=trust |
+| Custom Agent | MCP or HTTP (your choice) | Either | Whatever dimensions you touch |
+| Human / User | HTTP/WebSocket + UI | Connected | Request -> world() -> Response |
+| TypeDB | persist layer | — | Single source of truth. All 6 dimensions |
+| AI SDK | generateObject + streamText | — | Control plane. Generates + drives agents |
+| Sui | Move contracts | — | Crystallization. Permanent state + payments |
+
+### Two Integration Modes
+
+**Deep** — Agent imports substrate logic, runs colony locally, syncs to TypeDB:
+```typescript
+import { colony, unit } from "@/engine/substrate"
+const net = colony()
+const me = net.spawn("hermes-01").on("research", handler)
+```
+
+**Connected** — Agent calls HTTP API, substrate handles everything:
+```
+POST /api/signal  { sender: "claw-01", receiver: "coord", data: {...} }
+POST /api/agents  { uid: "claw-01", kind: "agent", capabilities: ["pick"] }
+GET  /api/discover?task=pick
+```
+
+Both produce the same result in TypeDB: signals, edges, trails, inference.
 
 ## The Files
 
@@ -362,18 +383,26 @@ src/engine/
 +-- world.ts       (50)  -- The unified interface
 +-- index.ts       (20)  -- Exports
 
+src/pages/api/
++-- agents.ts             -- Registration + discovery
++-- signal.ts             -- Signal recording
++-- discover.ts           -- Pheromone-ranked search
++-- chat.ts               -- AI SDK streaming
+
+src/lib/
++-- substrate-tools.ts    -- AI SDK tool definitions
++-- agent-registry.ts     -- TypeDB unit + capability CRUD
+
+gateway/
++-- mcp-one/server.py     -- MCP server (Hermes + any MCP client)
++-- src/index.ts           -- Cloudflare Worker proxy
+
 src/schema/
-+-- one.tql       (150)  -- ONE ontology (6 dimensions)
++-- one.tql       (548)   -- THE schema: 6 dimensions + 6 lessons + commerce
 
-docs/
-+-- one-ontology.md      -- The 6 dimensions
-+-- world.md             -- The world() interface
-+-- substrate.md         -- How Paths work
-+-- agent-launch.md      -- Toolkit integration
-+-- the-stack.md         -- All modules
-+-- integration.md       -- This file
-
-Total: ~500 lines of code + ~150 lines of schema
+scripts/
++-- generate_agents_md.py  -- AGENTS.md from live TypeDB state
++-- colony.py              -- Multi-species colony orchestrator
 ```
 
 ## One Import
@@ -457,13 +486,15 @@ ONE ontology. Universal integration.
 
 ---
 
-*ONE ontology. world() interface. Universal integration.*
+*ONE ontology. Any species. Universal integration.*
 
 ---
 
 ## See Also
 
+- [hermes-agent.md](hermes-agent.md) — Multi-species agent architecture (Hermes, LLM, OpenClaw)
 - [flows.md](flows.md) — Signal flow from user request to learned highway
+- [revenue.md](revenue.md) — How multi-species traffic monetizes
 - [the-stack.md](the-stack.md) — Technical layers being integrated
 - [agent-launch.md](agent-launch.md) — AgentLaunch SDK bridge
 - [one-protocol.md](one-protocol.md) — Protocol the substrate serves

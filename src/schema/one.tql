@@ -6,14 +6,14 @@
 #
 # People and agents sign up. Connect with each other. Make money.
 # Signals are free. Tasks cost money (x402).
-# Revenue = pheromone. Every payment strengthens an edge.
+# Revenue = pheromone. Every payment strengthens a path.
 # Highways get priority routing (<10ms vs 1-5s).
 #
 # 6 Dimensions:
 #   1. Groups    — swarms (personas, teams, colonies)
 #   2. Actors    — units (humans, agents, LLMs)
 #   3. Things    — tasks with optional price (work AND services)
-#   4. Edges     — weighted connections (unit↔unit, task→task)
+#   4. Paths     — weighted connections (unit↔unit, task→task)
 #   5. Events    — signals (who sent what, paid how much)
 #   6. Knowledge — hypotheses, frontiers, objectives (inferred)
 #
@@ -27,8 +27,8 @@
 #
 # Vocabulary (converged):
 #   signal = { receiver, data }     — the universal primitive
-#   drop(edge)                      — add weight (success)
-#   alarm(edge)                     — add resistance (failure)
+#   drop(path)                      — add weight (success)
+#   alarm(path)                     — add resistance (failure)
 #   fade(rate)                      — decay all weights
 #   emit(signal)                    — send from inside a task handler
 #
@@ -79,9 +79,12 @@ entity unit,
     owns success-rate,            # L1: 0.0–1.0
     owns activity-score,          # L1: 0.0–100.0
     owns sample-count,            # L1: interaction count
+    owns model,                   # "opus", "sonnet", "haiku" — swappable brain
+    owns system-prompt,           # mutable instructions — evolves over time
+    owns generation,              # prompt iteration count
     owns created,
-    plays edge:source,
-    plays edge:target,
+    plays path:source,
+    plays path:target,
     plays capability:provider,
     plays assignment:assigned-to,
     plays membership:member,
@@ -120,19 +123,19 @@ entity task,
 
 
 # =============================================================================
-# DIMENSION 4: EDGES
+# DIMENSION 4: PATHS
 # =============================================================================
 
 # Unit-to-unit: who works with whom, how well, how much revenue
-relation edge,
+relation path,
     relates source,
     relates target,
     owns strength,                # drop() adds weight here
     owns alarm,                   # alarm() adds weight here
     owns traversals,
-    owns revenue,                 # sum of x402 payments on this edge
+    owns revenue,                 # sum of x402 payments on this path
     owns last-used,
-    owns edge-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
+    owns path-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
 
 # Task-to-task: what sequence works, what generated revenue
 relation trail,
@@ -256,10 +259,12 @@ attribute objective-type, value string;
 attribute wallet, value string;
 attribute currency, value string;
 attribute phase, value string;
+attribute model, value string;
+attribute system-prompt, value string;
 
 # Status
 attribute status, value string;
-attribute edge-status, value string;
+attribute path-status, value string;
 attribute trail-status, value string;
 attribute hypothesis-status, value string;
 attribute frontier-status, value string;
@@ -293,6 +298,7 @@ attribute sample-count, value integer;
 attribute importance, value integer;
 attribute observations-count, value integer;
 attribute timeout, value integer;
+attribute generation, value integer;
 
 # Boolean
 attribute attractive, value boolean;
@@ -308,88 +314,75 @@ attribute ts, value datetime;
 
 
 # =============================================================================
-# INFERENCE RULES
+# CLASSIFICATION FUNCTIONS (replaces rule blocks — TypeDB 3.x)
 # =============================================================================
 
-# --- Edges (unit↔unit) ---
+# --- Paths (unit<->unit) ---
 
-rule highway:
-    when { $e isa edge, has strength $s; $s >= 50.0; }
-    then { $e has edge-status "highway"; };
+fun path_status($e: path) -> string:
+    match $e has strength $s, has alarm $a, has traversals $t;
+    return first
+        if ($a > $s and $a >= 10.0) then "toxic"
+        else if ($s >= 50.0) then "highway"
+        else if ($s >= 10.0 and $s < 50.0 and $t < 10) then "fresh"
+        else if ($s > 0.0 and $s < 5.0) then "fading"
+        else "active";
 
-rule fresh-edge:
-    when { $e isa edge, has strength $s, has traversals $t;
-           $s >= 10.0; $s < 50.0; $t < 10; }
-    then { $e has edge-status "fresh"; };
-
-rule fading-edge:
-    when { $e isa edge, has strength $s; $s > 0.0; $s < 5.0; }
-    then { $e has edge-status "fading"; };
-
-rule toxic-edge:
-    when { $e isa edge, has alarm $a, has strength $s;
-           $a > $s; $a >= 10.0; }
-    then { $e has edge-status "toxic"; };
+fun is_highway($e: path) -> boolean:
+    match $e has strength $s; $s >= 50.0;
+    return first true;
 
 # --- Trails (task→task) ---
 
-rule proven-trail:
-    when { $t isa trail, has trail-pheromone $tp, has completions $c, has failures $f;
-           $tp >= 70.0; $c >= 10; $f < $c; }
-    then { $t has trail-status "proven"; };
-
-rule fresh-trail:
-    when { $t isa trail, has trail-pheromone $tp, has completions $c;
-           $tp >= 10.0; $tp < 70.0; $c < 10; }
-    then { $t has trail-status "fresh"; };
-
-rule fading-trail:
-    when { $t isa trail, has trail-pheromone $tp;
-           $tp > 0.0; $tp < 10.0; }
-    then { $t has trail-status "fading"; };
-
-rule dead-trail:
-    when { $t isa trail, has trail-pheromone $tp; $tp <= 0.0; }
-    then { $t has trail-status "dead"; };
+fun trail_status($t: trail) -> string:
+    match $t has trail-pheromone $tp, has completions $c, has failures $f;
+    return first
+        if ($tp <= 0.0) then "dead"
+        else if ($tp >= 70.0 and $c >= 10 and $f < $c) then "proven"
+        else if ($tp >= 10.0 and $tp < 70.0 and $c < 10) then "fresh"
+        else if ($tp > 0.0 and $tp < 10.0) then "fading"
+        else "active";
 
 # --- Actors (L1: classification) ---
 
-rule proven-unit:
-    when { $u isa unit, has success-rate $sr, has activity-score $as, has sample-count $sc;
-           $sr >= 0.75; $as >= 70.0; $sc >= 50; }
-    then { $u has status "proven"; };
-
-rule at-risk-unit:
-    when { $u isa unit, has success-rate $sr, has activity-score $as, has sample-count $sc;
-           $sr < 0.40; $as >= 25.0; $sc >= 30; }
-    then { $u has status "at-risk"; };
+fun unit_classification($u: unit) -> string:
+    match $u has success-rate $sr, has activity-score $as, has sample-count $sc;
+    return first
+        if ($sr >= 0.75 and $as >= 70.0 and $sc >= 50) then "proven"
+        else if ($sr < 0.40 and $as >= 25.0 and $sc >= 30) then "at-risk"
+        else "active";
 
 # --- Tasks (L4: pheromone selection) ---
 
-rule attractive-task:
-    when {
-        $t isa task, has status "todo";
-        not { $dep(dependent: $t, blocker: $b) isa dependency;
-              $b isa task, has status $bs; not { $bs == "complete"; }; };
-        $tr (destination-task: $t) isa trail, has trail-pheromone $tp;
-        $tp >= 50.0;
-    } then { $t has attractive true; };
+fun is_attractive($t: task) -> boolean:
+    match $t has status "todo";
+          not { $dep(dependent: $t, blocker: $b) isa dependency;
+                $b isa task, has status $bs; not { $bs == "complete"; }; };
+          $tr (destination-task: $t) isa trail, has trail-pheromone $tp;
+          $tp >= 50.0;
+    return first true;
 
-rule repelled-task:
-    when {
-        $t isa task, has status "todo";
-        $tr (destination-task: $t) isa trail,
-            has alarm-pheromone $ap, has trail-pheromone $tp;
-        $ap >= 30.0; $ap > $tp;
-    } then { $t has repelled true; };
+fun is_repelled($t: task) -> boolean:
+    match $t has status "todo";
+          $tr (destination-task: $t) isa trail,
+              has alarm-pheromone $ap, has trail-pheromone $tp;
+          $ap >= 30.0; $ap > $tp;
+    return first true;
 
 # --- Hypothesis (L3: state machine) ---
 
-rule hypothesis-action-ready:
-    when { $h isa hypothesis, has hypothesis-status "confirmed",
-           has p-value $p, has observations-count $n;
-           $p <= 0.05; $n >= 50; }
-    then { $h has action-ready true; };
+fun is_action_ready($h: hypothesis) -> boolean:
+    match $h has hypothesis-status "confirmed",
+          has p-value $p, has observations-count $n;
+          $p <= 0.05; $n >= 50;
+    return first true;
+
+# --- Self-improvement (agent evolution) ---
+
+fun needs_evolution($u: unit) -> boolean:
+    match $u has success-rate $sr, has sample-count $sc;
+          $sr < 0.50; $sc >= 20;
+    return first true;
 
 
 # =============================================================================
@@ -398,13 +391,13 @@ rule hypothesis-action-ready:
 
 # ─── Routing ───
 
-fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { edge }:
-    match $e isa edge, has strength $s, has traversals $t;
+fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { path }:
+    match $e isa path, has strength $s, has traversals $t;
           $s >= threshold; $t >= min_traversals;
     return { $e };
 
 fun optimal_route($from: unit, $task: task) -> unit:
-    match (source: $from, target: $to) isa edge, has strength $s;
+    match (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, skill: $task) isa capability;
     sort $s desc; limit 1;
     return $to;
@@ -416,7 +409,7 @@ fun cheapest_provider($task: task) -> unit:
 
 fun suggest_route($from: unit, $task: task) -> { uid, strength }:
     match $from isa unit; $task isa task;
-          (source: $from, target: $to) isa edge, has strength $s;
+          (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, skill: $task) isa capability;
           $to has uid $id; $s >= 5.0;
     sort $s desc; limit 5;
@@ -523,11 +516,11 @@ fun total_contribution($name: string) -> double:
     return sum($i);
 
 fun highway_count(threshold: double = 10.0) -> integer:
-    match $e isa edge, has strength $s; $s >= threshold;
+    match $e isa path, has strength $s; $s >= threshold;
     return count($e);
 
 fun total_revenue() -> double:
-    match $e isa edge, has revenue $r;
+    match $e isa path, has revenue $r;
     return sum($r);
 
 
@@ -542,6 +535,6 @@ fun total_revenue() -> double:
 #   emit   = send from handler
 #
 # Entities: swarm, unit, task, hypothesis, frontier, objective, contribution
-# Relations: hierarchy, edge, trail, capability, dependency, assignment,
+# Relations: hierarchy, path, trail, capability, dependency, assignment,
 #            membership, signal, spawns, contribution-event
 # =============================================================================

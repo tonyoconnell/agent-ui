@@ -1,0 +1,295 @@
+# =============================================================================
+# SUBSTRATE.TQL - The Minimal Colony Substrate
+# =============================================================================
+#
+# ~200 lines. All 6 patterns. The essence.
+#
+# Patterns:
+#   1. Perception   - Classification via attributes
+#   2. Homeostasis  - Quality bands (mutually exclusive thresholds)
+#   3. Hypothesis   - State machines via inference
+#   4. Negation     - Task readiness via absence detection
+#   5. Aggregation  - Contribution measurement
+#   6. Emergence    - Autonomous goal generation
+#
+# BIOLOGY: "The task an ant performs depends not on any property of
+#           the individual, but on what it has experienced recently."
+#           — Deborah Gordon
+#
+# USAGE:
+#   typedb console
+#   > database create colony
+#   > transaction colony schema write
+#   > source substrate.tql
+#   > commit
+#
+# =============================================================================
+
+define
+
+
+# =============================================================================
+# CORE ENTITIES
+# =============================================================================
+
+# The actor. Human, AI, bot, team.
+entity agent,
+    owns agent-id @key,
+    owns agent-name,
+    owns agent-type,          # "human", "ai", "bot", "team"
+    owns success-rate,        # 0.0 - 1.0
+    owns activity-score,      # 0.0 - 100.0
+    owns sample-count,        # observations
+    owns agent-tier,          # INFERRED: "elite", "standard", "at-risk"
+    plays assignment:assigned-to,
+    plays contribution-event:contributor-agent;
+
+# The unit of work.
+entity task,
+    owns task-id @key,
+    owns title,
+    owns status,              # "todo", "in_progress", "complete", "blocked"
+    owns priority,            # "P0", "P1", "P2", "P3"
+    owns attractive,          # INFERRED: ready + strong trail
+    owns repelled,            # INFERRED: alarm pheromone dominates
+    plays dependency:dependent,
+    plays dependency:blocker,
+    plays assignment:assigned-task,
+    plays pheromone-trail:source-task,
+    plays pheromone-trail:destination-task;
+
+# The unexplored territory.
+entity frontier,
+    owns frontier-id @key,
+    owns expected-value,      # potential * probability / cost
+    owns frontier-status,     # "unexplored", "exploring", "exhausted"
+    plays spawns:frontier;
+
+# The self-generated goal.
+entity objective,
+    owns objective-id @key,
+    owns progress,            # 0.0 - 1.0
+    owns objective-status,    # "pending", "active", "complete"
+    plays spawns:objective;
+
+# Attributes
+attribute agent-id, value string;
+attribute agent-name, value string;
+attribute agent-type, value string;
+attribute success-rate, value double;
+attribute activity-score, value double;
+attribute sample-count, value integer;
+attribute agent-tier, value string;
+attribute task-id, value string;
+attribute title, value string;
+attribute status, value string;
+attribute priority, value string;
+attribute attractive, value boolean;
+attribute repelled, value boolean;
+attribute frontier-id, value string;
+attribute expected-value, value double;
+attribute frontier-status, value string;
+attribute objective-id, value string;
+attribute progress, value double;
+attribute objective-status, value string;
+
+
+# =============================================================================
+# RELATIONS
+# =============================================================================
+
+# Task A blocks Task B
+relation dependency,
+    relates dependent,
+    relates blocker;
+
+# Task assigned to agent
+relation assignment,
+    relates assigned-task,
+    relates assigned-to;
+
+# Pheromone trail between tasks (memory on EDGES)
+relation pheromone-trail,
+    relates source-task,
+    relates destination-task,
+    owns trail-pheromone,     # 0-100 (success)
+    owns alarm-pheromone,     # 0-100 (failure)
+    owns trail-status;        # INFERRED: "proven", "fresh", "fading", "dead"
+
+attribute trail-pheromone, value double;
+attribute alarm-pheromone, value double;
+attribute trail-status, value string;
+
+# Contribution flow
+entity contribution,
+    owns contribution-id @key,
+    owns impact-score,        # 0.0 - 10.0
+    plays contribution-event:contribution,
+    plays contribution-chain:contributor,
+    plays contribution-chain:beneficiary;
+
+attribute contribution-id, value string;
+attribute impact-score, value double;
+
+relation contribution-event,
+    relates contributor-agent,
+    relates contribution;
+
+relation contribution-chain,
+    relates contributor,
+    relates beneficiary,
+    owns chain-value;
+
+attribute chain-value, value double;
+
+# Frontier spawns objective
+relation spawns,
+    relates frontier,
+    relates objective;
+
+
+# =============================================================================
+# INFERENCE RULES - The Colony's Distributed Intelligence
+# =============================================================================
+
+# --- Pattern 1: Perception (Classification) ---
+# Elite: high success, high activity, sufficient samples
+rule elite-agent:
+    when {
+        $a isa agent, has success-rate $sr, has activity-score $as, has sample-count $sc;
+        $sr >= 0.75; $as >= 70.0; $sc >= 50;
+    } then { $a has agent-tier "elite"; };
+
+# At-risk: low success, active (actively failing)
+rule at-risk-agent:
+    when {
+        $a isa agent, has success-rate $sr, has activity-score $as, has sample-count $sc;
+        $sr < 0.40; $as >= 25.0; $sc >= 30;
+    } then { $a has agent-tier "at-risk"; };
+
+
+# --- Pattern 2: Homeostasis (Quality Bands) ---
+# Proven trail: superhighway
+rule proven-trail:
+    when {
+        $trail isa pheromone-trail, has trail-pheromone $tp;
+        $tp >= 70.0;
+    } then { $trail has trail-status "proven"; };
+
+# Fading trail: needs reinforcement
+rule fading-trail:
+    when {
+        $trail isa pheromone-trail, has trail-pheromone $tp;
+        $tp > 0.0; $tp < 10.0;
+    } then { $trail has trail-status "fading"; };
+
+
+# --- Pattern 4: Negation (Task Attractiveness) ---
+# Attractive: ready + strong trail
+rule attractive-task:
+    when {
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $b) isa dependency;
+            $b isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+        $trail (destination-task: $t) isa pheromone-trail, has trail-pheromone $tp;
+        $tp >= 50.0;
+    } then { $t has attractive true; };
+
+# Repelled: alarm dominates
+rule repelled-task:
+    when {
+        $t isa task, has status "todo";
+        $trail (destination-task: $t) isa pheromone-trail,
+            has alarm-pheromone $ap, has trail-pheromone $tp;
+        $ap >= 30.0; $ap > $tp;
+    } then { $t has repelled true; };
+
+
+# =============================================================================
+# INFERENCE FUNCTIONS - The Colony's Query Interface
+# =============================================================================
+
+# --- Classification ---
+fun elite_agents() -> { agent }:
+    match $a isa agent, has agent-tier "elite";
+    return { $a };
+
+fun at_risk_agents() -> { agent }:
+    match $a isa agent, has agent-tier "at-risk";
+    return { $a };
+
+
+# --- Task Selection (The Core Ant Pattern) ---
+# Ready: no incomplete blockers
+fun ready_tasks() -> { task }:
+    match
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $b) isa dependency;
+            $b isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+    return { $t };
+
+# Attractive: follow the strong trail (EXPLOIT)
+fun attractive_tasks() -> { task }:
+    match $t isa task, has attractive true;
+    return { $t };
+
+# Repelled: avoid the alarm (LEARN)
+fun repelled_tasks() -> { task }:
+    match $t isa task, has repelled true;
+    return { $t };
+
+# Exploratory: no trail exists (EXPLORE)
+fun exploratory_tasks() -> { task }:
+    match
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $b) isa dependency;
+            $b isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+        not { $trail (destination-task: $t) isa pheromone-trail; };
+    return { $t };
+
+
+# --- Contribution (Pattern 5) ---
+fun total_contribution($name: string) -> double:
+    match
+        $a isa agent, has agent-name $name;
+        $ev(contributor-agent: $a, contribution: $c) isa contribution-event;
+        $c isa contribution, has impact-score $i;
+    return sum($i);
+
+
+# --- Emergence (Pattern 6) ---
+fun promising_frontiers() -> { frontier }:
+    match
+        $f isa frontier, has frontier-status "unexplored", has expected-value $ev;
+        $ev >= 0.5;
+    return { $f };
+
+fun active_objectives() -> { objective }:
+    match
+        $o isa objective, has objective-status $s;
+        $s in ["pending", "active"];
+    return { $o };
+
+
+# --- Pheromone Analysis ---
+fun superhighway_trails() -> { pheromone-trail }:
+    match $trail isa pheromone-trail, has trail-status "proven";
+    return { $trail };
+
+fun fading_trails() -> { pheromone-trail }:
+    match $trail isa pheromone-trail, has trail-status "fading";
+    return { $trail };
+
+
+# =============================================================================
+# END - 200 lines. The substrate.
+# =============================================================================

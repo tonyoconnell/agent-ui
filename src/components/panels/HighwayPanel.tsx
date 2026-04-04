@@ -1,7 +1,7 @@
 import type { Edge } from "@/engine"
 
 interface HighwayPanelProps {
-  highways: Edge[]  // Array of { edge: string, strength: number }
+  highways: Edge[]  // Array of { path: string, strength: number }
 }
 
 export function HighwayPanel({ highways }: HighwayPanelProps) {
@@ -9,10 +9,10 @@ export function HighwayPanel({ highways }: HighwayPanelProps) {
     <div className="bg-[#161622] rounded-xl p-4 border border-[#252538]">
       <h3 className="text-sm text-slate-500 uppercase mb-3">Highways</h3>
       <div className="space-y-2">
-        {highways.map(({ edge, strength }) => (
-          <div key={edge} className="flex items-center gap-3">
+        {highways.map(({ path, strength }) => (
+          <div key={path} className="flex items-center gap-3">
             <div className="flex-1">
-              <code className="text-xs text-slate-400">{edge}</code>
+              <code className="text-xs text-slate-400">{path}</code>
             </div>
             <div className="w-24 h-2 bg-[#252538] rounded-full overflow-hidden">
               <div

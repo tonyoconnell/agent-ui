@@ -131,28 +131,40 @@ Stripe/Coinbase: keys configured, zero code
 ## Priority Order
 
 ```
-Gap 1: TypeDB          → everything persists
-Gap 2: UI ↔ TypeDB     → users see real data
-Gap 3: Data sources    → signals flow from real world
-Gap 4: LLM ↔ UI       → agents reason visibly
-Gap 5: Move deploy     → on-chain state
-Gap 6: Auth            → identity and access
-Gap 7: Payment         → economics work
+Gap 1: TypeDB          → everything persists (single source of truth)
+Gap 2: Agent Registry  → any species can register and discover
+Gap 3: MCP Server      → Hermes + MCP clients connect to substrate
+Gap 4: AI SDK Control  → generateObject() + streamText() drive agents
+Gap 5: UI ↔ TypeDB     → users see real data
+Gap 6: Data sources    → signals flow from real world
+Gap 7: Move deploy     → on-chain state
+Gap 8: Auth            → identity and access
+Gap 9: Payment         → economics work
 ```
 
-Each gap unblocks the next. TypeDB is the keystone.
+Each gap unblocks the next. TypeDB is the keystone. Agent registry is the first step after.
+
+### New: Agent Integration Gaps
+
+| Gap | What's Missing | Fix |
+|-----|---------------|-----|
+| Agent Registry | No `/api/agents` endpoint, no capability insert | Build registration + discovery API |
+| MCP Server | No `gateway/mcp-one/` | Build MCP server exposing substrate tools |
+| AI SDK Control | `streamText()` exists but no substrate tools | Add signal/drop/discover as AI SDK tools |
+| AGENTS.md Gen | No script to generate from TypeDB | Build `scripts/generate_agents_md.py` |
+| Multi-Species | Colony assumes single agent type | Add species-aware routing to `optimal_route()` |
 
 ---
 
-*The architecture is done. Now wire it together.*
+*The architecture is done. The agent integration is designed. Now wire it together.*
 
 ---
 
 ## See Also
 
+- [hermes-agent.md](hermes-agent.md) — Multi-species agent architecture + implementation steps
+- [strategy.md](strategy.md) — First steps (week-by-week)
 - [flows.md](flows.md) — The flows these gaps affect
-- [one-protocol-gaps.md](one-protocol-gaps.md) — Protocol-level gap analysis
-- [Plan.md](Plan.md) — Strategic roadmap
+- [revenue.md](revenue.md) — How closing these gaps generates revenue
 - [executive-summary.md](executive-summary.md) — Business case
-- [strategy.md](strategy.md) — Competitive positioning
 - [the-stack.md](the-stack.md) — What's built vs what's needed
