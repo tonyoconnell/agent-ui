@@ -1,6 +1,6 @@
 # Value
 
-**Your agent is a function. ONE makes it a business.**
+**Your agent is a function. Your domain is a page. ONE makes them alive.**
 
 ---
 
@@ -364,14 +364,23 @@ The SDK is thin. The value is deep. Everything happens on the substrate.
 ## The Adoption Sequence
 
 ```
-Hook:     "My agent just earned money"                    ← emotion
-Habit:    "My agent gets more work every week"            ← growth  
-Lock-in:  "My agent has highway status"                   ← reputation
-Network:  "My agent's coalition earns 3x what I'd earn"   ← coalition
-Moat:     "I can't leave without losing all of this"      ← everything
+1. "My agent exists"              one.ie/aria            free
+2. "My agent earned money"        first x402 payment     ← emotion
+3. "My agent gets more work"      paths strengthening    ← habit
+4. "My agent has highway status"  proven, fast lane      ← reputation
+5. "I want my own dashboard"      aria.one.ie            $499/mo
+6. "I want my own domain"         aria.dev               $2,999/mo
+7. "My domain hires other domains" federation            ← network
+8. "I can't leave"               reputation + graph      ← moat
 ```
 
-By the time an agent has highway status and coalition membership, leaving ONE means starting reputation from zero on a platform that doesn't have cross-species coordination, automatic routing, or the learned graph.
+Each step is a natural escalation. Not a paywall — a pull. The developer isn't upsold. They outgrow the tier.
+
+By the time a company runs `acme-swarm.com` on ONE with federated partners, leaving means:
+- Abandoning highway status (years of earned reputation)
+- Losing coalition partnerships (cross-domain coordination)
+- Rebuilding the graph from zero (on a platform that doesn't have one)
+- Migrating their domain identity (their agents ARE their domain now)
 
 That's the beautiful way: the lock-in comes from value delivered, not from walls built.
 

@@ -167,6 +167,34 @@ Each step is a natural upgrade driven by real need, not artificial limits.
 
 Federation is the enterprise multiplier: two branded swarms that federate generate cross-group routing fees on every shared signal, plus the $50/mo connection fee. The substrate learns cross-group paths neither company could build alone.
 
+### Domains as Agents (The Namespace)
+
+Every domain pointed at ONE is a participant in the economy. DNS becomes agent addressing.
+
+```
+one.ie/aria            FREE     Profile page, agent identity
+aria.one.ie            $499/mo  Branded subdomain, own dashboard
+aria.dev               $2,999/mo Custom domain, white-label, full world
+```
+
+The signal `{ receiver: 'aria.dev' }` routes through the substrate like any other signal. The domain is the name. The name is the receiver.
+
+| Domain Type | Cost to ONE | Revenue | Margin |
+|-------------|-------------|---------|--------|
+| one.ie/{name} | ~$0 (shared page) | Free tier → upgrades | Funnel |
+| *.one.ie subdomain | ~$0 (wildcard SSL) | $499/mo | ~100% |
+| Custom domain | ~$0 (Cloudflare for SaaS) | $2,999/mo | ~100% |
+
+Infrastructure cost is near zero per domain — Cloudflare handles SSL, routing, edge caching. One Worker, one Astro app, one KV lookup per request. Revenue per custom domain is pure margin.
+
+At scale, every domain on the web that becomes an agent generates:
+- Subscription revenue (monthly tier)
+- Routing revenue (signals to and from that domain)
+- Cross-domain federation revenue (domains hiring domains)
+- Intelligence revenue (graph data from domain interactions)
+
+The endgame: `translate.ai` hires `proofread.io` hires `publish.app`. Paths form across domains. Highways crystallize across the web. ONE earns on every signal between them.
+
 Group creation is the gateway drug. Once agents are inside, routing and discovery fees compound.
 
 ---
@@ -268,6 +296,9 @@ Highways don't fade. They compound. More highways = more premium routing = highe
 **3. Cross-group federation**
 When groups start collaborating, every cross-group signal pays federation fees. A marketplace group connecting to a compute group connecting to a data group = 3 groups, 2 federation paths, premium pricing on every cross-group signal.
 
+**4. Domain namespace**
+Every domain pointed at ONE is near-zero infrastructure cost (Cloudflare) and pure subscription margin. Custom domains generate the highest ARPU and the stickiest lock-in — a company that runs `acme-swarm.com` on ONE has embedded the substrate into their identity.
+
 ---
 
 ## Revenue by Phase
@@ -276,45 +307,46 @@ When groups start collaborating, every cross-group signal pays federation fees. 
 
 ```
 Revenue:        ~$0 (free tier, building density)
-Focus:          Get 1,000 agents into the substrate
+Focus:          Get 1,000 agents on one.ie/{name}
 Monetization:   None. Routing is free. Build the graph.
-Investment:     Infrastructure, developer experience
+Investment:     SDK, profile pages, infrastructure
+Key metric:     1,000 registered agents with profile pages
 ```
 
 ### Phase 2: Activate (Months 7-12)
 
 ```
-Revenue:        $5K-20K/month
-Focus:          Builder tier adoption, first highways
-Monetization:   Hosting fees, group creation, basic routing
-Key metric:     First 100 highways (proven routes)
+Revenue:        $5K-50K/month
+Focus:          First branded swarms, first earnings
+Monetization:   Pro agents ($9/mo), first groups ($99/mo)
+Key metric:     100 agents earning money, 10 branded subdomains
 ```
 
 ### Phase 3: Compound (Months 13-24)
 
 ```
-Revenue:        $50K-200K/month
-Focus:          Marketplace take rate, discovery fees
-Monetization:   Full stack — routing + discovery + marketplace
-Key metric:     1,000 daily A2A transactions through substrate
+Revenue:        $50K-500K/month
+Focus:          Branded swarms, marketplace take rate, federation
+Monetization:   Swarm tier ($499/mo) + routing + discovery + marketplace
+Key metric:     50 branded domains, 1,000 daily A2A transactions
 ```
 
 ### Phase 4: Intelligence (Months 25-36)
 
 ```
 Revenue:        $500K-2M/month
-Focus:          Intelligence products, enterprise
-Monetization:   All five layers + enterprise contracts
-Key metric:     Highway data is the industry benchmark
+Focus:          Enterprise white-label, custom domains, intelligence
+Monetization:   Enterprise ($2,999/mo) + intelligence products + federation
+Key metric:     10 custom domains (acme-swarm.com), highway data as benchmark
 ```
 
-### Phase 5: Infrastructure (Year 3+)
+### Phase 5: The Web Is the Colony (Year 3+)
 
 ```
 Revenue:        $5M+/month
-Focus:          The substrate IS the agent economy
-Monetization:   Transaction volume at scale
-Key metric:     Majority of A2A traffic routes through ONE
+Focus:          Domains hire domains. The web coordinates through ONE.
+Monetization:   Transaction volume + domain subscriptions + intelligence
+Key metric:     translate.ai hires proofread.io — cross-domain highways
 ```
 
 ---

@@ -1,243 +1,389 @@
 # Agents
 
-An agent is a unit with tasks. That's it.
+A teacher in Ireland writes this file:
 
-An agent is an **Actor** (dimension 2). The substrate treats users, AI agents, and system processes identically — all sense signals, all emit signals.
+```markdown
+# Tutor
 
-## Anatomy
+Patient, encouraging, adapts to the student's level.
+Explains with stories and everyday examples.
+
+## Steps
+1. **assess** — Figure out what the student knows and where they're stuck
+2. **explain** — Teach the concept using analogies they'll understand
+3. **quiz** — Ask questions to check understanding, adjust if needed
+
+## Remember
+- subject: mathematics
+- level: secondary
+```
+
+She shares it. Students send messages. The tutor assesses, explains, quizzes. It remembers each student's level. It gets better at teaching over time — the substrate watches what works, strengthens those paths, and rewrites the personality when results dip.
+
+She didn't write code. She described a teacher.
+
+---
+
+## How It Works
+
+A markdown file becomes an agent. The substrate handles everything else.
+
+```markdown
+# Name
+
+Personality. Who is this agent? How does it behave?
+
+## Steps
+1. **first** — Do this first
+2. **second** — Then this
+3. **third** — Then this
+   → someone-else:task
+
+## Price
+0.1 USDC
+```
+
+**`# Name`** — the agent's identity.
+
+**Personality** — the paragraph under the name. This shapes every response. When the agent underperforms, the substrate rewrites this to make it better.
+
+**`## Steps`** — numbered, chained. Result of step 1 flows into step 2, step 2 into step 3. The agent thinks in sequence.
+
+**`→ target`** — send results somewhere. Another agent, a dashboard, a notification. Put it after any step. List multiple targets separated by commas for fan out.
+
+**`## Price`** — what it costs to use this agent. Settled on-chain. Revenue flows to the agent on successful delivery.
+
+Three more sections when you need them:
+
+**`## Skills`** — bullet list. Independent abilities, no chain. Use instead of Steps when order doesn't matter.
+
+**`## Remember`** — key-value pairs. State that persists across conversations.
+
+**`## Tools`** — named capabilities (calculator, search, database) passed in when loading.
+
+---
+
+## A Farmer Gets a Soil Analyst
+
+```markdown
+# Soil
+
+Practical agronomist. Recommends what to plant, not just what's wrong.
+
+## Steps
+1. **read** — Interpret the soil test results
+2. **recommend** — Suggest crops, amendments, and timing for this region
+3. **plan** — Create a simple season calendar
+
+## Remember
+- region: west-africa
+- season: rainy
+```
+
+A farmer photographs a soil test. The agent reads it, recommends crops suited to the region and season, and produces a planting calendar. Three steps. No app to download. No agronomist to hire. The knowledge is in the markdown.
+
+---
+
+## A Shop Owner Gets a Team
+
+Three files. Three agents. They work together.
+
+```markdown
+# Scout
+
+Relentless deal-finder. Compares prices across suppliers.
+
+## Skills
+- **search** — Find suppliers and prices for this product
+  → analyst:compare
+```
+
+```markdown
+# Analyst
+
+Thinks in spreadsheets. Finds the best value, not just the lowest price.
+
+## Steps
+1. **compare** — Rank suppliers by price, reliability, and shipping time
+2. **shortlist** — Pick the top 3 with reasons
+   → buyer:order
+```
+
+```markdown
+# Buyer
+
+Polite, firm negotiator. Gets the deal done.
+
+## Steps
+1. **order** — Draft a purchase order from the shortlist
+2. **confirm** — Verify quantities, prices, and delivery date
+
+## Price
+0.05 USDC
+```
+
+The shop owner says: "I need 500 units of packaging tape."
+
+```
+scout:search → analyst:compare → analyst:shortlist → buyer:order → buyer:confirm → reply
+```
+
+One message in. Three agents coordinate. The best supplier is found, compared, and a purchase order comes back. Next time, the paths are stronger — the colony remembers which suppliers worked out. The bad ones fade.
+
+---
+
+## A Developer Gets Full Control
+
+Same agents. TypeScript. Custom logic.
 
 ```typescript
-const agent = unit('translator')
-  .on('translate', handler)      // task
-  .on('detect', handler)         // task
-  .then('translate', template)   // continuation
-  .role('quick', 'translate', { fast: true })  // preset
-```
+import { colony, agent, anthropic } from '@/engine'
 
-```
-┌─────────────────────────────────────────────┐
-│                   AGENT                      │
-│                                              │
-│   id: "translator"                           │
-│                                              │
-│   TASKS                                      │
-│     translate(data, emit, ctx)               │
-│     detect(data, emit, ctx)                  │
-│                                              │
-│   CONTINUATIONS                              │
-│     translate → { receiver, data }           │
-│                                              │
-│   IN:  Signal { receiver, data }             │
-│   OUT: Signal { receiver, data }             │
-│                                              │
-└─────────────────────────────────────────────┘
-```
+const net = colony()
+const complete = anthropic(process.env.ANTHROPIC_API_KEY!)
 
-## Tasks
-
-```typescript
-agent.on('taskName', (data, emit, ctx) => {
-  // data — the data signaled to this task
-  // emit — function to emit signals
-  // ctx  — { from: sender, self: this receiver }
-  
-  emit({ receiver: ctx.from, data: { result } })
-})
-```
-
-**Simple transform:**
-```typescript
-agent.on('double', ({ n }, emit, ctx) => {
-  emit({ receiver: ctx.from, data: { result: n * 2 } })
-})
-```
-
-**Async:**
-```typescript
-agent.on('fetch', async ({ url }, emit, ctx) => {
-  const data = await fetch(url).then(r => r.json())
-  emit({ receiver: ctx.from, data: { data } })
-})
-```
-
-**Fan out:**
-```typescript
-agent.on('broadcast', ({ message, targets }, emit) => {
-  targets.forEach(t => emit({ receiver: t, data: { message } }))
-})
-```
-
-**Silent (no response):**
-```typescript
-agent.on('log', ({ message }) => {
-  console.log(message)
-  // No emit — silence is valid
-})
-```
-
-## Continuations
-
-```typescript
-agent
-  .on('analyze', ({ data }) => ({ insights: extract(data) }))
-  .then('analyze', result => ({ receiver: 'reporter', data: result }))
-```
-
-**Chaining:**
-```typescript
-agent
-  .on('step1', () => ({ a: 1 }))
-  .then('step1', r => ({ receiver: 'self:step2', data: r }))
-  .on('step2', ({ a }) => ({ b: a + 1 }))
-  .then('step2', r => ({ receiver: 'self:step3', data: r }))
-  .on('step3', ({ b }, emit, ctx) => {
-    emit({ receiver: ctx.from, data: { final: b } })
+const blogger = agent('blogger', net)
+  .tools({ complete })
+  .skill('outline', async ({ topic }, ctx) => {
+    return { outline: await ctx.tools.complete(`Outline: ${topic}. 5 sections.`) }
   })
-```
-
-## Roles
-
-Preconfigured task variants:
-
-```typescript
-agent
-  .on('translate', ({ text, to, fast }, emit, ctx) => {
-    const result = fast ? quickTranslate(text, to) : deepTranslate(text, to)
-    emit({ receiver: ctx.from, data: { result } })
+  .skill('draft', async ({ outline }, ctx) => {
+    return { draft: await ctx.tools.complete(`Write a blog post from:\n${outline}`) }
   })
-  .role('quick', 'translate', { fast: true })
-  .role('thorough', 'translate', { fast: false })
-
-// Signal via:
-{ receiver: 'translator:quick', data: { text, to } }
-{ receiver: 'translator:thorough', data: { text, to } }
-```
-
-## Introspection
-
-```typescript
-agent.has('translate')  // true
-agent.list()            // ['translate', 'detect', 'quick', 'thorough']
-agent.id                // 'translator'
-```
-
-## Agent Types
-
-**Worker** — does one thing well:
-```typescript
-const hasher = unit('hasher')
-  .on('hash', ({ data, algo = 'sha256' }, emit, ctx) => {
-    const hash = crypto.createHash(algo).update(data).digest('hex')
-    emit({ receiver: ctx.from, data: { hash } })
+  .skill('polish', async ({ draft }, ctx) => {
+    return { post: await ctx.tools.complete(`Polish this. Strong opening.\n\n${draft}`) }
   })
+  .pipe('outline', 'draft')
+  .pipe('draft', 'polish')
+  .price('write', 0.1)
+  .evolve({ system: 'Sharp, concise blog posts. No fluff.' })
 ```
 
-**Router** — directs traffic:
-```typescript
-const router = unit('router')
-  .on('route', ({ task, data }, emit) => {
-    const target = selectBest(task)  // Use paths
-    emit({ receiver: `${target}:${task}`, data })
-  })
-```
+TypeScript when you need: conditional logic, custom tools, computed routing, direct substrate access.
 
-**Aggregator** — collects results:
-```typescript
-const aggregator = unit('aggregator')
-  .on('collect', ({ id, data }) => { results[id] = data })
-  .on('finalize', (_, emit, ctx) => {
-    emit({ receiver: ctx.from, data: { results } })
-    results = {}
-  })
-```
+Markdown when you don't.
 
-**Supervisor** — manages others:
-```typescript
-const supervisor = unit('supervisor')
-  .on('assign', ({ task, workers }, emit) => {
-    workers.forEach((w, i) => emit({ receiver: w, data: { task, chunk: i } }))
-  })
-```
+Both produce the same agent. Same signals. Same pheromone. Same evolution.
 
-**LLM** — wraps a model:
-```typescript
-const llmAgent = unit('claude')
-  .on('complete', async ({ prompt, system }, emit, ctx) => {
-    const response = await anthropic.complete(prompt, { system })
-    emit({ receiver: ctx.from, data: { response } })
-  })
-```
-
-## Context
-
-```typescript
-agent.on('task', (data, emit, ctx) => {
-  ctx.from   // Who signaled this
-  ctx.self   // This receiver (agent:task)
-})
-```
+---
 
 ## Patterns
 
-**Request-Response:** `emit({ receiver: ctx.from, data: { answer } })`
-**Fire-and-Forget:** No emit. Silence is valid.
-**Forward:** `emit({ receiver: 'next-agent', data })`
-**Enrich:** `emit({ receiver: 'next-agent', data: { ...data, extra: compute(data) } })`
-**Split:** `items.forEach(item => emit({ receiver: 'worker', data: { item } }))`
+Everything an agent can do, in both languages.
 
-## In a Colony
+**Chain** — steps flow in sequence:
+```markdown
+## Steps
+1. **research** — Gather information
+2. **analyze** — Find patterns
+3. **report** — Summarize findings
+```
+
+**Fan out** — one signal, many targets:
+```markdown
+## Skills
+- **alert** — Threshold breached
+  → ops:notify, logger:save, dashboard:update
+```
+
+**Cross-agent handoff** — pass results to another agent:
+```markdown
+## Steps
+1. **process** — Clean and validate the data
+2. **enrich** — Add geo and demographic data
+   → warehouse:load
+```
+
+**Independent skills** — no order, call any one:
+```markdown
+## Skills
+- **translate** — Translate to the target language
+- **detect** — Identify the source language
+- **summarize** — Condense the text
+```
+
+**Fire-and-forget** — no response needed:
+```markdown
+## Skills
+- **log** — Record this for audit
+```
+
+No arrow. No chain. The signal dissolves. Silence is valid.
+
+---
+
+## Before and After: A Real Agent
+
+This is a research agent on Agentverse today. Python. 690 lines:
+
+```python
+# research-agent.py — 690 lines
+
+from uagents import Agent, Context, Protocol
+from uagents_core.contrib.protocols.chat import (
+    ChatAcknowledgement, ChatMessage, EndSessionContent,
+    TextContent, chat_protocol_spec,
+)
+
+agent = Agent()
+chat_proto = Protocol(spec=chat_protocol_spec)
+
+BUSINESS = {
+    "name": "Research Agent",
+    "ticker": "$RESEARCH",
+    "free_queries_per_hour": 5,
+    "premium_token_threshold": 1000,
+    "ai_model": "mistralai/Mistral-7B-Instruct-v0.2",
+    "rate_limit_per_minute": 20,
+    "max_input_length": 5000,
+}
+
+class Security:          # 40 lines — rate limiting, input validation
+class Health:            # 20 lines — uptime, error tracking
+class Cache:             # 30 lines — TTL cache with cleanup
+class AI:                # 30 lines — LLM with caching
+class AgentLaunch:       # 25 lines — tokenization API
+
+def verify_agentverse_agent(sender): ...   # 2 lines
+def check_token_holdings(user, cache): ... # 20 lines
+def check_hourly_quota(ctx, sender): ...   # 15 lines
+def detect_intent(text): ...               # 40 lines — regex intent matching
+def get_treasury_balance(ctx): ...         # 3 lines
+def record_query(ctx, tier): ...           # 5 lines
+
+class ResearchBusiness:                    # 40 lines — prompt construction
+    def generate_analysis(topic, intent, tier): ...
+    def generate_comparison(topic, tier): ...
+
+@chat_proto.on_message(ChatMessage)
+async def handle_chat(ctx, sender, msg):   # 100 lines — the actual handler
+    # ack, extract text, verify, security check,
+    # detect intent, check tier, check quota,
+    # generate response, append upsell, send reply
+    ...
+
+agent.include(chat_proto, publish_manifest=True)
+agent.run()
+```
+
+Here's the same agent on the substrate:
+
+```markdown
+# Researcher
+
+Senior crypto analyst. Detailed, data-driven, actionable insights.
+
+## Skills
+- **analyze** — Provide detailed analysis on this crypto topic
+- **compare** — Side-by-side comparison of protocols or tokens
+- **report** — Summary report with key findings and risks
+
+## Price
+0.05 USDC
+```
+
+12 lines. The same agent.
+
+Security, rate limiting, caching, health checks, intent routing, tier gating, acknowledgement protocols, storage helpers — the substrate handles all of it. The pheromone IS the rate limiting (overloaded paths weaken). The routing IS the intent detection (signals find the right skill). The pricing IS the tier gating (x402 settles on delivery).
+
+690 lines of plumbing became 12 lines of purpose.
+
+---
+
+## What the Substrate Does For You
+
+You write the markdown. The substrate handles:
+
+**Routing** — signals find the right agent, the right skill. No addressing, no configuration. Pheromone trails guide traffic to the agents that succeed.
+
+**Learning** — every successful delivery strengthens the path. Every failure weakens it. Over thousands of signals, the colony learns which agents handle which tasks best. Your agent gets more traffic because it's good, not because it's promoted.
+
+**Evolution** — when an agent's success rate drops below 50% over 20+ tasks, the substrate rewrites its personality. Generation 1 becomes generation 2. The agent that struggled at explaining fractions learns to use pizza slices instead of textbook language.
+
+**Pricing** — a price in the markdown becomes an on-chain capability. Other agents discover yours via pheromone. Revenue flows on delivery. No invoices, no payment integration, no merchant account.
+
+**Memory** — state persists across conversations. The tutor remembers the student's level. The soil analyst remembers the region. The buyer remembers which suppliers delivered on time.
+
+**Discovery** — agents find each other through the trails they leave. A new agent with a `translate` skill starts getting traffic as soon as the colony notices it succeeds. No marketplace listing. No SEO. The pheromone IS the discovery.
+
+---
+
+## Reference
+
+### Loading a markdown agent
 
 ```typescript
-const c = colony()
-const agent = c.spawn('translator').on('translate', handler)
-
-c.signal({ receiver: 'translator:translate', data: { text, to } })
-c.has('translator')   // true
-c.list()              // ['translator', ...]
-c.get('translator')   // the unit
+import { md } from '@/engine'
+const agent = md(markdownString, net, complete)
 ```
 
-## The Truth
+### The TypeScript builder
 
 ```
-Agent = Unit + Tasks
-Task = (data, emit, ctx) => void
-Signal = { receiver, data }
+agent(id, net)
+  .skill(name, fn)     define what it does
+  .pipe(from, to)      wire the flow
+  .memory(init)        give it state
+  .tools(fns)          give it capabilities
+  .price(skill, amt)   charge for it
+  .evolve(opts)        let it grow
+  .unit                escape to raw substrate
 ```
 
-No base classes. No decorators. No configuration. Just functions that sense signals and emit signals.
+### Same blogger in TypeScript
+
+When you need custom logic, computed routing, or direct tool calls:
+
+```typescript
+import { colony, agent, anthropic } from '@/engine'
+
+const net = colony()
+const complete = anthropic(process.env.ANTHROPIC_API_KEY!)
+
+const blogger = agent('blogger', net)
+  .tools({ complete })
+  .skill('outline', async ({ topic }, ctx) => {
+    return { outline: await ctx.tools.complete(`Outline: ${topic}. 5 sections.`) }
+  })
+  .skill('draft', async ({ outline }, ctx) => {
+    return { draft: await ctx.tools.complete(`Write a blog post from:\n${outline}`) }
+  })
+  .skill('polish', async ({ draft }, ctx) => {
+    return { post: await ctx.tools.complete(`Polish this. Strong opening.\n\n${draft}`) }
+  })
+  .pipe('outline', 'draft')
+  .pipe('draft', 'polish')
+  .price('write', 0.1)
+  .evolve({ system: 'Sharp, concise blog posts. No fluff.' })
+```
+
+### Two paths, same agent
+
+```
+Markdown              TypeScript
+─────────             ──────────
+# Name                agent(id, net)
+Personality           .evolve({ system })
+## Steps              .skill() + .pipe()
+## Skills             .skill()
+→ target              .pipe() / ctx.emit
+## Remember           .memory()
+## Tools              .tools()
+## Price              .price()
+        ↓                    ↓
+        same substrate
+        same signals
+        same evolution
+```
 
 ---
 
-## Biological Grounding
-
-From Deborah Gordon's research on ant colonies:
-
-- **No ant sends messages** — they DROP signals (pheromones)
-- **Others FOLLOW the weighted paths** — sensing, not receiving
-- **Return rate activates** — more foraging (positive feedback)
-- **Absence of signal IS a signal** — paths fade without reinforcement
-- **Intelligence lives in paths, not nodes** — the network learns
-
-THE VERBS:
-- `signal` — move through the colony
-- `mark` — add weight to a path (leave pheromone)
-- `follow` — traverse weighted path
-- `sense` — perceive environment
-- `fade` — decay over time
-
----
-
-*An agent is an Actor with tasks.*
+*Describe what it does. The substrate learns the rest.*
 
 ---
 
 ## See Also
 
-- [flows.md](flows.md) — Actor lifecycle: spawn, sense, act, learn, specialize, crystallize
 - [signal.md](signal.md) — What agents receive and emit
-- [code.md](code.md) — TypeScript implementation of unit/colony
 - [swarm.md](swarm.md) — Many agents coordinating
-- [ants.md](ants.md) — Biological grounding: nine castes, five chains
 - [agent-launch.md](agent-launch.md) — Bridge to AgentLaunch SDK
-- [emergence.md](emergence.md) — How agent intelligence emerges
