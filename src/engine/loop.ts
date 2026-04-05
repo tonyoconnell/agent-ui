@@ -10,10 +10,20 @@ import type { PersistentWorld } from './persist'
 
 type Complete = (prompt: string) => Promise<string>
 
+// ── Named constants ─────────────────────────────────────────────────────
+const HIGHWAY_THRESHOLD = 20       // net strength to skip LLM (confidence-based routing)
+const CHAIN_CAP = 5                // max chain depth multiplier
+const FADE_INTERVAL = 300_000      // 5 minutes between decay cycles
+const FADE_RATE = 0.05
+const EVOLUTION_INTERVAL = 600_000      // 10 minutes between evolution sweeps
+const EVOLUTION_COOLDOWN = 86_400_000   // 24 hours between rewrites per agent
+const CRYSTALLIZE_INTERVAL = 3_600_000  // 1 hour between knowledge cycles
+
 export type TickResult = {
   cycle: number
   selected: string | null
   success: boolean | null
+  skipped?: boolean
   highways: { path: string; strength: number }[]
   evolved?: number
   crystallized?: number
@@ -26,7 +36,7 @@ let lastDecay = 0
 let lastEvolve = 0
 let lastCrystallize = 0
 let previousTarget: string | null = null
-let chainDepth = 0  // Fix 5: longer successful chains = stronger marks
+let chainDepth = 0
 
 export const tick = async (net: PersistentWorld, complete?: Complete): Promise<TickResult> => {
   const now = Date.now()
@@ -37,31 +47,38 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
   const next = net.select()
   if (next) {
     result.selected = next
-    const outcome = await net.ask({ receiver: next })
     const edge = previousTarget ? `${previousTarget}→${next}` : `entry→${next}`
+    const netStrength = net.sense(edge) - net.danger(edge)
 
-    if (outcome.result !== undefined) {
-      // Success: reinforce the path. Longer chains = stronger signal (quality indicator).
+    if (netStrength >= HIGHWAY_THRESHOLD) {
+      // Highway: skip LLM, direct route — path is proven
       chainDepth++
-      net.mark(edge, Math.min(chainDepth, 5))  // cap at 5x — chain of 5 successes = strong mark
+      net.mark(edge, Math.min(chainDepth, CHAIN_CAP))
       previousTarget = next
       result.success = true
-    } else if (outcome.timeout) {
-      // Timeout: NOT the agent's fault. Don't warn. Don't break the chain.
-      // The path keeps its current strength — neutral outcome.
-      result.success = null
-    } else if (outcome.dissolved) {
-      // Dissolved: unit missing or capability missing. Mild warn (half strength).
-      net.warn(edge, 0.5)
-      previousTarget = null
-      chainDepth = 0
-      result.success = false
+      result.skipped = true
     } else {
-      // Actual failure: the agent responded with nothing useful. Full warn.
-      net.warn(edge, 1)
-      previousTarget = null
-      chainDepth = 0
-      result.success = false
+      // Normal ask path
+      const outcome = await net.ask({ receiver: next })
+
+      if (outcome.result !== undefined) {
+        chainDepth++
+        net.mark(edge, Math.min(chainDepth, CHAIN_CAP))
+        previousTarget = next
+        result.success = true
+      } else if (outcome.timeout) {
+        result.success = null
+      } else if (outcome.dissolved) {
+        net.warn(edge, 0.5)
+        previousTarget = null
+        chainDepth = 0
+        result.success = false
+      } else {
+        net.warn(edge, 1)
+        previousTarget = null
+        chainDepth = 0
+        result.success = false
+      }
     }
   }
 
@@ -69,18 +86,18 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
   net.drain()
 
   // L3: FADE — every 5 minutes (asymmetric: resistance decays 2x)
-  if (now - lastDecay > 300_000) {
-    net.fade(0.05)
+  if (now - lastDecay > FADE_INTERVAL) {
+    net.fade(FADE_RATE)
     lastDecay = now
   }
 
   // L5: EVOLVE — every 10 minutes, with 24h cooldown + prompt history
-  if (complete && now - lastEvolve > 600_000) {
+  if (complete && now - lastEvolve > EVOLUTION_INTERVAL) {
     const struggling = await readParsed(`
       match $u isa unit, has uid $id, has system-prompt $sp, has success-rate $sr,
             has sample-count $sc, has generation $g;
       $sr < 0.50; $sc >= 20;
-      not { $u has last-evolved $le; $le > ${new Date(now - 86_400_000).toISOString().replace('Z', '')}; };
+      not { $u has last-evolved $le; $le > ${new Date(now - EVOLUTION_COOLDOWN).toISOString().replace('Z', '')}; };
       select $id, $sp, $sr, $sc, $g;
     `).catch(() => [])
 
@@ -107,7 +124,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
   }
 
   // L6+L7: CRYSTALLIZE + HYPOTHESIZE + FRONTIER — every hour
-  if (now - lastCrystallize > 3_600_000) {
+  if (now - lastCrystallize > CRYSTALLIZE_INTERVAL) {
     // L6: know strong paths
     const insights = await net.know()
 
