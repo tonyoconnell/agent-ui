@@ -123,6 +123,14 @@ export default {
       }
     }
 
+    // Index — useful for health checks on root
+    if (url.pathname === '/' || url.pathname === '') {
+      return Response.json(
+        { status: 'ok', service: 'one-gateway', version: env.VERSION, database: env.TYPEDB_DATABASE },
+        { headers },
+      )
+    }
+
     return Response.json({ error: 'Not found' }, { status: 404, headers })
   },
 }

@@ -1,0 +1,21 @@
+{
+  "name": "nanoclaw",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Edge-native agents on Cloudflare free tier",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 execute one --file=migrations/0001_init.sql",
+    "migrate:local": "wrangler d1 execute one --local --file=migrations/0001_init.sql",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^3.99.0"
+  }
+}

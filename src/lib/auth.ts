@@ -78,23 +78,28 @@ async function verifyPassword(data: {
 }
 
 export function createAuth() {
-  const env = {
+  // Public build-time config only
+  const publicEnv = {
     TYPEDB_URL: import.meta.env.TYPEDB_URL || "",
     TYPEDB_DATABASE: import.meta.env.TYPEDB_DATABASE || "",
-    TYPEDB_USERNAME: import.meta.env.TYPEDB_USERNAME || "admin",
-    TYPEDB_PASSWORD: import.meta.env.TYPEDB_PASSWORD || "",
     BETTER_AUTH_SECRET: import.meta.env.BETTER_AUTH_SECRET || "",
     PUBLIC_SITE_URL: import.meta.env.PUBLIC_SITE_URL || "http://localhost:4321",
   };
 
+  // Runtime/secret config (from Worker env, not build time)
+  const runtimeEnv = {
+    TYPEDB_USERNAME: (globalThis as any).TYPEDB_USERNAME || "admin",
+    TYPEDB_PASSWORD: (globalThis as any).TYPEDB_PASSWORD || "",
+  };
+
   return betterAuth({
-    ...(env.BETTER_AUTH_SECRET && { secret: env.BETTER_AUTH_SECRET }),
+    ...(publicEnv.BETTER_AUTH_SECRET && { secret: publicEnv.BETTER_AUTH_SECRET }),
 
     database: typedbAdapter({
-      url: env.TYPEDB_URL,
-      database: env.TYPEDB_DATABASE,
-      username: env.TYPEDB_USERNAME,
-      password: env.TYPEDB_PASSWORD,
+      url: publicEnv.TYPEDB_URL,
+      database: publicEnv.TYPEDB_DATABASE,
+      username: runtimeEnv.TYPEDB_USERNAME,
+      password: runtimeEnv.TYPEDB_PASSWORD,
     }),
 
     baseURL: env.PUBLIC_SITE_URL,

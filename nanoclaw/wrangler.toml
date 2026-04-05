@@ -1,0 +1,41 @@
+# NanoClaw — Edge-native agents on Cloudflare free tier
+name = "nanoclaw"
+main = "src/workers/router.ts"
+workers_dev = true
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+VERSION = "1.0.0"
+GATEWAY_URL = "https://one-gateway.oneie.workers.dev"
+
+# D1 Database (same as gateway)
+[[d1_databases]]
+binding = "DB"
+database_name = "one"
+database_id = "0aa5fceb-667a-470e-b08c-40ead2f4525d"
+
+# KV Namespace (same as gateway)
+[[kv_namespaces]]
+binding = "KV"
+id = "1c1dac4766e54a2c85425022a3b1e9da"
+
+# Queue for agent processing
+[[queues.producers]]
+binding = "AGENT_QUEUE"
+queue = "nanoclaw-agents"
+
+[[queues.consumers]]
+queue = "nanoclaw-agents"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+
+# Cron for scheduled tasks
+[triggers]
+crons = ["* * * * *"]
+
+# Secrets (set with: wrangler secret put)
+# ANTHROPIC_API_KEY
+# TELEGRAM_TOKEN
+# DISCORD_TOKEN

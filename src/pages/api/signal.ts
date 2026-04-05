@@ -13,6 +13,21 @@
 import type { APIRoute } from 'astro'
 import { write, readParsed, writeSilent } from '@/lib/typedb'
 
+/** Validate UID format (alphanumeric, hyphens, colons only) */
+function validateUid(uid: string): boolean {
+  return /^[a-zA-Z0-9:_-]+$/.test(uid) && uid.length > 0 && uid.length <= 255
+}
+
+/** Escape TQL string values */
+function escapeTqlString(str: string): string {
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const { sender, receiver, data, amount = 0, task } = await request.json() as {
     sender: string
@@ -26,7 +41,23 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Missing sender or receiver' }), { status: 400 })
   }
 
-  const dataStr = data ? JSON.stringify(data).replace(/"/g, '\\"') : ''
+  // Validate UIDs to prevent TQL injection
+  if (!validateUid(sender)) {
+    return new Response(JSON.stringify({ error: 'Invalid sender format' }), { status: 400 })
+  }
+  if (!validateUid(receiver)) {
+    return new Response(JSON.stringify({ error: 'Invalid receiver format' }), { status: 400 })
+  }
+  if (task && !validateUid(task)) {
+    return new Response(JSON.stringify({ error: 'Invalid task format' }), { status: 400 })
+  }
+
+  // Validate amount
+  if (typeof amount !== 'number' || amount < 0 || amount > 1_000_000) {
+    return new Response(JSON.stringify({ error: 'Invalid amount' }), { status: 400 })
+  }
+
+  const dataStr = data ? escapeTqlString(data).slice(0, 10000) : ''
   const now = new Date().toISOString().replace('Z', '')
   const start = Date.now()
 
@@ -49,10 +80,11 @@ export const POST: APIRoute = async ({ request }) => {
     let result: string | null = null
 
     if (task) {
+      const escapedTask = escapeTqlString(task)
       const routes = await readParsed(`
         match
           $from isa unit, has uid "${receiver}";
-          $sk isa skill, has name $sn; $sn contains "${task}";
+          $sk isa skill, has name $sn; $sn contains "${escapedTask}";
           (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, offered: $sk) isa capability;
           $to has uid $id; $s >= 5.0;
@@ -132,7 +164,7 @@ export const POST: APIRoute = async ({ request }) => {
     // 4. Write result signal if we got one
     if (result && routed) {
       const resultNow = new Date().toISOString().replace('Z', '')
-      const resultStr = result.slice(0, 10000).replace(/"/g, '\\"').replace(/\n/g, '\\n')
+      const resultStr = escapeTqlString(result.slice(0, 10000))
       writeSilent(`
         match
           $from isa unit, has uid "${routed}";

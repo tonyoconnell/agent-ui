@@ -26,8 +26,11 @@ Step-by-step. Every command proven. Every link verified.
 - [x] **Step 6 e2e** — Gateway → TypeDB query → `conceptRows` OK
 - [x] **Step 7** — Sync worker deployed: https://one-sync.oneie.workers.dev → cron `*/5 * * * *`
 - [x] **Step 8** — Pages deployed: https://one-substrate.pages.dev → HTTP 200 in 0.3s
-- [x] **Step 9** — Seed data: 8 units, 8 skills, 1 group (marketing team) in TypeDB
+- [x] **Step 9** — Seed data: 18 units, 18 skills, 1 group in TypeDB (8 marketing + 5 example + 5 system)
 - [x] **Step 10** — Custom domains: one.ie (200), app.one.ie (200), api.one.ie/health → `{"status":"ok"}`
+- [x] **Step 10b** — R2 bucket `one-files` created (required when `pages_build_output_dir` set)
+- [x] **Step 10c** — Export APIs fixed: paths/highways/toxic use relation role syntax
+- [x] **Step 10d** — All 5 export endpoints return HTTP 200
 
 ---
 
@@ -572,6 +575,9 @@ OK
 | Sync API returns OK but TypeDB is empty | Pages can't read `import.meta.env` secrets at runtime | Set gateway URL as default in `typedb.ts`, or use `wrangler pages secret put` |
 | Custom domain disables workers.dev | Wrangler default behavior | Add `workers_dev = true` to wrangler.toml |
 | `routes` must be array | Single `[routes]` vs `[[routes]]` | Use `[[routes]]` (double bracket = TOML array) |
+| R2 bucket not found on Pages deploy | `pages_build_output_dir` in wrangler.toml makes Pages read all bindings | `npx wrangler r2 bucket create one-files` |
+| `fileURLToPath is not exported` | Static `import` of `node:url` in engine code | Use dynamic imports for Node APIs: `const fs = await import('node:fs')` |
+| Path export returns 500 | `has source $s` treats roles as attributes | Use relation syntax: `(source: $s, target: $t) isa path` |
 
 ---
 
@@ -693,18 +699,25 @@ cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy &
 | Sync | https://one-sync.oneie.workers.dev | cron `*/5 * * * *` |
 | TypeDB Cloud | `flsiu1-0.cluster.typedb.com:1729` | 8 units, 8 skills, 1 group |
 
-### Data in TypeDB
+### Data in TypeDB (18 units, 18 skills, 1 group)
 
 ```
-marketing world:
-  marketing:marketing-director — skill: strategize
-  marketing:creative           — skill: copy
-  marketing:content-writer     — skill: blog
-  marketing:seo-specialist     — skill: keywords
-  marketing:social-media       — skill: post
-  marketing:media-buyer        — skill: plan
-  marketing:ads-manager        — skill: setup
-  marketing:marketing-analyst  — skill: report
+marketing world (8):
+  marketing:marketing-director — strategize
+  marketing:creative           — copy
+  marketing:content-writer     — blog
+  marketing:seo-specialist     — keywords
+  marketing:social-media       — post
+  marketing:media-buyer        — plan
+  marketing:ads-manager        — setup
+  marketing:marketing-analyst  — report
+
+example agents (5):
+  spanish-tutor, research-assistant, code-helper,
+  writing-assistant, local-concierge
+
+system units (5):
+  router, scout, harvester, analyst, guard
 ```
 
 ---

@@ -4,27 +4,31 @@ import { readParsed } from '@/lib/typedb'
 export const GET: APIRoute = async ({ url }) => {
   const limit = parseInt(url.searchParams.get('limit') || '100', 10)
 
-  const results = await readParsed(`
-    match
-      $p isa path,
-        has source $s,
-        has target $t,
-        has strength $str,
-        has resistance $r;
-      $str > 30;
-    sort $str desc;
-    limit ${limit};
-    select $s, $t, $str, $r;
-  `)
+  try {
+    const results = await readParsed(`
+      match
+        (source: $s, target: $t) isa path, has strength $str, has resistance $r;
+        $s has uid $sid;
+        $t has uid $tid;
+        $str > 30;
+      sort $str desc;
+      limit ${limit};
+      select $sid, $tid, $str, $r;
+    `)
 
-  const highways = results.map(r => ({
-    from: r.s as string,
-    to: r.t as string,
-    strength: r.str as number,
-    resistance: r.r as number,
-  }))
+    const highways = results.map(r => ({
+      from: r.sid as string,
+      to: r.tid as string,
+      strength: r.str as number,
+      resistance: r.r as number,
+    }))
 
-  return Response.json(highways, {
-    headers: { 'Cache-Control': 'public, max-age=5' },
-  })
+    return Response.json(highways, {
+      headers: { 'Cache-Control': 'public, max-age=5' },
+    })
+  } catch {
+    return Response.json([], {
+      headers: { 'Cache-Control': 'public, max-age=5' },
+    })
+  }
 }

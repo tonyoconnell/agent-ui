@@ -14,11 +14,9 @@
 // Gateway URL (browser goes through Worker, server can go direct)
 const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://one-gateway.oneie.workers.dev'
 
-// Server-side direct config (optional — falls back to gateway)
+// Public config only (credentials moved to runtime/worker env)
 const TYPEDB_URL = import.meta.env.TYPEDB_URL || ''
 const TYPEDB_DATABASE = import.meta.env.TYPEDB_DATABASE || 'one'
-const TYPEDB_USERNAME = import.meta.env.TYPEDB_USERNAME || 'admin'
-const TYPEDB_PASSWORD = import.meta.env.TYPEDB_PASSWORD || ''
 
 // Token cache (server-side direct mode)
 let cachedToken: { token: string; expires: number } | null = null
@@ -28,10 +26,18 @@ async function getDirectToken(): Promise<string> {
     return cachedToken.token
   }
 
+  // Get credentials from runtime env (Worker context only, not build time)
+  const username = (globalThis as any).TYPEDB_USERNAME || 'admin'
+  const password = (globalThis as any).TYPEDB_PASSWORD || ''
+
+  if (!password) {
+    throw new Error('TYPEDB_PASSWORD not configured. Set via wrangler secret put TYPEDB_PASSWORD')
+  }
+
   const res = await fetch(`${TYPEDB_URL}/v1/signin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: TYPEDB_USERNAME, password: TYPEDB_PASSWORD }),
+    body: JSON.stringify({ username, password }),
   })
 
   if (!res.ok) throw new Error(`TypeDB signin failed: ${res.status}`)

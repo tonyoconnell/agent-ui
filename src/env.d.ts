@@ -9,15 +9,17 @@ interface Env {
   QUEUE: Queue
   R2: R2Bucket
 
-  // TypeDB (vars in wrangler.toml)
+  // TypeDB public config (vars in wrangler.toml)
   TYPEDB_URL: string
   TYPEDB_DATABASE: string
 
-  // Secrets (set via wrangler secret put)
-  TYPEDB_USERNAME: string
-  TYPEDB_PASSWORD: string
-  ANTHROPIC_API_KEY: string
-  CLOUDFLARE_GLOBAL_API_KEY: string
+  // Secrets (set via wrangler secret put — NOT in .env)
+  // CRITICAL: TYPEDB_USERNAME and TYPEDB_PASSWORD must be set via wrangler secret put
+  // Do not expose in build-time env. Access from globalThis in runtime context only.
+  TYPEDB_USERNAME?: string
+  TYPEDB_PASSWORD?: string
+  ANTHROPIC_API_KEY?: string
+  CLOUDFLARE_GLOBAL_API_KEY?: string
 }
 
 declare namespace App {
