@@ -1,0 +1,10 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { TeamBuilder } from "@/components/onboard/TeamBuilder"
+---
+
+<Layout title="Build Team — ONE">
+  <main class="px-4 py-16 sm:py-24">
+    <TeamBuilder client:load />
+  </main>
+</Layout>

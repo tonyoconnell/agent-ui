@@ -119,17 +119,133 @@ insert $s isa skill, has skill-id "api", has name "Build API",
   has tag "build", has tag "wire", has tag "P0";
 ```
 
+## Agent Markdown → TypeDB
+
+**Agents are markdown files. TypeDB is the brain. The template deploys to Cloudflare free.**
+
+### The Format
+
+```markdown
+---
+name: creative
+model: claude-sonnet-4-20250514
+channels: [telegram, discord]
+group: marketing
+skills:
+  - name: copy
+    price: 0.02
+    tags: [creative, copy, headlines]
+  - name: iterate
+    price: 0.02
+    tags: [creative, iteration]
+sensitivity: 0.6
+---
+
+You are the Creative Director...
+```
+
+### Markdown → TypeDB
+
+```typescript
+import { parse, syncAgent, toTypeDB } from '@/engine'
+
+// Parse markdown
+const spec = parse(markdown)
+
+// Generate TypeDB queries
+const queries = toTypeDB(spec)  // Returns insert statements
+
+// Sync to TypeDB
+await syncAgent(spec)  // Executes inserts
+```
+
+### What Gets Created in TypeDB
+
+```tql
+# Unit
+insert $u isa unit,
+  has uid "marketing:creative",
+  has name "creative",
+  has model "claude-sonnet-4-20250514",
+  has system-prompt "You are the Creative Director...",
+  has tag "marketing";
+
+# Skills
+insert $s isa skill, has skill-id "marketing:copy", has price 0.02, has tag "creative";
+
+# Capability (unit can do skill)
+insert (provider: $u, offered: $s) isa capability, has price 0.02;
+
+# Group membership
+insert (group: $g, member: $u) isa membership;
+```
+
+### Worlds (Agent Teams)
+
+```typescript
+import { syncWorld, wireWorld, type WorldSpec } from '@/engine'
+
+const world: WorldSpec = {
+  name: 'marketing',
+  description: 'Marketing team',
+  agents: [directorSpec, creativeSpec, mediaSpec, ...]
+}
+
+// Sync all to TypeDB
+await syncWorld(world)
+
+// Wire into runtime
+const units = wireWorld(world, net, complete)
+```
+
+### API Endpoint
+
+```bash
+# Sync single agent
+curl -X POST /api/agents/sync \
+  -d '{"markdown": "---\nname: tutor\n..."}'
+
+# Sync world
+curl -X POST /api/agents/sync \
+  -d '{"world": "marketing", "agents": [...]}'
+
+# Dry run (just get TypeDB queries)
+curl "/api/agents/sync?markdown=..."
+```
+
+### The Full Flow
+
+```
+agents/marketing/creative.md
+        │
+        ├── parse() ──────────► AgentSpec
+        │                           │
+        │                           ├── toTypeDB() ──► TQL inserts
+        │                           │
+        │                           ├── syncAgent() ──► TypeDB Cloud
+        │                           │
+        │                           └── wireAgent() ──► Runtime unit
+        │
+        └── CF Worker reads ──────► Live on Telegram/Discord
+                                       │
+                                       └── Substrate routes via weights
+```
+
 ## Directory Structure
 
 ```
 src/
-  engine/       # Core: world.ts, persist.ts, loop.ts, boot.ts, llm.ts
+  engine/       # Core: world.ts, persist.ts, loop.ts, boot.ts, llm.ts, agent-md.ts
   components/   # React 19 + shadcn/ui
   pages/        # Astro routes + API
   layouts/      # Astro layouts
   schema/       # TypeDB schema (world.tql)
   lib/          # TypeDB client, auth, utils
 docs/           # Architecture + strategy docs
+agents/         # Markdown agent definitions
+  marketing/    # Marketing team (world)
+  tutor.md      # Example: language tutor
+  researcher.md # Example: research assistant
 .claude/
   commands/     # Slash commands: /work, /tasks, /done, /grow, /highways
   rules/        # Auto-loaded rules for engine, react, astro
@@ -144,7 +260,8 @@ docs/           # Architecture + strategy docs
 | `loop.ts` | 164 | Growth tick: all 7 loops, chain depth, outcome handling |
 | `boot.ts` | 40 | Hydrate from TypeDB, add units, start tick |
 | `llm.ts` | 40 | LLM as unit: anthropic/openai adapters |
-| `index.ts` | 13 | Exports |
+| `agent-md.ts` | 280 | Parse markdown agents, sync to TypeDB, wire to runtime |
+| `index.ts` | 25 | Exports |
 
 ## Key Patterns
 

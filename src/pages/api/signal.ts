@@ -120,7 +120,7 @@ export const POST: APIRoute = async ({ request }) => {
             result = d.content[0].text
           }
         } catch {
-          // LLM call failed — alarm the path
+          // LLM call failed — warn the path
           result = null
         }
       }
@@ -147,7 +147,7 @@ export const POST: APIRoute = async ({ request }) => {
       `)
     }
 
-    // 5. Strengthen or alarm the path
+    // 5. Strengthen or warn the path
     if (success) {
       // mark() — strengthen path
       await write(`
@@ -168,7 +168,7 @@ export const POST: APIRoute = async ({ request }) => {
             $to isa unit, has uid "${receiver}";
           insert
             (source: $from, target: $to) isa path,
-              has strength 1.0, has alarm 0.0,
+              has strength 1.0, has resistance 0.0,
               has traversals 1, has revenue ${amount};
         `)
       })

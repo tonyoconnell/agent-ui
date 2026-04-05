@@ -1,246 +1,211 @@
-# TypeDB: The Substrate
+# TypeDB: The Brain
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                                                                 │
-│   ONE Ontology.  6 Dimensions.  6 Lessons.  TypeDB 3.0.         │
+│   ONE Ontology.  6 Dimensions.  TypeDB 3.0.                     │
 │                                                                 │
-│   Groups → Actors → Things → Connections → Events → Knowledge   │
+│   Groups → Actors → Things → Paths → Events → Knowledge        │
 │                                                                 │
-│   Everything else emerges.                                      │
+│   The runtime moves signals. TypeDB remembers.                  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
+## Connection
+
+```
+Server:   https://flsiu1-0.cluster.typedb.com:80
+Database: one
+Username: admin
+Password: (in .env as TYPEDB_PASSWORD)
+```
+
+Two modes:
+- **Server (SSR)**: direct to TypeDB Cloud with JWT auth
+- **Browser**: fetch → `PUBLIC_GATEWAY_URL` (Cloudflare Worker) → TypeDB Cloud
+
+```typescript
+import { read, write, readParsed, writeSilent, decay, callFunction } from '@/lib/typedb'
+```
+
+---
+
 ## Philosophy
 
-TypeDB is the substrate. TypeScript is the pulse.
+TypeDB is the brain. TypeScript is the nervous system.
 
-The **ONE Ontology** organizes reality into 6 dimensions. TypeDB stores the structure. Inference rules derive knowledge. The pulse moves signals through.
+Tasks are `.on()` handlers on units in the runtime. Dependencies are `.then()` continuations.
+Trails are strength/resistance entries in the runtime's scent map.
 
-The **6 Lessons** from ants-at-work add intelligence layers:
-
-```
-Dimension        What It Holds              TypeDB                Lesson
-───────────────────────────────────────────────────────────────────────────
-1. Groups        Swarms, hierarchies        entity group          —
-2. Actors        Units that process         entity unit           L1: Classification
-3. Things        Tasks, capabilities        entity task           L4: Task Allocation
-4. Connections   Weighted paths             relation path         L2: Quality Rules
-5. Events        Signals that flowed        relation signal       L5: Contribution
-6. Knowledge     Emerges from inference     fun highways()        L3+L6: Hypothesis + Emergence
-```
+TypeDB handles what *remains*:
+- Units persist (model, system-prompt, generation)
+- Paths persist (strength, resistance, revenue)
+- Signals recorded (event log)
+- Skills registered (capability relation)
+- Knowledge emerges (hypothesis, frontier, objective)
+- Classification inferred (path_status, unit_classification, needs_evolution)
 
 ---
 
-## Production Proof
+## Schema (`src/schema/world.tql`, ~230 lines)
 
-This architecture runs at scale:
+### Dimension 1: Groups
 
-```
-ants-at-work (sibling project)
-──────────────────────────────
-TypeDB Cloud:     cr0mc4-0.cluster.typedb.com
-Operations:       288 BILLION learning ops/day
-Patterns:         14,272 tracked, 519 winning (>52% WR)
-Uptime:           99.9%+
-Domain:           Stigmergic trading (STAN algorithm)
-
-Same architecture. Same patterns. Production proven.
-```
-
----
-
-## Schema (~80 lines)
+Containers. Hierarchy. Isolation boundaries.
 
 ```typeql
-define
-
-# ═══════════════════════════════════════════════════════════════
-# DIMENSION 1: GROUPS
-# Containers with optional hierarchy. Swarms of units.
-# ═══════════════════════════════════════════════════════════════
-
 entity group,
-    owns sid @key,
+    owns gid @key,
+    owns name,
     owns purpose,
+    owns group-type,              # "persona", "team", "colony", "dao"
+    owns status,
     owns created,
     plays hierarchy:parent,
-    plays hierarchy:child;
+    plays hierarchy:child,
+    plays membership:group;
 
 relation hierarchy,
     relates parent,
     relates child;
+```
 
-# ═══════════════════════════════════════════════════════════════
-# DIMENSION 2: ACTORS
-# Units that receive and process signals.
-# ═══════════════════════════════════════════════════════════════
+### Dimension 2: Actors
 
+Units that receive and process signals. Each has a brain (model + prompt + generation).
+
+```typeql
 entity unit,
     owns uid @key,
-    owns created,
+    owns name,
+    owns unit-kind,               # "human", "agent", "llm", "system"
+    owns wallet,                  # Sui address
+    owns status,                  # "active" | "proven" | "at-risk"
     owns balance,
+    owns reputation,
+    owns success-rate,            # 0.0-1.0
+    owns activity-score,          # 0.0-100.0
+    owns sample-count,            # interaction count
+    owns model,                   # "opus", "sonnet", "haiku"
+    owns system-prompt,           # mutable — evolves over time
+    owns generation,              # prompt iteration count
+    owns last-evolved,            # evolution cooldown
+    owns tag @card(0..),          # flat tags
+    owns cost-per-signal,         # model economics
+    owns created,
     plays path:source,
     plays path:target,
     plays capability:provider,
-    plays claim:claimer,
-    plays claim:owner,
     plays membership:member,
     plays signal:sender,
-    plays signal:receiver;
+    plays signal:receiver,
+    plays contribution-event:contributor-unit;
+```
 
-# ═══════════════════════════════════════════════════════════════
-# DIMENSION 3: THINGS
-# Tasks that units can perform. The "what" of the system.
-# ═══════════════════════════════════════════════════════════════
+### Dimension 3: Things (Skills)
 
-entity task,
-    owns name @key,
-    owns cost,
-    plays capability:skill,
-    plays claim:work,
-    plays continuation:trigger,
-    plays continuation:result;
+What units can do. A skill with `price > 0` is a service. No lifecycle — that lives in the runtime.
 
-# ═══════════════════════════════════════════════════════════════
-# DIMENSION 4: CONNECTIONS
-# Weighted paths between units. Pheromone trails.
-# ═══════════════════════════════════════════════════════════════
+```typeql
+entity skill,
+    owns skill-id @key,
+    owns name,
+    owns description,
+    owns tag @card(0..),          # "build", "wire", "P0", "frontend"
+    owns price,                   # x402 price (0 = free, >0 = paid)
+    owns currency,                # "SUI", "USDC", "FET"
+    plays capability:offered;
+```
 
-# The core pheromone trail
+### Dimension 4: Paths
+
+Weighted connections. Pheromone trails. The learning.
+
+```typeql
 relation path,
     relates source,
     relates target,
-    owns strength,
+    owns strength,                # mark() adds weight
+    owns alarm,                   # warn() adds weight
     owns traversals,
-    owns last-used;
+    owns revenue,                 # sum of x402 payments
+    owns last-used,
+    owns fade-rate,               # per-path decay
+    owns peak-strength,           # highest strength ever
+    owns path-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
 
-# What a unit can do
 relation capability,
     relates provider,
-    relates skill,
+    relates offered,
     owns price;
 
-# Task ownership
-relation claim,
-    relates claimer,
-    relates work,
-    relates owner,
-    owns claimed-at;
-
-# Group membership
 relation membership,
-    relates member,
     relates group,
+    relates member,
     owns joined-at;
+```
 
-# Pre-defined continuations (.then chains)
-relation continuation,
-    relates trigger,
-    relates result,
-    owns template;
+### Dimension 5: Events
 
-# ═══════════════════════════════════════════════════════════════
-# DIMENSION 5: EVENTS
-# Signals that flowed through the system.
-# ═══════════════════════════════════════════════════════════════
+Signals that flowed through the system.
 
+```typeql
 relation signal,
     relates sender,
     relates receiver,
-    owns payload,
+    owns data,                    # JSON string
+    owns amount,                  # x402 payment (0 = free)
+    owns success,
+    owns latency,                 # ms
     owns ts;
+```
 
-# ═══════════════════════════════════════════════════════════════
-# ATTRIBUTES
-# ═══════════════════════════════════════════════════════════════
+### Dimension 6: Knowledge
 
-# Identifiers
-uid sub attribute, value string;
-sid sub attribute, value string;
-name sub attribute, value string;
+Emerges from inference. Not stored, derived.
 
-# Descriptive
-purpose sub attribute, value string;
-template sub attribute, value string;
-payload sub attribute, value string;
+```typeql
+entity hypothesis,
+    owns hid @key,
+    owns statement,
+    owns hypothesis-status,       # "pending" | "testing" | "confirmed" | "rejected"
+    owns observations-count,
+    owns p-value,
+    owns action-ready;            # INFERRED
 
-# Numeric
-strength sub attribute, value double;
-balance sub attribute, value double;
-cost sub attribute, value double;
-price sub attribute, value double;
-traversals sub attribute, value integer;
+entity frontier,
+    owns fid @key,
+    owns frontier-type,
+    owns frontier-description,
+    owns expected-value,
+    owns frontier-status,         # "unexplored" | "exploring" | "exhausted"
+    plays spawns:frontier;
 
-# Temporal
-created sub attribute, value datetime;
-last-used sub attribute, value datetime;
-claimed-at sub attribute, value datetime;
-joined-at sub attribute, value datetime;
-ts sub attribute, value datetime;
+entity objective,
+    owns oid @key,
+    owns objective-type,
+    owns objective-description,
+    owns priority-score,
+    owns progress,                # 0.0-1.0
+    owns objective-status,        # "pending" | "active" | "complete"
+    plays spawns:objective;
 
-# ═══════════════════════════════════════════════════════════════
-# DIMENSION 6: KNOWLEDGE
-# Emerges from inference. Not stored, derived.
-# ═══════════════════════════════════════════════════════════════
+relation spawns,
+    relates frontier,
+    relates objective;
 
-# Detect highways (high-traffic paths)
-fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { path }:
-    match
-        $e (source: $from, target: $to) isa path,
-            has strength $s,
-            has traversals $t;
-        $s >= threshold;
-        $t >= min_traversals;
-    return { $e };
+entity contribution,
+    owns contribution-id @key,
+    owns impact-score,
+    owns contribution-type,       # "signal", "payment", "discovery"
+    plays contribution-event:contribution;
 
-# Find optimal route for a task
-fun optimal_route($from: unit, $task: task) -> unit:
-    match
-        (source: $from, target: $to) isa path, has strength $s;
-        (provider: $to, skill: $task) isa capability;
-    sort $s desc;
-    limit 1;
-    return $to;
-
-# Find cheapest provider for a task
-fun cheapest_provider($task: task) -> unit:
-    match
-        (provider: $u, skill: $task) isa capability, has price $p;
-    sort $p asc;
-    limit 1;
-    return $u;
-
-# Find collaborators in the same group
-fun collaborators($me: unit) -> { unit }:
-    match
-        (member: $me, group: $g) isa membership;
-        (member: $peer, group: $g) isa membership;
-        not { $me is $peer; };
-    return { $peer };
-
-# Count highways
-fun highway_count(threshold: double = 10.0) -> integer:
-    match
-        $e isa path, has strength $s;
-        $s >= threshold;
-    return count($e);
-
-# Get routing suggestion based on history
-fun suggest_route($from: unit, $task: task) -> { uid, strength }:
-    match
-        $from isa unit;
-        $task isa task;
-        (source: $from, target: $to) isa path, has strength $s;
-        (provider: $to, skill: $task) isa capability;
-        $to has uid $tid;
-        $s >= 5.0;
-    sort $s desc;
-    limit 5;
-    return { $tid, $s };
+relation contribution-event,
+    relates contributor-unit,
+    relates contribution;
 ```
 
 ---
@@ -252,94 +217,275 @@ fun suggest_route($from: unit, $task: task) -> { uid, strength }:
 │                           ONE ONTOLOGY                                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│   1. GROUPS                                                                 │
-│   ─────────                                                                 │
-│   Containers. Hierarchies. Isolation boundaries.                            │
+│   1. GROUPS          group (gid, purpose, group-type)                       │
+│                      hierarchy(parent, child)                               │
 │                                                                             │
-│   group "trading-group"                                                     │
-│     └── group "btc-analysis"                                                │
-│           └── group "sentiment-team"                                        │
+│   2. ACTORS          unit (uid, model, system-prompt, generation,           │
+│                            success-rate, balance, wallet, tags)             │
 │                                                                             │
-│   2. ACTORS                                                                 │
-│   ──────────                                                                │
-│   Units that receive and process signals.                                   │
+│   3. THINGS          skill (skill-id, name, price, currency, tags)          │
+│                      capability(provider, offered, price)                   │
 │                                                                             │
-│   unit "scout"     │ observes market                                        │
-│   unit "analyst"   │ analyzes data                                          │
-│   unit "trader"    │ executes trades                                        │
-│   unit "oracle"    │ answers questions                                      │
+│   4. PATHS           path(source, target) — strength, alarm, resistance,    │
+│                        revenue, fade-rate, peak-strength, traversals        │
+│                      membership(group, member)                              │
 │                                                                             │
-│   3. THINGS                                                                 │
-│   ──────────                                                                │
-│   Tasks. Capabilities. What can be done.                                    │
+│   5. EVENTS          signal(sender, receiver) — data, amount, success,      │
+│                        latency, ts                                          │
 │                                                                             │
-│   task "observe"   │ cost: 0.01                                             │
-│   task "analyze"   │ cost: 0.02                                             │
-│   task "execute"   │ cost: 0.05                                             │
-│                                                                             │
-│   4. CONNECTIONS                                                            │
-│   ───────────────                                                           │
-│   Weighted paths. Pheromone trails. The learning.                           │
-│                                                                             │
-│   scout ──[15.2]──▶ analyst     (highway forming)                           │
-│   analyst ──[8.4]──▶ trader                                                 │
-│   scout ──[0.3]──▶ trader       (weak, fading)                              │
-│                                                                             │
-│   5. EVENTS                                                                 │
-│   ──────────                                                                │
-│   Signals that flowed. History. Replay.                                     │
-│                                                                             │
-│   signal { scout → analyst, payload: { tick: 42500 }, ts: now }             │
-│   signal { analyst → trader, payload: { action: "long" }, ts: now+1s }      │
-│                                                                             │
-│   6. KNOWLEDGE                                                              │
-│   ─────────────                                                             │
-│   Emerges from inference. Not stored, derived.                              │
-│                                                                             │
-│   highways()           → paths with strength > 10                           │
-│   optimal_route()      → best path from history                             │
-│   cheapest_provider()  → lowest price for task                              │
-│   collaborators()      → peers in same group                                │
+│   6. KNOWLEDGE       hypothesis (statement, p-value, action-ready)          │
+│                      frontier (expected-value, status)                      │
+│                      objective (priority-score, progress)                   │
+│                      contribution (impact-score, type)                      │
+│                      spawns(frontier, objective)                            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
+## Classification Functions
+
+The deterministic sandwich. Every LLM call is wrapped in checks.
+
+```typeql
+# --- Path status ---
+fun path_status($e: path) -> string:
+    match $e has strength $s, has resistance $a, has traversals $t;
+    return first
+        if ($a > $s and $a >= 10.0) then "toxic"
+        else if ($s >= 50.0) then "highway"
+        else if ($s >= 10.0 and $s < 50.0 and $t < 10) then "fresh"
+        else if ($s > 0.0 and $s < 5.0) then "fading"
+        else "active";
+
+# --- Unit classification ---
+fun unit_classification($u: unit) -> string:
+    match $u has success-rate $sr, has activity-score $as, has sample-count $sc;
+    return first
+        if ($sr >= 0.75 and $as >= 70.0 and $sc >= 50) then "proven"
+        else if ($sr < 0.40 and $as >= 25.0 and $sc >= 30) then "at-risk"
+        else "active";
+
+# --- Evolution trigger ---
+fun needs_evolution($u: unit) -> boolean:
+    match $u has success-rate $sr, has sample-count $sc;
+          $sr < 0.50; $sc >= 20;
+    return first true;
+
+# --- Hypothesis readiness ---
+fun is_action_ready($h: hypothesis) -> boolean:
+    match $h has hypothesis-status "confirmed",
+          has p-value $p, has observations-count $n;
+          $p <= 0.05; $n >= 50;
+    return first true;
+```
+
+### Validation Functions (the sandwich)
+
+```typeql
+# PRE: Can this unit receive this skill?
+fun can_receive($u: unit, $sk: skill) -> boolean:
+    match (provider: $u, offered: $sk) isa capability;
+    return first true;
+
+# PRE: Is the path safe? (not toxic)
+fun is_safe($from: unit, $to: unit) -> boolean:
+    match (source: $from, target: $to) isa path, has strength $s, has resistance $a;
+    return first if ($a > $s and $a >= 10.0) then false else true;
+
+# PRE: Within budget?
+fun within_budget($u: unit, $sk: skill, $amount: double) -> boolean:
+    match (provider: $u, offered: $sk) isa capability, has price $p;
+    return first if ($amount >= $p) then true else false;
+
+# POST: Unit exists?
+fun unit_exists($uid: string) -> boolean:
+    match $u isa unit, has uid $uid;
+    return first true;
+
+# POST: Unit trustworthy?
+fun is_trustworthy($u: unit) -> boolean:
+    match $u has success-rate $sr, has sample-count $sc;
+    return first if ($sr >= 0.50 or $sc < 10) then true else false;
+
+# COMBINED: Full pre-flight
+fun preflight($from: unit, $to: unit, $sk: skill) -> boolean:
+    match (provider: $to, offered: $sk) isa capability;
+          (source: $from, target: $to) isa path, has strength $s, has resistance $a;
+    return first if ($a > $s and $a >= 10.0) then false else true;
+```
+
+---
+
+## Routing Functions
+
+```typeql
+# Top paths by strength
+fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { path }:
+    match $e isa path, has strength $s, has traversals $t;
+          $s >= threshold; $t >= min_traversals;
+    return { $e };
+
+# Single best route from unit to skill
+fun optimal_route($from: unit, $skill: skill) -> unit:
+    match (source: $from, target: $to) isa path, has strength $s;
+          (provider: $to, offered: $skill) isa capability;
+    sort $s desc; limit 1;
+    return $to;
+
+# Lowest price with capability
+fun cheapest_provider($skill: skill) -> unit:
+    match (provider: $u, offered: $skill) isa capability, has price $p;
+    sort $p asc; limit 1;
+    return $u;
+
+# Top 5 routes by strength
+fun suggest_route($from: unit, $skill: skill) -> { uid, strength }:
+    match $from isa unit; $skill isa skill;
+          (source: $from, target: $to) isa path, has strength $s;
+          (provider: $to, offered: $skill) isa capability;
+          $to has uid $id; $s >= 5.0;
+    sort $s desc; limit 5;
+    return { $id, $s };
+```
+
+---
+
+## Actor & Skill Functions
+
+```typeql
+fun proven_units() -> { unit }:
+    match $u isa unit, has status "proven";
+    return { $u };
+
+fun at_risk_units() -> { unit }:
+    match $u isa unit, has status "at-risk";
+    return { $u };
+
+fun units_by_kind($kind: string) -> { unit }:
+    match $u isa unit, has unit-kind $kind, has status "active";
+    return { $u };
+
+fun collaborators($me: unit) -> { unit }:
+    match (member: $me, group: $g) isa membership;
+          (member: $peer, group: $g) isa membership;
+          not { $me is $peer; };
+    return { $peer };
+
+fun group_members($group_name: string) -> { unit }:
+    match $grp isa group, has name $group_name;
+          (group: $grp, member: $u) isa membership;
+    return { $u };
+
+fun skills_by_tag($tag: string) -> { skill }:
+    match $s isa skill, has tag $tag;
+    return { $s };
+
+fun priced_skills($tag: string) -> { skill }:
+    match $s isa skill, has tag $tag, has price $p; $p > 0.0;
+    return { $s };
+
+fun units_by_tag($tag: string) -> { unit }:
+    match $u isa unit, has tag $tag;
+    return { $u };
+```
+
+---
+
+## Knowledge Functions
+
+```typeql
+fun actionable_hypotheses() -> { hypothesis }:
+    match $h isa hypothesis, has action-ready true;
+    return { $h };
+
+fun active_tests() -> { hypothesis }:
+    match $h isa hypothesis, has hypothesis-status "testing";
+    return { $h };
+
+fun promising_frontiers() -> { frontier }:
+    match $f isa frontier, has frontier-status "unexplored", has expected-value $ev;
+          $ev >= 0.5;
+    return { $f };
+
+fun active_objectives() -> { objective }:
+    match $o isa objective, has objective-status $s;
+          $s in ["pending", "active"];
+    return { $o };
+```
+
+---
+
+## Aggregate Functions
+
+```typeql
+fun total_contribution($name: string) -> double:
+    match $u isa unit, has name $name;
+          $ev(contributor-unit: $u, contribution: $c) isa contribution-event;
+          $c has impact-score $i;
+    return sum($i);
+
+fun highway_count(threshold: double = 10.0) -> integer:
+    match $e isa path, has strength $s; $s >= threshold;
+    return count($e);
+
+fun total_revenue() -> double:
+    match $e isa path, has revenue $r;
+    return sum($r);
+```
+
+---
+
 ## Queries
 
-### Structure
+### Create Structure
 
 ```typeql
 # Create a unit
 insert $u isa unit,
     has uid "scout",
+    has name "Scout",
+    has unit-kind "agent",
+    has model "sonnet",
+    has system-prompt "You observe and report findings.",
+    has generation 0,
     has balance 100.0,
+    has success-rate 1.0,
+    has activity-score 0.0,
+    has sample-count 0,
+    has status "active",
     has created 2026-01-01T00:00:00;
 
-# Create a task
-insert $t isa task,
-    has name "observe",
-    has cost 0.01;
+# Create a skill
+insert $s isa skill,
+    has skill-id "observe",
+    has name "Observe",
+    has tag "scout",
+    has tag "P0",
+    has price 0.01,
+    has currency "SUI";
 
 # Give unit a capability
 match
     $u isa unit, has uid "scout";
-    $t isa task, has name "observe";
+    $s isa skill, has skill-id "observe";
 insert
-    (provider: $u, skill: $t) isa capability, has price 0.02;
+    (provider: $u, offered: $s) isa capability, has price 0.02;
 
-# Create a group
-insert $s isa group,
-    has sid "trading-group",
-    has purpose "Market analysis and execution";
+# Create a group and add member
+insert $g isa group,
+    has gid "research",
+    has name "Research Team",
+    has group-type "team",
+    has purpose "Market analysis",
+    has status "active";
 
-# Join a group
 match
     $u isa unit, has uid "scout";
-    $s isa group, has sid "trading-group";
+    $g isa group, has gid "research";
 insert
-    (member: $u, group: $s) isa membership, has joined-at 2026-01-01T00:00:00;
+    (member: $u, group: $g) isa membership, has joined-at 2026-01-01T00:00:00;
 ```
 
 ### Paths & Learning
@@ -352,7 +498,9 @@ match
 insert
     (source: $from, target: $to) isa path,
         has strength 1.0,
+        has alarm 0.0,
         has traversals 1,
+        has revenue 0.0,
         has last-used 2026-01-01T12:00:00;
 
 # Strengthen existing path
@@ -369,20 +517,25 @@ insert
     $e has strength ($s + 1.0);
     $e has traversals ($t + 1);
 
-# Fade all paths (decay by 10%)
+# Warn path (add resistance)
 match
-    $e isa path, has strength $s;
+    $from isa unit, has uid "scout";
+    $to isa unit, has uid "bad-analyst";
+    $e (source: $from, target: $to) isa path,
+        has alarm $a;
 delete
-    $e has $s;
+    $e has $a;
 insert
-    $e has strength ($s * 0.9);
+    $e has alarm ($a + 1.0);
 
-# Clean up weak paths
-match
-    $e isa path, has strength $s;
-    $s < 0.01;
-delete
-    $e;
+# Fade all paths (asymmetric: strength 5%, alarm 10%)
+match $e isa path, has strength $s; $s > 0.01;
+delete $e has $s;
+insert $e has strength ($s * 0.95);
+
+match $e isa path, has alarm $a; $a > 0.01;
+delete $e has $a;
+insert $e has alarm ($a * 0.90);
 ```
 
 ### Routing & Intelligence
@@ -400,23 +553,16 @@ fetch $fid, $tid, $s;
 # Get optimal route
 match
     $from isa unit, has uid "scout";
-    $task isa task, has name "analyze";
-    let $to = optimal_route($from, $task);
+    $skill isa skill, has skill-id "analyze";
+    let $to = optimal_route($from, $skill);
     $to has uid $tid;
 fetch $tid;
-
-# Find cheapest provider
-match
-    $task isa task, has name "analyze";
-    let $u = cheapest_provider($task);
-    $u has uid $uid;
-fetch $uid;
 
 # Get routing suggestions
 match
     $from isa unit, has uid "scout";
-    $task isa task, has name "observe";
-    let { $tid, $s } in suggest_route($from, $task);
+    $skill isa skill, has skill-id "observe";
+    let { $tid, $s } in suggest_route($from, $skill);
 fetch $tid, $s;
 
 # Find collaborators
@@ -425,38 +571,13 @@ match
     let $peer in collaborators($me);
     $peer has uid $pid;
 fetch $pid;
-```
 
-### Claims & Payments
-
-```typeql
-# Claim a task
+# Check if path is toxic
 match
-    $claimer isa unit, has uid "analyst";
-    $task isa task, has name "analyze-btc";
-    $owner isa unit, has uid "scout";
-insert
-    (claimer: $claimer, work: $task, owner: $owner) isa claim,
-        has claimed-at 2026-01-01T12:00:00;
-
-# Check if task is claimed
-match
-    $t isa task, has name "analyze-btc";
-    (claimer: $u, work: $t) isa claim;
-    $u has uid $uid;
-fetch $uid;
-
-# Transfer payment
-match
-    $from isa unit, has uid "scout", has balance $fb;
-    $to isa unit, has uid "analyst", has balance $tb;
-    $fb >= 10.0;
-delete
-    $from has $fb;
-    $to has $tb;
-insert
-    $from has balance ($fb - 10.0);
-    $to has balance ($tb + 10.0);
+    $from isa unit, has uid "scout";
+    $to isa unit, has uid "bad-analyst";
+    let $safe = is_safe($from, $to);
+fetch $safe;
 ```
 
 ### Signal History
@@ -468,124 +589,78 @@ match
     $to isa unit, has uid "analyst";
 insert
     (sender: $from, receiver: $to) isa signal,
-        has payload "{ \"tick\": 42500.00 }",
+        has data "{ \"tick\": 42500 }",
+        has amount 0.01,
+        has success true,
+        has latency 120.0,
         has ts 2026-01-01T12:00:00;
 
 # Replay signals from last hour
 match
     $s (sender: $from, receiver: $to) isa signal,
         has ts $t,
-        has payload $p;
+        has data $d;
     $t > 2026-01-01T11:00:00;
     $from has uid $fid;
     $to has uid $tid;
 sort $t asc;
-fetch $fid, $tid, $p, $t;
+fetch $fid, $tid, $d, $t;
 ```
 
 ---
 
-## The Pulse (TypeScript Client)
+## TypeScript Client (`src/lib/typedb.ts`)
 
 ```typescript
-import { TypeDB } from 'typedb-driver'
+import { read, write, readParsed, writeSilent, decay, callFunction } from '@/lib/typedb'
 
-type Envelope = { receiver: string; payload?: unknown }
+// Read
+const rows = await readParsed('match $u isa unit, has name $n; fetch $n;')
 
-export const pulse = (db: TypeDB) => {
+// Write
+await write('insert $u isa unit, has uid "x", has name "X";')
 
-  const send = async ({ receiver, payload }: Envelope, from = 'entry') => {
-    const [unitId, taskName = 'default'] = receiver.split(':')
+// Fire and forget
+writeSilent('match $e isa path...; delete...; insert...;')
 
-    // Query substrate for best route
-    const route = await db.query(`
-      match
-        $from isa unit, has uid "${from}";
-        $task isa task, has name "${taskName}";
-        let { $tid, $s } in suggest_route($from, $task);
-      sort $s desc; limit 1;
-      fetch $tid;
-    `)
+// Asymmetric decay (strength 5%, alarm 20%)
+await decay(0.05, 0.20)
 
-    const target = route?.tid || unitId
-
-    // Strengthen path in substrate
-    await db.query(`
-      match
-        $from isa unit, has uid "${from}";
-        $to isa unit, has uid "${target}";
-        $e (source: $from, target: $to) isa path,
-            has strength $s,
-            has traversals $t;
-      delete $e has $s; $e has $t;
-      insert $e has strength ($s + 1.0); $e has traversals ($t + 1);
-    `)
-
-    // Record signal for replay
-    await db.query(`
-      match
-        $from isa unit, has uid "${from}";
-        $to isa unit, has uid "${target}";
-      insert
-        (sender: $from, receiver: $to) isa signal,
-          has payload "${JSON.stringify(payload)}",
-          has ts ${Date.now()};
-    `)
-
-    // Execute task (actual work happens here)
-    const result = await execute(target, taskName, payload)
-
-    // Query continuation from substrate
-    const cont = await db.query(`
-      match
-        $t isa task, has name "${taskName}";
-        (trigger: $t, result: $next) isa continuation, has template $tmpl;
-        $next has name $n;
-      fetch $n, $tmpl;
-    `)
-
-    // Continue the chain
-    if (cont) {
-      const nextEnvelope = JSON.parse(
-        cont.tmpl.replace('result', JSON.stringify(result))
-      )
-      await send(nextEnvelope, receiver)
-    }
-
-    return result
-  }
-
-  const fade = async (rate = 0.1) => {
-    // Decay all paths
-    await db.query(`
-      match $e isa path, has strength $s;
-      delete $e has $s;
-      insert $e has strength ($s * ${1 - rate});
-    `)
-
-    // Clean up weak paths
-    await db.query(`
-      match $e isa path, has strength $s; $s < 0.01;
-      delete $e;
-    `)
-  }
-
-  const highways = async (limit = 10) => {
-    return db.query(`
-      match
-        let $e in highways(10.0, 50);
-        $e (source: $from, target: $to), has strength $s;
-        $from has uid $fid;
-        $to has uid $tid;
-      sort $s desc;
-      limit ${limit};
-      fetch $fid, $tid, $s;
-    `)
-  }
-
-  return { send, fade, highways }
-}
+// Call a function
+const highways = await callFunction('highways', { threshold: 10.0, min_traversals: 50 })
 ```
+
+The client handles JWT auth automatically. Server-side goes direct to TypeDB Cloud.
+Browser goes through the Cloudflare Worker gateway.
+
+---
+
+## Status Thresholds
+
+### Paths
+
+| Status | Condition |
+|--------|-----------|
+| highway | strength >= 50 |
+| fresh | strength 10-50, traversals < 10 |
+| active | default |
+| fading | strength 0-5 |
+| toxic | alarm > strength AND alarm >= 10 |
+
+### Units
+
+| Status | Condition |
+|--------|-----------|
+| proven | success-rate >= 0.75, activity >= 70, samples >= 50 |
+| active | default |
+| at-risk | success-rate < 0.40, activity >= 25, samples >= 30 |
+
+### Evolution
+
+| Trigger | Condition |
+|---------|-----------|
+| needs_evolution | success-rate < 0.50, samples >= 20 |
+| is_action_ready | hypothesis confirmed, p-value <= 0.05, observations >= 50 |
 
 ---
 
@@ -595,43 +670,43 @@ export const pulse = (db: TypeDB) => {
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              EXTERNAL                                       │
 │                                                                             │
-│   HTTP        WebSocket       Streams         Cron                          │
-│     │              │             │              │                           │
-└─────┴──────────────┴─────────────┴──────────────┴───────────────────────────┘
+│   HTTP        WebSocket       Cron          Cloudflare Worker               │
+│     │              │            │                │                          │
+└─────┴──────────────┴────────────┴────────────────┴──────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           THE PULSE                                         │
-│                         (TypeScript)                                        │
+│                        src/lib/typedb.ts                                     │
 │                                                                             │
-│   send()     Query substrate → strengthen path → execute → continue         │
-│   fade()     Decay all paths, clean up weak ones                            │
-│   highways() Get top paths from inference                                   │
+│   read()           readParsed()     decay()                                 │
+│   write()          writeSilent()    callFunction()                          │
 │                                                                             │
-│   ~70 lines. Thin client. Real-time.                                        │
+│   Server: JWT → TypeDB Cloud direct                                         │
+│   Browser: fetch → Cloudflare Worker → TypeDB Cloud                         │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                               │
-                              │ TypeDB Driver
+                              │ HTTP + JWT
                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         THE SUBSTRATE                                       │
-│                      (TypeDB + ONE Ontology)                                │
+│                   TypeDB Cloud (the brain)                                   │
+│                   flsiu1-0.cluster.typedb.com                               │
 │                                                                             │
 │   ┌─────────────────────────────────────────────────────────────────────┐  │
 │   │  DIMENSION 1: GROUPS        │  DIMENSION 2: ACTORS                  │  │
-│   │  group (hierarchy)          │  unit (processors)                    │  │
+│   │  group (hierarchy)          │  unit (model, prompt, generation)     │  │
 │   ├─────────────────────────────┼───────────────────────────────────────┤  │
-│   │  DIMENSION 3: THINGS        │  DIMENSION 4: CONNECTIONS             │  │
-│   │  task (capabilities)        │  path (pheromone trails)              │  │
-│   │                             │  capability, claim, membership        │  │
+│   │  DIMENSION 3: THINGS        │  DIMENSION 4: PATHS                   │  │
+│   │  skill (price, currency)    │  path (strength, alarm, revenue)      │  │
+│   │  capability(provider,       │  membership(group, member)            │  │
+│   │    offered, price)          │                                       │  │
 │   ├─────────────────────────────┼───────────────────────────────────────┤  │
 │   │  DIMENSION 5: EVENTS        │  DIMENSION 6: KNOWLEDGE               │  │
-│   │  signal (history)           │  highways(), optimal_route()          │  │
-│   │                             │  cheapest_provider(), collaborators() │  │
+│   │  signal (data, amount,      │  hypothesis, frontier, objective      │  │
+│   │    success, latency)        │  contribution, spawns                 │  │
 │   └─────────────────────────────┴───────────────────────────────────────┘  │
 │                                                                             │
-│   ~80 lines of TypeQL. Inference derives knowledge.                         │
+│   25+ functions: routing, classification, validation, aggregates            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -646,41 +721,13 @@ What emerges without being programmed:
 |----------|----------------|
 | **Load balancing** | Overloaded units get expensive → `cheapest_provider()` routes elsewhere |
 | **Specialization** | Units that succeed have strong paths → `optimal_route()` sends more |
-| **Fault tolerance** | Failed units don't strengthen paths → signals naturally reroute |
+| **Fault tolerance** | Failed units accumulate alarm → signals naturally reroute |
 | **Team formation** | `collaborators()` derives peers from shared `membership` |
 | **Cost optimization** | `cheapest_provider()` always finds lowest price |
 | **Highway formation** | `highways()` identifies high-traffic paths in real-time |
+| **Self-improvement** | `needs_evolution()` triggers prompt rewrite when performance drops |
+| **Forgiveness** | Asymmetric decay — alarm fades 2x faster than strength |
 | **Audit trail** | `signal` relation stores complete history for replay |
-
----
-
-## Summary
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│   ONE Ontology                                                  │
-│   ────────────                                                  │
-│   6 dimensions: Groups, Actors, Things,                         │
-│                 Connections, Events, Knowledge                  │
-│                                                                 │
-│   TypeDB Substrate                                              │
-│   ────────────────                                              │
-│   ~80 lines of schema. Inference functions.                     │
-│   Knowledge emerges, not stored.                                │
-│                                                                 │
-│   TypeScript Pulse                                              │
-│   ────────────────                                              │
-│   ~70 lines. Thin client. Real-time signal flow.                │
-│   Queries substrate, executes tasks, writes back.               │
-│                                                                 │
-│   Production Proven                                             │
-│   ─────────────────                                             │
-│   ants-at-work runs this at 288B ops/day.                       │
-│   Same patterns. Same architecture. It works.                   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -688,62 +735,47 @@ What emerges without being programmed:
 
 ```
 src/schema/
-├── one.tql                    # THE schema (~330 lines)
-│                              # 6 dimensions + 6 lessons + commerce + inference + functions
-├── sui.tql                    # Sui Move contracts as TypeQL
-└── skins.tql              # Universal metaphor functions
+├── world.tql          # THE schema (~230 lines): 6 dimensions + 25+ functions
+├── skins.tql          # Domain-agnostic ontology (actor/group/connection)
+├── sui.tql            # On-chain mirror: Move structs as TQL entities
+├── agents.tql         # Legacy envelope system
+├── seeds/             # Seed data (engineering-team.tql)
+├── patterns/          # Pattern libraries (genesis, substrate, classification, etc.)
+└── archive/           # Old versions
 
-packages/typedb-inference-patterns/
-├── standalone/                # Individual lesson TQL files
-│   ├── classification.tql     # L1: Multi-attribute tier detection
-│   ├── quality-rules.tql      # L2: Automatic quality bands
-│   ├── hypothesis-lifecycle.tql  # L3: State machines via inference
-│   ├── task-management.tql    # L4: Negation + pheromone selection
-│   ├── contribution-tracking.tql # L5: Aggregates + synergy
-│   └── autonomous-goals.tql   # L6: Frontier detection + goal spawning
-├── runtime/
-│   └── world.ts              # 70-line substrate implementing all 6 lessons
-├── SUBSTRATE-MAPPING.md       # TypeDB ↔ Substrate architecture
-├── ECONOMICS.md               # FET token model + pheromone costs
-├── SWARMS.md                  # Dynamic group formation patterns
-├── LOOPS.md                   # Deterministic + probabilistic inference
-├── LIFECYCLE.md               # State machines for all entity types
-└── OPERATIONS.md              # Complete WRITE operations reference
-```
-
-## The 6 Lessons
-
-| # | Lesson | Pattern | TypeDB | Substrate |
-|---|--------|---------|--------|-----------|
-| 1 | **Perception** | Classification | `fun elite_units()` | `.on('classify')` |
-| 2 | **Homeostasis** | Quality bands | `fun high_quality()` | `.on('validate')` |
-| 3 | **Hypothesis** | State machine | `fun action_ready()` | `.on('observe')` |
-| 4 | **Task Allocation** | Negation + pheromone | `fun ready_tasks()` | `.on('query-ready')` |
-| 5 | **Contribution** | Aggregates | `fun total_contribution()` | `.on('record')` |
-| 6 | **Emergence** | Autonomous goals | `fun promising_frontiers()` | `.on('detect-frontier')` |
-
-Each lesson maps to biology (Deborah Gordon, "Ant Encounters"):
-
-```
-L1 Perception     = Ants reading cuticular hydrocarbons (chemical ID)
-L2 Homeostasis    = Response thresholds (different ants switch at different rates)
-L3 Hypothesis     = Probabilistic task switching (accumulate evidence → transition)
-L4 Task Allocation = Foraging without instructions (negation: "what ISN'T being done?")
-L5 Contribution   = Interaction rates measuring flow (aggregate pheromone)
-L6 Emergence      = World-level adaptation (no ant decides, goals emerge)
+src/lib/
+├── typedb.ts          # TypeDB client: read/write/decay/callFunction
+└── typedb-auth-adapter.ts  # TypeDB adapter for Better Auth
 ```
 
 ---
 
-*ONE Ontology. 6 Lessons. TypeDB 3.0. The substrate for AI agent economies.*
+## Runtime Mapping
+
+| Schema | Runtime (DSL) |
+|--------|---------------|
+| `unit` entity | `w.add(id)` / `w.actor(id)` |
+| `path.strength` | `mark(path)` increments |
+| `path.alarm` | `warn(path)` increments |
+| `signal` relation | `emit({ receiver, data })` |
+| `skill` + `capability` | unit `.on()` handler + TypeDB registration |
+| `highways()` | `w.highways(n)` |
+| `suggest_route()` | routing decision from TypeDB |
+| `needs_evolution()` | trigger for agent self-improvement |
+| `is_safe()` | pre-check in the deterministic sandwich |
+| `preflight()` | combined pre-check before LLM call |
+| `fade()` via client | `w.fade(rate)` / `decay(0.05, 0.20)` |
+
+---
+
+*TypeDB thinks. The runtime moves. `world.tql` is the source of truth.*
 
 ---
 
 ## See Also
 
-- [flows.md](flows.md) — How paths and highways persist through TypeDB
-- [ontology.md](ontology.md) — Inference rules driving system behavior
-- [one-ontology.md](one-ontology.md) — Six dimensions stored in TypeDB schema
-- [substrate-learning.md](substrate-learning.md) — Learning model TypeDB persists
-- [integration.md](integration.md) — TypeDB's role in the full system
-- [the-stack.md](the-stack.md) — TypeDB as one of two fires
+- [DSL.md](DSL.md) — The signal language and six verbs
+- [cloudflare.md](cloudflare.md) — TypeDB → KV sync, edge reads
+- [metaphors.md](metaphors.md) — Same DSL, different vocabularies
+- [flow.md](flow.md) — How paths and highways persist
+- [migration.md](migration.md) — Schema evolution notes

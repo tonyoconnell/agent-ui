@@ -24,7 +24,7 @@ The fix isn't smarter layers. It's fewer layers.
 
 ## The Substrate Approach
 
-Two dictionaries. Arithmetic. One probabilistic step.
+Two dictionaries. Arithmetic. One probabilistic step. One formula.
 
 ```
 Signal → [strength/resistance check] → [LLM] → [outcome measurement] → mark()/warn()
@@ -32,6 +32,16 @@ Signal → [strength/resistance check] → [LLM] → [outcome measurement] → m
 ```
 
 The LLM is the only uncertain thing. Everything else is a dictionary lookup and a comparison. That's the architecture. The rest is consequences.
+
+### The Formula
+
+One formula governs all probabilistic routing:
+
+```
+weight = 1 + max(0, strength - resistance) × sensitivity
+```
+
+The `1` ensures every known path is reachable — even with zero weight. No path is invisible, just expensive. `sensitivity` is a per-unit parameter that controls how strongly weight influences routing. Low sensitivity = exploration. High sensitivity = exploitation. The substrate doesn't program roles — sensitivity creates them.
 
 ---
 
@@ -135,7 +145,21 @@ w.actor('lora-legal', 'adapter')
 
 Static routing keeps sending traffic to a stale adapter. The substrate measures outcomes — if the adapter stops working, resistance accumulates, the path goes toxic, traffic reroutes. No human intervention.
 
-### 3. Continuous Measurement — Usage Informs Routing
+### 3. Continuous Training — The Tick Loop
+
+Every 10 seconds, the substrate breathes:
+
+```
+SELECT  →  weighted random from weight landscape
+ASK     →  toxic check + capability check + signal + wait
+OUTCOME →  result? mark(depth). timeout? neutral. dissolved? warn(0.5). failure? warn(1).
+DRAIN   →  process highest-priority queued signal
+FADE    →  every 5 min: strength *= 0.95, resistance *= 0.90
+EVOLVE  →  every 10 min: rewrite struggling agent prompts
+KNOW    →  every hour: crystallize highways, detect frontiers
+```
+
+This is the continuous training loop. It never stops. Every signal is a training sample. Every outcome updates the routing table. The gap between "what the system knows" and "what's happening now" is exactly one signal.
 
 ```typescript
 async function serve(prompt: string) {
@@ -147,7 +171,23 @@ async function serve(prompt: string) {
 }
 ```
 
-Every call updates the routing table. The gap between "what the system knows" and "what's happening now" is exactly one signal. Traditional systems retrain weekly or monthly. Between retrains, the routing is stale.
+Traditional systems retrain weekly or monthly. Between retrains, the routing is stale. The substrate trains continuously — every signal updates weights, every outcome adjusts routing, every fade cycle forgives old failures.
+
+### Chain Depth — Sequential Success as Training Signal
+
+Isolated successes are common. Sequential successes are rare and meaningful.
+
+```
+signal → unit A → result → mark(edge, depth=1)
+                     ↓
+signal → unit B → result → mark(edge, depth=2)
+                     ↓
+signal → unit C → result → mark(edge, depth=3)
+```
+
+A chain of 5 consecutive successes deposits 5× weight on the final edge. Five isolated successes deposit 1× each. Same total signals, different information. The chain says: "this path doesn't just work sometimes — it works reliably, in sequence, under real load."
+
+A failure anywhere resets the chain. This is a one-variable quality metric. No scorer. No reward model. The chain length IS the quality signal.
 
 ### 4. Queue + Spawn — Work Before Workers
 
@@ -185,17 +225,49 @@ The pre-check is arithmetic. The post-check is measurement. The LLM is sandwiche
 
 ---
 
+## Emergent Specialization — Castes From One Formula
+
+Different sensitivity values create different routing behavior from the same weight landscape. No one programs the roles.
+
+```
+THE SAME WEIGHT MAP:
+
+entry ══(60)══► scout ══(55)══► analyst ══(40)══► reporter
+                  │
+                  └──(8)──► explorer ──(3)──► unknown
+
+
+SCOUT (sensitivity = 0.2):              HARVESTER (sensitivity = 0.9):
+
+weight(→analyst)  = 1 + 55×0.2 = 12    weight(→analyst)  = 1 + 55×0.9 = 50.5
+weight(→explorer) = 1 + 8×0.2  = 2.6   weight(→explorer) = 1 + 8×0.9  = 8.2
+weight(→unknown)  = 1 + 3×0.2  = 1.6   weight(→unknown)  = 1 + 3×0.9  = 3.7
+
+analyst 74%, explorer 16%, unknown 10%  analyst 81%, explorer 13%, unknown 6%
+Scouts still explore weak paths often.  Harvesters strongly prefer highways.
+```
+
+This is continuous training producing specialization without training. The weight landscape is shared data. Sensitivity is the "learning rate" per unit. Low sensitivity units explore broadly — they're the world's curiosity. High sensitivity units exploit proven paths — they're the world's reliability. Both emerge from one formula.
+
+For LLMs, this means: a new model enters with low sensitivity (explore broadly, prove itself on diverse tasks). As it proves reliable on specific skills, its effective sensitivity increases on those paths. A model that's great at code but mediocre at legal gets routed code signals — not because someone configured it, but because weight accumulated on the code paths.
+
+---
+
 ## What Happens Over Time
 
 ```
 Week 1:   World is cold. select() explores broadly.
-          Every signal deposits pheromone. Paths form.
+          Every signal deposits weight. Paths form.
+          All units behave like scouts — exploring everything.
 
 Week 4:   Strong paths emerge. Common signals follow highways.
           Exploration continues at the configured rate (default 30%).
+          Specialization begins — some units prove better at some skills.
 
-Week 12:  Highways know. fade-rate drops to 0.01. Near permanent.
-          Struggling agents have been evolved. Prompts are refined.
+Week 12:  Highways crystallized. fade-rate drops to 0.01. Near permanent.
+          Struggling agents have been evolved (L5). Prompts refined.
+          Frontier detection (L7) finds unexplored skill clusters.
+          The system has both specialists and scouts — from one formula.
 ```
 
 The timeline depends on workload volume and repetitiveness. High-volume, repetitive workloads converge fast. Novel, creative workloads keep exploring longer. The substrate adapts to the workload's actual structure — it doesn't assume one.
@@ -217,9 +289,15 @@ The timeline depends on workload volume and repetitiveness. High-volume, repetit
 
 The power is in the combination. LLMs provide intelligence. The substrate provides routing, measurement, memory, and forgiveness. The LLM doesn't need to know which path is best — the strength map does. The strength map doesn't need to generate text — the LLM does.
 
-**The analogy that holds:** This is to AI routing what ant colonies are to pathfinding. No ant knows the shortest path. The pheromone map does. No unit knows which model is best. The strength map does.
+**The analogy that holds:** This is to AI routing what ant colonies are to pathfinding. No ant knows the shortest path. The pheromone map does. No unit knows which model is best. The weight map does.
 
-**The analogy that breaks:** This is not "training" in the ML sense. `mark()` is not gradient descent. `strength` is not a weight matrix. Calling it training invites a comparison the substrate loses. Calling it what it is — adaptive routing with memory — invites a comparison it wins.
+**The analogy that breaks — and where it comes back:** `mark()` is not gradient descent. `strength` is not a weight matrix. But the *function* is the same: both adjust numerical parameters based on outcomes to improve future performance. The substrate trains at the routing layer, not the representation layer. It doesn't learn what words mean — it learns which paths work. Gradient descent optimizes weights inside a model. Pheromone optimizes weights between models. Both are continuous. Both are automatic. Both produce specialization from undifferentiated starts.
+
+**Two routing modes, two kinds of knowledge:**
+- `follow()` — deterministic. Always picks the strongest path. This is consolidated memory. "What's the proven route?"
+- `select()` — stochastic. Weighted random with sensitivity. This is active behavior. "Where should I go next?"
+
+`follow()` is recall. `select()` is decision. The substrate needs both — `follow()` to query what it knows, `select()` to decide what it does. Training happens through `select()` (exploration creates data). Knowledge crystallizes through `follow()` (proven paths become highways).
 
 ---
 
@@ -242,9 +320,9 @@ Seven infrastructure categories. Two dictionaries. ~90 lines.
 ## See Also
 
 - [llms.md](llms.md) — The deterministic sandwich, the three powers, and convergence
-- [substrate-learning.md](substrate-learning.md) — How pheromone encodes routing history
+- [substrate-learning.md](substrate-learning.md) — How weight encodes routing history
 - [metaphors.md](metaphors.md) — Six skins, one truth
 
 ---
 
-*Two dictionaries. Arithmetic. The colony learns what works.*
+*Two dictionaries. Arithmetic. The world learns what works.*

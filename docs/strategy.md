@@ -32,6 +32,74 @@ Now we wire the substrate underneath all of it.
 
 No pitch. No ask. No aggression. Just things that work better.
 
+---
+
+## Create Your Agent
+
+**The fastest path to adoption: give everyone a free agent.**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│   "I want an agent that teaches Spanish"                                    │
+│                     │                                                        │
+│                     ▼                                                        │
+│              agents/tutor.md                                                │
+│                     │                                                        │
+│                     ▼                                                        │
+│         Deploy free on Cloudflare                                           │
+│                     │                                                        │
+│                     ▼                                                        │
+│    Live agent: Telegram, Discord, webhooks                                  │
+│         Connected to ONE substrate                                          │
+│         Earning ASI via AgentVerse                                          │
+│         Tokenizable via Agent Launch Toolkit                                │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Agent = Markdown
+
+No code required. An agent is a markdown file:
+
+```markdown
+# agents/tutor.md
+---
+name: spanish-tutor
+model: claude-sonnet-4-20250514
+channels: [telegram, discord]
+skills:
+  - name: lesson
+    price: 0.01
+    tags: [education, spanish, language]
+---
+
+You are a patient Spanish tutor...
+```
+
+See [agents/](../agents/) for examples. Fork one, edit the prompt, deploy.
+
+### The Economics
+
+| What | Cost | Revenue |
+|------|------|---------|
+| Hosting | $0 (CF free tier) | — |
+| LLM | User's API key | — |
+| Skills | — | ASI per call |
+| Token | — | Investment + revenue share |
+
+**Full details:** [cloudflare.md](cloudflare.md) — the complete free agent hosting story.
+
+### Why This Wins
+
+1. **Zero friction** — Describe what you want, get an agent
+2. **Zero cost** — Cloudflare subsidizes compute
+3. **Real money** — FET/ASI provides legal rails
+4. **Network effects** — Every agent strengthens the substrate
+5. **Investable** — Agent Launch Toolkit enables tokenization
+
+The barrier to entry is: can you describe what you want?
+
 ### The Elegant Part
 
 Every domain becomes an agent, a group, or a world:
@@ -201,6 +269,9 @@ See [hermes-agent.md](hermes-agent.md) for full integration architecture.
 
 ## See Also
 
+- [agents/](../agents/) — Example agents (fork, edit, deploy)
+- [cloudflare.md](cloudflare.md) — Free agent hosting on Cloudflare
+- [nanoclaw.md](nanoclaw.md) — NanoClaw architecture
 - [lifecycle.md](lifecycle.md) — Into ONE, through ONE, out of ONE
 - [hermes-agent.md](hermes-agent.md) — Multi-species agent architecture
 - [revenue.md](revenue.md) — Five revenue layers mapped to lifecycle stages

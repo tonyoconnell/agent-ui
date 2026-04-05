@@ -126,13 +126,13 @@ export async function writeBatch(queries: string[]): Promise<void> {
 }
 
 /**
- * Asymmetric decay: trail fades slow, alarm fades 2x faster.
+ * Asymmetric decay: strength fades slow, resistance fades 2x faster.
  * Per-path fade-rate when set, falls back to global defaults.
  * From ant biology: success persists, failure forgives.
  */
-export async function decay(trailRate = 0.05, alarmRate = 0.20): Promise<void> {
-  const tf = 1 - trailRate
-  const af = 1 - alarmRate
+export async function decay(strengthRate = 0.05, resistanceRate = 0.20): Promise<void> {
+  const tf = 1 - strengthRate
+  const af = 1 - resistanceRate
 
   await Promise.all([
     // Paths WITH per-path fade-rate: use it
@@ -142,9 +142,9 @@ export async function decay(trailRate = 0.05, alarmRate = 0.20): Promise<void> {
       insert $e has strength ($s * (1.0 - $r));
     `),
     writeSilent(`
-      match $e isa path, has alarm $a, has fade-rate $r; $a > 0.01;
+      match $e isa path, has resistance $a, has fade-rate $r; $a > 0.01;
       delete $a of $e;
-      insert $e has alarm ($a * (1.0 - $r * 2.0));
+      insert $e has resistance ($a * (1.0 - $r * 2.0));
     `),
     // Paths WITHOUT fade-rate: use global defaults
     writeSilent(`
@@ -154,10 +154,10 @@ export async function decay(trailRate = 0.05, alarmRate = 0.20): Promise<void> {
       insert $e has strength ($s * ${tf});
     `),
     writeSilent(`
-      match $e isa path, has alarm $a; $a > 0.01;
+      match $e isa path, has resistance $a; $a > 0.01;
       not { $e has fade-rate $r; };
       delete $a of $e;
-      insert $e has alarm ($a * ${af});
+      insert $e has resistance ($a * ${af});
     `),
   ])
 }

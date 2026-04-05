@@ -515,7 +515,7 @@ Only the words humans use to describe it.
 | File | What |
 |------|------|
 | `src/engine/world.ts` | `unit()`, `world()`, pheromone |
-| `src/engine/one.ts` | `world({ persist })`, 6 dimensions |
+| `src/engine/persist.ts` | `world()`, 6 dimensions, TypeDB persistence |
 | `src/schema/world.tql` | Schema, functions, classification |
 
 ---

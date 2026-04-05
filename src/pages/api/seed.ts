@@ -161,7 +161,7 @@ export const POST: APIRoute = async () => {
       insert
         (source: $from, target: $to) isa path,
           has strength ${p.strength}.0,
-          has alarm 0.0,
+          has resistance 0.0,
           has traversals 0,
           has revenue 0.0;
     `).catch(() => {})
@@ -214,7 +214,7 @@ export const POST: APIRoute = async () => {
       insert
         (source: $from, target: $to) isa path,
           has strength ${e.strength}.0,
-          has alarm 0.0,
+          has resistance 0.0,
           has traversals 0,
           has revenue ${e.revenue}.0;
     `).catch(() => {})

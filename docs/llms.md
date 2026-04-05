@@ -58,7 +58,7 @@ Both sides are just function calls. Plug in anything — rate limiters, auth ser
 ```typescript
 // Pre-checks are just functions. Add as many as you need.
 const pre = [
-  (edge: string) => !isToxic(edge),                    // pheromone: learned safety
+  (edge: string) => !isToxic(edge),                    // weight: learned safety
   (edge: string, s: Signal) => rateLimit(s.receiver),   // external: rate limiter
   (edge: string, s: Signal) => authCheck(s.data),        // external: auth service
   (edge: string, s: Signal) => inputPolicy(s.data),      // external: content rules
@@ -80,7 +80,7 @@ const post = [
 // If any post-check fails → warn() → path weakens → future signals reroute
 ```
 
-The key: every external security check is deterministic. The LLM can't negotiate with a rate limiter. It can't inject past a regex. It can't hallucinate a valid auth token. And if something slips through pre-checks but fails a post-check, the path accumulates resistance. The pheromone learns what the rules missed.
+The key: every external security check is deterministic. The LLM can't negotiate with a rate limiter. It can't inject past a regex. It can't hallucinate a valid auth token. And if something slips through pre-checks but fails a post-check, the path accumulates resistance. The weight learns what the rules missed.
 
 Two kinds of security working together:
 - **Rules** (pre/post checks) — catch known threats immediately. Zero learning needed.
@@ -89,6 +89,34 @@ Two kinds of security working together:
 Rules handle what you can anticipate. Pheromone handles what you can't. Both run in the same sandwich.
 
 ---
+
+A signal passes through three layers. Each layer is deterministic. Each can stop the signal before the LLM is called.
+
+```
+signal({ receiver: 'analyst:process', data })
+    │
+    ▼
+┌───────────────────────────────────┐
+│ 1. TOXIC CHECK                    │
+│    resistance ≥ 10                │
+│    resistance > strength × 2      │──→ dissolve (no cost)
+│    total signals > 5              │
+└───────────────┬───────────────────┘
+                │ pass
+                ▼
+┌───────────────────────────────────┐
+│ 2. CAPABILITY CHECK (ask only)    │
+│    TypeDB: does unit have skill?  │──→ dissolve (no LLM)
+└───────────────┬───────────────────┘
+                │ pass
+                ▼
+┌───────────────────────────────────┐
+│ 3. ROUTE + EXECUTE                │
+│    Route to unit                  │
+│    Mark weight                    │
+│    Execute task (LLM call here)   │
+└───────────────────────────────────┘
+```
 
 The implementation:
 
@@ -241,9 +269,40 @@ This is a one-variable quality metric. No scorer. No reward model. The chain len
 
 ---
 
+## The Routing Formula — Continuous Training in One Line
+
+```
+weight = 1 + max(0, strength - resistance) × sensitivity
+```
+
+Every `mark()` increases strength. Every `warn()` increases resistance. Every `fade()` decays both (resistance 2× faster). Every `select()` routes based on the current weights. This is the continuous training loop — no batches, no epochs, no retraining schedule. Every signal is a training sample. Every outcome updates the model.
+
+Two routing modes serve two purposes:
+
+```
+follow(type?)     Deterministic. Strongest path wins. Memory/recall.
+select(type?)     Stochastic. Weighted random + sensitivity. Behavior/exploration.
+```
+
+`follow()` answers "what does the system know?" `select()` answers "what should the system do?" Training happens through `select()` — exploration creates data. Knowledge crystallizes through `follow()` — proven paths become highways.
+
+### Sensitivity Creates Specialization
+
+`sensitivity` is per-unit. It controls how strongly weight influences routing:
+
+```
+sensitivity = 0.0  →  All paths equal. Pure exploration. (Scout)
+sensitivity = 0.5  →  Highways preferred. Balanced. (Worker)
+sensitivity = 1.0  →  Highways dominate. Pure exploitation. (Harvester)
+```
+
+A new LLM unit enters with low effective sensitivity — it gets explored broadly across task types. As weight accumulates on its successful paths, routing concentrates. The unit specializes — not because someone configured it, but because the weight landscape shaped the traffic. This is emergent specialization from one formula.
+
+---
+
 ## Evolution: The Agent Rewrites Itself
 
-Two layers of learning. The colony learns routes (pheromone). The agent learns behavior (prompt evolution).
+Two layers of learning. The world learns routes (weight). The agent learns behavior (prompt evolution).
 
 ```typescript
 // Every 10 minutes, check for struggling agents
@@ -261,7 +320,7 @@ const newPrompt = await complete(
 // 24h cooldown prevents thrashing.
 ```
 
-The substrate doesn't just route around failure. It fixes the failing agent. When a path is weak, pheromone reroutes traffic. When an agent is weak, evolution rewrites its instructions. The first adapts in milliseconds. The second adapts in hours. Both are automatic.
+The substrate doesn't just route around failure. It fixes the failing agent. When a path is weak, weight reroutes traffic. When an agent is weak, evolution rewrites its instructions. The first adapts in milliseconds. The second adapts in hours. Both are automatic.
 
 ---
 
@@ -279,7 +338,7 @@ for (const [tag, skills] of Object.entries(byTag)) {
 }
 ```
 
-A frontier is a cluster of capabilities the colony hasn't tested. The system doesn't just optimize known paths — it notices unknown ones. Exploitation is pheromone. Exploration is frontier detection. Both run in the same loop.
+A frontier is a cluster of capabilities the world hasn't tested. The system doesn't just optimize known paths — it notices unknown ones. Exploitation is weight. Exploration is frontier detection. Both run in the same loop.
 
 ---
 
@@ -292,7 +351,7 @@ relation path,
     owns revenue;      # sum of x402 payments on this path
 ```
 
-Every path tracks revenue. The economics flow through the same structure as the signals. A highway that generates revenue is doubly reinforced — by pheromone (it works) and by money (it's valuable). A path that works but nobody pays for fades naturally. A path that's paid for but fails goes toxic. The market and the colony agree or disagree — both are measured.
+Every path tracks revenue. The economics flow through the same structure as the signals. A highway that generates revenue is doubly reinforced — by weight (it works) and by money (it's valuable). A path that works but nobody pays for fades naturally. A path that's paid for but fails goes toxic. The market and the world agree or disagree — both are measured.
 
 ---
 
@@ -308,31 +367,58 @@ RULES (immediate):
 
 PHEROMONE (continuous):
   Unknown attack succeeds → downstream fails → warn() → path toxic → blocked
-  No human writes a rule. The colony learns from the outcome.
+  No human writes a rule. The world learns from the outcome.
   More attacks = more resistance = MORE secure.
 ```
 
 Rules handle the known. Pheromone handles the unknown. Rules are fast (instant on deploy). Pheromone is slow (needs enough failures to accumulate resistance). Together: known threats are blocked on day one, unknown threats are blocked as they're discovered by measurement.
 
-The honest limit: pheromone only catches failures that are *measured*. An attack that causes subtle, undetected harm slips through. That's why you need both — rules for what you can specify, pheromone for what you can't, and the discipline to keep adding post-checks as you learn what "success" actually means for your system.
+The honest limit: weight only catches failures that are *measured*. An attack that causes subtle, undetected harm slips through. That's why you need both — rules for what you can specify, weight for what you can't, and the discipline to keep adding post-checks as you learn what "success" actually means for your system.
+
+---
+
+## The Tick Loop — Training Never Stops
+
+Seven loops, three timescales. The substrate trains continuously.
+
+```
+L1 SIGNAL     per message     signal → ask → outcome → mark/warn
+L2 TRAIL      per outcome     strength/resistance accumulates
+L3 FADE       every 5 min     asymmetric decay (resistance forgives 2× faster)
+L4 ECONOMIC   per payment     revenue on paths (capability price)
+L5 EVOLUTION  every 10 min    rewrite struggling agent prompts (24h cooldown)
+L6 KNOWLEDGE  every hour      crystallize highways + auto-hypothesize
+L7 FRONTIER   every hour      detect unexplored tag clusters
+```
+
+L1-L3 are the fast training loop: signal, measure, adjust. This runs per-message — latency is milliseconds. Every signal is a training sample.
+
+L4 adds economic signal: paths that generate revenue are doubly reinforced.
+
+L5 is meta-training: agents that consistently fail get their prompts rewritten by an LLM. The system doesn't just route around failure — it fixes the failing agent.
+
+L6-L7 are the knowledge loops: highways crystallize into permanent knowledge (hypotheses), and frontier detection finds unexplored skill clusters. This is the system's curiosity — not just optimizing what it knows, but noticing what it hasn't tried.
 
 ---
 
 ## The Convergence
 
 A system that:
+- **Trains continuously** — every signal updates routing weights (L1-L2)
 - **Sandwiches** the LLM between deterministic checks — reducing the probabilistic surface to one step
 - **Closes** bad paths automatically — hallucinations and injections die by measurement
-- **Forgives** — resistance decays 2x faster, blocked paths reopen, agents get second chances
-- **Evolves** — failing agents rewrite their own prompts, old versions saved as hypotheses
-- **Explores** — frontier detection finds what the colony hasn't tried yet
-- **Charges** — revenue on paths means the economics and the pheromone are the same structure
+- **Forgives** — resistance decays 2× faster, blocked paths reopen (L3)
+- **Specializes** — sensitivity creates castes from one formula, no configuration
+- **Evolves** — failing agents rewrite their own prompts (L5), old versions saved as hypotheses
+- **Explores** — frontier detection finds what the world hasn't tried yet (L7)
+- **Charges** — revenue on paths means economics and weight are the same structure (L4)
 
 ```
 Probabilistic surface:   ████████░░ → ██░░░░░░░░     shrinks (proven paths skip LLM)
 Security:                ██░░░░░░░░ → ████████░░     improves (attacks close paths)
 Agent quality:           ████░░░░░░ → ████████░░     improves (evolution fixes prompts)
 Explored territory:      ██░░░░░░░░ → ████████░░     grows (frontier detection)
+Specialization:          ░░░░░░░░░░ → ████████░░     emerges (sensitivity + weight)
 ```
 
 The timeline depends on workload volume. High-volume, repetitive workloads converge fast. Novel workloads keep exploring longer. The substrate adapts to the workload's actual structure.
@@ -383,7 +469,7 @@ Same input. Same output. Always. These are not checks the LLM can bypass. They a
 ## Files
 
 ```
-src/engine/substrate.ts    two dictionaries, the colony         ~212 lines
+src/engine/world.ts        two dictionaries, the world          ~226 lines
 src/engine/one.ts          the sandwich (pre/post checks)       ~154 lines
 src/engine/loop.ts         the tick (select → mark/warn → evolve)  ~75 lines
 src/schema/one.tql         TypeDB functions (deterministic bread)   ~230 lines
@@ -394,9 +480,9 @@ src/schema/one.tql         TypeDB functions (deterministic bread)   ~230 lines
 ## See Also
 
 - [llm-training.md](llm-training.md) — Two dictionaries replace seven infrastructure categories
-- [substrate-learning.md](substrate-learning.md) — How pheromone encodes routing history
+- [substrate-learning.md](substrate-learning.md) — How weight encodes routing history
 - [metaphors.md](metaphors.md) — Six skins, one truth
 
 ---
 
-*The LLM is the only uncertain thing. Everything else is arithmetic. The colony measures outcomes and routes accordingly.*
+*The LLM is the only uncertain thing. Everything else is arithmetic. The world measures outcomes and routes accordingly.*

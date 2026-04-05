@@ -28,7 +28,7 @@ weight = 1 + max(0, strength - resistance) × sensitivity
 | `sensitivity` | per-unit parameter | caste instinct | receptor density | experience level | slope gradient | antenna gain |
 
 The `1` is the base weight. It ensures every known path is reachable,
-even with zero pheromone. No path is ever invisible — just expensive.
+even with zero weight. No path is ever invisible — just expensive.
 
 ```
     sensitivity = 0.0     sensitivity = 0.5     sensitivity = 1.0
@@ -87,7 +87,7 @@ Use `select()` to decide what the world does.
                 Water: trace the deepest channel
                 Radio: scan for the strongest signal
 
-    select() =  Ant: forage with pheromone bias
+    select() =  Ant: forage with weight bias
                 Brain: fire with synaptic weighting
                 Team: delegate with reputation bias
                 Water: flow downhill with some splash
@@ -96,7 +96,7 @@ Use `select()` to decide what the world does.
 
 ---
 
-## The Three Layers
+## The Layers
 
 A signal passes through three layers on its way to a unit.
 Each layer adds a check. Each check can stop the signal.
@@ -126,7 +126,7 @@ Each layer adds a check. Each check can stop the signal.
     │  ┌───────────────────────────────────┐                  │
     │  │ 3. COLONY (substrate.ts)          │                  │
     │  │    Route to unit                  │                  │
-    │  │    Mark pheromone                 │                  │
+    │  │    Mark weight                    │                  │
     │  │    Execute task                   │                  │
     │  └───────────────────────────────────┘                  │
     │                                                         │
@@ -173,9 +173,9 @@ A signal is born, routed, delivered, and may spawn children.
     │     'analyst:process' → unitId='analyst', task='process' │
     │                                                         │
     │  3. DELIVERY                                            │
-    │     colony.units['analyst']({ receiver, data }, from)   │
+    │     world.units['analyst']({ receiver, data }, from)    │
     │                                                         │
-    │  4. PHEROMONE                                           │
+    │  4. WEIGHT                                              │
     │     mark('scout→analyst:process', weight)               │
     │     strength of the path increases                      │
     │                                                         │
@@ -225,7 +225,7 @@ Exact match only. The world doesn't guess.
 
 ## The Tick Loop
 
-Every 10 seconds, the colony breathes:
+Every 10 seconds, the world breathes:
 
 ```
     ┌─────────────────────────────────────────────────────────┐
@@ -233,7 +233,7 @@ Every 10 seconds, the colony breathes:
     │                                                         │
     │   ┌─────────┐                                           │
     │   │ SELECT  │ ← Weight = 1 + net × sensitivity          │
-    │   │         │   pick a unit from the pheromone landscape │
+    │   │         │   pick a unit from the weight landscape    │
     │   └────┬────┘                                           │
     │        │                                                │
     │        ▼                                                │
@@ -321,7 +321,7 @@ Successful chains strengthen paths more than isolated successes.
                 mark(C→D, depth=4)
 
     Depth capped at 5. A chain of 5 successes deposits
-    5× pheromone on the final edge. The path earned it.
+    5× weight on the final edge. The path earned it.
 ```
 
 A failure anywhere resets the chain:
@@ -387,7 +387,7 @@ The same four outcomes, in every language:
 
 ---
 
-## Pheromone Mechanics
+## Weight Mechanics
 
 Two maps. Arithmetic. That's the whole memory.
 
@@ -406,7 +406,7 @@ Two maps. Arithmetic. That's the whole memory.
     resistance: { 'scout→bad-route': 8.3, ... }
 ```
 
-### mark(edge, strength) — deposit / potentiate / commend / stamp / carve / boost
+### mark(edge, weight) — deposit / potentiate / commend / stamp / carve / boost
 
 ```
     strength['scout→analyst'] += 1
@@ -423,7 +423,7 @@ Two maps. Arithmetic. That's the whole memory.
     TypeDB:  path.strength += strength, path.traversals += 1
 ```
 
-### warn(edge, strength) — alarm / inhibit / flag / return / dam / jam
+### warn(edge, weight) — alarm / inhibit / flag / return / dam / jam
 
 ```
     resistance['scout→bad'] += 1
@@ -453,7 +453,7 @@ Two maps. Arithmetic. That's the whole memory.
                                       (rate=0.05)
 
     Ant:     pheromone evaporates in the sun. Alarm fades faster — 
-             the colony forgives danger sooner than it forgets food.
+             the nest forgives danger sooner than it forgets food.
     Brain:   synapses weaken without use. Inhibition clears faster —
              fear fades sooner than knowledge.
     Team:    old performance reviews matter less. Complaints expire 
@@ -627,7 +627,7 @@ From cold start to breathing world:
     boot(complete, interval)
       │
       ▼
-    1. world()                   create colony + TypeDB bindings
+    1. world()                   create world + TypeDB bindings
       │
       ▼
     2. load()                    hydrate scent + alarm from TypeDB
@@ -700,7 +700,7 @@ A complete example: three units, two continuations, one chain.
 ## Emergent Specialization — Castes from One Formula
 
 Different sensitivity values create different routing behavior
-from the same pheromone landscape. No one programs the roles.
+from the same weight landscape. No one programs the roles.
 
 ```
     Ant:    scout caste vs harvester caste — genetics set sensitivity
@@ -712,7 +712,7 @@ from the same pheromone landscape. No one programs the roles.
 ```
 
 ```
-    THE SAME PHEROMONE MAP:
+    THE SAME WEIGHT MAP:
 
     entry ══(60)══► scout ══(55)══► analyst ══(40)══► reporter
                       │
@@ -757,7 +757,7 @@ from the same pheromone landscape. No one programs the roles.
     │ loop.ts            │  165  │ Tick: select → ask → outcome, │
     │                    │       │ chain depth, fade, evolve     │
     ├────────────────────┼───────┼───────────────────────────────┤
-    │ boot.ts            │   40  │ Hydrate, spawn, start loop    │
+    │ rename boot.ts to start           │   40  │ Hydrate, spawn, start loop    │
     ├────────────────────┼───────┼───────────────────────────────┤
     │ llm.ts             │   40  │ LLM as unit (complete/stream) │
     └────────────────────┴───────┴───────────────────────────────┘

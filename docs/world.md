@@ -183,7 +183,7 @@ const verse = world()
 verse.group('fetchai', 'platform')
 verse.group('agentverse', 'marketplace', { parent: 'fetchai' })
 
-// Colonies within (organizations, DAOs)
+// Worlds within worlds (organizations, DAOs)
 verse.group('acme-agents', 'org', { parent: 'agentverse' })
 verse.group('globex-ai', 'org', { parent: 'agentverse' })
 
@@ -219,7 +219,7 @@ verse.path('translator-1', 'coder-1').mark(1)
        FETCHAI         ETHEREUM        SOLANA
        (world)          (world)        (world)
            │
-    ┌──────┴──────┐
+    ┌──────┴──────┐won
     │             │
 AGENTVERSE     ASI:ONE
  (region)      (region)

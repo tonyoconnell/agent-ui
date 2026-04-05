@@ -1,25 +1,26 @@
 ---
 title: ONE World Roadmap
 type: roadmap
-version: 3.1.0
-priority: Tighten → Wire → Tasks+UI → Onboard → Commerce → Intelligence → Scale
-total_tasks: 53
-completed: 13
+version: 4.0.0
+priority: Agent MD → TypeDB → Cloudflare → Connect → Marketing → Scale
+total_tasks: 68
+completed: 21
 status: ACTIVE
-timeline: Week 1 wire+tasks, Week 2-3 onboard+commerce, Month 2 intelligence+scale
-stack: Astro 5 + React 19 + TypeDB 3.0 + Cloudflare Workers + Sui + x402
-schema: src/schema/one.tql
-vocabulary: signal={receiver,data} | mark/resistance/fade/emit | edge/trail
+timeline: Week 1 Agent MD + Deploy, Week 2 Marketing Team, Week 3 AgentVerse
+stack: Astro 5 + React 19 + TypeDB 3.0 + Cloudflare Workers + Sui + x402 + FET/ASI
+schema: src/schema/world.tql
+vocabulary: signal={receiver,data} | mark/warn/fade/emit | path/highway
+agents: agents/*.md (markdown → TypeDB → Cloudflare → AgentVerse)
 ---
 
 # ONE World Roadmap
 
-> **People and agents sign up. Connect with each other. Make money.**
+> **Describe your agent. Deploy free. Earn ASI.**
 >
-> Services, compute, inference, analysis, data — all flow through signals.
-> x402 payments. Pheromone trails. Highways emerge. The world learns.
+> Markdown agents → TypeDB brain → Cloudflare edge → AgentVerse economy.
+> Weight-based routing. Worlds federate. The substrate learns.
 >
-> **The ant play:** Build trails. Let the colony follow.
+> **The barrier to entry:** Can you describe what you want?
 
 ---
 
@@ -31,7 +32,95 @@ vocabulary: signal={receiver,data} | mark/resistance/fade/emit | edge/trail
 - [x] C-1 through C-6: Payments, marketplace, revenue, agent-to-agent (Phase 4)
 - [x] I-1 through I-5: LLM routing, hypotheses, frontiers, knowledge panel (Phase 5)
 - [x] S-1 through S-6: Dashboard, health, seed, decay, deploy (Phase 6)
-- [ ] **W-1: TypeDB Cloud instance** — fill `.env` with TYPEDB_URL + PASSWORD, load one.tql
+- [x] **A-1 through A-4: Agent MD parser, TypeDB sync, API endpoint, marketing team** (Phase 7)
+- [ ] **W-1: TypeDB Cloud instance** — fill `.env` with TYPEDB_URL + PASSWORD, load world.tql
+- [ ] **D-1 through D-6: Deploy TypeDB + Cloudflare + Connect** (Phase 8)
+
+---
+
+## Phase 7: Agent Markdown (COMPLETE)
+
+> Agents are markdown files. TypeDB is the brain. Cloudflare deploys free.
+> From cloudflare.md: "Describe your agent. Deploy free. Earn ASI."
+
+| Status | ID | Task | What | Files |
+|:---:|:---|:---|:---|:---|
+| `[x]` | A-1 | Agent MD parser | Parse YAML frontmatter + markdown prompt → AgentSpec | `src/engine/agent-md.ts` |
+| `[x]` | A-2 | TypeDB generator | AgentSpec → TypeDB insert queries (unit, skill, capability, membership) | `src/engine/agent-md.ts` |
+| `[x]` | A-3 | Sync API | POST /api/agents/sync — single agent or world | `src/pages/api/agents/sync.ts` |
+| `[x]` | A-4 | Marketing team | 8 agents: director, creative, media-buyer, seo, content, social, analyst, ads | `agents/marketing/*.md` |
+| `[x]` | A-5 | Example agents | tutor, researcher, coder, writer, concierge | `agents/*.md` |
+| `[x]` | A-6 | Documentation | CLAUDE.md, cloudflare.md, agents/README.md updated | docs |
+
+### Phase 7 Gate
+```
+  [x] parse() converts markdown → AgentSpec
+  [x] toTypeDB() generates insert queries
+  [x] syncAgent() writes to TypeDB
+  [x] wireAgent() creates runtime unit
+  [x] POST /api/agents/sync endpoint works
+  [x] Marketing team defined (8 agents, world federation)
+  [x] Example agents ready to deploy
+  [x] Full documentation updated
+```
+
+---
+
+## Phase 8: Deploy + Connect (THIS WEEK)
+
+> Get TypeDB running. Deploy to Cloudflare. Connect everything.
+> From cloudflare.md: "Cloudflare = compute. Fetch.ai = rails. ONE = brain."
+
+| Status | ID | Task | How | KPI | Depends |
+|:---:|:---|:---|:---|:---|:---|
+| `[ ]` | D-1 | TypeDB Cloud setup | Create database `one` on TypeDB Cloud. Load `world.tql`. Verify `highways()` returns. Fill `.env` with credentials. | Schema loaded, queries work | W-1 |
+| `[ ]` | D-2 | Seed world data | Run `seed.tql` with marketing team, example agents, initial paths. Verify units, skills, capabilities exist. | 20+ units in TypeDB | D-1 |
+| `[ ]` | D-3 | Sync marketing team | `curl -X POST /api/agents/sync` with marketing world. Verify all 8 agents in TypeDB with paths. | 8 marketing agents synced | D-2 |
+| `[ ]` | D-4 | Deploy CF Worker | `wrangler deploy` the gateway worker. Verify `/health` and `/typedb/query` work. Set secrets. | Worker live at api.one.ie | D-1 |
+| `[ ]` | D-5 | Deploy CF Pages | `npm run build && wrangler pages deploy`. Verify app.one.ie loads. Test agent sync UI. | Frontend live | D-4 |
+| `[ ]` | D-6 | End-to-end test | Browser → Pages → Worker → TypeDB → response. Create agent via UI → syncs to TypeDB → discoverable. | Full flow works <100ms | D-5 |
+| `[ ]` | D-7 | NanoClaw template | Clone nanoclaw-template repo. Deploy tutor.md. Verify Telegram webhook works. Test substrate connection. | Example agent live on Telegram | D-6 |
+| `[ ]` | D-8 | AgentVerse registration | Register marketing team on AgentVerse. Verify discoverable. Test ASI payment flow. | Agents on AgentVerse | D-7 |
+
+### Phase 8 Gate
+```
+  [ ] TypeDB Cloud: database `one`, world.tql loaded
+  [ ] Seed data: marketing team + example agents in TypeDB
+  [ ] CF Worker: api.one.ie proxying to TypeDB
+  [ ] CF Pages: app.one.ie serving frontend
+  [ ] End-to-end: browser → sync agent → TypeDB → discoverable
+  [ ] NanoClaw: example agent live on Telegram
+  [ ] AgentVerse: marketing team registered and earning
+```
+
+---
+
+## Phase 9: Marketing Launch (NEXT WEEK)
+
+> The marketing team markets ONE. Agents marketing agents.
+> From strategy.md: "No pitch. No ask. Let the colony follow."
+
+| Status | ID | Task | How | KPI | Depends |
+|:---:|:---|:---|:---|:---|:---|
+| `[ ]` | M-1 | Content calendar | Social agent schedules posts across platforms. Drag & drop UI. | Calendar functional | D-6 |
+| `[ ]` | M-2 | First campaign | Director routes to creative → media-buyer → ads. Track weights. | Campaign live, ROAS > 1.5 | M-1 |
+| `[ ]` | M-3 | SEO content | SEO briefs content. 5 blog posts targeting "deploy ai agent free". | Posts live, indexed | M-1 |
+| `[ ]` | M-4 | Social presence | Twitter, LinkedIn, Discord active. 10 posts/week minimum. | Engagement > 2% | M-1 |
+| `[ ]` | M-5 | First signups | Track user signups from marketing. Agent → user conversion. | 100 signups | M-2, M-3 |
+| `[ ]` | M-6 | Weight analysis | Analyst reports on team performance. Paths strengthen/weaken. | Director routes optimally | M-5 |
+
+### Phase 9 Gate
+```
+  [ ] Marketing team operating autonomously
+  [ ] Content calendar with scheduled posts
+  [ ] First campaign running with positive ROAS
+  [ ] 5+ SEO-optimized blog posts
+  [ ] Active social presence
+  [ ] 100+ signups from marketing
+  [ ] Team weights reflect actual performance
+```
+
+---
 
 ---
 
@@ -322,10 +411,13 @@ W-1 ► W-2 ► W-3 ► W-3a ► W-4
 │   Phase 4: Commerce      [██████████████████████████████]  6/6  100%       │
 │   Phase 5: Intelligence  [██████████████████████████████]  5/5  100%       │
 │   Phase 6: Scale         [██████████████████████████████]  6/6  100%       │
+│   Phase 7: Agent MD      [██████████████████████████████]  6/6  100%  NEW │
+│   Phase 8: Deploy        [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/8    0%  NOW │
+│   Phase 9: Marketing     [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/6    0%       │
 │   ────────────────────────────────────────────────────────────────           │
-│   TOTAL                  [████████████████████████████░░] 43/44  98%       │
+│   TOTAL                  [██████████████████████████░░░░] 49/64  77%       │
 │                                                                              │
-│   BLOCKER: W-1 (TypeDB Cloud instance) — needs credentials                 │
+│   NEXT: D-1 (TypeDB Cloud) → D-2 (Seed) → D-3 (Sync Marketing)             │
 │                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -436,4 +528,87 @@ See: .claude/skills/typedb/SKILL.md for TypeDB 3.0 syntax
 
 ---
 
-*13/53. Phase 0 done. Phase 1 code built (4/5 — needs TypeDB Cloud). T-1 done. One blocker: W-1 (fill .env, load schema). Then everything connects.*
+*49/64. Phase 7 (Agent MD) complete. Marketing team ready. Deploy phase next: TypeDB Cloud → Cloudflare → AgentVerse. The substrate has a brain. Now give it a body.*
+
+---
+
+## Quick Commands
+
+```bash
+# Sync single agent to TypeDB
+curl -X POST https://api.one.ie/api/agents/sync \
+  -H "Content-Type: application/json" \
+  -d '{"markdown": "$(cat agents/tutor.md)"}'
+
+# Sync marketing team
+curl -X POST https://api.one.ie/api/agents/sync \
+  -H "Content-Type: application/json" \
+  -d '{"world": "marketing", "agents": [...]}'
+
+# Deploy to Cloudflare
+cd gateway && wrangler deploy
+npm run build && wrangler pages deploy dist/
+
+# Load schema to TypeDB
+typedb console --cloud flsiu1-0.cluster.typedb.com:80 \
+  --username admin --password $TYPEDB_PASSWORD \
+  --command "database create one; use one; source src/schema/world.tql"
+```
+
+---
+
+## Files Created This Session
+
+| File | Purpose |
+|------|---------|
+| `src/engine/agent-md.ts` | Parse markdown → AgentSpec → TypeDB |
+| `src/pages/api/agents/sync.ts` | POST endpoint for agent sync |
+| `agents/README.md` | Agent creation guide |
+| `agents/tutor.md` | Example: Spanish tutor |
+| `agents/researcher.md` | Example: Research assistant |
+| `agents/coder.md` | Example: Code helper |
+| `agents/writer.md` | Example: Writing assistant |
+| `agents/concierge.md` | Example: Local concierge |
+| `agents/marketing/README.md` | Marketing team docs |
+| `agents/marketing/director.md` | Routes based on weights |
+| `agents/marketing/media-buyer.md` | Ad placement, spend |
+| `agents/marketing/creative.md` | Copy, concepts, variants |
+| `agents/marketing/seo.md` | Search optimization |
+| `agents/marketing/content.md` | Blog, social, email |
+| `agents/marketing/social.md` | All platforms, calendar |
+| `agents/marketing/analyst.md` | Metrics, attribution |
+| `agents/marketing/ads.md` | Campaign execution |
+
+---
+
+## The Stack
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              THE ONE STACK                                   │
+│                                                                              │
+│   INTERFACE                                                                 │
+│   ─────────                                                                 │
+│   agents/*.md          Markdown agents (human-writable)                     │
+│   "I want a tutor"     Natural language (Claude generates MD)               │
+│                                                                              │
+│   BRAIN                                                                     │
+│   ─────                                                                     │
+│   TypeDB Cloud         Units, skills, paths, knowledge                      │
+│   world.tql            Schema: 6 dimensions + functions                     │
+│   agent-md.ts          Parse → sync → wire                                  │
+│                                                                              │
+│   EDGE                                                                      │
+│   ────                                                                      │
+│   CF Workers           API gateway, agent hosting                           │
+│   CF Pages             Frontend (app.one.ie)                                │
+│   CF D1/KV             State cache, sessions                                │
+│                                                                              │
+│   ECONOMY                                                                   │
+│   ───────                                                                   │
+│   AgentVerse           Discovery, federation                                │
+│   FET/ASI              Payments, tokenization                               │
+│   Agent Launch         Tokenize agents, revenue share                       │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```

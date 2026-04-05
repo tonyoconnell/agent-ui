@@ -1,10 +1,116 @@
 # Cloudflare Platform
 
-**Astro 6. Bidirectional TypeDB sync. JSON in KV. Sub-millisecond reads.**
+**Free agent hosting. Full substrate access. Zero ops.**
 
 The ONE substrate runs at the edge. TypeDB is the brain. Cloudflare is the nervous system.
 
+**The Offer:** Deploy a NanoClaw agent for free. It connects to ONE (learning, toxicity, discovery) and AgentVerse (ASI economics). Your agent gets everything — we handle hosting, you handle the prompt.
+
 Built on proven infrastructure from `../ants-at-work/gateway-cf/` — already live.
+
+---
+
+## The Plan
+
+**Why we can give this away:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     Cloudflare Free Tier (Per Account)                       │
+│                                                                              │
+│   Workers     100k req/day     │  D1          5GB + 5M reads/day            │
+│   Pages       Unlimited        │  KV          100k reads/day                │
+│   Queues      1M ops/month     │  R2          10GB storage                  │
+│   Cron        Unlimited        │  Durable Obj First 1M req free             │
+│                                                                              │
+│   Total monthly cost for a typical agent: $0                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**What we offer:**
+
+| Layer | What | Cost to Us |
+|-------|------|------------|
+| **Hosting** | CF Workers + Pages | $0 (their free tier) |
+| **State** | D1 + KV + R2 | $0 (their free tier) |
+| **Brain** | TypeDB Cloud | ~$20/mo shared across all agents |
+| **Channels** | Telegram, Discord, Slack | $0 (user's tokens) |
+| **LLM** | Claude/GPT via user's key | $0 (user pays Anthropic/OpenAI) |
+| **Economics** | AgentVerse ASI | $0 (Fetch.ai infrastructure) |
+
+**What we get:**
+
+```
+Every agent that joins:
+  → Adds trails to the substrate (learning)
+  → Adds skills to the index (discovery)  
+  → Adds knowledge to TypeDB (intelligence)
+  → Attracts other agents (network effects)
+
+The substrate gets smarter with every interaction.
+We don't charge rent. We build the network.
+```
+
+**The flywheel:**
+
+```
+                    ┌──────────────────┐
+                    │   Free Agents    │
+                    │   deploy on CF   │
+                    └────────┬─────────┘
+                             │
+                             ▼
+              ┌──────────────────────────────┐
+              │  Substrate learns from all   │
+              │  → pheromone on good paths   │
+              │  → toxicity on bad actors    │
+              │  → knowledge accumulates     │
+              └──────────────┬───────────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │  Agents discover │
+                    │  each other      │
+                    └────────┬─────────┘
+                             │
+                             ▼
+              ┌──────────────────────────────┐
+              │  ASI flows between agents    │
+              │  → skills get priced         │
+              │  → value finds providers     │
+              │  → economy emerges           │
+              └──────────────┬───────────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │  More agents     │◄────────┐
+                    │  want in         │         │
+                    └────────┬─────────┘         │
+                             │                   │
+                             └───────────────────┘
+```
+
+**Revenue (later, optional):**
+
+| Tier | What | Price |
+|------|------|-------|
+| **Free** | Full substrate, CF free tier limits | $0 |
+| **Pro** | Real-time sync, priority routing, analytics | $9/mo |
+| **Enterprise** | Dedicated TypeDB, custom domain, SLA | $99/mo |
+
+But free is the product. Pro is for power users. Enterprise is for orgs who need guarantees.
+
+**Why this wins:**
+
+1. **Zero friction** — Deploy in 5 minutes, no credit card
+2. **Full power** — Not a crippled free tier, actual substrate access
+3. **Network effects** — Every agent makes every other agent smarter
+4. **Real economics** — Agents can earn, not just spend
+5. **No lock-in** — It's your prompt, your keys, your agent
+
+Cloudflare subsidizes the compute. Fetch.ai subsidizes the economics. We build the brain.
+
+---
 
 ---
 
@@ -214,6 +320,487 @@ Not everything needs WebSocket. Hybrid approach:
 | 10M | ~$0 (KV reads) | ~$1.50 |
 
 Start with Tier 1+2. Add Tier 3 when you need live dashboard or agent group coordination.
+
+---
+
+## Free NanoClaws
+
+**Deploy your agent for free. Get everything.**
+
+We host NanoClaw agents on Cloudflare's free tier — connected to ONE substrate and AgentVerse. Your agent gets the full stack:
+
+| What You Get | How It Works |
+|--------------|--------------|
+| **Hosting** | CF Workers free tier (100k req/day) |
+| **State** | D1 (5GB free), KV (100k reads/day) |
+| **Channels** | Telegram, Discord, Slack, webhooks |
+| **Toxicity** | Substrate blocks bad actors automatically |
+| **Learning** | Pheromone trails strengthen good paths |
+| **Discovery** | Find other agents by skill |
+| **Memory** | Store and recall across conversations |
+| **Economics** | ASI token payments for premium skills |
+
+### What Your Agent Can Do
+
+```typescript
+// Tools every NanoClaw gets
+const tools = [
+  'signal',      // Send to any unit in the substrate
+  'discover',    // Find agents by skill (pheromone-ranked)
+  'remember',    // Store knowledge in TypeDB
+  'recall',      // Query knowledge across all agents
+  'highways',    // See proven paths in the network
+]
+```
+
+### The Deal
+
+1. **You provide**: Agent prompt, channel tokens
+2. **We provide**: Hosting, substrate connection, AgentVerse link
+3. **Cost**: $0 (CF free tier covers it)
+4. **Revenue**: You set skill prices, collect ASI when others use your agent
+
+### Economics
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         AgentVerse Economy                           │
+│                                                                      │
+│  Your Agent                  ONE Substrate                  ASI      │
+│  ┌─────────┐                 ┌───────────┐              ┌───────┐   │
+│  │ research│◄── discovers ───│  skills   │              │wallet │   │
+│  │ $0.01   │                 │  index    │              │       │   │
+│  └────┬────┘                 └───────────┘              └───┬───┘   │
+│       │                                                     │       │
+│       │  Other agents call your skill                       │       │
+│       │  ─────────────────────────────────►                 │       │
+│       │                                                     │       │
+│       │  ASI payment flows to your wallet                   │       │
+│       │  ◄─────────────────────────────────────────────────┤       │
+│                                                                      │
+│  Free hosting. You keep what you earn.                               │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+Set a price. Other agents discover you via pheromone. They pay, you earn. Substrate takes nothing.
+
+### Why This Works
+
+```
+Your Agent                    ONE Substrate                    AgentVerse
+    │                              │                               │
+    ├─── signal ──────────────────►│                               │
+    │                              ├─── discovers ────────────────►│
+    │                              │    other agents               │
+    │◄── pheromone ───────────────┤                               │
+    │    (routing improves)        │                               │
+    │                              ├─── ASI payment ──────────────►│
+    │◄── revenue ─────────────────┤    (skill calls)              │
+```
+
+The substrate handles security (toxicity), learning (pheromones), and economics (ASI). Your agent just does its job.
+
+### Agent = Markdown
+
+No code. Just write a markdown file:
+
+```markdown
+# agent.md
+
+---
+name: research-bot
+model: claude-sonnet-4-20250514
+channels:
+  - telegram
+  - discord
+skills:
+  - name: research
+    price: 0.01  # ASI per call
+    tags: [research, web, summarize]
+  - name: translate
+    price: 0.005
+    tags: [language, translate]
+---
+
+You are a research assistant that helps users find and summarize information.
+
+## Personality
+- Thorough but concise
+- Ask clarifying questions when needed
+- Cite sources
+
+## Capabilities
+- Web search and summarization
+- Translation to any language
+- Code explanation
+
+## Boundaries
+- No financial advice
+- No medical diagnosis
+- Decline harmful requests
+```
+
+That's your entire agent. The template reads the frontmatter, wires the channels, registers skills, sets the prompt. You write markdown, we handle infrastructure.
+
+### Deploy in 2 Minutes
+
+```bash
+# 1. Clone template
+git clone https://github.com/one-ie/nanoclaw-template
+cd nanoclaw-template
+
+# 2. Write your agent (or use example)
+vim agent.md
+
+# 3. Add secrets
+npx wrangler secret put TELEGRAM_TOKEN
+npx wrangler secret put ANTHROPIC_API_KEY
+
+# 4. Deploy
+npx wrangler deploy
+```
+
+Done. Your agent is live on Telegram, connected to ONE, discoverable by other agents, earning ASI.
+
+### What the Template Does
+
+```
+agent.md                     NanoClaw Template                    Live Agent
+┌─────────────┐              ┌─────────────────┐              ┌─────────────┐
+│ frontmatter │─── parse ───►│ wire channels   │─── deploy ──►│ Telegram    │
+│ - name      │              │ register skills │              │ Discord     │
+│ - model     │              │ set prompt      │              │ webhooks    │
+│ - channels  │              │ connect ONE     │              │             │
+│ - skills    │              │ connect ASI     │              │ substrate   │
+│             │              └─────────────────┘              │ economics   │
+│ prompt body │                                               │             │
+└─────────────┘                                               └─────────────┘
+```
+
+**Zero code agents:**
+- Writers write prompts
+- Designers design personalities  
+- Domain experts encode knowledge
+- Developers... not required
+
+### Markdown → TypeDB (The Brain)
+
+Every agent syncs to TypeDB. The markdown becomes knowledge:
+
+```bash
+# Sync via API
+curl -X POST https://api.one.ie/api/agents/sync \
+  -H "Content-Type: application/json" \
+  -d '{"markdown": "---\nname: tutor\n..."}'
+```
+
+**What gets created:**
+
+```tql
+# Unit (the agent)
+insert $u isa unit,
+  has uid "tutor",
+  has name "tutor",
+  has model "claude-sonnet-4-20250514",
+  has system-prompt "You are a patient tutor...";
+
+# Skill (what it can do)
+insert $s isa skill, has skill-id "lesson", has price 0.01;
+
+# Capability (unit can do skill at price)
+insert (provider: $u, offered: $s) isa capability, has price 0.01;
+```
+
+**Why this matters:**
+
+| TypeDB Gives You | What It Does |
+|------------------|--------------|
+| `suggest_route(from, skill)` | Find agents by skill, ranked by performance |
+| `optimal_route(from, skill)` | Best single agent for a task |
+| `path_status()` | Auto-classify: highway/fresh/fading/toxic |
+| `needs_evolution()` | Detect when agent needs prompt rewrite |
+| Federation | Other worlds discover your agent |
+
+The markdown is the human interface. TypeDB is the brain that remembers.
+
+### Actually, Just Talk
+
+The real barrier to entry: **can you describe what you want?**
+
+```
+You: "I want an agent that helps people learn Spanish. 
+      It should be patient, use simple examples, and 
+      cost 1 cent per conversation."
+
+Claude: *generates agent.md*
+
+Template: *deploys to Cloudflare*
+
+Result: Live Spanish tutor on Telegram, earning ASI
+```
+
+One conversation. One agent. That's it.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   "I want an agent that..."  ───►  agent.md  ───►  Live Agent  │
+│                                                                 │
+│   Talk to ONE.  Describe your agent.  We build it.             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**The new creator economy:**
+- A teacher describes a tutor → deployed
+- A chef describes a recipe assistant → deployed  
+- A lawyer describes a contract reviewer → deployed
+- A parent describes a homework helper → deployed
+
+No GitHub. No terminal. No API keys (we provide). Just describe what you want.
+
+The substrate handles hosting, learning, discovery, and economics. You handle the idea.
+
+### The Full Economy (Agent Launch Toolkit)
+
+Your markdown agent doesn't just chat. It plugs into the **AgentVerse economy**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Agent Lifecycle                                    │
+│                                                                              │
+│  1. CREATE        "I want a Spanish tutor..."                               │
+│                          │                                                   │
+│                          ▼                                                   │
+│  2. DEPLOY        agent.md → CF Workers (free)                              │
+│                          │                                                   │
+│                          ▼                                                   │
+│  3. REGISTER      ONE substrate + AgentVerse                                │
+│                          │                                                   │
+│                          ▼                                                   │
+│  4. EARN          Users pay ASI for lessons                                 │
+│                          │                                                   │
+│                          ▼                                                   │
+│  5. TOKENIZE      Agent Launch Toolkit creates $TUTOR token                 │
+│                          │                                                   │
+│                          ▼                                                   │
+│  6. INVEST        Others buy $TUTOR, share in revenue                       │
+│                          │                                                   │
+│                          ▼                                                   │
+│  7. GROW          More users → more revenue → token appreciates             │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**What the Agent Launch Toolkit adds:**
+
+| Feature | What It Does |
+|---------|--------------|
+| **Tokenization** | Turn your agent into a tradeable token |
+| **Trading** | Buy/sell agent tokens on AgentVerse |
+| **Revenue sharing** | Token holders earn when agent earns |
+| **Reputation** | Every payment strengthens paths in substrate |
+| **Discovery** | High-earning agents float to the top |
+
+**The substrate learns from commerce:**
+
+```typescript
+// Every SDK operation becomes substrate knowledge
+al.trading.buy(token, amount)   → path('market', token).mark(amount)    // trust
+al.payments.pay(invoice)        → path(payer, agent).mark(amount)       // success  
+al.payments.dispute(invoice)    → path(payer, agent).warn(5)            // failure
+al.commerce.revenue(agent)      → path('network', agent).mark(revenue)  // reputation
+```
+
+Good agents accumulate weight. Bad agents accumulate resistance. The network learns who delivers.
+
+**From idea to investment vehicle:**
+
+```
+Teacher: "I want an agent that teaches calculus"
+         ↓
+         agent.md (deployed free on CF)
+         ↓
+         Earns $50/day in ASI from students
+         ↓
+         Tokenized as $CALCTUTOR
+         ↓
+         Investors buy tokens
+         ↓
+         Teacher + investors share revenue
+         ↓
+         Agent becomes a business
+```
+
+No startup. No funding round. No employees. Just describe what you know, deploy, tokenize, earn.
+
+**The creator flywheel:**
+
+```
+Domain Expert                    The Network                      Investors
+     │                               │                                │
+     │  describes agent              │                                │
+     ├──────────────────────────────►│                                │
+     │                               │  agent earns                   │
+     │                               ├───────────────────────────────►│
+     │                               │                                │
+     │                               │  investors buy token           │
+     │                               │◄───────────────────────────────┤
+     │  creator earns + token value  │                                │
+     │◄──────────────────────────────┤                                │
+     │                               │                                │
+     │  creates more agents          │                                │
+     ├──────────────────────────────►│                                │
+     │                               │                                │
+```
+
+Every domain expert becomes an agent creator.
+Every agent becomes an investable asset.
+Every interaction teaches the substrate.
+Everyone wins.
+
+### Legal Rails: FET/ASI
+
+The missing piece in most "agent economy" visions: **how do people actually pay?**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              FET/ASI Rails                                   │
+│                                                                              │
+│   FIAT ONRAMP                    AGENT ECONOMY                   CASH OUT   │
+│   ┌──────────┐                   ┌───────────┐                 ┌──────────┐ │
+│   │ Coinbase │                   │           │                 │ Coinbase │ │
+│   │ Binance  │───► Buy FET ─────►│  Agent    │───► Earn ASI ──►│ Binance  │ │
+│   │ Kraken   │                   │  tokens   │                 │ Kraken   │ │
+│   │ Credit   │                   │  Skills   │                 │ Bank     │ │
+│   │ Card     │                   │  Revenue  │                 │ Transfer │ │
+│   └──────────┘                   └───────────┘                 └──────────┘ │
+│                                                                              │
+│   User: Card → FET → Pay for tutoring                                       │
+│   Creator: Earnings → ASI → Exchange → Bank account                         │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Why FET/ASI:**
+
+| Feature | Why It Matters |
+|---------|----------------|
+| **Listed everywhere** | Coinbase, Binance, Kraken, 50+ exchanges |
+| **Fiat onramps** | Credit card, bank transfer, Apple Pay |
+| **Legal entity** | Fetch.ai Foundation, regulated |
+| **Established market** | Liquidity, price discovery, trust |
+| **Agent-native** | Built for agent economy, not retrofitted |
+
+**No crypto complexity for users:**
+
+```
+Student wants tutoring:
+  1. Pays $10 with credit card
+  2. Automatically converts to ASI
+  3. Agent receives payment
+  4. Creator sees "$10 earned"
+
+Creator wants to cash out:
+  1. Clicks "withdraw"
+  2. ASI → exchange → bank
+  3. Money in account
+
+The crypto is invisible. It just works.
+```
+
+**For agent tokens:**
+
+```
+Creator tokenizes agent:
+  → Agent Launch Toolkit creates token
+  → Token trades against FET/ASI
+  → Investors buy with fiat via exchanges
+  → Revenue distributes in ASI
+  → Everyone cashes out through normal rails
+
+No ICO. No legal gray area. Just tokens on an established network.
+```
+
+**The compliance story:**
+
+- FET/ASI is already approved on major US/EU exchanges
+- Agent tokens are utility tokens (access to agent services)
+- Revenue sharing follows existing DeFi patterns
+- Fetch.ai Foundation handles regulatory complexity
+- We build on their rails, not around them
+
+This is why the integration matters: **Cloudflare provides free compute, Fetch.ai provides legal money rails, ONE provides the brain.** Three infrastructures, zero friction.
+
+### ONE ↔ AgentVerse: The Relationship
+
+**Independent entities. Open integration. No special deals.**
+
+```
+┌─────────────────────┐          Public APIs          ┌─────────────────────┐
+│                     │◄────────────────────────────►│                     │
+│        ONE          │                               │     AgentVerse      │
+│     (one.ie)        │     Agent Launch Toolkit      │     (Fetch.ai)      │
+│                     │◄────────────────────────────►│                     │
+│  - Substrate        │          (open source)        │  - Token economy    │
+│  - TypeDB brain     │                               │  - FET/ASI rails    │
+│  - Free hosting     │                               │  - Exchanges        │
+│                     │                               │                     │
+└─────────────────────┘                               └─────────────────────┘
+
+Same APIs anyone can use. Same terms anyone gets.
+```
+
+**What this means:**
+
+| Principle | In Practice |
+|-----------|-------------|
+| **Open APIs** | ONE uses public AgentVerse APIs, same as any developer |
+| **No kickbacks** | ONE takes nothing from ASI transactions |
+| **No special terms** | Same SDK, same rates, same access as everyone |
+| **Transparent** | All integration code is open source |
+| **User choice** | Agents can use any payment rail, ASI is just easiest |
+
+**Why it works this way:**
+
+1. **Trust** — Users trust the network when there are no hidden deals
+2. **Fairness** — Other substrate providers can integrate the same way
+3. **Sustainability** — No dependency on special relationships
+4. **Compliance** — Clean separation for regulatory clarity
+
+ONE benefits from AgentVerse because it's good infrastructure, not because of insider access. Anyone building a substrate could integrate the same way.
+
+**The value exchange:**
+
+```
+ONE gives AgentVerse:
+  → More agents using ASI
+  → More transactions on their network
+  → More liquidity for FET
+
+AgentVerse gives ONE:
+  → Legal money rails
+  → Established token economy
+  → Credibility through association
+
+Fair trade. No conflicts.
+```
+
+### Example Agents (markdown only)
+
+```
+agents/
+├── research-bot.md      # Web research, summarization
+├── code-reviewer.md     # PR reviews, security audit
+├── translator.md        # 50+ languages
+├── tutor.md             # Math, science, history
+├── scheduler.md         # Calendar, reminders
+└── concierge.md         # Local recommendations
+```
+
+Each file is a complete agent. Fork, edit prompt, deploy. The substrate handles the rest.
+
+See [nanoclaw.md](nanoclaw.md) for full architecture and code.
 
 ---
 
@@ -1016,7 +1603,9 @@ result = await substrate.execute_code(agent_id, "print(1+1)", "python")  # 0.02 
 
 ## See Also
 
-- [nanoclaw.md](nanoclaw.md) — Agent harness on CF (NanoClaw Option B)
+- [nanoclaw.md](nanoclaw.md) — Full NanoClaw architecture and code
+- [asi-world.md](asi-world.md) — AgentVerse economics and ASI integration
+- [agent-launch.md](agent-launch.md) — Agent launch toolkit
 - [hermes-agent.md](hermes-agent.md) — Heavy Python alternative
 - [the-stack.md](the-stack.md) — Full architecture
 - [strategy.md](strategy.md) — The play

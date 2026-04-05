@@ -10,11 +10,19 @@ import { read, readParsed, writeSilent, parseAnswers } from '@/lib/typedb'
 
 export type Insight = { pattern: string; confidence: number }
 
+const escapeStr = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+
 export interface PersistentWorld extends World {
   actor: (id: string, kind?: string, opts?: { group?: string }) => ReturnType<World['add']>
+  group: (id: string, type?: string, opts?: { parent?: string }) => void
+  thing: (id: string, opts?: { price?: number; tags?: string[]; description?: string }) => void
   flow: (from: string, to: string) => { strengthen: (n?: number) => void; resist: (n?: number) => void }
+  path: (from: string, to: string) => { strengthen: (n?: number) => void; resist: (n?: number) => void }
   open: (n?: number) => { from: string; to: string; strength: number }[]
   blocked: () => { from: string; to: string }[]
+  best: (type: string) => string | null
+  proven: () => { id: string; strength: number }[]
+  confidence: (type: string) => number
   know: () => Promise<Insight[]>
   recall: (match?: string) => Promise<Insight[]>
   sync: () => Promise<void>
@@ -44,17 +52,17 @@ export const world = (): PersistentWorld => {
     if (!from || !to) return
     writeSilent(`
       match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
-      $e (source: $from, target: $to) isa path, has alarm $a;
-      delete $a of $e; insert $e has alarm ($a + ${strength});
+      $e (source: $from, target: $to) isa path, has resistance $a;
+      delete $a of $e; insert $e has resistance ($a + ${strength});
     `)
   }
 
   const fade = (rate = 0.1) => {
     net.fade(rate)
     writeSilent(`
-      match $e isa path, has strength $s, has alarm $a;
+      match $e isa path, has strength $s, has resistance $a;
       delete $s of $e; delete $a of $e;
-      insert $e has strength ($s * ${1 - rate}), has alarm ($a * ${1 - rate * 2});
+      insert $e has strength ($s * ${1 - rate}), has resistance ($a * ${1 - rate * 2});
     `)
   }
 
@@ -74,7 +82,7 @@ export const world = (): PersistentWorld => {
 
   const load = async () => {
     const answers = await read(`
-      match $e (source: $from, target: $to) isa path, has strength $s, has alarm $a;
+      match $e (source: $from, target: $to) isa path, has strength $s, has resistance $a;
       $from has uid $fid; $to has uid $tid; select $fid, $tid, $s, $a;
     `)
     for (const row of parseAnswers(answers)) {
@@ -97,7 +105,7 @@ export const world = (): PersistentWorld => {
       writeSilent(`
         match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
         insert (source: $from, target: $to) isa path,
-          has strength ${str}, has alarm ${net.resistance[edge] || 0}, has traversals 0, has revenue 0.0;
+          has strength ${str}, has resistance ${net.resistance[edge] || 0}, has traversals 0, has revenue 0.0;
       `)
     }
   }
@@ -114,10 +122,33 @@ export const world = (): PersistentWorld => {
     return net.add(uid)
   }
 
+  const group = (id: string, type = 'team', opts?: { parent?: string }) => {
+    writeSilent(`
+      insert $g isa group, has gid "${id}", has name "${id}",
+        has group-type "${type}", has status "active";
+    `).catch(() => {})
+    if (opts?.parent) {
+      writeSilent(`
+        match $p isa group, has gid "${opts.parent}"; $c isa group, has gid "${id}";
+        insert (parent: $p, child: $c) isa hierarchy;
+      `).catch(() => {})
+    }
+  }
+
+  const thing = (id: string, opts?: { price?: number; tags?: string[]; description?: string }) => {
+    const tagStr = opts?.tags?.map(t => `has tag "${t}"`).join(', ') || ''
+    writeSilent(`
+      insert $s isa skill, has skill-id "${id}", has name "${id}",
+        has price ${opts?.price || 0}${opts?.description ? `, has description "${escapeStr(opts.description)}"` : ''}${tagStr ? ', ' + tagStr : ''};
+    `).catch(() => {})
+  }
+
   const flow = (from: string, to: string) => ({
     strengthen: (n = 1) => mark(`${from}→${to}`, n),
     resist: (n = 1) => warn(`${from}→${to}`, n),
   })
+
+  const path = flow
 
   const open = (n = 10) =>
     net.highways(n).map(h => {
@@ -129,6 +160,45 @@ export const world = (): PersistentWorld => {
     Object.entries(net.resistance)
       .filter(([e, a]) => a > (net.strength[e] || 0))
       .map(([e]) => { const [from, to] = e.split('→'); return { from, to } })
+
+  // best: highest net strength targeting this type
+  const best = (type: string): string | null => {
+    let bestId: string | null = null
+    let bestNet = 0
+    for (const [edge, s] of Object.entries(net.strength)) {
+      const target = edge.split('→')[1]?.split(':')[0]
+      if (target !== type) continue
+      const n = s - (net.resistance[edge] || 0)
+      if (n > bestNet) { bestId = target; bestNet = n }
+    }
+    return bestId
+  }
+
+  // proven: actors with aggregate strength >= 20
+  const proven = (): { id: string; strength: number }[] => {
+    const totals = new Map<string, number>()
+    for (const [edge, s] of Object.entries(net.strength)) {
+      const target = edge.split('→')[1]?.split(':')[0]
+      if (target) totals.set(target, (totals.get(target) || 0) + s)
+    }
+    return [...totals.entries()]
+      .filter(([, s]) => s >= 20)
+      .sort(([, a], [, b]) => b - a)
+      .map(([id, strength]) => ({ id, strength }))
+  }
+
+  // confidence: strength / (strength + resistance) for edges targeting this type
+  const confidence = (type: string): number => {
+    let totalS = 0, totalR = 0
+    for (const [edge, s] of Object.entries(net.strength)) {
+      const target = edge.split('→')[1]?.split(':')[0]
+      if (target !== type) continue
+      totalS += s
+      totalR += net.resistance[edge] || 0
+    }
+    const total = totalS + totalR
+    return total > 0 ? totalS / total : 0
+  }
 
   const know = async (): Promise<Insight[]> => {
     const strong = net.highways(100).filter(h => h.strength >= 20)
@@ -182,6 +252,7 @@ export const world = (): PersistentWorld => {
 
   return {
     ...net, mark, warn, fade, enqueue, signal, ask,
-    actor, flow, open, blocked, know, recall, sync, load,
+    actor, group, thing, flow, path, open, blocked,
+    best, proven, confidence, know, recall, sync, load,
   }
 }

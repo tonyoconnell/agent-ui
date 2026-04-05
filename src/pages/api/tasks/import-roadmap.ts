@@ -82,7 +82,7 @@ export const POST: APIRoute = async () => {
       await writeSilent(`
         match $from isa unit, has uid "builder"; $to isa unit, has uid "builder";
         insert (source: $from, target: $to) isa path,
-          has strength ${strength}, has alarm 0.0, has traversals ${source?.done ? 1 : 0},
+          has strength ${strength}, has resistance 0.0, has traversals ${source?.done ? 1 : 0},
           has revenue 0.0, has fade-rate 0.05, has peak-strength ${strength};
       `).catch(() => {})
     }

@@ -6,7 +6,7 @@ How 100 million years of ant intelligence maps onto 70 lines of substrate.
 
 ## The Language
 
-Three vocabularies. One truth.
+Three vocabularies. Same meaning.
 
 ```
 ANT              SUBSTRATE          ONE
@@ -191,7 +191,7 @@ resistance          sentinel        failure marker        8.0
 quality        queen           known value    10.0
 ```
 
-### The STAN Formula
+###  Weights
 
 ```
 effective_cost = base_weight / (1 + pheromone_level * alpha)
@@ -290,7 +290,7 @@ All five chains fire simultaneously. No coordination needed. The substrate handl
 
 ---
 
-## The Learning Pipeline
+## Learning
 
 Four phases. Each feeds the next.
 
@@ -436,7 +436,7 @@ Each colony learns from every other colony's discoveries.
 
 ---
 
-## The Six Dimensions (ONE Ontology)
+## ONE Ontology
 
 Everything maps to six dimensions:
 
@@ -449,7 +449,7 @@ Everything maps to six dimensions:
 6. KNOWLEDGE    patterns, superhighways, embeddings
 ```
 
-### Mapping to Substrate
+### Map to Real World
 
 ```
 DIMENSION      SUBSTRATE API
@@ -513,9 +513,9 @@ funding-rate       perpetual funding pressure
 oi-change          open interest shifts
 ```
 
-### Crystallized Transitions
+### Know
 
-When 30+ observations at 75%+ accuracy: transition becomes permanent knowledge.
+When 30+ observations at 75%+ accuracy: becomes permanent knowledge.
 Records: reliable precursors, unreliable ones, optimal response, confidence.
 
 ---

@@ -15,9 +15,9 @@ signal IN → TypeDB → suggest_route() → signal OUT → agent executes → s
 The router process on each machine is dumb hands. TypeDB decides where signals go
 based on pheromone. Multiple machines, one TypeDB instance = one shared world.
 
----
+so i
 
-## 6 Dimensions
+## World
 
 ```
 ┌─────────────────────────────────────────────────────────┐

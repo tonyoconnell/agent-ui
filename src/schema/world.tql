@@ -7,8 +7,8 @@
 # The world moves signals. TypeDB remembers.
 #
 # Runtime (nervous system):
-#   substrate.ts — units, signals, strength, resistance, queue
-#   one.ts — actor, flow, know, recall
+#   world.ts — units, signals, strength, resistance, queue
+#   persist.ts — actor, flow, know, recall
 #
 # TypeDB (brain):
 #   unit — persisted actors (model, prompt, generation)
@@ -111,7 +111,7 @@ relation path,
     relates source,
     relates target,
     owns strength,                # mark() adds weight here
-    owns alarm,                   # warn() adds weight here
+    owns resistance,              # warn() adds weight here
     owns traversals,
     owns revenue,                 # sum of x402 payments on this path
     owns last-used,

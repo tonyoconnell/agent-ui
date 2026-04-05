@@ -1,0 +1,251 @@
+# =============================================================================
+# MARKETING TEAM SEED
+# =============================================================================
+# Run after world.tql is loaded
+# Creates the marketing world with 8 agents and initial paths
+# =============================================================================
+
+# --- The Marketing World (Group) ---
+insert $g isa group,
+  has gid "marketing",
+  has name "Marketing Team",
+  has purpose "AI marketing department using weight-based routing",
+  has group-type "world",
+  has status "active";
+
+# --- Director ---
+insert $u isa unit,
+  has uid "marketing:director",
+  has name "director",
+  has unit-kind "agent",
+  has model "claude-sonnet-4-20250514",
+  has status "active",
+  has success-rate 0.5,
+  has activity-score 0.0,
+  has sample-count 0,
+  has reputation 0.0,
+  has balance 0.0,
+  has generation 0,
+  has tag "marketing",
+  has tag "strategy",
+  has tag "routing";
+
+# --- Creative ---
+insert $u isa unit,
+  has uid "marketing:creative",
+  has name "creative",
+  has unit-kind "agent",
+  has model "claude-sonnet-4-20250514",
+  has status "active",
+  has success-rate 0.5,
+  has activity-score 0.0,
+  has sample-count 0,
+  has tag "marketing",
+  has tag "creative",
+  has tag "copy";
+
+# --- Media Buyer ---
+insert $u isa unit,
+  has uid "marketing:media-buyer",
+  has name "media-buyer",
+  has unit-kind "agent",
+  has model "claude-sonnet-4-20250514",
+  has status "active",
+  has success-rate 0.5,
+  has activity-score 0.0,
+  has sample-count 0,
+  has tag "marketing",
+  has tag "ads",
+  has tag "media";
+
+# --- SEO ---
+insert $u isa unit,
+  has uid "marketing:seo",
+  has name "seo",
+  has unit-kind "agent",
+  has model "claude-sonnet-4-20250514",
+  has status "active",
+  has success-rate 0.5,
+  has activity-score 0.0,
+  has sample-count 0,
+  has tag "marketing",
+  has tag "seo",
+  has tag "organic";
+
+# --- Content ---
+insert $u isa unit,
+  has uid "marketing:content",
+  has name "content",
+  has unit-kind "agent",
+  has model "claude-sonnet-4-20250514",
+  has status "active",
+  has success-rate 0.5,
+  has activity-score 0.0,
+  has sample-count 0,
+  has tag "marketing",
+  has tag "content",
+  has tag "blog";
+
+# --- Social ---
+insert $u isa unit,
+  has uid "marketing:social",
+  has name "social",
+  has unit-kind "agent",
+  has model "claude-sonnet-4-20250514",
+  has status "active",
+  has success-rate 0.5,
+  has activity-score 0.0,
+  has sample-count 0,
+  has tag "marketing",
+  has tag "social",
+  has tag "community";
+
+# --- Analyst ---
+insert $u isa unit,
+  has uid "marketing:analyst",
+  has name "analyst",
+  has unit-kind "agent",
+  has model "claude-sonnet-4-20250514",
+  has status "active",
+  has success-rate 0.5,
+  has activity-score 0.0,
+  has sample-count 0,
+  has tag "marketing",
+  has tag "analytics",
+  has tag "metrics";
+
+# --- Ads ---
+insert $u isa unit,
+  has uid "marketing:ads",
+  has name "ads",
+  has unit-kind "agent",
+  has model "claude-sonnet-4-20250514",
+  has status "active",
+  has success-rate 0.5,
+  has activity-score 0.0,
+  has sample-count 0,
+  has tag "marketing",
+  has tag "ads",
+  has tag "campaigns";
+
+# --- Group Memberships ---
+match $g isa group, has gid "marketing"; $u isa unit, has uid "marketing:director";
+insert (group: $g, member: $u) isa membership;
+
+match $g isa group, has gid "marketing"; $u isa unit, has uid "marketing:creative";
+insert (group: $g, member: $u) isa membership;
+
+match $g isa group, has gid "marketing"; $u isa unit, has uid "marketing:media-buyer";
+insert (group: $g, member: $u) isa membership;
+
+match $g isa group, has gid "marketing"; $u isa unit, has uid "marketing:seo";
+insert (group: $g, member: $u) isa membership;
+
+match $g isa group, has gid "marketing"; $u isa unit, has uid "marketing:content";
+insert (group: $g, member: $u) isa membership;
+
+match $g isa group, has gid "marketing"; $u isa unit, has uid "marketing:social";
+insert (group: $g, member: $u) isa membership;
+
+match $g isa group, has gid "marketing"; $u isa unit, has uid "marketing:analyst";
+insert (group: $g, member: $u) isa membership;
+
+match $g isa group, has gid "marketing"; $u isa unit, has uid "marketing:ads";
+insert (group: $g, member: $u) isa membership;
+
+# --- Skills ---
+insert $s isa skill, has skill-id "marketing:strategize", has name "strategize", has price 0.05, has tag "strategy";
+insert $s isa skill, has skill-id "marketing:allocate", has name "allocate", has price 0.02, has tag "budget";
+insert $s isa skill, has skill-id "marketing:copy", has name "copy", has price 0.02, has tag "creative";
+insert $s isa skill, has skill-id "marketing:concept", has name "concept", has price 0.03, has tag "creative";
+insert $s isa skill, has skill-id "marketing:plan", has name "plan", has price 0.03, has tag "media";
+insert $s isa skill, has skill-id "marketing:launch", has name "launch", has price 0.02, has tag "media";
+insert $s isa skill, has skill-id "marketing:optimize", has name "optimize", has price 0.02, has tag "performance";
+insert $s isa skill, has skill-id "marketing:keywords", has name "keywords", has price 0.02, has tag "seo";
+insert $s isa skill, has skill-id "marketing:blog", has name "blog", has price 0.03, has tag "content";
+insert $s isa skill, has skill-id "marketing:post", has name "post", has price 0.01, has tag "social";
+insert $s isa skill, has skill-id "marketing:report", has name "report", has price 0.02, has tag "analytics";
+insert $s isa skill, has skill-id "marketing:setup", has name "setup", has price 0.02, has tag "ads";
+
+# --- Capabilities (who can do what) ---
+match $u isa unit, has uid "marketing:director"; $s isa skill, has skill-id "marketing:strategize";
+insert (provider: $u, offered: $s) isa capability, has price 0.05;
+
+match $u isa unit, has uid "marketing:director"; $s isa skill, has skill-id "marketing:allocate";
+insert (provider: $u, offered: $s) isa capability, has price 0.02;
+
+match $u isa unit, has uid "marketing:creative"; $s isa skill, has skill-id "marketing:copy";
+insert (provider: $u, offered: $s) isa capability, has price 0.02;
+
+match $u isa unit, has uid "marketing:creative"; $s isa skill, has skill-id "marketing:concept";
+insert (provider: $u, offered: $s) isa capability, has price 0.03;
+
+match $u isa unit, has uid "marketing:media-buyer"; $s isa skill, has skill-id "marketing:plan";
+insert (provider: $u, offered: $s) isa capability, has price 0.03;
+
+match $u isa unit, has uid "marketing:media-buyer"; $s isa skill, has skill-id "marketing:launch";
+insert (provider: $u, offered: $s) isa capability, has price 0.02;
+
+match $u isa unit, has uid "marketing:media-buyer"; $s isa skill, has skill-id "marketing:optimize";
+insert (provider: $u, offered: $s) isa capability, has price 0.02;
+
+match $u isa unit, has uid "marketing:seo"; $s isa skill, has skill-id "marketing:keywords";
+insert (provider: $u, offered: $s) isa capability, has price 0.02;
+
+match $u isa unit, has uid "marketing:content"; $s isa skill, has skill-id "marketing:blog";
+insert (provider: $u, offered: $s) isa capability, has price 0.03;
+
+match $u isa unit, has uid "marketing:social"; $s isa skill, has skill-id "marketing:post";
+insert (provider: $u, offered: $s) isa capability, has price 0.01;
+
+match $u isa unit, has uid "marketing:analyst"; $s isa skill, has skill-id "marketing:report";
+insert (provider: $u, offered: $s) isa capability, has price 0.02;
+
+match $u isa unit, has uid "marketing:ads"; $s isa skill, has skill-id "marketing:setup";
+insert (provider: $u, offered: $s) isa capability, has price 0.02;
+
+# --- Initial Paths (Director routes to all) ---
+match $from isa unit, has uid "marketing:director"; $to isa unit, has uid "marketing:creative";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+match $from isa unit, has uid "marketing:director"; $to isa unit, has uid "marketing:media-buyer";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+match $from isa unit, has uid "marketing:director"; $to isa unit, has uid "marketing:seo";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+match $from isa unit, has uid "marketing:director"; $to isa unit, has uid "marketing:content";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+match $from isa unit, has uid "marketing:director"; $to isa unit, has uid "marketing:social";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+match $from isa unit, has uid "marketing:director"; $to isa unit, has uid "marketing:analyst";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+match $from isa unit, has uid "marketing:director"; $to isa unit, has uid "marketing:ads";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+# --- Collaboration Paths ---
+# Creative ↔ Media Buyer (tight loop)
+match $from isa unit, has uid "marketing:creative"; $to isa unit, has uid "marketing:media-buyer";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+match $from isa unit, has uid "marketing:media-buyer"; $to isa unit, has uid "marketing:creative";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+# SEO → Content
+match $from isa unit, has uid "marketing:seo"; $to isa unit, has uid "marketing:content";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+# Media Buyer → Ads
+match $from isa unit, has uid "marketing:media-buyer"; $to isa unit, has uid "marketing:ads";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+# Ads → Analyst
+match $from isa unit, has uid "marketing:ads"; $to isa unit, has uid "marketing:analyst";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+
+# Analyst → Director (feedback loop)
+match $from isa unit, has uid "marketing:analyst"; $to isa unit, has uid "marketing:director";
+insert (source: $from, target: $to) isa path, has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
