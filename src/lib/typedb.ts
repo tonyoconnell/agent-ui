@@ -12,7 +12,7 @@
  */
 
 // Gateway URL (browser goes through Worker, server can go direct)
-const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'http://localhost:8787'
+const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://one-gateway.oneie.workers.dev'
 
 // Server-side direct config (optional — falls back to gateway)
 const TYPEDB_URL = import.meta.env.TYPEDB_URL || ''

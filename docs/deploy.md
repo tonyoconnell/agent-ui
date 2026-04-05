@@ -10,6 +10,27 @@ Step-by-step. Every command proven. Every link verified.
 
 ---
 
+## Status (verified 2026-04-06)
+
+- [x] **Step 1** — Clone and install. Node 20.19.6, npm 10.8.2, wrangler 4.80.0
+- [x] **Step 2** — CF auth. Global API Key works, account `627e0c7c...`
+- [x] **Step 3a** — D1 `one` created (APAC, `0aa5fceb-667a-470e-b08c-40ead2f4525d`)
+- [x] **Step 3b** — KV namespace created (`1c1dac4766e54a2c85425022a3b1e9da`)
+- [x] **Step 3c** — D1 migration: 4 tables (signals, messages, tasks, sync_log)
+- [x] **Step 4a** — TypeDB Cloud signin OK (port 1729)
+- [x] **Step 4b** — Database `one` created
+- [x] **Step 4c** — Schema loaded (entities + attributes)
+- [x] **Step 4d** — 19 functions loaded (routing, classification, aggregates)
+- [x] **Step 5** — Config updated (wrangler.toml, gateway, sync worker)
+- [x] **Step 6** — Gateway deployed: https://one-gateway.oneie.workers.dev/health → `{"status":"ok"}`
+- [x] **Step 6 e2e** — Gateway → TypeDB query → `conceptRows` OK
+- [x] **Step 7** — Sync worker deployed: https://one-sync.oneie.workers.dev → cron `*/5 * * * *`
+- [x] **Step 8** — Pages deployed: https://one-substrate.pages.dev → HTTP 200 in 0.3s
+- [x] **Step 9** — Seed data: 8 units, 8 skills, 1 group (marketing team) in TypeDB
+- [x] **Step 10** — Custom domains: one.ie (200), app.one.ie (200), api.one.ie/health → `{"status":"ok"}`
+
+---
+
 ## Prerequisites
 
 | Tool | Install | Verify |
@@ -548,6 +569,9 @@ OK
 | `[REP1] variable cannot be declared as both Attribute and Value` | Function param name matches attribute | Use comparison: `has uid $u; $u == $param;` |
 | `expected var` in function return | `return first true` not valid | Return an entity variable: `return first $e;` |
 | Build fails with `react-dom/server` | Missing edge compat alias | Check `astro.config.mjs` has `react-dom/server.edge` alias for prod |
+| Sync API returns OK but TypeDB is empty | Pages can't read `import.meta.env` secrets at runtime | Set gateway URL as default in `typedb.ts`, or use `wrangler pages secret put` |
+| Custom domain disables workers.dev | Wrangler default behavior | Add `workers_dev = true` to wrangler.toml |
+| `routes` must be array | Single `[routes]` vs `[[routes]]` | Use `[[routes]]` (double bracket = TOML array) |
 
 ---
 
@@ -659,15 +683,29 @@ cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy &
 
 ---
 
-## Live URLs (current deployment)
+## Live URLs (verified 2026-04-06)
 
-| Service | URL |
-|---------|-----|
-| Pages | https://one-substrate.pages.dev |
-| Gateway | https://one-gateway.oneie.workers.dev |
-| Sync | https://one-sync.oneie.workers.dev |
-| Gateway health | https://one-gateway.oneie.workers.dev/health |
-| TypeDB Cloud | `flsiu1-0.cluster.typedb.com:1729` |
+| Service | URL | Status |
+|---------|-----|--------|
+| Pages | https://one-substrate.pages.dev | 200 OK, 0.4s |
+| Gateway | https://one-gateway.oneie.workers.dev | `{"status":"ok"}` |
+| Gateway (custom) | https://api.one.ie/health | `{"status":"ok"}` |
+| Sync | https://one-sync.oneie.workers.dev | cron `*/5 * * * *` |
+| TypeDB Cloud | `flsiu1-0.cluster.typedb.com:1729` | 8 units, 8 skills, 1 group |
+
+### Data in TypeDB
+
+```
+marketing world:
+  marketing:marketing-director — skill: strategize
+  marketing:creative           — skill: copy
+  marketing:content-writer     — skill: blog
+  marketing:seo-specialist     — skill: keywords
+  marketing:social-media       — skill: post
+  marketing:media-buyer        — skill: plan
+  marketing:ads-manager        — skill: setup
+  marketing:marketing-analyst  — skill: report
+```
 
 ---
 

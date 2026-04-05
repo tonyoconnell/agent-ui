@@ -1,5 +1,6 @@
 name = "one-gateway"
 main = "src/index.ts"
+workers_dev = true
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -12,7 +13,18 @@ TYPEDB_DATABASE = "one"
 # TYPEDB_USERNAME - "admin"
 # TYPEDB_PASSWORD - TypeDB Cloud password
 
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "one"
+database_id = "0aa5fceb-667a-470e-b08c-40ead2f4525d"
+
+# KV Namespace
+[[kv_namespaces]]
+binding = "KV"
+id = "1c1dac4766e54a2c85425022a3b1e9da"
+
 # Custom domain
-# [[routes]]
-# pattern = "api.one.ie"
-# custom_domain = true
+[[routes]]
+pattern = "api.one.ie"
+custom_domain = true

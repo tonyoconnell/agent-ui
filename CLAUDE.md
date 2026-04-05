@@ -333,6 +333,7 @@ import { Card } from "@/components/ui/card"
 
 | Skill | Trigger | What it provides |
 |-------|---------|-----------------|
+| `/deploy` | Deploy to Cloudflare | Gateway + sync + Pages. Global API Key from .env |
 | `/typedb` | Any TQL, schema, query work | TypeDB 3.0 syntax, functions (NOT rules) |
 | `/reactflow` | Graph visualization | Custom nodes, dark theme |
 | `/react19` | React components, hooks | React 19 patterns, use(), transitions |

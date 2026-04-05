@@ -2,37 +2,8 @@
 name = "one-substrate"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
 
-[build]
-command = "npm run build"
-
-# D1 — signal history, messages, sync log
-[[d1_databases]]
-binding = "DB"
-database_name = "one"
-database_id = "0aa5fceb-667a-470e-b08c-40ead2f4525d"
-
-# KV — hot JSON snapshots (paths, units, skills, toxic)
-[[kv_namespaces]]
-binding = "KV"
-id = "1c1dac4766e54a2c85425022a3b1e9da"
-
-# Queue — signal buffer
-[[queues.producers]]
-binding = "QUEUE"
-queue = "signals"
-
-# R2 — agent files, exports
-[[r2_buckets]]
-binding = "R2"
-bucket_name = "one-files"
-
-[vars]
-TYPEDB_URL = "https://flsiu1-0.cluster.typedb.com:1729"
-TYPEDB_DATABASE = "one"
-
-# Secrets (NEVER in toml — set via CLI):
-# npx wrangler secret put TYPEDB_USERNAME
-# npx wrangler secret put TYPEDB_PASSWORD
-# npx wrangler secret put ANTHROPIC_API_KEY
-# npx wrangler secret put CLOUDFLARE_GLOBAL_API_KEY
+# Pages environment configuration
+[env.production]
+vars = { ENVIRONMENT = "production" }
