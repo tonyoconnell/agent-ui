@@ -107,7 +107,7 @@ world()
 
 ```
 src/
-  engine/       # Core: substrate.ts, one.ts, loop.ts, boot.ts, asi.ts
+  engine/       # Core: substrate.ts, one.ts, loop.ts, boot.ts
   components/   # React 19 + shadcn/ui
   pages/        # Astro routes
   layouts/      # Astro layouts

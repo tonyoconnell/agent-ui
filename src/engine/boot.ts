@@ -9,10 +9,10 @@ import { tick } from './loop'
 import { readParsed } from '@/lib/typedb'
 import type { Signal } from './substrate'
 
-export const boot = async (complete: (prompt: string) => Promise<string>, interval = 10_000) => {
+export const boot = async (complete?: (prompt: string) => Promise<string>, interval = 10_000) => {
   const w = world()
 
-  // Hydrate pheromone from TypeDB
+  // Hydrate pheromone + queue from TypeDB
   await w.load()
 
   // Spawn units from TypeDB
@@ -33,6 +33,7 @@ export const boot = async (complete: (prompt: string) => Promise<string>, interv
   return {
     world: w,
     signal: (s: Signal) => w.signal(s),
+    ask: (s: Signal) => w.ask(s),
     enqueue: (s: Signal) => w.enqueue(s),
     stop: () => { alive = false; return loop },
   }

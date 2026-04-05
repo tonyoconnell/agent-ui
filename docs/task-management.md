@@ -381,24 +381,56 @@ Tags for what it IS. Pheromone for how well it WORKS.
 
 ---
 
+## Claude Code as a Unit
+
+Claude Code is a unit in the colony. Slash commands are the interface:
+
+```
+/work              # Autonomous loop: sense → select → execute → mark → repeat
+/next              # Pick one task and do it
+/tasks             # See what's available (filter: /tasks P0 build)
+/add-task ...      # Create a tagged skill
+/done skill-id     # Mark complete, reinforce trail
+/grow              # Run one growth tick
+/highways          # See proven paths and frontiers
+/report            # Record this session's outcomes to the substrate
+```
+
+### The Autonomous Loop (`/work`)
+
+```
+SENSE:   GET /api/tasks → group by category
+SELECT:  attractive first, then ready, then exploratory. Never repelled.
+EXECUTE: read code, edit files, run tests, fix issues
+VERIFY:  tsc --noEmit (no new errors)
+MARK:    POST /api/tasks/:id/complete → reinforce trail
+GROW:    GET /api/tick?interval=0 → see what the colony learned
+LOOP:    go to SENSE
+```
+
+Each `/done` teaches the colony. Each `/work` cycle makes it smarter. Multiple Claude Code instances sharing one TypeDB = shared intelligence.
+
+---
+
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `src/engine/substrate.ts` | Colony: signal, mark, warn, fade, queue, select |
-| `src/engine/loop.ts` | Tick: select, signal, drain, fade, evolve, crystallize |
-| `src/engine/one.ts` | World: actor, flow, crystallize, recall |
+| `src/engine/substrate.ts` | Colony: signal, mark, warn, fade, queue, select, ask |
+| `src/engine/loop.ts` | Tick: 7 loops (signal through frontier) |
+| `src/engine/one.ts` | World: colony + TypeDB persistence |
 | `src/engine/boot.ts` | Hydrate + spawn + breathe |
-| `src/engine/persist.ts` | TypeDB sync: mark/warn/fade/enqueue write-through |
-| `src/engine/asi.ts` | Three-tier routing: substrate → TypeDB → LLM |
-| `src/pages/api/tasks/` | Task visibility + signal enqueue |
+| ~~asi.ts~~ | deleted — routing is in the loop (select → ask → mark/warn) |
+| `src/pages/api/tasks/` | Task visibility + creation + completion |
 | `src/pages/api/tick.ts` | Growth loop endpoint |
-| `src/schema/one.tql` | TypeDB schema: units, paths, skills, knowledge |
+| `src/schema/one.tql` | TypeDB schema: units, paths, skills, tags, knowledge |
+| `.claude/commands/` | Slash commands: work, next, tasks, done, grow, highways, report |
 
 ---
 
 ## See Also
 
+- [claude-code-integration.md](claude-code-integration.md) -- Full guide for Claude Code as a substrate agent
 - [loops.md](loops.md) -- The seven nested feedback loops
 - [substrate-learning.md](substrate-learning.md) -- How routing IS learning
 - [signal.md](signal.md) -- The universal primitive

@@ -84,7 +84,7 @@ if (!task) throw new Error(...)
 | `one.ts` | ~154 | World: colony + TypeDB persistence + knowledge |
 | `loop.ts` | ~75 | Tick: select → signal → drain → fade → evolve → crystallize |
 | `boot.ts` | ~39 | Hydrate from TypeDB, start tick loop |
-| `asi.ts` | ~54 | Three-tier routing: substrate → TypeDB → LLM (uses ask) |
+| ~~asi.ts~~ | deleted | routing absorbed into loop (select → ask → mark/warn) |
 | `llm.ts` | ~40 | LLM as unit: anthropic/openai adapters |
 | `agentverse.ts` | ~83 | 2M agents: register/discover/call |
 | `index.ts` | ~11 | Exports: world, colony, unit, llm, asi |

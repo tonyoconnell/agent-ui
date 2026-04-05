@@ -1,0 +1,226 @@
+{
+  "main": {
+    "id": "fe34873c2a4bf112",
+    "type": "split",
+    "children": [
+      {
+        "id": "ea731fb4e44b034b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "fd99b50a9796efdb",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "docs/agents.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "agents"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "f1d49d44183f1f82",
+    "type": "split",
+    "children": [
+      {
+        "id": "c436771545e5c319",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5226c9aa1f8fcf08",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "1d4fcf74e0d3822b",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "1670f1bab165d1b9",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "right": {
+    "id": "71d5a7ff3ac56b11",
+    "type": "split",
+    "children": [
+      {
+        "id": "8d75301cc9289cb5",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "018ad64fcc3f0a82",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "docs/CHAT_ARCHITECTURE.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for CHAT_ARCHITECTURE"
+            }
+          },
+          {
+            "id": "ccb1114d96a095c7",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "docs/CHAT_ARCHITECTURE.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from CHAT_ARCHITECTURE"
+            }
+          },
+          {
+            "id": "af5df367ec1503cf",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "29790384ae3834b8",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "5cbf955219f83fb1",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "docs/CHAT_ARCHITECTURE.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of CHAT_ARCHITECTURE"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "fd99b50a9796efdb",
+  "lastOpenFiles": [
+    "docs/agents 1.md",
+    "docs/agents.md",
+    "src/engine/md.ts",
+    "src/engine/agent.ts",
+    "docs/value.md",
+    "docs/claude-code-integration.md",
+    "docs/task-management.md",
+    "src/pages/api/tasks/[category].ts",
+    "docs/sdk.md",
+    "docs/opensource.md",
+    "docs/archive/task-management-v1.md",
+    "docs/archive",
+    "docs/patterns.md",
+    "src/engine/boot.ts",
+    "docs/dictionary.md",
+    "docs/DSL.md",
+    "src/pages/api/tick.ts",
+    "src/engine/loop.ts",
+    "docs/Update Plan.md",
+    "docs/tutorial.md",
+    "docs/gaps.md",
+    "docs/executive-summary.md",
+    "docs/effects.md",
+    "docs/contracts.md",
+    "src/pages/api/decay-auto.ts",
+    "src/pages/api/signals.ts",
+    "src/pages/api/agents/[id]/capabilities.ts",
+    "docs/SUI.md",
+    "docs/TODO-ui.md",
+    "docs/TODO-fill-gaps.md",
+    "docs/TODO-loops.md",
+    "docs/loops.md",
+    "docs/TODO-create.md",
+    "docs/signal.md",
+    "docs/README.md",
+    "node_modules/@cloudflare/workers-types/entrypoints.svg",
+    "node_modules/miniflare/dist/local-explorer-ui/favicon.svg"
+  ]
+}

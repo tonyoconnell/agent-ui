@@ -75,9 +75,13 @@ export const unit = (id: string, route?: Route): Unit => {
     const emit: Emit = s => route?.(s, receiver)
     const ctx = { from, self: receiver }
 
-    task?.(data, emit, ctx).then(result =>
+    task?.(data, emit, ctx).then(result => {
+      // Auto-reply: if signal had replyTo, send result back (closes ask())
+      const replyTo = (data as Record<string, unknown>)?.replyTo as string
+      replyTo && route?.({ receiver: replyTo, data: result }, receiver)
+      // Continuation: fire .then() template
       next[taskName] && route?.(next[taskName](result), receiver)
-    )
+    })
   }
 
   u.on = (n, f) => (tasks[n] = (d, e, c) => Promise.resolve(f(d, e, c)), u)
