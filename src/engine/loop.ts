@@ -23,6 +23,8 @@ const EVOLUTION_MIN_SAMPLES = 20
 const REVENUE_SKIP_THRESHOLD = 1.0      // revenue above which low-success agents are spared
 const REVENUE_MIN_SUCCESS = 0.30        // min success rate even for profitable agents
 const CRYSTALLIZE_INTERVAL = 3_600_000  // 1 hour between knowledge cycles
+const SURGE_THRESHOLD = 10              // strength delta to flag as surge
+const FRONTIER_MIN_ACTIVITY = 3         // min edges involving a unit to consider it active
 
 export type TickResult = {
   cycle: number
@@ -43,6 +45,7 @@ let lastCrystallize = 0
 let previousTarget: string | null = null
 let chainDepth = 0
 let priorityEvolve: string[] = []
+let lastStrengths: Record<string, number> = {}
 
 export const tick = async (net: PersistentWorld, complete?: Complete): Promise<TickResult> => {
   const now = Date.now()
@@ -197,6 +200,27 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       hypoCount++
     }
 
+    // KL-1: Detect rapid strength surges
+    for (const h of net.highways(50)) {
+      const prev = lastStrengths[h.path] || 0
+      const delta = h.strength - prev
+      if (delta > SURGE_THRESHOLD) {
+        writeSilent(`
+          insert $h isa hypothesis, has hid "surge-${h.path.replace(/[→:]/g, '-')}-${cycle}",
+            has statement "path ${h.path} surged by ${delta.toFixed(1)} (${prev.toFixed(1)} → ${h.strength.toFixed(1)})",
+            has hypothesis-status "testing", has observations-count 0, has p-value 0.3;
+        `).catch(() => {})
+        hypoCount++
+      }
+    }
+    lastStrengths = Object.fromEntries(net.highways(100).map(h => [h.path, h.strength]))
+
+    // LC-1: Knowledge → Evolution coupling — strong patterns trigger priority evolution
+    for (const i of insights.filter(i => i.confidence >= 0.8)) {
+      const units = i.pattern.split('→').map(s => s.split(':')[0])
+      priorityEvolve.push(...units)
+    }
+
     // L7: detect frontiers from unexplored tag clusters
     const tagRows = await readParsed(`
       match $sk isa skill, has tag $tag, has skill-id $sid; select $tag, $sid;
@@ -217,6 +241,29 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
             has frontier-status "unexplored";
         `).catch(() => {})
         frontierCount++
+      }
+    }
+
+    // FR-1: Detect unit-gap frontiers — active units that have never been connected
+    const allUnits = net.list()
+    for (let i = 0; i < allUnits.length; i++) {
+      for (let j = i + 1; j < allUnits.length; j++) {
+        const edgeFwd = `${allUnits[i]}→${allUnits[j]}`
+        const edgeRev = `${allUnits[j]}→${allUnits[i]}`
+        if (!explored.has(allUnits[i]) || !explored.has(allUnits[j])) continue
+        if (net.sense(edgeFwd) === 0 && net.sense(edgeRev) === 0) {
+          const actI = Object.keys(net.strength).filter(e => e.includes(allUnits[i])).length
+          const actJ = Object.keys(net.strength).filter(e => e.includes(allUnits[j])).length
+          if (actI >= FRONTIER_MIN_ACTIVITY && actJ >= FRONTIER_MIN_ACTIVITY) {
+            writeSilent(`
+              insert $f isa frontier, has fid "gap-${allUnits[i]}-${allUnits[j]}-${cycle}",
+                has frontier-type "unit-gap",
+                has frontier-description "active units ${allUnits[i]} and ${allUnits[j]} never connected",
+                has expected-value 0.5, has frontier-status "unexplored";
+            `).catch(() => {})
+            frontierCount++
+          }
+        }
       }
     }
 
