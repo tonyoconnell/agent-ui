@@ -183,5 +183,5 @@ Training and inference collapse into the same substrate.
 - [signal.md](signal.md) — The primitive that generates training data
 - [ontology.md](ontology.md) — Inference rules: highway, fading, toxic
 - [emergence.md](emergence.md) — Five forces including stigmergic memory
-- [ai-training.md](ai-training.md) — ML training/inference through the same substrate
+- [ai-training.md](llm-training.md) — ML training/inference through the same substrate
 - [typedb.md](typedb.md) — Persistence of learned weights

@@ -36,14 +36,14 @@ I did my work, I passed it on. The signal is the thread that stitches them toget
 ## How It Flows
 
 ```typescript
-const scout = w.add('scout')
+const scout = colony.spawn('scout')
   .on('observe', ({ tick }, emit) => {
     const finding = analyze(tick)
     emit({ receiver: 'analyst:process', data: finding })
     return finding
   })
 
-const analyst = w.add('analyst')
+const analyst = colony.spawn('analyst')
   .on('process', ({ finding }, emit) => {
     const result = classify(finding)
     emit({ receiver: 'reporter:summarize', data: result })
@@ -54,7 +54,7 @@ const analyst = w.add('analyst')
 Signal in. Work. Signal out. That's the entire programming model.
 
 The `emit` function is how an agent speaks. It doesn't call another agent —
-it sends a signal into the world. The world routes it. The receiving agent
+it sends a signal into the world. The colony routes it. The receiving agent
 doesn't know who sent it (unless it checks `ctx.from`). Loose coupling by default.
 
 ---
@@ -68,11 +68,11 @@ scout emits to analyst → path "scout→analyst:process" gets +1 strength
 analyst emits to reporter → path "analyst→reporter:summarize" gets +1 strength
 ```
 
-Do this a hundred times and the paths become highways. The world remembers
+Do this a hundred times and the paths become highways. The colony remembers
 which chains work — not because anyone told it, but because signals kept flowing.
 
 ```typescript
-w.highways(5)
+colony.highways(5)
 // [
 //   { path: 'scout→analyst:process', strength: 94.2 },
 //   { path: 'analyst→reporter:summarize', strength: 87.1 },
@@ -86,22 +86,22 @@ w.highways(5)
 ## What Happens When It Fails
 
 A signal arrives. The agent fails. No pheromone marked. If you explicitly
-warn the path, resistance accumulates instead:
+warn the path, alarm pheromone accumulates instead:
 
 ```typescript
-w.warn('scout→bad-analyst:process')
+colony.warn('scout→bad-analyst:process')
 ```
 
-Resistance builds up. The path goes toxic. `follow()` avoids it.
+Alarm builds up. The path goes toxic. `follow()` avoids it.
 Future signals route around the failure — automatically.
 
 ```
-success → mark(path)   → strength++    → highway emerges
-failure → warn(path)   → resistance++  → path goes toxic
+success → mark(path)   → strength++  → highway emerges
+failure → warn(path)   → alarm++     → path goes toxic
 silence → nothing      → signal dissolves (zero returns)
 ```
 
-No exceptions. No error handlers. The world just routes around.
+No exceptions. No error handlers. The swarm just routes around.
 
 ---
 
@@ -110,11 +110,11 @@ No exceptions. No error handlers. The world just routes around.
 Paths fade. Without fresh signals reinforcing them, strength decays.
 
 ```typescript
-w.fade(0.05)   // everything loses 5%
+colony.fade(0.05)   // everything loses 5%
 ```
 
-Resistance fades 2x faster. The system forgives failures sooner than it forgets successes.
-Unused paths dissolve. Active paths persist. The world's memory is always fresh.
+Alarm fades 2x faster. The system forgives failures sooner than it forgets successes.
+Unused paths dissolve. Active paths persist. The colony's memory is always fresh.
 
 ```
 MARK                   FADE
@@ -136,7 +136,7 @@ HIGHWAY            dissolve
 A task with context baked in. Same handler, different perspective:
 
 ```typescript
-w.add('monitor')
+colony.spawn('monitor')
   .on('check', ({ target }, emit) => {
     const status = ping(target)
     emit({ receiver: 'alert', data: { target, status } })
@@ -165,7 +165,7 @@ Roles don't add logic. They add perspective.
 Instead of each agent deciding who to emit to, you can declare the chain at setup:
 
 ```typescript
-w.add('scout')
+colony.spawn('scout')
   .on('observe', ({ tick }) => ({ data: tick }))
   .then('observe', result => ({ receiver: 'analyst', data: result }))
 ```
@@ -185,7 +185,7 @@ A signal arrives at a unit that doesn't exist? Nothing happens.
 A signal hits a handler that isn't defined? Nothing happens.
 An agent has nothing to say? Nothing happens.
 
-The world continues. Silence is valid. The signal dissolves.
+The swarm continues. Silence is valid. The signal dissolves.
 
 ```typescript
 // Good — conditional flow
@@ -197,7 +197,7 @@ if (!target) throw new Error(...)
 ```
 
 This is how ant colonies work. An ant drops pheromone, no one follows it,
-the trail evaporates. No exception thrown. No error logged. The world moves on.
+the trail evaporates. No exception thrown. No error logged. The colony moves on.
 
 ---
 
@@ -206,17 +206,17 @@ the trail evaporates. No exception thrown. No error logged. The world moves on.
 | Verb | What it does | Effect |
 |------|--------------|--------|
 | `emit(signal)` | Agent passes signal to the next | Signal moves |
-| `mark(path)` | Strengthen on success | Path gains strength |
-| `warn(path)` | Resist on failure | Path gains resistance |
+| `mark(path)` | Drop pheromone on success | Path strengthens |
+| `warn(path)` | Drop alarm on failure | Path weakens |
 | `fade(rate)` | Decay everything | Stale paths dissolve |
-| `follow(type)` | Ask where strength is highest | Route decision (deterministic) |
+| `follow(type)` | Ask where pheromone is strongest | Route decision (deterministic) |
 | `select(type, exploration?)` | Weighted random with exploration bias | Route decision (stochastic) |
 
 `follow` always picks the highway. `select` explores — sometimes the strongest,
 sometimes a random trail. Real ants do both. `exploration` controls the bias
 (0 = always strongest, 1 = pure random, default 0.3).
 
-Six operations. The signal flows. The path remembers. The world learns.
+Six operations. The signal flows. The path remembers. The colony learns.
 
 ---
 
@@ -244,56 +244,56 @@ flow through the world without reinforcing any path.
 
 ---
 
-## The World
+## The Colony
 
-The container that signals move through.
+The world that signals move through.
+
+```typescript
+const net = colony()
+
+// Lifecycle
+const scout = net.spawn('scout')     // create unit
+const analyst = net.spawn('analyst')
+net.despawn('old-scout')             // unit stops receiving. trails remain, fade naturally
+
+// Signal enters the world
+net.signal({ receiver: 'scout:observe', data: { tick: 42 } })
+
+// Route
+net.follow('analyst')      // best route to any analyst (deterministic)
+net.select('analyst')      // weighted random route (stochastic, exploration=0.3)
+net.select('analyst', 0.1) // mostly follow highways, rarely explore
+
+// Query what emerged
+net.highways(10)           // strongest paths
+net.sense('a→b')           // read scent on a path
+net.danger('a→b')          // read alarm on a path
+
+// Introspection
+net.has('scout')           // unit exists?
+net.list()                 // all unit ids
+net.get('scout')           // direct unit access
+```
+
+State is two maps: `scent` (what worked) and `alarm` (what failed).
+Everything else — highways, routing, toxicity — derives from these.
+
+Matching is exact. `follow('analyst')` matches `scout→analyst:process`
+but `follow('an')` matches nothing. The colony doesn't guess.
+
+---
+
+## The World (6 Dimensions)
+
+When you need groups, economics, and knowledge — not just signal flow:
 
 ```typescript
 const w = world()
 
-// Lifecycle
-const scout = w.add('scout')       // create unit
-const analyst = w.add('analyst')
-w.remove('old-scout')              // unit stops receiving. trails remain, fade naturally
-
-// Signal enters the world
-w.signal({ receiver: 'scout:observe', data: { tick: 42 } })
-
-// Route
-w.follow('analyst')      // best route to any analyst (deterministic)
-w.select('analyst')      // weighted random route (stochastic, exploration=0.3)
-w.select('analyst', 0.1) // mostly follow highways, rarely explore
-
-// Query what emerged
-w.highways(10)           // strongest paths
-w.sense('a→b')           // read strength on a path
-w.danger('a→b')          // read resistance on a path
-
-// Introspection
-w.has('scout')           // unit exists?
-w.list()                 // all unit ids
-w.get('scout')           // direct unit access
-```
-
-State is two maps: `strength` (what worked) and `resistance` (what failed).
-Everything else — highways, routing, toxicity — derives from these.
-
-Matching is exact. `follow('analyst')` matches `scout→analyst:process`
-but `follow('an')` matches nothing. The world doesn't guess.
-
----
-
-## The World (with Persistence)
-
-When you need durable memory and knowledge — not just signal flow:
-
-```typescript
-const w = world({ persist: typedb() })
-
 // 1. Groups — scope and isolation
 w.group('research', 'team')
 
-// 2. Actors — who receives signals (persisted)
+// 2. Actors — who receives signals
 const scout = w.actor('scout', 'agent', { group: 'research' })
   .on('observe', ({ tick }, emit) => {
     emit({ receiver: 'analyst:process', data: analyze(tick) })
@@ -309,20 +309,20 @@ w.flow('scout', 'bad-analyst', { group: 'research' }).resist()
 // 5. Events — automatic from signals
 
 // 6. Knowledge — durable patterns that survive fade
-w.know()                      // promote strong paths → knowledge. returns new insights
-w.recall()                    // all known patterns
+w.crystallize()               // promote strong flows → knowledge. returns new insights
+w.recall()                    // all crystallized patterns
 w.recall('analyst')           // patterns involving analyst
 
 // Queries — live pheromone (ephemeral, fades)
 w.open(10)                    // strongest flows
 w.best('agent')               // best actor of type
 w.proven()                    // reliable actors (strength >= 20)
-w.blocked()                   // toxic paths (resistance > strength)
+w.blocked()                   // toxic paths (alarm > scent)
 w.confidence('agent')         // aggregate confidence for type
 ```
 
 Knowledge vs queries: `open()`, `best()`, `proven()` read live pheromone — they
-fade. `know()` snapshots strong patterns into durable knowledge that persists
+fade. `crystallize()` snapshots strong patterns into durable knowledge that persists
 even after pheromone decays. `recall()` reads that knowledge. Working memory vs
 long-term memory.
 
@@ -330,7 +330,7 @@ long-term memory.
 
 ## TypeDB as Relay
 
-In production, the world persists to TypeDB. TypeDB is the brain.
+In production, the colony isn't in-memory. TypeDB is the substrate.
 The router process is dumb hands. TypeDB decides where signals go.
 
 ```
@@ -363,7 +363,7 @@ trail_status($trail)            → "proven" | "fresh" | "active" | "fading" | "
 unit_classification($unit)      → "proven" | "active" | "at-risk"
 needs_evolution($unit)          → boolean (success-rate < 0.50, samples >= 20)
 is_attractive($task)            → boolean (strong trail + no blockers)
-is_repelled($task)              → boolean (resistance > trail pheromone)
+is_repelled($task)              → boolean (alarm > trail pheromone)
 ```
 
 ---
@@ -378,13 +378,13 @@ unit.system-prompt  → the instructions (mutable)
 unit.generation     → how many times it's rewritten itself
 ```
 
-The world watches. When success-rate drops below 0.50 after 20+ samples,
+The substrate watches. When success-rate drops below 0.50 after 20+ samples,
 `needs_evolution()` fires. The agent reads its own failures, rewrites its
 prompt, increments `generation`. The signal told it to improve. The agent
 decided how.
 
 Two layers of learning:
-- **World** — pheromone on paths. The world gets smarter.
+- **Substrate** — pheromone on paths. The colony gets smarter.
 - **Agent** — prompt evolution. The individual gets smarter.
 
 ---
@@ -399,7 +399,7 @@ A task with `price > 0` is a service. Every payment strengthens the path:
 signal(A → B, amount: 0.01) → path(A,B).revenue += 0.01
 ```
 
-Revenue is pheromone. Paying paths become highways. The world routes
+Revenue is pheromone. Paying paths become highways. The colony routes
 toward value — not because it was told to, but because money leaves a trail.
 
 ---
@@ -433,7 +433,7 @@ The signal loop is the muscle. The frontier loop is the mind.
 | fresh | strength 10-50, traversals < 10 |
 | active | default |
 | fading | strength 0-5 |
-| toxic | resistance > strength AND resistance >= 10 |
+| toxic | alarm > strength AND alarm >= 10 |
 
 ### Trails (task-to-task)
 
@@ -462,17 +462,16 @@ The DSL doesn't care what you call things. Same flow, different words:
 | DSL         | Ant        | Brain       | Team      | Water      | Radio      |
 | ----------- | ---------- | ----------- | --------- | ---------- | ---------- |
 | unit        | ant        | neuron      | agent     | pool       | receiver   |
-| world       | nest       | network     | team      | watershed  | network    |
+| colony      | nest       | network     | team      | watershed  | network    |
 | emit        | forage     | fire        | delegate  | flow       | transmit   |
 | mark        | deposit    | potentiate  | commend   | carve      | boost      |
 | warn        | alarm      | inhibit     | flag      | dam        | jam        |
 | fade        | evaporate  | decay       | forget    | dry        | attenuate  |
 | follow      | smell      | sense       | query     | trace      | scan       |
 | select      | wander     | stochastic  | explore   | branch     | tune       |
-| add         | hatch      | grow        | hire      | dig        | tune       |
-| remove      | die        | apoptosis   | fire      | dry up     | deregister |
+| despawn     | die        | apoptosis   | retire    | evaporate  | deregister |
 | highways    | trails     | pathways    | go-tos    | rivers     | channels   |
-| know        | imprint    | consolidate | document  | settle     | lock       |
+| crystallize | nest-scent | consolidate | document  | sediment   | record     |
 | recall      | recognize  | remember    | consult   | resurface  | replay     |
 | role        | caste      | receptor    | hat       | tributary  | preset     |
 
@@ -485,13 +484,13 @@ Only the words humans use to describe it.
 
 | File | What |
 |------|------|
-| `src/engine/world.ts` | `unit()`, `world()`, pheromone |
-| `src/engine/one.ts` | `world({ persist })`, 6 dimensions |
-| `src/schema/world.tql` | Schema, functions, classification |
+| `src/engine/substrate.ts` | `unit()`, `colony()`, pheromone |
+| `src/engine/one.ts` | `world()`, 6 dimensions |
+| `src/schema/one.tql` | Schema, functions, classification |
 
 ---
 
-*Signal in. Work. Signal out. The path remembers. The world learns.*
+*Signal in. Work. Signal out. The path remembers. The colony learns.*
 
 ---
 

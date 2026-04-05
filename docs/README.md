@@ -1,18 +1,15 @@
 # ONE
 
-**Signal. Mark. Follow. Fade. Highway.**
+**Signal. Mark. Warn. Follow. Fade. Highway.**
 
-The universal substrate for emergence. 100 million years proven.
+The universal substrate for emergence. Two dictionaries. Arithmetic. One probabilistic step.
 
 ---
 
 ## The Primitive
 
 ```typescript
-type Signal = {
-  receiver: string      // where it's going
-  data?: unknown     // what it carries
-}
+type Signal = { receiver: string; data?: unknown }
 ```
 
 Two fields. Everything else emerges.
@@ -22,26 +19,48 @@ Two fields. Everything else emerges.
 ## The Pattern
 
 ```
-Ants:      chemical signal  →  pheromone mark  →  foraging highway
-Neurons:   electrical signal →  synapse weight  →  memory trace
-Markets:   price signal      →  volume          →  trend
-Agents:    digital signal    →  success weight  →  proven route
+Ants:      chemical signal  →  pheromone trail  →  foraging highway
+Neurons:   electrical spike →  synapse weight   →  memory trace
+Markets:   price signal     →  volume           →  trend
+Agents:    digital signal   →  path strength    →  proven route
 ```
 
 Same pattern. Same substrate. Same emergence.
 
 ---
 
+## The Power
+
+**The LLM is the only probabilistic component. Everything else is math.**
+
+```
+Traditional AI:  AI filter → AI router → AI model → AI scorer → AI filter
+                 Five probabilistic layers. 99% each = 95% system accuracy.
+
+ONE substrate:   TypeDB check → LLM → outcome measurement
+                 One probabilistic step. Everything else is deterministic.
+```
+
+Three things no one has combined before:
+
+1. **The system makes itself unnecessary.** Every LLM success creates a deterministic path. Highways don't need the LLM. Cost drops over time. The colony replaces the LLM.
+
+2. **Security and learning are the same mechanism.** `warn()` is simultaneously a firewall (alarm → toxic → dissolve) and a lesson (colony routes around → finds alternatives). No separate security layer.
+
+3. **The pheromone IS the model.** `mark()` = weight update. `warn()` = negative reward. `fade()` = regularization. `select()` = inference. No training pipeline. Usage IS training.
+
+---
+
 ## The 6 Dimensions
 
-| # | Dimension | What it models |
-|---|-----------|----------------|
-| 1 | **Groups** | Containers, scope, hierarchy |
-| 2 | **Actors** | Who can act (humans, agents, LLMs) |
-| 3 | **Things** | What exists (tasks, tokens, services) |
-| 4 | **Paths** | Connections with weight (signals marked) |
-| 5 | **Events** | What happened |
-| 6 | **Knowledge** | Highways (crystallized paths) |
+| # | Dimension | What | TypeDB | Runtime |
+|---|-----------|------|--------|---------|
+| 1 | **Groups** | Scope, hierarchy | swarm, membership | tag-based |
+| 2 | **Actors** | Who acts | unit (model, prompt, generation) | `.spawn()` |
+| 3 | **Things** | What's offered | skill + tags + price | `.on()` handler |
+| 4 | **Paths** | Connections | path (strength, alarm, revenue) | scent/alarm maps |
+| 5 | **Events** | What happened | signal (data, amount, success) | signal flow |
+| 6 | **Knowledge** | What emerged | hypothesis, frontier, objective | crystallize/recall |
 
 ---
 
@@ -53,24 +72,87 @@ import { world } from '@/engine'
 const w = world()
 
 // Actors receive signals
-w.actor('translator', 'agent')
-w.actor('analyst', 'agent')
+w.actor('translator', 'llm')
+  .on('translate', async ({ text, to }) => translate(text, to))
+  .then('translate', r => ({ receiver: 'reviewer:check', data: r }))
 
-// Signals move through the world
-w.signal({ receiver: 'translator:translate', data: { text: 'hello' } })
+w.actor('reviewer', 'agent')
+  .on('check', async ({ text }) => review(text))
 
-// Paths gain weight (mark happens on success)
-// w.mark('user', 'translator', 1)  // automatic
+// Signal moves through the world
+w.signal({ receiver: 'translator:translate', data: { text: 'hello', to: 'es' } })
+// → translator runs → .then fires → reviewer runs
+// → mark() on each delivery → paths strengthen
+// → fade() over time → unused paths dissolve
+// → highways emerge → proven routes
+
+// Ask and get a typed outcome
+const { result, timeout, dissolved } = await w.ask(
+  { receiver: 'translator:translate', data: { text: 'hello' } }
+)
 
 // Query what emerged
-w.traces()           // all paths with weight
-w.highways()         // paths with high weight
-w.fading()           // paths losing weight
-w.best('agent')      // highest-weight actor
-w.proven()           // actors with consistent weight
+w.highways(10)       // proven paths
+w.open(10)           // top paths as {from, to, strength}
+w.blocked()          // toxic paths (alarm > 2x strength)
+w.crystallize()      // promote highways to permanent knowledge
+w.recall('translate') // query hypotheses from TypeDB
+```
 
-// Time passes
-w.fade(0.05)         // decay all weights 5%
+---
+
+## The Engine (670 lines)
+
+```
+src/engine/
+├── substrate.ts  (226)   Unit + Colony + pheromone + queue + ask
+├── one.ts        (187)   World = Colony + TypeDB + deterministic sandwich
+├── loop.ts       (164)   Growth tick: 7 loops, chain depth, 4 outcome types
+├── boot.ts        (40)   Hydrate + spawn + tick
+├── llm.ts         (40)   LLM as unit (anthropic/openai)
+└── index.ts       (13)   Exports
+```
+
+## The Schema (~300 lines)
+
+```
+src/schema/
+└── one.tql               6 dimensions + validation functions + classification
+    entities:             swarm, unit, skill, hypothesis, frontier, objective
+    relations:            path, capability, membership, signal, hierarchy, spawns
+    validation:           can_receive, is_safe, preflight, unit_exists, is_trustworthy
+    classification:       path_status, unit_classification, needs_evolution
+    routing:              suggest_route, optimal_route, cheapest_provider
+```
+
+---
+
+## The Tick
+
+Every tick makes the colony smarter:
+
+```
+L1  select() → ask() → { result | timeout | dissolved }    per tick
+L2  mark(edge, chainDepth) or warn(edge)                   per outcome
+L3  fade(0.05) — alarm decays 2x faster                    every 5 min
+L4  revenue += price on successful paths                    per payment
+L5  evolve: rewrite prompts (24h cooldown, history saved)   every 10 min
+L6  crystallize + auto-hypothesize (strong/fading paths)    every hour
+L7  frontier detection from unexplored tag clusters         every hour
+```
+
+---
+
+## Claude Code Integration
+
+```
+/work       Autonomous loop: sense → select → execute → mark → repeat
+/next       Pick one task and do it
+/tasks      See tasks by category + tags
+/add-task   Create tagged skill
+/done       Mark outcome, reinforce trail
+/grow       Run one growth tick
+/highways   Proven paths and frontiers
 ```
 
 ---
@@ -79,101 +161,33 @@ w.fade(0.05)         // decay all weights 5%
 
 ### Core
 
-| Doc | What it covers |
-|-----|----------------|
-| [signal.md](signal.md) | The universal primitive |
-| [one-ontology.md](one-ontology.md) | The 6 dimensions |
-| [metaphors.md](metaphors.md) | Ant, brain, team, market skins |
-| [architecture.md](architecture.md) | System architecture derived from one.tql |
-| [primitives.md](primitives.md) | The 7 entities, 10 relations, 5 verbs |
-| [patterns.md](patterns.md) | 10 patterns: pheromone, routing, task selection, evolution |
-| [loops.md](loops.md) | 7 nested feedback loops and refinements |
-| [SUI.md](SUI.md) | What Move adds — linearity, enforcement, permanence |
-| [contracts.md](contracts.md) | Move contract reference — 7 objects, 21 functions |
-| [DSL.md](DSL.md) | The ONE language — five verbs, addressing, metaphors |
+| Doc | What |
+|-----|------|
+| [llms.md](llms.md) | The deterministic sandwich. Why the LLM is the only probabilistic component. |
+| [llm-training.md](llm-training.md) | Five integration points. Training IS routing. |
+| [task-management.md](task-management.md) | Tasks as signals. Tags classify. Pheromone ranks. |
+| [loops.md](loops.md) | Seven nested feedback loops. |
+| [signal.md](signal.md) | The universal primitive. |
+| [one-ontology.md](one-ontology.md) | The 6 dimensions. |
+| [claude-code-integration.md](claude-code-integration.md) | Claude Code as a unit in the colony. |
 
-### Implementation
+### Architecture
 
-| Doc | What it covers |
-|-----|----------------|
-| [tutorial.md](tutorial.md) | 5-minute quickstart |
-| [the-stack.md](the-stack.md) | All modules explained |
-| [agents.md](agents.md) | Building agents |
-| [swarm.md](swarm.md) | Swarm coordination |
+| Doc | What |
+|-----|------|
+| [substrate-learning.md](substrate-learning.md) | How pheromone IS the model. |
+| [metaphors.md](metaphors.md) | Ant, brain, team, market skins. |
+| [patterns.md](patterns.md) | Pheromone, routing, task selection, evolution. |
+| [DSL.md](DSL.md) | The ONE language — five verbs. |
 
 ### Strategy
 
-| Doc | What it covers |
-|-----|----------------|
-| [strategy.md](strategy.md) | The ant play — three fronts, first steps |
-| [one-protocol.md](one-protocol.md) | Protocol layer |
-| [integration.md](integration.md) | How everything connects |
-| [hermes-agent.md](hermes-agent.md) | Multi-species agents (Hermes, LLM, OpenClaw) |
-
-### Commerce
-
-| Doc | What it covers |
-|-----|----------------|
-| [lifecycle.md](lifecycle.md) | Into ONE, through ONE, out of ONE |
-| [revenue.md](revenue.md) | Five revenue layers + multi-species multiplier |
-| [agent-launch.md](agent-launch.md) | Agentverse + x402 |
-| [asi-world.md](asi-world.md) | Agent economy |
-
----
-
-## The Code
-
-```
-src/engine/
-├── substrate.ts   (70)   # Signal + Colony
-├── one.ts         (70)   # 6-dimension world
-├── persist.ts     (40)   # TypeDB persistence
-├── llm.ts         (30)   # Models as actors
-├── agentverse.ts  (70)   # 2M agents as world
-├── asi.ts         (70)   # Orchestrator
-└── index.ts       (20)   # Exports
-
-src/schema/
-├── one.tql       (330)   # THE schema: 6 dimensions + 6 lessons + commerce
-├── sui.tql       (250)   # Move contracts as TypeQL
-├── skins.tql     (150)   # 6 metaphor skins (ant, brain, team, mail, water, signal)
-└── agents.tql             # Agent definitions
-
-packages/typedb-inference-patterns/
-├── standalone/   (6 files)  # Individual lesson TQL files
-├── runtime/colony.ts (358)  # 6 lessons as substrate handlers
-├── OPERATIONS.md            # Write operations reference
-├── ECONOMICS.md             # Token model
-├── SWARMS.md                # Dynamic swarm formation
-├── LOOPS.md                 # Deterministic + probabilistic
-└── LIFECYCLE.md             # Entity state machines
-```
-
----
-
-## Quick Start
-
-```typescript
-import { world } from '@/engine'
-
-const w = world()
-
-// Add actors
-w.actor('translator', 'agent')
-  .on('translate', ({ text, to }) => translate(text, to))
-
-w.actor('analyst', 'agent')
-  .on('analyze', ({ data }) => analyze(data))
-
-// Signal moves, path gains weight
-w.signal({ receiver: 'translator:translate', data: { text: 'hello', to: 'es' } })
-// Success → mark('user', 'translator', 1)
-
-// Best actors emerge
-const best = w.best('agent')  // highest weight
-const proven = w.proven()      // consistent performers
-const highways = w.highways()  // strongest paths
-```
+| Doc | What |
+|-----|------|
+| [strategy.md](strategy.md) | The ant play — three fronts. |
+| [one-protocol.md](one-protocol.md) | Protocol layer. |
+| [revenue.md](revenue.md) | Five revenue layers. |
+| [SUI.md](SUI.md) | Move contracts — linearity, enforcement. |
 
 ---
 
@@ -188,43 +202,12 @@ A highway emerges.
 
 No one decided.
 The world learned.
-```
 
-Whether ants finding food, neurons forming memories, or agents routing tasks — the pattern is universal.
-
----
-
-## Commerce
-
-Signals are free. Services cost money.
-
-```
-Signal moves     → free
-Service executes → x402 payment
-Data returns     → included
-Speed matters    → pay for highway
-```
-
-**Package** = Signal + payment terms:
-
-```typescript
-type Package = Signal & {
-  terms?: { price, currency, timeout, priority }
-}
+The LLM bootstrapped it.
+The colony replaced it.
+Intelligence is the elimination of guessing.
 ```
 
 ---
 
-*Signal. Mark. Trace. Highway. Emergence.*
-
----
-
-## See Also
-
-- [flows.md](flows.md) — Complete flow guide: signals, actors, paths, knowledge
-- [signal.md](signal.md) — The two-field primitive in depth
-- [tutorial.md](tutorial.md) — Quick-start for engineers
-- [one-ontology.md](one-ontology.md) — Six dimensions explained
-- [hermes-agent.md](hermes-agent.md) — Multi-species agent integration
-- [the-stack.md](the-stack.md) — Technical layers overview
-- [Plan.md](Plan.md) — Strategic vision and architecture
+*ONE. Two fields. Two dictionaries. Arithmetic. Emergence.*
