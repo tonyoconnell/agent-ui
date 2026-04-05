@@ -39,6 +39,8 @@ export interface World {
   units: Record<string, Unit>
   strength: Record<string, number>
   resistance: Record<string, number>
+  peak: Record<string, number>
+  lastUsed: Record<string, number>
   queue: Signal[]
   add: (id: string) => Unit
   remove: (id: string) => void
@@ -101,10 +103,14 @@ export const world = (): World => {
   const units: Record<string, Unit> = {}
   const strength: Record<string, number> = {}
   const resistance: Record<string, number> = {}
+  const peak: Record<string, number> = {}
+  const lastUsed: Record<string, number> = {}
   const queue: Signal[] = []
 
   const mark = (path: string, amount = 1) => {
     strength[path] = (strength[path] || 0) + amount
+    peak[path] = Math.max(peak[path] || 0, strength[path])
+    lastUsed[path] = Date.now()
   }
 
   const warn = (path: string, amount = 1) => {
@@ -202,8 +208,17 @@ export const world = (): World => {
   }
 
   // asymmetric: resistance decays 2x faster (failures forgive)
+  // seasonal: unused edges decay faster (up to 2x at 24h+)
+  // floor: strength never drops below peak × 0.05 (ghost trails survive)
   const fade = (r = 0.1) => {
-    for (const e in strength) { strength[e] *= (1 - r); strength[e] < 0.01 && delete strength[e] }
+    for (const e in strength) {
+      const age = (Date.now() - (lastUsed[e] || 0)) / 3_600_000
+      const seasonal = 1 + Math.min(age, 24) / 24
+      strength[e] *= (1 - r * seasonal)
+      const floor = (peak[e] || 0) * 0.05
+      if (strength[e] < floor) strength[e] = floor
+      if (strength[e] < 0.01) { delete strength[e]; delete peak[e]; delete lastUsed[e] }
+    }
     for (const e in resistance) { resistance[e] *= (1 - r * 2); resistance[e] < 0.01 && delete resistance[e] }
   }
 
@@ -217,7 +232,7 @@ export const world = (): World => {
   const list = () => Object.keys(units)
   const get = (id: string) => units[id]
 
-  return { units, strength, resistance, queue, add, remove, signal, ask, enqueue, drain, pending, mark, warn, sense, danger, follow, select, fade, highways, has, list, get }
+  return { units, strength, resistance, peak, lastUsed, queue, add, remove, signal, ask, enqueue, drain, pending, mark, warn, sense, danger, follow, select, fade, highways, has, list, get }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
