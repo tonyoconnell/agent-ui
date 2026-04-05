@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS groups (
   channel TEXT NOT NULL,
   name TEXT,
   system_prompt TEXT,
-  model TEXT DEFAULT 'claude-sonnet-4-20250514',
+  model TEXT DEFAULT 'google/gemma-4-26b-a4b-it',
   sensitivity REAL DEFAULT 0.5,
   created_at INTEGER DEFAULT (unixepoch())
 );

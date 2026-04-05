@@ -7,7 +7,7 @@ export interface Env {
   KV: KVNamespace
   AGENT_QUEUE: Queue
   GATEWAY_URL: string
-  ANTHROPIC_API_KEY: string
+  OPENROUTER_API_KEY: string
   TELEGRAM_TOKEN?: string
   DISCORD_TOKEN?: string
   VERSION: string

@@ -1,29 +1,62 @@
-# The Substrate
+# ONE 
 
-**~90 lines. Two fields. Queue. Zero returns. AI agents.**
+**Signal-based substrate for AI agents. 670 lines of engine. Zero returns.**
 
 ```
-receiver: who
-data: what
-
-That's all that flows.
+{ receiver: 'scout:observe', data: { tick: 42 } }
 ```
+
+Two fields. That's all that flows. The LLM is the only probabilistic component. Everything else is math.
+
+**Live now:** [api.one.ie](https://api.one.ie/health) | [app](https://one-substrate.pages.dev) | [@antsatworkbot](https://t.me/antsatworkbot) on Telegram
 
 ---
 
-## The Pattern
+## The DSL
 
-100 million years ago, ants discovered it.
-500 million years ago, brains discovered it.
-In 2017, transformers rediscovered it.
+```typescript
+{ receiver: 'scout:observe', data: { tick: 42 } }
+```
+
+`receiver` says who. `data` says what. A signal arrives at an agent. The agent does its work. Then it emits the next signal.
 
 ```
-Nodes that compute.
-Edges that connect.
-Weights that learn.
-Signals that flow.
-No controller.
+scout receives { tick: 42 }
+  → observes, finds something
+  → emits { receiver: 'analyst:process', data: finding }
+
+analyst receives { finding }
+  → classifies it
+  → emits { receiver: 'reporter:summarize', data: classification }
 ```
+
+No orchestrator decided this chain. Each agent only knows: I received a signal, I did my work, I passed it on.
+
+```typescript
+const scout = w.add('scout')
+  .on('observe', ({ tick }, emit) => {
+    const finding = analyze(tick)
+    emit({ receiver: 'analyst:process', data: finding })
+    return finding
+  })
+
+const analyst = w.add('analyst')
+  .on('process', ({ finding }, emit) => {
+    const result = classify(finding)
+    emit({ receiver: 'reporter:summarize', data: result })
+    return result
+  })
+```
+
+Every signal that lands marks pheromone on the path it traveled. Do this a hundred times and the paths become highways.
+
+```
+scout → analyst:process       strength: 94.2  (highway)
+analyst → reporter:summarize  strength: 87.1  (highway)
+badactor → anything           resistance: 45  (toxic — dissolved)
+```
+
+The world remembers which chains work. Not because anyone told it, but because signals kept flowing.
 
 ---
 
@@ -42,134 +75,95 @@ queue holds work                 knowledge crystallizes
 loops L1-L3 (ms-min)            loops L4-L7 (hours-weeks)
 ```
 
-The runtime handles what moves. TypeDB handles what remains.
-
 ---
 
-## The Signal
+## The Deterministic Sandwich
 
-```typescript
-{ receiver: string, data?: unknown }
+Every LLM call is wrapped in deterministic checks:
+
+```
+PRE:   isToxic(edge)? → dissolve (no LLM call, no cost)
+PRE:   capability exists? → TypeDB lookup → dissolve
+LLM:   generates response (the one probabilistic step)
+POST:  result? → mark(). timeout? → neutral. dissolved? → mild warn.
 ```
 
-Two fields. That's it.
-
-- `receiver: "scout"` — send to scout's default handler
-- `receiver: "scout:observe"` — send to scout's observe handler
-- `data` — anything
+The LLM bootstraps the group. The group replaces the LLM.
 
 ---
 
-## The Unit
+## Seven Loops
 
-```typescript
-net.add('scout')
-  .on('observe', (data, emit, ctx) => {
-    // data: the data
-    // emit: send more signals
-    // ctx: { from, self }
-    return { observed: data.tick }
-  })
-  .then('observe', result => ({
-    receiver: 'analyst:evaluate',
-    data: result
-  }))
 ```
-
-Tasks are `.on()` handlers. Dependencies are `.then()` continuations.
-No task entities. No dependency relations. Pheromone accumulates automatically.
-
-| Method | Purpose |
-|--------|---------|
-| `.on(name, fn)` | Define a handler (task) |
-| `.then(name, tmpl)` | Define continuation (dependency) |
-| `.role(name, task, ctx)` | Context-bound handler |
-
----
-
-## The World
-
-```typescript
-const net = world()
-
-net.add('scout')      // create unit
-net.signal(sig)       // send signal (marks pheromone)
-net.enqueue(sig)      // queue for later
-net.drain()           // process queued signal
-net.mark(edge)        // strengthen path
-net.warn(edge)        // weaken path
-net.select()          // probabilistic pick (ant-like)
-net.fade(0.1)         // decay (resistance 2x faster)
-net.highways(10)      // see what emerged
+L1 SIGNAL     per message     signal → ask → outcome
+L2 TRAIL      per outcome     mark/warn → strength/resistance accumulates
+L3 FADE       every 5 min     asymmetric decay (resistance forgives 2x faster)
+L4 ECONOMIC   per payment     revenue on paths
+L5 EVOLUTION  every 10 min    rewrite struggling agent prompts
+L6 KNOWLEDGE  every hour      promote highways to permanent knowledge
+L7 FRONTIER   every hour      detect unexplored territory
 ```
 
 ---
 
-## The Persist
+## Agent = Markdown
 
-```typescript
-const p = persist()
+```markdown
+---
+name: creative
+model: google/gemma-4-26b-a4b-it
+channels: [telegram, discord]
+group: marketing
+skills:
+  - name: copy
+    price: 0.02
+    tags: [creative, copy]
+---
 
-p.actor('scout', 'agent')  // add + persist to TypeDB
-p.flow('scout', 'analyst') // mark/warn wrapper
-  .strengthen(5)
+You are the Creative Director...
+```
 
-p.open(10)                 // top paths
-p.blocked()                // toxic paths
-p.know()                   // promote highways to knowledge
-p.recall('scout')          // query knowledge from TypeDB
+That's your entire agent. Parse → TypeDB → Cloudflare Worker → Live on Telegram.
+
+---
+
+## What's Live
+
+| Service | URL | What |
+|---------|-----|------|
+| **Pages** | [one-substrate.pages.dev](https://one-substrate.pages.dev) | Astro SSR + React 19 + 30 API routes |
+| **Gateway** | [api.one.ie](https://api.one.ie/health) | TypeDB proxy, JWT cache, CORS |
+| **Sync** | one-sync.oneie.workers.dev | TypeDB → KV snapshots every 5 min |
+| **NanoClaw** | [nanoclaw.oneie.workers.dev](https://nanoclaw.oneie.workers.dev/health) | Edge agents: Telegram → Queue → LLM → reply |
+| **TypeDB** | `flsiu1-0.cluster.typedb.com:1729` | 19 units, 18 skills, 1 group, 19 functions |
+
+**Data in TypeDB:**
+
+```
+marketing world (8 agents):
+  director, creative, content-writer, seo-specialist,
+  social-media, media-buyer, ads-manager, analyst
+
+system (5): router, scout, harvester, analyst, guard
+example (5): tutor, researcher, coder, writer, concierge
 ```
 
 ---
 
-## The Tick
+## Quick Start
 
-```typescript
-const next = net.select()           // follow pheromone
-next && net.signal({ receiver: next }) // execute
-net.drain()                          // process queue
-net.fade(0.05)                       // decay
-// evolve every 10min, crystallize every hour
+```bash
+npm install
+npm run dev        # → localhost:4321
 ```
 
----
+Deploy (requires Cloudflare account + TypeDB Cloud):
 
-## The Loop
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  REINFORCEMENT                    DECAY                         │
-│  (learning)                       (forgetting)                  │
-│                                                                 │
-│  signal succeeds                  time passes                   │
-│       │                                │                        │
-│       ▼                                ▼                        │
-│  path strengthens                 path weakens                  │
-│       │                                │                        │
-│       ▼                                ▼                        │
-│  more signals follow              signals find other paths      │
-│       │                                │                        │
-│       ▼                                ▼                        │
-│  HIGHWAY                          path dissolves                │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```bash
+/deploy            # Claude Code skill — deploys all 4 workers
 ```
 
----
-
-## What Emerges
-
-| Behavior | How |
-|----------|-----|
-| **Learning** | Paths strengthen with use |
-| **Forgetting** | Unused paths fade |
-| **Highways** | High-traffic paths emerge |
-| **Load balancing** | Probabilistic routing by scent |
-| **Fault tolerance** | Failed paths weaken (alarm) |
-| **Self-organization** | No controller |
-| **Evolution** | Agents rewrite their own prompts |
-| **Knowledge** | Highways crystallize into hypotheses |
+See [docs/deploy.md](docs/deploy.md) for full step-by-step tutorial.
 
 ---
 
@@ -177,38 +171,80 @@ net.fade(0.05)                       // decay
 
 | Layer | Tech |
 |-------|------|
-| Runtime | [Bun](https://bun.sh) |
-| Framework | [Astro 5](https://astro.build) |
-| UI | [React 19](https://react.dev) |
+| Framework | [Astro 5](https://astro.build) + [React 19](https://react.dev) |
+| Brain | [TypeDB 3.0](https://typedb.com) Cloud |
+| Edge | [Cloudflare](https://cloudflare.com) Workers + Pages + D1 + KV + Queue |
 | Visualization | [ReactFlow](https://reactflow.dev) |
-| Brain | [TypeDB 3.0](https://typedb.com) |
+| LLM | [OpenRouter](https://openrouter.ai) (Gemma 4) / Anthropic Claude |
+| Styling | Tailwind 4 + shadcn/ui |
+
+---
 
 ## Files
 
 ```
-src/engine/
-├── world.ts       # ~90 lines — unit, world, pheromone, queue
-├── persist.ts     # ~40 lines — persist (TypeDB bridge)
-├── loop.ts        # ~76 lines — tick (select, signal, fade, evolve)
-├── async.ts       # ~90 lines — TypeDB sync
-├── boot.ts        # ~37 lines — hydrate + start
-├── asi.ts         # orchestrator
-├── llm.ts         # LLM as unit
-├── agentverse.ts  # 2M agents
-└── index.ts       # exports
+src/engine/                    The substrate (~670 lines)
+├── world.ts                   Unit + World + pheromone + queue + ask
+├── persist.ts                 World + TypeDB persistence + sandwich
+├── loop.ts                    Growth tick: 7 loops, chain depth, outcomes
+├── boot.ts                    Hydrate from TypeDB, start tick
+├── llm.ts                     LLM as unit
+├── agent-md.ts                Parse markdown → TypeDB → runtime
+└── index.ts                   Exports
 
-src/schema/
-└── world.tql      # ~230 lines — the brain
+src/schema/world.tql           TypeDB schema (6 dimensions, 19 functions)
+
+gateway/src/index.ts           TypeDB proxy worker (128 lines)
+workers/sync/index.ts          TypeDB → KV sync worker
+nanoclaw/src/                  Edge agent worker (816 lines)
+├── workers/router.ts          Hono routes + queue consumer + cron
+├── channels/index.ts          Telegram, Discord, Web adapters
+├── lib/substrate.ts           TypeDB via gateway
+└── lib/tools.ts               7 Claude tools
+
+agents/                        Markdown agent definitions
+├── marketing/                 8 marketing team agents
+└── *.md                       Example agents
 ```
 
 ---
 
-## Run
+## Docs
 
-```bash
-npm install
-npm run dev        # → localhost:4321
-```
+### Core
+
+| Doc | What it defines |
+|-----|----------------|
+| [DSL](docs/DSL.md) | The programming model — signal, emit, mark, warn, fade, follow, select |
+| [Dictionary](docs/dictionary.md) | Every name, every concept, the full vocabulary |
+| [Routing](docs/routing.md) | How signals find their way — formula, layers, tick, outcomes |
+| [Architecture](docs/architecture.md) | System design, two layers, seven loops |
+
+### Deploy
+
+| Doc | What it covers |
+|-----|---------------|
+| [Deploy](docs/deploy.md) | Step-by-step deployment tutorial (every command proven) |
+| [Cloudflare](docs/cloudflare.md) | Platform architecture, 4 workers, agent castes, economics |
+| [NanoClaw](docs/nanoclaw.md) | Edge agent workers — webhooks, queue, LLM, channels |
+| [TODO](docs/TODO.md) | Roadmap, status, what's next |
+
+### Concepts
+
+| Doc | What it covers |
+|-----|---------------|
+| [Metaphors](docs/metaphors.md) | Six skins, one truth — ant/brain/team/mail/water/radio |
+| [Ontology](docs/one-ontology.md) | The 6 dimensions |
+| [Strategy](docs/strategy.md) | The play — wire substrate quietly, let adoption speak |
+| [SDK](docs/sdk.md) | Public API contract — register, discover, hire, earn |
+| [Substrate Learning](docs/substrate-learning.md) | How 70 lines route messages AND train models |
+
+### Commerce
+
+| Doc | What it covers |
+|-----|---------------|
+| [Agent Launch](docs/agent-launch.md) | Agent Launch Toolkit, tokenization, revenue sharing |
+| [ASI World](docs/asi-world.md) | AgentVerse economics, FET/ASI integration |
 
 ---
 
@@ -223,17 +259,19 @@ Other signals read those modifications.
 That's intelligence.
 That's what this is.
 
-~90 lines.
-Two fields.
-Build everything.
+670 lines. Two fields. Build everything.
 ```
 
 ---
 
-## Docs
+## Cost
 
-- [Dictionary](docs/dictionary.md) — Every name, how they connect, the full journey
-- [DSL](docs/DSL.md) — The programming model
-- [Architecture](docs/architecture.md) — TypeDB as substrate
-- [Metaphors](docs/metaphors.md) — Same system, different words
-- [Ontology](docs/one-ontology.md) — The 6 dimensions
+$0/month on Cloudflare free tier. TypeDB Cloud ~$0/month.
+
+LLM costs on agent operator's API key. Agent castes (Haiku 90% / Sonnet 9% / Opus 1%) reduce average cost to $0.0014/signal.cre
+
+---
+
+## License
+
+All rights reserved. Tony O'Connell.

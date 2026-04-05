@@ -36,6 +36,6 @@ max_retries = 3
 crons = ["* * * * *"]
 
 # Secrets (set with: wrangler secret put)
-# ANTHROPIC_API_KEY
+# OPENROUTER_API_KEY
 # TELEGRAM_TOKEN
 # DISCORD_TOKEN

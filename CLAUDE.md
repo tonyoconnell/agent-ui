@@ -3,12 +3,16 @@
 Signal-based substrate for AI agents. 670 lines of engine. Zero returns.
 The LLM is the only probabilistic component. Everything else is math.
 
+**Live:** api.one.ie + one-substrate.pages.dev + nanoclaw.oneie.workers.dev
+**Brain:** TypeDB Cloud (19 units, 18 skills, 19 functions)
+**Agent:** @antsatworkbot on Telegram (Gemma 4 via OpenRouter, substrate-connected)
+
 ## Quick Start
 
 ```bash
-npm run dev      # Start dev server
+npm run dev      # Start dev server (localhost:4321)
 npm run build    # Production build
-npm run preview  # Preview build
+/deploy          # Deploy all 4 workers to Cloudflare
 ```
 
 ## Architecture
@@ -237,17 +241,22 @@ agents/marketing/creative.md
 src/
   engine/       # Core: world.ts, persist.ts, loop.ts, boot.ts, llm.ts, agent-md.ts
   components/   # React 19 + shadcn/ui
-  pages/        # Astro routes + API
+  pages/        # Astro routes + 30 API endpoints
+  pages/api/export/  # TypeDB → JSON snapshots (paths, units, skills, highways, toxic)
   layouts/      # Astro layouts
   schema/       # TypeDB schema (world.tql)
-  lib/          # TypeDB client, auth, utils
-docs/           # Architecture + strategy docs
+  lib/          # TypeDB client, auth, edge helpers, utils
+docs/           # Architecture, deploy, cloudflare, nanoclaw, strategy
+gateway/        # CF Worker: TypeDB proxy (api.one.ie)
+workers/sync/   # CF Worker: TypeDB → KV cron (every 5 min)
+nanoclaw/       # CF Worker: Edge agents (webhooks → queue → LLM → channels)
 agents/         # Markdown agent definitions
-  marketing/    # Marketing team (world)
-  tutor.md      # Example: language tutor
-  researcher.md # Example: research assistant
+  marketing/    # Marketing team (8 agents)
+  *.md          # Example agents (tutor, researcher, coder, writer, concierge)
+migrations/     # D1 schema (signals, messages, tasks, sync_log)
 .claude/
   commands/     # Slash commands: /work, /tasks, /done, /grow, /highways
+  skills/       # /deploy, /typedb, /astro, /react19, /reactflow, /shadcn
   rules/        # Auto-loaded rules for engine, react, astro
 ```
 
@@ -329,33 +338,37 @@ import { group, unit } from "@/engine/world"
 import { Card } from "@/components/ui/card"
 ```
 
-## Cloudflare Authentication
+## Deploy
 
-**Standard: Always use `CLOUDFLARE_GLOBAL_API_KEY` from `.env` for deployment.**
+**Use `/deploy` skill or see `docs/deploy.md` for full tutorial.**
 
-```
-CLOUDFLARE_EMAIL=tony@one.ie
-CLOUDFLARE_GLOBAL_API_KEY=2751f1e8bdbc3cf9481e0cff345605c9bd3b9
-```
-
-**Deploy:**
 ```bash
-export CLOUDFLARE_EMAIL="tony@one.ie"
-export CLOUDFLARE_API_KEY="2751f1e8bdbc3cf9481e0cff345605c9bd3b9"
-npx wrangler deploy
+# Auth from .env (Global API Key — never scoped tokens)
+export CLOUDFLARE_API_KEY=$(grep '^CLOUDFLARE_GLOBAL_API_KEY=' .env | cut -d= -f2)
+export CLOUDFLARE_EMAIL=$(grep '^CLOUDFLARE_EMAIL=' .env | cut -d= -f2)
+export CLOUDFLARE_ACCOUNT_ID=$(grep '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2)
+
+# Build + deploy all 4 workers
+NODE_ENV=production npm run build
+cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../../nanoclaw && npx wrangler deploy && cd ..
+npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 ```
 
-**Set Secrets** (if needed):
-```bash
-# Via CLI (requires auth token with permission)
-npx wrangler secret put TYPEDB_USERNAME     # admin
-npx wrangler secret put TYPEDB_PASSWORD     # EEsdYvp7arsAiCJZ
+**Live URLs:**
 
-# Via Dashboard: Workers > one-gateway > Settings > Environment Variables
-# Add TYPEDB_USERNAME=admin, TYPEDB_PASSWORD=...
-```
+| Service | URL |
+|---------|-----|
+| Pages | https://one-substrate.pages.dev |
+| Gateway | https://api.one.ie/health |
+| Sync | https://one-sync.oneie.workers.dev |
+| NanoClaw | https://nanoclaw.oneie.workers.dev/health |
+| TypeDB | `flsiu1-0.cluster.typedb.com:1729` |
 
-Never use scoped tokens. Global API key only.
+**Key facts:**
+- TypeDB Cloud port is **1729** (not 80 or 443)
+- TypeDB API prefix is `/v1/` (signin, query, databases)
+- Always use `CLOUDFLARE_GLOBAL_API_KEY`, never scoped tokens
+- Credentials in `.env` only — never hardcode in CLAUDE.md or wrangler.toml
 
 ## Skills (USE THESE)
 

@@ -1,644 +1,358 @@
-# NanoClaw on Cloudflare
+# NanoClaw
 
-**Pure edge. Claude SDK. TypeDB brain. Zero servers.**
+**Edge-native agents on Cloudflare free tier. Zero servers. Substrate-connected.**
 
-Inspired by [qwibitai/nanoclaw](https://github.com/qwibitai/nanoclaw) — security by isolation, small enough to understand. But instead of containers, we use Cloudflare's edge platform and the ONE substrate's toxicity checks.
+Live: https://nanoclaw.oneie.workers.dev/health → `{"status":"ok"}`
+
+---
+
+## Status (deployed 2026-04-06, LLM verified)
+
+- [x] Router worker live (Hono, webhooks + queue + cron)
+- [x] D1: 7 tables (groups, messages, sessions, tasks, tool_calls + base 4)
+- [x] Queue: `nanoclaw-agents` (producer + consumer, batch 10, retry 3)
+- [x] KV: shared with gateway (paths, units, skills, toxic caches)
+- [x] Cron: `* * * * *` (scheduled task runner)
+- [x] Gateway: `https://one-gateway.oneie.workers.dev` (TypeDB proxy)
+- [x] Channels: Telegram, Discord, Web
+- [x] Tools: 7 substrate tools (signal, discover, remember, recall, highways, mark, warn)
+- [x] `OPENROUTER_API_KEY` secret — set, Google Gemma 4 via OpenRouter
+- [x] `TELEGRAM_TOKEN` secret — set (`@antsatworkbot`)
+- [x] Telegram webhook live → `nanoclaw.oneie.workers.dev/webhook/telegram`
+- [x] Test message accepted: `{"ok":true,"id":"tg-1001","group":"tg-631201674"}`
+- [x] LLM verified: `google/gemma-4-26b-a4b-it` responding via OpenRouter (Parasail)
 
 ---
 
 ## Architecture
 
 ```
-                         Cloudflare Edge
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│  Webhooks ──→ Worker ──→ Queue ──→ Worker ──→ Claude API   │
-│  (channels)   (router)   (buffer)  (agent)    (inference)  │
-│                  │                    │                     │
-│                  ▼                    ▼                     │
-│                 D1                   KV                     │
-│              (state)            (sessions)                  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │     TypeDB      │
-                    │   (substrate)   │
-                    │                 │
-                    │  paths, units,  │
-                    │  skills, know-  │
-                    │  ledge, trails  │
-                    └─────────────────┘
+Telegram ──┐
+Discord  ──┤  POST /webhook/:channel
+Web      ──┘         │
+                     ▼
+              ┌────────────┐
+              │   Router   │  normalize → D1 → queue
+              │   (Hono)   │
+              └──────┬─────┘
+                     │
+              ┌──────▼─────┐
+              │   Queue    │  nanoclaw-agents
+              │  batch 10  │  max 3 retries
+              └──────┬─────┘
+                     │
+              ┌──────▼─────┐
+              │   Agent    │  context → Gemma 4 → tools → reply
+              │ (consumer) │
+              └──────┬─────┘
+                     │
+         ┌───────────┼───────────┐
+         ▼           ▼           ▼
+     ┌───────┐  ┌────────┐  ┌──────────┐
+     │  D1   │  │  KV    │  │ Gateway  │
+     │ msgs  │  │ cache  │  │→ TypeDB  │
+     └───────┘  └────────┘  └──────────┘
 ```
 
 ---
 
-## Cloudflare Free Tier
+## Routes
 
-| Service | Free Limit | Use |
-|---------|------------|-----|
-| Workers | 100k req/day | Router, agent execution |
-| D1 | 5GB, 5M reads/day | Message history, group state |
-| KV | 100k reads/day | Session cache, fast lookups |
-| Queues | 1M ops/month | Message buffer, retries |
-| R2 | 10GB | File attachments, exports |
-| Pages | Unlimited | Dashboard UI |
-
-No containers. No VPS. No ops. Just deploy.
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/health` | GET | `{"status":"ok","version":"1.0.0","service":"nanoclaw-router"}` |
+| `/highways` | GET | Proven paths (`?limit=10`) |
+| `/webhook/telegram` | POST | Telegram updates |
+| `/webhook/discord` | POST | Discord messages |
+| `/webhook/web` | POST | Direct HTTP `{"group","sender","content"}` |
+| `/signal` | POST | Substrate signals `{"sender","receiver","data"}` |
 
 ---
 
-## Core Components
+## Signal Flow
 
-### 1. Router Worker
-
-Receives webhooks from all channels, normalizes to signal format, queues for processing.
-
-```typescript
-// src/workers/router.ts
-import { Hono } from 'hono'
-
-const app = new Hono<{ Bindings: Env }>()
-
-// Channel webhooks
-app.post('/webhook/:channel', async (c) => {
-  const channel = c.req.param('channel')
-  const payload = await c.req.json()
-  
-  // Normalize to signal
-  const signal = normalize(channel, payload)
-  
-  // Store message
-  await c.env.DB.prepare(
-    'INSERT INTO messages (id, group_id, channel, sender, content, ts) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(signal.id, signal.group, channel, signal.sender, signal.content, Date.now()).run()
-  
-  // Queue for agent processing
-  await c.env.AGENT_QUEUE.send({
-    type: 'message',
-    signal,
-    group: signal.group,
-  })
-  
-  return c.json({ ok: true })
-})
-
-// Substrate signals (from other units)
-app.post('/signal', async (c) => {
-  const { sender, receiver, data } = await c.req.json()
-  
-  await c.env.AGENT_QUEUE.send({
-    type: 'substrate',
-    sender,
-    receiver,
-    data,
-  })
-  
-  return c.json({ ok: true })
-})
-
-export default app
 ```
-
-### 2. Agent Worker (Queue Consumer)
-
-Processes queued messages, calls Claude, signals substrate.
-
-```typescript
-// src/workers/agent.ts
-import Anthropic from '@anthropic-ai/sdk'
-
-interface Env {
-  DB: D1Database
-  KV: KVNamespace
-  ANTHROPIC_API_KEY: string
-  TYPEDB_URL: string
-}
-
-export default {
-  async queue(batch: MessageBatch<QueueMessage>, env: Env) {
-    const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
-    
-    for (const msg of batch.messages) {
-      const { type, signal, group } = msg.body
-      
-      // Load group context
-      const context = await loadContext(env, group)
-      
-      // Check toxicity via substrate
-      const edge = `${signal.sender}→${group}`
-      const toxic = await checkToxic(env.TYPEDB_URL, edge)
-      if (toxic) {
-        await msg.ack()
-        continue // Silently drop toxic signals
-      }
-      
-      // Build messages
-      const messages = await buildMessages(env, group, signal)
-      
-      // Call Claude
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        system: context.systemPrompt,
-        tools: substrateTools(env),
-        messages,
-      })
-      
-      // Process response
-      const result = await processResponse(env, group, response)
-      
-      // Mark trail (success)
-      await markTrail(env.TYPEDB_URL, edge, 1.0)
-      
-      // Send reply to channel
-      if (result.reply) {
-        await sendToChannel(env, group, result.reply)
-      }
-      
-      msg.ack()
-    }
-  }
-}
-```
-
-### 3. Substrate Tools
-
-Claude gets tools to interact with the ONE substrate.
-
-```typescript
-// src/lib/tools.ts
-export function substrateTools(env: Env): Anthropic.Tool[] {
-  return [
-    {
-      name: 'signal',
-      description: 'Send signal to another unit in the substrate',
-      input_schema: {
-        type: 'object',
-        properties: {
-          receiver: { type: 'string', description: 'Unit ID or unit:skill' },
-          data: { type: 'object', description: 'Signal payload' },
-        },
-        required: ['receiver'],
-      },
-    },
-    {
-      name: 'discover',
-      description: 'Find units with a capability (pheromone-ranked)',
-      input_schema: {
-        type: 'object',
-        properties: {
-          skill: { type: 'string', description: 'Skill to find' },
-        },
-        required: ['skill'],
-      },
-    },
-    {
-      name: 'remember',
-      description: 'Store knowledge in substrate memory',
-      input_schema: {
-        type: 'object',
-        properties: {
-          key: { type: 'string' },
-          value: { type: 'string' },
-        },
-        required: ['key', 'value'],
-      },
-    },
-    {
-      name: 'recall',
-      description: 'Retrieve knowledge from substrate',
-      input_schema: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'What to recall' },
-        },
-        required: ['query'],
-      },
-    },
-    {
-      name: 'highways',
-      description: 'Get proven paths in the colony',
-      input_schema: {
-        type: 'object',
-        properties: {
-          limit: { type: 'number', default: 5 },
-        },
-      },
-    },
-  ]
-}
-
-// Tool execution
-export async function executeTool(
-  env: Env,
-  group: string,
-  tool: string,
-  input: Record<string, unknown>
-): Promise<unknown> {
-  switch (tool) {
-    case 'signal':
-      return fetch(`${env.TYPEDB_URL}/api/signal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sender: `nanoclaw:${group}`,
-          receiver: input.receiver,
-          data: input.data,
-        }),
-      }).then(r => r.json())
-      
-    case 'discover':
-      return fetch(`${env.TYPEDB_URL}/api/discover?skill=${input.skill}`)
-        .then(r => r.json())
-      
-    case 'remember':
-      return fetch(`${env.TYPEDB_URL}/api/knowledge`, {
-        method: 'POST',
-        body: JSON.stringify({ key: input.key, value: input.value, source: group }),
-      }).then(r => r.json())
-      
-    case 'recall':
-      return fetch(`${env.TYPEDB_URL}/api/recall?q=${encodeURIComponent(input.query as string)}`)
-        .then(r => r.json())
-      
-    case 'highways':
-      return fetch(`${env.TYPEDB_URL}/api/highways?limit=${input.limit || 5}`)
-        .then(r => r.json())
-      
-    default:
-      return { error: 'Unknown tool' }
-  }
-}
-```
-
-### 4. D1 Schema
-
-```sql
--- migrations/0001_init.sql
-
--- Groups (per-channel isolation)
-CREATE TABLE groups (
-  id TEXT PRIMARY KEY,
-  channel TEXT NOT NULL,
-  name TEXT,
-  system_prompt TEXT,
-  created_at INTEGER DEFAULT (unixepoch())
-);
-
--- Messages (conversation history)
-CREATE TABLE messages (
-  id TEXT PRIMARY KEY,
-  group_id TEXT NOT NULL,
-  channel TEXT NOT NULL,
-  sender TEXT NOT NULL,
-  content TEXT NOT NULL,
-  role TEXT DEFAULT 'user',
-  ts INTEGER NOT NULL,
-  FOREIGN KEY (group_id) REFERENCES groups(id)
-);
-
-CREATE INDEX idx_messages_group ON messages(group_id, ts);
-
--- Sessions (active conversations)
-CREATE TABLE sessions (
-  group_id TEXT PRIMARY KEY,
-  last_message_id TEXT,
-  context_window TEXT, -- compressed context
-  updated_at INTEGER,
-  FOREIGN KEY (group_id) REFERENCES groups(id)
-);
-
--- Scheduled tasks
-CREATE TABLE tasks (
-  id TEXT PRIMARY KEY,
-  group_id TEXT NOT NULL,
-  cron TEXT NOT NULL,
-  prompt TEXT NOT NULL,
-  next_run INTEGER,
-  enabled INTEGER DEFAULT 1,
-  FOREIGN KEY (group_id) REFERENCES groups(id)
-);
-
-CREATE INDEX idx_tasks_next ON tasks(next_run) WHERE enabled = 1;
-```
-
-### 5. Channel Adapters
-
-```typescript
-// src/channels/telegram.ts
-export function normalizeTelegram(payload: TelegramUpdate): Signal {
-  const msg = payload.message
-  return {
-    id: `tg-${msg.message_id}`,
-    group: `tg-${msg.chat.id}`,
-    channel: 'telegram',
-    sender: msg.from?.username || msg.from?.id.toString() || 'unknown',
-    content: msg.text || '',
-    replyTo: msg.reply_to_message?.message_id?.toString(),
-  }
-}
-
-export async function sendTelegram(env: Env, groupId: string, text: string) {
-  const chatId = groupId.replace('tg-', '')
-  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  })
-}
-
-// src/channels/discord.ts
-export function normalizeDiscord(payload: DiscordMessage): Signal {
-  return {
-    id: `dc-${payload.id}`,
-    group: `dc-${payload.channel_id}`,
-    channel: 'discord',
-    sender: payload.author.username,
-    content: payload.content,
-  }
-}
-
-// src/channels/slack.ts
-export function normalizeSlack(payload: SlackEvent): Signal {
-  return {
-    id: `sl-${payload.event.ts}`,
-    group: `sl-${payload.event.channel}`,
-    channel: 'slack',
-    sender: payload.event.user,
-    content: payload.event.text,
-  }
-}
-
-// src/channels/index.ts
-export function normalize(channel: string, payload: unknown): Signal {
-  switch (channel) {
-    case 'telegram': return normalizeTelegram(payload as TelegramUpdate)
-    case 'discord': return normalizeDiscord(payload as DiscordMessage)
-    case 'slack': return normalizeSlack(payload as SlackEvent)
-    default: throw new Error(`Unknown channel: ${channel}`)
-  }
-}
+1. Webhook arrives
+2. normalize(channel, payload) → Signal { id, group, channel, sender, content, ts }
+3. ensureRegistered(group) → unit created in TypeDB (KV cached 30 days)
+4. D1: INSERT group + message
+5. Queue: AGENT_QUEUE.send({ type: 'message', signal, group })
+6. Consumer: loadContext(group) → last 20 messages → OpenRouter (Gemma 4)
+7. Agent uses tools (signal, discover, mark, warn, remember, recall, highways)
+8. Reply stored in D1, sent to channel via adapter
+9. mark('entry', 'nanoclaw:{group}') → trail strengthens
 ```
 
 ---
 
-## TypeDB Integration
+## Tools (7 substrate tools for Claude)
 
-NanoClaw agents are units in the ONE substrate. They don't run TypeDB — they query it.
-
-### Registration
-
-```typescript
-// On first message from a group, register as unit
-async function ensureRegistered(env: Env, groupId: string) {
-  const exists = await env.KV.get(`registered:${groupId}`)
-  if (exists) return
-  
-  await fetch(`${env.TYPEDB_URL}/api/agents`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      uid: `nanoclaw:${groupId}`,
-      kind: 'agent',
-      capabilities: ['chat', 'task', 'coordinate'],
-    }),
-  })
-  
-  await env.KV.put(`registered:${groupId}`, '1')
-}
-```
-
-### Toxicity Check
-
-Before processing any signal, check if the path is toxic.
-
-```typescript
-async function checkToxic(typedbUrl: string, edge: string): Promise<boolean> {
-  const [source, target] = edge.split('→')
-  const res = await fetch(
-    `${typedbUrl}/api/toxic?source=${source}&target=${target}`
-  )
-  const { toxic } = await res.json()
-  return toxic
-}
-```
-
-### Trail Marking
-
-After successful processing, strengthen the path.
-
-```typescript
-async function markTrail(typedbUrl: string, edge: string, strength: number) {
-  const [source, target] = edge.split('→')
-  await fetch(`${typedbUrl}/api/mark`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source, target, strength }),
-  })
-}
-```
+| Tool | Input | What it does |
+|------|-------|--------------|
+| `signal` | `receiver`, `data` | Send signal to any unit via queue |
+| `discover` | `skill` | Find units by capability via `suggest_route()` |
+| `remember` | `key`, `value` | Store in KV: `knowledge:{group}:{key}` |
+| `recall` | `query` | Check KV first, then TypeDB hypotheses |
+| `highways` | `limit` | Proven paths (strength >= 10) via gateway |
+| `mark` | `target`, `strength` | Strengthen path (insert or update) |
+| `warn` | `target`, `strength` | Add resistance to path |
 
 ---
 
-## Security Model
+## Channel Adapters
 
-No containers. Security comes from:
-
-| Layer | Mechanism |
-|-------|-----------|
-| V8 Isolates | Cloudflare's runtime isolation per request |
-| Substrate Toxicity | Paths with high alarm get blocked before LLM call |
-| Tool Boundaries | Claude can only use defined tools, no shell access |
-| Group Isolation | Each group has separate D1 rows, KV keys, context |
-| Rate Limits | CF free tier limits are natural rate limiting |
-
-The substrate learns. Bad actors accumulate alarm. Their signals dissolve.
-
----
-
-## Scheduled Tasks
-
-Cron Triggers for recurring work.
+All channels normalize to one Signal type:
 
 ```typescript
-// src/workers/scheduler.ts
-export default {
-  async scheduled(event: ScheduledEvent, env: Env) {
-    const now = Math.floor(Date.now() / 1000)
-    
-    // Find due tasks
-    const tasks = await env.DB.prepare(
-      'SELECT * FROM tasks WHERE enabled = 1 AND next_run <= ?'
-    ).bind(now).all()
-    
-    for (const task of tasks.results) {
-      // Queue task execution
-      await env.AGENT_QUEUE.send({
-        type: 'scheduled',
-        group: task.group_id,
-        prompt: task.prompt,
-        taskId: task.id,
-      })
-      
-      // Update next run
-      const next = getNextCron(task.cron, now)
-      await env.DB.prepare(
-        'UPDATE tasks SET next_run = ? WHERE id = ?'
-      ).bind(next, task.id).run()
-    }
-  }
+interface Signal {
+  id: string        // tg-123, dc-456, web-789
+  group: string     // tg-{chat_id}, dc-{channel_id}, {custom}
+  channel: string   // 'telegram' | 'discord' | 'web'
+  sender: string    // username or user ID
+  content: string   // message text
+  replyTo?: string  // reference to previous message
+  ts: number        // timestamp
 }
 ```
 
-```toml
-# wrangler.toml
-[triggers]
-crons = ["* * * * *"]  # Every minute
-```
-
----
-
-## Deployment
-
-### 1. Create Project
+### Telegram
 
 ```bash
-npm create cloudflare@latest nanoclaw -- --template worker-typescript
-cd nanoclaw
+# Set token
+printf 'YOUR-BOT-TOKEN' | npx wrangler secret put TELEGRAM_TOKEN
+
+# Set webhook
+curl "https://api.telegram.org/bot${TOKEN}/setWebhook?url=https://nanoclaw.oneie.workers.dev/webhook/telegram"
 ```
 
-### 2. Configure
+### Discord
+
+```bash
+printf 'YOUR-BOT-TOKEN' | npx wrangler secret put DISCORD_TOKEN
+# Configure webhook URL in Discord Developer Portal
+```
+
+### Web (direct HTTP)
+
+```bash
+curl -X POST https://nanoclaw.oneie.workers.dev/webhook/web \
+  -H 'Content-Type: application/json' \
+  -d '{"group":"my-group","sender":"user","content":"Hello agent"}'
+```
+
+---
+
+## Substrate Integration
+
+All TypeDB access goes through the gateway. NanoClaw agents are units in the ONE substrate.
+
+### Auto-Registration
+
+On first message from a group:
+
+```tql
+insert $u isa unit,
+  has uid "nanoclaw:{groupId}",
+  has name "{groupId}",
+  has unit-kind "agent",
+  has status "active",
+  has success-rate 0.5,
+  has sample-count 0,
+  has generation 0;
+```
+
+KV cached (`registered:{groupId}`) for 30 days.
+
+### Toxicity Check (pre-LLM)
+
+```typescript
+// Before every Claude call
+const toxic = r >= 10 && r > s * 2 && (r + s) > 5
+// KV cached (toxic:{source}→{target}) for 5 min
+// If toxic: silently drop — no LLM call, no cost
+```
+
+### Trail Marking (post-LLM)
+
+```typescript
+// Success: mark('entry', 'nanoclaw:{group}')
+// → insert/update path with strength + traversals
+
+// Failure: warn('entry', 'nanoclaw:{group}', 0.5)
+// → update path resistance
+```
+
+### Routing
+
+`discover(skill)` queries via gateway:
+
+```tql
+match
+  (source: $from, target: $to) isa path, has strength $s;
+  (provider: $to, offered: $sk) isa capability;
+  $sk has skill-id "{skill}";
+sort $s desc; limit 5;
+```
+
+---
+
+## Storage
+
+### D1 Tables
+
+| Table | Columns | Purpose |
+|-------|---------|---------|
+| `groups` | id, channel, name, system_prompt, model, sensitivity | Per-channel config |
+| `messages` | id, group_id, channel, sender, content, role, ts | History (last 20 per context) |
+| `sessions` | group_id, last_message_id, context_window, updated_at | Compressed context |
+| `tasks` | id, group_id, cron, prompt, next_run, enabled | Scheduled tasks |
+| `tool_calls` | id, group_id, message_id, tool_name, input, output, ts | Audit trail |
+
+### KV Cache
+
+| Key Pattern | TTL | Purpose |
+|-------------|-----|---------|
+| `context:{groupId}` | 5 min | GroupContext JSON |
+| `registered:{groupId}` | 30 days | Skip re-registration |
+| `toxic:{source}→{target}` | 5 min | Toxicity result |
+| `knowledge:{group}:{key}` | none | Agent memory |
+
+---
+
+## Group Context
+
+Each group gets isolated context:
+
+```typescript
+interface GroupContext {
+  id: string
+  name?: string
+  systemPrompt: string   // D1 or default
+  model: string          // D1 or google/gemma-4-27b-it
+  sensitivity: number    // 0.0-1.0
+}
+```
+
+Default prompt: "You are a helpful AI assistant connected to the ONE substrate."
+
+Last 20 messages loaded as conversation history.
+
+---
+
+## Security
+
+| Layer | How |
+|-------|-----|
+| V8 Isolates | CF per-request runtime isolation |
+| Toxicity | High-resistance paths blocked pre-LLM (no cost) |
+| Tool boundaries | 7 defined tools only, no shell/filesystem |
+| Group isolation | Separate D1 rows + KV keys per group |
+| Rate limits | CF free tier = natural throttle |
+| Queue retry | Max 3, then dead letter |
+
+---
+
+## Deploy
+
+```bash
+cd nanoclaw
+
+# Auth (Global API Key)
+export CLOUDFLARE_API_KEY=$(grep '^CLOUDFLARE_GLOBAL_API_KEY=' ../.env | cut -d= -f2)
+export CLOUDFLARE_EMAIL=$(grep '^CLOUDFLARE_EMAIL=' ../.env | cut -d= -f2)
+export CLOUDFLARE_ACCOUNT_ID=$(grep '^CLOUDFLARE_ACCOUNT_ID=' ../.env | cut -d= -f2)
+
+# First time
+npx wrangler queues create nanoclaw-agents
+npx wrangler d1 execute one --remote --file=migrations/0001_init.sql
+
+# Deploy
+npx wrangler deploy
+
+# Secrets
+printf 'sk-or-YOUR-KEY' | npx wrangler secret put OPENROUTER_API_KEY
+printf 'YOUR-BOT-TOKEN' | npx wrangler secret put TELEGRAM_TOKEN
+
+# Verify
+curl -s https://nanoclaw.oneie.workers.dev/health
+```
+
+---
+
+## Bindings
 
 ```toml
-# wrangler.toml
 name = "nanoclaw"
 main = "src/workers/router.ts"
-compatibility_date = "2024-01-01"
+workers_dev = true
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+GATEWAY_URL = "https://one-gateway.oneie.workers.dev"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "nanoclaw"
-database_id = "<your-d1-id>"
+database_name = "one"
+database_id = "0aa5fceb-667a-470e-b08c-40ead2f4525d"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "<your-kv-id>"
+id = "1c1dac4766e54a2c85425022a3b1e9da"
 
 [[queues.producers]]
 binding = "AGENT_QUEUE"
-queue = "agent-queue"
+queue = "nanoclaw-agents"
 
 [[queues.consumers]]
-queue = "agent-queue"
+queue = "nanoclaw-agents"
 max_batch_size = 10
+max_batch_timeout = 30
 max_retries = 3
 
-[vars]
-TYPEDB_URL = "https://your-typedb-instance.com"
-
-# Secrets (set via wrangler secret put)
-# ANTHROPIC_API_KEY
-# TELEGRAM_TOKEN
-# DISCORD_TOKEN
-# SLACK_TOKEN
-```
-
-### 3. Initialize D1
-
-```bash
-wrangler d1 create nanoclaw
-wrangler d1 execute nanoclaw --file=migrations/0001_init.sql
-```
-
-### 4. Set Secrets
-
-```bash
-wrangler secret put ANTHROPIC_API_KEY
-wrangler secret put TELEGRAM_TOKEN
-```
-
-### 5. Deploy
-
-```bash
-wrangler deploy
-```
-
-### 6. Set Webhooks
-
-```bash
-# Telegram
-curl "https://api.telegram.org/bot${TOKEN}/setWebhook?url=https://nanoclaw.your-account.workers.dev/webhook/telegram"
-
-# Discord - configure in Discord Developer Portal
-# Slack - configure in Slack App settings
+[triggers]
+crons = ["* * * * *"]
 ```
 
 ---
 
-## File Structure
+## Files
 
 ```
-nanoclaw/
+nanoclaw/                              816 lines total
 ├── src/
-│   ├── workers/
-│   │   ├── router.ts       # Webhook receiver, queue producer
-│   │   ├── agent.ts        # Queue consumer, Claude calls
-│   │   └── scheduler.ts    # Cron trigger handler
-│   ├── channels/
-│   │   ├── index.ts        # Normalize dispatcher
-│   │   ├── telegram.ts     # Telegram adapter
-│   │   ├── discord.ts      # Discord adapter
-│   │   └── slack.ts        # Slack adapter
-│   ├── lib/
-│   │   ├── tools.ts        # Substrate tools for Claude
-│   │   ├── context.ts      # Group context builder
-│   │   └── typedb.ts       # TypeDB client
-│   └── types.ts            # Type definitions
-├── migrations/
-│   └── 0001_init.sql       # D1 schema
-├── wrangler.toml           # Cloudflare config
-└── package.json
+│   ├── workers/router.ts              261 lines — Hono routes + queue consumer + cron
+│   ├── channels/index.ts              117 lines — Telegram, Discord, Web adapters
+│   ├── lib/substrate.ts               165 lines — query, register, toxic, mark, warn, route
+│   ├── lib/tools.ts                   159 lines — 7 Claude tools + execution
+│   └── types.ts                        50 lines — Env, Signal, QueueMessage, GroupContext
+├── migrations/0001_init.sql            64 lines — D1 schema
+├── wrangler.toml
+└── package.json                        hono + wrangler@4
 ```
 
 ---
 
-## Comparison
+## Cost
 
-| | NanoClaw (containers) | NanoClaw (CF) |
-|-|----------------------|---------------|
-| Runtime | Node.js + Docker | CF Workers |
-| Isolation | OS containers | V8 isolates + substrate |
-| State | SQLite file | D1 (distributed) |
-| Queuing | In-process | CF Queues |
-| Scheduling | Node cron | CF Cron Triggers |
-| Cost | VPS ($5-20/mo) | Free tier |
-| Latency | Single region | Global edge |
-| Scaling | Manual | Automatic |
-| Security | Container sandbox | Substrate toxicity |
+$0/month on Cloudflare free tier. Gemma 4 via OpenRouter on operator's key.
 
----
-
-## Why This Works
-
-1. **Claude SDK is stateless** — perfect for serverless
-2. **TypeDB is the brain** — Workers don't need local state
-3. **Substrate handles learning** — no self-improving skills needed
-4. **Toxicity replaces sandboxing** — bad paths dissolve
-5. **CF free tier is generous** — 100k requests/day covers most use cases
-
-The agent doesn't need to be smart about security. The substrate learns what's dangerous.
+| Resource | Free | Usage |
+|----------|------|-------|
+| Workers | 100k req/day | Webhooks + processing |
+| D1 | 5GB, 5M reads | Messages, groups |
+| KV | 100k reads/day | Context + toxic cache |
+| Queues | 1M ops/month | Agent processing |
 
 ---
 
 ## See Also
 
-- [hermes-agent.md](hermes-agent.md) — Heavy Python alternative
-- [strategy.md](strategy.md) — The ONE substrate play
-- [one-ontology.md](one-ontology.md) — Six dimensions
+- [cloudflare.md](cloudflare.md) — Platform architecture, 4 workers, agent castes
+- [deploy.md](deploy.md) — Step 11: NanoClaw deployment
+- [routing.md](routing.md) — Substrate signal routing
 - [Original NanoClaw](https://github.com/qwibitai/nanoclaw) — Container-based inspiration
 
 ---
 
-*Edge-native. Substrate-connected. Beautiful and fast and free.*
+*816 lines. Webhooks in. Gemma thinks. Tools act. Channels reply. The substrate learns.*

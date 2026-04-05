@@ -116,9 +116,14 @@ app.post('/signal', async (c) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function loadContext(env: Env, groupId: string): Promise<GroupContext> {
-  // Check KV cache
-  const cached = await env.KV.get(`context:${groupId}`, 'json')
-  if (cached) return cached as GroupContext
+  // Check KV cache (but always validate model)
+  const cached = await env.KV.get(`context:${groupId}`, 'json') as GroupContext | null
+  if (cached) {
+    if (cached.model?.startsWith('claude-') || cached.model?.startsWith('gpt-')) {
+      cached.model = 'google/gemma-4-26b-a4b-it'
+    }
+    return cached
+  }
 
   // Default context
   const ctx: GroupContext = {
@@ -126,7 +131,7 @@ async function loadContext(env: Env, groupId: string): Promise<GroupContext> {
     systemPrompt: `You are a helpful AI assistant connected to the ONE substrate.
 You can use tools to interact with other agents in the network.
 Be concise and helpful. Mark successful collaborations, warn on failures.`,
-    model: 'claude-sonnet-4-20250514',
+    model: 'google/gemma-4-26b-a4b-it',
     sensitivity: 0.5,
   }
 
@@ -140,6 +145,11 @@ Be concise and helpful. Mark successful collaborations, warn on failures.`,
     ctx.systemPrompt = (row.system_prompt as string) || ctx.systemPrompt
     ctx.model = (row.model as string) || ctx.model
     ctx.sensitivity = (row.sensitivity as number) || ctx.sensitivity
+  }
+
+  // Ensure model is OpenRouter-compatible (not raw Anthropic/OpenAI IDs)
+  if (ctx.model.startsWith('claude-') || ctx.model.startsWith('gpt-')) {
+    ctx.model = 'google/gemma-4-26b-a4b-it'
   }
 
   // Cache for 5 minutes
@@ -168,54 +178,78 @@ async function processMessage(env: Env, msg: QueueMessage): Promise<void> {
   const context = await loadContext(env, groupId)
   const messages = await buildMessages(env, groupId)
 
-  // Call Claude
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  // Call OpenRouter (Gemma 4)
+  const openaiTools = tools.map(t => ({
+    type: 'function' as const,
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: t.input_schema,
+    },
+  }))
+
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
+      'Authorization': `Bearer ${env.OPENROUTER_API_KEY}`,
+      'HTTP-Referer': 'https://one.ie',
+      'X-Title': 'NanoClaw',
     },
     body: JSON.stringify({
       model: context.model,
       max_tokens: 4096,
-      system: context.systemPrompt,
-      tools,
-      messages,
+      messages: [
+        { role: 'system', content: context.systemPrompt },
+        ...messages,
+      ],
+      tools: openaiTools,
     }),
   })
 
+  const resText = await res.text()
   if (!res.ok) {
-    console.error('Claude API error:', await res.text())
+    console.error('OpenRouter API error:', res.status, resText.slice(0, 500))
     await warn(env, `entry`, `nanoclaw:${groupId}`, 0.5)
     return
   }
 
-  const data = await res.json() as {
-    content: { type: string; text?: string; name?: string; input?: unknown }[]
-    stop_reason: string
+  let data: any
+  try {
+    data = JSON.parse(resText)
+  } catch {
+    console.error('Failed to parse OpenRouter response:', resText.slice(0, 500))
+    return
   }
 
-  // Process response
-  let reply = ''
-  for (const block of data.content) {
-    if (block.type === 'text' && block.text) {
-      reply += block.text
-    } else if (block.type === 'tool_use' && block.name) {
-      const result = await executeTool(env, groupId, block.name, block.input as Record<string, unknown>)
-      console.log(`Tool ${block.name}:`, result)
+  console.log('OpenRouter raw:', JSON.stringify(data).slice(0, 500))
+
+  // Process response (OpenAI format: choices[0].message.content)
+  const choice = data.choices?.[0]?.message
+  let reply = (choice?.content as string) || ''
+  console.log('Reply extracted:', reply.slice(0, 200) || '(empty)', 'tool_calls:', !!choice?.tool_calls)
+
+  if (choice?.tool_calls) {
+    for (const call of choice.tool_calls) {
+      const input = JSON.parse(call.function.arguments)
+      const result = await executeTool(env, groupId, call.function.name, input)
+      console.log(`Tool ${call.function.name}:`, result)
     }
   }
 
   // Store assistant message
   if (reply) {
+    console.log('Storing reply:', reply.slice(0, 100))
     await env.DB.prepare(`
       INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
       VALUES (?, ?, 'system', 'assistant', ?, 'assistant', ?)
     `).bind(`resp-${Date.now()}`, groupId, reply, Date.now()).run()
 
     // Send reply to channel
+    console.log('Sending to channel:', groupId)
     await send(env, groupId, reply)
+  } else {
+    console.log('No reply text to store (tool_calls only or empty)')
   }
 
   // Mark success

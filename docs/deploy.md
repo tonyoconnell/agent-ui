@@ -2,7 +2,7 @@
 
 Step-by-step. Every command proven. Every link verified.
 
-**What you'll deploy:** Astro frontend + TypeDB brain + Cloudflare edge (3 workers).
+**What you'll deploy:** Astro frontend + TypeDB brain + Cloudflare edge (4 workers: gateway, sync, pages, nanoclaw).
 
 **Cost:** ~$20/mo (TypeDB Cloud). Everything else fits Cloudflare free tier.
 
@@ -615,15 +615,15 @@ nanoclaw/
 Run this checklist after deploy:
 
 ```bash
-echo "=== Gateway Health ==="
-curl -s https://one-gateway.oneie.workers.dev/health
+echo "=== Gateway ==="
+curl -s https://api.one.ie/health
 
 echo ""
 echo "=== Gateway → TypeDB ==="
-curl -s -X POST https://one-gateway.oneie.workers.dev/typedb/query \
+curl -s -X POST https://api.one.ie/typedb/query \
   -H 'Content-Type: application/json' \
-  -d '{"query":"match $u isa unit; select $u; limit 1;","transactionType":"read"}' \
-  | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print('OK' if d.get('answerType') else 'FAIL')"
+  -d '{"query":"match $u isa unit; select $u;","transactionType":"read"}' \
+  | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(f'OK — {len(d.get(\"answers\",[]))} units')"
 
 echo ""
 echo "=== Pages ==="
@@ -632,22 +632,43 @@ curl -sL https://one-substrate.pages.dev/ -o /dev/null -w '%{http_code} %{time_t
 echo ""
 echo "=== Sync Worker ==="
 curl -s https://one-sync.oneie.workers.dev/
+
+echo ""
+echo "=== NanoClaw ==="
+curl -s https://nanoclaw.oneie.workers.dev/health
+
+echo ""
+echo "=== Export APIs ==="
+for ep in units skills paths highways toxic; do
+  code=$(curl -sL "https://one-substrate.pages.dev/api/export/$ep" -o /dev/null -w '%{http_code}')
+  printf "  /api/export/%-10s HTTP %s\n" "$ep" "$code"
+done
 ```
 
 Expected:
 
 ```
-=== Gateway Health ===
+=== Gateway ===
 {"status":"ok","version":"1.0.0","database":"one"}
 
 === Gateway → TypeDB ===
-OK
+OK — 19 units
 
 === Pages ===
-200 0.6s
+200 0.4s
 
 === Sync Worker ===
 {"status":"sync-worker","trigger":"/sync"}
+
+=== NanoClaw ===
+{"status":"ok","version":"1.0.0","service":"nanoclaw-router"}
+
+=== Export APIs ===
+  /api/export/units      HTTP 200
+  /api/export/skills     HTTP 200
+  /api/export/paths      HTTP 200
+  /api/export/highways   HTTP 200
+  /api/export/toxic      HTTP 200
 ```
 
 ---
@@ -670,6 +691,8 @@ OK
 | R2 bucket not found on Pages deploy | `pages_build_output_dir` in wrangler.toml makes Pages read all bindings | `npx wrangler r2 bucket create one-files` |
 | `fileURLToPath is not exported` | Static `import` of `node:url` in engine code | Use dynamic imports for Node APIs: `const fs = await import('node:fs')` |
 | Path export returns 500 | `has source $s` treats roles as attributes | Use relation syntax: `(source: $s, target: $t) isa path` |
+| Queue does not exist | Must create before deploy | `npx wrangler queues create nanoclaw-agents` |
+| Old wrangler version | NanoClaw had wrangler 3.x | `npm install wrangler@4 --save-dev` |
 
 ---
 
@@ -742,7 +765,13 @@ envelopes/
 │   ├── wrangler.toml             # Sync worker config
 │   └── index.ts                  # TypeDB → KV cron
 ├── migrations/
-│   └── 0001_init.sql             # D1 schema
+│   └── 0001_init.sql             # D1 schema (base 4 tables)
+├── nanoclaw/
+│   ├── wrangler.toml             # D1 + KV + Queue + Cron
+│   ├── src/workers/              # router, agent, scheduler
+│   ├── src/channels/             # telegram, discord, slack
+│   ├── src/lib/                  # tools, context, substrate
+│   └── migrations/0001_init.sql  # D1 schema (+3 tables)
 └── agents/
     ├── marketing/                # 8 marketing team agents
     ├── tutor.md                  # Example agent
@@ -760,12 +789,15 @@ cd gateway && npx wrangler deploy && cd ..
 # Sync worker only
 cd workers/sync && npx wrangler deploy && cd ../..
 
+# NanoClaw only
+cd nanoclaw && npx wrangler deploy && cd ..
+
 # Pages (frontend + API)
 NODE_ENV=production npm run build
 npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 
-# All three
-cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../.. && NODE_ENV=production npm run build && npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+# All four
+cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../../nanoclaw && npx wrangler deploy && cd .. && NODE_ENV=production npm run build && npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 ```
 
 ---
@@ -786,10 +818,11 @@ cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy &
 | Service | URL | Status |
 |---------|-----|--------|
 | Pages | https://one-substrate.pages.dev | 200 OK, 0.4s |
-| Gateway | https://one-gateway.oneie.workers.dev | `{"status":"ok"}` |
-| Gateway (custom) | https://api.one.ie/health | `{"status":"ok"}` |
+| Gateway | https://api.one.ie/health | `{"status":"ok"}` |
+| Gateway (alt) | https://one-gateway.oneie.workers.dev | Same worker |
 | Sync | https://one-sync.oneie.workers.dev | cron `*/5 * * * *` |
-| TypeDB Cloud | `flsiu1-0.cluster.typedb.com:1729` | 8 units, 8 skills, 1 group |
+| NanoClaw | https://nanoclaw.oneie.workers.dev/health | `{"status":"ok"}` |
+| TypeDB Cloud | `flsiu1-0.cluster.typedb.com:1729` | 19 units, 18 skills, 1 group |
 
 ### Data in TypeDB (18 units, 18 skills, 1 group)
 

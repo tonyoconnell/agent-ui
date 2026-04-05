@@ -19,7 +19,7 @@ Deploys gateway worker, sync worker, and Pages to Cloudflare using the Global AP
 
 ## Deploy All
 
-Set auth from `.env` and deploy all three:
+Set auth from `.env` and deploy all four workers:
 
 ```bash
 cd /Users/toc/Server/envelopes
@@ -32,8 +32,8 @@ export CLOUDFLARE_ACCOUNT_ID=$(grep '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2
 # Build
 NODE_ENV=production npm run build
 
-# Deploy all three
-cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../..
+# Deploy all four
+cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../../nanoclaw && npx wrangler deploy && cd ..
 npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 ```
 
