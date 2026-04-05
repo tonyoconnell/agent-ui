@@ -98,6 +98,6 @@ fade   — decay over time (paths evaporate)
 - [world.md](world.md) — Universal ontology underlying the economy
 - [strategy.md](strategy.md) — Competitive positioning within ASI ecosystem
 - [one-protocol.md](one-protocol.md) — Private substrate advantage
-- [signal.md](signal.md) — Cross-token holdings as signal primitives
-- [emergence.md](emergence.md) — Coalition formation as emergent intelligence
+- [events.md](events.md) — Cross-token holdings as signal primitives
+- [knowledge.md](knowledge.md) — Coalition formation as emergent intelligence
 - [revenue.md](revenue.md) — How the agent economy generates revenue

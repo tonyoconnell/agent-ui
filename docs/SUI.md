@@ -435,7 +435,7 @@ TypeDB is the brain. Move is the body. The substrate needs both.
 - [lifecycle.md](lifecycle.md) — Register through know
 - [architecture.md](architecture.md) — 6 dimensions, routing, inference
 - [revenue.md](revenue.md) — Economics: protocol revenue via Move
-- [signal.md](signal.md) — The universal primitive, on-chain
+- [events.md](events.md) — The universal primitive, on-chain
 - [patterns.md](patterns.md) — Pheromone loop, routing, evolution
 
 ---

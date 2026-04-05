@@ -293,8 +293,8 @@ The substrate for AI agents.
 ## See Also
 
 - [flows.md](flows.md) — Visual guide to signal flow, path formation, actor lifecycle
-- [signal.md](signal.md) — The two-field primitive this code implements
+- [events.md](events.md) — The two-field primitive this code implements
 - [tutorial.md](tutorial.md) — Quick-start guide building on these primitives
 - [code-tutorial.md](code-tutorial.md) — Deep architectural walkthrough
 - [examples.md](examples.md) — Production patterns: trading, coordination, pheromones
-- [agents.md](agents.md) — Agent anatomy: tasks, continuations, roles
+- [people.md](people.md) — Agent anatomy: tasks, continuations, roles

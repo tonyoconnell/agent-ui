@@ -317,37 +317,39 @@ but `follow('an')` matches nothing. The world doesn't guess.
 When you need durable memory and knowledge — not just signal flow:
 
 ```typescript
-const w = world({ persist: typedb() })
+import { world } from '@/engine'
+
+const w = world()
 
 // 1. Groups — scope and isolation
 w.group('research', 'team')
 
-// 2. Actors — who receives signals (persisted)
+// 2. Actors — who receives signals (persisted to TypeDB)
 const scout = w.actor('scout', 'agent', { group: 'research' })
   .on('observe', ({ tick }, emit) => {
     emit({ receiver: 'analyst:process', data: analyze(tick) })
   })
 
-// 3. Things — what actors work on
-w.thing('daily-scan', 'task', { group: 'research' })
+// 3. Things — skills with optional price
+w.thing('daily-scan', { tags: ['research', 'P0'] })
 
-// 4. Connections — pheromone with group scoping
-w.flow('scout', 'analyst', { group: 'research' }).strengthen()
-w.flow('scout', 'bad-analyst', { group: 'research' }).resist()
+// 4. Connections — strengthen or resist
+w.flow('scout', 'analyst').strengthen()
+w.path('scout', 'bad-analyst').resist()   // path = alias for flow
 
 // 5. Events — automatic from signals
 
 // 6. Knowledge — durable patterns that survive fade
-w.know()                      // promote strong paths → knowledge. returns new insights
-w.recall()                    // all known patterns
-w.recall('analyst')           // patterns involving analyst
+await w.know()                // promote strong paths → knowledge. returns new insights
+await w.recall()              // all known patterns
+await w.recall('analyst')     // patterns involving analyst
 
 // Queries — live pheromone (ephemeral, fades)
 w.open(10)                    // strongest flows
-w.best('agent')               // best actor of type
+w.best('analyst')             // best actor by net strength
 w.proven()                    // reliable actors (strength >= 20)
 w.blocked()                   // toxic paths (resistance > strength)
-w.confidence('agent')         // aggregate confidence for type
+w.confidence('analyst')       // strength / (strength + resistance)
 ```
 
 Knowledge vs queries: `open()`, `best()`, `proven()` read live pheromone — they
@@ -526,7 +528,9 @@ Only the words humans use to describe it.
 
 ## See Also
 
-- [signal.md](signal.md) -- The universal primitive in depth
+- [dictionary.md](dictionary.md) -- Complete naming guide
+- [routing.md](routing.md) -- How signals find their way
+- [events.md](events.md) -- The universal primitive in depth
 - [primitives.md](primitives.md) -- Entities, relations, status values
 - [patterns.md](patterns.md) -- 10 patterns from 6 lessons
 - [architecture.md](architecture.md) -- TypeDB as substrate, router pattern

@@ -157,54 +157,25 @@ attribute source-connection, value string;
 attribute created-at, value datetime;
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# INFERENCE RULES — Emergent classification
+# CLASSIFICATION FUNCTIONS — Emergent classification
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Highway: strong success signal
-rule highway:
-    when {
-        $c isa connection, has weight $w;
-        $w >= 50.0;
-    }
-    then { $c has connection-status "highway"; };
+# Connection status: highway, fading, toxic, or active
+fun connection_status($c: connection) -> string:
+    match $c has weight $w, has resistance $a;
+    return first
+        if ($a > $w and $a >= 10.0) then "toxic"
+        else if ($w >= 50.0) then "highway"
+        else if ($w > 0.0 and $w < 5.0) then "fading"
+        else "active";
 
-# Fading: weak signal, needs reinforcement
-rule fading:
-    when {
-        $c isa connection, has weight $w;
-        $w > 0.0;
-        $w < 5.0;
-    }
-    then { $c has connection-status "fading"; };
-
-# Toxic: failure dominates success
-rule toxic:
-    when {
-        $c isa connection, has resistance $a, has weight $w;
-        $a > $w;
-        $a >= 10.0;
-    }
-    then { $c has connection-status "toxic"; };
-
-# Proven actor: consistent success
-rule proven-actor:
-    when {
-        $a isa actor;
-        $c (target: $a) isa connection, has weight $w, has resistance $al;
-        $w >= 20.0;
-        $w > ($al * 2.0);
-    }
-    then { $a has actor-status "proven"; };
-
-# At-risk actor: consistent failure
-rule at-risk-actor:
-    when {
-        $a isa actor;
-        $c (target: $a) isa connection, has resistance $al, has weight $w;
-        $al >= 10.0;
-        $al > $w;
-    }
-    then { $a has actor-status "at-risk"; };
+# Actor status: proven, at-risk, or active
+fun actor_classification($a: actor) -> string:
+    match $c (target: $a) isa connection, has weight $w, has resistance $al;
+    return first
+        if ($w >= 20.0 and $w > ($al * 2.0)) then "proven"
+        else if ($al >= 10.0 and $al > $w) then "at-risk"
+        else "active";
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # INFERENCE FUNCTIONS — Query interface

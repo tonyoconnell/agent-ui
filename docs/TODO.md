@@ -70,27 +70,32 @@ agents: agents/*.md (markdown → TypeDB → Cloudflare → AgentVerse)
 
 > Get TypeDB running. Deploy to Cloudflare. Connect everything.
 > From cloudflare.md: "Cloudflare = compute. Fetch.ai = rails. ONE = brain."
+> Agent castes: Haiku workers (90%), Sonnet coordinators (9%), Opus architects (1%).
 
 | Status | ID | Task | How | KPI | Depends |
 |:---:|:---|:---|:---|:---|:---|
-| `[ ]` | D-1 | TypeDB Cloud setup | Create database `one` on TypeDB Cloud. Load `world.tql`. Verify `highways()` returns. Fill `.env` with credentials. | Schema loaded, queries work | W-1 |
+| `[x]` | D-0a | CF infrastructure code | wrangler.toml (D1/KV/R2/Queue), env.d.ts, edge.ts, migrations, export APIs, sync worker | All bindings typed, build passes | — |
+| `[x]` | D-0b | Agent caste architecture | Haiku for L1-L4 ($0.001), Sonnet for L5 ($0.01), Opus for L6-L7 ($0.05). Escalation via confidence. | 7x cheaper than flat Sonnet | — |
+| `[ ]` | D-1 | TypeDB Cloud setup | Create database `one` on TypeDB Cloud. Load `world.tql`. Verify `highways()` returns. Fill `.env` with credentials. | Schema loaded, queries work | — |
 | `[ ]` | D-2 | Seed world data | Run `seed.tql` with marketing team, example agents, initial paths. Verify units, skills, capabilities exist. | 20+ units in TypeDB | D-1 |
-| `[ ]` | D-3 | Sync marketing team | `curl -X POST /api/agents/sync` with marketing world. Verify all 8 agents in TypeDB with paths. | 8 marketing agents synced | D-2 |
-| `[ ]` | D-4 | Deploy CF Worker | `wrangler deploy` the gateway worker. Verify `/health` and `/typedb/query` work. Set secrets. | Worker live at api.one.ie | D-1 |
-| `[ ]` | D-5 | Deploy CF Pages | `npm run build && wrangler pages deploy`. Verify app.one.ie loads. Test agent sync UI. | Frontend live | D-4 |
-| `[ ]` | D-6 | End-to-end test | Browser → Pages → Worker → TypeDB → response. Create agent via UI → syncs to TypeDB → discoverable. | Full flow works <100ms | D-5 |
-| `[ ]` | D-7 | NanoClaw template | Clone nanoclaw-template repo. Deploy tutor.md. Verify Telegram webhook works. Test substrate connection. | Example agent live on Telegram | D-6 |
-| `[ ]` | D-8 | AgentVerse registration | Register marketing team on AgentVerse. Verify discoverable. Test ASI payment flow. | Agents on AgentVerse | D-7 |
+| `[ ]` | D-3 | Create CF resources | `wrangler d1 create one`, `wrangler kv namespace create KV`. Fill IDs in wrangler.toml. Run migration. Set secrets. | Resources created, IDs filled | — |
+| `[ ]` | D-4 | Deploy CF Workers | `cd gateway && wrangler deploy` + `cd workers/sync && wrangler deploy`. Verify `/health` and sync cron. | Gateway + sync live | D-1, D-3 |
+| `[ ]` | D-5 | Deploy CF Pages | `npm run build && wrangler pages deploy dist/`. Verify app loads. Test export APIs return JSON. | Frontend live | D-4 |
+| `[ ]` | D-6 | Sync marketing team | `curl -X POST /api/agents/sync` with marketing world. Verify all 8 agents in TypeDB + KV snapshots. | 8 marketing agents synced | D-2, D-5 |
+| `[ ]` | D-7 | End-to-end test | Browser → Pages → Worker → TypeDB → KV → response. Signal flow <100ms. Toxicity check <1ms. | Full flow works | D-6 |
+| `[ ]` | D-8 | Custom domains | point one.ie, app.one.ie, api.one.ie | Domains live | D-5 |
 
 ### Phase 8 Gate
 ```
+  [x] Infrastructure code: bindings, types, edge helpers, migrations, export APIs, sync worker
+  [x] Agent castes designed: Haiku/Sonnet/Opus escalation (7x cost reduction)
   [ ] TypeDB Cloud: database `one`, world.tql loaded
-  [ ] Seed data: marketing team + example agents in TypeDB
-  [ ] CF Worker: api.one.ie proxying to TypeDB
+  [ ] CF resources: D1, KV namespace created, IDs in wrangler.toml
+  [ ] CF Workers: gateway (api.one.ie) + sync (every 5 min)
   [ ] CF Pages: app.one.ie serving frontend
-  [ ] End-to-end: browser → sync agent → TypeDB → discoverable
-  [ ] NanoClaw: example agent live on Telegram
-  [ ] AgentVerse: marketing team registered and earning
+  [ ] Marketing team synced to TypeDB + KV
+  [ ] End-to-end: browser → sync agent → TypeDB → KV → discoverable
+  [ ] Custom domains configured
 ```
 
 ---
@@ -412,12 +417,12 @@ W-1 ► W-2 ► W-3 ► W-3a ► W-4
 │   Phase 5: Intelligence  [██████████████████████████████]  5/5  100%       │
 │   Phase 6: Scale         [██████████████████████████████]  6/6  100%       │
 │   Phase 7: Agent MD      [██████████████████████████████]  6/6  100%  NEW │
-│   Phase 8: Deploy        [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/8    0%  NOW │
-│   Phase 9: Marketing     [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  0/6    0%       │
+│   Phase 8: Deploy        [██████░░░░░░░░░░░░░░░░░░░░░░░░] 2/10   20%  NOW │
+│   Phase 9: Marketing     [░���░░░░░░░░░��░░░░░░░░░░░░░░░░░░]  0/6    0%       │
 │   ────────────────────────────────────────────────────────────────           │
-│   TOTAL                  [██████████████████████████░░░░] 49/64  77%       │
+│   TOTAL                  [██████████████████████████░░░░] 51/66  77%       │
 │                                                                              │
-│   NEXT: D-1 (TypeDB Cloud) → D-2 (Seed) → D-3 (Sync Marketing)             │
+│   NEXT: D-1 (TypeDB Cloud) → D-3 (CF Resources) → D-4 (Deploy Workers)    │
 │                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```

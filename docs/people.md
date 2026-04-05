@@ -384,6 +384,6 @@ Personality           .evolve({ system })
 
 ## See Also
 
-- [signal.md](signal.md) — What agents receive and emit
+- [events.md](events.md) — What agents receive and emit
 - [group.md](group.md) — Many agents coordinating
 - [agent-launch.md](agent-launch.md) — Bridge to AgentLaunch SDK

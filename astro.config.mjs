@@ -9,7 +9,9 @@ import { defineConfig } from "astro/config";
 const isDev = process.env.NODE_ENV !== "production";
 const adapter = isDev
   ? node({ mode: "standalone" })
-  : cloudflare({ mode: "directory" });
+  : cloudflare({
+      platformProxy: { enabled: true },
+    });
 
 export default defineConfig({
   site: "https://one.ie",

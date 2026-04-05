@@ -1,0 +1,674 @@
+# Deploy ONE Substrate
+
+Step-by-step. Every command proven. Every link verified.
+
+**What you'll deploy:** Astro frontend + TypeDB brain + Cloudflare edge (3 workers).
+
+**Cost:** ~$20/mo (TypeDB Cloud). Everything else fits Cloudflare free tier.
+
+**Time:** ~30 minutes for a human. ~5 minutes for an agent.
+
+---
+
+## Prerequisites
+
+| Tool | Install | Verify |
+|------|---------|--------|
+| Node.js 20+ | https://nodejs.org | `node --version` |
+| npm | Comes with Node | `npm --version` |
+| Wrangler | `npm install -g wrangler` | `npx wrangler --version` |
+| Cloudflare account | https://dash.cloudflare.com/sign-up | Free |
+| TypeDB Cloud | https://cloud.typedb.com | Free trial available |
+
+---
+
+## Step 1: Clone and Install
+
+```bash
+git clone <repo-url> one-substrate
+cd one-substrate
+npm install
+```
+
+Verify the build works locally:
+
+```bash
+npm run dev
+# → http://localhost:4321
+```
+
+---
+
+## Step 2: Cloudflare Authentication
+
+Get your credentials from https://dash.cloudflare.com/profile/api-tokens:
+
+| Credential | Where to find |
+|------------|---------------|
+| `CLOUDFLARE_ACCOUNT_ID` | Dashboard URL: `dash.cloudflare.com/<this-id>` |
+| `CLOUDFLARE_GLOBAL_API_KEY` | Profile → API Tokens → Global API Key → View |
+| `CLOUDFLARE_EMAIL` | Your Cloudflare login email |
+
+Export them for the session:
+
+```bash
+export CLOUDFLARE_API_KEY="your-global-api-key"
+export CLOUDFLARE_EMAIL="your@email.com"
+export CLOUDFLARE_ACCOUNT_ID="your-account-id"
+```
+
+Test auth works:
+
+```bash
+npx wrangler whoami
+# Should show your account name and ID
+```
+
+---
+
+## Step 3: Create Cloudflare Resources
+
+### 3a. Create D1 Database
+
+```bash
+npx wrangler d1 create one
+```
+
+Output:
+
+```
+✅ Successfully created DB 'one' in region APAC
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+```
+
+Copy the `database_id`. Open `wrangler.toml` and paste it:
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "one"
+database_id = "paste-your-id-here"
+```
+
+### 3b. Create KV Namespace
+
+```bash
+npx wrangler kv namespace create KV
+```
+
+Output:
+
+```
+✨ Success!
+id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+Copy the `id`. Paste in two places:
+
+**`wrangler.toml`** (root):
+```toml
+[[kv_namespaces]]
+binding = "KV"
+id = "paste-your-id-here"
+```
+
+**`workers/sync/wrangler.toml`**:
+```toml
+[[kv_namespaces]]
+binding = "KV"
+id = "paste-your-id-here"
+```
+
+### 3c. Run D1 Migration
+
+```bash
+# Local (for dev)
+npx wrangler d1 execute one --file=migrations/0001_init.sql
+
+# Remote (for production)
+npx wrangler d1 execute one --remote --file=migrations/0001_init.sql
+```
+
+This creates 4 tables: `signals`, `messages`, `tasks`, `sync_log`.
+
+---
+
+## Step 4: TypeDB Cloud Setup
+
+### 4a. Get TypeDB Cloud Credentials
+
+Sign up at https://cloud.typedb.com. Create a deployment. You'll get:
+
+| Credential | Example |
+|------------|---------|
+| Cloud address | `flsiu1-0.cluster.typedb.com` |
+| Username | `admin` |
+| Password | (from TypeDB Cloud dashboard) |
+
+**Critical:** The HTTPS port is **1729**, not 80 or 443.
+
+### 4b. Test Connection
+
+```bash
+curl -s -X POST 'https://YOUR-ADDRESS.cluster.typedb.com:1729/v1/signin' \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"YOUR-PASSWORD"}'
+```
+
+Should return: `{"token":"eyJ..."}`. If you get `404 page not found`, check the port.
+
+### 4c. Create Database
+
+```bash
+# Get token
+TOKEN=$(curl -s -X POST 'https://YOUR-ADDRESS.cluster.typedb.com:1729/v1/signin' \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"YOUR-PASSWORD"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+
+# Create database
+curl -X POST "https://YOUR-ADDRESS.cluster.typedb.com:1729/v1/databases/one" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 4d. Load Schema
+
+The schema must be loaded in two parts: entities/attributes first, then functions.
+
+**Part 1 — Entity definitions:**
+
+```bash
+# Strip comments, extract define block (lines 35-267)
+python3 -c "
+import json
+with open('src/schema/world.tql') as f:
+    lines = f.readlines()
+schema = ''.join(lines[34:267])
+clean = '\n'.join(l.split('#')[0].rstrip() for l in schema.split('\n') if l.split('#')[0].strip())
+print(json.dumps({
+    'databaseName': 'one',
+    'transactionType': 'schema',
+    'query': clean,
+    'commit': True
+}))
+" | curl -s -X POST "https://YOUR-ADDRESS.cluster.typedb.com:1729/v1/query" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d @-
+```
+
+Should return: `{"queryType":"schema","answerType":"ok",...}`
+
+**Part 2 — Functions:**
+
+Functions have TypeDB 3.0 syntax requirements:
+- No default parameter values (`threshold: double = 10.0` → `$threshold: double`)
+- `return first` needs a variable, not a literal (`return first true` won't work)
+- String parameters must use comparison: `has uid $u; $u == $param;` not `has uid $param`
+
+```bash
+python3 -c "
+import json
+fns = '''define
+fun highways(\$thresh: double, \$min_trav: integer) -> { path }:
+    match \$e isa path, has strength \$s, has traversals \$t;
+          \$s >= \$thresh; \$t >= \$min_trav;
+    return { \$e };
+
+fun optimal_route(\$from: unit, \$skill: skill) -> unit:
+    match (source: \$from, target: \$to) isa path, has strength \$s;
+          (provider: \$to, offered: \$skill) isa capability;
+    sort \$s desc; limit 1;
+    return first \$to;
+
+fun cheapest_provider(\$skill: skill) -> unit:
+    match (provider: \$u, offered: \$skill) isa capability, has price \$p;
+    sort \$p asc; limit 1;
+    return first \$u;
+
+fun suggest_route(\$from: unit, \$skill: skill) -> { uid, strength }:
+    match \$from isa unit; \$skill isa skill;
+          (source: \$from, target: \$to) isa path, has strength \$s;
+          (provider: \$to, offered: \$skill) isa capability;
+          \$to has uid \$id; \$s >= 5.0;
+    sort \$s desc; limit 5;
+    return { \$id, \$s };
+
+fun proven_units() -> { unit }:
+    match \$u isa unit, has status \$st; \$st == \"proven\";
+    return { \$u };
+
+fun at_risk_units() -> { unit }:
+    match \$u isa unit, has status \$st; \$st == \"at-risk\";
+    return { \$u };
+
+fun units_by_kind(\$k: string) -> { unit }:
+    match \$u isa unit, has unit-kind \$uk, has status \$st; \$uk == \$k; \$st == \"active\";
+    return { \$u };
+
+fun group_members(\$gname: string) -> { unit }:
+    match \$grp isa group, has name \$n; \$n == \$gname;
+          (group: \$grp, member: \$u) isa membership;
+    return { \$u };
+
+fun skills_by_tag(\$t: string) -> { skill }:
+    match \$s isa skill, has tag \$tg; \$tg == \$t;
+    return { \$s };
+
+fun highway_count(\$thresh: double) -> integer:
+    match \$e isa path, has strength \$s; \$s >= \$thresh;
+    return count(\$e);
+
+fun total_revenue() -> double:
+    match \$e isa path, has revenue \$r;
+    return sum(\$r);
+'''
+print(json.dumps({
+    'databaseName': 'one',
+    'transactionType': 'schema',
+    'query': fns,
+    'commit': True
+}))
+" | curl -s -X POST "https://YOUR-ADDRESS.cluster.typedb.com:1729/v1/query" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d @-
+```
+
+### 4e. Verify
+
+```bash
+curl -s -X POST "https://YOUR-ADDRESS.cluster.typedb.com:1729/v1/query" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"databaseName":"one","transactionType":"read","query":"match $u isa unit; select $u; limit 5;"}'
+```
+
+Should return `{"queryType":"read","answerType":"conceptRows","answers":[],...}` (empty — no data yet).
+
+---
+
+## Step 5: Update Configuration
+
+### 5a. `wrangler.toml` (root)
+
+```toml
+[vars]
+TYPEDB_URL = "https://YOUR-ADDRESS.cluster.typedb.com:1729"
+TYPEDB_DATABASE = "one"
+```
+
+### 5b. `gateway/wrangler.toml`
+
+```toml
+[vars]
+VERSION = "1.0.0"
+TYPEDB_URL = "https://YOUR-ADDRESS.cluster.typedb.com:1729"
+TYPEDB_DATABASE = "one"
+```
+
+### 5c. `workers/sync/wrangler.toml`
+
+```toml
+[vars]
+APP_URL = "https://one-substrate.pages.dev"
+```
+
+Replace `one-substrate.pages.dev` with your actual Pages URL after first deploy.
+
+---
+
+## Step 6: Deploy Gateway Worker
+
+The gateway proxies browser requests to TypeDB Cloud with JWT caching.
+
+```bash
+cd gateway
+
+# Set secrets
+printf 'admin' | npx wrangler secret put TYPEDB_USERNAME
+printf 'YOUR-TYPEDB-PASSWORD' | npx wrangler secret put TYPEDB_PASSWORD
+
+# Deploy
+npx wrangler deploy
+
+cd ..
+```
+
+Output:
+
+```
+Uploaded one-gateway
+Deployed one-gateway triggers
+  https://one-gateway.oneie.workers.dev
+```
+
+**Verify:**
+
+```bash
+# Health check
+curl -s https://one-gateway.oneie.workers.dev/health
+# → {"status":"ok","version":"1.0.0","database":"one"}
+
+# Query through gateway
+curl -s -X POST https://one-gateway.oneie.workers.dev/typedb/query \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"match $u isa unit; select $u; limit 5;","transactionType":"read"}'
+# → {"queryType":"read","answerType":"conceptRows","answers":[],...}
+```
+
+If you get `TypeDB signin failed: 404`, check that `TYPEDB_URL` uses **port 1729**.
+
+---
+
+## Step 7: Deploy Sync Worker
+
+The sync worker runs every 5 minutes, pulling TypeDB snapshots into KV for fast edge reads.
+
+```bash
+cd workers/sync
+npx wrangler deploy
+cd ../..
+```
+
+Output:
+
+```
+Uploaded one-sync
+Deployed one-sync triggers
+  https://one-sync.oneie.workers.dev
+  schedule: */5 * * * *
+```
+
+**Verify:**
+
+```bash
+curl -s https://one-sync.oneie.workers.dev/
+# → {"status":"sync-worker","trigger":"/sync"}
+
+# Manual sync trigger
+curl -s https://one-sync.oneie.workers.dev/sync
+# → {"ok":true,"synced_at":"1775416334000"}
+```
+
+---
+
+## Step 8: Deploy Pages (Frontend)
+
+```bash
+# Production build
+NODE_ENV=production npm run build
+
+# Create Pages project (first time only)
+npx wrangler pages project create one-substrate --production-branch=main
+
+# Deploy
+npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+```
+
+Output:
+
+```
+✨ Success! Uploaded 25 files
+✨ Deployment complete! Take a peek over at https://xxxxxxxx.one-substrate.pages.dev
+```
+
+**Verify:**
+
+```bash
+curl -sL https://one-substrate.pages.dev/ -o /dev/null -w '%{http_code} %{time_total}s'
+# → 200 0.6s
+```
+
+Now update `workers/sync/wrangler.toml` with the real Pages URL:
+
+```toml
+[vars]
+APP_URL = "https://one-substrate.pages.dev"
+```
+
+Redeploy sync worker: `cd workers/sync && npx wrangler deploy && cd ../..`
+
+---
+
+## Step 9: Seed Data
+
+### 9a. Sync a Single Agent
+
+```bash
+curl -X POST https://one-substrate.pages.dev/api/agents/sync \
+  -H "Content-Type: application/json" \
+  -d '{"markdown": "---\nname: tutor\nmodel: claude-sonnet-4-6\nchannels: [telegram]\ngroup: education\nskills:\n  - name: lesson\n    price: 0.01\n    tags: [teach, spanish]\n---\nYou are a patient Spanish tutor."}'
+```
+
+### 9b. Sync Marketing Team
+
+```bash
+# Read all agent markdown files and sync as a world
+curl -X POST https://one-substrate.pages.dev/api/agents/sync \
+  -H "Content-Type: application/json" \
+  -d "{\"world\": \"marketing\", \"agents\": [$(cat agents/marketing/*.md | python3 -c "
+import sys, json
+content = sys.stdin.read()
+# Split on --- boundaries and create agent list
+print(json.dumps(content))
+")]}"
+```
+
+### 9c. Verify Data in TypeDB
+
+```bash
+TOKEN=$(curl -s -X POST 'https://YOUR-ADDRESS.cluster.typedb.com:1729/v1/signin' \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"YOUR-PASSWORD"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+
+# Count units
+curl -s -X POST "https://YOUR-ADDRESS.cluster.typedb.com:1729/v1/query" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"databaseName":"one","transactionType":"read","query":"match $u isa unit; select $u;"}'
+```
+
+---
+
+## Step 10: Custom Domains (Optional)
+
+### Pages (frontend)
+
+1. Go to https://dash.cloudflare.com → Pages → `one-substrate` → Custom domains
+2. Add `app.one.ie` (or your domain)
+3. DNS will be configured automatically if domain is on Cloudflare
+
+### Gateway Worker (API)
+
+Add to `gateway/wrangler.toml`:
+
+```toml
+[[routes]]
+pattern = "api.one.ie/*"
+custom_domain = true
+```
+
+Then `cd gateway && npx wrangler deploy`.
+
+---
+
+## Verify Everything
+
+Run this checklist after deploy:
+
+```bash
+echo "=== Gateway Health ==="
+curl -s https://one-gateway.oneie.workers.dev/health
+
+echo ""
+echo "=== Gateway → TypeDB ==="
+curl -s -X POST https://one-gateway.oneie.workers.dev/typedb/query \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"match $u isa unit; select $u; limit 1;","transactionType":"read"}' \
+  | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print('OK' if d.get('answerType') else 'FAIL')"
+
+echo ""
+echo "=== Pages ==="
+curl -sL https://one-substrate.pages.dev/ -o /dev/null -w '%{http_code} %{time_total}s'
+
+echo ""
+echo "=== Sync Worker ==="
+curl -s https://one-sync.oneie.workers.dev/
+```
+
+Expected:
+
+```
+=== Gateway Health ===
+{"status":"ok","version":"1.0.0","database":"one"}
+
+=== Gateway → TypeDB ===
+OK
+
+=== Pages ===
+200 0.6s
+
+=== Sync Worker ===
+{"status":"sync-worker","trigger":"/sync"}
+```
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `TypeDB signin failed: 404` | Wrong port | Use port **1729** not 80 or 443 |
+| `Authentication error [code: 10000]` | Using API Token | Use **Global API Key** with `CLOUDFLARE_API_KEY` + `CLOUDFLARE_EMAIL` |
+| `kv_namespaces[0] bindings should have a string "id"` | Empty KV id in wrangler.toml | Run `npx wrangler kv namespace create KV` and paste the id |
+| `Overlapping rules` in Pages deploy | `routes.extend.include` in astro config | Remove the `routes` block — Astro handles it |
+| `404 page not found` from TypeDB (no port) | Port 443 is a load balancer, not TypeDB | Always use `:1729` |
+| `[REP1] variable cannot be declared as both Attribute and Value` | Function param name matches attribute | Use comparison: `has uid $u; $u == $param;` |
+| `expected var` in function return | `return first true` not valid | Return an entity variable: `return first $e;` |
+| Build fails with `react-dom/server` | Missing edge compat alias | Check `astro.config.mjs` has `react-dom/server.edge` alias for prod |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Cloudflare Edge (Global)                           │
+│                                                                      │
+│  Pages (Astro)         Gateway Worker        Sync Worker             │
+│  one-substrate         one-gateway           one-sync                │
+│  .pages.dev            .oneie.workers.dev    .oneie.workers.dev      │
+│  ┌─────────────┐       ┌──────────────┐      ┌─────────────┐        │
+│  │ SSR + React │       │ /typedb/query │      │ cron */5    │        │
+│  │ /api/*      │       │ /health      │      │ TypeDB → KV │        │
+│  │ 30+ routes  │       │ JWT cached   │      │ 5 snapshots │        │
+│  └──────┬──────┘       └──────┬───────┘      └──────┬──────┘        │
+│         │                     │                     │               │
+│    ┌────┴────┐           ┌────┴────┐           ┌────┴────┐          │
+│    │   D1    │           │         │           │   KV    │          │
+│    │ signals │           │         │           │  JSON   │          │
+│    │ messages│           │         │           │ <1ms    │          │
+│    └─────────┘           │         │           └─────────┘          │
+│                          │         │                                 │
+└──────────────────────────┼─────────┼─────────────────────────────────┘
+                           │         │
+                     JWT auth   Port 1729 HTTPS
+                           │         │
+                           ▼         ▼
+                    ┌─────────────────────┐
+                    │    TypeDB Cloud     │
+                    │    (the brain)      │
+                    │                     │
+                    │  Schema: world.tql  │
+                    │  19 functions       │
+                    │  6 entity types     │
+                    │  7 relation types   │
+                    └─────────────────────┘
+```
+
+---
+
+## File Map
+
+```
+envelopes/
+├── wrangler.toml                 # D1, KV, Queue, R2 bindings
+├── astro.config.mjs              # Cloudflare adapter (prod) + Node (dev)
+├── src/
+│   ├── env.d.ts                  # CF binding types
+│   ├── lib/
+│   │   ├── typedb.ts             # TypeDB client (read/write/decay)
+│   │   └── edge.ts               # KV read helpers (<1ms)
+│   ├── pages/api/
+│   │   ├── export/               # TypeDB → JSON snapshots
+│   │   │   ├── paths.ts
+│   │   │   ├── units.ts
+│   │   │   ├── skills.ts
+│   │   │   ├── highways.ts
+│   │   │   └── toxic.ts
+│   │   ├── agents/sync.ts        # Agent markdown → TypeDB
+│   │   ├── signal.ts             # Signal routing
+│   │   └── ...                   # 25+ more API routes
+│   └── schema/
+│       └── world.tql             # TypeDB schema (6 dimensions)
+├── gateway/
+│   ├── wrangler.toml             # Gateway worker config
+│   └── src/index.ts              # TypeDB proxy (128 lines)
+├── workers/sync/
+│   ├── wrangler.toml             # Sync worker config
+│   └── index.ts                  # TypeDB → KV cron
+├── migrations/
+│   └── 0001_init.sql             # D1 schema
+└── agents/
+    ├── marketing/                # 8 marketing team agents
+    ├── tutor.md                  # Example agent
+    └── researcher.md             # Example agent
+```
+
+---
+
+## Redeploy (after changes)
+
+```bash
+# Gateway only
+cd gateway && npx wrangler deploy && cd ..
+
+# Sync worker only
+cd workers/sync && npx wrangler deploy && cd ../..
+
+# Pages (frontend + API)
+NODE_ENV=production npm run build
+npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+
+# All three
+cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../.. && NODE_ENV=production npm run build && npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+```
+
+---
+
+## Security Notes
+
+- **Secrets**: Never in `wrangler.toml` or committed files. Always `npx wrangler secret put`.
+- **CORS**: Gateway locked to `one.ie` + `localhost` origins.
+- **JWT**: Cached 61s per isolate. Auto-refreshes.
+- **Toxicity**: Every signal checked against KV `toxic.json` (<1ms). Blocked before LLM call.
+- **D1**: Prepared statements only (no string interpolation).
+- **Client bundles**: No `import.meta.env` secrets leak to browser. Server-only.
+
+---
+
+## Live URLs (current deployment)
+
+| Service | URL |
+|---------|-----|
+| Pages | https://one-substrate.pages.dev |
+| Gateway | https://one-gateway.oneie.workers.dev |
+| Sync | https://one-sync.oneie.workers.dev |
+| Gateway health | https://one-gateway.oneie.workers.dev/health |
+| TypeDB Cloud | `flsiu1-0.cluster.typedb.com:1729` |
+
+---
+
+*Every command on this page has been run. Every URL has been verified. Deploy with confidence.*

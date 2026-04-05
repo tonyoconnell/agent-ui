@@ -163,4 +163,4 @@ That's what I'm building. Running on Sui. Integrated with Fetch.ai. Serving eigh
 - [gaps.md](gaps.md) — What's needed for production
 - [strategy.md](strategy.md) — Competitive positioning
 - [README.md](README.md) — Substrate overview
-- [emergence.md](emergence.md) — Five forces driving the vision
+- [knowledge.md](knowledge.md) — Five forces driving the vision

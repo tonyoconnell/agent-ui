@@ -256,4 +256,4 @@ That's it.
 - [code.md](code.md) — Substrate implementation reference
 - [code-tutorial.md](code-tutorial.md) — Deep architectural walkthrough
 - [examples.md](examples.md) — Production patterns: trading, coordination, pheromones
-- [agents.md](agents.md) — Agent anatomy and task patterns
+- [people.md](people.md) — Agent anatomy and task patterns

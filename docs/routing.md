@@ -1,7 +1,53 @@
 # Routing
 
-How signals find their way. From entry to unit, unit to unit,
-path to highway. The full journey, step by step.
+```
+     signal                                                        highway
+        │                                                             ▲
+        ▼                                                             │
+   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+   │  TOXIC? │───►│CAPABLE? │───►│ EXECUTE │───►│ OUTCOME │───►│  LEARN  │
+   │  $0     │    │  $0     │    │  LLM    │    │ 4 types │    │mark/warn│
+   └────┬────┘    └────┬────┘    └────┬────┘    └────┬────┘    └────┬────┘
+        │              │              │              │              │
+       bad            no           Claude         result          fade
+      paths         skill           SDK          timeout         select
+     dissolve      dissolve                     dissolved        follow
+                                                 failure
+```
+
+**One formula. Four outcomes. Emergent highways. Zero configuration.**
+
+```
+weight = 1 + max(0, strength - resistance) × sensitivity
+```
+
+| What | How |
+|------|-----|
+| **Speed** | Pre-checks dissolve bad/missing paths before LLM — $0 cost |
+| **Learning** | mark() on success, warn() on failure — paths remember |
+| **Security** | Toxic paths block automatically — no rules needed |
+| **Routing** | follow() = deterministic, select() = weighted random |
+
+---
+
+## Contents
+
+1. [The Formula](#the-formula) — one equation for all routing
+2. [Two Routing Modes](#two-routing-modes) — follow vs select
+3. [The Layers](#the-layers) — the deterministic sandwich
+4. [Signal Lifecycle](#signal-lifecycle) — birth to fan-out
+5. [The Tick Loop](#the-tick-loop) — select → ask → mark/warn → fade
+6. [Chain Depth](#chain-depth--longer-chains-earn-more) — longer chains earn more
+7. [Four Outcomes](#four-outcomes) — result, timeout, dissolved, failure
+8. [Weight Mechanics](#weight-mechanics) — mark, warn, fade
+9. [Toxicity](#toxicity--when-a-path-goes-bad) — when paths go bad
+10. [ask()](#ask--the-full-sequence) — signal that waits for reply
+11. [The Queue](#the-queue--signals-that-wait) — pending signals
+12. [Boot Sequence](#boot-sequence) — cold start to breathing world
+13. [Multi-Unit Chain](#multi-unit-signal-chain) — complete example
+14. [Emergent Specialization](#emergent-specialization--castes-from-one-formula) — castes from one formula
+
+---
 
 ```
     Ant: how ants find food               Brain: how impulses find neurons
@@ -13,7 +59,7 @@ path to highway. The full journey, step by step.
 
 ---
 
-## The  Formula
+## The Formula
 
 One formula governs all probabilistic routing:
 
@@ -103,15 +149,15 @@ Each layer adds a check. Each check can stop the signal.
 
 ```
     ┌─────────────────────────────────────────────────────────┐
-    │                    WORLD (one.ts)                        │
+    │                    WORLD (persist.ts)                     │
     │                                                         │
     │  signal({ receiver: 'analyst:process', data })          │
     │    │                                                    │
     │    ▼                                                    │
     │  ┌───────────────────────────────────┐                  │
     │  │ 1. TOXIC CHECK                    │                  │
-    │  │    alarm ≥ 10                     │                  │
-    │  │    alarm > strength × 2           │──→ dissolve      │
+    │  │    resistance ≥ 10                │                  │
+    │  │    resistance > strength × 2      │──→ dissolve      │
     │  │    total signals > 5              │    (no cost)     │
     │  └───────────────┬───────────────────┘                  │
     │                  │ pass                                  │
@@ -124,7 +170,7 @@ Each layer adds a check. Each check can stop the signal.
     │                  │ pass                                  │
     │                  ▼                                       │
     │  ┌───────────────────────────────────┐                  │
-    │  │ 3. COLONY (substrate.ts)          │                  │
+    │  │ 3. WORLD (world.ts)               │                  │
     │  │    Route to unit                  │                  │
     │  │    Mark weight                    │                  │
     │  │    Execute task                   │                  │
@@ -265,7 +311,7 @@ Every 10 seconds, the world breathes:
     │        ▼                                                │
     │   ┌─────────┐                                           │
     │   │  FADE   │ ← every 5 min: strength *= 0.95           │
-    │   │         │   alarm *= 0.90 (forgives 2x faster)      │
+    │   │         │   resistance *= 0.90 (forgives 2x faster)  │
     │   └────┬────┘                                           │
     │        │                                                │
     │        ▼                                                │
@@ -438,7 +484,7 @@ Two maps. Arithmetic. That's the whole memory.
     Water:   debris builds up — flow partially blocked
     Radio:   interference on this frequency — static increases
 
-    TypeDB:  path.alarm += strength
+    TypeDB:  path.resistance += strength
 ```
 
 ### fade(rate) — evaporate / decay / forget / archive / dry / attenuate
@@ -505,14 +551,14 @@ A path goes toxic when resistance overwhelms strength.
 Three conditions must all be true (cold-start protection):
 
 ```
-    alarm ≥ 10              enough data to judge
-    alarm > strength × 2    clearly bad, not marginal
+    resistance ≥ 10         enough data to judge
+    resistance > strength × 2  clearly bad, not marginal
     total signals > 5       don't block new paths
 
     ┌────────────────────────────────┐
     │ TOXIC: all three must be true  │
     │                                │
-    │   alarm=12, strength=5         │
+    │   resistance=12, strength=5    │
     │   12 ≥ 10     ✓                │
     │   12 > 5×2    ✓                │
     │   17 > 5      ✓                │
@@ -524,7 +570,7 @@ Three conditions must all be true (cold-start protection):
     ┌────────────────────────────────┐
     │ NOT TOXIC: cold-start safe     │
     │                                │
-    │   alarm=3, strength=0          │
+    │   resistance=3, strength=0     │
     │   3 ≥ 10     ✗ (not enough)   │
     │                                │
     │   → ALLOWED. New path gets     │
@@ -630,7 +676,7 @@ From cold start to breathing world:
     1. world()                   create world + TypeDB bindings
       │
       ▼
-    2. load()                    hydrate scent + alarm from TypeDB
+    2. load()                    hydrate strength + resistance from TypeDB
       │                          hydrate pending signals → queue
       ▼
     3. readParsed(units)         fetch all units from TypeDB
@@ -747,17 +793,17 @@ from the same weight landscape. No one programs the roles.
     ┌────────────────────┬───────┬───────────────────────────────┐
     │ File               │ Lines │ Routing responsibility         │
     ├────────────────────┼───────┼───────────────────────────────┤
-    │ substrate.ts       │  227  │ select(), follow(), mark(),   │
+    │ world.ts           │  226  │ select(), follow(), mark(),   │
     │                    │       │ warn(), fade(), signal(),     │
     │                    │       │ ask(), queue, drain           │
     ├────────────────────┼───────┼───────────────────────────────┤
-    │ one.ts             │  187  │ isToxic(), capability check,  │
-    │                    │       │ TypeDB sync, crystallize      │
+    │ persist.ts         │  259  │ isToxic(), capability check,  │
+    │                    │       │ TypeDB sync, know/recall      │
     ├────────────────────┼───────┼───────────────────────────────┤
     │ loop.ts            │  165  │ Tick: select → ask → outcome, │
     │                    │       │ chain depth, fade, evolve     │
     ├────────────────────┼───────┼───────────────────────────────┤
-    │ rename boot.ts to start           │   40  │ Hydrate, spawn, start loop    │
+    │ boot.ts            │   41  │ Hydrate, spawn, start loop    │
     ├────────────────────┼───────┼───────────────────────────────┤
     │ llm.ts             │   40  │ LLM as unit (complete/stream) │
     └────────────────────┴───────┴───────────────────────────────┘

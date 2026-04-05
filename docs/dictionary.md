@@ -771,11 +771,11 @@ Only the words humans use to describe it.
 | Name | File | Lines | What |
 |------|------|------:|------|
 | Signal, Unit, World | `src/engine/world.ts` | 226 | The substrate |
-| World + Persist | `src/engine/one.ts` | 187 | 6 dimensions + TypeDB |
-| Tick | `src/engine/loop.ts` | 103 | Growth cycle |
-| Boot | `src/engine/boot.ts` | 40 | Hydrate from TypeDB |
+| World + Persist | `src/engine/persist.ts` | 259 | 6 dimensions + TypeDB |
+| Tick | `src/engine/loop.ts` | 165 | Growth cycle |
+| Boot | `src/engine/boot.ts` | 41 | Hydrate from TypeDB |
 | LLM | `src/engine/llm.ts` | 40 | AI as unit |
-| Schema | `src/schema/world.tql` | 460 | TypeDB truth |
+| Schema | `src/schema/world.tql` | 463 | TypeDB truth |
 
 ---
 
@@ -830,6 +830,7 @@ No one planned it. No one coordinated it. The signals did.
 ## See Also
 
 - [DSL.md](DSL.md) — The programming model in depth
+- [routing.md](routing.md) — How signals find their way
 - [primitives.md](primitives.md) — Entities, relations, status values
 - [metaphors.md](metaphors.md) — Same system, different vocabularies
 - [architecture.md](architecture.md) — TypeDB as substrate, router pattern

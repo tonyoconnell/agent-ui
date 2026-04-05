@@ -60,10 +60,10 @@ trail    synapse   workflow  route     channel   frequency
 | Doc | Code |
 |-----|------|
 | dictionary.md | Everything — the complete naming guide |
-| DSL.md | src/engine/substrate.ts, src/engine/one.ts |
-| signal.md | src/engine/substrate.ts |
-| one-ontology.md | src/schema/one.tql |
-| metaphors.md | src/schema/skins.tql |
+| DSL.md | src/engine/world.ts, src/engine/persist.ts |
+| routing.md | src/engine/loop.ts, src/engine/persist.ts |
+| metaphors.md | src/skins/index.ts, src/schema/skins.tql |
+| sdk.md | Public API surface contract |
 
 Docs describe. Code implements. Keep them in sync.
 

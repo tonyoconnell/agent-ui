@@ -484,8 +484,8 @@ HIGHWAY            dissolve
 
 - [tutorial.md](tutorial.md) — Build a world in 5 minutes
 - [code-tutorial.md](code-tutorial.md) — Deep architectural walkthrough
-- [signal.md](signal.md) — The universal primitive
-- [agents.md](agents.md) — Agent patterns built on these 200 lines
-- [emergence.md](emergence.md) — How complexity emerges from simple rules
+- [events.md](events.md) — The universal primitive
+- [people.md](people.md) — Agent patterns built on these 200 lines
+- [knowledge.md](knowledge.md) — How complexity emerges from simple rules
 - [one-ontology.md](one-ontology.md) — The 6 dimensions explained
 - [substrate-learning.md](substrate-learning.md) — Learning without gradients

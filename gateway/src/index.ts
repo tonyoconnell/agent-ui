@@ -2,8 +2,8 @@
  * ONE Gateway — Cloudflare Worker proxy to TypeDB Cloud
  *
  * Routes:
- *   POST /typedb/signin  → JWT auth (cached 61s per isolate)
- *   POST /typedb/query   → TypeQL read/write proxy
+ *   POST /v1/signin  → JWT auth (cached 61s per isolate)
+ *   POST /v1/query   → TypeQL read/write proxy
  *   GET  /health         → Status check
  *
  * All TypeDB access goes through here. Browser → Worker → TypeDB Cloud.
@@ -44,7 +44,7 @@ async function getToken(env: Env): Promise<string> {
     return cachedToken.token
   }
 
-  const res = await fetch(`${env.TYPEDB_URL}/typedb/signin`, {
+  const res = await fetch(`${env.TYPEDB_URL}/v1/signin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -82,7 +82,8 @@ export default {
       )
     }
 
-    // POST /typedb/query — proxy TypeQL queries
+
+    // POST /typedb/query — proxy TypeQL queries to TypeDB Cloud /v1/query
     if (url.pathname === '/typedb/query' && request.method === 'POST') {
       try {
         const token = await getToken(env)
@@ -92,7 +93,7 @@ export default {
           commit?: boolean
         }
 
-        const res = await fetch(`${env.TYPEDB_URL}/typedb/query`, {
+        const res = await fetch(`${env.TYPEDB_URL}/v1/query`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

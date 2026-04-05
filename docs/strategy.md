@@ -30,7 +30,7 @@ Now we wire the substrate underneath all of it.
 8. Adoption spreads through results, not pitches
 ```
 
-No pitch. No ask. No aggression. Just things that work better.
+Just things that work better.
 
 ---
 

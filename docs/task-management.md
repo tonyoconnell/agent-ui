@@ -433,8 +433,8 @@ Each `/done` teaches the world. Each `/work` cycle makes it smarter. Multiple Cl
 - [claude-code-integration.md](claude-code-integration.md) -- Full guide for Claude Code as a substrate agent
 - [loops.md](loops.md) -- The seven nested feedback loops
 - [substrate-learning.md](substrate-learning.md) -- How routing IS learning
-- [signal.md](signal.md) -- The universal primitive
-- [emergence.md](emergence.md) -- How intelligence emerges from simple rules
+- [events.md](events.md) -- The universal primitive
+- [knowledge.md](knowledge.md) -- How intelligence emerges from simple rules
 
 ---
 

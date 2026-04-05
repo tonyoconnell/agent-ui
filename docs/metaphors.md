@@ -666,9 +666,11 @@ This is why the same code can model:
 
 ## See Also
 
+- [dictionary.md](dictionary.md) — Complete naming guide across all dimensions
+- [DSL.md](DSL.md) — The programming model the metaphors skin
+- [routing.md](routing.md) — How signals route through the weight landscape
 - [flows.md](flows.md) — Metaphor mapping table: same flow, different words
 - [framework.md](framework.md) — UI skins rendering each metaphor
 - [world.md](world.md) — Universal ontology beneath all metaphors
 - [one-ontology.md](one-ontology.md) — Six dimensions each metaphor expresses
 - [code-tutorial.md](code-tutorial.md) — Unified substrate theory
-- [llm-training.md](llm-training.md) — ML metaphor: training as path strengthening

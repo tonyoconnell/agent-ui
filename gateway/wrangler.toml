@@ -5,10 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 VERSION = "1.0.0"
+TYPEDB_URL = "https://flsiu1-0.cluster.typedb.com:1729"
+TYPEDB_DATABASE = "one"
 
-# Secrets (set with: wrangler secret put TYPEDB_URL)
-# TYPEDB_URL      - TypeDB Cloud HTTP endpoint
-# TYPEDB_DATABASE - Database name ("one")
+# Secrets (set with: wrangler secret put)
 # TYPEDB_USERNAME - "admin"
 # TYPEDB_PASSWORD - TypeDB Cloud password
 

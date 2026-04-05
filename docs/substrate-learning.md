@@ -180,8 +180,8 @@ Training and inference collapse into the same substrate.
 ## See Also
 
 - [flows.md](flows.md) — Visual flow from signals through learning to knowledge
-- [signal.md](signal.md) — The primitive that generates training data
+- [events.md](events.md) — The primitive that generates training data
 - [ontology.md](ontology.md) — Inference rules: highway, fading, toxic
-- [emergence.md](emergence.md) — Five forces including stigmergic memory
+- [knowledge.md](knowledge.md) — Five forces including stigmergic memory
 - [ai-training.md](llm-training.md) — ML training/inference through the same substrate
 - [typedb.md](typedb.md) — Persistence of learned weights

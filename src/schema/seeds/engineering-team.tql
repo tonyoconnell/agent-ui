@@ -178,7 +178,7 @@ insert
 # Not the org chart. Not the Jira board. The trails.
 #
 #   strength  = how many successful handoffs
-#   alarm     = how many failed/blocked handoffs
+#   resistance = how many failed/blocked handoffs
 #   revenue   = x402 payments flowing on this edge
 #   traversals = total signal count
 #
@@ -199,50 +199,50 @@ insert
     # This is the path that EMERGED. Nobody designed it.
 
     (source: $stake, target: $po) isa path,
-        has strength 40.0, has alarm 5.0, has traversals 80,
+        has strength 40.0, has resistance 5.0, has traversals 80,
         has revenue 0.0, has last-used 2026-04-03T14:00:00;
 
     (source: $po, target: $dev) isa path,
-        has strength 92.0, has alarm 3.0, has traversals 200,
+        has strength 92.0, has resistance 3.0, has traversals 200,
         has revenue 0.0, has last-used 2026-04-04T10:00:00;
 
     (source: $po, target: $claude) isa path,
-        has strength 88.0, has alarm 2.0, has traversals 180,
+        has strength 88.0, has resistance 2.0, has traversals 180,
         has revenue 0.0, has last-used 2026-04-04T09:30:00;
 
     (source: $dev, target: $qa) isa path,
-        has strength 85.0, has alarm 8.0, has traversals 190,
+        has strength 85.0, has resistance 8.0, has traversals 190,
         has revenue 0.0, has last-used 2026-04-04T11:00:00;
 
     (source: $qa, target: $ops) isa path,
-        has strength 78.0, has alarm 4.0, has traversals 160,
+        has strength 78.0, has resistance 4.0, has traversals 160,
         has revenue 0.0, has last-used 2026-04-04T12:00:00;
 
 
     # ── SUPPORT PATHS (used but not highways) ──
 
     (source: $dev, target: $arch) isa path,
-        has strength 35.0, has alarm 2.0, has traversals 60,
+        has strength 35.0, has resistance 2.0, has traversals 60,
         has revenue 0.0, has last-used 2026-04-02T16:00:00;
 
     (source: $dev, target: $claude) isa path,
-        has strength 75.0, has alarm 5.0, has traversals 170,
+        has strength 75.0, has resistance 5.0, has traversals 170,
         has revenue 0.0, has last-used 2026-04-04T10:30:00;
 
     (source: $qa, target: $dev) isa path,
-        has strength 45.0, has alarm 12.0, has traversals 100,
+        has strength 45.0, has resistance 12.0, has traversals 100,
         has revenue 0.0, has last-used 2026-04-04T09:00:00;
 
     (source: $qa, target: $claude) isa path,
-        has strength 30.0, has alarm 3.0, has traversals 55,
+        has strength 30.0, has resistance 3.0, has traversals 55,
         has revenue 0.0, has last-used 2026-04-03T15:00:00;
 
     (source: $ops, target: $dev) isa path,
-        has strength 20.0, has alarm 6.0, has traversals 40,
+        has strength 20.0, has resistance 6.0, has traversals 40,
         has revenue 0.0, has last-used 2026-04-03T08:00:00;
 
     (source: $ops, target: $claude) isa path,
-        has strength 18.0, has alarm 2.0, has traversals 35,
+        has strength 18.0, has resistance 2.0, has traversals 35,
         has revenue 0.0, has last-used 2026-04-02T17:00:00;
 
 
@@ -250,26 +250,26 @@ insert
     # Low traversals. Only fires on blocks. That's correct.
 
     (source: $sm, target: $dev) isa path,
-        has strength 28.0, has alarm 1.0, has traversals 30,
+        has strength 28.0, has resistance 1.0, has traversals 30,
         has revenue 0.0, has last-used 2026-04-03T11:00:00;
 
     (source: $sm, target: $ops) isa path,
-        has strength 15.0, has alarm 0.0, has traversals 20,
+        has strength 15.0, has resistance 0.0, has traversals 20,
         has revenue 0.0, has last-used 2026-04-01T14:00:00;
 
     (source: $ops, target: $sm) isa path,
-        has strength 22.0, has alarm 8.0, has traversals 30,
+        has strength 22.0, has resistance 8.0, has traversals 30,
         has revenue 0.0, has last-used 2026-04-03T10:00:00;
 
 
     # ── FADED PATHS (the org chart said these should exist) ──
 
     (source: $arch, target: $stake) isa path,
-        has strength 3.0, has alarm 0.0, has traversals 8,
+        has strength 3.0, has resistance 0.0, has traversals 8,
         has revenue 0.0, has last-used 2026-03-15T10:00:00;
 
     (source: $po, target: $ops) isa path,
-        has strength 2.0, has alarm 4.0, has traversals 12,
+        has strength 2.0, has resistance 4.0, has traversals 12,
         has revenue 0.0, has last-used 2026-03-10T09:00:00;
 
 
@@ -387,19 +387,19 @@ insert
     # This sequence completed successfully. Trails are strong.
 
     (source-task: $t1, destination-task: $t2) isa trail,
-        has trail-pheromone 80.0, has alarm-pheromone 5.0,
+        has trail-pheromone 80.0, has resistance-pheromone 5.0,
         has completions 12, has failures 1, has revenue 0.0;
 
     (source-task: $t2, destination-task: $t3) isa trail,
-        has trail-pheromone 85.0, has alarm-pheromone 3.0,
+        has trail-pheromone 85.0, has resistance-pheromone 3.0,
         has completions 15, has failures 2, has revenue 0.0;
 
     (source-task: $t3, destination-task: $t4) isa trail,
-        has trail-pheromone 75.0, has alarm-pheromone 10.0,
+        has trail-pheromone 75.0, has resistance-pheromone 10.0,
         has completions 14, has failures 3, has revenue 0.0;
 
     (source-task: $t4, destination-task: $t5) isa trail,
-        has trail-pheromone 60.0, has alarm-pheromone 15.0,
+        has trail-pheromone 60.0, has resistance-pheromone 15.0,
         has completions 10, has failures 4, has revenue 0.0;
 
 

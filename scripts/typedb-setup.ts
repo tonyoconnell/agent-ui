@@ -269,7 +269,7 @@ async function seedData(): Promise<boolean> {
         insert
           (source: $from, target: $to) isa path,
             has strength ${e.strength}.0,
-            has alarm 0.0,
+            has resistance 0.0,
             has traversals 0,
             has revenue 0.0;
       `, 'write')

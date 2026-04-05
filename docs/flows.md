@@ -61,7 +61,7 @@ A signal is born, routed, consumed, and may spawn children.
 - Missing handler = signal dissolves, group continues (zero returns)
 - Each emit carries `ctx.self` as the new `from`
 
-> See: [signal.md](signal.md) for the primitive, [DSL.md](DSL.md) for the programming model
+> See: [events.md](events.md) for the primitive, [DSL.md](DSL.md) for the programming model
 
 ---
 
@@ -107,7 +107,7 @@ Active unit
 
 No garbage collection. No shutdown. No error. Silence is valid.
 
-> See: [agents.md](agents.md) for anatomy, [ants.md](ants.md) for biological grounding
+> See: [people.md](people.md) for anatomy, [ants.md](ants.md) for biological grounding
 
 ---
 
@@ -239,7 +239,7 @@ Weights change               Specialists emerge          Proven capabilities fre
 | **Skills** | What gets used | Signal frequency per skill |
 | **Groups** | Which teams perform | Aggregate path health per group |
 
-> See: [emergence.md](emergence.md) for the five forces
+> See: [knowledge.md](knowledge.md) for the five forces
 
 ---
 
@@ -368,13 +368,13 @@ The same flow, different words:
 
 Start here, follow the flow:
 
-1. **[signal.md](signal.md)** — The primitive. Two fields. Five verbs.
+1. **[events.md](events.md)** — The primitive. Two fields. Five verbs.
 2. **[DSL.md](DSL.md)** — The programming model. Signal in, work, signal out.
 3. **[dictionary.md](dictionary.md)** — Everything named. How it connects.
-4. **[agents.md](agents.md)** — What a unit is. Tasks, continuations, roles.
+4. **[people.md](people.md)** — What a unit is. Tasks, continuations, roles.
 5. **[group.md](group.md)** — Many units. Coordination patterns.
 6. **[ants.md](ants.md)** — The biological source. Nine castes. Five chains.
-7. **[emergence.md](emergence.md)** — How intelligence arises from five forces.
+7. **[knowledge.md](knowledge.md)** — How intelligence arises from five forces.
 8. **[one-ontology.md](one-ontology.md)** — The 6 dimensions that model everything.
 9. **[substrate-learning.md](substrate-learning.md)** — How paths = reinforcement learning.
 10. **[integration.md](integration.md)** — How it all connects to real systems.
@@ -383,12 +383,12 @@ Start here, follow the flow:
 
 ## See Also
 
-- [signal.md](signal.md) — The primitive
+- [events.md](events.md) — The primitive
 - [DSL.md](DSL.md) — The programming model
 - [dictionary.md](dictionary.md) — Complete naming guide
-- [agents.md](agents.md) — Unit anatomy and tasks
+- [people.md](people.md) — Unit anatomy and tasks
 - [group.md](group.md) — Multi-unit coordination
-- [emergence.md](emergence.md) — Five forces driving intelligence
+- [knowledge.md](knowledge.md) — Five forces driving intelligence
 
 ---
 

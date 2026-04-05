@@ -22,6 +22,7 @@
 
 import { write, writeSilent, readParsed } from '@/lib/typedb'
 import { world as createWorld, type World } from './world'
+import { loadContext, type DocKey } from './context'
 import type { PersistentWorld } from './persist'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -43,6 +44,7 @@ export interface AgentSpec {
   sensitivity?: number
   group?: string
   tags?: string[]
+  context?: string[]  // docs to load as knowledge: ['routing', 'dsl']
   prompt: string
 }
 
@@ -139,6 +141,7 @@ export const parse = (md: string): AgentSpec => {
             case 'group': spec.group = value; break
             case 'channels': spec.channels = parseYamlValue(value) as string[]; break
             case 'tags': spec.tags = parseYamlValue(value) as string[]; break
+            case 'context': spec.context = parseYamlValue(value) as string[]; break
           }
         }
       }
@@ -352,22 +355,28 @@ export const wireAgent = (
   const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
   const unit = net.add(uid)
 
+  // Load context from docs if specified
+  const contextDocs = spec.context?.length ? loadContext(spec.context) : ''
+  const fullPrompt = contextDocs
+    ? `# Knowledge\n\n${contextDocs}\n\n---\n\n# Instructions\n\n${spec.prompt}`
+    : spec.prompt
+
   // Wire each skill as a handler
   for (const skill of spec.skills || []) {
     unit.on(skill.name, async (data, emit, ctx) => {
       const input = typeof data === 'string' ? data : JSON.stringify(data)
       const result = await complete(
-        `${spec.prompt}\n\nTask: ${skill.name}\nInput: ${input}`,
-        { system: spec.prompt }
+        `${fullPrompt}\n\nTask: ${skill.name}\nInput: ${input}`,
+        { system: fullPrompt }
       )
       return { result }
     })
   }
 
-  // Default handler uses full prompt
+  // Default handler uses full prompt with context
   unit.on('default', async (data, emit, ctx) => {
     const input = typeof data === 'string' ? data : JSON.stringify(data)
-    const result = await complete(`${spec.prompt}\n\nInput: ${input}`)
+    const result = await complete(`${fullPrompt}\n\nInput: ${input}`)
     return { result }
   })
 

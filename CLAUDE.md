@@ -255,13 +255,13 @@ agents/         # Markdown agent definitions
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `world.ts` | 226 | Unit + World + pheromone + queue + ask (4 outcomes) |
-| `persist.ts` | 187 | Persist = World + TypeDB persistence + sandwich |
+| `world.ts` | 225 | Unit + World + strength/resistance + queue + ask (4 outcomes) |
+| `persist.ts` | 258 | PersistentWorld = World + TypeDB sync + sandwich + know/recall |
 | `loop.ts` | 164 | Growth tick: all 7 loops, chain depth, outcome handling |
 | `boot.ts` | 40 | Hydrate from TypeDB, add units, start tick |
 | `llm.ts` | 40 | LLM as unit: anthropic/openai adapters |
 | `agent-md.ts` | 280 | Parse markdown agents, sync to TypeDB, wire to runtime |
-| `index.ts` | 25 | Exports |
+| `index.ts` | 29 | Exports |
 
 ## Key Patterns
 
@@ -340,6 +340,28 @@ import { Card } from "@/components/ui/card"
 | `/shadcn` | UI components | shadcn/ui dark theme |
 
 **CRITICAL: TypeDB 3.x removed `rule` syntax. Use `fun` (functions) only.**
+
+## Canonical Docs (READ THESE)
+
+These docs define the system's vocabulary, routing, metaphors, and SDK contract.
+**Always consult them when working on engine, schema, or docs changes.**
+They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each other.
+
+| Doc | What it defines | Syncs with |
+|-----|----------------|------------|
+| `docs/dictionary.md` | Complete naming guide — every concept, dimension, verb | Everything |
+| `docs/DSL.md` | The programming model — signal, emit, mark, warn, fade, follow, select | `world.ts`, `persist.ts` |
+| `docs/routing.md` | How signals find their way — formula, layers, tick, outcomes | `loop.ts`, `persist.ts` |
+| `docs/metaphors.md` | Six skins, one truth — ant/brain/team/mail/water/radio | `src/skins/index.ts`, `skins.tql` |
+| `docs/sdk.md` | SDK contract — register, discover, hire, earn | Public API surface |
+
+**Sync rules:**
+- File references in docs must match actual engine filenames
+- Terminology must match post-migration vocabulary (strength/resistance, not scent/alarm)
+- Metaphor-specific words (ant: alarm, brain: inhibit) stay as metaphor aliases only
+- `skins.tql` and `skins/index.ts` must agree with `metaphors.md` mapping tables
+- `loop.ts` must implement the 7 loops described in `dictionary.md` and `routing.md`
+- `world.tql` functions must match the classification/routing tables in `DSL.md`
 
 ## Rules
 

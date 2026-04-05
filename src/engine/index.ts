@@ -27,3 +27,15 @@ export { agentverse } from "./agentverse"
 export { boot } from "./boot"
 export { tick } from "./loop"
 export type { TickResult } from "./loop"
+
+// Context — docs as knowledge
+export {
+  loadContext,
+  contextForSkill,
+  readDoc,
+  docIndex,
+  ingestDocs,
+  recallDocs,
+  CANONICAL,
+} from "./context"
+export type { DocKey, DocMeta } from "./context"

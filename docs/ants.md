@@ -616,8 +616,8 @@ No central controller. Intelligence emerges from:
 ## See Also
 
 - [flows.md](flows.md) — How ant-inspired flows produce highways and knowledge
-- [agents.md](agents.md) — Substrate units mapped from ant castes
+- [people.md](people.md) — Substrate units mapped from ant castes
 - [group.md](group.md) — Coordination patterns derived from colony behavior
-- [emergence.md](emergence.md) — Five forces including stigmergic memory
-- [signal.md](signal.md) — Pheromone as the original signal primitive
+- [knowledge.md](knowledge.md) — Five forces including stigmergic memory
+- [events.md](events.md) — Pheromone as the original signal primitive
 - [substrate-learning.md](substrate-learning.md) — World optimization as reinforcement learning

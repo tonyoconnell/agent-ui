@@ -7,6 +7,7 @@
 
 import { world as createWorld, type World, type Signal, type Edge } from './world'
 import { read, readParsed, writeSilent, parseAnswers } from '@/lib/typedb'
+import { ingestDocs, loadContext, type DocKey } from './context'
 
 export type Insight = { pattern: string; confidence: number }
 
@@ -25,6 +26,8 @@ export interface PersistentWorld extends World {
   confidence: (type: string) => number
   know: () => Promise<Insight[]>
   recall: (match?: string) => Promise<Insight[]>
+  span: () => Promise<number>
+  context: (keys: (DocKey | string)[]) => string
   sync: () => Promise<void>
   load: () => Promise<void>
 }
@@ -217,6 +220,12 @@ export const world = (): PersistentWorld => {
     return rows.map(r => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
   }
 
+  // span: ingest docs to TypeDB as confirmed hypotheses
+  const span = async (): Promise<number> => ingestDocs()
+
+  // context: load docs as merged markdown for agent prompts
+  const context = (keys: (DocKey | string)[]): string => loadContext(keys)
+
   // ── The sandwich: TypeDB validates before and after LLM ─────────────
 
   // Toxic = resistance overwhelms strength, with cold-start protection.
@@ -253,6 +262,6 @@ export const world = (): PersistentWorld => {
   return {
     ...net, mark, warn, fade, enqueue, signal, ask,
     actor, group, thing, flow, path, open, blocked,
-    best, proven, confidence, know, recall, sync, load,
+    best, proven, confidence, know, recall, span, context, sync, load,
   }
 }

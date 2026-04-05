@@ -28,7 +28,7 @@ async function getDirectToken(): Promise<string> {
     return cachedToken.token
   }
 
-  const res = await fetch(`${TYPEDB_URL}/typedb/signin`, {
+  const res = await fetch(`${TYPEDB_URL}/v1/signin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: TYPEDB_USERNAME, password: TYPEDB_PASSWORD }),
@@ -47,7 +47,7 @@ async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<un
   // Server-side with direct TypeDB URL configured → skip gateway
   if (typeof window === 'undefined' && TYPEDB_URL) {
     const token = await getDirectToken()
-    const res = await fetch(`${TYPEDB_URL}/typedb/query`, {
+    const res = await fetch(`${TYPEDB_URL}/v1/query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<un
   }
 
   // Browser or server without direct config → go through gateway
-  const res = await fetch(`${GATEWAY_URL}/typedb/query`, {
+  const res = await fetch(`${GATEWAY_URL}/v1/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

@@ -15,8 +15,6 @@ signal IN → TypeDB → suggest_route() → signal OUT → agent executes → s
 The router process on each machine is dumb hands. TypeDB decides where signals go
 based on pheromone. Multiple machines, one TypeDB instance = one shared world.
 
-so i
-
 ## World
 
 ```
@@ -26,7 +24,7 @@ so i
 │  1. GROUPS     group         — personas, teams, colonies │
 │  2. ACTORS     unit          — humans, agents, LLMs      │
 │  3. THINGS     task          — work + services (x402)    │
-│  4. PATHS      path, trail   — weighted connections      │
+│  4. PATHS      path          — weighted connections      │
 │  5. EVENTS     signal        — who sent what, paid what  │
 │  6. KNOWLEDGE  hypothesis,   — inferred beliefs & goals  │
 │                frontier,                                 │
@@ -100,26 +98,16 @@ relation path
 - `revenue` — sum of x402 payments on this path
 - `path-status` — INFERRED: "highway" | "fresh" | "fading" | "toxic"
 
-### trail (task → task)
-
-```
-relation trail
-  relates source-task, destination-task
-  owns trail-pheromone, resistance-pheromone, completions, failures, revenue, trail-status
-```
-
-- `trail-pheromone` — 0–100, mark on success
-- `resistance-pheromone` — 0–100, resistance on failure
-- `trail-status` — INFERRED: "proven" | "fresh" | "fading" | "dead"
-
 ### Other relations
 
 ```
-capability(provider: unit, skill: task)    owns price
-dependency(dependent: task, blocker: task)
-assignment(assigned-task, assigned-to)
-membership(group: group, member: unit)     owns joined-at
+capability(provider: unit, offered: skill)  owns price
+membership(group: group, member: unit)      owns joined-at
+hierarchy(parent: group, child: group)
 ```
+
+Tasks are `.on()` handlers. Dependencies are `.then()` continuations.
+Trails are strength map entries. No separate TypeDB entities needed.
 
 ---
 
@@ -162,8 +150,7 @@ signal fails    → warn(path)  → resistance++     → fewer signals routed   
 time passes     → fade(rate)  → strength--  → stale paths dissolve
 ```
 
-Same for trails: `trail-pheromone` and `resistance-pheromone` on task sequences.
-The colony learns which paths and sequences work. Individual agents unchanged.
+The world learns which paths work. Individual agents unchanged.
 
 ### 2. Agent Self-Improvement (ant gets smarter)
 
@@ -182,10 +169,7 @@ The substrate provides the signal (who is failing). The agent evolves itself.
 | Function | Input | Output | Trigger |
 |----------|-------|--------|---------|
 | `path_status(path)` | strength, resistance, traversals | "highway" / "fresh" / "active" / "fading" / "toxic" | Routing decisions |
-| `trail_status(trail)` | trail-pheromone, completions, failures | "proven" / "fresh" / "active" / "fading" / "dead" | Sequence selection |
 | `unit_classification(unit)` | success-rate, activity-score, sample-count | "proven" / "active" / "at-risk" | Trust & routing |
-| `is_attractive(task)` | todo + no blockers + trail pheromone >= 50 | boolean | Task selection |
-| `is_repelled(task)` | resistance >= 30 AND resistance > trail-pheromone | boolean | Task avoidance |
 | `is_action_ready(hypothesis)` | confirmed + p-value <= 0.05 + n >= 50 | boolean | Knowledge → action |
 | `needs_evolution(unit)` | success-rate < 0.50 + sample-count >= 20 | boolean | Agent self-improvement |
 
@@ -199,10 +183,9 @@ The substrate provides the signal (who is failing). The agent evolves itself.
 | `optimal_route($from, $task)` | Best unit for task via path strength |
 | `cheapest_provider($task)` | Cheapest unit that can do task |
 | `suggest_route($from, $task)` | Top 5 candidates with strength scores |
-| `ready_tasks()` | Todo tasks with no incomplete blockers |
-| `attractive_tasks()` | Tasks with strong inbound pheromone |
-| `exploratory_tasks()` | Ready tasks with no trail history |
-| `proven_trails()` | Task sequences that reliably work |
+| `proven_units()` | All units with "proven" status |
+| `skills_by_tag($tag)` | Skills matching a tag |
+| `collaborators($me)` | Peers in same group |
 
 ---
 
@@ -232,7 +215,7 @@ Machine A (Tony)                    Machine B (David)
 │  Hermes  │──signal──→ TypeDB ←──signal──│ Theodore │
 │ (router) │←─route───→   ↕   ←──route──│ (router) │
 └──────────┘           paths &       └──────────┘
-                       trails
+                       paths
 ```
 
 Each machine runs one router. TypeDB is shared. Pheromone builds across machines.
@@ -258,7 +241,7 @@ group, unit, task, hypothesis, frontier, objective, contribution
 
 ## Relations
 
-hierarchy, path, trail, capability, dependency, assignment, membership, signal, spawns, contribution-event
+hierarchy, path, capability, membership, signal, spawns, contribution-event
 
 ---
 

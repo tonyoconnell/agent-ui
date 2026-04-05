@@ -139,7 +139,7 @@ agentWorld.path('translator-1', 'coder-1').mark(1)  // Collaboration
 // Knowledge = proven routes, expertise
 ```
 
-## The Universal Pattern
+## Real World Patterns
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -346,10 +346,54 @@ The ontology is ONE.
 
 ---
 
+## The Persistent World API
+
+```typescript
+import { world } from '@/engine'
+
+const w = world()
+
+// 1. Groups — scope and isolation
+w.group('research', 'team')
+w.group('research-ml', 'team', { parent: 'research' })
+
+// 2. Actors — who receives signals (persisted to TypeDB)
+const scout = w.actor('scout', 'agent', { group: 'research' })
+  .on('observe', ({ tick }, emit) => {
+    emit({ receiver: 'analyst:process', data: analyze(tick) })
+  })
+
+// 3. Things — skills with optional price
+w.thing('daily-scan', { tags: ['research', 'P0'] })
+w.thing('translate', { price: 0.02, tags: ['language'] })
+
+// 4. Connections — strengthen or resist
+w.flow('scout', 'analyst').strengthen()
+w.path('scout', 'bad-analyst').resist()   // path = alias for flow
+
+// 5. Events — automatic from signals
+
+// 6. Knowledge — durable patterns
+await w.know()               // promote strong paths → knowledge
+await w.recall()             // all known patterns
+await w.recall('analyst')    // patterns involving analyst
+
+// Queries — live pheromone (ephemeral, fades)
+w.open(10)                   // strongest flows
+w.best('analyst')            // best actor by net strength
+w.proven()                   // reliable actors (strength >= 20)
+w.blocked()                  // toxic paths (resistance > strength)
+w.confidence('analyst')      // strength / (strength + resistance)
+
+// Lifecycle
+await w.load()               // hydrate from TypeDB
+await w.sync()               // write all state to TypeDB
+```
+
 ## See Also
 
 - [flows.md](flows.md) — How actors, signals, and paths flow through the world
-- [signal.md](signal.md) — The universal primitive that moves through every world
+- [events.md](events.md) — The universal primitive that moves through every world
 - [one-ontology.md](one-ontology.md) — Six dimensions that structure any world
 - [asi-world.md](asi-world.md) — The agent economy mapped to this ontology
 - [metaphors.md](metaphors.md) — Same world, seven lenses

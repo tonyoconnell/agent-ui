@@ -336,6 +336,6 @@ Five operations. Emergence guaranteed.
 - [flows.md](flows.md) — How signals move through the complete lifecycle
 - [code.md](code.md) — 70-line TypeScript implementation of signal routing
 - [world.md](world.md) — Universal ontology: ants, humans, agents share this primitive
-- [agents.md](agents.md) — Units that receive and emit signals
+- [people.md](people.md) — Units that receive and emit signals
 - [substrate-learning.md](substrate-learning.md) — Signals as training data, paths as learned weights
 - [metaphors.md](metaphors.md) — Same signal, seven vocabularies
