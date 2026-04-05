@@ -1,7 +1,8 @@
 /**
  * POST /api/seed — Seed the world with initial O-1 data
  *
- * Creates: 3 swarms, 8 units (personas), 10 tasks, 5 paths.
+ * Creates: 3 swarms, 8 units (personas), 3 LLM agents, 13 tasks, 5 paths,
+ *          3 agent capabilities, 3 agent paths.
  * Idempotent: checks for existing data before inserting.
  */
 import type { APIRoute } from 'astro'
@@ -65,6 +66,110 @@ export const POST: APIRoute = async () => {
     `).catch(() => {})
   }
   results.push(`${units.length} units`)
+
+  // ─── LLM Agents (3 with model + system-prompt) ────────────────────────────
+
+  const agents = [
+    {
+      id: 'summarizer',
+      name: 'Summarizer',
+      kind: 'agent',
+      model: 'sonnet',
+      systemPrompt: 'You are a concise summarizer. Given any text, produce a clear summary capturing the key points. Be brief and precise.',
+      swarm: 'swarm-agents',
+    },
+    {
+      id: 'translator',
+      name: 'Translator',
+      kind: 'agent',
+      model: 'sonnet',
+      systemPrompt: 'You are a multilingual translator. Translate the given text to the requested language. If no language is specified, translate to English. Preserve meaning and tone.',
+      swarm: 'swarm-agents',
+    },
+    {
+      id: 'analyst',
+      name: 'Analyst',
+      kind: 'agent',
+      model: 'sonnet',
+      systemPrompt: 'You are a data analyst. Given data or a question, provide structured analysis with insights, patterns, and recommendations. Use clear formatting.',
+      swarm: 'swarm-agents',
+    },
+  ]
+
+  for (const a of agents) {
+    await write(`
+      insert $u isa unit,
+        has uid "${a.id}",
+        has name "${a.name}",
+        has unit-kind "${a.kind}",
+        has status "active",
+        has model "${a.model}",
+        has system-prompt "${a.systemPrompt}",
+        has generation 1,
+        has balance 0.0,
+        has reputation 50.0,
+        has success-rate 0.5,
+        has activity-score 0.0,
+        has sample-count 0;
+    `).catch(() => {})
+  }
+  results.push(`${agents.length} LLM agents`)
+
+  // ─── Agent Capabilities ───────────────────────────────────────────────────
+
+  const agentCaps = [
+    { agent: 'summarizer', task: 'summarize', taskType: 'analysis', price: 0.01 },
+    { agent: 'translator', task: 'translate', taskType: 'analysis', price: 0.02 },
+    { agent: 'analyst', task: 'analyze', taskType: 'analysis', price: 0.03 },
+  ]
+
+  for (const c of agentCaps) {
+    const tid = `${c.agent}:${c.task}`
+    await write(`
+      insert $t isa task,
+        has tid "${tid}",
+        has name "${c.task}",
+        has task-type "${c.taskType}",
+        has status "active",
+        has priority "P1",
+        has phase "onboard",
+        has price ${c.price},
+        has currency "SUI";
+    `).catch(() => {})
+
+    await write(`
+      match
+        $u isa unit, has uid "${c.agent}";
+        $t isa task, has tid "${tid}";
+      insert
+        (provider: $u, skill: $t) isa capability,
+          has price ${c.price};
+    `).catch(() => {})
+  }
+  results.push(`${agentCaps.length} agent capabilities`)
+
+  // ─── Paths between agents (initial routing) ──────────────────────────────
+
+  const agentPaths = [
+    { from: 'summarizer', to: 'analyst', strength: 30 },
+    { from: 'translator', to: 'summarizer', strength: 25 },
+    { from: 'analyst', to: 'translator', strength: 20 },
+  ]
+
+  for (const p of agentPaths) {
+    await write(`
+      match
+        $from isa unit, has uid "${p.from}";
+        $to isa unit, has uid "${p.to}";
+      insert
+        (source: $from, target: $to) isa path,
+          has strength ${p.strength}.0,
+          has alarm 0.0,
+          has traversals 0,
+          has revenue 0.0;
+    `).catch(() => {})
+  }
+  results.push(`${agentPaths.length} agent paths`)
 
   // ─── Tasks (10 sample with dependencies) ──────────────────────────────────
 

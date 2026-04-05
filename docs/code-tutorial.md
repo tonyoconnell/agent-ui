@@ -250,7 +250,7 @@ w.thing('task-translate', 'task')
 w.thing('token-acme', 'token')
 
 // 4. Paths (weighted connections)
-w.drop('user', 'translator-1', 1)       // Leave weight on path
+w.mark('user', 'translator-1', 1)       // Leave weight on path
 w.fade(0.1)                              // Decay paths
 
 // 5. Events — automatic from signals
@@ -694,8 +694,8 @@ one.signal({ receiver: 'scout:observe', data })
 // mark() overridden to sync with TypeDB
 one.mark('entry→scout', 1.5)
 
-// alarm() for failure signaling
-one.alarm('entry→bad-agent', 1.0)
+// warn() for failure signaling
+one.warn('entry→bad-agent', 1.0)
 
 // Asymmetric decay: trails decay at rate, alarms decay 2× faster
 one.fade(0.1)
@@ -857,7 +857,7 @@ async function smartRoute(w: World, task: string, data: unknown) {
     // Ask LLM, learn from result
     const agent = await llm.suggest(task, data)
     w.signal({ receiver: `${agent}:${task}`, data })
-    w.drop('asi', agent, 0.5)
+    w.mark('asi', agent, 0.5)
   }
 }
 
@@ -1033,7 +1033,7 @@ const w = world()
 w.group(id, type)            // dimension 1
 w.actor(id, type)            // dimension 2
 w.thing(id, type)            // dimension 3
-w.drop(from, to, n)          // dimension 4
+w.mark(from, to, n)          // dimension 4
 w.fade(rate)                 // dimension 4
 w.crystallize()              // dimension 6
 

@@ -555,7 +555,7 @@ const signalWithLearning = (
   const result = yield* provider.things.execute(target, data)
 
   // 3. Learn — success strengthens path
-  yield* provider.paths.drop(receiver, target)
+  yield* provider.paths.mark(receiver, target)
 
   // 4. Continue — if task has continuation, emit next signal
   const next = provider.things.continuation(target, result)
@@ -567,7 +567,7 @@ const signalWithLearning = (
   Effect.tapError(() =>
     Effect.gen(function* () {
       const provider = yield* DataProviderService
-      yield* provider.paths.resist(receiver, target)
+      yield* provider.paths.warn(receiver, target)
     })
   )
 )
@@ -742,7 +742,7 @@ Effect.ts and the substrate solve the same problem at different scales:
 | **Error flow** | `Effect.catchTag()` | `resist()` → toxic path | `fun is_toxic` infers status |
 | **Composition** | `Effect.gen(function*())` | `.then()` continuations | `continuation` relation |
 | **Multi-backend** | CompositeProvider routes | Colony routes to units | `membership` + `capability` |
-| **Learning** | — (static routing) | `drop()` / `fade()` / `highways()` | `edge` weight + inference rules |
+| **Learning** | — (static routing) | `mark()` / `fade()` / `highways()` | `edge` weight + inference rules |
 | **Classification** | `Data.TaggedError()` | Path status (highway/toxic) | Rules: proven, at-risk, fading |
 | **Autonomy** | — (human-triggered) | Continuations chain signals | `spawns` frontier → objective |
 
@@ -755,7 +755,7 @@ TypeQL (TypeDB)    →  persists the weights, runs inference
 
 Effect.catchTag("PathToxicError")
   ↕ maps to
-colony.resist(from, to)
+colony.warn(from, to)
   ↕ persists as
 update edge alarm += 1.0 where source = $from, target = $to
   ↕ triggers
@@ -827,7 +827,7 @@ envelopes/packages/typedb-inference-patterns/
 - [flows.md](flows.md) — How signals flow through the substrate (emergent routing)
 - [one-ontology.md](one-ontology.md) — Six dimensions the DataProvider maps to
 - [ontology.md](ontology.md) — TypeDB inference rules that become Effect error guards
-- [substrate-learning.md](substrate-learning.md) — drop/fade/highways as reinforcement learning
+- [substrate-learning.md](substrate-learning.md) — mark/fade/highways as reinforcement learning
 - [typedb.md](typedb.md) — TypeDB 3.0 architecture and pulse client
 - [integration.md](integration.md) — How all systems connect through world()
 - [gaps.md](gaps.md) — Gap 1: TypeDB driver is the keystone for Effect ↔ TypeQL

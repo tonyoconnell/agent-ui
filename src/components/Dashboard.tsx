@@ -24,6 +24,7 @@ interface StatsData {
   tasks: { total: number; ready: number; active: number; complete: number }
   highways: { count: number; totalEdges: number }
   revenue: { total: number; gdp: number }
+  signals: { total: number; recent: number }
   timestamp: string
 }
 
@@ -90,6 +91,51 @@ function AlertRow({ alert }: { alert: Alert }) {
   )
 }
 
+function RevenueBreakdown() {
+  const [paths, setPaths] = useState<Array<{ from: string; to: string; revenue: number; strength: number }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/state')
+      .then(r => r.json())
+      .then((data: { edges?: Array<{ from: string; to: string; revenue: number; strength: number }> }) => {
+        const edges = (data.edges || [])
+          .filter((e: { revenue: number }) => e.revenue > 0)
+          .sort((a: { revenue: number }, b: { revenue: number }) => b.revenue - a.revenue)
+          .slice(0, 10)
+        setPaths(edges)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return <div className="text-sm text-slate-500 py-4">Loading revenue data...</div>
+  if (paths.length === 0) return <div className="text-sm text-slate-500 py-4">No revenue recorded yet</div>
+
+  const maxRevenue = paths[0]?.revenue || 1
+
+  return (
+    <div className="space-y-2">
+      {paths.map(p => (
+        <div key={`${p.from}-${p.to}`} className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-slate-400 truncate">{p.from} → {p.to}</div>
+          </div>
+          <div className="w-24 h-1.5 rounded-full overflow-hidden bg-[#252538]">
+            <div
+              className="h-full rounded-full bg-emerald-500/60"
+              style={{ width: `${(p.revenue / maxRevenue) * 100}%` }}
+            />
+          </div>
+          <span className="text-xs font-mono text-emerald-400 w-16 text-right">
+            ${p.revenue.toFixed(1)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 
 export function Dashboard() {
@@ -107,6 +153,7 @@ export function Dashboard() {
       const [healthRes, statsRes] = await Promise.all([
         fetch('/api/health').then(r => r.json()).catch(() => null),
         fetch('/api/stats').then(r => r.json()).catch(() => null),
+        fetch('/api/decay-auto').catch(() => null),  // auto-decay on poll
       ])
 
       if (healthRes) {
@@ -270,7 +317,7 @@ export function Dashboard() {
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
               World Stats
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <StatCard
                 label="Units"
                 value={stats?.units?.total ?? 0}
@@ -291,19 +338,20 @@ export function Dashboard() {
                 value={formatRevenue(stats?.revenue?.total ?? 0)}
                 sub={`GDP ${formatRevenue(stats?.revenue?.gdp ?? 0)}`}
               />
+              <StatCard
+                label="Signals"
+                value={stats?.signals?.total ?? 0}
+                sub={`${stats?.signals?.recent ?? 0} last hour`}
+              />
             </div>
           </div>
 
-          {/* Revenue Chart Placeholder */}
+          {/* Revenue Breakdown */}
           <div className="bg-[#0a0a0f] border border-[#252538] rounded-lg p-5">
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
               Revenue
             </h2>
-            <div className="h-48 flex items-center justify-center border border-dashed border-[#252538] rounded-lg">
-              <span className="text-slate-500 text-sm">
-                Revenue chart (connect TypeDB for live data)
-              </span>
-            </div>
+            <RevenueBreakdown />
           </div>
 
           {/* Actions */}

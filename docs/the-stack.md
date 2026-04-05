@@ -48,7 +48,7 @@ Two views.          One truth.
 const w = world()
 w.actor(id, type)                    // create
 w.signal({ receiver, data })         // move through world
-w.drop(from, to, n)                  // leave weight on path
+w.mark(from, to, n)                  // leave weight on path
 w.fade(rate)                         // decay
 w.follow(type)                       // traverse paths
 w.crystallize()                      // persist

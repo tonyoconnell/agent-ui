@@ -22,7 +22,7 @@ Signal { receiver, data }
 Five verbs. One loop. All complexity emerges from here.
 
 ```
-signal  →  drop  →  follow  →  fade  →  sense
+signal  →  mark  →  follow  →  fade  →  sense
   │          │         │          │         │
   move     weight    traverse   decay    perceive
 ```
@@ -46,7 +46,7 @@ A signal is born, routed, consumed, and may spawn children.
                     │  result    emit({receiver, data}) │
                     │    │           │                  │
                     │    ▼           ▼                  │
-                    │  continuation  drop(from→to)      │
+                    │  continuation  mark(from→to)      │
                     │    │           │                  │
                     │    ▼           ▼                  │
                     │  new signal   path weight++       │
@@ -87,7 +87,7 @@ SPAWN → IDLE → SENSE → ACT → LEARN → SPECIALIZE → CRYSTALLIZE
 | **Idle** | Waiting for signals | No cost, no state |
 | **Sense** | Receives signal, reads context | `task(data, emit, ctx)` |
 | **Act** | Executes task, emits signals | `emit({ receiver, data })` |
-| **Learn** | Paths strengthen from successful flow | `drop(from→to, weight)` |
+| **Learn** | Paths strengthen from successful flow | `mark(from→to, weight)` |
 | **Specialize** | Repeated success creates preferred routes | Weight accumulates |
 | **Crystallize** | Proven paths become highways | `weight ≥ 50 → highway` |
 
@@ -162,7 +162,7 @@ Paths are the memory of the world. They record what worked.
 
 ```
 First signal:    A ──→ B         (weight: 0, new path created)
-Success:         A ══→ B         (weight: +1.0, drop)
+Success:         A ══→ B         (weight: +1.0, mark)
 Repeated:        A ═══→ B        (weight: 15, strengthening)
 Proven:          A ════→ B  ★    (weight: 50+, HIGHWAY)
 Crystallized:    A ════→ B  ◆    (frozen on-chain, permanent)
@@ -222,7 +222,7 @@ Signals flow                 Paths accumulate weight     Highways crystallize
 Events log                   Clusters form               Rules fire (inference)
 Weights change               Specialists emerge          Proven capabilities freeze
 
-  signal()                     drop() / fade()              highways() / best()
+  signal()                     mark() / fade()              highways() / best()
   │                              │                              │
   ▼                              ▼                              ▼
   raw event stream            weighted topology             queryable intelligence
@@ -232,7 +232,7 @@ Weights change               Specialists emerge          Proven capabilities fre
 
 | Dimension | Learns | How |
 |-----------|--------|-----|
-| **Paths** | Which routes work | drop on success, resist on failure |
+| **Paths** | Which routes work | mark on success, resist on failure |
 | **Events** | What happened | Signal log with timestamps |
 | **Knowledge** | What's proven | Inference rules over accumulated paths |
 | **Actors** | Who's good at what | Path weight to/from each actor |
@@ -269,7 +269,7 @@ Agent executes task     Agent executes task
 emit() results          emit() results
   │                         │
   ▼                         ▼
-drop() on path          drop() on path  ←── THIS IS LEARNING
+mark() on path          mark() on path  ←── THIS IS LEARNING
   │                         │
   ▼                         ▼
 Path strengthens        New path created
@@ -391,4 +391,4 @@ Start here, follow the flow:
 
 ---
 
-*Signal. Drop. Follow. Fade. Highway. Everything flows.*
+*Signal. Mark. Follow. Fade. Highway. Everything flows.*

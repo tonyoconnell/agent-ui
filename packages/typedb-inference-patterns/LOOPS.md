@@ -359,7 +359,7 @@ async def colony_tick():
                 if outcome.success:
                     await reinforce_trail(+5.0)
                 else:
-                    await deposit_alarm(+8.0)
+                    await deposit_warn(+8.0)
 
     # ══════════════════════════════════════════════════════
     # PHASE 4: DECAY

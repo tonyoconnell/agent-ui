@@ -9,7 +9,7 @@ status: ACTIVE
 timeline: Week 1 wire+tasks, Week 2-3 onboard+commerce, Month 2 intelligence+scale
 stack: Astro 5 + React 19 + TypeDB 3.0 + Cloudflare Workers + Sui + x402
 schema: src/schema/one.tql
-vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
+vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
 ---
 
 # ONE World Roadmap
@@ -43,12 +43,12 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
 |:---:|:---|:---|:---|:---|
 | `[x]` | X-1 | One schema | `src/schema/one.tql` is THE file (~330 lines). Old `one.tql`, `unified.tql`, `substrate.tql` archived to `src/schema/archive/`. `metaphors.tql` renamed to `skins.tql`. | — |
 | `[x]` | X-2 | Kill entity service | Task with `owns price` IS a service. `unit —[capability, price]→ task`. One fewer entity. | X-1 |
-| `[x]` | X-3 | Converge vocabulary | Schema: `data` not `payload`, `trail` not `pheromone-trail`. Runtime: `mark()` not `drop()`. All docs, rules, packages updated. colony.ts uses `Signal`+`data`. engine.md uses `mark()`. | X-1 |
+| `[x]` | X-3 | Converge vocabulary | Schema: `data` not `payload`, `trail` not `pheromone-trail`. Runtime: `mark()` not `mark()`. All docs, rules, packages updated. colony.ts uses `Signal`+`data`. engine.md uses `mark()`. | X-1 |
 | `[x]` | X-4 | Mark lessons as reference | Standalone TQL files use different entity names (scored-item, learning-record). CLAUDE.md in packages explains: reference only, not loadable. `standalone/substrate.tql` replaced with deprecation pointer. | X-1 |
 | `[x]` | X-5 | Revenue on trails | `trail` now `owns revenue` — task sequences track how much money they generated. `total_revenue()` function added. | X-2 |
 | `[x]` | X-6 | Rename files | Schema: `one.tql` (the world). Runtime: `substrate.ts` (the engine). Skins: `skins.tql` (not metaphors). All refs updated across docs, rules, packages. | X-1 |
 | `[x]` | X-7 | Seed data | `seed.tql` updated: 10 swarms (platform + agents + 8 personas), 8 units, 5 services-as-tasks, 5 edges (1 highway, 1 toxic), 11 roadmap tasks with deps, 3 trails, 3 frontiers. Uses converged `trail` naming. | X-3 |
-| `[x]` | X-8 | Full audit | Stale refs hunted: `metaphors.tql` (0 remaining), `unified.tql` (4 in historical docs, acceptable), runtime `payload` (0 remaining), `drop()` in rules (0 remaining). CLAUDE.md files updated. | X-3, X-4 |
+| `[x]` | X-8 | Full audit | Stale refs hunted: `metaphors.tql` (0 remaining), `unified.tql` (4 in historical docs, acceptable), runtime `payload` (0 remaining), `mark()` in rules (0 remaining). CLAUDE.md files updated. | X-3, X-4 |
 
 ### Phase 0 Gate
 ```
@@ -80,14 +80,14 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
 | `[x]`  | W-3  | TypeDB client lib       | `src/lib/typedb.ts` (167 lines). `read()`, `write()`, `readParsed()`, `writeSilent()`, `writeBatch()`, `decay()`, `callFunction()`, `parseAnswers()`. Browser→Worker or server→direct. | Client built, needs TypeDB endpoint     | W-2     |
 | `[x]`  | W-3a | Core API routes         | `src/pages/api/` — query.ts, signal.ts, drop.ts, alarm.ts, state.ts, decay.ts, chat.ts. Plus `src/pages/api/tasks/` — index, ready, attractive, repelled, exploratory, [id]/complete. | 12 API routes built          | W-3     |
 | `[x]`  | W-3b | Better Auth             | `src/lib/auth.ts` + `typedb-auth-adapter.ts` + `src/pages/api/auth/[...all].ts` + `src/hooks/useAuth.ts` + `src/middleware.ts`. Users = units in TypeDB. `better-auth@1.5.6` installed. | Auth wired to TypeDB | W-3 |
-| `[x]`  | W-4  | Persist layer           | `src/engine/persist.ts` (85 lines). Wraps colony with TypeDB sync. `mark()`, `alarm()`, `fade()` write-through. `sync()`, `load()`. Asymmetric decay.                                                                                                                   | Persist built, needs TypeDB   | W-3a    |
+| `[x]`  | W-4  | Persist layer           | `src/engine/persist.ts` (85 lines). Wraps colony with TypeDB sync. `mark()`, `warn()`, `fade()` write-through. `sync()`, `load()`. Asymmetric decay.                                                                                                                   | Persist built, needs TypeDB   | W-3a    |
 
 ### Phase 1 Gate
 ```
   [ ] TypeDB Cloud running, one.tql loaded ← BLOCKER (needs you)
   [x] Cloudflare Worker built (gateway/src/index.ts)
   [x] TypeDB client built (src/lib/typedb.ts)
-  [x] 12 API routes built (query, signal, drop, alarm, state, decay, chat, tasks×6)
+  [x] 12 API routes built (query, signal, mark, alarm, state, decay, chat, tasks×6)
   [x] Auth wired (better-auth + TypeDB adapter)
   [x] Persist layer built (src/engine/persist.ts)
   [ ] End-to-end test: browser → Worker → TypeDB → inference → response
@@ -181,7 +181,7 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
 | `[ ]` | O-4 | Discovery | `/discover` page. Browse agents by capability. Ranked by edge strength (what actually works). `optimal_route()` and `suggest_route()` power search. Filter by swarm, price, proven status. | Users find agents via learned routing | O-1 |
 | `[ ]` | O-5 | Profiles | `/u/:name` page. Shows: unit info, capabilities, edge history (who signals them), reputation (proven/at-risk), earnings. The trail IS the resume. | Public profiles render from TypeDB | O-2 |
 | `[ ]` | O-6 | Eight personas | Seed 8 swarms for one.ie personas: Executives, Engineers, Designers, Marketers, Sellers, Creators, Young People, Kids. Each swarm has tailored discovery and routing. Group isolation via TypeDB queries. | 8 persona swarms live | O-2 |
-| `[ ]` | O-7 | Connect flow | User signals an agent → edge created. Success → `drop()` strengthens path. Failure → `alarm()`. Over time, each user's best agents emerge as highways. No recommendations algorithm — just trails. | Edges form from real interactions | O-4 |
+| `[ ]` | O-7 | Connect flow | User signals an agent → edge created. Success → `mark()` strengthens path. Failure → `warn()`. Over time, each user's best agents emerge as highways. No recommendations algorithm — just trails. | Edges form from real interactions | O-4 |
 
 ### Phase 3 Gate
 ```
@@ -208,7 +208,7 @@ vocabulary: signal={receiver,data} | drop/alarm/fade/emit | edge/trail
 | `[ ]` | C-3 | Revenue tracking | Every payment → `edge.strength += amount`. Revenue flows ARE pheromone. `total_contribution()` per agent. Dashboard: earnings, spending, net flow. GDP = sum of all commerce signals. | Revenue visible per agent and network-wide | C-1 |
 | `[ ]` | C-4 | Agent-to-agent payments | Agents pay each other for sub-tasks. Claude calls translator → translator calls oracle → oracle returns data. Each hop = x402 micro-payment. Chain of payments = chain of value. | Multi-hop payment chains work | C-1 |
 | `[ ]` | C-5 | Highway pricing | Strong paths (highways) get priority routing. Pay more → skip LLM routing → direct to proven agent. `w.confidence() > 0.7` = fast path (<10ms). Free path = LLM routing (1-5s). Speed IS the product. | Paid fast-path vs free slow-path | C-2 |
-| `[ ]` | C-6 | Agent launch toolkit bridge | `src/engine/agentverse.ts` — import agents from Fetch.ai Agentverse. Trading events → `drop()`. Invoice paid → `strengthen()`. Dispute → `alarm()`. Cross-holdings = bidirectional trails. SDK shape: `al.substrate.best('oracle')`. | Agentverse agents discoverable + earning | C-3 |
+| `[ ]` | C-6 | Agent launch toolkit bridge | `src/engine/agentverse.ts` — import agents from Fetch.ai Agentverse. Trading events → `mark()`. Invoice paid → `strengthen()`. Dispute → `warn()`. Cross-holdings = bidirectional trails. SDK shape: `al.substrate.best('oracle')`. | Agentverse agents discoverable + earning | C-3 |
 
 ### Phase 4 Gate
 ```

@@ -21,7 +21,7 @@ The ONE interface breathes. Signals pulse. Trails form. Highways glow.
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                            COLONY ENGINE                                  │
 │                    colony.send({ receiver, data })                       │
-│                    colony.drop(edge, weight)                             │
+│                    colony.mark(edge, weight)                             │
 │                    colony.fade(rate)                                     │
 └───────────────────────────────┬──────────────────────────────────────────┘
                                 │

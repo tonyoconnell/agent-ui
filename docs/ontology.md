@@ -72,7 +72,7 @@ agent(address)              // → entity node, owns kind "agent"
 signal({ receiver, data })  // → not persisted, ephemeral
 
 // 4. PATHS
-drop(path, weight)          // → relation path, owns weight
+mark(path, weight)          // → relation path, owns weight
 alarm(path, strength)       // → relation path, owns alarm
 highways()                  // → match $e isa path, has status "highway"
 

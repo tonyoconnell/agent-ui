@@ -38,7 +38,7 @@ const w = world()
 w.group(id, type)                    // 1. Create containers
 w.actor(id, type)                    // 2. Create agents
 w.thing(id, type)                    // 3. Create entities
-w.drop(from, to, n)                  // 4. Leave weight on path
+w.mark(from, to, n)                  // 4. Leave weight on path
 w.fade(rate)                         // 5. Decay paths
 w.crystallize()                      // 6. Extract patterns
 
@@ -94,7 +94,7 @@ w.confidence(type)                   // How well we know
 |   +------------------+             |              |                  |       |
 |   |  ASK LLM         |-------------+------------->|                  |       |
 |   |  w.signal().     |             |              +------------------+       |
-|   |  drop()          |             |                                         |
+|   |  mark()          |             |                                         |
 |   +--------+---------+             |                                         |
 |            +----------+------------+                                         |
 |                       v                                                      |
@@ -121,7 +121,7 @@ w.confidence(type)                   // How well we know
 |                         v                                                    |
 |              +---------------------+                                         |
 |              |  w.best('agent')    |  <- w.proven() returns best            |
-|              |  w.drop()           |  <- success recorded                   |
+|              |  w.mark()           |  <- success recorded                   |
 |              |  w.open(10)         |  <- discover agents                    |
 |              +---------------------+                                         |
 |                                                                              |
@@ -141,11 +141,11 @@ w.confidence(type)                   // How well we know
 |                                                                              |
 |   Events -> world():                                                         |
 |   +---------------------------------------------------------------------+   |
-|   |  trade:buy       ->  w.drop(buyer, token, amount)                   |   |
-|   |  trade:sell      ->  w.drop(seller, token, amount * 0.5)            |   |
-|   |  invoice:paid    ->  w.drop(payer, agent, amount)                   |   |
-|   |  invoice:dispute ->  (no drop - failure signals via event)          |   |
-|   |  holder:change   ->  w.drop(holder, token, 1)                       |   |
+|   |  trade:buy       ->  w.mark(buyer, token, amount)                   |   |
+|   |  trade:sell      ->  w.mark(seller, token, amount * 0.5)            |   |
+|   |  invoice:paid    ->  w.mark(payer, agent, amount)                   |   |
+|   |  invoice:dispute ->  (no mark - failure signals via event)          |   |
+|   |  holder:change   ->  w.mark(holder, token, 1)                       |   |
 |   +---------------------------------------------------------------------+   |
 |                                                                              |
 +-----------------------------------------------------------------------------+
@@ -157,7 +157,7 @@ w.confidence(type)                   // How well we know
 |   The runtime for ONE ontology.                                             |
 |   Implements PATHS (dimension 4) with weight semantics.                     |
 |                                                                              |
-|      drop()                        fade()                                   |
+|      mark()                        fade()                                   |
 |              |                              |                                |
 |              v                              v                                |
 |   +---------------------------------------------------------------------+   |
@@ -216,7 +216,7 @@ w.confidence(type)                   // How well we know
 2. ASI:  w.confidence('translation') = 0.45  (< 0.7)
          -> No highway, ask LLM
          -> LLM says: "agent-translator-1"
-         -> w.drop('asi', 'agent-translator-1', 0.5)
+         -> w.mark('asi', 'agent-translator-1', 0.5)
          |
          v
 3. AGENTVERSE: call('agent-translator-1', data)
@@ -229,7 +229,7 @@ w.confidence(type)                   // How well we know
          |
          v
 5. AGENTVERSE: Success!
-               -> w.drop('user', 'agent-translator-1', 1)
+               -> w.mark('user', 'agent-translator-1', 1)
          |
          v
 6. SUBSTRATE: Path weight increases
@@ -288,12 +288,12 @@ Latency: First request ~2s, subsequent ~50ms
 |                                                                              |
 |   onEvent('trade', (e) => {                                                 |
 |     e.action === 'buy'                                                      |
-|       ? w.drop(`market`, e.token, e.amount)                                 |
-|       : w.drop(`market`, e.token, e.amount * 0.5)                           |
+|       ? w.mark(`market`, e.token, e.amount)                                 |
+|       : w.mark(`market`, e.token, e.amount * 0.5)                           |
 |   })                                                                         |
 |                                                                              |
 |   onEvent('invoice:paid', (e) => {                                          |
-|     w.drop(e.payer, e.agent, e.amount)                                      |
+|     w.mark(e.payer, e.agent, e.amount)                                      |
 |   })                                                                         |
 |                                                                              |
 +-----------------------------------------------------------------------------+
@@ -426,7 +426,7 @@ w.thing('task-translate', 'task')
 w.thing('token-acme', 'token')
 
 // Paths (dimension 4)
-w.drop('user', 'translator-1', 1)             // Leave weight on path
+w.mark('user', 'translator-1', 1)             // Leave weight on path
 w.fade(0.1)                                   // Decay paths
 
 // Events (dimension 5) - automatic from signals

@@ -65,13 +65,13 @@ entity task,
 relation dependency, relates dependent, relates blocker;
 
 # ── DIMENSION 4: PATHS ──────────────────────────────────────────────────────
-# Weighted connections. drop() adds strength. alarm() adds resistance.
+# Weighted connections. mark() adds strength. warn() adds alarm.
 # fade() decays both. This IS the pheromone trail. The learned knowledge.
 
 relation path,                     # unit ←→ unit
     relates source, relates target,
-    owns strength,                 # drop() increments — success
-    owns alarm,                    # alarm() increments — failure
+    owns strength,                 # mark() increments — success
+    owns alarm,                    # warn() increments — failure
     owns traversals,               # signal count
     owns revenue,                  # sum of x402 payments
     owns path-status;              # INFERRED: "highway" | "fading" | "toxic"
@@ -276,7 +276,7 @@ export const colony = () => {
   const units: Record<string, Unit> = {}   // the population
   const scent: Record<string, number> = {} // the shared memory (pheromone trails)
 
-  // MARK — drop weight on a path. This is how the colony remembers.
+  // MARK — mark weight on a path. This is how the colony remembers.
   // Every successful signal strengthens the path it traveled.
   const mark = (path: string, strength = 1) => {
     scent[path] = (scent[path] || 0) + strength
@@ -368,7 +368,7 @@ Lines 21–32    THINGS (Dimension 3)
 
 Lines 33–48    PATHS (Dimension 4)
                Weighted connections. The pheromone trails.
-               drop() → strength. alarm() → resistance. fade() → decay.
+               mark() → strength. warn() → alarm. fade() → decay.
                Unit↔unit paths. Task→task trails. Capability links.
 
 Lines 49–55    EVENTS (Dimension 5)

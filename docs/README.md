@@ -1,6 +1,6 @@
 # ONE
 
-**Signal. Drop. Follow. Fade. Highway.**
+**Signal. Mark. Follow. Fade. Highway.**
 
 The universal substrate for emergence. 100 million years proven.
 
@@ -22,7 +22,7 @@ Two fields. Everything else emerges.
 ## The Pattern
 
 ```
-Ants:      chemical signal  →  pheromone drop  →  foraging highway
+Ants:      chemical signal  →  pheromone mark  →  foraging highway
 Neurons:   electrical signal →  synapse weight  →  memory trace
 Markets:   price signal      →  volume          →  trend
 Agents:    digital signal    →  success weight  →  proven route
@@ -39,7 +39,7 @@ Same pattern. Same substrate. Same emergence.
 | 1 | **Groups** | Containers, scope, hierarchy |
 | 2 | **Actors** | Who can act (humans, agents, LLMs) |
 | 3 | **Things** | What exists (tasks, tokens, services) |
-| 4 | **Flows** | Paths with weight (signals dropped) |
+| 4 | **Paths** | Connections with weight (signals marked) |
 | 5 | **Events** | What happened |
 | 6 | **Knowledge** | Highways (crystallized paths) |
 
@@ -59,8 +59,8 @@ w.actor('analyst', 'agent')
 // Signals move through the world
 w.signal({ receiver: 'translator:translate', data: { text: 'hello' } })
 
-// Paths gain weight (drop happens on success)
-// w.drop('user', 'translator', 1)  // automatic
+// Paths gain weight (mark happens on success)
+// w.mark('user', 'translator', 1)  // automatic
 
 // Query what emerged
 w.traces()           // all paths with weight
@@ -84,6 +84,13 @@ w.fade(0.05)         // decay all weights 5%
 | [signal.md](signal.md) | The universal primitive |
 | [one-ontology.md](one-ontology.md) | The 6 dimensions |
 | [metaphors.md](metaphors.md) | Ant, brain, team, market skins |
+| [architecture.md](architecture.md) | System architecture derived from one.tql |
+| [primitives.md](primitives.md) | The 7 entities, 10 relations, 5 verbs |
+| [patterns.md](patterns.md) | 10 patterns: pheromone, routing, task selection, evolution |
+| [loops.md](loops.md) | 7 nested feedback loops and refinements |
+| [SUI.md](SUI.md) | What Move adds — linearity, enforcement, permanence |
+| [contracts.md](contracts.md) | Move contract reference — 7 objects, 21 functions |
+| [DSL.md](DSL.md) | The ONE language — five verbs, addressing, metaphors |
 
 ### Implementation
 
@@ -160,7 +167,7 @@ w.actor('analyst', 'agent')
 
 // Signal moves, path gains weight
 w.signal({ receiver: 'translator:translate', data: { text: 'hello', to: 'es' } })
-// Success → drop('user', 'translator', 1)
+// Success → mark('user', 'translator', 1)
 
 // Best actors emerge
 const best = w.best('agent')  // highest weight
@@ -173,7 +180,7 @@ const highways = w.highways()  // strongest paths
 ## The Truth
 
 ```
-A signal drops.
+A signal lands.
 The path remembers.
 Another signal follows.
 The trail deepens.
@@ -208,7 +215,7 @@ type Package = Signal & {
 
 ---
 
-*Signal. Drop. Trace. Highway. Emergence.*
+*Signal. Mark. Trace. Highway. Emergence.*
 
 ---
 

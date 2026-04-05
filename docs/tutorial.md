@@ -75,11 +75,11 @@ Agents emit to other agents. Chains form naturally.
 ## 5. Learn from Outcomes
 
 ```typescript
-// After success — drop pheromone on the path
-one.drop('fetcher→parser')
+// After success — mark pheromone on the path
+one.mark('fetcher→parser')
 
 // After failure — resist the path
-one.drop('fetcher→parser', false)
+one.mark('fetcher→parser', false)
 
 // Decay old paths (run periodically)
 one.fade(0.1)
@@ -225,8 +225,8 @@ setInterval(() => one.fade(0.05), 24 * 60 * 60 * 1000)
 | World | `world()` | Routes between agents |
 | Group | `world().group(name)` | Scopes agents |
 | Signal | `{ receiver, data }` | The only thing that flows |
-| Drop | `drop(edge)` | Add weight to path |
-| Resist | `drop(edge, false)` | Mark failure |
+| Drop | `mark(edge)` | Add weight to path |
+| Resist | `mark(edge, false)` | Mark failure |
 | Fade | `fade(rate)` | Decay old paths |
 | Follow | `follow(n)` | Query best paths |
 
@@ -237,7 +237,7 @@ You write agents (units).
 You put them in a world.
 You group them for scope.
 You send signals.
-You drop and fade paths.
+You mark and fade paths.
 Highways emerge.
 The world gets smarter.
 ```

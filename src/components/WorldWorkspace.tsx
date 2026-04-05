@@ -54,21 +54,63 @@ function assignEnvelopes(actors: ActorData[], envelopes: ActorData["envelopes"][
 }
 
 async function loadWorld(): Promise<WorldState> {
-  const res = await fetch("/agents.json")
-  const data = await res.json()
-
   const net = colony()
-  const actors = data.agents as ActorData[]
 
-  actors.forEach((a) => (a.envelopes = a.envelopes || []))
-  assignEnvelopes(actors, data.envelopes)
-  actors.forEach((a) => net.spawnFromJSON(a))
+  // Try live TypeDB data first
+  try {
+    const stateRes = await fetch("/api/state")
+    if (stateRes.ok) {
+      const stateData = await stateRes.json()
+      if (stateData?.units?.length > 0) {
+        const actors: ActorData[] = (stateData.units as Array<{ uid: string; name: string; status: string }>).map((u: { uid: string; name: string; status: string }) => ({
+          id: u.uid,
+          name: u.name,
+          status: u.status,
+          actions: {},
+          envelopes: [],
+        }))
 
-  for (const env of data.envelopes) {
-    await net.send(env)
+        actors.forEach((a) => {
+          const u = net.spawn(a.id)
+          for (const [name, result] of Object.entries(a.actions || {})) {
+            u.on(name, () => result)
+          }
+        })
+
+        for (const e of (stateData.edges || []) as Array<{ from: string; to: string; strength: number }>) {
+          net.mark(`${e.from}→${e.to}`, e.strength)
+        }
+
+        return { colony: net, actors, flows: net.highways(30) }
+      }
+    }
+  } catch {
+    // TypeDB not available — fall through to static JSON
   }
 
-  return { colony: net, actors, flows: net.highways(30) }
+  // Fallback: static JSON
+  try {
+    const res = await fetch("/agents.json")
+    const data = await res.json()
+    const actors = data.agents as ActorData[]
+
+    actors.forEach((a) => (a.envelopes = a.envelopes || []))
+    assignEnvelopes(actors, data.envelopes)
+    actors.forEach((a) => {
+      const u = net.spawn(a.id)
+      for (const [name, result] of Object.entries(a.actions || {})) {
+        u.on(name, () => result)
+      }
+    })
+
+    for (const env of data.envelopes) {
+      net.signal({ receiver: env.receiver, data: env.payload }, env.receiver)
+    }
+
+    return { colony: net, actors, flows: net.highways(30) }
+  } catch {
+    return { colony: net, actors: [], flows: [] }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

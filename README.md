@@ -27,17 +27,17 @@ No controller.
 
 ---
 
-## The Envelope
+## The Signal
 
 ```typescript
-{ receiver: string, payload?: unknown }
+{ receiver: string, data?: unknown }
 ```
 
 Two fields. That's it.
 
 - `receiver: "scout"` — send to scout's default task
 - `receiver: "scout:observe"` — send to scout's observe task
-- `payload` — anything: objects, streams, buffers, functions, promises
+- `data` — anything: objects, streams, buffers, functions, promises
 
 ---
 
@@ -47,7 +47,7 @@ Two fields. That's it.
 net.spawn('scout')
   .on('observe', (payload, emit, ctx) => {
     // payload: the data
-    // emit: send more envelopes
+    // emit: send more signals
     // ctx: { from, self }
     return { observed: payload.tick }
   })
@@ -71,7 +71,7 @@ net.spawn('scout')
 const net = colony()
 
 net.spawn('scout')    // create unit
-net.send(envelope)    // flow signal
+net.signal(sig)       // send signal
 net.mark(edge)        // strengthen
 net.fade(0.1)         // decay
 net.highways(10)      // see learning

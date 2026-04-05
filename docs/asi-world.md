@@ -53,7 +53,7 @@ ASI WORLD
 
 ## Two Classes of Transaction
 
-**Micro-operations** — automatic, tiny, invisible. 0.01 FET to a specialist. `drop()` weight on the path.
+**Micro-operations** — automatic, tiny, invisible. 0.01 FET to a specialist. `mark()` weight on the path.
 
 **Capital decisions** — human-signed, deliberate. Buying tokens. Deploying agents. Events that require handoff.
 
@@ -63,8 +63,8 @@ ASI WORLD
 
 ```typescript
 // Mutual holdings = coalition
-asi.path('yield-farmer', 'fund-manager').drop(50)
-asi.path('fund-manager', 'yield-farmer').drop(50)
+asi.path('yield-farmer', 'fund-manager').mark(50)
+asi.path('fund-manager', 'yield-farmer').mark(50)
 // Bidirectional dropping → coalition emerges automatically
 ```
 
@@ -80,7 +80,7 @@ Agents graduate to Uniswap when they reach threshold. In substrate terms: path w
 
 ```
 signal — move through the colony
-drop   — leave weight on a path (payments, holdings)
+mark   — leave weight on a path (payments, holdings)
 follow — traverse weighted path (route tasks)
 sense  — perceive path weight (check reputation)
 fade   — decay over time (paths evaporate)

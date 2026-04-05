@@ -27,8 +27,8 @@
 #
 # Vocabulary (converged):
 #   signal = { receiver, data }     — the universal primitive
-#   drop(path)                      — add weight (success)
-#   alarm(path)                     — add resistance (failure)
+#   mark(path)                      — add weight (success)
+#   warn(path)                     — add resistance (failure)
 #   fade(rate)                      — decay all weights
 #   emit(signal)                    — send from inside a task handler
 #
@@ -82,6 +82,8 @@ entity unit,
     owns model,                   # "opus", "sonnet", "haiku" — swappable brain
     owns system-prompt,           # mutable instructions — evolves over time
     owns generation,              # prompt iteration count
+    owns last-evolved,            # EV-3: datetime of last prompt rewrite — enforce cooldown
+    owns cost-per-signal,         # EV-5: model economics — revenue/cost ratio drives tier selection
     owns created,
     plays path:source,
     plays path:target,
@@ -130,12 +132,13 @@ entity task,
 relation path,
     relates source,
     relates target,
-    owns strength,                # drop() adds weight here
-    owns alarm,                   # alarm() adds weight here
+    owns strength,                # mark() adds weight here
+    owns alarm,                   # warn() adds weight here
     owns traversals,
     owns revenue,                 # sum of x402 payments on this path
     owns last-used,
     owns fade-rate,               # per-path decay (production=0.05, support=0.15, alarm=2x)
+    owns peak-strength,           # FL-3: highest strength ever reached — fade floor = peak * 0.05
     owns path-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
 
 # Task-to-task: what sequence works, what generated revenue
@@ -147,6 +150,7 @@ relation trail,
     owns completions,
     owns failures,
     owns revenue,                 # x402 revenue from this task sequence
+    owns fade-rate,               # FL-1: per-trail decay — proven production trails decay slower
     owns trail-status;            # INFERRED: "proven" | "fresh" | "fading" | "dead"
 
 # Unit can do task (at a price)
@@ -291,6 +295,8 @@ attribute priority-score, value double;
 attribute progress, value double;
 attribute impact-score, value double;
 attribute latency, value double;
+attribute peak-strength, value double;   # FL-3: fade floor anchor
+attribute cost-per-signal, value double; # EV-5: model tier economics
 
 # Numeric (integer)
 attribute traversals, value integer;
@@ -313,6 +319,7 @@ attribute created, value datetime;
 attribute last-used, value datetime;
 attribute joined-at, value datetime;
 attribute ts, value datetime;
+attribute last-evolved, value datetime;  # EV-3: evolution cooldown tracking
 
 
 # =============================================================================
@@ -532,7 +539,7 @@ fun total_revenue() -> double:
 # Vocabulary:
 #   signal = { receiver, data }
 #   drop   = add weight
-#   alarm  = add resistance
+#   warn   = add resistance
 #   fade   = decay
 #   emit   = send from handler
 #

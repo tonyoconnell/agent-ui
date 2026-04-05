@@ -1,156 +1,154 @@
 # TODO: Create for MVP
 
-**What must be built to have a working product.**
-
-Derived from: lifecycle.md, one.tql, strategy.md, revenue.md, gaps.md, and current codebase state.
+**What must be built. What already exists. What's just wiring.**
 
 ---
 
-## What EXISTS (no creation needed — just wire/deploy)
+## Two Codebases, One Substrate
 
-| Layer | Files | Status |
-|-------|-------|--------|
-| Substrate engine | `substrate.ts` (157 lines) | Working — unit, colony, pheromone, fade |
-| World runtime | `one.ts` (109 lines) | Working — 6 dimensions, group/actor/thing/flow |
-| TypeDB client | `lib/typedb.ts` (184 lines) | Working — read/write/decay/callFunction, gateway + direct |
-| Persistence | `persist.ts` (88 lines) | Working — mark/warn/fade sync to TypeDB |
-| ASI orchestrator | `asi.ts` (83 lines) | Working — routes via pheromone, falls back to LLM |
-| Agentverse bridge | `agentverse.ts` (82 lines) | Working — register/discover/call |
-| Schema | `one.tql` (543 lines) | Production — 6 dimensions, 20+ functions |
-| API endpoints | 20+ routes in `pages/api/` | Exist — signal, drop, alarm, agents, discover, etc. |
-| Pages | 10 Astro pages | Exist — index, world, chat, tasks, marketplace, etc. |
-| UI components | 4,660 lines | Exist — graph editor, workspace, metaphors |
+```
+envelopes/                          ants-at-work/
+├── substrate.ts    (157 lines)     ├── typedb_client.py      (548 lines)
+├── one.ts          (109 lines)     ├── typedb_pheromone.py   (1,152 lines)
+├── persist.ts      (88 lines)      ├── mcp_server.py         (607 lines)
+├── asi.ts          (83 lines)      ├── gateway-cf/            (8,500 lines)
+├── typedb.ts       (184 lines)     ├── events/                (2,260 lines)
+├── one.tql         (543 lines)     ├── knowledge/*.tql        (25 schemas)
+├── 20+ API routes                  ├── website/               (Astro 5 + Auth)
+├── 10 Astro pages                  ├── deploy/                (22 services)
+└── UI components   (4,660 lines)   └── ants/trader/core.py    (385K lines)
+```
 
----
-
-## What must be CREATED for MVP
-
-### Phase 0: Infrastructure (blocks everything)
-
-- [ ] **TypeDB instance** — Start a TypeDB Cloud or local instance. Load `one.tql`. Without this, every persist/read/write is a no-op.
-- [ ] **`.env` configuration** — Set `TYPEDB_URL`, `TYPEDB_DATABASE`, `TYPEDB_USERNAME`, `TYPEDB_PASSWORD`. Gateway URL if using Worker.
-- [ ] **Seed data script** — `scripts/seed.ts` that inserts initial units, tasks, capabilities, and paths into TypeDB so the system has something to route. The `api/seed.ts` endpoint exists but needs real seed data matching lifecycle Stage 0 (REGISTER) + Stage 1 (CAPABLE).
-- [ ] **Bootstrap script** — `scripts/bootstrap.sh` exists but needs: install deps, start TypeDB, load schema, seed data, start dev server. One command to go from zero to running.
-
-### Phase 1: Signal Loop (the core product)
-
-This is lifecycle Stages 0–4: Register → Capable → Discover → Signal → Drop.
-
-- [ ] **Agent registration flow** — `POST /api/agents` exists but needs: insert unit into TypeDB with `uid`, `name`, `unit-kind`, `status`, `success-rate`, `activity-score`, `sample-count`. Return the uid. This is lifecycle Stage 0.
-- [ ] **Capability declaration** — `POST /api/agents/:id/capabilities` — insert `capability(provider, skill)` with `price`. This is lifecycle Stage 1. Currently no endpoint for this.
-- [ ] **Signal routing end-to-end** — `POST /api/signal` exists. Verify it: writes signal to TypeDB, calls `suggest_route()` or `optimal_route()` from schema, executes the target agent, writes result signal, calls `drop()` on success / `alarm()` on failure. This is the CORE LOOP from engine.md.
-- [ ] **Decay cron** — `api/decay-cycle.ts` exists. Wire it to run on interval (every 5 min in dev, every hour in prod). Calls `decay()` from `lib/typedb.ts`. This is lifecycle Stage 6.
-- [ ] **At least 3 working agents** — Create 3 units with real LLM backing (via `llm.ts`): one for summarization, one for translation, one for analysis. They need `model`, `system-prompt` on the unit entity. Register them, declare capabilities, and have them process signals.
-
-### Phase 2: Discovery + UI (users can see and use it)
-
-This is what makes it a product people can touch.
-
-- [ ] **Live dashboard** — Wire `src/pages/dashboard.astro` to fetch from TypeDB: highway count, active units, signal volume, revenue. Currently shows static data.
-- [ ] **Agent discovery page** — `src/pages/discover.astro` exists. Wire to `suggest_route()` / `cheapest_provider()` so users can search "who can do X?" and get pheromone-ranked results.
-- [ ] **Signal log view** — Show recent signals (sender, receiver, success, latency) from TypeDB. Real-time or polling. Users need to see the colony working.
-- [ ] **Highway visualization** — Wire `WorldWorkspace.tsx` to `net.highways()` from live TypeDB data. Show the graph forming in real time. This is the "aha moment."
-- [ ] **Task board** — `src/pages/tasks.astro` exists. Wire to `ready_tasks()`, `attractive_tasks()`, `repelled_tasks()` from schema functions. Show which tasks are ready, blocked, attractive.
-
-### Phase 3: Auth + Identity (multi-user)
-
-- [ ] **Auth flow** — BetterAuth config exists in `lib/auth.ts`. Wire login/signup pages (`signup.astro` exists). Bind user identity to a TypeDB `unit` with `unit-kind: "human"`.
-- [ ] **Wallet connection** — Nightly/Sui wallet. Bind `wallet` attribute on unit entity. Needed for any payment or crystallization.
-- [ ] **API key system** — Connected-mode agents need API keys to call `POST /api/signal`. Simple: key → unit mapping in TypeDB.
-
-### Phase 4: Payment + Revenue (the business)
-
-This is what makes it a business, not a demo.
-
-- [ ] **x402 middleware** — Intercept API calls. Check `X-Payment` header. Deduct from unit balance or accept Sui payment. The pricing from revenue.md: $0.0001/signal, $0.001/highway route, $0.001/discovery.
-- [ ] **Balance management** — `unit.balance` exists in schema. Create `POST /api/pay` to add funds. Create deduction logic in signal routing.
-- [ ] **Revenue tracking** — `path.revenue` and `trail.revenue` exist in schema. Increment on every paid signal. `api/revenue.ts` exists — wire it to `total_revenue()` function.
-- [ ] **Stripe integration** — Keys exist in `.env`. Create `POST /api/stripe/checkout` for fiat → balance. `POST /api/stripe/webhook` for confirmation.
-
-### Phase 5: Crystallization (the moat)
-
-- [ ] **Sui Move deployment** — `src/move/one/sources/one.move` exists (335 lines). Deploy to testnet. Get package ID.
-- [ ] **Crystallize endpoint** — `POST /api/crystallize` — when a path reaches highway status (strength >= 50), freeze it on Sui as a `ProvenCapability` object. This is lifecycle Stage 8.
-- [ ] **On-chain verification** — Read Sui objects to verify crystallized highways. Display on agent profile.
+The TS substrate is the brain. The Python infrastructure is the body. They share TypeDB.
 
 ---
 
-## MVP Definition
+## What Already Exists
 
-**The minimum product is Phase 0 + Phase 1 + Phase 2.**
+### In envelopes/ (the engine)
+
+| What | Status |
+|------|--------|
+| Substrate: unit, colony, pheromone, fade | Working |
+| World: 6 dimensions, group/actor/thing/flow | Working |
+| TypeDB client: read/write/decay/callFunction | Working |
+| Persistence: mark/warn/fade → TypeDB | Working |
+| ASI orchestrator: pheromone routing + LLM fallback | Working |
+| Schema: 6 dimensions, 20+ functions | Production |
+| API: signal, mark, alarm, agents, discover, seed, decay | Exists |
+| Pages: dashboard, world, chat, tasks, marketplace, discover | Exists |
+| UI: graph editor, workspace, metaphors | Exists |
+
+### In ants-at-work/ (the infrastructure)
+
+| What | Where | Reuse |
+|------|-------|-------|
+| TypeDB Cloud instance | `cr0mc4-0.cluster.typedb.com` | **Use directly** — it's running |
+| Gateway API (CF Workers) | `gateway-cf/src/` | **Use directly** — deployed |
+| Agent CRUD + memories + skills | `gateway-cf/src/agents.ts` | **Use directly** — D1 backed |
+| Auth: JWT + rate limiting | `gateway-cf/src/index.ts` | **Use directly** — production |
+| WebSocket real-time hub | `gateway-cf/src/realtime.ts` | **Use directly** — Durable Objects |
+| MCP server with colony tools | `src/mcp_server.py` | **Use directly** — FastMCP |
+| Pheromone persistence to TypeDB | `ants/knowledge/typedb_pheromone.py` | Pattern reference |
+| Event bus + sourcing + decay | `ants/events/` | Pattern reference |
+| TypeDB↔Gateway bidirectional sync | `ants/gateway/bridge.py` | Pattern reference |
+| 22 SystemD service templates | `deploy/` | Copy + adapt |
+| Health monitoring | `scripts/health_monitor.py` | Copy + adapt |
+| Telegram alerts | `ants/notifications/secure_bot.py` | Copy + adapt |
+| ONE ontology JSON schemas | `one/schemas/` | Use directly |
+
+---
+
+## What Must Be Created
+
+### 1. Connect to TypeDB (one afternoon)
+
+TypeDB Cloud is already running at `cr0mc4-0.cluster.typedb.com`. The gateway is already deployed.
+
+- [ ] **Load `one.tql`** into the existing TypeDB instance (new database or extend existing)
+- [x] **Set `.env`** — point `TYPEDB_URL` and `PUBLIC_GATEWAY_URL` at the existing infra
+- [x] **Seed data** — insert 3 units, 5 tasks, capabilities between them. `api/seed.ts` exists, fill it with real inserts
+
+That's it. `persist.ts` and `lib/typedb.ts` already know how to talk to TypeDB via the gateway.
+
+### 2. Close the Signal Loop (the product)
+
+Everything here has an endpoint. The work is making them talk to each other end-to-end.
+
+- [x] **Wire `POST /api/agents`** — insert unit into TypeDB, return uid. Endpoint exists, needs TypeDB write.
+- [x] **Add `POST /api/agents/:id/capabilities`** — insert `capability(provider, skill)` with price. One new endpoint.
+- [x] **Verify `POST /api/signal`** — must: write signal → call `suggest_route()` → execute agent → write result → `mark()` on success / `warn()` on failure. The pieces exist. Wire them.
+- [x] **3 LLM-backed agents** — summarizer, translator, analyst. Register in TypeDB with `model`, `system-prompt`. Use existing `llm.ts` adapters.
+- [x] **Decay interval** — `api/decay-cycle.ts` exists. Call it on a timer (cron or setInterval in dev).
+
+### 3. Make It Visible (the dashboard)
+
+Components and pages exist. They show static data. Point them at TypeDB.
+
+- [x] **Dashboard** — wire to `highway_count()`, `total_revenue()`, unit/signal counts from TypeDB
+- [x] **Discovery** — wire to `suggest_route()` / `cheapest_provider()` — pheromone-ranked results
+- [x] **Highway graph** — wire `WorldWorkspace.tsx` to live `highways()` data
+- [x] **Signal log** — recent signals from TypeDB (sender, receiver, success, latency)
+- [x] **Task board** — wire to `ready_tasks()`, `attractive_tasks()`, `repelled_tasks()`
+
+---
+
+## That's the MVP
 
 A user can:
-1. Register an agent (or themselves)
-2. Declare capabilities
-3. Send a signal → substrate routes it → agent processes it → trail forms
-4. See highways forming on the dashboard
-5. Discover agents by capability (pheromone-ranked)
-6. Watch the colony learn (trails strengthen, fade, reroute)
+1. Register an agent
+2. Declare what it can do
+3. Send a signal → substrate routes it → trail forms
+4. Watch highways emerge on the dashboard
+5. Discover agents ranked by pheromone
 
-This demonstrates the full lifecycle: Register → Capable → Discover → Signal → Drop → Highway.
-
-No auth needed for MVP (single-tenant). No payment needed (free tier). No Sui needed (crystallization is "Out of ONE" — later).
+Three steps of creation. The rest is wiring.
 
 ---
 
-## Creation Order
+## After MVP (already built, just activate)
+
+| Feature | What exists | Where |
+|---------|-------------|-------|
+| Auth | Better Auth + JWT + gateway auth middleware | `ants-at-work/gateway-cf/` + `envelopes/lib/auth.ts` |
+| MCP server | 3 production MCP servers with colony tools | `ants-at-work/src/mcp_server.py` |
+| Real-time | WebSocket Durable Object hub | `ants-at-work/gateway-cf/src/realtime.ts` |
+| Notifications | Encrypted Telegram bot | `ants-at-work/ants/notifications/` |
+| Deployment | 22 SystemD templates, AWS/Hetzner scripts | `ants-at-work/deploy/` |
+| Health | Server watchdog, health checks | `ants-at-work/scripts/` |
+| Payment | Stripe keys configured, Sui Move contract written | Both repos |
+| Crystallization | Move contract (335 lines) ready to deploy | `envelopes/src/move/` |
+
+These are activation tasks, not creation tasks. The code exists.
+
+---
+
+## Not Building
+
+- AI SDK control plane (post-MVP)
+- AGENTS.md generation (post-MVP)
+- Multi-machine federation (enterprise)
+- Intelligence products (Year 2)
+- OpenClaw integration (post-colony)
+- Hypothesis/frontier lifecycle (emerges from usage)
+
+---
+
+## Summary
 
 ```
-Phase 0: Infrastructure          ← DO THIS FIRST
-  TypeDB instance
-  .env config
-  Seed data
-  Bootstrap script
+INFRASTRUCTURE     exists (TypeDB Cloud + gateway + MCP — running in ants-at-work)
+ENGINE             exists (substrate.ts + one.ts + persist.ts — 70 lines core)
+SCHEMA             exists (one.tql — 543 lines, 20+ functions)
+API                exists (20+ endpoints — need TypeDB wiring)
+UI                 exists (10 pages, components — need live data)
 
-Phase 1: Signal Loop             ← THIS IS THE PRODUCT
-  Agent registration
-  Capability declaration
-  Signal routing end-to-end
-  Decay cron
-  3 working agents
-
-Phase 2: Discovery + UI          ← THIS MAKES IT VISIBLE
-  Live dashboard
-  Agent discovery
-  Signal log
-  Highway visualization
-  Task board
-
-Phase 3: Auth + Identity         ← MULTI-USER
-Phase 4: Payment + Revenue       ← BUSINESS
-Phase 5: Crystallization         ← MOAT
+CREATE:
+  1. Connect .env to existing TypeDB         ← config
+  2. Load schema + seed data                 ← one command
+  3. Wire 3 endpoints to TypeDB              ← the actual work
+  4. 3 LLM agents with system prompts        ← the product
+  5. Point UI at live data                   ← the demo
 ```
 
-Each phase unblocks the next. TypeDB is the keystone.
-
----
-
-## What We're NOT Building for MVP
-
-- MCP server (Hermes integration — Week 2 in strategy.md, post-MVP)
-- AI SDK control plane (generateObject from TypeDB — Week 3, post-MVP)
-- AGENTS.md generation (Week 5, post-MVP)
-- Multi-machine federation (enterprise feature)
-- Intelligence products (Layer 5 revenue — Year 2+)
-- OpenClaw / embodied integration (post-colony)
-- Custom decay rates per path (exists in schema, configure later)
-- Hypothesis/frontier/objective lifecycle (Dimension 6 — emerges from usage)
-
----
-
-## Effort Estimate
-
-| Phase | Items | Complexity |
-|-------|-------|-----------|
-| Phase 0 | 4 items | Low — config + scripts, schema exists |
-| Phase 1 | 5 items | Medium — wiring exists, need end-to-end test |
-| Phase 2 | 5 items | Medium — components exist, need TypeDB queries |
-| Phase 3 | 3 items | Medium — auth lib exists, need flow |
-| Phase 4 | 4 items | High — payment logic, x402 spec |
-| Phase 5 | 3 items | High — Move deployment, cross-chain |
-
-**MVP (Phases 0–2): 14 items. Most code exists — it's wiring, not writing.**
-
----
-
-*The architecture is done. The schema is done. The engine is done. Now connect the wires.*
+*Two repos. One TypeDB. Five tasks. Ship it.*

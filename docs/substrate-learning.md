@@ -11,7 +11,7 @@ The substrate implements the ONE ontology's 6 dimensions:
 | **Groups** | Colonies (multi-tenant isolation) | Namespace for learned weights |
 | **Actors** | Units (AI, human, process) | Route targets |
 | **Things** | Data, resources | Training data |
-| **Paths** | Edges with drop/fade weights | The learned model |
+| **Paths** | Edges with mark/fade weights | The learned model |
 | **Events** | Signals flowing | Training examples |
 | **Knowledge** | Highways, toxic paths | Inference outputs |
 
@@ -28,12 +28,12 @@ This is reinforcement learning without:
 
 The substrate does both routing AND learning with:
 ```
-drop(edge)           →  add weight to path
-drop(edge, false)    →  resist (alarm pheromone)
+mark(edge)           →  add weight to path
+mark(edge, false)    →  resist (alarm pheromone)
 fade()               →  decay / forget / explore
 ```
 
-The verbs: signal, drop, follow, fade, sense.
+The verbs: signal, mark, follow, fade, sense.
 
 ## The Loop
 
@@ -58,8 +58,8 @@ HIGHWAYS emerge
 Groups (ONE dimension 1) provide multi-tenant isolation. Each colony operates in its own group, with separate learned weights:
 
 ```typescript
-// drop() → TypeDB (within a Group)
-async function drop(group: string, from: string, to: string, score: number) {
+// mark() → TypeDB (within a Group)
+async function mark(group: string, from: string, to: string, score: number) {
   await tx.query(`
     match 
       $g isa group, has gid "${group}";
@@ -70,7 +70,7 @@ async function drop(group: string, from: string, to: string, score: number) {
   `)
 }
 
-// drop(edge, false) → TypeDB (alarm pheromone)
+// mark(edge, false) → TypeDB (alarm pheromone)
 async function resist(group: string, from: string, to: string, score: number) {
   await tx.query(`
     match 
@@ -159,7 +159,7 @@ No ant knows the colony's goal. No unit knows the system's objective. But highwa
 Groups      → Multi-tenant colonies (isolation boundary)
 Actors      → Units that process signals
 Things      → Data flowing through the system
-Paths       → Edges with drop/fade weights (THE MODEL)
+Paths       → Edges with mark/fade weights (THE MODEL)
 Events      → Signals = immutable training examples
 Knowledge   → Highways, toxic paths = inference outputs
 ```

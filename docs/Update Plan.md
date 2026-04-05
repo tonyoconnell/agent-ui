@@ -44,7 +44,7 @@ type Signal = {
 
 **The Verbs:**
 - **signal** - move through world
-- **drop** - add weight to path
+- **mark** - add weight to path
 - **fade** - decay
 - **trace** - query
 

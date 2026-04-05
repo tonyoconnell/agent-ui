@@ -6,9 +6,9 @@
  * receiver: who (unit:task)
  * data: what (anything)
  * data.marks: false to observe without marking trails
- * data.weight: override default drop amount
+ * data.weight: override default mark weight
  *
- * Signal. Mark. Alarm. Follow. Fade. Highway.
+ * Signal. Mark. Warn. Follow. Fade. Highway.
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -152,5 +152,5 @@ export const colony = (): Colony => {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Signal. Mark. Alarm. Follow. Fade. Highway.
+// Signal. Mark. Warn. Follow. Fade. Highway.
 // ═══════════════════════════════════════════════════════════════════════════

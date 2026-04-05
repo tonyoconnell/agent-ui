@@ -28,13 +28,13 @@ ONE Protocol defines **what** exists (6 dimensions, 66 entity types, 25 path typ
 | Protocol Selection | Hardcoded | Emergent routing | **Yes** — colony.follow() |
 | Orchestration | Imperative chains | Self-organizing swarms | **Yes** — unit.then() |
 | Fallback/Retry | Scattered, manual | Automatic rerouting | **Yes** — topology-based |
-| Learning | Event logs only | Edge strengthening | **Yes** — colony.drop/fade |
+| Learning | Event logs only | Edge strengthening | **Yes** — colony.mark/fade |
 | Decision Logic | if/switch everywhere | Topology-based routing | **Yes** — colony.signal() |
 | Context Flow | Pull-based (DB) | Push-based (signals) | **Yes** — ctx.from/self |
 | Multi-Protocol | Manual filtering | Native coordination | **Yes** — unified topology |
 | Entity Dispatch | Type filters | Receiver routing | **Yes** — receiver:task |
 | Scaling | Future sharding | Built-in distribution | **Yes** — colony per shard |
-| Emergence | Aspirational | Native (drop/fade/highways) | **Yes** — all verbs work |
+| Emergence | Aspirational | Native (mark/fade/highways) | **Yes** — all verbs work |
 
 **What remains are integration gaps, not conceptual ones:**
 - TypeDB not connected (persist.ts is a stub) → [gaps.md](gaps.md) Gap 1
@@ -595,7 +595,7 @@ const patterns = colony.highways(10)
 // Returns: the 10 strongest learned patterns
 
 // No ML. No analytics pipeline. No human optimization.
-// Just: drop() on success, fade() over time, highways() to observe
+// Just: mark() on success, fade() over time, highways() to observe
 
 // The substrate IS the learning engine.
 ```
@@ -627,7 +627,7 @@ const patterns = colony.highways(10)
 │   Protocol Selection    → Emergent routing (path strength)                  │
 │   Orchestration         → Self-organizing swarms (continuations)            │
 │   Fallback/Retry        → Automatic rerouting (topology)                    │
-│   Learning              → Edge strengthening (drop/fade)                    │
+│   Learning              → Edge strengthening (mark/fade)                    │
 │   Decision Logic        → Topology-based routing (no if/switch)             │
 │   Context Flow          → Push-based (signal data)                          │
 │   Multi-Protocol        → Native coordination (unified topology)            │
@@ -655,7 +655,7 @@ const patterns = colony.highways(10)
 - Protocol selection → path strength
 - Orchestration → continuations
 - Fallback → topology rerouting
-- Learning → drop/fade/highways
+- Learning → mark/fade/highways
 
 **Both are implemented.** The 10 conceptual gaps are closed:
 

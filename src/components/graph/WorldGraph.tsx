@@ -38,6 +38,15 @@ import { cn } from "@/lib/utils"
 import { useMetaphor } from "@/contexts/MetaphorContext"
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const splitPath = (p: string): [string, string] | null => {
+  const parts = p.includes(" → ") ? p.split(" → ") : p.split("→")
+  return parts[0] && parts[1] ? [parts[0], parts[1]] : null
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -436,8 +445,9 @@ export function WorldGraph({ colony, agents, highways, onSelectAgent }: WorldGra
     for (const h of highways) {
       if (!h.path) continue
       const { path, strength } = h
-      const [from, to] = path.split(" → ")
-      if (!from || !to) continue
+      const sp = splitPath(path)
+      if (!sp) continue
+      const [from, to] = sp
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
 
@@ -466,8 +476,9 @@ export function WorldGraph({ colony, agents, highways, onSelectAgent }: WorldGra
 
     for (const h of highways) {
       if (!h.path) continue
-      const [from, to] = h.path.split(" → ")
-      if (!from || !to) continue
+      const sp = splitPath(h.path)
+      if (!sp) continue
+      const [from, to] = sp
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
       if (outgoing[sourceId]) outgoing[sourceId].add(targetId)
@@ -539,8 +550,9 @@ export function WorldGraph({ colony, agents, highways, onSelectAgent }: WorldGra
     for (const h of highways) {
       if (!h.path) continue
       const { path, strength } = h
-      const [from, to] = path.split(" → ")
-      if (!from || !to) continue
+      const sp = splitPath(path)
+      if (!sp) continue
+      const [from, to] = sp
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
       if (sourceId === targetId) continue

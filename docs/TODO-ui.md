@@ -73,7 +73,7 @@ Full integration of `one.tql` schema into the visual interface.
   - `POST /api/query` - Run TypeQL queries
   - `POST /api/signal` - Send signal (creates event)
   - `POST /api/drop` - Add weight to edge
-  - `POST /api/alarm` - Add resistance to edge
+  - `POST /api/alarm` - Add alarm to edge
   - `GET /api/state` - Full world state
 
 ## Phase 2: Graph Updates

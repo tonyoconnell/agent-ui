@@ -94,7 +94,7 @@ relation path,
     relates target,
     owns path-type,
     owns weight,          # Success signal (strength)
-    owns resistance,      # Failure signal
+    owns alarm,      # Failure signal
     owns path-status;     # "highway", "fading", "blocked"
 
 # 5. EVENTS
@@ -120,7 +120,7 @@ rule highway:
     then { $p has path-status "highway"; };
 
 rule blocked-path:
-    when { $p isa path, has resistance $r, has weight $w; $r > $w; }
+    when { $p isa path, has alarm $r, has weight $w; $r > $w; }
     then { $p has path-status "blocked"; };
 
 # Actors emerge as proven/at-risk
@@ -162,8 +162,8 @@ w.thing('task-1', 'task')
 w.thing('token-abc', 'token')
 
 // 4. Paths (connections with weight)
-w.path('user', 'agent-1').drop(1)         // Add weight (success)
-w.path('user', 'agent-1').resist(1)       // Add resistance (failure)
+w.path('user', 'agent-1').mark(1)         // Add weight (success)
+w.path('user', 'agent-1').warn(1)       // Add resistance (failure)
 
 // 5. Events (automatic from signals)
 
@@ -195,8 +195,8 @@ services.forEach(s => w.thing(s.id, 'service'))
 // Paths = Signal trails
 onSignal((from, to, success) => {
   success 
-    ? w.path(from, to).drop(1)     // Add weight
-    : w.path(from, to).resist(1)   // Add resistance
+    ? w.path(from, to).mark(1)     // Add weight
+    : w.path(from, to).warn(1)   // Add resistance
 })
 
 // Discovery = Follow highways

@@ -540,17 +540,52 @@ export function TaskBoard() {
     return () => clearInterval(i)
   }, [])
 
-  // Try to fetch from TypeDB, fall back to roadmap
+  // Fetch live data from TypeDB, overlay on roadmap
   useEffect(() => {
-    fetch('/api/tasks')
-      .then(r => r.json())
-      .then(data => {
-        if (data.tasks?.length > 0) {
-          // TypeDB connected — merge with roadmap for completeness
-          // For now, use roadmap as source of truth
+    (async () => {
+      try {
+        const [tasksRes, readyRes, attractiveRes, repelledRes] = await Promise.all([
+          fetch('/api/tasks').then(r => r.json()).catch(() => ({ tasks: [] })),
+          fetch('/api/tasks/ready').then(r => r.json()).catch(() => ({ tasks: [] })),
+          fetch('/api/tasks/attractive').then(r => r.json()).catch(() => ({ tasks: [] })),
+          fetch('/api/tasks/repelled').then(r => r.json()).catch(() => ({ tasks: [] })),
+        ])
+
+        const liveTasks = tasksRes.tasks as Array<Record<string, unknown>>
+        if (!liveTasks?.length) return
+
+        const readyIds = new Set((readyRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
+        const attractiveIds = new Set((attractiveRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
+        const repelledIds = new Set((repelledRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
+
+        const merged = liveTasks.map((t) => ({
+          tid: t.tid as string,
+          name: t.name as string,
+          status: (t.status as Task['status']) || 'todo',
+          priority: (t.priority as Task['priority']) || 'P1',
+          phase: (t.phase as string) || 'onboard',
+          taskType: (t.taskType as string) || (t['task-type'] as string) || 'build',
+          trailPheromone: (t.trailPheromone as number) || 0,
+          alarmPheromone: (t.alarmPheromone as number) || 0,
+          trailStatus: null as Task['trailStatus'],
+          attractive: attractiveIds.has(t.tid),
+          repelled: repelledIds.has(t.tid),
+          blockedBy: [] as string[],
+          blocks: [] as string[],
+        }))
+
+        // Merge: live tasks override roadmap by tid, keep roadmap extras
+        const liveMap = new Map(merged.map(t => [t.tid, t]))
+        const final = ROADMAP.map(r => liveMap.get(r.tid) || r)
+        // Add any live tasks not in roadmap
+        for (const t of merged) {
+          if (!ROADMAP.find(r => r.tid === t.tid)) final.push(t)
         }
-      })
-      .catch(() => {}) // No TypeDB — roadmap data is fine
+        setTasks(final)
+      } catch {
+        // Keep roadmap fallback
+      }
+    })()
   }, [])
 
   return (

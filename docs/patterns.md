@@ -25,14 +25,14 @@ The core feedback cycle. No agent decides. The substrate learns.
 
 ```
 signal succeeds
-  → drop(path)           strength++
-  → drop(trail)          trail-pheromone++
+  → mark(path)           strength++
+  → mark(trail)          trail-pheromone++
   → more signals routed  traversals++
   → highway emerges      path-status = "highway"
 
 signal fails
-  → alarm(path)          alarm++
-  → alarm(trail)         alarm-pheromone++
+  → warn(path)           alarm++
+  → warn(trail)          alarm-pheromone++
   → fewer signals routed
   → path goes toxic      path-status = "toxic"
 
@@ -50,14 +50,15 @@ time passes
 | highway | strength >= 50 |
 | fresh | strength 10–50, traversals < 10 |
 | fading | strength 0–5 |
+| active | everything else (default) |
 | toxic | alarm > strength, alarm >= 10 |
-| active | everything else |
 
 **Trails:**
 | Status | Condition |
 |--------|-----------|
 | proven | pheromone >= 70, completions >= 10, failures < completions |
 | fresh | pheromone 10–70, completions < 10 |
+| active | everything else (default) |
 | fading | pheromone 0–10 |
 | dead | pheromone <= 0 |
 
@@ -105,7 +106,7 @@ exploratory_tasks()    → ready + no trail history at all
 
 The ant doesn't choose. The pheromone chooses:
 - **Attractive** = other ants succeeded on this path. Swarm here.
-- **Repelled** = other ants failed on this path. Avoid.
+- **Repelled** = alarm >= 30 AND alarm > trail pheromone. Avoid.
 - **Exploratory** = no trail at all. Unknown territory. Send scouts.
 
 ---
@@ -118,8 +119,8 @@ Two layers. Substrate learns (colony). Agent evolves (individual).
 
 Every signal updates pheromone. No agent action needed.
 ```
-success → drop()  → path strengthens → more traffic → highway
-failure → alarm() → path weakens     → less traffic → toxic/fading
+success → mark()  → path strengthens → more traffic → highway
+failure → warn()  → path weakens     → less traffic → toxic/fading
 time    → fade()  → decay            → stale paths dissolve
 ```
 
@@ -253,7 +254,7 @@ Patterns compose. A typical signal flow touches multiple:
 2. attractive_tasks()      → L4 pheromone ranks it
 3. suggest_route()         → Routing finds the best agent
 4. signal(sender, receiver)→ Event recorded
-5. drop() or alarm()       → Pheromone loop updates
+5. mark() or warn()        → Pheromone loop updates
 6. unit_classification()   → L1 reclassifies agent
 7. needs_evolution()       → Agent evolves if struggling
 8. fade()                  → Time decays all paths

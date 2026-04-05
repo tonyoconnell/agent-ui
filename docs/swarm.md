@@ -48,13 +48,13 @@ A unit with tasks:
 
 ```typescript
 const agent = unit('translator')
-  .on('translate', async ({ text, to }, drop, ctx) => {
+  .on('translate', async ({ text, to }, emit, ctx) => {
     const result = await model.translate(text, to)
-    drop({ receiver: ctx.from, data: { result } })
+    emit({ receiver: ctx.from, data: { result } })
   })
-  .on('detect', async ({ text }, drop, ctx) => {
+  .on('detect', async ({ text }, emit, ctx) => {
     const lang = await model.detect(text)
-    drop({ receiver: ctx.from, data: { lang } })
+    emit({ receiver: ctx.from, data: { lang } })
   })
 ```
 
@@ -91,21 +91,21 @@ swarm.group('execution', 'team')
 
 // Actors are agents
 const scout = swarm.actor('scout', 'explorer', { group: 'research' })
-  .on('explore', async ({ url }, drop) => {
+  .on('explore', async ({ url }, emit) => {
     const data = await fetch(url).then(r => r.json())
-    drop({ receiver: 'analyst', data: { data } })
+    emit({ receiver: 'analyst', data: { data } })
   })
 
 const analyst = swarm.actor('analyst', 'analyzer', { group: 'research' })
-  .on('default', async ({ data }, drop) => {
+  .on('default', async ({ data }, emit) => {
     const insight = analyze(data)
-    drop({ receiver: 'writer', data: { insight } })
+    emit({ receiver: 'writer', data: { insight } })
   })
 
 const writer = swarm.actor('writer', 'reporter', { group: 'execution' })
-  .on('default', async ({ insight }, drop, ctx) => {
+  .on('default', async ({ insight }, emit, ctx) => {
     const report = format(insight)
-    drop({ receiver: ctx.from, data: { report } })
+    emit({ receiver: ctx.from, data: { report } })
   })
 
 // Kick off - signal traverses through the world
@@ -141,11 +141,11 @@ swarm.signal({ receiver: 'scout:explore', data: { url } }, 'user')
 Paths emerge from outcomes. This is the Paths dimension in action:
 
 ```typescript
-// Success: drop weight on the path (leave pheromone)
-swarm.path('scout', 'analyst').drop(1)
+// Success: mark weight on the path (leave pheromone)
+swarm.path('scout', 'analyst').mark(1)
 
 // Failure: resist the path
-swarm.path('scout', 'analyst').resist(1)
+swarm.path('scout', 'analyst').warn(1)
 
 // Time passes: fade all paths (pheromone evaporates)
 swarm.fade(0.1)
@@ -195,7 +195,7 @@ AGENT (actor)
 │
 │  .on(task, handler)     Define capability
 │  .then(task, template)  Define continuation
-│  drop(signal)           Drop signal (leave pheromone)
+│  emit(signal)           Emit signal
 │
 │  ONE: Actor dimension - who can act
 │
@@ -208,7 +208,7 @@ SWARM (world)
 │  .thing(id, type)       Create resource
 │  .path(from, to)        Define path
 │  .signal(signal)        Signal through the colony
-│  .drop(path, weight)    Leave weight on path
+│  .mark(path, weight)    Leave weight on path
 │  .follow(n)             Follow strongest paths
 │  .sense(path)           Perceive path weight
 │  .fade(rate)            Decay all paths
@@ -221,7 +221,7 @@ SWARM (world)
 │
 COORDINATION (emergent)
 │
-│  open paths form        From repeated success (drop)
+│  open paths form        From repeated success (mark)
 │  blocked paths clear    From repeated failure
 │  specialization emerges Actors cluster by task
 │  resilience emerges     Alternatives ready
@@ -236,20 +236,20 @@ The 6 coordination patterns map to path patterns in the ONE ontology:
 | Pattern | Path Signature | Biological Analog | Verb |
 |---------|----------------|-------------------|------|
 | Broadcast | 1 → N (fan-out) | Alarm pheromone | signal |
-| Gather | N → 1 (fan-in) | Food collection | drop |
+| Gather | N → 1 (fan-in) | Food collection | mark |
 | Pipeline | A → B → C (chain) | Foraging trail | follow |
 | Compete | N → ? (race) | Recruitment | sense |
 | Consensus | N → tally (vote) | Quorum sensing | sense |
-| Stigmergy | A → env ← B (indirect) | Trail laying | drop + sense |
+| Stigmergy | A → env ← B (indirect) | Trail laying | mark + sense |
 
 ---
 
 ### 1. Broadcast (one to many) — Fan-out Path
 
 ```typescript
-agent.on('broadcast', ({ message }, drop) => {
+agent.on('broadcast', ({ message }, emit) => {
   swarm.list().forEach(id => 
-    drop({ receiver: id, data: { message } })
+    emit({ receiver: id, data: { message } })
   )
 })
 ```
@@ -270,10 +270,10 @@ agent.on('broadcast', ({ message }, drop) => {
 
 ```typescript
 const collector = swarm.spawn('collector')
-  .on('default', ({ data, from }, drop, ctx) => {
+  .on('default', ({ data, from }, emit, ctx) => {
     results[from] = data
     if (Object.keys(results).length === expected) {
-      drop({ receiver: ctx.from, data: { results } })
+      emit({ receiver: ctx.from, data: { results } })
     }
   })
 ```
@@ -311,21 +311,21 @@ analyst
 ### 4. Compete (race) — Racing Path
 
 ```typescript
-agent.on('race', async ({ task }, drop, ctx) => {
+agent.on('race', async ({ task }, emit, ctx) => {
   const candidates = swarm.highways(3)
     .map(h => h.edge.split('→')[1])
   
   // Signal to all, first response wins
   candidates.forEach(id =>
-    drop({ receiver: id, data: { task, replyTo: ctx.self } })
+    emit({ receiver: id, data: { task, replyTo: ctx.self } })
   )
 })
 
-agent.on('result', ({ data, from }, drop, ctx) => {
+agent.on('result', ({ data, from }, emit, ctx) => {
   if (!winner) {
     winner = from
-    swarm.drop(`race→${from}`, 1)  // Winner path gets weight
-    drop({ receiver: ctx.from, data: { data } })
+    swarm.mark(`race→${from}`, 1)  // Winner path gets weight
+    emit({ receiver: ctx.from, data: { data } })
   }
 })
 ```
@@ -346,11 +346,11 @@ agent.on('result', ({ data, from }, drop, ctx) => {
 ### 5. Consensus (vote) — Weighted Path
 
 ```typescript
-agent.on('vote', async ({ question }, drop) => {
+agent.on('vote', async ({ question }, emit) => {
   const voters = swarm.highways(5).map(h => h.edge.split('→')[1])
   
   voters.forEach(id =>
-    drop({ receiver: id, data: { question, replyTo: 'tally' } })
+    emit({ receiver: id, data: { question, replyTo: 'tally' } })
   )
 })
 
@@ -379,27 +379,27 @@ tally.on('default', ({ answer, from }) => {
 // No direct communication
 // Agents just modify the environment (paths)
 
-scout.on('found', ({ resource }, drop) => {
+scout.on('found', ({ resource }, emit) => {
   // Don't signal anyone directly
-  // Just drop weight on the path (leave pheromone)
-  swarm.drop(`resource:${resource.type}→${resource.location}`, resource.quality)
+  // Just mark weight on the path (leave pheromone)
+  swarm.mark(`resource:${resource.type}→${resource.location}`, resource.quality)
 })
 
-harvester.on('seek', ({ type }, drop) => {
+harvester.on('seek', ({ type }, emit) => {
   // Sense and follow the strongest path
   const path = swarm.highways(10)
     .find(h => h.edge.startsWith(`resource:${type}→`))
   
   if (path) {
     const location = path.edge.split('→')[1]
-    drop({ receiver: 'self:harvest', data: { location } })
+    emit({ receiver: 'self:harvest', data: { location } })
   }
 })
 ```
 
 ```
 ┌───────┐                          ┌───────────┐
-│ Scout │─── drop on path ────────→│           │
+│ Scout │─── mark on path ────────→│           │
 └───────┘                          │   PATHS   │
                                    │  (scent)  │
 ┌───────────┐                      │           │
@@ -441,8 +441,8 @@ verse.actor('builder-1', 'agent', { group: 'builders' })
   .on('build', async ({ plan }, emit) => { ... })
 
 // Paths cross group boundaries
-verse.path('scholar-1', 'critic-1').drop(1)   // Within research
-verse.path('critic-1', 'planner-1').drop(1)   // Research → Execution
+verse.path('scholar-1', 'critic-1').mark(1)   // Within research
+verse.path('critic-1', 'planner-1').mark(1)   // Research → Execution
 
 // Query paths scoped to a group
 verse.open(10, { group: 'research' })  // Only research paths
@@ -497,7 +497,7 @@ Food, nest material                 Things                     THINGS
   - artifacts created                 - outputs produced
 
 Pheromone trails                    Paths                      PATHS
-  - deposited on success              - drop() on success
+  - deposited on success              - mark() on success
   - evaporate over time               - fade() over time
   - others follow them                - follow() to traverse
   - sensed by nearby ants             - sense() to perceive
@@ -547,7 +547,7 @@ Knowledge crystallizes (proven patterns).
 
 THE VERBS:
   signal — move through the colony
-  drop — leave weight on a path
+  mark — leave weight on a path
   follow — traverse weighted path
   sense — perceive environment
   fade — decay over time

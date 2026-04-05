@@ -37,7 +37,7 @@ Two fields. Everything else emerges.
 | Verb | What happens | Result |
 |------|--------------|--------|
 | **signal** | Move through world | Task executes |
-| **drop** | Leave weight on path | Trail strengthens |
+| **mark** | Leave weight on path | Trail strengthens |
 | **follow** | Traverse weighted path | Route to best |
 | **fade** | Decay all weights | Old paths weaken |
 | **sense** | Perceive nearby | Read environment |
@@ -46,7 +46,7 @@ Two fields. Everything else emerges.
 // Signal moves through world
 world.signal({ receiver: 'analyst:process', data })
 
-// Path remembers (drop happens on success)
+// Path remembers (mark happens on success)
 // user → analyst: +1 weight
 
 // Follow the best path
@@ -105,7 +105,7 @@ On success, weight drops on the path:
 user → translator: 0 → 1
 ```
 
-On failure, no drop. Path doesn't strengthen.
+On failure, no mark. Path doesn't strengthen.
 
 ### 3. Paths Fade
 
@@ -305,7 +305,7 @@ Five operations. Emergence guaranteed.
 │                                                             │
 │   VERBS                                                     │
 │   signal — move through world                               │
-│   drop   — leave weight on path                             │
+│   mark   — leave weight on path                             │
 │   follow — traverse weighted path                           │
 │   fade   — paths decay                                      │
 │   sense  — perceive nearby                                  │

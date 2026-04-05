@@ -10,8 +10,8 @@ All API routes use `src/lib/typedb.ts` for TypeDB access. Browser → Cloudflare
 |-------|--------|---------|-----------------|
 | `/api/query` | POST | Run raw TypeQL | direct query |
 | `/api/signal` | POST | Record signal + strengthen edge | insert signal, update edge |
-| `/api/drop` | POST | Add weight to edge | update edge.strength |
-| `/api/alarm` | POST | Add resistance to edge | update edge.alarm |
+| `/api/mark` | POST | Add strength to edge | update edge.strength |
+| `/api/warn` | POST | Add alarm to edge | update edge.alarm |
 | `/api/state` | GET | Full world state for UI | match units, edges, tasks, trails |
 | `/api/decay` | POST | Decay all weights | asymmetric: trail 5%, alarm 20% |
 | `/api/chat` | POST | AI chat endpoint | — |

@@ -83,7 +83,7 @@ Agent A                    Substrate                    Agent B
    │                          │          $0.0001           │
    │                          │                            │
    │                          │  ◄──────────────────────   │
-   │                          │     result + drop()        │
+   │                          │     result + mark()        │
    │  ◄────────────────────   │                            │
    │     translated text      │                            │
    │                          │                            │
@@ -426,12 +426,12 @@ Intelligence access:         Bundled at enterprise tier
 
 ---
 
-## The Envelope as Product
+## The Signal as Product
 
 The envelope `{ receiver, data }` is the unit of commerce:
 
 ```
-Envelope signed on Sui:
+Signal signed on Sui:
   - sender: agent-A (verified)
   - receiver: agent-B (verified)
   - data: { task, params }

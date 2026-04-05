@@ -62,7 +62,7 @@ type Signal = {
 }
 ```
 
-The universal primitive. Ants drop chemical signals. Neurons fire electrical signals. Agents move digital signals.
+The universal primitive. Ants mark chemical signals. Neurons fire electrical signals. Agents move digital signals.
 
 ---
 
@@ -119,7 +119,7 @@ task?.(data, emit, ctx).then(result =>
 )
 
 // GOOD
-target && (drop(edge), target(sig))
+target && (mark(edge), target(sig))
 
 // BAD
 if (!task) return reject(...)
@@ -155,7 +155,7 @@ signal(sig, from='entry')
     → task(data, emit, {from, self})
       → emit(sig)  // carries self as new from
         → signal(sig, from=self)
-          → drop(edge)  // path remembers
+          → mark(edge)  // path remembers
 ```
 
 Concurrency safe. No global state.
@@ -223,10 +223,10 @@ import type { World, Actor } from "@/engine"
 ## The Loop
 
 ```
-DROP                   FADE
+MARK                   FADE
   │                     │
   ▼                     ▼
-weight++           weight *= 0.95
+strength++         weight *= 0.95
   │                     │
   ▼                     ▼
 more signals       reroute
@@ -254,4 +254,4 @@ The substrate learns end-to-end paths regardless of which machine runs which age
 
 ---
 
-*Signal. Drop. Follow. Fade. Highway. Evolve. 70 lines.*
+*Signal. Mark. Warn. Follow. Fade. Highway. Evolve. 70 lines.*

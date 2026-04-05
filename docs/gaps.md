@@ -12,7 +12,7 @@
 | **TypeQL Schemas** (src/schema/) | 1,606 | Production-quality — 6 dimensions, inference rules, metaphors |
 | **Inference Patterns** (packages/) | 4,157 | Reference library — biology-grounded, 6 lessons |
 | **UI Components** (src/components/) | 4,660 | Polished — graph editor, metaphor switching, world view |
-| **Move Contract** (src/move/) | 335 | Complete — Unit, Colony, Envelope, Flow, Highway on Sui |
+| **Move Contract** (src/move/) | 335 | Complete — Unit, Colony, Signal, Path, Highway on Sui |
 | **LLM Adapters** (src/engine/llm.ts) | 40 | Wired — Anthropic + OpenAI, unit-based |
 
 **Architecture: 80% implemented. Integration: 20% implemented.**
@@ -150,7 +150,7 @@ Each gap unblocks the next. TypeDB is the keystone. Agent registry is the first 
 |-----|---------------|-----|
 | Agent Registry | No `/api/agents` endpoint, no capability insert | Build registration + discovery API |
 | MCP Server | No `gateway/mcp-one/` | Build MCP server exposing substrate tools |
-| AI SDK Control | `streamText()` exists but no substrate tools | Add signal/drop/discover as AI SDK tools |
+| AI SDK Control | `streamText()` exists but no substrate tools | Add signal/mark/discover as AI SDK tools |
 | AGENTS.md Gen | No script to generate from TypeDB | Build `scripts/generate_agents_md.py` |
 | Multi-Species | Colony assumes single agent type | Add species-aware routing to `optimal_route()` |
 

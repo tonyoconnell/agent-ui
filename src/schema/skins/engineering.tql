@@ -390,22 +390,22 @@ attribute outcome-summary, value string;
 #  │   "PR review"      →    signal dev→qa      →   path(dev→qa) += 1  │
 #  │   "approve"        →    signal qa→dev      →   trail pheromone++   │
 #  │   "request changes"→    signal qa→dev      →   trail alarm++       │
-#  │   "bug found"      →    signal qa→dev      →   alarm(qa→dev) += 1 │
+#  │   "bug found"      →    signal qa→dev      →   warn(qa→dev) += 1  │
 #  │   "deploy"         →    signal qa→ops      →   path(qa→ops) += 1  │
-#  │   "blocked"        →    signal any→sm      →   alarm(any→sm) += 1 │
+#  │   "blocked"        →    signal any→sm      →   warn(any→sm) += 1  │
 #  │   "unblocked"      →    signal sm→dev      →   path(sm→dev) += 1  │
 #  │   "ship"           →    signal ops→team    →   trail complete++    │
 #  │   "demo"           →    signal dev→stake   →   path(dev→stake)++  │
-#  │   "accept"         →    signal po→dev      →   drop(trail) +++    │
-#  │   "reject"         →    signal po→dev      →   alarm(trail) +++   │
+#  │   "accept"         →    signal po→dev      →   mark(trail) +++    │
+#  │   "reject"         →    signal po→dev      →   warn(trail) +++    │
 #  │   "retro good"     →    mark(path)         →   strength += 5      │
-#  │   "retro bad"      →    alarm(path)        →   alarm += 5         │
+#  │   "retro bad"      →    warn(path)         →   alarm += 5         │
 #  │   "retro try"      →    new path created   →   strength = 1 (exp) │
 #  │   "next sprint"    →    fade(0.1)          →   all paths *= 0.9   │
 #  │                                                                     │
 #  │   SCRUM SEES:            SUBSTRATE SEES:                            │
 #  │   "we shipped 34pts"     trail-pheromone on proven sequences        │
-#  │   "QA is a bottleneck"   alarm(dev→qa) rising, path fading         │
+#  │   "QA is a bottleneck"   warn(dev→qa) rising, path fading          │
 #  │   "Claude helps most     path(po→claude) and path(dev→claude)      │
 #  │    with planning"         are the strongest AI edges                │
 #  │   "SM barely needed"     sm paths have low traversals (correct!)   │

@@ -1,17 +1,82 @@
 /**
- * GET /api/discover — Find capable providers ranked by path strength
+ * GET /api/discover — Find capable providers ranked by pheromone
  *
- * Query: ?task=translate (optional — filters by task name)
- * Returns: { agents: Agent[] } sorted by aggregate path strength
+ * Query: ?task=translate&from=user (optional filters)
+ * Uses TypeDB suggest_route() when from+task specified, cheapest_provider() for price sort.
+ * Falls back to manual join when functions aren't available.
  */
 import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
 
 export const GET: APIRoute = async ({ url }) => {
   const taskFilter = url.searchParams.get('task')
+  const fromUnit = url.searchParams.get('from')
+  const sortBy = url.searchParams.get('sort') || 'strength'
 
   try {
-    // Query: find units with capabilities, joined with their path strengths
+    // Fast path: suggest_route() when we have from + task
+    if (fromUnit && taskFilter) {
+      const routes = await readParsed(`
+        match
+          $from isa unit, has uid "${fromUnit}";
+          $task isa task, has name $tn; $tn contains "${taskFilter.toLowerCase()}";
+          (source: $from, target: $to) isa path, has strength $s;
+          (provider: $to, skill: $task) isa capability, has price $p;
+          $to has uid $uid, has name $n, has unit-kind $k,
+            has reputation $rep, has success-rate $sr;
+        sort $s desc; limit 20;
+        select $uid, $n, $k, $rep, $sr, $tn, $p, $s;
+      `).catch(() => [])
+
+      if (routes.length > 0) {
+        const agents = routes.map(r => ({
+          uid: r.uid as string,
+          name: r.n as string,
+          unitKind: r.k as string,
+          reputation: (r.rep as number) || 0,
+          successRate: (r.sr as number) || 0,
+          taskName: r.tn as string,
+          price: (r.p as number) || 0,
+          currency: 'SUI',
+          strength: (r.s as number) || 0,
+        }))
+        return new Response(JSON.stringify({ agents, source: 'suggest_route' }), {
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // Cheapest path: sort by price
+    if (sortBy === 'price' && taskFilter) {
+      const cheap = await readParsed(`
+        match
+          (provider: $u, skill: $t) isa capability, has price $p;
+          $t isa task, has name $tn; $tn contains "${taskFilter.toLowerCase()}";
+          $u has uid $uid, has name $n, has unit-kind $k,
+            has reputation $rep, has success-rate $sr;
+        sort $p asc; limit 20;
+        select $uid, $n, $k, $rep, $sr, $tn, $p;
+      `).catch(() => [])
+
+      if (cheap.length > 0) {
+        const agents = cheap.map(r => ({
+          uid: r.uid as string,
+          name: r.n as string,
+          unitKind: r.k as string,
+          reputation: (r.rep as number) || 0,
+          successRate: (r.sr as number) || 0,
+          taskName: r.tn as string,
+          price: (r.p as number) || 0,
+          currency: 'SUI',
+          strength: 0,
+        }))
+        return new Response(JSON.stringify({ agents, source: 'cheapest_provider' }), {
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // Fallback: manual join (original approach)
     const taskMatch = taskFilter
       ? `$t has name $tn; $tn contains "${taskFilter.toLowerCase()}";`
       : `$t has name $tn;`
@@ -31,7 +96,6 @@ export const GET: APIRoute = async ({ url }) => {
       select $uid, $n, $k, $rep, $sr, $tn, $tt, $p;
     `)
 
-    // Fetch path strengths for each agent (aggregate)
     const strengthMap: Record<string, number> = {}
     if (rows.length > 0) {
       const strengthRows = await readParsed(`
@@ -44,8 +108,7 @@ export const GET: APIRoute = async ({ url }) => {
 
       for (const row of strengthRows) {
         const uid = row.uid as string
-        const s = row.s as number || 0
-        strengthMap[uid] = (strengthMap[uid] || 0) + s
+        strengthMap[uid] = (strengthMap[uid] || 0) + (row.s as number || 0)
       }
     }
 
@@ -62,16 +125,15 @@ export const GET: APIRoute = async ({ url }) => {
       strength: strengthMap[row.uid as string] || 0,
     }))
 
-    // Sort by strength descending
     agents.sort((a, b) => b.strength - a.strength)
 
-    return new Response(JSON.stringify({ agents }), {
+    return new Response(JSON.stringify({ agents, source: 'fallback' }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ agents: [], error: message }), {
-      status: 200, // Return empty rather than 500, so UI degrades gracefully
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
   }

@@ -130,7 +130,7 @@ Success. Trail strengthens.
 
 ```
 signal succeeded
-  → drop(edge: {source: requester, target: agent}, strength: 1.0)
+  → mark(edge: {source: requester, target: agent}, strength: 1.0)
   → edge.strength: 0 → 1
   → edge.traversals: 0 → 1
 ```
@@ -158,7 +158,7 @@ Failure. Trail weakens.
 
 ```
 signal failed (timeout, bad result, exception)
-  → alarm(edge: {source: requester, target: agent}, alarm: 1.0)
+  → warn(edge: {source: requester, target: agent}, alarm: 1.0)
   → edge.alarm: 0 → 1
 ```
 
@@ -337,7 +337,7 @@ How the existing AgentLaunch lifecycle maps into ONE:
 | 5. Reputable | Highway | Inferred from trails, not self-reported metrics |
 | 6. Compliant | — | Compliance layer sits above substrate |
 | 7. Tokenized | Crystallize | Token IS the crystallized capability proof |
-| 8. Economic | Signal + Drop | Every trade = signal, every success = drop |
+| 8. Economic | Signal + Mark | Every trade = signal, every success = mark |
 | 9. Partnered | Federate | Cross-holdings = cross-group highways |
 | 10. Graduated | — | DEX listing is above substrate layer |
 

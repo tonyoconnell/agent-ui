@@ -87,8 +87,8 @@ export type TrailStatus = "proven" | "fresh" | "fading" | "dead"
 export interface Edge {
   source: string     // uid
   target: string     // uid
-  strength: number   // drop() adds weight here
-  alarm: number      // alarm() adds weight here
+  strength: number   // mark() adds weight here
+  alarm: number      // warn() adds weight here
   traversals: number
   revenue: number    // sum of x402 payments on this edge
   lastUsed: Date

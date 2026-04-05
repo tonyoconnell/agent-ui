@@ -42,7 +42,7 @@ ONE is a platform. one.ie. Eight personas, one substrate.
 | **Young People** | Courses → projects → monetization. Which learning paths lead to outcomes? The curriculum optimizes itself. |
 | **Kids** | Communities → content → play. Safe flows only. Harmful paths resist automatically. |
 
-Same `drop()`. Same `fade()`. Eight worlds, one substrate.
+Same `mark()`. Same `fade()`. Eight worlds, one substrate.
 
 ---
 
@@ -53,7 +53,7 @@ Two deterministic fires. One ontology.
 ```
 Move (on-chain, Sui)              TQL (off-chain, TypeDB)
 ─────────────────────             ─────────────────────────
-Unit, Colony, Flow objects        Unit, colony, flow entities
+Unit, Colony, Path objects        Unit, colony, path entities
 strengthen() / resist()           Inference rules fire
 freeze_object() = crystallize     Patterns become permanent
 Move ACTS                         TypeDB REASONS
@@ -91,7 +91,7 @@ The agent economy already works like an ant colony. The substrate makes it expli
 
 | ASI / Fetch.ai | ONE |
 |----------------|-----|
-| Cross-token holdings | `drop()` — permanent trails |
+| Cross-token holdings | `mark()` — permanent trails |
 | Routing weights | `world.best(type)` — strongest path |
 | Coalitions | Mutual flows — bidirectional strengthening |
 | Agent graduation | `freeze_object()` — crystallized on Sui |

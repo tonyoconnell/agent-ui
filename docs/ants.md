@@ -456,7 +456,7 @@ DIMENSION      SUBSTRATE API
 Groups         colony()
 Actors         colony.spawn(id)
 Things         colony.spawn(id)  // things are units too
-Connections    colony.drop(path, weight)
+Connections    colony.mark(path, weight)
 Events         colony.signal(signal, from)
 Knowledge      colony.highways() + crystallize()
 ```
@@ -587,7 +587,7 @@ No central controller. Intelligence emerges from:
 
 ### What exists (envelopes)
 
-- 70-line substrate (signal, drop, follow, fade)
+- 70-line substrate (signal, mark, follow, fade)
 - Colony with 9 agents, 5 parallel chains
 - ONE runtime (6 dimensions, world API)
 - ASI orchestrator with confidence routing
@@ -598,7 +598,7 @@ No central controller. Intelligence emerges from:
 
 1. **Rename substrate** — payload to data, send to signal, mark to drop, smell to sense. Add follow.
 2. **Wire TypeDB** — persist.ts already exists. Connect pheromone state to TypeDB.
-3. **Live pheromone UI** — show drop/fade/highway in real-time on WorldGraph.
+3. **Live pheromone UI** — show mark/fade/highway in real-time on WorldGraph.
 4. **Genome parameters** — each unit carries a genome. Fitness drives reproduction.
 5. **Inference rules in UI** — show derived tiers (elite/danger/promising) on edges.
 6. **STAN routing** — effective_cost formula in colony.follow().
@@ -609,7 +609,7 @@ No central controller. Intelligence emerges from:
 
 ---
 
-*Signal. Drop. Follow. Fade. Highway. The colony knows.*
+*Signal. Mark. Follow. Fade. Highway. The colony knows.*
 
 ---
 

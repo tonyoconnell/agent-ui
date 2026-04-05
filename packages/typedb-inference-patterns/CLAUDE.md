@@ -23,7 +23,7 @@ The production schema is `src/schema/one.tql`. These standalone files are REFERE
 
 ```
 signal = { receiver, data }    — NOT payload
-drop/mark = add weight         — runtime uses mark()
+mark = add weight         — runtime uses mark()
 alarm = add resistance
 fade = decay
 emit = send from handler

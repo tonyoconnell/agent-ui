@@ -859,6 +859,12 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
   // Celebration state
   const [celebrations, setCelebrations] = useState<{ id: string; x: number; y: number }[]>([])
 
+  // Parse path strings (handles both "a → b" and "a→b")
+  const splitPath = (p: string): [string, string] | null => {
+    const parts = p.includes(" → ") ? p.split(" → ") : p.split("→")
+    return parts[0] && parts[1] ? [parts[0], parts[1]] : null
+  }
+
   // Signal tracer
   const [activeTracer, setActiveTracer] = useState<{ path: { node: string; task: string }[] } | null>(null)
 
@@ -873,8 +879,9 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     agents.forEach(a => { stats[a.id] = { incoming: 0, outgoing: 0, isSuperhighway: false, heatLevel: 0 } })
 
     for (const { path, strength } of highways) {
-      const [from, to] = path.split(" → ")
-      if (!from || !to) continue
+      const sp = splitPath(path)
+      if (!sp) continue
+      const [from, to] = sp
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
 
@@ -910,7 +917,9 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     agents.forEach(a => { outgoing[a.id] = new Set() })
 
     for (const { path } of highways) {
-      const [from, to] = path.split(" → ")
+      const sp = splitPath(path)
+      if (!sp) continue
+      const [from, to] = sp
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
       if (outgoing[sourceId]) outgoing[sourceId].add(targetId)
@@ -982,8 +991,9 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     const edgeMap: Record<string, { strength: number; fromTask: string; toTask: string }> = {}
 
     for (const { path, strength } of highways) {
-      const [from, to] = path.split(" → ")
-      if (!from || !to) continue
+      const sp = splitPath(path)
+      if (!sp) continue
+      const [from, to] = sp
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
       if (sourceId === targetId) continue
@@ -1083,7 +1093,9 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
 
     setEdges(eds => eds.map(edge => {
       const highway = highways.find(h => {
-        const [from, to] = h.path.split(" → ")
+        const sp = splitPath(h.path)
+        if (!sp) return false
+        const [from, to] = sp
         const sourceId = from === "entry" ? "entry" : from.split(":")[0]
         const targetId = to.split(":")[0]
         return edge.source === sourceId && edge.target === targetId
@@ -1179,7 +1191,9 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
 
     // Find and update all matching scent entries
     Object.keys(colony.scent).forEach(key => {
-      const [from, to] = key.split(" → ")
+      const sp = splitPath(key)
+      if (!sp) return
+      const [from, to] = sp
       const srcId = from === "entry" ? "entry" : from.split(":")[0]
       const tgtId = to.split(":")[0]
       if (srcId === source && tgtId === target) {

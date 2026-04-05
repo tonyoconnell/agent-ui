@@ -1,5 +1,5 @@
 /**
- * POST /api/alarm — Add resistance to a path (failure pheromone)
+ * POST /api/alarm — Add alarm to a path (failure pheromone)
  *
  * Body: { from: string, to: string, strength?: number }
  */

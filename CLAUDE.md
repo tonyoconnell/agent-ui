@@ -1,4 +1,4 @@
-# Envelope System
+# ONE Substrate
 
 Signal-based substrate for AI agents. 70 lines of core engine. Zero returns.
 Built with Astro 5, React 19, TypeDB 3.0, and shadcn/ui.
@@ -25,7 +25,7 @@ Multiple machines point at one TypeDB instance = one shared world.
 ### Two Layers of Learning
 
 1. **Substrate learning** — pheromone on paths and trails. The colony gets smarter
-   even if every agent stays the same. drop() on success, alarm() on failure, fade() over time.
+   even if every agent stays the same. mark() on success, warn() on failure, fade() over time.
 2. **Agent self-improvement** — units have `model`, `system-prompt`, `generation`.
    When `needs_evolution()` fires (success-rate < 0.50, sample-count >= 20),
    the agent rewrites its own prompt. The substrate provides the signal; the agent evolves.
@@ -62,7 +62,7 @@ Task signature: `(data, emit, ctx) => result`
 colony()
   .spawn(id)              // create unit
   .signal(signal, from?)  // route signal
-  .mark(edge, strength?)  // drop pheromone
+  .mark(edge, strength?)  // strengthen path
   .follow(type)           // find strongest trail
   .fade(rate?)            // decay all trails
   .highways(limit?)       // top weighted paths
@@ -103,7 +103,7 @@ Defined at setup, executed after task:
 
 ### Signal Flow
 ```
-signal → TypeDB → suggest_route() → unit → task → emit → drop(path) → signal
+signal → TypeDB → suggest_route() → unit → task → signal → mark(path) → signal
 ```
 
 ### Router Pattern

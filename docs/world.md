@@ -31,7 +31,7 @@ Five actions. Universal across all worlds.
 | Verb | Meaning | Ants | Humans | Agents |
 |------|---------|------|--------|--------|
 | **signal** | move through world | forage | communicate | request |
-| **drop** | leave weight on path | deposit scent | build trust | score |
+| **mark** | leave weight on path | deposit scent | build trust | score |
 | **follow** | traverse weighted path | smell trail | follow relationship | query route |
 | **fade** | decay over time | evaporate | forget | expire |
 | **sense** | perceive environment | antennae | observe | monitor |
@@ -39,7 +39,7 @@ Five actions. Universal across all worlds.
 ```typescript
 // The five operations
 w.signal({ receiver: 'x', data })  // Move
-w.drop('a→b', 1)                   // Weight
+w.mark('a→b', 1)                   // Weight
 w.follow('a→b')                    // Query
 w.fade(0.1)                        // Decay
 w.sense('x')                       // Perceive
@@ -80,8 +80,8 @@ antWorld.thing('food-source-1', 'food')
 antWorld.thing('nest-entrance', 'structure')
 
 // Paths = pheromone trails
-antWorld.path('scout-1', 'food-source-1').strengthen(1)  // Found food
-antWorld.path('food-source-1', 'nest-entrance').strengthen(1)  // Path home
+antWorld.path('scout-1', 'food-source-1').mark(1)  // Found food
+antWorld.path('food-source-1', 'nest-entrance').mark(1)  // Path home
 
 // Events = foraging activity
 // Knowledge = colony memory (proven trails)
@@ -106,8 +106,8 @@ humanWorld.thing('product-1', 'product')
 humanWorld.thing('service-1', 'service')
 
 // Paths = relationships, transactions
-humanWorld.path('bob', 'product-1').strengthen(1)  // Purchased
-humanWorld.path('alice', 'bob').strengthen(1)  // Served
+humanWorld.path('bob', 'product-1').mark(1)  // Purchased
+humanWorld.path('alice', 'bob').mark(1)  // Served
 
 // Events = transactions, interactions
 // Knowledge = market patterns, culture
@@ -132,8 +132,8 @@ agentWorld.thing('task-1', 'task')
 agentWorld.thing('token-abc', 'token')
 
 // Paths = interactions, delegations
-agentWorld.path('user', 'translator-1').strengthen(1)  // Success
-agentWorld.path('translator-1', 'coder-1').strengthen(1)  // Collaboration
+agentWorld.path('user', 'translator-1').mark(1)  // Success
+agentWorld.path('translator-1', 'coder-1').mark(1)  // Collaboration
 
 // Events = completions, trades
 // Knowledge = proven routes, expertise
@@ -201,8 +201,8 @@ verse.thing('task-translate', 'task')
 verse.thing('token-acme', 'token')
 
 // Paths form from interactions
-verse.path('user', 'translator-1').strengthen(1)
-verse.path('translator-1', 'coder-1').strengthen(1)
+verse.path('user', 'translator-1').mark(1)
+verse.path('translator-1', 'coder-1').mark(1)
 
 // Highways emerge (proven collaborations)
 // Toxic paths clear (failed agents)
@@ -250,7 +250,7 @@ const ethWorld = world()
 // Bridge between worlds
 function bridge(from: World, to: World, event: Event) {
   // Paths in one world create paths in another
-  to.path(event.from, event.to).strengthen(event.strength * 0.5)
+  to.path(event.from, event.to).mark(event.strength * 0.5)
 }
 
 // Cross-world discovery
@@ -283,7 +283,7 @@ function universalBest(type: string, worlds: World[]) {
 | Generic | Ant | Human | Agent |
 |---------|-----|-------|-------|
 | signal | forage | communicate | request |
-| drop | deposit | build trust | score |
+| mark | deposit | build trust | score |
 | follow | smell | follow | query |
 | fade | evaporate | forget | expire |
 | sense | antennae | observe | monitor |
@@ -327,7 +327,7 @@ Events happen.
 Knowledge crystallizes.
 
 signal → move through world
-drop   → leave weight on path
+mark   → leave weight on path
 follow → traverse weighted path
 fade   → decay over time
 sense  → perceive environment

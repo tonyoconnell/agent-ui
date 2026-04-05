@@ -8,11 +8,13 @@ interface EdgeInfoProps {
 
 export function EdgeInfo({ highways, agentId, direction }: EdgeInfoProps) {
   const edges = highways.filter(({ path }) => {
-    const [from, to] = path.split(" → ")
+    const parts = path.includes(" → ") ? path.split(" → ") : path.split("→")
+    const [from, to] = parts
+    if (!from || !to) return false
     if (direction === "incoming") {
-      return to.startsWith(agentId + ":")
+      return to.startsWith(agentId + ":") || to === agentId
     } else {
-      return from.startsWith(agentId + ":")
+      return from.startsWith(agentId + ":") || from === agentId
     }
   })
 

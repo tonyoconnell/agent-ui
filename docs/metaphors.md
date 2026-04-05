@@ -45,7 +45,7 @@ Five verbs. Every metaphor. Same meaning.
 ```typescript
 // The five operations
 w.signal({ receiver: 'x', data })  // Move
-w.drop('a→b', 1)                   // Weight
+w.mark('a→b', 1)                   // Weight
 w.follow('a→b')                    // Query
 w.fade(0.1)                        // Decay
 w.sense('x')                       // Perceive
@@ -107,9 +107,9 @@ a.on('process', (data, emit) => {
 w.signal({ receiver: 'a:process', data: data })
 
 // The six operations
-w.strengthen('a→b', 1)    // Reinforce flow
-w.resist('a→b', 1)        // Block flow
-w.decay(0.1)              // Time passes
+w.mark('a→b', 1)    // Reinforce flow
+w.warn('a→b', 1)        // Block flow
+w.fade(0.1)              // Time passes
 w.open(10)                // Strongest flows
 w.blocked()               // Blocked flows
 w.best('task')            // Best one for task type
@@ -123,7 +123,7 @@ w.best('task')            // Best one for task type
 | **part** | part | colony | network | team | office | watershed | network |
 | **signal** | signal | pheromone | spike | task | letter | drop | signal |
 | **path** | path | trail | synapse | workflow | route | channel | frequency |
-| **weight** | strengthen | deposit | potentiate | commend | stamp | carve | boost |
+| **weight** | mark | deposit | potentiate | commend | stamp | carve | boost |
 | **resistance** | resist | alarm | inhibit | flag | return | dam | jam |
 | **time** | decay | evaporate | decay | forget | archive | dry | attenuate |
 
@@ -145,7 +145,7 @@ ONE is the abstraction above all metaphors. Use it when you don't want to commit
 
 ```
 thing    → thing    (with data)
-strengthen connection on success
+mark connection on success
 weaken connection over time
 best paths emerge
 ```
@@ -182,7 +182,7 @@ colony.forage({ to: 'scout:forage', scent: { location } })
 
 // Pheromone mechanics
 colony.deposit('scout→food', 1)    // Found food
-colony.alarm('scout→danger', 1)    // Found threat
+colony.warn('scout→danger', 1)    // Found threat
 colony.evaporate(0.1)              // Time passes
 colony.trails(10)                   // Strongest paths
 ```
@@ -310,7 +310,7 @@ unit     → pool
 colony   → watershed
 signal   → drop
 signal() → flow
-drop()   → carve
+mark()   → carve
 alarm    → dam
 fade     → dry
 highways → rivers

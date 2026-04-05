@@ -18,14 +18,14 @@ Every SDK operation maps to a substrate path:
 
 | SDK Method | Path | Signal |
 |-----------|------|--------|
-| `trading.buy(token, amount)` | `path('market', token).drop(amount)` | Trust |
-| `trading.sell(token, amount)` | `path('market', token).resist(amount * 0.5)` | Doubt |
-| `payments.pay(invoice)` | `path(payer, agent).drop(amount)` | Success |
-| `payments.dispute(invoice)` | `path(payer, agent).resist(5)` | Failure |
-| `tokens.tokenize(agent)` | `path('creator', agent).drop(10)` | Commitment |
+| `trading.buy(token, amount)` | `path('market', token).mark(amount)` | Trust |
+| `trading.sell(token, amount)` | `path('market', token).warn(amount * 0.5)` | Doubt |
+| `payments.pay(invoice)` | `path(payer, agent).mark(amount)` | Success |
+| `payments.dispute(invoice)` | `path(payer, agent).warn(5)` | Failure |
+| `tokens.tokenize(agent)` | `path('creator', agent).mark(10)` | Commitment |
 | `agents.import(agent)` | `w.actor(address, 'agent')` | Registration |
-| `commerce.revenue(agent)` | `path('network', agent).drop(revenue)` | Reputation |
-| `market.holders(token)` | `path(holder, agent).drop(%)` | Cross-holding |
+| `commerce.revenue(agent)` | `path('network', agent).mark(revenue)` | Reputation |
+| `market.holders(token)` | `path(holder, agent).mark(%)` | Cross-holding |
 
 ---
 
@@ -37,7 +37,7 @@ Every SDK operation maps to a substrate path:
 const gdp = await getNetworkGDP(addresses, apiKey)
 for (const agent of gdp.agents) {
   if (agent.revenue.totalIncome > 0)
-    w.path('network', agent.address).drop(agent.revenue.totalIncome / 1_000_000)
+    w.path('network', agent.address).mark(agent.revenue.totalIncome / 1_000_000)
 }
 ```
 
@@ -90,7 +90,7 @@ envelopes/src/engine/                                MOD (clean npm exports)
 ## The Graduation Loop
 
 ```
-Week 1:   bootstrap() loads existing commerce data (drop weights)
+Week 1:   bootstrap() loads existing commerce data (mark weights)
 Week 4:   some agents reach confidence > 0.7, highways form
 Week 12:  most tasks follow paths via substrate, listing is fallback
 Steady:   substrate IS the discovery layer
@@ -102,7 +102,7 @@ Steady:   substrate IS the discovery layer
 
 ```
 signal — move through the colony
-drop   — leave weight on a path (buy, pay, succeed)
+mark   — leave weight on a path (buy, pay, succeed)
 follow — traverse weighted path (route, discover)
 sense  — perceive path weight (confidence, check)
 fade   — decay over time (keep learning fresh)

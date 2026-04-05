@@ -125,7 +125,7 @@ Week 1  Clone Hermes. Run it. Understand the loop.
         Write AGENTS.md for the envelopes workspace.
 
 Week 2  Build MCP server (gateway/mcp-one/) exposing substrate ops.
-        Hermes can signal, drop, follow, query via MCP tools.
+        Hermes can signal, mark, follow, query via MCP tools.
 
 Week 3  Wire AI SDK control plane. generateObject() produces
         agent configs from TypeDB state. streamText() with

@@ -30,10 +30,10 @@ w.actor('lora-writing', 'adapter')
 w.thing('dataset-code', 'dataset')
 w.thing('dataset-prose', 'dataset')
 
-// Training = drop on paths from data to models
+// Training = mark on paths from data to models
 function trainStep(data: string, model: string, loss: number) {
   const quality = 1 / (1 + loss)  // Lower loss = higher quality
-  w.drop(`${data}->${model}`, quality)
+  w.mark(`${data}->${model}`, quality)
 }
 
 // After training
@@ -80,8 +80,8 @@ async function infer(task: string, prompt: string) {
 function recordOutcome(task: string, model: string, quality: number) {
   const edge = `${task}->${model}`
   quality > 0.7
-    ? w.drop(edge, quality)
-    : w.drop(edge, false)  // resist
+    ? w.mark(edge, quality)
+    : w.mark(edge, false)  // resist
 }
 ```
 
@@ -112,9 +112,9 @@ function routeToken(token: string, context: string) {
   return selected.to
 }
 
-// After forward pass, drop based on contribution
+// After forward pass, mark based on contribution
 function updateRouting(expert: string, contribution: number) {
-  w.drop(`router->${expert}`, contribution)
+  w.mark(`router->${expert}`, contribution)
 }
 
 // Experts that contribute more get more traffic
@@ -153,7 +153,7 @@ async function selectAdapter(task: string) {
 
 // Record which adapter worked
 function recordAdapterResult(task: string, adapter: string, quality: number) {
-  w.drop(`${classify(task)}->${adapter}`, quality)
+  w.mark(`${classify(task)}->${adapter}`, quality)
 }
 ```
 
@@ -178,7 +178,7 @@ function recordAdapterResult(task: string, adapter: string, quality: number) {
 │   Train step → loss                                          │
 │       │                                                      │
 │       ▼                                                      │
-│   Low loss?  →  drop(data → model)                          │
+│   Low loss?  →  mark(data → model)                          │
 │   High loss? →  resist(data → model)                        │
 │       │                                                      │
 │       ▼                                                      │
@@ -215,7 +215,7 @@ function recordAdapterResult(task: string, adapter: string, quality: number) {
 │   Evaluate quality (human, reward model, outcome)           │
 │       │                                                      │
 │       ▼                                                      │
-│   Good? → drop(task → model)                                │
+│   Good? → mark(task → model)                                │
 │   Bad?  → resist(task → model)                              │
 │       │                                                      │
 │       ▼                                                      │
@@ -230,7 +230,7 @@ function recordAdapterResult(task: string, adapter: string, quality: number) {
 |-------------|-----|
 | Router model (learned) | Paths (emergent) |
 | Gating networks | `best(type)` |
-| Expert load balancing | `fade()` + `drop()` |
+| Expert load balancing | `fade()` + `mark()` |
 | Model selection heuristics | `confidence(type)` |
 | A/B testing infrastructure | Groups + paths |
 | Experiment tracking | Events |
@@ -249,10 +249,10 @@ w.group('globex', 'tenant')
 w.actor('claude', 'llm')  // Shared
 
 // Acme's usage patterns
-w.drop('coding->claude', 1, { group: 'acme' })
+w.mark('coding->claude', 1, { group: 'acme' })
 
 // Globex's usage patterns  
-w.drop('writing->claude', 1, { group: 'globex' })
+w.mark('writing->claude', 1, { group: 'globex' })
 
 // Queries route based on tenant's patterns
 function route(tenant: string, task: string) {
@@ -276,13 +276,13 @@ async function serve(tenant: string, prompt: string) {
   const edge = `${task}->${model}`
   
   // Implicit feedback from usage
-  w.drop(edge, 0.1, { group: tenant })
+  w.mark(edge, 0.1, { group: tenant })
   
   // Explicit feedback if provided
   onFeedback((quality) => {
     quality > 0.5
-      ? w.drop(edge, quality, { group: tenant })
-      : w.drop(edge, false, { group: tenant })  // resist
+      ? w.mark(edge, quality, { group: tenant })
+      : w.mark(edge, false, { group: tenant })  // resist
   })
   
   return response
@@ -312,12 +312,12 @@ setInterval(() => {
 ```
 Training = paths from data to models
 Inference = paths from tasks to models
-Learning = drop on success, resist on failure
+Learning = mark on success, resist on failure
 Routing = follow the strongest path
 
 Same 6 dimensions.
 Same 220 lines.
-Same signal/drop/follow/fade.
+Same signal/mark/follow/fade.
 
 Now it trains. Now it infers. Now it learns.
 ```

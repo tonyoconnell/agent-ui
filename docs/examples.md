@@ -304,7 +304,7 @@ nest.spawn({ receiver: "taskboard" })
     const taskId = `task-${Date.now()}`;
 
     // Task emits attractive scent proportional to reward
-    nest.drop(`task:${taskId}`, reward);
+    nest.mark(`task:${taskId}`, reward);
 
     // Store task data
     tasks[taskId] = { task, reward, difficulty, posted: Date.now() };
@@ -347,15 +347,15 @@ nest.spawn({ receiver: "worker" })
       const result = await executeTask(task);
 
       // Success! Strengthen the attraction trail
-      nest.drop(`task:${taskId}`, task.reward);
-      nest.drop(`worker:success`, 1);
+      nest.mark(`task:${taskId}`, task.reward);
+      nest.mark(`worker:success`, 1);
 
       return { success: true, result };
 
     } catch (error) {
       // Failure! Mark danger on this task
       nest.dropDanger(`task:${taskId}`, task.difficulty);
-      nest.drop(`worker:failure`, 1);
+      nest.mark(`worker:failure`, 1);
 
       return { success: false, error: error.message };
     }
@@ -382,7 +382,7 @@ nest.spawn({ receiver: "foreman" })
   })
   .assign("boost", ({ taskId, amount }) => {
     // Foreman can artificially boost a task's scent
-    nest.drop(`task:${taskId}`, amount);
+    nest.mark(`task:${taskId}`, amount);
     return { boosted: taskId, newScent: nest.trace(`task:${taskId}`) };
   })
   .assign("quarantine", ({ taskId }) => {

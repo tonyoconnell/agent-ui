@@ -50,28 +50,28 @@ entity colony,
     plays contains:parent,
     plays contains:child;
 
-# Move: struct Envelope has store { receiver: address, payload: vector<u8> }
+# Move: struct Signal has store { receiver: address, payload: vector<u8> }
 # Sui: Owned object — transferred on send, consumed on receive
-entity envelope,
-    owns envelope-id @key,
+entity signal_obj,
+    owns signal-id @key,
     owns receiver,                # unit-id of target
     owns task-name,               # which task to invoke
     owns sender,                  # unit-id of origin
     owns status,                  # "pending", "delivered", "consumed"
     owns timestamp;
 
-# Move: struct Flow has key { id: UID, strength: u64, resistance: u64 }
+# Move: struct Path has key { id: UID, strength: u64, alarm: u64 }
 # Sui: Shared object — both source and target can modify
-relation flow,
-    owns flow-id @key,
+relation path,
+    owns path-id @key,
     relates source,
     relates target,
-    owns flow-type,               # "interaction", "payment", "holding", "routing"
+    owns path-type,               # "interaction", "payment", "holding", "routing"
     owns strength,                # success pheromone (trail)
-    owns resistance,              # failure pheromone (alarm)
+    owns alarm,              # failure pheromone (alarm)
     owns hits,                    # successful traversals
     owns misses,                  # failed traversals
-    owns flow-status;             # INFERRED: "highway", "open", "closing", "blocked", "toxic"
+    owns path-status;             # INFERRED: "highway", "open", "closing", "blocked", "toxic"
 
 # Move: struct Highway has key { id: UID } — frozen object (immutable)
 # Sui: transfer::freeze_object(highway) — crystallized, permanent
@@ -110,8 +110,8 @@ relation escrow,
 
 attribute unit-id, value string;
 attribute colony-id, value string;
-attribute envelope-id, value string;
-attribute flow-id, value string;
+attribute signal-id, value string;
+attribute path-id, value string;
 attribute highway-id, value string;
 attribute escrow-id, value string;
 
@@ -122,13 +122,13 @@ attribute sender, value string;
 attribute task-name, value string;
 attribute unit-type, value string;
 attribute colony-type, value string;
-attribute flow-type, value string;
+attribute path-type, value string;
 attribute status, value string;
-attribute flow-status, value string;
+attribute path-status, value string;
 attribute escrow-status, value string;
 
 attribute strength, value double;
-attribute resistance, value double;
+attribute alarm, value double;
 attribute confidence, value double;
 attribute success-rate, value double;
 attribute activity-score, value double;
@@ -155,28 +155,28 @@ attribute timestamp, value datetime;
 
 # Move: emit(HighwayFormed { flow_id })
 rule highway-flow:
-    when { $f isa flow, has strength $s; $s >= 50.0; }
-    then { $f has flow-status "highway"; };
+    when { $f isa path, has strength $s; $s >= 50.0; }
+    then { $f has path-status "highway"; };
 
-# Move: strength >= 20, resistance < strength
+# Move: strength >= 20, alarm < strength
 rule open-flow:
-    when { $f isa flow, has strength $s, has resistance $r; $s >= 20.0; $s < 50.0; $r < $s; }
-    then { $f has flow-status "open"; };
+    when { $f isa path, has strength $s, has alarm $r; $s >= 20.0; $s < 50.0; $r < $s; }
+    then { $f has path-status "open"; };
 
 # Move: strength > 0, strength < 5
 rule closing-flow:
-    when { $f isa flow, has strength $s; $s > 0.0; $s < 5.0; }
-    then { $f has flow-status "closing"; };
+    when { $f isa path, has strength $s; $s > 0.0; $s < 5.0; }
+    then { $f has path-status "closing"; };
 
-# Move: resistance > strength, resistance >= 10
+# Move: alarm > strength, alarm >= 10
 rule blocked-flow:
-    when { $f isa flow, has resistance $r, has strength $s; $r > $s; $r >= 10.0; }
-    then { $f has flow-status "blocked"; };
+    when { $f isa path, has alarm $r, has strength $s; $r > $s; $r >= 10.0; }
+    then { $f has path-status "blocked"; };
 
-# Move: resistance > strength * 3
+# Move: alarm > strength * 3
 rule toxic-flow:
-    when { $f isa flow, has resistance $r, has strength $s; $r > ($s * 3.0); $r >= 20.0; }
-    then { $f has flow-status "toxic"; };
+    when { $f isa path, has alarm $r, has strength $s; $r > ($s * 3.0); $r >= 20.0; }
+    then { $f has path-status "toxic"; };
 
 # --- Unit Status (Classification — from ants-at-work Pattern 1) ---
 
@@ -185,7 +185,7 @@ rule proven-unit:
     when {
         $u isa unit, has success-rate $sr, has activity-score $as, has sample-count $sc;
         $sr >= 0.75; $as >= 50.0; $sc >= 30;
-        $f (target: $u) isa flow, has strength $s;
+        $f (target: $u) isa path, has strength $s;
         $s >= 20.0;
     } then { $u has status "proven"; };
 
@@ -193,7 +193,7 @@ rule proven-unit:
 rule at-risk-unit:
     when {
         $u isa unit;
-        $f (target: $u) isa flow, has resistance $r, has strength $s;
+        $f (target: $u) isa path, has alarm $r, has strength $s;
         $r > $s; $r >= 10.0;
     } then { $u has status "at-risk"; };
 
@@ -202,7 +202,7 @@ rule dissolved-unit:
     when {
         $u isa unit, has activity-score $as, has sample-count $sc;
         $as < 1.0; $sc >= 10;
-        not { $f (target: $u) isa flow, has strength $s; $s >= 1.0; };
+        not { $f (target: $u) isa path, has strength $s; $s >= 1.0; };
     } then { $u has status "dissolved"; };
 
 # --- Colony Status ---
@@ -214,12 +214,12 @@ rule splitting-colony:
         $c isa colony;
         $m1 (group: $c, member: $u1) isa membership;
         $m2 (group: $c, member: $u2) isa membership;
-        $f1 (source: $u1, target: $u2) isa flow, has flow-status "highway";
+        $f1 (source: $u1, target: $u2) isa path, has path-status "highway";
         not {
             # No highway connects to the REST of the colony
             $m3 (group: $c, member: $u3) isa membership;
             not { $u3 is $u1; }; not { $u3 is $u2; };
-            $f2 (source: $u1, target: $u3) isa flow, has strength $s2; $s2 >= 50.0;
+            $f2 (source: $u1, target: $u3) isa path, has strength $s2; $s2 >= 50.0;
         };
     } then { $c has status "splitting"; };
 
@@ -240,7 +240,7 @@ rule escrow-expired:
 fun best($type: string) -> unit:
     match
         $u isa unit, has unit-type $type, has status "proven";
-        $f (target: $u) isa flow, has strength $s;
+        $f (target: $u) isa path, has strength $s;
     sort $s desc; limit 1;
     return $u;
 
@@ -259,25 +259,25 @@ fun dissolved() -> { unit }:
 # --- Flow Analysis ---
 
 fun highways($n: integer) -> { flow }:
-    match $f isa flow, has flow-status "highway", has strength $s;
+    match $f isa path, has path-status "highway", has strength $s;
     sort $s desc; limit $n;
     return { $f };
 
 fun open($n: integer) -> { flow }:
-    match $f isa flow, has flow-status "open", has strength $s;
+    match $f isa path, has path-status "open", has strength $s;
     sort $s desc; limit $n;
     return { $f };
 
 fun blocked() -> { flow }:
-    match $f isa flow, has flow-status "blocked";
+    match $f isa path, has path-status "blocked";
     return { $f };
 
 fun toxic() -> { flow }:
-    match $f isa flow, has flow-status "toxic";
+    match $f isa path, has path-status "toxic";
     return { $f };
 
 fun closing() -> { flow }:
-    match $f isa flow, has flow-status "closing";
+    match $f isa path, has path-status "closing";
     return { $f };
 
 # --- Confidence (how well we know a type) ---
@@ -285,7 +285,7 @@ fun closing() -> { flow }:
 fun confidence($type: string) -> double:
     match
         $u isa unit, has unit-type $type;
-        $f (target: $u) isa flow, has strength $s;
+        $f (target: $u) isa path, has strength $s;
     return sum($s) / 100.0;
 
 # --- Colony Analysis ---
@@ -301,7 +301,7 @@ fun colony_highways($cid: string) -> { flow }:
         $c isa colony, has colony-id $cid;
         $m1 (group: $c, member: $u1) isa membership;
         $m2 (group: $c, member: $u2) isa membership;
-        $f (source: $u1, target: $u2) isa flow, has flow-status "highway", has strength $s;
+        $f (source: $u1, target: $u2) isa path, has path-status "highway", has strength $s;
     sort $s desc;
     return { $f };
 
@@ -314,7 +314,7 @@ fun splitting_colonies() -> { colony }:
 fun success_rate($uid: string) -> double:
     match
         $u isa unit, has unit-id $uid;
-        $f (target: $u) isa flow, has hits $h, has misses $m;
+        $f (target: $u) isa path, has hits $h, has misses $m;
     return sum($h) / (sum($h) + sum($m));
 
 # --- Crystallized Knowledge ---

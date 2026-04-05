@@ -2,7 +2,7 @@
 
 An agent is a unit with tasks. That's it.
 
-An agent is an **Actor** (dimension 2). The substrate treats users, AI agents, and system processes identically — all sense signals, all drop signals.
+An agent is an **Actor** (dimension 2). The substrate treats users, AI agents, and system processes identically — all sense signals, all emit signals.
 
 ## Anatomy
 
@@ -21,8 +21,8 @@ const agent = unit('translator')
 │   id: "translator"                           │
 │                                              │
 │   TASKS                                      │
-│     translate(data, drop, ctx)               │
-│     detect(data, drop, ctx)                  │
+│     translate(data, emit, ctx)               │
+│     detect(data, emit, ctx)                  │
 │                                              │
 │   CONTINUATIONS                              │
 │     translate → { receiver, data }           │
@@ -36,34 +36,34 @@ const agent = unit('translator')
 ## Tasks
 
 ```typescript
-agent.on('taskName', (data, drop, ctx) => {
+agent.on('taskName', (data, emit, ctx) => {
   // data — the data signaled to this task
-  // drop — function to drop signals (like pheromones)
+  // emit — function to emit signals
   // ctx  — { from: sender, self: this receiver }
   
-  drop({ receiver: ctx.from, data: { result } })
+  emit({ receiver: ctx.from, data: { result } })
 })
 ```
 
 **Simple transform:**
 ```typescript
-agent.on('double', ({ n }, drop, ctx) => {
-  drop({ receiver: ctx.from, data: { result: n * 2 } })
+agent.on('double', ({ n }, emit, ctx) => {
+  emit({ receiver: ctx.from, data: { result: n * 2 } })
 })
 ```
 
 **Async:**
 ```typescript
-agent.on('fetch', async ({ url }, drop, ctx) => {
+agent.on('fetch', async ({ url }, emit, ctx) => {
   const data = await fetch(url).then(r => r.json())
-  drop({ receiver: ctx.from, data: { data } })
+  emit({ receiver: ctx.from, data: { data } })
 })
 ```
 
 **Fan out:**
 ```typescript
-agent.on('broadcast', ({ message, targets }, drop) => {
-  targets.forEach(t => drop({ receiver: t, data: { message } }))
+agent.on('broadcast', ({ message, targets }, emit) => {
+  targets.forEach(t => emit({ receiver: t, data: { message } }))
 })
 ```
 
@@ -71,7 +71,7 @@ agent.on('broadcast', ({ message, targets }, drop) => {
 ```typescript
 agent.on('log', ({ message }) => {
   console.log(message)
-  // No drop — silence is valid
+  // No emit — silence is valid
 })
 ```
 
@@ -90,8 +90,8 @@ agent
   .then('step1', r => ({ receiver: 'self:step2', data: r }))
   .on('step2', ({ a }) => ({ b: a + 1 }))
   .then('step2', r => ({ receiver: 'self:step3', data: r }))
-  .on('step3', ({ b }, drop, ctx) => {
-    drop({ receiver: ctx.from, data: { final: b } })
+  .on('step3', ({ b }, emit, ctx) => {
+    emit({ receiver: ctx.from, data: { final: b } })
   })
 ```
 
@@ -101,9 +101,9 @@ Preconfigured task variants:
 
 ```typescript
 agent
-  .on('translate', ({ text, to, fast }, drop, ctx) => {
+  .on('translate', ({ text, to, fast }, emit, ctx) => {
     const result = fast ? quickTranslate(text, to) : deepTranslate(text, to)
-    drop({ receiver: ctx.from, data: { result } })
+    emit({ receiver: ctx.from, data: { result } })
   })
   .role('quick', 'translate', { fast: true })
   .role('thorough', 'translate', { fast: false })
@@ -126,18 +126,18 @@ agent.id                // 'translator'
 **Worker** — does one thing well:
 ```typescript
 const hasher = unit('hasher')
-  .on('hash', ({ data, algo = 'sha256' }, drop, ctx) => {
+  .on('hash', ({ data, algo = 'sha256' }, emit, ctx) => {
     const hash = crypto.createHash(algo).update(data).digest('hex')
-    drop({ receiver: ctx.from, data: { hash } })
+    emit({ receiver: ctx.from, data: { hash } })
   })
 ```
 
 **Router** — directs traffic:
 ```typescript
 const router = unit('router')
-  .on('route', ({ task, data }, drop) => {
+  .on('route', ({ task, data }, emit) => {
     const target = selectBest(task)  // Use paths
-    drop({ receiver: `${target}:${task}`, data })
+    emit({ receiver: `${target}:${task}`, data })
   })
 ```
 
@@ -145,8 +145,8 @@ const router = unit('router')
 ```typescript
 const aggregator = unit('aggregator')
   .on('collect', ({ id, data }) => { results[id] = data })
-  .on('finalize', (_, drop, ctx) => {
-    drop({ receiver: ctx.from, data: { results } })
+  .on('finalize', (_, emit, ctx) => {
+    emit({ receiver: ctx.from, data: { results } })
     results = {}
   })
 ```
@@ -154,24 +154,24 @@ const aggregator = unit('aggregator')
 **Supervisor** — manages others:
 ```typescript
 const supervisor = unit('supervisor')
-  .on('assign', ({ task, workers }, drop) => {
-    workers.forEach((w, i) => drop({ receiver: w, data: { task, chunk: i } }))
+  .on('assign', ({ task, workers }, emit) => {
+    workers.forEach((w, i) => emit({ receiver: w, data: { task, chunk: i } }))
   })
 ```
 
 **LLM** — wraps a model:
 ```typescript
 const llmAgent = unit('claude')
-  .on('complete', async ({ prompt, system }, drop, ctx) => {
+  .on('complete', async ({ prompt, system }, emit, ctx) => {
     const response = await anthropic.complete(prompt, { system })
-    drop({ receiver: ctx.from, data: { response } })
+    emit({ receiver: ctx.from, data: { response } })
   })
 ```
 
 ## Context
 
 ```typescript
-agent.on('task', (data, drop, ctx) => {
+agent.on('task', (data, emit, ctx) => {
   ctx.from   // Who signaled this
   ctx.self   // This receiver (agent:task)
 })
@@ -179,11 +179,11 @@ agent.on('task', (data, drop, ctx) => {
 
 ## Patterns
 
-**Request-Response:** `drop({ receiver: ctx.from, data: { answer } })`
-**Fire-and-Forget:** No drop. Silence is valid.
-**Forward:** `drop({ receiver: 'next-agent', data })`
-**Enrich:** `drop({ receiver: 'next-agent', data: { ...data, extra: compute(data) } })`
-**Split:** `items.forEach(item => drop({ receiver: 'worker', data: { item } }))`
+**Request-Response:** `emit({ receiver: ctx.from, data: { answer } })`
+**Fire-and-Forget:** No emit. Silence is valid.
+**Forward:** `emit({ receiver: 'next-agent', data })`
+**Enrich:** `emit({ receiver: 'next-agent', data: { ...data, extra: compute(data) } })`
+**Split:** `items.forEach(item => emit({ receiver: 'worker', data: { item } }))`
 
 ## In a Colony
 
@@ -201,11 +201,11 @@ c.get('translator')   // the unit
 
 ```
 Agent = Unit + Tasks
-Task = (data, drop, ctx) => void
+Task = (data, emit, ctx) => void
 Signal = { receiver, data }
 ```
 
-No base classes. No decorators. No configuration. Just functions that sense signals and drop signals.
+No base classes. No decorators. No configuration. Just functions that sense signals and emit signals.
 
 ---
 
@@ -221,7 +221,7 @@ From Deborah Gordon's research on ant colonies:
 
 THE VERBS:
 - `signal` — move through the colony
-- `drop` — add weight to a path (leave pheromone)
+- `mark` — add weight to a path (leave pheromone)
 - `follow` — traverse weighted path
 - `sense` — perceive environment
 - `fade` — decay over time

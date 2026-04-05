@@ -9,7 +9,7 @@ import { readParsed } from '@/lib/typedb'
 
 export const GET: APIRoute = async () => {
   try {
-    const [units, tasks, edges] = await Promise.all([
+    const [units, tasks, edges, signals] = await Promise.all([
       readParsed(`
         match $u isa unit, has uid $id, has status $status;
         select $id, $status;
@@ -24,6 +24,10 @@ export const GET: APIRoute = async () => {
         $from has uid $fid; $to has uid $tid;
         select $fid, $tid, $s, $a, $r;
       `),
+      readParsed(`
+        match $s (sender: $from, receiver: $to) isa signal, has ts $ts;
+        select $ts;
+      `).catch(() => []),
     ])
 
     const totalUnits = units.length
@@ -40,6 +44,10 @@ export const GET: APIRoute = async () => {
 
     // GDP: revenue from proven highways (strength >= 50)
     const gdp = highways.reduce((sum, e) => sum + ((e.r as number) || 0), 0)
+
+    const totalSignals = signals.length
+    const oneHourAgo = new Date(Date.now() - 3600_000).toISOString()
+    const recentSignals = signals.filter(s => (s.ts as string) > oneHourAgo).length
 
     const stats = {
       units: {
@@ -60,6 +68,10 @@ export const GET: APIRoute = async () => {
       revenue: {
         total: totalRevenue,
         gdp,
+      },
+      signals: {
+        total: totalSignals,
+        recent: recentSignals,
       },
       timestamp: new Date().toISOString(),
     }

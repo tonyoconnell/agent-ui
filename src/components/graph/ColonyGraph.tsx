@@ -348,6 +348,11 @@ const edgeTypes = { trail: TrailEdge }
 // COLONY GRAPH - The visualization
 // ============================================================================
 
+const splitPath = (p: string): [string, string] | null => {
+  const parts = p.includes(" → ") ? p.split(" → ") : p.split("→")
+  return parts[0] && parts[1] ? [parts[0], parts[1]] : null
+}
+
 export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProps) {
 
   // Calculate comprehensive stats for each agent
@@ -369,8 +374,9 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
 
     // Compute from highways
     for (const { path, strength } of highways) {
-      const [from, to] = path.split(" → ")
-      if (!from || !to) continue
+      const sp = splitPath(path)
+      if (!sp) continue
+      const [from, to] = sp
 
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
@@ -399,7 +405,9 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
     agents.forEach(a => { outgoing[a.id] = new Set() })
 
     for (const { path } of highways) {
-      const [from, to] = path.split(" → ")
+      const sp = splitPath(path)
+      if (!sp) continue
+      const [from, to] = sp
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]
       if (outgoing[sourceId]) {
@@ -472,7 +480,7 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
     // Build entry node
     const entryTargets = highways
       .filter(h => h.path.startsWith("entry"))
-      .map(h => h.path.split(" → ")[1]?.split(":")[0])
+      .map(h => { const sp = splitPath(h.path); return sp ? sp[1].split(":")[0] : undefined })
       .filter(Boolean)
 
     const entryStrength = highways
@@ -516,8 +524,9 @@ export function ColonyGraph({ agents, highways, onSelectAgent }: ColonyGraphProp
     const edgeMap: Record<string, { strength: number; fromTask: string; toTask: string }> = {}
 
     for (const { path, strength } of highways) {
-      const [from, to] = path.split(" → ")
-      if (!from || !to) continue
+      const sp = splitPath(path)
+      if (!sp) continue
+      const [from, to] = sp
 
       const sourceId = from === "entry" ? "entry" : from.split(":")[0]
       const targetId = to.split(":")[0]

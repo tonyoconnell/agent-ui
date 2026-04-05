@@ -310,7 +310,7 @@ const result = streamText({
       execute: async ({ receiver, data }) =>
         colony.signal({ receiver, data }),
     }),
-    drop: tool({
+    mark: tool({
       description: "Strengthen path (pheromone)",
       parameters: z.object({
         source: z.string(),
@@ -485,7 +485,7 @@ export async function POST(request: Request) {
       Ready tasks: ${JSON.stringify(ready)}
       Use the signal tool to route work to other units.
       Use discover to find who can help.`,
-    tools: substrateTools,  // signal, drop, discover, query
+    tools: substrateTools,  // signal, mark, discover, query
     messages,
   })
 
@@ -541,7 +541,7 @@ Task: "Analyze competitor pricing and build a comparison table"
 9. analyst signals back with table
 10. coordinator calls discover("presentation")
     → substrate returns formatter (raw LLM, Haiku, strength: 55)
-11. All trails strengthened via drop()
+11. All trails strengthened via mark()
 12. Next time: substrate routes directly, no coordinator needed
 ```
 
@@ -567,7 +567,7 @@ git clone https://github.com/nousresearch/hermes-agent
 
 Build `gateway/mcp-one/` — substrate ops as MCP tools.
 
-- 8-10 tools: signal, drop, alarm, discover, register, highways, ready_tasks, attractive_tasks, query
+- 8-10 tools: signal, mark, alarm, discover, register, highways, ready_tasks, attractive_tasks, query
 - Hermes connects via config
 - Test: Hermes uses substrate to pick and route tasks
 

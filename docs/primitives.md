@@ -24,7 +24,7 @@ Signals are free. Attach `amount > 0` and it's a payment (x402).
 | Verb | What it does | Schema effect |
 |------|-------------|---------------|
 | `emit(signal)` | Send from inside a task handler | Creates `signal` relation |
-| `drop(path)` | Reinforce on success | `strength++` on path, `trail-pheromone++` on trail |
+| `mark(path)` | Reinforce on success | `strength++` on path, `trail-pheromone++` on trail |
 | `alarm(path)` | Resist on failure | `alarm++` on path, `alarm-pheromone++` on trail |
 | `fade(rate)` | Decay over time | `strength *= (1 - fade-rate)` on all paths |
 | `follow(trail)` | Go where pheromone is strongest | Read `suggest_route()` from TypeDB |
@@ -77,7 +77,7 @@ Both decay. `fade-rate` is per-path (production=0.05, support=0.15, alarm decays
 
 The cycle:
 ```
-drop    → strength++    → more signals routed   → highway
+mark    → strength++    → more signals routed   → highway
 alarm   → alarm++       → fewer signals routed  → toxic
 fade    → strength--    → stale paths dissolve
 nothing → silence       → signal dissolves (zero returns)
@@ -127,8 +127,8 @@ A unit with `unit-kind: "agent"` has both. The substrate tells it when to evolve
 |--------|----------|
 | unit | "active", "proven", "at-risk" |
 | task | "todo", "in_progress", "complete", "blocked", "failed" |
-| path | "highway", "fresh", "fading", "toxic" |
-| trail | "proven", "fresh", "fading", "dead" |
+| path | "highway", "fresh", "active", "fading", "toxic" |
+| trail | "proven", "fresh", "active", "fading", "dead" |
 | hypothesis | "pending", "testing", "confirmed", "rejected" |
 | frontier | "unexplored", "exploring", "exhausted" |
 | objective | "pending", "active", "complete" |

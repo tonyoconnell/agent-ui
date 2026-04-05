@@ -25,7 +25,7 @@ The router process is dumb hands. TypeDB decides routing via pheromone.
 
 ## Two Layers of Learning
 
-- **Substrate** — drop()/alarm()/fade() on paths and trails. Colony intelligence.
+- **Substrate** — mark()/warn()/fade() on paths and trails. Colony intelligence.
 - **Agent** — needs_evolution() triggers prompt rewrite. generation++. Individual intelligence.
 
 ## Task Signature

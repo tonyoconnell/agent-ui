@@ -69,11 +69,16 @@ async function load() {
   assignEnvelopes(agents, data.envelopes)
 
   // Spawn agents into colony
-  agents.forEach(a => net.spawnFromJSON(a))
+  agents.forEach(a => {
+    const u = net.spawn(a.id)
+    for (const [name, result] of Object.entries(a.actions || {})) {
+      u.on(name, () => result)
+    }
+  })
 
-  // Process all envelope chains
+  // Process all envelope chains as signals
   for (const env of data.envelopes) {
-    await net.send(env)
+    net.signal({ receiver: env.receiver, data: env.payload }, env.receiver)
   }
 
   // Log highways for signal flow verification (SWP-005)

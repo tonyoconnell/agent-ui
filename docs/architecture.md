@@ -94,8 +94,8 @@ relation path
   owns strength, alarm, traversals, revenue, last-used, fade-rate, path-status
 ```
 
-- `strength` — drop() adds weight on success
-- `alarm` — alarm() adds weight on failure
+- `strength` — mark() adds weight on success
+- `alarm` — warn() adds weight on failure
 - `fade-rate` — per-path decay rate (production=0.05, support=0.15, alarm=2x)
 - `revenue` — sum of x402 payments on this path
 - `path-status` — INFERRED: "highway" | "fresh" | "fading" | "toxic"
@@ -108,7 +108,7 @@ relation trail
   owns trail-pheromone, alarm-pheromone, completions, failures, revenue, trail-status
 ```
 
-- `trail-pheromone` — 0–100, drop on success
+- `trail-pheromone` — 0–100, mark on success
 - `alarm-pheromone` — 0–100, alarm on failure
 - `trail-status` — INFERRED: "proven" | "fresh" | "fading" | "dead"
 
@@ -157,8 +157,8 @@ Objectives: `pending → active → complete`
 ### 1. Substrate Learning (colony gets smarter)
 
 ```
-signal succeeds → drop(path)  → strength++  → more signals routed here → highway
-signal fails    → alarm(path) → alarm++     → fewer signals routed     → toxic
+signal succeeds → mark(path)  → strength++  → more signals routed here → highway
+signal fails    → warn(path)  → alarm++     → fewer signals routed     → toxic
 time passes     → fade(rate)  → strength--  → stale paths dissolve
 ```
 
@@ -181,11 +181,11 @@ The substrate provides the signal (who is failing). The agent evolves itself.
 
 | Function | Input | Output | Trigger |
 |----------|-------|--------|---------|
-| `path_status(path)` | strength, alarm, traversals | "highway" / "fresh" / "fading" / "toxic" | Routing decisions |
-| `trail_status(trail)` | trail-pheromone, completions, failures | "proven" / "fresh" / "fading" / "dead" | Sequence selection |
+| `path_status(path)` | strength, alarm, traversals | "highway" / "fresh" / "active" / "fading" / "toxic" | Routing decisions |
+| `trail_status(trail)` | trail-pheromone, completions, failures | "proven" / "fresh" / "active" / "fading" / "dead" | Sequence selection |
 | `unit_classification(unit)` | success-rate, activity-score, sample-count | "proven" / "active" / "at-risk" | Trust & routing |
 | `is_attractive(task)` | todo + no blockers + trail pheromone >= 50 | boolean | Task selection |
-| `is_repelled(task)` | alarm-pheromone > trail-pheromone | boolean | Task avoidance |
+| `is_repelled(task)` | alarm >= 30 AND alarm > trail-pheromone | boolean | Task avoidance |
 | `is_action_ready(hypothesis)` | confirmed + p-value <= 0.05 + n >= 50 | boolean | Knowledge → action |
 | `needs_evolution(unit)` | success-rate < 0.50 + sample-count >= 20 | boolean | Agent self-improvement |
 
@@ -216,7 +216,7 @@ The process running on each machine:
 3. Load agent config from unit entity (model, system-prompt)
 4. Execute agent prompt
 5. Write result as new signal to TypeDB
-6. drop() or alarm() the path based on outcome
+6. mark() or warn() the path based on outcome
 7. Go to 2
 ```
 
@@ -244,8 +244,8 @@ The substrate learns end-to-end paths regardless of which machine runs which age
 
 ```
 signal = { receiver, data }     — the universal primitive
-drop(path)                      — add weight (success)
-alarm(path)                     — add resistance (failure)
+mark(path)                      — add weight (success)
+warn(path)                      — add alarm (failure)
 fade(rate)                      — decay all weights
 emit(signal)                    — send from inside a task handler
 ```

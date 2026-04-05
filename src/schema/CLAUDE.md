@@ -57,8 +57,8 @@ Functions auto-classify based on thresholds:
 | Schema | Runtime (`src/engine/substrate.ts`) |
 |--------|-------------------------------------|
 | unit | `unit(id)` |
-| path.strength | `drop(path)` increments |
-| path.alarm | `alarm(path)` increments |
+| path.strength | `mark(path)` increments |
+| path.alarm | `warn(path)` increments |
 | signal | `emit({ receiver, data })` |
 | trail | implicit via task routing |
 | highways() | `colony.highways(n)` |
