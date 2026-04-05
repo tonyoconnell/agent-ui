@@ -41,6 +41,8 @@ export interface World {
   resistance: Record<string, number>
   peak: Record<string, number>
   lastUsed: Record<string, number>
+  latency: Record<string, number>
+  revenue: Record<string, number>
   queue: Signal[]
   add: (id: string) => Unit
   remove: (id: string) => void
@@ -57,6 +59,9 @@ export interface World {
   select: (type?: string, sensitivity?: number) => string | null
   fade: (rate?: number) => void
   highways: (limit?: number) => Edge[]
+  recordLatency: (path: string, ms: number) => void
+  recordRevenue: (path: string, amount: number) => void
+  isHighway: (path: string, threshold?: number) => boolean
   has: (id: string) => boolean
   list: () => string[]
   get: (id: string) => Unit | undefined
@@ -105,6 +110,8 @@ export const world = (): World => {
   const resistance: Record<string, number> = {}
   const peak: Record<string, number> = {}
   const lastUsed: Record<string, number> = {}
+  const latency: Record<string, number> = {}
+  const revenue: Record<string, number> = {}
   const queue: Signal[] = []
 
   const mark = (path: string, amount = 1) => {
@@ -183,22 +190,32 @@ export const world = (): World => {
   const matchEdge = (edge: string, type: string) =>
     edge.split('→').some(s => s.split(':')[0] === type)
 
-  // follow strongest trail, penalized by resistance
+  // weight factors shared by follow/select
+  const edgeWeight = (e: string, net: number, sensitivity: number) => {
+    const latPenalty = 1 / (1 + (latency[e] || 0) / 1000)
+    const revBoost = 1 + Math.log1p(revenue[e] || 0)
+    return (1 + Math.max(0, net) * sensitivity) * latPenalty * revBoost
+  }
+
+  // follow strongest trail, penalized by resistance, boosted by revenue, penalized by latency
   const follow = (type?: string) => {
     const trails = Object.entries(strength)
       .filter(([e]) => !type || matchEdge(e, type))
-      .map(([e, s]) => [e, s - (resistance[e] || 0)] as const)
-      .filter(([, s]) => s > 0)
+      .map(([e, s]) => {
+        const net = s - (resistance[e] || 0)
+        return [e, edgeWeight(e, net, 1)] as const
+      })
+      .filter(([, w]) => w > 1)
       .sort(([, a], [, b]) => b - a)
     return trails[0]?.[0].split('→').pop()?.split(':')[0] || null
   }
 
-  // STAN: Stigmergic A* Navigation — weight = 1 + pheromone × sensitivity
+  // STAN: Stigmergic A* Navigation — weight = (1 + pheromone × sensitivity) × latPenalty × revBoost
   // sensitivity=0 → pure exploration (scout), sensitivity=1 → follow highways (harvester)
   const select = (type?: string, sensitivity = 0.7) => {
     const viable = Object.entries(strength)
       .filter(([e]) => !type || matchEdge(e, type))
-      .map(([e, s]) => [e, 1 + Math.max(0, s - (resistance[e] || 0)) * sensitivity] as const)
+      .map(([e, s]) => [e, edgeWeight(e, s - (resistance[e] || 0), sensitivity)] as const)
     if (!viable.length) return null
     const pick = (e: string) => e.split('→').pop()?.split(':')[0] || null
     const total = viable.reduce((sum, [, w]) => sum + w, 0)
@@ -224,15 +241,27 @@ export const world = (): World => {
 
   const highways = (limit = 10): Edge[] =>
     Object.entries(strength)
-      .sort(([, a], [, b]) => b - a)
+      .map(([path, s]) => ({ path, strength: s - (resistance[path] || 0) }))
+      .filter(e => e.strength > 0)
+      .sort((a, b) => b.strength - a.strength)
       .slice(0, limit)
-      .map(([path, strength]) => ({ path, strength }))
+
+  const recordLatency = (path: string, ms: number) => {
+    latency[path] = latency[path] ? latency[path] * 0.7 + ms * 0.3 : ms
+  }
+
+  const recordRevenue = (path: string, amount: number) => {
+    revenue[path] = (revenue[path] || 0) + amount
+  }
+
+  const isHighway = (path: string, threshold = 20) =>
+    (strength[path] || 0) - (resistance[path] || 0) >= threshold
 
   const has = (id: string) => id in units
   const list = () => Object.keys(units)
   const get = (id: string) => units[id]
 
-  return { units, strength, resistance, peak, lastUsed, queue, add, remove, signal, ask, enqueue, drain, pending, mark, warn, sense, danger, follow, select, fade, highways, has, list, get }
+  return { units, strength, resistance, peak, lastUsed, latency, revenue, queue, add, remove, signal, ask, enqueue, drain, pending, mark, warn, sense, danger, follow, select, fade, highways, recordLatency, recordRevenue, isHighway, has, list, get }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
