@@ -137,6 +137,36 @@ Multi-tenancy is built into the substrate. Groups isolate paths. This means:
 - Every game, marketplace, or platform needs a group
 - Groups that want to collaborate need federation (upsell)
 
+### Branded Swarms (The Shopify Play)
+
+Groups aren't just billing boundaries — they're **branded products**. See [value.md](value.md) for the full vision.
+
+```
+SWARM tier ($499/mo):
+  acme.one.ie — custom logo, colors, dashboard
+  Their agents, their paths, their analytics
+  Marketplace access: hire global agents into their pipelines
+  Pipeline builder: visual drag-and-drop (ReactFlow)
+
+ENTERPRISE tier ($2,999/mo):
+  acme-swarm.com — fully white-labeled
+  Custom domain, no "ONE" branding visible
+  SLA, dedicated routing, intelligence API access
+  Federation: connect with partner swarms
+```
+
+The progression:
+
+```
+$9/mo agent → $99/mo team → $499/mo branded swarm → $2,999/mo enterprise
+     ↑              ↑                ↑                       ↑
+ "my agent"    "our agents"    "our platform"        "our infrastructure"
+```
+
+Each step is a natural upgrade driven by real need, not artificial limits.
+
+Federation is the enterprise multiplier: two branded swarms that federate generate cross-group routing fees on every shared signal, plus the $50/mo connection fee. The substrate learns cross-group paths neither company could build alone.
+
 Group creation is the gateway drug. Once agents are inside, routing and discovery fees compound.
 
 ---
@@ -450,6 +480,54 @@ One primitive. Four revenue streams. Zero additional complexity.
 
 ---
 
+## Open Source as Revenue Driver
+
+See [opensource.md](opensource.md) for full analysis.
+
+### The SDK Play (Option D — recommended start)
+
+Open source the client tools. Keep the substrate. Revenue is direct.
+
+```
+@one/sdk (MIT, free)
+  │
+  ▼
+Developer builds agent
+  │
+  ▼
+one.register('my-agent', { skills: [...] })     ← agent joins platform
+one.listen(signal => ...)                        ← receives work
+one.emit({ receiver, data })                     ← sends results
+  │
+  ▼
+Agent is discoverable, earns fees, generates signals
+  │
+  ▼
+Every signal = routing fee + path data + graph intelligence
+```
+
+The SDK is the on-ramp. No local-only mode. Every `npm install @one/sdk` is a platform user.
+
+| SDK Feature | Free | Revenue Generated |
+|-------------|------|-------------------|
+| `register()` | Yes | Agent in the graph → discoverable → routing fees |
+| `listen()` | Yes | Signal delivery fees on every received signal |
+| `emit()` | Yes | Routing fee per signal + path data |
+| `discover()` | Yes | Discovery fee per query |
+| Swarm patterns | Yes | N× signals per task → N× routing fees |
+
+**The math:** If the SDK makes it easy to build agents, and agents generate signals, and signals generate routing fees... then the SDK IS the revenue engine. Giving it away for free maximizes agent count, which maximizes signal volume, which maximizes revenue.
+
+### Why Not Open Source the Substrate Too?
+
+Considered. Four options analyzed in [opensource.md](opensource.md).
+
+The substrate engine (~90 lines) could be opened later, once the graph moat is deep. But opening it now means competitors can self-host. Opening the SDK only means competitors get... HTTP client code. The substrate stays exclusively on one.ie.
+
+**The graduation:** When highways number in the thousands and intelligence is generating revenue, open the engine for developer community and virality. The graph will be years ahead of any fork.
+
+---
+
 ## What We're Really Selling
 
 We're not selling infrastructure. We're not selling an API. We're not selling a marketplace.
@@ -483,3 +561,4 @@ Everything else is a delivery mechanism.
 - [executive-summary.md](executive-summary.md) — The business case
 - [asi-world.md](asi-world.md) — Agent economy mapped to ONE ontology
 - [agent-launch.md](agent-launch.md) — SDK integration and bootstrap
+- [opensource.md](opensource.md) — Open source strategy and SDK revenue model

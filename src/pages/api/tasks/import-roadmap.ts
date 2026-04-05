@@ -1,161 +1,99 @@
 /**
- * POST /api/tasks/import-roadmap — Import TODO.md into TypeDB (T-6)
+ * POST /api/tasks/import-roadmap — Import roadmap as tagged skills
  *
- * Self-hosts the roadmap: every phase = swarm, every task = task entity,
- * dependencies = dependency relations. Once loaded, /grow reads from TypeDB.
+ * Creates skills with tags, capabilities on a "builder" unit,
+ * and initial paths with pheromone from completed items.
  */
 import type { APIRoute } from 'astro'
 import { write, writeSilent } from '@/lib/typedb'
 
-interface RoadmapTask {
-  tid: string
+interface RoadmapItem {
+  id: string
   name: string
-  phase: string
-  status: string
-  priority: string
-  taskType: string
-  blockedBy: string[]
+  tags: string[]
+  done: boolean
+  after: string[]
 }
 
-const ROADMAP: RoadmapTask[] = [
-  // Phase 0: Tighten
-  { tid: 'X-1', name: 'One schema', phase: 'tighten', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: [] },
-  { tid: 'X-2', name: 'Kill entity service', phase: 'tighten', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['X-1'] },
-  { tid: 'X-3', name: 'Converge vocabulary', phase: 'tighten', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['X-1'] },
-  { tid: 'X-4', name: 'Mark lessons as reference', phase: 'tighten', status: 'complete', priority: 'P1', taskType: 'build', blockedBy: ['X-1'] },
-  { tid: 'X-5', name: 'Revenue on trails', phase: 'tighten', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['X-2'] },
-  { tid: 'X-6', name: 'Rename to world', phase: 'tighten', status: 'complete', priority: 'P1', taskType: 'build', blockedBy: ['X-1'] },
+const ROADMAP: RoadmapItem[] = [
+  // Phase 0: Tighten (all done)
+  { id: 'schema', name: 'One schema', tags: ['build', 'tighten', 'P0'], done: true, after: [] },
+  { id: 'converge', name: 'Converge vocabulary', tags: ['build', 'tighten', 'P0'], done: true, after: ['schema'] },
+  { id: 'revenue-trails', name: 'Revenue on trails', tags: ['build', 'tighten', 'P0'], done: true, after: ['schema'] },
   // Phase 1: Wire
-  { tid: 'W-1', name: 'TypeDB Cloud instance', phase: 'wire', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: [] },
-  { tid: 'W-2', name: 'Cloudflare Worker proxy', phase: 'wire', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['W-1'] },
-  { tid: 'W-3', name: 'TypeDB client lib', phase: 'wire', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['W-2'] },
-  { tid: 'W-4', name: 'Persist layer', phase: 'wire', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['W-3'] },
-  // Phase 2: Tasks
-  { tid: 'T-1', name: 'Task API routes', phase: 'tasks', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['W-4'] },
-  { tid: 'T-2', name: 'Task board UI', phase: 'tasks', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['T-1'] },
-  { tid: 'T-3', name: 'Dependencies + negation', phase: 'tasks', status: 'complete', priority: 'P1', taskType: 'build', blockedBy: ['T-1'] },
-  { tid: 'T-4', name: 'Pheromone reinforcement', phase: 'tasks', status: 'complete', priority: 'P1', taskType: 'build', blockedBy: ['T-1'] },
-  { tid: 'T-5', name: 'Exploratory tasks panel', phase: 'tasks', status: 'complete', priority: 'P2', taskType: 'build', blockedBy: ['T-2'] },
-  { tid: 'T-6', name: 'Self-host roadmap', phase: 'tasks', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['T-3', 'T-4'] },
-  { tid: 'T-7', name: '/grow skill', phase: 'tasks', status: 'complete', priority: 'P0', taskType: 'build', blockedBy: ['T-6'] },
+  { id: 'typedb-cloud', name: 'TypeDB Cloud', tags: ['build', 'wire', 'P0', 'infra'], done: false, after: [] },
+  { id: 'cf-worker', name: 'Cloudflare Worker proxy', tags: ['build', 'wire', 'P0', 'infra'], done: true, after: ['typedb-cloud'] },
+  { id: 'typedb-client', name: 'TypeDB client lib', tags: ['build', 'wire', 'P0'], done: true, after: ['cf-worker'] },
+  { id: 'persist', name: 'Persist layer', tags: ['build', 'wire', 'P0'], done: true, after: ['typedb-client'] },
+  // Phase 2: Tasks (done)
+  { id: 'task-api', name: 'Task API routes', tags: ['build', 'tasks', 'P0'], done: true, after: ['persist'] },
+  { id: 'task-board', name: 'Task board UI', tags: ['build', 'tasks', 'P0', 'frontend'], done: true, after: ['task-api'] },
+  { id: 'growth-loop', name: 'Growth loop', tags: ['build', 'tasks', 'P0'], done: true, after: ['task-api'] },
   // Phase 3: Onboard
-  { tid: 'O-1', name: 'Seed world', phase: 'onboard', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['T-6'] },
-  { tid: 'O-2', name: 'Signup flow', phase: 'onboard', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['O-1'] },
-  { tid: 'O-3', name: 'Agent builder', phase: 'onboard', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['O-2'] },
-  { tid: 'O-4', name: 'Discovery', phase: 'onboard', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['O-1'] },
-  { tid: 'O-5', name: 'Profiles', phase: 'onboard', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['O-2'] },
-  { tid: 'O-6', name: 'Eight personas', phase: 'onboard', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['O-2'] },
-  { tid: 'O-7', name: 'Connect flow', phase: 'onboard', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['O-3', 'O-4'] },
+  { id: 'seed-world', name: 'Seed world', tags: ['build', 'onboard', 'P0'], done: false, after: ['growth-loop'] },
+  { id: 'signup', name: 'Signup flow', tags: ['build', 'onboard', 'P0', 'frontend'], done: false, after: ['seed-world'] },
+  { id: 'agent-builder', name: 'Agent builder', tags: ['build', 'onboard', 'P0', 'frontend'], done: false, after: ['signup'] },
+  { id: 'discovery', name: 'Discovery', tags: ['build', 'onboard', 'P1', 'frontend'], done: false, after: ['seed-world'] },
+  { id: 'connect', name: 'Connect flow', tags: ['build', 'onboard', 'P0'], done: false, after: ['agent-builder', 'discovery'] },
   // Phase 4: Commerce
-  { tid: 'C-1', name: 'x402 payment layer', phase: 'commerce', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['O-3'] },
-  { tid: 'C-2', name: 'Service marketplace', phase: 'commerce', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['C-1'] },
-  { tid: 'C-3', name: 'Revenue tracking', phase: 'commerce', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['C-1'] },
-  { tid: 'C-4', name: 'Agent-to-agent payments', phase: 'commerce', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['C-1'] },
-  { tid: 'C-5', name: 'Highway pricing', phase: 'commerce', status: 'todo', priority: 'P2', taskType: 'build', blockedBy: ['C-2'] },
-  { tid: 'C-6', name: 'Agentverse bridge', phase: 'commerce', status: 'todo', priority: 'P2', taskType: 'build', blockedBy: ['C-3'] },
+  { id: 'x402', name: 'x402 payment layer', tags: ['build', 'commerce', 'P0', 'payments'], done: false, after: ['agent-builder'] },
+  { id: 'marketplace', name: 'Service marketplace', tags: ['build', 'commerce', 'P1', 'frontend'], done: false, after: ['x402'] },
+  { id: 'a2a-payments', name: 'Agent-to-agent payments', tags: ['build', 'commerce', 'P1', 'payments'], done: false, after: ['x402'] },
+  { id: 'agentverse', name: 'Agentverse bridge', tags: ['build', 'commerce', 'P2', 'integration'], done: false, after: ['marketplace'] },
   // Phase 5: Intelligence
-  { tid: 'I-1', name: 'LLM as unit', phase: 'intelligence', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['C-4'] },
-  { tid: 'I-2', name: 'Agent castes', phase: 'intelligence', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['I-1'] },
-  { tid: 'I-3', name: 'Hypothesis engine', phase: 'intelligence', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['C-3'] },
-  { tid: 'I-4', name: 'Frontier detection', phase: 'intelligence', status: 'todo', priority: 'P2', taskType: 'build', blockedBy: ['I-3'] },
-  { tid: 'I-5', name: 'Dream state', phase: 'intelligence', status: 'todo', priority: 'P2', taskType: 'build', blockedBy: ['I-2', 'I-4'] },
+  { id: 'llm-unit', name: 'LLM as unit', tags: ['build', 'intelligence', 'P0'], done: false, after: ['a2a-payments'] },
+  { id: 'hypothesis', name: 'Hypothesis engine', tags: ['build', 'intelligence', 'P1'], done: false, after: ['marketplace'] },
+  { id: 'frontier', name: 'Frontier detection', tags: ['build', 'intelligence', 'P2'], done: false, after: ['hypothesis'] },
   // Phase 6: Scale
-  { tid: 'S-1', name: 'Cloudflare Pages deploy', phase: 'scale', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['I-1'] },
-  { tid: 'S-2', name: 'Sui integration', phase: 'scale', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['S-1'] },
-  { tid: 'S-3', name: 'Security hardening', phase: 'scale', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['S-2'] },
-  { tid: 'S-4', name: 'Monitoring + alerts', phase: 'scale', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['S-1'] },
-  { tid: 'S-5', name: 'ASI ecosystem', phase: 'scale', status: 'todo', priority: 'P1', taskType: 'build', blockedBy: ['S-3'] },
-  { tid: 'S-6', name: 'Self-sustaining economy', phase: 'scale', status: 'todo', priority: 'P0', taskType: 'build', blockedBy: ['S-5'] },
-]
-
-const PHASES = [
-  { id: 'tighten', name: 'Tighten', purpose: 'Converge schema and vocabulary' },
-  { id: 'wire', name: 'Wire', purpose: 'Connect TypeDB + Cloudflare' },
-  { id: 'tasks', name: 'Tasks', purpose: 'Build task system on substrate' },
-  { id: 'onboard', name: 'Onboard', purpose: 'People and agents sign up' },
-  { id: 'commerce', name: 'Commerce', purpose: 'x402 payments flow' },
-  { id: 'intelligence', name: 'Intelligence', purpose: 'Substrate gets smarter' },
-  { id: 'scale', name: 'Scale', purpose: 'Ship to production' },
+  { id: 'deploy', name: 'Deploy to production', tags: ['build', 'scale', 'P0', 'infra'], done: false, after: ['llm-unit'] },
+  { id: 'sui', name: 'Sui integration', tags: ['build', 'scale', 'P0', 'payments'], done: false, after: ['deploy'] },
+  { id: 'asi-ecosystem', name: 'ASI ecosystem', tags: ['build', 'scale', 'P1', 'integration'], done: false, after: ['sui'] },
 ]
 
 export const POST: APIRoute = async () => {
-  const results: string[] = []
+  let created = 0
 
-  // 1. Create swarms for each phase
-  for (const phase of PHASES) {
+  // 1. Create builder unit
+  await write(`
+    insert $u isa unit, has uid "builder", has name "Builder", has unit-kind "system",
+      has tag "system", has status "active", has success-rate 0.5, has activity-score 0.0,
+      has sample-count 0, has reputation 0.0, has balance 0.0, has generation 0;
+  `).catch(() => {})
+
+  // 2. Create skills with tags + capabilities
+  for (const item of ROADMAP) {
+    const tagInserts = item.tags.map(t => `has tag "${t}"`).join(', ')
     await writeSilent(`
-      insert $s isa swarm,
-        has sid "phase-${phase.id}",
-        has name "${phase.name}",
-        has purpose "${phase.purpose}",
-        has swarm-type "colony",
-        has status "active";
+      insert $s isa skill, has skill-id "${item.id}", has name "${item.name}",
+        ${tagInserts}, has price 0.0, has currency "SUI";
     `)
-    results.push(`swarm: phase-${phase.id}`)
+    await writeSilent(`
+      match $u isa unit, has uid "builder"; $s isa skill, has skill-id "${item.id}";
+      insert (provider: $u, offered: $s) isa capability, has price 0.0;
+    `)
+    created++
   }
 
-  // 2. Create all tasks
-  for (const task of ROADMAP) {
-    await writeSilent(`
-      insert $t isa task,
-        has tid "${task.tid}",
-        has name "${task.name}",
-        has task-type "${task.taskType}",
-        has status "${task.status}",
-        has priority "${task.priority}",
-        has phase "${task.phase}",
-        has importance 5,
-        has price 0.0,
-        has currency "SUI";
-    `)
-    results.push(`task: ${task.tid}`)
-  }
-
-  // 3. Create dependency relations
-  for (const task of ROADMAP) {
-    for (const blockerId of task.blockedBy) {
+  // 3. Create paths between sequential skills
+  for (const item of ROADMAP) {
+    for (const dep of item.after) {
+      const source = ROADMAP.find(r => r.id === dep)
+      const strength = source?.done ? 50.0 : 0.0
       await writeSilent(`
-        match
-          $dep isa task, has tid "${task.tid}";
-          $blocker isa task, has tid "${blockerId}";
-        insert
-          (dependent: $dep, blocker: $blocker) isa dependency;
-      `)
+        match $from isa unit, has uid "builder"; $to isa unit, has uid "builder";
+        insert (source: $from, target: $to) isa path,
+          has strength ${strength}, has alarm 0.0, has traversals ${source?.done ? 1 : 0},
+          has revenue 0.0, has fade-rate 0.05, has peak-strength ${strength};
+      `).catch(() => {})
     }
   }
 
-  // 4. Create trails between sequential tasks (within phases)
-  const phaseGroups: Record<string, RoadmapTask[]> = {}
-  for (const task of ROADMAP) {
-    if (!phaseGroups[task.phase]) phaseGroups[task.phase] = []
-    phaseGroups[task.phase].push(task)
-  }
-
-  for (const tasks of Object.values(phaseGroups)) {
-    for (let i = 0; i < tasks.length - 1; i++) {
-      const pheromone = tasks[i].status === 'complete' ? 70 : 0
-      await writeSilent(`
-        match
-          $from isa task, has tid "${tasks[i].tid}";
-          $to isa task, has tid "${tasks[i + 1].tid}";
-        insert
-          (source-task: $from, destination-task: $to) isa trail,
-            has trail-pheromone ${pheromone}.0,
-            has alarm-pheromone 0.0,
-            has completions ${tasks[i].status === 'complete' ? 1 : 0},
-            has failures 0,
-            has revenue 0.0;
-      `)
-    }
-  }
+  // Collect all unique tags used
+  const allTags = [...new Set(ROADMAP.flatMap(r => r.tags))].sort()
 
   return new Response(JSON.stringify({
     ok: true,
-    imported: results.length,
-    phases: PHASES.length,
-    tasks: ROADMAP.length,
-    dependencies: ROADMAP.reduce((s, t) => s + t.blockedBy.length, 0),
-  }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+    skills: created,
+    tags: allTags,
+  }), { headers: { 'Content-Type': 'application/json' } })
 }

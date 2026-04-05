@@ -4,40 +4,31 @@
 #
 # One file. One world. One source of truth.
 #
-# People and agents sign up. Connect with each other. Make money.
-# Signals are free. Tasks cost money (x402).
-# Revenue = pheromone. Every payment strengthens a path.
-# Highways get priority routing (<10ms vs 1-5s).
+# The substrate moves signals. TypeDB remembers.
+#
+# Runtime (nervous system):
+#   substrate.ts — units, signals, scent, alarm, queue
+#   one.ts — actor, flow, crystallize, recall
+#
+# TypeDB (brain):
+#   unit — persisted actors (model, prompt, generation)
+#   path — persisted pheromone (strength, alarm, revenue)
+#   signal — event log (who sent what, paid what)
+#   capability — who can do what at what price
+#   swarm + membership — group queries
+#   hypothesis/frontier/objective — knowledge (slow loops)
+#
+# Tasks are handlers on units (.on()). Dependencies are continuations (.then()).
+# Trails are scent map entries. TypeDB doesn't track task lifecycle —
+# the substrate does.
 #
 # 6 Dimensions:
-#   1. Groups    — swarms (personas, teams, colonies)
+#   1. Groups    — swarms (scope, isolation, hierarchy)
 #   2. Actors    — units (humans, agents, LLMs)
-#   3. Things    — tasks with optional price (work AND services)
-#   4. Paths     — weighted connections (unit↔unit, task→task)
+#   3. Things    — skills with optional price (capability)
+#   4. Paths     — weighted connections (pheromone)
 #   5. Events    — signals (who sent what, paid how much)
-#   6. Knowledge — hypotheses, frontiers, objectives (inferred)
-#
-# 6 Lessons (from Deborah Gordon's ant research):
-#   L1 Classification  — multi-attribute tier detection
-#   L2 Quality Rules   — automatic status bands
-#   L3 State Machines  — hypothesis lifecycle
-#   L4 Negation        — ready = todo AND no incomplete blockers
-#   L5 Aggregates      — contribution tracking, GDP
-#   L6 Emergence       — frontier detection, autonomous goals
-#
-# Vocabulary (converged):
-#   signal = { receiver, data }     — the universal primitive
-#   mark(path)                      — add weight (success)
-#   warn(path)                     — add resistance (failure)
-#   fade(rate)                      — decay all weights
-#   emit(signal)                    — send from inside a task handler
-#
-# USAGE:
-#   typedb console
-#   > database create one
-#   > transaction one schema write
-#   > source one.tql
-#   > commit
+#   6. Knowledge — hypotheses, frontiers, objectives (emergent)
 #
 # =============================================================================
 
@@ -73,22 +64,22 @@ entity unit,
     owns name,
     owns unit-kind,               # "human", "agent", "llm", "system"
     owns wallet,                  # Sui address
-    owns status,                  # "active" | "proven" | "at-risk" (INFERRED)
+    owns status,                  # "active" | "proven" | "at-risk" (inferred)
     owns balance,
     owns reputation,
-    owns success-rate,            # L1: 0.0–1.0
-    owns activity-score,          # L1: 0.0–100.0
-    owns sample-count,            # L1: interaction count
-    owns model,                   # "opus", "sonnet", "haiku" — swappable brain
-    owns system-prompt,           # mutable instructions — evolves over time
+    owns success-rate,            # 0.0-1.0
+    owns activity-score,          # 0.0-100.0
+    owns sample-count,            # interaction count
+    owns model,                   # "opus", "sonnet", "haiku"
+    owns system-prompt,           # mutable — evolves over time
     owns generation,              # prompt iteration count
-    owns last-evolved,            # EV-3: datetime of last prompt rewrite — enforce cooldown
-    owns cost-per-signal,         # EV-5: model economics — revenue/cost ratio drives tier selection
+    owns last-evolved,            # evolution cooldown
+    owns tag @card(0..),          # flat tags: "scout", "harvester", "team-alpha", etc.
+    owns cost-per-signal,         # model economics
     owns created,
     plays path:source,
     plays path:target,
     plays capability:provider,
-    plays assignment:assigned-to,
     plays membership:member,
     plays signal:sender,
     plays signal:receiver,
@@ -96,32 +87,19 @@ entity unit,
 
 
 # =============================================================================
-# DIMENSION 3: THINGS
+# DIMENSION 3: THINGS (skills)
 # =============================================================================
-# A task with a price IS a service. No separate entity needed.
-# unit —[capability, price: 0.01]→ task "translate"
+# A skill with a price IS a service. No lifecycle — that lives in the runtime.
+# unit —[capability, price: 0.01]→ skill "translate"
 
-entity task,
-    owns tid @key,
+entity skill,
+    owns skill-id @key,
     owns name,
     owns description,
-    owns task-type,               # "work", "explore", "validate", "build",
-                                  # "inference", "analysis", "data", "compute"
-    owns status,                  # "todo", "in_progress", "complete", "blocked", "failed"
-    owns priority,                # "P0", "P1", "P2", "P3"
-    owns phase,                   # "wire", "tasks", "onboard", "commerce", "intelligence", "scale"
-    owns importance,              # 1–10
+    owns tag @card(0..),          # flat tags: "build", "wire", "P0", "frontend", etc.
     owns price,                   # x402 price (0 = free, >0 = paid service)
     owns currency,                # "SUI", "USDC", "FET"
-    owns timeout,                 # max latency ms
-    owns attractive,              # L4 INFERRED
-    owns repelled,                # L4 INFERRED
-    plays dependency:dependent,
-    plays dependency:blocker,
-    plays assignment:assigned-task,
-    plays capability:skill,
-    plays trail:source-task,
-    plays trail:destination-task;
+    plays capability:offered;
 
 
 # =============================================================================
@@ -137,37 +115,15 @@ relation path,
     owns traversals,
     owns revenue,                 # sum of x402 payments on this path
     owns last-used,
-    owns fade-rate,               # per-path decay (production=0.05, support=0.15, alarm=2x)
-    owns peak-strength,           # FL-3: highest strength ever reached — fade floor = peak * 0.05
+    owns fade-rate,               # per-path decay
+    owns peak-strength,           # highest strength ever reached
     owns path-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
 
-# Task-to-task: what sequence works, what generated revenue
-relation trail,
-    relates source-task,
-    relates destination-task,
-    owns trail-pheromone,         # 0–100 (drop on success)
-    owns alarm-pheromone,         # 0–100 (alarm on failure)
-    owns completions,
-    owns failures,
-    owns revenue,                 # x402 revenue from this task sequence
-    owns fade-rate,               # FL-1: per-trail decay — proven production trails decay slower
-    owns trail-status;            # INFERRED: "proven" | "fresh" | "fading" | "dead"
-
-# Unit can do task (at a price)
+# Unit can do skill (at a price)
 relation capability,
     relates provider,
-    relates skill,
+    relates offered,
     owns price;
-
-# Task blocks task
-relation dependency,
-    relates dependent,
-    relates blocker;
-
-# Task assigned to unit
-relation assignment,
-    relates assigned-task,
-    relates assigned-to;
 
 # Unit belongs to swarm
 relation membership,
@@ -183,7 +139,7 @@ relation membership,
 relation signal,
     relates sender,
     relates receiver,
-    owns data,                    # JSON string (converged: "data" not "payload")
+    owns data,                    # JSON string
     owns amount,                  # x402 payment (0 = free)
     owns success,
     owns latency,                 # ms
@@ -206,7 +162,7 @@ entity frontier,
     owns fid @key,
     owns frontier-type,
     owns frontier-description,
-    owns expected-value,          # potential * probability / cost
+    owns expected-value,
     owns frontier-status,         # "unexplored" | "exploring" | "exhausted"
     plays spawns:frontier;
 
@@ -215,7 +171,7 @@ entity objective,
     owns objective-type,
     owns objective-description,
     owns priority-score,
-    owns progress,                # 0.0–1.0
+    owns progress,                # 0.0-1.0
     owns objective-status,        # "pending" | "active" | "complete"
     plays spawns:objective;
 
@@ -226,7 +182,7 @@ relation spawns,
 entity contribution,
     owns contribution-id @key,
     owns impact-score,
-    owns contribution-type,       # "task", "signal", "payment", "discovery"
+    owns contribution-type,       # "signal", "payment", "discovery"
     plays contribution-event:contribution;
 
 relation contribution-event,
@@ -241,7 +197,7 @@ relation contribution-event,
 # Identifiers
 attribute sid, value string;
 attribute uid, value string;
-attribute tid, value string;
+attribute skill-id, value string;
 attribute hid, value string;
 attribute fid, value string;
 attribute oid, value string;
@@ -257,31 +213,26 @@ attribute frontier-description, value string;
 attribute objective-description, value string;
 attribute swarm-type, value string;
 attribute unit-kind, value string;
-attribute task-type, value string;
+attribute tag, value string;
 attribute contribution-type, value string;
 attribute frontier-type, value string;
 attribute objective-type, value string;
 attribute wallet, value string;
 attribute currency, value string;
-attribute phase, value string;
 attribute model, value string;
 attribute system-prompt, value string;
 
 # Status
 attribute status, value string;
 attribute path-status, value string;
-attribute trail-status, value string;
 attribute hypothesis-status, value string;
 attribute frontier-status, value string;
 attribute objective-status, value string;
-attribute priority, value string;
 
 # Numeric (double)
 attribute strength, value double;
 attribute alarm, value double;
 attribute fade-rate, value double;
-attribute trail-pheromone, value double;
-attribute alarm-pheromone, value double;
 attribute balance, value double;
 attribute reputation, value double;
 attribute success-rate, value double;
@@ -295,22 +246,16 @@ attribute priority-score, value double;
 attribute progress, value double;
 attribute impact-score, value double;
 attribute latency, value double;
-attribute peak-strength, value double;   # FL-3: fade floor anchor
-attribute cost-per-signal, value double; # EV-5: model tier economics
+attribute peak-strength, value double;
+attribute cost-per-signal, value double;
 
 # Numeric (integer)
 attribute traversals, value integer;
-attribute completions, value integer;
-attribute failures, value integer;
 attribute sample-count, value integer;
-attribute importance, value integer;
 attribute observations-count, value integer;
-attribute timeout, value integer;
 attribute generation, value integer;
 
 # Boolean
-attribute attractive, value boolean;
-attribute repelled, value boolean;
 attribute action-ready, value boolean;
 attribute success, value boolean;
 
@@ -319,14 +264,14 @@ attribute created, value datetime;
 attribute last-used, value datetime;
 attribute joined-at, value datetime;
 attribute ts, value datetime;
-attribute last-evolved, value datetime;  # EV-3: evolution cooldown tracking
+attribute last-evolved, value datetime;
 
 
 # =============================================================================
-# CLASSIFICATION FUNCTIONS (replaces rule blocks — TypeDB 3.x)
+# CLASSIFICATION FUNCTIONS
 # =============================================================================
 
-# --- Paths (unit<->unit) ---
+# --- Paths ---
 
 fun path_status($e: path) -> string:
     match $e has strength $s, has alarm $a, has traversals $t;
@@ -341,18 +286,7 @@ fun is_highway($e: path) -> boolean:
     match $e has strength $s; $s >= 50.0;
     return first true;
 
-# --- Trails (task→task) ---
-
-fun trail_status($t: trail) -> string:
-    match $t has trail-pheromone $tp, has completions $c, has failures $f;
-    return first
-        if ($tp <= 0.0) then "dead"
-        else if ($tp >= 70.0 and $c >= 10 and $f < $c) then "proven"
-        else if ($tp >= 10.0 and $tp < 70.0 and $c < 10) then "fresh"
-        else if ($tp > 0.0 and $tp < 10.0) then "fading"
-        else "active";
-
-# --- Actors (L1: classification) ---
+# --- Actors ---
 
 fun unit_classification($u: unit) -> string:
     match $u has success-rate $sr, has activity-score $as, has sample-count $sc;
@@ -361,24 +295,14 @@ fun unit_classification($u: unit) -> string:
         else if ($sr < 0.40 and $as >= 25.0 and $sc >= 30) then "at-risk"
         else "active";
 
-# --- Tasks (L4: pheromone selection) ---
+# --- Evolution ---
 
-fun is_attractive($t: task) -> boolean:
-    match $t has status "todo";
-          not { $dep(dependent: $t, blocker: $b) isa dependency;
-                $b isa task, has status $bs; not { $bs == "complete"; }; };
-          $tr (destination-task: $t) isa trail, has trail-pheromone $tp;
-          $tp >= 50.0;
+fun needs_evolution($u: unit) -> boolean:
+    match $u has success-rate $sr, has sample-count $sc;
+          $sr < 0.50; $sc >= 20;
     return first true;
 
-fun is_repelled($t: task) -> boolean:
-    match $t has status "todo";
-          $tr (destination-task: $t) isa trail,
-              has alarm-pheromone $ap, has trail-pheromone $tp;
-          $ap >= 30.0; $ap > $tp;
-    return first true;
-
-# --- Hypothesis (L3: state machine) ---
+# --- Hypothesis ---
 
 fun is_action_ready($h: hypothesis) -> boolean:
     match $h has hypothesis-status "confirmed",
@@ -386,45 +310,38 @@ fun is_action_ready($h: hypothesis) -> boolean:
           $p <= 0.05; $n >= 50;
     return first true;
 
-# --- Self-improvement (agent evolution) ---
-
-fun needs_evolution($u: unit) -> boolean:
-    match $u has success-rate $sr, has sample-count $sc;
-          $sr < 0.50; $sc >= 20;
-    return first true;
-
 
 # =============================================================================
 # FUNCTIONS
 # =============================================================================
 
-# ─── Routing ───
+# --- Routing ---
 
 fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { path }:
     match $e isa path, has strength $s, has traversals $t;
           $s >= threshold; $t >= min_traversals;
     return { $e };
 
-fun optimal_route($from: unit, $task: task) -> unit:
+fun optimal_route($from: unit, $skill: skill) -> unit:
     match (source: $from, target: $to) isa path, has strength $s;
-          (provider: $to, skill: $task) isa capability;
+          (provider: $to, offered: $skill) isa capability;
     sort $s desc; limit 1;
     return $to;
 
-fun cheapest_provider($task: task) -> unit:
-    match (provider: $u, skill: $task) isa capability, has price $p;
+fun cheapest_provider($skill: skill) -> unit:
+    match (provider: $u, offered: $skill) isa capability, has price $p;
     sort $p asc; limit 1;
     return $u;
 
-fun suggest_route($from: unit, $task: task) -> { uid, strength }:
-    match $from isa unit; $task isa task;
+fun suggest_route($from: unit, $skill: skill) -> { uid, strength }:
+    match $from isa unit; $skill isa skill;
           (source: $from, target: $to) isa path, has strength $s;
-          (provider: $to, skill: $task) isa capability;
+          (provider: $to, offered: $skill) isa capability;
           $to has uid $id; $s >= 5.0;
     sort $s desc; limit 5;
     return { $id, $s };
 
-# ─── Actors ───
+# --- Actors ---
 
 fun proven_units() -> { unit }:
     match $u isa unit, has status "proven";
@@ -449,54 +366,21 @@ fun swarm_members($swarm_name: string) -> { unit }:
           (group: $sw, member: $u) isa membership;
     return { $u };
 
-# ─── Tasks ───
+# --- Skills ---
 
-fun ready_tasks() -> { task }:
-    match $t isa task, has status "todo";
-          not { $dep(dependent: $t, blocker: $b) isa dependency;
-                $b isa task, has status $bs; not { $bs == "complete"; }; };
-    return { $t };
+fun skills_by_tag($tag: string) -> { skill }:
+    match $s isa skill, has tag $tag;
+    return { $s };
 
-fun ready_tasks_by_phase($phase: string) -> { task }:
-    match $t isa task, has status "todo", has phase $phase;
-          not { $dep(dependent: $t, blocker: $b) isa dependency;
-                $b isa task, has status $bs; not { $bs == "complete"; }; };
-    return { $t };
+fun priced_skills($tag: string) -> { skill }:
+    match $s isa skill, has tag $tag, has price $p; $p > 0.0;
+    return { $s };
 
-fun attractive_tasks() -> { task }:
-    match $t isa task, has attractive true;
-    return { $t };
+fun units_by_tag($tag: string) -> { unit }:
+    match $u isa unit, has tag $tag;
+    return { $u };
 
-fun repelled_tasks() -> { task }:
-    match $t isa task, has repelled true;
-    return { $t };
-
-fun exploratory_tasks() -> { task }:
-    match $t isa task, has status "todo";
-          not { $dep(dependent: $t, blocker: $b) isa dependency;
-                $b isa task, has status $bs; not { $bs == "complete"; }; };
-          not { $tr (destination-task: $t) isa trail; };
-    return { $t };
-
-fun tasks_by_phase($phase: string) -> { task }:
-    match $t isa task, has phase $phase;
-    return { $t };
-
-fun priced_tasks($type: string) -> { task }:
-    match $t isa task, has task-type $type, has price $p; $p > 0.0;
-    return { $t };
-
-# ─── Trails ───
-
-fun proven_trails() -> { trail }:
-    match $t isa trail, has trail-status "proven";
-    return { $t };
-
-fun fading_trails() -> { trail }:
-    match $t isa trail, has trail-status "fading";
-    return { $t };
-
-# ─── Knowledge ───
+# --- Knowledge ---
 
 fun actionable_hypotheses() -> { hypothesis }:
     match $h isa hypothesis, has action-ready true;
@@ -516,7 +400,7 @@ fun active_objectives() -> { objective }:
           $s in ["pending", "active"];
     return { $o };
 
-# ─── Aggregates ───
+# --- Aggregates ---
 
 fun total_contribution($name: string) -> double:
     match $u isa unit, has name $name;
@@ -534,16 +418,12 @@ fun total_revenue() -> double:
 
 
 # =============================================================================
-# ~330 lines. One file. One world. ONE.
+# ~230 lines. One file. One world. ONE.
 #
-# Vocabulary:
-#   signal = { receiver, data }
-#   drop   = add weight
-#   warn   = add resistance
-#   fade   = decay
-#   emit   = send from handler
+# Runtime handles: task lifecycle, dependencies, trails, queue
+# TypeDB handles: paths, units, skills, signals, knowledge, classification
 #
-# Entities: swarm, unit, task, hypothesis, frontier, objective, contribution
-# Relations: hierarchy, path, trail, capability, dependency, assignment,
-#            membership, signal, spawns, contribution-event
+# Entities: swarm, unit, skill, hypothesis, frontier, objective, contribution
+# Relations: hierarchy, path, capability, membership, signal, spawns,
+#            contribution-event
 # =============================================================================

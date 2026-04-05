@@ -52,9 +52,9 @@ export const POST: APIRoute = async ({ request }) => {
       const routes = await readParsed(`
         match
           $from isa unit, has uid "${receiver}";
-          $task isa task, has name $tn; $tn contains "${task}";
+          $sk isa skill, has name $sn; $sn contains "${task}";
           (source: $from, target: $to) isa path, has strength $s;
-          (provider: $to, skill: $task) isa capability;
+          (provider: $to, offered: $sk) isa capability;
           $to has uid $id; $s >= 5.0;
         sort $s desc; limit 1;
         select $id, $s;

@@ -153,8 +153,7 @@ export function Dashboard() {
       const [healthRes, statsRes] = await Promise.all([
         fetch('/api/health').then(r => r.json()).catch(() => null),
         fetch('/api/stats').then(r => r.json()).catch(() => null),
-        fetch('/api/decay-auto').catch(() => null),  // auto-decay on poll
-        fetch('/api/tick').catch(() => null),         // growth loop on poll
+        fetch('/api/tick').catch(() => null),         // growth loop (includes decay)
       ])
 
       if (healthRes) {

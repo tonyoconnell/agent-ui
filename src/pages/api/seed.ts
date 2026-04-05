@@ -124,15 +124,12 @@ export const POST: APIRoute = async () => {
   ]
 
   for (const c of agentCaps) {
-    const tid = `${c.agent}:${c.task}`
+    const sid = `${c.agent}:${c.task}`
     await write(`
-      insert $t isa task,
-        has tid "${tid}",
+      insert $s isa skill,
+        has skill-id "${sid}",
         has name "${c.task}",
-        has task-type "${c.taskType}",
-        has status "active",
-        has priority "P1",
-        has phase "onboard",
+        has tag "${c.taskType}",
         has price ${c.price},
         has currency "SUI";
     `).catch(() => {})
@@ -140,9 +137,9 @@ export const POST: APIRoute = async () => {
     await write(`
       match
         $u isa unit, has uid "${c.agent}";
-        $t isa task, has tid "${tid}";
+        $s isa skill, has skill-id "${sid}";
       insert
-        (provider: $u, skill: $t) isa capability,
+        (provider: $u, offered: $s) isa capability,
           has price ${c.price};
     `).catch(() => {})
   }
@@ -171,58 +168,33 @@ export const POST: APIRoute = async () => {
   }
   results.push(`${agentPaths.length} agent paths`)
 
-  // ─── Tasks (10 sample with dependencies) ──────────────────────────────────
+  // ─── Skills (10 sample, tagged) ──────────────────────────────────────────
 
-  const tasks = [
-    { id: 'O-1', name: 'Seed world data', status: 'complete', priority: 'P0', phase: 'scale' },
-    { id: 'O-2', name: 'Health monitoring', status: 'complete', priority: 'P0', phase: 'scale' },
-    { id: 'O-3', name: 'Dashboard UI', status: 'in_progress', priority: 'P0', phase: 'scale' },
-    { id: 'O-4', name: 'Decay cycle automation', status: 'todo', priority: 'P1', phase: 'scale' },
-    { id: 'O-5', name: 'Revenue tracking', status: 'todo', priority: 'P0', phase: 'scale' },
-    { id: 'O-6', name: 'Alert system', status: 'todo', priority: 'P1', phase: 'scale' },
-    { id: 'O-7', name: 'Agent onboarding flow', status: 'todo', priority: 'P1', phase: 'scale' },
-    { id: 'O-8', name: 'Swarm coordination', status: 'todo', priority: 'P2', phase: 'scale' },
-    { id: 'O-9', name: 'Load testing', status: 'todo', priority: 'P1', phase: 'scale' },
-    { id: 'O-10', name: 'Production deploy', status: 'blocked', priority: 'P0', phase: 'scale' },
+  const skills = [
+    { id: 'seed', name: 'Seed world data', tags: ['build', 'scale', 'P0'] },
+    { id: 'health', name: 'Health monitoring', tags: ['build', 'scale', 'P0'] },
+    { id: 'dashboard', name: 'Dashboard UI', tags: ['build', 'scale', 'P0', 'frontend'] },
+    { id: 'decay-auto', name: 'Decay automation', tags: ['build', 'scale', 'P1'] },
+    { id: 'revenue', name: 'Revenue tracking', tags: ['build', 'scale', 'P0', 'payments'] },
+    { id: 'alerts', name: 'Alert system', tags: ['build', 'scale', 'P1'] },
+    { id: 'onboard-flow', name: 'Agent onboarding', tags: ['build', 'onboard', 'P1'] },
+    { id: 'swarm-coord', name: 'Swarm coordination', tags: ['build', 'scale', 'P2'] },
+    { id: 'load-test', name: 'Load testing', tags: ['test', 'scale', 'P1'] },
+    { id: 'prod-deploy', name: 'Production deploy', tags: ['deploy', 'scale', 'P0', 'infra'] },
   ]
 
-  for (const t of tasks) {
+  for (const s of skills) {
+    const tagInserts = s.tags.map(t => `has tag "${t}"`).join(', ')
     await write(`
-      insert $t isa task,
-        has tid "${t.id}",
-        has name "${t.name}",
-        has status "${t.status}",
-        has priority "${t.priority}",
-        has phase "${t.phase}",
-        has task-type "build";
+      insert $s isa skill,
+        has skill-id "${s.id}",
+        has name "${s.name}",
+        ${tagInserts},
+        has price 0.0,
+        has currency "SUI";
     `).catch(() => {})
   }
-  results.push(`${tasks.length} tasks`)
-
-  // ─── Task dependencies (trails) ──────────────────────────────────────────
-
-  const deps = [
-    { from: 'O-1', to: 'O-2' },
-    { from: 'O-1', to: 'O-3' },
-    { from: 'O-2', to: 'O-6' },
-    { from: 'O-3', to: 'O-5' },
-    { from: 'O-5', to: 'O-10' },
-    { from: 'O-9', to: 'O-10' },
-  ]
-
-  for (const d of deps) {
-    await write(`
-      match
-        $from isa task, has tid "${d.from}";
-        $to isa task, has tid "${d.to}";
-      insert
-        (source-task: $from, destination-task: $to) isa trail,
-          has trail-pheromone 50.0,
-          has alarm-pheromone 0.0,
-          has trail-status "fresh";
-    `).catch(() => {})
-  }
-  results.push(`${deps.length} task dependencies`)
+  results.push(`${skills.length} skills`)
 
   // ─── Paths (5 with initial weight) ────────────────────────────────────────
 

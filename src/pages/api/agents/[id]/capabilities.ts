@@ -39,16 +39,13 @@ export const POST: APIRoute = async ({ params, request }) => {
   const safeTaskType = taskType || 'work'
 
   try {
-    // Insert task (may already exist)
+    // Insert skill (may already exist)
     await write(`
       insert
-        $t isa task,
-          has tid "${tid}",
+        $s isa skill,
+          has skill-id "${tid}",
           has name "${safeTaskName}",
-          has task-type "${safeTaskType}",
-          has status "active",
-          has priority "P1",
-          has phase "onboard",
+          has tag "${safeTaskType}",
           has price ${safePrice},
           has currency "${safeCurrency}";
     `).catch(() => {})
@@ -57,9 +54,9 @@ export const POST: APIRoute = async ({ params, request }) => {
     await write(`
       match
         $u isa unit, has uid "${uid}";
-        $t isa task, has tid "${tid}";
+        $s isa skill, has skill-id "${tid}";
       insert
-        (provider: $u, skill: $t) isa capability,
+        (provider: $u, offered: $s) isa capability,
           has price ${safePrice};
     `)
 

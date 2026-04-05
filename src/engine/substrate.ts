@@ -1,14 +1,14 @@
 /**
  * THE SUBSTRATE
  *
- * Two fields. Dual scent. Concurrency safe.
+ * Two fields. Dual scent. Queue. Concurrency safe.
  *
  * receiver: who (unit:task)
  * data: what (anything)
  * data.marks: false to observe without marking trails
  * data.weight: override default mark weight
  *
- * Signal. Mark. Warn. Follow. Fade. Highway.
+ * Signal. Mark. Warn. Follow. Fade. Highway. Queue.
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -39,9 +39,14 @@ export interface Colony {
   units: Record<string, Unit>
   scent: Record<string, number>
   alarm: Record<string, number>
+  queue: Signal[]
   spawn: (id: string) => Unit
   despawn: (id: string) => void
   signal: (s: Signal, from?: string) => void
+  ask: (s: Signal, from?: string, timeout?: number) => Promise<unknown>
+  enqueue: (s: Signal) => void
+  drain: () => Signal | null
+  pending: () => number
   mark: (path: string, strength?: number) => void
   warn: (path: string, strength?: number) => void
   sense: (path: string) => number
@@ -49,7 +54,7 @@ export interface Colony {
   follow: (type?: string) => string | null
   select: (type?: string, exploration?: number) => string | null
   fade: (rate?: number) => void
-  highways: (limit?: number) => { path: string; strength: number }[]
+  highways: (limit?: number) => Edge[]
   has: (id: string) => boolean
   list: () => string[]
   get: (id: string) => Unit | undefined
@@ -92,6 +97,7 @@ export const colony = (): Colony => {
   const units: Record<string, Unit> = {}
   const scent: Record<string, number> = {}
   const alarm: Record<string, number> = {}
+  const queue: Signal[] = []
 
   const mark = (path: string, strength = 1) => {
     scent[path] = (scent[path] || 0) + strength
@@ -118,9 +124,43 @@ export const colony = (): Colony => {
     target({ receiver, data }, from)
   }
 
+  // ask: signal and wait for reply (request/response over signals)
+  const ask = (s: Signal, from = 'entry', timeout = 30000): Promise<unknown> =>
+    new Promise(resolve => {
+      const rid = `r:${Date.now()}`
+      const u = unit(rid, (reply) => signal(reply, rid))
+      u.on('default', (result) => { delete units[rid]; resolve(result) })
+      units[rid] = u
+      signal({ ...s, data: { ...(s.data as object || {}), replyTo: rid } }, from)
+      setTimeout(() => { delete units[rid]; resolve(undefined) }, timeout)
+    })
+
+  // queue: signals waiting to be consumed, drained by priority
+  const enqueue = (s: Signal) => queue.push(s)
+  const drain = (): Signal | null => {
+    if (!queue.length) return null
+    // P0 first: find highest priority signal (lower P number = higher priority)
+    let best = 0
+    for (let i = 1; i < queue.length; i++) {
+      const pi = ((queue[i].data as Record<string, unknown>)?.priority as string) || 'P9'
+      const pb = ((queue[best].data as Record<string, unknown>)?.priority as string) || 'P9'
+      if (pi < pb) best = i
+    }
+    const [s] = queue.splice(best, 1)
+    signal(s)
+    return s
+  }
+  const pending = () => queue.length
+
   const spawn = (id: string) => {
     const u = unit(id, (s, from) => signal(s, from))
     units[id] = u
+    // drain queued signals for this unit
+    let i = queue.length
+    while (i--) {
+      const uid = queue[i].receiver.includes(':') ? queue[i].receiver.split(':')[0] : queue[i].receiver
+      if (uid === id) { signal(queue[i]); queue.splice(i, 1) }
+    }
     return u
   }
 
@@ -162,7 +202,7 @@ export const colony = (): Colony => {
     for (const e in alarm) { alarm[e] *= (1 - r * 2); alarm[e] < 0.01 && delete alarm[e] }
   }
 
-  const highways = (limit = 10) =>
+  const highways = (limit = 10): Edge[] =>
     Object.entries(scent)
       .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
@@ -172,9 +212,9 @@ export const colony = (): Colony => {
   const list = () => Object.keys(units)
   const get = (id: string) => units[id]
 
-  return { units, scent, alarm, spawn, despawn, signal, mark, warn, sense, danger, follow, select, fade, highways, has, list, get }
+  return { units, scent, alarm, queue, spawn, despawn, signal, ask, enqueue, drain, pending, mark, warn, sense, danger, follow, select, fade, highways, has, list, get }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Signal. Mark. Warn. Follow. Fade. Highway.
+// Signal. Mark. Warn. Follow. Fade. Highway. Queue.
 // ═══════════════════════════════════════════════════════════════════════════

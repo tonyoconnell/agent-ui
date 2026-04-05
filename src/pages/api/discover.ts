@@ -19,9 +19,9 @@ export const GET: APIRoute = async ({ url }) => {
       const routes = await readParsed(`
         match
           $from isa unit, has uid "${fromUnit}";
-          $task isa task, has name $tn; $tn contains "${taskFilter.toLowerCase()}";
+          $task isa skill, has name $tn; $tn contains "${taskFilter.toLowerCase()}";
           (source: $from, target: $to) isa path, has strength $s;
-          (provider: $to, skill: $task) isa capability, has price $p;
+          (provider: $to, offered: $task) isa capability, has price $p;
           $to has uid $uid, has name $n, has unit-kind $k,
             has reputation $rep, has success-rate $sr;
         sort $s desc; limit 20;
@@ -50,8 +50,8 @@ export const GET: APIRoute = async ({ url }) => {
     if (sortBy === 'price' && taskFilter) {
       const cheap = await readParsed(`
         match
-          (provider: $u, skill: $t) isa capability, has price $p;
-          $t isa task, has name $tn; $tn contains "${taskFilter.toLowerCase()}";
+          (provider: $u, offered: $t) isa capability, has price $p;
+          $t isa skill, has name $tn; $tn contains "${taskFilter.toLowerCase()}";
           $u has uid $uid, has name $n, has unit-kind $k,
             has reputation $rep, has success-rate $sr;
         sort $p asc; limit 20;
@@ -89,11 +89,10 @@ export const GET: APIRoute = async ({ url }) => {
           has unit-kind $k,
           has reputation $rep,
           has success-rate $sr;
-        (provider: $u, skill: $t) isa capability, has price $p;
-        $t isa task,
-          has task-type $tt;
+        (provider: $u, offered: $t) isa capability, has price $p;
+        $t isa skill;
         ${taskMatch}
-      select $uid, $n, $k, $rep, $sr, $tn, $tt, $p;
+      select $uid, $n, $k, $rep, $sr, $tn, $p;
     `)
 
     const strengthMap: Record<string, number> = {}

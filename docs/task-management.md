@@ -1,6 +1,6 @@
 # Task Management
 
-The heartbeat of ONE. Tasks flow through pheromone trails, driven by the growth loop, visible on the TaskBoard. No task is assigned. Every task is discovered.
+The heartbeat of ONE. A task is a signal. A dependency is a continuation. Tags classify. Pheromone ranks.
 
 ---
 
@@ -9,464 +9,375 @@ The heartbeat of ONE. Tasks flow through pheromone trails, driven by the growth 
 > *"The task an ant performs depends not on any property of the individual, but on what it has experienced recently."*
 > -- Deborah Gordon, *Ants at Work*
 
-Ants don't get assigned tasks. They sense what's available, follow pheromone trails to what's proven, avoid alarm signals from what's failed, and scout what's unexplored. The colony allocates work without a manager.
-
-ONE does the same thing. TypeDB is the pheromone substrate. The growth loop is the colony tick. The TaskBoard is the observation window.
+No task is assigned. Every task is discovered through pheromone signals.
 
 ---
 
 ## Architecture
 
 ```
-                         TypeDB (the brain)
-                    ┌──────────┴──────────┐
-                    │                     │
-              task entities          trail relations
-              (what exists)       (what the colony knows)
-                    │                     │
-         ┌─────────┼─────────┐           │
-         │         │         │           │
-       ready   attractive  repelled    pheromone
-       (no     (trail      (alarm     (trail: success
-       blockers) >= 50)     > trail)   alarm: failure)
-         │         │         │           │
-         └─────────┼─────────┘           │
-                   │                     │
-              Growth Loop ───────────────┘
-              (SENSE → SELECT → EXECUTE → OUTCOME → UPDATE)
-                   │
+NERVOUS SYSTEM (runtime)              BRAIN (TypeDB)
+────────────────────────              ──────────────
+unit.on('build', fn)                  unit persists (model, prompt, gen)
+unit.then('build', next)              path persists (strength, alarm)
+colony.signal({ receiver })           signal recorded (event log)
+colony.scent / colony.alarm           skill registered (capability)
+colony.queue                          classification inferred
+                    ↕
+              Growth Loop
+        select → signal → drain → fade → evolve → crystallize
+                    ↕
               TaskBoard (what you see)
 ```
 
 ---
 
-## The Data Model
+## What Is a Task?
 
-### Task Entity
+A task is a `.on()` handler on a unit:
 
-```
-task
-  tid          "W-3"              unique key
-  name         "TypeDB schema"    human-readable
-  description  "..."              detail
-  task-type    "work"             work | review | test | deploy
-  status       "todo"             todo | in_progress | complete | blocked | failed
-  priority     "P1"               P0 (critical) → P3 (low)
-  phase        "wire"             wire | tasks | onboard | commerce | intelligence | scale
-  importance   5                  0-10, used for weighted selection
-  price        0                  SUI cost to execute
-  attractive   true               INFERRED: ready + trail >= 50
-  repelled     false              INFERRED: alarm >= 30 AND alarm > trail
+```typescript
+const bob = net.spawn('bob')
+  .on('build', async (data, emit) => {
+    const result = await buildAPI(data)
+    emit({ receiver: 'tester:verify', data: result })
+    return result
+  })
 ```
 
-### Trail Relation (task → task)
+When a signal arrives at `bob:build`, the handler runs. That's a task executing.
 
-Pheromone lives on EDGES, not nodes. When completing task A leads to successfully completing task B, the trail A→B gets reinforced.
+## What Is a Dependency?
 
-```
-trail (source-task: A, destination-task: B)
-  trail-pheromone   65.0        0-100, success signal (higher = more proven)
-  alarm-pheromone   5.0         0-100, failure signal (higher = more dangerous)
-  completions       8           times this sequence succeeded
-  failures          1           times this sequence failed
-  revenue           0.0         economic value of this sequence
-  fade-rate         0.05        decay speed (lower = more permanent)
-  trail-status      "fresh"     INFERRED: proven | fresh | fading | dead
-```
+A dependency is a `.then()` continuation:
 
-### Dependency Relation
-
-```
-dependency (dependent: B, blocker: A)
+```typescript
+bob
+  .on('schema', async (data) => buildSchema(data))
+  .then('schema', result => ({ receiver: 'bob:api', data: result }))
+  .on('api', async (data) => buildAPI(data))
+  .then('api', result => ({ receiver: 'bob:test', data: result }))
 ```
 
-Task B can't start until task A is complete. The negation pattern: ready = todo AND NOT (has incomplete blocker).
+`api` can't run until `schema` completes. The continuation chains them. No dependency relation needed.
 
-### Trail Status Classification
+## What Is a Trail?
+
+Pheromone on the scent map. Every signal delivery auto-marks the edge:
 
 ```
-trail_status(pheromone, completions, failures):
-  pheromone >= 70 AND completions >= 10 AND failures < completions  → "proven"
-  pheromone >= 10 AND completions < 10                              → "fresh"
-  pheromone > 0 AND pheromone < 10                                  → "fading"
-  otherwise                                                         → "dead"
+signal({ receiver: 'bob:api' }, from = 'bob:schema')
+  → mark('bob:schema→bob:api')
+  → scent['bob:schema→bob:api'] += 1
 ```
+
+Success accumulates strength. Failure deposits alarm. Decay forgets over time. No trail entity needed.
+
+## What Are Tags?
+
+Flat labels on skills and units. No hierarchy, no schema change needed to add new ones.
+
+```typeql
+insert $s isa skill, has skill-id "api", has name "Build API",
+  has tag "build", has tag "wire", has tag "P0";
+```
+
+Tags answer **"what is this?"** — pheromone answers **"how well does it work?"**
+
+```
+Tags:       build, wire, P0, frontend, infra, payments
+Pheromone:  strength 45, alarm 3, traversals 12
+```
+
+Together: "Show me all P0 commerce tasks, sorted by trail strength."
+
+```
+GET /api/tasks?tag=P0&tag=commerce
+```
+
+Units can be tagged too — castes, teams, roles:
+
+```typeql
+insert $u isa unit, has uid "scout-1",
+  has tag "scout", has tag "team-alpha";
+```
+
+### Conventions (not enforced)
+
+| Prefix | Examples | Meaning |
+|--------|----------|---------|
+| Phase | `wire`, `onboard`, `commerce`, `scale` | Where in the roadmap |
+| Priority | `P0`, `P1`, `P2`, `P3` | How urgent |
+| Type | `build`, `test`, `review`, `deploy` | What kind of work |
+| Domain | `frontend`, `infra`, `payments`, `integration` | Technical area |
+| Team | `team-alpha`, `tony`, `david` | Who owns it |
+
+No enforcement. No validation. Just strings. Convention emerges from use.
 
 ---
 
-## The Four Task Categories
+## What Is the Queue?
 
-Every task falls into exactly one category at any moment. The category changes as pheromone accumulates and decays.
+Signals that can't be delivered yet (receiver doesn't exist). They wait:
+
+```typescript
+net.enqueue({ receiver: 'future-agent:task', data: {} })
+// Later...
+net.spawn('future-agent')  // queued signals auto-deliver
+```
+
+The queue replaces "todo" status. A queued signal IS a pending task.
+
+---
+
+## The Four Categories
+
+Every task falls into one category based on pheromone state:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│   ATTRACTIVE          READY            EXPLORATORY              │
-│   trail >= 50         no blockers      no trail exists          │
-│   colony says YES     colony says OK   colony says UNKNOWN      │
-│                                                                 │
-│   ┌───────────┐      ┌───────────┐    ┌───────────┐           │
-│   │ Follow me │      │ Available │    │ Scout me  │           │
-│   │ (exploit) │      │ (neutral) │    │ (explore) │           │
-│   └───────────┘      └───────────┘    └───────────┘           │
-│                                                                 │
-│                       REPELLED                                  │
-│                       alarm >= 30 AND alarm > trail             │
-│                       colony says NO                            │
-│                                                                 │
-│                      ┌───────────┐                             │
-│                      │ Avoid me  │                             │
-│                      │ (retreat) │                             │
-│                      └───────────┘                             │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+ATTRACTIVE       strength >= 50 on inbound edges
+                 Colony says: "follow this, it works"
+
+READY            has inbound edges, but below threshold
+                 Colony says: "available, no strong signal"
+
+EXPLORATORY      no inbound edges at all
+                 Colony says: "unknown — needs a scout"
+
+REPELLED         alarm >= 30 AND alarm > strength
+                 Colony says: "avoid — this failed before"
 ```
+
+Categories are computed at query time from the scent/alarm maps. No inference rules needed.
 
 ### API Routes
 
-| Route | Method | Returns | TypeDB Function |
-|-------|--------|---------|-----------------|
-| `/api/tasks` | GET | All tasks (filterable by `?phase=` `?status=`) | match query |
-| `/api/tasks` | POST | Create task (with optional `blockedBy[]`) | insert + dependency |
-| `/api/tasks/ready` | GET | Unblocked todos (negation pattern) | `ready_tasks()` |
-| `/api/tasks/attractive` | GET | Ready + strong trail | `is_attractive()` |
-| `/api/tasks/repelled` | GET | High alarm tasks | `is_repelled()` |
-| `/api/tasks/exploratory` | GET | Ready + no trail exists | `exploratory_tasks()` |
-| `/api/tasks/:id/complete` | POST | Complete or fail a task | trail pheromone update |
+| Route | Method | What |
+|-------|--------|------|
+| `/api/tasks` | GET | All tasks with tags, category, pheromone. Filter: `?tag=build&tag=P0` |
+| `/api/tasks` | POST | Create task (skill + tags + capability) |
+| `/api/tasks/ready` | GET | Category = ready. Supports `?tag=` filter |
+| `/api/tasks/attractive` | GET | Category = attractive. Supports `?tag=` filter |
+| `/api/tasks/repelled` | GET | Category = repelled. Supports `?tag=` filter |
+| `/api/tasks/exploratory` | GET | Category = exploratory. Supports `?tag=` filter |
+| `/api/tasks/:id/complete` | POST | Mark outcome (reinforces or alarms path) |
 
 ---
 
 ## The Growth Loop
 
-The growth loop (`src/engine/loop.ts`) is the colony's heartbeat. One tick per minute, driven by the Dashboard poll to `/api/tick`.
-
-### The Eight Phases
+`src/engine/loop.ts` — the colony's heartbeat. One tick per interval.
 
 ```
-SENSE → SELECT → EXECUTE → OUTCOME → UPDATE → DECAY → EVOLVE → CRYSTALLIZE
+select → signal → drain → fade → evolve → crystallize
 ```
 
-**Every tick:**
+| Phase | What | Interval |
+|-------|------|----------|
+| SELECT | Probabilistic pick from pheromone-weighted edges | Every tick |
+| SIGNAL | Send to the selected receiver | Every tick |
+| DRAIN | Process one queued signal | Every tick |
+| FADE | Asymmetric decay (trail 5%, alarm 10%) | 5 min |
+| EVOLVE | Rewrite prompts of struggling agents | 10 min |
+| CRYSTALLIZE | Promote strong paths to permanent (low fade-rate) | 1 hour |
 
-| Phase | What happens | Task system interaction |
-|-------|-------------|----------------------|
-| SENSE | Query TypeDB for ready, attractive, exploratory tasks | Reads task categories via same TQL as API routes |
-| SELECT | Weighted random pick (attractive by trail-pheromone, exploratory random, ready uniform) | Uses `trail-pheromone` as selection weight |
-| EXECUTE | Set task `in_progress`, route through orchestrator | Writes `status = "in_progress"` to TypeDB |
-| OUTCOME | Check success/failure from agent execution | -- |
-| UPDATE | Complete task via `/api/tasks/:id/complete` + mark substrate path | Writes `status = "complete"` or `"failed"`, updates trail pheromone |
+### Selection
 
-**Periodic phases:**
-
-| Phase | Interval | What happens |
-|-------|----------|-------------|
-| DECAY | 5 min | Asymmetric fade: trail 5%, alarm 20% (failures forgive faster) |
-| EVOLVE | 10 min | Query struggling agents (`success-rate < 0.50`), LLM rewrites their prompt, `generation++` |
-| CRYSTALLIZE | 1 hour | Proven trails (`pheromone >= 70, completions >= 10`) get permanent fade-rate (0.01) |
-
-### Selection Priority
+`colony.select()` does weighted random with exploration bias:
 
 ```
-1. ATTRACTIVE tasks (trail >= 50) → weighted by trail-pheromone
-   Task with pheromone 60 is 6x more likely to be picked than pheromone 10
-
-2. EXPLORATORY tasks (no trail) → uniform random
-   Someone needs to try these first. Scouts venture here.
-
-3. READY tasks (just unblocked) → uniform random
-   Fallback. All available work is equal if no pheromone data exists.
-
-REPELLED tasks are NEVER selected by the loop.
-They remain visible on the TaskBoard but the colony avoids them
-until alarm decays below trail (failures are forgiven over time).
+exploration% chance: pick random from any viable edge
+otherwise: pick proportional to (scent - alarm)
 ```
+
+Scouts call `select(type, 0.7)` — 70% exploration.
+Harvesters call `select(type, 0.1)` — follow the highway.
 
 ### Sequence Learning
 
-The loop tracks `previousTask`. When task B completes after task A:
+The loop tracks `previousTask`. When B executes after A:
 
 ```
-Success: trail(A→B).trail-pheromone += 5.0, completions += 1
-         path(A→B).strength += 5 (substrate routing)
-
-Failure: trail(A→B).alarm-pheromone += 8.0, failures += 1
-         path(A→B).alarm += 8 (substrate routing)
-         previousTask resets to null (chain breaks)
+Success: path(A→B).strength += 5
+Failure: path(A→B).alarm += 8, chain breaks
 ```
 
-The colony learns SEQUENCES: "After completing schema design, implementing the API works well." Not just "the API is a good task" — but "the API is good AFTER the schema."
-
----
-
-## Task Lifecycle
-
-```
-                    ┌──────── dependency ────────┐
-                    │                            │
-                    ▼                            │
-┌──────┐     ┌──────────┐     ┌─────────────┐  │  ┌──────────┐
-│ todo │────→│in_progress│────→│  complete    │──┘  │  failed  │
-└──────┘     └──────────┘     └─────────────┘      └──────────┘
-   │              │                  │                    │
-   │              │                  │                    │
-   │         loop picks it      trail reinforced     trail alarmed
-   │         status changes     +5 pheromone         +8 alarm
-   │                            +1 completions       +1 failures
-   │                            unblocks dependents  chain breaks
-   │
-   ├── attractive (trail >= 50) → loop favors it
-   ├── exploratory (no trail) → loop scouts it
-   ├── ready (unblocked) → loop may pick it
-   └── repelled (alarm > trail) → loop avoids it
-```
-
-### What Unblocks a Task
-
-A task becomes ready when ALL its blockers are complete:
-
-```typeql
-fun ready_tasks() -> { task }:
-    match
-        $t isa task, has status "todo";
-        not {
-            $dep(dependent: $t, blocker: $blocker) isa dependency;
-            $blocker isa task, has status $bs;
-            not { $bs == "complete"; };
-        };
-    return { $t };
-```
-
-Double negation: NOT (blocker that is NOT complete) = all blockers are complete.
-
-### What Makes a Task Attractive
-
-Ready + strong inbound trail pheromone:
-
-```typeql
-fun is_attractive($t: task) -> boolean:
-    match
-        $t has status "todo";
-        not { (dependent: $t, blocker: $b) isa dependency;
-              $b has status $bs; not { $bs == "complete"; }; };
-        $trail (destination-task: $t) isa trail,
-            has trail-pheromone $tp;
-        $tp >= 50.0;
-    return true;
-```
-
-### What Makes a Task Repelled
-
-High alarm that dominates the trail signal:
-
-```typeql
-fun is_repelled($t: task) -> boolean:
-    match
-        $t has status "todo";
-        $trail (destination-task: $t) isa trail,
-            has alarm-pheromone $ap,
-            has trail-pheromone $tp;
-        $ap >= 30.0;
-        $ap > $tp;
-    return true;
-```
+The colony learns SEQUENCES. Not "B is good" but "B is good AFTER A."
 
 ---
 
 ## Pheromone Dynamics
 
-### Reinforcement (+5 trail on success)
-
-Every successful task completion strengthens the inbound trail. After 10 successes with no failures, the trail reaches 50 (attractive threshold). After 14 successes, it hits 70 (proven threshold).
+### Accumulation
 
 ```
-Completion 1:   trail = 5.0    (fresh)
-Completion 5:   trail = 25.0   (fresh, decayed by ~5%)
-Completion 10:  trail = 45.0   (approaching attractive)
-Completion 14:  trail = 63.0   (attractive, approaching proven)
-Completion 20:  trail = 78.0   (proven, crystallization candidate)
+mark('a→b', 5)     strength += 5      (success)
+warn('a→b', 8)     alarm += 8         (failure)
 ```
 
-*(Values approximate -- decay reduces between completions)*
+Alarm is stronger per-event than trail. Two failures can repel a task.
 
-### Alarm (+8 alarm on failure)
-
-Failures deposit alarm pheromone, which is stronger per-event than trail reinforcement. Two consecutive failures can repel a task:
-
-```
-Failure 1: alarm = 8.0     (below repelled threshold)
-Failure 2: alarm = 16.0    (still below, but alarm decays slower than it looks)
-Failure 4: alarm = 32.0    (repelled if trail < 32)
-```
-
-### Asymmetric Decay
+### Decay
 
 ```
 Every 5 minutes:
-  trail-pheromone *= 0.95    (lose 5% — remember successes)
-  alarm-pheromone *= 0.80    (lose 20% — forgive failures)
+  strength *= 0.95    (lose 5% — remember successes)
+  alarm *= 0.90       (lose 10% — forgive failures)
 ```
 
-Why asymmetric? The colony forgets failures faster than successes. A task that failed last week might succeed now — conditions change. But a task that succeeded consistently should stay attractive.
+Asymmetric: failures forgive faster. A task that failed last week may succeed now.
 
 ### Crystallization
 
-Every hour, the loop checks for superhighways:
+Every hour, strong paths get near-permanent fade-rate:
 
 ```
-trail-pheromone >= 70  AND  completions >= 10  →  fade-rate = 0.01
+strength >= 50  →  fade-rate = 0.01  (1% instead of 5%)
 ```
 
-Crystallized trails are near-permanent. They decay at 1% instead of 5% — the colony's long-term memory. These are proven sequences: "After A, do B. This always works."
+The colony's long-term memory. These are proven sequences.
+
+---
+
+## Adding Tasks
+
+### Via Chat (primary)
+
+Users ask in natural language. The chat agent interprets and enqueues a signal:
+
+```
+User: "Build the signup flow"
+Agent: enqueue({ receiver: 'builder:signup', data: { description: '...' } })
+```
+
+If the builder unit has a `signup` handler, it executes. If not, the signal waits in the queue until someone spawns a handler for it.
+
+### Via API
+
+```bash
+curl -X POST /api/tasks -H 'Content-Type: application/json' \
+  -d '{ "id": "signup", "name": "Signup flow", "tags": ["build", "onboard", "P0", "frontend"] }'
+```
+
+### Via Continuation
+
+A task that completes can spawn the next task:
+
+```typescript
+.on('design', async (data, emit) => {
+  const spec = await design(data)
+  emit({ receiver: 'builder:implement', data: spec })
+  return spec
+})
+```
+
+### Via Import
+
+`POST /api/tasks/import-roadmap` creates skills, capabilities, and initial paths from the project roadmap.
+
+---
+
+## Boot Sequence
+
+`src/engine/boot.ts` — start the heartbeat:
+
+```typescript
+const { world, signal, enqueue, stop } = await boot(complete, 10_000)
+
+// Hydrates pheromone from TypeDB paths
+// Spawns units from TypeDB
+// Drains queued signals from TypeDB (pending signals)
+// Starts the tick loop
+```
+
+On restart, nothing is lost:
+- Pheromone → loaded from `path` relations
+- Queue → loaded from `signal` relations with `success = false`
+- Units → spawned from TypeDB unit entities
+- Knowledge → crystallized paths have low fade-rate, persist for months
+
+---
+
+## Persistence
+
+### What's in TypeDB (survives restart)
+
+| Entity/Relation | What it stores |
+|-----------------|---------------|
+| `unit` | Actors: model, system-prompt, generation, success-rate |
+| `path` | Pheromone: strength, alarm, traversals, revenue, fade-rate |
+| `signal` | Event log: who sent what, success, latency |
+| `skill` | What units can do |
+| `capability` | Unit + skill + price |
+| `hypothesis` | Confirmed beliefs (knowledge loop) |
+
+### What's in runtime (rebuilt on boot)
+
+| Structure | What it stores |
+|-----------|---------------|
+| `units` | Spawned units with `.on()` handlers |
+| `scent` | Pheromone map (hydrated from `path.strength`) |
+| `alarm` | Alarm map (hydrated from `path.alarm`) |
+| `queue` | Pending signals (hydrated from `signal.success = false`) |
 
 ---
 
 ## The TaskBoard
 
-`src/components/TaskBoard.tsx` renders the live task state.
-
-### What It Shows
-
-| Section | Data | Source |
-|---------|------|--------|
-| Phase Timeline | 7 phases with completion bars | `/api/tasks` grouped by phase |
-| Active Spotlight | Current task with blocker/unblock chains | Selected task + dependencies |
-| Pheromone Bars | Trail (green) and alarm (red) per task | `trail-pheromone`, `alarm-pheromone` |
-| Trail Status | Proven / fresh / fading / dead | `trail_status()` inference |
-| Flow Grid | 3-column Kanban: Planned / Active / Complete | `status` grouping |
-| Stats Bar | Total, complete, active, ready, highways | Aggregated counts |
-
-### Pheromone Visualization
+The TaskBoard reads from `/api/tasks` which computes categories from TypeDB path data:
 
 ```
-Trail (success signal):     [████████████░░░░░░░░]  62.0
-Alarm (failure signal):     [████░░░░░░░░░░░░░░░░]  12.0
-                            ↑ glow effect when > 50
+For each skill with a capability:
+  1. Find the provider unit
+  2. Sum inbound path strength → total strength
+  3. Sum inbound path alarm → total alarm
+  4. Classify: attractive / ready / exploratory / repelled
+  5. Include unit success-rate, sample-count
 ```
 
-Proven trails get a bright highlight. Fading trails dim. Dead trails disappear. Repelled tasks show dominant red alarm bars.
+### What it shows
+
+- **Tasks by category** — color-coded columns (attractive=green, exploratory=blue, repelled=red)
+- **Pheromone bars** — strength (green) and alarm (red) per task
+- **Unit info** — who handles this, their success rate, generation
+- **Queue** — pending signals waiting for handlers
+- **Highways** — proven paths between units
 
 ---
 
-## Creating Tasks
+## Evolution
 
-### Via API
+Every 10 minutes, the loop queries TypeDB for struggling agents:
 
-```bash
-curl -X POST /api/tasks -H 'Content-Type: application/json' -d '{
-  "tid": "W-3",
-  "name": "TypeDB schema design",
-  "taskType": "work",
-  "priority": "P1",
-  "phase": "wire",
-  "blockedBy": ["W-1", "W-2"]
-}'
+```
+success-rate < 0.50 AND sample-count >= 20
 ```
 
-### Via Seed
-
-`POST /api/seed` bootstraps the world with 10 sample tasks, 3 agent capabilities, and initial paths.
-
-### Via Import Roadmap
-
-`POST /api/tasks/import-roadmap` creates 48 tasks across 7 phases with dependency chains and initial trails. Completed tasks get trail-pheromone 70 (proven). Incomplete tasks start at 0.
+For each, the LLM rewrites the system-prompt. `generation++`. The new prompt starts accumulating samples immediately. The substrate measures; the agent evolves.
 
 ---
 
-## How the Loop Drives Tasks
+## The Collapse
 
-### Minute-by-minute
+The old system had task entities, trail relations, dependency relations, 9 TypeDB functions, and 3 separate classification attributes (skill-type, phase, priority). 434 lines of schema.
 
-```
-00:00  Dashboard polls /api/tick
-       SENSE: 12 ready, 3 attractive, 5 exploratory
-       SELECT: picks "W-7: API endpoints" (attractive, trail=62)
-       EXECUTE: sets status="in_progress", routes to agent
-       OUTCOME: agent succeeds
-       UPDATE: trail(W-6→W-7) += 5, status="complete", unblocks W-8
+The new system:
 
-00:01  Dashboard polls /api/tick (interval gate: skip, < 60s)
+| Old | New |
+|-----|-----|
+| Task entity | `.on()` handler |
+| Trail relation | `scent` map entry |
+| Dependency relation | `.then()` continuation |
+| `skill-type` attribute | `tag "build"` |
+| `phase` attribute | `tag "wire"` |
+| `priority` attribute | `tag "P0"` |
+| `is_attractive()` function | `strength >= 50` |
+| `is_repelled()` function | `alarm >= 30 && alarm > strength` |
+| `ready_tasks()` function | `strength > 0 && strength < 50` |
+| `exploratory_tasks()` function | No inbound edges |
+| Task status lifecycle | Signal delivered or queued |
 
-01:00  Dashboard polls /api/tick
-       SENSE: 13 ready (W-8 unblocked), 3 attractive, 4 exploratory
-       SELECT: picks "W-8: Integration tests" (exploratory, no trail)
-       EXECUTE: sets status="in_progress", routes to agent
-       OUTCOME: agent fails
-       UPDATE: trail(W-7→W-8).alarm += 8, status="failed", chain breaks
-
-02:00  Dashboard polls /api/tick
-       SENSE: 12 ready, 3 attractive, 5 exploratory (W-8 now repelled)
-       SELECT: picks different task (W-8 avoided due to alarm)
-       ...
-
-05:00  DECAY runs: all trail *= 0.95, all alarm *= 0.80
-       W-8 alarm: 8.0 → 6.4 (approaching forgiveness)
-```
-
-### Over hours
-
-```
-Hour 1:   trails forming. Fresh paths everywhere.
-Hour 3:   some trails hit 50 (attractive). Colony follows them.
-Hour 6:   first trails hit 70 (proven). Crystallization begins.
-Hour 12:  superhighways emerge. The colony knows the best sequences.
-Hour 24:  unused trails fade to dead. Only proven paths survive.
-          Knowledge has crystallized. The system remembers what works.
-```
-
-### Over days
-
-```
-Day 1:    Bootstrap. All tasks exploratory. Random selection.
-Day 3:    Patterns emerge. Attractive tasks dominate selection.
-Day 7:    Proven trails crystallized. Struggling agents evolved.
-Day 14:   The colony runs itself. Highways carry most traffic.
-          New tasks enter as exploratory → get scouted → trails form.
-          Failed sequences get alarmed → avoided → alarm decays → retried.
-```
-
----
-
-## The Seven Loops
-
-Tasks sit at the center of the seven nested feedback loops:
-
-```
-L1  SIGNAL     per message     task receives signal, agent executes
-L2  TRAIL      per completion  trail pheromone updated (success/failure)
-L3  FADE       every 5 min     trails decay (asymmetric)
-L4  ECONOMIC   per payment     revenue reinforces paths
-L5  EVOLUTION  every 10 min    struggling agents rewrite their prompts
-L6  KNOWLEDGE  per crystallize proven trails become permanent
-L7  FRONTIER   emergent        exploratory task clusters spawn objectives
-```
-
-Tasks are the interface between the fast loops (signals, trails) and the slow loops (evolution, knowledge). Every signal produces a task outcome. Every task outcome updates a trail. Every trail feeds the next signal's routing decision.
-
-**Tasks are the training data. Trails are the learned model. The growth loop is the training step.**
-
----
-
-## Putting It All Together
-
-The task management system is not a project tracker. It's the nervous system of a learning organism:
-
-1. **Tasks enter** as `todo` with dependencies
-2. **TypeDB classifies** them as ready/attractive/repelled/exploratory
-3. **The growth loop** picks the best task (weighted by trail pheromone)
-4. **An agent executes** the task (routed by substrate pheromone)
-5. **The outcome updates** trail pheromone (success: +5 trail, failure: +8 alarm)
-6. **Decay runs** every 5 minutes (trails fade, alarms fade faster)
-7. **Crystallization** promotes proven sequences to permanent knowledge
-8. **Evolution** rewrites struggling agents every 10 minutes
-9. **The next tick** sees a different landscape: new tasks unblocked, trails shifted, knowledge accumulated
-
-The loop runs forever. The colony learns. Tasks that work get reinforced. Tasks that fail get avoided then forgiven. Sequences emerge. Highways form. The system gets smarter without anyone telling it what to do.
-
-```
-signal IN → task → agent → outcome → trail → decay → crystallize → signal IN
-                                                                       ↑
-                                                                   the loop
-```
+Tags for what it IS. Pheromone for how well it WORKS.
 
 ---
 
@@ -474,18 +385,15 @@ signal IN → task → agent → outcome → trail → decay → crystallize →
 
 | File | Purpose |
 |------|---------|
-| `src/schema/one.tql` | TypeDB schema: task, trail, dependency, classification functions |
-| `src/engine/loop.ts` | Growth loop: 8-phase tick (SENSE through CRYSTALLIZE) |
-| `src/engine/substrate.ts` | Colony primitives: mark, warn, fade, follow, select |
-| `src/engine/one.ts` | World: crystallize(), recall(), proven() |
-| `src/engine/asi.ts` | Orchestrator: routes tasks to agents |
-| `src/pages/api/tick.ts` | Growth loop API endpoint (polled by Dashboard) |
-| `src/pages/api/tasks/` | Task CRUD + category queries + completion |
-| `src/pages/api/decay-auto.ts` | Interval-gated asymmetric decay |
-| `src/components/TaskBoard.tsx` | Task visualization with pheromone bars |
-| `src/components/Dashboard.tsx` | System monitor, polls /api/tick |
-| `docs/lessons/04-task-allocation.md` | TypeDB lesson: negation + pheromone selection |
-| `docs/loops.md` | The seven nested feedback loops |
+| `src/engine/substrate.ts` | Colony: signal, mark, warn, fade, queue, select |
+| `src/engine/loop.ts` | Tick: select, signal, drain, fade, evolve, crystallize |
+| `src/engine/one.ts` | World: actor, flow, crystallize, recall |
+| `src/engine/boot.ts` | Hydrate + spawn + breathe |
+| `src/engine/persist.ts` | TypeDB sync: mark/warn/fade/enqueue write-through |
+| `src/engine/asi.ts` | Three-tier routing: substrate → TypeDB → LLM |
+| `src/pages/api/tasks/` | Task visibility + signal enqueue |
+| `src/pages/api/tick.ts` | Growth loop endpoint |
+| `src/schema/one.tql` | TypeDB schema: units, paths, skills, knowledge |
 
 ---
 
@@ -493,6 +401,9 @@ signal IN → task → agent → outcome → trail → decay → crystallize →
 
 - [loops.md](loops.md) -- The seven nested feedback loops
 - [substrate-learning.md](substrate-learning.md) -- How routing IS learning
-- [lessons/04-task-allocation.md](lessons/04-task-allocation.md) -- TypeDB patterns for task allocation
+- [signal.md](signal.md) -- The universal primitive
 - [emergence.md](emergence.md) -- How intelligence emerges from simple rules
-- [signal.md](signal.md) -- The universal primitive that drives everything
+
+---
+
+*A task is a signal. A dependency is a continuation. The colony learns what works.*

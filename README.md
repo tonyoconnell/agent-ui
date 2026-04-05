@@ -1,10 +1,10 @@
 # The Substrate
 
-**70 lines. Two fields. Concurrency safe. AI agents.**
+**~90 lines. Two fields. Queue. Zero returns. AI agents.**
 
 ```
 receiver: who
-payload: what
+data: what
 
 That's all that flows.
 ```
@@ -27,6 +27,25 @@ No controller.
 
 ---
 
+## Two Layers
+
+```
+NERVOUS SYSTEM (runtime)         BRAIN (TypeDB)
+─────────────────────            ──────────────
+signals move                     paths persist
+units receive                    units persist
+handlers run                     signals recorded
+continuations chain              classification inferred
+scent/alarm accumulate           evolution detected
+queue holds work                 knowledge crystallizes
+
+loops L1-L3 (ms-min)            loops L4-L7 (hours-weeks)
+```
+
+The runtime handles what moves. TypeDB handles what remains.
+
+---
+
 ## The Signal
 
 ```typescript
@@ -35,9 +54,9 @@ No controller.
 
 Two fields. That's it.
 
-- `receiver: "scout"` — send to scout's default task
-- `receiver: "scout:observe"` — send to scout's observe task
-- `data` — anything: objects, streams, buffers, functions, promises
+- `receiver: "scout"` — send to scout's default handler
+- `receiver: "scout:observe"` — send to scout's observe handler
+- `data` — anything
 
 ---
 
@@ -45,23 +64,26 @@ Two fields. That's it.
 
 ```typescript
 net.spawn('scout')
-  .on('observe', (payload, emit, ctx) => {
-    // payload: the data
+  .on('observe', (data, emit, ctx) => {
+    // data: the data
     // emit: send more signals
     // ctx: { from, self }
-    return { observed: payload.tick }
+    return { observed: data.tick }
   })
   .then('observe', result => ({
     receiver: 'analyst:evaluate',
-    payload: result
+    data: result
   }))
 ```
 
+Tasks are `.on()` handlers. Dependencies are `.then()` continuations.
+No task entities. No dependency relations. Pheromone accumulates automatically.
+
 | Method | Purpose |
 |--------|---------|
-| `.on(name, fn)` | Define a task |
-| `.then(name, tmpl)` | Define continuation |
-| `.role(name, task, ctx)` | Context-bound task |
+| `.on(name, fn)` | Define a handler (task) |
+| `.then(name, tmpl)` | Define continuation (dependency) |
+| `.role(name, task, ctx)` | Context-bound handler |
 
 ---
 
@@ -71,10 +93,43 @@ net.spawn('scout')
 const net = colony()
 
 net.spawn('scout')    // create unit
-net.signal(sig)       // send signal
-net.mark(edge)        // strengthen
-net.fade(0.1)         // decay
-net.highways(10)      // see learning
+net.signal(sig)       // send signal (marks pheromone)
+net.enqueue(sig)      // queue for later
+net.drain()           // process queued signal
+net.mark(edge)        // strengthen path
+net.warn(edge)        // weaken path
+net.select()          // probabilistic pick (ant-like)
+net.fade(0.1)         // decay (alarm 2x faster)
+net.highways(10)      // see what emerged
+```
+
+---
+
+## The World
+
+```typescript
+const w = world()
+
+w.actor('scout', 'agent')  // spawn + persist to TypeDB
+w.flow('scout', 'analyst') // mark/warn wrapper
+  .strengthen(5)
+
+w.open(10)                 // top paths
+w.blocked()                // toxic paths
+w.crystallize()            // promote highways to knowledge
+w.recall('scout')          // query knowledge from TypeDB
+```
+
+---
+
+## The Tick
+
+```typescript
+const next = net.select()           // follow pheromone
+next && net.signal({ receiver: next }) // execute
+net.drain()                          // process queue
+net.fade(0.05)                       // decay
+// evolve every 10min, crystallize every hour
 ```
 
 ---
@@ -90,98 +145,15 @@ net.highways(10)      // see learning
 │  signal succeeds                  time passes                   │
 │       │                                │                        │
 │       ▼                                ▼                        │
-│  edge strengthens                 edge weakens                  │
+│  path strengthens                 path weakens                  │
 │       │                                │                        │
 │       ▼                                ▼                        │
 │  more signals follow              signals find other paths      │
 │       │                                │                        │
 │       ▼                                ▼                        │
-│  SUPERHIGHWAY                     edge disappears               │
+│  HIGHWAY                          path dissolves                │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## AI Agent Patterns
-
-### Request / Response
-
-```typescript
-.on('ask', ({ question }, emit, { self }) => {
-  emit({ receiver: 'oracle:answer', payload: { question, replyTo: self } })
-})
-
-.on('answer', ({ question, replyTo }, emit) => {
-  emit({ receiver: replyTo, payload: { answer: think(question) } })
-})
-```
-
-### Claim Task
-
-```typescript
-.on('claim', ({ taskId }, emit, { from }) => {
-  if (!claims[taskId]) {
-    claims[taskId] = from
-    emit({ receiver: from, payload: { status: 'claimed' } })
-  }
-})
-```
-
-### Payment
-
-```typescript
-.on('pay', ({ from, to, amount }, emit) => {
-  if (balances[from] >= amount) {
-    balances[from] -= amount
-    balances[to] += amount
-    emit({ receiver: to, payload: { received: amount, from } })
-  }
-})
-```
-
-### Swarm Formation
-
-```typescript
-.on('join', ({ capabilities }, emit, { from }) => {
-  registry[from] = capabilities
-  // Notify all members
-  Object.keys(registry).forEach(id =>
-    emit({ receiver: id, payload: { joined: from, capabilities } })
-  )
-})
-```
-
----
-
-## Streaming
-
-```typescript
-.on('stream', async ({ url }, emit) => {
-  const stream = await connect(url)
-
-  stream.on('frame', frame =>
-    emit({ receiver: 'process:frame', payload: frame })
-  )
-
-  stream.on('audio', chunk =>
-    emit({ receiver: 'transcribe:chunk', payload: chunk })
-  )
-})
-```
-
----
-
-## Context
-
-Every task knows who it is and who's asking:
-
-```typescript
-.on('task', (payload, emit, ctx) => {
-  ctx.from   // who sent this
-  ctx.self   // my address (unit:task)
-  emit(env)  // sends with my identity as origin
-})
 ```
 
 ---
@@ -190,21 +162,16 @@ Every task knows who it is and who's asking:
 
 | Behavior | How |
 |----------|-----|
-| **Learning** | Edges strengthen with use |
-| **Forgetting** | Unused edges fade |
+| **Learning** | Paths strengthen with use |
+| **Forgetting** | Unused paths fade |
 | **Highways** | High-traffic paths emerge |
-| **Load balancing** | Route by scent |
-| **Fault tolerance** | Failed paths weaken |
+| **Load balancing** | Probabilistic routing by scent |
+| **Fault tolerance** | Failed paths weaken (alarm) |
 | **Self-organization** | No controller |
+| **Evolution** | Agents rewrite their own prompts |
+| **Knowledge** | Highways crystallize into hypotheses |
 
 ---
-
-## Run
-
-```bash
-bun install
-bun dev        # → localhost:4321
-```
 
 ## Stack
 
@@ -214,19 +181,33 @@ bun dev        # → localhost:4321
 | Framework | [Astro 5](https://astro.build) |
 | UI | [React 19](https://react.dev) |
 | Visualization | [ReactFlow](https://reactflow.dev) |
+| Brain | [TypeDB 3.0](https://typedb.com) |
 
 ## Files
 
 ```
 src/engine/
-├── substrate.ts   # 70 lines — the foundation
-├── unit.ts        # Legacy (backwards compatible)
-├── colony.ts      # Legacy (backwards compatible)
-└── index.ts       # Exports
+├── substrate.ts   # ~90 lines — unit, colony, pheromone, queue
+├── one.ts         # ~40 lines — world (TypeDB bridge)
+├── loop.ts        # ~76 lines — tick (select, signal, fade, evolve)
+├── persist.ts     # ~90 lines — TypeDB sync
+├── boot.ts        # ~37 lines — hydrate + start
+├── asi.ts         # orchestrator
+├── llm.ts         # LLM as unit
+├── agentverse.ts  # 2M agents
+└── index.ts       # exports
 
-docs/
-├── code.md        # The substrate specification
-└── examples.md    # Patterns and usage
+src/schema/
+└── one.tql        # ~230 lines — the brain
+```
+
+---
+
+## Run
+
+```bash
+npm install
+npm run dev        # → localhost:4321
 ```
 
 ---
@@ -242,7 +223,17 @@ Other signals read those modifications.
 That's intelligence.
 That's what this is.
 
-70 lines.
+~90 lines.
 Two fields.
 Build everything.
 ```
+
+---
+
+## Docs
+
+- [Dictionary](docs/dictionary.md) — Every name, how they connect, the full journey
+- [DSL](docs/DSL.md) — The programming model
+- [Architecture](docs/architecture.md) — TypeDB as substrate
+- [Metaphors](docs/metaphors.md) — Same system, different words
+- [Ontology](docs/one-ontology.md) — The 6 dimensions

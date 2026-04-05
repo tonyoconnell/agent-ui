@@ -1,82 +1,117 @@
 /**
- * /api/tasks — Task CRUD
+ * /api/tasks — Runtime task visibility
  *
- * GET  → List all tasks (optional ?phase=wire&status=todo)
- * POST → Create a new task
+ * GET  → List tasks (skills + pheromone). Filter with ?tag=build&tag=P0
+ * POST → Create a task (skill + tags + optional signal)
+ *
+ * Tasks are skills on units. Tags classify. Pheromone ranks.
  */
 import type { APIRoute } from 'astro'
-import { read, write, parseAnswers } from '@/lib/typedb'
+import { readParsed, write, writeSilent } from '@/lib/typedb'
+
+type Row = Record<string, unknown>
 
 export const GET: APIRoute = async ({ url }) => {
-  const phase = url.searchParams.get('phase')
-  const status = url.searchParams.get('status')
+  const filterTags = url.searchParams.getAll('tag')
 
-  let tql = 'match $t isa task'
-  const filters: string[] = []
-  if (phase) filters.push(`has phase "${phase}"`)
-  if (status) filters.push(`has status "${status}"`)
+  // Build tag filter clause
+  const tagMatch = filterTags.map(t => `$sk has tag "${t}";`).join('\n      ')
 
-  tql += filters.length ? ', ' + filters.join(', ') : ''
-  tql += `, has tid $id, has name $name, has status $s, has priority $p,
-    has phase $ph, has task-type $tt;
-    select $id, $name, $s, $p, $ph, $tt;`
+  const [capabilities, edges] = await Promise.all([
+    readParsed(`
+      match (provider: $u, offered: $sk) isa capability, has price $p;
+      $u has uid $uid, has unit-kind $kind, has success-rate $sr;
+      $sk has skill-id $sid, has name $name;
+      ${tagMatch}
+      select $uid, $sid, $name, $p, $kind, $sr;
+    `).catch(() => []),
+    readParsed(`
+      match $e (source: $from, target: $to) isa path,
+        has strength $s, has alarm $a, has traversals $t;
+      $from has uid $fid; $to has uid $tid;
+      select $fid, $tid, $s, $a, $t;
+    `).catch(() => []),
+  ])
 
-  const answers = await read(tql)
-  const rows = parseAnswers(answers)
-  return new Response(JSON.stringify({ tasks: rows }), {
+  // Fetch tags per skill (separate query since multi-valued)
+  const skillTags: Record<string, string[]> = {}
+  const tagRows = await readParsed(`
+    match $sk isa skill, has skill-id $sid, has tag $tag;
+    select $sid, $tag;
+  `).catch(() => []) as Row[]
+  for (const r of tagRows) {
+    const sid = r.sid as string
+    if (!skillTags[sid]) skillTags[sid] = []
+    skillTags[sid].push(r.tag as string)
+  }
+
+  const tasks = (capabilities as Row[]).map(cap => {
+    const unitId = cap.uid as string
+    const skillId = cap.sid as string
+
+    // Pheromone: inbound edges to this unit
+    const inbound = (edges as Row[]).filter(e => e.tid === unitId)
+    const strength = inbound.reduce((s, e) => s + (e.s as number), 0)
+    const alarm = inbound.reduce((s, e) => s + (e.a as number), 0)
+    const traversals = inbound.reduce((s, e) => s + (e.t as number), 0)
+
+    const repelled = alarm >= 30 && alarm > strength
+    const attractive = strength >= 50
+    const exploratory = inbound.length === 0
+    const category = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
+
+    return {
+      receiver: `${unitId}:${skillId}`,
+      unit: unitId,
+      skill: skillId,
+      name: cap.name as string,
+      tags: skillTags[skillId] || [],
+      price: cap.p as number,
+      category,
+      strength,
+      alarm,
+      traversals,
+      unitKind: cap.kind,
+      successRate: cap.sr,
+    }
+  })
+
+  return new Response(JSON.stringify({ tasks }), {
     headers: { 'Content-Type': 'application/json' },
   })
 }
 
 export const POST: APIRoute = async ({ request }) => {
   const body = await request.json() as {
-    tid: string
+    id: string
     name: string
-    description?: string
-    taskType?: string
-    status?: string
-    priority?: string
-    phase?: string
-    importance?: number
+    tags?: string[]
     price?: number
-    currency?: string
-    blockedBy?: string[]
+    unit?: string
   }
 
-  if (!body.tid || !body.name) {
-    return new Response(JSON.stringify({ error: 'Missing tid or name' }), { status: 400 })
+  if (!body.id || !body.name) {
+    return new Response(JSON.stringify({ error: 'Missing id or name' }), { status: 400 })
   }
 
-  const now = new Date().toISOString().replace('Z', '')
+  const tags = body.tags || []
+  const price = body.price || 0
+  const unitId = body.unit || 'builder'
 
+  // Create skill with tags
+  const tagInserts = tags.map(t => `has tag "${t}"`).join(', ')
   await write(`
-    insert $t isa task,
-      has tid "${body.tid}",
-      has name "${body.name}",
-      has description "${body.description || ''}",
-      has task-type "${body.taskType || 'work'}",
-      has status "${body.status || 'todo'}",
-      has priority "${body.priority || 'P1'}",
-      has phase "${body.phase || 'tasks'}",
-      has importance ${body.importance || 5},
-      has price ${body.price || 0},
-      has currency "${body.currency || 'SUI'}";
+    insert $s isa skill, has skill-id "${body.id}", has name "${body.name}",
+      ${tagInserts ? tagInserts + ',' : ''} has price ${price}, has currency "SUI";
+  `).catch(() => {})
+
+  // Link to unit via capability
+  await writeSilent(`
+    match $u isa unit, has uid "${unitId}"; $s isa skill, has skill-id "${body.id}";
+    insert (provider: $u, offered: $s) isa capability, has price ${price};
   `)
 
-  // Create dependency relations if blockedBy specified
-  if (body.blockedBy?.length) {
-    for (const blockerId of body.blockedBy) {
-      await write(`
-        match
-          $dep isa task, has tid "${body.tid}";
-          $blocker isa task, has tid "${blockerId}";
-        insert
-          (dependent: $dep, blocker: $blocker) isa dependency;
-      `).catch(() => {})
-    }
-  }
-
-  return new Response(JSON.stringify({ ok: true, tid: body.tid }), {
+  return new Response(JSON.stringify({ ok: true, skill: body.id, tags, unit: unitId }), {
     headers: { 'Content-Type': 'application/json' },
   })
 }

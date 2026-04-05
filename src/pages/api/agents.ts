@@ -65,29 +65,24 @@ export const POST: APIRoute = async ({ request }) => {
       const currency = cap.currency || 'SUI'
       const taskType = cap.taskType || 'work'
 
-      // Insert task (may already exist — catch and continue)
+      // Insert skill (may already exist — catch and continue)
       await write(`
         insert
-          $t isa task,
-            has tid "${tid}",
+          $s isa skill,
+            has skill-id "${tid}",
             has name "${safeTaskName}",
-            has task-type "${taskType}",
-            has status "active",
-            has priority "P1",
-            has phase "onboard",
+            has tag "${taskType}",
             has price ${price},
             has currency "${currency}";
-      `).catch(() => {
-        // Task with this tid may already exist — that's fine
-      })
+      `).catch(() => {})
 
       // Create capability relation
       await write(`
         match
           $u isa unit, has uid "${uid}";
-          $t isa task, has tid "${tid}";
+          $s isa skill, has skill-id "${tid}";
         insert
-          (provider: $u, skill: $t) isa capability,
+          (provider: $u, offered: $s) isa capability,
             has price ${price};
       `)
     }

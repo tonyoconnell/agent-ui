@@ -1,6 +1,6 @@
 # ONE Substrate
 
-Signal-based substrate for AI agents. 70 lines of core engine. Zero returns.
+Signal-based substrate for AI agents. ~90 lines of core engine. Zero returns.
 Built with Astro 5, React 19, TypeDB 3.0, and shadcn/ui.
 
 ## Quick Start
@@ -13,32 +13,52 @@ npm run preview  # Preview build
 
 ## Architecture
 
-TypeDB is the substrate. Not just storage — the signal relay, the router, the brain.
+Two layers. The runtime moves signals. TypeDB remembers.
 
 ```
-signal IN → TypeDB → suggest_route() → signal OUT → agent executes → signal IN
+NERVOUS SYSTEM (runtime)              BRAIN (TypeDB)
+substrate.ts  ~90 lines               one.tql  ~230 lines
+
+signal → unit → handler               paths persist
+→ emit → mark → .then → signal        units persist
+→ fade → select → drain               signals logged
+                                       classification inferred
+loops L1-L3 (ms to minutes)            evolution detected
+                                       knowledge emerges (L4-L7)
 ```
 
-The router process is dumb hands. TypeDB decides where signals go based on pheromone.
-Multiple machines point at one TypeDB instance = one shared world.
+### The Collapse
+
+Tasks are handlers on units (`.on()`). Dependencies are continuations (`.then()`).
+Trails are scent map entries. The substrate handles task lifecycle — TypeDB handles
+paths, classification, evolution, and knowledge.
+
+### Signal Flow
+
+```
+signal → unit → task → emit → mark(path) → signal
+                  ↓
+              .then() → continuation → next signal
+```
+
+### Router Pattern
+
+```
+1. Signal arrives → substrate routes by pheromone
+2. Unit runs handler → result
+3. Continuation fires → next signal
+4. mark() on delivery → path strengthens
+5. fade() over time → stale paths dissolve
+6. Goto 1
+```
 
 ### Two Layers of Learning
 
-1. **Substrate learning** — pheromone on paths and trails. The colony gets smarter
-   even if every agent stays the same. mark() on success, warn() on failure, fade() over time.
+1. **Substrate learning** — pheromone on paths. mark() on success, warn() on failure,
+   fade() over time. The colony gets smarter even if every agent stays the same.
 2. **Agent self-improvement** — units have `model`, `system-prompt`, `generation`.
-   When `needs_evolution()` fires (success-rate < 0.50, sample-count >= 20),
+   When `needs_evolution()` fires (success-rate < 0.50, samples >= 20),
    the agent rewrites its own prompt. The substrate provides the signal; the agent evolves.
-
-### Why Separate Agents Matter
-
-One orchestrator with sub-agents works — IF every sub-agent interaction is reported
-to the substrate as a signal. The substrate needs to see the graph:
-- `path(bob → amelia)` with pheromone = routing data
-- `trail(create-story → develop)` with pheromone = sequence data
-- Individual `success-rate` per agent = evolution data
-
-One agent doing everything = one node, no paths, substrate is blind.
 
 ## Core Concepts
 
@@ -51,8 +71,8 @@ The universal primitive. Receiver is `"unit"` or `"unit:task"`.
 ### Unit
 ```typescript
 unit(id, route?)
-  .on(name, fn)           // define task
-  .then(name, template)   // define continuation
+  .on(name, fn)           // define task (handler)
+  .then(name, template)   // define continuation (dependency)
   .role(name, task, ctx)  // context-bound task
 ```
 Task signature: `(data, emit, ctx) => result`
@@ -62,24 +82,38 @@ Task signature: `(data, emit, ctx) => result`
 colony()
   .spawn(id)              // create unit
   .signal(signal, from?)  // route signal
+  .enqueue(signal)        // queue for later
+  .drain()                // process queued signal
   .mark(edge, strength?)  // strengthen path
-  .follow(type)           // find strongest trail
-  .fade(rate?)            // decay all trails
+  .warn(edge, strength?)  // weaken path
+  .select(type?)          // probabilistic routing
+  .follow(type)           // find strongest path
+  .fade(rate?)            // decay all paths
   .highways(limit?)       // top weighted paths
+```
+
+### World
+```typescript
+world()
+  .actor(id, kind?, opts?)  // spawn + persist to TypeDB
+  .flow(from, to)           // mark/warn wrapper
+  .open(n?)                 // top paths as {from, to, strength}
+  .blocked()                // toxic paths
+  .crystallize()            // promote highways to knowledge
+  .recall(match?)           // query knowledge from TypeDB
 ```
 
 ## Directory Structure
 
 ```
 src/
-  engine/       # Core substrate (substrate.ts)
+  engine/       # Core: substrate.ts, one.ts, loop.ts, boot.ts, asi.ts
   components/   # React 19 + shadcn/ui
   pages/        # Astro routes
   layouts/      # Astro layouts
-  schema/       # TypeDB schemas
+  schema/       # TypeDB schemas (one.tql)
   types/        # TypeScript types
 docs/           # Documentation
-packages/       # TypeDB patterns
 ```
 
 ## Key Patterns
@@ -94,27 +128,26 @@ target && target(sig)
 if (!target) throw new Error(...)
 ```
 
-### Continuations
-Defined at setup, executed after task:
+### Tasks as Handlers
 ```typescript
-.on('observe', ({ tick }) => ({ data: tick }))
-.then('observe', r => ({ receiver: 'analyst', data: r }))
+// Tasks are .on() handlers. Dependencies are .then() continuations.
+const bob = net.spawn('bob')
+  .on('schema', async (data, emit) => buildSchema(data))
+  .then('schema', r => ({ receiver: 'bob:api', data: r }))
+  .on('api', async (data, emit) => buildAPI(data))
+  .then('api', r => ({ receiver: 'bob:test', data: r }))
+
+// Kick it off — pheromone accumulates automatically
+net.signal({ receiver: 'bob:schema', data: { spec: '...' } })
 ```
 
-### Signal Flow
+### The Tick
+```typescript
+const next = net.select()           // follow pheromone
+next && net.signal({ receiver: next }) // execute
+net.drain()                          // process queue
+net.fade(0.05)                       // decay
 ```
-signal → TypeDB → suggest_route() → unit → task → signal → mark(path) → signal
-```
-
-### Router Pattern
-```
-1. Write signal to TypeDB
-2. Read next destination FROM TypeDB (suggest_route)
-3. Execute that agent's prompt (model + system-prompt from unit)
-4. Write result as new signal to TypeDB
-5. Go to 2
-```
-The router doesn't decide. It follows the pheromone.
 
 ### Hydration (Astro)
 ```astro
@@ -128,7 +161,7 @@ The router doesn't decide. It follows the pheromone.
 
 - **Astro 5**: Islands architecture, SSR
 - **React 19**: Actions, use(), transitions
-- **TypeDB 3.0**: Substrate — signal relay, routing, inference, truth
+- **TypeDB 3.0**: Brain — paths, classification, evolution, knowledge
 - **Tailwind 4**: Styling
 - **shadcn/ui**: Component library
 - **ReactFlow**: Graph visualization
@@ -137,6 +170,7 @@ The router doesn't decide. It follows the pheromone.
 
 ```typescript
 import { colony } from "@/engine/substrate"
+import { world } from "@/engine/one"
 import { Card } from "@/components/ui/card"
 ```
 

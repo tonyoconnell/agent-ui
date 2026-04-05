@@ -7,13 +7,18 @@
 ```
 components/
   AgentWorkspace.tsx    # Main agent view with colony integration
-  WorldWorkspace.tsx    # ONE ontology view with metaphor skins
+  WorldWorkspace.tsx    # ONE world view with metaphor skins
+  Dashboard.tsx         # Overview dashboard
+  TaskBoard.tsx         # Task/highway visualization
+  EdgeInfo.tsx          # Path detail view
   EnvelopeFlowCanvas.tsx
-  EdgeInfo.tsx
   controls/             # UI controls (SkinSwitcher)
   graph/                # ReactFlow visualizations (ColonyGraph, ColonyEditor, WorldGraph)
   panels/               # Side panels (HighwayPanel)
-  world/                # World view components
+  world/                # World view components (WorldView, WorldChat)
+  onboard/              # Onboarding (AgentBuilder, DiscoverGrid, SignupForm)
+  ai/                   # Chat, elements, tool calls
+  ui/                   # shadcn primitives
 ```
 
 ## Patterns
@@ -21,11 +26,10 @@ components/
 ### Props & Types
 ```tsx
 interface Props {
-  agents: AgentData[]
   highways: Edge[]
   onSelect?: (id: string) => void
 }
-export function Component({ agents, highways, onSelect }: Props) { ... }
+export function Component({ highways, onSelect }: Props) { ... }
 ```
 
 ### Styling
@@ -42,9 +46,24 @@ import { colony } from "@/engine"
 import type { Colony, Edge } from "@/engine"
 
 const net = colony()
-net.spawnFromJSON(agent)
-await net.send(envelope)
+const scout = net.spawn('scout')
+  .on('observe', (data, emit) => { ... })
+  .then('observe', r => ({ receiver: 'analyst', data: r }))
+net.signal({ receiver: 'scout:observe', data: {} })
 const highways = net.highways(30)
+```
+
+### TaskBoard Data (from substrate, not TypeDB)
+```tsx
+// Highways = proven paths
+const proven = net.highways(20)
+
+// Blocked = alarm dominates
+const blocked = Object.entries(net.alarm)
+  .filter(([e, a]) => a > (net.scent[e] || 0))
+
+// Unexplored = handlers with no scent history
+const explored = new Set(Object.keys(net.scent).flatMap(e => e.split('→')))
 ```
 
 ### ReactFlow Graphs
@@ -57,9 +76,10 @@ const highways = net.highways(30)
 
 | Component | Purpose |
 |-----------|---------|
-| `AgentWorkspace` | Agent management, envelope chains, colony state |
-| `WorldWorkspace` | ONE ontology with switchable metaphor skins |
+| `AgentWorkspace` | Agent management, colony state |
+| `WorldWorkspace` | ONE world with switchable metaphor skins |
+| `Dashboard` | Overview with highways, stats |
+| `TaskBoard` | Pheromone visualization (reads from substrate) |
 | `ColonyGraph` | Read-only ReactFlow visualization of highways |
 | `ColonyEditor` | Interactive graph editing, signal injection |
-| `SkinSwitcher` | Toggle metaphor skins (ant/neuron/agent) |
-| `HighwayPanel` | Display weighted paths with strength bars |
+| `HighwayPanel` | Weighted paths with strength bars |

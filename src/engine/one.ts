@@ -1,183 +1,154 @@
 /**
- * ONE — The 6-dimension runtime
+ * ONE — The world
  *
- * 70 lines. Groups, Actors, Things, Connections, Events, Knowledge.
+ * Colony + TypeDB persistence + knowledge.
+ * One layer. No wrapping.
  */
 
-import { type Unit } from './substrate'
-import { persisted, type PersistedColony } from './persist'
-import { readParsed, writeSilent } from '@/lib/typedb'
+import { colony, type Colony, type Signal, type Edge } from './substrate'
+import { read, readParsed, writeSilent, parseAnswers } from '@/lib/typedb'
 
-type Opts = { group?: string }
 export type Insight = { pattern: string; confidence: number }
 
-export interface World extends PersistedColony {
-  // 1. Groups
-  group: (id: string, type?: string, opts?: { parent?: string }) => void
-
-  // 2. Actors
-  actor: (id: string, type?: string, opts?: Opts) => Unit
-
-  // 3. Things
-  thing: (id: string, type?: string, opts?: Opts) => void
-
-  // 4. Connections (flows)
-  flow: (from: string, to: string, opts?: Opts) => {
-    strengthen: (n?: number) => void
-    resist: (n?: number) => void
-  }
-
-  // 5. Events (automatic from signals)
-
-  // 6. Knowledge — durable patterns that survive fade
-  crystallize: () => Insight[]
-  recall: (match?: string) => Insight[]
-  hypothesize: (insights: Insight[]) => void
-  explore: () => void
-
-  // Queries
-  open: (n?: number, opts?: Opts) => { from: string; to: string; strength: number }[]
-  blocked: (opts?: Opts) => { from: string; to: string }[]
-  best: (type: string, opts?: Opts) => string | null
-  proven: (opts?: Opts) => string[]
-  confidence: (type: string, opts?: Opts) => number
+export interface World extends Colony {
+  actor: (id: string, kind?: string, opts?: { group?: string }) => ReturnType<Colony['spawn']>
+  flow: (from: string, to: string) => { strengthen: (n?: number) => void; resist: (n?: number) => void }
+  open: (n?: number) => { from: string; to: string; strength: number }[]
+  blocked: () => { from: string; to: string }[]
+  crystallize: () => Promise<Insight[]>
+  recall: (match?: string) => Promise<Insight[]>
+  sync: () => Promise<void>
+  load: () => Promise<void>
 }
 
 export const world = (): World => {
-  const net = persisted()
-  const groups: Record<string, { type: string; parent?: string }> = {}
-  const actors: Record<string, { type: string; group?: string }> = {}
-  const things: Record<string, { type: string; group?: string }> = {}
-  const knowledge: Record<string, number> = {}  // pattern → confidence (survives fade)
+  const net = colony()
 
-  const group = (id: string, type = 'group', opts?: { parent?: string }) => {
-    groups[id] = { type, parent: opts?.parent }
+  // ── TypeDB-synced pheromone ────────────────────────────────────────────
+
+  const mark = (edge: string, strength = 1) => {
+    net.mark(edge, strength)
+    const [from, to] = edge.split('→')
+    if (!from || !to) return
+    writeSilent(`
+      match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
+      $e (source: $from, target: $to) isa path, has strength $s, has traversals $t;
+      delete $s of $e; delete $t of $e;
+      insert $e has strength ($s + ${strength}), has traversals ($t + 1);
+    `)
   }
 
-  const actor = (id: string, type = 'actor', opts?: Opts) => {
-    actors[id] = { type, group: opts?.group }
-    return net.spawn(id)
+  const warn = (edge: string, strength = 1) => {
+    net.warn(edge, strength)
+    const [from, to] = edge.split('→')
+    if (!from || !to) return
+    writeSilent(`
+      match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
+      $e (source: $from, target: $to) isa path, has alarm $a;
+      delete $a of $e; insert $e has alarm ($a + ${strength});
+    `)
   }
 
-  const thing = (id: string, type = 'thing', opts?: Opts) => {
-    things[id] = { type, group: opts?.group }
+  const fade = (rate = 0.1) => {
+    net.fade(rate)
+    writeSilent(`
+      match $e isa path, has strength $s, has alarm $a;
+      delete $s of $e; delete $a of $e;
+      insert $e has strength ($s * ${1 - rate}), has alarm ($a * ${1 - rate * 2});
+    `)
   }
 
-  const flow = (from: string, to: string, opts?: Opts) => {
-    const key = opts?.group ? `${opts.group}:${from}→${to}` : `${from}→${to}`
-    return {
-      strengthen: (n = 1) => net.mark(key, n),
-      resist: (n = 1) => net.warn(key, n),
+  const enqueue = (s: Signal) => {
+    net.enqueue(s)
+    const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
+    const data = s.data ? JSON.stringify(s.data).replace(/"/g, '\\"') : ''
+    writeSilent(`
+      match $from isa unit, has uid "loop"; $to isa unit, has uid "${uid}";
+      insert (sender: $from, receiver: $to) isa signal,
+        has data "${data}", has amount 0.0, has success false,
+        has ts ${new Date().toISOString().replace('Z', '')};
+    `)
+  }
+
+  // ── Hydration ─────────────────────────────────────────────────────────
+
+  const load = async () => {
+    const answers = await read(`
+      match $e (source: $from, target: $to) isa path, has strength $s, has alarm $a;
+      $from has uid $fid; $to has uid $tid; select $fid, $tid, $s, $a;
+    `)
+    for (const row of parseAnswers(answers)) {
+      net.scent[`${row.fid}→${row.tid}`] = row.s as number
+      if ((row.a as number) > 0) net.alarm[`${row.fid}→${row.tid}`] = row.a as number
+    }
+    const pending = await read(`
+      match (sender: $f, receiver: $to) isa signal, has success false, has data $d;
+      $to has uid $tid; select $tid, $d;
+    `).catch(() => '[]')
+    for (const row of parseAnswers(pending as unknown[])) {
+      net.enqueue({ receiver: row.tid as string, data: row.d })
     }
   }
 
-  // crystallize: promote strong flows to durable knowledge. returns new insights
-  const crystallize = (): Insight[] => {
-    const strong = open(100).filter(f => f.strength >= 20)
-    const fresh: Insight[] = []
-    for (const f of strong) {
-      const pattern = `${f.from}→${f.to}`
-      const confidence = Math.min(1, f.strength / 50)
-      if (!knowledge[pattern] || knowledge[pattern] < confidence) {
-        knowledge[pattern] = confidence
-        fresh.push({ pattern, confidence })
-      }
-    }
-    // TypeDB: slow fade-rate on proven trails so they persist longer
-    readParsed(`
-      match $tr isa trail, has trail-pheromone $tp, has completions $c, has fade-rate $fr;
-      $tp >= 70.0; $c >= 10; $fr > 0.01;
-      select $tr, $tp, $c;
-    `).then(proven => {
-      proven.length && writeSilent(`
-        match $tr isa trail, has trail-pheromone $tp, has completions $c, has fade-rate $fr;
-        $tp >= 70.0; $c >= 10; $fr > 0.01;
-        delete $fr of $tr;
-        insert $tr has fade-rate 0.01;
+  const sync = async () => {
+    for (const [edge, strength] of Object.entries(net.scent)) {
+      const [from, to] = edge.split('→')
+      if (!from || !to) continue
+      writeSilent(`
+        match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
+        insert (source: $from, target: $to) isa path,
+          has strength ${strength}, has alarm ${net.alarm[edge] || 0}, has traversals 0, has revenue 0.0;
       `)
-    }).catch(() => {})
-    return fresh
-  }
-
-  // recall: query crystallized knowledge. match filters by exact segment
-  const recall = (match?: string): Insight[] =>
-    Object.entries(knowledge)
-      .filter(([p]) => !match || p.split('→').some(s => s === match))
-      .map(([pattern, confidence]) => ({ pattern, confidence }))
-      .sort((a, b) => b.confidence - a.confidence)
-
-  // L6: detect pattern changes, create hypotheses in TypeDB
-  const hypothesize = (insights: Insight[]) => {
-    const now = Date.now()
-    const current = new Set(open(100).filter(f => f.strength >= 20).map(f => `${f.from}→${f.to}`))
-
-    // New patterns → emerged
-    for (const i of insights) {
-      writeSilent(`insert $h isa hypothesis, has hid "auto:emerge:${i.pattern}:${now}",
-        has statement "Pattern ${i.pattern} emerged (confidence ${i.confidence.toFixed(2)})",
-        has hypothesis-status "pending", has observations-count 1, has p-value 1.0, has action-ready false;`)
-    }
-
-    // Known patterns that weakened → degraded
-    for (const k of recall()) {
-      !current.has(k.pattern) && writeSilent(`insert $h isa hypothesis, has hid "auto:degrade:${k.pattern}:${now}",
-        has statement "Pattern ${k.pattern} degraded from knowledge",
-        has hypothesis-status "pending", has observations-count 1, has p-value 1.0, has action-ready false;`)
     }
   }
 
-  // L7: detect frontier clusters from exploratory tasks
-  const explore = () => {
-    readParsed(`
-      match $t isa task, has status "todo", has task-type $tt;
-            not { $tr (destination-task: $t) isa trail; };
-      select $tt;
-    `).then(exp => {
-      const counts: Record<string, number> = {}
-      for (const e of exp) counts[e.tt as string] = (counts[e.tt as string] || 0) + 1
-      const now = Date.now()
-      for (const [type, count] of Object.entries(counts)) {
-        count >= 3 && writeSilent(`insert $f isa frontier, has fid "auto:${type}:${now}",
-          has frontier-type "${type}", has frontier-description "${count} unexplored ${type} tasks",
-          has expected-value ${Math.min(1, count / 10)}, has frontier-status "unexplored";`)
-      }
-    }).catch(() => {})
+  // ── World layer ───────────────────────────────────────────────────────
+
+  const actor = (id: string, kind = 'agent', opts?: { group?: string }) => {
+    const uid = opts?.group ? `${opts.group}/${id}` : id
+    writeSilent(`
+      insert $u isa unit, has uid "${uid}", has unit-kind "${kind}", has status "active",
+        has success-rate 0.5, has activity-score 0.0, has sample-count 0,
+        has reputation 0.0, has balance 0.0, has generation 0;
+    `).catch(() => {})
+    return net.spawn(uid)
   }
 
-  const filterByGroup = (edges: { path: string; strength: number }[], group?: string) =>
-    group ? edges.filter(e => e.path.startsWith(`${group}:`)) : edges
+  const flow = (from: string, to: string) => ({
+    strengthen: (n = 1) => mark(`${from}→${to}`, n),
+    resist: (n = 1) => warn(`${from}→${to}`, n),
+  })
 
-  const open = (n = 10, opts?: Opts) =>
-    filterByGroup(net.highways(n * 2), opts?.group)
-      .slice(0, n)
-      .map(h => {
-        const [from, to] = h.path.replace(/^[^:]+:/, '').split('→')
-        return { from, to, strength: h.strength }
-      })
+  const open = (n = 10) =>
+    net.highways(n).map(h => {
+      const [from, to] = h.path.split('→')
+      return { from, to, strength: h.strength }
+    })
 
-  const blocked = (opts?: Opts) =>
+  const blocked = () =>
     Object.entries(net.alarm)
-      .filter(([e, a]) => a > (net.scent[e] || 0) && (!opts?.group || e.startsWith(`${opts.group}:`)))
-      .map(([e]) => {
-        const [from, to] = e.replace(/^[^:]+:/, '').split('→')
-        return { from, to }
-      })
+      .filter(([e, a]) => a > (net.scent[e] || 0))
+      .map(([e]) => { const [from, to] = e.split('→'); return { from, to } })
 
-  const best = (type: string, opts?: Opts) => {
-    const candidates = open(50, opts).filter(f => actors[f.to]?.type === type)
-    return candidates[0]?.to || null
+  const crystallize = async (): Promise<Insight[]> => {
+    const strong = net.highways(100).filter(h => h.strength >= 20)
+    writeSilent(`
+      match $p isa path, has strength $s, has fade-rate $fr; $s >= 50.0; $fr > 0.01;
+      delete $fr of $p; insert $p has fade-rate 0.01;
+    `).catch(() => {})
+    return strong.map(h => ({ pattern: h.path, confidence: Math.min(1, h.strength / 50) }))
   }
 
-  const proven = (opts?: Opts) =>
-    open(100, opts).filter(f => f.strength >= 20).map(f => f.to)
-
-  const confidence = (type: string, opts?: Opts) => {
-    const relevant = open(100, opts).filter(f => actors[f.to]?.type === type)
-    return relevant.reduce((sum, f) => sum + f.strength, 0) / 100
+  const recall = async (match?: string): Promise<Insight[]> => {
+    const q = match
+      ? `match $h isa hypothesis, has statement $s, has p-value $p; $s contains "${match}"; select $s, $p;`
+      : `match $h isa hypothesis, has statement $s, has p-value $p; select $s, $p;`
+    const rows = await readParsed(q).catch(() => [])
+    return rows.map(r => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
   }
 
-  return { ...net, group, actor, thing, flow, crystallize, recall, hypothesize, explore, open, blocked, best, proven, confidence }
+  return {
+    ...net, mark, warn, fade, enqueue,
+    actor, flow, open, blocked, crystallize, recall, sync, load,
+  }
 }
-
-// Legacy alias
-export type One = World

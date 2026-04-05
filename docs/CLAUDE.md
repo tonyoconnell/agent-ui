@@ -10,12 +10,24 @@ Apply to `docs/*.md`
 
 | Category | Files | Purpose |
 |----------|-------|---------|
-| Core | signal.md, one-ontology.md, metaphors.md | The primitives |
+| Core | dictionary.md, DSL.md, signal.md, primitives.md | The names and primitives |
+| Ontology | one-ontology.md, metaphors.md, ontology.md | The 6 dimensions |
 | Implementation | tutorial.md, the-stack.md, agents.md, swarm.md | How to build |
 | Strategy | strategy.md, one-protocol.md, integration.md | The play |
 | Commerce | agent-launch.md, asi-world.md | The business |
 
 README.md is the index. Link everything back to it.
+
+---
+
+## Key Concepts (post-collapse)
+
+- Tasks are `.on()` handlers on units, not TypeDB entities
+- Dependencies are `.then()` continuations, not TypeDB relations
+- Trails are scent map entries, not TypeDB trail relations
+- The runtime is the nervous system (fast loops L1-L3)
+- TypeDB is the brain (slow loops L4-L7, knowledge, classification)
+- `skill` entity in TypeDB replaces `task` entity (name + price only)
 
 ---
 
@@ -47,10 +59,11 @@ trail    synapse   workflow  route     channel   frequency
 
 | Doc | Code |
 |-----|------|
+| dictionary.md | Everything — the complete naming guide |
+| DSL.md | src/engine/substrate.ts, src/engine/one.ts |
 | signal.md | src/engine/substrate.ts |
 | one-ontology.md | src/schema/one.tql |
-| framework.md | src/contexts/, src/skins/ |
-| swarm.md | src/engine/one.ts |
+| metaphors.md | src/schema/skins.tql |
 
 Docs describe. Code implements. Keep them in sync.
 

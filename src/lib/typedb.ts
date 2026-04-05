@@ -159,17 +159,6 @@ export async function decay(trailRate = 0.05, alarmRate = 0.20): Promise<void> {
       delete $a of $e;
       insert $e has alarm ($a * ${af});
     `),
-    // Trails: always global (no per-trail fade-rate)
-    writeSilent(`
-      match $t isa trail, has trail-pheromone $tp; $tp > 0.01;
-      delete $tp of $t;
-      insert $t has trail-pheromone ($tp * ${tf});
-    `),
-    writeSilent(`
-      match $t isa trail, has alarm-pheromone $ap; $ap > 0.01;
-      delete $ap of $t;
-      insert $t has alarm-pheromone ($ap * ${af});
-    `),
   ])
 }
 

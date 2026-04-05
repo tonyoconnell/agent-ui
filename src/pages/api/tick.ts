@@ -9,7 +9,6 @@
  */
 import type { APIRoute } from 'astro'
 import { world } from '@/engine/one'
-import { asi } from '@/engine/asi'
 import { anthropic } from '@/engine/llm'
 import { tick } from '@/engine/loop'
 
@@ -31,8 +30,7 @@ export const GET: APIRoute = async ({ url }) => {
   const apiKey = import.meta.env.ANTHROPIC_API_KEY || ''
   const complete = anthropic(apiKey)
   const w = world()
-  const o = asi(w, complete)
-  const result = await tick(w, o, complete)
+  const result = await tick(w, complete)
 
   return new Response(JSON.stringify({
     ticked: true,

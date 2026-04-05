@@ -6,22 +6,30 @@ All API routes use `src/lib/typedb.ts` for TypeDB access. Browser → Cloudflare
 
 ## Routes
 
-| Route | Method | Purpose | TypeDB Function |
-|-------|--------|---------|-----------------|
-| `/api/query` | POST | Run raw TypeQL | direct query |
-| `/api/signal` | POST | Record signal + strengthen edge | insert signal, update edge |
-| `/api/mark` | POST | Add strength to edge | update edge.strength |
-| `/api/warn` | POST | Add alarm to edge | update edge.alarm |
-| `/api/state` | GET | Full world state for UI | match units, edges, tasks, trails |
-| `/api/decay` | POST | Decay all weights | asymmetric: trail 5%, alarm 20% |
-| `/api/chat` | POST | AI chat endpoint | — |
-| `/api/tasks` | GET/POST | List/create tasks | match/insert task |
-| `/api/tasks/ready` | GET | Unblocked tasks | `ready_tasks()` (negation) |
-| `/api/tasks/attractive` | GET | Tasks with strong trail | `attractive_tasks()` |
-| `/api/tasks/repelled` | GET | Tasks with alarm | `repelled_tasks()` |
-| `/api/tasks/exploratory` | GET | Tasks with no trail | `exploratory_tasks()` |
-| `/api/tasks/[id]/complete` | POST | Complete + reinforce trail | update status, trail += 5.0 |
-| `/api/auth/[...all]` | ALL | Better Auth endpoints | TypeDB auth adapter |
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/signal` | POST | Send signal into substrate, mark pheromone |
+| `/api/tick` | GET | Run one growth cycle (interval-gated, 60s default) |
+| `/api/state` | GET | Full world state for UI (units, edges, tags) |
+| `/api/stats` | GET | Aggregate stats (units, skills, highways, revenue) |
+| `/api/tasks` | GET/POST | List skills with pheromone categories. Create skill with tags |
+| `/api/tasks/:category` | GET | Filter by category: ready, attractive, repelled, exploratory |
+| `/api/tasks/:id/complete` | POST | Mark outcome (reinforce/alarm path + update success-rate) |
+| `/api/tasks/import-roadmap` | POST | Seed roadmap as tagged skills + paths |
+| `/api/decay` | POST | Manual decay trigger |
+| `/api/decay-cycle` | POST | Decay with before/after stats |
+| `/api/query` | POST | Run raw TypeQL |
+| `/api/chat` | POST | AI chat endpoint |
+| `/api/auth/[...all]` | ALL | Better Auth endpoints |
+
+## Tags
+
+Skills and units use flat tags for classification. Filter with `?tag=build&tag=P0`:
+
+```
+GET /api/tasks?tag=P0&tag=commerce     # P0 commerce tasks
+GET /api/tasks/attractive?tag=build    # attractive build tasks
+```
 
 ## Pattern
 
@@ -38,4 +46,4 @@ export const POST: APIRoute = async ({ request }) => {
 
 ## TypeDB 3.x Note
 
-**NO `rule` syntax.** Use `fun` functions for classification. Status inference (highway, proven, attractive) happens via functions at query time, not automatic rules.
+**NO `rule` syntax.** Use `fun` functions for classification. Status inference (highway, proven) happens via functions at query time, not automatic rules.

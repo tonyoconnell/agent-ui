@@ -1,15 +1,9 @@
 /**
- * POST /api/tasks/:id/complete — Mark task complete + reinforce trail
+ * POST /api/tasks/:id/complete — Mark a signal outcome
  *
- * On complete:
- *   - Status → "complete"
- *   - trail-pheromone += 5.0 on incoming trails
- *   - completions += 1 on incoming trails
- *
- * On fail (body.failed = true):
- *   - Status → "failed"
- *   - alarm-pheromone += 8.0 on incoming trails
- *   - failures += 1 on incoming trails
+ * :id is a unit uid. body.failed = true for failure.
+ * Updates the path pheromone (mark on success, warn on failure).
+ * Updates the unit's success-rate and sample-count.
  */
 import type { APIRoute } from 'astro'
 import { write, writeSilent } from '@/lib/typedb'
@@ -17,43 +11,40 @@ import { write, writeSilent } from '@/lib/typedb'
 export const POST: APIRoute = async ({ params, request }) => {
   const { id } = params
   if (!id) {
-    return new Response(JSON.stringify({ error: 'Missing task id' }), { status: 400 })
+    return new Response(JSON.stringify({ error: 'Missing unit id' }), { status: 400 })
   }
 
-  const body = await request.json().catch(() => ({})) as { failed?: boolean }
+  const body = await request.json().catch(() => ({})) as { failed?: boolean; from?: string }
   const failed = body.failed === true
-
-  // Update task status
-  const newStatus = failed ? 'failed' : 'complete'
-  await write(`
-    match $t isa task, has tid "${id}", has status $s;
-    delete $s of $t;
-    insert $t has status "${newStatus}";
-  `)
+  const from = body.from || 'loop'
 
   if (failed) {
-    // Alarm: increase alarm-pheromone on incoming trails
+    // Alarm the path
     await writeSilent(`
-      match
-        $t isa task, has tid "${id}";
-        $tr (destination-task: $t) isa trail,
-          has alarm-pheromone $ap, has failures $f;
-      delete $ap of $tr; delete $f of $tr;
-      insert $tr has alarm-pheromone ($ap + 8.0), has failures ($f + 1);
+      match $from isa unit, has uid "${from}"; $to isa unit, has uid "${id}";
+      $e (source: $from, target: $to) isa path, has alarm $a;
+      delete $a of $e;
+      insert $e has alarm ($a + 8.0);
     `)
   } else {
-    // Reinforce: increase trail-pheromone on incoming trails
+    // Reinforce the path
     await writeSilent(`
-      match
-        $t isa task, has tid "${id}";
-        $tr (destination-task: $t) isa trail,
-          has trail-pheromone $tp, has completions $c;
-      delete $tp of $tr; delete $c of $tr;
-      insert $tr has trail-pheromone ($tp + 5.0), has completions ($c + 1);
+      match $from isa unit, has uid "${from}"; $to isa unit, has uid "${id}";
+      $e (source: $from, target: $to) isa path, has strength $s, has traversals $t;
+      delete $s of $e; delete $t of $e;
+      insert $e has strength ($s + 5.0), has traversals ($t + 1);
     `)
   }
 
-  return new Response(JSON.stringify({ ok: true, tid: id, status: newStatus }), {
+  // Update unit success-rate
+  await writeSilent(`
+    match $u isa unit, has uid "${id}", has success-rate $sr, has sample-count $sc;
+    delete $sr of $u; delete $sc of $u;
+    insert $u has success-rate (($sr * $sc + ${failed ? 0 : 1}) / ($sc + 1)),
+                has sample-count ($sc + 1);
+  `)
+
+  return new Response(JSON.stringify({ ok: true, unit: id, outcome: failed ? 'failed' : 'success' }), {
     headers: { 'Content-Type': 'application/json' },
   })
 }

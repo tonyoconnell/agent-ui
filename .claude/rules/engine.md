@@ -7,28 +7,42 @@ Apply to `src/engine/*.ts`
 ## The Substrate
 
 ```
-70 lines.  Zero returns.  Two fields.
+~90 lines.  Zero returns.  Two fields.  Queue.
 
 { receiver, data }
 
 That's all that flows.
-TypeDB is the relay. The router follows pheromone. The ant doesn't decide.
+The runtime moves signals. TypeDB remembers.
 ```
 
 ---
 
-## TypeDB as Signal Relay
+## Two Layers
 
 ```
-1. Write signal to TypeDB
-2. TypeDB → suggest_route($from, $task) → next destination
-3. Execute agent prompt (model + system-prompt from unit)
-4. Write result as new signal
-5. Repeat
+NERVOUS SYSTEM (runtime)         BRAIN (TypeDB)
+signals, scent, alarm, queue     paths, units, skills, knowledge
+loops L1-L3 (ms to minutes)      loops L4-L7 (hours to weeks)
 ```
 
-The router process is dumb hands. TypeDB is the brain.
-Multiple machines, one TypeDB instance = one shared world.
+The runtime handles what moves. TypeDB handles what remains.
+
+---
+
+## Tasks = Handlers, Dependencies = Continuations
+
+```typescript
+// Tasks are .on() handlers on units
+// Dependencies are .then() continuations
+const bob = net.spawn('bob')
+  .on('schema', async (data, emit) => buildSchema(data))
+  .then('schema', r => ({ receiver: 'bob:api', data: r }))
+  .on('api', async (data, emit) => buildAPI(data))
+  .then('api', r => ({ receiver: 'bob:test', data: r }))
+
+// No task entities. No dependency relations. No trail relations.
+// Pheromone accumulates on paths automatically.
+```
 
 ---
 
@@ -38,18 +52,17 @@ Units have `model`, `system-prompt`, `generation`.
 The substrate measures performance. When it's bad enough, the agent evolves.
 
 ```typescript
-// Substrate detects
+// TypeDB detects
 needs_evolution(unit) → success-rate < 0.50, sample-count >= 20
 
 // Agent responds
 unit.system-prompt = rewrite(old-prompt, failures)
 unit.generation++
-// Optional: unit.model = upgrade("haiku" → "sonnet")
 ```
 
 Two layers of learning:
-- **Substrate** — pheromone on paths/trails. Colony gets smarter.
-- **Agent** — prompt/model evolution. Individual ant gets smarter.
+- **Substrate** — pheromone on paths. Colony gets smarter.
+- **Agent** — prompt/model evolution. Individual gets smarter.
 
 ---
 
@@ -58,11 +71,11 @@ Two layers of learning:
 ```typescript
 type Signal = {
   receiver: string      // "unit" or "unit:task"
-  data?: unknown     // anything
+  data?: unknown        // anything
 }
 ```
 
-The universal primitive. Ants mark chemical signals. Neurons fire electrical signals. Agents move digital signals.
+The universal primitive.
 
 ---
 
@@ -70,8 +83,8 @@ The universal primitive. Ants mark chemical signals. Neurons fire electrical sig
 
 ```typescript
 unit(id, route?)
-  .on(name, fn)           // define task
-  .then(name, template)   // define continuation
+  .on(name, fn)           // define task (handler)
+  .then(name, template)   // define continuation (dependency)
   .role(name, task, ctx)  // context-bound task
   .has(name)              // introspection
   .list()                 // introspection
@@ -84,8 +97,8 @@ unit(id, route?)
 (data, emit, ctx) => result
 
 data   // the data
-emit      // (signal) => void — fan out
-ctx       // { from: string, self: string }
+emit   // (signal) => void — fan out
+ctx    // { from: string, self: string }
 ```
 
 ---
@@ -94,16 +107,37 @@ ctx       // { from: string, self: string }
 
 ```typescript
 colony()
-  .spawn(id)              // create unit
-  .signal(signal, from?)  // move signal through world
-  .mark(edge, strength?)  // leave weight on path (pheromone)
-  .follow(type)           // traverse weighted path to best
-  .sense(edge)            // read weight
-  .fade(rate?)            // decay all paths
+  .spawn(id)              // create unit (auto-drains queued signals)
+  .despawn(id)            // remove unit (trails remain, fade naturally)
+  .signal(signal, from?)  // route signal, mark pheromone
+  .enqueue(signal)        // queue for later processing
+  .drain()                // shift from queue, signal it
+  .pending()              // queue length
+  .mark(edge, strength?)  // strengthen path
+  .warn(edge, strength?)  // weaken path
+  .sense(edge)            // read strength
+  .danger(edge)           // read alarm
+  .follow(type)           // best path (deterministic)
+  .select(type?)          // best path (probabilistic, ant-like)
+  .fade(rate?)            // decay all paths (alarm 2x faster)
   .highways(limit?)       // top weighted paths
   .has(id)                // introspection
   .list()                 // introspection
   .get(id)                // direct access
+```
+
+---
+
+## World
+
+```typescript
+world()                             // extends colony with TypeDB
+  .actor(id, kind?, opts?)          // spawn + persist
+  .flow(from, to)                   // mark/warn wrapper
+  .open(n?)                         // top paths as {from, to, strength}
+  .blocked()                        // toxic paths
+  .crystallize()                    // promote highways to knowledge
+  .recall(match?)                   // query knowledge from TypeDB
 ```
 
 ---
@@ -118,9 +152,6 @@ task?.(data, emit, ctx).then(result =>
   next[name] && route?.(next[name](result), receiver)
 )
 
-// GOOD
-target && (mark(edge), target(sig))
-
 // BAD
 if (!task) return reject(...)
 if (!target) throw new Error(...)
@@ -130,20 +161,15 @@ Missing handler? Signal dissolves. Swarm continues.
 
 ---
 
-## Continuations
-
-Defined at setup, not at send:
+## The Tick
 
 ```typescript
-// Setup
-.on('observe', ({ tick }) => ({ data: tick }))
-.then('observe', r => ({ receiver: 'analyst', data: r }))
-
-// Signal (minimal)
-{ receiver: 'scout:observe', data: { tick: 42 } }
+const next = net.select()              // follow pheromone
+next && net.signal({ receiver: next }) // execute
+net.drain()                            // process queue
+net.fade(0.05)                         // decay
+// evolve every 10min, crystallize every hour
 ```
-
-Templates are functions. Full control.
 
 ---
 
@@ -153,105 +179,30 @@ Templates are functions. Full control.
 signal(sig, from='entry')
   → unit(sig, from)
     → task(data, emit, {from, self})
-      → emit(sig)  // carries self as new from
+      → emit(sig)  // fan out
         → signal(sig, from=self)
           → mark(edge)  // path remembers
+      → .then(task)  // continuation fires
+        → signal(next)  // chain continues
 ```
 
 Concurrency safe. No global state.
 
 ---
 
-## Patterns
-
-### Request / Response
-
-```typescript
-.on('ask', ({ q }, emit, { self }) => {
-  emit({ receiver: 'oracle', data: { q, replyTo: self } })
-})
-
-.on('answer', ({ q, replyTo }, emit) => {
-  emit({ receiver: replyTo, data: { a: compute(q) } })
-})
-```
-
-### Claim
-
-```typescript
-.on('claim', ({ id }, emit, { from }) => {
-  !claims[id] && (claims[id] = from,
-    emit({ receiver: from, data: { claimed: id } }))
-})
-```
-
-### Payment
-
-```typescript
-.on('pay', ({ to, amount }, emit, { from }) => {
-  bal[from] >= amount && (
-    bal[from] -= amount,
-    bal[to] += amount,
-    emit({ receiver: to, data: { received: amount } }))
-})
-```
-
-### Stream
-
-```typescript
-.on('ingest', async ({ url }, emit) => {
-  const s = await connect(url)
-  s.on('data', d => emit({ receiver: 'process', data: d }))
-})
-```
-
----
-
-## Types
-
-```typescript
-import { colony, unit } from "@/engine/substrate"
-import type { Colony, Unit, Signal, Emit } from "@/engine/substrate"
-
-// Aliases
-import { world, actor } from "@/engine"
-import type { World, Actor } from "@/engine"
-```
-
----
-
-## The Loop
-
-```
-MARK                   FADE
-  │                     │
-  ▼                     ▼
-strength++         weight *= 0.95
-  │                     │
-  ▼                     ▼
-more signals       reroute
-  │                     │
-  ▼                     ▼
-HIGHWAY            dissolve
-```
-
----
-
 ## Multi-Machine Collaboration
 
 ```
-Machine A (Tony)                    Machine B (David)
+Machine A                           Machine B
 ┌──────────┐                        ┌──────────┐
-│  Hermes  │──signal──→ TypeDB ←──signal──│ Theodore │
-│ (router) │←─route───→   ↕   ←──route──│ (router) │
-└──────────┘           paths &       └──────────┘
-                       trails
+│  router   │──signal──→ TypeDB ←──signal──│  router   │
+│          │←─paths───→       ←──paths──│          │
+└──────────┘                        └──────────┘
 ```
 
 Each machine runs one router process. TypeDB is shared.
-Hermes writes signals. Theodore reads them. Pheromone builds across machines.
-The substrate learns end-to-end paths regardless of which machine runs which agent.
+Pheromone builds across machines. The substrate learns end-to-end paths.
 
 ---
 
-*Signal. Mark. Warn. Follow. Fade. Highway. Evolve. 70 lines.*
+*Signal. Mark. Warn. Follow. Fade. Highway. Queue. Evolve.*

@@ -10,10 +10,15 @@
 | `world.astro` | `/world` | `WorldWorkspace` | `client:load` |
 | `tasks.astro` | `/tasks` | `TaskBoard` | `client:load` |
 | `chat.astro` | `/chat` | `Chat` | `client:load` |
+| `dashboard.astro` | `/dashboard` | `Dashboard` | `client:load` |
+| `discover.astro` | `/discover` | `DiscoverGrid` | `client:load` |
+| `marketplace.astro` | `/marketplace` | `Marketplace` | `client:load` |
+| `build.astro` | `/build` | `AgentBuilder` | `client:load` |
 
 ## API Routes
 
-See `api/CLAUDE.md` for API documentation.
+See `api/CLAUDE.md` for API documentation. Core route is `POST /api/signal` —
+the substrate routes internally. Legacy task routes are being collapsed.
 
 ## Pattern
 

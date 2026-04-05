@@ -32,6 +32,29 @@ Now we wire the substrate underneath all of it.
 
 No pitch. No ask. No aggression. Just things that work better.
 
+### The Elegant Part
+
+Every domain becomes an agent, a swarm, or a world:
+
+```
+aria.dev              → point to ONE → IS an agent
+translate.ai          → point to ONE → IS a service (swarm behind one name)
+acme-robotics.com     → point to ONE → IS a swarm (50 agents, one brand)
+tony.one.ie           → point to ONE → IS a world (personal agent constellation)
+```
+
+DNS becomes agent addressing. The signal `{ receiver: 'translate.ai' }` hits the substrate and routes to whatever lives behind that domain. The web becomes the colony.
+
+Three tiers, one identity:
+
+```
+one.ie/aria            free — profile page, agent lives here
+aria.one.ie            swarm — branded subdomain
+aria.dev               enterprise — your domain, your world
+```
+
+Same receiver in the substrate. Different front doors. Cloudflare for SaaS handles custom domains at zero marginal cost per tenant.
+
 ---
 
 ## Three Fronts, One Substrate
@@ -68,11 +91,31 @@ Same substrate. Three fronts. Compounding network effects across species.
 
 ---
 
+## Open Source Strategy
+
+See [opensource.md](opensource.md) for full analysis. Summary:
+
+```
+OPEN (MIT)                          PRIVATE
+──────────                          ───────
+@one/sdk — connect agents           Substrate engine (routing, pheromone)
+@one/swarm — coordination patterns  TypeDB schemas + intelligence
+@one/agent — reference agent        one.ie platform + marketplace
+Example agents + docs               Learned graph + highways
+                                    Sui contracts + settlement
+```
+
+**The Stripe play:** Keep the infrastructure. Give away the client tools. Every SDK install is a platform user from day one. Revenue is direct, not indirect.
+
+**The graduation:** Once the graph is deep enough that forking the engine is meaningless, open source substrate.ts for developer community and virality. Can't un-open-source, so wait until the moat protects you.
+
+---
+
 ## What We Don't Do
 
 - Don't pitch ONE as a product to ASI
 - Don't propose replacing Almanac, ASI:One, or Agentverse
-- Don't open source the operational layer
+- Don't open source the substrate engine (yet — see [opensource.md](opensource.md))
 - Don't rush — trails take time
 - Don't compete — enrich
 
@@ -94,7 +137,7 @@ We're not competing with ASI's chain. We're on Sui doing something they can't do
 ## The Moat
 
 ```
-Layer 1: The code           70 lines TS + 250 lines Move. Anyone can copy.
+Layer 1: The code           90 lines TS + 250 lines Move. Anyone can copy.
 Layer 2: The insight        Biology → agent economy → persona routing. Hard to see.
 Layer 3: The colony         Multi-species agents coordinating. Hermes + LLM + OpenClaw.
 Layer 4: The toolkit        agent-launch-toolkit. Already shipping.
@@ -102,7 +145,10 @@ Layer 5: The platform       one.ie. Eight personas generating signals.
 Layer 6: The on-chain state Paths and highways on Sui. Permanent.
 Layer 7: The graph          Learned paths from real agent traffic. Earned daily.
 Layer 8: The network        All species contributing. Compounds across boundaries.
+Layer 9: The namespace      Every domain an agent. DNS = addressing. The web is the colony.
 ```
+
+Layer 9 is the endgame. When `translate.ai` hires `proofread.io` hires `publish.app` — and paths form across domains, highways crystallize across the web — ONE becomes the coordination layer of the internet.
 
 ---
 
@@ -164,3 +210,6 @@ See [hermes-agent.md](hermes-agent.md) for full integration architecture.
 - [integration.md](integration.md) — How all systems connect
 - [executive-summary.md](executive-summary.md) — Business case for emergence
 - [gaps.md](gaps.md) — Production readiness phases
+- [value.md](value.md) — What agents on every platform get from ONE
+- [sdk.md](sdk.md) — The SDK that delivers the value
+- [opensource.md](opensource.md) — Open source strategy: what to give, what to keep

@@ -65,18 +65,19 @@ emit({ receiver, data })
 
 ## L2: Trail Loop
 
-Task sequences accumulate pheromone. The colony learns what order works.
+Signal sequences accumulate pheromone. The colony learns what order works.
 
 ```
-task A completes → task B starts
-  success → trail(A→B).trail-pheromone++, completions++
-  failure → trail(A→B).alarm-pheromone++, failures++
+signal to A completes → signal to B starts
+  success → path(A→B).strength += mark()
+  failure → path(A→B).alarm += warn()
 ```
 
-**Timescale:** per task completion
-**Feeds:** L1 (task selection via is_attractive/is_repelled)
+**Timescale:** per signal delivery
+**Feeds:** L1 (routing via select() weighted by scent - alarm)
 **Fed by:** L1 (signal outcomes)
-**Schema:** `trail` relation, `trail_status()`, `is_attractive()`, `is_repelled()`
+**Runtime:** `colony.scent`, `colony.alarm`, `mark()`, `warn()`
+**TypeDB:** `path` relation (strength, alarm, traversals)
 
 ### Refinements
 
@@ -102,18 +103,16 @@ task A completes → task B starts
 Time decays everything. Without reinforcement, paths dissolve.
 
 ```
-periodic tick (every N seconds):
+periodic tick (every 5 minutes):
   for each path:
     strength *= (1 - fade-rate)
     alarm *= (1 - fade-rate * 2)     # alarm forgets faster
-  for each trail:
-    trail-pheromone *= (1 - rate)
-    alarm-pheromone *= (1 - rate * 2)
 ```
 
-**Timescale:** periodic (configurable interval)
-**Feeds:** L1 (routing changes as paths weaken), L2 (trail selection shifts)
-**Schema:** `path.fade-rate`, `path.strength`, `trail.trail-pheromone`
+**Timescale:** every 5 minutes (configurable)
+**Feeds:** L1 (routing changes as paths weaken), L2 (selection shifts)
+**Runtime:** `colony.fade(rate)` — asymmetric, alarm decays 2x
+**TypeDB:** `path.fade-rate` (per-path), falls back to global 5%
 
 ### Refinements
 
