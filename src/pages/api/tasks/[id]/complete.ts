@@ -22,9 +22,9 @@ export const POST: APIRoute = async ({ params, request }) => {
     // Alarm the path
     await writeSilent(`
       match $from isa unit, has uid "${from}"; $to isa unit, has uid "${id}";
-      $e (source: $from, target: $to) isa path, has alarm $a;
-      delete $a of $e;
-      insert $e has alarm ($a + 8.0);
+      $e (source: $from, target: $to) isa path, has resistance $r;
+      delete $r of $e;
+      insert $e has resistance ($r + 8.0);
     `)
   } else {
     // Reinforce the path

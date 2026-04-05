@@ -6,9 +6,9 @@
  */
 
 import { useState, useCallback, useEffect } from "react"
-import { colony } from "@/engine"
-import type { Colony, Edge } from "@/engine"
-import { MetaphorProvider, useMetaphor } from "@/contexts/MetaphorContext"
+import { world } from "@/engine"
+import type { World, Edge } from "@/engine"
+import { SkinProvider, useSkin } from "@/contexts/SkinContext"
 import { SkinSwitcher } from "@/components/controls/SkinSwitcher"
 import { WorldGraph } from "@/components/graph/WorldGraph"
 import { WorldChat } from "@/components/world/WorldChat"
@@ -25,7 +25,7 @@ interface ActorData {
 }
 
 interface WorldState {
-  colony: Colony
+  world: World
   actors: ActorData[]
   flows: Edge[]
 }
@@ -36,7 +36,7 @@ interface WorldState {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function StatsBar({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) {
-  const { skin, t } = useMetaphor()
+  const { skin, t } = useSkin()
   const openFlows = flows.filter((f) => f.strength >= 50).length
   const totalStrength = flows.reduce((sum, f) => sum + f.strength, 0)
 
@@ -106,12 +106,12 @@ function StatsBar({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function WorldViewInner() {
-  const { skin } = useMetaphor()
-  const [world, setWorld] = useState<WorldState | null>(null)
+  const { skin } = useSkin()
+  const [worldState, setWorldState] = useState<WorldState | null>(null)
 
   // Initialize world
   useEffect(() => {
-    const net = colony()
+    const net = world()
 
     // Spawn initial actors
     const actors: ActorData[] = [
@@ -133,30 +133,30 @@ function WorldViewInner() {
       callback: { receiver: "analyst", receive: "evaluate", payload: {} },
     })
 
-    setWorld({ colony: net, actors, flows: net.highways(30) })
+    setWorldState({ world: net, actors, flows: net.highways(30) })
   }, [])
 
   // Periodic decay
   useEffect(() => {
-    if (!world) return
+    if (!worldState) return
     const interval = setInterval(() => {
-      world.colony.fade(0.05)
-      setWorld((prev) =>
-        prev ? { ...prev, flows: world.colony.highways(30) } : null
+      worldState.world.fade(0.05)
+      setWorldState((prev) =>
+        prev ? { ...prev, flows: worldState.world.highways(30) } : null
       )
     }, 3000)
     return () => clearInterval(interval)
-  }, [world?.colony])
+  }, [worldState?.world])
 
   // Update world state (called by WorldChat after commands)
   const handleWorldUpdate = useCallback(() => {
-    if (!world) return
-    setWorld((prev) =>
-      prev ? { ...prev, flows: world.colony.highways(30) } : null
+    if (!worldState) return
+    setWorldState((prev) =>
+      prev ? { ...prev, flows: worldState.world.highways(30) } : null
     )
-  }, [world])
+  }, [worldState])
 
-  if (!world) {
+  if (!worldState) {
     return (
       <div
         className="h-screen flex items-center justify-center"
@@ -172,20 +172,20 @@ function WorldViewInner() {
       className="h-screen flex flex-col"
       style={{ backgroundColor: skin.colors.background }}
     >
-      <StatsBar actors={world.actors} flows={world.flows} />
+      <StatsBar actors={worldState.actors} flows={worldState.flows} />
       <div className="flex-1 flex min-h-0">
         <div className="w-[360px] border-r" style={{ borderColor: skin.colors.muted + '20' }}>
           <WorldChat
-            colony={world.colony}
-            agents={world.actors}
+            world={worldState.world}
+            agents={worldState.actors}
             onWorldUpdate={handleWorldUpdate}
           />
         </div>
         <div className="flex-1">
           <WorldGraph
-            colony={world.colony}
-            agents={world.actors}
-            highways={world.flows}
+            world={worldState.world}
+            agents={worldState.actors}
+            highways={worldState.flows}
           />
         </div>
       </div>
@@ -199,9 +199,9 @@ function WorldViewInner() {
 
 export default function WorldView() {
   return (
-    <MetaphorProvider initialSkin="team">
+    <SkinProvider initialSkin="team">
       <WorldViewInner />
-    </MetaphorProvider>
+    </SkinProvider>
   )
 }
 

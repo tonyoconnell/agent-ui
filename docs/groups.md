@@ -1,4 +1,4 @@
-# Agent, Swarm, Coordination
+# Agent, Group, Coordination
 
 Three levels. Same primitives. ONE ontology.
 
@@ -27,17 +27,17 @@ From Deborah Gordon's research on ant colonies:
 
 ## The ONE Foundation
 
-Swarm is `world()` with multiple actors. The 6 dimensions apply:
+Group is `world()` with multiple actors. The 6 dimensions apply:
 
 ```
-SWARM = world()
+GROUP = world()
 │
-├── Groups    → Swarm hierarchy (swarm of swarms)
+├── Groups    → Group hierarchy (group of groups)
 ├── Actors    → Agents (units with tasks)
 ├── Things    → Resources, tasks, outputs
-├── Paths     → Pheromone trails (weighted paths)
+├── Paths     → Strength trails (weighted paths)
 ├── Events    → Signal history
-└── Knowledge → Crystallized patterns (highways)
+└── Knowledge → Known patterns (highways)
 ```
 
 ---
@@ -76,47 +76,47 @@ const agent = unit('translator')
 └─────────────────────────────────────┘
 ```
 
-## Swarm
+## Group
 
 A `world()` of agents working together. Groups organize. Paths connect. Actors act.
 
 ```typescript
 import { world } from '@/engine/one'
 
-const swarm = world()
+const group = world()
 
-// Groups organize the swarm
-swarm.group('research', 'team')
-swarm.group('execution', 'team')
+// Groups organize the group
+group.group('research', 'team')
+group.group('execution', 'team')
 
 // Actors are agents
-const scout = swarm.actor('scout', 'explorer', { group: 'research' })
+const scout = group.actor('scout', 'explorer', { group: 'research' })
   .on('explore', async ({ url }, emit) => {
     const data = await fetch(url).then(r => r.json())
     emit({ receiver: 'analyst', data: { data } })
   })
 
-const analyst = swarm.actor('analyst', 'analyzer', { group: 'research' })
+const analyst = group.actor('analyst', 'analyzer', { group: 'research' })
   .on('default', async ({ data }, emit) => {
     const insight = analyze(data)
     emit({ receiver: 'writer', data: { insight } })
   })
 
-const writer = swarm.actor('writer', 'reporter', { group: 'execution' })
+const writer = group.actor('writer', 'reporter', { group: 'execution' })
   .on('default', async ({ insight }, emit, ctx) => {
     const report = format(insight)
     emit({ receiver: ctx.from, data: { report } })
   })
 
 // Kick off - signal traverses through the world
-swarm.signal({ receiver: 'scout:explore', data: { url } }, 'user')
+group.signal({ receiver: 'scout:explore', data: { url } }, 'user')
 ```
 
-**Swarm = world() with Actors**
+**Group = world() with Actors**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      SWARM (world)                               │
+│                      GROUP (world)                               │
 │                                                                  │
 │   GROUPS:                                                        │
 │   ├── research                     ├── execution                │
@@ -141,20 +141,20 @@ swarm.signal({ receiver: 'scout:explore', data: { url } }, 'user')
 Paths emerge from outcomes. This is the Paths dimension in action:
 
 ```typescript
-// Success: mark weight on the path (leave pheromone)
-swarm.path('scout', 'analyst').mark(1)
+// Success: mark weight on the path (leave strength)
+group.path('scout', 'analyst').mark(1)
 
 // Failure: resist the path
-swarm.path('scout', 'analyst').warn(1)
+group.path('scout', 'analyst').warn(1)
 
-// Time passes: fade all paths (pheromone evaporates)
-swarm.fade(0.1)
+// Time passes: fade all paths (strength evaporates)
+group.fade(0.1)
 
 // Follow the strongest paths (proven routes)
-swarm.open(10)  // → strongest paths
+group.open(10)  // → strongest paths
 
 // Sense blocked paths (routes to avoid)
-swarm.blocked() // → paths with high resistance
+group.blocked() // → paths with high resistance
 ```
 
 **Coordination = Emergent Paths**
@@ -269,7 +269,7 @@ agent.on('broadcast', ({ message }, emit) => {
 ### 2. Gather (many to one) — Fan-in Path
 
 ```typescript
-const collector = swarm.spawn('collector')
+const collector = group.add('collector')
   .on('default', ({ data, from }, emit, ctx) => {
     results[from] = data
     if (Object.keys(results).length === expected) {
@@ -312,7 +312,7 @@ analyst
 
 ```typescript
 agent.on('race', async ({ task }, emit, ctx) => {
-  const candidates = swarm.highways(3)
+  const candidates = group.highways(3)
     .map(h => h.edge.split('→')[1])
   
   // Signal to all, first response wins
@@ -324,7 +324,7 @@ agent.on('race', async ({ task }, emit, ctx) => {
 agent.on('result', ({ data, from }, emit, ctx) => {
   if (!winner) {
     winner = from
-    swarm.mark(`race→${from}`, 1)  // Winner path gets weight
+    group.mark(`race→${from}`, 1)  // Winner path gets weight
     emit({ receiver: ctx.from, data: { data } })
   }
 })
@@ -347,7 +347,7 @@ agent.on('result', ({ data, from }, emit, ctx) => {
 
 ```typescript
 agent.on('vote', async ({ question }, emit) => {
-  const voters = swarm.highways(5).map(h => h.edge.split('→')[1])
+  const voters = group.highways(5).map(h => h.edge.split('→')[1])
   
   voters.forEach(id =>
     emit({ receiver: id, data: { question, replyTo: 'tally' } })
@@ -355,7 +355,7 @@ agent.on('vote', async ({ question }, emit) => {
 })
 
 tally.on('default', ({ answer, from }) => {
-  votes[answer] = (votes[answer] || 0) + swarm.sense(`vote→${from}`)
+  votes[answer] = (votes[answer] || 0) + group.sense(`vote→${from}`)
   // Weighted by path weight
 })
 ```
@@ -381,13 +381,13 @@ tally.on('default', ({ answer, from }) => {
 
 scout.on('found', ({ resource }, emit) => {
   // Don't signal anyone directly
-  // Just mark weight on the path (leave pheromone)
-  swarm.mark(`resource:${resource.type}→${resource.location}`, resource.quality)
+  // Just mark weight on the path (leave strength)
+  group.mark(`resource:${resource.type}→${resource.location}`, resource.quality)
 })
 
 harvester.on('seek', ({ type }, emit) => {
   // Sense and follow the strongest path
-  const path = swarm.highways(10)
+  const path = group.highways(10)
     .find(h => h.edge.startsWith(`resource:${type}→`))
   
   if (path) {
@@ -401,7 +401,7 @@ harvester.on('seek', ({ type }, emit) => {
 ┌───────┐                          ┌───────────┐
 │ Scout │─── mark on path ────────→│           │
 └───────┘                          │   PATHS   │
-                                   │  (scent)  │
+                                   │(strength) │
 ┌───────────┐                      │           │
 │ Harvester │←── follow path ──────│           │
 └───────────┘                      └───────────┘
@@ -411,20 +411,20 @@ Coordination through environment.
 DROP to leave weight. FOLLOW to traverse. SENSE to perceive.
 ```
 
-## Swarm of Swarms (Groups)
+## Group of Groups (Hierarchy)
 
-Groups create hierarchy. Swarms nest inside swarms. This is the Groups dimension.
+Groups create hierarchy. Groups nest inside groups. This is the Groups dimension.
 
 ```typescript
 import { world } from '@/engine/one'
 
 const verse = world()
 
-// Top-level groups (swarms of swarms)
-verse.group('research', 'swarm')
-verse.group('execution', 'swarm')
+// Top-level groups (groups of groups)
+verse.group('research', 'group')
+verse.group('execution', 'group')
 
-// Nested groups (sub-swarms)
+// Nested groups (sub-groups)
 verse.group('scholars', 'team', { parent: 'research' })
 verse.group('critics', 'team', { parent: 'research' })
 verse.group('planners', 'team', { parent: 'execution' })
@@ -481,11 +481,11 @@ verse.proven({ group: 'execution' })   // Only execution actors
 The ant colony maps directly to the 6 dimensions:
 
 ```
-ANT COLONY                          SWARM (world)              ONE DIMENSION
+ANT COLONY                          GROUP (world)              ONE DIMENSION
 ───────────────────────────────────────────────────────────────────────────────
 
 Colony structure                    Groups                     GROUPS
-  - nest chambers                     - swarm hierarchy
+  - nest chambers                     - group hierarchy
   - satellite nests                   - nested groups
   
 Individual ant                      Actor                      ACTORS
@@ -496,7 +496,7 @@ Food, nest material                 Things                     THINGS
   - resources found                   - tasks, tokens
   - artifacts created                 - outputs produced
 
-Pheromone trails                    Paths                      PATHS
+Strength trails                     Paths                      PATHS
   - deposited on success              - mark() on success
   - evaporate over time               - fade() over time
   - others follow them                - follow() to traverse
@@ -506,7 +506,7 @@ Foraging activity                   Signal history             EVENTS
   - who went where                    - what flowed when
   - what succeeded                    - success/failure log
   
-Colony memory                       Crystallized patterns      KNOWLEDGE
+Colony memory                       Known patterns             KNOWLEDGE
   - proven trails                     - open flows
   - seasonal patterns                 - highways
 ```
@@ -514,7 +514,7 @@ Colony memory                       Crystallized patterns      KNOWLEDGE
 ### The Emergence
 
 ```
-ANT COLONY                          SWARM                      QUERY
+ANT COLONY                          GROUP                      QUERY
 
 Best foragers emerge                Best agents emerge          best('agent')
   - scouts find fastest               - actors with open flows
@@ -524,29 +524,29 @@ Blocked paths avoided               Blocked flows avoided       blocked()
   - dead ends marked                  - high resistance
   - predator warnings                 - failures accumulate
 
-Colony intelligence                 Swarm intelligence          crystallize()
+Colony intelligence                 Group intelligence          know()
   - no ant knows the plan             - no actor knows the goal
   - but highways form                 - but patterns emerge
 ```
 
-> "No ant knows the colony's goal. No actor knows the swarm's objective. But open flows form. The world learns."
+> "No ant knows the colony's goal. No actor knows the group's objective. But open flows form. The world learns."
 
 ---
 
 ## The ONE Truth
 
 ```
-SWARM is world() with multiple actors.
+GROUP is world() with multiple actors.
 
-Groups organize the hierarchy (colonies, teams, swarms).
+Groups organize the hierarchy (colonies, teams, groups).
 Actors act (agents with simple handlers).
 Things exist (tasks, tokens, resources).
-Paths connect (pheromone trails with strength/resistance).
+Paths connect (strength trails with strength/resistance).
 Events accumulate (signal history).
-Knowledge crystallizes (proven patterns).
+Knowledge is known (proven patterns).
 
 THE VERBS:
-  signal — move through the colony
+  signal — move through the world
   mark — leave weight on a path
   follow — traverse weighted path
   sense — perceive environment
@@ -559,15 +559,15 @@ The ontology is ONE.
 
 ---
 
-*Actors signal. Paths connect. Colonies learn.*
+*Actors signal. Paths connect. Groups learn.*
 
 ---
 
 ## See Also
 
 - [flows.md](flows.md) — Flow patterns: fan-out, fan-in, pipeline, compete, stigmergy
-- [agents.md](agents.md) — Individual unit anatomy
+- [people.md](people.md) — Individual unit anatomy
 - [ants.md](ants.md) — Biological colony mechanisms
-- [emergence.md](emergence.md) — Five forces driving swarm intelligence
+- [knowledge.md](knowledge.md) — Five forces driving group intelligence
 - [one-ontology.md](one-ontology.md) — Six dimensions governing all scales
 - [PLAN-emerge.md](PLAN-emerge.md) — Implementation status

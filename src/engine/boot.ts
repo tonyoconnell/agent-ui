@@ -4,10 +4,10 @@
  * One function. Hydrate. Spawn. Tick.
  */
 
-import { world } from './one'
+import { world } from './persist'  // formerly one.ts
 import { tick } from './loop'
 import { readParsed } from '@/lib/typedb'
-import type { Signal } from './substrate'
+import type { Signal } from './world'  // formerly substrate.ts
 
 export const boot = async (complete?: (prompt: string) => Promise<string>, interval = 10_000) => {
   const w = world()

@@ -11,10 +11,10 @@
 # You say "velocity".    The substrate hears "sum of completed trail weight".
 # You say "retro".       The substrate hears "mark + alarm + fade".
 #
-# YOUR DSL                          one.tql
+# YOUR DSL                          world.tql
 # ───────────────────────────────────────────────────────────
-# sprint                            swarm (swarm-type: "sprint")
-# epic                              swarm (swarm-type: "epic")
+# sprint                            group (group-type: "sprint")
+# epic                              group (group-type: "epic")
 # story / bug / spike / chore       task (task-type: ...)
 # role (PO, SM, Dev, QA, Ops)       unit (unit-kind: "human")
 # AI pair (Claude)                  unit (unit-kind: "agent")
@@ -47,8 +47,8 @@ define
 # SCRUM ENTITIES — subtypes of one.tql primitives
 # =============================================================================
 
-# A sprint is a time-boxed swarm. Same schema, scoped context.
-entity sprint sub swarm,
+# A sprint is a time-boxed group. Same schema, scoped context.
+entity sprint sub group,
     owns sprint-number,
     owns sprint-goal,
     owns velocity,
@@ -56,8 +56,8 @@ entity sprint sub swarm,
     owns started,
     owns ended;
 
-# An epic is a swarm of stories. Grouping, not time-boxing.
-entity epic sub swarm,
+# An epic is a group of stories. Grouping, not time-boxing.
+entity epic sub group,
     owns epic-key;
 
 # ── Stories, Bugs, Spikes — all tasks with a role ──
@@ -185,7 +185,7 @@ relation signal,                  # already in one.tql
 
 fun velocity($sprint_id: string) -> double:
     match
-        $sp isa sprint, has sid $sprint_id;
+        $sp isa sprint, has gid $sprint_id;
         (group: $sp, member: $u) isa membership;
         (assigned-task: $s, assigned-to: $u) isa assignment;
         $s isa story, has story-points $pts, has status "complete";
@@ -210,7 +210,7 @@ fun cycle_time($task_id: string) -> double:
 
 fun burndown($sprint_id: string) -> double:
     match
-        $sp isa sprint, has sid $sprint_id, has capacity-points $cap;
+        $sp isa sprint, has gid $sprint_id, has capacity-points $cap;
         (group: $sp, member: $u) isa membership;
         (assigned-task: $s, assigned-to: $u) isa assignment;
         $s isa story, has story-points $pts, has status "complete";
@@ -233,7 +233,7 @@ fun blockers() -> { task }:
 
 fun impediments($sprint_id: string) -> { signal }:
     match
-        $sp isa sprint, has sid $sprint_id;
+        $sp isa sprint, has gid $sprint_id;
         $sm isa unit;
         (sprint-context: $sp, role-holder: $sm) isa role-assignment,
             has scrum-role "sm";
@@ -259,7 +259,7 @@ fun is_done($task_id: string) -> boolean:
 
 fun actual_workflow($sprint_id: string) -> { string, string, double }:
     match
-        $sp isa sprint, has sid $sprint_id;
+        $sp isa sprint, has gid $sprint_id;
         (group: $sp, member: $from) isa membership;
         (group: $sp, member: $to) isa membership;
         (source: $from, target: $to) isa path, has strength $s;
@@ -273,7 +273,7 @@ fun actual_workflow($sprint_id: string) -> { string, string, double }:
 
 fun org_chart_drift($sprint_id: string) -> { string, string, double }:
     match
-        $sp isa sprint, has sid $sprint_id;
+        $sp isa sprint, has gid $sprint_id;
         (group: $sp, member: $from) isa membership;
         (group: $sp, member: $to) isa membership;
         (source: $from, target: $to) isa path, has strength $s;
@@ -299,11 +299,11 @@ fun best_for_story($story_id: string) -> unit:
 
 fun retro_strengthen($sprint_id: string) -> { string, string, double }:
     match
-        $sp isa sprint, has sid $sprint_id;
+        $sp isa sprint, has gid $sprint_id;
         (group: $sp, member: $from) isa membership;
         (group: $sp, member: $to) isa membership;
         (source: $from, target: $to) isa path,
-            has strength $s, has alarm $a;
+            has strength $s, has resistance $a;
         $s >= 50.0; $a < 10.0;
         $from has name $fn; $to has name $tn;
     sort $s desc;
@@ -311,18 +311,18 @@ fun retro_strengthen($sprint_id: string) -> { string, string, double }:
 
 fun retro_weaken($sprint_id: string) -> { string, string, double }:
     match
-        $sp isa sprint, has sid $sprint_id;
+        $sp isa sprint, has gid $sprint_id;
         (group: $sp, member: $from) isa membership;
         (group: $sp, member: $to) isa membership;
         (source: $from, target: $to) isa path,
-            has strength $s, has alarm $a;
+            has strength $s, has resistance $a;
         $a > $s;
         $from has name $fn; $to has name $tn;
     return { $fn, $tn, $a };
 
 fun retro_explore($sprint_id: string) -> { string, string }:
     match
-        $sp isa sprint, has sid $sprint_id;
+        $sp isa sprint, has gid $sprint_id;
         (group: $sp, member: $from) isa membership;
         (group: $sp, member: $to) isa membership;
         not { (source: $from, target: $to) isa path; };
@@ -335,7 +335,7 @@ fun retro_explore($sprint_id: string) -> { string, string }:
 
 fun claude_load($sprint_id: string) -> { string, integer }:
     match
-        $sp isa sprint, has sid $sprint_id;
+        $sp isa sprint, has gid $sprint_id;
         $claude isa unit, has unit-kind "agent";
         $sig (sender: $from, receiver: $claude) isa signal, has data $d;
         (group: $sp, member: $from) isa membership;

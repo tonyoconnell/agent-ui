@@ -2,7 +2,7 @@
 # ENGINEERING-TEAM.TQL — Scrum Team as Colony
 # =============================================================================
 #
-# No new schema. one.tql already has everything.
+# No new schema. world.tql already has everything.
 #
 #   role        = unit (unit-kind: "human" or "agent")
 #   handoff     = signal (sender → receiver, data)
@@ -13,7 +13,7 @@
 #
 # USAGE:
 #   typedb console
-#   > transaction one data write
+#   > transaction world data write
 #   > source engineering-team.tql
 #   > commit
 #
@@ -21,14 +21,14 @@
 
 
 # =============================================================================
-# THE SWARM — one engineering team
+# THE GROUP — one engineering team
 # =============================================================================
 
-insert $team isa swarm,
-    has sid "eng-alpha",
+insert $team isa group,
+    has gid "eng-alpha",
     has name "Alpha Squad",
     has purpose "onboarding flow rebuild",
-    has swarm-type "team",
+    has group-type "team",
     has status "active",
     has created 2026-03-01T09:00:00;
 
@@ -150,7 +150,7 @@ $claude isa unit,
 # =============================================================================
 
 match
-    $team isa swarm, has sid "eng-alpha";
+    $team isa group, has gid "eng-alpha";
     $po isa unit, has uid "po-sarah";
     $sm isa unit, has uid "sm-david";
     $dev isa unit, has uid "dev-kai";

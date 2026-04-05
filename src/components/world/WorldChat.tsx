@@ -11,9 +11,9 @@ import { useChat } from '@ai-sdk/react'
 import { useStore } from '@nanostores/react'
 import { Send, Mic, Square, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useMetaphor } from '@/contexts/MetaphorContext'
+import { useSkin } from '@/contexts/SkinContext'
 import { messages$, addMessage, isStreaming$, setStreaming } from '@/stores/chat-store'
-import type { Colony } from '@/engine'
+import type { World } from '@/engine'
 
 // World command types
 type WorldCommand =
@@ -76,13 +76,13 @@ function parseCommand(text: string): WorldCommand | null {
 }
 
 interface WorldChatProps {
-  colony: Colony
+  world: World
   agents: Array<{ id: string; name: string; actions: Record<string, unknown> }>
   onWorldUpdate: () => void
 }
 
-export function WorldChat({ colony, agents, onWorldUpdate }: WorldChatProps) {
-  const { skin, t } = useMetaphor()
+export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
+  const { skin, t } = useSkin()
   const [input, setInput] = useState('')
   const [listening, setListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -120,18 +120,18 @@ export function WorldChat({ colony, agents, onWorldUpdate }: WorldChatProps) {
     setListening(!listening)
   }
 
-  // Execute command on colony
+  // Execute command on world
   const executeCommand = useCallback(async (command: WorldCommand): Promise<string> => {
     switch (command.type) {
       case 'spawn': {
-        colony.spawn(command.id)
+        world.spawn(command.id)
           .on('signal', () => ({}))
           .on('default', () => ({}))
         return `${skin.icons.actor} Spawned ${command.kind}: ${command.id}`
       }
 
       case 'connect': {
-        await colony.send({
+        await world.send({
           receiver: command.from,
           receive: 'connect',
           payload: { target: command.to },
@@ -142,7 +142,7 @@ export function WorldChat({ colony, agents, onWorldUpdate }: WorldChatProps) {
       }
 
       case 'send': {
-        await colony.send({
+        await world.send({
           receiver: command.to,
           receive: 'signal',
           payload: { ping: true },
@@ -152,7 +152,7 @@ export function WorldChat({ colony, agents, onWorldUpdate }: WorldChatProps) {
       }
 
       case 'strengthen': {
-        colony.mark(`${command.from}:task → ${command.to}:task`, 10)
+        world.mark(`${command.from}:task → ${command.to}:task`, 10)
         onWorldUpdate()
         return `${skin.icons.open} Strengthened: ${command.from} → ${command.to}`
       }
@@ -163,14 +163,14 @@ export function WorldChat({ colony, agents, onWorldUpdate }: WorldChatProps) {
             .map((a) => `  ${skin.icons.actor} ${a.name} (${a.id})`)
             .join('\n')}`
         }
-        const flows = colony.highways(10)
+        const flows = world.highways(10)
         return `${skin.icons.open} Top ${t('flow')}s:\n${flows
           .map((f) => `  ${f.path}: ${f.strength.toFixed(0)}`)
           .join('\n')}`
       }
 
       case 'decay': {
-        colony.fade(command.rate || 0.2)
+        world.fade(command.rate || 0.2)
         onWorldUpdate()
         return `Decay applied (${((command.rate || 0.2) * 100).toFixed(0)}%). Trails fading...`
       }
@@ -178,7 +178,7 @@ export function WorldChat({ colony, agents, onWorldUpdate }: WorldChatProps) {
       case 'inject': {
         await Promise.all(
           agents.map((a) =>
-            colony.send({
+            world.send({
               receiver: a.id,
               receive: Object.keys(a.actions)[0] || 'signal',
               payload: { burst: true },
@@ -192,7 +192,7 @@ export function WorldChat({ colony, agents, onWorldUpdate }: WorldChatProps) {
       default:
         return 'Unknown command'
     }
-  }, [colony, agents, skin, t, onWorldUpdate])
+  }, [world, agents, skin, t, onWorldUpdate])
 
   // Handle send
   const handleSend = useCallback(async () => {

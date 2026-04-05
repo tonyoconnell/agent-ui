@@ -42,7 +42,7 @@ TypeDB stores reality. TypeQL queries it. JSON renders it. The UI skins it.
 match
   $a isa actor, has actor-id $id, has actor-name $name, has actor-status $status;
   $p (source: $src, target: $tgt) isa path,
-      has weight $w, has alarm $al, has path-status $ps;
+      has weight $w, has resistance $al, has path-status $ps;
   $src has actor-id $src-id;
   $tgt has actor-id $tgt-id;
 select $id, $name, $status, $src-id, $tgt-id, $w, $al, $ps;
@@ -83,7 +83,7 @@ interface MetaphorSkin {
   actor: string       // "ant" | "neuron" | "agent" | "mailbox" | "pool" | "receiver"
   group: string       // "colony" | "network" | "team" | "office" | "watershed" | "network"
   path: string        // "trail" | "synapse" | "workflow" | "route" | "channel" | "frequency"
-  carrier: string     // "scent" | "impulse" | "task" | "letter" | "drop" | "signal"
+  carrier: string     // "strength" | "impulse" | "task" | "letter" | "drop" | "signal"
   
   // Action labels (THE VERBS)
   signal: string      // "forage" | "fire" | "delegate" | "deliver" | "flow" | "transmit"
@@ -121,8 +121,8 @@ interface MetaphorSkin {
 const skins: Record<string, MetaphorSkin> = {
   ant: {
     id: 'ant',
-    name: 'Ant Colony',
-    actor: 'ant', group: 'colony', path: 'trail', carrier: 'scent',
+    name: 'Ant World',
+    actor: 'ant', group: 'colony', path: 'trail', carrier: 'strength',
     signal: 'forage', drop: 'deposit', fade: 'evaporate', follow: 'smell', sense: 'smell',
     open: 'trail', blocked: 'toxic',
     colors: { primary: '#84cc16', secondary: '#65a30d', success: '#22c55e', danger: '#ef4444', background: '#1a1a0a' },
@@ -559,7 +559,7 @@ src/
 ## The Vision
 
 ```
-User selects metaphor: "Ant Colony"
+User selects metaphor: "Ant World"
                 ↓
 UI applies skin: green tones, ant emoji, "trail" labels
                 ↓

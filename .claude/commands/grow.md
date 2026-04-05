@@ -12,7 +12,7 @@ curl -s http://localhost:4321/api/tick?interval=0 | jq .
 
 2. Report the results:
    - **Cycle number**: which tick this was
-   - **Highways**: top paths with strength (the colony's proven routes)
+   - **Highways**: top paths with strength (the world's proven routes)
    - **Evolved**: how many agents had their prompts rewritten (L5)
    - **Crystallized**: how many paths were promoted to permanent knowledge (L6)
    - **Hypotheses**: what the substrate observed about itself (L6)

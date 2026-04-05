@@ -27,7 +27,7 @@ class Unit:
     def on(self, n: str, fn: Callable) -> Unit: self._tasks[n] = fn; return self
     def then(self, n: str, t: Callable) -> Unit: self._next[n] = t; return self
 
-class Colony:
+class World:
     FEE, WIN, LOSS, DECAY = 0.02, 0.10, 0.10, 0.05  # Economics
     MIN_STAKE, MAX_STAKE_RATIO = 1.0, 0.10           # Security
     POOL_FLOOR, POOL_CEILING = 1000.0, 1000000.0    # Stability
@@ -134,17 +134,17 @@ class Colony:
         self.agents, self.pool, self.treasury, self.escrow = s["agents"], s["pool"], s["treasury"], s["escrow"]
         self._dirty, self._v = True, s["v"]
 
-def colony() -> Colony: return Colony()
+def world() -> World: return World()
 
 if __name__ == "__main__":
-    c = colony()
-    c.onboard("alice"); c.onboard("bob", ref="alice"); c.onboard("carol", ref="alice")
-    print(f"Agents: {list(c.agents.keys())}, Alice rep: {c.agents['alice']['rep']}")
+    w = world()
+    w.onboard("alice"); w.onboard("bob", ref="alice"); w.onboard("carol", ref="alice")
+    print(f"Agents: {list(w.agents.keys())}, Alice rep: {w.agents['alice']['rep']}")
 
-    c.seed([("task1", 100), ("task2", 50)])
-    print(f"Tasks: {list(c.escrow.keys())}")
+    w.seed([("task1", 100), ("task2", 50)])
+    print(f"Tasks: {list(w.escrow.keys())}")
 
-    c.join("bob", "task1", 20); c.join("carol", "task1", 10)
-    payouts = c.complete("task1", win=True)
-    print(f"Payouts: {payouts}, Treasury: {c.treasury:.2f}")
-    print(f"Highways: {c.highways(5)}")
+    w.join("bob", "task1", 20); w.join("carol", "task1", 10)
+    payouts = w.complete("task1", win=True)
+    print(f"Payouts: {payouts}, Treasury: {w.treasury:.2f}")
+    print(f"Highways: {w.highways(5)}")

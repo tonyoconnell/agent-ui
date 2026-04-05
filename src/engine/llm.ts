@@ -4,7 +4,7 @@
  * 30 lines. Any model. Same interface.
  */
 
-import { unit, type Unit, type Emit } from './substrate'
+import { unit, type Unit, type Emit } from './world'
 
 type Complete = (prompt: string, ctx?: Record<string, unknown>) => Promise<string>
 

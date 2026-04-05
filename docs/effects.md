@@ -397,10 +397,10 @@ The TypeQL schemas (1,606 lines in `src/schema/`, 4,157 lines in `packages/`) im
 
 | Dimension | DataProvider | TypeQL Entity | TypeQL Relations | Inference |
 |-----------|-------------|---------------|-----------------|-----------|
-| **Groups** | `groups.*` | `swarm` | `membership`, `hierarchy` | `splitting-colony` (internal highways diverge) |
+| **Groups** | `groups.*` | `group` | `membership`, `hierarchy` | `splitting-colony` (internal highways diverge) |
 | **Actors** | `auth.*` | `unit` | `capability`, `assignment` | `proven-unit` (sr ≥ 0.75), `at-risk-unit` (sr < 0.40) |
-| **Things** | `things.*` | `task` | `dependency`, `trail` | `attractive-task` (trail ≥ 50), `repelled-task` (alarm > trail) |
-| **Paths** | *missing — add* | `edge` | `flow`, `connection` | `highway` (strength ≥ 50), `toxic-edge` (alarm > strength) |
+| **Things** | `things.*` | `task` | `dependency`, `trail` | `attractive-task` (trail ≥ 50), `repelled-task` (resistance > trail) |
+| **Paths** | *missing — add* | `edge` | `flow`, `connection` | `highway` (strength ≥ 50), `toxic-edge` (resistance > strength) |
 | **Events** | `events.*` | `signal` | `traversal`, `contribution-event` | `hypothesis-action-ready` (p ≤ 0.05, n ≥ 50) |
 | **Knowledge** | *missing — add* | `hypothesis`, `frontier` | `tests`, `spawns` | `action-ready`, `promising-frontier` (ev ≥ 0.5) |
 
@@ -417,7 +417,7 @@ import { Effect, Data } from "effect"
 
 // Error types from inference rules
 export class PathToxicError extends Data.TaggedError("PathToxicError")<{
-  from: string; to: string; alarm: number; weight: number
+  from: string; to: string; resistance: number; weight: number
 }> {}
 
 export class AgentNotProvenError extends Data.TaggedError("AgentNotProvenError")<{
@@ -473,7 +473,7 @@ TypeQL rules infer status automatically. Effect reads those statuses and branche
 
 ```typescript
 // Rule: highway — when strength >= 50
-// Rule: toxic-edge — when alarm > strength AND alarm >= 10
+// Rule: toxic-edge — when resistance > strength AND resistance >= 10
 
 const routeWithConfidence = (task: string) => Effect.gen(function* () {
   const edges = yield* tql<Edge[]>(
@@ -509,7 +509,7 @@ interface DataProvider {
   paths: {
     drop: (from: string, to: string, weight?: number) =>
       Effect.Effect<void, DatabaseError>
-    resist: (from: string, to: string, alarm?: number) =>
+    resist: (from: string, to: string, resistance?: number) =>
       Effect.Effect<void, DatabaseError>
     fade: (rate?: number) =>
       Effect.Effect<void, DatabaseError>
@@ -632,7 +632,7 @@ type PathQuality = "highway" | "fresh" | "fading" | "toxic"
 // highway: weight >= 50 (reliable)
 // fresh:   weight 10-50 (working)
 // fading:  weight 0-5   (dying)
-// toxic:   alarm > weight (avoid)
+// toxic:   resistance > weight (avoid)
 ```
 
 ### Lesson 3: Hypothesis Lifecycle → State Machines
@@ -738,10 +738,10 @@ Effect.ts and the substrate solve the same problem at different scales:
 
 | Concern | Effect.ts (ONE web) | Substrate (envelopes) | TypeQL (persistence) |
 |---------|--------------------|-----------------------|---------------------|
-| **Routing** | `Context.Tag` → `Layer.provide()` | `signal()` → `colony.follow()` | `optimal_route()` function |
+| **Routing** | `Context.Tag` → `Layer.provide()` | `signal()` → `world.follow()` | `optimal_route()` function |
 | **Error flow** | `Effect.catchTag()` | `resist()` → toxic path | `fun is_toxic` infers status |
 | **Composition** | `Effect.gen(function*())` | `.then()` continuations | `continuation` relation |
-| **Multi-backend** | CompositeProvider routes | Colony routes to units | `membership` + `capability` |
+| **Multi-backend** | CompositeProvider routes | World routes to units | `membership` + `capability` |
 | **Learning** | — (static routing) | `mark()` / `fade()` / `highways()` | `edge` weight + inference rules |
 | **Classification** | `Data.TaggedError()` | Path status (highway/toxic) | Rules: proven, at-risk, fading |
 | **Autonomy** | — (human-triggered) | Continuations chain signals | `spawns` frontier → objective |
@@ -755,11 +755,11 @@ TypeQL (TypeDB)    →  persists the weights, runs inference
 
 Effect.catchTag("PathToxicError")
   ↕ maps to
-colony.warn(from, to)
+world.warn(from, to)
   ↕ persists as
-update edge alarm += 1.0 where source = $from, target = $to
+update edge resistance += 1.0 where source = $from, target = $to
   ↕ triggers
-fun is_toxic: alarm > strength → path-status "toxic"
+fun is_toxic: resistance > strength → path-status "toxic"
 ```
 
 ---
@@ -817,7 +817,7 @@ envelopes/packages/typedb-inference-patterns/
 │   ├── classification.tql    (217 lines)  # Lesson 1: tiers
 │   ├── hypothesis-lifecycle.tql (214 lines) # Lesson 3: states
 │   └── contribution-tracking.tql (160 lines) # Lesson 5: synergy
-└── colony.ts       (357 lines)  # Lesson ↔ substrate mapping
+└── world.ts       (357 lines)  # Lesson ↔ substrate mapping
 ```
 
 ---

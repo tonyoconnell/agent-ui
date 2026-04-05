@@ -1,5 +1,5 @@
 /**
- * POST /api/alarm — Add alarm to a path (failure pheromone)
+ * POST /api/resistance — Add resistance to a path (failure pheromone)
  *
  * Body: { from: string, to: string, strength?: number }
  */
@@ -17,9 +17,9 @@ export const POST: APIRoute = async ({ request }) => {
     match
       $from isa unit, has uid "${from}";
       $to isa unit, has uid "${to}";
-      $e (source: $from, target: $to) isa path, has alarm $a;
-    delete $a of $e;
-    insert $e has alarm ($a + ${strength});
+      $e (source: $from, target: $to) isa path, has resistance $r;
+    delete $r of $e;
+    insert $e has resistance ($r + ${strength});
   `).catch(() =>
     write(`
       match
@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
         $to isa unit, has uid "${to}";
       insert
         (source: $from, target: $to) isa path,
-          has strength 0.0, has alarm ${strength}, has traversals 0, has revenue 0.0;
+          has strength 0.0, has resistance ${strength}, has traversals 0, has revenue 0.0;
     `)
   )
 

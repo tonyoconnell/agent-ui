@@ -149,7 +149,7 @@
     {
       "receiver": "nurse",
       "receive": "monitor",
-      "payload": { "colony": "all", "chain": "care" },
+      "payload": { "world": "all", "chain": "care" },
       "callback": {
         "receiver": "nurse",
         "receive": "heal",

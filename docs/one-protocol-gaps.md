@@ -7,7 +7,7 @@
 │   It uses it as a DATA MODEL.                                   │
 │                                                                 │
 │   The Substrate turns it into a DECISION & CONTROL LAYER.       │
-│   The swarm becomes the decision-maker.                         │
+│   The group becomes the decision-maker.                         │
 │                                                                 │
 │   STATUS: 10 conceptual gaps SOLVED in code.                    │
 │   REMAINING: Integration gaps — see gaps.md                     │
@@ -25,11 +25,11 @@ ONE Protocol defines **what** exists (6 dimensions, 66 entity types, 25 path typ
 
 | Gap | ONE Protocol Status | Substrate Solution | Implemented? |
 |-----|--------------------|--------------------|-------------|
-| Protocol Selection | Hardcoded | Emergent routing | **Yes** — colony.follow() |
+| Protocol Selection | Hardcoded | Emergent routing | **Yes** — world.follow() |
 | Orchestration | Imperative chains | Self-organizing swarms | **Yes** — unit.then() |
 | Fallback/Retry | Scattered, manual | Automatic rerouting | **Yes** — topology-based |
-| Learning | Event logs only | Edge strengthening | **Yes** — colony.mark/fade |
-| Decision Logic | if/switch everywhere | Topology-based routing | **Yes** — colony.signal() |
+| Learning | Event logs only | Edge strengthening | **Yes** — world.mark/fade |
+| Decision Logic | if/switch everywhere | Topology-based routing | **Yes** — world.signal() |
 | Context Flow | Pull-based (DB) | Push-based (signals) | **Yes** — ctx.from/self |
 | Multi-Protocol | Manual filtering | Native coordination | **Yes** — unified topology |
 | Entity Dispatch | Type filters | Receiver routing | **Yes** — receiver:task |
@@ -71,7 +71,7 @@ if (user.prefersCrypto) {
 
 ```typescript
 // Dynamic routing via path strength
-colony.signal({ receiver: 'payment:process', data: { amount: 100 } })
+world.signal({ receiver: 'payment:process', data: { amount: 100 } })
 
 
 // Substrate routes to strongest path
@@ -119,23 +119,23 @@ class AgentOrchestrator {
 
 ```typescript
 // Self-organizing swarms via continuations
-colony.spawn('strategy')
+world.add('strategy')
   .on('execute', async (data) => ({ goals: await analyze(data) }))
   .then('execute', r => ({ receiver: 'marketing:plan', data: r }))
 
-colony.spawn('marketing')
+world.add('marketing')
   .on('plan', async ({ goals }) => ({ plan: await createPlan(goals) }))
   .then('plan', r => ({ receiver: 'design:create', data: r }))
 
-colony.spawn('design')
+world.add('design')
   .on('create', async ({ plan }) => ({ content: await design(plan) }))
   .then('create', r => ({ receiver: 'sales:list', data: r }))
 
-colony.spawn('sales')
+world.add('sales')
   .on('list', async ({ content }) => await createListings(content))
 
 // One signal triggers the entire workflow
-colony.signal({ receiver: 'strategy:execute', data: { context: '...' } })
+world.signal({ receiver: 'strategy:execute', data: { context: '...' } })
 
 // Workflow emerges from continuations
 // Add feedback? Add more .then() chains
@@ -178,7 +178,7 @@ class PaymentService {
 
 ```typescript
 // Fallback is automatic via path topology
-colony.signal({ receiver: 'payment:stripe', data: { amount: 100 } })
+world.signal({ receiver: 'payment:stripe', data: { amount: 100 } })
 
 // If stripe handler throws:
 // 1. Edge doesn't strengthen
@@ -229,12 +229,12 @@ await ctx.db.insert('events', {
 // Learning is automatic via path weighting
 
 // Success:
-colony.signal({ receiver: 'payment:stripe', data })
+world.signal({ receiver: 'payment:stripe', data })
 // Handler succeeds → path strengthens
 // weight['entry→payment:stripe'] += 1
 
 // Failure:
-colony.signal({ receiver: 'payment:paypal', data })
+world.signal({ receiver: 'payment:paypal', data })
 // Handler fails → path doesn't strengthen
 // Over time, fade() weakens it further
 
@@ -291,17 +291,17 @@ function routeAgent(taskType) {
 // Routing IS the topology
 
 // Each protocol/agent = unit
-colony.spawn('stripe').on('process', stripeHandler)
-colony.spawn('x402').on('process', x402Handler)
-colony.spawn('solana_pay').on('process', solanaHandler)
+world.add('stripe').on('process', stripeHandler)
+world.add('x402').on('process', x402Handler)
+world.add('solana_pay').on('process', solanaHandler)
 
 // Routing via receiver
-colony.signal({ receiver: 'stripe:process', data })
-colony.signal({ receiver: 'x402:process', data })
+world.signal({ receiver: 'stripe:process', data })
+world.signal({ receiver: 'x402:process', data })
 
 // Or: let substrate choose based on learned patterns
 const best = await bestProtocol('payment')
-colony.signal({ receiver: `${best}:process`, data })
+world.signal({ receiver: `${best}:process`, data })
 
 // Adding new protocol = spawn new unit
 // No if/switch. No code change. Just topology.
@@ -348,7 +348,7 @@ export const processPayment = mutation({
 // Units hold local state
 const balances = {}  // Local to payment unit
 
-colony.spawn('payment')
+world.add('payment')
   .on('process', async ({ from, amount }, emit, ctx) => {
     // ctx.from = who sent this signal
     // ctx.self = who I am
@@ -415,18 +415,18 @@ const stripeOnly = allPayments.filter(e => e.metadata.protocol === 'stripe')
 ```typescript
 // Protocols as units in unified topology
 
-colony.spawn('stripe').on('process', stripeHandler)
-colony.spawn('x402').on('process', x402Handler)
-colony.spawn('solana_pay').on('process', solanaHandler)
+world.add('stripe').on('process', stripeHandler)
+world.add('x402').on('process', x402Handler)
+world.add('solana_pay').on('process', solanaHandler)
 
 // All payment signals go through same topology
-colony.signal({ receiver: 'payment:process', data: { amount: 100 } })
+world.signal({ receiver: 'payment:process', data: { amount: 100 } })
 
 // Substrate routes to best available
 // If stripe fails → weak path → next signal tries x402
 
 // Cross-protocol learning:
-const highways = colony.highways(10)
+const highways = world.highways(10)
 // Returns ALL strong payment edges, regardless of protocol
 
 // Query: best payment protocol overall
@@ -484,25 +484,25 @@ class TokenService {
 ```typescript
 // Type-based routing via receiver namespace
 
-colony.spawn('creator')
+world.add('creator')
   .on('create', createCreatorHandler)
   .on('update', updateCreatorHandler)
 
-colony.spawn('token')
+world.add('token')
   .on('mint', mintTokenHandler)
   .on('transfer', transferTokenHandler)
 
-colony.spawn('course')
+world.add('course')
   .on('enroll', enrollHandler)
   .on('complete', completeHandler)
 
 // Routing by type:receiver
-colony.signal({ receiver: 'creator:create', data })
-colony.signal({ receiver: 'token:mint', data })
-colony.signal({ receiver: 'course:enroll', data })
+world.signal({ receiver: 'creator:create', data })
+world.signal({ receiver: 'token:mint', data })
+world.signal({ receiver: 'course:enroll', data })
 
 // New type = spawn new unit
-colony.spawn('new_type').on('action', handler)
+world.add('new_type').on('action', handler)
 
 // No service class. No query filters. Just topology.
 ```
@@ -532,15 +532,15 @@ Future (planned):
 ```typescript
 // Built for distribution
 
-// Colony per organization (natural sharding)
-const org1Colony = colony()
-const org2Colony = colony()
+// World per organization (natural sharding)
+const org1Colony = world()
+const org2Colony = world()
 
 // Agents discover via local topology
 // No global registry required
 
 // Cross-colony communication via bridge units
-org1Colony.spawn('bridge')
+org1Colony.add('bridge')
   .on('forward', ({ target, data }) => {
     org2Colony.signal({ receiver: target, data })
   })
@@ -582,7 +582,7 @@ Reality:
 // Emergence IS the architecture
 
 // Every successful signal:
-colony.signal({ receiver: 'payment:stripe', data })
+world.signal({ receiver: 'payment:stripe', data })
 // If handler succeeds → path strengthens automatically
 
 // Over time:
@@ -591,7 +591,7 @@ colony.signal({ receiver: 'payment:stripe', data })
 // - Optimal topology emerges
 
 // Query what emerged:
-const patterns = colony.highways(10)
+const patterns = world.highways(10)
 // Returns: the 10 strongest learned patterns
 
 // No ML. No analytics pipeline. No human optimization.
@@ -684,7 +684,7 @@ ONE Protocol (Data Model)  +  Substrate (Decision Engine)  =  Emergent Intellige
 
 The ontology describes the world.     ✓ implemented
 The substrate makes decisions in it.  ✓ implemented
-The swarm learns and optimizes.       ✓ implemented
+The group learns and optimizes.       ✓ implemented
 
 Now: wire them together.
 ```

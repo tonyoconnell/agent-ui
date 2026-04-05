@@ -22,12 +22,12 @@ import { world } from '@/engine'
 
 const one = world()
 
-one.spawn('greeter')
+one.add('greeter')
   .on('hello', ({ name }, emit, ctx) => {
     emit({ receiver: ctx.from, data: { message: `Hello, ${name}!` } })
   })
 
-one.spawn('counter')
+one.add('counter')
   .on('count', ({ n }, emit, ctx) => {
     emit({ receiver: ctx.from, data: { result: n + 1 } })
   })
@@ -48,19 +48,19 @@ Format: `receiver:task` or just `receiver` for default task.
 ```typescript
 const one = world()
 
-one.spawn('fetcher')
+one.add('fetcher')
   .on('fetch', async ({ url }, emit) => {
     const response = await fetch(url).then(r => r.json())
     emit({ receiver: 'parser', data: { response } })
   })
 
-one.spawn('parser')
+one.add('parser')
   .on('default', ({ response }, emit) => {
     const parsed = transform(response)
     emit({ receiver: 'store', data: { parsed } })
   })
 
-one.spawn('store')
+one.add('store')
   .on('default', ({ parsed }, emit, ctx) => {
     save(parsed)
     emit({ receiver: ctx.from, data: { ok: true } })
@@ -155,13 +155,13 @@ const one = world()
 // Create a group for language agents
 const lang = one.group('lang')
 
-lang.spawn('translator')
+lang.add('translator')
   .on('translate', async ({ text, to }, emit, ctx) => {
     const result = await translateAPI(text, to)
     emit({ receiver: ctx.from, data: { result } })
   })
 
-lang.spawn('summarizer')
+lang.add('summarizer')
   .on('summarize', async ({ text }, emit, ctx) => {
     const summary = await summarizeAPI(text)
     emit({ receiver: ctx.from, data: { summary } })
@@ -184,13 +184,13 @@ const one = persisted(typedb.query)
 // 2. Add agents in groups
 const lang = one.group('lang')
 
-lang.spawn('translator')
+lang.add('translator')
   .on('translate', async ({ text, to }, emit, ctx) => {
     const result = await translateAPI(text, to)
     emit({ receiver: ctx.from, data: { result } })
   })
 
-lang.spawn('summarizer')
+lang.add('summarizer')
   .on('summarize', async ({ text }, emit, ctx) => {
     const summary = await summarizeAPI(text)
     emit({ receiver: ctx.from, data: { summary } })

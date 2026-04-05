@@ -10,7 +10,7 @@
 | --------------- | ----- | --------------------------- | --------- |
 | `one.move`      | 250   | On-chain substrate          | Sui       |
 | `one.ts`        | 70    | world() — 6 dimensions      | Runtime   |
-| `substrate.ts`  | 70    | Unit + Colony + scent graph | Runtime   |
+| `substrate.ts`  | 70    | Unit + World + strength graph | Runtime   |
 | `agentverse.ts` | 70    | 2M agents as colony         | Fetch.ai  |
 | `asi.ts`        | 70    | Orchestrator                | Fetch.ai  |
 | save.ts`        | 40    | TypeDB sync                 | Knowledge |
@@ -37,7 +37,7 @@ Two views.          One truth.
 | Object | Type | Speed |
 |--------|------|-------|
 | Unit | Owned | Fast path (no consensus) |
-| Colony | Shared | Consensus required |
+| World | Shared | Consensus required |
 | Signal | Transferred | Consumed on arrival |
 | Path | Shared | Both endpoints modify |
 | Highway | Frozen | Immutable forever |
@@ -51,7 +51,7 @@ w.signal({ receiver, data })         // move through world
 w.mark(from, to, n)                  // leave weight on path
 w.fade(rate)                         // decay
 w.follow(type)                       // traverse paths
-w.crystallize()                      // persist
+w.know()                      // persist
 ```
 
 ---

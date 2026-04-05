@@ -7,13 +7,53 @@ match the six dimensions. Run haiku agents in parallel to do the work.
 
 ---
 
+## Why
+
+The old vocabulary leaked the ant colony metaphor into the substrate layer.
+`colony`, `scent`, `alarm`, `spawn` — all ant words baked into what was
+supposed to be metaphor-free.
+
+The fix: make the substrate vocabulary genuinely neutral so it skins cleanly
+to ANY domain. The test — every word must map naturally to ant, brain, team,
+mail, water, and radio without forcing.
+
+The deepest insight: **weighted memory on paths** is the universal dynamic.
+Every domain has its own word for the substance that accumulates:
+
+| Domain | The substance | Positive | Negative | Result | Decay |
+|--------|--------------|----------|----------|--------|-------|
+| **ONE** | weight | strength | resistance | highway | fade |
+| **Ant** | pheromone | scent | alarm | trail | evaporation |
+| **Brain** | synaptic weight | potentiation | inhibition | pathway | decay |
+| **Team** | reputation | trust | distrust | go-to person | forgetting |
+| **Mail** | stamps | stamps | returns | express route | archiving |
+| **Water** | sediment | erosion | damming | river | drying |
+| **Radio** | signal power | boost | interference | clear channel | attenuation |
+
+The pattern is always the same:
+
+```
+something accumulates on a connection over time
+  → positive: the connection gets used more
+  → negative: the connection gets avoided
+  → without use: it fades
+  → survivors become the proven paths
+```
+
+The substrate doesn't pick a metaphor. It says **strength** and **resistance**.
+That's why it skins to everything — the dynamic is universal.
+
+---
+
 ## Ontology
+
+Six dimensions. Everything maps.
 
 ```
 1. Groups      who belongs together
 2. People      who acts
 3. Things      what they work on
-4. Paths       how they connect
+4. Paths       how they connect (strength + resistance)
 5. Events      what happened
 6. Knowledge   what was learned
 ```
@@ -427,35 +467,144 @@ colony → world
 
 ---
 
-## Phase 7 — Docs (22 files, parallel)
+## Phase 7 — Docs (59 files, parallel)
 
 Each agent gets one file. Apply the vocabulary table.
 Only replace terms in substrate/engine context, NOT in metaphor skin columns.
 
-| ID | File | Terms |
-|----|------|-------|
-| 7A | `docs/README.md` | all |
-| 7B | `docs/groups.md` (was swarm.md) | `swarm`→`group`, `colony`→`world` |
-| 7C | `docs/loops.md` | `colony`→`world`, `crystallize`→`know`, `swarm-type`→`group-type` |
-| 7D | `docs/primitives.md` | `alarm`→`resistance`, `swarm`→`group`, `swarm-type`→`group-type` |
-| 7E | `docs/architecture.md` | `colony`→`world`, `swarm-type`→`group-type` |
-| 7F | `docs/flows.md` | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance`, `crystallize`→`know` |
-| 7G | `docs/flow.md` | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance` |
-| 7H | `docs/world.md` | `colony`→`world`, `swarm`→`group` |
-| 7I | `docs/one-ontology.md` | `swarm`→`group`, `alarm`→`resistance` |
-| 7J | `docs/knowledge.md` (was emergence.md) | `crystallize`→`know` |
-| 7K | `docs/lifecycle.md` | `crystallize`→`know` |
-| 7L | `docs/code.md` | `colony`→`world`, `scent`→`strength`, `spawn`→`add` |
-| 7M | `docs/code-tutorial.md` | `colony`→`world`, `scent`→`strength`, `spawn`→`add` |
-| 7N | `docs/examples.md` | `colony`→`world`, `scent`→`strength`, `spawn`→`add` |
-| 7O | `docs/100-lines.md` | `colony`→`world`, `swarm-type`→`group-type` |
-| 7P | `docs/task-management.md` | `colony`→`world`, `crystallize`→`know` |
-| 7Q | `docs/llm-training.md` | `colony`→`world`, `scent`→`strength` |
-| 7R | `docs/substrate-learning.md` | `colony`→`world`, `scent`→`strength` |
-| 7S | `docs/TODO-loops.md` | `swarm-type`→`group-type` |
-| 7T | `docs/llms.md` | `colony`→`world` |
-| 7U | `docs/strategy.md` | `colony`→`world` |
-| 7V | `docs/events.md` (was signal.md) | `colony`→`world`, `alarm`→`resistance` |
+### Already done (skip)
+
+- `docs/dictionary.md` ✓
+- `docs/DSL.md` ✓
+- `docs/metaphors.md` ✓
+- `docs/migration.md` (this file — skip)
+
+### Delete first (old duplicates)
+
+```bash
+git rm "docs/dictionary 1.md"
+git rm "docs/DSL 1.md"
+git rm "docs/metaphors 1.md"
+git rm "docs/agents 1.md"
+```
+
+### Clean (zero old vocab — skip)
+
+- `docs/CHAT_ARCHITECTURE.md`
+- `docs/executive-summary.md`
+- `docs/one-protocol.md`
+- `docs/one.md`
+
+### Core docs (high hit count, update carefully)
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7A | `docs/README.md` | 15 | all |
+| 7B | `docs/groups.md` (was swarm.md) | 33 | `swarm`→`group`, `colony`→`world`, `crystallize`→`know`, `scent`→`strength`, `spawn`→`add` |
+| 7C | `docs/code-tutorial.md` | 59 | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance`, `crystallize`→`know`, `spawn`→`add`, `swarm`→`group` |
+| 7D | `docs/examples.md` | 53 | `colony`→`world`, `scent`→`strength`, `spawn`→`add`, `swarm`→`group` |
+| 7E | `docs/100-lines.md` | 47 | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance`, `spawn`→`add`, `swarm`→`group`, `swarm-type`→`group-type` |
+| 7F | `docs/one-protocol-gaps.md` | 44 | `colony`→`world`, `spawn`→`add`, `swarm`→`group` |
+| 7G | `docs/task-management.md` | 37 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `scent`→`strength`, `spawn`→`add` |
+| 7H | `docs/ants.md` | 37 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `spawn`→`add`, `swarm`→`group` |
+
+### Ontology & architecture docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7I | `docs/world.md` | 26 | `colony`→`world`, `scent`→`strength`, `swarm`→`group` |
+| 7J | `docs/ontology.md` | 18 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `swarm`→`group` |
+| 7K | `docs/architecture.md` | 18 | `colony`→`world`, `alarm`→`resistance`, `swarm`→`group`, `swarm-type`→`group-type` |
+| 7L | `docs/one-ontology.md` | 5 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know` |
+| 7M | `docs/primitives.md` | 11 | `alarm`→`resistance`, `swarm`→`group`, `swarm-type`→`group-type`, `colony`→`world` |
+| 7N | `docs/loops.md` | 13 | `colony`→`world`, `alarm`→`resistance`, `scent`→`strength`, `swarm`→`group`, `swarm-type`→`group-type` |
+| 7O | `docs/the-stack.md` | 3 | `colony`→`world`, `crystallize`→`know`, `scent`→`strength` |
+
+### Flow & signal docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7P | `docs/flows.md` | 15 | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance`, `crystallize`→`know`, `spawn`→`add`, `swarm`→`group` |
+| 7Q | `docs/flow.md` | 12 | `colony`→`world`, `alarm`→`resistance`, `spawn`→`add` |
+| 7R | `docs/events.md` (was signal.md) | 1 | `crystallize`→`know` |
+| 7S | `docs/patterns.md` | 9 | `colony`→`world`, `alarm`→`resistance`, `swarm`→`group` |
+| 7T | `docs/effects.md` | 13 | `colony`→`world`, `alarm`→`resistance`, `spawn`→`add`, `swarm`→`group` |
+
+### Learning & knowledge docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7U | `docs/knowledge.md` (was emergence.md) | 14 | `colony`→`world`, `crystallize`→`know`, `scent`→`strength`, `swarm`→`group` |
+| 7V | `docs/lifecycle.md` | 12 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `swarm`→`group` |
+| 7W | `docs/llm-training.md` | 20 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `scent`→`strength`, `spawn`→`add` |
+| 7X | `docs/substrate-learning.md` | 10 | `colony`→`world`, `alarm`→`resistance`, `swarm`→`group` |
+| 7Y | `docs/llms.md` | 23 | `colony`→`world`, `alarm`→`resistance`, `scent`→`strength` |
+
+### Code & implementation docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7Z | `docs/code.md` | 20 | `colony`→`world`, `scent`→`strength`, `spawn`→`add` |
+| 7AA | `docs/tutorial.md` | 9 | `spawn`→`add` |
+| 7AB | `docs/sdk.md` | 11 | `colony`→`world`, `swarm`→`group` |
+| 7AC | `docs/typedb.md` | 15 | `colony`→`world`, `swarm`→`group` |
+| 7AD | `docs/framework.md` | 5 | `colony`→`world`, `alarm`→`resistance`, `scent`→`strength` |
+
+### Strategy & business docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7AE | `docs/strategy.md` | 15 | `colony`→`world`, `crystallize`→`know`, `swarm`→`group` |
+| 7AF | `docs/value.md` | 23 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `swarm`→`group` |
+| 7AG | `docs/revenue.md` | 12 | `colony`→`world`, `crystallize`→`know`, `swarm`→`group` |
+| 7AH | `docs/contracts.md` | 23 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `swarm`→`group` |
+| 7AI | `docs/opensource.md` | 16 | `colony`→`world`, `swarm`→`group` |
+| 7AJ | `docs/asi-world.md` | 3 | `colony`→`world` |
+
+### Agent & integration docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7AK | `docs/people.md` (was agents.md) | 8 | `colony`→`world`, `swarm`→`group` |
+| 7AL | `docs/hermes-agent.md` | 26 | `colony`→`world`, `alarm`→`resistance`, `spawn`→`add`, `swarm`→`group` |
+| 7AM | `docs/integration.md` | 7 | `colony`→`world`, `crystallize`→`know`, `spawn`→`add` |
+| 7AN | `docs/agent-launch.md` | 1 | `colony`→`world` |
+| 7AO | `docs/claude-code-integration.md` | 15 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know` |
+
+### Chain & commerce docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7AP | `docs/SUI.md` | 11 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know` |
+| 7AQ | `docs/sync-skills.md` | 2 | `swarm`→`group` |
+
+### UI docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7AR | `docs/ui-plan.md` | 3 | `spawn`→`add` |
+| 7AS | `docs/gaps.md` | 3 | `colony`→`world`, `swarm`→`group` |
+
+### Planning & TODO docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7AT | `docs/plan.md` | 7 | `colony`→`world`, `crystallize`→`know`, `scent`→`strength` |
+| 7AU | `docs/Update Plan.md` | 26 | `colony`→`world`, `crystallize`→`know`, `scent`→`strength`, `swarm`→`group` |
+| 7AV | `docs/PLAN-emerge.md` | 10 | `colony`→`world`, `scent`→`strength`, `swarm`→`group` |
+| 7AW | `docs/TODO.md` | 24 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `scent`→`strength`, `spawn`→`add`, `swarm`→`group` |
+| 7AX | `docs/TODO-emerge.md` | 12 | `colony`→`world` |
+| 7AY | `docs/TODO-ui.md` | 9 | `colony`→`world`, `alarm`→`resistance`, `spawn`→`add` |
+| 7AZ | `docs/TODO-fill-gaps.md` | 9 | `colony`→`world`, `alarm`→`resistance`, `swarm`→`group` |
+| 7BA | `docs/TODO-create.md` | 5 | `colony`→`world`, `alarm`→`resistance` |
+| 7BB | `docs/TODO-loops.md` | 2 | `alarm`→`resistance`, `swarm`→`group` |
+| 7BC | `docs/TODO-deploy.md` | 1 | `colony`→`world` |
+
+### Internal docs
+
+| ID | File | Hits | Terms |
+|----|------|-----:|-------|
+| 7BD | `docs/CLAUDE.md` | 3 | `colony`→`world`, `scent`→`strength`, `swarm`→`group` |
 
 ---
 
@@ -536,6 +685,21 @@ Each haiku agent receives:
 ```
 You are updating file {FILE_PATH} as part of a vocabulary migration.
 
+╔══════════════════════════════════════════════════════════════╗
+║  RULE #1: DO NOT DELETE ANY CONTENT.                        ║
+║                                                             ║
+║  This is the highest priority rule. You are ONLY replacing  ║
+║  old vocabulary words with new ones. You must NOT remove    ║
+║  any sentences, paragraphs, sections, code blocks, tables,  ║
+║  comments, or any other content. Every line that exists in  ║
+║  the file before your edit must exist after your edit.      ║
+║  The ONLY change is swapping vocabulary words.              ║
+║                                                             ║
+║  If you are unsure whether something should change,         ║
+║  LEAVE IT AS-IS. Preserving content is more important       ║
+║  than catching every rename.                                ║
+╚══════════════════════════════════════════════════════════════╝
+
 VOCABULARY (find → replace, substrate context only):
   colony → world | Colony → World
   scent → strength
@@ -556,15 +720,17 @@ IMPORT PATH UPDATES:
   from '@/engine/one' → from '@/engine/persist'
 
 RULES:
+- DO NOT DELETE ANY CONTENT. Swap words only. Every line stays.
 - Only replace in substrate/engine/ONE context
 - Do NOT replace in metaphor skin columns (ant keeps "alarm" etc.)
 - Do NOT replace inside string literals that are metaphor examples
 - DO replace TypeDB attribute names (alarm → resistance, sid → gid)
 - Update import paths where they reference renamed files
 - Update type names: Colony → World, Swarm → Group
-- Preserve formatting, indentation, style
-- Do not add or remove functionality
+- Preserve ALL formatting, indentation, style, and structure
+- Do not add or remove any functionality, text, or sections
 - Read the file first, then make targeted edits
+- When in doubt, leave it unchanged
 ```
 
 ---
@@ -572,7 +738,7 @@ RULES:
 ## Execution Order
 
 ```
-Phase 0    sequential     git mv renames + commit
+Phase 0    sequential     git mv renames + delete duplicates + commit
            ─────────
 Phase 1    5 agents       core engine
 Phase 2    8 agents       schema
@@ -581,15 +747,16 @@ Phase 3    5 agents       types, lib, skins
 Phase 4    11 agents      API endpoints
 Phase 5    7 agents       components
 Phase 6    9 agents       Claude config
-Phase 7    22 agents      docs
+Phase 7    59 agents      docs (the big wave)
 Phase 8    12 agents      packages, scripts
 Phase 9    4 agents       archive (optional)
            ─────────
-           83 files, 10 phases
+           ~120 files, 10 phases
 ```
 
 Phases 1-2 are the foundation. Everything else reads from them.
 Within each phase, all agents run fully parallel.
+Phase 7 is the largest — 59 doc files, all independent, perfect for haiku swarm.
 
 ---
 
@@ -620,11 +787,9 @@ npm run build
 ## Cleanup
 
 ```bash
-git rm docs/update-vocabulary.md
-git rm docs/rename-files.md
 # docs/migration.md stays as record of what was done
 ```
 
 ---
 
-*One plan. 83 files. 83 agents. One world.*
+*One plan. ~120 files. One world.*

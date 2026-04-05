@@ -213,22 +213,22 @@ async function seedData(): Promise<boolean> {
       return true
     }
 
-    // Seed swarms
-    const swarms = [
-      { id: 'swarm-platform', name: 'Platform', purpose: 'Build and maintain the ONE substrate' },
-      { id: 'swarm-agents', name: 'Agents', purpose: 'AI agent services and integration' },
-      { id: 'swarm-community', name: 'Community', purpose: 'User growth and engagement' },
+    // Seed groups
+    const groups = [
+      { id: 'group-platform', name: 'Platform', purpose: 'Build and maintain the ONE substrate' },
+      { id: 'group-agents', name: 'Agents', purpose: 'AI agent services and integration' },
+      { id: 'group-community', name: 'Community', purpose: 'User growth and engagement' },
     ]
 
-    for (const s of swarms) {
+    for (const g of groups) {
       await query(token, `
-        insert $s isa swarm,
-          has sid "${s.id}",
-          has name "${s.name}",
-          has purpose "${s.purpose}";
+        insert $g isa group,
+          has gid "${g.id}",
+          has name "${g.name}",
+          has purpose "${g.purpose}";
       `, 'write')
     }
-    console.log(`Swarms: ${swarms.length}`)
+    console.log(`Groups: ${groups.length}`)
 
     // Seed units (8 personas)
     const units = [

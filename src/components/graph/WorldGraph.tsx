@@ -33,9 +33,9 @@ import {
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 import type { Edge } from "@/engine"
-import type { Colony } from "@/engine"
+import type { World } from "@/engine"
 import { cn } from "@/lib/utils"
-import { useMetaphor } from "@/contexts/MetaphorContext"
+import { useSkin } from "@/contexts/SkinContext"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -58,7 +58,7 @@ interface AgentData {
 }
 
 interface WorldGraphProps {
-  colony: Colony
+  world: World
   agents: AgentData[]
   highways: Edge[]
   onSelectAgent?: (id: string) => void
@@ -93,7 +93,7 @@ interface FlowEdgeData {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function FlowEdge(props: EdgeProps) {
-  const { skin, t } = useMetaphor()
+  const { skin, t } = useSkin()
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } = props
   const edgeData = data as FlowEdgeData | undefined
   const strength = edgeData?.strength || 0
@@ -201,7 +201,7 @@ function FlowEdge(props: EdgeProps) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function ActorNode({ data, selected }: NodeProps) {
-  const { skin, t } = useMetaphor()
+  const { skin, t } = useSkin()
   const [expanded, setExpanded] = useState(false)
   const d = data as ActorNodeData
   const isOpen = d.isOpen
@@ -376,7 +376,7 @@ function ActorNode({ data, selected }: NodeProps) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function EntryNode({ data }: NodeProps) {
-  const { skin, t } = useMetaphor()
+  const { skin, t } = useSkin()
   const d = data as EntryNodeData
 
   return (
@@ -434,8 +434,8 @@ const edgeTypes = { flow: FlowEdge }
 // WORLD GRAPH — The main component
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function WorldGraph({ colony, agents, highways, onSelectAgent }: WorldGraphProps) {
-  const { skin } = useMetaphor()
+export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGraphProps) {
+  const { skin } = useSkin()
 
   // Calculate actor stats
   const actorStats = useMemo(() => {

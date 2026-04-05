@@ -5,7 +5,7 @@
  * The substrate does the rest.
  */
 
-import type { Colony, Unit, Signal, Emit } from './substrate'
+import type { World, Unit, Signal, Emit } from './world'
 import { writeSilent } from '@/lib/typedb'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -38,8 +38,8 @@ export interface Agent {
 // BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const agent = (id: string, net: Colony): Agent => {
-  const u = net.spawn(id)
+export const agent = (id: string, net: World): Agent => {
+  const u = net.add(id)
   const mem = new Map<string, unknown>()
   const reg: Record<string, Tool> = {}
 

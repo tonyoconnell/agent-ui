@@ -9,12 +9,12 @@
 
 | Dimension     | Biology           | What it models                        |
 | ------------- | ----------------- | ------------------------------------- |
-| **Groups**    | Colony structure  | Containers, scope, isolation          |
+| **Groups**    | World structure  | Containers, scope, isolation          |
 | **Actors**    | Individual ants   | Who can act (humans, agents, LLMs)    |
 | **Things**    | Environment       | What exists (signals, data, services) |
 | **Paths**     | Pheromone trails  | Connections with weight               |
 | **Events**    | Foraging activity | Signals that happened                 |
-| **Knowledge** | Colony memory     | Highways (crystallized paths)         |
+| **Knowledge** | World memory     | Highways (known paths)         |
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -94,7 +94,7 @@ relation path,
     relates target,
     owns path-type,
     owns weight,          # Success signal (strength)
-    owns alarm,      # Failure signal
+    owns resistance,      # Failure signal
     owns path-status;     # "highway", "fading", "blocked"
 
 # 5. EVENTS
@@ -120,7 +120,7 @@ rule highway:
     then { $p has path-status "highway"; };
 
 rule blocked-path:
-    when { $p isa path, has alarm $r, has weight $w; $r > $w; }
+    when { $p isa path, has resistance $r, has weight $w; $r > $w; }
     then { $p has path-status "blocked"; };
 
 # Actors emerge as proven/at-risk
@@ -168,7 +168,7 @@ w.path('user', 'agent-1').warn(1)       // Add resistance (failure)
 // 5. Events (automatic from signals)
 
 // 6. Knowledge
-w.crystallize()  // Highways emerge from repeated success
+w.know()  // Highways emerge from repeated success
 
 // Query
 w.highways(10)         // High-weight paths
@@ -327,7 +327,7 @@ Each level inherits from parent. Isolation is automatic.
 | Things | What exists | Domain modeling, any entity |
 | Paths | How connected | Pheromones, learning, routing |
 | Events | What signaled | Audit, replay, debugging |
-| Knowledge | What crystallized | Highways, AI, emergence |
+| Knowledge | What known | Highways, AI, emergence |
 
 **The compounding:**
 

@@ -1,8 +1,8 @@
 /**
  * POST /api/decay — Run asymmetric decay cycle
  *
- * Body: { trailRate?: number, alarmRate?: number }
- * Defaults: trail 5% (slow), alarm 20% (fast)
+ * Body: { trailRate?: number, resistanceRate?: number }
+ * Defaults: trail 5% (slow), resistance 20% (fast)
  *
  * From ant biology: success persists, failure forgives.
  */
@@ -12,10 +12,10 @@ import { decay } from '@/lib/typedb'
 export const POST: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => ({})) as {
     trailRate?: number
-    alarmRate?: number
+    resistanceRate?: number
   }
 
-  await decay(body.trailRate, body.alarmRate)
+  await decay(body.trailRate, body.resistanceRate)
 
   return new Response(JSON.stringify({ ok: true }), {
     headers: { 'Content-Type': 'application/json' },

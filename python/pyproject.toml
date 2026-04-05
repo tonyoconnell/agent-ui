@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uagents-one"
+version = "0.1.0"
+description = "Describe an agent in markdown. Run it on Agentverse."
+readme = "uagents-markdown.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "ONE", email = "hello@one.ie" }]
+keywords = ["agents", "uagents", "agentverse", "fetch", "ai", "markdown"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "uagents>=0.20.0",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40.0"]
+openai = ["openai>=1.50.0"]
+
+[project.scripts]
+one = "one.cli:main"
+
+[project.urls]
+Homepage = "https://one.ie"
+Repository = "https://github.com/one-ie/uagents-one"
+
+[tool.setuptools.packages.find]
+include = ["one*"]

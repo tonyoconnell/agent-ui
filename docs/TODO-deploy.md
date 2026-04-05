@@ -109,7 +109,7 @@ Copy `gateway-cf/` pattern. Create `api/` directory:
 api/
   wrangler.toml         — Worker config
   src/index.ts          — Hono router
-  src/colony.ts         — Colony state endpoints
+  src/world.ts         — World state endpoints
   schema.sql            — D1 schema for edges/signals
 ```
 
@@ -125,7 +125,7 @@ persist.ts         → already bridges both
 ```
 
 ### 5. R2 (when you need storage)
-Colony snapshots, pattern embeddings, agent genomes.
+World snapshots, pattern embeddings, agent genomes.
 Keys already in `.env`:
 ```
 CLOUDFLARE_R2_TOKEN

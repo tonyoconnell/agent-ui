@@ -1,7 +1,7 @@
 /**
  * THE SUBSTRATE
  *
- * Two fields. Dual scent. Queue. Concurrency safe.
+ * Two fields. Dual strength. Queue. Concurrency safe.
  *
  * receiver: who (unit:task)
  * data: what (anything)
@@ -35,15 +35,15 @@ export interface Unit {
   id: string
 }
 
-export interface Colony {
+export interface World {
   units: Record<string, Unit>
-  scent: Record<string, number>
-  alarm: Record<string, number>
+  strength: Record<string, number>
+  resistance: Record<string, number>
   queue: Signal[]
-  spawn: (id: string) => Unit
-  despawn: (id: string) => void
+  add: (id: string) => Unit
+  remove: (id: string) => void
   signal: (s: Signal, from?: string) => void
-  ask: (s: Signal, from?: string, timeout?: number) => Promise<unknown>
+  ask: (s: Signal, from?: string, timeout?: number) => Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean }>
   enqueue: (s: Signal) => void
   drain: () => Signal | null
   pending: () => number
@@ -52,7 +52,7 @@ export interface Colony {
   sense: (path: string) => number
   danger: (path: string) => number
   follow: (type?: string) => string | null
-  select: (type?: string, exploration?: number) => string | null
+  select: (type?: string, sensitivity?: number) => string | null
   fade: (rate?: number) => void
   highways: (limit?: number) => Edge[]
   has: (id: string) => boolean
@@ -97,22 +97,22 @@ export const unit = (id: string, route?: Route): Unit => {
 // COLONY
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const colony = (): Colony => {
+export const world = (): World => {
   const units: Record<string, Unit> = {}
-  const scent: Record<string, number> = {}
-  const alarm: Record<string, number> = {}
+  const strength: Record<string, number> = {}
+  const resistance: Record<string, number> = {}
   const queue: Signal[] = []
 
-  const mark = (path: string, strength = 1) => {
-    scent[path] = (scent[path] || 0) + strength
+  const mark = (path: string, amount = 1) => {
+    strength[path] = (strength[path] || 0) + amount
   }
 
-  const warn = (path: string, strength = 1) => {
-    alarm[path] = (alarm[path] || 0) + strength
+  const warn = (path: string, amount = 1) => {
+    resistance[path] = (resistance[path] || 0) + amount
   }
 
-  const sense = (path: string) => scent[path] || 0
-  const danger = (path: string) => alarm[path] || 0
+  const sense = (path: string) => strength[path] || 0
+  const danger = (path: string) => resistance[path] || 0
 
   const signal = ({ receiver, data }: Signal, from = 'entry') => {
     const unitId = receiver.includes(':') ? receiver.split(':')[0] : receiver
@@ -128,15 +128,17 @@ export const colony = (): Colony => {
     target({ receiver, data }, from)
   }
 
-  // ask: signal and wait for reply (request/response over signals)
-  const ask = (s: Signal, from = 'entry', timeout = 30000): Promise<unknown> =>
+  // ask: signal and wait for reply. Returns { result, timeout, dissolved }.
+  const ask = (s: Signal, from = 'entry', timeout = 30000): Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean }> =>
     new Promise(resolve => {
+      const unitId = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
+      if (!units[unitId]) { resolve({ dissolved: true }); return }  // Fix 4: dissolution is visible
       const rid = `r:${Date.now()}`
       const u = unit(rid, (reply) => signal(reply, rid))
-      u.on('default', (result) => { delete units[rid]; resolve(result) })
+      u.on('default', (result) => { delete units[rid]; resolve({ result }) })
       units[rid] = u
       signal({ ...s, data: { ...(s.data as object || {}), replyTo: rid } }, from)
-      setTimeout(() => { delete units[rid]; resolve(undefined) }, timeout)
+      setTimeout(() => { delete units[rid]; resolve({ timeout: true }) }, timeout)  // Fix 1: timeout ≠ failure
     })
 
   // queue: signals waiting to be consumed, drained by priority
@@ -156,7 +158,7 @@ export const colony = (): Colony => {
   }
   const pending = () => queue.length
 
-  const spawn = (id: string) => {
+  const add = (id: string) => {
     const u = unit(id, (s, from) => signal(s, from))
     units[id] = u
     // drain queued signals for this unit
@@ -169,45 +171,44 @@ export const colony = (): Colony => {
   }
 
   // unit stops receiving. trails remain, fade naturally
-  const despawn = (id: string) => { delete units[id] }
+  const remove = (id: string) => { delete units[id] }
 
   // exact segment match: "analyst" matches "scout→analyst:process" but "an" doesn't
   const matchEdge = (edge: string, type: string) =>
     edge.split('→').some(s => s.split(':')[0] === type)
 
-  // follow strongest trail, penalized by alarm
+  // follow strongest trail, penalized by resistance
   const follow = (type?: string) => {
-    const trails = Object.entries(scent)
+    const trails = Object.entries(strength)
       .filter(([e]) => !type || matchEdge(e, type))
-      .map(([e, s]) => [e, s - (alarm[e] || 0)] as const)
+      .map(([e, s]) => [e, s - (resistance[e] || 0)] as const)
       .filter(([, s]) => s > 0)
       .sort(([, a], [, b]) => b - a)
     return trails[0]?.[0].split('→').pop()?.split(':')[0] || null
   }
 
-  // select: weighted random with exploration bias (ant-like stochastic routing)
-  const select = (type?: string, exploration = 0.3) => {
-    const viable = Object.entries(scent)
+  // STAN: Stigmergic A* Navigation — weight = 1 + pheromone × sensitivity
+  // sensitivity=0 → pure exploration (scout), sensitivity=1 → follow highways (harvester)
+  const select = (type?: string, sensitivity = 0.7) => {
+    const viable = Object.entries(strength)
       .filter(([e]) => !type || matchEdge(e, type))
-      .map(([e, s]) => [e, Math.max(0, s - (alarm[e] || 0))] as const)
-      .filter(([, s]) => s > 0)
+      .map(([e, s]) => [e, 1 + Math.max(0, s - (resistance[e] || 0)) * sensitivity] as const)
     if (!viable.length) return null
     const pick = (e: string) => e.split('→').pop()?.split(':')[0] || null
-    if (Math.random() < exploration) return pick(viable[Math.floor(Math.random() * viable.length)][0])
-    const total = viable.reduce((sum, [, s]) => sum + s, 0)
+    const total = viable.reduce((sum, [, w]) => sum + w, 0)
     let r = Math.random() * total
-    for (const [e, s] of viable) { r -= s; if (r <= 0) return pick(e) }
+    for (const [e, w] of viable) { r -= w; if (r <= 0) return pick(e) }
     return pick(viable.at(-1)![0])
   }
 
-  // asymmetric: alarm decays 2x faster (failures forgive)
+  // asymmetric: resistance decays 2x faster (failures forgive)
   const fade = (r = 0.1) => {
-    for (const e in scent) { scent[e] *= (1 - r); scent[e] < 0.01 && delete scent[e] }
-    for (const e in alarm) { alarm[e] *= (1 - r * 2); alarm[e] < 0.01 && delete alarm[e] }
+    for (const e in strength) { strength[e] *= (1 - r); strength[e] < 0.01 && delete strength[e] }
+    for (const e in resistance) { resistance[e] *= (1 - r * 2); resistance[e] < 0.01 && delete resistance[e] }
   }
 
   const highways = (limit = 10): Edge[] =>
-    Object.entries(scent)
+    Object.entries(strength)
       .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
       .map(([path, strength]) => ({ path, strength }))
@@ -216,7 +217,7 @@ export const colony = (): Colony => {
   const list = () => Object.keys(units)
   const get = (id: string) => units[id]
 
-  return { units, scent, alarm, queue, spawn, despawn, signal, ask, enqueue, drain, pending, mark, warn, sense, danger, follow, select, fade, highways, has, list, get }
+  return { units, strength, resistance, queue, add, remove, signal, ask, enqueue, drain, pending, mark, warn, sense, danger, follow, select, fade, highways, has, list, get }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

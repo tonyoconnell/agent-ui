@@ -40,7 +40,7 @@ w.actor(id, type)                    // 2. Create agents
 w.thing(id, type)                    // 3. Create entities
 w.mark(from, to, n)                  // 4. Leave weight on path
 w.fade(rate)                         // 5. Decay paths
-w.crystallize()                      // 6. Extract patterns
+w.know()                      // 6. Extract patterns
 
 // Query the world
 w.open(n)                            // Best paths
@@ -303,7 +303,7 @@ Latency: First request ~2s, subsequent ~50ms
                    (same flow)
 ```
 
-## Multi-Colony Architecture
+## Multi-World Architecture
 
 ```
 +-----------------------------------------------------------------------------+
@@ -358,8 +358,8 @@ Each sub-group:
 **Deep** — Agent imports substrate logic, runs colony locally, syncs to TypeDB:
 ```typescript
 import { colony, unit } from "@/engine/substrate"
-const net = colony()
-const me = net.spawn("hermes-01").on("research", handler)
+const net = world()
+const me = net.add("hermes-01").on("research", handler)
 ```
 
 **Connected** — Agent calls HTTP API, substrate handles everything:
@@ -402,7 +402,7 @@ src/schema/
 
 scripts/
 +-- generate_agents_md.py  -- AGENTS.md from live TypeDB state
-+-- colony.py              -- Multi-species colony orchestrator
++-- world.py              -- Multi-species colony orchestrator
 ```
 
 ## One Import

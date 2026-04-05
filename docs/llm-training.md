@@ -27,7 +27,7 @@ The fix isn't smarter layers. It's fewer layers.
 Two dictionaries. Arithmetic. One probabilistic step.
 
 ```
-Signal → [scent/alarm check] → [LLM] → [outcome measurement] → mark()/warn()
+Signal → [strength/resistance check] → [LLM] → [outcome measurement] → mark()/warn()
             deterministic       prob       deterministic          deterministic
 ```
 
@@ -40,16 +40,16 @@ The LLM is the only uncertain thing. Everything else is a dictionary lookup and 
 The entire substrate rests on two plain objects:
 
 ```typescript
-const scent: Record<string, number> = {}   // what worked
-const alarm: Record<string, number> = {}   // what failed
+const strength: Record<string, number> = {}   // what worked
+const resistance: Record<string, number> = {}   // what failed
 ```
 
 These replace:
 
 | Infrastructure | How | Lines |
 |---------------|-----|-------|
-| **Circuit breaker** | `alarm[edge] > scent[edge] * 2 && alarm[edge] >= 10` → path blocked | 1 |
-| **Load balancer** | `select()` — weighted random from scent, penalized by alarm | 8 |
+| **Circuit breaker** | `resistance[edge] > strength[edge] * 2 && resistance[edge] >= 10` → path blocked | 1 |
+| **Load balancer** | `select()` — weighted random from strength, penalized by resistance | 8 |
 | **A/B testing** | Two units, same skill. `select()` routes proportionally. Winner emerges. | 0 (built in) |
 | **Canary deployment** | New unit gets explored via `select()`'s exploration parameter | 0 (built in) |
 | **Retry with backoff** | Alarm decays. Blocked paths reopen. System retries naturally. | 0 (built in) |
@@ -64,12 +64,12 @@ No agents. No sidecars. No config files. Two dictionaries and arithmetic.
 
 ```typescript
 const fade = (r = 0.1) => {
-  for (const e in scent) { scent[e] *= (1 - r); scent[e] < 0.01 && delete scent[e] }
-  for (const e in alarm) { alarm[e] *= (1 - r * 2); alarm[e] < 0.01 && delete alarm[e] }
+  for (const e in strength) { strength[e] *= (1 - r); strength[e] < 0.01 && delete strength[e] }
+  for (const e in resistance) { resistance[e] *= (1 - r * 2); resistance[e] < 0.01 && delete resistance[e] }
 }
 ```
 
-Alarm decays **twice as fast** as scent. One line, three consequences:
+Alarm decays **twice as fast** as strength. One line, three consequences:
 
 1. **Forgiveness.** A failed path reopens. The system doesn't hold grudges.
 2. **Second chances.** An agent that was bad last week gets retried this week.
@@ -83,8 +83,8 @@ Systems that never forgive (blacklists) are brittle. Systems that never remember
 
 ```typescript
 const isToxic = (edge: string) => {
-  const a = net.alarm[edge] || 0
-  const s = net.scent[edge] || 0
+  const a = net.resistance[edge] || 0
+  const s = net.strength[edge] || 0
   return a >= 10 && a > s * 2 && (a + s) > 5
 }
 ```
@@ -101,7 +101,7 @@ No ML model decides what's toxic. Arithmetic does. Same input, same answer, alwa
 
 ## Five Integration Points
 
-### 1. Model Selection — The Colony Picks
+### 1. Model Selection — The World Picks
 
 ```typescript
 const w = world()
@@ -130,10 +130,10 @@ w.actor('lora-legal', 'adapter')
 
 // Coding signals → lora-code (proven path)
 // Legal signals → lora-legal (proven path)
-// If an adapter degrades, alarm accumulates, traffic reroutes
+// If an adapter degrades, resistance accumulates, traffic reroutes
 ```
 
-Static routing keeps sending traffic to a stale adapter. The substrate measures outcomes — if the adapter stops working, alarm accumulates, the path goes toxic, traffic reroutes. No human intervention.
+Static routing keeps sending traffic to a stale adapter. The substrate measures outcomes — if the adapter stops working, resistance accumulates, the path goes toxic, traffic reroutes. No human intervention.
 
 ### 3. Continuous Measurement — Usage Informs Routing
 
@@ -156,7 +156,7 @@ Every call updates the routing table. The gap between "what the system knows" an
 net.enqueue({ receiver: 'specialist:analyze', data: report })
 
 // Later, the worker spawns — backlog auto-delivers
-net.spawn('specialist')
+net.add('specialist')
   .on('analyze', (data) => analyze(data))
 ```
 
@@ -188,13 +188,13 @@ The pre-check is arithmetic. The post-check is measurement. The LLM is sandwiche
 ## What Happens Over Time
 
 ```
-Week 1:   Colony is cold. select() explores broadly.
+Week 1:   World is cold. select() explores broadly.
           Every signal deposits pheromone. Paths form.
 
 Week 4:   Strong paths emerge. Common signals follow highways.
           Exploration continues at the configured rate (default 30%).
 
-Week 12:  Highways crystallize. fade-rate drops to 0.01. Near permanent.
+Week 12:  Highways know. fade-rate drops to 0.01. Near permanent.
           Struggling agents have been evolved. Prompts are refined.
 ```
 
@@ -215,11 +215,11 @@ The timeline depends on workload volume and repetitiveness. High-volume, repetit
 - A replacement for GPUs (the LLMs it routes to still need them)
 - A gating network (it routes whole signals, not tokens within a forward pass)
 
-The power is in the combination. LLMs provide intelligence. The substrate provides routing, measurement, memory, and forgiveness. The LLM doesn't need to know which path is best — the scent map does. The scent map doesn't need to generate text — the LLM does.
+The power is in the combination. LLMs provide intelligence. The substrate provides routing, measurement, memory, and forgiveness. The LLM doesn't need to know which path is best — the strength map does. The strength map doesn't need to generate text — the LLM does.
 
-**The analogy that holds:** This is to AI routing what ant colonies are to pathfinding. No ant knows the shortest path. The pheromone map does. No unit knows which model is best. The scent map does.
+**The analogy that holds:** This is to AI routing what ant colonies are to pathfinding. No ant knows the shortest path. The pheromone map does. No unit knows which model is best. The strength map does.
 
-**The analogy that breaks:** This is not "training" in the ML sense. `mark()` is not gradient descent. `scent` is not a weight matrix. Calling it training invites a comparison the substrate loses. Calling it what it is — adaptive routing with memory — invites a comparison it wins.
+**The analogy that breaks:** This is not "training" in the ML sense. `mark()` is not gradient descent. `strength` is not a weight matrix. Calling it training invites a comparison the substrate loses. Calling it what it is — adaptive routing with memory — invites a comparison it wins.
 
 ---
 

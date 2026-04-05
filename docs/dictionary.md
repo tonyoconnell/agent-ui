@@ -150,6 +150,41 @@ failures sooner than it forgets successes.
 
 ---
 
+## The Weight — What Accumulates
+
+Paths carry weight. Every metaphor has its own word for the substance
+that accumulates, the act of depositing it, what it builds into, and
+how it fades. The pattern is always the same. The words change.
+
+| | The substance | Depositing it | It builds into | It fades by |
+|---|---|---|---|---|
+| **ONE** | weight | mark / warn | highway | fade |
+| **Ant** | pheromone | deposit / alarm | trail | evaporation |
+| **Brain** | synaptic weight | potentiate / inhibit | pathway | decay |
+| **Team** | reputation | commend / flag | go-to person | forgetting |
+| **Mail** | stamps | stamp / return | express route | archiving |
+| **Water** | sediment | carve / dam | river | drying |
+| **Radio** | signal power | boost / jam | clear channel | attenuation |
+
+The universal concept is **weighted memory on paths**.
+
+```
+    something accumulates on a connection over time
+      → positive: the connection gets used more
+      → negative: the connection gets avoided
+      → without use: it fades
+      → survivors become the proven paths
+```
+
+Ants call it pheromone. Neuroscience calls it synaptic weight.
+Organizations call it reputation. Hydrology calls it erosion.
+Radio engineering calls it signal strength.
+
+The substrate doesn't pick a metaphor. It just says **strength**
+and **resistance**.
+
+---
+
 ## The World
 
 Units don't exist alone. They live in a **world**.

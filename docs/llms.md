@@ -80,7 +80,7 @@ const post = [
 // If any post-check fails → warn() → path weakens → future signals reroute
 ```
 
-The key: every external security check is deterministic. The LLM can't negotiate with a rate limiter. It can't inject past a regex. It can't hallucinate a valid auth token. And if something slips through pre-checks but fails a post-check, the path accumulates alarm. The pheromone learns what the rules missed.
+The key: every external security check is deterministic. The LLM can't negotiate with a rate limiter. It can't inject past a regex. It can't hallucinate a valid auth token. And if something slips through pre-checks but fails a post-check, the path accumulates resistance. The pheromone learns what the rules missed.
 
 Two kinds of security working together:
 - **Rules** (pre/post checks) — catch known threats immediately. Zero learning needed.
@@ -96,8 +96,8 @@ Pre-check in `one.ts`:
 
 ```typescript
 const isToxic = (edge: string) => {
-  const a = net.alarm[edge] || 0
-  const s = net.scent[edge] || 0
+  const a = net.resistance[edge] || 0
+  const s = net.strength[edge] || 0
   return a >= 10 && a > s * 2 && (a + s) > 5
 }
 
@@ -146,7 +146,7 @@ TypeDB functions compute facts from data. `path_status()` is arithmetic, not opi
 
 ```typeql
 fun is_safe($from: unit, $to: unit) -> boolean:
-    match (source: $from, target: $to) isa path, has strength $s, has alarm $a;
+    match (source: $from, target: $to) isa path, has strength $s, has resistance $a;
     return first if ($a > $s and $a >= 10.0) then false else true;
 ```
 
@@ -164,7 +164,7 @@ fun can_receive($u: unit, $sk: skill) -> boolean:
 
 ### Layer 4: Pheromone — What WORKS
 
-Measured, not predicted. If an agent failed 15 of 20 times, its alarm is a number. The routing decision based on that number is a comparison.
+Measured, not predicted. If an agent failed 15 of 20 times, its resistance is a number. The routing decision based on that number is a comparison.
 
 ```typescript
 if (isToxic(edge)) return   // dictionary lookup and comparison. Not AI.
@@ -178,14 +178,14 @@ Not by detection. By measurement.
 
 ```
 Tick 1:   LLM hallucinates → downstream fails → warn()
-Tick 5:   Same path fails again → alarm accumulates
-Tick 10:  alarm > strength * 2, alarm >= 10 → toxic
+Tick 5:   Same path fails again → resistance accumulates
+Tick 10:  resistance > strength * 2, resistance >= 10 → toxic
 Tick 11:  pre-check blocks signal → LLM never called → hallucination IMPOSSIBLE
           Not filtered. Not detected. Not called. The path is closed.
 
-Tick 50:  alarm decays (2x faster than scent) → path reopens
+Tick 50:  resistance decays (2x faster than strength) → path reopens
 Tick 51:  LLM tries again → succeeds → mark() → trust rebuilds
-          LLM fails again → toxic LONGER (residual alarm compounds)
+          LLM fails again → toxic LONGER (residual resistance compounds)
 ```
 
 You don't need to detect hallucinations. You need to measure outcomes. A hallucinated response that happens to be useful gets marked. A hallucinated response that fails gets warned. The system doesn't care WHY it failed. It closes the path.
@@ -213,7 +213,7 @@ Layer 3 — POST-CHECK + PHEROMONE:
   → Output policy catches leaked system prompts → dissolve → warn()
   → Even if output policy misses it: downstream expects a translation,
     gets "You are a translator" → fails → warn()
-  → Path accumulates alarm → goes toxic → injection vector closes itself
+  → Path accumulates resistance → goes toxic → injection vector closes itself
 ```
 
 Rules catch what you anticipate. Architecture separates what can't be mixed. Pheromone catches what slips through both. Each layer is simple. Together they're deep.
@@ -288,7 +288,7 @@ A frontier is a cluster of capabilities the colony hasn't tested. The system doe
 ```typeql
 relation path,
     owns strength,     # mark() adds weight
-    owns alarm,        # warn() adds weight
+    owns resistance,        # warn() adds weight
     owns revenue;      # sum of x402 payments on this path
 ```
 
@@ -309,10 +309,10 @@ RULES (immediate):
 PHEROMONE (continuous):
   Unknown attack succeeds → downstream fails → warn() → path toxic → blocked
   No human writes a rule. The colony learns from the outcome.
-  More attacks = more alarm = MORE secure.
+  More attacks = more resistance = MORE secure.
 ```
 
-Rules handle the known. Pheromone handles the unknown. Rules are fast (instant on deploy). Pheromone is slow (needs enough failures to accumulate alarm). Together: known threats are blocked on day one, unknown threats are blocked as they're discovered by measurement.
+Rules handle the known. Pheromone handles the unknown. Rules are fast (instant on deploy). Pheromone is slow (needs enough failures to accumulate resistance). Together: known threats are blocked on day one, unknown threats are blocked as they're discovered by measurement.
 
 The honest limit: pheromone only catches failures that are *measured*. An attack that causes subtle, undetected harm slips through. That's why you need both — rules for what you can specify, pheromone for what you can't, and the discipline to keep adding post-checks as you learn what "success" actually means for your system.
 
@@ -323,7 +323,7 @@ The honest limit: pheromone only catches failures that are *measured*. An attack
 A system that:
 - **Sandwiches** the LLM between deterministic checks — reducing the probabilistic surface to one step
 - **Closes** bad paths automatically — hallucinations and injections die by measurement
-- **Forgives** — alarm decays 2x faster, blocked paths reopen, agents get second chances
+- **Forgives** — resistance decays 2x faster, blocked paths reopen, agents get second chances
 - **Evolves** — failing agents rewrite their own prompts, old versions saved as hypotheses
 - **Explores** — frontier detection finds what the colony hasn't tried yet
 - **Charges** — revenue on paths means the economics and the pheromone are the same structure
@@ -351,7 +351,7 @@ fun can_receive($u: unit, $sk: skill) -> boolean:
 
 # PRE: Is the path safe?
 fun is_safe($from: unit, $to: unit) -> boolean:
-    match (source: $from, target: $to) isa path, has strength $s, has alarm $a;
+    match (source: $from, target: $to) isa path, has strength $s, has resistance $a;
     return first if ($a > $s and $a >= 10.0) then false else true;
 
 # PRE: Within budget?
@@ -372,7 +372,7 @@ fun is_trustworthy($u: unit) -> boolean:
 # COMBINED: Full pre-flight
 fun preflight($from: unit, $to: unit, $sk: skill) -> boolean:
     match (provider: $to, offered: $sk) isa capability;
-          (source: $from, target: $to) isa path, has strength $s, has alarm $a;
+          (source: $from, target: $to) isa path, has strength $s, has resistance $a;
     return first if ($a > $s and $a >= 10.0) then false else true;
 ```
 

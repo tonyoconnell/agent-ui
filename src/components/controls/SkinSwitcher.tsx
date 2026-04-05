@@ -4,7 +4,7 @@
  * Same data. Different lens. New understanding.
  */
 
-import { useMetaphor } from "@/contexts/MetaphorContext"
+import { useSkin } from "@/contexts/SkinContext"
 import { cn } from "@/lib/utils"
 
 interface SkinSwitcherProps {
@@ -13,7 +13,7 @@ interface SkinSwitcherProps {
 }
 
 export function SkinSwitcher({ variant = "full", className }: SkinSwitcherProps) {
-  const { skin, skinId, setSkin, allSkins } = useMetaphor()
+  const { skin, skinId, setSkin, allSkins } = useSkin()
 
   if (variant === "icons") {
     return (

@@ -1,5 +1,5 @@
 /**
- * POST /api/drop — Add weight to a path (success pheromone)
+ * POST /api/mark — Add weight to a path (success pheromone)
  *
  * Body: { from: string, to: string, strength?: number }
  */
@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
         $to isa unit, has uid "${to}";
       insert
         (source: $from, target: $to) isa path,
-          has strength ${strength}, has alarm 0.0, has traversals 0, has revenue 0.0;
+          has strength ${strength}, has resistance 0.0, has traversals 0, has revenue 0.0;
     `)
   )
 

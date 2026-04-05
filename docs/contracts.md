@@ -13,7 +13,7 @@ Source: `src/move/one/sources/one.move`
 │  Object     │  Sui Type   │  Speed       │  TQL Entity    │  Tokens   │
 ├─────────────┼─────────────┼──────────────┼────────────────┼───────────┤
 │  Unit       │  Owned      │  ~400ms      │  unit          │  Balance  │
-│  Colony     │  Shared     │  ~2-3s       │  swarm         │  Treasury │
+│  World     │  Shared     │  ~2-3s       │  group         │  Treasury │
 │  Signal     │  Owned      │  ~400ms      │  signal        │  Payment  │
 │  Flow       │  Shared     │  ~2-3s       │  path          │  Revenue  │
 │  Highway    │  Frozen     │  Instant read│  highway       │  —        │
@@ -111,13 +111,13 @@ Only the owner can call this (owned object).
 
 ---
 
-## Colony
+## World
 
 ```move
-public struct Colony has key {
+public struct World has key {
     id: UID,
     name: String,
-    colony_type: String,        // "swarm", "team", "coalition"
+    colony_type: String,        // "group", "team", "coalition"
     units: vector<ID>,
     treasury: Balance<SUI>,     // shared pool — real tokens
 }
@@ -135,13 +135,13 @@ public fun create_colony(name: String, colony_type: String, ctx: &mut TxContext)
 Creates and immediately shares. Once shared, it can never become owned.
 
 ```move
-public fun join_colony(colony: &mut Colony, unit: &Unit)
+public fun join_colony(colony: &mut World, unit: &Unit)
 ```
 
 Adds member. TQL equivalent creates a `membership` relation.
 
 ```move
-public fun fund_colony(colony: &mut Colony, coin: Coin<SUI>)
+public fun fund_colony(colony: &mut World, coin: Coin<SUI>)
 ```
 
 Directly fund the colony treasury. For initial capitalization or external funding.
@@ -239,7 +239,7 @@ public struct Path has key {
     target: ID,
     flow_type: String,          // "interaction", "payment", "holding"
     strength: u64,
-    alarm: u64,
+    resistance: u64,
     hits: u64,
     misses: u64,
     revenue: u64,               // total SUI flowed through this path (MIST)
@@ -256,7 +256,7 @@ relation path,
     relates source,
     relates target,
     owns strength,          # strength
-    owns alarm,             # alarm
+    owns resistance,             # resistance
     owns traversals,        # hits + misses
     owns revenue,           # revenue (now tracked on-chain)
     owns fade-rate,         # rate is a parameter in Move
@@ -269,7 +269,7 @@ relation path,
 public fun create_path(source: ID, target: ID, flow_type: String, ctx: &mut TxContext)
 ```
 
-Creates and shares. Strength, alarm, revenue all start at 0.
+Creates and shares. Strength, resistance, revenue all start at 0.
 
 ```move
 public fun strengthen(path: &mut Path, amount: u64)
@@ -284,7 +284,7 @@ Strength can only go up through `mark()`, `pay()`, `release_escrow()`, or
 public fun resist(path: &mut Path, amount: u64)
 ```
 
-**This is `warn()`.** alarm += amount, misses++. Emits `Warned`.
+**This is `warn()`.** resistance += amount, misses++. Emits `Warned`.
 
 Also called automatically by `cancel_escrow()` — a failed escrow is a failed signal.
 
@@ -296,7 +296,7 @@ public fun fade(path: &mut Path, rate: u64)
 
 ```
 strength = strength * rate / 100
-alarm = alarm * rate / 100
+resistance = resistance * rate / 100
 ```
 
 Revenue does NOT decay. Money spent is a permanent record.
@@ -311,7 +311,7 @@ public fun path_hits(path: &Path): u64
 public fun path_misses(path: &Path): u64
 public fun path_revenue(path: &Path): u64
 public fun is_highway(path: &Path): bool     // strength >= 50
-public fun is_toxic(path: &Path): bool       // alarm > strength * 3
+public fun is_toxic(path: &Path): bool       // resistance > strength * 3
 ```
 
 ---
@@ -337,7 +337,7 @@ is more meaningful than one with 50 strength and 0 revenue.
 ### Functions
 
 ```move
-public fun crystallize(path: &Path, clock: &Clock, ctx: &mut TxContext)
+public fun know(path: &Path, clock: &Clock, ctx: &mut TxContext)
 ```
 
 1. Asserts `flow.strength >= 50`
@@ -565,7 +565,7 @@ Update fee rate. Should be admin-gated in production (TODO: add AdminCap pattern
 ## Dissolve
 
 ```move
-public fun dissolve(unit: Unit, colony: &mut Colony)
+public fun dissolve(unit: Unit, colony: &mut World)
 ```
 
 **Apoptosis.** Programmed cell death.
@@ -589,7 +589,7 @@ UnitCreated          { unit_id, name, unit_type }
 SignalSent         { signal_id, sender, receiver, task, amount }
 SignalConsumed     { signal_id, receiver, amount }
 Marked     { path_id, source, target, strength }
-Warned         { path_id, source, target, alarm }
+Warned         { path_id, source, target, resistance }
 HighwayFormed        { highway_id, source, target, strength, revenue }
 UnitDissolved        { unit_id, balance_returned }
 ColonySplit          { parent, child_a, child_b }
@@ -782,10 +782,10 @@ MIN_STAKE             → required for service listing
 
 Without staking, manufacturing highways is free. With staking, each fake unit costs real tokens.
 
-### Colony Splitting
+### World Splitting
 
 ```
-split(colony) → (Colony, Colony)
+split(colony) → (World, World)
   → Treasury divided proportionally
   → Members assigned by flow patterns
 ```
@@ -812,7 +812,7 @@ that's created at `init` and required as a parameter for sensitive operations.
 |----------|-------|--------|-------|--------|
 | `create_unit` | name, type | New owned Unit | `UnitCreated` | — |
 | `register_task` | unit, task | Adds capability | — | — |
-| `create_colony` | name, type | New shared Colony | — | — |
+| `create_colony` | name, type | New shared World | — | — |
 | `join_colony` | colony, unit | Adds member | — | — |
 | `deposit` | unit, coin | Fund unit | — | In |
 | `withdraw` | unit, amount | Extract tokens | — | Out |
@@ -825,9 +825,9 @@ that's created at `init` and required as a parameter for sensitive operations.
 | `cancel_escrow` | escrow, poster, path, clock | Return bounty | `EscrowCancelled` | Return |
 | `create_path` | source, target, type | New shared Path | — | — |
 | `mark` | path, amount | mark() | `Marked` | — |
-| `warn` | path, amount | alarm() | `Warned` | — |
+| `warn` | path, amount | resistance() | `Warned` | — |
 | `fade` | path, rate | Decay weights | — | — |
-| `crystallize` | path, clock | Frozen Highway | `HighwayFormed` | — |
+| `know` | path, clock | Frozen Highway | `HighwayFormed` | — |
 | `dissolve` | unit, colony | Death → treasury | `UnitDissolved` | Return |
 | `withdraw_protocol_fees` | protocol, amount | Extract fees | — | Out |
 | `set_fee_bps` | protocol, bps | Update fee rate | — | — |
@@ -841,7 +841,7 @@ that's created at `init` and required as a parameter for sensitive operations.
 - [SUI.md](SUI.md) — What Move adds, why it matters
 - [architecture.md](architecture.md) — 6 dimensions, routing, inference
 - [the-stack.md](the-stack.md) — Two fires, one ontology
-- [lifecycle.md](lifecycle.md) — Register through crystallize
+- [lifecycle.md](lifecycle.md) — Register through know
 - [revenue.md](revenue.md) — Five revenue layers, protocol economics
 - [gaps.md](gaps.md) — Deployment status
 

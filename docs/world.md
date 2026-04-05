@@ -31,7 +31,7 @@ Five actions. Universal across all worlds.
 | Verb | Meaning | Ants | Humans | Agents |
 |------|---------|------|--------|--------|
 | **signal** | move through world | forage | communicate | request |
-| **mark** | leave weight on path | deposit scent | build trust | score |
+| **mark** | leave weight on path | deposit strength | build trust | score |
 | **follow** | traverse weighted path | smell trail | follow relationship | query route |
 | **fade** | decay over time | evaporate | forget | expire |
 | **sense** | perceive environment | antennae | observe | monitor |
@@ -120,11 +120,11 @@ const agentWorld = world()
 
 // Groups = platforms, swarms, teams
 agentWorld.group('agentverse', 'platform')
-agentWorld.group('swarm-alpha', 'swarm', { parent: 'agentverse' })
+agentWorld.group('group-alpha', 'group', { parent: 'agentverse' })
 
 // Actors = agents by type
-agentWorld.actor('translator-1', 'agent', { group: 'swarm-alpha' })
-agentWorld.actor('coder-1', 'agent', { group: 'swarm-alpha' })
+agentWorld.actor('translator-1', 'agent', { group: 'group-alpha' })
+agentWorld.actor('coder-1', 'agent', { group: 'group-alpha' })
 agentWorld.actor('claude', 'llm')
 
 // Things = tasks, tokens, services
@@ -188,8 +188,8 @@ verse.group('acme-agents', 'org', { parent: 'agentverse' })
 verse.group('globex-ai', 'org', { parent: 'agentverse' })
 
 // Swarms within colonies
-verse.group('acme-translators', 'swarm', { parent: 'acme-agents' })
-verse.group('acme-coders', 'swarm', { parent: 'acme-agents' })
+verse.group('acme-translators', 'group', { parent: 'acme-agents' })
+verse.group('acme-coders', 'group', { parent: 'acme-agents' })
 
 // Inhabitants
 verse.actor('translator-1', 'agent', { group: 'acme-translators' })
@@ -225,14 +225,14 @@ AGENTVERSE     ASI:ONE
  (region)      (region)
     │
     ├── acme-agents (colony)
-    │   ├── translators (swarm)
+    │   ├── translators (group)
     │   │   ├── translator-1 (ant)
     │   │   └── translator-2 (ant)
-    │   └── coders (swarm)
+    │   └── coders (group)
     │       └── coder-1 (ant)
     │
     └── globex-ai (colony)
-        └── analysts (swarm)
+        └── analysts (group)
             └── analyst-1 (ant)
 
 Flows connect across boundaries.
@@ -269,7 +269,7 @@ function universalBest(type: string, worlds: World[]) {
 | Generic | Ant | Human | Agent |
 |---------|-----|-------|-------|
 | world | world | world | verse |
-| group | colony | nation/org | platform/swarm |
+| group | colony | nation/org | platform/group |
 | actor | ant | person | agent |
 | thing | food/nest | product | task/token |
 | signal | pheromone | message | request |
@@ -300,11 +300,11 @@ const colony = antColony()    // Same thing, different name
 const org = organization()    // Same thing, different name
 
 // All have same interface
-w.group()      // verse.platform()   / colony.nest()     / org.division()
-w.actor()      // verse.agent()      / colony.ant()      / org.employee()
-w.thing()      // verse.task()       / colony.food()     / org.product()
-w.path()       // verse.route()      / colony.trail()    / org.relationship()
-w.open()       // verse.discover()   / colony.highways() / org.bestPractices()
+w.group()      // verse.platform()   / world.nest()     / org.division()
+w.actor()      // verse.agent()      / world.ant()      / org.employee()
+w.thing()      // verse.task()       / world.food()     / org.product()
+w.path()       // verse.route()      / world.trail()    / org.relationship()
+w.open()       // verse.discover()   / world.highways() / org.bestPractices()
 ```
 
 ## The Truth

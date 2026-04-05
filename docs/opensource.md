@@ -74,7 +74,7 @@ Small, complete, immediately useful:
 
 | App | What It Does | Virality Angle |
 |-----|-------------|----------------|
-| **swarm-chat** | Multi-agent chat where agents specialize through pheromone | "Look, agents self-organize without orchestration" |
+| **group-chat** | Multi-agent chat where agents specialize through pheromone | "Look, agents self-organize without orchestration" |
 | **task-colony** | Task routing that learns which agent handles what best | Replaces manual agent routing in any project |
 | **signal-flow** | ReactFlow visualization of live signal traffic | Beautiful demos, screenshots spread |
 | **ant-farm** | Educational: watch pheromone trails form in real-time | Gets into tutorials, courses, talks |
@@ -244,10 +244,10 @@ License: AGPL (forces competitors to open-source their modifications)
 
 **Problem:** AGPL scares enterprises. And you lose the operational advantage of private tooling.
 
-### Option D: SDK + Swarm Framework Only (The Stripe Play)
+### Option D: SDK + Group Framework Only (The Stripe Play)
 
 ```
-Open:    Agent SDK (@one/sdk), swarm framework, connection tools, example agents, docs
+Open:    Agent SDK (@one/sdk), group framework, connection tools, example agents, docs
 Keep:    Substrate engine, routing, pheromone, TypeDB, platform, graph — EVERYTHING core
 License: MIT
 ```
@@ -258,7 +258,7 @@ License: MIT
 Stripe:    Keeps payment infrastructure.   Opens stripe.js, SDKs.
 Shopify:   Keeps the platform.             Opens themes, apps, Liquid templates.
 Twilio:    Keeps telecom infrastructure.   Opens client libraries, quickstarts.
-ONE:       Keeps the substrate + routing.   Opens agent SDK, swarm libs, examples.
+ONE:       Keeps the substrate + routing.   Opens agent SDK, group libs, examples.
 ```
 
 The user journey:
@@ -278,7 +278,7 @@ What's open source in this model:
 | Package | Purpose | Why open |
 |---------|---------|----------|
 | `@one/sdk` | Connect any agent to one.ie | On-ramp. Like stripe.js |
-| `@one/swarm` | Multi-agent coordination patterns | Shows what's possible |
+| `@one/group` | Multi-agent coordination patterns | Shows what's possible |
 | `@one/agent` | Reference agent implementation | "Here's how to build one" |
 | Example agents | Working agents that plug into one.ie | Tutorials, virality |
 | Docs | The metaphors, patterns, philosophy | Marketing |
@@ -335,7 +335,7 @@ There's a middle path that hedges the bet:
 ```
 Phase 1: SDK + Platform (Option D)
 ──────────────────────────────────
-Launch one.ie with open SDK and swarm framework.
+Launch one.ie with open SDK and group framework.
 Agents connect, register, transact. Substrate is private.
 Revenue from day one. No substrate in the wild.
 
@@ -369,7 +369,7 @@ is now pure upside — developer community, ecosystem, credibility.
 ### Option D Launch (Now)
 
 ```
-Release @one/sdk + @one/swarm + @one/agent + example agents
+Release @one/sdk + @one/group + @one/agent + example agents
 Agent connects to one.ie from day one. No local substrate.
 The SDK is the on-ramp. The platform is the product.
 
@@ -457,9 +457,9 @@ The ants don't hoard pheromone. They lay it freely. The colony benefits. The col
 ### Option D (SDK-first)
 
 ```
-Packages:    @one/sdk  @one/swarm  @one/agent
+Packages:    @one/sdk  @one/group  @one/agent
 Repo:        github.com/one-ie/sdk
-Tagline:     "Connect any AI agent to the colony. Register. Discover. Transact."
+Tagline:     "Connect any AI agent to the world. Register. Discover. Transact."
 Landing:     one.ie/developers
 ```
 
@@ -478,13 +478,13 @@ Landing:     substrate.one.ie
 
 ```
 [ ] Build @one/sdk — register, listen, emit, discover
-[ ] Build @one/swarm — multi-agent patterns (fan-out, pipeline, compete)
+[ ] Build @one/group — multi-agent patterns (fan-out, pipeline, compete)
 [ ] Build @one/agent — reference agent with skills, wallet, discovery
 [ ] Build 3-4 example agents that actually do useful things
 [ ] Write SDK README: "Connect your agent to ONE in 5 minutes"
 [ ] Write tutorial: "Build an agent that earns" (register → skills → discovery → payment)
 [ ] MIT license on all client packages
-[ ] npm publish @one/sdk + @one/swarm + @one/agent
+[ ] npm publish @one/sdk + @one/group + @one/agent
 [ ] GitHub repo with contribution guidelines
 [ ] Developer landing page at one.ie/developers
 [ ] API reference docs
@@ -498,7 +498,7 @@ Landing:     substrate.one.ie
 ```
 [ ] Extract substrate.ts + one.ts into @one/substrate
 [ ] Generalize agent-launch bridge into @one/bridge template
-[ ] Build local-only example apps (swarm-chat, ant-farm)
+[ ] Build local-only example apps (group-chat, ant-farm)
 [ ] npm publish @one/substrate + @one/bridge
 [ ] Hacker News post: "90 lines of TS that teach agents to self-organize"
 ```

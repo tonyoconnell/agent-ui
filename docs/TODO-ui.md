@@ -46,7 +46,7 @@ Full integration of `one.tql` schema into the visual interface.
 - [x] TypeScript types (`src/types/one.ts`)
 - [x] Animation design (`docs/flow.md`)
 - [x] TypeDB HTTP client (`src/lib/typedb.ts`)
-- [x] Colony patterns (`src/engine/colony-patterns.ts`)
+- [x] World patterns (`src/engine/colony-patterns.ts`)
 - [x] AI components (43 files from ONE)
 - [x] UI components (15 shadcn components)
 - [x] Chat API routes (chat.ts, chat-claude-code.ts)
@@ -73,7 +73,7 @@ Full integration of `one.tql` schema into the visual interface.
   - `POST /api/query` - Run TypeQL queries
   - `POST /api/signal` - Send signal (creates event)
   - `POST /api/drop` - Add weight to edge
-  - `POST /api/alarm` - Add alarm to edge
+  - `POST /api/resistance` - Add resistance to edge
   - `GET /api/state` - Full world state
 
 ## Phase 2: Graph Updates
@@ -138,7 +138,7 @@ Expand command parser to match TypeQL functions:
 
 // Actions
 "drop X to Y +10"      → UPDATE edge strength
-"alarm X to Y"         → UPDATE edge alarm
+"resistance X to Y"         → UPDATE edge resistance
 "signal X to Y"        → INSERT signal
 "decay 10%"            → fade(0.1)
 "spawn unit X"         → INSERT unit
@@ -262,7 +262,7 @@ src/
 │   │   ├── TaskNode.tsx    □ TODO
 │   │   ├── SwarmNode.tsx   □ TODO (collapsible container)
 │   │   ├── KnowledgeNode.tsx □ TODO (hypothesis/frontier)
-│   │   ├── UnitEdge.tsx    □ TODO (strength/alarm/revenue)
+│   │   ├── UnitEdge.tsx    □ TODO (strength/resistance/revenue)
 │   │   ├── TrailEdge.tsx   □ TODO (task→task)
 │   │   ├── Particles.tsx   □ TODO (signal flow animation)
 │   │   └── GraphEffects.tsx □ TODO (inject/decay waves)
@@ -287,7 +287,7 @@ src/
 │   │   ├── query.ts        ✓ Exists (TypeDB)
 │   │   ├── signal.ts       ✓ Exists
 │   │   ├── drop.ts         ✓ Exists
-│   │   ├── alarm.ts        ✓ Exists
+│   │   ├── resistance.ts        ✓ Exists
 │   │   ├── decay.ts        ✓ Exists
 │   │   └── state.ts        ✓ Exists
 │   ├── world.astro         ✓ Complete
@@ -329,7 +329,7 @@ src/
 - [ ] `signal-send`: contract → release (100ms)
 - [ ] `signal-receive`: expand + ring pulse (150ms)
 - [ ] `status-change`: color morph + icon swap
-- [ ] `shake`: horizontal wiggle on alarm
+- [ ] `shake`: horizontal wiggle on resistance
 
 **Edge Animations** (`src/components/graph/AnimatedEdge.tsx`)
 - [ ] Thickness transitions on strength change

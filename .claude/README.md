@@ -85,7 +85,7 @@ emit(envelope)      // send more (carries my identity)
 src/engine/
 ├── substrate.ts          # 70 lines — THE FOUNDATION
 ├── unit.ts               # Legacy (compatible)
-├── colony.ts             # Legacy (compatible)
+├── world.ts             # Legacy (compatible)
 └── index.ts              # Exports
 
 src/components/

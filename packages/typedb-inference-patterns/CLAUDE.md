@@ -45,7 +45,7 @@ trail = task→task sequence      — NOT pheromone-trail
 | `standalone/autonomous-goals.tql` | L6 reference | NO — reference only |
 | `standalone/genesis.tql` | Legacy complete schema | NO — reference only |
 | `standalone/launchpad.tql` | Token launch intelligence | NO — reference only |
-| `runtime/colony.ts` | 70-line substrate with all 6 lessons | TS runtime |
+| `runtime/colony.ts` | 70-line world substrate with all 6 lessons | TS runtime |
 | `OPERATIONS.md` | Write operations reference | Documentation |
 | `LIFECYCLE.md` | Entity state machines | Documentation |
 | `LOOPS.md` | Deterministic + probabilistic | Documentation |

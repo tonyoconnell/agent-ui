@@ -21,7 +21,7 @@ The runtime moves signals. TypeDB remembers.
 
 ```
 NERVOUS SYSTEM (runtime)         BRAIN (TypeDB)
-signals, scent, alarm, queue     paths, units, skills, knowledge
+signals, strength, resistance, queue     paths, units, skills, knowledge
 loops L1-L3 (ms to minutes)      loops L4-L7 (hours to weeks)
 ```
 
@@ -34,7 +34,7 @@ The runtime handles what moves. TypeDB handles what remains.
 ```typescript
 // Tasks are .on() handlers on units
 // Dependencies are .then() continuations
-const bob = net.spawn('bob')
+const bob = net.add('bob')
   .on('schema', async (data, emit) => buildSchema(data))
   .then('schema', r => ({ receiver: 'bob:api', data: r }))
   .on('api', async (data, emit) => buildAPI(data))
@@ -61,7 +61,7 @@ unit.generation++
 ```
 
 Two layers of learning:
-- **Substrate** — pheromone on paths. Colony gets smarter.
+- **Substrate** — pheromone on paths. World gets smarter.
 - **Agent** — prompt/model evolution. Individual gets smarter.
 
 ---
@@ -103,12 +103,12 @@ ctx    // { from: string, self: string }
 
 ---
 
-## Colony
+## World
 
 ```typescript
-colony()
-  .spawn(id)              // create unit (auto-drains queued signals)
-  .despawn(id)            // remove unit (trails remain, fade naturally)
+world()
+  .add(id)                // create unit (auto-drains queued signals)
+  .remove(id)             // remove unit (trails remain, fade naturally)
   .signal(signal, from?)  // route signal, mark pheromone
   .enqueue(signal)        // queue for later processing
   .drain()                // shift from queue, signal it
@@ -116,10 +116,10 @@ colony()
   .mark(edge, strength?)  // strengthen path
   .warn(edge, strength?)  // weaken path
   .sense(edge)            // read strength
-  .danger(edge)           // read alarm
+  .danger(edge)           // read resistance
   .follow(type)           // best path (deterministic)
   .select(type?)          // best path (probabilistic, ant-like)
-  .fade(rate?)            // decay all paths (alarm 2x faster)
+  .fade(rate?)            // decay all paths (resistance 2x faster)
   .highways(limit?)       // top weighted paths
   .has(id)                // introspection
   .list()                 // introspection
@@ -128,15 +128,15 @@ colony()
 
 ---
 
-## World
+## Persist
 
 ```typescript
-world()                             // extends colony with TypeDB
-  .actor(id, kind?, opts?)          // spawn + persist
+persist()                           // extends world with TypeDB
+  .actor(id, kind?, opts?)          // add + persist
   .flow(from, to)                   // mark/warn wrapper
   .open(n?)                         // top paths as {from, to, strength}
   .blocked()                        // toxic paths
-  .crystallize()                    // promote highways to knowledge
+  .know()                           // promote highways to knowledge
   .recall(match?)                   // query knowledge from TypeDB
 ```
 
@@ -157,7 +157,7 @@ if (!task) return reject(...)
 if (!target) throw new Error(...)
 ```
 
-Missing handler? Signal dissolves. Swarm continues.
+Missing handler? Signal dissolves. Group continues.
 
 ---
 
@@ -168,7 +168,7 @@ const next = net.select()              // follow pheromone
 next && net.signal({ receiver: next }) // execute
 net.drain()                            // process queue
 net.fade(0.05)                         // decay
-// evolve every 10min, crystallize every hour
+// evolve every 10min, know every hour
 ```
 
 ---
@@ -205,4 +205,4 @@ Pheromone builds across machines. The substrate learns end-to-end paths.
 
 ---
 
-*Signal. Mark. Warn. Follow. Fade. Highway. Queue. Evolve.*
+*Signal. Mark. Warn. Follow. Fade. Highway. Queue. Evolve. Know.*

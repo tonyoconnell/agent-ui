@@ -70,14 +70,14 @@ Signal sequences accumulate pheromone. The colony learns what order works.
 ```
 signal to A completes → signal to B starts
   success → path(A→B).strength += mark()
-  failure → path(A→B).alarm += warn()
+  failure → path(A→B).resistance += warn()
 ```
 
 **Timescale:** per signal delivery
-**Feeds:** L1 (routing via select() weighted by scent - alarm)
+**Feeds:** L1 (routing via select() weighted by strength - resistance)
 **Fed by:** L1 (signal outcomes)
-**Runtime:** `colony.scent`, `colony.alarm`, `mark()`, `warn()`
-**TypeDB:** `path` relation (strength, alarm, traversals)
+**Runtime:** `world.strength`, `world.resistance`, `mark()`, `warn()`
+**TypeDB:** `path` relation (strength, resistance, traversals)
 
 ### Refinements
 
@@ -90,7 +90,7 @@ signal to A completes → signal to B starts
   But it doesn't automatically try A→C. The `exploratory_tasks()` function
   finds tasks with no trail history, but there's no function for
   "tasks reachable from A that aren't B." Consider: `alternative_trails($task)`
-  that returns untried next steps when the current trail has high alarm.
+  that returns untried next steps when the current trail has high resistance.
 
 - **Completion velocity.** Two trails might both be proven, but one takes
   10 minutes and the other takes 2 hours. `trail.avg-latency` derived from
@@ -106,18 +106,18 @@ Time decays everything. Without reinforcement, paths dissolve.
 periodic tick (every 5 minutes):
   for each path:
     strength *= (1 - fade-rate)
-    alarm *= (1 - fade-rate * 2)     # alarm forgets faster
+    resistance *= (1 - fade-rate * 2)     # resistance forgets faster
 ```
 
 **Timescale:** every 5 minutes (configurable)
 **Feeds:** L1 (routing changes as paths weaken), L2 (selection shifts)
-**Runtime:** `colony.fade(rate)` — asymmetric, alarm decays 2x
+**Runtime:** `world.fade(rate)` — asymmetric, resistance decays 2x
 **TypeDB:** `path.fade-rate` (per-path), falls back to global 5%
 
 ### Refinements
 
 - **Differential fade is already in the schema.** `fade-rate` is per-path
-  (production=0.05, support=0.15, alarm=2x). This is good. But trails
+  (production=0.05, support=0.15, resistance=2x). This is good. But trails
   don't have their own `fade-rate` yet. A proven production trail
   (create→develop→review→ship) should decay slower than an experimental
   trail (create→skip-review→ship). Consider: `trail.fade-rate`.
@@ -303,10 +303,10 @@ promising_frontiers()
   "high potential but low probability" differently from "low potential but
   high probability." Different risk profiles need different strategies.
 
-- **Frontier → swarm.** When a frontier spawns an objective, who works on it?
-  Currently unspecified. Consider: frontier spawns a temporary `swarm`
-  (swarm-type: "expedition") with units assigned by `suggest_route()`.
-  When the frontier is exhausted, the swarm dissolves. The colony sends
+- **Frontier → group.** When a frontier spawns an objective, who works on it?
+  Currently unspecified. Consider: frontier spawns a temporary `group`
+  (group-type: "expedition") with units assigned by `suggest_route()`.
+  When the frontier is exhausted, the group dissolves. The colony sends
   a scouting party, not the whole army.
 
 ---

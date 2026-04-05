@@ -38,12 +38,12 @@ entity unit,
     plays flow:target,
     plays membership:member;
 
-# Move: struct Colony has key { id: UID, units: vector<ID> }
+# Move: struct Group has key { id: UID, units: vector<ID> }
 # Sui: Shared object — consensus required (multiple agents access)
-entity colony,
-    owns colony-id @key,
+entity group,
+    owns gid @key,
     owns name,
-    owns colony-type,             # "swarm", "team", "coalition", "economy"
+    owns group-type,             # "team", "coalition", "economy"
     owns status,                  # "active", "splitting", "dissolved"
     owns treasury,                # shared pool
     plays membership:group,
@@ -60,7 +60,7 @@ entity signal_obj,
     owns status,                  # "pending", "delivered", "consumed"
     owns timestamp;
 
-# Move: struct Path has key { id: UID, strength: u64, alarm: u64 }
+# Move: struct Path has key { id: UID, strength: u64, resistance: u64 }
 # Sui: Shared object — both source and target can modify
 relation path,
     owns path-id @key,
@@ -68,7 +68,7 @@ relation path,
     relates target,
     owns path-type,               # "interaction", "payment", "holding", "routing"
     owns strength,                # success pheromone (trail)
-    owns alarm,              # failure pheromone (alarm)
+    owns resistance,         # failure pheromone (resistance)
     owns hits,                    # successful traversals
     owns misses,                  # failed traversals
     owns path-status;             # INFERRED: "highway", "open", "closing", "blocked", "toxic"
@@ -109,7 +109,7 @@ relation escrow,
 # =============================================================================
 
 attribute unit-id, value string;
-attribute colony-id, value string;
+attribute gid, value string;
 attribute signal-id, value string;
 attribute path-id, value string;
 attribute highway-id, value string;
@@ -121,14 +121,14 @@ attribute receiver, value string;
 attribute sender, value string;
 attribute task-name, value string;
 attribute unit-type, value string;
-attribute colony-type, value string;
+attribute group-type, value string;
 attribute path-type, value string;
 attribute status, value string;
 attribute path-status, value string;
 attribute escrow-status, value string;
 
 attribute strength, value double;
-attribute alarm, value double;
+attribute resistance, value double;
 attribute confidence, value double;
 attribute success-rate, value double;
 attribute activity-score, value double;
@@ -158,9 +158,9 @@ rule highway-flow:
     when { $f isa path, has strength $s; $s >= 50.0; }
     then { $f has path-status "highway"; };
 
-# Move: strength >= 20, alarm < strength
+# Move: strength >= 20, resistance < strength
 rule open-flow:
-    when { $f isa path, has strength $s, has alarm $r; $s >= 20.0; $s < 50.0; $r < $s; }
+    when { $f isa path, has strength $s, has resistance $r; $s >= 20.0; $s < 50.0; $r < $s; }
     then { $f has path-status "open"; };
 
 # Move: strength > 0, strength < 5
@@ -168,14 +168,14 @@ rule closing-flow:
     when { $f isa path, has strength $s; $s > 0.0; $s < 5.0; }
     then { $f has path-status "closing"; };
 
-# Move: alarm > strength, alarm >= 10
+# Move: resistance > strength, resistance >= 10
 rule blocked-flow:
-    when { $f isa path, has alarm $r, has strength $s; $r > $s; $r >= 10.0; }
+    when { $f isa path, has resistance $r, has strength $s; $r > $s; $r >= 10.0; }
     then { $f has path-status "blocked"; };
 
-# Move: alarm > strength * 3
+# Move: resistance > strength * 3
 rule toxic-flow:
-    when { $f isa path, has alarm $r, has strength $s; $r > ($s * 3.0); $r >= 20.0; }
+    when { $f isa path, has resistance $r, has strength $s; $r > ($s * 3.0); $r >= 20.0; }
     then { $f has path-status "toxic"; };
 
 # --- Unit Status (Classification — from ants-at-work Pattern 1) ---
@@ -193,7 +193,7 @@ rule proven-unit:
 rule at-risk-unit:
     when {
         $u isa unit;
-        $f (target: $u) isa path, has alarm $r, has strength $s;
+        $f (target: $u) isa path, has resistance $r, has strength $s;
         $r > $s; $r >= 10.0;
     } then { $u has status "at-risk"; };
 
@@ -207,21 +207,21 @@ rule dissolved-unit:
 
 # --- Colony Status ---
 
-# Move: emit(ColonySplitting { colony_id })
-# When two internal highways diverge, colony should split (Spark 2)
-rule splitting-colony:
+# Move: emit(GroupSplitting { gid })
+# When two internal highways diverge, group should split (Spark 2)
+rule splitting-group:
     when {
-        $c isa colony;
-        $m1 (group: $c, member: $u1) isa membership;
-        $m2 (group: $c, member: $u2) isa membership;
+        $g isa group;
+        $m1 (group: $g, member: $u1) isa membership;
+        $m2 (group: $g, member: $u2) isa membership;
         $f1 (source: $u1, target: $u2) isa path, has path-status "highway";
         not {
-            # No highway connects to the REST of the colony
-            $m3 (group: $c, member: $u3) isa membership;
+            # No highway connects to the REST of the group
+            $m3 (group: $g, member: $u3) isa membership;
             not { $u3 is $u1; }; not { $u3 is $u2; };
             $f2 (source: $u1, target: $u3) isa path, has strength $s2; $s2 >= 50.0;
         };
-    } then { $c has status "splitting"; };
+    } then { $g has status "splitting"; };
 
 # --- Escrow (from unified.tql) ---
 
@@ -290,24 +290,24 @@ fun confidence($type: string) -> double:
 
 # --- Colony Analysis ---
 
-fun colony_members($cid: string) -> { unit }:
+fun group_members($gid: string) -> { unit }:
     match
-        $c isa colony, has colony-id $cid;
-        $m (group: $c, member: $u) isa membership;
+        $g isa group, has gid $gid;
+        $m (group: $g, member: $u) isa membership;
     return { $u };
 
-fun colony_highways($cid: string) -> { flow }:
+fun group_highways($gid: string) -> { flow }:
     match
-        $c isa colony, has colony-id $cid;
-        $m1 (group: $c, member: $u1) isa membership;
-        $m2 (group: $c, member: $u2) isa membership;
+        $g isa group, has gid $gid;
+        $m1 (group: $g, member: $u1) isa membership;
+        $m2 (group: $g, member: $u2) isa membership;
         $f (source: $u1, target: $u2) isa path, has path-status "highway", has strength $s;
     sort $s desc;
     return { $f };
 
-fun splitting_colonies() -> { colony }:
-    match $c isa colony, has status "splitting";
-    return { $c };
+fun splitting_groups() -> { group }:
+    match $g isa group, has status "splitting";
+    return { $g };
 
 # --- Contribution (from ants-at-work Pattern 5) ---
 
@@ -331,4 +331,6 @@ fun crystallized($min: double) -> { highway }:
 # What TQL infers, Move has already validated on-chain.
 # What Move emits, TQL crystallizes into knowledge.
 # They are two views of the same truth.
+#
+# Updated for Phase 2: swarm → group, sid → gid, alarm → resistance
 # =============================================================================

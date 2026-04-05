@@ -53,7 +53,7 @@ export const POST: APIRoute = async ({ request }) => {
         $to isa unit, has uid "${to}";
       insert
         (source: $from, target: $to) isa path,
-          has strength ${amount}, has alarm 0.0,
+          has strength ${amount}, has resistance 0.0,
           has traversals 1, has revenue ${amount};
     `)
   )

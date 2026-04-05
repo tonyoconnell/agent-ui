@@ -1,5 +1,5 @@
 # =============================================================================
-# SUBSTRATE.TQL - The Minimal Colony Substrate
+# SUBSTRATE.TQL - The Minimal World Substrate
 # =============================================================================
 #
 # ~200 lines. All 6 patterns. The essence.
@@ -18,8 +18,8 @@
 #
 # USAGE:
 #   typedb console
-#   > database create colony
-#   > transaction colony schema write
+#   > database create world
+#   > transaction world schema write
 #   > source substrate.tql
 #   > commit
 #
@@ -154,14 +154,14 @@ relation spawns,
 
 # --- Pattern 1: Perception (Classification) ---
 # Elite: high success, high activity, sufficient samples
-rule elite-agent:
+rule elite:
     when {
         $a isa agent, has success-rate $sr, has activity-score $as, has sample-count $sc;
         $sr >= 0.75; $as >= 70.0; $sc >= 50;
     } then { $a has agent-tier "elite"; };
 
 # At-risk: low success, active (actively failing)
-rule at-risk-agent:
+rule at-risk:
     when {
         $a isa agent, has success-rate $sr, has activity-score $as, has sample-count $sc;
         $sr < 0.40; $as >= 25.0; $sc >= 30;

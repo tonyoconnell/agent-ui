@@ -18,10 +18,10 @@ define
 # ── DIMENSION 1: GROUPS ─────────────────────────────────────────────────────
 # Containers. A colony of ants. A team of engineers. A DAO of agents.
 
-entity swarm,
+entity group,
     owns sid @key,                  # unique identifier
     owns name,                     # human-readable label
-    owns swarm-type,               # "persona" | "team" | "colony" | "dao"
+    owns group-type,               # "persona" | "team" | "colony" | "dao"
     owns status,                   # "active" | "dormant"
     plays hierarchy:parent,        # swarms nest inside swarms
     plays hierarchy:child,
@@ -65,13 +65,13 @@ entity task,
 relation dependency, relates dependent, relates blocker;
 
 # ── DIMENSION 4: PATHS ──────────────────────────────────────────────────────
-# Weighted connections. mark() adds strength. warn() adds alarm.
+# Weighted connections. mark() adds strength. warn() adds resistance.
 # fade() decays both. This IS the pheromone trail. The learned knowledge.
 
 relation path,                     # unit ←→ unit
     relates source, relates target,
     owns strength,                 # mark() increments — success
-    owns alarm,                    # warn() increments — failure
+    owns resistance,                    # warn() increments — failure
     owns traversals,               # signal count
     owns revenue,                  # sum of x402 payments
     owns path-status;              # INFERRED: "highway" | "fading" | "toxic"
@@ -79,7 +79,7 @@ relation path,                     # unit ←→ unit
 relation trail,                    # task → task (what sequence works)
     relates source-task, relates destination-task,
     owns trail-pheromone,          # success weight (0–100)
-    owns alarm-pheromone,          # failure weight (0–100)
+    owns resistance-pheromone,          # failure weight (0–100)
     owns completions, owns failures,
     owns trail-status;             # INFERRED: "proven" | "fading" | "dead"
 
@@ -116,9 +116,9 @@ entity frontier,
 # TypeDB 3.x uses fun (NOT rule). Functions are the inference layer.
 # Call them in queries. They classify, route, and aggregate on demand.
 
-# Classify path: highway (strong), fading (weak), toxic (alarm > strength)
+# Classify path: highway (strong), fading (weak), toxic (resistance > strength)
 fun path_status($e: path) -> string:
-    match $e has strength $s, has alarm $a, has traversals $t;
+    match $e has strength $s, has resistance $a, has traversals $t;
     return first
         if ($a > $s and $a >= 10.0) then "toxic"
         else if ($s >= 50.0) then "highway"
@@ -237,7 +237,7 @@ export const unit = (id: string, route?: Route) => {
     const ctx = { from, self: receiver }                // who called me, who am I
 
     // Execute task. If it has a continuation (.then), fire the next signal.
-    // Missing task? Nothing happens. Signal dissolves. Swarm continues.
+    // Missing task? Nothing happens. Signal dissolves. Group continues.
     task?.(data, emit, ctx).then(result =>
       next[name] && route?.(next[name](result), receiver)
     )
@@ -267,25 +267,25 @@ export const unit = (id: string, route?: Route) => {
 //  Paths form here. Highways emerge here.
 //
 //  units:  who lives in the colony          { id → unit }
-//  scent:  the memory of what worked        { "a→b" → weight }
+//  strength:  the memory of what worked        { "a→b" → weight }
 //
 //  No central controller. No message queue. No router table.
 //  Just signals, weight, and time.
 
 export const colony = () => {
   const units: Record<string, Unit> = {}   // the population
-  const scent: Record<string, number> = {} // the shared memory (pheromone trails)
+  const strength: Record<string, number> = {} // the shared memory (pheromone trails)
 
   // MARK — mark weight on a path. This is how the colony remembers.
   // Every successful signal strengthens the path it traveled.
   const mark = (path: string, strength = 1) => {
-    scent[path] = (scent[path] || 0) + strength
+    strength[path] = (strength[path] || 0) + strength
   }
 
   // SENSE — read the weight on a path. How strong is this trail?
-  const sense = (path: string) => scent[path] || 0
+  const sense = (path: string) => strength[path] || 0
 
-  // SIGNAL — the heartbeat. Move a signal through the colony.
+  // SIGNAL — the heartbeat. Move a signal through the world.
   //   1. Parse receiver to find the target unit
   //   2. If target exists: mark the path (it was used), then deliver
   //   3. If target missing: nothing. Signal dissolves. No error. No return.
@@ -295,8 +295,8 @@ export const colony = () => {
     target && (mark(`${from}→${receiver}`), target({ receiver, data }, from))
   }
 
-  // SPAWN — birth a new unit into the colony.
-  // Wires the unit's emit back into colony.signal, closing the loop.
+  // SPAWN — birth a new unit into the world.
+  // Wires the unit's emit back into world.signal, closing the loop.
   const spawn = (id: string) => {
     const u = unit(id, (s, from) => signal(s, from))
     units[id] = u
@@ -306,7 +306,7 @@ export const colony = () => {
   // FOLLOW — find the strongest trail matching a type.
   // This is how the colony routes: not by rules, but by what worked before.
   const follow = (type?: string) =>
-    Object.entries(scent)
+    Object.entries(strength)
       .filter(([e]) => !type || e.includes(type))
       .sort(([, a], [, b]) => b - a)[0]
       ?.[0].split('→').pop()?.split(':')[0] || null
@@ -314,15 +314,15 @@ export const colony = () => {
   // FADE — time passes. All paths decay. Forgetting is intelligence.
   // Unused paths weaken. Used paths survive. Highways persist.
   // rate=0.1 means every path loses 10% per tick.
-  const fade = (r = 0.1) => Object.keys(scent).forEach(e => {
-    scent[e] *= (1 - r)
-    scent[e] < 0.01 && delete scent[e]  // below threshold? forgotten.
+  const fade = (r = 0.1) => Object.keys(strength).forEach(e => {
+    strength[e] *= (1 - r)
+    strength[e] < 0.01 && delete strength[e]  // below threshold? forgotten.
   })
 
   // HIGHWAYS — query what emerged. The top paths by weight.
   // These are the colony's accumulated intelligence.
   const highways = (limit = 10) =>
-    Object.entries(scent)
+    Object.entries(strength)
       .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
       .map(([path, strength]) => ({ path, strength }))
@@ -332,7 +332,7 @@ export const colony = () => {
   const list = () => Object.keys(units)
   const get = (id: string) => units[id]
 
-  return { units, scent, spawn, signal, mark, sense, follow, fade, highways, has, list, get }
+  return { units, strength, spawn, signal, mark, sense, follow, fade, highways, has, list, get }
 }
 
 
@@ -368,7 +368,7 @@ Lines 21–32    THINGS (Dimension 3)
 
 Lines 33–48    PATHS (Dimension 4)
                Weighted connections. The pheromone trails.
-               mark() → strength. warn() → alarm. fade() → decay.
+               mark() → strength. warn() → resistance. fade() → decay.
                Unit↔unit paths. Task→task trails. Capability links.
 
 Lines 49–55    EVENTS (Dimension 5)
@@ -377,7 +377,7 @@ Lines 49–55    EVENTS (Dimension 5)
 
 Lines 56–64    KNOWLEDGE (Dimension 6)
                Hypotheses, frontiers. Not programmed — inferred.
-               The colony's intelligence, crystallized.
+               The colony's intelligence, known.
 
 Lines 65–100   FUNCTIONS
                TypeDB 3.x uses fun, not rule. Functions are the inference layer.
@@ -413,7 +413,7 @@ Lines 61–70    SIGNAL
                Parse → find → mark → deliver. The heartbeat.
 
 Lines 71–75    SPAWN
-               Birth a unit. Wire its emit back into colony.signal.
+               Birth a unit. Wire its emit back into world.signal.
                The loop closes.
 
 Lines 76–82    FOLLOW
@@ -430,7 +430,7 @@ Lines 91–98    HIGHWAYS
 
 Lines 99–100   RETURN
                Expose everything. The colony is transparent.
-               Agents can read the scent graph. The world is open.
+               Agents can read the strength graph. The world is open.
 ```
 
 ---
@@ -442,15 +442,15 @@ Lines 99–100   RETURN
          remembers                          acts
          ────────────────                   ────────────────
 
-         swarm, unit, task                  colony.spawn(id)
+         group, unit, task                  world.add(id)
               ↕                                  ↕
-         path { strength, alarm }           colony.mark(path)
+         path { strength, resistance }           world.mark(path)
               ↕                                  ↕
-         signal { sender, receiver }        colony.signal({ receiver, data })
+         signal { sender, receiver }        world.signal({ receiver, data })
               ↕                                  ↕
-         fun path_status(): highway/fading   colony.highways(10)
+         fun path_status(): highway/fading   world.highways(10)
               ↕                                  ↕
-         fun optimal_route()                colony.follow(type)
+         fun optimal_route()                world.follow(type)
               ↕                                  ↕
          hypothesis, frontier               what the colony explores next
 ```
@@ -476,7 +476,7 @@ HIGHWAY            dissolve
 
 ---
 
-*100 + 100 lines. Schema remembers. Engine acts. Colony learns.*
+*100 + 100 lines. Schema remembers. Engine acts. World learns.*
 
 ---
 

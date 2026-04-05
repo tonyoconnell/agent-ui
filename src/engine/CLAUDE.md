@@ -13,7 +13,7 @@ signals move                     paths persist
 units receive                    units persist
 handlers run                     signals recorded
 continuations chain              classification inferred
-scent/alarm accumulate           evolution detected
+strength/resistance accumulate   evolution detected
 queue holds work                 knowledge crystallizes
 
 loops L1-L3 (ms-min)            loops L4-L7 (hours-weeks)
@@ -24,8 +24,8 @@ loops L1-L3 (ms-min)            loops L4-L7 (hours-weeks)
 ```typescript
 Signal = { receiver: string, data?: unknown }  // universal primitive
 Unit   = callable + tasks + continuations      // entity with handlers
-Colony = units + scent + alarm + queue         // the substrate
-World  = colony + TypeDB persistence           // the full runtime
+World  = units + strength + resistance + queue // the substrate
+PersistentWorld = world + TypeDB persistence   // the full runtime
 ```
 
 ## Task Signature
@@ -41,7 +41,7 @@ World  = colony + TypeDB persistence           // the full runtime
 ```typescript
 // OLD: task entity in TypeDB, dependency relation, trail relation
 // NEW: handlers and continuations on units
-const bob = net.spawn('bob')
+const bob = net.add('bob')
   .on('schema', async (data, emit) => buildSchema(data))
   .then('schema', r => ({ receiver: 'bob:api', data: r }))
   .on('api', async (data, emit) => buildAPI(data))
@@ -60,8 +60,8 @@ net.enqueue({ receiver: 'future-unit:task', data: {} })
 // drain() shifts from queue and signals
 net.drain()
 
-// When a unit spawns, queued signals for it auto-deliver
-net.spawn('future-unit')  // queued signals fire
+// When a unit is added, queued signals for it auto-deliver
+net.add('future-unit')  // queued signals fire
 ```
 
 ## Zero Returns
@@ -80,14 +80,14 @@ if (!task) throw new Error(...)
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `substrate.ts` | ~212 | Foundation: unit + colony + pheromone + queue + ask |
-| `one.ts` | ~154 | World: colony + TypeDB persistence + knowledge |
-| `loop.ts` | ~75 | Tick: select → signal → drain → fade → evolve → crystallize |
+| `world.ts` | ~212 | Foundation: unit + world + pheromone + queue + ask |
+| `persist.ts` | ~154 | PersistentWorld: world + TypeDB persistence + knowledge |
+| `loop.ts` | ~75 | Tick: select → signal → drain → fade → evolve → know |
 | `boot.ts` | ~39 | Hydrate from TypeDB, start tick loop |
 | ~~asi.ts~~ | deleted | routing absorbed into loop (select → ask → mark/warn) |
 | `llm.ts` | ~40 | LLM as unit: anthropic/openai adapters |
 | `agentverse.ts` | ~83 | 2M agents: register/discover/call |
-| `index.ts` | ~11 | Exports: world, colony, unit, llm, asi |
+| `index.ts` | ~11 | Exports: world, createWorld, unit, llm, asi |
 
 ## Usage
 
@@ -100,9 +100,9 @@ const scout = w.actor('scout')
   .then('observe', r => ({ receiver: 'analyst', data: r }))
 
 // Direct substrate access
-import { colony } from "@/engine"
-const net = colony()
-const u = net.spawn('agent')
+import { createWorld } from "@/engine"
+const net = createWorld()
+const u = net.add('agent')
   .on('task', (data, emit) => emit({ receiver: 'next', data }))
 net.signal({ receiver: 'agent:task', data: {} })
 

@@ -2,7 +2,7 @@
 
 > *"One ant finds food. It deposits pheromone. More ants come. A trail forms. A swarm emerges."*
 
-This document defines how agents use pheromones to dynamically form swarms, collaborate on tasks, and dissolve when done.
+This document defines how agents use pheromones to dynamically form groups, collaborate on tasks, and dissolve when done.
 
 ---
 
@@ -21,7 +21,7 @@ This document defines how agents use pheromones to dynamically form swarms, coll
 │   • Nearby agents sense it, join if available             │
 │   • Swarm forms organically around the task               │
 │   • No one assigned the team — it EMERGED                 │
-│   • Task completes, swarm dissolves                       │
+│   • Task completes, group dissolves                       │
 │                                                           │
 └───────────────────────────────────────────────────────────┘
 ```
@@ -55,9 +55,9 @@ This document defines how agents use pheromones to dynamically form swarms, coll
 │                                                           │
 │   ASSEMBLY     │ "Swarm forming at this location"         │
 │   ─────────────┼──────────────────────────────────────    │
-│   Strength:    │ 0-100 (current swarm size)               │
+│   Strength:    │ 0-100 (current group size)               │
 │   Decay:       │ 15% per cycle                            │
-│   Use:         │ Join existing swarm                      │
+│   Use:         │ Join existing group                      │
 │                                                           │
 │   COMPLETION   │ "Task done, disperse"                    │
 │   ─────────────┼──────────────────────────────────────    │
@@ -79,59 +79,59 @@ define
 # SWARM ENTITY
 # ═══════════════════════════════════════════════════════════
 
-entity swarm,
-    owns swarm-id @key,
-    owns swarm-purpose,           # "research", "execution", "analysis"
-    owns target-task-id,          # The task this swarm is working on
-    owns swarm-size,              # Current member count
+entity group,
+    owns group-id @key,
+    owns group-purpose,           # "research", "execution", "analysis"
+    owns target-task-id,          # The task this group is working on
+    owns group-size,              # Current member count
     owns min-size,                # Minimum agents needed
     owns max-size,                # Maximum agents allowed
-    owns formation-time,          # When swarm started forming
-    owns activated-time,          # When swarm started working
-    owns dissolved-time,          # When swarm finished
-    owns swarm-status,            # "forming", "active", "dissolving", "dissolved"
+    owns formation-time,          # When group started forming
+    owns activated-time,          # When group started working
+    owns dissolved-time,          # When group finished
+    owns group-status,            # "forming", "active", "dissolving", "dissolved"
     owns collective-progress,     # 0.0 - 1.0
-    plays swarm-membership:the-swarm,
-    plays swarm-task:working-swarm;
+    plays group-membership:the-group,
+    plays group-task:working-group;
 
-attribute swarm-id, value string;
-attribute swarm-purpose, value string;
+attribute group-id, value string;
+attribute group-purpose, value string;
 attribute target-task-id, value string;
-attribute swarm-size, value integer;
+attribute group-size, value integer;
 attribute min-size, value integer;
 attribute max-size, value integer;
 attribute formation-time, value datetime;
 attribute activated-time, value datetime;
 attribute dissolved-time, value datetime;
-attribute swarm-status, value string;
+attribute group-status, value string;
 attribute collective-progress, value double;
 
 # ═══════════════════════════════════════════════════════════
-# SWARM MEMBERSHIP
+# GROUP MEMBERSHIP
 # ═══════════════════════════════════════════════════════════
 
-relation swarm-membership,
-    relates the-swarm,
+relation group-membership,
+    relates the-group,
     relates member-agent,
     owns joined-at,
-    owns role-in-swarm,           # "founder", "worker", "specialist"
+    owns role-in-group,           # "founder", "worker", "specialist"
     owns contribution-share;      # 0.0 - 1.0 (for reward distribution)
 
-agent plays swarm-membership:member-agent;
+agent plays group-membership:member-agent;
 
 attribute joined-at, value datetime;
-attribute role-in-swarm, value string;
+attribute role-in-group, value string;
 attribute contribution-share, value double;
 
 # ═══════════════════════════════════════════════════════════
-# SWARM ↔ TASK RELATION
+# GROUP ↔ TASK RELATION
 # ═══════════════════════════════════════════════════════════
 
-relation swarm-task,
-    relates working-swarm,
+relation group-task,
+    relates working-group,
     relates target-task;
 
-task plays swarm-task:target-task;
+task plays group-task:target-task;
 
 # ═══════════════════════════════════════════════════════════
 # RECRUITMENT PHEROMONE
@@ -163,27 +163,27 @@ attribute expires-at, value datetime;
 # INFERENCE RULES
 # ═══════════════════════════════════════════════════════════
 
-# Swarm is ready to activate when minimum size reached
-rule swarm-ready-to-activate:
+# Group is ready to activate when minimum size reached
+rule group-ready-to-activate:
     when {
-        $s isa swarm,
-            has swarm-status "forming",
-            has swarm-size $size,
+        $g isa group,
+            has group-status "forming",
+            has group-size $size,
             has min-size $min;
         $size >= $min;
     } then {
-        $s has swarm-status "active";
+        $g has group-status "active";
     };
 
-# Swarm should dissolve when task complete
-rule swarm-should-dissolve:
+# Group should dissolve when task complete
+rule group-should-dissolve:
     when {
-        $s isa swarm,
-            has swarm-status "active",
+        $g isa group,
+            has group-status "active",
             has collective-progress $p;
         $p >= 1.0;
     } then {
-        $s has swarm-status "dissolving";
+        $g has group-status "dissolving";
     };
 
 # Recruitment signal satisfied when enough respondents
@@ -212,39 +212,39 @@ fun available_recruitments($agent_id: string) -> { recruitment-signal }:
         # Agent not already a respondent (would need more complex check)
     return { $r };
 
-# Find swarms I can join
-fun joinable_swarms() -> { swarm }:
+# Find groups I can join
+fun joinable_groups() -> { group }:
     match
-        $s isa swarm,
-            has swarm-status "forming",
-            has swarm-size $size,
+        $g isa group,
+            has group-status "forming",
+            has group-size $size,
             has max-size $max;
         $size < $max;
-    return { $s };
+    return { $g };
 
-# Find active swarms for a task
-fun swarms_for_task($task_id: string) -> { swarm }:
+# Find active groups for a task
+fun groups_for_task($task_id: string) -> { group }:
     match
-        $s isa swarm,
+        $g isa group,
             has target-task-id $task_id,
-            has swarm-status $status;
+            has group-status $status;
         $status in ["forming", "active"];
-    return { $s };
+    return { $g };
 
-# Get my current swarm
-fun my_swarm($agent_id: string) -> { swarm }:
+# Get my current group
+fun my_group($agent_id: string) -> { group }:
     match
         $a isa agent, has agent-id $agent_id;
-        $m (the-swarm: $s, member-agent: $a) isa swarm-membership;
-        $s has swarm-status $status;
+        $m (the-group: $g, member-agent: $a) isa group-membership;
+        $g has group-status $status;
         $status in ["forming", "active"];
-    return { $s };
+    return { $g };
 
-# Get swarm members
-fun swarm_members($swarm_id: string) -> { agent }:
+# Get group members
+fun group_members($group_id: string) -> { agent }:
     match
-        $s isa swarm, has swarm-id $swarm_id;
-        $m (the-swarm: $s, member-agent: $a) isa swarm-membership;
+        $g isa group, has group-id $group_id;
+        $m (the-group: $g, member-agent: $a) isa group-membership;
     return { $a };
 
 # Get strongest recruitment signals
@@ -282,14 +282,14 @@ fun urgent_recruitments() -> { recruitment-signal }:
 │   3. FORMATION                                            │
 │      Other agents sense recruitment                       │
 │      └── if available AND has skills: respond             │
-│      └── swarm-membership created                         │
-│      └── swarm-size increments                            │
+│      └── group-membership created                         │
+│      └── group-size increments                            │
 │                                                           │
 │          ▼                                                │
 │                                                           │
 │   4. ACTIVATION                                           │
-│      Min size reached → swarm activates                   │
-│      └── RULE: swarm-ready-to-activate fires              │
+│      Min size reached → group activates                   │
+│      └── RULE: group-ready-to-activate fires              │
 │      └── status: "forming" → "active"                     │
 │                                                           │
 │          ▼                                                │
@@ -304,7 +304,7 @@ fun urgent_recruitments() -> { recruitment-signal }:
 │                                                           │
 │   6. COMPLETION                                           │
 │      Progress reaches 100%                                │
-│      └── RULE: swarm-should-dissolve fires                │
+│      └── RULE: group-should-dissolve fires                │
 │      └── status: "active" → "dissolving"                  │
 │                                                           │
 │          ▼                                                │
@@ -323,28 +323,28 @@ fun urgent_recruitments() -> { recruitment-signal }:
 ## Swarm Formation Algorithm
 
 ```python
-class SwarmFormation:
-    """Pheromone-based swarm formation."""
+class GroupFormation:
+    """Pheromone-based group formation."""
 
     async def agent_tick(self, agent: Agent):
-        """One tick of swarm-aware agent behavior."""
+        """One tick of group-aware agent behavior."""
 
-        # Check if already in a swarm
-        my_swarm = await query(f"match let $s in my_swarm('{agent.id}'); ...")
-        if my_swarm:
-            return await self.collaborate_in_swarm(agent, my_swarm)
+        # Check if already in a group
+        my_group = await query(f"match let $g in my_group('{agent.id}'); ...")
+        if my_group:
+            return await self.collaborate_in_group(agent, my_group)
 
         # Check for recruitment signals
         recruitments = await query("match let $r in urgent_recruitments(); ...")
 
         for signal in recruitments:
             if self.should_respond(agent, signal):
-                return await self.join_swarm(agent, signal)
+                return await self.join_group(agent, signal)
 
-        # Check if my current task needs a swarm
+        # Check if my current task needs a group
         if agent.current_task:
-            if self.task_needs_swarm(agent.current_task, agent):
-                return await self.initiate_swarm(agent)
+            if self.task_needs_group(agent.current_task, agent):
+                return await self.initiate_group(agent)
 
         # Normal solo behavior
         return await self.solo_work(agent)
@@ -365,12 +365,12 @@ class SwarmFormation:
         probability = base_prob * skill_match * availability
         return random.random() < probability
 
-    def task_needs_swarm(self, task: Task, agent: Agent) -> bool:
-        """Determine if task requires swarm."""
+    def task_needs_group(self, task: Task, agent: Agent) -> bool:
+        """Determine if task requires group."""
         return task.estimated_effort > agent.capacity * 2
 
-    async def initiate_swarm(self, agent: Agent):
-        """Agent initiates swarm formation."""
+    async def initiate_group(self, agent: Agent):
+        """Agent initiates group formation."""
 
         # Create recruitment signal
         signal_strength = min(100, agent.current_task.effort / 10)
@@ -382,22 +382,22 @@ class SwarmFormation:
                 has signal-strength {signal_strength},
                 has required-skills "{agent.current_task.skills}",
                 has current-respondents 1,
-                has max-respondents {self.estimate_swarm_size(agent.current_task)},
+                has max-respondents {self.estimate_group_size(agent.current_task)},
                 has signal-status "active",
                 has created-at {now()};
         """)
 
-        # Create swarm entity
-        swarm_id = str(uuid4())
+        # Create group entity
+        group_id = str(uuid4())
         await query(f"""
-            insert $s isa swarm,
-                has swarm-id "{swarm_id}",
-                has swarm-purpose "task-execution",
+            insert $g isa group,
+                has group-id "{group_id}",
+                has group-purpose "task-execution",
                 has target-task-id "{agent.current_task.id}",
-                has swarm-size 1,
+                has group-size 1,
                 has min-size 3,
                 has max-size 10,
-                has swarm-status "forming",
+                has group-status "forming",
                 has collective-progress 0.0,
                 has formation-time {now()};
         """)
@@ -405,43 +405,43 @@ class SwarmFormation:
         # Add self as founder
         await query(f"""
             match
-                $s isa swarm, has swarm-id "{swarm_id}";
+                $g isa group, has group-id "{group_id}";
                 $a isa agent, has agent-id "{agent.id}";
             insert
-                $m (the-swarm: $s, member-agent: $a) isa swarm-membership,
+                $m (the-group: $g, member-agent: $a) isa group-membership,
                     has joined-at {now()},
-                    has role-in-swarm "founder",
+                    has role-in-group "founder",
                     has contribution-share 0.0;
         """)
 
-    async def join_swarm(self, agent: Agent, signal: RecruitmentSignal):
-        """Agent joins an existing swarm."""
+    async def join_group(self, agent: Agent, signal: RecruitmentSignal):
+        """Agent joins an existing group."""
 
-        # Find the swarm for this signal
-        swarm = await query(f"""
-            match $s isa swarm, has target-task-id "{signal.source_task_id}";
-            select $s;
+        # Find the group for this signal
+        group = await query(f"""
+            match $g isa group, has target-task-id "{signal.source_task_id}";
+            select $g;
         """)
 
         # Add self as member
         await query(f"""
             match
-                $s isa swarm, has swarm-id "{swarm.id}";
+                $g isa group, has group-id "{group.id}";
                 $a isa agent, has agent-id "{agent.id}";
             insert
-                $m (the-swarm: $s, member-agent: $a) isa swarm-membership,
+                $m (the-group: $g, member-agent: $a) isa group-membership,
                     has joined-at {now()},
-                    has role-in-swarm "worker",
+                    has role-in-group "worker",
                     has contribution-share 0.0;
         """)
 
-        # Update swarm size
+        # Update group size
         await query(f"""
             match
-                $s isa swarm, has swarm-id "{swarm.id}", has swarm-size $old;
+                $g isa group, has group-id "{group.id}", has group-size $old;
                 let $new = $old + 1;
-            delete $old of $s;
-            insert $s has swarm-size $new;
+            delete $old of $g;
+            insert $g has group-size $new;
         """)
 
         # Update signal respondents
@@ -555,7 +555,7 @@ class SwarmFormation:
 │   ─────────────┼──────────────────────────────────────    │
 │   Deposited:   │ On subtask completion                    │
 │   Effect:      │ Updates collective-progress              │
-│   Visible to:  │ All swarm members                        │
+│   Visible to:  │ All group members                        │
 │                                                           │
 │   HANDOFF      │ "Ready for next stage"                   │
 │   ─────────────┼──────────────────────────────────────    │
@@ -567,19 +567,19 @@ class SwarmFormation:
 │   ─────────────┼──────────────────────────────────────    │
 │   Deposited:   │ Agent encounters obstacle                │
 │   Effect:      │ Attracts specialist or redistributes     │
-│   Visible to:  │ All swarm members                        │
+│   Visible to:  │ All group members                        │
 │                                                           │
 │   PROPOSAL     │ "I suggest this approach"                │
 │   ─────────────┼──────────────────────────────────────    │
 │   Deposited:   │ Agent has idea                           │
 │   Effect:      │ Others can reinforce or counter          │
-│   Visible to:  │ All swarm members                        │
+│   Visible to:  │ All group members                        │
 │                                                           │
 │   AGREEMENT    │ "I support this proposal"                │
 │   ─────────────┼──────────────────────────────────────    │
 │   Deposited:   │ On proposal an agent agrees with         │
 │   Effect:      │ Strengthens proposal signal              │
-│   Visible to:  │ All swarm members                        │
+│   Visible to:  │ All group members                        │
 │                                                           │
 └───────────────────────────────────────────────────────────┘
 ```
@@ -589,16 +589,16 @@ class SwarmFormation:
 ## Credit Attribution
 
 ```python
-async def distribute_rewards(swarm_id: str, total_reward: float):
-    """Distribute rewards to swarm members by contribution."""
+async def distribute_rewards(group_id: str, total_reward: float):
+    """Distribute rewards to group members by contribution."""
 
     # Get all members with their shares
     members = await query(f"""
         match
-            $s isa swarm, has swarm-id "{swarm_id}";
-            $m (the-swarm: $s, member-agent: $a) isa swarm-membership,
+            $g isa group, has group-id "{group_id}";
+            $m (the-group: $g, member-agent: $a) isa group-membership,
                 has contribution-share $share,
-                has role-in-swarm $role;
+                has role-in-group $role;
             $a has agent-id $id;
         select $id, $share, $role;
     """)
@@ -624,9 +624,9 @@ async def distribute_rewards(swarm_id: str, total_reward: float):
             insert $a has total-contribution $new;
         """)
 
-        # Deposit success trail (swarm worked well)
+        # Deposit success trail (group worked well)
         await reinforce_trail(
-            from_entity=swarm_id,
+            from_entity=group_id,
             to_entity=member.id,
             amount=agent_reward / 10
         )
@@ -641,9 +641,9 @@ async def distribute_rewards(swarm_id: str, total_reward: float):
 ```
 ┌───────────────────────────────────────────────────────────┐
 │                                                           │
-│   Over time, agents SPECIALIZE within swarms:             │
+│   Over time, agents SPECIALIZE within groups:             │
 │                                                           │
-│   Agent A: Always joins research swarms                   │
+│   Agent A: Always joins research groups                   │
 │            → Becomes "research specialist"                │
 │            → Higher contribution share in research        │
 │            → More likely recruited for research           │
@@ -664,11 +664,11 @@ async def distribute_rewards(swarm_id: str, total_reward: float):
 ```
 ┌───────────────────────────────────────────────────────────┐
 │                                                           │
-│   Swarm completes task successfully                       │
+│   Group completes task successfully                       │
 │       │                                                   │
 │       ▼                                                   │
 │   Pheromone trail deposited:                              │
-│   [task-type: research] ═══► [swarm-pattern: parallel]    │
+│   [task-type: research] ═══► [group-pattern: parallel]    │
 │       │                                                   │
 │       ▼                                                   │
 │   Next similar task:                                      │
@@ -676,7 +676,7 @@ async def distribute_rewards(swarm_id: str, total_reward: float):
 │   Finds: strong trail to parallel pattern                 │
 │   Uses: parallel decomposition                            │
 │                                                           │
-│   The colony REMEMBERS what swarm patterns work           │
+│   The colony REMEMBERS what group patterns work           │
 │   for what task types — without explicit storage          │
 │                                                           │
 └───────────────────────────────────────────────────────────┘
@@ -688,7 +688,7 @@ async def distribute_rewards(swarm_id: str, total_reward: float):
 
 ```python
 async def research_task_example():
-    """Example: Agents form swarm to research a topic."""
+    """Example: Agents form group to research a topic."""
 
     # Task: Research "competitor analysis"
     task = await create_task(
@@ -702,10 +702,10 @@ async def research_task_example():
     agent1 = await get_available_agent()
     agent1.current_task = task
 
-    # Agent 1 realizes it's too big, initiates swarm
-    await swarm_formation.initiate_swarm(agent1)
+    # Agent 1 realizes it's too big, initiates group
+    await group_formation.initiate_group(agent1)
     # → Recruitment pheromone deposited (strength: 50)
-    # → Swarm created (status: forming, min: 3, max: 8)
+    # → Group created (status: forming, min: 3, max: 8)
 
     # Other agents sense recruitment
     for _ in range(100):  # Tick loop
@@ -713,45 +713,45 @@ async def research_task_example():
             # Probabilistic response to recruitment
             recruitments = await query("match let $r in urgent_recruitments();")
             for r in recruitments:
-                if swarm_formation.should_respond(agent, r):
-                    await swarm_formation.join_swarm(agent, r)
+                if group_formation.should_respond(agent, r):
+                    await group_formation.join_group(agent, r)
 
-    # Swarm reaches min size → activates
-    # RULE: swarm-ready-to-activate fires
+    # Group reaches min size → activates
+    # RULE: group-ready-to-activate fires
 
     # Collaboration phase
-    swarm = await query("match $s has swarm-status 'active'; select $s;")
-    subtasks = decompose_task(task, num_subtasks=len(swarm.members))
+    group = await query("match $g has group-status 'active'; select $g;")
+    subtasks = decompose_task(task, num_subtasks=len(group.members))
 
     for tick in range(1000):
-        for member in swarm.members:
+        for member in group.members:
             subtask = await pick_available_subtask(member, subtasks)
             result = await member.execute(subtask)
 
             if result.success:
                 # Update progress
-                await increment_progress(swarm, 1/len(subtasks))
+                await increment_progress(group, 1/len(subtasks))
                 # Deposit internal progress pheromone
-                await deposit_progress_signal(swarm, member, subtask)
+                await deposit_progress_signal(group, member, subtask)
             else:
                 # Deposit blocked signal for help
-                await deposit_blocked_signal(swarm, member, subtask)
+                await deposit_blocked_signal(group, member, subtask)
 
         # Check if done
-        if swarm.collective_progress >= 1.0:
+        if group.collective_progress >= 1.0:
             break
 
     # Completion
-    # RULE: swarm-should-dissolve fires
+    # RULE: group-should-dissolve fires
 
     # Distribute rewards
-    await distribute_rewards(swarm.id, task.reward)
+    await distribute_rewards(group.id, task.reward)
 
     # Dissolve
-    await dissolve_swarm(swarm.id)
+    await dissolve_group(group.id)
     # → Members released
     # → Success trail deposited
-    # → Swarm memory preserved
+    # → Group memory preserved
 ```
 
 ---
@@ -764,7 +764,7 @@ async def research_task_example():
 Setup:
 - 100 tasks of varying size (1-100 effort)
 - 50 agents
-- Compare: solo vs stigmergic swarms
+- Compare: solo vs stigmergic groups
 
 Measure:
 - Time to complete all tasks
@@ -772,21 +772,21 @@ Measure:
 - Task failure rate
 
 Expected:
-- Swarms complete big tasks faster
+- Groups complete big tasks faster
 - Better utilization (less idle time)
 - Lower failure rate (collective problem-solving)
 ```
 
-### Swarm Size Optimization
+### Group Size Optimization
 
 ```
 Setup:
 - Fixed task size (effort = 50)
-- Vary min/max swarm parameters
+- Vary min/max group parameters
 - Measure efficiency
 
 Expected:
-- Optimal swarm size emerges
+- Optimal group size emerges
 - Too small = slow
 - Too big = coordination overhead
 - Sweet spot ≈ √(task_effort)
@@ -799,20 +799,20 @@ Expected:
 ```
 ┌───────────────────────────────────────────────────────────┐
 │                                                           │
-│   Swarms don't need to be ASSIGNED.                       │
+│   Groups don't need to be ASSIGNED.                       │
 │   They can EMERGE from pheromone signals.                 │
 │                                                           │
 │   1. Agent finds big task                                 │
 │   2. Deposits recruitment pheromone                       │
 │   3. Others sense and respond                             │
-│   4. Swarm forms organically                              │
+│   4. Group forms organically                              │
 │   5. Work collaboratively                                 │
 │   6. Dissolve when done                                   │
 │                                                           │
 │   No orchestrator. No assignment. No protocol.            │
 │   Just pheromones and simple rules.                       │
 │                                                           │
-│   SWARMS EMERGE.                                          │
+│   GROUPS EMERGE.                                          │
 │                                                           │
 └───────────────────────────────────────────────────────────┘
 ```

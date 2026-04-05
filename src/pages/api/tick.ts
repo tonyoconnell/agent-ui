@@ -8,7 +8,7 @@
  * Returns: { ticked: boolean, result?: TickResult, lastRun, nextRun }
  */
 import type { APIRoute } from 'astro'
-import { world } from '@/engine/one'
+import { world } from '@/engine/persist'
 import { anthropic } from '@/engine/llm'
 import { tick } from '@/engine/loop'
 

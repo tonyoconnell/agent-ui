@@ -6,14 +6,14 @@
 
 ```
 components/
-  AgentWorkspace.tsx    # Main agent view with colony integration
+  AgentWorkspace.tsx    # Main agent view with world integration
   WorldWorkspace.tsx    # ONE world view with metaphor skins
   Dashboard.tsx         # Overview dashboard
   TaskBoard.tsx         # Task/highway visualization
   EdgeInfo.tsx          # Path detail view
   EnvelopeFlowCanvas.tsx
   controls/             # UI controls (SkinSwitcher)
-  graph/                # ReactFlow visualizations (ColonyGraph, ColonyEditor, WorldGraph)
+  graph/                # ReactFlow visualizations (ColonyGraph, WorldEditor, WorldGraph)
   panels/               # Side panels (HighwayPanel)
   world/                # World view components (WorldView, WorldChat)
   onboard/              # Onboarding (AgentBuilder, DiscoverGrid, SignupForm)
@@ -42,10 +42,10 @@ Dark theme: `bg-[#0a0a0f]`, `bg-[#161622]`, `border-[#252538]`, `text-slate-400`
 
 ### Substrate Integration
 ```tsx
-import { colony } from "@/engine"
-import type { Colony, Edge } from "@/engine"
+import { world } from "@/engine"
+import type { World, Edge } from "@/engine"
 
-const net = colony()
+const net = world()
 const scout = net.spawn('scout')
   .on('observe', (data, emit) => { ... })
   .then('observe', r => ({ receiver: 'analyst', data: r }))
@@ -76,10 +76,10 @@ const explored = new Set(Object.keys(net.scent).flatMap(e => e.split('→')))
 
 | Component | Purpose |
 |-----------|---------|
-| `AgentWorkspace` | Agent management, colony state |
+| `AgentWorkspace` | Agent management, world state |
 | `WorldWorkspace` | ONE world with switchable metaphor skins |
 | `Dashboard` | Overview with highways, stats |
 | `TaskBoard` | Pheromone visualization (reads from substrate) |
 | `ColonyGraph` | Read-only ReactFlow visualization of highways |
-| `ColonyEditor` | Interactive graph editing, signal injection |
+| `WorldEditor` | Interactive graph editing, signal injection |
 | `HighwayPanel` | Weighted paths with strength bars |

@@ -288,7 +288,7 @@ World learns.
 
 Human watches.
 Agent builds.
-Swarm emerges.
+Group emerges.
 Intelligence crystallizes.
 
 ONE ontology.

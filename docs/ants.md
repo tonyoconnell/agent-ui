@@ -1,4 +1,4 @@
-# The Colony
+# The World
 
 How 100 million years of ant intelligence maps onto 70 lines of substrate.
 
@@ -63,7 +63,7 @@ risk_tolerance: 0.4           // conservative
 
 Routes tasks. Crystallizes patterns. Makes final decisions.
 
-Actions: `orchestrate`, `crystallize`
+Actions: `orchestrate`, `know`
 
 ### Scout (Explorer)
 
@@ -156,7 +156,7 @@ deposit_threshold: 0.6
 risk_tolerance: 0.3
 ```
 
-Validates signals before execution. Rejects false positives. Deposits threat/alarm pheromones.
+Validates signals before execution. Rejects false positives. Deposits threat/resistance pheromones.
 
 Actions: `defend`, `validate`
 
@@ -187,8 +187,8 @@ trail          harvester       successful path       5.0
 opportunity    scout           new finding           3.0
 relay          relay           propagated signal     2.0
 threat         soldier         danger detected       7.0-10.0
-alarm          sentinel        failure marker        8.0
-quality        queen           crystallized value    10.0
+resistance          sentinel        failure marker        8.0
+quality        queen           known value    10.0
 ```
 
 ### The STAN Formula
@@ -207,7 +207,7 @@ More pheromone = lower cost = more traffic = more pheromone = HIGHWAY.
 validated:      0.01    // very slow — trusted knowledge
 pattern:        0.03    // slow — stable patterns
 trail:          0.05    // moderate — standard decay
-alarm:          0.08    // faster — forget failures faster than successes
+resistance:          0.08    // faster — forget failures faster than successes
 microstructure: 0.10    // very fast — rapid market changes
 ```
 
@@ -269,7 +269,7 @@ Monitor colony health. Self-loop healing for unhealthy agents.
 ### 5. Recon (amber)
 
 ```
-scout:scan --> forager:harvest --> queen:crystallize
+scout:scan --> forager:harvest --> queen:know
 ```
 
 Scan sentiment regions. Harvest patterns. Crystallize into permanent knowledge.
@@ -278,11 +278,11 @@ Scan sentiment regions. Harvest patterns. Crystallize into permanent knowledge.
 
 ```typescript
 await Promise.allSettled([
-  colony.signal({ receiver: "scout:observe", ... }),
-  colony.signal({ receiver: "forager:search", ... }),
-  colony.signal({ receiver: "soldier:validate", ... }),
-  colony.signal({ receiver: "nurse:monitor", ... }),
-  colony.signal({ receiver: "scout:scan", ... }),
+  world.signal({ receiver: "scout:observe", ... }),
+  world.signal({ receiver: "forager:search", ... }),
+  world.signal({ receiver: "soldier:validate", ... }),
+  world.signal({ receiver: "nurse:monitor", ... }),
+  world.signal({ receiver: "scout:scan", ... }),
 ])
 ```
 
@@ -329,7 +329,7 @@ signal-path (ephemeral)
   --> tier derived: elite | danger | promising
     --> superhighway: trail >= 85, traversals >= 100
       --> crystallization-ready: elite + 100 traversals + trail >= 80
-        --> crystallized-pattern (permanent)
+        --> known-pattern (permanent)
           --> pattern-embedding (semantic similarity)
             --> transfer across missions & colonies
 ```
@@ -340,7 +340,7 @@ signal-path (ephemeral)
 TIER        WIN RATE    TRAIL      TRADES    MEANING
 elite       >= 75%      >= 70      >= 50     proven intelligence
 promising   >= 60%      any        20-49     needs more data
-danger      < 40%       alarm>=25  >= 30     avoid this path
+danger      < 40%       resistance>=25  >= 30     avoid this path
 superhighway any        >= 85      >= 100    colony's highway
 ```
 
@@ -391,7 +391,7 @@ The colony doesn't vote. The colony IS the vote.
 
 1. Behavioral patterns emerge from collective action
 2. Rules detect patterns (80% of agents choosing action X)
-3. Patterns crystallize into policies
+3. Patterns know into policies
 4. Policies auto-execute (high consensus confidence)
 
 ### Treasury
@@ -406,16 +406,16 @@ Delegation supported. Can redelegate.
 
 ---
 
-## Cross-Colony Intelligence
+## Cross-World Intelligence
 
 Colonies gossip via Agentverse P2P.
 
 ### Pattern Sharing
 
 ```
-Colony A crystallizes pattern
-  --> gossip to Colony B
-    --> Colony B tests pattern
+World A crystallizes pattern
+  --> gossip to World B
+    --> World B tests pattern
       --> success rate tracked
         --> trust score derived
 ```
@@ -431,7 +431,7 @@ untrusted    < 30%    flag for rejection
 
 ### The Network Effect
 
-More colonies = more patterns = faster crystallization = smarter swarm.
+More colonies = more patterns = faster crystallization = smarter group.
 Each colony learns from every other colony's discoveries.
 
 ---
@@ -453,12 +453,12 @@ Everything maps to six dimensions:
 
 ```
 DIMENSION      SUBSTRATE API
-Groups         colony()
-Actors         colony.spawn(id)
-Things         colony.spawn(id)  // things are units too
-Connections    colony.mark(path, weight)
-Events         colony.signal(signal, from)
-Knowledge      colony.highways() + crystallize()
+Groups         world()
+Actors         world.add(id)
+Things         world.add(id)  // things are units too
+Connections    world.mark(path, weight)
+Events         world.signal(signal, from)
+Knowledge      world.highways() + know()
 ```
 
 ---
@@ -495,7 +495,7 @@ whale-accumulation: sustained inflow pattern
 
 The colony detects and predicts market regime transitions.
 
-### Detector Swarm
+### Detector Group
 
 7 specialized detector ants: ATR, volume, breakout, funding, OI, time, divergence.
 Each makes independent predictions. Pheromone deposited on correct predictions.
@@ -547,7 +547,7 @@ Four gates that cannot be overridden:
 4. SKEPTIC SURVIVAL     block if < 33% adversarial tests passed
 ```
 
-All four must pass. Any failure = signal dissolves. Swarm continues.
+All four must pass. Any failure = signal dissolves. Group continues.
 
 ---
 
@@ -569,7 +569,7 @@ No central controller. Intelligence emerges from:
 - Coordinated priority: all cycles select same gap type (no instruction)
 - Pattern reuse: discovered pattern applied 4 consecutive cycles at 100% success
 - Feedback amplification: Pheromone up, Difficulty down, Priority up, Speed up
-- Crash detection: 6-ant swarm achieves 62.1% accuracy independently
+- Crash detection: 6-ant group achieves 62.1% accuracy independently
 
 ---
 
@@ -588,7 +588,7 @@ No central controller. Intelligence emerges from:
 ### What exists (envelopes)
 
 - 70-line substrate (signal, mark, follow, fade)
-- Colony with 9 agents, 5 parallel chains
+- World with 9 agents, 5 parallel chains
 - ONE runtime (6 dimensions, world API)
 - ASI orchestrator with confidence routing
 - WorldGraph with 6 metaphor skins
@@ -601,11 +601,11 @@ No central controller. Intelligence emerges from:
 3. **Live pheromone UI** — show mark/fade/highway in real-time on WorldGraph.
 4. **Genome parameters** — each unit carries a genome. Fitness drives reproduction.
 5. **Inference rules in UI** — show derived tiers (elite/danger/promising) on edges.
-6. **STAN routing** — effective_cost formula in colony.follow().
+6. **STAN routing** — effective_cost formula in world.follow().
 7. **Cross-colony** — agentverse.ts connects to Fetch.ai for P2P gossip.
 8. **Crystallization UI** — visualize ephemeral to permanent knowledge pipeline.
-9. **Mission isolation** — tag signals with mission-id, share crystallized patterns.
-10. **Detector swarm** — regime intelligence with 7 detector ants.
+9. **Mission isolation** — tag signals with mission-id, share known patterns.
+10. **Detector group** — regime intelligence with 7 detector ants.
 
 ---
 
@@ -617,7 +617,7 @@ No central controller. Intelligence emerges from:
 
 - [flows.md](flows.md) — How ant-inspired flows produce highways and knowledge
 - [agents.md](agents.md) — Substrate units mapped from ant castes
-- [swarm.md](swarm.md) — Coordination patterns derived from colony behavior
+- [group.md](group.md) — Coordination patterns derived from colony behavior
 - [emergence.md](emergence.md) — Five forces including stigmergic memory
 - [signal.md](signal.md) — Pheromone as the original signal primitive
-- [substrate-learning.md](substrate-learning.md) — Colony optimization as reinforcement learning
+- [substrate-learning.md](substrate-learning.md) — World optimization as reinforcement learning

@@ -54,7 +54,7 @@ Sui splits the world into two speeds:
 | Object Type | Consensus | Latency | ONE Mapping |
 |-------------|-----------|---------|-------------|
 | **Owned** | None (fast path) | ~400ms | Unit, Signal |
-| **Shared** | Full consensus | ~2-3s | Colony, Flow, Escrow |
+| **Shared** | Full consensus | ~2-3s | World, Flow, Escrow |
 | **Frozen** | None (immutable) | Instant read | Highway |
 
 A unit is owned by its operator. Nobody votes on whether your agent exists.
@@ -65,8 +65,8 @@ This maps perfectly:
 
 ```
 Agent sends signal to agent          → owned object transfer  → 400ms
-Colony treasury pays bounty          → shared object modify   → 2-3s
-Proven highway crystallized          → freeze_object()        → permanent
+World treasury pays bounty          → shared object modify   → 2-3s
+Proven highway known          → freeze_object()        → permanent
 ```
 
 TypeDB doesn't know about latency. It infers. Move knows about latency because
@@ -118,14 +118,14 @@ Proven knowledge becomes physics.
 
 ## The Object Model IS the Signal Pattern
 
-| Ant Colony | ONE Substrate | Sui Object Model |
+| Ant World | ONE Substrate | Sui Object Model |
 |------------|--------------|-----------------|
 | Ant | Unit | Owned object — agent controls itself |
-| Colony | Swarm | Shared object — members coordinate via consensus |
+| World | Group | Shared object — members coordinate via consensus |
 | Pheromone drop | Signal | Transferred object — moves from sender to receiver, consumed |
-| Trail | Flow | Shared object — both endpoints modify strength/alarm |
+| Trail | Flow | Shared object — both endpoints modify strength/resistance |
 | Established trail | Highway | Frozen object — permanent, verified, immutable |
-| Foraging territory | Colony treasury | Shared object — collective resource pool |
+| Foraging territory | World treasury | Shared object — collective resource pool |
 
 Every row maps 1:1. Not by analogy. By structure. Sui's object model was designed for
 exactly this kind of ownership and transfer pattern. They just didn't call it pheromone.
@@ -156,7 +156,7 @@ Without Move:                        With Move:
 ─────────────                        ──────────
 TypeDB relation                      Shared object
 Anyone can write strength            Only mark() increments strength
-Anyone can write alarm               Only warn() increments alarm
+Anyone can write resistance               Only warn() increments resistance
 Decay is a cron job                  Decay is an on-chain function (auditable)
 Revenue is a number                  Revenue is actual token balance
 ```
@@ -193,7 +193,7 @@ Units become **self-sovereign**. The agent owns its own object. No platform can 
 (only the agent can freeze it — that's crystallization). No platform can modify its balance
 (only signed transactions can).
 
-### Colony / Swarm
+### World / Group
 
 ```
 Without Move:                        With Move:
@@ -205,7 +205,7 @@ Splitting is inferred                Splitting creates real new objects
 ```
 
 Colonies become **real economic entities**. A colony's treasury is actual SUI tokens.
-When `splitting-colony` fires in TypeDB, the Move contract creates two new Colony objects
+When `splitting-colony` fires in TypeDB, the Move contract creates two new World objects
 and splits the treasury. Not a database migration. A financial event.
 
 ---
@@ -249,7 +249,7 @@ Neither system is complete alone. Together they are a brain with a spine.
           └────────▶│   Flow   │◀──────────┘
                     │ (shared) │
                     │ strength │
-                    │  alarm   │
+                    │  resistance   │
                     └────┬─────┘
                          │
                          │ strength >= 50
@@ -370,7 +370,7 @@ Sui: **owned object transactions run in parallel**. No global ordering needed.
 ```
 Agent A signals Agent B    → parallel (different owned objects)
 Agent C signals Agent D    → parallel (different owned objects)
-Colony X modifies treasury → sequential (shared object, consensus needed)
+World X modifies treasury → sequential (shared object, consensus needed)
 ```
 
 This means: a colony of 1000 agents can all send signals simultaneously.
@@ -432,7 +432,7 @@ TypeDB is the brain. Move is the body. The substrate needs both.
 
 - [plan.md](plan.md) — Why Sui, the five forces
 - [the-stack.md](the-stack.md) — Two fires, one ontology
-- [lifecycle.md](lifecycle.md) — Register through crystallize
+- [lifecycle.md](lifecycle.md) — Register through know
 - [architecture.md](architecture.md) — 6 dimensions, routing, inference
 - [revenue.md](revenue.md) — Economics: protocol revenue via Move
 - [signal.md](signal.md) — The universal primitive, on-chain

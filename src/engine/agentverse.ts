@@ -4,7 +4,7 @@
  * 70 lines. Registry + routing + discovery.
  */
 
-import { colony, unit, type Colony, type Unit, type Signal } from './substrate'
+import { world, unit, type World, type Unit, type Signal } from './world'
 
 type AgentMeta = {
   address: string
@@ -15,17 +15,17 @@ type AgentMeta = {
 
 type Fetch = (address: string, data: unknown) => Promise<unknown>
 
-export interface Agentverse extends Colony {
+export interface Agentverse extends World {
   register: (meta: AgentMeta) => Unit
   discover: (domain: string, limit?: number) => AgentMeta[]
   call: (address: string, task: string, data: unknown) => Promise<unknown>
 }
 
 export const agentverse = (fetch: Fetch): Agentverse => {
-  const net = colony()
+  const net = world()
   const meta: Record<string, AgentMeta> = {}
 
-  // Register agent in colony
+  // Register agent in world
   const register = (m: AgentMeta): Unit => {
     meta[m.address] = m
     const u = net.spawn(m.address)

@@ -36,7 +36,7 @@ export const POST: APIRoute = async () => {
   for (const s of swarms) {
     await write(`
       insert $s isa swarm,
-        has sid "${s.id}",
+        has gid "${s.id}",
         has name "${s.name}",
         has purpose "${s.purpose}";
     `).catch(() => {})
@@ -124,10 +124,10 @@ export const POST: APIRoute = async () => {
   ]
 
   for (const c of agentCaps) {
-    const sid = `${c.agent}:${c.task}`
+    const gid = `${c.agent}:${c.task}`
     await write(`
       insert $s isa skill,
-        has skill-id "${sid}",
+        has gid "${gid}",
         has name "${c.task}",
         has tag "${c.taskType}",
         has price ${c.price},
@@ -137,7 +137,7 @@ export const POST: APIRoute = async () => {
     await write(`
       match
         $u isa unit, has uid "${c.agent}";
-        $s isa skill, has skill-id "${sid}";
+        $s isa skill, has gid "${gid}";
       insert
         (provider: $u, offered: $s) isa capability,
           has price ${c.price};

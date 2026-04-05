@@ -2,7 +2,7 @@
  * ONE Types — TypeScript definitions matching one.tql schema
  *
  * 6 Dimensions:
- *   1. Groups    — swarms (personas, teams, colonies)
+ *   1. Groups    — worlds (personas, teams, colonies)
  *   2. Actors    — units (humans, agents, LLMs)
  *   3. Things    — tasks with optional price (work AND services)
  *   4. Edges     — weighted connections (unit↔unit, task→task)
@@ -14,15 +14,15 @@
 // DIMENSION 1: GROUPS
 // =============================================================================
 
-export interface Swarm {
-  sid: string
+export interface Group {
+  gid: string
   name: string
   purpose?: string
-  swarmType: "persona" | "team" | "colony" | "dao"
+  groupType: "persona" | "team" | "colony" | "dao"
   status: string
   created: Date
-  parent?: string  // sid of parent swarm
-  children?: string[]  // sids of child swarms
+  parent?: string  // gid of parent group
+  children?: string[]  // gids of child groups
 }
 
 // =============================================================================
@@ -42,7 +42,7 @@ export interface Unit {
   activityScore: number  // 0.0–100.0
   sampleCount: number    // interaction count
   created: Date
-  swarms?: string[]  // sids of swarms this unit belongs to
+  groups?: string[]  // gids of groups this unit belongs to
 }
 
 // =============================================================================
@@ -88,7 +88,7 @@ export interface Edge {
   source: string     // uid
   target: string     // uid
   strength: number   // mark() adds weight here
-  alarm: number      // warn() adds weight here
+  resistance: number      // warn() adds weight here
   traversals: number
   revenue: number    // sum of x402 payments on this edge
   lastUsed: Date
@@ -100,7 +100,7 @@ export interface Trail {
   sourceTask: string      // tid
   destinationTask: string // tid
   trailPheromone: number  // 0–100 (drop on success)
-  alarmPheromone: number  // 0–100 (alarm on failure)
+  resistancePheromone: number  // 0–100 (resistance on failure)
   completions: number
   failures: number
   revenue: number         // x402 revenue from this task sequence
@@ -179,7 +179,7 @@ export interface Contribution {
 // =============================================================================
 
 export interface WorldState {
-  swarms: Swarm[]
+  groups: Group[]
   units: Unit[]
   tasks: Task[]
   edges: Edge[]
@@ -211,27 +211,27 @@ export interface WorldStats {
 // Metaphor mapping for UI
 export const dimensionLabels = {
   ant: {
-    swarm: "Colony", unit: "Ant", task: "Trail", edge: "Pheromone",
+    group: "Colony", unit: "Ant", task: "Trail", edge: "Pheromone",
     signal: "Chemical", knowledge: "Memory"
   },
   brain: {
-    swarm: "Network", unit: "Neuron", task: "Pattern", edge: "Synapse",
+    group: "Network", unit: "Neuron", task: "Pattern", edge: "Synapse",
     signal: "Impulse", knowledge: "Memory"
   },
   team: {
-    swarm: "Team", unit: "Member", task: "Task", edge: "Connection",
+    group: "Team", unit: "Member", task: "Task", edge: "Connection",
     signal: "Message", knowledge: "Learning"
   },
   mail: {
-    swarm: "Inbox", unit: "Contact", task: "Thread", edge: "Chain",
+    group: "Inbox", unit: "Contact", task: "Thread", edge: "Chain",
     signal: "Email", knowledge: "Archive"
   },
   water: {
-    swarm: "Basin", unit: "Drop", task: "Channel", edge: "Flow",
+    group: "Basin", unit: "Drop", task: "Channel", edge: "Flow",
     signal: "Wave", knowledge: "Depth"
   },
   signal: {
-    swarm: "Grid", unit: "Node", task: "Route", edge: "Link",
+    group: "Grid", unit: "Node", task: "Route", edge: "Link",
     signal: "Packet", knowledge: "State"
   }
 } as const

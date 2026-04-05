@@ -143,8 +143,8 @@ The agent runs the substrate internally. It has a local colony, marks trails, fo
 import { colony, unit } from "@/engine/substrate"
 
 // Agent IS the substrate
-const net = colony()
-const me = net.spawn("hermes-01")
+const net = world()
+const me = net.add("hermes-01")
   .on("research", async (data, emit) => {
     const result = await hermes.run(data.query)
     emit({ receiver: "analyst", data: result })
@@ -308,7 +308,7 @@ const result = streamText({
         data: z.unknown(),
       }),
       execute: async ({ receiver, data }) =>
-        colony.signal({ receiver, data }),
+        world.signal({ receiver, data }),
     }),
     mark: tool({
       description: "Strengthen path (pheromone)",
@@ -318,7 +318,7 @@ const result = streamText({
         strength: z.number().default(1.0),
       }),
       execute: async ({ source, target, strength }) =>
-        colony.mark({ source, target }, strength),
+        world.mark({ source, target }, strength),
     }),
     discover: tool({
       description: "Find units with capability",
@@ -384,7 +384,7 @@ One MCP server connects Hermes to the entire substrate:
 @mcp.tool()
 def signal(receiver: str, data: dict) -> dict:
     """Send signal through ONE substrate"""
-    return colony.signal({"receiver": receiver, "data": data})
+    return world.signal({"receiver": receiver, "data": data})
 
 @mcp.tool()
 def discover(task_type: str) -> list:
@@ -434,7 +434,7 @@ def generate():
         "species": query("units_by_kind($k)"),  # all kinds
     }
 
-    md = f"""# ONE Colony State
+    md = f"""# ONE World State
 Generated from TypeDB at {now()}
 
 ## Active Units
@@ -456,12 +456,12 @@ Generated from TypeDB at {now()}
 - Use `discover` to find the best unit for any task
 - Use `signal` to route work, not direct delegation
 - Drop pheromone on success. Alarm on failure. Let trails form.
-- You are one unit in a colony. The substrate coordinates.
+- You are one unit in a world. The substrate coordinates.
 """
     Path("AGENTS.md").write_text(md)
 ```
 
-Every Hermes conversation starts with the collective state of the colony. It knows who else exists, what's working, what's failing. Not because someone configured it — because TypeDB generated it.
+Every Hermes conversation starts with the collective state of the world. It knows who else exists, what's working, what's failing. Not because someone configured it — because TypeDB generated it.
 
 ---
 
@@ -480,7 +480,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: anthropic("claude-sonnet-4-6"),
-    system: `You are an analyst unit in the ONE colony.
+    system: `You are an analyst unit in the ONE world.
       Current highways: ${JSON.stringify(highways)}
       Ready tasks: ${JSON.stringify(ready)}
       Use the signal tool to route work to other units.
@@ -567,7 +567,7 @@ git clone https://github.com/nousresearch/hermes-agent
 
 Build `gateway/mcp-one/` — substrate ops as MCP tools.
 
-- 8-10 tools: signal, mark, alarm, discover, register, highways, ready_tasks, attractive_tasks, query
+- 8-10 tools: signal, mark, resistance, discover, register, highways, ready_tasks, attractive_tasks, query
 - Hermes connects via config
 - Test: Hermes uses substrate to pick and route tasks
 
@@ -607,13 +607,13 @@ Live substrate state → agent context.
 - Include all species, not just Hermes units
 - Test: Hermes reads colony state, routes to non-Hermes unit
 
-### Step 6: Multi-Species Colony (Week 7-8)
+### Step 6: Multi-Species World (Week 7-8)
 
 Multiple agent types coordinating through substrate.
 
 ```yaml
-# colony.yaml
-swarm: ops-team
+# world.yaml
+group: ops-team
 units:
   - id: coordinator
     species: hermes
@@ -638,7 +638,7 @@ units:
 
 - `optimal_route()` routes across species boundaries
 - Trails form between different agent types
-- Colony self-organizes regardless of what's inside each unit
+- World self-organizes regardless of what's inside each unit
 
 ---
 
@@ -672,7 +672,7 @@ src/lib/
 
 scripts/
   generate_agents_md.py # AGENTS.md from live TypeDB state
-  colony.py             # Multi-species colony orchestrator
+  world.py             # Multi-species colony orchestrator
 ```
 
 ---

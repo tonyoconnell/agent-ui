@@ -39,18 +39,18 @@ type Signal = {
 ## Where We Are
 
 ```
-PROJECT: Emergent Intelligence System (Ant Colony Pattern)
+PROJECT: Emergent Intelligence System (Ant World Pattern)
 ══════════════════════════════════════════════════════════════
 
 Status:           ✅ COMPLETE — Build passes, dev server ready
 Tech Stack:       Astro + React 19 + ReactFlow + shadcn/ui + TypeScript
-Architecture:     Colony substrate (85 lines) + Emergent path learning
+Architecture:     World substrate (85 lines) + Emergent path learning
 
 THE SUBSTRATE:
   ✅ unit.js (30 lines)   — Nodes that compute
-  ✅ colony.js (55 lines) — Edges that connect, weights that learn
+  ✅ world.js (55 lines) — Edges that connect, weights that learn
   ✅ unit.ts              — TypeScript version
-  ✅ colony.ts            — TypeScript version
+  ✅ world.ts            — TypeScript version
 
 IMPLEMENTATION COMPLETE:
   ✅ Engine Swap — colony replaces Runtime
@@ -65,7 +65,7 @@ PARALLEL EXECUTION STATS:
   P1 Engine Swap:   64s
   P2 Highway Panel: 56s (stopped after component created)
   P3 Edge Info:     56s
-  P4+P5 Colony:     116s
+  P4+P5 World:     116s
   Integration:      85s
 ══════════════════════════════════════════════════════════════
 ```
@@ -79,22 +79,22 @@ PARALLEL EXECUTION STATS:
 | Status | ID | Task | Depends | Parallel |
 |:------:|:---|:-----|:--------|:--------:|
 | `[x]` | FND-001 | Create `src/engine/unit.js` — Node (30 lines) | — | ✓ |
-| `[x]` | FND-002 | Create `src/engine/colony.js` — Network + Learning (55 lines) | FND-001 | ✓ |
+| `[x]` | FND-002 | Create `src/engine/world.js` — Network + Learning (55 lines) | FND-001 | ✓ |
 | `[x]` | FND-003 | Create `src/engine/unit.ts` — TypeScript version | FND-001 | ✓ |
-| `[x]` | FND-004 | Create `src/engine/colony.ts` — TypeScript version | FND-002 | ✓ |
+| `[x]` | FND-004 | Create `src/engine/world.ts` — TypeScript version | FND-002 | ✓ |
 
 ---
 
 ## P1: ENGINE SWAP (Complete)
 
-> Replace Runtime with colony. Everything else stays the same initially.
+> Replace Runtime with world. Everything else stays the same initially.
 
 | Status | ID | Task | Depends | Parallel |
 |:------:|:---|:-----|:--------|:--------:|
-| `[x]` | SWP-001 | Update `AgentWorkspace.tsx` — Replace `Runtime` with `colony` import | FND-004 | ✗ |
-| `[x]` | SWP-002 | Add `spawnFromJSON()` method to colony for agent hydration | FND-004 | ✓ |
-| `[x]` | SWP-003 | Update agent initialization to use `net.spawnFromJSON(agent)` | SWP-001, SWP-002 | ✗ |
-| `[x]` | SWP-004 | Update signal processing to use `net.send(sig)` | SWP-003 | ✗ |
+| `[x]` | SWP-001 | Update `AgentWorkspace.tsx` — Replace `Runtime` with `world` import | FND-004 | ✗ |
+| `[x]` | SWP-002 | Add `addFromJSON()` method to world for agent hydration | FND-004 | ✓ |
+| `[x]` | SWP-003 | Update agent initialization to use `net.addFromJSON(agent)` | SWP-001, SWP-002 | ✗ |
+| `[x]` | SWP-004 | Update signal processing to use `net.signal(sig)` | SWP-003 | ✗ |
 | `[x]` | SWP-005 | Verify signals flow and edges strengthen (log `net.highways()`) | SWP-004 | ✗ |
 
 ---
@@ -125,14 +125,14 @@ PARALLEL EXECUTION STATS:
 
 ## P4: COLONY TAB (Complete)
 
-> Full network visualization. See the entire colony.
+> Full network visualization. See the entire world.
 
 | Status | ID | Task | Depends | Parallel |
 |:------:|:---|:-----|:--------|:--------:|
-| `[x]` | COL-001 | Add "Colony" tab to Tabs component (first position) | SWP-005 | ✓ |
+| `[x]` | COL-001 | Add "World" tab to Tabs component (first position) | SWP-005 | ✓ |
 | `[x]` | COL-002 | Create `src/components/graph/ColonyGraph.tsx` — ReactFlow network graph | SWP-005 | ✓ |
 | `[x]` | COL-003 | Style edges by weight (strokeWidth, color, animated for highways) | COL-002 | ✗ |
-| `[x]` | COL-004 | Wire Colony tab to show ColonyGraph when selected | COL-001, COL-002 | ✗ |
+| `[x]` | COL-004 | Wire World tab to show ColonyGraph when selected | COL-001, COL-002 | ✗ |
 
 ---
 
@@ -143,7 +143,7 @@ PARALLEL EXECUTION STATS:
 | Status | ID | Task | Depends | Parallel |
 |:------:|:---|:-----|:--------|:--------:|
 | `[x]` | LRN-001 | Add highways state to AgentWorkspace (`useState<Edge[]>`) | HWY-002, COL-004 | ✗ |
-| `[x]` | LRN-002 | Update highways after each signal (`setHighways(colony.highways(10))`) | LRN-001 | ✗ |
+| `[x]` | LRN-002 | Update highways after each signal (`setHighways(world.highways(10))`) | LRN-001 | ✗ |
 | `[x]` | LRN-003 | Add periodic fade with visual update (`useEffect` interval) | LRN-001 | ✓ |
 | `[x]` | LRN-004 | Add signal injection UI (button to send test signals) | LRN-002 | ✓ |
 
@@ -199,7 +199,7 @@ PARALLEL EXECUTION STATS:
 
 | File | Changes |
 |------|---------|
-| `AgentWorkspace.tsx` | Colony engine, highways state, periodic fade, signal injection, Colony tab, sidebar layout |
+| `AgentWorkspace.tsx` | World engine, highways state, periodic fade, signal injection, World tab, sidebar layout |
 | `EnvelopeFlowCanvas.tsx` | Fixed ReactFlow type constraints |
 
 ---

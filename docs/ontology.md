@@ -38,19 +38,19 @@ entity colony owns id @key, owns name;
 entity mission owns id @key, owns objective;
 
 # 2. ACTORS — things that act
-entity node owns id @key, owns kind;  # "agent", "llm", "human", "swarm"
+entity node owns id @key, owns kind;  # "agent", "llm", "human", "group"
 
 # 3. THINGS — what actors operate on
 entity task owns id @key, owns status;
 entity token owns address @key, owns price;
 
 # 4. PATHS — connections with weight (where pheromones live)
-relation path relates source, target, owns weight, owns alarm;
+relation path relates source, target, owns weight, owns resistance;
 
 # 5. EVENTS — state changes
 entity traversal owns id @key, owns timestamp, owns success;
 
-# 6. KNOWLEDGE — crystallized patterns
+# 6. KNOWLEDGE — known patterns
 entity pattern owns id @key, owns confidence;
 ```
 
@@ -60,7 +60,7 @@ entity pattern owns id @key, owns confidence;
 // The TypeScript mirrors the TypeQL
 
 // 1. GROUPS
-colony()                    // → entity colony
+world()                    // → entity colony
 mission(colony, objective)  // → entity mission
 
 // 2. ACTORS
@@ -73,7 +73,7 @@ signal({ receiver, data })  // → not persisted, ephemeral
 
 // 4. PATHS
 mark(path, weight)          // → relation path, owns weight
-alarm(path, strength)       // → relation path, owns alarm
+resistance(path, strength)       // → relation path, owns resistance
 highways()                  // → match $e isa path, has status "highway"
 
 // 5. EVENTS
@@ -81,7 +81,7 @@ signal(signal)              // → insert traversal
 onSuccess/onFailure         // → update traversal, owns success
 
 // 6. KNOWLEDGE
-crystallize()               // → insert pattern (when threshold met)
+know()               // → insert pattern (when threshold met)
 ```
 
 ## Inference Functions = Emergent Behavior
@@ -100,20 +100,20 @@ fun fading_paths() -> { path }:
     return { $e };
 
 fun toxic_paths() -> { path }:
-    match $e isa path, has alarm $a, has weight $w; $a > $w; $a >= 10.0;
+    match $e isa path, has resistance $a, has weight $w; $a > $w; $a >= 10.0;
     return { $e };
 
 fun proven_agents() -> { node }:
     match
         $n isa node, has kind "agent";
-        $e (target: $n) isa path, has weight $w, has alarm $a;
+        $e (target: $n) isa path, has weight $w, has resistance $a;
         $w >= 20.0; $w > ($a * 2);
     return { $n };
 
 fun at_risk_agents() -> { node }:
     match
         $n isa node, has kind "agent";
-        $e (target: $n) isa path, has alarm $a, has weight $w;
+        $e (target: $n) isa path, has resistance $a, has weight $w;
         $a >= 10.0; $a > $w;
     return { $n };
 ```
@@ -228,7 +228,7 @@ entity mission owns id @key, owns objective, owns status;
 # ─────────────────────────────────────────────────────────────────
 entity node
     owns id @key,
-    owns kind,           # "agent", "llm", "human", "swarm"
+    owns kind,           # "agent", "llm", "human", "group"
     owns status,         # "active", "proven", "at-risk" (inferred)
     owns reputation,
     plays path:source,
@@ -250,7 +250,7 @@ relation path
     relates target,
     owns task-type,
     owns weight,         # success pheromone
-    owns alarm,          # failure pheromone
+    owns resistance,          # failure pheromone
     owns status;         # "highway", "fading", "toxic" (inferred)
 
 relation membership
@@ -292,7 +292,7 @@ attribute holder, value string;
 attribute path-id, value string;
 attribute source-path, value string;
 attribute weight, value double;
-attribute alarm, value double;
+attribute resistance, value double;
 attribute reputation, value double;
 attribute price, value double;
 attribute market-cap, value double;
@@ -313,20 +313,20 @@ fun fading_paths() -> { path }:
     return { $e };
 
 fun toxic_paths() -> { path }:
-    match $e isa path, has alarm $a, has weight $w; $a > $w; $a >= 10.0;
+    match $e isa path, has resistance $a, has weight $w; $a > $w; $a >= 10.0;
     return { $e };
 
 fun proven_agents() -> { node }:
     match
         $n isa node, has kind "agent";
-        $e (target: $n) isa path, has weight $w, has alarm $a;
+        $e (target: $n) isa path, has weight $w, has resistance $a;
         $w >= 20.0; $w > ($a * 2);
     return { $n };
 
 fun at_risk_agents() -> { node }:
     match
         $n isa node, has kind "agent";
-        $e (target: $n) isa path, has alarm $a, has weight $w;
+        $e (target: $n) isa path, has resistance $a, has weight $w;
         $a >= 10.0; $a > $w;
     return { $n };
 

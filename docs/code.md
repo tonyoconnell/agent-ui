@@ -49,12 +49,12 @@ interface Unit {
 
 ---
 
-## The Colony
+## The World
 
 ```typescript
-interface Colony {
+interface World {
   units: Record<string, Unit>
-  scent: Record<string, number>
+  strength: Record<string, number>
   spawn: (id: string) => Unit
   signal: (e: Signal, from?: string) => void
   mark: (path: string, strength?: number) => void
@@ -97,12 +97,12 @@ export const unit = (id: string, route?: Route): Unit => {
   return u
 }
 
-export const colony = (): Colony => {
+export const colony = (): World => {
   const units: Record<string, Unit> = {}
-  const scent: Record<string, number> = {}
+  const strength: Record<string, number> = {}
 
-  const mark = (path: string, strength = 1) => { scent[path] = (scent[path] || 0) + strength }
-  const sense = (path: string) => scent[path] || 0
+  const mark = (path: string, strength = 1) => { strength[path] = (strength[path] || 0) + strength }
+  const sense = (path: string) => strength[path] || 0
 
   const signal = ({ receiver, data }: Signal, from = 'entry') => {
     const unitId = receiver.includes(':') ? receiver.split(':')[0] : receiver
@@ -116,16 +116,16 @@ export const colony = (): Colony => {
     return u
   }
 
-  const fade = (r = 0.1) => Object.keys(scent).forEach(e => {
-    scent[e] *= (1 - r)
-    scent[e] < 0.01 && delete scent[e]
+  const fade = (r = 0.1) => Object.keys(strength).forEach(e => {
+    strength[e] *= (1 - r)
+    strength[e] < 0.01 && delete strength[e]
   })
 
-  const highways = (limit = 10) => Object.entries(scent)
+  const highways = (limit = 10) => Object.entries(strength)
     .sort(([, a], [, b]) => b - a).slice(0, limit)
     .map(([path, strength]) => ({ path, strength }))
 
-  return { units, scent, spawn, signal, mark, sense, fade, highways,
+  return { units, strength, spawn, signal, mark, sense, fade, highways,
            has: id => id in units, list: () => Object.keys(units), get: id => units[id] }
 }
 ```
@@ -138,7 +138,7 @@ export const colony = (): Colony => {
 
 ```typescript
 // Agent A asks Agent B a question
-net.spawn('agentA')
+net.add('agentA')
   .on('ask', ({ question }, emit, { self }) => {
     emit({
       receiver: 'agentB:answer',
@@ -150,7 +150,7 @@ net.spawn('agentA')
   })
 
 // Agent B answers
-net.spawn('agentB')
+net.add('agentB')
   .on('answer', ({ question, replyTo }, emit) => {
     const answer = think(question)
     emit({ receiver: replyTo, data: { answer } })  // reply
@@ -162,7 +162,7 @@ net.spawn('agentB')
 ```typescript
 const claims: Record<string, string> = {}  // taskId → claimerId
 
-net.spawn('worker')
+net.add('worker')
   .on('claim', ({ taskId }, emit, { from }) => {
     // First to claim wins
     if (!claims[taskId]) {
@@ -179,7 +179,7 @@ net.spawn('worker')
 ```typescript
 const balances: Record<string, number> = {}
 
-net.spawn('ledger')
+net.add('ledger')
   .on('pay', ({ from, to, amount, memo }, emit) => {
     if (balances[from] >= amount) {
       balances[from] -= amount
@@ -198,7 +198,7 @@ net.spawn('ledger')
 ### Auction / Negotiation
 
 ```typescript
-net.spawn('auction')
+net.add('auction')
   .on('bid', ({ itemId, amount }, emit, { from }) => {
     if (amount > highestBid[itemId]) {
       const previous = highestBidder[itemId]
@@ -214,11 +214,11 @@ net.spawn('auction')
   })
 ```
 
-### Swarm Formation
+### Group Formation
 
 ```typescript
-// Agents discover each other through scent
-net.spawn('coordinator')
+// Agents discover each other through strength
+net.add('coordinator')
   .on('join', ({ capabilities }, emit, { from }) => {
     // Register agent
     registry[from] = capabilities
@@ -229,7 +229,7 @@ net.spawn('coordinator')
     })
   })
   .on('find', ({ capability }, emit, { from }) => {
-    // Find agents with capability, ranked by scent (reliability)
+    // Find agents with capability, ranked by strength (reliability)
     const matches = Object.entries(registry)
       .filter(([_, caps]) => caps.includes(capability))
       .map(([id]) => ({ id, strength: net.sense(`${id}→*`) }))

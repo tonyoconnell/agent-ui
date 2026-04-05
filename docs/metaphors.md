@@ -57,6 +57,40 @@ The verbs are universal because the dynamics are universal.
 
 ---
 
+## The Weight — What Accumulates on Paths
+
+Every metaphor has its own word for the substance that builds up on connections.
+This is the deepest symmetry in the system.
+
+| | The substance | Depositing it | It builds into | It fades by |
+|---|---|---|---|---|
+| **ONE** | weight | mark / warn | highway | fade |
+| **Ant** | pheromone | deposit / alarm | trail | evaporation |
+| **Brain** | synaptic weight | potentiate / inhibit | pathway | decay |
+| **Team** | reputation | commend / flag | go-to person | forgetting |
+| **Mail** | stamps | stamp / return | express route | archiving |
+| **Water** | sediment | carve / dam | river | drying |
+| **Radio** | signal power | boost / jam | clear channel | attenuation |
+
+The pattern is always the same:
+
+```
+something accumulates on a connection over time
+  → positive: the connection gets used more
+  → negative: the connection gets avoided
+  → without use: it fades
+  → survivors become the proven paths
+```
+
+Ants call it pheromone. Neuroscience calls it synaptic weight. Organizations
+call it reputation. Hydrology calls it erosion. Radio engineering calls it
+signal strength.
+
+The substrate doesn't pick a metaphor. It just says **strength** and
+**resistance**. That's why it skins to everything — the dynamic is universal.
+
+---
+
 ## ONE — The Meta-Metaphor
 
 Not ants. Not brains. Not teams. Just ONE.

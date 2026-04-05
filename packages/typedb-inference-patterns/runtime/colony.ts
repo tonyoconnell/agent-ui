@@ -32,8 +32,8 @@ interface Unit {
   state: Record<string, unknown>
 }
 
-interface Colony {
-  spawn: (id: string) => Unit
+interface World {
+  add: (id: string) => Unit
   send: (e: Signal, from?: string) => void
   mark: (edge: string, strength?: number) => void
   smell: (edge: string) => number
@@ -43,7 +43,7 @@ interface Colony {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SUBSTRATE (70 lines, adapted for TypeDB patterns)
+// SUBSTRATE (70 lines, adapted for TypeDB patterns - world)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const unit = (id: string, route: (e: Signal, from: string) => void): Unit => {
@@ -67,7 +67,7 @@ const unit = (id: string, route: (e: Signal, from: string) => void): Unit => {
   return u
 }
 
-const colony = (): Colony => {
+const world = (): World => {
   const units: Record<string, Unit> = {}
   const scent: Record<string, number> = {}
 
@@ -87,13 +87,13 @@ const colony = (): Colony => {
     target && (mark(`${from}→${receiver}`), target({ receiver, data }, from))
   }
 
-  const spawn = (id: string) => {
+  const add = (id: string) => {
     const u = unit(id, (e, from) => send(e, from))
     units[id] = u
     return u
   }
 
-  return { spawn, send, mark, smell, fade, highways, get: id => units[id] }
+  return { add, send, mark, smell, fade, highways, get: id => units[id] }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -102,8 +102,8 @@ const colony = (): Colony => {
 // TypeDB: fun elite_agents() -> { agent }
 // Substrate: agent:classify → emits tier
 
-const setupPerception = (c: Colony) => {
-  c.spawn('classifier')
+const setupPerception = (w: World) => {
+  w.add('classifier')
     .on('classify', ({ successRate, activityScore, sampleCount }: any, emit) => {
       // Elite: sr >= 0.75, as >= 70, sc >= 50
       if (successRate >= 0.75 && activityScore >= 70 && sampleCount >= 50) {
@@ -127,8 +127,8 @@ const setupPerception = (c: Colony) => {
 // TypeDB: rule high-quality-record, rule prevent_zombie_agents
 // Substrate: validator:check → pass or reject (silence)
 
-const setupHomeostasis = (c: Colony) => {
-  c.spawn('validator')
+const setupHomeostasis = (w: World) => {
+  w.add('validator')
     .on('check-quality', ({ applied, effectiveness }: any, emit) => {
       if (!applied) return null // Silence - not applicable
 
@@ -152,8 +152,8 @@ const setupHomeostasis = (c: Colony) => {
 // TypeDB: rule promote-to-testing, rule confirm-hypothesis
 // Substrate: hypothesis:observe → state transitions
 
-const setupHypothesis = (c: Colony) => {
-  c.spawn('hypothesis')
+const setupHypothesis = (w: World) => {
+  w.add('hypothesis')
     .on('observe', ({ id, outcome }: any, emit, ctx) => {
       const h = ctx.self // hypothesis state would be stored
       // State machine: pending → testing → confirmed/rejected
@@ -183,12 +183,12 @@ const setupHypothesis = (c: Colony) => {
 // TypeDB: fun ready_tasks(), fun attractive_tasks()
 // Substrate: task:query-ready, pheromone via mark/smell
 
-const setupTaskAllocation = (c: Colony) => {
+const setupTaskAllocation = (w: World) => {
   const tasks: Record<string, { status: string; blockers: string[] }> = {}
   const trailPheromone: Record<string, number> = {}
   const alarmPheromone: Record<string, number> = {}
 
-  c.spawn('taskManager')
+  w.add('taskManager')
     .on('register', ({ id, blockers = [] }: any) => {
       tasks[id] = { status: 'todo', blockers }
     })
@@ -220,7 +220,7 @@ const setupTaskAllocation = (c: Colony) => {
       // Success: deposit trail pheromone
       const edge = `${from}→${to}`
       trailPheromone[to] = Math.min(100, (trailPheromone[to] || 0) + 5)
-      c.mark(edge, 5)
+      w.mark(edge, 5)
     })
     .on('alarm', ({ from, to }: any) => {
       // Failure: deposit alarm pheromone
@@ -236,7 +236,7 @@ const setupTaskAllocation = (c: Colony) => {
         alarmPheromone[k] *= 0.80
         if (alarmPheromone[k] < 0.1) delete alarmPheromone[k]
       })
-      c.fade(0.05)
+      w.fade(0.05)
     })
 }
 
@@ -246,10 +246,10 @@ const setupTaskAllocation = (c: Colony) => {
 // TypeDB: fun total_contribution($name) -> double
 // Substrate: contributions aggregated per agent
 
-const setupContribution = (c: Colony) => {
+const setupContribution = (w: World) => {
   const contributions: Record<string, number[]> = {}
 
-  c.spawn('ledger')
+  w.add('ledger')
     .on('record', ({ agent, impact }: any) => {
       contributions[agent] = contributions[agent] || []
       contributions[agent].push(impact)
@@ -272,12 +272,12 @@ const setupContribution = (c: Colony) => {
 // TypeDB: fun promising_frontiers(), rule spawn-exploration-objective
 // Substrate: frontier detection → objective spawning
 
-const setupEmergence = (c: Colony) => {
+const setupEmergence = (w: World) => {
   const frontiers: Record<string, { expectedValue: number; status: string }> = {}
   const objectives: Record<string, { progress: number; status: string }> = {}
   let objectiveCounter = 0
 
-  c.spawn('emergence')
+  w.add('emergence')
     .on('detect-frontier', ({ id, potential, probability, cost }: any) => {
       const expectedValue = (potential * probability) / cost
       frontiers[id] = { expectedValue, status: 'unexplored' }
@@ -311,47 +311,47 @@ const setupEmergence = (c: Colony) => {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BOOTSTRAP: Create a fully-functional colony
+// BOOTSTRAP: Create a fully-functional world
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const createColony = () => {
-  const c = colony()
+export const createWorld = () => {
+  const w = world()
 
-  setupPerception(c)
-  setupHomeostasis(c)
-  setupHypothesis(c)
-  setupTaskAllocation(c)
-  setupContribution(c)
-  setupEmergence(c)
+  setupPerception(w)
+  setupHomeostasis(w)
+  setupHypothesis(w)
+  setupTaskAllocation(w)
+  setupContribution(w)
+  setupEmergence(w)
 
-  return c
+  return w
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EXAMPLE USAGE
 // ═══════════════════════════════════════════════════════════════════════════
 /*
-const c = createColony()
+const w = createWorld()
 
 // Classify an agent (L1)
-c.send({ receiver: 'classifier:classify', data: { successRate: 0.85, activityScore: 80, sampleCount: 100 } })
+w.send({ receiver: 'classifier:classify', data: { successRate: 0.85, activityScore: 80, sampleCount: 100 } })
 
 // Register tasks with dependencies (L4)
-c.send({ receiver: 'taskManager:register', data: { id: 'task-1', blockers: [] } })
-c.send({ receiver: 'taskManager:register', data: { id: 'task-2', blockers: ['task-1'] } })
+w.send({ receiver: 'taskManager:register', data: { id: 'task-1', blockers: [] } })
+w.send({ receiver: 'taskManager:register', data: { id: 'task-2', blockers: ['task-1'] } })
 
 // Query ready tasks (L4 - negation pattern)
-c.send({ receiver: 'taskManager:query-ready', data: {} })
+w.send({ receiver: 'taskManager:query-ready', data: {} })
 
 // Record contribution (L5)
-c.send({ receiver: 'ledger:record', data: { agent: 'alpha', impact: 8.5 } })
+w.send({ receiver: 'ledger:record', data: { agent: 'alpha', impact: 8.5 } })
 
 // Detect frontier (L6 - emergence)
-c.send({ receiver: 'emergence:detect-frontier', data: { id: 'f-1', potential: 0.8, probability: 0.7, cost: 1.0 } })
+w.send({ receiver: 'emergence:detect-frontier', data: { id: 'f-1', potential: 0.8, probability: 0.7, cost: 1.0 } })
 
 // Decay pheromones
-c.send({ receiver: 'taskManager:decay', data: {} })
+w.send({ receiver: 'taskManager:decay', data: {} })
 
 // Get highways (strongest signal paths)
-console.log(c.highways(5))
+console.log(w.highways(5))
 */

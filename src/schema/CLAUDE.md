@@ -8,7 +8,7 @@ TypeDB 3.0 schema for the ONE world. TypeDB is the brain — not task tracker.
 
 | File | Purpose |
 |------|---------|
-| `one.tql` | Main schema: 6 dimensions, functions, classification (~230 lines) |
+| `world.tql` | Main schema: 6 dimensions, functions, classification (~230 lines) |
 | `skins.tql` | Metaphor layer: actor/group/connection patterns for any domain |
 | `sui.tql` | On-chain mirror: Move structs as TQL entities |
 | `agents.tql` | Legacy envelope system |
@@ -21,12 +21,12 @@ The runtime handles task lifecycle. TypeDB handles memory + intelligence.
 **Runtime (nervous system):**
 - Tasks → `.on()` handlers on units
 - Dependencies → `.then()` continuations
-- Trails → scent map entries (mark/warn/fade)
+- Trails → strength map entries (mark/warn/fade)
 - Queue → signals waiting to be consumed
 
 **TypeDB (brain):**
 - Units persist (model, system-prompt, generation)
-- Paths persist (strength, alarm, revenue)
+- Paths persist (strength, resistance, revenue)
 - Signals recorded (event log)
 - Skills registered (capability relation)
 - Knowledge emerges (hypothesis, frontier, objective)
@@ -34,7 +34,7 @@ The runtime handles task lifecycle. TypeDB handles memory + intelligence.
 
 ## Entity Types
 
-- **swarm** — groups of units (scope, isolation, hierarchy)
+- **group** — groups of units (scope, isolation, hierarchy)
 - **unit** — actors (human, agent, llm, system) with `model`, `system-prompt`, `generation`
 - **skill** — what units can do, with optional x402 price (capability)
 - **hypothesis/frontier/objective** — emergent knowledge
@@ -42,11 +42,11 @@ The runtime handles task lifecycle. TypeDB handles memory + intelligence.
 
 ## Relation Patterns
 
-- `path(source, target)` — pheromone between units (strength, alarm, revenue)
+- `path(source, target)` — pheromone between units (strength, resistance, revenue)
 - `capability(provider, offered)` — unit can do skill at price
 - `signal(sender, receiver)` — event record (data, amount, success, latency)
-- `membership(group, member)` — unit belongs to swarm
-- `hierarchy(parent, child)` — swarm nesting
+- `membership(group, member)` — unit belongs to group
+- `hierarchy(parent, child)` — group nesting
 - `spawns(frontier, objective)` — knowledge creates goals
 
 ## Classification Functions

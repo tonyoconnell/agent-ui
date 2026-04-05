@@ -35,7 +35,7 @@ The TS substrate is the brain. The Python infrastructure is the body. They share
 | Persistence: mark/warn/fade → TypeDB | Working |
 | ASI orchestrator: pheromone routing + LLM fallback | Working |
 | Schema: 6 dimensions, 20+ functions | Production |
-| API: signal, mark, alarm, agents, discover, seed, decay | Exists |
+| API: signal, mark, resistance, agents, discover, seed, decay | Exists |
 | Pages: dashboard, world, chat, tasks, marketplace, discover | Exists |
 | UI: graph editor, workspace, metaphors | Exists |
 

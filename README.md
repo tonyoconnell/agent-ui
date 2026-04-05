@@ -36,7 +36,7 @@ signals move                     paths persist
 units receive                    units persist
 handlers run                     signals recorded
 continuations chain              classification inferred
-scent/alarm accumulate           evolution detected
+strength/resistance accumulate   evolution detected
 queue holds work                 knowledge crystallizes
 
 loops L1-L3 (ms-min)            loops L4-L7 (hours-weeks)
@@ -63,7 +63,7 @@ Two fields. That's it.
 ## The Unit
 
 ```typescript
-net.spawn('scout')
+net.add('scout')
   .on('observe', (data, emit, ctx) => {
     // data: the data
     // emit: send more signals
@@ -87,37 +87,37 @@ No task entities. No dependency relations. Pheromone accumulates automatically.
 
 ---
 
-## The Colony
+## The World
 
 ```typescript
-const net = colony()
+const net = world()
 
-net.spawn('scout')    // create unit
+net.add('scout')      // create unit
 net.signal(sig)       // send signal (marks pheromone)
 net.enqueue(sig)      // queue for later
 net.drain()           // process queued signal
 net.mark(edge)        // strengthen path
 net.warn(edge)        // weaken path
 net.select()          // probabilistic pick (ant-like)
-net.fade(0.1)         // decay (alarm 2x faster)
+net.fade(0.1)         // decay (resistance 2x faster)
 net.highways(10)      // see what emerged
 ```
 
 ---
 
-## The World
+## The Persist
 
 ```typescript
-const w = world()
+const p = persist()
 
-w.actor('scout', 'agent')  // spawn + persist to TypeDB
-w.flow('scout', 'analyst') // mark/warn wrapper
+p.actor('scout', 'agent')  // add + persist to TypeDB
+p.flow('scout', 'analyst') // mark/warn wrapper
   .strengthen(5)
 
-w.open(10)                 // top paths
-w.blocked()                // toxic paths
-w.crystallize()            // promote highways to knowledge
-w.recall('scout')          // query knowledge from TypeDB
+p.open(10)                 // top paths
+p.blocked()                // toxic paths
+p.know()                   // promote highways to knowledge
+p.recall('scout')          // query knowledge from TypeDB
 ```
 
 ---
@@ -187,10 +187,10 @@ net.fade(0.05)                       // decay
 
 ```
 src/engine/
-├── substrate.ts   # ~90 lines — unit, colony, pheromone, queue
-├── one.ts         # ~40 lines — world (TypeDB bridge)
+├── world.ts       # ~90 lines — unit, world, pheromone, queue
+├── persist.ts     # ~40 lines — persist (TypeDB bridge)
 ├── loop.ts        # ~76 lines — tick (select, signal, fade, evolve)
-├── persist.ts     # ~90 lines — TypeDB sync
+├── async.ts       # ~90 lines — TypeDB sync
 ├── boot.ts        # ~37 lines — hydrate + start
 ├── asi.ts         # orchestrator
 ├── llm.ts         # LLM as unit
@@ -198,7 +198,7 @@ src/engine/
 └── index.ts       # exports
 
 src/schema/
-└── one.tql        # ~230 lines — the brain
+└── world.tql      # ~230 lines — the brain
 ```
 
 ---

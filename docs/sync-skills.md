@@ -55,7 +55,7 @@
 ### 4. Agent Deployment (ALREADY SYNCED)
 
 These appear duplicated across projects (same content):
-- `agent-launch-toolkit/.claude/skills/` (alliance, build-agent, build-swarm, deploy, grow, market, status, todo, tokenize, welcome)
+- `agent-launch-toolkit/.claude/skills/` (alliance, build-agent, build-group, deploy, grow, market, status, todo, tokenize, welcome)
 - `divorce-lawyer/.claude/skills/` (same set)
 - `lawyer/.claude/skills/` (same set)
 
@@ -72,7 +72,7 @@ These appear duplicated across projects (same content):
 | `ants-at-work/.claude/skills/pheromone-analyzer/` | Pheromone analysis |
 | `ants-at-work/.claude/skills/transfer-learning/` | Cross-domain learning |
 
-**Action:** Consider copying to envelopes for swarm visualization.
+**Action:** Consider copying to envelopes for group visualization.
 
 ### 6. Trading / Data (UNIQUE)
 

@@ -1,16 +1,16 @@
 /**
- * COLONY EDITOR - Shape Emergent Intelligence
+ * WORLD EDITOR - Shape Emergent Intelligence
  *
  * The 85 lines made interactive:
  * - Draw edges (create trails)
  * - Adjust pheromones (shape learning)
- * - Spawn nodes (add chambers)
+ * - Add nodes (add chambers)
  * - Inject signals (watch flow)
  * - Record & replay signal journeys
  * - Superhighway celebrations
  * - Heat map visualization
  * - Time-lapse evolution
- * - Save/Load colony state
+ * - Save/Load world state
  * - AI self-organization mode
  *
  * Simple interactions. Complex emergence.
@@ -43,7 +43,7 @@ import {
   type OnConnect,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
-import type { Colony, Edge } from "@/engine"
+import type { World, Edge } from "@/engine"
 import { cn } from "@/lib/utils"
 
 // ============================================================================
@@ -57,12 +57,12 @@ interface AgentData {
   actions: Record<string, unknown>
 }
 
-interface ColonyEditorProps {
-  colony: Colony
+interface WorldEditorProps {
+  world: World
   agents: AgentData[]
   highways: Edge[]
   onAgentSelect?: (id: string) => void
-  onColonyChange?: () => void
+  onWorldChange?: () => void
 }
 
 interface ChamberNodeData {
@@ -93,9 +93,9 @@ interface SignalRecord {
   payload: unknown
 }
 
-interface ColonyState {
+interface WorldState {
   agents: AgentData[]
-  scent: Record<string, number>
+  strength: Record<string, number>
   positions: Record<string, { x: number; y: number }>
 }
 
@@ -418,7 +418,7 @@ function ControlPanel({
 }) {
   return (
     <div className="bg-[#0a0a0f]/95 border border-[#252538] rounded-lg p-4 space-y-4 min-w-[220px]">
-      <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Colony Controls</div>
+      <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">World Controls</div>
 
       {/* Record & Playback */}
       <div className="space-y-2">
@@ -532,7 +532,7 @@ function ControlPanel({
 
       {/* Save/Load */}
       <div className="space-y-2">
-        <div className="text-[10px] text-slate-500 uppercase">Colony State</div>
+        <div className="text-[10px] text-slate-500 uppercase">World State</div>
         <div className="flex gap-2">
           <button
             onClick={onSave}
@@ -838,7 +838,7 @@ const edgeTypes = { trail: TrailEdge }
 // COLONY EDITOR INNER - The main component (needs ReactFlow context)
 // ============================================================================
 
-function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyChange }: ColonyEditorProps) {
+function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChange }: WorldEditorProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const reactFlowInstance = useReactFlow()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -1133,19 +1133,19 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     if (!isTimeLapse) return
 
     const interval = setInterval(() => {
-      colony.fade(0.1 * timeLapseSpeed)
-      onColonyChange?.()
+      world.fade(0.1 * timeLapseSpeed)
+      onWorldChange?.()
     }, 1000 / timeLapseSpeed)
 
     return () => clearInterval(interval)
-  }, [isTimeLapse, timeLapseSpeed, colony, onColonyChange])
+  }, [isTimeLapse, timeLapseSpeed, colony, onWorldChange])
 
   // Connect handler
   const onConnect: OnConnect = useCallback((connection: Connection) => {
     if (!connection.source || !connection.target) return
 
     const edgeKey = `${connection.source}:signal → ${connection.target}:receive`
-    colony.mark(edgeKey, 1)
+    world.mark(edgeKey, 1)
 
     setEdges(eds => addEdge({
       ...connection,
@@ -1154,8 +1154,8 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
       markerEnd: { type: MarkerType.ArrowClosed, color: "#334155", width: 20, height: 20 }
     }, eds))
 
-    onColonyChange?.()
-  }, [colony, setEdges, onColonyChange])
+    onWorldChange?.()
+  }, [colony, setEdges, onWorldChange])
 
   // Edge click
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: FlowEdge) => {
@@ -1190,7 +1190,7 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     const [source, target] = edgeId.split("→")
 
     // Find and update all matching scent entries
-    Object.keys(colony.scent).forEach(key => {
+    Object.keys(world.strength).forEach(key => {
       const sp = splitPath(key)
       if (!sp) return
       const [from, to] = sp
@@ -1198,9 +1198,9 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
       const tgtId = to.split(":")[0]
       if (srcId === source && tgtId === target) {
         if (strength === 0) {
-          delete colony.scent[key]
+          delete world.strength[key]
         } else {
-          colony.scent[key] = strength
+          world.strength[key] = strength
         }
       }
     })
@@ -1215,23 +1215,23 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
       }
     }))
 
-    onColonyChange?.()
-  }, [colony, setEdges, onColonyChange])
+    onWorldChange?.()
+  }, [colony, setEdges, onWorldChange])
 
   // Delete edge
   const deleteEdge = useCallback((edgeId: string) => {
     const [source, target] = edgeId.split("→")
 
-    Object.keys(colony.scent).forEach(key => {
+    Object.keys(world.strength).forEach(key => {
       if (key.includes(source) && key.includes(target)) {
-        delete colony.scent[key]
+        delete world.strength[key]
       }
     })
 
     setEdges(eds => eds.filter(e => e.id !== edgeId))
     setEdgeEditor(null)
-    onColonyChange?.()
-  }, [colony, setEdges, onColonyChange])
+    onWorldChange?.()
+  }, [colony, setEdges, onWorldChange])
 
   // Inject signal with recording
   const injectSignal = useCallback(async (nodeId: string, task: string) => {
@@ -1273,14 +1273,14 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     setActiveTracer({ path })
 
     // Actually send the signal
-    await colony.send({
+    await world.send({
       receiver: nodeId,
       receive: task,
       payload: { source: "manual-injection" }
     })
 
-    onColonyChange?.()
-  }, [colony, agents, edges, isRecording, onColonyChange])
+    onWorldChange?.()
+  }, [colony, agents, edges, isRecording, onWorldChange])
 
   // Playback recorded signals
   const playbackSignals = useCallback(async () => {
@@ -1293,12 +1293,12 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
 
       // Inject the signal
       if (record.path.length > 0) {
-        await colony.send({
+        await world.send({
           receiver: record.path[0].node,
           receive: record.path[0].task,
           payload: record.payload
         })
-        onColonyChange?.()
+        onWorldChange?.()
       }
 
       // Wait between signals
@@ -1306,7 +1306,7 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     }
 
     setIsPlaying(false)
-  }, [signalHistory, colony, timeLapseSpeed, onColonyChange])
+  }, [signalHistory, colony, timeLapseSpeed, onWorldChange])
 
   // Save colony state
   const saveColony = useCallback(() => {
@@ -1315,7 +1315,7 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
         ...a,
         actions: { ...a.actions }
       })),
-      scent: { ...colony.scent },
+      strength: { ...world.strength },
       positions: nodes.reduce((acc, n) => {
         acc[n.id] = { x: n.position.x, y: n.position.y }
         return acc
@@ -1329,7 +1329,7 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     a.download = `colony-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }, [agents, colony.scent, nodes])
+  }, [agents, world.strength, nodes])
 
   // Load colony state
   const loadColony = useCallback(() => {
@@ -1346,9 +1346,9 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
         const state = JSON.parse(e.target?.result as string) as ColonyState
 
         // Restore scent
-        Object.keys(colony.scent).forEach(key => delete colony.scent[key])
+        Object.keys(world.strength).forEach(key => delete world.strength[key])
         Object.entries(state.scent).forEach(([key, value]) => {
-          colony.scent[key] = value
+          world.strength[key] = value
         })
 
         // Restore positions
@@ -1357,7 +1357,7 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
           position: state.positions[node.id] || node.position
         })))
 
-        onColonyChange?.()
+        onWorldChange?.()
       } catch (err) {
         console.error("Failed to load colony state:", err)
       }
@@ -1366,7 +1366,7 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
 
     // Reset input
     event.target.value = ""
-  }, [colony, setNodes, onColonyChange])
+  }, [colony, setNodes, onWorldChange])
 
   // Drop handler
   const onDrop = useCallback((event: React.DragEvent) => {
@@ -1386,7 +1386,7 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
 
     const newId = `${type}-${Date.now()}`
 
-    const unit = colony.spawn({ receiver: newId })
+    const unit = world.add({ receiver: newId })
     unit.assign("process", (p: unknown) => ({ processed: true, ...(p as object) }))
 
     const newNode: Node = {
@@ -1406,8 +1406,8 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
     }
 
     setNodes(nds => [...nds, newNode])
-    onColonyChange?.()
-  }, [colony, setNodes, onColonyChange, reactFlowInstance])
+    onWorldChange?.()
+  }, [colony, setNodes, onWorldChange, reactFlowInstance])
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -1636,12 +1636,12 @@ function ColonyEditorInner({ colony, agents, highways, onAgentSelect, onColonyCh
 // COLONY EDITOR - Wrapped with ReactFlowProvider
 // ============================================================================
 
-export function ColonyEditor(props: ColonyEditorProps) {
+export function WorldEditor(props: WorldEditorProps) {
   return (
     <ReactFlowProvider>
-      <ColonyEditorInner {...props} />
+      <WorldEditorInner {...props} />
     </ReactFlowProvider>
   )
 }
 
-export default ColonyEditor
+export default WorldEditor

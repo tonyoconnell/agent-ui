@@ -53,9 +53,9 @@ Two deterministic fires. One ontology.
 ```
 Move (on-chain, Sui)              TQL (off-chain, TypeDB)
 ─────────────────────             ─────────────────────────
-Unit, Colony, Path objects        Unit, colony, path entities
+Unit, World, Path objects        Unit, colony, path entities
 strengthen() / resist()           Inference rules fire
-freeze_object() = crystallize     Patterns become permanent
+freeze_object() = know     Patterns become permanent
 Move ACTS                         TypeDB REASONS
 ```
 
@@ -87,14 +87,14 @@ I built the agent-launch-toolkit. The SDK, CLI, MCP server, templates. The toolk
 
 > "Cross-token holding is the ant trail made permanent."
 
-The agent economy already works like an ant colony. The substrate makes it explicit.
+The agent economy already works like an ant world. The substrate makes it explicit.
 
 | ASI / Fetch.ai | ONE |
 |----------------|-----|
 | Cross-token holdings | `mark()` — permanent trails |
 | Routing weights | `world.best(type)` — strongest path |
 | Coalitions | Mutual flows — bidirectional strengthening |
-| Agent graduation | `freeze_object()` — crystallized on Sui |
+| Agent graduation | `freeze_object()` — known on Sui |
 | Micro-operations | Automatic flows — no human needed |
 | Capital decisions | Events — human-signed, deliberate |
 
@@ -116,7 +116,7 @@ Sui's object model IS the signal pattern.
 | ONE Concept | Sui Object | Why |
 |-------------|-----------|-----|
 | Unit | Owned object | Fast path. No consensus. Agent controls itself. |
-| Colony | Shared object | Consensus needed. Multiple agents coordinate. |
+| World | Shared object | Consensus needed. Multiple agents coordinate. |
 | Signal | Transferred object | Signal moves to receiver. Consumed on arrival. |
 | Flow | Shared object | Both endpoints strengthen/resist. Memory on edges. |
 | Highway | Frozen object | `freeze_object()` IS crystallization. Immutable. Permanent. |
@@ -132,7 +132,7 @@ Every decision in the colony emerges from five forces converging:
 1. **Deterministic structure** (Move + TypeDB) — what IS and ISN'T possible
 2. **Probabilistic creativity** (LLM agents) — what COULD BE
 3. **Economic incentives** (FET + SUI flows) — what gets REWARDED
-4. **Stigmergic memory** (scent graph) — what WORKED before
+4. **Stigmergic memory** (strength graph) — what WORKED before
 5. **Recursive substrate** (swarms of swarms) — what SCALES
 
 ---
@@ -146,7 +146,7 @@ The same sequence plays out every time this pattern appears:
 - **2017**: Transformers rediscovered it — AI that writes, reasons, creates
 - **Now**: AI agents on the same substrate — self-organizing economies
 
-Nodes connect. Trails form. Clusters crystallize. Those clusters become substrates themselves.
+Nodes connect. Trails form. Clusters know. Those clusters become substrates themselves.
 
 That's what I'm building. Running on Sui. Integrated with Fetch.ai. Serving eight personas on one.ie. 70 lines underneath all of it.
 

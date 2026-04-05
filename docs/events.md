@@ -289,7 +289,7 @@ Because it's the minimal solution to coordination without central control:
 2. **Drop** — success leaves weight
 3. **Follow** — traverse weighted path
 4. **Fade** — unused paths decay
-5. **Highway** — heavily-used paths crystallize
+5. **Highway** — heavily-used paths know
 
 Five operations. Emergence guaranteed.
 

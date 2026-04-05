@@ -42,14 +42,14 @@ define
 # =============================================================================
 # DIMENSION 1: GROUPS — Containers (Colony structure)
 # =============================================================================
-# Swarms organize the world. Personas, teams, DAOs.
+# Groups organize the world. Personas, teams, DAOs.
 # Hierarchical nesting via parent/child.
 
-entity swarm,
-    owns sid @key,
+entity group,
+    owns gid @key,
     owns name,
     owns purpose,
-    owns swarm-type,              # "persona", "team", "colony", "dao"
+    owns group-type,              # "persona", "team", "colony", "dao"
     owns status,                  # "active", "dormant"
     owns created,
     plays hierarchy:parent,
@@ -240,7 +240,7 @@ relation contribution-event,
 # =============================================================================
 
 # Identifiers
-attribute sid, value string;
+attribute gid, value string;
 attribute uid, value string;
 attribute tid, value string;
 attribute hid, value string;
@@ -257,7 +257,7 @@ attribute statement, value string;
 attribute payload, value string;
 attribute frontier-description, value string;
 attribute objective-description, value string;
-attribute swarm-type, value string;
+attribute group-type, value string;
 attribute unit-kind, value string;
 attribute task-type, value string;
 attribute service-type, value string;
@@ -556,9 +556,9 @@ fun services_by_type($type: string) -> { service }:
     match $s isa service, has service-type $type;
     return { $s };
 
-fun swarm_members($swarm_name: string) -> { unit }:
-    match $sw isa swarm, has name $swarm_name;
-          (group: $sw, member: $u) isa membership;
+fun group_members($group_name: string) -> { unit }:
+    match $g isa group, has name $group_name;
+          (group: $g, member: $u) isa membership;
     return { $u };
 
 

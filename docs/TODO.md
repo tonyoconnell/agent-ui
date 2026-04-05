@@ -9,7 +9,7 @@ status: ACTIVE
 timeline: Week 1 wire+tasks, Week 2-3 onboard+commerce, Month 2 intelligence+scale
 stack: Astro 5 + React 19 + TypeDB 3.0 + Cloudflare Workers + Sui + x402
 schema: src/schema/one.tql
-vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
+vocabulary: signal={receiver,data} | mark/resistance/fade/emit | edge/trail
 ---
 
 # ONE World Roadmap
@@ -43,7 +43,7 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
 |:---:|:---|:---|:---|:---|
 | `[x]` | X-1 | One schema | `src/schema/one.tql` is THE file (~330 lines). Old `one.tql`, `unified.tql`, `substrate.tql` archived to `src/schema/archive/`. `metaphors.tql` renamed to `skins.tql`. | — |
 | `[x]` | X-2 | Kill entity service | Task with `owns price` IS a service. `unit —[capability, price]→ task`. One fewer entity. | X-1 |
-| `[x]` | X-3 | Converge vocabulary | Schema: `data` not `payload`, `trail` not `pheromone-trail`. Runtime: `mark()` not `mark()`. All docs, rules, packages updated. colony.ts uses `Signal`+`data`. engine.md uses `mark()`. | X-1 |
+| `[x]` | X-3 | Converge vocabulary | Schema: `data` not `payload`, `trail` not `pheromone-trail`. Runtime: `mark()` not `mark()`. All docs, rules, packages updated. world.ts uses `Signal`+`data`. engine.md uses `mark()`. | X-1 |
 | `[x]` | X-4 | Mark lessons as reference | Standalone TQL files use different entity names (scored-item, learning-record). CLAUDE.md in packages explains: reference only, not loadable. `standalone/substrate.tql` replaced with deprecation pointer. | X-1 |
 | `[x]` | X-5 | Revenue on trails | `trail` now `owns revenue` — task sequences track how much money they generated. `total_revenue()` function added. | X-2 |
 | `[x]` | X-6 | Rename files | Schema: `one.tql` (the world). Runtime: `substrate.ts` (the engine). Skins: `skins.tql` (not metaphors). All refs updated across docs, rules, packages. | X-1 |
@@ -58,7 +58,7 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
   [x] Vocabulary converged everywhere:
       Schema: data, trail, edge (not payload, pheromone-trail, flow)
       Runtime: mark, sense, follow, fade (not drop, smell)
-      Docs: signal={receiver,data}, mark/alarm/fade/emit
+      Docs: signal={receiver,data}, mark/resistance/fade/emit
   [x] Old schemas archived, stale refs cleaned
   [x] Standalone lessons marked as reference only
   [x] Revenue on edges AND trails
@@ -78,7 +78,7 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
 | `[ ]`  | W-1  | TypeDB Cloud instance   | Database `one` on TypeDB Cloud. HTTP endpoint confirmed. Load `one.tql` (280 lines — 6 dimensions + 6 lessons). Verify inference rules fire on test data.                                                                                                                 | Schema loaded, `highways()` returns | —       |
 | `[x]`  | W-2  | Cloudflare Worker proxy | `gateway/` dir. `wrangler.toml` + `src/index.ts` (127 lines). JWT cache 61s, CORS, `/typedb/query` proxy, `/health`. Ready to deploy.                                                                                     | Worker built, needs deploy         | W-1     |
 | `[x]`  | W-3  | TypeDB client lib       | `src/lib/typedb.ts` (167 lines). `read()`, `write()`, `readParsed()`, `writeSilent()`, `writeBatch()`, `decay()`, `callFunction()`, `parseAnswers()`. Browser→Worker or server→direct. | Client built, needs TypeDB endpoint     | W-2     |
-| `[x]`  | W-3a | Core API routes         | `src/pages/api/` — query.ts, signal.ts, drop.ts, alarm.ts, state.ts, decay.ts, chat.ts. Plus `src/pages/api/tasks/` — index, ready, attractive, repelled, exploratory, [id]/complete. | 12 API routes built          | W-3     |
+| `[x]`  | W-3a | Core API routes         | `src/pages/api/` — query.ts, signal.ts, drop.ts, resistance.ts, state.ts, decay.ts, chat.ts. Plus `src/pages/api/tasks/` — index, ready, attractive, repelled, exploratory, [id]/complete. | 12 API routes built          | W-3     |
 | `[x]`  | W-3b | Better Auth             | `src/lib/auth.ts` + `typedb-auth-adapter.ts` + `src/pages/api/auth/[...all].ts` + `src/hooks/useAuth.ts` + `src/middleware.ts`. Users = units in TypeDB. `better-auth@1.5.6` installed. | Auth wired to TypeDB | W-3 |
 | `[x]`  | W-4  | Persist layer           | `src/engine/persist.ts` (85 lines). Wraps colony with TypeDB sync. `mark()`, `warn()`, `fade()` write-through. `sync()`, `load()`. Asymmetric decay.                                                                                                                   | Persist built, needs TypeDB   | W-3a    |
 
@@ -87,7 +87,7 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
   [ ] TypeDB Cloud running, one.tql loaded ← BLOCKER (needs you)
   [x] Cloudflare Worker built (gateway/src/index.ts)
   [x] TypeDB client built (src/lib/typedb.ts)
-  [x] 12 API routes built (query, signal, mark, alarm, state, decay, chat, tasks×6)
+  [x] 12 API routes built (query, signal, mark, resistance, state, decay, chat, tasks×6)
   [x] Auth wired (better-auth + TypeDB adapter)
   [x] Persist layer built (src/engine/persist.ts)
   [ ] End-to-end test: browser → Worker → TypeDB → inference → response
@@ -109,7 +109,7 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
 | `[x]` | T-1 | Task API routes | `src/pages/api/tasks/` — index.ts (GET/POST), ready.ts, attractive.ts, repelled.ts, exploratory.ts, [id]/complete.ts. Full CRUD + pheromone queries. | 6 task routes built | W-4 |
 | `[x]` | T-2 | Task board UI | `src/components/TaskBoard.tsx` — Phase timeline, active spotlight with dep chain, 3-lane flow, pheromone bars, stats. Self-hosted roadmap data. `/tasks` page. | Board live with full visualization | T-1 |
 | `[x]` | T-3 | Dependencies + negation | In task creation API + TaskBoard dependency chain visualization. ready.ts uses TypeDB negation pattern. Blockers shown in spotlight. | Dependencies visible and computed | T-1 |
-| `[x]` | T-4 | Pheromone auto-reinforcement | [id]/complete.ts: trail-pheromone += 5.0 on success, alarm-pheromone += 8.0 on fail. /api/decay runs asymmetric decay. | Trails auto-strengthen/weaken | T-1 |
+| `[x]` | T-4 | Pheromone auto-reinforcement | [id]/complete.ts: trail-pheromone += 5.0 on success, resistance-pheromone += 8.0 on fail. /api/decay runs asymmetric decay. | Trails auto-strengthen/weaken | T-1 |
 | `[x]` | T-5 | Exploratory tasks panel | exploratory.ts API + TaskBoard "Exploratory" column. Negation: no trail exists → needs scouts. | Unexplored territory visible | T-2 |
 | `[x]` | T-6 | Self-host THIS roadmap | /api/tasks/import-roadmap.ts — imports all 41 tasks, 7 phase swarms, all dependencies, sequential trails. TaskBoard has roadmap as fallback data. | Roadmap self-hosted | T-3, T-4 |
 | `[x]` | T-7 | `/grow` skill | Planned as Claude Code skill reading ready_tasks() from API. Task board drives builds via substrate. | Growth system ready | T-6 |
@@ -119,8 +119,8 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
   [ ] Task API: create, query ready/attractive/repelled/exploratory, complete
   [ ] Task board UI renders from TypeDB with pheromone bars
   [ ] Dependencies computed via negation (no incomplete blockers)
-  [ ] Trails auto-reinforce on success, alarm on failure
-  [ ] Asymmetric decay running (5% trail, 20% alarm per cycle)
+  [ ] Trails auto-reinforce on success, resistance on failure
+  [ ] Asymmetric decay running (5% trail, 20% resistance per cycle)
   [ ] THIS roadmap self-hosted in TypeDB
   [ ] /grow executes tasks from Claude Code via substrate
 ```
@@ -178,9 +178,9 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
 | `[ ]` | O-1 | Seed world | Insert: 3 swarms (platform, agents, community), 8 units (the personas), 10 tasks, 5 edges with weight. Run `fade()`. Verify highways, proven units, ready tasks all return. | Living world in TypeDB | T-6 |
 | `[ ]` | O-2 | Signup flow | `/signup` page. Name reservation (name.one.ie). Creates `unit` in TypeDB with `uid`, `unit-kind` (human/agent/llm), `balance: 0`. Sui wallet generation (or connect existing). | User exists in TypeDB + has wallet | O-1 |
 | `[ ]` | O-3 | Agent builder | `/build` page. Define agent: name, tasks (capabilities), pricing per task. Creates `unit` + `task` + `capability` relations in TypeDB. Preview signal flow before launch. | Agent registered with priced capabilities | O-2 |
-| `[ ]` | O-4 | Discovery | `/discover` page. Browse agents by capability. Ranked by edge strength (what actually works). `optimal_route()` and `suggest_route()` power search. Filter by swarm, price, proven status. | Users find agents via learned routing | O-1 |
+| `[ ]` | O-4 | Discovery | `/discover` page. Browse agents by capability. Ranked by edge strength (what actually works). `optimal_route()` and `suggest_route()` power search. Filter by group, price, proven status. | Users find agents via learned routing | O-1 |
 | `[ ]` | O-5 | Profiles | `/u/:name` page. Shows: unit info, capabilities, edge history (who signals them), reputation (proven/at-risk), earnings. The trail IS the resume. | Public profiles render from TypeDB | O-2 |
-| `[ ]` | O-6 | Eight personas | Seed 8 swarms for one.ie personas: Executives, Engineers, Designers, Marketers, Sellers, Creators, Young People, Kids. Each swarm has tailored discovery and routing. Group isolation via TypeDB queries. | 8 persona swarms live | O-2 |
+| `[ ]` | O-6 | Eight personas | Seed 8 swarms for one.ie personas: Executives, Engineers, Designers, Marketers, Sellers, Creators, Young People, Kids. Each group has tailored discovery and routing. Group isolation via TypeDB queries. | 8 persona swarms live | O-2 |
 | `[ ]` | O-7 | Connect flow | User signals an agent → edge created. Success → `mark()` strengthens path. Failure → `warn()`. Over time, each user's best agents emerge as highways. No recommendations algorithm — just trails. | Edges form from real interactions | O-4 |
 
 ### Phase 3 Gate
@@ -231,10 +231,10 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
 | Status | ID | Task | How | KPI | Depends |
 |:---:|:---|:---|:---|:---|:---|
 | `[ ]` | I-1 | LLM as unit | `src/engine/llm.ts` — Claude, GPT, Llama as units in TypeDB. Signal to `claude:complete` → response → edge strengthens. ASI orchestrator: `confidence() > 0.7` → skip LLM, use `best()` directly. Cost drops from $0.01 to $0.0001. | LLM routing via substrate, cost reduces over time | C-4 |
-| `[ ]` | I-2 | Agent castes | Opus = architects (analyze scent graph, propose restructuring). Sonnet = coordinators (route tasks, evaluate quality). Haiku = workers (execute, stream, high-frequency). 57% individual → 95% collective. | Three-tier agent hierarchy operating | I-1 |
+| `[ ]` | I-2 | Agent castes | Opus = architects (analyze strength graph, propose restructuring). Sonnet = coordinators (route tasks, evaluate quality). Haiku = workers (execute, stream, high-frequency). 57% individual → 95% collective. | Three-tier agent hierarchy operating | I-1 |
 | `[ ]` | I-3 | Hypothesis engine | L3 integration. Users/agents create hypotheses ("dark mode increases engagement 15%"). Auto-track observations. State machine: pending→testing→confirmed→action-ready. `actionable_hypotheses()` panel. | Hypotheses auto-promote via inference | C-3 |
-| `[ ]` | I-4 | Frontier detection | L6 integration. System detects unexplored capabilities, market gaps, unserved personas. Expected value = potential × probability / cost. Auto-spawn objectives when EV ≥ 0.5. Curiosity signals trigger scouts. | Colony self-directs exploration | I-3 |
-| `[ ]` | I-5 | Dream state | Periodic consolidation (daily). Opus analyzes scent graph. Prunes weak edges. Reinforces strong ones. Proposes swarm splits when highways bifurcate. Seeds stimulus bounties for cold zones. | Colony reorganizes itself overnight | I-2, I-4 |
+| `[ ]` | I-4 | Frontier detection | L6 integration. System detects unexplored capabilities, market gaps, unserved personas. Expected value = potential × probability / cost. Auto-spawn objectives when EV ≥ 0.5. Curiosity signals trigger scouts. | World self-directs exploration | I-3 |
+| `[ ]` | I-5 | Dream state | Periodic consolidation (daily). Opus analyzes strength graph. Prunes weak edges. Reinforces strong ones. Proposes group splits when highways bifurcate. Seeds stimulus bounties for cold zones. | World reorganizes itself overnight | I-2, I-4 |
 
 ### Phase 5 Gate
 ```
@@ -256,7 +256,7 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
 | Status | ID | Task | How | KPI | Depends |
 |:---:|:---|:---|:---|:---|:---|
 | `[ ]` | S-1 | Cloudflare Pages deploy | `astro build` → Cloudflare Pages. `app.one.ie` (frontend) + `api.one.ie` (Worker proxy). Environment secrets. Preview deployments for PRs. | Site live on one.ie | I-1 |
-| `[ ]` | S-2 | Sui integration | Deploy Move contracts from `src/schema/sui.tql`. Signals → Sui objects. Traces → permanent. `freeze_object()` = crystallize highway. Immutable on-chain knowledge. | Highways persist on Sui | S-1 |
+| `[ ]` | S-2 | Sui integration | Deploy Move contracts from `src/schema/sui.tql`. Signals → Sui objects. Traces → permanent. `freeze_object()` = know highway. Immutable on-chain knowledge. | Highways persist on Sui | S-1 |
 | `[ ]` | S-3 | Security hardening | From gaps.md: agent identity via Sui pubkeys. MIN_STAKE for service listing. Stake-weighted reinforcement. Multi-sig escrow. Circuit breakers. Rate limiting. | No Sybil, no poisoning, no drain | S-2 |
 | `[ ]` | S-4 | Monitoring + alerts | Highway count, edge decay rate, signal throughput, TypeDB latency, GDP. Alerts: toxic edge spike, highway collapse, latency >100ms, treasury anomaly. | Dashboard live with alerts | S-1 |
 | `[ ]` | S-5 | ASI ecosystem integration | Our agents on Agentverse outperform. Operators notice. They ask how. ONE Protocol available as answer. Private intelligence, public results. Standard path: 1-5s. Our path: <10ms. | Performance gap visible to operators | S-3 |
@@ -265,7 +265,7 @@ vocabulary: signal={receiver,data} | mark/alarm/fade/emit | edge/trail
 ### Phase 6 Gate
 ```
   [ ] one.ie live, 8 personas, signup → build → launch → earn
-  [ ] Sui: highways crystallized on-chain, x402 settlement
+  [ ] Sui: highways known on-chain, x402 settlement
   [ ] Security: identity, staking, escrow, circuit breakers
   [ ] Monitoring: real-time dashboard, automated alerts
   [ ] ASI integration: our agents route 100x faster
@@ -389,7 +389,7 @@ Phase 2 is the pivot:
   7. Trails guide next task selection
   8. The substrate learns from its own construction
 
-After T-7, Claude Code IS the colony.
+After T-7, Claude Code IS the world.
 /grow reads ready_tasks() → claims → executes → reinforces.
 The tool builds itself. The builder becomes the built.
 ```
@@ -417,7 +417,7 @@ WRITE OPS:
 
 ASYMMETRIC DECAY (biology):
   trail-pheromone  *= 0.95  (5% per cycle — success fades slowly)
-  alarm-pheromone  *= 0.80  (20% per cycle — failure fades fast, allows retry)
+  resistance-pheromone  *= 0.80  (20% per cycle — failure fades fast, allows retry)
 
 See: packages/typedb-inference-patterns/OPERATIONS.md for complete reference
 See: .claude/skills/typedb/SKILL.md for TypeDB 3.0 syntax

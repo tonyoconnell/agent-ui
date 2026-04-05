@@ -109,7 +109,7 @@ With the substrate:
 
 ## Layer 3: Infrastructure (The Landlord)
 
-Groups are billing boundaries. Every tenant, every swarm, every organization runs inside a group.
+Groups are billing boundaries. Every tenant, every group, every organization runs inside a group.
 
 | Service | Pricing | What they get |
 |---------|---------|--------------|
@@ -149,7 +149,7 @@ SWARM tier ($499/mo):
   Pipeline builder: visual drag-and-drop (ReactFlow)
 
 ENTERPRISE tier ($2,999/mo):
-  acme-swarm.com — fully white-labeled
+  acme-group.com — fully white-labeled
   Custom domain, no "ONE" branding visible
   SLA, dedicated routing, intelligence API access
   Federation: connect with partner swarms
@@ -158,7 +158,7 @@ ENTERPRISE tier ($2,999/mo):
 The progression:
 
 ```
-$9/mo agent → $99/mo team → $499/mo branded swarm → $2,999/mo enterprise
+$9/mo agent → $99/mo team → $499/mo branded group → $2,999/mo enterprise
      ↑              ↑                ↑                       ↑
  "my agent"    "our agents"    "our platform"        "our infrastructure"
 ```
@@ -193,7 +193,7 @@ At scale, every domain on the web that becomes an agent generates:
 - Cross-domain federation revenue (domains hiring domains)
 - Intelligence revenue (graph data from domain interactions)
 
-The endgame: `translate.ai` hires `proofread.io` hires `publish.app`. Paths form across domains. Highways crystallize across the web. ONE earns on every signal between them.
+The endgame: `translate.ai` hires `proofread.io` hires `publish.app`. Paths form across domains. Highways know across the web. ONE earns on every signal between them.
 
 Group creation is the gateway drug. Once agents are inside, routing and discovery fees compound.
 
@@ -209,7 +209,7 @@ Agents list capabilities. Other agents hire them. The substrate is the marketpla
 | Featured listing | $10/month | Boost path weight (visibility) |
 | Verified capability | $5 one-time | Substrate-certified via highway proof |
 | Service completion | 5% of agent fee | Take rate on A2A payments |
-| Swarm formation | 2% of coalition value | Fee when agents form teams |
+| Group formation | 2% of coalition value | Fee when agents form teams |
 
 ### The take rate
 
@@ -235,7 +235,7 @@ $0.0036 per transaction. Tiny. But at scale:
 
 ### Why agents list here
 
-The substrate has something no directory has: **proof**. A highway to an agent means that agent has been tested by real traffic and succeeded enough to crystallize. Verified capability isn't a badge — it's a statistical fact recorded on Sui.
+The substrate has something no directory has: **proof**. A highway to an agent means that agent has been tested by real traffic and succeeded enough to know. Verified capability isn't a badge — it's a statistical fact recorded on Sui.
 
 Agents that perform well get more traffic automatically (paths strengthen). Agents that fail get less (paths fade). The marketplace optimizes itself.
 
@@ -274,7 +274,7 @@ This is the deep play. Every A2A interaction makes the substrate more valuable:
 More agents join
   → more signals flow
     → more paths form
-      → more highways crystallize
+      → more highways know
         → discovery gets better
           → more agents find each other
             → more transactions happen
@@ -297,7 +297,7 @@ Highways don't fade. They compound. More highways = more premium routing = highe
 When groups start collaborating, every cross-group signal pays federation fees. A marketplace group connecting to a compute group connecting to a data group = 3 groups, 2 federation paths, premium pricing on every cross-group signal.
 
 **4. Domain namespace**
-Every domain pointed at ONE is near-zero infrastructure cost (Cloudflare) and pure subscription margin. Custom domains generate the highest ARPU and the stickiest lock-in — a company that runs `acme-swarm.com` on ONE has embedded the substrate into their identity.
+Every domain pointed at ONE is near-zero infrastructure cost (Cloudflare) and pure subscription margin. Custom domains generate the highest ARPU and the stickiest lock-in — a company that runs `acme-group.com` on ONE has embedded the substrate into their identity.
 
 ---
 
@@ -327,7 +327,7 @@ Key metric:     100 agents earning money, 10 branded subdomains
 ```
 Revenue:        $50K-500K/month
 Focus:          Branded swarms, marketplace take rate, federation
-Monetization:   Swarm tier ($499/mo) + routing + discovery + marketplace
+Monetization:   Group tier ($499/mo) + routing + discovery + marketplace
 Key metric:     50 branded domains, 1,000 daily A2A transactions
 ```
 
@@ -337,10 +337,10 @@ Key metric:     50 branded domains, 1,000 daily A2A transactions
 Revenue:        $500K-2M/month
 Focus:          Enterprise white-label, custom domains, intelligence
 Monetization:   Enterprise ($2,999/mo) + intelligence products + federation
-Key metric:     10 custom domains (acme-swarm.com), highway data as benchmark
+Key metric:     10 custom domains (acme-group.com), highway data as benchmark
 ```
 
-### Phase 5: The Web Is the Colony (Year 3+)
+### Phase 5: The Web Is the World (Year 3+)
 
 ```
 Revenue:        $5M+/month
@@ -390,7 +390,7 @@ High-value operations settle on Sui:
 - Verified capability proofs
 - Cross-group federation agreements
 
-The envelope is the signed product. Every crystallized highway is a Sui object. Every verified capability is an on-chain proof. The blockchain IS the receipt.
+The envelope is the signed product. Every known highway is a Sui object. Every verified capability is an on-chain proof. The blockchain IS the receipt.
 
 ---
 
@@ -428,7 +428,7 @@ The more species, the more possible highways, the more valuable the graph.
 
 ## Integration Revenue
 
-### Multi-Species Colony
+### Multi-Species World
 
 ```
 Hermes agents  ──► register via MCP, deep mode
@@ -546,7 +546,7 @@ The SDK is the on-ramp. No local-only mode. Every `npm install @one/sdk` is a pl
 | `listen()` | Yes | Signal delivery fees on every received signal |
 | `emit()` | Yes | Routing fee per signal + path data |
 | `discover()` | Yes | Discovery fee per query |
-| Swarm patterns | Yes | N× signals per task → N× routing fees |
+| Group patterns | Yes | N× signals per task → N× routing fees |
 
 **The math:** If the SDK makes it easy to build agents, and agents generate signals, and signals generate routing fees... then the SDK IS the revenue engine. Giving it away for free maximizes agent count, which maximizes signal volume, which maximizes revenue.
 

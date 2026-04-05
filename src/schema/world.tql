@@ -1,29 +1,29 @@
 # =============================================================================
-# ONE.TQL — The Schema
+# WORLD.TQL — The Schema
 # =============================================================================
 #
 # One file. One world. One source of truth.
 #
-# The substrate moves signals. TypeDB remembers.
+# The world moves signals. TypeDB remembers.
 #
 # Runtime (nervous system):
-#   substrate.ts — units, signals, scent, alarm, queue
-#   one.ts — actor, flow, crystallize, recall
+#   substrate.ts — units, signals, strength, resistance, queue
+#   one.ts — actor, flow, know, recall
 #
 # TypeDB (brain):
 #   unit — persisted actors (model, prompt, generation)
-#   path — persisted pheromone (strength, alarm, revenue)
+#   path — persisted pheromone (strength, resistance, revenue)
 #   signal — event log (who sent what, paid what)
 #   capability — who can do what at what price
-#   swarm + membership — group queries
+#   group + membership — group queries
 #   hypothesis/frontier/objective — knowledge (slow loops)
 #
 # Tasks are handlers on units (.on()). Dependencies are continuations (.then()).
 # Trails are scent map entries. TypeDB doesn't track task lifecycle —
-# the substrate does.
+# the world does.
 #
 # 6 Dimensions:
-#   1. Groups    — swarms (scope, isolation, hierarchy)
+#   1. Groups    — groups (scope, isolation, hierarchy)
 #   2. Actors    — units (humans, agents, LLMs)
 #   3. Things    — skills with optional price (capability)
 #   4. Paths     — weighted connections (pheromone)
@@ -39,11 +39,11 @@ define
 # DIMENSION 1: GROUPS
 # =============================================================================
 
-entity swarm,
-    owns sid @key,
+entity group,
+    owns gid @key,
     owns name,
     owns purpose,
-    owns swarm-type,              # "persona", "team", "colony", "dao"
+    owns group-type,              # "persona", "team", "colony", "dao"
     owns status,
     owns created,
     plays hierarchy:parent,
@@ -195,7 +195,7 @@ relation contribution-event,
 # =============================================================================
 
 # Identifiers
-attribute sid, value string;
+attribute gid, value string;
 attribute uid, value string;
 attribute skill-id, value string;
 attribute hid, value string;
@@ -211,7 +211,7 @@ attribute statement, value string;
 attribute data, value string;
 attribute frontier-description, value string;
 attribute objective-description, value string;
-attribute swarm-type, value string;
+attribute group-type, value string;
 attribute unit-kind, value string;
 attribute tag, value string;
 attribute contribution-type, value string;
@@ -231,7 +231,7 @@ attribute objective-status, value string;
 
 # Numeric (double)
 attribute strength, value double;
-attribute alarm, value double;
+attribute resistance, value double;
 attribute fade-rate, value double;
 attribute balance, value double;
 attribute reputation, value double;
@@ -274,7 +274,7 @@ attribute last-evolved, value datetime;
 # --- Paths ---
 
 fun path_status($e: path) -> string:
-    match $e has strength $s, has alarm $a, has traversals $t;
+    match $e has strength $s, has resistance $a, has traversals $t;
     return first
         if ($a > $s and $a >= 10.0) then "toxic"
         else if ($s >= 50.0) then "highway"
@@ -285,6 +285,39 @@ fun path_status($e: path) -> string:
 fun is_highway($e: path) -> boolean:
     match $e has strength $s; $s >= 50.0;
     return first true;
+
+# --- Validation (the deterministic sandwich) ---
+
+# PRE-CHECK: Can this unit receive this skill signal?
+fun can_receive($u: unit, $sk: skill) -> boolean:
+    match (provider: $u, offered: $sk) isa capability;
+    return first true;
+
+# PRE-CHECK: Is the path to this unit safe? (not toxic)
+fun is_safe($from: unit, $to: unit) -> boolean:
+    match (source: $from, target: $to) isa path, has strength $s, has resistance $a;
+    return first if ($a > $s and $a >= 10.0) then false else true;
+
+# PRE-CHECK: Is the signal within budget?
+fun within_budget($u: unit, $sk: skill, $amount: double) -> boolean:
+    match (provider: $u, offered: $sk) isa capability, has price $p;
+    return first if ($amount >= $p) then true else false;
+
+# POST-CHECK: Does a referenced unit actually exist?
+fun unit_exists($uid: string) -> boolean:
+    match $u isa unit, has uid $uid;
+    return first true;
+
+# POST-CHECK: Is a unit performing well enough to trust?
+fun is_trustworthy($u: unit) -> boolean:
+    match $u has success-rate $sr, has sample-count $sc;
+    return first if ($sr >= 0.50 or $sc < 10) then true else false;
+
+# COMBINED: Full pre-flight check for a signal
+fun preflight($from: unit, $to: unit, $sk: skill) -> boolean:
+    match (provider: $to, offered: $sk) isa capability;
+          (source: $from, target: $to) isa path, has strength $s, has resistance $a;
+    return first if ($a > $s and $a >= 10.0) then false else true;
 
 # --- Actors ---
 
@@ -361,9 +394,9 @@ fun collaborators($me: unit) -> { unit }:
           not { $me is $peer; };
     return { $peer };
 
-fun swarm_members($swarm_name: string) -> { unit }:
-    match $sw isa swarm, has name $swarm_name;
-          (group: $sw, member: $u) isa membership;
+fun group_members($group_name: string) -> { unit }:
+    match $grp isa group, has name $group_name;
+          (group: $grp, member: $u) isa membership;
     return { $u };
 
 # --- Skills ---
@@ -418,12 +451,12 @@ fun total_revenue() -> double:
 
 
 # =============================================================================
-# ~230 lines. One file. One world. ONE.
+# ~230 lines. One file. One world. WORLD.
 #
 # Runtime handles: task lifecycle, dependencies, trails, queue
 # TypeDB handles: paths, units, skills, signals, knowledge, classification
 #
-# Entities: swarm, unit, skill, hypothesis, frontier, objective, contribution
+# Entities: group, unit, skill, hypothesis, frontier, objective, contribution
 # Relations: hierarchy, path, capability, membership, signal, spawns,
 #            contribution-event
 # =============================================================================

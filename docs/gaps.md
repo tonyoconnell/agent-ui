@@ -12,7 +12,7 @@
 | **TypeQL Schemas** (src/schema/) | 1,606 | Production-quality — 6 dimensions, inference rules, metaphors |
 | **Inference Patterns** (packages/) | 4,157 | Reference library — biology-grounded, 6 lessons |
 | **UI Components** (src/components/) | 4,660 | Polished — graph editor, metaphor switching, world view |
-| **Move Contract** (src/move/) | 335 | Complete — Unit, Colony, Signal, Path, Highway on Sui |
+| **Move Contract** (src/move/) | 335 | Complete — Unit, World, Signal, Path, Highway on Sui |
 | **LLM Adapters** (src/engine/llm.ts) | 40 | Wired — Anthropic + OpenAI, unit-based |
 
 **Architecture: 80% implemented. Integration: 20% implemented.**
@@ -59,7 +59,7 @@ src/components/graph/*             → graph manipulation works, not persisted
 | Coinbase | Key + secret | None |
 | Hyperliquid | — | None |
 
-**Fix:** Build oracle units — each data source becomes a unit that emits signals. Pattern exists in examples.md (trading swarm).
+**Fix:** Build oracle units — each data source becomes a unit that emits signals. Pattern exists in examples.md (trading group).
 
 ### 4. LLM Not Wired to UI
 
@@ -100,7 +100,7 @@ Move contract: Unit has no pubkey field yet
 ### 7. Payment / Escrow Empty
 
 ```
-Move: Unit.balance exists, Colony.treasury exists
+Move: Unit.balance exists, World.treasury exists
 Move: dissolve() returns balance to treasury
 Missing: transfer(), escrow(), settle() functions
 Stripe/Coinbase: keys configured, zero code
@@ -114,7 +114,7 @@ Stripe/Coinbase: keys configured, zero code
 
 | Attack | Fix | Blocked By |
 |--------|-----|-----------|
-| Sybil swarm | Pubkeys + MIN_STAKE | Gap 6 (identity) |
+| Sybil group | Pubkeys + MIN_STAKE | Gap 6 (identity) |
 | Path poisoning | Stake-weighted reinforcement | Gap 7 (payment) |
 | Treasury drain | Multi-sig escrow | Gap 5 (Move deploy) + Gap 7 |
 
@@ -152,7 +152,7 @@ Each gap unblocks the next. TypeDB is the keystone. Agent registry is the first 
 | MCP Server | No `gateway/mcp-one/` | Build MCP server exposing substrate tools |
 | AI SDK Control | `streamText()` exists but no substrate tools | Add signal/mark/discover as AI SDK tools |
 | AGENTS.md Gen | No script to generate from TypeDB | Build `scripts/generate_agents_md.py` |
-| Multi-Species | Colony assumes single agent type | Add species-aware routing to `optimal_route()` |
+| Multi-Species | World assumes single agent type | Add species-aware routing to `optimal_route()` |
 
 ---
 

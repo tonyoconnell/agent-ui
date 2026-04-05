@@ -1,10 +1,10 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# METAPHORS.TQL — Core Ontology for All Domains
+# SKINS.TQL — Core Ontology for All Domains
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # One schema. Many interpretations.
 #
-#   Ant Colony:  ant, nest, scent, trail, forage
+#   Ant World:   ant, nest, strength, trail, forage
 #   Brain:       neuron, network, impulse, pathway, fire
 #   Team:        agent, team, task, workflow, delegate
 #   Mail:        mailbox, office, envelope, route, deliver
@@ -60,7 +60,7 @@ relation membership,
 # CARRIERS — Things that flow
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-#   scent / impulse / task / envelope / drop / signal
+#   strength / impulse / task / envelope / drop / signal
 #
 # Note: Carriers are ephemeral in runtime, but we track their patterns here
 #
@@ -83,7 +83,7 @@ relation connection,
     relates target,
     owns carrier-kind,        # What type flows here
     owns weight,              # Success strength (pheromone / potential)
-    owns alarm,               # Failure strength (alarm / inhibition)
+    owns resistance,          # Failure strength (resistance / inhibition)
     owns hits,                # Successful traversals
     owns misses,              # Failed traversals
     owns connection-status;   # "highway", "fading", "toxic" (inferred)
@@ -137,7 +137,7 @@ attribute schema-hint, value string;
 attribute connection-id, value string;
 attribute carrier-kind, value string;
 attribute weight, value double;
-attribute alarm, value double;
+attribute resistance, value double;
 attribute hits, value integer;
 attribute misses, value integer;
 attribute connection-status, value string;
@@ -180,7 +180,7 @@ rule fading:
 # Toxic: failure dominates success
 rule toxic:
     when {
-        $c isa connection, has alarm $a, has weight $w;
+        $c isa connection, has resistance $a, has weight $w;
         $a > $w;
         $a >= 10.0;
     }
@@ -190,7 +190,7 @@ rule toxic:
 rule proven-actor:
     when {
         $a isa actor;
-        $c (target: $a) isa connection, has weight $w, has alarm $al;
+        $c (target: $a) isa connection, has weight $w, has resistance $al;
         $w >= 20.0;
         $w > ($al * 2.0);
     }
@@ -200,7 +200,7 @@ rule proven-actor:
 rule at-risk-actor:
     when {
         $a isa actor;
-        $c (target: $a) isa connection, has alarm $al, has weight $w;
+        $c (target: $a) isa connection, has resistance $al, has weight $w;
         $al >= 10.0;
         $al > $w;
     }

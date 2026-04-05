@@ -1,12 +1,12 @@
 /**
  * LOOP — The growth tick
  *
- * The closed loop: select → ask → mark/warn → fade → evolve → crystallize → frontier.
+ * The closed loop: select → ask → mark/warn → fade → evolve → know → frontier.
  * Every tick makes the colony smarter. No external feedback needed.
  */
 
 import { readParsed, writeSilent } from '@/lib/typedb'
-import type { World } from './one'
+import type { PersistentWorld } from './persist'
 
 type Complete = (prompt: string) => Promise<string>
 
@@ -26,8 +26,9 @@ let lastDecay = 0
 let lastEvolve = 0
 let lastCrystallize = 0
 let previousTarget: string | null = null
+let chainDepth = 0  // Fix 5: longer successful chains = stronger marks
 
-export const tick = async (net: World, complete?: Complete): Promise<TickResult> => {
+export const tick = async (net: PersistentWorld, complete?: Complete): Promise<TickResult> => {
   const now = Date.now()
   cycle++
   const result: TickResult = { cycle, selected: null, success: null, highways: [] }
@@ -37,19 +38,37 @@ export const tick = async (net: World, complete?: Complete): Promise<TickResult>
   if (next) {
     result.selected = next
     const outcome = await net.ask({ receiver: next })
-    const success = outcome !== undefined
-    result.success = success
-
-    // L2: reinforce or alarm the edge
     const edge = previousTarget ? `${previousTarget}→${next}` : `entry→${next}`
-    success ? net.mark(edge, 1) : net.warn(edge, 1)
-    previousTarget = success ? next : null
+
+    if (outcome.result !== undefined) {
+      // Success: reinforce the path. Longer chains = stronger signal (quality indicator).
+      chainDepth++
+      net.mark(edge, Math.min(chainDepth, 5))  // cap at 5x — chain of 5 successes = strong mark
+      previousTarget = next
+      result.success = true
+    } else if (outcome.timeout) {
+      // Timeout: NOT the agent's fault. Don't warn. Don't break the chain.
+      // The path keeps its current strength — neutral outcome.
+      result.success = null
+    } else if (outcome.dissolved) {
+      // Dissolved: unit missing or capability missing. Mild warn (half strength).
+      net.warn(edge, 0.5)
+      previousTarget = null
+      chainDepth = 0
+      result.success = false
+    } else {
+      // Actual failure: the agent responded with nothing useful. Full warn.
+      net.warn(edge, 1)
+      previousTarget = null
+      chainDepth = 0
+      result.success = false
+    }
   }
 
   // L1: DRAIN — process highest-priority queued signal
   net.drain()
 
-  // L3: FADE — every 5 minutes (asymmetric: alarm decays 2x)
+  // L3: FADE — every 5 minutes (asymmetric: resistance decays 2x)
   if (now - lastDecay > 300_000) {
     net.fade(0.05)
     lastDecay = now
@@ -89,8 +108,8 @@ export const tick = async (net: World, complete?: Complete): Promise<TickResult>
 
   // L6+L7: CRYSTALLIZE + HYPOTHESIZE + FRONTIER — every hour
   if (now - lastCrystallize > 3_600_000) {
-    // L6: crystallize strong paths
-    const insights = await net.crystallize()
+    // L6: know strong paths
+    const insights = await net.know()
 
     // L6: auto-hypothesize from state changes
     let hypoCount = 0
@@ -118,7 +137,7 @@ export const tick = async (net: World, complete?: Complete): Promise<TickResult>
     const byTag: Record<string, string[]> = {}
     for (const r of tagRows) (byTag[r.tag as string] ||= []).push(r.sid as string)
 
-    const explored = new Set(Object.keys(net.scent).flatMap(e => e.split('→')))
+    const explored = new Set(Object.keys(net.strength).flatMap(e => e.split('→')))
     let frontierCount = 0
     for (const [tag, skills] of Object.entries(byTag)) {
       const unexplored = skills.filter(s => !explored.has(s))

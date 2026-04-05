@@ -21,7 +21,7 @@
 ```
 src/engine/substrate.ts    →  70 lines, the substrate
 src/engine/unit.ts         →  Legacy compatible
-src/engine/colony.ts       →  Legacy compatible
+src/engine/world.ts       →  Legacy compatible
 ```
 
 ## The Primitive
@@ -71,14 +71,14 @@ ctx: { from, self }                // Know identity
 emit(signal)                       // Fan out
 ```
 
-### Colony Editor (Interactive)
+### World Editor (Interactive)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
 │   OBSERVE                        INTERACT                                   │
 │   ───────                        ────────                                   │
-│   • Colony graph                 • Draw edges (drag handle → handle)        │
+│   • World graph                 • Draw edges (drag handle → handle)        │
 │   • Edge weights                 • Pheromone editor (click edge)            │
 │   • Heat map mode                • Signal injection (double-click node)     │
 │   • Superhighway detection       • Spawn nodes (drag from palette)          │
@@ -124,8 +124,8 @@ emit(signal)                       // Fan out
 - [x] Incoming/outgoing edges per agent
 - [x] Integrated in Flow view
 
-### ✓ Phase 5: Colony Tab
-- [x] Colony tab in navigation
+### ✓ Phase 5: World Tab
+- [x] World tab in navigation
 - [x] `ColonyGraph.tsx` — full network visualization
 - [x] `ColonyEditor.tsx` — interactive editing
 
@@ -173,7 +173,7 @@ The substrate supports all planned AI agent patterns:
     emit({ receiver: to, data: { received: amount } }))
 })
 
-// Swarm Formation
+// Group Formation
 .on('join', ({ capabilities }, emit, { from }) => {
   registry[from] = capabilities
   Object.keys(registry).forEach(id =>
@@ -195,7 +195,7 @@ The substrate supports all planned AI agent patterns:
 src/engine/
 ├── substrate.ts              # 70 lines — THE FOUNDATION
 ├── unit.ts                   # Legacy compatible
-├── colony.ts                 # Legacy compatible
+├── world.ts                 # Legacy compatible
 └── index.ts                  # Exports
 
 src/components/
@@ -234,7 +234,7 @@ net.send({ receiver: 'ingest:twitter', data: { query: '#bitcoin' } })
 net.send({ receiver: 'ingest:rss', data: { feeds: [...] } })
 ```
 
-### Phase 8: Multi-Colony
+### Phase 8: Multi-World
 
 ```typescript
 // Federation between colonies
@@ -248,7 +248,7 @@ colonyA.highways() + colonyB.highways()
 
 ```typescript
 // TypeDB integration
-typedb.insert(colony.scent)
+typedb.insert(world.strength)
 typedb.query('match $e isa path, has strength > 50')
 ```
 
@@ -288,5 +288,5 @@ Everything emerges.
 - [emergence.md](emergence.md) — Theory behind the emergent intelligence system
 - [TODO-emerge.md](TODO-emerge.md) — Detailed task tracking
 - [agents.md](agents.md) — Agent patterns implemented in the substrate
-- [swarm.md](swarm.md) — Coordination patterns the colony enables
+- [group.md](group.md) — Coordination patterns the colony enables
 - [code.md](code.md) — The 70-line substrate implementation

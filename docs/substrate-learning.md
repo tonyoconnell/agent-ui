@@ -29,7 +29,7 @@ This is reinforcement learning without:
 The substrate does both routing AND learning with:
 ```
 mark(edge)           →  add weight to path
-mark(edge, false)    →  resist (alarm pheromone)
+mark(edge, false)    →  resist (resistance pheromone)
 fade()               →  decay / forget / explore
 ```
 
@@ -70,15 +70,15 @@ async function mark(group: string, from: string, to: string, score: number) {
   `)
 }
 
-// mark(edge, false) → TypeDB (alarm pheromone)
+// mark(edge, false) → TypeDB (resistance pheromone)
 async function resist(group: string, from: string, to: string, score: number) {
   await tx.query(`
     match 
       $g isa group, has gid "${group}";
       $e isa path, has eid "${from}→${to}";
       (container: $g, member: $e) isa membership;
-      ?current = $e.alarm;
-    update $e has alarm (?current + ${score});
+      ?current = $e.resistance;
+    update $e has resistance (?current + ${score});
   `)
 }
 
@@ -87,9 +87,9 @@ async function fade(group: string, rate = 0.1) {
   await tx.query(`
     match 
       $g isa group, has gid "${group}";
-      $e isa path, has weight $w, has alarm $a;
+      $e isa path, has weight $w, has resistance $a;
       (container: $g, member: $e) isa membership;
-    update $e has weight ($w * ${1 - rate}), has alarm ($a * ${1 - rate});
+    update $e has weight ($w * ${1 - rate}), has resistance ($a * ${1 - rate});
   `)
 }
 
@@ -115,7 +115,7 @@ async function toxic() {
 
 ```tql
 fun path_status($e: path) -> string:
-    match $e has strength $s, has alarm $a, has traversals $t;
+    match $e has strength $s, has resistance $a, has traversals $t;
     return first
         if ($a > $s and $a >= 10.0) then "toxic"
         else if ($s >= 50.0) then "highway"
@@ -151,7 +151,7 @@ The substrate doesn't care. It routes signals, drops on paths, fades weights. In
 > "The task an ant performs depends not on any property of the individual, but on what it has experienced recently."
 > — Deborah Gordon
 
-No ant knows the colony's goal. No unit knows the system's objective. But highways form. Toxic paths clear. The swarm learns.
+No ant knows the colony's goal. No unit knows the system's objective. But highways form. Toxic paths clear. The group learns.
 
 ## ONE Ontology: The Complete Picture
 

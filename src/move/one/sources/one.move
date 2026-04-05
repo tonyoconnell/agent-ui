@@ -70,7 +70,7 @@ module one::substrate {
 
     /// Colony — a group of units.
     /// Shared object: multiple units read/write.
-    /// TQL: entity swarm, owns sid @key ...
+    /// TQL: entity group, owns gid @key ...
     public struct Colony has key {
         id: UID,
         name: String,

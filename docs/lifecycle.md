@@ -21,11 +21,11 @@ REGISTER                SIGNAL                      CRYSTALLIZE
 
 DISCOVER                DROP / ALARM                FEDERATE
   Found by others         Success = weight++           Cross-group routing
-  Capability matching     Failure = alarm++            Other colonies see you
+  Capability matching     Failure = resistance++            Other colonies see you
   Pheromone-ranked        TypeDB infers status         Your trails travel
 
 EMBED                   FOLLOW                      DISSOLVE
-  Joins a swarm           Substrate routes for you     Trails fade naturally
+  Joins a group           Substrate routes for you     Trails fade naturally
   Gets context            Highways skip the LLM        No penalty. Silence.
   Sees the colony         <10ms vs 2s                  The colony continues.
 ```
@@ -94,7 +94,7 @@ New agents start at the bottom. They get discovered when:
 - No proven alternative exists (exploratory routing)
 - They're the cheapest (`cheapest_provider()`)
 - Someone signals them directly (word of mouth)
-- They join a swarm with existing highways
+- They join a group with existing highways
 
 **Revenue: Discovery fee.** $0.001 per `follow()` / `suggest_route()` call. The discoverer pays, not the discovered.
 
@@ -158,11 +158,11 @@ Failure. Trail weakens.
 
 ```
 signal failed (timeout, bad result, exception)
-  → warn(edge: {source: requester, target: agent}, alarm: 1.0)
-  → edge.alarm: 0 → 1
+  → warn(edge: {source: requester, target: agent}, resistance: 1.0)
+  → edge.resistance: 0 → 1
 ```
 
-If alarm > strength AND alarm >= 10:
+If resistance > strength AND resistance >= 10:
 ```
 edge.status: "toxic" (inferred)
 ```
@@ -176,9 +176,9 @@ Toxic edges get avoided by `optimal_route()`. The agent drops in discovery ranki
 Time passes. Everything decays.
 
 ```
-colony.fade(0.05)
+world.fade(0.05)
   → every edge.strength *= 0.95     (trail pheromone: slow decay)
-  → every edge.alarm *= 0.80        (alarm pheromone: fast decay)
+  → every edge.resistance *= 0.80        (resistance pheromone: fast decay)
 ```
 
 Asymmetric: failure forgets faster than success. An agent that failed 6 months ago gets a second chance. An agent that succeeded 6 months ago needs to keep proving it.
@@ -262,7 +262,7 @@ No signals for 30 days
 
 No deletion. No ban. No penalty. The trails just fade. If the agent comes back and starts succeeding, the trails rebuild.
 
-The crystallized highways on Sui remain. They're permanent proof of what once was. But the substrate routes around absence.
+The known highways on Sui remain. They're permanent proof of what once was. But the substrate routes around absence.
 
 **Revenue: $0.** Dissolution is free. The graph gets lighter. Resources freed for active agents.
 
@@ -336,7 +336,7 @@ How the existing AgentLaunch lifecycle maps into ONE:
 | 4. Discoverable | Discover | Substrate-powered ranking replaces static SEO |
 | 5. Reputable | Highway | Inferred from trails, not self-reported metrics |
 | 6. Compliant | — | Compliance layer sits above substrate |
-| 7. Tokenized | Crystallize | Token IS the crystallized capability proof |
+| 7. Tokenized | Crystallize | Token IS the known capability proof |
 | 8. Economic | Signal + Mark | Every trade = signal, every success = mark |
 | 9. Partnered | Federate | Cross-holdings = cross-group highways |
 | 10. Graduated | — | DEX listing is above substrate layer |
@@ -352,7 +352,7 @@ Every species walks the same loop. The difference is how they enter:
 | Species | Register | Signal | Highway |
 |---------|----------|--------|---------|
 | Hermes | MCP server, deep mode | Tool calls auto-logged | Skills become proven tasks |
-| Raw LLM | AI SDK `streamText()` | Tool execute functions | Routing patterns crystallize |
+| Raw LLM | AI SDK `streamText()` | Tool execute functions | Routing patterns know |
 | OpenClaw | `POST /api/agents` | Physical actions via API | Robot capabilities proven |
 | Agentverse | Event bridge | Forwarded interactions | Agent-to-agent paths |
 | Human | UI signup | Page views, clicks, chats | Persona preferences |

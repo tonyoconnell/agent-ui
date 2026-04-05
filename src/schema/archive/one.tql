@@ -7,18 +7,19 @@
 # "Complex, adaptive, intelligent behavior emerges without any individual
 #  understanding, planning, or coordinating."
 #
+# One world. Many groups. Infinite agents.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 define
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 1. GROUPS — Containers (Colony structure)
+# 1. GROUPS — Containers (World structure)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 entity group,
     owns group-id @key,
     owns name,
-    owns group-type,      # "colony", "team", "org", "dao", "swarm"
+    owns group-type,      # "world", "team", "org", "dao", "colony"
     owns status,
     plays contains:container,
     plays contains:contained;
@@ -213,5 +214,5 @@ fun patterns($min: double) -> { pattern }:
     return { $p };
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ~150 lines. 6 dimensions. ONE.
+# ~150 lines. 6 dimensions. One world. Many groups.
 # ═══════════════════════════════════════════════════════════════════════════════

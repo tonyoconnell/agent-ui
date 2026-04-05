@@ -31,8 +31,8 @@ signal succeeds
   → highway emerges      path-status = "highway"
 
 signal fails
-  → warn(path)           alarm++
-  → warn(trail)          alarm-pheromone++
+  → warn(path)           resistance++
+  → warn(trail)          resistance-pheromone++
   → fewer signals routed
   → path goes toxic      path-status = "toxic"
 
@@ -51,7 +51,7 @@ time passes
 | fresh | strength 10–50, traversals < 10 |
 | fading | strength 0–5 |
 | active | everything else (default) |
-| toxic | alarm > strength, alarm >= 10 |
+| toxic | resistance > strength, resistance >= 10 |
 
 **Trails:**
 | Status | Condition |
@@ -100,13 +100,13 @@ How an agent picks what to work on:
 ```
 ready_tasks()          → todo + no incomplete blockers
 attractive_tasks()     → ready + strong inbound trail pheromone (>= 50)
-repelled_tasks()       → alarm pheromone > trail pheromone (>= 30)
+repelled_tasks()       → resistance pheromone > trail pheromone (>= 30)
 exploratory_tasks()    → ready + no trail history at all
 ```
 
 The ant doesn't choose. The pheromone chooses:
-- **Attractive** = other ants succeeded on this path. Swarm here.
-- **Repelled** = alarm >= 30 AND alarm > trail pheromone. Avoid.
+- **Attractive** = other ants succeeded on this path. Group here.
+- **Repelled** = resistance >= 30 AND resistance > trail pheromone. Avoid.
 - **Exploratory** = no trail at all. Unknown territory. Send scouts.
 
 ---
@@ -225,7 +225,7 @@ Revenue = pheromone. Every payment strengthens a path.
 
 ---
 
-## Pattern 10: Swarm Collaboration
+## Pattern 10: Group Collaboration
 
 ```
 collaborators($me)
@@ -238,9 +238,9 @@ Units discover each other through shared membership, not direct addressing.
 You don't need to know who's in your team. The substrate knows.
 
 ```
-swarm_members($swarm_name)  → all units in a named swarm
+swarm_members($swarm_name)  → all units in a named group
 membership(group, member)   → the relation
-hierarchy(parent, child)    → swarm nesting
+hierarchy(parent, child)    → group nesting
 ```
 
 ---

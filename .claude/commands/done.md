@@ -21,6 +21,6 @@ curl -s -X POST http://localhost:4321/api/tasks/THE_ID/complete \
    - What was completed
    - The path that was reinforced (from → to, +5.0 strength)
    - The unit's updated success rate
-   - What the colony suggests next (highest-strength attractive task)
+   - What the world suggests next (highest-strength attractive task)
 
-5. If the task failed instead, call with `{"failed": true}` — this deposits alarm (+8.0) instead of trail (+5.0). Ask the user if it failed before marking success.
+5. If the task failed instead, call with `{"failed": true}` — this deposits resistance (+8.0) instead of trail (+5.0). Ask the user if it failed before marking success.

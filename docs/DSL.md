@@ -131,6 +131,35 @@ HIGHWAY            dissolve
 
 ---
 
+## The Weight — What Accumulates
+
+Strength and resistance are the substrate's words. Every metaphor has
+its own word for the same thing — the substance that builds up on paths:
+
+| | The substance | Depositing it | It builds into | It fades by |
+|---|---|---|---|---|
+| **ONE** | weight | mark / warn | highway | fade |
+| **Ant** | pheromone | deposit / alarm | trail | evaporation |
+| **Brain** | synaptic weight | potentiate / inhibit | pathway | decay |
+| **Team** | reputation | commend / flag | go-to person | forgetting |
+| **Mail** | stamps | stamp / return | express route | archiving |
+| **Water** | sediment | carve / dam | river | drying |
+| **Radio** | signal power | boost / jam | clear channel | attenuation |
+
+The pattern is universal:
+
+```
+something accumulates on a connection over time
+  → positive: the connection gets used more
+  → negative: the connection gets avoided
+  → without use: it fades
+  → survivors become the proven paths
+```
+
+The substrate doesn't pick a metaphor. It just says **strength** and **resistance**.
+
+---
+
 ## Roles
 
 A task with context baked in. Same handler, different perspective:

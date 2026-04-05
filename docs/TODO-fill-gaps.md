@@ -9,7 +9,7 @@ The goal: fewer files, less code, one vocabulary, TypeDB actually decides.
 
 Move to `src/engine/archive/`. Not lost, just out of the way.
 
-- [ ] Archive `colony.ts` (174) — duplicate of substrate.ts, throws on missing, wrong arrow
+- [ ] Archive `world.ts` (174) — duplicate of substrate.ts, throws on missing, wrong arrow
 - [ ] Archive `unit.ts` (104) — duplicate of substrate.ts unit, uses `receive`/`payload`/`callback`
 - [ ] Archive `colony-patterns.ts` (357) — re-implements TQL in TypeScript. TypeDB does this.
 - [ ] Archive `agent.ts` (54) — class-based OOP, pre-substrate
@@ -23,30 +23,30 @@ Clean `index.ts` to what survives:
 export { world } from "./one"
 export type { World } from "./one"
 export { colony, unit } from "./substrate"
-export type { Colony, Unit, Signal, Emit } from "./substrate"
+export type { World, Unit, Signal, Emit } from "./substrate"
 export { persisted } from "./persist"
 export { llm, anthropic, openai } from "./llm"
 export { asi } from "./asi"
 export { agentverse } from "./agentverse"
 ```
 
-**Result**: 14 active files → 7. 1361 lines → ~606. One Signal. One Colony. One arrow `→`. Nothing lost — git history + archive folder if you ever need to look back.
+**Result**: 14 active files → 7. 1361 lines → ~606. One Signal. One World. One arrow `→`. Nothing lost — git history + archive folder if you ever need to look back.
 
 ---
 
 ## Phase 2: Connect (5 lines changed)
 
-`one.ts` uses `colony()`. Should use `persisted()`. That's the entire gap between in-memory toy and durable substrate.
+`one.ts` uses `world()`. Should use `persisted()`. That's the entire gap between in-memory toy and durable substrate.
 
 ```diff
-- import { colony, unit, type Colony, type Unit } from './substrate'
+- import { colony, unit, type World, type Unit } from './substrate'
 + import { type Unit } from './substrate'
 + import { persisted, type PersistedColony } from './persist'
 
-- export interface World extends Colony {
+- export interface World extends World {
 + export interface World extends PersistedColony {
 
-- const net = colony()
+- const net = world()
 + const net = persisted()
 ```
 
@@ -57,9 +57,9 @@ export { agentverse } from "./agentverse"
 ## Phase 3: Fix zero-returns (4 lines)
 
 - [ ] `agentverse.ts:63` — `throw e` → swallow + `net.warn(edge)` 
-- [ ] `asi.ts:69` — timeout uses `mark` with `:alarm` suffix → use `warn()`
+- [ ] `asi.ts:69` — timeout uses `mark` with `:resistance` suffix → use `warn()`
 
-**Result**: Signal dissolves, swarm continues. Everywhere.
+**Result**: Signal dissolves, group continues. Everywhere.
 
 ---
 
@@ -101,7 +101,7 @@ Features, not simplification. Add when there's a running system to add them to:
 | Phase | What | Lines |
 |-------|------|-------|
 | 1. Archive | Move 7 files to archive, clean index | −755 active |
-| 2. Connect | `colony()` → `persisted()` | ~5 changed |
+| 2. Connect | `world()` → `persisted()` | ~5 changed |
 | 3. Zero returns | Fix 2 throw sites | ~4 changed |
 | 4. Router | Wire asi to `suggest_route()` | ~10 changed |
 | 5. Bootstrap | .env + script | ~30 new |

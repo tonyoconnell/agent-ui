@@ -25,7 +25,7 @@ The **6 Lessons** from ants-at-work add intelligence layers:
 ```
 Dimension        What It Holds              TypeDB                Lesson
 ───────────────────────────────────────────────────────────────────────────
-1. Groups        Swarms, hierarchies        entity swarm          —
+1. Groups        Swarms, hierarchies        entity group          —
 2. Actors        Units that process         entity unit           L1: Classification
 3. Things        Tasks, capabilities        entity task           L4: Task Allocation
 4. Connections   Weighted paths             relation path         L2: Quality Rules
@@ -63,7 +63,7 @@ define
 # Containers with optional hierarchy. Swarms of units.
 # ═══════════════════════════════════════════════════════════════
 
-entity swarm,
+entity group,
     owns sid @key,
     owns purpose,
     owns created,
@@ -131,7 +131,7 @@ relation claim,
     relates owner,
     owns claimed-at;
 
-# Swarm membership
+# Group membership
 relation membership,
     relates member,
     relates group,
@@ -214,7 +214,7 @@ fun cheapest_provider($task: task) -> unit:
     limit 1;
     return $u;
 
-# Find collaborators in the same swarm
+# Find collaborators in the same group
 fun collaborators($me: unit) -> { unit }:
     match
         (member: $me, group: $g) isa membership;
@@ -256,9 +256,9 @@ fun suggest_route($from: unit, $task: task) -> { uid, strength }:
 │   ─────────                                                                 │
 │   Containers. Hierarchies. Isolation boundaries.                            │
 │                                                                             │
-│   swarm "trading-swarm"                                                     │
-│     └── swarm "btc-analysis"                                                │
-│           └── swarm "sentiment-team"                                        │
+│   group "trading-group"                                                     │
+│     └── group "btc-analysis"                                                │
+│           └── group "sentiment-team"                                        │
 │                                                                             │
 │   2. ACTORS                                                                 │
 │   ──────────                                                                │
@@ -299,7 +299,7 @@ fun suggest_route($from: unit, $task: task) -> { uid, strength }:
 │   highways()           → paths with strength > 10                           │
 │   optimal_route()      → best path from history                             │
 │   cheapest_provider()  → lowest price for task                              │
-│   collaborators()      → peers in same swarm                                │
+│   collaborators()      → peers in same group                                │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -329,15 +329,15 @@ match
 insert
     (provider: $u, skill: $t) isa capability, has price 0.02;
 
-# Create a swarm
-insert $s isa swarm,
-    has sid "trading-swarm",
+# Create a group
+insert $s isa group,
+    has sid "trading-group",
     has purpose "Market analysis and execution";
 
-# Join a swarm
+# Join a group
 match
     $u isa unit, has uid "scout";
-    $s isa swarm, has sid "trading-swarm";
+    $s isa group, has sid "trading-group";
 insert
     (member: $u, group: $s) isa membership, has joined-at 2026-01-01T00:00:00;
 ```
@@ -620,7 +620,7 @@ export const pulse = (db: TypeDB) => {
 │                                                                             │
 │   ┌─────────────────────────────────────────────────────────────────────┐  │
 │   │  DIMENSION 1: GROUPS        │  DIMENSION 2: ACTORS                  │  │
-│   │  swarm (hierarchy)          │  unit (processors)                    │  │
+│   │  group (hierarchy)          │  unit (processors)                    │  │
 │   ├─────────────────────────────┼───────────────────────────────────────┤  │
 │   │  DIMENSION 3: THINGS        │  DIMENSION 4: CONNECTIONS             │  │
 │   │  task (capabilities)        │  path (pheromone trails)              │  │
@@ -702,10 +702,10 @@ packages/typedb-inference-patterns/
 │   ├── contribution-tracking.tql # L5: Aggregates + synergy
 │   └── autonomous-goals.tql   # L6: Frontier detection + goal spawning
 ├── runtime/
-│   └── colony.ts              # 70-line substrate implementing all 6 lessons
+│   └── world.ts              # 70-line substrate implementing all 6 lessons
 ├── SUBSTRATE-MAPPING.md       # TypeDB ↔ Substrate architecture
 ├── ECONOMICS.md               # FET token model + pheromone costs
-├── SWARMS.md                  # Dynamic swarm formation patterns
+├── SWARMS.md                  # Dynamic group formation patterns
 ├── LOOPS.md                   # Deterministic + probabilistic inference
 ├── LIFECYCLE.md               # State machines for all entity types
 └── OPERATIONS.md              # Complete WRITE operations reference
@@ -730,7 +730,7 @@ L2 Homeostasis    = Response thresholds (different ants switch at different rate
 L3 Hypothesis     = Probabilistic task switching (accumulate evidence → transition)
 L4 Task Allocation = Foraging without instructions (negation: "what ISN'T being done?")
 L5 Contribution   = Interaction rates measuring flow (aggregate pheromone)
-L6 Emergence      = Colony-level adaptation (no ant decides, goals emerge)
+L6 Emergence      = World-level adaptation (no ant decides, goals emerge)
 ```
 
 ---

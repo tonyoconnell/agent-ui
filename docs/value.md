@@ -153,7 +153,7 @@ def handle_pick(data):
     result = robot.pick(target)
     if result.success:
         return {'picked': target, 'position': result.pos}
-    # Failure auto-signals alarm pheromone — traffic reroutes to arm-2
+    # Failure auto-signals resistance pheromone — traffic reroutes to arm-2
 
 # Digital agents can now hire physical agents:
 # one.discover('pick') → returns arm-1 (proven, $0.01, 2.3s avg)
@@ -178,7 +178,7 @@ def handle_pick(data):
 
 ```typescript
 import { ONE } from '@one/sdk'
-import { pipeline } from '@one/swarm'
+import { pipeline } from '@one/group'
 
 // Instead of hardcoded crew, let the substrate assemble the team
 const result = await pipeline(one, [
@@ -224,7 +224,7 @@ Not a marketplace listing you hope someone reads. An active routing system that 
 
 ```
 Task completed → mark() → path weight increases
-Task failed    → warn() → alarm weight increases
+Task failed    → warn() → resistance weight increases
 Time passes    → fade() → stale paths dissolve
 Weight > 50    → highway → permanent proven status
 ```
@@ -376,7 +376,7 @@ The SDK is thin. The value is deep. Everything happens on the substrate.
 
 Each step is a natural escalation. Not a paywall — a pull. The developer isn't upsold. They outgrow the tier.
 
-By the time a company runs `acme-swarm.com` on ONE with federated partners, leaving means:
+By the time a company runs `acme-group.com` on ONE with federated partners, leaving means:
 - Abandoning highway status (years of earned reputation)
 - Losing coalition partnerships (cross-domain coordination)
 - Rebuilding the graph from zero (on a platform that doesn't have one)
@@ -403,7 +403,7 @@ After Shopify:   "Here's YOUR store, YOUR brand, YOUR customers"
 
 ```
 Before ONE:      "List your agent on Agentverse" (their platform, their rules)
-After ONE:       "Here's YOUR swarm, YOUR brand, YOUR agents"
+After ONE:       "Here's YOUR group, YOUR brand, YOUR agents"
                   But underneath: shared substrate, routing, intelligence
                   And swarms can cross-hire
 ```
@@ -415,7 +415,7 @@ A company signs up. They get:
 │  acme.one.ie                                    ACME ROBOTICS   │
 │  ─────────────────────────────────────────────────────────────   │
 │                                                                  │
-│  Your Swarm                              │  Marketplace          │
+│  Your Group                              │  Marketplace          │
 │  ──────────                              │  ───────────          │
 │  ┌────────┐ ┌────────┐ ┌────────┐       │                       │
 │  │ picker │ │ sorter │ │ placer │       │  Available to hire:   │
@@ -450,7 +450,7 @@ Actors     = their agents
              Manageable through their dashboard
 
 Things     = their services, products, tasks
-             What their swarm offers the world
+             What their group offers the world
 
 Paths      = their internal routing (PRIVATE)
              picker → sorter is their IP
@@ -459,14 +459,14 @@ Paths      = their internal routing (PRIVATE)
 Events     = their activity log
              Their analytics, their insights
 
-Knowledge  = what their swarm learned (PRIVATE)
+Knowledge  = what their group learned (PRIVATE)
              Their coalitions, their optimizations
              This is the intelligence they've earned
 ```
 
 ### Every Domain Is an Agent
 
-This is the real vision. A domain isn't a "branded dashboard." A domain IS an agent. Or a swarm. Or a world.
+This is the real vision. A domain isn't a "branded dashboard." A domain IS an agent. Or a group. Or a world.
 
 ```
 aria.dev              → points to ONE → IS an agent
@@ -474,11 +474,11 @@ aria.dev              → points to ONE → IS an agent
                          Visit the URL: see the agent's profile, stats, hire button
 
 translate.ai          → points to ONE → IS a service
-                         A swarm of translation agents behind one domain
+                         A group of translation agents behind one domain
                          Other agents call translate.ai like an API
-                         The swarm routes internally, learns, optimizes
+                         The group routes internally, learns, optimizes
 
-acme-robotics.com     → points to ONE → IS a swarm
+acme-robotics.com     → points to ONE → IS a group
                          50 robot agents + 10 digital agents
                          Their own paths, their own highways
                          Federated with partner swarms
@@ -506,7 +506,7 @@ Three levels of domain:
 
 ```
 one.ie/aria            Free tier — agent profile on ONE's domain
-aria.one.ie            Swarm tier — subdomain, branded
+aria.one.ie            Group tier — subdomain, branded
 aria.dev               Enterprise — custom domain, fully independent
 ```
 
@@ -537,7 +537,7 @@ translate.ai → hires → proofread.io → hires → publish.app
      │                      │                      │
      └──── substrate routes, learns, optimizes ────┘
            paths form across domains
-           highways crystallize across the web
+           highways know across the web
            the internet learns which services work together
 ```
 
@@ -568,7 +568,7 @@ Cloudflare for SaaS (SSL for SaaS)
   │   nlp.one.ie                   → Worker routes to group "nlp"
   │
   ├── Custom domains (enterprise)  → CNAME to one.ie
-  │   acme-swarm.com               → SSL auto-provisioned
+  │   acme-group.com               → SSL auto-provisioned
   │   robots.acme.com              → same Worker, group from hostname
   │
   ├── Workers                      → edge routing per request
@@ -587,7 +587,7 @@ Adding a branded domain for a customer:
 // Cloudflare API — one call
 await cf.customHostnames.create({
   zone_id: ONE_ZONE,
-  hostname: 'acme-swarm.com',
+  hostname: 'acme-group.com',
   ssl: { method: 'http', type: 'dv' }
 })
 // SSL provisioned in ~90 seconds. Done.
@@ -616,8 +616,8 @@ Every group controls:
 ```
 Branding
   ├── Logo, colors, fonts
-  ├── Custom domain (acme-swarm.com → acme.one.ie)
-  ├── Landing page for their swarm
+  ├── Custom domain (acme-group.com → acme.one.ie)
+  ├── Landing page for their group
   └── "Powered by ONE" or fully white-label (enterprise)
 
 Visibility
@@ -644,7 +644,7 @@ Federation
 Not a developer dashboard. A **product**.
 
 ```
-acme.one.ie/dashboard       Their branded swarm management
+acme.one.ie/dashboard       Their branded group management
 acme.one.ie/agents          Their agent roster
 acme.one.ie/pipelines       Visual pipeline builder (ReactFlow)
 acme.one.ie/analytics       Paths, highways, earnings
@@ -688,8 +688,8 @@ Internal agents (their own) + global agents (from the marketplace) in one pipeli
 ```
 Individual developer:    one.register('aria')           $9/mo per agent
 Small team:              one.group('startup')           $99/mo (Builder)
-Company:                 acme.one.ie (branded)          $499/mo (Swarm)
-Enterprise:              acme-swarm.com (white-label)   $2,999/mo+
+Company:                 acme.one.ie (branded)          $499/mo (Group)
+Enterprise:              acme-group.com (white-label)   $2,999/mo+
 ```
 
 The progression is natural:

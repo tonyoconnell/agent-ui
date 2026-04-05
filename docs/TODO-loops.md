@@ -25,7 +25,7 @@ priority: L1-L3 (foundation) → L4-L5 (economics+evolution) → L6-L7 (intellig
 ## L2: Trail Loop
 
 - [ ] TL-1: Trail chains — schema tracks A→B but not A→B→C as a sequence. Add `trail.depth` or a `chain` relation to track multi-hop sequence confidence. A proven A→B and proven B→C doesn't mean A→B→C is proven.
-- [ ] TL-2: Alternative trails — when A→B has high alarm, nothing suggests trying A→C. Add `alternative_trails($task)` function that returns untried next steps when current trail is alarmed.
+- [ ] TL-2: Alternative trails — when A→B has high resistance, nothing suggests trying A→C. Add `alternative_trails($task)` function that returns untried next steps when current trail is alarmed.
 - [ ] TL-3: Completion velocity — two proven trails, one takes 10min, one takes 2hrs. Add `trail.avg-latency` derived from signal latencies along the chain. Prefer faster proven sequences.
 
 ## L3: Fade Loop
@@ -59,7 +59,7 @@ priority: L1-L3 (foundation) → L4-L5 (economics+evolution) → L6-L7 (intellig
 
 - [ ] FR-1: Frontier detection from trail gaps — `exploratory_tasks()` finds tasks with no trail. A cluster of exploratory tasks in the same `task-type` or `phase` is a frontier. Add periodic scan that counts per dimension and auto-creates frontiers above threshold.
 - [ ] FR-2: Split expected-value — currently a single number defined as `potential * probability / cost`. Split into three attributes so system can reason about "high potential / low probability" differently from "low potential / high probability."
-- [ ] FR-3: Frontier→swarm — when frontier spawns objective, who works on it? Frontier spawns temporary `swarm` (swarm-type: "expedition") with units assigned by `suggest_route()`. When exhausted, swarm dissolves. Scouting party, not the whole army.
+- [ ] FR-3: Frontier→group — when frontier spawns objective, who works on it? Frontier spawns temporary `group` (group-type: "expedition") with units assigned by `suggest_route()`. When exhausted, group dissolves. Scouting party, not the whole army.
 
 ## Loop Coupling
 

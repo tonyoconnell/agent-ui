@@ -6,7 +6,7 @@ How Claude Code uses the ONE substrate as its task management system.
 
 ## The Idea
 
-Claude Code IS a unit in the colony. Every conversation is a signal. Every completed task strengthens a path. Every failure deposits alarm. Over time, the colony learns which sequences of work succeed and routes future work accordingly.
+Claude Code IS a unit in the world. Every conversation is a signal. Every completed task strengthens a path. Every failure deposits resistance. Over time, the colony learns which sequences of work succeed and routes future work accordingly.
 
 ```
 User: "build the signup flow"
@@ -27,7 +27,7 @@ User: "build the signup flow"
 | `/tasks build P0` | Filter by tags |
 | `/add-task signup flow` | Create a new skill with auto-tagged metadata |
 | `/done signup` | Mark complete, reinforce trail (+5 strength), update success-rate |
-| `/grow` | Run one growth tick — select, signal, decay, evolve, crystallize |
+| `/grow` | Run one growth tick — select, signal, decay, evolve, know |
 | `/highways` | See proven paths, toxic paths, and frontiers |
 
 ### Workflow
@@ -61,7 +61,7 @@ Tags are extracted from context — the command figures out type, phase, priorit
 
 ---
 
-## How the Colony Learns from Claude Code
+## How the World Learns from Claude Code
 
 ### Every `/done` teaches the colony
 
@@ -81,20 +81,20 @@ Tags are extracted from context — the command figures out type, phase, priorit
 
 ```
 /done deploy --failed
-  → path(previous→deploy).alarm += 8
-  → deploy becomes "repelled" if alarm > strength
-  → future /tasks won't suggest deploy until alarm decays
-  → but alarm decays 2x faster than strength — forgiveness built in
+  → path(previous→deploy).resistance += 8
+  → deploy becomes "repelled" if resistance > strength
+  → future /tasks won't suggest deploy until resistance decays
+  → but resistance decays 2x faster than strength — forgiveness built in
 ```
 
 ### Over many sessions
 
 ```
 Session 1: /done schema → /done api → /done tests ✓
-Session 2: /done schema → /done deploy ✗ (alarm)
+Session 2: /done schema → /done deploy ✗ (resistance)
 Session 3: /done schema → /done api → /done tests → /done deploy ✓
 
-Colony learns: schema → api → tests → deploy is the highway.
+World learns: schema → api → tests → deploy is the highway.
               schema → deploy (skipping tests) is repelled.
 ```
 

@@ -25,7 +25,7 @@ Signals are free. Attach `amount > 0` and it's a payment (x402).
 |------|-------------|---------------|
 | `emit(signal)` | Send from inside a task handler | Creates `signal` relation |
 | `mark(path)` | Reinforce on success | `strength++` on path, `trail-pheromone++` on trail |
-| `alarm(path)` | Resist on failure | `alarm++` on path, `alarm-pheromone++` on trail |
+| `resistance(path)` | Resist on failure | `resistance++` on path, `resistance-pheromone++` on trail |
 | `fade(rate)` | Decay over time | `strength *= (1 - fade-rate)` on all paths |
 | `follow(trail)` | Go where pheromone is strongest | Read `suggest_route()` from TypeDB |
 
@@ -37,7 +37,7 @@ Five verbs. No others needed.
 
 | Entity | Key | What it is |
 |--------|-----|------------|
-| `swarm` | sid | A group: persona, team, colony, dao |
+| `group` | sid | A group: persona, team, colony, dao |
 | `unit` | uid | An actor: human, agent, llm, system |
 | `task` | tid | Work with optional price (task + price = service) |
 | `hypothesis` | hid | A belief being tested |
@@ -57,8 +57,8 @@ Five verbs. No others needed.
 | `capability` | unit → task | Who can do what, at what price |
 | `assignment` | task → unit | Who is doing what now |
 | `dependency` | task → task | What blocks what |
-| `membership` | swarm ↔ unit | Who belongs where |
-| `hierarchy` | swarm ↔ swarm | Nesting |
+| `membership` | group ↔ unit | Who belongs where |
+| `hierarchy` | group ↔ group | Nesting |
 | `spawns` | frontier → objective | Knowledge creates goals |
 | `contribution-event` | unit → contribution | Who did what |
 
@@ -70,15 +70,15 @@ Two weights on every connection:
 
 | | Success | Failure |
 |---|---|---|
-| **path** (unit↔unit) | `strength` | `alarm` |
-| **trail** (task→task) | `trail-pheromone` | `alarm-pheromone` |
+| **path** (unit↔unit) | `strength` | `resistance` |
+| **trail** (task→task) | `trail-pheromone` | `resistance-pheromone` |
 
-Both decay. `fade-rate` is per-path (production=0.05, support=0.15, alarm decays 2x).
+Both decay. `fade-rate` is per-path (production=0.05, support=0.15, resistance decays 2x).
 
 The cycle:
 ```
 mark    → strength++    → more signals routed   → highway
-alarm   → alarm++       → fewer signals routed  → toxic
+resistance   → resistance++       → fewer signals routed  → toxic
 fade    → strength--    → stale paths dissolve
 nothing → silence       → signal dissolves (zero returns)
 ```
@@ -116,8 +116,8 @@ A unit with `unit-kind: "agent"` has both. The substrate tells it when to evolve
 `priority` ("P0"–"P3"), `importance` (1–10), `phase`
 
 ### Selection (inferred)
-`attractive` — strong inbound trail, no blockers. Ants swarm here.
-`repelled` — alarm pheromone dominates. Ants avoid.
+`attractive` — strong inbound trail, no blockers. Ants group here.
+`repelled` — resistance pheromone dominates. Ants avoid.
 
 ---
 
@@ -140,7 +140,7 @@ A unit with `unit-kind: "agent"` has both. The substrate tells it when to evolve
 | Attribute | Values |
 |-----------|--------|
 | `unit-kind` | "human", "agent", "llm", "system" |
-| `swarm-type` | "persona", "team", "colony", "dao" |
+| `group-type` | "persona", "team", "colony", "dao" |
 | `task-type` | "work", "explore", "validate", "build", "inference", "analysis", "data", "compute" |
 | `contribution-type` | "task", "signal", "payment", "discovery" |
 | `phase` | "wire", "tasks", "onboard", "commerce", "intelligence", "scale" |

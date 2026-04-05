@@ -32,7 +32,7 @@ interface Unit {
   state: Record<string, unknown>
 }
 
-interface Colony {
+interface World {
   spawn: (id: string) => Unit
   send: (e: Envelope, from?: string) => void
   mark: (edge: string, strength?: number) => void
@@ -67,7 +67,7 @@ const unit = (id: string, route: (e: Envelope, from: string) => void): Unit => {
   return u
 }
 
-const colony = (): Colony => {
+const world = (): World => {
   const units: Record<string, Unit> = {}
   const scent: Record<string, number> = {}
 
@@ -102,7 +102,7 @@ const colony = (): Colony => {
 // TypeDB: fun elite_agents() -> { agent }
 // Substrate: agent:classify → emits tier
 
-const setupPerception = (c: Colony) => {
+const setupPerception = (c: World) => {
   c.spawn('classifier')
     .on('classify', ({ successRate, activityScore, sampleCount }: any, emit) => {
       // Elite: sr >= 0.75, as >= 70, sc >= 50
@@ -127,7 +127,7 @@ const setupPerception = (c: Colony) => {
 // TypeDB: rule high-quality-record, rule prevent_zombie_agents
 // Substrate: validator:check → pass or reject (silence)
 
-const setupHomeostasis = (c: Colony) => {
+const setupHomeostasis = (c: World) => {
   c.spawn('validator')
     .on('check-quality', ({ applied, effectiveness }: any, emit) => {
       if (!applied) return null // Silence - not applicable
@@ -152,7 +152,7 @@ const setupHomeostasis = (c: Colony) => {
 // TypeDB: rule promote-to-testing, rule confirm-hypothesis
 // Substrate: hypothesis:observe → state transitions
 
-const setupHypothesis = (c: Colony) => {
+const setupHypothesis = (c: World) => {
   c.spawn('hypothesis')
     .on('observe', ({ id, outcome }: any, emit, ctx) => {
       const h = ctx.self // hypothesis state would be stored
@@ -183,7 +183,7 @@ const setupHypothesis = (c: Colony) => {
 // TypeDB: fun ready_tasks(), fun attractive_tasks()
 // Substrate: task:query-ready, pheromone via mark/smell
 
-const setupTaskAllocation = (c: Colony) => {
+const setupTaskAllocation = (c: World) => {
   const tasks: Record<string, { status: string; blockers: string[] }> = {}
   const trailPheromone: Record<string, number> = {}
   const alarmPheromone: Record<string, number> = {}
@@ -246,7 +246,7 @@ const setupTaskAllocation = (c: Colony) => {
 // TypeDB: fun total_contribution($name) -> double
 // Substrate: contributions aggregated per agent
 
-const setupContribution = (c: Colony) => {
+const setupContribution = (c: World) => {
   const contributions: Record<string, number[]> = {}
 
   c.spawn('ledger')
@@ -272,7 +272,7 @@ const setupContribution = (c: Colony) => {
 // TypeDB: fun promising_frontiers(), rule spawn-exploration-objective
 // Substrate: frontier detection → objective spawning
 
-const setupEmergence = (c: Colony) => {
+const setupEmergence = (c: World) => {
   const frontiers: Record<string, { expectedValue: number; status: string }> = {}
   const objectives: Record<string, { progress: number; status: string }> = {}
   let objectiveCounter = 0
@@ -311,11 +311,11 @@ const setupEmergence = (c: Colony) => {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BOOTSTRAP: Create a fully-functional colony
+// BOOTSTRAP: Create a fully-functional world
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const createColony = () => {
-  const c = colony()
+export const createWorld = () => {
+  const c = world()
 
   setupPerception(c)
   setupHomeostasis(c)
@@ -331,7 +331,7 @@ export const createColony = () => {
 // EXAMPLE USAGE
 // ═══════════════════════════════════════════════════════════════════════════
 /*
-const c = createColony()
+const c = createWorld()
 
 // Classify an agent (L1)
 c.send({ receiver: 'classifier:classify', payload: { successRate: 0.85, activityScore: 80, sampleCount: 100 } })

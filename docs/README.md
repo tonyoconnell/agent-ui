@@ -43,11 +43,11 @@ ONE substrate:   TypeDB check → LLM → outcome measurement
 
 Three things no one has combined before:
 
-1. **The system makes itself unnecessary.** Every LLM success creates a deterministic path. Highways don't need the LLM. Cost drops over time. The colony replaces the LLM.
+1. **The system makes itself unnecessary.** Every LLM success creates a deterministic path. Highways don't need the LLM. Cost drops over time. The world replaces the LLM.
 
-2. **Security and learning are the same mechanism.** `warn()` is simultaneously a firewall (alarm → toxic → dissolve) and a lesson (colony routes around → finds alternatives). No separate security layer.
+2. **Security and learning are the same mechanism.** `warn()` is simultaneously a firewall (resistance → toxic → dissolve) and a lesson (world routes around → finds alternatives). No separate security layer.
 
-3. **The pheromone IS the model.** `mark()` = weight update. `warn()` = negative reward. `fade()` = regularization. `select()` = inference. No training pipeline. Usage IS training.
+3. **The strength IS the model.** `mark()` = weight update. `warn()` = negative reward. `fade()` = regularization. `select()` = inference. No training pipeline. Usage IS training.
 
 ---
 
@@ -55,12 +55,12 @@ Three things no one has combined before:
 
 | # | Dimension | What | TypeDB | Runtime |
 |---|-----------|------|--------|---------|
-| 1 | **Groups** | Scope, hierarchy | swarm, membership | tag-based |
-| 2 | **Actors** | Who acts | unit (model, prompt, generation) | `.spawn()` |
+| 1 | **Groups** | Scope, hierarchy | group, membership | tag-based |
+| 2 | **Actors** | Who acts | unit (model, prompt, generation) | `.add()` |
 | 3 | **Things** | What's offered | skill + tags + price | `.on()` handler |
-| 4 | **Paths** | Connections | path (strength, alarm, revenue) | scent/alarm maps |
+| 4 | **Paths** | Connections | path (strength, resistance, revenue) | strength/resistance maps |
 | 5 | **Events** | What happened | signal (data, amount, success) | signal flow |
-| 6 | **Knowledge** | What emerged | hypothesis, frontier, objective | crystallize/recall |
+| 6 | **Knowledge** | What emerged | hypothesis, frontier, objective | know/recall |
 
 ---
 
@@ -94,8 +94,8 @@ const { result, timeout, dissolved } = await w.ask(
 // Query what emerged
 w.highways(10)       // proven paths
 w.open(10)           // top paths as {from, to, strength}
-w.blocked()          // toxic paths (alarm > 2x strength)
-w.crystallize()      // promote highways to permanent knowledge
+w.blocked()          // toxic paths (resistance > 2x strength)
+w.know()             // promote highways to permanent knowledge
 w.recall('translate') // query hypotheses from TypeDB
 ```
 
@@ -118,8 +118,8 @@ src/engine/
 ```
 src/schema/
 └── one.tql               6 dimensions + validation functions + classification
-    entities:             swarm, unit, skill, hypothesis, frontier, objective
-    relations:            path, capability, membership, signal, hierarchy, spawns
+    entities:             group, unit, skill, hypothesis, frontier, objective
+    relations:            path, capability, membership, signal, hierarchy, adds
     validation:           can_receive, is_safe, preflight, unit_exists, is_trustworthy
     classification:       path_status, unit_classification, needs_evolution
     routing:              suggest_route, optimal_route, cheapest_provider
@@ -134,10 +134,10 @@ Every tick makes the colony smarter:
 ```
 L1  select() → ask() → { result | timeout | dissolved }    per tick
 L2  mark(edge, chainDepth) or warn(edge)                   per outcome
-L3  fade(0.05) — alarm decays 2x faster                    every 5 min
+L3  fade(0.05) — resistance decays 2x faster                    every 5 min
 L4  revenue += price on successful paths                    per payment
 L5  evolve: rewrite prompts (24h cooldown, history saved)   every 10 min
-L6  crystallize + auto-hypothesize (strong/fading paths)    every hour
+L6  know + auto-hypothesize (strong/fading paths)    every hour
 L7  frontier detection from unexplored tag clusters         every hour
 ```
 
@@ -153,6 +153,7 @@ L7  frontier detection from unexplored tag clusters         every hour
 /done       Mark outcome, reinforce trail
 /grow       Run one growth tick
 /highways   Proven paths and frontiers
+/know       Crystallize paths to permanent knowledge
 ```
 
 ---
@@ -167,7 +168,7 @@ L7  frontier detection from unexplored tag clusters         every hour
 | [llm-training.md](llm-training.md) | Five integration points. Training IS routing. |
 | [task-management.md](task-management.md) | Tasks as signals. Tags classify. Pheromone ranks. |
 | [loops.md](loops.md) | Seven nested feedback loops. |
-| [signal.md](signal.md) | The universal primitive. |
+| [events.md](events.md) | The universal primitive. |
 | [one-ontology.md](one-ontology.md) | The 6 dimensions. |
 | [claude-code-integration.md](claude-code-integration.md) | Claude Code as a unit in the colony. |
 

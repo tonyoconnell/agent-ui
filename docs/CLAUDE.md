@@ -10,9 +10,9 @@ Apply to `docs/*.md`
 
 | Category | Files | Purpose |
 |----------|-------|---------|
-| Core | dictionary.md, DSL.md, signal.md, primitives.md | The names and primitives |
+| Core | dictionary.md, DSL.md, events.md, primitives.md | The names and primitives |
 | Ontology | one-ontology.md, metaphors.md, ontology.md | The 6 dimensions |
-| Implementation | tutorial.md, the-stack.md, agents.md, swarm.md | How to build |
+| Implementation | tutorial.md, the-stack.md, people.md, groups.md | How to build |
 | Strategy | strategy.md, one-protocol.md, integration.md | The play |
 | Commerce | agent-launch.md, asi-world.md | The business |
 
@@ -24,7 +24,7 @@ README.md is the index. Link everything back to it.
 
 - Tasks are `.on()` handlers on units, not TypeDB entities
 - Dependencies are `.then()` continuations, not TypeDB relations
-- Trails are scent map entries, not TypeDB trail relations
+- Trails are strength map entries, not TypeDB trail relations
 - The runtime is the nervous system (fast loops L1-L3)
 - TypeDB is the brain (slow loops L4-L7, knowledge, classification)
 - `skill` entity in TypeDB replaces `task` entity (name + price only)

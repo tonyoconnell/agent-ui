@@ -139,7 +139,7 @@ Same agents. TypeScript. Custom logic.
 ```typescript
 import { colony, agent, anthropic } from '@/engine'
 
-const net = colony()
+const net = world()
 const complete = anthropic(process.env.ANTHROPIC_API_KEY!)
 
 const blogger = agent('blogger', net)
@@ -337,7 +337,7 @@ When you need custom logic, computed routing, or direct tool calls:
 ```typescript
 import { colony, agent, anthropic } from '@/engine'
 
-const net = colony()
+const net = world()
 const complete = anthropic(process.env.ANTHROPIC_API_KEY!)
 
 const blogger = agent('blogger', net)
@@ -385,5 +385,5 @@ Personality           .evolve({ system })
 ## See Also
 
 - [signal.md](signal.md) — What agents receive and emit
-- [swarm.md](swarm.md) — Many agents coordinating
+- [group.md](group.md) — Many agents coordinating
 - [agent-launch.md](agent-launch.md) — Bridge to AgentLaunch SDK

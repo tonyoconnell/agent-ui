@@ -27,9 +27,9 @@ export const GET: APIRoute = async ({ url }) => {
     `).catch(() => []),
     readParsed(`
       match $e (source: $from, target: $to) isa path,
-        has strength $s, has alarm $a, has traversals $t;
+        has strength $s, has resistance $rs, has traversals $t;
       $from has uid $fid; $to has uid $tid;
-      select $fid, $tid, $s, $a, $t;
+      select $fid, $tid, $s, $rs, $t;
     `).catch(() => []),
   ])
 
@@ -52,10 +52,10 @@ export const GET: APIRoute = async ({ url }) => {
     // Pheromone: inbound edges to this unit
     const inbound = (edges as Row[]).filter(e => e.tid === unitId)
     const strength = inbound.reduce((s, e) => s + (e.s as number), 0)
-    const alarm = inbound.reduce((s, e) => s + (e.a as number), 0)
+    const resistance = inbound.reduce((s, e) => s + (e.rs as number), 0)
     const traversals = inbound.reduce((s, e) => s + (e.t as number), 0)
 
-    const repelled = alarm >= 30 && alarm > strength
+    const repelled = resistance >= 30 && resistance > strength
     const attractive = strength >= 50
     const exploratory = inbound.length === 0
     const category = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
@@ -69,7 +69,7 @@ export const GET: APIRoute = async ({ url }) => {
       price: cap.p as number,
       category,
       strength,
-      alarm,
+      resistance,
       traversals,
       unitKind: cap.kind,
       successRate: cap.sr,

@@ -24,7 +24,7 @@
 #   - Contribution tracking (synergy measurement)
 #   - Frontier/objective structures (autonomous goal generation)
 #   - Work cycle assessment (performance bands)
-#   - Swarm infrastructure (dynamic team formation + dissolution)
+#   - Group infrastructure (dynamic team formation + dissolution)
 #
 # INFERENCE RULES (17 total):
 #   - Quality bands: high/medium/low quality records
@@ -33,9 +33,9 @@
 #   - Hypothesis action-ready: statistical significance gate
 #   - Trail status: proven/fresh/fading/dead trails
 #   - Task attractiveness: pheromone-weighted selection
-#   - Task repulsion: alarm pheromone avoidance
-#   - Swarm activation: min-size triggers active status
-#   - Swarm dissolution: 100% progress triggers dissolve
+#   - Task repulsion: resistance pheromone avoidance
+#   - Group activation: min-size triggers active status
+#   - Group dissolution: 100% progress triggers dissolve
 #   - Recruitment satisfaction: respondents reach max
 #
 # INFERENCE FUNCTIONS (50+ total):
@@ -45,7 +45,7 @@
 #   - Contribution measurement (total_contribution, best_synergy)
 #   - Goal generation (promising_frontiers, active_objectives)
 #   - Hypothesis management (actionable_hypotheses, active_tests)
-#   - Swarm coordination (joinable_swarms, my_swarm, swarm_members)
+#   - Group coordination (joinable_groups, my_group, group_members)
 #
 # BIOLOGY FOUNDATION:
 #   Based on Deborah Gordon's research on harvester ant task allocation.

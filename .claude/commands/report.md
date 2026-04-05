@@ -25,4 +25,4 @@ curl -s -X POST http://localhost:4321/api/tasks \
 curl -s http://localhost:4321/api/tick?interval=0 | jq '{cycle, highways: [.highways[] | .path], evolved, crystallized, frontiers}'
 ```
 
-4. Summarize: what was done, what trails were reinforced, what the colony learned.
+4. Summarize: what was done, what trails were reinforced, what the world learned.

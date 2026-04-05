@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
-import { colony } from "@/engine"
-import type { Colony, Edge } from "@/engine"
+import { world } from "@/engine"
+import type { World, Edge } from "@/engine"
 import { cn } from "@/lib/utils"
 import { EnvelopeFlowCanvas } from "@/components/EnvelopeFlowCanvas"
 import { HighwayPanel } from "@/components/panels/HighwayPanel"
 import { EdgeInfo } from "@/components/EdgeInfo"
-import { ColonyGraph } from "@/components/graph/ColonyGraph"
-import { ColonyEditor } from "@/components/graph/ColonyEditor"
+import { WorldGraph } from "@/components/graph/WorldGraph"
+import { WorldEditor } from "@/components/graph/WorldEditor"
 
 // Agent data from JSON (plain object, not a class instance)
 interface AgentData {
@@ -59,7 +59,7 @@ async function load() {
   const res = await fetch("/agents.json")
   const data = await res.json()
 
-  const net = colony()
+  const net = world()
   const agents = data.agents as AgentData[]
 
   // Initialize empty envelopes arrays
@@ -268,7 +268,7 @@ function Flow({ agent, highways }: { agent: AgentData; highways: Edge[] }) {
 
 // Main
 export default function AgentWorkspace() {
-  const [state, setState] = useState<{ colony: Colony; agents: AgentData[]; highways: Edge[] } | null>(null)
+  const [state, setState] = useState<{ world: World; agents: AgentData[]; highways: Edge[] } | null>(null)
   const [open, setOpen] = useState<string[]>([])
   const [active, setActive] = useState<string | "colony" | null>("colony")
 
@@ -280,45 +280,45 @@ export default function AgentWorkspace() {
   useEffect(() => {
     if (!state) return
     const interval = setInterval(() => {
-      state.colony.fade(0.1)
-      setState(prev => prev ? { ...prev, highways: state.colony.highways(30) } : null)
+      state.world.fade(0.1)
+      setState(prev => prev ? { ...prev, highways: state.world.highways(30) } : null)
     }, 5000)
     return () => clearInterval(interval)
-  }, [state?.colony])
+  }, [state?.world])
 
   // Signal injection — fire all parallel chains simultaneously
   const injectSignal = async () => {
     if (!state) return
     const chains = [
       // Market chain: scout → analyst → trader
-      state.colony.send({
+      state.world.send({
         receiver: "scout", receive: "observe",
         payload: { source: "test", chain: "market" },
         callback: { receiver: "analyst", receive: "evaluate", payload: { data: "{{result}}" },
           callback: { receiver: "trader", receive: "execute", payload: { signal: "{{result}}" } } }
       }),
       // Intelligence chain: forager → relay → queen
-      state.colony.send({
+      state.world.send({
         receiver: "forager", receive: "search",
         payload: { source: "onchain", chain: "intelligence" },
         callback: { receiver: "relay", receive: "broadcast", payload: { patterns: "{{result}}" },
           callback: { receiver: "queen", receive: "orchestrate", payload: { intel: "{{result}}" } } }
       }),
       // Defense chain: soldier → sentinel → sentinel
-      state.colony.send({
+      state.world.send({
         receiver: "soldier", receive: "validate",
         payload: { signals: "all", chain: "defense" },
         callback: { receiver: "sentinel", receive: "risk", payload: { validated: "{{result}}" },
           callback: { receiver: "sentinel", receive: "circuit", payload: { risk: "{{result}}" } } }
       }),
       // Care chain: nurse → nurse
-      state.colony.send({
+      state.world.send({
         receiver: "nurse", receive: "monitor",
         payload: { colony: "all", chain: "care" },
         callback: { receiver: "nurse", receive: "heal", payload: { unhealthy: "{{result}}" } }
       }),
       // Recon chain: scout → forager → queen
-      state.colony.send({
+      state.world.send({
         receiver: "scout", receive: "scan",
         payload: { source: "sentiment", chain: "recon" },
         callback: { receiver: "forager", receive: "harvest", payload: { regions: "{{result}}" },
@@ -326,7 +326,7 @@ export default function AgentWorkspace() {
       }),
     ]
     await Promise.allSettled(chains)
-    setState(prev => prev ? { ...prev, highways: state.colony.highways(30) } : null)
+    setState(prev => prev ? { ...prev, highways: state.world.highways(30) } : null)
   }
 
   if (!state) return <div className="h-screen bg-[#0f0f17] flex items-center justify-center text-slate-600">Loading...</div>
@@ -351,12 +351,12 @@ export default function AgentWorkspace() {
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 h-full">
           {active === "colony" ? (
-            <ColonyEditor
-              colony={state.colony}
+            <WorldEditor
+              world={state.world}
               agents={state.agents}
               highways={state.highways}
               onAgentSelect={openAgent}
-              onColonyChange={() => setState(prev => prev ? { ...prev, highways: state.colony.highways(30) } : null)}
+              onWorldChange={() => setState(prev => prev ? { ...prev, highways: state.world.highways(30) } : null)}
             />
           ) : activeAgent ? (
             <Flow agent={activeAgent} highways={state.highways} />

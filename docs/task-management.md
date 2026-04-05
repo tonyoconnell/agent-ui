@@ -19,13 +19,13 @@ No task is assigned. Every task is discovered through pheromone signals.
 NERVOUS SYSTEM (runtime)              BRAIN (TypeDB)
 ────────────────────────              ──────────────
 unit.on('build', fn)                  unit persists (model, prompt, gen)
-unit.then('build', next)              path persists (strength, alarm)
-colony.signal({ receiver })           signal recorded (event log)
-colony.scent / colony.alarm           skill registered (capability)
-colony.queue                          classification inferred
+unit.then('build', next)              path persists (strength, resistance)
+world.signal({ receiver })           signal recorded (event log)
+world.strength / world.resistance           skill registered (capability)
+world.queue                          classification inferred
                     ↕
               Growth Loop
-        select → signal → drain → fade → evolve → crystallize
+        select → signal → drain → fade → evolve → know
                     ↕
               TaskBoard (what you see)
 ```
@@ -37,7 +37,7 @@ colony.queue                          classification inferred
 A task is a `.on()` handler on a unit:
 
 ```typescript
-const bob = net.spawn('bob')
+const bob = net.add('bob')
   .on('build', async (data, emit) => {
     const result = await buildAPI(data)
     emit({ receiver: 'tester:verify', data: result })
@@ -63,15 +63,15 @@ bob
 
 ## What Is a Trail?
 
-Pheromone on the scent map. Every signal delivery auto-marks the edge:
+Pheromone on the strength map. Every signal delivery auto-marks the edge:
 
 ```
 signal({ receiver: 'bob:api' }, from = 'bob:schema')
   → mark('bob:schema→bob:api')
-  → scent['bob:schema→bob:api'] += 1
+  → strength['bob:schema→bob:api'] += 1
 ```
 
-Success accumulates strength. Failure deposits alarm. Decay forgets over time. No trail entity needed.
+Success accumulates strength. Failure deposits resistance. Decay forgets over time. No trail entity needed.
 
 ## What Are Tags?
 
@@ -86,7 +86,7 @@ Tags answer **"what is this?"** — pheromone answers **"how well does it work?"
 
 ```
 Tags:       build, wire, P0, frontend, infra, payments
-Pheromone:  strength 45, alarm 3, traversals 12
+Pheromone:  strength 45, resistance 3, traversals 12
 ```
 
 Together: "Show me all P0 commerce tasks, sorted by trail strength."
@@ -123,7 +123,7 @@ Signals that can't be delivered yet (receiver doesn't exist). They wait:
 ```typescript
 net.enqueue({ receiver: 'future-agent:task', data: {} })
 // Later...
-net.spawn('future-agent')  // queued signals auto-deliver
+net.add('future-agent')  // queued signals auto-deliver
 ```
 
 The queue replaces "todo" status. A queued signal IS a pending task.
@@ -136,19 +136,19 @@ Every task falls into one category based on pheromone state:
 
 ```
 ATTRACTIVE       strength >= 50 on inbound edges
-                 Colony says: "follow this, it works"
+                 World says: "follow this, it works"
 
 READY            has inbound edges, but below threshold
-                 Colony says: "available, no strong signal"
+                 World says: "available, no strong signal"
 
 EXPLORATORY      no inbound edges at all
-                 Colony says: "unknown — needs a scout"
+                 World says: "unknown — needs a scout"
 
-REPELLED         alarm >= 30 AND alarm > strength
-                 Colony says: "avoid — this failed before"
+REPELLED         resistance >= 30 AND resistance > strength
+                 World says: "avoid — this failed before"
 ```
 
-Categories are computed at query time from the scent/alarm maps. No inference rules needed.
+Categories are computed at query time from the strength/resistance maps. No inference rules needed.
 
 ### API Routes
 
@@ -169,7 +169,7 @@ Categories are computed at query time from the scent/alarm maps. No inference ru
 `src/engine/loop.ts` — the colony's heartbeat. One tick per interval.
 
 ```
-select → signal → drain → fade → evolve → crystallize
+select → signal → drain → fade → evolve → know
 ```
 
 | Phase | What | Interval |
@@ -177,17 +177,17 @@ select → signal → drain → fade → evolve → crystallize
 | SELECT | Probabilistic pick from pheromone-weighted edges | Every tick |
 | SIGNAL | Send to the selected receiver | Every tick |
 | DRAIN | Process one queued signal | Every tick |
-| FADE | Asymmetric decay (trail 5%, alarm 10%) | 5 min |
+| FADE | Asymmetric decay (trail 5%, resistance 10%) | 5 min |
 | EVOLVE | Rewrite prompts of struggling agents | 10 min |
 | CRYSTALLIZE | Promote strong paths to permanent (low fade-rate) | 1 hour |
 
 ### Selection
 
-`colony.select()` does weighted random with exploration bias:
+`world.select()` does weighted random with exploration bias:
 
 ```
 exploration% chance: pick random from any viable edge
-otherwise: pick proportional to (scent - alarm)
+otherwise: pick proportional to (strength - resistance)
 ```
 
 Scouts call `select(type, 0.7)` — 70% exploration.
@@ -199,7 +199,7 @@ The loop tracks `previousTask`. When B executes after A:
 
 ```
 Success: path(A→B).strength += 5
-Failure: path(A→B).alarm += 8, chain breaks
+Failure: path(A→B).resistance += 8, chain breaks
 ```
 
 The colony learns SEQUENCES. Not "B is good" but "B is good AFTER A."
@@ -212,7 +212,7 @@ The colony learns SEQUENCES. Not "B is good" but "B is good AFTER A."
 
 ```
 mark('a→b', 5)     strength += 5      (success)
-warn('a→b', 8)     alarm += 8         (failure)
+warn('a→b', 8)     resistance += 8         (failure)
 ```
 
 Alarm is stronger per-event than trail. Two failures can repel a task.
@@ -222,7 +222,7 @@ Alarm is stronger per-event than trail. Two failures can repel a task.
 ```
 Every 5 minutes:
   strength *= 0.95    (lose 5% — remember successes)
-  alarm *= 0.90       (lose 10% — forgive failures)
+  resistance *= 0.90       (lose 10% — forgive failures)
 ```
 
 Asymmetric: failures forgive faster. A task that failed last week may succeed now.
@@ -294,7 +294,7 @@ On restart, nothing is lost:
 - Pheromone → loaded from `path` relations
 - Queue → loaded from `signal` relations with `success = false`
 - Units → spawned from TypeDB unit entities
-- Knowledge → crystallized paths have low fade-rate, persist for months
+- Knowledge → known paths have low fade-rate, persist for months
 
 ---
 
@@ -305,7 +305,7 @@ On restart, nothing is lost:
 | Entity/Relation | What it stores |
 |-----------------|---------------|
 | `unit` | Actors: model, system-prompt, generation, success-rate |
-| `path` | Pheromone: strength, alarm, traversals, revenue, fade-rate |
+| `path` | Pheromone: strength, resistance, traversals, revenue, fade-rate |
 | `signal` | Event log: who sent what, success, latency |
 | `skill` | What units can do |
 | `capability` | Unit + skill + price |
@@ -316,8 +316,8 @@ On restart, nothing is lost:
 | Structure | What it stores |
 |-----------|---------------|
 | `units` | Spawned units with `.on()` handlers |
-| `scent` | Pheromone map (hydrated from `path.strength`) |
-| `alarm` | Alarm map (hydrated from `path.alarm`) |
+| `strength` | Pheromone map (hydrated from `path.strength`) |
+| `resistance` | Alarm map (hydrated from `path.resistance`) |
 | `queue` | Pending signals (hydrated from `signal.success = false`) |
 
 ---
@@ -330,7 +330,7 @@ The TaskBoard reads from `/api/tasks` which computes categories from TypeDB path
 For each skill with a capability:
   1. Find the provider unit
   2. Sum inbound path strength → total strength
-  3. Sum inbound path alarm → total alarm
+  3. Sum inbound path resistance → total resistance
   4. Classify: attractive / ready / exploratory / repelled
   5. Include unit success-rate, sample-count
 ```
@@ -338,7 +338,7 @@ For each skill with a capability:
 ### What it shows
 
 - **Tasks by category** — color-coded columns (attractive=green, exploratory=blue, repelled=red)
-- **Pheromone bars** — strength (green) and alarm (red) per task
+- **Pheromone bars** — strength (green) and resistance (red) per task
 - **Unit info** — who handles this, their success rate, generation
 - **Queue** — pending signals waiting for handlers
 - **Highways** — proven paths between units
@@ -366,13 +366,13 @@ The new system:
 | Old | New |
 |-----|-----|
 | Task entity | `.on()` handler |
-| Trail relation | `scent` map entry |
+| Trail relation | `strength` map entry |
 | Dependency relation | `.then()` continuation |
 | `skill-type` attribute | `tag "build"` |
 | `phase` attribute | `tag "wire"` |
 | `priority` attribute | `tag "P0"` |
 | `is_attractive()` function | `strength >= 50` |
-| `is_repelled()` function | `alarm >= 30 && alarm > strength` |
+| `is_repelled()` function | `resistance >= 30 && resistance > strength` |
 | `ready_tasks()` function | `strength > 0 && strength < 50` |
 | `exploratory_tasks()` function | No inbound edges |
 | Task status lifecycle | Signal delivered or queued |
@@ -383,7 +383,7 @@ Tags for what it IS. Pheromone for how well it WORKS.
 
 ## Claude Code as a Unit
 
-Claude Code is a unit in the colony. Slash commands are the interface:
+Claude Code is a unit in the world. Slash commands are the interface:
 
 ```
 /work              # Autonomous loop: sense → select → execute → mark → repeat
@@ -408,7 +408,7 @@ GROW:    GET /api/tick?interval=0 → see what the colony learned
 LOOP:    go to SENSE
 ```
 
-Each `/done` teaches the colony. Each `/work` cycle makes it smarter. Multiple Claude Code instances sharing one TypeDB = shared intelligence.
+Each `/done` teaches the world. Each `/work` cycle makes it smarter. Multiple Claude Code instances sharing one TypeDB = shared intelligence.
 
 ---
 
@@ -416,7 +416,7 @@ Each `/done` teaches the colony. Each `/work` cycle makes it smarter. Multiple C
 
 | File | Purpose |
 |------|---------|
-| `src/engine/substrate.ts` | Colony: signal, mark, warn, fade, queue, select, ask |
+| `src/engine/substrate.ts` | World: signal, mark, warn, fade, queue, select, ask |
 | `src/engine/loop.ts` | Tick: 7 loops (signal through frontier) |
 | `src/engine/one.ts` | World: colony + TypeDB persistence |
 | `src/engine/boot.ts` | Hydrate + spawn + breathe |

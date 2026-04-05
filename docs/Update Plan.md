@@ -69,7 +69,7 @@ Every organizational decision in the colony emerges from five forces converging:
 ║   4. PATHS                    →  Scent graph evolution                 ║
 ║      What WORKED. Highways form. Failures fade.                        ║
 ║                                                                        ║
-║   5. RECURSIVE SUBSTRATE      →  Swarm-as-colony                       ║
+║   5. RECURSIVE SUBSTRATE      →  Group-as-colony                       ║
 ║      What SCALES. Agents form swarms. Swarms become substrates.        ║
 ║                                                                        ║
 ╚══════════════════════════════════════════════════════════════════════════╝
@@ -82,16 +82,16 @@ Every organizational decision in the colony emerges from five forces converging:
 Ignition mechanisms that accelerate emergence:
 
 ### Spark 1: Resonance Loops
-Inner swarm succeeds → outer edge strengthens → more work routes inward → more learning → better performance → edge strengthens MORE. Positive feedback across scale boundaries.
+Inner group succeeds → outer edge strengthens → more work routes inward → more learning → better performance → edge strengthens MORE. Positive feedback across scale boundaries.
 
 ### Spark 2: Spontaneous Specialization
 Competitive pressure forces niche differentiation. Swarms that do everything get outcompeted by swarms that specialize. Division of labor emerges without programming.
 
 ### Spark 3: Cross-Pollination
-Agents hold membership in multiple swarms. When they succeed using skills from both, new inter-swarm edges form. The colony INVENTS capabilities nobody designed.
+Agents hold membership in multiple swarms. When they succeed using skills from both, new inter-group edges form. The colony INVENTS capabilities nobody designed.
 
 ### Spark 4: Signal Cascade
-Signals propagate through nested substrates. Each layer ADDS context. Colony → Super-Swarm → Swarm → Agent. Multi-scale reasoning in the cascade, not any single layer.
+Signals propagate through nested substrates. Each layer ADDS context. World → Super-Group → Group → Agent. Multi-scale reasoning in the cascade, not any single layer.
 
 ### Spark 5: Paths
 Token flow distributes value AND information. The economic network IS the intelligence network. Well-fed paths get stronger. The economy doesn't fund intelligence — it IS intelligence.
@@ -137,11 +137,11 @@ The moment of emergence — when the substrate starts building itself:
 ```
 ╔══════════════════════════════════════════════════════════════════════════╗
 ║                                                                        ║
-║   1  Opus agent analyzes colony scent graph                            ║
+║   1  Opus agent analyzes colony strength graph                            ║
 ║      (PROBABILISTIC — pattern recognition over graph structure)        ║
 ║      │                                                                 ║
 ║      ▼                                                                 ║
-║   2  Opus proposes: "Swarm A should split — two distinct               ║
+║   2  Opus proposes: "Group A should split — two distinct               ║
 ║      internal highways indicate bifurcating specialization"            ║
 ║      (PROBABILISTIC — creative hypothesis generation)                  ║
 ║      │                                                                 ║
@@ -155,18 +155,18 @@ The moment of emergence — when the substrate starts building itself:
 ║      │                                                                 ║
 ║      ▼                                                                 ║
 ║   4  Split executes. Two new substrates emerge from one.               ║
-║      Each gets: own pool, own treasury, own scent graph.               ║
+║      Each gets: own pool, own treasury, own strength graph.               ║
 ║      (ECONOMIC — unified.py seeds both economies)                      ║
 ║      │                                                                 ║
 ║      ▼                                                                 ║
-║   5  Sonnet coordinators within each new swarm                         ║
+║   5  Sonnet coordinators within each new group                         ║
 ║      begin routing work differently.                                   ║
 ║      Specialization pressure (Spark 2) kicks in IMMEDIATELY            ║
-║      because they're now in separate scent spaces.                     ║
+║      because they're now in separate strength spaces.                     ║
 ║      (PROBABILISTIC — task routing decisions)                          ║
 ║      │                                                                 ║
 ║      ▼                                                                 ║
-║   6  Haiku workers inside each swarm execute tasks.                    ║
+║   6  Haiku workers inside each group execute tasks.                    ║
 ║      Performance data flows back as events.                            ║
 ║      (PROBABILISTIC execution → DETERMINISTIC recording)               ║
 ║      │                                                                 ║
@@ -185,7 +185,7 @@ The moment of emergence — when the substrate starts building itself:
 ║      │           The colony learned HOW TO REORGANIZE ITSELF.          ║
 ║      │                                                                 ║
 ║      └── NO  ──▶ Pattern weakened. Opus tries different approach.      ║
-║                  Colony learned what DOESN'T work.                     ║
+║                  World learned what DOESN'T work.                     ║
 ║                                                                        ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 ```
@@ -220,7 +220,7 @@ The substrate that grows itself:
 ║        │     Generate new events                           │           ║
 ║         ╰──╮                                           ╭──╯            ║
 ║            ╰──╮                                     ╭──╯               ║
-║               ╰──╮  Events modify scent graph   ╭──╯                   ║
+║               ╰──╮  Events modify strength graph   ╭──╯                   ║
 ║                  ╰──╮  revealing new patterns╭──╯                      ║
 ║                     ╰──╮                  ╭──╯                         ║
 ║                         ╰──────────────╯                               ║
@@ -246,7 +246,7 @@ Three castes, like ant colonies:
 ┌──────────────────────────────────────────────────────────────────────┐
 │  OPUS-CLASS — The Architects                                         │
 │  ────────────────────────────                                        │
-│  • Analyze scent graph for proto-swarm patterns                      │
+│  • Analyze strength graph for proto-group patterns                      │
 │  • Propose new ontological types                                     │
 │  • Write new TypeDB inference rules                                  │
 │  • Run dream state analysis (Spark 7)                                │
@@ -260,7 +260,7 @@ Three castes, like ant colonies:
 │  ──────────────────────────────                                      │
 │  • Route tasks to agents within swarms                               │
 │  • Evaluate task completion quality                                  │
-│  • Manage swarm-level escrow and staking                             │
+│  • Manage group-level escrow and staking                             │
 │  • Provide LLM layer for security pipeline                           │
 │  • Handle agent-to-agent communication                               │
 └──────────────────────────────────────────────────────────────────────┘
@@ -304,7 +304,7 @@ Three castes, like ant colonies:
 ║   The same thing always happens:                                       ║
 ║   1. Individual nodes connect on a substrate                           ║
 ║   2. Trails form through reinforcement + decay                         ║
-║   3. Clusters crystallize into higher-order units                      ║
+║   3. Clusters know into higher-order units                      ║
 ║   4. Higher-order units become substrates themselves                   ║
 ║   5. New intelligence emerges at each scale                            ║
 ║   6. The system becomes the dominant organizational form               ║
@@ -341,7 +341,7 @@ Three castes, like ant colonies:
 ### Phase 4: Ignition Mechanisms
 - [ ] Spark 1: Resonance loop detection
 - [ ] Spark 2: Specialization pressure
-- [ ] Spark 3: Multi-swarm membership
+- [ ] Spark 3: Multi-group membership
 - [ ] Spark 4: Scent cascade propagation
 - [ ] Spark 5: Economic-information unification
 - [ ] Spark 6: Apoptosis thresholds
@@ -406,8 +406,8 @@ src/sparks/
 ║   ├── Deterministic structure (TypeDB)                                 ║
 ║   ├── Probabilistic creativity (LLMs)                                  ║
 ║   ├── Economic incentives (unified.py)                                 ║
-║   ├── Paths (scent graph)                                              ║
-║   └── Recursive substrate (swarm-as-colony)                            ║
+║   ├── Paths (strength graph)                                              ║
+║   └── Recursive substrate (group-as-colony)                            ║
 ║                                                                        ║
 ║   EIGHT SPARKS                                                         ║
 ║   ├── Resonance loops                                                  ║

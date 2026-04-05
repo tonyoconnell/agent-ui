@@ -17,26 +17,26 @@ swtch
 1. **Deterministic Structure** (Move + TypeDB) — what IS and ISN'T possible
 2. **Probabilistic Creativity** (LLM agents) — what COULD BE
 3. **Economic Incentives** (FET + SUI flows) — what gets REWARDED
-4. **Stigmergic Memory** (scent graph) — what WORKED before
+4. **Stigmergic Memory** (strength graph) — what WORKED before
 5. **Recursive Substrate** (swarms of swarms) — what SCALES
 
 ---
 
 ## Eight Sparks
 
-1. **Resonance Loops** — Inner swarm succeeds → outer edge strengthens → more work routes inward → more learning → edge strengthens MORE. Positive feedback across scale boundaries.
+1. **Resonance Loops** — Inner group succeeds → outer edge strengthens → more work routes inward → more learning → edge strengthens MORE. Positive feedback across scale boundaries.
 
 2. **Spontaneous Specialization** — Competitive pressure forces niche differentiation. Swarms that do everything get outcompeted by swarms that specialize.
 
-3. **Cross-Pollination** — Agents hold membership in multiple swarms. When they succeed using skills from both, new inter-swarm edges form. The colony INVENTS capabilities nobody designed.
+3. **Cross-Pollination** — Agents hold membership in multiple swarms. When they succeed using skills from both, new inter-group edges form. The colony INVENTS capabilities nobody designed.
 
-4. **Scent Cascade** — Signals propagate through nested substrates. Each layer ADDS context. Colony → Super-Swarm → Swarm → Agent.
+4. **Scent Cascade** — Signals propagate through nested substrates. Each layer ADDS context. World → Super-Group → Group → Agent.
 
 5. **Metabolic Trophallaxis** — Token flow distributes value AND information. The economic network IS the intelligence network. The economy doesn't fund intelligence — it IS intelligence.
 
 6. **Apoptosis** — Programmed death at every scale. Agents with zero edges disappear. Swarms below threshold dissolve. Resources flow to survivors. Pruning IS learning.
 
-7. **Dream State** — Periodic consolidation. Analyze scent graph for patterns. Prune weak edges. Reinforce strong ones. Seed proto-swarms with stimulus bounties.
+7. **Dream State** — Periodic consolidation. Analyze strength graph for patterns. Prune weak edges. Reinforce strong ones. Seed proto-swarms with stimulus bounties.
 
 8. **Speed** — Below the "Anticipation Barrier" (<50ms), new patterns become visible. Speed is not optimization — it's a phase transition.
 
@@ -61,10 +61,10 @@ Together: something that moves, adapts, and thinks.
 ## The Ignition Sequence
 
 ```
-1  Opus agent analyzes colony scent graph
+1  Opus agent analyzes colony strength graph
    (PROBABILISTIC — pattern recognition)
 
-2  Opus proposes: "Swarm A should split — two distinct
+2  Opus proposes: "Group A should split — two distinct
    internal highways indicate bifurcating specialization"
    (PROBABILISTIC — creative hypothesis)
 
@@ -74,7 +74,7 @@ Together: something that moves, adapts, and thinks.
    (DETERMINISTIC — structural validation)
 
 4  Split executes. Two new substrates emerge.
-   Each gets: own pool, own treasury, own scent graph.
+   Each gets: own pool, own treasury, own strength graph.
    (ECONOMIC — unified.py seeds both economies)
 
 5  Sonnet coordinators begin routing differently.
@@ -89,8 +89,8 @@ Together: something that moves, adapts, and thinks.
    (DETERMINISTIC — computed from event history)
 
 8  Next dream cycle: Opus evaluates outcome.
-   YES → Pattern reinforced. Colony learned HOW TO REORGANIZE.
-   NO  → Pattern weakened. Colony learned what DOESN'T work.
+   YES → Pattern reinforced. World learned HOW TO REORGANIZE.
+   NO  → Pattern weakened. World learned what DOESN'T work.
 ```
 
 The colony reorganized its own structure. Not from a rule. Not from a prompt. From the interaction of all five forces.
@@ -106,7 +106,7 @@ Opus analyzes colony → proposes new structure
   → TypeDB validates → ontology GROWS
     → new capabilities enable new agent behaviors
       → agents generate new events
-        → events modify scent graph → revealing new patterns
+        → events modify strength graph → revealing new patterns
           → Opus analyzes colony → ...
 ```
 
@@ -118,7 +118,7 @@ Self-modifying infrastructure through the agents it hosts.
 
 ```
 OPUS — Architects
-  Analyze scent graph for proto-swarm patterns.
+  Analyze strength graph for proto-group patterns.
   Propose new ontological types. Write inference rules.
   Design economic parameters. Reason about BOTH fires.
 
@@ -144,7 +144,7 @@ Every time this pattern has appeared:
 - **2017**: Transformers → AI that writes, reasons, creates
 - **Now**: AI agents → ???
 
-Same sequence: nodes connect → trails form → clusters crystallize → clusters become substrates → new intelligence at each scale.
+Same sequence: nodes connect → trails form → clusters know → clusters become substrates → new intelligence at each scale.
 
 ---
 
@@ -154,8 +154,8 @@ Same sequence: nodes connect → trails form → clusters crystallize → cluste
 
 ## See Also
 
-- [flows.md](flows.md) — The complete flow from signal to crystallized knowledge
-- [swarm.md](swarm.md) — Multi-scale coordination patterns
+- [flows.md](flows.md) — The complete flow from signal to known knowledge
+- [group.md](group.md) — Multi-scale coordination patterns
 - [ants.md](ants.md) — Biological mechanisms enabling emergence
 - [PLAN-emerge.md](PLAN-emerge.md) — Implementation roadmap and status
 - [substrate-learning.md](substrate-learning.md) — Learning without gradients

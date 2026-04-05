@@ -18,9 +18,9 @@ export const GET: APIRoute = async () => {
       `).catch(() => []),
       readParsed(`
         match $e (source: $from, target: $to) isa path,
-          has strength $s, has alarm $a, has revenue $r;
+          has strength $s, has resistance $rs, has revenue $r;
         $from has uid $fid; $to has uid $tid;
-        select $fid, $tid, $s, $a, $r;
+        select $fid, $tid, $s, $rs, $r;
       `),
       readParsed(`
         match $s (sender: $from, receiver: $to) isa signal, has ts $ts;

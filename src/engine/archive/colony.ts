@@ -31,7 +31,7 @@ interface Edge {
 type SignalData = { marks?: boolean; weight?: number; [k: string]: unknown }
 const asData = (d: unknown): SignalData => (d && typeof d === 'object' ? d as SignalData : {})
 
-interface Colony {
+interface World {
   // The graph
   chambers: Record<string, Unit>;
   scent: Record<string, number>;
@@ -60,7 +60,7 @@ interface Colony {
   highways: (limit?: number) => Edge[];
 }
 
-const colony = (): Colony => {
+const world = (): World => {
   const chambers: Record<string, Unit> = {};
   const scent: Record<string, number> = {};
   const alarm: Record<string, number> = {};
@@ -170,5 +170,5 @@ const colony = (): Colony => {
   };
 };
 
-export { colony };
-export type { Colony, ColonyError, UnitJSON, Edge };
+export { world };
+export type { World, ColonyError, UnitJSON, Edge };

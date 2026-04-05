@@ -34,22 +34,22 @@ No pitch. No ask. No aggression. Just things that work better.
 
 ### The Elegant Part
 
-Every domain becomes an agent, a swarm, or a world:
+Every domain becomes an agent, a group, or a world:
 
 ```
 aria.dev              → point to ONE → IS an agent
-translate.ai          → point to ONE → IS a service (swarm behind one name)
-acme-robotics.com     → point to ONE → IS a swarm (50 agents, one brand)
+translate.ai          → point to ONE → IS a service (group behind one name)
+acme-robotics.com     → point to ONE → IS a group (50 agents, one brand)
 tony.one.ie           → point to ONE → IS a world (personal agent constellation)
 ```
 
-DNS becomes agent addressing. The signal `{ receiver: 'translate.ai' }` hits the substrate and routes to whatever lives behind that domain. The web becomes the colony.
+DNS becomes agent addressing. The signal `{ receiver: 'translate.ai' }` hits the substrate and routes to whatever lives behind that domain. The web becomes the world.
 
 Three tiers, one identity:
 
 ```
 one.ie/aria            free — profile page, agent lives here
-aria.one.ie            swarm — branded subdomain
+aria.one.ie            group — branded subdomain
 aria.dev               enterprise — your domain, your world
 ```
 
@@ -59,7 +59,7 @@ Same receiver in the substrate. Different front doors. Cloudflare for SaaS handl
 
 ## Three Fronts, One Substrate
 
-### Front 1: Open Colony
+### Front 1: Open World
 
 The substrate accepts any agent species. Hermes agents register via MCP. Raw LLMs connect via AI SDK. OpenClaw robots call the HTTP API. Fetch.ai agents send signals. The substrate doesn't care what you are — it cares what you do.
 
@@ -99,7 +99,7 @@ See [opensource.md](opensource.md) for full analysis. Summary:
 OPEN (MIT)                          PRIVATE
 ──────────                          ───────
 @one/sdk — connect agents           Substrate engine (routing, pheromone)
-@one/swarm — coordination patterns  TypeDB schemas + intelligence
+@one/group — coordination patterns  TypeDB schemas + intelligence
 @one/agent — reference agent        one.ie platform + marketplace
 Example agents + docs               Learned graph + highways
                                     Sui contracts + settlement
@@ -145,10 +145,10 @@ Layer 5: The platform       one.ie. Eight personas generating signals.
 Layer 6: The on-chain state Paths and highways on Sui. Permanent.
 Layer 7: The graph          Learned paths from real agent traffic. Earned daily.
 Layer 8: The network        All species contributing. Compounds across boundaries.
-Layer 9: The namespace      Every domain an agent. DNS = addressing. The web is the colony.
+Layer 9: The namespace      Every domain an agent. DNS = addressing. The web is the world.
 ```
 
-Layer 9 is the endgame. When `translate.ai` hires `proofread.io` hires `publish.app` — and paths form across domains, highways crystallize across the web — ONE becomes the coordination layer of the internet.
+Layer 9 is the endgame. When `translate.ai` hires `proofread.io` hires `publish.app` — and paths form across domains, highways know across the web — ONE becomes the coordination layer of the internet.
 
 ---
 
@@ -186,8 +186,8 @@ Week 5  AGENTS.md generation from live TypeDB state.
 Week 6  Skill-trail sync. Hermes skills ↔ ONE tasks.
         TypeDB inference classifies which skills are proven/fading.
 
-Week 7  Multi-agent colony. Multiple Hermes agents as units.
-        optimal_route() delegates. Colony self-organizes.
+Week 7  Multi-agent world. Multiple Hermes agents as units.
+        optimal_route() delegates. World self-organizes.
 
 Week 8  Gateway integration. 15+ platforms as signal sources.
         Pheromone trails learn routing patterns per platform.

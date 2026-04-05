@@ -1,10 +1,10 @@
 /**
- * METAPHOR CONTEXT — Switch lenses on the same reality
+ * SKIN CONTEXT — Switch lenses on the same reality
  *
  * The ontology is ONE. The views are many.
  *
  * Usage:
- *   const { skin, setSkin, t } = useMetaphor()
+ *   const { skin, setSkin, t } = useSkin()
  *   t('actor')  // Returns "ant" | "neuron" | "agent" etc.
  *   skin.colors.primary  // Returns the primary color
  */
@@ -12,7 +12,7 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
 import { skins, defaultSkin, type MetaphorSkin } from "@/skins"
 
-interface MetaphorContextType {
+interface SkinContextType {
   skin: MetaphorSkin
   skinId: string
   setSkin: (id: string) => void
@@ -20,9 +20,9 @@ interface MetaphorContextType {
   allSkins: typeof skins
 }
 
-const MetaphorContext = createContext<MetaphorContextType | null>(null)
+const SkinContext = createContext<SkinContextType | null>(null)
 
-export function MetaphorProvider({ children, initialSkin = "team" }: { children: ReactNode; initialSkin?: string }) {
+export function SkinProvider({ children, initialSkin = "team" }: { children: ReactNode; initialSkin?: string }) {
   const [skinId, setSkinId] = useState(initialSkin)
   const skin = skins[skinId] || defaultSkin
 
@@ -31,7 +31,7 @@ export function MetaphorProvider({ children, initialSkin = "team" }: { children:
       setSkinId(id)
       // Persist preference
       if (typeof localStorage !== "undefined") {
-        localStorage.setItem("metaphor-skin", id)
+        localStorage.setItem("skin", id)
       }
     }
   }, [])
@@ -46,16 +46,16 @@ export function MetaphorProvider({ children, initialSkin = "team" }: { children:
   )
 
   return (
-    <MetaphorContext.Provider value={{ skin, skinId, setSkin, t, allSkins: skins }}>
+    <SkinContext.Provider value={{ skin, skinId, setSkin, t, allSkins: skins }}>
       {children}
-    </MetaphorContext.Provider>
+    </SkinContext.Provider>
   )
 }
 
-export function useMetaphor() {
-  const context = useContext(MetaphorContext)
+export function useSkin() {
+  const context = useContext(SkinContext)
   if (!context) {
-    throw new Error("useMetaphor must be used within a MetaphorProvider")
+    throw new Error("useSkin must be used within a SkinProvider")
   }
   return context
 }

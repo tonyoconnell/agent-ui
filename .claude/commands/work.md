@@ -7,7 +7,7 @@ Run this loop until the user stops you or all tasks are done:
 ### 1. SENSE — Read what's available
 
 ```bash
-curl -s http://localhost:4321/api/tasks | jq '.tasks | group_by(.category) | map({category: .[0].category, count: length, tasks: [.[] | {name, skill, tags, strength, alarm}]})'
+curl -s http://localhost:4321/api/tasks | jq '.tasks | group_by(.category) | map({category: .[0].category, count: length, tasks: [.[] | {name, skill, tags, strength, resistance}]})'
 ```
 
 If the server isn't running, start it with `npm run dev` and wait for it.
@@ -18,7 +18,7 @@ Priority order:
 - **Attractive** tasks first (proven sequences, strength >= 50) — follow the pheromone
 - **Ready** tasks second (available, some signal) — safe bet
 - **Exploratory** tasks third (no data) — scout new territory
-- **Never** pick repelled tasks — the colony says avoid them
+- **Never** pick repelled tasks — the world says avoid them
 
 Within a category, prefer:
 - Tags matching current context (if you just did "build", keep building)
@@ -83,12 +83,12 @@ curl -s -X POST http://localhost:4321/api/tasks \
   -d '{"id": "fix-auth-import", "name": "Fix broken auth import", "tags": ["fix", "P0", "infra"]}'
 ```
 
-Tag it accurately. The colony needs good signal.
+Tag it accurately. The world needs good signal.
 
 ## Rules
 
 - **One task at a time.** Complete or fail before moving on.
-- **Honest outcomes.** If it failed, mark it failed. Alarm pheromone is how the colony learns what doesn't work. False positives poison the data.
-- **Follow the pheromone.** If the colony says a path is attractive, trust it — previous work proved it.
+- **Honest outcomes.** If it failed, mark it failed. Alarm pheromone is how the world learns what doesn't work. False positives poison the data.
+- **Follow the pheromone.** If the world says a path is attractive, trust it — previous work proved it.
 - **Scout sparingly.** Exploratory tasks are high-risk. Don't spend all your time on unknowns.
-- **Create tasks for surprises.** Found a bug? Create a task. Need a dependency? Create a task. The colony sees everything you teach it.
+- **Create tasks for surprises.** Found a bug? Create a task. Need a dependency? Create a task. The world sees everything you teach it.

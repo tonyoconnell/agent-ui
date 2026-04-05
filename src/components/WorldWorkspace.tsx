@@ -7,10 +7,10 @@
  */
 
 import { useEffect, useState, useCallback } from "react"
-import { colony } from "@/engine"
-import type { Colony, Edge } from "@/engine"
+import { world } from "@/engine"
+import type { World, Edge } from "@/engine"
 import { cn } from "@/lib/utils"
-import { MetaphorProvider, useMetaphor } from "@/contexts/MetaphorContext"
+import { SkinProvider, useSkin } from "@/contexts/SkinContext"
 import { SkinSwitcher } from "@/components/controls/SkinSwitcher"
 import { WorldGraph } from "@/components/graph/WorldGraph"
 
@@ -36,7 +36,7 @@ interface ActorData {
 }
 
 interface WorldState {
-  colony: Colony
+  world: World
   actors: ActorData[]
   flows: Edge[]
 }
@@ -54,7 +54,7 @@ function assignEnvelopes(actors: ActorData[], envelopes: ActorData["envelopes"][
 }
 
 async function loadWorld(): Promise<WorldState> {
-  const net = colony()
+  const net = world()
 
   // Try live TypeDB data first
   try {
@@ -81,7 +81,7 @@ async function loadWorld(): Promise<WorldState> {
           net.mark(`${e.from}→${e.to}`, e.strength)
         }
 
-        return { colony: net, actors, flows: net.highways(30) }
+        return { world: net, actors, flows: net.highways(30) }
       }
     }
   } catch {
@@ -107,9 +107,9 @@ async function loadWorld(): Promise<WorldState> {
       net.signal({ receiver: env.receiver, data: env.payload }, env.receiver)
     }
 
-    return { colony: net, actors, flows: net.highways(30) }
+    return { world: net, actors, flows: net.highways(30) }
   } catch {
-    return { colony: net, actors: [], flows: [] }
+    return { world: net, actors: [], flows: [] }
   }
 }
 
@@ -118,7 +118,7 @@ async function loadWorld(): Promise<WorldState> {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function StatsHeader({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) {
-  const { skin, t } = useMetaphor()
+  const { skin, t } = useSkin()
 
   const openFlows = flows.filter((f) => f.strength >= 50).length
   const totalStrength = flows.reduce((sum, f) => sum + f.strength, 0)
@@ -198,7 +198,7 @@ function Stat({ icon, label, value, color }: { icon: string; label: string; valu
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function FlowPanel({ flows }: { flows: Edge[] }) {
-  const { skin, t } = useMetaphor()
+  const { skin, t } = useSkin()
 
   const openFlows = flows.filter((f) => f.strength >= 50)
   const closingFlows = flows.filter((f) => f.strength > 0 && f.strength < 5)
@@ -266,7 +266,7 @@ function Controls({
   onInject: () => void
   onDecay: () => void
 }) {
-  const { skin, t } = useMetaphor()
+  const { skin, t } = useSkin()
 
   return (
     <div className="space-y-2">
@@ -302,7 +302,7 @@ function Controls({
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function WorkspaceInner() {
-  const { skin } = useMetaphor()
+  const { skin } = useSkin()
   const [world, setWorld] = useState<WorldState | null>(null)
 
   useEffect(() => {
@@ -313,57 +313,57 @@ function WorkspaceInner() {
   useEffect(() => {
     if (!world) return
     const interval = setInterval(() => {
-      world.colony.fade(0.1)
-      setWorld((prev) => (prev ? { ...prev, flows: world.colony.highways(30) } : null))
+      world.world.fade(0.1)
+      setWorld((prev) => (prev ? { ...prev, flows: world.world.highways(30) } : null))
     }, 5000)
     return () => clearInterval(interval)
-  }, [world?.colony])
+  }, [world?.world])
 
   const handleInject = useCallback(async () => {
     if (!world) return
     // Fire all 5 parallel chains simultaneously
     await Promise.allSettled([
       // Market: scout → analyst → trader
-      world.colony.send({
+      world.world.send({
         receiver: "scout", receive: "observe",
         payload: { source: "manual", chain: "market" },
         callback: { receiver: "analyst", receive: "evaluate", payload: { data: "{{result}}" },
           callback: { receiver: "trader", receive: "execute", payload: { signal: "{{result}}" } } }
       }),
       // Intelligence: forager → relay → queen
-      world.colony.send({
+      world.world.send({
         receiver: "forager", receive: "search",
         payload: { source: "onchain", chain: "intelligence" },
         callback: { receiver: "relay", receive: "broadcast", payload: { patterns: "{{result}}" },
           callback: { receiver: "queen", receive: "orchestrate", payload: { intel: "{{result}}" } } }
       }),
       // Defense: soldier → sentinel
-      world.colony.send({
+      world.world.send({
         receiver: "soldier", receive: "validate",
         payload: { signals: "all", chain: "defense" },
         callback: { receiver: "sentinel", receive: "risk", payload: { validated: "{{result}}" } }
       }),
       // Care: nurse monitors colony
-      world.colony.send({
+      world.world.send({
         receiver: "nurse", receive: "monitor",
         payload: { colony: "all", chain: "care" },
         callback: { receiver: "nurse", receive: "heal", payload: { unhealthy: "{{result}}" } }
       }),
       // Recon: scout → forager → queen
-      world.colony.send({
+      world.world.send({
         receiver: "scout", receive: "scan",
         payload: { source: "sentiment", chain: "recon" },
         callback: { receiver: "forager", receive: "harvest", payload: { regions: "{{result}}" },
           callback: { receiver: "queen", receive: "crystallize", payload: { patterns: "{{result}}" } } }
       }),
     ])
-    setWorld((prev) => (prev ? { ...prev, flows: world.colony.highways(30) } : null))
+    setWorld((prev) => (prev ? { ...prev, flows: world.world.highways(30) } : null))
   }, [world])
 
   const handleDecay = useCallback(() => {
     if (!world) return
-    world.colony.fade(0.2)
-    setWorld((prev) => (prev ? { ...prev, flows: world.colony.highways(30) } : null))
+    world.world.fade(0.2)
+    setWorld((prev) => (prev ? { ...prev, flows: world.world.highways(30) } : null))
   }, [world])
 
   if (!world) {
@@ -387,7 +387,7 @@ function WorkspaceInner() {
       <div className="flex-1 flex min-h-0">
         {/* Main graph */}
         <div className="flex-1 h-full">
-          <WorldGraph colony={world.colony} agents={world.actors} highways={world.flows} />
+          <WorldGraph world={world.world} agents={world.actors} highways={world.flows} />
         </div>
 
         {/* Side panel */}
@@ -414,9 +414,9 @@ function WorkspaceInner() {
 
 export default function WorldWorkspace() {
   return (
-    <MetaphorProvider initialSkin="team">
+    <SkinProvider initialSkin="team">
       <WorkspaceInner />
-    </MetaphorProvider>
+    </SkinProvider>
   )
 }
 

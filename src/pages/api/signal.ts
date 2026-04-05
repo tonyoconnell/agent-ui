@@ -178,9 +178,9 @@ export const POST: APIRoute = async ({ request }) => {
         match
           $from isa unit, has uid "${sender}";
           $to isa unit, has uid "${receiver}";
-          $e (source: $from, target: $to) isa path, has alarm $a;
-        delete $a of $e;
-        insert $e has alarm ($a + 1.0);
+          $e (source: $from, target: $to) isa path, has resistance $r;
+        delete $r of $e;
+        insert $e has resistance ($r + 1.0);
       `)
     }
 

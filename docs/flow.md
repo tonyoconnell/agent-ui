@@ -13,23 +13,23 @@ The ONE interface breathes. Signals pulse. Trails form. Highways glow.
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                           COMMAND PARSER                                  │
-│              parseCommand(text) → WorldCommand                           │
+│              parseCommand(text) → Signal                                 │
 │  "create scout" → { type: "spawn", id: "scout-xxx", kind: "scout" }     │
 └───────────────────────────────┬──────────────────────────────────────────┘
                                 │
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                            COLONY ENGINE                                  │
-│                    colony.send({ receiver, data })                       │
-│                    colony.mark(edge, weight)                             │
-│                    colony.fade(rate)                                     │
+│                    world.signal({ receiver, data })                     │
+│                    world.mark(edge, strength)                           │
+│                    world.fade(rate)                                     │
 └───────────────────────────────┬──────────────────────────────────────────┘
                                 │
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                          ANIMATION QUEUE                                  │
 │    enqueue({ type: "signal", from, to, data, ts })                      │
-│    enqueue({ type: "drop", edge, delta, ts })                           │
+│    enqueue({ type: "mark", edge, delta, ts })                           │
 │    enqueue({ type: "fade", rate, ts })                                  │
 └───────────────────────────────┬──────────────────────────────────────────┘
                                 │
@@ -38,7 +38,7 @@ The ONE interface breathes. Signals pulse. Trails form. Highways glow.
 ┌─────────────────────────────┐ ┌─────────────────────────────┐
 │      PARTICLE SYSTEM        │ │      NODE ANIMATOR          │
 │  - spawn particle           │ │  - pulse node               │
-│  - move along path          │ │  - shake on alarm           │
+│  - move along path          │ │  - shake on warn            │
 │  - burst on arrive          │ │  - glow on highway          │
 └─────────────────────────────┘ └─────────────────────────────┘
                     │                       │
@@ -54,9 +54,9 @@ The ONE interface breathes. Signals pulse. Trails form. Highways glow.
 ## The Heartbeat
 
 ```
-Signal sent → Edge pulses → Node receives → Trail strengthens → Highway forms
-     ↓              ↓              ↓               ↓                ↓
-   0ms           50ms          150ms           200ms            500ms+
+emit() → Edge pulses → Unit receives → mark() strengthens → Highway forms
+  ↓          ↓              ↓               ↓                    ↓
+ 0ms       50ms          150ms           200ms                500ms+
 ```
 
 Every interaction is visible. Every success remembered. Every failure fades.
@@ -104,10 +104,10 @@ Every interaction is visible. Every success remembered. Every failure fades.
 - Ring pulse radiates outward
 - Subtle sound: soft chime
 
-### 4. Trail Update (200ms)
+### 4. Mark Update (200ms)
 ```css
-/* Edge thickness animates */
-@keyframes trail-strengthen {
+/* Edge thickness animates on mark() */
+@keyframes path-strengthen {
   0%   { stroke-width: var(--old-width); }
   50%  { stroke-width: calc(var(--new-width) * 1.2); }  /* overshoot */
   100% { stroke-width: var(--new-width); }
@@ -115,7 +115,7 @@ Every interaction is visible. Every success remembered. Every failure fades.
 ```
 - Edge gets thicker (strength increase)
 - Color shifts toward highway color
-- Number badge updates with bounce
+- Strength badge updates with bounce
 
 ### 5. Highway Formation (500ms+)
 ```css
@@ -135,9 +135,9 @@ Every interaction is visible. Every success remembered. Every failure fades.
 
 ## Failure Sequence
 
-### Alarm Signal
+### warn() Signal
 ```css
-@keyframes alarm-pulse {
+@keyframes warn-pulse {
   0%, 100% { background: var(--danger); }
   50%      { background: var(--danger-bright); }
 }
@@ -150,14 +150,14 @@ Every interaction is visible. Every success remembered. Every failure fades.
 ```
 - Edge flashes red
 - Both nodes shake
-- Alarm pheromone increases (edge gets redder)
+- Resistance increases (edge gets redder)
 - Sound: low warning tone
 
 ## Decay Sequence
 
-### Global Fade
+### fade() Sweep
 ```css
-@keyframes decay-wave {
+@keyframes fade-wave {
   0%   { opacity: 1; filter: brightness(1); }
   50%  { opacity: 0.9; filter: brightness(0.8); }
   100% { opacity: 1; filter: brightness(1); }
@@ -167,10 +167,11 @@ Every interaction is visible. Every success remembered. Every failure fades.
 - All edges dim momentarily
 - Weak edges fade more visibly
 - Dead edges dissolve (particles scatter)
+- Resistance fades 2x faster than strength
 
-### Edge Death
+### Path Death
 ```css
-@keyframes edge-dissolve {
+@keyframes path-dissolve {
   0%   { opacity: 1; stroke-dasharray: none; }
   50%  { opacity: 0.5; stroke-dasharray: 5 5; }
   100% { opacity: 0; stroke-dasharray: 1 10; }
@@ -210,22 +211,22 @@ When user triggers "inject" or burst:
 
 ## State Transitions
 
-### Node Status Change
+### Unit Status Change
 ```
 active → proven:  green pulse + crown icon appears
 active → at-risk: red flash + warning icon
 proven → at-risk: crown fades, warning appears
 ```
 
-### Edge Status Change
+### Path Status Change
 ```
-fresh → highway:   celebration burst
+fresh → highway:   celebration burst (strength ≥ 50)
 highway → fading:  glow dims gradually
 fading → dead:     dissolve animation
-fresh → toxic:     red flash, skull icon
+fresh → toxic:     red flash, skull icon (resistance > strength)
 ```
 
-### Task Status Change
+### Skill Status Change
 ```
 todo → in_progress:  spinner appears
 in_progress → complete:  checkmark burst
@@ -262,20 +263,20 @@ const TIMING = {
   PARTICLE_TRAVEL: 200,  // ms - base travel time
   SIGNAL_RECEIVE: 150,   // ms - node pulse
   
-  // Trail updates
-  TRAIL_STRENGTHEN: 300, // ms - edge thickness change
+  // Path updates
+  MARK_STRENGTHEN: 300,  // ms - edge thickness change
   HIGHWAY_FORM: 500,     // ms - celebration
   
-  // Decay
-  DECAY_WAVE: 1000,      // ms - sweep duration
-  EDGE_DISSOLVE: 400,    // ms - death animation
+  // Fade
+  FADE_WAVE: 1000,       // ms - sweep duration
+  PATH_DISSOLVE: 400,    // ms - death animation
   
   // Bursts
   INJECT_RIPPLE: 600,    // ms - burst wave
   
   // Intervals
   AMBIENT_PULSE: 3000,   // ms - highway ambient glow
-  DECAY_INTERVAL: 5000,  // ms - auto-decay tick
+  FADE_INTERVAL: 5000,   // ms - auto-fade tick
 }
 ```
 
@@ -283,12 +284,12 @@ const TIMING = {
 
 | Event | Sound | Duration |
 |-------|-------|----------|
-| Signal send | Soft click | 50ms |
-| Signal receive | Chime | 100ms |
-| Highway form | Ascending tone | 300ms |
-| Alarm | Low buzz | 200ms |
-| Decay tick | Soft whoosh | 100ms |
-| Edge death | Dissolve | 150ms |
+| emit (signal sent) | Soft click | 50ms |
+| Signal received | Chime | 100ms |
+| Highway formed | Ascending tone | 300ms |
+| warn (resistance) | Low buzz | 200ms |
+| fade tick | Soft whoosh | 100ms |
+| Path dissolve | Dissolve | 150ms |
 | Inject burst | Whoosh | 400ms |
 
 Sounds should be:
@@ -318,7 +319,7 @@ Sounds should be:
   
   /* Glow */
   --highway-glow: 0 0 15px var(--color-success);
-  --alarm-glow: 0 0 10px var(--color-danger);
+  --resistance-glow: 0 0 10px var(--color-danger);
 }
 ```
 
@@ -329,10 +330,10 @@ Sounds should be:
 ```typescript
 type AnimationEvent =
   | { type: 'signal'; from: string; to: string; data?: unknown }
-  | { type: 'drop'; edge: string; delta: number }
+  | { type: 'mark'; edge: string; delta: number }
+  | { type: 'warn'; edge: string; delta: number }
   | { type: 'fade'; rate: number }
   | { type: 'spawn'; id: string; kind: string }
-  | { type: 'alarm'; edge: string; delta: number }
 
 class AnimationQueue {
   private queue: AnimationEvent[] = []
@@ -356,8 +357,10 @@ class AnimationQueue {
     switch (event.type) {
       case 'signal':
         return this.animateSignal(event.from, event.to)
-      case 'drop':
-        return this.animateDrop(event.edge, event.delta)
+      case 'mark':
+        return this.animateMark(event.edge, event.delta)
+      case 'warn':
+        return this.animateWarn(event.edge, event.delta)
       case 'fade':
         return this.animateFade(event.rate)
       // ...
@@ -428,7 +431,7 @@ export function useNodePulse() {
 ### Skinned Keyframes (`src/styles/animations.css`)
 
 ```css
-/* Ant Colony */
+/* Ant World */
 .skin-ant .particle { background: #fbbf24; }
 .skin-ant .trail { stroke: #84cc16; }
 .skin-ant .highway { filter: drop-shadow(0 0 8px #fbbf24); }
@@ -500,14 +503,14 @@ export function UnitNode({ data }: NodeProps) {
 }
 ```
 
-### Triggering Animations from Colony
+### Triggering Animations from World
 
 ```typescript
 // In WorldView.tsx
 const handleSend = useCallback(async (text: string) => {
   const command = parseCommand(text)
   
-  if (command?.type === 'send') {
+  if (command?.type === 'signal') {
     // Trigger animation BEFORE engine call
     animationQueue.enqueue({
       type: 'signal',
@@ -516,16 +519,15 @@ const handleSend = useCallback(async (text: string) => {
     })
     
     // Execute in engine
-    await world.colony.send({
+    await world.signal({
       receiver: command.to,
-      receive: 'signal',
-      payload: command.data,
+      data: command.data,
     })
     
     // Update state after animation completes
     setWorld(prev => prev ? {
       ...prev,
-      flows: world.colony.highways(30)
+      flows: world.highways(30)
     } : null)
   }
 }, [world])
@@ -533,4 +535,4 @@ const handleSend = useCallback(async (text: string) => {
 
 ---
 
-*Every signal visible. Every trail remembered. ONE flow.*
+*Every signal visible. Every path remembered. ONE flow.*

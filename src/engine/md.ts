@@ -1,35 +1,36 @@
 /**
  * MD — Define agents in markdown
  *
- * No code. The markdown IS the agent.
- *
- * # Name
- * Personality paragraph.
- * ## Steps
- * 1. **name** — prompt for this step
- *    → next-agent (optional cross-agent pipe)
- * ## Skills (unordered, no chain)
- * - **name** — prompt
- *    → target, target (optional fan out)
- * ## Remember
- * - key: value
- * ## Tools
- * - toolName
- * ## Price
- * 0.1 USDC
+ * Same format as the Python parser. Runs on the ONE substrate.
+ * Steps, skills, arrows, intervals, memory (per-user), tiers, secrets, tools, price.
  */
 
 import { agent, type Agent } from './agent'
-import type { Colony } from './substrate'
+import type { World } from './world'
 
 type Complete = (prompt: string, ctx?: Record<string, unknown>) => Promise<string>
+
+type SkillSpec = { name: string; prompt: string; targets?: string[] }
+
+type TierSpec = {
+  name: string
+  quota?: number
+  period: string
+  description: string
+  threshold: number
+  token: string
+}
 
 type AgentSpec = {
   id: string
   personality: string
-  steps: { name: string; prompt: string; targets?: string[] }[]
-  skills: { name: string; prompt: string; targets?: string[] }[]
+  steps: SkillSpec[]
+  skills: SkillSpec[]
+  interval?: { seconds: number; prompt: string }
   memory: Record<string, unknown>
+  perUser: boolean
+  tiers: TierSpec[]
+  secrets: string[]
   tools: string[]
   price?: { amount: number; currency: string }
 }
@@ -38,67 +39,87 @@ type AgentSpec = {
 // PARSE
 // ═══════════════════════════════════════════════════════════════════════════
 
+const parseInterval = (header: string): number | null => {
+  const m = header.match(/(\d+)\s*(seconds?|minutes?|hours?|mins?|hrs?|s|m|h)/)
+  if (!m) return null
+  const n = +m[1], u = m[2][0]
+  return n * ({ s: 1, m: 60, h: 3600 } as Record<string, number>)[u]
+}
+
+const parseTier = (line: string): TierSpec | null => {
+  const m = line.match(/^[-*]\s+(\w+)(?:\s*\((\d+)\s*\$(\w+)\))?\s*:\s*(.+)/)
+  if (!m) return null
+  const [, name, threshold, token, rest] = m
+  const qm = rest.match(/^(\d+)\/(hour|day|minute)\s*,?\s*(.*)/)
+  if (qm) return { name, quota: +qm[1], period: qm[2], description: qm[3], threshold: +(threshold || 0), token: token ? `$${token}` : '' }
+  return { name, period: 'hour', description: rest.replace(/^unlimited\s*,?\s*/, ''), threshold: +(threshold || 0), token: token ? `$${token}` : '' }
+}
+
 export const parse = (md: string): AgentSpec => {
   const lines = md.split('\n')
-  const spec: AgentSpec = { id: '', personality: '', steps: [], skills: [], memory: {}, tools: [] }
-
+  const spec: AgentSpec = { id: '', personality: '', steps: [], skills: [], memory: {}, perUser: false, tiers: [], secrets: [], tools: [] }
   let section = 'top'
-  let pendingItem: { name: string; prompt: string; targets?: string[] } | null = null
-  const flushItem = () => {
-    if (!pendingItem) return
-    if (section === 'steps') spec.steps.push(pendingItem)
-    else if (section === 'skills') spec.skills.push(pendingItem)
-    pendingItem = null
+  let pending: SkillSpec | null = null
+  const intervalLines: string[] = []
+
+  const flush = () => {
+    if (!pending) return
+    if (section === 'steps') spec.steps.push(pending)
+    else if (section === 'skills') spec.skills.push(pending)
+    pending = null
   }
 
   for (const raw of lines) {
     const line = raw.trim()
 
-    // # Name
     if (line.startsWith('# ') && !line.startsWith('## ')) {
       spec.id = line.slice(2).trim().toLowerCase().replace(/\s+/g, '-')
       continue
     }
 
-    // ## Section headers
     if (line.startsWith('## ')) {
-      flushItem()
-      const header = line.slice(3).trim().toLowerCase()
-      if (header === 'steps') section = 'steps'
-      else if (header === 'skills') section = 'skills'
-      else if (header.startsWith('remember')) section = 'remember'
-      else if (header === 'tools') section = 'tools'
-      else if (header === 'price') section = 'price'
+      flush()
+      const header = line.slice(3).trim()
+      const hl = header.toLowerCase()
+      if (hl === 'steps') section = 'steps'
+      else if (hl === 'skills') section = 'skills'
+      else if (hl.startsWith('remember')) { section = 'remember'; spec.perUser = hl.includes('per-user') || hl.includes('per user') }
+      else if (hl === 'tools') section = 'tools'
+      else if (hl === 'tiers') section = 'tiers'
+      else if (hl === 'secrets') section = 'secrets'
+      else if (hl === 'price') section = 'price'
+      else if (hl.startsWith('every')) {
+        section = 'every'
+        const secs = parseInterval(header)
+        if (secs) { spec.interval = { seconds: secs, prompt: '' }; intervalLines.length = 0 }
+      }
       else section = 'other'
       continue
     }
 
-    // Personality: paragraphs before first ## section
     if (section === 'top' && line && spec.id) {
       spec.personality += (spec.personality ? ' ' : '') + line
       continue
     }
 
-    // Arrow lines: → target, target
     if (line.startsWith('→') || line.startsWith('->')) {
       const targets = line.replace(/^(→|->)\s*/, '').split(',').map(t => t.trim()).filter(Boolean)
-      if (pendingItem) pendingItem.targets = targets
+      if (pending) pending.targets = targets
       continue
     }
 
-    // Steps: 1. **name** — prompt
     if (section === 'steps') {
       const m = line.match(/^\d+\.\s+\*{0,2}(\w[\w-]*)\*{0,2}\s*[—–-]\s*(.+)/)
-      if (m) { flushItem(); pendingItem = { name: m[1], prompt: m[2] }; continue }
+      if (m) { flush(); pending = { name: m[1], prompt: m[2] }; continue }
     }
 
-    // Skills: - **name** — prompt
     if (section === 'skills') {
       const m = line.match(/^[-*]\s+\*{0,2}(\w[\w-]*)\*{0,2}\s*[—–-]\s*(.+)/)
-      if (m) { flushItem(); pendingItem = { name: m[1], prompt: m[2] }; continue }
+      if (m) { flush(); pending = { name: m[1], prompt: m[2] }; continue }
     }
 
-    // Remember: - key: value
+    if (section === 'every' && line) { intervalLines.push(line); continue }
+
     if (section === 'remember') {
       const m = line.match(/^[-*]\s+(\w[\w-]*):\s*(.+)/)
       if (m) {
@@ -108,25 +129,19 @@ export const parse = (md: string): AgentSpec => {
       }
     }
 
-    // Tools: - toolName
-    if (section === 'tools') {
-      const m = line.match(/^[-*]\s+(\w[\w-]*)/)
-      if (m) { spec.tools.push(m[1]); continue }
-    }
-
-    // Price: 0.1 USDC
-    if (section === 'price') {
-      const m = line.match(/^([\d.]+)\s*(\w+)?/)
-      if (m) { spec.price = { amount: +m[1], currency: m[2] || 'USDC' }; continue }
-    }
+    if (section === 'tiers') { const t = parseTier(line); if (t) spec.tiers.push(t); continue }
+    if (section === 'secrets') { const m = line.match(/^[-*]\s+(\w+)/); if (m) spec.secrets.push(m[1]); continue }
+    if (section === 'tools') { const m = line.match(/^[-*]\s+(\w[\w-]*)/); if (m) spec.tools.push(m[1]); continue }
+    if (section === 'price') { const m = line.match(/^([\d.]+)\s*(\w+)?/); if (m) spec.price = { amount: +m[1], currency: m[2] || 'USDC' }; continue }
   }
 
-  flushItem()
+  flush()
+  if (spec.interval && intervalLines.length) spec.interval.prompt = intervalLines.join(' ')
   return spec
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BUILD
+// BUILD — wire spec into substrate agent
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const md = (source: string, net: Colony, complete: Complete, tools?: Record<string, Function>): Agent => {
@@ -139,38 +154,42 @@ export const md = (source: string, net: Colony, complete: Complete, tools?: Reco
   // Tools
   if (tools) a.tools(tools)
 
-  // Steps: ordered skills with implicit chaining
+  // Steps: ordered chain
   for (let i = 0; i < spec.steps.length; i++) {
     const step = spec.steps[i]
     a.skill(step.name, async (data, ctx) => {
       const input = typeof data === 'string' ? data : JSON.stringify(data)
-      const result = await complete(`${step.prompt}\n\nInput:\n${input}`, { system: spec.personality })
-      // Fan out to explicit targets
+      const mem = Object.fromEntries(ctx.memory.entries())
+      const memCtx = Object.keys(mem).length ? `\n\nYour memory:\n${JSON.stringify(mem)}` : ''
+      const result = await complete(`${step.prompt}\n\nInput:\n${input}${memCtx}`, { system: spec.personality })
       step.targets?.forEach(t => ctx.emit({ receiver: t, data: { result } }))
       return { result }
     })
-    // Chain: each step pipes to the next
     if (i < spec.steps.length - 1) a.pipe(step.name, spec.steps[i + 1].name)
-    // Last step: pipe to explicit target if specified
     if (i === spec.steps.length - 1 && step.targets?.length) {
       step.targets.forEach(t => a.pipe(step.name, t))
     }
   }
 
-  // Skills: unordered, no implicit chain
+  // Skills: unordered
   for (const skill of spec.skills) {
     a.skill(skill.name, async (data, ctx) => {
       const input = typeof data === 'string' ? data : JSON.stringify(data)
-      const result = await complete(`${skill.prompt}\n\nInput:\n${input}`, { system: spec.personality })
+      const mem = Object.fromEntries(ctx.memory.entries())
+      const memCtx = Object.keys(mem).length ? `\n\nYour memory:\n${JSON.stringify(mem)}` : ''
+      const result = await complete(`${skill.prompt}\n\nInput:\n${input}${memCtx}`, { system: spec.personality })
       skill.targets?.forEach(t => ctx.emit({ receiver: t, data: { result } }))
       return { result }
     })
   }
 
-  // Price
-  if (spec.price) a.price(spec.id, spec.price.amount, spec.price.currency)
+  // Price — register each skill/step as a priced capability
+  if (spec.price) {
+    const name = spec.steps[0]?.name || spec.skills[0]?.name || spec.id
+    a.price(name, spec.price.amount, spec.price.currency)
+  }
 
-  // Evolve (personality becomes system prompt)
+  // Evolve
   if (spec.personality) a.evolve({ system: spec.personality })
 
   return a

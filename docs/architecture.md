@@ -23,7 +23,7 @@ based on pheromone. Multiple machines, one TypeDB instance = one shared world.
 ┌─────────────────────────────────────────────────────────┐
 │                        ONE World                         │
 │                                                          │
-│  1. GROUPS     swarm         — personas, teams, colonies │
+│  1. GROUPS     group         — personas, teams, colonies │
 │  2. ACTORS     unit          — humans, agents, LLMs      │
 │  3. THINGS     task          — work + services (x402)    │
 │  4. PATHS      path, trail   — weighted connections      │
@@ -39,12 +39,12 @@ based on pheromone. Multiple machines, one TypeDB instance = one shared world.
 ## Dimension 1: Groups
 
 ```
-entity swarm
-  owns sid @key, name, purpose, swarm-type, status, created
+entity group
+  owns sid @key, name, purpose, group-type, status, created
   plays hierarchy:parent, hierarchy:child, membership:group
 ```
 
-`swarm-type`: "persona", "team", "colony", "dao"
+`group-type`: "persona", "team", "colony", "dao"
 
 Swarms nest via `hierarchy(parent, child)`. Units join via `membership(group, member)`.
 
@@ -91,12 +91,12 @@ A task with `price > 0` is a service. No separate entity needed.
 ```
 relation path
   relates source, target
-  owns strength, alarm, traversals, revenue, last-used, fade-rate, path-status
+  owns strength, resistance, traversals, revenue, last-used, fade-rate, path-status
 ```
 
 - `strength` — mark() adds weight on success
-- `alarm` — warn() adds weight on failure
-- `fade-rate` — per-path decay rate (production=0.05, support=0.15, alarm=2x)
+- `resistance` — warn() adds weight on failure
+- `fade-rate` — per-path decay rate (production=0.05, support=0.15, resistance=2x)
 - `revenue` — sum of x402 payments on this path
 - `path-status` — INFERRED: "highway" | "fresh" | "fading" | "toxic"
 
@@ -105,11 +105,11 @@ relation path
 ```
 relation trail
   relates source-task, destination-task
-  owns trail-pheromone, alarm-pheromone, completions, failures, revenue, trail-status
+  owns trail-pheromone, resistance-pheromone, completions, failures, revenue, trail-status
 ```
 
 - `trail-pheromone` — 0–100, mark on success
-- `alarm-pheromone` — 0–100, alarm on failure
+- `resistance-pheromone` — 0–100, resistance on failure
 - `trail-status` — INFERRED: "proven" | "fresh" | "fading" | "dead"
 
 ### Other relations
@@ -118,7 +118,7 @@ relation trail
 capability(provider: unit, skill: task)    owns price
 dependency(dependent: task, blocker: task)
 assignment(assigned-task, assigned-to)
-membership(group: swarm, member: unit)     owns joined-at
+membership(group: group, member: unit)     owns joined-at
 ```
 
 ---
@@ -158,11 +158,11 @@ Objectives: `pending → active → complete`
 
 ```
 signal succeeds → mark(path)  → strength++  → more signals routed here → highway
-signal fails    → warn(path)  → alarm++     → fewer signals routed     → toxic
+signal fails    → warn(path)  → resistance++     → fewer signals routed     → toxic
 time passes     → fade(rate)  → strength--  → stale paths dissolve
 ```
 
-Same for trails: `trail-pheromone` and `alarm-pheromone` on task sequences.
+Same for trails: `trail-pheromone` and `resistance-pheromone` on task sequences.
 The colony learns which paths and sequences work. Individual agents unchanged.
 
 ### 2. Agent Self-Improvement (ant gets smarter)
@@ -181,11 +181,11 @@ The substrate provides the signal (who is failing). The agent evolves itself.
 
 | Function | Input | Output | Trigger |
 |----------|-------|--------|---------|
-| `path_status(path)` | strength, alarm, traversals | "highway" / "fresh" / "active" / "fading" / "toxic" | Routing decisions |
+| `path_status(path)` | strength, resistance, traversals | "highway" / "fresh" / "active" / "fading" / "toxic" | Routing decisions |
 | `trail_status(trail)` | trail-pheromone, completions, failures | "proven" / "fresh" / "active" / "fading" / "dead" | Sequence selection |
 | `unit_classification(unit)` | success-rate, activity-score, sample-count | "proven" / "active" / "at-risk" | Trust & routing |
 | `is_attractive(task)` | todo + no blockers + trail pheromone >= 50 | boolean | Task selection |
-| `is_repelled(task)` | alarm >= 30 AND alarm > trail-pheromone | boolean | Task avoidance |
+| `is_repelled(task)` | resistance >= 30 AND resistance > trail-pheromone | boolean | Task avoidance |
 | `is_action_ready(hypothesis)` | confirmed + p-value <= 0.05 + n >= 50 | boolean | Knowledge → action |
 | `needs_evolution(unit)` | success-rate < 0.50 + sample-count >= 20 | boolean | Agent self-improvement |
 
@@ -245,7 +245,7 @@ The substrate learns end-to-end paths regardless of which machine runs which age
 ```
 signal = { receiver, data }     — the universal primitive
 mark(path)                      — add weight (success)
-warn(path)                      — add alarm (failure)
+warn(path)                      — add resistance (failure)
 fade(rate)                      — decay all weights
 emit(signal)                    — send from inside a task handler
 ```
@@ -254,7 +254,7 @@ emit(signal)                    — send from inside a task handler
 
 ## Entities
 
-swarm, unit, task, hypothesis, frontier, objective, contribution
+group, unit, task, hypothesis, frontier, objective, contribution
 
 ## Relations
 

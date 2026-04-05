@@ -5,24 +5,24 @@
  * One layer. No wrapping.
  */
 
-import { colony, type Colony, type Signal, type Edge } from './substrate'
+import { world as createWorld, type World, type Signal, type Edge } from './world'
 import { read, readParsed, writeSilent, parseAnswers } from '@/lib/typedb'
 
 export type Insight = { pattern: string; confidence: number }
 
-export interface World extends Colony {
-  actor: (id: string, kind?: string, opts?: { group?: string }) => ReturnType<Colony['spawn']>
+export interface PersistentWorld extends World {
+  actor: (id: string, kind?: string, opts?: { group?: string }) => ReturnType<World['add']>
   flow: (from: string, to: string) => { strengthen: (n?: number) => void; resist: (n?: number) => void }
   open: (n?: number) => { from: string; to: string; strength: number }[]
   blocked: () => { from: string; to: string }[]
-  crystallize: () => Promise<Insight[]>
+  know: () => Promise<Insight[]>
   recall: (match?: string) => Promise<Insight[]>
   sync: () => Promise<void>
   load: () => Promise<void>
 }
 
-export const world = (): World => {
-  const net = colony()
+export const world = (): PersistentWorld => {
+  const net = createWorld()
 
   // ── TypeDB-synced pheromone ────────────────────────────────────────────
 
@@ -78,8 +78,8 @@ export const world = (): World => {
       $from has uid $fid; $to has uid $tid; select $fid, $tid, $s, $a;
     `)
     for (const row of parseAnswers(answers)) {
-      net.scent[`${row.fid}→${row.tid}`] = row.s as number
-      if ((row.a as number) > 0) net.alarm[`${row.fid}→${row.tid}`] = row.a as number
+      net.strength[`${row.fid}→${row.tid}`] = row.s as number
+      if ((row.a as number) > 0) net.resistance[`${row.fid}→${row.tid}`] = row.a as number
     }
     const pending = await read(`
       match (sender: $f, receiver: $to) isa signal, has success false, has data $d;
@@ -91,13 +91,13 @@ export const world = (): World => {
   }
 
   const sync = async () => {
-    for (const [edge, strength] of Object.entries(net.scent)) {
+    for (const [edge, str] of Object.entries(net.strength)) {
       const [from, to] = edge.split('→')
       if (!from || !to) continue
       writeSilent(`
         match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
         insert (source: $from, target: $to) isa path,
-          has strength ${strength}, has alarm ${net.alarm[edge] || 0}, has traversals 0, has revenue 0.0;
+          has strength ${str}, has alarm ${net.resistance[edge] || 0}, has traversals 0, has revenue 0.0;
       `)
     }
   }
@@ -111,7 +111,7 @@ export const world = (): World => {
         has success-rate 0.5, has activity-score 0.0, has sample-count 0,
         has reputation 0.0, has balance 0.0, has generation 0;
     `).catch(() => {})
-    return net.spawn(uid)
+    return net.add(uid)
   }
 
   const flow = (from: string, to: string) => ({
@@ -126,11 +126,11 @@ export const world = (): World => {
     })
 
   const blocked = () =>
-    Object.entries(net.alarm)
-      .filter(([e, a]) => a > (net.scent[e] || 0))
+    Object.entries(net.resistance)
+      .filter(([e, a]) => a > (net.strength[e] || 0))
       .map(([e]) => { const [from, to] = e.split('→'); return { from, to } })
 
-  const crystallize = async (): Promise<Insight[]> => {
+  const know = async (): Promise<Insight[]> => {
     const strong = net.highways(100).filter(h => h.strength >= 20)
     writeSilent(`
       match $p isa path, has strength $s, has fade-rate $fr; $s >= 50.0; $fr > 0.01;
@@ -147,8 +147,41 @@ export const world = (): World => {
     return rows.map(r => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
   }
 
+  // ── The sandwich: TypeDB validates before and after LLM ─────────────
+
+  // Toxic = resistance overwhelms strength, with cold-start protection.
+  // Requires: resistance >= 10 (enough data), resistance > 2x strength (clearly bad, not marginal),
+  // and total signals > 5 (don't block on first few interactions).
+  const isToxic = (edge: string) => {
+    const a = net.resistance[edge] || 0
+    const s = net.strength[edge] || 0
+    return a >= 10 && a > s * 2 && (a + s) > 5
+  }
+
+  const signal = (s: Signal, from = 'entry') => {
+    const edge = `${from}→${s.receiver}`
+    if (isToxic(edge)) return
+    net.signal(s, from)
+  }
+
+  const ask = async (s: Signal, from = 'entry', timeout?: number) => {
+    const edge = `${from}→${s.receiver}`
+    if (isToxic(edge)) return { dissolved: true }
+    // Pre-check: capability exists? (TypeDB)
+    const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
+    const skill = s.receiver.includes(':') ? s.receiver.split(':')[1] : null
+    if (skill) {
+      const ok = await readParsed(
+        `match $u isa unit, has uid "${uid}"; $sk isa skill, has skill-id "${skill}";
+         (provider: $u, offered: $sk) isa capability; select $u;`
+      ).catch(() => [])
+      if (!ok.length) return { dissolved: true }
+    }
+    return net.ask(s, from, timeout)
+  }
+
   return {
-    ...net, mark, warn, fade, enqueue,
-    actor, flow, open, blocked, crystallize, recall, sync, load,
+    ...net, mark, warn, fade, enqueue, signal, ask,
+    actor, flow, open, blocked, know, recall, sync, load,
   }
 }

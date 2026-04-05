@@ -13,24 +13,24 @@ No controller.
 
 ---
 
-## Example 1: Hyperliquid Trading Swarm
+## Example 1: Hyperliquid Trading Group
 
 **The biology:** Forager ants find food sources. Scout ants report quality. Worker ants harvest. The colony routes resources to the best sources — no coordinator needed.
 
-**The application:** Tick data flows through chambers. Signals strengthen trails. Orders follow the strongest scent.
+**The application:** Tick data flows through chambers. Signals strengthen trails. Orders follow the strongest strength.
 
 ```javascript
 import { colony } from "@/engine";
 
 // Build the trading nest
-const nest = colony();
+const nest = world();
 
 // ════════════════════════════════════════════════════════════════
 // CHAMBERS: Each knows one task
 // ════════════════════════════════════════════════════════════════
 
 // Scout chamber: watches the market
-nest.spawn({ receiver: "scout" })
+nest.add({ receiver: "scout" })
   .assign("tick", ({ price, volume, symbol }) => {
     // Scout sees a tick, decides if it's interesting
     const dominated = price > 0 && volume > 1000;
@@ -38,7 +38,7 @@ nest.spawn({ receiver: "scout" })
   });
 
 // Analyst chamber: evaluates opportunities
-nest.spawn({ receiver: "analyst" })
+nest.add({ receiver: "analyst" })
   .assign("evaluate", ({ symbol, price, volume, dominated }) => {
     if (!dominated) return { action: "ignore" };
 
@@ -48,7 +48,7 @@ nest.spawn({ receiver: "analyst" })
   });
 
 // Trader chamber: executes orders
-nest.spawn({ receiver: "trader" })
+nest.add({ receiver: "trader" })
   .assign("execute", async ({ symbol, price, action }) => {
     if (action !== "trade") return { executed: false };
 
@@ -58,7 +58,7 @@ nest.spawn({ receiver: "trader" })
   });
 
 // Logger chamber: records everything
-nest.spawn({ receiver: "logger" })
+nest.add({ receiver: "logger" })
   .assign("record", ({ executed, orderId, symbol }) => {
     console.log(`[${symbol}] executed: ${executed}, order: ${orderId || "none"}`);
     return { logged: true };
@@ -117,31 +117,31 @@ setInterval(() => {
 - No coordinator decides which symbols to trade
 - Profitable paths naturally strengthen
 - Unprofitable paths fade
-- The swarm learns which routes work
+- The group learns which routes work
 
 ---
 
-## Example 2: Agent Swarm Coordination
+## Example 2: Agent Group Coordination
 
 **The biology:** Army ants form living bridges. No ant knows the full structure. Each ant feels the pull of pheromones and joins where needed. The bridge emerges.
 
-**The application:** Agents spawn dynamically. Tasks emit scent. Agents smell and join. Swarms form around hot tasks.
+**The application:** Agents spawn dynamically. Tasks emit strength. Agents smell and join. Swarms form around hot tasks.
 
 ```javascript
 import { colony } from "@/engine";
 
-const nest = colony();
+const nest = world();
 
 // ════════════════════════════════════════════════════════════════
 // QUEEN CHAMBER: Spawns worker agents
 // ════════════════════════════════════════════════════════════════
 
-nest.spawn({ receiver: "queen" })
+nest.add({ receiver: "queen" })
   .assign("spawn", ({ type, count }) => {
     const workers = [];
     for (let i = 0; i < count; i++) {
       const id = `${type}-${Date.now()}-${i}`;
-      const worker = nest.spawn({ receiver: id });
+      const worker = nest.add({ receiver: id });
 
       // Each worker knows how to work and report
       worker.assign("work", async ({ task }) => {
@@ -162,19 +162,19 @@ nest.spawn({ receiver: "queen" })
 // COORDINATOR: Smells trails and routes work to strongest paths
 // ════════════════════════════════════════════════════════════════
 
-nest.spawn({ receiver: "coordinator" })
+nest.add({ receiver: "coordinator" })
   .assign("dispatch", ({ task }) => {
     // Find available workers by smelling their trails
     const workers = nest.list().filter(id => id.startsWith("worker-"));
 
-    // Route to worker with weakest scent (least busy)
+    // Route to worker with weakest strength (least busy)
     let bestWorker = null;
     let weakestScent = Infinity;
 
     for (const worker of workers) {
-      const scent = nest.trace(`${worker}:work`);
-      if (scent < weakestScent) {
-        weakestScent = scent;
+      const strength = nest.trace(`${worker}:work`);
+      if (strength < weakestScent) {
+        weakestScent = strength;
         bestWorker = worker;
       }
     }
@@ -189,7 +189,7 @@ nest.spawn({ receiver: "coordinator" })
 // SWARM FORMATION: Workers cluster around hot tasks
 // ════════════════════════════════════════════════════════════════
 
-nest.spawn({ receiver: "swarm" })
+nest.add({ receiver: "group" })
   .assign("form", ({ taskType }) => {
     // Smell all trails to find where the action is
     const highways = nest.highways(20);
@@ -207,7 +207,7 @@ nest.spawn({ receiver: "swarm" })
   })
   .assign("recruit", ({ taskType, needed }) => {
     // Queen spawns more workers for hot tasks
-    const currentSwarm = nest.trace(`swarm:${taskType}`);
+    const currentSwarm = nest.trace(`group:${taskType}`);
     if (currentSwarm < needed) {
       nest.signal({
         receiver: "queen",
@@ -219,7 +219,7 @@ nest.spawn({ receiver: "swarm" })
   });
 
 // ════════════════════════════════════════════════════════════════
-// USAGE: The swarm self-organizes
+// USAGE: The group self-organizes
 // ════════════════════════════════════════════════════════════════
 
 // Spawn initial workers
@@ -229,7 +229,7 @@ await nest.signal({
   data: { type: "worker", count: 5 }
 });
 
-// Dispatch tasks — workers with weak scent get work
+// Dispatch tasks — workers with weak strength get work
 for (const task of tasks) {
   await nest.signal({
     receiver: "coordinator",
@@ -243,9 +243,9 @@ for (const task of tasks) {
   });
 }
 
-// Check swarm status
-const swarm = await nest.signal({
-  receiver: "swarm",
+// Check group status
+const group = await nest.signal({
+  receiver: "group",
   receive: "form",
   data: { taskType: "processing" }
 });
@@ -253,10 +253,10 @@ const swarm = await nest.signal({
 ```
 
 **What emerges:**
-- Workers cluster around busy tasks (strong scent)
-- Idle workers get recruited to new tasks (weak scent)
+- Workers cluster around busy tasks (strong strength)
+- Idle workers get recruited to new tasks (weak strength)
 - Swarms form and dissolve dynamically
-- No central scheduler — just scent
+- No central scheduler — just strength
 
 ---
 
@@ -264,18 +264,18 @@ const swarm = await nest.signal({
 
 **The biology:** Ants mark food with attractive pheromones. They mark danger with repellent pheromones. The colony learns what to approach and what to avoid.
 
-**The application:** Tasks emit scent. Success strengthens attraction. Failure marks repulsion. Agents navigate the scent landscape.
+**The application:** Tasks emit strength. Success strengthens attraction. Failure marks repulsion. Agents navigate the strength landscape.
 
 ```javascript
 import { colony } from "@/engine";
 
-const nest = colony();
+const nest = world();
 
 // ════════════════════════════════════════════════════════════════
 // DUAL SCENT: Attraction and Repulsion
 // ════════════════════════════════════════════════════════════════
 
-// Extend colony with repulsion (negative scent)
+// Extend colony with repulsion (negative strength)
 const repel = {};
 
 nest.dropDanger = (trail, strength = 1) => {
@@ -299,20 +299,20 @@ nest.fadeDanger = (rate = 0.1) => {
 // TASK BOARD: Where tasks are laid like food sources
 // ════════════════════════════════════════════════════════════════
 
-nest.spawn({ receiver: "taskboard" })
+nest.add({ receiver: "taskboard" })
   .assign("post", ({ task, reward, difficulty }) => {
     const taskId = `task-${Date.now()}`;
 
-    // Task emits attractive scent proportional to reward
+    // Task emits attractive strength proportional to reward
     nest.mark(`task:${taskId}`, reward);
 
     // Store task data
     tasks[taskId] = { task, reward, difficulty, posted: Date.now() };
 
-    return { taskId, scent: reward };
+    return { taskId, strength: reward };
   })
   .assign("list", () => {
-    // Return tasks sorted by net scent (attraction - repulsion)
+    // Return tasks sorted by net strength (attraction - repulsion)
     return Object.entries(tasks)
       .map(([id, t]) => ({
         ...t,
@@ -325,10 +325,10 @@ nest.spawn({ receiver: "taskboard" })
   });
 
 // ════════════════════════════════════════════════════════════════
-// WORKER: Follows scent, marks success/failure
+// WORKER: Follows strength, marks success/failure
 // ════════════════════════════════════════════════════════════════
 
-nest.spawn({ receiver: "worker" })
+nest.add({ receiver: "worker" })
   .assign("seek", () => {
     // Find most attractive task
     const taskList = nest.signal({ receiver: "taskboard", receive: "list", data: {} });
@@ -362,10 +362,10 @@ nest.spawn({ receiver: "worker" })
   });
 
 // ════════════════════════════════════════════════════════════════
-// FOREMAN: Monitors scent landscape, adjusts rewards
+// FOREMAN: Monitors strength landscape, adjusts rewards
 // ════════════════════════════════════════════════════════════════
 
-nest.spawn({ receiver: "foreman" })
+nest.add({ receiver: "foreman" })
   .assign("survey", () => {
     const successRate = nest.trace("worker:success") /
       (nest.trace("worker:success") + nest.trace("worker:failure") || 1);
@@ -381,7 +381,7 @@ nest.spawn({ receiver: "foreman" })
     return { successRate, hotTasks, dangerousTasks };
   })
   .assign("boost", ({ taskId, amount }) => {
-    // Foreman can artificially boost a task's scent
+    // Foreman can artificially boost a task's strength
     nest.mark(`task:${taskId}`, amount);
     return { boosted: taskId, newScent: nest.trace(`task:${taskId}`) };
   })
@@ -408,7 +408,7 @@ await nest.signal({ receiver: "taskboard", receive: "post",
 // Workers seek and attempt tasks
 // Easy jobs succeed → attraction grows
 // Risky jobs fail → repulsion grows
-// Colony learns: easy-job is safe, risky-job is dangerous
+// World learns: easy-job is safe, risky-job is dangerous
 
 // Time passes — scents fade
 setInterval(() => {
@@ -426,8 +426,8 @@ const survey = await nest.signal({ receiver: "foreman", receive: "survey", data:
 ```
 
 **What emerges:**
-- High-reward tasks attract workers (strong positive scent)
-- Dangerous tasks repel workers (strong negative scent)
+- High-reward tasks attract workers (strong positive strength)
+- Dangerous tasks repel workers (strong negative strength)
 - The colony learns over time — no training needed
 - Danger fades slower than attraction (survival instinct)
 - Foremen can intervene (boost or quarantine)
@@ -446,7 +446,7 @@ All three examples follow the same 85-line genome:
 5. No central controller     (emergence)
 ```
 
-**Trading swarm:** Ticks flow through analysis chambers. Profitable paths strengthen.
+**Trading group:** Ticks flow through analysis chambers. Profitable paths strengthen.
 
 **Agent coordination:** Workers cluster around hot tasks. Idle workers get recruited.
 
@@ -465,4 +465,4 @@ All three examples follow the same 85-line genome:
 - [tutorial.md](tutorial.md) — Introduction to the concepts shown here
 - [agents.md](agents.md) — Agent types: worker, router, aggregator
 - [ants.md](ants.md) — Biological source of pheromone patterns
-- [swarm.md](swarm.md) — Coordination patterns at scale
+- [group.md](group.md) — Coordination patterns at scale
