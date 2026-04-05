@@ -154,6 +154,7 @@ export function Dashboard() {
         fetch('/api/health').then(r => r.json()).catch(() => null),
         fetch('/api/stats').then(r => r.json()).catch(() => null),
         fetch('/api/decay-auto').catch(() => null),  // auto-decay on poll
+        fetch('/api/tick').catch(() => null),         // growth loop on poll
       ])
 
       if (healthRes) {

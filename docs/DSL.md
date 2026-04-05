@@ -131,6 +131,35 @@ HIGHWAY            dissolve
 
 ---
 
+## Roles
+
+A task with context baked in. Same handler, different perspective:
+
+```typescript
+colony.spawn('monitor')
+  .on('check', ({ target }, emit) => {
+    const status = ping(target)
+    emit({ receiver: 'alert', data: { target, status } })
+  })
+  .role('check-db', 'check', { target: 'database' })
+  .role('check-api', 'check', { target: 'api' })
+```
+
+`.role(name, task, ctx)` creates a named task that delegates to an existing handler
+with pre-bound context. The signal's data merges on top:
+
+```
+signal { receiver: 'monitor:check-db' }
+  → runs check with { target: 'database' }
+
+signal { receiver: 'monitor:check-db', data: { timeout: 5000 } }
+  → runs check with { target: 'database', timeout: 5000 }
+```
+
+Roles don't add logic. They add perspective.
+
+---
+
 ## Continuations
 
 Instead of each agent deciding who to emit to, you can declare the chain at setup:
@@ -172,7 +201,7 @@ the trail evaporates. No exception thrown. No error logged. The colony moves on.
 
 ---
 
-## The Five Verbs
+## The Six Verbs
 
 | Verb | What it does | Effect |
 |------|--------------|--------|
@@ -180,9 +209,14 @@ the trail evaporates. No exception thrown. No error logged. The colony moves on.
 | `mark(path)` | Drop pheromone on success | Path strengthens |
 | `warn(path)` | Drop alarm on failure | Path weakens |
 | `fade(rate)` | Decay everything | Stale paths dissolve |
-| `follow(type)` | Ask where pheromone is strongest | Route decision |
+| `follow(type)` | Ask where pheromone is strongest | Route decision (deterministic) |
+| `select(type, exploration?)` | Weighted random with exploration bias | Route decision (stochastic) |
 
-Five operations. The signal flows. The path remembers. The colony learns.
+`follow` always picks the highway. `select` explores — sometimes the strongest,
+sometimes a random trail. Real ants do both. `exploration` controls the bias
+(0 = always strongest, 1 = pure random, default 0.3).
+
+Six operations. The signal flows. The path remembers. The colony learns.
 
 ---
 
@@ -217,22 +251,35 @@ The world that signals move through.
 ```typescript
 const net = colony()
 
-// Spawn agents
-const scout = net.spawn('scout')
+// Lifecycle
+const scout = net.spawn('scout')     // create unit
 const analyst = net.spawn('analyst')
+net.despawn('old-scout')             // unit stops receiving. trails remain, fade naturally
 
 // Signal enters the world
 net.signal({ receiver: 'scout:observe', data: { tick: 42 } })
 
+// Route
+net.follow('analyst')      // best route to any analyst (deterministic)
+net.select('analyst')      // weighted random route (stochastic, exploration=0.3)
+net.select('analyst', 0.1) // mostly follow highways, rarely explore
+
 // Query what emerged
 net.highways(10)           // strongest paths
-net.follow('analyst')      // best route to any analyst
 net.sense('a→b')           // read scent on a path
 net.danger('a→b')          // read alarm on a path
+
+// Introspection
+net.has('scout')           // unit exists?
+net.list()                 // all unit ids
+net.get('scout')           // direct unit access
 ```
 
 State is two maps: `scent` (what worked) and `alarm` (what failed).
 Everything else — highways, routing, toxicity — derives from these.
+
+Matching is exact. `follow('analyst')` matches `scout→analyst:process`
+but `follow('an')` matches nothing. The colony doesn't guess.
 
 ---
 
@@ -256,16 +303,28 @@ const scout = w.actor('scout', 'agent', { group: 'research' })
 w.thing('daily-scan', 'task', { group: 'research' })
 
 // 4. Connections — pheromone with group scoping
-w.flow('scout', 'analyst', { group: 'research' }).mark()
+w.flow('scout', 'analyst', { group: 'research' }).strengthen()
+w.flow('scout', 'bad-analyst', { group: 'research' }).resist()
 
 // 5. Events — automatic from signals
 
-// 6. Knowledge — what crystallized
+// 6. Knowledge — durable patterns that survive fade
+w.crystallize()               // promote strong flows → knowledge. returns new insights
+w.recall()                    // all crystallized patterns
+w.recall('analyst')           // patterns involving analyst
+
+// Queries — live pheromone (ephemeral, fades)
 w.open(10)                    // strongest flows
-w.best('agent')               // best actor
-w.proven()                    // reliable actors
-w.blocked()                   // toxic paths
+w.best('agent')               // best actor of type
+w.proven()                    // reliable actors (strength >= 20)
+w.blocked()                   // toxic paths (alarm > scent)
+w.confidence('agent')         // aggregate confidence for type
 ```
+
+Knowledge vs queries: `open()`, `best()`, `proven()` read live pheromone — they
+fade. `crystallize()` snapshots strong patterns into durable knowledge that persists
+even after pheromone decays. `recall()` reads that knowledge. Working memory vs
+long-term memory.
 
 ---
 
@@ -400,16 +459,21 @@ The signal loop is the muscle. The frontier loop is the mind.
 
 The DSL doesn't care what you call things. Same flow, different words:
 
-| DSL | Ant | Brain | Team | Water | Radio |
-|-----|-----|-------|------|-------|-------|
-| unit | ant | neuron | agent | pool | receiver |
-| colony | nest | network | team | watershed | network |
-| emit | forage | fire | delegate | flow | transmit |
-| mark | deposit | potentiate | commend | carve | boost |
-| warn | alarm | inhibit | flag | dam | jam |
-| fade | evaporate | decay | forget | dry | attenuate |
-| follow | smell | sense | query | trace | scan |
-| highways | trails | pathways | go-tos | rivers | channels |
+| DSL         | Ant        | Brain       | Team      | Water      | Radio      |
+| ----------- | ---------- | ----------- | --------- | ---------- | ---------- |
+| unit        | ant        | neuron      | agent     | pool       | receiver   |
+| colony      | nest       | network     | team      | watershed  | network    |
+| emit        | forage     | fire        | delegate  | flow       | transmit   |
+| mark        | deposit    | potentiate  | commend   | carve      | boost      |
+| warn        | alarm      | inhibit     | flag      | dam        | jam        |
+| fade        | evaporate  | decay       | forget    | dry        | attenuate  |
+| follow      | smell      | sense       | query     | trace      | scan       |
+| select      | wander     | stochastic  | explore   | branch     | tune       |
+| despawn     | die        | apoptosis   | retire    | evaporate  | deregister |
+| highways    | trails     | pathways    | go-tos    | rivers     | channels   |
+| crystallize | nest-scent | consolidate | document  | sediment   | record     |
+| recall      | recognize  | remember    | consult   | resurface  | replay     |
+| role        | caste      | receptor    | hat       | tributary  | preset     |
 
 The signal doesn't change. The data doesn't change.
 Only the words humans use to describe it.

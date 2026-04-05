@@ -40,12 +40,14 @@ export interface Colony {
   scent: Record<string, number>
   alarm: Record<string, number>
   spawn: (id: string) => Unit
+  despawn: (id: string) => void
   signal: (s: Signal, from?: string) => void
   mark: (path: string, strength?: number) => void
   warn: (path: string, strength?: number) => void
   sense: (path: string) => number
   danger: (path: string) => number
   follow: (type?: string) => string | null
+  select: (type?: string, exploration?: number) => string | null
   fade: (rate?: number) => void
   highways: (limit?: number) => { path: string; strength: number }[]
   has: (id: string) => boolean
@@ -110,7 +112,7 @@ export const colony = (): Colony => {
     const d = asData(data)
     const edge = `${from}→${receiver}`
 
-    // marks gate: only drop pheromone on production signals
+    // marks gate: only mark pheromone on production signals
     d.marks !== false && mark(edge, d.weight ?? 1)
 
     target({ receiver, data }, from)
@@ -122,14 +124,36 @@ export const colony = (): Colony => {
     return u
   }
 
+  // unit stops receiving. trails remain, fade naturally
+  const despawn = (id: string) => { delete units[id] }
+
+  // exact segment match: "analyst" matches "scout→analyst:process" but "an" doesn't
+  const matchEdge = (edge: string, type: string) =>
+    edge.split('→').some(s => s.split(':')[0] === type)
+
   // follow strongest trail, penalized by alarm
   const follow = (type?: string) => {
     const trails = Object.entries(scent)
-      .filter(([e]) => !type || e.includes(type))
+      .filter(([e]) => !type || matchEdge(e, type))
       .map(([e, s]) => [e, s - (alarm[e] || 0)] as const)
       .filter(([, s]) => s > 0)
       .sort(([, a], [, b]) => b - a)
     return trails[0]?.[0].split('→').pop()?.split(':')[0] || null
+  }
+
+  // select: weighted random with exploration bias (ant-like stochastic routing)
+  const select = (type?: string, exploration = 0.3) => {
+    const viable = Object.entries(scent)
+      .filter(([e]) => !type || matchEdge(e, type))
+      .map(([e, s]) => [e, Math.max(0, s - (alarm[e] || 0))] as const)
+      .filter(([, s]) => s > 0)
+    if (!viable.length) return null
+    const pick = (e: string) => e.split('→').pop()?.split(':')[0] || null
+    if (Math.random() < exploration) return pick(viable[Math.floor(Math.random() * viable.length)][0])
+    const total = viable.reduce((sum, [, s]) => sum + s, 0)
+    let r = Math.random() * total
+    for (const [e, s] of viable) { r -= s; if (r <= 0) return pick(e) }
+    return pick(viable.at(-1)![0])
   }
 
   // asymmetric: alarm decays 2x faster (failures forgive)
@@ -148,7 +172,7 @@ export const colony = (): Colony => {
   const list = () => Object.keys(units)
   const get = (id: string) => units[id]
 
-  return { units, scent, alarm, spawn, signal, mark, warn, sense, danger, follow, fade, highways, has, list, get }
+  return { units, scent, alarm, spawn, despawn, signal, mark, warn, sense, danger, follow, select, fade, highways, has, list, get }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
