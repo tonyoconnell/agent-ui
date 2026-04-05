@@ -17,6 +17,11 @@ const FADE_INTERVAL = 300_000      // 5 minutes between decay cycles
 const FADE_RATE = 0.05
 const EVOLUTION_INTERVAL = 600_000      // 10 minutes between evolution sweeps
 const EVOLUTION_COOLDOWN = 86_400_000   // 24 hours between rewrites per agent
+const EVOLUTION_THRESHOLD = 0.50        // success rate below which agents evolve
+const PRIORITY_EVOLUTION_THRESHOLD = 0.65  // relaxed threshold for priority units
+const EVOLUTION_MIN_SAMPLES = 20
+const REVENUE_SKIP_THRESHOLD = 1.0      // revenue above which low-success agents are spared
+const REVENUE_MIN_SUCCESS = 0.30        // min success rate even for profitable agents
 const CRYSTALLIZE_INTERVAL = 3_600_000  // 1 hour between knowledge cycles
 
 export type TickResult = {
@@ -37,6 +42,7 @@ let lastEvolve = 0
 let lastCrystallize = 0
 let previousTarget: string | null = null
 let chainDepth = 0
+let priorityEvolve: string[] = []
 
 export const tick = async (net: PersistentWorld, complete?: Complete): Promise<TickResult> => {
   const now = Date.now()
@@ -93,34 +99,78 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
 
   // L5: EVOLVE — every 10 minutes, with 24h cooldown + prompt history
   if (complete && now - lastEvolve > EVOLUTION_INTERVAL) {
+    // EV-1: Check for failed evolutions that need rollback
+    const failedEvos = await readParsed(`
+      match $h isa hypothesis, has hid $hid, has statement $s, has hypothesis-status "testing";
+      $hid contains "evolve-"; $h has observations-count $oc; $oc >= ${EVOLUTION_MIN_SAMPLES};
+      select $hid, $s;
+    `).catch(() => [])
+
+    for (const fe of failedEvos) {
+      writeSilent(`
+        match $h isa hypothesis, has hid "${fe.hid}", has hypothesis-status $st;
+        delete $st of $h; insert $h has hypothesis-status "rejected";
+      `).catch(() => {})
+    }
+
+    // EV-2: Targeted evolution — query per-skill data, not just blanket
     const struggling = await readParsed(`
       match $u isa unit, has uid $id, has system-prompt $sp, has success-rate $sr,
             has sample-count $sc, has generation $g;
-      $sr < 0.50; $sc >= 20;
+      $sr < ${EVOLUTION_THRESHOLD}; $sc >= ${EVOLUTION_MIN_SAMPLES};
       not { $u has last-evolved $le; $le > ${new Date(now - EVOLUTION_COOLDOWN).toISOString().replace('Z', '')}; };
-      select $id, $sp, $sr, $sc, $g;
+      (provider: $u, offered: $sk) isa capability;
+      $sk has skill-id $sid, has tag $tag;
+      select $id, $sp, $sr, $sc, $g, $sid, $tag;
     `).catch(() => [])
 
-    for (const u of struggling) {
+    // Deduplicate by unit id (query returns one row per skill×tag)
+    const unitIds = [...new Set(struggling.map(s => s.id as string))]
+
+    for (const uid of unitIds) {
+      const u = struggling.find(s => s.id === uid)!
+      const isPriority = priorityEvolve.includes(uid)
+
+      // Priority units evolve with a relaxed threshold
+      if (!isPriority && (u.sr as number) >= EVOLUTION_THRESHOLD) continue
+      if (isPriority && (u.sr as number) >= PRIORITY_EVOLUTION_THRESHOLD) continue
+
+      // EL-3: Cost-aware — skip evolution for profitable agents
+      const revenueRows = await readParsed(`
+        match $e (source: $f, target: $t) isa path; $t isa unit, has uid "${uid}";
+        $e has revenue $rev; $rev > 0.0; select $rev;
+      `).catch(() => [])
+      const totalRevenue = revenueRows.reduce((sum, r) => sum + (r.rev as number), 0)
+      if (totalRevenue > REVENUE_SKIP_THRESHOLD && (u.sr as number) > REVENUE_MIN_SUCCESS) continue
+
+      // EV-2: Gather skill info for targeted feedback
+      const skillInfo = struggling.filter(s => s.id === uid).map(s => `${s.sid} [${s.tag}]`).join(', ')
+
+      // KL-2: Hypothesis → evolution link — include confirmed insights
+      const knownPatterns = await net.recall(uid).catch(() => [])
+      const insights = knownPatterns.filter(k => k.confidence > 0.7).map(k => k.pattern).join('; ')
+
       const prompt = await complete(
-        `Agent "${u.id}" has ${((u.sr as number) * 100).toFixed(0)}% success over ${u.sc} tasks (gen ${u.g}). Rewrite its prompt to improve:\n\n${u.sp}`
+        `Agent "${uid}" has ${((u.sr as number) * 100).toFixed(0)}% success over ${u.sc} tasks (gen ${u.g}). Skills: ${skillInfo}. Known patterns: ${insights || 'none'}. Rewrite its prompt to improve:\n\n${u.sp}`
       ).catch(() => null)
       if (!prompt) continue
-      // L6: save old prompt as hypothesis (evolution history)
+
+      // Save old prompt as hypothesis (evolution history for rollback)
       writeSilent(`
-        insert $h isa hypothesis, has hid "evolve-${u.id}-gen${u.g}",
-          has statement "gen ${u.g} prompt for ${u.id}: ${((u.sp as string) || '').slice(0, 200).replace(/"/g, "'")}",
+        insert $h isa hypothesis, has hid "evolve-${uid}-gen${u.g}",
+          has statement "gen ${u.g} prompt for ${uid}: ${((u.sp as string) || '').slice(0, 200).replace(/"/g, "'")}",
           has hypothesis-status "testing", has observations-count 0, has p-value 1.0;
       `).catch(() => {})
       writeSilent(`
-        match $u isa unit, has uid "${u.id}", has system-prompt $sp, has generation $g;
+        match $u isa unit, has uid "${uid}", has system-prompt $sp, has generation $g;
         delete $sp of $u; delete $g of $u;
         insert $u has system-prompt "${prompt.replace(/"/g, '\\"')}", has generation (${u.g} + 1),
                has last-evolved ${new Date(now).toISOString().replace('Z', '')};
       `)
     }
     lastEvolve = now
-    result.evolved = struggling.length
+    priorityEvolve = []
+    result.evolved = unitIds.length
   }
 
   // L6+L7: CRYSTALLIZE + HYPOTHESIZE + FRONTIER — every hour
