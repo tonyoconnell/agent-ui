@@ -31,6 +31,11 @@ Step-by-step. Every command proven. Every link verified.
 - [x] **Step 10b** — R2 bucket `one-files` created (required when `pages_build_output_dir` set)
 - [x] **Step 10c** — Export APIs fixed: paths/highways/toxic use relation role syntax
 - [x] **Step 10d** — All 5 export endpoints return HTTP 200
+- [x] **Step 11** — NanoClaw deployed: https://nanoclaw.oneie.workers.dev/health → `{"status":"ok"}`
+- [x] **Step 11b** — NanoClaw D1 migration: 7 tables total (base 4 + groups, sessions, tool_calls)
+- [x] **Step 11c** — Queue `nanoclaw-agents` created (producer + consumer + cron `* * * * *`)
+- [ ] **Step 11d** — Set `ANTHROPIC_API_KEY` secret on NanoClaw for live Claude calls
+- [ ] **Step 11e** — Set `TELEGRAM_TOKEN` for Telegram channel (optional)
 
 ---
 
@@ -515,6 +520,93 @@ custom_domain = true
 ```
 
 Then `cd gateway && npx wrangler deploy`.
+
+---
+
+## Step 11: Deploy NanoClaw (Edge Agents)
+
+NanoClaw runs free agents on Cloudflare Workers — webhooks in, Claude processing via queue, replies out to channels.
+
+```bash
+cd nanoclaw
+
+# Create queue (first time only)
+npx wrangler queues create nanoclaw-agents
+
+# Run D1 migration (adds groups, sessions, tool_calls tables)
+npx wrangler d1 execute one --remote --file=migrations/0001_init.sql
+
+# Deploy
+npx wrangler deploy
+```
+
+Output:
+
+```
+Uploaded nanoclaw
+Deployed nanoclaw triggers
+  https://nanoclaw.oneie.workers.dev
+  schedule: * * * * *
+  Producer for nanoclaw-agents
+  Consumer for nanoclaw-agents
+```
+
+**Verify:**
+
+```bash
+curl -s https://nanoclaw.oneie.workers.dev/health
+# → {"status":"ok","version":"1.0.0","service":"nanoclaw-router"}
+```
+
+### Set Secrets (for live Claude calls)
+
+```bash
+cd nanoclaw
+
+# Required — Claude API key for agent inference
+printf 'sk-ant-YOUR-KEY' | npx wrangler secret put ANTHROPIC_API_KEY
+
+# Optional — Telegram bot token
+printf 'YOUR-BOT-TOKEN' | npx wrangler secret put TELEGRAM_TOKEN
+
+cd ..
+```
+
+### Set Up Telegram Webhook (optional)
+
+```bash
+curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook?url=https://nanoclaw.oneie.workers.dev/webhook/telegram"
+```
+
+### NanoClaw Bindings
+
+| Binding | Resource | Purpose |
+|---------|----------|---------|
+| `DB` | D1 `one` | Messages, groups, sessions, tool calls |
+| `KV` | Same as gateway | Path/unit/skill snapshots |
+| `AGENT_QUEUE` | `nanoclaw-agents` | Async agent processing |
+| `GATEWAY_URL` | `https://one-gateway.oneie.workers.dev` | TypeDB proxy |
+
+### NanoClaw File Structure
+
+```
+nanoclaw/
+├── src/workers/
+│   ├── router.ts       # Webhook receiver → queue
+│   ├── agent.ts        # Queue consumer → Claude → reply
+│   └── scheduler.ts    # Cron task runner
+├── src/channels/
+│   ├── telegram.ts     # Telegram adapter
+│   ├── discord.ts      # Discord adapter
+│   └── slack.ts        # Slack adapter
+├── src/lib/
+│   ├── tools.ts        # 7 substrate tools for Claude
+│   ├── context.ts      # Group context builder
+│   └── substrate.ts    # TypeDB integration via gateway
+├── migrations/
+│   └── 0001_init.sql   # D1 schema (groups, messages, sessions, tasks, tool_calls)
+└── wrangler.toml       # D1 + KV + Queue + Cron
+```
 
 ---
 

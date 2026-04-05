@@ -16,7 +16,8 @@ TypeDB thinks. Cloudflare moves. Haiku executes. Opus architects.
 | Pages (frontend) | https://one-substrate.pages.dev | 200 OK, 0.4s |
 | Gateway (API) | https://api.one.ie/health | `{"status":"ok"}` |
 | Sync (cron) | https://one-sync.oneie.workers.dev | `*/5 * * * *` |
-| TypeDB Cloud | `flsiu1-0.cluster.typedb.com:1729` | 8 units, 8 skills, 1 group |
+| NanoClaw | https://nanoclaw.oneie.workers.dev/health | `{"status":"ok"}` |
+| TypeDB Cloud | `flsiu1-0.cluster.typedb.com:1729` | 19 units, 18 skills, 1 group |
 
 ---
 
@@ -66,7 +67,7 @@ TypeDB thinks. Cloudflare moves. Haiku executes. Opus architects.
 | **Pages** | `one-substrate` | Astro SSR + React islands + 30 API routes | $0 |
 | **Gateway** | `one-gateway` | TypeDB proxy, JWT caching, CORS | $0 |
 | **Sync** | `one-sync` | TypeDB → KV snapshots every 5 min | $0 |
-| **NanoClaw** | `nanoclaw-*` | Agent workers: webhooks → queue → Claude → channels | $0 |
+| **NanoClaw** | `nanoclaw` | Agent workers: webhooks → queue → Claude → channels | $0 |
 
 ---
 

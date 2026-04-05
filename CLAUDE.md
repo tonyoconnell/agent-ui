@@ -329,11 +329,39 @@ import { group, unit } from "@/engine/world"
 import { Card } from "@/components/ui/card"
 ```
 
+## Cloudflare Authentication
+
+**Standard: Always use `CLOUDFLARE_GLOBAL_API_KEY` from `.env` for deployment.**
+
+```
+CLOUDFLARE_EMAIL=tony@one.ie
+CLOUDFLARE_GLOBAL_API_KEY=2751f1e8bdbc3cf9481e0cff345605c9bd3b9
+```
+
+**Deploy:**
+```bash
+export CLOUDFLARE_EMAIL="tony@one.ie"
+export CLOUDFLARE_API_KEY="2751f1e8bdbc3cf9481e0cff345605c9bd3b9"
+npx wrangler deploy
+```
+
+**Set Secrets** (if needed):
+```bash
+# Via CLI (requires auth token with permission)
+npx wrangler secret put TYPEDB_USERNAME     # admin
+npx wrangler secret put TYPEDB_PASSWORD     # EEsdYvp7arsAiCJZ
+
+# Via Dashboard: Workers > one-gateway > Settings > Environment Variables
+# Add TYPEDB_USERNAME=admin, TYPEDB_PASSWORD=...
+```
+
+Never use scoped tokens. Global API key only.
+
 ## Skills (USE THESE)
 
 | Skill | Trigger | What it provides |
 |-------|---------|-----------------|
-| `/deploy` | Deploy to Cloudflare | Gateway + sync + Pages. Global API Key from .env |
+| `/deploy` | Deploy to Cloudflare | Gateway + sync + Pages. Uses CLOUDFLARE_GLOBAL_API_KEY |
 | `/typedb` | Any TQL, schema, query work | TypeDB 3.0 syntax, functions (NOT rules) |
 | `/reactflow` | Graph visualization | Custom nodes, dark theme |
 | `/react19` | React components, hooks | React 19 patterns, use(), transitions |

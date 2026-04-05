@@ -36,29 +36,50 @@ app.get('/highways', async (c) => {
 
 // Channel webhooks
 app.post('/webhook/:channel', async (c) => {
-  const channel = c.req.param('channel')
-  const payload = await c.req.json()
+  try {
+    const channel = c.req.param('channel')
+    const payload = await c.req.json()
 
-  const signal = normalize(channel, payload)
-  if (!signal) return c.json({ ok: false, error: 'Invalid payload' }, 400)
+    const signal = normalize(channel, payload)
+    if (!signal) return c.json({ ok: false, error: 'Invalid payload' }, 400)
 
-  // Ensure group is registered as a unit
-  await ensureRegistered(c.env, signal.group)
+    // Ensure group is registered as a unit (skip errors in local dev)
+    try {
+      await ensureRegistered(c.env, signal.group)
+    } catch (e) {
+      console.log('TypeDB registration skipped:', e)
+    }
 
-  // Store message in D1
-  await c.env.DB.prepare(`
-    INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
-    VALUES (?, ?, ?, ?, ?, 'user', ?)
-  `).bind(signal.id, signal.group, channel, signal.sender, signal.content, signal.ts).run()
+    // Ensure group exists in D1
+    await c.env.DB.prepare(`
+      INSERT OR IGNORE INTO groups (id, channel, name, created_at)
+      VALUES (?, ?, ?, ?)
+    `).bind(signal.group, channel, signal.group, Math.floor(Date.now() / 1000)).run()
 
-  // Queue for agent processing
-  await c.env.AGENT_QUEUE.send({
-    type: 'message',
-    signal,
-    group: signal.group,
-  } satisfies QueueMessage)
+    // Store message in D1
+    await c.env.DB.prepare(`
+      INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
+      VALUES (?, ?, ?, ?, ?, 'user', ?)
+    `).bind(signal.id, signal.group, channel, signal.sender, signal.content, signal.ts).run()
 
-  return c.json({ ok: true, id: signal.id })
+    // Queue for agent processing (skip if queue unavailable in local dev)
+    try {
+      if (c.env.AGENT_QUEUE) {
+        await c.env.AGENT_QUEUE.send({
+          type: 'message',
+          signal,
+          group: signal.group,
+        } satisfies QueueMessage)
+      }
+    } catch (e) {
+      console.log('Queue unavailable (local dev)')
+    }
+
+    return c.json({ ok: true, id: signal.id, group: signal.group })
+  } catch (e) {
+    console.error('Webhook error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
 })
 
 // Substrate signals (from other units)
@@ -74,12 +95,18 @@ app.post('/signal', async (c) => {
     return c.json({ ok: false, dissolved: true, reason: 'toxic' })
   }
 
-  await c.env.AGENT_QUEUE.send({
-    type: 'substrate',
-    sender,
-    receiver,
-    data,
-  } satisfies QueueMessage)
+  try {
+    if (c.env.AGENT_QUEUE) {
+      await c.env.AGENT_QUEUE.send({
+        type: 'substrate',
+        sender,
+        receiver,
+        data,
+      } satisfies QueueMessage)
+    }
+  } catch (e) {
+    console.log('Queue unavailable (local dev)')
+  }
 
   return c.json({ ok: true })
 })

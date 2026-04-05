@@ -12,6 +12,7 @@ TYPEDB_DATABASE = "one"
 # Secrets (set with: wrangler secret put)
 # TYPEDB_USERNAME - "admin"
 # TYPEDB_PASSWORD - TypeDB Cloud password
+# Set via Cloudflare Dashboard: Workers > one-gateway > Settings > Environment Variables
 
 # D1 Database
 [[d1_databases]]
