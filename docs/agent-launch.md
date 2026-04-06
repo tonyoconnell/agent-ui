@@ -524,7 +524,7 @@ know    — promote highways to permanent knowledge
       │     av.register({ address, name, domains })
       │     agent earns, paths form, reputation grows
       │
-      ├── COLONY ────── deploy a team as one agent
+      ├── TEAM ────── deploy a team as one agent
       │     world() + units + internal routing
       │     av.register() the colony
       │     external: one address. internal: highway emergence

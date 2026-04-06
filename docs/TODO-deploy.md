@@ -44,6 +44,23 @@
 - **Model**: `google/gemma-4-26b-a4b-it` via OpenRouter (provider: Parasail)
 - **No Anthropic API key needed** — all NanoClaw inference runs through OpenRouter
 
+## Sui Contract (TODO — Step 12)
+
+| Step | What | Status | Verified |
+|------|------|--------|----------|
+| 12a | Install Sui CLI (`cargo install sui`) | TODO | |
+| 12b | Create testnet keypair (`sui client new-address ed25519`) | TODO | |
+| 12c | Fund from faucet (`sui client faucet`) | TODO | |
+| 12d | Build + test Move contract (`sui move build && sui move test`) | TODO | |
+| 12e | Publish to Sui testnet (`sui client publish`) | TODO | |
+| 12f | Store `SUI_PACKAGE_ID` + `SUI_PROTOCOL_ID` in `.env` | TODO | |
+| 12g | Install `@mysten/sui` TS SDK | TODO | |
+| 12h | Verify Protocol singleton on-chain | TODO | |
+
+**After deploy:** Protocol singleton (shared object) created on `init()`. Units, Colonies, Paths, Signals, Escrows, Highways created by calling contract functions.
+
+**Full task list:** See [TODO-SUI.md](TODO-SUI.md) for all 7 phases (39 open tasks).
+
 ---
 
 ## Security Audit (COMPLETE — commit ca8ea62)

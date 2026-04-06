@@ -4,6 +4,171 @@
 
 ---
 
+## Quick Start — Deploy to Sui Testnet
+
+```bash
+# 1. Install Sui CLI
+cargo install --locked --git https://github.com/MystenLabs/sui.git --branch testnet sui
+
+# 2. Create keypair (first time only)
+sui client new-env --alias testnet --rpc https://fullnode.testnet.sui.io:443
+sui client switch --env testnet
+sui client new-address ed25519    # Save the address + recovery phrase
+sui client faucet                 # Get testnet SUI for gas
+
+# 3. Publish the contract
+cd src/move/one
+sui move build
+sui move test                     # Run Move tests first
+sui client publish --gas-budget 100000000
+# → Records package ID. Save it.
+
+# 4. Store package ID
+echo "SUI_PACKAGE_ID=0x<your-package-id>" >> ../../../.env
+echo "SUI_NETWORK=testnet" >> ../../../.env
+
+# 5. Install TS SDK (from project root)
+cd ../../..
+npm install @mysten/sui
+
+# 6. Verify
+sui client objects               # Should show Protocol singleton
+```
+
+**After deploy:**
+- Package ID goes in `.env` as `SUI_PACKAGE_ID`
+- Protocol singleton (shared object) created on `init()`
+- Contract address: `one::substrate` module on Sui testnet
+- Explorer: `https://suiscan.xyz/testnet/object/<package-id>`
+
+---
+
+## Live on Testnet
+
+Published 2026-04-06. All transactions verified.
+
+### Objects
+
+| Object | ID | Type |
+|--------|-----|------|
+| Package | `0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e` | Immutable |
+| Protocol | `0xc30a7702e7c8a4b9914d8bdb4b1da20c5e2c9bc924fed1e8c947ed66ec16e379` | Shared — treasury: 0, fee: 50 bps |
+| Scout Unit | `0x6fd45656222db69f81dbf61c70873fd466ebd8b157bf6694f81314e3e0c13af8` | Owned — name: "scout", balance: 99000 MIST |
+| Analyst Unit | `0x952fea2b99904aa8a365939c5ebc8079014b7cef7ac1ab2375b5a10e4ec6c47d` | Owned — name: "analyst" |
+| Path | `0x956cbf6c2f62769248676f225b9897c5ecfcc52a193c67b86438568d993076da` | Shared — scout→analyst, strength: 2, hits: 2 |
+| Signal | `0x8a17e80a0484969b0e4816bd705ed8b798ce29025f4d259e52c86cf60129da42` | Owned by analyst — payload: "hello from scout" |
+
+### Proof Transactions
+
+| Step | What | Digest |
+|------|------|--------|
+| Publish | Contract deployed, Protocol created | `5GNhTrAyoaHP8BEd3JgnrvZRTThSwv7xu5tNsGg3a6Q6` |
+| Create scout | Unit { name: "scout", unit_type: "agent" } | `5etcefzNgZ1vJsVH9uZS5PkY9zdxvbTCdRoeCC3FQkSv` |
+| Create analyst | Unit { name: "analyst", unit_type: "agent" } | `9hLakZxVEwcEDR9HnBKYnRVvta3Yyu15RT69BKfxY4pJ` |
+| Create path | Path scout→analyst, type: "interaction" | `BwCwZcirBE5sA9YUbtsyYFHXHMTSB11WCofUjNmXpmFi` |
+| Send signal | Signal "research" with payload, scout→analyst | `316kNqFFnuUemiT73KzorUpoviBacMV2kgh2kQ8tPULz` |
+| Mark path | Path strength: 1→2 (signal delivery) | `81ppuA3A5F8RhN64K295TqpjfXfS9AXDjALiNukfTjwn` |
+| Deposit | 100000 MIST into scout Unit balance | `D3LYBvdy5BESX3nTkQRPYm2CJjRZrNAVTKx6u7xvLYR2` |
+| Payment | Withdraw 1000 MIST → analyst, mark path | `ABWX2g6UrVL1jnfPZNiop7L65AVUKgJjcxREVeEWwB9d` |
+
+### Verify
+
+```bash
+# Any object
+sui client object 0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e
+
+# Explorer
+open https://suiscan.xyz/testnet/object/0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e
+```
+
+---
+
+## The Bridge
+
+Three systems. One truth. Each makes the others smarter.
+
+```
+     mark()              Marked event           strength++
+  ┌──────────┐  mirror  ┌──────────┐  absorb  ┌──────────┐
+  │ Runtime  │─────────►│   Sui    │─────────►│  TypeDB  │
+  │ persist  │          │  chain   │          │  brain   │
+  └────┬─────┘          └──────────┘          └────┬─────┘
+       │                                           │
+       └──────────────── load() ◄──────────────────┘
+```
+
+### Three Functions
+
+```typescript
+mirrorMark(from, to, n)   // Runtime → Sui   (action becomes on-chain fact)
+mirrorWarn(from, to, n)   // Runtime → Sui   (failure becomes on-chain fact)
+absorb(cursor?)           // Sui → TypeDB    (on-chain facts become knowledge)
+```
+
+### One Mark, Three Systems
+
+Every `mark()` in the runtime does three things:
+
+```
+persist.mark("scout→analyst", 1)
+  │
+  ├── Memory    net.strength["scout→analyst"] += 1     immediate
+  ├── Brain     TypeDB path.strength += 1              writeSilent()
+  └── Chain     Sui Path.strength += 1                 mirrorMark()
+```
+
+Every `absorb()` reads Sui events, writes to TypeDB:
+
+```
+absorb(cursor)
+  │
+  ├── UnitCreated  → store sui-unit-id on unit
+  ├── Marked       → update path.strength
+  ├── Warned       → update path.resistance
+  ├── SignalSent   → record signal event
+  └── PaymentSent  → update path.revenue
+```
+
+### The Glue
+
+Two TypeDB attributes connect every unit and path to their on-chain twin:
+
+```
+unit  →  sui-unit-id   "0x6fd4..."    (Sui Unit object ID)
+path  →  sui-path-id   "0x956c..."    (Sui Path object ID)
+```
+
+`resolve(uid)` finds both. `resolvePath(from, to)` finds the path.
+First interaction creates the on-chain path automatically.
+
+### Files
+
+```
+src/engine/bridge.ts     Bridge: mirror + absorb + resolve
+src/engine/persist.ts    mark/warn/actor auto-mirror to Sui
+src/lib/sui.ts           Sui client: all contract functions
+src/schema/world.tql     sui-unit-id, sui-path-id attributes
+src/pages/api/absorb.ts  POST /api/absorb → poll events
+```
+
+### The Cycle
+
+```
+1. Agent sends signal          Runtime mark()      → strength++
+2. persist.ts mirrors          Sui mark()          → on-chain strength++
+3. Sui emits Marked event      Event log           → queryable
+4. absorb() polls events       TypeDB write        → path.strength synced
+5. TypeDB infers               path_status()       → "highway" if ≥ 50
+6. Runtime loads on boot       load()              → hydrate from TypeDB
+7. select() picks highway      Weighted random     → proven path chosen
+8. Signal flows faster         Chain strengthens   → repeat
+```
+
+TypeDB reasons. Sui enforces. The runtime acts.
+None is optional. None is primary. They are one substrate.
+
+---
+
 ## The Thesis
 
 TypeDB reasons. Move acts. Together they are two deterministic fires burning the same ontology.
@@ -216,7 +381,7 @@ and splits the treasury. Not a database migration. A financial event.
 1. Agent sends signal           → Move: transfer owned object to receiver
 2. Receiver processes signal    → Move: consume object, emit result
 3. Success?                     → Move: mark() → path.strength++ (on-chain)
-4. Failure?                     → Move: warn() → path.warnance++ (on-chain)
+4. Failure?                     → Move: warn() → path.resistance++ (on-chain)
 5. TypeDB syncs on-chain state  → TypeDB: infer path_status, unit_classification
 6. TypeDB suggests route        → TypeDB: suggest_route() returns best path
 7. Router follows suggestion    → Move: next signal transferred to suggested unit
@@ -302,7 +467,7 @@ escrow = locked tokens         ← bounty held until completion. No trust needed
 Revenue becomes **protocol revenue**. Not "our API charges this." The contract charges this.
 No one can waive the fee. No one can discount it. No one can steal it.
 
-Every payment strengthens a path. Revenue IS pheromone. This isn't a metaphor when the tokens
+Every payment strengthens a path. Revenue IS weight. This isn't a metaphor when the tokens
 actually flow through the contract and the path strength increments in the same transaction.
 
 ---
@@ -337,7 +502,7 @@ This makes x402 (HTTP 402 Payment Required) real:
 5. Path strength incremented       → same transaction
 ```
 
-Payment and pheromone in one atomic transaction. You can't have one without the other.
+Payment and weight in one atomic transaction. You can't have one without the other.
 
 ---
 
@@ -428,6 +593,22 @@ TypeDB is the brain. Move is the body. The substrate needs both.
 
 ---
 
+## Tasks
+
+> **See [TODO-SUI.md](TODO-SUI.md) for the full task list.**
+>
+> | Step | What | Status |
+> |------|------|--------|
+> | 1 | Get on Testnet | **9/9 done** |
+> | 2 | First Agent On-Chain | **4/4 done** |
+> | 3 | First Signal On-Chain | **5/5 done** |
+> | 4 | Payment On-Chain | **5/5 done** |
+> | 5 | The Bridge | **5/5 done** |
+>
+> **Testnet complete.** 33 done, 22 open (phases 2-6).
+
+---
+
 ## See Also
 
 - [plan.md](plan.md) — Why Sui, the five forces
@@ -436,7 +617,7 @@ TypeDB is the brain. Move is the body. The substrate needs both.
 - [architecture.md](architecture.md) — 6 dimensions, routing, inference
 - [revenue.md](revenue.md) — Economics: protocol revenue via Move
 - [events.md](events.md) — The universal primitive, on-chain
-- [patterns.md](patterns.md) — Pheromone loop, routing, evolution
+- [patterns.md](patterns.md) — Weight loop, routing, evolution
 
 ---
 

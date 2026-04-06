@@ -1,313 +1,545 @@
 # Loops
 
-Source of truth: `src/schema/one.tql`
+Source of truth: `src/engine/tick.ts`, `src/engine/loops.ts`, `src/engine/core.ts`
 
 ---
 
-## The Seven Loops
+## The One Loop
 
-The substrate runs on nested feedback loops. Each operates at a different
-timescale. Faster loops feed slower loops. Slower loops reshape faster ones.
+Everything reduces to four phases:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  L7  FRONTIER        weeks/months    detect new territory   │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ L6  KNOWLEDGE      days/weeks      form & test beliefs  │ │
-│ │ ┌─────────────────────────────────────────────────────┐ │ │
-│ │ │ L5  EVOLUTION    every N samples  rewrite the ant    │ │ │
-│ │ │ ┌─────────────────────────────────────────────────┐ │ │ │
-│ │ │ │ L4  ECONOMIC   per payment     revenue = weight  │ │ │ │
-│ │ │ │ ┌─────────────────────────────────────────────┐ │ │ │ │
-│ │ │ │ │ L3  FADE     periodic        decay all       │ │ │ │ │
-│ │ │ │ │ ┌─────────────────────────────────────────┐ │ │ │ │ │
-│ │ │ │ │ │ L2  TRAIL  per task        sequence wt   │ │ │ │ │ │
-│ │ │ │ │ │ ┌───────────────────────────────────┐   │ │ │ │ │ │
-│ │ │ │ │ │ │ L1  SIGNAL  per message  the pulse │   │ │ │ │ │ │
-│ │ │ │ │ │ └───────────────────────────────────┘   │ │ │ │ │ │
-│ │ │ │ │ └─────────────────────────────────────────┘ │ │ │ │ │
-│ │ │ │ └─────────────────────────────────────────────┘ │ │ │ │
-│ │ │ └─────────────────────────────────────────────────┘ │ │ │
-│ │ └─────────────────────────────────────────────────────┘ │ │
-│ └─────────────────────────────────────────────────────────┘ │
+│                     THE ONE LOOP                            │
+│                                                             │
+│    SENSE ────→ SELECT ────→ ACT ────→ MARK                  │
+│      │           │          │         │                     │
+│      │           │          │         └─ record outcome     │
+│      │           │          └─ do work, return outcome      │
+│      │           └─ pick one item from list                 │
+│      └─ observe state, return items                         │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
----
+All eight loops are this pattern with different sources, selectors, actions, and feedback.
 
-## L1: Signal Loop
-
-The heartbeat. Every signal is one turn of this loop.
-
+```typescript
+// src/engine/core.ts
+type Loop<T> = {
+  sense:  () => T[]                    // observe state
+  select: (items: T[]) => T | null     // pick one
+  act:    (item: T) => Outcome         // do work
+  mark:   (item: T, outcome) => void   // record feedback
+}
 ```
-emit({ receiver, data })
-  → TypeDB writes signal(sender, receiver, data, amount, ts)
-  → suggest_route() returns next destination
-  → agent executes
-  → emit result
-```
-
-**Timescale:** milliseconds
-**Feeds:** L2 (trail), L4 (economic)
-**Schema:** `signal` relation
-
-### Refinements
-
-- **Latency tracking.** `signal.latency` already exists. Use it to penalize
-  slow paths — a highway that takes 5s is worse than a fresh path at 50ms.
-  Route selection should weight `strength / latency`, not just `strength`.
-
-- **Signal priority.** Not all signals are equal. A P0 task signal should
-  preempt a P3. The schema has `task.priority` but signals don't carry it.
-  Consider: `signal.priority` derived from the task that spawned it.
 
 ---
 
-## L2: Trail Loop
-
-Signal sequences accumulate pheromone. The colony learns what order works.
+## Implementation
 
 ```
-signal to A completes → signal to B starts
-  success → path(A→B).strength += mark()
-  failure → path(A→B).resistance += warn()
+src/engine/
+├── core.ts       145 lines   loop(), compose(), schedule()
+├── sources.ts    258 lines   signals, struggling, advisors, highways, docs
+├── selectors.ts  181 lines   pheromone, priority, success, weighted, roundRobin
+├── loops.ts      357 lines   All eight loops composed
+├── tick.ts       208 lines   Master orchestrator with intervals
+└── doc-scan.ts   395 lines   Scan, verify, gapsToSignals, docMark
+─────────────────────────
+             ~1544 lines     Complete loop system
 ```
 
-**Timescale:** per signal delivery
-**Feeds:** L1 (routing via select() weighted by strength - resistance)
-**Fed by:** L1 (signal outcomes)
-**Runtime:** `world.strength`, `world.resistance`, `mark()`, `warn()`
-**TypeDB:** `path` relation (strength, resistance, traversals)
+---
 
-### Refinements
+## The Eight Loops
 
-- **Trail chains.** The schema tracks A→B but not A→B→C as a sequence.
-  A proven trail A→B and proven trail B→C doesn't mean A→B→C is proven —
-  B might be a bottleneck. Consider: `trail.depth` to track multi-hop
-  sequence confidence, or a `chain` relation linking ordered trails.
+Nested feedback loops at different timescales. Faster loops feed slower loops.
 
-- **Trail branching.** When A→B fails, the system alarms that trail.
-  But it doesn't automatically try A→C. The `exploratory_tasks()` function
-  finds tasks with no trail history, but there's no function for
-  "tasks reachable from A that aren't B." Consider: `alternative_trails($task)`
-  that returns untried next steps when the current trail has high resistance.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  DOC          every hour      docs → specs → verify → gaps      │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ L7  FRONTIER   every hour      detect new territory         │ │
+│ │ ┌─────────────────────────────────────────────────────────┐ │ │
+│ │ │ L6  KNOWLEDGE  every hour      crystallize highways      │ │ │
+│ │ │ ┌─────────────────────────────────────────────────────┐ │ │ │
+│ │ │ │ L5  EVOLUTION  every 10 min    rewrite prompts      │ │ │ │
+│ │ │ │ ┌───────────────────────────────────────────────┐   │ │ │ │
+│ │ │ │ │  CONSULT   sub-loop          ask proven peers  │   │ │ │ │
+│ │ │ │ └───────────────────────────────────────────────┘   │ │ │ │
+│ │ │ │ ┌─────────────────────────────────────────────────┐ │ │ │ │
+│ │ │ │ │ L4  ECONOMIC  per payment    revenue = weight   │ │ │ │ │
+│ │ │ │ │ ┌───────────────────────────────────────────┐   │ │ │ │ │
+│ │ │ │ │ │ L3  FADE   every 5 min    decay all       │   │ │ │ │ │
+│ │ │ │ │ │ ┌───────────────────────────────────────┐ │   │ │ │ │ │
+│ │ │ │ │ │ │ L2  TRAIL  per outcome  mark / warn   │ │   │ │ │ │ │
+│ │ │ │ │ │ │ ┌───────────────────────────────────┐ │ │   │ │ │ │ │
+│ │ │ │ │ │ │ │ L1  SIGNAL  per tick   the pulse  │ │ │   │ │ │ │ │
+│ │ │ │ │ │ │ └───────────────────────────────────┘ │ │   │ │ │ │ │
+│ │ │ │ │ │ └───────────────────────────────────────┘ │   │ │ │ │ │
+│ │ │ │ │ └───────────────────────────────────────────┘   │ │ │ │ │
+│ │ │ │ └─────────────────────────────────────────────────┘ │ │ │ │
+│ │ │ └─────────────────────────────────────────────────────┘ │ │ │
+│ │ └─────────────────────────────────────────────────────────┘ │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-- **Completion velocity.** Two trails might both be proven, but one takes
-  10 minutes and the other takes 2 hours. `trail.avg-latency` derived from
-  signal latencies along the chain would let the system prefer faster sequences.
+---
+
+## L1+L2: Signal + Trail Loop
+
+The heartbeat. Every tick processes one signal and marks the outcome.
+
+```typescript
+// src/engine/loops.ts
+export const signalLoop = (net) => loop<Signal>(
+  signals(net),                           // sense: pending signals
+  first(),                                // select: first in queue
+  async (sig) => {
+    const edge = `${prev}→${sig.receiver}`
+    
+    // Highway skip: proven path, no LLM needed
+    if (net.sense(edge) - net.danger(edge) >= 20) {
+      net.mark(edge, chainDepth)
+      return { result: 'highway' }
+    }
+    
+    // Normal: ask and await outcome
+    return net.ask(sig)
+  },
+  (sig, outcome) => {
+    if (outcome.result)    net.mark(edge, chainDepth)  // success
+    else if (outcome.timeout) /* neutral */            // slow, not bad
+    else                   net.warn(edge)              // failure
+  }
+)
+```
+
+### Metrics to Track
+
+| Metric | What it shows | How to test |
+|--------|---------------|-------------|
+| `signals/sec` | Throughput | Batch 1000 signals, measure time |
+| `highway_skip_rate` | LLM bypass % | Count skipped vs total |
+| `chain_depth` | Sequential success | Log depth before break |
+| `avg_latency_ms` | Response time | Timestamp before/after ask |
+
+```typescript
+// Example test harness
+const metrics = { signals: 0, highways: 0, failures: 0, totalMs: 0 }
+const start = Date.now()
+
+for (let i = 0; i < 1000; i++) {
+  const result = await signalLoop(net)()
+  metrics.signals++
+  if (result.outcome?.result === 'highway') metrics.highways++
+  if (!result.outcome?.result) metrics.failures++
+}
+
+metrics.totalMs = Date.now() - start
+console.log(`${metrics.signals / (metrics.totalMs / 1000)} signals/sec`)
+console.log(`${(metrics.highways / metrics.signals * 100).toFixed(1)}% highway skips`)
+```
 
 ---
 
 ## L3: Fade Loop
 
-Time decays everything. Without reinforcement, paths dissolve.
+Asymmetric decay. Resistance forgives faster than strength forgets.
 
+```typescript
+export const fadeLoop = (net) => loop<{ action: 'fade' }>(
+  fadeAction(),             // sense: always returns one item
+  first(),                  // select: take it
+  () => {
+    net.fade(0.05)          // act: 5% decay, resistance 2x
+    return { result: true }
+  },
+  () => {}                  // mark: nothing
+)
 ```
-periodic tick (every 5 minutes):
-  for each path:
-    strength *= (1 - fade-rate)
-    resistance *= (1 - fade-rate * 2)     # resistance forgets faster
+
+### Metrics to Track
+
+| Metric | What it shows | How to test |
+|--------|---------------|-------------|
+| `paths_before` | Total tracked paths | Count before fade |
+| `paths_after` | Surviving paths | Count after fade |
+| `dissolved` | Paths removed | Difference |
+| `ghost_ratio` | Paths at floor | Count where strength == peak * 0.05 |
+
+```typescript
+// Example: track fade impact
+const before = Object.keys(net.strength).length
+await fadeLoop(net)()
+const after = Object.keys(net.strength).length
+console.log(`Fade: ${before} → ${after} paths (${before - after} dissolved)`)
 ```
-
-**Timescale:** every 5 minutes (configurable)
-**Feeds:** L1 (routing changes as paths weaken), L2 (selection shifts)
-**Runtime:** `world.fade(rate)` — asymmetric, resistance decays 2x
-**TypeDB:** `path.fade-rate` (per-path), falls back to global 5%
-
-### Refinements
-
-- **Differential fade is already in the schema.** `fade-rate` is per-path
-  (production=0.05, support=0.15, resistance=2x). This is good. But trails
-  don't have their own `fade-rate` yet. A proven production trail
-  (create→develop→review→ship) should decay slower than an experimental
-  trail (create→skip-review→ship). Consider: `trail.fade-rate`.
-
-- **Seasonal decay.** Some paths are bursty — heavy use during sprints,
-  quiet between. Fixed decay penalizes healthy idle paths. Consider:
-  `path.last-used` (already exists) to modulate fade — don't decay a path
-  that was used yesterday as aggressively as one idle for a week.
-  `days-since-used * fade-rate` instead of constant `fade-rate`.
-
-- **Fade floor.** A path that was once a highway (strength 80+) shouldn't
-  fade to zero and be indistinguishable from a path that never existed.
-  Consider: `path.peak-strength` to remember the highest value, and a
-  floor of `peak * 0.05`. Proven paths leave a ghost trail — faint, but
-  recoverable faster than building from nothing.
 
 ---
 
-## L4: Economic Loop
+## L5: Evolution Loop (with A2A Consultation)
 
-Revenue is pheromone. Paying paths become highways.
+The agent rewrites itself. **Consults peers through the world.**
 
-```
-signal(sender: A, receiver: B, amount: 0.01)
-  → path(A, B).revenue += 0.01
-  → path(A, B).strength += f(amount)    # revenue IS weight
-  → highway emerges from commerce
-```
-
-**Timescale:** per payment
-**Feeds:** L1 (revenue-weighted routing), L5 (evolution — revenue justifies cost)
-**Schema:** `signal.amount`, `path.revenue`, `trail.revenue`, `capability.price`
-
-### Refinements
-
-- **Revenue-weighted routing.** `suggest_route()` sorts by `strength` alone.
-  But a path with strength 30 and revenue $500 is more valuable than
-  strength 50 with revenue $0. Consider: `weighted_route()` that scores
-  `strength * (1 + log(revenue + 1))`. Money validates the path.
-
-- **Cost-aware evolution.** `needs_evolution()` checks success-rate but not
-  economics. An agent with 0.45 success-rate but $10k revenue might not need
-  evolution — it's doing fine commercially. An agent with 0.80 success-rate
-  but $0 revenue might need a different kind of evolution: not skill, but
-  pricing or discovery. Consider: splitting evolution triggers into
-  `needs_skill_evolution` (low success) and `needs_market_evolution` (low revenue).
-
-- **Revenue decay.** Revenue currently only accumulates. Old revenue from
-  six months ago shouldn't carry the same weight as revenue from yesterday.
-  Consider: `path.recent-revenue` (last 30 days) alongside `path.revenue`
-  (lifetime). Route on recent, report on lifetime.
-
----
-
-## L5: Evolution Loop
-
-The agent rewrites itself. The substrate provides the data; the ant decides how.
-
-```
-sample-count >= 20 AND success-rate < 0.50
-  → needs_evolution() fires
-  → agent reads own failure signals
-  → agent rewrites system-prompt
-  → generation++
-  → optional: model upgrade
-  → next N samples measured against new prompt
+```typescript
+export const evolveLoop = (net, complete) => compose<StrugglingUnit, Advisor>(
+  {
+    sense: struggling(net),              // units with success < 50%
+    select: byNeed(),                    // worst performer first
+    act: async (unit) => {
+      const insights = await net.recall(unit.id)
+      return { result: { unit, insights } }
+    },
+    mark: () => {}
+  },
+  
+  // SPAWN: consultation loop (A2A through world)
+  (unit) => consultLoop(net, unit),
+  
+  // MERGE: combine parent + child outcomes
+  async (parentOutcome, childOutcomes) => {
+    const { unit, insights } = parentOutcome.result
+    const advice = childOutcomes.map(o => o.result).join('\n')
+    
+    // LLM rewrites prompt with failures + patterns + advice
+    const newPrompt = await complete(`
+      Agent "${unit.id}" at ${unit.successRate}% success.
+      Known patterns: ${insights}
+      Advisor feedback: ${advice}
+      Rewrite: ${unit.prompt}
+    `)
+    
+    // Save old prompt as hypothesis (rollback available)
+    // Update unit with new prompt, generation++
+    return { result: { evolved: unit.id } }
+  }
+)
 ```
 
-**Timescale:** every 20+ samples (configurable)
-**Feeds:** L1 (better agent = better signals), L2 (better agent = better trail outcomes)
-**Fed by:** L1 (signal success/failure), L4 (revenue performance)
-**Schema:** `unit.model`, `unit.system-prompt`, `unit.generation`, `needs_evolution()`
+### A2A Consultation (Through the World)
 
-### Refinements
+```typescript
+export const consultLoop = (net, seeker) => ({
+  sense: advisors(seeker.tags),          // high performers with similar skills
+  select: bySuccessRate(),               // best performer first
+  act: async (advisor) => {
+    // Route consultation AS A SIGNAL through the world
+    return net.ask({
+      receiver: `${advisor.id}:advise`,
+      data: { from: seeker.id, prompt: seeker.prompt }
+    }, seeker.id)  // from = seeker, so path gets tracked
+  },
+  mark: (advisor, outcome) => {
+    // Consultation paths get pheromone too!
+    if (outcome.result) net.mark(`${seeker.id}→${advisor.id}:advise`)
+  }
+})
+```
 
-- **Evolution history.** When an agent evolves, the old `system-prompt` is
-  overwritten. If generation 3 was better than generation 4, there's no
-  rollback. Consider: a `prompt-history` relation or versioned storage
-  so the system can revert. `generation` is a counter but not an archive.
+The substrate learns **who helps whom** — same mechanism, richer data.
 
-- **Targeted evolution.** `needs_evolution()` fires on overall success-rate.
-  But an agent might be great at "build" tasks (0.90) and terrible at
-  "validate" tasks (0.20). Blanket prompt rewrite risks degrading the strong
-  skill. Consider: `needs_evolution_for($u, $task-type)` that checks
-  success-rate per task-type via capability + signal history.
+### Metrics to Track
 
-- **Evolution cooldown.** Nothing prevents the system from rewriting the
-  prompt every 20 samples forever. An agent oscillating between prompts
-  never stabilizes. Consider: `unit.last-evolved` (datetime) and a minimum
-  cooldown period. Don't evolve if the last evolution was < N days ago.
-  Let the new prompt accumulate enough samples to be fairly measured.
+| Metric | What it shows | How to test |
+|--------|---------------|-------------|
+| `evolved_count` | Agents rewritten | Count per tick |
+| `consult_success` | Advice received | % of consultations with result |
+| `advisor_paths` | Who helps whom | Query paths containing `:advise` |
+| `rollback_count` | Reverted evolutions | Hypotheses with status="rejected" |
+| `gen_improvement` | Did evolution help? | Compare gen N vs gen N+1 success |
 
-- **Peer learning.** When agent A evolves, it only looks at its own failures.
-  But agent B doing the same task-type with 0.90 success-rate has a prompt
-  that works. Consider: `system-prompt` from proven peers as input to
-  evolution. Not copying — but referencing. "What does the proven agent's
-  prompt include that mine doesn't?"
-
-- **Model economics.** Upgrading from haiku to opus improves capability but
-  costs more per signal. The evolution loop should consider
-  `revenue-per-signal / cost-per-signal`. An opus agent that loses money
-  on every signal should downgrade, not upgrade. The substrate has
-  `path.revenue` and `signal.amount` — the data exists.
+```typescript
+// Example: track evolution impact
+const before = await readParsed(`match $u has success-rate $sr; select avg($sr);`)
+await evolveLoop(net, complete)()
+// Wait for samples...
+const after = await readParsed(`match $u has success-rate $sr; select avg($sr);`)
+console.log(`Evolution: ${before}% → ${after}% avg success`)
+```
 
 ---
 
 ## L6: Knowledge Loop
 
-The system forms beliefs, tests them, and acts on what's confirmed.
+Crystallize highways. Detect surges. Generate hypotheses.
 
+```typescript
+export const knowLoop = (net, cycle) => loop<{ action: 'know' }>(
+  knowAction(),
+  first(),
+  async () => {
+    const insights = await net.know()    // promote strong paths
+    
+    // Auto-hypothesize from state changes
+    for (const i of insights.filter(i => i.confidence >= 0.8)) {
+      writeSilent(`insert $h isa hypothesis, 
+        has statement "path ${i.pattern} is proven"...`)
+    }
+    
+    // Detect surges (rapid strength increase)
+    for (const surge of surges(net, lastStrengths, 10)()) {
+      writeSilent(`insert $h isa hypothesis,
+        has statement "path ${surge.path} surged by ${surge.delta}"...`)
+    }
+    
+    // Knowledge → Evolution coupling
+    for (const i of insights.filter(i => i.confidence >= 0.8)) {
+      priorityEvolve.push(...i.pattern.split('→'))
+    }
+    
+    return { result: { crystallized: insights.length } }
+  },
+  () => {}
+)
 ```
-observations accumulate
-  → hypothesis created (pending)
-  → tested against new signals
-  → observations-count++, p-value updated
-  → confirmed (p <= 0.05, n >= 50) → action-ready
-  → or rejected
-```
 
-**Timescale:** days to weeks
-**Feeds:** L5 (confirmed hypothesis = targeted evolution reason),
-          L7 (rejected hypothesis closes a frontier)
-**Fed by:** L2 (trail patterns suggest hypotheses), L5 (evolution outcomes)
-**Schema:** `hypothesis`, `is_action_ready()`
+### Metrics to Track
 
-### Refinements
-
-- **Hypothesis generation.** The schema stores hypotheses but nothing creates
-  them. Who writes the initial `statement`? Currently: agents via learnings,
-  or Lisa the librarian. But the substrate itself could generate them.
-  Consider: when a trail flips from "proven" to "fading", auto-create a
-  hypothesis: "task sequence X→Y has degraded — investigate cause."
-  When `needs_evolution` fires, auto-create: "agent Z underperforming —
-  test prompt revision." The substrate observes its own state changes
-  and asks "why?"
-
-- **Hypothesis → evolution link.** A confirmed hypothesis like "Amelia
-  struggles with useEffect cleanup" should directly inform her next
-  `system-prompt` rewrite. Currently there's no relation between
-  `hypothesis` and `unit.system-prompt`. Consider: `hypothesis` plays a
-  role in a `learning` relation that connects to the unit it's about.
-  When evolution fires, the agent reads its linked confirmed hypotheses.
-
-- **Counter-hypotheses.** The system can confirm but can't contradict.
-  If hypothesis A ("use Redux") is confirmed and hypothesis B ("use Zustand")
-  is later confirmed for the same task-type, they conflict. Consider:
-  a `contradicts` relation between hypotheses. When both sides are confirmed,
-  escalate to a human or run an A/B test via trail branching.
+| Metric | What it shows | How to test |
+|--------|---------------|-------------|
+| `crystallized` | Paths promoted | Count insights returned |
+| `surges` | Rapid changes | Count paths with delta > threshold |
+| `hypotheses` | Beliefs generated | Count new hypothesis entities |
+| `priority_evolve` | Triggered evolutions | Length of priority queue |
 
 ---
 
 ## L7: Frontier Loop
 
-The outermost loop. The system detects what it doesn't know.
+Detect what the system doesn't know.
 
+```typescript
+export const frontierLoop = (net, cycle) => loop<{ action: 'know' }>(
+  knowAction(),
+  first(),
+  async () => {
+    // Unexplored tag clusters
+    const tagFrontiers = await unexploredTags(net)()
+    for (const { tag, unexplored, total } of tagFrontiers) {
+      writeSilent(`insert $f isa frontier,
+        has frontier-type "${tag}",
+        has frontier-description "${unexplored.length} of ${total} unexplored"...`)
+    }
+    
+    // Unit gaps: active units never connected
+    const gaps = unitGaps(net, 3)()
+    for (const { unitA, unitB } of gaps) {
+      writeSilent(`insert $f isa frontier,
+        has frontier-type "unit-gap",
+        has frontier-description "${unitA} and ${unitB} never connected"...`)
+    }
+    
+    return { result: { frontiers: tagFrontiers.length + gaps.length } }
+  },
+  () => {}
+)
 ```
-promising_frontiers()
-  → unexplored + expected-value >= 0.5
-  → spawns objective (pending → active → complete)
-  → objective creates tasks
-  → tasks create signals
-  → signals create trails
-  → trails either prove or disprove the frontier
-  → frontier: exploring → exhausted
+
+### Metrics to Track
+
+| Metric | What it shows | How to test |
+|--------|---------------|-------------|
+| `tag_frontiers` | Unexplored skill clusters | Count by tag |
+| `unit_gaps` | Missing connections | Count unit pairs |
+| `exploration_rate` | New paths discovered | Compare explored set over time |
+
+---
+
+## Doc Loop (New)
+
+Docs as source of truth. Verification as pheromone.
+
+```typescript
+export const docLoop = (net, docsDir) => loop<VerifiedItem>(
+  docSpecs(docsDir),                     // sense: unverified specs from docs/
+  byPriority(),                          // select: P0 first
+  async (item) => {
+    net.enqueue({                        // act: emit gap signal
+      receiver: 'worker:implement',
+      data: { id: item.id, name: item.name, priority: item.priority }
+    })
+    return { result: null }              // gap recorded
+  },
+  docMark(net.mark, net.warn)            // mark: doc→code path
+)
 ```
 
-**Timescale:** weeks to months
-**Feeds:** all inner loops (new work enters the system)
-**Fed by:** L6 (knowledge gaps become frontiers), L2 (trail voids = unexplored territory)
-**Schema:** `frontier`, `objective`, `spawns`, `promising_frontiers()`, `active_objectives()`
+### Metrics to Track
 
-### Refinements
+| Metric | What it shows | How to test |
+|--------|---------------|-------------|
+| `specs_total` | Items in docs | Count all parsed items |
+| `verified` | Implemented | Count where verified=true |
+| `gaps` | Not implemented | Count where verified=false |
+| `doc_coverage` | Implementation % | verified / total |
+| `priority_dist` | Work distribution | Count by P0/P1/P2/P3 |
 
-- **Frontier detection from trail gaps.** `exploratory_tasks()` finds tasks
-  with no trail history. A cluster of exploratory tasks in the same
-  `task-type` or `phase` is a frontier. Currently nothing aggregates this.
-  Consider: a periodic scan that counts exploratory tasks per dimension
-  and auto-creates frontiers when the count crosses a threshold.
+```typescript
+// Example: doc coverage report
+const items = await scanDocs('docs')
+const verified = await verifyAll(items)
+const coverage = verified.filter(i => i.verified).length / items.length
+console.log(`Doc coverage: ${(coverage * 100).toFixed(1)}%`)
+console.log(`Gaps: ${verified.filter(i => !i.verified).map(i => i.name).join(', ')}`)
+```
 
-- **Frontier expected-value.** Currently a single number. But it's defined as
-  `potential * probability / cost` — three factors that change independently.
-  Consider: splitting into three attributes so the system can reason about
-  "high potential but low probability" differently from "low potential but
-  high probability." Different risk profiles need different strategies.
+---
 
-- **Frontier → group.** When a frontier spawns an objective, who works on it?
-  Currently unspecified. Consider: frontier spawns a temporary `group`
-  (group-type: "expedition") with units assigned by `suggest_route()`.
-  When the frontier is exhausted, the group dissolves. The colony sends
-  a scouting party, not the whole army.
+## The Tick Orchestrator
+
+One function runs all loops at appropriate intervals.
+
+```typescript
+// src/engine/tick.ts
+const INTERVALS = {
+  fade:     300_000,    // 5 minutes
+  evolve:   600_000,    // 10 minutes
+  know:     3_600_000,  // 1 hour
+  frontier: 3_600_000,  // 1 hour
+  docs:     3_600_000,  // 1 hour
+}
+
+export const tick = async (net, complete?, docsDir?) => {
+  const now = Date.now()
+  const result = { cycle: ++cycle, signal: {}, highways: [] }
+  
+  // Always: signal loop
+  result.signal = await signalLoop(net)()
+  
+  // Periodic loops
+  if (shouldRun('fade', now))     result.fade = await fadeLoop(net)()
+  if (shouldRun('evolve', now))   result.evolved = await evolveLoop(net, complete)()
+  if (shouldRun('know', now))     result.know = await knowLoop(net, cycle)()
+  if (shouldRun('frontier', now)) result.frontier = await frontierLoop(net, cycle)()
+  if (shouldRun('docs', now))     result.docs = await docLoop(net, docsDir)()
+  
+  result.highways = net.highways(10)
+  return result
+}
+```
+
+### Tick Result Type
+
+```typescript
+type TickResult = {
+  cycle: number
+  signal: { selected: string | null; success: boolean | null; skipped?: boolean }
+  fade?: boolean
+  evolved?: number
+  crystallized?: number
+  hypotheses?: number
+  frontiers?: number
+  docs?: { verified: number; gaps: number }
+  highways: { path: string; strength: number }[]
+}
+```
+
+---
+
+## Testing the Loops
+
+### Unit Test Pattern
+
+```typescript
+import { loop } from '@/engine/core'
+import { first } from '@/engine/selectors'
+
+describe('loop', () => {
+  it('runs sense → select → act → mark', async () => {
+    const sensed: number[] = []
+    const selected: number[] = []
+    const acted: number[] = []
+    const marked: number[] = []
+    
+    const testLoop = loop<number>(
+      () => { sensed.push(1); return [1, 2, 3] },
+      (items) => { selected.push(items[0]); return items[0] },
+      (item) => { acted.push(item); return { result: item * 2 } },
+      (item, outcome) => { marked.push(outcome.result as number) }
+    )
+    
+    const result = await testLoop()
+    
+    expect(sensed).toEqual([1])
+    expect(selected).toEqual([1])
+    expect(acted).toEqual([1])
+    expect(marked).toEqual([2])
+    expect(result).toEqual({ item: 1, outcome: { result: 2 } })
+  })
+})
+```
+
+### Integration Test Pattern
+
+```typescript
+import { world } from '@/engine'
+import { tick, resetTick } from '@/engine/tick'
+
+describe('tick', () => {
+  beforeEach(() => resetTick())
+  
+  it('processes signal loop every tick', async () => {
+    const net = world()
+    net.add('test').on('work', () => 'done')
+    net.enqueue({ receiver: 'test:work' })
+    
+    const result = await tick(net)
+    
+    expect(result.signal.selected).toBe('test:work')
+    expect(result.signal.success).toBe(true)
+  })
+  
+  it('runs fade loop after interval', async () => {
+    const net = world()
+    net.mark('a→b', 100)
+    
+    // Force fade to run
+    forceLoop('fade')
+    const result = await tick(net)
+    
+    expect(result.fade).toBe(true)
+    expect(net.sense('a→b')).toBeLessThan(100)
+  })
+})
+```
+
+### Performance Benchmark
+
+```typescript
+import { world } from '@/engine'
+import { tick } from '@/engine/tick'
+
+async function benchmark(iterations: number) {
+  const net = world()
+  
+  // Setup: 100 units, 1000 paths
+  for (let i = 0; i < 100; i++) {
+    net.add(`unit-${i}`).on('work', () => i)
+  }
+  for (let i = 0; i < 1000; i++) {
+    net.mark(`unit-${i % 100}→unit-${(i + 1) % 100}`, Math.random() * 10)
+  }
+  
+  const start = Date.now()
+  for (let i = 0; i < iterations; i++) {
+    await tick(net)
+  }
+  const elapsed = Date.now() - start
+  
+  console.log(`
+Benchmark Results:
+  Iterations: ${iterations}
+  Total time: ${elapsed}ms
+  Per tick:   ${(elapsed / iterations).toFixed(2)}ms
+  Ticks/sec:  ${(iterations / elapsed * 1000).toFixed(0)}
+  `)
+}
+
+benchmark(1000)
+```
 
 ---
 
@@ -318,62 +550,88 @@ The loops don't run in isolation. Here's how they feed each other:
 ```
 L1 Signal ──outcome──→ L2 Trail ──pattern──→ L6 Knowledge
     │                      │                      │
+    │                      │                      ├──→ L5 Evolution (priorityEvolve)
+    │                      │                      │
     │                      │                      ▼
     │                      │                 L7 Frontier
     │                      │                      │
     │                      ▼                      ▼
-    │                 L3 Fade ←───────── new tasks enter
+    │                 L3 Fade ←──────── new tasks enter
     │                      │
     ▼                      ▼
-L4 Economic ──revenue──→ L5 Evolution
+L4 Economic ──revenue──→ L5 Evolution ←── L5.consult (sub-loop)
     │                      │
     └──────────────────────┘
          better agents = better signals = L1
+
+Doc Loop ──gaps──→ worker:implement ──→ L1 Signal
+    ▲                                       │
+    └───── pheromone + verify ──────────────┘
 ```
 
-### Critical coupling: L5 → L1
+### New Coupling: L5 ↔ A2A
 
-When an agent evolves, every loop downstream resets partially:
-- New trails form (L2) because the agent behaves differently
-- Paths reweight (L3) because success-rate changes
-- Revenue shifts (L4) because capability changes
-- Hypotheses may invalidate (L6) because the subject changed
+Evolution now spawns consultation. Consultation paths get pheromone.
+The substrate learns which agents help which agents evolve.
 
-Evolution is the most disruptive event in the system. This is why
-cooldown matters — evolve too often and nothing stabilizes.
+```
+struggling agent
+       │
+       ├── query advisors (high success, similar skills)
+       │
+       ├── for each advisor:
+       │      signal({ receiver: 'advisor:advise', data: context })
+       │      → mark/warn on consultation path
+       │
+       ├── collect advice
+       │
+       └── LLM synthesizes: failures + patterns + advice → new prompt
+```
 
-### Missing coupling: L6 → L5
+### New Coupling: Docs → Signals
 
-Knowledge should feed evolution but currently doesn't. A confirmed
-hypothesis about an agent's weakness should be the primary input
-to prompt rewriting. Without this link, evolution is blind —
-the agent knows it's failing but not why. The knowledge loop
-knows why but can't tell the agent.
+Doc verification emits gaps as signals:
 
-### Missing coupling: L7 → L4
-
-Frontiers should have economic potential estimates. A frontier
-with expected-value 0.9 might justify spinning up an opus agent.
-A frontier with expected-value 0.1 should use haiku. The economic
-loop should inform which model tier the frontier expedition uses.
+```
+docs/*.md → parse → specs → verify(code)
+                              │
+                    ┌─────────┴─────────┐
+                    │                   │
+               verified            not verified
+                    │                   │
+            mark(doc→code)      enqueue({ receiver: 'worker:implement' })
+```
 
 ---
 
 ## Loop Speeds
 
-| Loop | Turns per | Governed by |
-|------|-----------|-------------|
-| L1 Signal | milliseconds | signal latency |
-| L2 Trail | seconds–minutes | task duration |
-| L3 Fade | configurable tick | fade-rate per path |
-| L4 Economic | per payment | signal.amount > 0 |
-| L5 Evolution | 20+ samples | needs_evolution threshold |
-| L6 Knowledge | 50+ observations | is_action_ready threshold |
-| L7 Frontier | emergent | promising_frontiers scan |
+| Loop | Interval | Governed by | Source |
+|------|----------|-------------|--------|
+| L1+L2 Signal+Trail | every tick | queue depth, ask() latency | `signals(net)` |
+| L3 Fade | 5 minutes | `INTERVALS.fade` | `fadeAction()` |
+| L4 Economic | per payment | `signal.amount > 0` | implicit in L1 |
+| L5 Evolution | 10 minutes | `INTERVALS.evolve` + 24h cooldown | `struggling(net)` |
+| L5.Consult | per evolution | spawned by L5 via `compose()` | `advisors(tags)` |
+| L6 Knowledge | 1 hour | `INTERVALS.know` | `knowAction()` |
+| L7 Frontier | 1 hour | `INTERVALS.frontier` | `knowAction()` |
+| Doc | 1 hour | `INTERVALS.docs` | `docSpecs(docsDir)` |
 
 Faster loops produce data. Slower loops produce wisdom.
 The signal loop is the muscle. The frontier loop is the mind.
+The doc loop is the memory.
 
 ---
 
-*Seven loops. Nested. Coupled. The substrate doesn't run a loop — it IS the loop.*
+## See Also
+
+- [dictionary.md](dictionary.md) — Complete naming guide
+- [DSL.md](DSL.md) — The programming model
+- [routing.md](routing.md) — How signals find their way
+- [src/engine/core.ts](../src/engine/core.ts) — The one loop implementation
+- [src/engine/loops.ts](../src/engine/loops.ts) — All seven loops composed
+- [src/engine/tick.ts](../src/engine/tick.ts) — Master orchestrator
+
+---
+
+*One pattern. Eight loops. Nested. Coupled. Composable. The substrate doesn't run a loop — it IS the loop.*

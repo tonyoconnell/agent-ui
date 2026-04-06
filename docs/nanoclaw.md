@@ -6,21 +6,91 @@ Live: https://nanoclaw.oneie.workers.dev/health → `{"status":"ok"}`
 
 ---
 
-## Status (deployed 2026-04-06, LLM verified)
+## Completed
 
+### Infrastructure
 - [x] Router worker live (Hono, webhooks + queue + cron)
 - [x] D1: 7 tables (groups, messages, sessions, tasks, tool_calls + base 4)
 - [x] Queue: `nanoclaw-agents` (producer + consumer, batch 10, retry 3)
 - [x] KV: shared with gateway (paths, units, skills, toxic caches)
 - [x] Cron: `* * * * *` (scheduled task runner)
 - [x] Gateway: `https://one-gateway.oneie.workers.dev` (TypeDB proxy)
-- [x] Channels: Telegram, Discord, Web
-- [x] Tools: 7 substrate tools (signal, discover, remember, recall, highways, mark, warn)
-- [x] `OPENROUTER_API_KEY` secret — set, Google Gemma 4 via OpenRouter
-- [x] `TELEGRAM_TOKEN` secret — set (`@antsatworkbot`)
+
+### LLM
+- [x] `OPENROUTER_API_KEY` secret set
+- [x] Switched from Anthropic API to OpenRouter (OpenAI-compatible format)
+- [x] Default model: `google/gemma-4-26b-a4b-it`
+- [x] Model fallback: any cached `claude-*` or `gpt-*` model IDs auto-corrected to Gemma 4
+- [x] LLM verified: Gemma 4 responding via OpenRouter (provider: Parasail)
+- [x] Response parsing: OpenAI format (`choices[0].message.content` + `tool_calls`)
+- [x] Error handling: text-based response parsing with fallback logging
+
+### Channels
+- [x] Telegram adapter: normalize incoming, send replies via Bot API
+- [x] Discord adapter: normalize incoming, send replies via Discord API
+- [x] Web adapter: normalize incoming (no push — client polls)
+- [x] `TELEGRAM_TOKEN` secret set (`@antsatworkbot`)
 - [x] Telegram webhook live → `nanoclaw.oneie.workers.dev/webhook/telegram`
 - [x] Test message accepted: `{"ok":true,"id":"tg-1001","group":"tg-631201674"}`
-- [x] LLM verified: `google/gemma-4-26b-a4b-it` responding via OpenRouter (Parasail)
+
+### Substrate Integration
+- [x] 7 substrate tools (signal, discover, remember, recall, highways, mark, warn)
+- [x] Tools converted to OpenAI function-calling format at call time
+- [x] Auto-registration: first message creates unit in TypeDB (KV cached 30 days)
+- [x] Toxicity check: pre-LLM, blocks toxic paths (no cost)
+- [x] Trail marking: mark on success, warn on failure
+- [x] Routing: `discover(skill)` queries via gateway
+
+### Security
+- [x] V8 isolates (CF per-request)
+- [x] Group isolation (separate D1 rows + KV keys)
+- [x] Tool boundaries (7 defined tools only)
+- [x] Queue retry limit (max 3)
+- [x] No API keys in code — all via wrangler secrets
+
+---
+
+## TODO
+
+### Reply Delivery
+- [ ] Verify Telegram replies actually arrive in chat (send + parse_mode working)
+- [ ] Test full round-trip: user message → queue → Gemma → reply in Telegram
+- [ ] Handle Telegram markdown escaping (Gemma output may break `parse_mode: 'Markdown'`)
+
+### Tool Calling
+- [ ] Verify Gemma 4 actually triggers tool_calls (not all models support OpenAI function-calling)
+- [ ] Handle tool results: currently tools execute but results aren't sent back to the model for a second turn
+- [ ] Multi-turn tool loop: call model → get tool_calls → execute → send results back → get final reply
+
+### Discord
+- [ ] Set `DISCORD_TOKEN` secret
+- [ ] Configure Discord bot + webhook URL in Developer Portal
+- [ ] Test Discord round-trip
+
+### Scheduled Tasks
+- [ ] Test cron task execution (D1 `tasks` table → queue → process)
+- [ ] Add API route to create/list/delete scheduled tasks
+
+### Observability
+- [ ] Remove debug `/debug/llm` route before production
+- [ ] Remove verbose `console.log` statements (or gate behind a DEBUG flag)
+- [ ] Add `/status` route showing: model, queue depth, message count, last activity
+
+### Resilience
+- [ ] Handle OpenRouter rate limits (429 → exponential backoff or queue retry)
+- [ ] Handle OpenRouter outages (fallback model or graceful degradation)
+- [ ] Dead letter handling: what happens after 3 queue retries?
+
+### Agent Quality
+- [ ] Tune system prompt for Gemma 4 (current prompt was written for Claude)
+- [ ] Test tool descriptions with Gemma — may need simpler/shorter descriptions
+- [ ] Per-group model override via D1 `groups.model` column
+- [ ] Context window management: Gemma 4 context limit vs 20-message history
+
+### Substrate Growth
+- [ ] Wire `know()` — promote proven highways to permanent TypeDB knowledge
+- [ ] Wire `evolve()` — rewrite struggling agent prompts after enough samples
+- [ ] Cross-group routing: agent in group A signals agent in group B
 
 ---
 
@@ -85,7 +155,7 @@ Web      ──┘         │
 
 ---
 
-## Tools (7 substrate tools for Claude)
+## Tools (7 substrate tools)
 
 | Tool | Input | What it does |
 |------|-------|--------------|
@@ -166,7 +236,7 @@ KV cached (`registered:{groupId}`) for 30 days.
 ### Toxicity Check (pre-LLM)
 
 ```typescript
-// Before every Claude call
+// Before every LLM call
 const toxic = r >= 10 && r > s * 2 && (r + s) > 5
 // KV cached (toxic:{source}→{target}) for 5 min
 // If toxic: silently drop — no LLM call, no cost
@@ -228,7 +298,7 @@ interface GroupContext {
   id: string
   name?: string
   systemPrompt: string   // D1 or default
-  model: string          // D1 or google/gemma-4-27b-it
+  model: string          // D1 or google/gemma-4-26b-a4b-it
   sensitivity: number    // 0.0-1.0
 }
 ```

@@ -36,6 +36,14 @@ Step-by-step. Every command proven. Every link verified.
 - [x] **Step 11c** — Queue `nanoclaw-agents` created (producer + consumer + cron `* * * * *`)
 - [ ] **Step 11d** — Set `ANTHROPIC_API_KEY` secret on NanoClaw for live Claude calls
 - [ ] **Step 11e** — Set `TELEGRAM_TOKEN` for Telegram channel (optional)
+- [ ] **Step 12a** — Install Sui CLI (`cargo install sui`)
+- [ ] **Step 12b** — Create testnet keypair
+- [ ] **Step 12c** — Fund from faucet
+- [ ] **Step 12d** — Build and test Move contract (`sui move build && sui move test`)
+- [ ] **Step 12e** — Publish to Sui testnet (`sui client publish`)
+- [ ] **Step 12f** — Store `SUI_PACKAGE_ID` and `SUI_PROTOCOL_ID` in `.env`
+- [ ] **Step 12g** — Install `@mysten/sui` TS SDK
+- [ ] **Step 12h** — Verify Protocol singleton on-chain
 
 ---
 
@@ -777,6 +785,97 @@ envelopes/
     ├── tutor.md                  # Example agent
     └── researcher.md             # Example agent
 ```
+
+---
+
+## Step 12: Deploy Sui Contract (Testnet)
+
+The Move contract enforces the same ontology on-chain. TypeDB reasons, Move enforces.
+
+### 12a. Install Sui CLI
+
+```bash
+cargo install --locked --git https://github.com/MystenLabs/sui.git --branch testnet sui
+```
+
+### 12b. Create Keypair
+
+```bash
+sui client new-env --alias testnet --rpc https://fullnode.testnet.sui.io:443
+sui client switch --env testnet
+sui client new-address ed25519
+# Save the address + recovery phrase. This is the platform keypair.
+```
+
+### 12c. Fund from Faucet
+
+```bash
+sui client faucet
+# → Testnet SUI deposited
+```
+
+### 12d. Build and Test
+
+```bash
+cd src/move/one
+sui move build
+sui move test    # All tests should pass
+```
+
+### 12e. Publish
+
+```bash
+sui client publish --gas-budget 100000000
+```
+
+Output includes the package ID:
+
+```
+----- Transaction Effects ----
+Created Objects:
+  - ID: 0xABC...  , Owner: Shared (Protocol singleton)
+
+Published:
+  - PackageID: 0xDEF...
+```
+
+### 12f. Store Credentials
+
+```bash
+# Add to .env (never commit)
+echo "SUI_PACKAGE_ID=0x<package-id>" >> .env
+echo "SUI_NETWORK=testnet" >> .env
+echo "SUI_PROTOCOL_ID=0x<protocol-object-id>" >> .env
+
+cd ../../..
+```
+
+### 12g. Install TS SDK
+
+```bash
+npm install @mysten/sui
+```
+
+### 12h. Verify
+
+```bash
+# Check Protocol singleton exists
+sui client object $SUI_PROTOCOL_ID
+# → Should show Protocol { treasury: 0, fee_bps: 50 }
+
+# Check package
+sui client object $SUI_PACKAGE_ID
+```
+
+**What's on-chain after publish:**
+
+| Object | Type | Purpose |
+|--------|------|---------|
+| Protocol | Shared | Fee treasury (50 bps default) |
+
+Units, Colonies, Paths, Signals, Escrows, and Highways are created by calling contract functions.
+
+See `docs/SUI.md` for the full Move contract documentation and phased task list.
 
 ---
 

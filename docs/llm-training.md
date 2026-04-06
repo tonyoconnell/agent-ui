@@ -12,7 +12,6 @@ Today's AI stack is layers of probability managing probability:
 
 ```
 User input → [AI filter] → [AI router] → [AI model] → [AI scorer] → [AI filter] → output
-               prob          prob          prob          prob          prob
 
 Five probabilistic layers. Stack them at 99% each = 95% system accuracy.
 At scale, 5% is millions of errors. And each layer costs money.
