@@ -12,6 +12,7 @@
  */
 import type { APIRoute } from 'astro'
 import { write, readParsed, writeSilent } from '@/lib/typedb'
+import { send as suiSend, mark as suiMark, warn as suiWarn, resolveUnit } from '@/lib/sui'
 
 /** Validate UID format (alphanumeric, hyphens, colons only) */
 function validateUid(uid: string): boolean {
@@ -216,12 +217,36 @@ export const POST: APIRoute = async ({ request }) => {
       `)
     }
 
+    // 6. Mirror to Sui (if configured — fire and forget)
+    let suiDigest: string | null = null
+    try {
+      const senderUnit = await resolveUnit(sender)
+      const receiverUnit = await resolveUnit(target)
+      if (senderUnit?.wallet && receiverUnit?.wallet) {
+        const enc = new TextEncoder()
+        const payload = data ? enc.encode(data.slice(0, 1000)) : new Uint8Array()
+        const { digest } = await suiSend(
+          sender,
+          senderUnit.objectId,
+          receiverUnit.objectId,
+          receiverUnit.wallet,
+          task || 'default',
+          payload,
+          amount,
+        )
+        suiDigest = digest
+      }
+    } catch {
+      // Sui not configured or tx failed — TypeDB signal still recorded
+    }
+
     return new Response(JSON.stringify({
       ok: true,
       routed,
       result: result?.slice(0, 500),
       latency,
       success,
+      sui: suiDigest,
     }), {
       headers: { 'Content-Type': 'application/json' },
     })

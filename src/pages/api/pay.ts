@@ -2,10 +2,11 @@
  * POST /api/pay — x402 payment between units
  *
  * Body: { from: string, to: string, task: string, amount: number }
- * Records signal with amount, strengthens path by payment amount (revenue = pheromone).
+ * Records signal with amount, strengthens path by payment amount (revenue = weight).
  */
 import type { APIRoute } from 'astro'
 import { write } from '@/lib/typedb'
+import { pay as suiPay, resolveUnit } from '@/lib/sui'
 
 export const POST: APIRoute = async ({ request }) => {
   const { from, to, task, amount } = await request.json() as {
@@ -34,7 +35,7 @@ export const POST: APIRoute = async ({ request }) => {
         has ts ${now};
   `)
 
-  // Strengthen path by payment amount (revenue = pheromone)
+  // Strengthen path by payment amount (revenue = weight)
   await write(`
     match
       $from isa unit, has uid "${from}";
@@ -58,7 +59,20 @@ export const POST: APIRoute = async ({ request }) => {
     `)
   )
 
-  return new Response(JSON.stringify({ ok: true, from, to, task, amount }), {
+  // Mirror to Sui (if both units have wallets)
+  let suiDigest: string | null = null
+  try {
+    const fromUnit = await resolveUnit(from)
+    const toUnit = await resolveUnit(to)
+    if (fromUnit?.objectId && toUnit?.objectId) {
+      // TODO: need path object ID — for now, Sui pay requires on-chain Path
+      // This will work once createPath is called during first signal between units
+    }
+  } catch {
+    // Sui not configured — TypeDB payment still recorded
+  }
+
+  return new Response(JSON.stringify({ ok: true, from, to, task, amount, sui: suiDigest }), {
     headers: { 'Content-Type': 'application/json' },
   })
 }

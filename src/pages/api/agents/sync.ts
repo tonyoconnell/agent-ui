@@ -13,6 +13,7 @@ import type { APIRoute } from 'astro'
 import {
   parse,
   syncAgent,
+  syncAgentWithIdentity,
   syncWorld,
   toTypeDB,
   worldToTypeDB,
@@ -26,12 +27,13 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Single agent markdown
     if (body.markdown) {
-      const spec = parse(body.markdown)
-      await syncAgent(spec)
+      const spec = await syncAgentWithIdentity(parse(body.markdown))
       return Response.json({
         ok: true,
         agent: spec.name,
         uid: spec.group ? `${spec.group}:${spec.name}` : spec.name,
+        wallet: spec.wallet || null,
+        suiObjectId: spec.suiObjectId || null,
         skills: spec.skills?.map(s => s.name) || [],
       })
     }
@@ -51,14 +53,22 @@ export const POST: APIRoute = async ({ request }) => {
         agents,
       }
 
+      // Sync world structure to TypeDB first
       await syncWorld(worldSpec)
+
+      // Then derive identity for each agent (Sui keypair + on-chain Unit)
+      const results = await Promise.all(
+        agents.map(a => syncAgentWithIdentity(a).catch(() => a))
+      )
 
       return Response.json({
         ok: true,
         world: worldName,
-        agents: agents.map(a => ({
+        agents: results.map(a => ({
           name: a.name,
           uid: `${worldName}:${a.name}`,
+          wallet: a.wallet || null,
+          suiObjectId: a.suiObjectId || null,
           skills: a.skills?.map(s => s.name) || [],
         })),
       })
