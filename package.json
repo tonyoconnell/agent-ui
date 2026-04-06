@@ -15,6 +15,7 @@
     "@astrojs/node": "^9.4.4",
     "@astrojs/react": "^4.4.0",
     "@dagrejs/dagre": "^2.0.4",
+    "@mysten/sui": "^1.45.2",
     "@nanostores/react": "^1.1.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -72,6 +73,8 @@
     "wrangler": "^4.80.0"
   },
   "devDependencies": {
-    "typescript": "5.9.2"
+    "@types/node": "^25.5.2",
+    "typescript": "5.9.2",
+    "vitest": "^4.1.2"
   }
 }
