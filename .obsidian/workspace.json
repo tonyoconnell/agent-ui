@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/weights.md",
+                "file": "docs/flows.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "weights"
+              "title": "flows"
             }
           }
         ],
@@ -93,7 +93,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 200,
+    "collapsed": true
   },
   "right": {
     "id": "71d5a7ff3ac56b11",
@@ -200,6 +201,9 @@
   },
   "active": "e373af67663467f2",
   "lastOpenFiles": [
+    "docs/metaphors-extended.md",
+    "docs/world.md",
+    "docs/weights.md",
     "docs/AUTONOMOUS_ORG.md",
     "docs/ONE-strategy.md",
     "docs/ONE-strategy 2.md",
@@ -212,7 +216,6 @@
     "agents/founder.md",
     "agents/asi-builder.md",
     "agents/eth-dev.md",
-    "docs/weights.md",
     "docs/DSL.md",
     "dist/_routes.json",
     "dist/_astro/reactflow.BZV40eAE.css",
@@ -234,8 +237,6 @@
     "docs/knowledge.md",
     "docs/integration.md",
     "docs/architecture.md",
-    "docs/features.md",
-    "docs/agents.md",
     "nanoclaw/node_modules/miniflare/dist/local-explorer-ui/favicon.svg",
     "nanoclaw/node_modules/@cloudflare/workers-types/entrypoints.svg",
     "nanoclaw/node_modules/undici/docs/assets/lifecycle-diagram.png",

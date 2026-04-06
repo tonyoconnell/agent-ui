@@ -337,15 +337,15 @@ RECOVERING  strength=10, resistance=2    Earning trust back.
 Every metaphor has its own word for the same thing — the substance
 that builds up on paths:
 
-| | The substance | Depositing it | It builds into | It fades by |
-|---|---|---|---|---|
-| **ONE** | weight | mark / warn | highway | fade |
-| **Ant** | pheromone | deposit / alarm | trail | evaporation |
-| **Brain** | synaptic weight | potentiate / inhibit | pathway | decay |
-| **Team** | reputation | commend / flag | go-to person | forgetting |
-| **Mail** | stamps | stamp / return | express route | archiving |
-| **Water** | sediment | carve / dam | river | drying |
-| **Radio** | signal power | boost / jam | clear channel | attenuation |
+|           | The substance   | Depositing it        | It builds into | It fades by |
+| --------- | --------------- | -------------------- | -------------- | ----------- |
+| **ONE**   | weight          | mark / warn          | highway        | fade        |
+| **Ant**   | pheromone       | deposit / alarm      | trail          | evaporation |
+| **Brain** | synaptic weight | potentiate / inhibit | pathway        | decay       |
+| **Team**  | reputation      | commend / flag       | go-to person   | forgetting  |
+| **Mail**  | stamps          | stamp / return       | express route  | archiving   |
+| **Water** | sediment        | carve / dam          | river          | drying      |
+| **Radio** | signal power    | boost / jam          | clear channel  | attenuation |
 
 The pattern is universal:
 
