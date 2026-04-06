@@ -566,7 +566,7 @@ The ontology is ONE.
 ## See Also
 
 - [flows.md](flows.md) — Flow patterns: fan-out, fan-in, pipeline, compete, stigmergy
-- [people.md](people.md) — Individual unit anatomy
+- [people.md](docs/agents.md) — Individual unit anatomy
 - [ants.md](ants.md) — Biological colony mechanisms
 - [knowledge.md](knowledge.md) — Five forces driving group intelligence
 - [one-ontology.md](one-ontology.md) — Six dimensions governing all scales

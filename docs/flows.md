@@ -107,7 +107,7 @@ Active unit
 
 No garbage collection. No shutdown. No error. Silence is valid.
 
-> See: [people.md](people.md) for anatomy, [ants.md](ants.md) for biological grounding
+> See: [people.md](docs/agents.md) for anatomy, [ants.md](ants.md) for biological grounding
 
 ---
 
@@ -371,7 +371,7 @@ Start here, follow the flow:
 1. **[events.md](events.md)** — The primitive. Two fields. Five verbs.
 2. **[DSL.md](DSL.md)** — The programming model. Signal in, work, signal out.
 3. **[dictionary.md](dictionary.md)** — Everything named. How it connects.
-4. **[people.md](people.md)** — What a unit is. Tasks, continuations, roles.
+4. **[people.md](docs/agents.md)** — What a unit is. Tasks, continuations, roles.
 5. **[group.md](group.md)** — Many units. Coordination patterns.
 6. **[ants.md](ants.md)** — The biological source. Nine castes. Five chains.
 7. **[knowledge.md](knowledge.md)** — How intelligence arises from five forces.
@@ -386,7 +386,7 @@ Start here, follow the flow:
 - [events.md](events.md) — The primitive
 - [DSL.md](DSL.md) — The programming model
 - [dictionary.md](dictionary.md) — Complete naming guide
-- [people.md](people.md) — Unit anatomy and tasks
+- [people.md](docs/agents.md) — Unit anatomy and tasks
 - [group.md](group.md) — Multi-unit coordination
 - [knowledge.md](knowledge.md) — Five forces driving intelligence
 

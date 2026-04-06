@@ -287,6 +287,6 @@ Everything emerges.
 - [flows.md](flows.md) — How signals flow through the built substrate
 - [emergence.md](emergence.md) — Theory behind the emergent intelligence system
 - [TODO-emerge.md](TODO-emerge.md) — Detailed task tracking
-- [agents.md](agents.md) — Agent patterns implemented in the substrate
+- [agents.md](node_modules/recharts/AGENTS.md) — Agent patterns implemented in the substrate
 - [group.md](group.md) — Coordination patterns the colony enables
 - [code.md](code.md) — The 70-line substrate implementation

@@ -297,4 +297,4 @@ The substrate for AI agents.
 - [tutorial.md](tutorial.md) — Quick-start guide building on these primitives
 - [code-tutorial.md](code-tutorial.md) — Deep architectural walkthrough
 - [examples.md](examples.md) — Production patterns: trading, coordination, pheromones
-- [people.md](people.md) — Agent anatomy: tasks, continuations, roles
+- [people.md](docs/agents.md) — Agent anatomy: tasks, continuations, roles

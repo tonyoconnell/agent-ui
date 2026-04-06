@@ -13,15 +13,30 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/SUI.md",
+                "file": "docs/ONE-strategy.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "SUI"
+              "title": "ONE-strategy"
+            }
+          },
+          {
+            "id": "e373af67663467f2",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "docs/weights.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "weights"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -78,8 +93,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200,
-    "collapsed": true
+    "width": 200
   },
   "right": {
     "id": "71d5a7ff3ac56b11",
@@ -184,44 +198,44 @@
       "bases:Create new base": false
     }
   },
-  "active": "fd99b50a9796efdb",
+  "active": "e373af67663467f2",
   "lastOpenFiles": [
-    "docs/features.md",
-    "docs/value.md",
-    "docs/sdk.md",
-    "docs/agent-launch.md",
-    "docs/llm-training.md",
-    "docs/loops.md",
-    "docs/loop-tutorial.md",
+    "docs/AUTONOMOUS_ORG.md",
+    "docs/ONE-strategy.md",
+    "docs/ONE-strategy 2.md",
+    "docs/ONE-strategy 1.md",
+    "agents/ehc-officer.md",
+    "agents/ops.md",
+    "agents/designer.md",
+    "agents/community.md",
+    "agents/trader.md",
+    "agents/founder.md",
+    "agents/asi-builder.md",
+    "agents/eth-dev.md",
+    "docs/weights.md",
+    "docs/DSL.md",
+    "dist/_routes.json",
+    "dist/_astro/reactflow.BZV40eAE.css",
+    "dist/_astro/build.CQZ86QNn.css",
+    "dist/_worker.js/manifest_iyLzeIb9.mjs",
+    "dist/_astro/utils.CPGtsWvz.js",
+    "dist/_astro/reactflow.QOXe6Xc4.js",
+    "dist/_astro/react-vendor.Uy4Kkaw4.js",
+    "dist/_astro/input.Dbe3Vhil.js",
+    "dist/_astro/index.NXx74f8V.js",
+    "dist/_astro/icons.CILQmzZp.js",
+    "docs/deploy.md",
     "docs/loop.md",
-    "docs/primitives.md",
-    "docs/people.md",
-    "docs/one-ontology.md",
-    "docs/ontology.md",
-    "docs/nanoclaw.md",
-    "docs/game-play.md",
-    "docs/dictionary.md",
-    "docs/SUI.md",
     "docs/routing.md",
-    "docs/routing-simple.md",
-    "docs/SEED-REPORT.md",
-    "src/engine/routing.test.ts",
-    "docs/SECURE-DEPLOY.md",
-    "docs/TODO-SUI.md",
-    "node_modules/@vitest/runner/LICENSE",
-    "node_modules/@vitest/runner/utils.d.ts",
-    "node_modules/@vitest/runner/types.d.ts",
-    "node_modules/@vitest/runner/README.md",
-    "node_modules/@vitest/runner/package.json",
-    "node_modules/@vitest/runner/dist/utils.js",
-    "node_modules/@vitest/runner/dist/utils.d.ts",
-    "node_modules/@vitest/runner/dist/types.js",
-    "node_modules/@vitest/runner/dist/types.d.ts",
-    "node_modules/@vitest/runner/dist/tasks.d-DI5LbrqA.d.ts",
-    "node_modules/expect-type/SECURITY.md",
-    "node_modules/expect-type/README.md",
-    "node_modules/tinybench/README.md",
-    "node_modules/obug/README.md",
+    "docs/lifecycle.md",
+    "docs/loops.md",
+    "docs/groups.md",
+    "docs/tutorial.md",
+    "docs/knowledge.md",
+    "docs/integration.md",
+    "docs/architecture.md",
+    "docs/features.md",
+    "docs/agents.md",
     "nanoclaw/node_modules/miniflare/dist/local-explorer-ui/favicon.svg",
     "nanoclaw/node_modules/@cloudflare/workers-types/entrypoints.svg",
     "nanoclaw/node_modules/undici/docs/assets/lifecycle-diagram.png",

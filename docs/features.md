@@ -304,6 +304,459 @@ Published to Sui testnet 2026-04-06. 8 proof transactions.
 
 ---
 
+## Core Features (Shipped)
+
+### Nervous System (Runtime)
+
+- **Signal routing** — O(1) lookup, pheromone-weighted selection, toxic-path bypass
+- **Queued signals** — Priority-ordered, drain on unit creation, no lost work
+- **Mark/warn** — Automatic strength/resistance accumulation, chain-depth weighting
+- **Fade** — Asymmetric decay (resistance 2x faster), run every 5 minutes
+- **Follow/select** — Deterministic (strongest path) vs probabilistic (ant-like)
+- **Ask pattern** — Signal + timeout, returns `{ result | timeout | dissolved }`
+- **Emit branching** — One handler fires multiple continuations, fan-out built-in
+
+### Brain (TypeDB)
+
+- **Path persistence** — Strength, resistance, traversal count, timestamps
+- **Unit profiles** — Model, system-prompt, generation counter, capability map
+- **Skill registry** — ID, name, price, tags, provider-offered relations
+- **Signal log** — Every signal recorded with sender, receiver, data, timestamp
+- **Knowledge base** — Highways (p-value <= 0.05), hypotheses, frontiers
+- **Group membership** — Units in groups, federation links
+- **Toxic classification** — Automatic: `resistance >= 10 AND r > s*2 AND total > 5`
+- **Highway detection** — When `strength >= 50`, path is highway
+
+### Sui Ledger (Immutable)
+
+- **Unit objects** — Owned by agent keypair, self-sovereign
+- **Path objects** — Source, target, strength, resistance, confidence
+- **Signal events** — Marked, Warned, Crystallized with block height
+- **Frozen highways** — `freeze_object()` makes knowledge permanent
+- **Cross-chain proof** — Sui testnet 2026-04-06 ✓
+
+---
+
+## Feature Matrix
+
+| Feature | Nervous System | TypeDB | Sui | Status |
+|---------|---|---|---|---|
+| Register unit | ✓ | ✓ | ✓ | Live |
+| Add capability | ✓ | ✓ | ✓ | Live |
+| Route signal | ✓ | ✓ | — | Live |
+| Mark path | ✓ | ✓ | ✓ | Live |
+| Warn path | ✓ | ✓ | ✓ | Live |
+| Fade decay | ✓ | ✓ | Phase 4 | Live (runtime) |
+| Follow highway | ✓ | ✓ | — | Live |
+| Crystallize | Phase 4 | ✓ | ✓ | Designed |
+| Cross-group | Phase 5 | ✓ | Phase 5 | Planned |
+| Dissolve unit | ✓ | ✓ | Phase 5 | Live (partial) |
+
+---
+
+## API Reference
+
+### Stage 0: Register
+
+```typescript
+// Runtime
+const scout = net.add('scout')
+
+// TypeDB
+await db.actor('scout', 'agent', { model: 'claude-sonnet' })
+
+// Sui (onchain)
+const tx = new Transaction()
+tx.moveCall({
+  target: `${PACKAGE}::unit::create_unit`,
+  arguments: [tx.pure.string('scout'), tx.pure.string('agent')]
+})
+```
+
+### Stage 1: Capable
+
+```typescript
+// Runtime
+scout.on('observe', async (data, emit, ctx) => {
+  const analysis = await analyze(data)
+  emit({ receiver: 'analyst:process', data: analysis })
+})
+
+// TypeDB
+insert $u isa unit, has uid "scout";
+insert $s isa skill, has skill-id "scout:observe", has price 0.02;
+insert (provider: $u, offered: $s) isa capability, has price 0.02;
+
+// Sui
+tx.moveCall({
+  target: `${PACKAGE}::unit::register_task`,
+  arguments: [tx.object(scoutUnitId), tx.pure.string('observe')]
+})
+```
+
+### Stage 2: Discover
+
+```typescript
+// TypeDB - suggest top 5 providers
+const routes = await db.readParsed(`
+  match
+    ($u, $p) isa capability, has price $price
+    (unit: $u, skill: $s) isa offers, has skill-id $id
+    $id = "process"
+    ($f, $t) isa path, has strength $strength
+    $f = $u
+  sort $strength desc
+  limit 5
+  return $u, $strength, $price
+`)
+
+// OR: cheapest provider
+const cheapest = await db.readParsed(`
+  match
+    (provider: $u, offered: $s) isa capability
+    $s has skill-id "process"
+    (provider: $u, offered: $s) isa capability, has price $p
+  sort $p asc limit 1
+  return $u, $p
+`)
+
+// OR: optimal (strongest + available)
+const optimal = await db.readParsed(`
+  match
+    (provider: $u, offered: $s) isa capability
+    $s has skill-id "process"
+    ($from, $u) isa path, has strength $str
+  sort $str desc limit 1
+  return $u
+`)
+```
+
+### Stage 3: Signal
+
+```typescript
+// Runtime
+net.signal({ receiver: 'analyst:process', data: { text: '...' } }, 'scout')
+
+// With ask (waits for response)
+const { result, timeout, dissolved } = await net.ask(
+  { receiver: 'analyst:process', data: { text: '...' } },
+  'scout'
+)
+
+// TypeDB logs automatically
+// Signal recorded: (scout, analyst:process) isa signal, has data, has ts
+
+// Sui creates signal object
+// tx.moveCall({ target: `${PACKAGE}::signal::create_signal`, ... })
+```
+
+### Stage 4: Mark
+
+```typescript
+// Automatic on success, but explicit form:
+net.mark('scout→analyst', 1)  // default strength=1
+net.mark('scout→analyst', 5)  // or scaled by chain depth
+
+// TypeDB updates automatically via persist.mark()
+// Sui event: Marked { path_id, amount, event_type: "marked" }
+```
+
+### Stage 5: Warn
+
+```typescript
+// On failure:
+net.warn('scout→bad', 1)     // full failure (no result)
+net.warn('scout→timeout', 0) // timeout (neutral)
+net.warn('scout→dissolved', 0.5) // capability missing
+
+// Sui event: Warned { path_id, amount, event_type: "warned" }
+```
+
+### Stage 6: Fade
+
+```typescript
+// Every 5 minutes (L3 loop)
+net.fade(0.05)  // strength *= 0.95, resistance *= 0.90
+
+// For specific path:
+const { strength, resistance } = net.sense('scout→analyst')
+const decayedStr = strength * Math.pow(0.95, minutesSinceLast / 5)
+const decayedRes = resistance * Math.pow(0.90, minutesSinceLast / 5)
+```
+
+### Stage 7: Highway
+
+```typescript
+// Follow strongest path
+const next = net.follow('analyst')  // returns 'scout', deterministic
+
+// Probabilistic selection (uses strength - resistance)
+const routed = net.select('analyst')  // weighted random
+
+// Detect highways (TypeDB)
+const highways = await db.readParsed(`
+  match ($f, $t) isa path, has strength $s, has name $name
+  $s >= 50
+  return $name, $s
+`)
+
+// API endpoint
+const top10 = net.highways(10)  // [{ from, to, strength }, ...]
+```
+
+### Stage 8: Crystallize (Phase 4)
+
+```typescript
+// After highway detected, freeze on-chain
+const tx = new Transaction()
+tx.moveCall({
+  target: `${PACKAGE}::path::freeze_highway`,
+  arguments: [
+    tx.object(pathObjectId),
+    tx.pure.u64(strength),
+    tx.pure.string('hypothesis_confirmed')
+  ]
+})
+
+// TypeDB: promote to permanent knowledge
+insert $k isa highway, has strength $s, has frozen true, has ts now
+
+// Immutable forever
+// Any future queries: read highway, no function can modify it
+```
+
+### Stage 9: Federate (Phase 5)
+
+```typescript
+// Cross-group signal
+net.signal({
+  receiver: 'marketing:creative:write',  // group:unit:task
+  data: { brief: '...' }
+}, 'sales:scout')
+
+// TypeDB path spans groups
+($source, $target) isa path
+$source in group("sales"), $target in group("marketing")
+
+// Sui: cross-chain path object owned by both treasuries
+```
+
+### Stage 10: Dissolve
+
+```typescript
+// Remove from runtime (trails persist)
+net.remove('scout')
+
+// Sui: return balance to colony treasury
+tx.moveCall({
+  target: `${PACKAGE}::colony::dissolve_unit`,
+  arguments: [tx.object(scoutUnitId), tx.object(treasuryId)]
+})
+
+// Highways survive dissolution (crystallized)
+// Paths fade naturally over time (L3 loop)
+```
+
+---
+
+## Monitoring & Observability
+
+### Metrics (Built-in)
+
+```typescript
+// Path health
+net.sense('scout→analyst')  // { strength, resistance, samples }
+net.danger('scout→analyst') // resistance value (inverse of health)
+
+// Unit health
+const unit = net.get('scout')
+unit.list()  // all registered handlers
+unit.has('observe')  // true if task registered
+
+// Colony health
+net.highways(20)  // top 20 paths by strength
+net.highways(-20) // bottom 20 (likely toxic)
+const pending = net.pending()  // queue length
+```
+
+### Visibility API
+
+```typescript
+// Persistent world
+const world = persist()
+
+// Open paths (TypeDB)
+const good = await world.open(10)  // top 10 highways
+// Returns: [{ from, to, strength, resistance, ts }, ...]
+
+// Blocked paths (toxic)
+const toxic = await world.blocked()
+// Returns: [{ from, to, reason, detected_ts }, ...]
+
+// Knowledge recall
+const hypotheses = await world.recall('tags:marketing')
+// Returns confirmed pathways with evidence
+
+// Path strength history (from logs)
+const history = await db.readParsed(`
+  match ($f, $t) isa path, $f = 'scout'
+  order by $timestamp asc
+  return $timestamp, $f, $t, $strength
+`)
+```
+
+---
+
+## Security Features
+
+### Pre-LLM Filters
+
+1. **Toxic detection** — Block obvious failures before cost
+   - Requires: `resistance >= 10`, `r > s*2`, `total > 5`
+   - Cost: $0 (dissolves at runtime)
+
+2. **Capability check** — Only signal known tasks
+   - TypeDB lookup: `(provider, offered) isa capability`
+   - Blocked: signals to missing tasks dissolve
+
+3. **Price validation** — x402: signal must carry payment
+   - Escrow holds funds during async work
+   - Release on success, return on failure
+
+### Post-LLM Filters
+
+4. **Outcome classification** — Four types, three paths
+   - Success: mark + chain continues
+   - Timeout: neutral + chain continues (fault-tolerant)
+   - Dissolved: warn(0.5) + chain breaks
+   - Failure: warn(1) + chain breaks
+
+5. **Cold-start protection** — Don't block new paths too early
+   - Requires `total samples > 5` before toxicity
+   - Resistance forgives faster (2x decay)
+
+6. **Immutable highways** — Frozen knowledge can't be poisoned
+   - Once crystallized, path is permanent fact
+   - No future mark/warn can modify it
+
+---
+
+## Performance Characteristics
+
+| Operation | Time | Cost | Notes |
+|-----------|------|------|-------|
+| signal() | < 1ms | Variable (x402) | Runtime routing, pheromone mark |
+| mark() | < 0.1ms | $0 | In-memory strength update |
+| warn() | < 0.1ms | $0 | In-memory resistance update |
+| fade() | 5m | $0 | Batch decay all paths |
+| ask() | Variable | Variable | Signal + timeout (default 30s) |
+| follow() | < 1ms | $0 | Strongest path lookup |
+| select() | < 1ms | $0 | Weighted random (ant-like) |
+| TypeDB query | 10-500ms | $0.01 | Depends on clause complexity |
+| Sui transaction | 1-3s | 1000+ gas | Block finality ~1s |
+| crystallize() | 3-5s | 5000+ gas | Freeze object on-chain |
+
+---
+
+## Scaling Model
+
+### L1-L3 (Nervous System)
+
+- In-process, no I/O
+- Single machine: 10k signals/second possible
+- Multi-machine via shared TypeDB
+- Queue prevents signal loss
+
+### L4-L7 (Brain + Ledger)
+
+- TypeDB: 19 units, 19 skills (live)
+- Scaling: Add groups, wire federation (Phase 5)
+- Sui: Every mark/warn is on-chain event
+- Scaling: Tendermint finality, state commitments
+
+### Horizontal Scaling
+
+```
+Machine A ─┐         ┌─► Sui (ledger)
+           ├─ TypeDB ┤
+Machine B ─┘         └─► Cloudflare KV (cache)
+```
+
+Each machine runs independent router. TypeDB is source of truth.
+Pheromone synchronizes across machines (100ms sync window).
+
+---
+
+## Integration Points
+
+### Incoming
+
+- **Webhook** — NanoClaw worker receives signals from Telegram, Discord, web
+- **API** — `/api/signal` endpoint accepts JSON signals
+- **TypeDB query** — Direct SQL-like access to brain
+- **Sui events** — Sync marked/warned on-chain events back to TypeDB
+
+### Outgoing
+
+- **Emit** — Handler can fire multiple downstream signals
+- **Channel hooks** — Push results to Telegram, Discord, email, webhook
+- **TypeDB mutations** — Ask can read knowledge, mark updates brain
+- **Sui transactions** — Crystallize freezes highways on-chain
+
+---
+
+## Example: Complete Flow
+
+```typescript
+// 1. Register
+const net = persist()
+const scout = net.actor('scout', 'agent')
+const analyst = net.actor('analyst', 'agent')
+
+// 2. Add capabilities
+scout.on('observe', (data, emit) => {
+  const findings = analyze(data)
+  emit({ receiver: 'analyst:process', data: findings, replyTo: 'scout' })
+})
+
+analyst.on('process', (data, emit) => {
+  const result = synthesize(data)
+  return result
+})
+
+// 3. Signal (auto-routes)
+net.signal({ receiver: 'observer:observe', data: { topic: 'market' } })
+
+// 4. Observer→Analyst chain
+// observe fires → emit to analyst:process
+// analyst returns result → mark(scout→analyst, 2)  [chain depth=2]
+// replyTo delivers result back to scout
+
+// 5. Pheromone grows
+net.highways(5)  // scout→analyst now in top 5 (strength: 2)
+
+// 6. 10 minutes later (evolution)
+// If scout's success rate < 50% on 20+ samples:
+// TypeDB rewrites scout's system-prompt
+// scout.generation++
+
+// 7. Highways fade
+// Every 5 minutes: strength *= 0.95, resistance *= 0.90
+// After 2 days idle: strength → 0, path dissolves
+
+// 8. Crystallize
+// Once strength >= 50 for 1 hour:
+// await crystallize('scout→analyst')
+// On-chain: Highway frozen, immutable forever
+
+// 9. Federation (Phase 5)
+// Add marketing:creative unit
+// Signal cross-group: analyst:research→marketing:creative:write
+// Paths span groups, shared treasury
+```
+
+---
+
 ## See Also
 
 - [SUI.md](SUI.md) — The thesis, proof transactions, the bridge
@@ -311,6 +764,8 @@ Published to Sui testnet 2026-04-06. 8 proof transactions.
 - [routing.md](routing.md) — One formula, four outcomes, emergent highways
 - [dictionary.md](dictionary.md) — Complete naming guide
 - [DSL.md](DSL.md) — The programming model
+- [loops.md](loops.md) — Seven loops in detail
+- [sdk.md](sdk.md) — Public API surface
 
 ---
 

@@ -108,7 +108,7 @@ The path `entry→echo` now exists with strength 1.0.
 
 ---
 
-## Phase 3: Learn — Accumulate Pheromone
+## Phase 3: Learn — Accumulate Weight
 
 Every signal marks the path it travels. Success adds strength. Failure adds resistance.
 

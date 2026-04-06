@@ -463,6 +463,6 @@ All three examples follow the same 85-line genome:
 - [flows.md](flows.md) — Flow patterns these examples implement
 - [code.md](code.md) — Substrate primitives used in examples
 - [tutorial.md](tutorial.md) — Introduction to the concepts shown here
-- [people.md](people.md) — Agent types: worker, router, aggregator
+- [people.md](docs/agents.md) — Agent types: worker, router, aggregator
 - [ants.md](ants.md) — Biological source of pheromone patterns
 - [group.md](group.md) — Coordination patterns at scale

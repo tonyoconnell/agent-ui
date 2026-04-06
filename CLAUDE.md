@@ -391,6 +391,7 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 
 | Doc | What it defines | Syncs with |
 |-----|----------------|------------|
+| `docs/AUTONOMOUS_ORG.md` | **THE BLUEPRINT** — ONE-strategy as executable task graph with pheromone routing, 7 personas, revenue forecast | `world.tql`, `tick.ts`, revenue loops |
 | `docs/dictionary.md` | Complete naming guide — every concept, dimension, verb | Everything |
 | `docs/DSL.md` | The programming model — signal, emit, mark, warn, fade, follow, select | `world.ts`, `persist.ts` |
 | `docs/routing.md` | How signals find their way — formula, layers, tick, outcomes | `loop.ts`, `persist.ts` |

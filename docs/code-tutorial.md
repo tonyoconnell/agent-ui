@@ -1129,7 +1129,7 @@ gateway/
 - [one-ontology.md](one-ontology.md) — Six dimensions explained
 - [world.md](world.md) — Universal ontology: ants, humans, agents
 - [metaphors.md](metaphors.md) — Same substrate, six vocabularies
-- [people.md](people.md) — Agent anatomy and task patterns
+- [people.md](docs/agents.md) — Agent anatomy and task patterns
 - [groups.md](groups.md) — Group coordination patterns
 - [hermes-agent.md](hermes-agent.md) — Multi-species agent integration
 - [knowledge.md](knowledge.md) — How complexity emerges from simple rules

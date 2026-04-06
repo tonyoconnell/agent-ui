@@ -14,26 +14,24 @@ That's it. `receiver` says who. `data` says what. A signal arrives at an agent.
 The agent does its work. Then it emits the next signal. That signal arrives
 at the next agent. Who does its work. And emits.
 
+Sometimes an agent knows who's next. Sometimes it doesn't — and shouldn't.
+
 ```
-scout receives { tick: 42 }
-  → observes, finds something
-  → emits { receiver: 'analyst:process', data: finding }
-
-analyst receives { finding }
-  → classifies it
-  → emits { receiver: 'reporter:summarize', data: classification }
-
-reporter receives { classification }
-  → writes the summary
-  → emits { receiver: 'dashboard:update', data: summary }
+Known chain:                        Emergent:
+scout → analyst → reporter          scout returns finding
+  each names the next                 world picks who gets it
+  pipeline, declared                  discovery, learned
 ```
 
-No orchestrator decided this chain. Each agent only knows: I received a signal,
-I did my work, I passed it on. The signal is the thread that stitches them together.
+Both are valid. Both deposit pheromone. The difference is who decides the next hop.
 
 ---
 
 ## How It Flows
+
+### Known Chain
+
+When the flow is a pipeline — A always feeds B — the agent names the receiver:
 
 ```typescript
 const scout = w.add('scout')
@@ -51,11 +49,38 @@ const analyst = w.add('analyst')
   })
 ```
 
-Signal in. Work. Signal out. That's the entire programming model.
+Signal in. Work. Signal out. The agent decides where.
 
-The `emit` function is how an agent speaks. It doesn't call another agent —
-it sends a signal into the world. The world routes it. The receiving agent
-doesn't know who sent it (unless it checks `ctx.from`). Loose coupling by default.
+### Emergent Routing
+
+When you want the world to learn, the agent just returns. No emit. No hardcoded receiver.
+The tick loop uses `select()` to pick the next agent based on pheromone:
+
+```typescript
+const scout = w.add('scout')
+  .on('observe', ({ tick }) => {
+    return analyze(tick)   // just return — world decides what's next
+  })
+
+// The tick loop:
+const next = w.select()                          // weighted by strength - resistance
+next && w.signal({ receiver: next, data: result })
+```
+
+Signal in. Work. Result out. The world decides where.
+
+### When to Use Which
+
+- **Known chain**: the flow is a pipeline. Scout always feeds analyst. Use `emit()` or `.then()`.
+- **Emergent**: you want the world to optimize. Return results, let `select()` route.
+  The substrate discovers the best paths through experience.
+
+Both deposit pheromone. Both participate in mark/warn/fade.
+Known chains build highways fast. Emergent routing finds highways you didn't design.
+
+The `emit` function is how an agent speaks to a known receiver.
+`select()` is how the world speaks — routing toward strength, away from resistance.
+The receiving agent doesn't know who sent it (unless it checks `ctx.from`). Loose coupling either way.
 
 ---
 
