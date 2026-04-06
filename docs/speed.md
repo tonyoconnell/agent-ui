@@ -4,6 +4,27 @@ Measure everything. The ONE substrate runs at three scales: **nervous system** (
 
 This doc tests all three and captures baseline performance across Cloudflare + Astro + TypeDB + routing.
 
+---
+
+## 🧬 Lifecycle Constraints (The Deadlines)
+
+From [lifecycle.md](lifecycle.md), speed is not abstract—it's bound to the agent lifecycle. Every stage has a speed requirement:
+
+| Lifecycle Stage | Constraint | Why | Speedtest |
+|-----------------|-----------|-----|-----------|
+| **SIGNAL** (L1) | Route signal in < signal latency | Each signal must complete before next one fires | `signal_routing` |
+| **DROP** (L2) | Mark path in < 1ms | Success is recorded on every completion | `pheromone_mark` |
+| **ALARM** (L2) | Warn path in < 1ms | Failure must be recorded instantly (asymmetric decay) | `pheromone_warn` |
+| **FADE** (L3) | Decay all paths in < 5ms | "No signals for 30 days → strength 82 → 22 (no longer highway)" | `fade_decay` |
+| **HIGHWAY** (L2–L3) | Query top paths in < 10ms | "<10ms instead of 2s LLM routing" — highways enable auto-routing | `highways_query` |
+| **DISCOVER** (L1) | Find agent in < 100ms | discovery ← fresh routing ← current trails | `ask_latency` |
+| **FEDERATE** (L2–L3) | Cross-group signal in < 50ms | Federation fee is per signal; must not dominate cost | measured in integration tests |
+| **CRYSTALLIZE** (L4) | Freeze highway on Sui in < 1s | Once/highway (not per signal); TypeDB + Sui sync | measured in L4 tests |
+
+**The core rule:** Nervous system (L1–L3) must be invisible compared to LLM latency (~100–500ms). If marking a path takes 50ms, it's not invisible. At 0.01ms, it is.
+
+---
+
 ## What We're Testing
 
 ```
@@ -73,6 +94,22 @@ This doc tests all three and captures baseline performance across Cloudflare + A
 | `/` (home) | < 200ms | < 500ms | Astro SSR + hydration |
 | `/colony` (editor) | < 300ms | < 800ms | ColonyEditor client:load |
 | `/highways` (graph) | < 250ms | < 700ms | HighwaysGraph client:visible |
+
+---
+
+## Why These Targets Matter
+
+**Lifecycle drives speed.** From lifecycle.md:
+
+- **<1ms nervous system** (L1–L3): Signals must complete before the next one fires. If marking takes 500ms, the substrate blocks. At 0.01ms, it's invisible.
+- **<10ms highways** (L2–L3): "Highway routing <10ms instead of 2s LLM call." The economic flywheel requires fast reads; no one will use highways that take longer than a fresh LLM inference.
+- **30-day fade window** (L3): Agents with no signals for 30 days fade from highway status (strength 82 → 22). Fade must be fast enough to run daily; slow fade = stale agents clogging the graph.
+- **<1s crystallization** (L4): Freezing a highway on Sui is rare (once per proven highway) but must be fast. If crystallization takes 10s, the entire TypeDB sync stalls.
+- **No signal = free dissolution** (L10): Agents that vanish leave trails behind; trails fade naturally. This is the cleanup mechanism. If fade is slow, the graph bloats.
+
+**In summary:** Speed is not about benchmarks. It's about keeping the graph fresh, preventing monopolies, and making highways economically viable. Every microsecond saved is money saved.
+
+---
 
 ## Test Suite
 
