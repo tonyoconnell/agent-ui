@@ -24,6 +24,7 @@ import { write, writeSilent, readParsed } from '@/lib/typedb'
 import { world as createWorld, type World } from './world'
 import { loadContext, type DocKey } from './context'
 import type { PersistentWorld } from './persist'
+import { addressFor, createUnit as createUnitOnChain, registerTask as registerTaskOnChain } from '@/lib/sui'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -46,6 +47,9 @@ export interface AgentSpec {
   tags?: string[]
   context?: string[]  // docs to load as knowledge: ['routing', 'dsl']
   prompt: string
+  // Sui identity (derived on sync, not from markdown)
+  wallet?: string       // Sui address
+  suiObjectId?: string  // on-chain Unit object ID
 }
 
 export interface WorldSpec {
@@ -186,7 +190,7 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
       has sample-count 0,
       has reputation 0.0,
       has balance 0.0,
-      has generation 0${tagStr ? ', ' + tagStr : ''};
+      has generation 0${spec.wallet ? `, has wallet "${spec.wallet}"` : ''}${tagStr ? ', ' + tagStr : ''};
   `)
 
   // Group membership
@@ -267,6 +271,62 @@ export const syncAgent = async (spec: AgentSpec): Promise<void> => {
   for (const q of queries) {
     await write(q).catch(e => console.warn('TypeDB insert:', e.message))
   }
+}
+
+/**
+ * Sync agent to both TypeDB AND Sui.
+ * The agent derives its own keypair and signs its existence into being.
+ *
+ * Flow: markdown → parse → deriveKeypair(uid) → create_unit() on Sui → TypeDB (with wallet)
+ *
+ * Returns the spec with wallet + suiObjectId populated.
+ * Falls back to TypeDB-only if Sui is not configured or fails.
+ */
+export const syncAgentWithIdentity = async (spec: AgentSpec): Promise<AgentSpec> => {
+  const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
+
+  // Step 1: Derive wallet address (always, even if Sui publish fails)
+  try {
+    spec.wallet = await addressFor(uid)
+  } catch {
+    // SUI_SEED not configured — skip Sui identity
+  }
+
+  // Step 2: Sync to TypeDB (includes wallet if derived)
+  await syncAgent(spec)
+
+  // Step 3: Create on-chain Unit (if Sui is configured)
+  if (spec.wallet) {
+    try {
+      const { objectId, address } = await createUnitOnChain(uid, spec.name, 'agent')
+      spec.suiObjectId = objectId
+      spec.wallet = address
+
+      // Store Sui object ID back in TypeDB
+      await writeSilent(`
+        match $u isa unit, has uid "${uid}";
+        delete $u has wallet $old;
+        insert $u has wallet "${address}";
+      `).catch(() =>
+        writeSilent(`
+          match $u isa unit, has uid "${uid}";
+          insert $u has wallet "${address}";
+        `)
+      )
+
+      // Register skills on-chain
+      if (spec.skills?.length && objectId) {
+        for (const skill of spec.skills) {
+          await registerTaskOnChain(uid, objectId, skill.name).catch(() => {})
+        }
+      }
+    } catch (e) {
+      // Sui not deployed or network issue — TypeDB sync still succeeded
+      console.warn('Sui sync skipped:', e instanceof Error ? e.message : 'unknown')
+    }
+  }
+
+  return spec
 }
 
 export const syncWorld = async (spec: WorldSpec): Promise<void> => {

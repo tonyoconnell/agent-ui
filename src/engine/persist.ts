@@ -8,6 +8,7 @@
 import { world as createWorld, type World, type Signal, type Edge } from './world'
 import { read, readParsed, writeSilent, parseAnswers } from '@/lib/typedb'
 import { ingestDocs, loadContext, type DocKey } from './context'
+import { mirrorMark, mirrorWarn, mirrorActor } from './bridge'
 
 export type Insight = { pattern: string; confidence: number }
 
@@ -47,6 +48,8 @@ export const world = (): PersistentWorld => {
       delete $s of $e; delete $t of $e;
       insert $e has strength ($s + ${strength}), has traversals ($t + 1);
     `)
+    // Mirror to Sui (fire-and-forget)
+    mirrorMark(from.trim(), to.trim(), strength).catch(() => {})
   }
 
   const warn = (edge: string, strength = 1) => {
@@ -58,6 +61,8 @@ export const world = (): PersistentWorld => {
       $e (source: $from, target: $to) isa path, has resistance $a;
       delete $a of $e; insert $e has resistance ($a + ${strength});
     `)
+    // Mirror to Sui (fire-and-forget)
+    mirrorWarn(from.trim(), to.trim(), strength).catch(() => {})
   }
 
   const fade = (rate = 0.1) => {
@@ -122,6 +127,8 @@ export const world = (): PersistentWorld => {
         has success-rate 0.5, has activity-score 0.0, has sample-count 0,
         has reputation 0.0, has balance 0.0, has generation 0;
     `).catch(() => {})
+    // Mirror to Sui (fire-and-forget)
+    mirrorActor(uid, id).catch(() => {})
     return net.add(uid)
   }
 

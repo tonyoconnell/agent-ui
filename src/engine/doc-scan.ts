@@ -6,10 +6,42 @@
  *
  * Each item becomes a skill in TypeDB. Tags come from source doc + section context.
  * Pheromone ranks them. TODO.md becomes a view of TypeDB state.
+ *
+ * LOOP INTEGRATION:
+ * - docSpecs() returns items for loop sense
+ * - verify() checks if implemented
+ * - gapsToSignals() converts unverified specs to signals
  */
 
-import { readdir, readFile } from 'node:fs/promises'
-import { join, basename } from 'node:path'
+// Node imports are lazy — this module is Node-only but Cloudflare bundler resolves it
+let _node: { readdir: any; readFile: any; join: any; basename: any } | null = null
+async function node() {
+  if (_node) return _node
+  const fsp = await import('node:fs/promises')
+  const path = await import('node:path')
+  _node = { readdir: fsp.readdir, readFile: fsp.readFile, join: path.join, basename: path.basename }
+  return _node
+}
+import type { Signal } from './world'
+
+// Simple glob replacement — matches recursive directory patterns
+async function simpleGlob(pattern: string, cwd: string): Promise<string[]> {
+  const { join, readdir } = await node()
+  const parts = pattern.split('**/')
+  const base = join(cwd, parts[0])
+  const ext = parts[1] || '*'
+  const results: string[] = []
+  async function walk(dir: string) {
+    const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
+    for (const e of entries) {
+      const full = join(dir, e.name)
+      if (e.isDirectory()) await walk(full)
+      else if (ext === '*' || full.endsWith(ext.replace('*', ''))) results.push(full)
+    }
+  }
+  await walk(base)
+  return results
+}
 
 export interface DocItem {
   id: string            // slug for skill-id
@@ -29,14 +61,25 @@ type Priority = 'P0' | 'P1' | 'P2' | 'P3'
 const PRIORITY_MAP: Record<string, Priority> = {
   'critical': 'P0',
   'unblock': 'P0',
+  'priority order': 'P0',
+  'security checklist': 'P0',
   'high': 'P1',
   'make it real': 'P1',
+  'phase 1': 'P1',
+  'phase 2': 'P1',
+  'foundation': 'P1',
+  'chat integration': 'P1',
   'medium': 'P2',
   'engine quality': 'P2',
+  'phase 3': 'P2',
+  'phase 4': 'P2',
+  'phase 5': 'P2',
   'low': 'P3',
   'later': 'P3',
   'visual polish': 'P3',
   'scale': 'P3',
+  'phase 6': 'P3',
+  'phase 7': 'P2',  // "NEXT" phase gets P2
 }
 
 // Tag inference from keywords in item text
@@ -66,15 +109,14 @@ function slugify(text: string): string {
 /** Infer tags from item text */
 function inferTags(text: string, source: string): string[] {
   const lower = text.toLowerCase()
-  const tags = new Set<string>()
-  tags.add(source) // always tag with source doc name
+  const tags: string[] = [source] // always tag with source doc name
 
   for (const [tag, keywords] of Object.entries(TAG_KEYWORDS)) {
     if (keywords.some(kw => lower.includes(kw))) {
-      tags.add(tag)
+      if (!tags.includes(tag)) tags.push(tag)
     }
   }
-  return [...tags]
+  return tags
 }
 
 /** Infer priority from section heading */
@@ -103,8 +145,8 @@ function extractItems(content: string, filename: string): DocItem[] {
       continue
     }
 
-    // Checkbox items: - [ ] or - [x]
-    const checkboxMatch = line.match(/^[-*]\s+\[([ xX])\]\s+(.+)/)
+    // Checkbox items: - [ ] or - [x] (including indented)
+    const checkboxMatch = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+)/)
     if (checkboxMatch) {
       const done = checkboxMatch[1] !== ' '
       const text = checkboxMatch[2].replace(/\*\*/g, '').replace(/`/g, '').trim()
@@ -117,7 +159,7 @@ function extractItems(content: string, filename: string): DocItem[] {
         name,
         source,
         section: currentSection,
-        tags: [...inferTags(text, source), inferPriority(currentSection)],
+        tags: inferTags(text, source),
         done,
         priority: inferPriority(currentSection),
         line: i + 1,
@@ -126,11 +168,12 @@ function extractItems(content: string, filename: string): DocItem[] {
       continue
     }
 
-    // Gap items: "Gap N: ..." or "**Gap N: ...**"
-    const gapMatch = line.match(/\*?\*?Gap\s+(\d+):\s*(.+?)\*?\*?\s*[—-]/)
+    // Gap items: "Gap N: ..." or "**Gap N: ...**" or "N. Gap N: ..."
+    const gapMatch = line.match(/\*?\*?Gap\s+(\d+)[:.]\s*(.+?)(?:\*?\*?\s*[—-]|$)/)
     if (gapMatch) {
       const name = gapMatch[2].replace(/\*\*/g, '').trim()
-      const id = `${source}-gap-${gapMatch[1]}`
+      // Normalize gap IDs across docs so gap-1 from gaps.md and one-protocol-gaps.md merge
+      const id = `gap-${gapMatch[1]}`
 
       items.push({
         id,
@@ -254,3 +297,124 @@ export function renderTodo(
 
   return md
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOOP INTEGRATION — Docs as source of truth
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Verification status for a doc item */
+export interface VerifiedItem extends DocItem {
+  verified: boolean
+  target?: string      // inferred code file
+  evidence?: string    // what confirmed it
+}
+
+/** Map tag/keyword to likely code locations */
+const CODE_TARGETS: Record<string, string[]> = {
+  'engine':    ['src/engine/**/*.ts'],
+  'ui':        ['src/components/**/*.tsx', 'src/pages/**/*.astro'],
+  'typedb':    ['src/schema/**/*.tql', 'src/lib/typedb.ts'],
+  'commerce':  ['src/lib/x402.ts', 'src/pages/api/pay/**/*.ts'],
+  'agent':     ['agents/**/*.md', 'nanoclaw/**/*.ts'],
+  'infra':     ['gateway/**/*.ts', 'workers/**/*.ts', 'wrangler.toml'],
+  'build':     ['package.json', 'astro.config.mjs'],
+}
+
+/** Infer target code files from item tags */
+function inferTargets(item: DocItem): string[] {
+  const targets: string[] = []
+  for (const tag of item.tags) {
+    const patterns = CODE_TARGETS[tag]
+    if (patterns) {
+      for (const p of patterns) {
+        if (!targets.includes(p)) targets.push(p)
+      }
+    }
+  }
+  return targets
+}
+
+/** Check if an item appears to be implemented */
+export async function verify(item: DocItem): Promise<VerifiedItem> {
+  // Already marked done = verified
+  if (item.done) {
+    return { ...item, verified: true, evidence: 'marked-done' }
+  }
+
+  const targets = inferTargets(item)
+  if (!targets.length) {
+    return { ...item, verified: false }
+  }
+
+  // Search for keywords in target files
+  const keywords = item.name.toLowerCase().split(/\s+/).filter(w => w.length > 3)
+
+  for (const pattern of targets) {
+    try {
+      const files = await simpleGlob(pattern, process.cwd())
+      for (const file of files) {
+        try {
+          const content = await readFile(file, 'utf-8')
+          const lower = content.toLowerCase()
+          // Check if any keyword appears
+          const found = keywords.some(kw => lower.includes(kw))
+          if (found) {
+            return {
+              ...item,
+              verified: true,
+              target: file,
+              evidence: `keyword-match: ${keywords.find(kw => lower.includes(kw))}`,
+            }
+          }
+        } catch {
+          // File read error, skip
+        }
+      }
+    } catch {
+      // Glob error, skip pattern
+    }
+  }
+
+  return { ...item, verified: false }
+}
+
+/** Batch verify all items */
+export async function verifyAll(items: DocItem[]): Promise<VerifiedItem[]> {
+  return Promise.all(items.map(verify))
+}
+
+/** Convert unverified items to signals for the work queue */
+export function gapsToSignals(items: VerifiedItem[]): Signal[] {
+  return items
+    .filter(i => !i.verified && !i.done)
+    .map(i => ({
+      receiver: 'worker:implement',
+      data: {
+        id: i.id,
+        name: i.name,
+        source: i.source,
+        section: i.section,
+        tags: i.tags,
+        priority: i.priority,
+        targets: inferTargets(i),
+      }
+    }))
+}
+
+/** Source function for doc loop: returns unverified items */
+export const docSpecs = (docsDir: string) => async (): Promise<VerifiedItem[]> => {
+  const items = await scanDocs(docsDir)
+  const verified = await verifyAll(items)
+  return verified.filter(i => !i.verified && !i.done)
+}
+
+/** Mark function for doc loop: record verification outcome */
+export const docMark = (markFn: (edge: string, n?: number) => void, warnFn: (edge: string, n?: number) => void) =>
+  (item: VerifiedItem, outcome: { result?: unknown }) => {
+    const edge = `doc:${item.source}→${item.target || 'code'}`
+    if (outcome.result) {
+      markFn(edge)
+    } else {
+      warnFn(edge, 0.5)
+    }
+  }

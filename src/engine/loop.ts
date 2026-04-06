@@ -7,6 +7,7 @@
 
 import { readParsed, writeSilent } from '@/lib/typedb'
 import type { PersistentWorld } from './persist'
+// doc-scan and node:path imported dynamically to avoid Cloudflare bundling issues
 
 type Complete = (prompt: string) => Promise<string>
 
@@ -36,6 +37,7 @@ export type TickResult = {
   crystallized?: number
   hypotheses?: number
   frontiers?: number
+  docsSynced?: number
 }
 
 let cycle = 0
@@ -267,10 +269,30 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       }
     }
 
+    // L7: Scan docs/ → upsert new items as skills in TypeDB
+    let docsSynced = 0
+    try {
+      const { join } = await import('node:path')
+      const { scanDocs } = await import('./doc-scan')
+      const docsDir = join(process.cwd(), 'docs')
+      const docItems = await scanDocs(docsDir)
+      const openItems = docItems.filter(i => !i.done)
+      for (const item of openItems) {
+        const tags = [...new Set(item.tags)].map(t => `has tag "${t.replace(/"/g, "'")}"`)
+        const nameEsc = item.name.replace(/"/g, "'").slice(0, 200)
+        await writeSilent(`
+          insert $s isa skill, has skill-id "${item.id}", has name "${nameEsc}",
+            ${tags.join(', ')}, has price 0.0, has currency "SUI";
+        `)
+        docsSynced++
+      }
+    } catch { /* docs scan is best-effort */ }
+
     lastCrystallize = now
     result.crystallized = insights.length
     result.hypotheses = hypoCount
     result.frontiers = frontierCount
+    result.docsSynced = docsSynced
   }
 
   result.highways = net.highways(10)
