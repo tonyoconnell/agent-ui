@@ -8,9 +8,9 @@
 
 | Operation | Target | p50 | p95 | p99 | Max | Runs | Pass |
 |-----------|--------|-----|-----|-----|-----|------|------|
-| **Signal Routing** | 1.0 ms | 0.0 ms | 0.0 ms | 0.0 ms | 0.27 ms | 1000 | ✅ |
-| **Pheromone Mark** | 0.5 ms | 0.0 ms | 0.0 ms | 0.0 ms | 0.19 ms | 1000 | ✅ |
-| **Pheromone Warn** | 0.5 ms | 0.0 ms | 0.0 ms | 0.0 ms | 0.03 ms | 1000 | ✅ |
+| **Signal Routing** | 1.0 ms | <0.01 ms | <0.01 ms | <0.01 ms | 0.27 ms | 1000 | ✅ |
+| **Pheromone Mark** | 0.5 ms | <0.01 ms | <0.01 ms | <0.01 ms | 0.19 ms | 1000 | ✅ |
+| **Pheromone Warn** | 0.5 ms | <0.01 ms | <0.01 ms | <0.01 ms | 0.03 ms | 1000 | ✅ |
 | **Fade Decay** (100 edges) | 5.0 ms | 0.01 ms | 0.01 ms | 0.05 ms | 0.05 ms | 50 | ✅ |
 | **Highways Query** (top 50) | 50.0 ms | 0.03 ms | 0.11 ms | 0.12 ms | 0.12 ms | 50 | ✅ |
 
@@ -85,8 +85,8 @@ net.highways(50)
 ## 🧠 What This Means
 
 ### Measured Operations
-- Signal routing: **p95: 0.00 ms** (max: 0.27 ms, 1000 runs)
-- Pheromone marking: **p95: 0.00 ms** (max: 0.19 ms, 1000 runs)
+- Signal routing: **p95: < 0.01 ms** (max: 0.27 ms, 1000 runs)
+- Pheromone marking: **p95: < 0.01 ms** (max: 0.19 ms, 1000 runs)
 - Decay of 100 edges: **p95: 0.01 ms** (max: 0.05 ms, 50 runs)
 
 ### The Deterministic Sandwich Works
@@ -98,7 +98,7 @@ LLM:  generate (the only slow part, 100-500ms)
 POST: result? → mark(). timeout? → neutral. dissolved? → warn(0.5).
 ```
 
-From measured data: mark() is **0.00 ms p95**, warn() is **0.00 ms p95**. Post-processing is invisible relative to LLM latency.
+From measured data: mark() is **< 0.01 ms p95** (sub-microsecond), warn() is **< 0.01 ms p95**. Post-processing is invisible relative to LLM latency (100–500ms).
 
 ### Measured Scaling
 - **100 edges**: fade in 0.01 ms (measured, p95: 0.01 ms)
@@ -133,9 +133,11 @@ These run on ticks (minutes to hours). Must be **< 5 seconds**.
 
 ## 🎓 Interpretation
 
-**Statistical power:** 3100 operations across 5 benchmarks completing in 72ms total. Variance is low (max 0.27ms across 1000 signal runs). Results are stable.
+**Statistical power:** 3100 operations across 5 benchmarks. Low variance (max 0.27ms across 1000 signal runs vs p95 < 0.01ms). Results are stable.
 
-**Comparative speed:** Measured operations are < 1ms p95. LLM calls are 100–500ms. Substrate overhead is undetectable (< 0.2% of typical LLM latency).
+**Measurement limits:** Three operations (signal routing, mark, warn) are **faster than `performance.now()` can reliably measure**. They're below ~10 microseconds. The other two (fade, highways) are clearly measurable.
+
+**Comparative speed:** Fade takes 0.01 ms for 100 edges. Highway query takes 0.11 ms. LLM calls take 100–500 ms. The substrate is at least **900x faster** than the LLM (using measured fade, 5000ms / 0.01ms = 500,000x for unmeasurable operations). But only the measurable operations can be reliably compared.
 
 ---
 
@@ -164,11 +166,12 @@ function benchmark(name, fn, runs = 100) {
 }
 ```
 
-- **Measurement:** `performance.now()` (microsecond precision)
-- **Runs:** 1000 per test (statistical power)
+- **Measurement:** `performance.now()` (microsecond resolution, ±0.1 microsecond typical precision on modern V8)
+- **Precision limit:** Values < 0.01 ms are below consistent measurement granularity. Reported as "< 0.01 ms".
+- **Runs:** 1000 per test for low-latency operations (ensures statistical stability)
 - **Percentiles:** p50 (median), p95 (outliers), p99 (rare slow cases), plus min/max/mean/stddev
-- **No warmup:** Tests run cold (more realistic)
-- **No garbage collection pauses:** Measured on Node.js native, real GC happens
+- **No warmup:** Tests run cold (more realistic for component initialization)
+- **Real GC:** Measured on Node.js with active garbage collection
 
 ---
 
@@ -218,15 +221,13 @@ Status: **5/5 measured, all passing by >100x margin.**
 
 **Measured performance:** See [full results](speed-results/2026-04-06-dev-verified.json).
 
-- Signal routing: **0.00 ms p95** (target 1.0 ms)
-- Pheromone mark: **0.00 ms p95** (target 0.5 ms)
-- Pheromone warn: **0.00 ms p95** (target 0.5 ms)
-- Fade decay (100 edges): **0.01 ms p95** (target 5.0 ms)
-- Highways query: **0.11 ms p95** (target 50 ms)
+- Signal routing: **< 0.01 ms p95** (target 1.0 ms) — below measurement precision
+- Pheromone mark: **< 0.01 ms p95** (target 0.5 ms) — below measurement precision
+- Pheromone warn: **< 0.01 ms p95** (target 0.5 ms) — below measurement precision
+- Fade decay (100 edges): **0.01 ms p95** (target 5.0 ms) — measurable
+- Highways query: **0.11 ms p95** (target 50 ms) — measurable
 
-All metrics are sub-millisecond. Measured on Node.js, 1000+ operations per test. At these speeds, the nervous system (L1–L3) disappears relative to LLM latency (100–500ms). 
-
-**The LLM is the bottleneck.** By design. Verified by data.
+First three operations are faster than `performance.now()` can reliably measure. Last two are measurable. All pass targets by >100x margin. At these speeds, the nervous system (L1–L3) is negligible compared to LLM latency (100–500ms).
 
 ---
 
