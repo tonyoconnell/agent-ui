@@ -22,21 +22,18 @@
 //   fade     — decay all weights over time
 //   sense    — read weight on path
 //
-// Revenue = pheromone. Every payment strengthens a path.
+// Revenue = weight. Every payment strengthens a path.
 //
 // =============================================================================
 
 module one::substrate {
-    use sui::object::{Self, UID, ID};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
     use sui::event;
     use sui::vec_map::{Self, VecMap};
     use sui::clock::{Self, Clock};
     use sui::coin::{Self, Coin};
     use sui::balance::{Self, Balance};
     use sui::sui::SUI;
-    use std::string::{Self, String};
+    use std::string::String;
 
     // =========================================================================
     // ERRORS
@@ -95,14 +92,14 @@ module one::substrate {
 
     /// Path — a weighted connection between units.
     /// Shared object: both source and target modify.
-    /// TQL: relation path, owns strength, owns alarm ...
+    /// TQL: relation path, owns strength, owns resistance ...
     public struct Path has key {
         id: UID,
         source: ID,                 // source unit
         target: ID,                 // target unit
         path_type: String,          // "interaction", "payment", "holding"
-        strength: u64,              // success pheromone (mark)
-        alarm: u64,                 // failure pheromone (warn)
+        strength: u64,              // positive weight (mark)
+        resistance: u64,                 // negative weight (warn)
         hits: u64,                  // successful traversals
         misses: u64,                // failed traversals
         revenue: u64,               // total SUI flowed through this path (MIST)
@@ -148,7 +145,7 @@ module one::substrate {
     public struct SignalSent has copy, drop { signal_id: ID, sender: ID, receiver: ID, task: String, amount: u64 }
     public struct SignalConsumed has copy, drop { signal_id: ID, receiver: ID, amount: u64 }
     public struct Marked has copy, drop { path_id: ID, source: ID, target: ID, strength: u64 }
-    public struct Warned has copy, drop { path_id: ID, source: ID, target: ID, alarm: u64 }
+    public struct Warned has copy, drop { path_id: ID, source: ID, target: ID, resistance: u64 }
     public struct HighwayFormed has copy, drop { highway_id: ID, source: ID, target: ID, strength: u64, revenue: u64 }
     public struct UnitDissolved has copy, drop { unit_id: ID, balance_returned: u64 }
     public struct ColonySplit has copy, drop { parent: ID, child_a: ID, child_b: ID }
@@ -244,7 +241,7 @@ module one::substrate {
     }
 
     // =========================================================================
-    // PAY — Agent pays agent. Revenue = pheromone.
+    // PAY — Agent pays agent. Revenue = weight.
     // =========================================================================
 
     public fun pay(
@@ -259,7 +256,7 @@ module one::substrate {
 
         let fee_amount = (amount * protocol.fee_bps) / 10000;
 
-        let payment = balance::split(&mut from.balance, amount);
+        let mut payment = balance::split(&mut from.balance, amount);
 
         if (fee_amount > 0) {
             let fee = balance::split(&mut payment, fee_amount);
@@ -269,7 +266,7 @@ module one::substrate {
 
         balance::join(&mut to.balance, payment);
 
-        // Payment marks the path — revenue IS pheromone
+        // Payment marks the path — revenue IS weight
         path.revenue = path.revenue + amount;
         path.strength = path.strength + 1;
         path.hits = path.hits + 1;
@@ -406,7 +403,7 @@ module one::substrate {
         balance::join(&mut poster.balance, bounty);
 
         // Failure: warn path
-        path.alarm = path.alarm + 1;
+        path.resistance = path.resistance + 1;
         path.misses = path.misses + 1;
 
         event::emit(EscrowCancelled {
@@ -505,6 +502,8 @@ module one::substrate {
                 target: path.target,
                 strength: path.strength,
             });
+        } else {
+            balance::destroy_zero(payment);
         };
 
         unit.activity = unit.activity + 1;
@@ -519,7 +518,7 @@ module one::substrate {
     }
 
     // =========================================================================
-    // MARK / WARN — The two pheromone operations
+    // MARK / WARN — The two weight operations
     // =========================================================================
 
     /// Create a path between two units.
@@ -536,7 +535,7 @@ module one::substrate {
             target,
             path_type,
             strength: 0,
-            alarm: 0,
+            resistance: 0,
             hits: 0,
             misses: 0,
             revenue: 0,
@@ -544,7 +543,7 @@ module one::substrate {
         transfer::share_object(path);
     }
 
-    /// Mark a path. Success pheromone. Strength increases.
+    /// Mark a path. Positive weight. Strength increases.
     public fun mark(path: &mut Path, amount: u64) {
         path.strength = path.strength + amount;
         path.hits = path.hits + 1;
@@ -556,15 +555,15 @@ module one::substrate {
         });
     }
 
-    /// Warn a path. Failure pheromone. Alarm increases.
+    /// Warn a path. Negative weight. Resistance increases.
     public fun warn(path: &mut Path, amount: u64) {
-        path.alarm = path.alarm + amount;
+        path.resistance = path.resistance + amount;
         path.misses = path.misses + 1;
         event::emit(Warned {
             path_id: object::id(path),
             source: path.source,
             target: path.target,
-            alarm: path.alarm,
+            resistance: path.resistance,
         });
     }
 
@@ -574,7 +573,7 @@ module one::substrate {
 
     public fun fade(path: &mut Path, rate: u64) {
         path.strength = path.strength * rate / 100;
-        path.alarm = path.alarm * rate / 100;
+        path.resistance = path.resistance * rate / 100;
     }
 
     // =========================================================================
@@ -656,7 +655,7 @@ module one::substrate {
     // =========================================================================
 
     public fun path_strength(path: &Path): u64 { path.strength }
-    public fun path_alarm(path: &Path): u64 { path.alarm }
+    public fun path_resistance(path: &Path): u64 { path.resistance }
     public fun path_hits(path: &Path): u64 { path.hits }
     public fun path_misses(path: &Path): u64 { path.misses }
     public fun path_revenue(path: &Path): u64 { path.revenue }
@@ -666,7 +665,27 @@ module one::substrate {
     public fun protocol_treasury(protocol: &Protocol): u64 { balance::value(&protocol.treasury) }
     public fun protocol_fee_bps(protocol: &Protocol): u64 { protocol.fee_bps }
     public fun is_highway(path: &Path): bool { path.strength >= 50 }
-    public fun is_toxic(path: &Path): bool { path.alarm > path.strength * 3 }
+    public fun is_toxic(path: &Path): bool { path.resistance > path.strength * 3 }
     public fun escrow_bounty(escrow: &Escrow): u64 { balance::value(&escrow.bounty) }
     public fun escrow_deadline(escrow: &Escrow): u64 { escrow.deadline }
+
+    // =========================================================================
+    // TEST HELPERS
+    // =========================================================================
+
+    #[test_only]
+    public fun test_make_protocol(ctx: &mut TxContext): Protocol {
+        Protocol {
+            id: object::new(ctx),
+            treasury: balance::zero(),
+            fee_bps: 50,
+        }
+    }
+
+    #[test_only]
+    public fun test_destroy_protocol(protocol: Protocol) {
+        let Protocol { id, treasury, fee_bps: _ } = protocol;
+        balance::destroy_for_testing(treasury);
+        object::delete(id);
+    }
 }
