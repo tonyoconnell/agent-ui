@@ -64,6 +64,7 @@ entity unit,
     owns name,
     owns unit-kind,               # "human", "agent", "llm", "system"
     owns wallet,                  # Sui address
+    owns sui-unit-id,             # Sui Unit object ID (0x...)
     owns status,                  # "active" | "proven" | "at-risk" (inferred)
     owns balance,
     owns reputation,
@@ -116,6 +117,7 @@ relation path,
     owns revenue,                 # sum of x402 payments on this path
     owns last-used,
     owns fade-rate,               # per-path decay
+    owns sui-path-id,             # Sui Path object ID (0x...)
     owns peak-strength,           # highest strength ever reached
     owns path-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
 
@@ -218,6 +220,8 @@ attribute contribution-type, value string;
 attribute frontier-type, value string;
 attribute objective-type, value string;
 attribute wallet, value string;
+attribute sui-unit-id, value string;
+attribute sui-path-id, value string;
 attribute currency, value string;
 attribute model, value string;
 attribute system-prompt, value string;
