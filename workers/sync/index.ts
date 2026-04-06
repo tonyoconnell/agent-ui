@@ -1,7 +1,11 @@
 /**
- * Sync Worker — TypeDB → KV
- * Scheduled: every 5 minutes (free tier) or every 5 seconds (paid)
- * Fetches snapshots from export API, writes to KV as JSON
+ * Sync Worker — TypeDB ↔ KV ↔ Sui
+ * Scheduled: every 5 minutes
+ *
+ * Three jobs:
+ *   1. TypeDB → KV     Export snapshots (paths, units, skills, highways, toxic)
+ *   2. Sui → TypeDB    Absorb on-chain events (Marked, Warned, UnitCreated, etc.)
+ *   3. KV cursor        Track Sui event cursor between runs
  */
 
 interface Env {
@@ -12,6 +16,8 @@ interface Env {
 export default {
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     const base = env.APP_URL || 'https://one.ie'
+
+    // ── Job 1: TypeDB → KV ──────────────────────────────────────────────
 
     const endpoints = ['paths', 'units', 'skills', 'highways', 'toxic'] as const
 
@@ -33,13 +39,34 @@ export default {
       .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
       .map((r, i) => ({ key: endpoints[i], error: r.reason?.message }))
 
+    // ── Job 2: Sui → TypeDB ─────────────────────────────────────────────
+
+    let absorbed = 0
+    try {
+      const cursor = await env.KV.get('sui_event_cursor')
+      const res = await fetch(`${base}/api/absorb`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cursor }),
+      })
+      if (res.ok) {
+        const data = await res.json() as { count: number; cursor: string }
+        absorbed = data.count
+        if (data.cursor) {
+          await env.KV.put('sui_event_cursor', data.cursor)
+        }
+      }
+    } catch (e) {
+      console.error('Sui absorb error:', e)
+    }
+
     await env.KV.put('synced_at', Date.now().toString())
 
     if (failed.length > 0) {
       console.error('Sync failures:', JSON.stringify(failed))
     }
 
-    console.log('Sync complete:', JSON.stringify(synced))
+    console.log('Sync complete:', JSON.stringify({ synced, absorbed }))
   },
 
   // Also handle manual trigger via HTTP
