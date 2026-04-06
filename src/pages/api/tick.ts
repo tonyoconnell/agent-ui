@@ -30,6 +30,7 @@ export const GET: APIRoute = async ({ url }) => {
   const apiKey = import.meta.env.ANTHROPIC_API_KEY || ''
   const complete = anthropic(apiKey)
   const w = world()
+  await w.load().catch(() => {})  // hydrate pheromone from TypeDB
   const result = await tick(w, complete)
 
   return new Response(JSON.stringify({

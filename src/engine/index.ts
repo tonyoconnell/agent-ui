@@ -25,6 +25,13 @@ export {
 export type { AgentSpec, SkillSpec, WorldSpec } from "./agent-md"
 
 // DocItem, VerifiedItem — import directly from "./doc-scan" (uses Node.js APIs)
+
+// Task management — parse, sync, extract (uses Node.js APIs)
+export { parseTodoFile, computePriority, effectivePriority, scanTodos, EFFORT_MODEL } from "./task-parse"
+export type { Task, Value, Phase, Effort } from "./task-parse"
+export { syncTasks, markTaskDone, loadTasks } from "./task-sync"
+export { extractTasks, extractAndWrite, extractAll } from "./task-extract"
+
 export { agentverse } from "./agentverse"
 export { boot } from "./boot"
 

@@ -44,6 +44,15 @@ export const POST: APIRoute = async ({ params, request }) => {
                 has sample-count ($sc + 1);
   `)
 
+  // Mark task as done if success (task-id matches skill-id)
+  if (!failed) {
+    await writeSilent(`
+      match $t isa task, has task-id "${id}", has done $d, has task-status $st;
+      delete $d of $t; delete $st of $t;
+      insert $t has done true, has task-status "done";
+    `)
+  }
+
   return new Response(JSON.stringify({ ok: true, unit: id, outcome: failed ? 'failed' : 'success' }), {
     headers: { 'Content-Type': 'application/json' },
   })

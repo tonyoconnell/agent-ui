@@ -26,12 +26,12 @@ async function getDirectToken(): Promise<string> {
     return cachedToken.token
   }
 
-  // Get credentials from runtime env (Worker context only, not build time)
-  const username = (globalThis as any).TYPEDB_USERNAME || 'admin'
-  const password = (globalThis as any).TYPEDB_PASSWORD || ''
+  // Credentials: import.meta.env (Astro SSR) → globalThis (CF Worker) → process.env (Node)
+  const username = import.meta.env.TYPEDB_USERNAME || (globalThis as any).TYPEDB_USERNAME || 'admin'
+  const password = import.meta.env.TYPEDB_PASSWORD || (globalThis as any).TYPEDB_PASSWORD || ''
 
   if (!password) {
-    throw new Error('TYPEDB_PASSWORD not configured. Set via wrangler secret put TYPEDB_PASSWORD')
+    throw new Error('TYPEDB_PASSWORD not configured. Set in .env, wrangler secret, or TYPEDB_PASSWORD env var')
   }
 
   const res = await fetch(`${TYPEDB_URL}/v1/signin`, {

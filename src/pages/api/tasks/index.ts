@@ -1,82 +1,144 @@
 /**
- * /api/tasks — Runtime task visibility
+ * /api/tasks — Task visibility with priority formula + pheromone
  *
- * GET  → List tasks (skills + pheromone). Filter with ?tag=build&tag=P0
- * POST → Create a task (skill + tags + optional signal)
+ * GET  → List tasks with effective priority. Filter with ?tag=build&tag=P0&sensitivity=0.7
+ * POST → Create a task (with value/phase/persona/blocks + auto-computed priority)
  *
- * Tasks are skills on units. Tags classify. Pheromone ranks.
+ * Tasks are TypeDB entities with a priority formula.
+ * Pheromone adjusts effective priority at runtime.
  */
 import type { APIRoute } from 'astro'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
+import { computePriority, effectivePriority, type Value, type Phase } from '@/engine/task-parse'
 
 type Row = Record<string, unknown>
 
 export const GET: APIRoute = async ({ url }) => {
   const filterTags = url.searchParams.getAll('tag')
+  const sensitivity = parseFloat(url.searchParams.get('sensitivity') || '0.7')
+  const phase = url.searchParams.get('phase')
+  const value = url.searchParams.get('value')
 
-  // Build tag filter clause
-  const tagMatch = filterTags.map(t => `$sk has tag "${t}";`).join('\n      ')
+  // Build filter clauses
+  const tagMatch = filterTags.map(t => `$t has tag "${t}";`).join('\n      ')
+  const phaseMatch = phase ? `$t has task-phase "${phase}";` : ''
+  const valueMatch = value ? `$t has task-value "${value}";` : ''
 
-  const [capabilities, edges] = await Promise.all([
-    readParsed(`
-      match (provider: $u, offered: $sk) isa capability, has price $p;
-      $u has uid $uid, has unit-kind $kind, has success-rate $sr;
-      $sk has skill-id $sid, has name $name;
-      ${tagMatch}
-      select $uid, $sid, $name, $p, $kind, $sr;
-    `).catch(() => []),
-    readParsed(`
-      match $e (source: $from, target: $to) isa path,
-        has strength $s, has resistance $rs, has traversals $t;
-      $from has uid $fid; $to has uid $tid;
-      select $fid, $tid, $s, $rs, $t;
-    `).catch(() => []),
-  ])
-
-  // Fetch tags per skill (separate query since multi-valued)
-  const skillTags: Record<string, string[]> = {}
-  const tagRows = await readParsed(`
-    match $sk isa skill, has skill-id $sid, has tag $tag;
-    select $sid, $tag;
+  // Query tasks from TypeDB
+  const tasks = await readParsed(`
+    match $t isa task,
+      has task-id $id, has name $name, has done $done,
+      has task-value $val, has task-phase $ph, has task-persona $persona,
+      has priority-score $priority, has priority-formula $formula,
+      has source-file $source, has task-status $status;
+    ${tagMatch}
+    ${phaseMatch}
+    ${valueMatch}
+    select $id, $name, $done, $val, $ph, $persona, $priority, $formula, $source, $status;
   `).catch(() => []) as Row[]
+
+  // Get tags per task
+  const tagRows = await readParsed(`
+    match $t isa task, has task-id $id, has tag $tag;
+    select $id, $tag;
+  `).catch(() => []) as Row[]
+
+  const tagMap: Record<string, string[]> = {}
   for (const r of tagRows) {
-    const sid = r.sid as string
-    if (!skillTags[sid]) skillTags[sid] = []
-    skillTags[sid].push(r.tag as string)
+    const id = r.id as string
+    if (!tagMap[id]) tagMap[id] = []
+    tagMap[id].push(r.tag as string)
   }
 
-  const tasks = (capabilities as Row[]).map(cap => {
-    const unitId = cap.uid as string
-    const skillId = cap.sid as string
+  // Get blocks per task
+  const blockRows = await readParsed(`
+    match (blocker: $a, blocked: $b) isa blocks;
+    $a has task-id $aid; $b has task-id $bid;
+    select $aid, $bid;
+  `).catch(() => []) as Row[]
 
-    // Pheromone: inbound edges to this unit
-    const inbound = (edges as Row[]).filter(e => e.tid === unitId)
-    const strength = inbound.reduce((s, e) => s + (e.s as number), 0)
-    const resistance = inbound.reduce((s, e) => s + (e.rs as number), 0)
-    const traversals = inbound.reduce((s, e) => s + (e.t as number), 0)
+  const blockMap: Record<string, string[]> = {}
+  const blockedByMap: Record<string, string[]> = {}
+  for (const r of blockRows) {
+    const aid = r.aid as string
+    const bid = r.bid as string
+    if (!blockMap[aid]) blockMap[aid] = []
+    blockMap[aid].push(bid)
+    if (!blockedByMap[bid]) blockedByMap[bid] = []
+    blockedByMap[bid].push(aid)
+  }
 
-    const repelled = resistance >= 30 && resistance > strength
-    const attractive = strength >= 50
-    const exploratory = inbound.length === 0
+  // Get pheromone from paths (skill-id → capability → unit → inbound paths)
+  const edges = await readParsed(`
+    match $e (source: $from, target: $to) isa path,
+      has strength $s, has resistance $rs, has traversals $tr;
+    $to has uid $tid;
+    select $tid, $s, $rs, $tr;
+  `).catch(() => []) as Row[]
+
+  // Aggregate pheromone per unit
+  const pheromone: Record<string, { strength: number; resistance: number; traversals: number }> = {}
+  for (const e of edges) {
+    const tid = e.tid as string
+    if (!pheromone[tid]) pheromone[tid] = { strength: 0, resistance: 0, traversals: 0 }
+    pheromone[tid].strength += e.s as number
+    pheromone[tid].resistance += e.rs as number
+    pheromone[tid].traversals += e.tr as number
+  }
+
+  // Map task-id → unit-id via capability
+  const capRows = await readParsed(`
+    match (provider: $u, offered: $sk) isa capability;
+    $u has uid $uid; $sk has skill-id $sid;
+    select $uid, $sid;
+  `).catch(() => []) as Row[]
+
+  const taskUnit: Record<string, string> = {}
+  for (const r of capRows) {
+    taskUnit[r.sid as string] = r.uid as string
+  }
+
+  // Build response
+  const result = tasks.map(t => {
+    const id = t.id as string
+    const unitId = taskUnit[id] || 'builder'
+    const ph = pheromone[unitId] || { strength: 0, resistance: 0, traversals: 0 }
+    const priority = t.priority as number
+    const effective = effectivePriority(priority, ph.strength, ph.resistance, sensitivity)
+
+    // Categories from pheromone
+    const repelled = ph.resistance >= 30 && ph.resistance > ph.strength
+    const attractive = ph.strength >= 50
+    const exploratory = ph.strength === 0 && ph.resistance === 0
     const category = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
 
     return {
-      receiver: `${unitId}:${skillId}`,
-      unit: unitId,
-      skill: skillId,
-      name: cap.name as string,
-      tags: skillTags[skillId] || [],
-      price: cap.p as number,
+      id,
+      name: t.name as string,
+      done: t.done as boolean,
+      value: t.val as string,
+      phase: t.ph as string,
+      persona: t.persona as string,
+      priorityScore: priority,
+      effectivePriority: Math.round(effective * 10) / 10,
+      formula: t.formula as string,
+      tags: tagMap[id] || [],
+      blocks: blockMap[id] || [],
+      blockedBy: blockedByMap[id] || [],
       category,
-      strength,
-      resistance,
-      traversals,
-      unitKind: cap.kind,
-      successRate: cap.sr,
+      strength: ph.strength,
+      resistance: ph.resistance,
+      traversals: ph.traversals,
+      unit: unitId,
+      source: t.source as string,
+      status: t.status as string,
     }
   })
 
-  return new Response(JSON.stringify({ tasks }), {
+  // Sort by effective priority descending
+  result.sort((a, b) => b.effectivePriority - a.effectivePriority)
+
+  return new Response(JSON.stringify({ tasks: result }), {
     headers: { 'Content-Type': 'application/json' },
   })
 }
@@ -86,6 +148,11 @@ export const POST: APIRoute = async ({ request }) => {
     id: string
     name: string
     tags?: string[]
+    value?: Value
+    phase?: Phase
+    persona?: string
+    blocks?: string[]
+    exit?: string
     price?: number
     unit?: string
   }
@@ -95,23 +162,63 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const tags = body.tags || []
+  const value = body.value || 'medium'
+  const phase = body.phase || 'C4'
+  const persona = body.persona || 'agent'
+  const blocks = body.blocks || []
   const price = body.price || 0
   const unitId = body.unit || 'builder'
 
-  // Create skill with tags
+  const { score, formula } = computePriority(value, phase, persona, blocks.length)
+
   const tagInserts = tags.map(t => `has tag "${t}"`).join(', ')
+  const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+
+  // Create task entity
   await write(`
-    insert $s isa skill, has skill-id "${body.id}", has name "${body.name}",
-      ${tagInserts ? tagInserts + ',' : ''} has price ${price}, has currency "SUI";
+    insert $t isa task,
+      has task-id "${esc(body.id)}",
+      has name "${esc(body.name)}",
+      has task-status "open",
+      has task-value "${value}",
+      has task-phase "${phase}",
+      has task-persona "${persona}",
+      has priority-score ${score.toFixed(1)},
+      has priority-formula "${esc(formula)}",
+      has source-file "api",
+      ${body.exit ? `has exit-condition "${esc(body.exit)}",` : ''}
+      has done false,
+      ${tagInserts ? tagInserts + ',' : ''}
+      has created ${new Date().toISOString().replace('Z', '')};
   `).catch(() => {})
+
+  // Create matching skill for capability routing
+  await writeSilent(`
+    insert $s isa skill, has skill-id "${esc(body.id)}", has name "${esc(body.name)}",
+      ${tagInserts ? tagInserts + ',' : ''} has price ${price}, has currency "SUI";
+  `)
 
   // Link to unit via capability
   await writeSilent(`
-    match $u isa unit, has uid "${unitId}"; $s isa skill, has skill-id "${body.id}";
+    match $u isa unit, has uid "${unitId}"; $s isa skill, has skill-id "${esc(body.id)}";
     insert (provider: $u, offered: $s) isa capability, has price ${price};
   `)
 
-  return new Response(JSON.stringify({ ok: true, skill: body.id, tags, unit: unitId }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+  // Insert blocks relations
+  for (const blockedId of blocks) {
+    await writeSilent(`
+      match $a isa task, has task-id "${esc(body.id)}";
+            $b isa task, has task-id "${esc(blockedId)}";
+      insert (blocker: $a, blocked: $b) isa blocks;
+    `)
+  }
+
+  return new Response(JSON.stringify({
+    ok: true,
+    task: body.id,
+    priorityScore: score,
+    formula,
+    tags,
+    unit: unitId,
+  }), { headers: { 'Content-Type': 'application/json' } })
 }

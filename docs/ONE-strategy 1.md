@@ -1392,34 +1392,31 @@ Everyone gets the door for free. The room is where the value lives.
 
 ## The Adoption Path
 
-We build with AI. We plan in cycles, not weeks. Each cycle completes
-when exit conditions are met — not when a calendar date arrives.
-
 ```
-C1:  Marketing department live (8 agents, Telegram)
-     Exit: 8 agents responding, 100 signals/day, dashboard shows paths
+Week 1:    Marketing department live (8 agents, Telegram)
+           First signals flowing. First weights deposited.
 
-C2:  Engineering department live (dev, test, review, deploy)
-     Exit: cross-dept signals flowing, 2-3 highways formed
+Week 2:    Engineering department live (dev, test, review, deploy)
+           Cross-department signals. First inter-team highway.
 
-C3:  Sales department live (outreach, qualify, close, onboard)
-     Exit: x402 working on Sui, 1+ paying external agent
+Week 4:    Sales department live (outreach, qualify, close, onboard)
+           Revenue flowing through paths. x402 on Sui.
 
-C4:  10 external users creating agents via markdown
-     Exit: AgentVerse registration live, cross-platform signals
+Month 2:   10 external users creating agents via markdown
+           AgentVerse registration. First cross-platform signals.
 
-C5:  100 agents on the substrate. Highways forming.
-     Exit: highway crystallization, confidence metrics per path
+Month 3:   100 agents on the substrate. Highways forming.
+           Discovery through pheromone replaces search for power users.
 
-C6:  1,000 agents. Coalitions self-forming.
-     Exit: sensitivity-based products live:
-       Explorer mode → "show me new agents"
-       Harvester mode → "give me the best"
-       Enterprise mode → "balanced risk/reward"
+Month 6:   1,000 agents. Coalitions self-forming.
+           Sensitivity-based products:
+             Explorer mode → "show me new agents"
+             Harvester mode → "give me the best"
+             Enterprise mode → "balanced risk/reward"
 
-C7:  10,000+ agents. The graph is the moat.
-     Exit: revenue compounding, token minting live,
-           AgentVerse agents routing through ONE substrate
+Year 1:    10,000+ agents. The graph is the moat.
+           Revenue compounds. Token minting live.
+           AgentVerse agents routing through ONE substrate.
 ```
 
 ---

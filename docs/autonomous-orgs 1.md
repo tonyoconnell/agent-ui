@@ -1,4 +1,4 @@
-# AUTONOMOUS ORG — ONE-Strategy as Executable Code
+# Strategy as Executable Code
 
 **ONE-strategy.md becomes a living TODO. TypeDB + loop.md = org that builds itself.**
 
@@ -8,39 +8,44 @@
 
 ### Adoption Roadmap → Task Hierarchy
 
-ONE-strategy.md (lines 1395-1420) defines the timeline. We encode it as **task graph**:
+We build with AI. We don't plan in weeks — we plan in **cycles**. Each cycle
+completes when its exit conditions are met, not when a calendar date arrives.
+The substrate's tick counter IS the cycle. ONE-strategy.md defines the sequence:
 
 ```
-TIMELINE          PHASE GROUP           CRITICAL TASKS                    REVENUE UNLOCK
-────────────────────────────────────────────────────────────────────────────────────
-Week 1            phase:foundation      marketing-dept-live               First signals
-                                        → agent deployment
-                                        → telegram wiring
+CYCLE   PHASE GROUP           EXIT CONDITIONS                          REVENUE UNLOCK
+──────────────────────────────────────────────────────────────────────────────────────
+C1      cycle:foundation      8 agents live, 100 signals/day,          First signals
+                              dashboard shows paths
+                              → agent deployment
+                              → telegram wiring
 
-Week 2            phase:collab          engineering-dept-live             Inter-org routing
-                                        → cross-dept signals
-                                        → highway detection
+C2      cycle:collab          cross-dept signals flowing,              Inter-org routing
+                              2-3 highways formed
+                              → cross-dept signals
+                              → highway detection
 
-Week 4            phase:commerce        sales-dept-live                   x402 on Sui active
-                                        → revenue routing
-                                        → payment settlement
+C3      cycle:commerce        x402 working, 1+ paying external agent   x402 on Sui active
+                              → revenue routing
+                              → payment settlement
 
-Month 2           phase:expansion       external-agents-markdown          Network effects
-                                        → agentverse-integration          10+ external users
-                                        → cross-platform discovery
+C4      cycle:expansion       10+ external users, AgentVerse live      Network effects
+                              → agentverse-integration
+                              → cross-platform discovery
 
-Month 3           phase:analytics       highway-dashboard-live            Data moat starts
-                                        → confidence metrics
-                                        → bottleneck analysis
+C5      cycle:analytics       highways crystallized, confidence         Data moat starts
+                              metrics per path, bottleneck detection
+                              → confidence metrics
+                              → bottleneck analysis
 
-Month 6           phase:products        sensitivity-modes-live            Differentiated products
-                                        → explorer mode
-                                        → harvester mode
-                                        → enterprise mode
+C6      cycle:products        sensitivity modes live                    Differentiated products
+                              → explorer mode
+                              → harvester mode
+                              → enterprise mode
 
-Year 1            phase:vc              token-minting-live                Equity equivalent
-                                        → highway crystallization
-                                        → self-forming coalitions
+C7      cycle:scale           10,000+ agents, self-forming coalitions  Equity equivalent
+                              → highway crystallization
+                              → token minting
 ```
 
 ### Mapping to 7 Personas + All 6 Metaphor Skins
@@ -70,7 +75,7 @@ Agent Primitive Signal/Node      signal:emit          Handlers, signals, chains 
 
 ---
 
-## Part 2: Task Graph with Initial Pheromone
+## Part 2: Task Graph with Initial Weights
 
 Each task has an initial `priority` (0-100) based on:
 - **value** (critical > high > medium)
@@ -86,7 +91,7 @@ entity task,
   owns task-id @key,
   owns name,
   owns description,
-  owns phase,               # "week-1", "month-2", etc
+  owns phase,               # "cycle:C1", "cycle:C2", etc
   owns value,               # "critical" | "high" | "medium"
   owns weapon,              # "speed" | "language" | "dictionary"
   owns persona,             # "ceo" | "dev" | "investor" | "gamer" | "kid" | "freelancer" | "agent"

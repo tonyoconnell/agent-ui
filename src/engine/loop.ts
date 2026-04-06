@@ -32,6 +32,7 @@ export type TickResult = {
   selected: string | null
   success: boolean | null
   skipped?: boolean
+  task?: { id: string; name: string; priority: number }
   highways: { path: string; strength: number }[]
   evolved?: number
   crystallized?: number
@@ -88,6 +89,52 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         net.warn(edge, 1)
         previousTarget = null
         chainDepth = 0
+        result.success = false
+      }
+    }
+  }
+
+  // L1b: TASK ORCHESTRATION — pick highest-priority open task
+  // Runs when pheromone routing found nothing or failed (dissolved/no result)
+  if (!result.selected || result.success === false) {
+    const topTasks = await readParsed(`
+      match $t isa task, has task-id $id, has name $name, has done false,
+        has priority-score $p, has task-status "open";
+      select $id, $name, $p;
+      sort $p desc; limit 1;
+    `).catch(() => [])
+
+    if (topTasks.length > 0) {
+      const taskId = topTasks[0].id as string
+      const taskName = topTasks[0].name as string
+      const taskPriority = topTasks[0].p as number
+      result.task = { id: taskId, name: taskName, priority: taskPriority }
+      result.selected = taskId
+
+      // Route as signal: enqueue for the builder unit
+      const taskSignal = { receiver: `builder:${taskId}`, data: { taskId, taskName, taskPriority } }
+      const edge = `loop→builder:${taskId}`
+
+      // Try to execute via ask (if builder has a handler)
+      const outcome = await net.ask(taskSignal, 'loop', 5000)
+
+      if (outcome.result !== undefined) {
+        chainDepth++
+        net.mark(edge, Math.min(chainDepth, CHAIN_CAP))
+        previousTarget = 'builder'
+        result.success = true
+        // Mark task done in TypeDB
+        writeSilent(`
+          match $t isa task, has task-id "${taskId}", has done $d, has task-status $st;
+          delete $d of $t; delete $st of $t;
+          insert $t has done true, has task-status "done";
+        `)
+      } else if (outcome.dissolved) {
+        // No handler — task is queued for external execution (CLI /work loop)
+        net.enqueue(taskSignal)
+        result.success = null
+      } else {
+        net.warn(edge, 0.5)
         result.success = false
       }
     }
@@ -269,7 +316,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       }
     }
 
-    // L7: Scan docs/ → upsert new items as skills in TypeDB
+    // L7: Scan docs/ → upsert skills + capabilities in TypeDB
+    // Skills without capabilities are orphaned — must link to a unit
     let docsSynced = 0
     try {
       const { join } = await import('node:path')
@@ -277,13 +325,31 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       const docsDir = join(process.cwd(), 'docs')
       const docItems = await scanDocs(docsDir)
       const openItems = docItems.filter(i => !i.done)
+
+      // Ensure builder unit exists for capability relations
+      await writeSilent(`
+        insert $u isa unit, has uid "builder", has name "Builder",
+          has model "claude-sonnet-4-20250514", has system-prompt "Task executor",
+          has generation 1, has success-rate 0.8, has sample-count 0, has activity-score 0;
+      `).catch(() => {}) // Ignore if already exists
+
       for (const item of openItems) {
         const tags = [...new Set(item.tags)].map(t => `has tag "${t.replace(/"/g, "'")}"`)
         const nameEsc = item.name.replace(/"/g, "'").slice(0, 200)
+        const skillId = item.id.replace(/"/g, "'")
+
+        // Insert skill
         await writeSilent(`
-          insert $s isa skill, has skill-id "${item.id}", has name "${nameEsc}",
+          insert $s isa skill, has skill-id "${skillId}", has name "${nameEsc}",
             ${tags.join(', ')}, has price 0.0, has currency "SUI";
-        `)
+        `).catch(() => {}) // Ignore if already exists
+
+        // Link skill to builder unit via capability — makes it visible to /api/tasks
+        await writeSilent(`
+          match $u isa unit, has uid "builder"; $s isa skill, has skill-id "${skillId}";
+          insert (provider: $u, offered: $s) isa capability, has price 0.0;
+        `).catch(() => {}) // Ignore if already linked
+
         docsSynced++
       }
     } catch { /* docs scan is best-effort */ }

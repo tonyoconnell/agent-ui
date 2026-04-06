@@ -1,6 +1,6 @@
 # Task Management
 
-The heartbeat of ONE. A task is a signal. A dependency is a continuation. Tags classify. Pheromone ranks.
+**The heartbeat of ONE. Strategy docs become weighted tasks. Their weight routes them. Claude Code subscribes and executes.**
 
 ---
 
@@ -10,6 +10,475 @@ The heartbeat of ONE. A task is a signal. A dependency is a continuation. Tags c
 > -- Deborah Gordon, *Ants at Work*
 
 No task is assigned. Every task is discovered through pheromone signals.
+
+---
+
+## The Full Flow
+
+```
+docs/*.md ──→ Haiku ──→ TaskSpec[] ──→ weight() ──→ TypeDB ──→ select() ──→ /work
+                │                         │                        │
+          reads prose              priority formula          pheromone adjusts
+          finds implicit tasks     value × phase ×           strength - resistance
+          exit conditions          persona × blocking        × tag sensitivity
+```
+
+---
+
+## Extracting Tasks from Prose
+
+### What `doc-scan.ts` catches today
+
+```
+- [ ] Deploy marketing agents          ← checkbox
+- Gap 3: No auth middleware             ← gap pattern
+```
+
+### What it misses
+
+Strategy docs contain implicit tasks buried in paragraphs, tables, and code blocks.
+A human reading "Deploy 8 agents on Telegram" knows that's a task. Haiku knows it too.
+
+```
+"Deploy: director, creative, media-buyer, analyst, content-writer,
+ seo, social, ads-mgr. Enable Telegram channel."
+                                        ← implicit task in description
+
+"Exit: 8 agents responding to signals on Telegram"
+                                        ← exit condition = task definition
+
+"Wire signals → Telegram API. Subscribe marketing agents to
+ @antsatworkbot channel."
+                                        ← action buried in prose
+```
+
+### Haiku extraction
+
+Haiku reads each doc and returns structured tasks:
+
+```typescript
+interface ExtractedTask {
+  id: string               // "marketing-dept-live"
+  name: string             // "Deploy Marketing Department (8 agents, Telegram)"
+  description: string      // What needs to be done
+  phase: string            // "cycle:C1"
+  value: 'critical' | 'high' | 'medium'
+  persona: string          // "ceo" | "dev" | "investor" | ...
+  tags: string[]           // ["marketing", "P0", "telegram"]
+  blocks: string[]         // task IDs this blocks
+  blocked_by: string[]     // task IDs blocking this
+  exit_condition: string   // "8 agents responding to signals on Telegram"
+}
+```
+
+Cost: ~$0.004 per doc. Run hourly = $0.10/day for all strategy docs.
+Source docs: `ONE-strategy.md`, `autonomous-orgs.md`, any `docs/*.md` with actionable content.
+
+---
+
+## Initial Weighting
+
+Every task needs a starting weight before pheromone has data. The formula
+makes the first `/work` cycle as smart as the hundredth — it just gets
+smarter from there.
+
+### The Priority Formula
+
+```
+priority = value + phase + persona + blocking
+
+         ┌─────────────────────────────────────────────────┐
+         │                                                  │
+         │   VALUE        what it's worth to the org        │
+         │   ─────        ─────────────────────────         │
+         │   critical  30   can't ship without this         │
+         │   high      25   important, not fatal            │
+         │   medium    20   nice to have                    │
+         │                                                  │
+         │   PHASE        when it matters                   │
+         │   ─────        ─────────────────                 │
+         │   C1  40       foundation (must exist)           │
+         │   C2  35       collaboration (must flow)         │
+         │   C3  30       commerce (must earn)              │
+         │   C4  25       expansion (must grow)             │
+         │   C5  20       analytics (must measure)          │
+         │   C6  15       products (must differentiate)     │
+         │   C7  10       scale (must compound)             │
+         │                                                  │
+         │   PERSONA      who does it best                  │
+         │   ───────      ───────────────────               │
+         │   ceo       25   governance (3.0x)               │
+         │   dev       20   infrastructure (2.5x)           │
+         │   investor  15   monetization (2.0x)             │
+         │   gamer     15   exploration (2.0x)              │
+         │   kid       10   learning (1.5x)                 │
+         │   freelancer 10  contribution (1.5x)             │
+         │   agent      5   execution (1.0x)                │
+         │                                                  │
+         │   BLOCKING     what it unlocks                   │
+         │   ────────     ─────────────────                 │
+         │   +5 per task this blocks (max +20)              │
+         │   a task that unblocks 4 others = +20            │
+         │                                                  │
+         └─────────────────────────────────────────────────┘
+```
+
+### Examples: How It Feels
+
+```
+marketing-dept-live         critical + C1 + ceo + blocks(3)
+                            30 + 40 + 25 + 15 = 110         ← THE thing to do
+
+engineering-framework       critical + C1 + dev
+                            30 + 40 + 20 = 90                ← foundation work
+
+telegram-integration        high + C1 + dev
+                            25 + 40 + 20 = 85                ← enables marketing
+
+pheromone-dashboard         medium + C1 + ceo
+                            20 + 40 + 25 = 85                ← visibility
+
+x402-payments               critical + C3 + dev
+                            30 + 30 + 20 = 80                ← commerce, not yet
+
+agentverse-integration      high + C4 + dev
+                            25 + 25 + 20 = 70                ← expansion, later
+
+token-minting               medium + C7 + investor
+                            20 + 10 + 15 = 45                ← scale, much later
+```
+
+The formula makes intuitive sense: a critical C1 task that unblocks three others
+(priority 110) will always run before a medium C7 nice-to-have (priority 45).
+No configuration. No sprint planning. Just arithmetic.
+
+### The Priority Formula (transparent)
+
+Every task stores how its priority was computed:
+
+```
+priority-formula: "critical=30 + C1=40 + ceo=25 + blocks(3)=15"
+```
+
+Transparent. Auditable. If a task's priority feels wrong, read the formula.
+The numbers explain themselves.
+
+### Ways to Set Initial Weight
+
+Five ways to put weight on a task, from most automatic to most manual:
+
+```
+METHOD              HOW                                WHEN TO USE
+──────              ───                                ───────────
+
+1. Haiku extract    Haiku reads prose, infers          Strategy docs change
+                    value/phase/persona/deps           New cycle begins
+                    → formula computes priority         First-time extraction
+
+2. Doc-scan         Checkboxes + gap patterns           Ongoing TODO tracking
+                    → P0-P3 from section context        Docs as source of truth
+                    → tags from keyword matching
+
+3. API create       POST /api/tasks with explicit       Human judgment
+                    value, phase, persona, tags          One-off tasks
+                    → formula computes priority          Bug reports
+
+4. Continuation     .then() spawns next task            Task chains
+                    inherits parent phase + tags         Pipeline stages
+                    priority = parent - 5               Natural sequencing
+
+5. Pheromone seed   mark('entry→task-id', N)            Bootstrap proven paths
+                    pre-load strength on edges           Migration from old system
+                    → effective priority rises           Known good sequences
+```
+
+### Beautiful Defaults
+
+When information is missing, the formula degrades gracefully:
+
+```
+No value?     → medium (20)          conservative, won't jump the queue
+No phase?     → C4 (25)              middle of the road
+No persona?   → agent (5)            execution-level, lowest governance weight
+No blocking?  → 0                    doesn't unblock anything we know of
+No tags?      → ["untagged"]         visible but won't match any subscriber
+
+Minimum priority: 20 + 10 + 5 + 0 = 35   (always visible, never dominant)
+Maximum priority: 30 + 40 + 25 + 20 = 115  (critical C1 CEO blocker)
+```
+
+---
+
+## Pheromone Adjustment (runtime)
+
+Static priority is the starting weight. Pheromone modifies it at runtime:
+
+```
+effective_priority = priority + (strength - resistance) × sensitivity
+```
+
+### Cold start (no pheromone)
+
+```
+marketing-dept-live:     priority=110, strength=0, resistance=0  → effective=110
+engineering-framework:   priority=90,  strength=0, resistance=0  → effective=90
+```
+
+Pure formula. The first `/work` cycle picks marketing-dept-live. Correct.
+
+### After first executions
+
+```
+marketing-dept-live:     priority=110, strength=3, resistance=0  → effective=112.1
+telegram-integration:    priority=85,  strength=0, resistance=0  → effective=85
+  (was blocked by marketing-dept-live — now unblocked! appears in queue)
+```
+
+### After repeated work
+
+```
+x402-payments:           priority=80, strength=2, resistance=8   → effective=75.8
+  → sinking. Something is wrong. Needs decomposition or different approach.
+
+pheromone-dashboard:     priority=85, strength=15, resistance=1  → effective=94.8
+  → rising. Proven path. Approaching highway.
+```
+
+### Highway formation
+
+When a task chain reaches strength >= 20, it becomes a highway.
+Highways auto-execute — no selection needed.
+
+```
+marketing-dept-live → telegram-integration → dashboard
+  strength: 25          strength: 22            strength: 18
+  HIGHWAY               HIGHWAY                 almost there
+```
+
+---
+
+## Tag Subscription
+
+Claude Code agents subscribe to tags. Sensitivity controls explore/exploit:
+
+```
+weight = 1 + max(0, strength - resistance) × sensitivity
+```
+
+### Agent profiles
+
+```
+"The Builder"       tags=[engineering, infra, P0, P1]    sensitivity=0.8
+                    → infrastructure work, follows proven paths
+
+"The Explorer"      tags=[ui, dashboard, analytics]      sensitivity=0.3
+                    → UI work, more exploration (less pheromone lock-on)
+
+"The Closer"        tags=[commerce, x402, sui, P0]       sensitivity=0.9
+                    → revenue paths, strongly follows proven routes
+
+"The Generalist"    tags=[]                              sensitivity=0.5
+                    → whatever is highest priority, balanced explore/exploit
+```
+
+### Usage
+
+```
+/work                         → all tasks, default sensitivity
+/work tags=build,P0           → only build+P0 tasks, high sensitivity
+/work tags=ui sensitivity=0.3 → UI tasks, more exploration
+```
+
+---
+
+## Task Taxonomy
+
+Four dimensions. Every tag is a flat string. No hierarchy. Convention emerges from use.
+
+### 1. Domain — what area of the system
+
+```
+DOMAIN TAG       WHAT IT COVERS                          EXAMPLE TASKS
+──────────       ──────────────                          ─────────────
+marketing        agents, campaigns, content, brand       Deploy 8 marketing agents
+engineering      routing, engine, API, runtime            Build cross-dept signal routing
+commerce         payments, x402, SUI, pricing, revenue   Wire x402 payment settlement
+ui               dashboard, graph, reactflow, panels     Pheromone visibility dashboard
+infra            workers, deploy, CF, cron, gateway      Deploy sync worker to Cloudflare
+agent            LLM, prompts, nanoclaw, telegram        Wire Telegram bot to substrate
+security         auth, identity, toxic, compliance       Implement toxic path blocking
+typedb           schema, queries, functions, migration   Add task entity to schema
+analytics        metrics, confidence, bottleneck         Per-path confidence scores
+integration      agentverse, hermes, MCP, HTTP           Bridge AgentVerse discovery
+```
+
+### 2. Action — what kind of work
+
+```
+ACTION TAG       WHAT IT MEANS                           PHEROMONE EFFECT
+──────────       ─────────────                           ────────────────
+build            create something new                    high mark on success
+wire             connect two existing things             high mark (enables flow)
+fix              repair something broken                 mark + clear resistance
+test             verify something works                  mark on pass, warn on fail
+deploy           ship to production                      high mark (visible outcome)
+design           plan or architect                       mild mark (not yet proven)
+refactor         improve without changing behavior       neutral (maintenance)
+migrate          move data or schema                     mark on completion
+document         write docs or update existing           mild mark
+explore          investigate unknowns                    mark if insight found
+```
+
+### 3. Priority — how urgent
+
+```
+PRIORITY    WHEN TO USE                 SELECTION WEIGHT    DECAY RATE
+────────    ───────────                 ────────────────    ──────────
+P0          can't ship without this     8x                  slowest (0.01)
+P1          important, not fatal        4x                  normal (0.05)
+P2          nice to have, real value    2x                  normal (0.05)
+P3          someday, low urgency        1x                  fastest (0.10)
+```
+
+P0 tasks are 8x more likely to be selected than P3 tasks, even before pheromone.
+This is the `priorityWeighted` selector in `selectors.ts`.
+
+### 4. Phase — when in the roadmap
+
+```
+PHASE        NAME              EXIT CONDITION                    WHAT UNLOCKS
+─────        ────              ──────────────                    ────────────
+cycle:C1     Foundation        8 agents live, 100 signals/day    First learning
+cycle:C2     Collaboration     cross-dept flowing, 2-3 highways  Inter-org routing
+cycle:C3     Commerce          x402 working, 1+ paying agent     Revenue on Sui
+cycle:C4     Expansion         10+ external users, AgentVerse    Network effects
+cycle:C5     Analytics         highways crystallized, metrics     Data moat
+cycle:C6     Products          sensitivity modes live             Differentiation
+cycle:C7     Scale             10,000+ agents, self-forming       Compounding
+```
+
+### 5. Persona — who does it best
+
+```
+PERSONA      METAPHOR SKIN     VOCABULARY            WHAT THEY SEE
+───────      ─────────────     ──────────            ─────────────
+ceo          Team              hire, fire, commend    org chart, performance
+dev          Brain/Signal      node, potentiate       API, routing, code
+investor     Water/Economic    pool, carve            revenue paths, tokens
+gamer        Ant               deposit, forage        emergence, trails
+kid          Ant               smell, follow          simple rules, discovery
+freelancer   Mail              stamp, deliver         skills, pricing, jobs
+agent        Signal            emit, receive          handlers, chains
+```
+
+### Compound tags
+
+Tags combine naturally. No special syntax — just multiple tags on one task:
+
+```
+tags: ["engineering", "build", "P0", "cycle:C1", "dev"]
+  → Critical C1 engineering build task for a developer
+
+tags: ["commerce", "wire", "P1", "cycle:C3", "investor"]
+  → High-priority C3 commerce wiring, investor-relevant
+
+tags: ["ui", "explore", "P2", "cycle:C5", "gamer"]
+  → Medium exploration of UI analytics, gamified
+```
+
+### Tag inference from prose
+
+Haiku infers tags from context. The keyword map:
+
+```typescript
+const TAG_KEYWORDS = {
+  marketing:    ['campaign', 'content', 'brand', 'seo', 'social', 'ads'],
+  engineering:  ['routing', 'engine', 'api', 'runtime', 'handler', 'signal'],
+  commerce:     ['payment', 'x402', 'sui', 'revenue', 'price', 'escrow'],
+  ui:           ['dashboard', 'graph', 'panel', 'visual', 'reactflow'],
+  infra:        ['deploy', 'worker', 'cloudflare', 'cron', 'gateway', 'kv'],
+  agent:        ['llm', 'prompt', 'nanoclaw', 'telegram', 'bot'],
+  security:     ['auth', 'identity', 'toxic', 'compliance', 'credential'],
+  typedb:       ['schema', 'tql', 'query', 'function', 'migration'],
+  analytics:    ['metric', 'confidence', 'bottleneck', 'measure'],
+  integration:  ['agentverse', 'hermes', 'mcp', 'http', 'bridge'],
+  build:        ['create', 'implement', 'add', 'new'],
+  wire:         ['connect', 'integrate', 'bridge', 'pipe', 'flow'],
+  fix:          ['fix', 'repair', 'patch', 'resolve', 'broken'],
+  deploy:       ['ship', 'publish', 'release', 'production'],
+}
+```
+
+---
+
+## Fast Extraction Loop
+
+Haiku can't run on every tick — it's an LLM call. But extraction can feel live.
+
+### Three-tier extraction
+
+```
+TIER     WHAT               SPEED         WHEN               COST
+────     ────               ─────         ────               ────
+1        doc-scan regex     <1ms/doc      every tick          $0
+         checkboxes, gaps   deterministic  L1 signal loop
+         section headings
+
+2        diff detection     <10ms/doc     on file change      $0
+         git diff docs/     only changed   inotify/poll
+         extract new lines  sections
+
+3        Haiku extraction   ~2s/doc       hourly or manual    ~$0.004/doc
+         full prose scan    LLM call       L6 knowledge cycle
+         implicit tasks
+```
+
+### How the loop runs through a document quickly
+
+```
+TICK 1: doc-scan catches 12 checkboxes in ONE-strategy.md           <1ms
+TICK 2: doc-scan catches 8 gaps in autonomous-orgs.md               <1ms
+  ...
+HOUR 1: Haiku reads ONE-strategy.md, finds 23 implicit tasks        ~2s
+HOUR 1: Haiku reads autonomous-orgs.md, finds 31 implicit tasks     ~2s
+  ...
+HOUR 2: Only re-extract docs that changed (git diff)                ~2s for 1 doc
+         Unchanged docs skip Haiku entirely.
+```
+
+### Diff-aware extraction
+
+```typescript
+async function extractChanged(docPath: string, lastHash: string): Promise<ExtractedTask[]> {
+  const currentHash = await fileHash(docPath)
+  if (currentHash === lastHash) return []  // Skip unchanged docs
+
+  const content = await readFile(docPath, 'utf-8')
+  const sections = splitBySections(content)
+
+  // Only send changed sections to Haiku
+  const changed = sections.filter(s => s.hash !== lastSectionHashes[s.heading])
+  if (!changed.length) return []
+
+  const context = `Document: ${docPath}\nExisting tasks: ${existingIds.join(', ')}\n\n`
+  const changedContent = changed.map(s => s.content).join('\n\n---\n\n')
+
+  return extractTasks(context + changedContent, basename(docPath))
+}
+```
+
+### Integration with tick.ts
+
+```
+L1  SIGNAL     every tick      doc-scan regex (checkboxes, gaps)      ← free
+L6  KNOWLEDGE  every hour      Haiku extraction (prose, implicit)     ← $0.004/doc
+                               diff-aware: skip unchanged docs
+                               section-aware: skip unchanged sections
+```
+
+The fast path (doc-scan) runs every tick at zero cost.
+The deep path (Haiku) runs hourly, only on changed content.
+Both write to the same TypeDB task entities. Both feed the same selectors.
 
 ---
 
@@ -430,12 +899,16 @@ Each `/done` teaches the world. Each `/work` cycle makes it smarter. Multiple Cl
 
 ## See Also
 
-- [claude-code-integration.md](claude-code-integration.md) -- Full guide for Claude Code as a substrate agent
+- [routing.md](routing.md) -- Signal routing formula and mechanics
+- [autonomous-orgs.md](autonomous-orgs.md) -- Task graph with initial weights and TypeDB schema
+- [ONE-strategy.md](ONE-strategy.md) -- The strategy docs tasks are extracted from
+- [claude-code-integration.md](claude-code-integration.md) -- Claude Code as a substrate agent
 - [loops.md](loops.md) -- The seven nested feedback loops
-- [substrate-learning.md](substrate-learning.md) -- How routing IS learning
-- [events.md](events.md) -- The universal primitive
-- [knowledge.md](knowledge.md) -- How intelligence emerges from simple rules
+- `src/engine/doc-scan.ts` -- Checkbox/gap extraction
+- `src/engine/selectors.ts` -- Selection strategies (byPriority, taskSelector)
+- `src/engine/loops.ts` -- All loops including docLoop
+- `.claude/commands/work.md` -- Autonomous work loop
 
 ---
 
-*A task is a signal. A dependency is a continuation. The colony learns what works.*
+*A task is a signal. A dependency is a continuation. Weight is arithmetic. The colony learns what works.*

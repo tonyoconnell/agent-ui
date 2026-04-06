@@ -104,6 +104,37 @@ entity skill,
 
 
 # =============================================================================
+# DIMENSION 3b: TASKS (prioritized work items)
+# =============================================================================
+# Tasks extracted from docs. Priority = value + phase + persona + blocking.
+# Each task shares its task-id with a skill-id for capability routing.
+# Pheromone adjusts effective priority at runtime.
+
+entity task,
+    owns task-id @key,
+    owns name,
+    owns description,
+    owns tag @card(0..),
+    owns task-status,              # "open" | "active" | "done" | "blocked"
+    owns task-value,               # "critical" | "high" | "medium"
+    owns task-effort,              # "low" (haiku) | "medium" (sonnet) | "high" (opus)
+    owns task-phase,               # "C1".."C7"
+    owns task-persona,             # "ceo" | "dev" | "investor" | "gamer" | "kid" | "freelancer" | "agent"
+    owns priority-score,           # computed: value + phase + persona + blocking
+    owns priority-formula,         # auditable: "critical=30 + C1=40 + ceo=25 + blocks(3)=15"
+    owns source-file,              # which doc it came from
+    owns exit-condition,           # what "done" looks like
+    owns done,                     # boolean
+    owns created,
+    plays blocks:blocker,
+    plays blocks:blocked;
+
+relation blocks,
+    relates blocker,
+    relates blocked;
+
+
+# =============================================================================
 # DIMENSION 4: PATHS
 # =============================================================================
 
@@ -204,6 +235,7 @@ attribute hid, value string;
 attribute fid, value string;
 attribute oid, value string;
 attribute contribution-id, value string;
+attribute task-id, value string;
 
 # Descriptive
 attribute name, value string;
@@ -225,9 +257,17 @@ attribute sui-path-id, value string;
 attribute currency, value string;
 attribute model, value string;
 attribute system-prompt, value string;
+attribute priority-formula, value string;
+attribute source-file, value string;
+attribute exit-condition, value string;
+attribute task-value, value string;
+attribute task-effort, value string;       # "low" (haiku) | "medium" (sonnet) | "high" (opus)
+attribute task-phase, value string;
+attribute task-persona, value string;
 
 # Status
 attribute status, value string;
+attribute task-status, value string;
 attribute path-status, value string;
 attribute hypothesis-status, value string;
 attribute frontier-status, value string;
@@ -262,6 +302,7 @@ attribute generation, value integer;
 # Boolean
 attribute action-ready, value boolean;
 attribute success, value boolean;
+attribute done, value boolean;
 
 # Temporal
 attribute created, value datetime;
@@ -454,13 +495,41 @@ fun total_revenue() -> double:
     return sum($r);
 
 
+# --- Tasks ---
+
+fun open_tasks() -> { task }:
+    match $t isa task, has done false;
+    return { $t };
+
+fun tasks_by_priority() -> { task, priority-score }:
+    match $t isa task, has done false, has priority-score $p;
+    sort $p desc;
+    return { $t, $p };
+
+fun tasks_by_phase($phase: string) -> { task }:
+    match $t isa task, has task-phase $phase, has done false;
+    return { $t };
+
+fun tasks_by_value($val: string) -> { task }:
+    match $t isa task, has task-value $val, has done false;
+    return { $t };
+
+fun blocked_tasks() -> { task }:
+    match $t isa task, has task-status "blocked", has done false;
+    return { $t };
+
+fun task_blockers($t: task) -> { task }:
+    match (blocker: $b, blocked: $t) isa blocks; $b has done false;
+    return { $b };
+
+
 # =============================================================================
-# ~230 lines. One file. One world. WORLD.
+# ~280 lines. One file. One world. WORLD.
 #
 # Runtime handles: task lifecycle, dependencies, trails, queue
 # TypeDB handles: paths, units, skills, signals, knowledge, classification
 #
-# Entities: group, unit, skill, hypothesis, frontier, objective, contribution
+# Entities: group, unit, skill, task, hypothesis, frontier, objective, contribution
 # Relations: hierarchy, path, capability, membership, signal, spawns,
-#            contribution-event
+#            contribution-event, blocks
 # =============================================================================
