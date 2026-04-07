@@ -224,6 +224,26 @@ relation contribution-event,
 
 
 # =============================================================================
+# DIMENSION 7: API AUTHENTICATION
+# =============================================================================
+
+entity api-key,
+    owns api-key-id @key,
+    owns key-hash,                # bcrypt hash of actual key (never store plaintext)
+    owns user-id,                 # reference to user (email or ID)
+    owns permissions,             # comma-separated: "read", "write", "add", "edit", "delete"
+    owns key-status,              # "active" | "revoked"
+    owns created,
+    owns last-used,
+    owns expires-at,
+    plays api-authorization:api-key;
+
+relation api-authorization,
+    relates api-key,
+    relates authorized-unit;      # which unit this key can act as
+
+
+# =============================================================================
 # ATTRIBUTES
 # =============================================================================
 
@@ -236,6 +256,11 @@ attribute fid, value string;
 attribute oid, value string;
 attribute contribution-id, value string;
 attribute task-id, value string;
+attribute api-key-id, value string;
+attribute key-hash, value string;
+attribute user-id, value string;
+attribute permissions, value string;
+attribute key-status, value string;
 
 # Descriptive
 attribute name, value string;
@@ -524,12 +549,12 @@ fun task_blockers($t: task) -> { task }:
 
 
 # =============================================================================
-# ~280 lines. One file. One world. WORLD.
+# ~300 lines. One file. One world. WORLD.
 #
 # Runtime handles: task lifecycle, dependencies, trails, queue
-# TypeDB handles: paths, units, skills, signals, knowledge, classification
+# TypeDB handles: paths, units, skills, signals, knowledge, classification, auth
 #
-# Entities: group, unit, skill, task, hypothesis, frontier, objective, contribution
+# Entities: group, unit, skill, task, hypothesis, frontier, objective, contribution, api-key
 # Relations: hierarchy, path, capability, membership, signal, spawns,
-#            contribution-event, blocks
+#            contribution-event, blocks, api-authorization
 # =============================================================================

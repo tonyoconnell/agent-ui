@@ -3,6 +3,8 @@
  *
  * Sync agent(s) from markdown to TypeDB.
  *
+ * Authentication: Bearer <api_key> (optional, required for certain operations)
+ *
  * Body:
  *   { markdown: string }           - Single agent markdown
  *   { agents: { name, content }[] } - Multiple agents (world)
@@ -20,8 +22,11 @@ import {
   type AgentSpec,
   type WorldSpec,
 } from '@/engine/agent-md'
+import { validateApiKey, requireAuth } from '@/lib/api-auth'
 
 export const POST: APIRoute = async ({ request }) => {
+  // Validate API key if provided (optional for now, can be required later)
+  const auth = await validateApiKey(request)
   try {
     const body = await request.json()
 

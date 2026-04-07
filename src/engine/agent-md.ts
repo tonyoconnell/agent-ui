@@ -125,10 +125,12 @@ export const parse = (md: string): AgentSpec => {
       }
 
       if (inSkills) {
-        if (trimmed.startsWith('- ') || trimmed.startsWith('  ')) {
+        // Collect all indented lines (- name: or key: value pairs under skills)
+        if (line.match(/^\s/) || trimmed.startsWith('- ')) {
           skillLines.push(line)
           continue
         } else if (trimmed && !trimmed.startsWith('#')) {
+          // Stop skills section only when we hit a non-indented key
           inSkills = false
         }
       }
