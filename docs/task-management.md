@@ -9,7 +9,7 @@
 > *"The task an ant performs depends not on any property of the individual, but on what it has experienced recently."*
 > -- Deborah Gordon, *Ants at Work*
 
-No task is assigned. Every task is discovered through pheromone signals.
+No task is assigned. Every task is discovered through signals and deposits.
 
 ---
 
@@ -22,6 +22,242 @@ docs/*.md ──→ Haiku ──→ TaskSpec[] ──→ weight() ──→ Type
           finds implicit tasks     value × phase ×           strength - resistance
           exit conditions          persona × blocking        × tag sensitivity
 ```
+
+---
+
+
+
+When a task is created, three things happen simultaneously:
+
+```
+task "build-ceo-panel"  ←→  skill "build-ceo-panel"  ←→  capability(builder, offered)
+     priority: 100                price: 0.001                who can do it
+     phase: C1                    tags: [build, P0]
+     persona: ceo
+     effort: medium
+```
+
+1. **Task entity** — priority formula, phase, persona, effort, blocking
+2. **Skill entity** — same ID, with price and tags
+3. **Capability relation** — links skill to the unit that can do it
+
+A task is simultaneously a skill in the marketplace. Other agents can discover it via routing. Creating a task is subscribing an agent to work.
+
+---
+
+## Task Lifecycle (Every Step Verified)
+
+### Step 1: Query Available Tasks
+
+```bash
+curl -s "https://one-substrate.pages.dev/api/tasks?value=critical"
+```
+
+```json
+{
+  "count": 14,
+  "tasks": [
+    {
+      "name": "Build CEO control panel: hire/fire/commend/flag agents",
+      "priorityScore": 100,
+      "effectivePriority": 100,
+      "category": "exploratory",
+      "persona": "ceo",
+      "phase": "C1",
+      "status": "open",
+      "tags": ["P0", "ceo", "governance", "ui"],
+      "unit": "builder",
+      "strength": 0,
+      "resistance": 0
+    }
+  ]
+}
+```
+
+`effectivePriority` = base priority adjusted by pheromone. When strength and resistance are 0, effective = base.
+
+### Step 2: Filter by Category or Tag
+
+```bash
+# By category (exploratory = untested, attractive = proven, repelled = failing)
+curl -s "https://one-substrate.pages.dev/api/tasks/exploratory"
+# → 74 tasks, all untested
+
+# By tag
+curl -s "https://one-substrate.pages.dev/api/tasks?tag=P0"
+# → 17 tasks tagged P0
+```
+
+### Step 3: Create a New Task
+
+```bash
+curl -s -X POST "https://one-substrate.pages.dev/api/tasks" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "nanoclaw-streaming-response",
+    "name": "Add streaming responses to NanoClaw /message endpoint",
+    "tags": ["build", "nanoclaw", "edge", "P1"],
+    "value": "high",
+    "phase": "C2",
+    "persona": "dev",
+    "exit": "POST /message returns SSE stream instead of blocking JSON",
+    "price": 0.003,
+    "unit": "infrastructure:nanoclaw"
+  }'
+```
+
+```json
+{
+  "ok": true,
+  "task": "nanoclaw-streaming-response",
+  "priorityScore": 80,
+  "formula": "high=25 + C2=35 + dev=20",
+  "tags": ["build", "nanoclaw", "edge", "P1"],
+  "unit": "infrastructure:nanoclaw"
+}
+```
+
+This simultaneously:
+- Creates a **task** entity with priority 80 and formula `high=25 + C2=35 + dev=20`
+- Creates a **skill** with `skill-id: "nanoclaw-streaming-response"` and `price: 0.003`
+- Creates a **capability** linking `infrastructure:nanoclaw` to that skill
+
+### Step 4: Verify Capability Was Created
+
+```bash
+curl -s -X POST "https://api.one.ie/typedb/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "match (provider: $u, offered: $s) isa capability, has price $p;
+             $u has name \"nanoclaw\"; $s has skill-id $sid, has name $sname;
+             select $sid, $sname, $p;"
+  }'
+```
+
+```json
+[
+  {
+    "skill": "nanoclaw-streaming-response",
+    "name": "Add streaming responses to NanoClaw /message endpoint",
+    "price": 0.003
+  }
+]
+```
+
+The agent is now subscribed. Other agents can discover it via routing.
+
+### Step 5: Work Happens —Weight  Builds
+
+When the task is attempted successfully, the path from the requester to the provider gets marked:
+
+```bash
+curl -s -X POST "https://one-substrate.pages.dev/api/mark" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "builder",
+    "to": "infrastructure:nanoclaw",
+    "strength": 15
+  }'
+```
+
+```json
+{ "ok": true }
+```
+
+Now check how pheromone changed the effective priority:
+
+```bash
+curl -s "https://one-substrate.pages.dev/api/tasks?tag=nanoclaw"
+```
+
+```json
+{
+  "name": "Add streaming responses to NanoClaw /message endpoint",
+  "base_priority": 80,
+  "effective_priority": 90.5,
+  "category": "ready",
+  "strength": 15,
+  "resistance": 0
+}
+```
+
+**Priority jumped from 80 → 90.5.** The task moved from `exploratory` (untested) to `ready` (has pheromone). Successful work literally increases a task's visibility in the marketplace.
+
+### Step 6: Failure — Resistance Builds
+
+When work fails, resistance accumulates on the path:
+
+```bash
+curl -s -X POST "https://one-substrate.pages.dev/api/resistance" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "builder",
+    "to": "infrastructure:nanoclaw",
+    "resistance": 25
+  }'
+```
+
+```json
+{
+  "name": "Add streaming responses to NanoClaw /message endpoint",
+  "effective_priority": 89.8,
+  "category": "ready",
+  "strength": 15,
+  "resistance": 1
+}
+```
+
+With enough resistance (resistance >= 30 AND resistance > strength), the task becomes **repelled** — agents actively avoid it.
+
+### Step 7: Routing — Who Should Get This Task?
+
+```bash
+curl -s -X POST "https://api.one.ie/typedb/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "match $sk isa skill, has skill-id \"nanoclaw-streaming-response\";
+             (provider: $u, offered: $sk) isa capability, has price $p;
+             $u has uid $uid, has name $name;
+             select $uid, $name, $p;"
+  }'
+```
+
+```json
+[
+  {
+    "uid": "infrastructure:nanoclaw",
+    "name": "nanoclaw",
+    "price": 0.003
+  }
+]
+```
+
+Multiple agents can offer the same skill. `suggest_route()` and `optimal_route()` use path strength to pick the best one.
+
+### Step 8: Complete the Task
+
+```bash
+# Via TypeQL directly
+curl -s -X POST "https://api.one.ie/typedb/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "match $t isa task, has task-id \"nanoclaw-streaming-response\",
+             has done $d, has task-status $st;
+             delete $d of $t; delete $st of $t;
+             insert $t has done true, has task-status \"done\";",
+    "transactionType": "write"
+  }'
+```
+
+```json
+{
+  "name": "Add streaming responses to NanoClaw /message endpoint",
+  "done": true,
+  "status": "done"
+}
+```
+
+In the tick loop, this happens automatically when a builder unit returns a result.
 
 ---
 
@@ -633,22 +869,91 @@ Categories are computed at query time from the strength/resistance maps. No infe
 
 ---
 
+## Effort Maps to Model Cost
+
+Every task carries an effort level that determines which model executes it:
+
+```
+task-effort "low"    → Haiku    ($0.0003/signal)
+task-effort "medium" → Sonnet   ($0.003/signal)
+task-effort "high"   → Opus     ($0.015/signal)
+```
+
+The system routes cheap tasks to cheap models. Hard tasks to expensive ones. Effort is set at task creation and inferred by Haiku during extraction.
+
+---
+
 ## The Growth Loop
 
 `src/engine/loop.ts` — the colony's heartbeat. One tick per interval.
 
 ```
-select → signal → drain → fade → evolve → know
+select → [highway skip | ask] → L1b fallback → drain → fade → evolve → crystallize+frontier
 ```
 
 | Phase | What | Interval |
 |-------|------|----------|
-| SELECT | Probabilistic pick from pheromone-weighted edges | Every tick |
-| SIGNAL | Send to the selected receiver | Every tick |
-| DRAIN | Process one queued signal | Every tick |
-| FADE | Asymmetric decay (trail 5%, resistance 10%) | 5 min |
-| EVOLVE | Rewrite prompts of struggling agents | 10 min |
-| CRYSTALLIZE | Promote strong paths to permanent (low fade-rate) | 1 hour |
+| L1 SELECT | Probabilistic pick from pheromone-weighted edges | Every tick |
+| L1 SIGNAL | Highway skip (net strength >= 20) or `ask()` | Every tick |
+| L1b FALLBACK | If pheromone finds nothing: query TypeDB for top priority open task | Every tick |
+| L1 DRAIN | Process one queued signal | Every tick |
+| L3 FADE | Asymmetric decay (strength 5%, resistance 10%) | 5 min |
+| L5 EVOLVE | Rewrite prompts of struggling agents (24h cooldown) | 10 min |
+| L6+L7 CRYSTALLIZE | Promote strong paths, auto-hypothesize, detect frontiers, sync docs | 1 hour |
+
+### Highway Skip
+
+When net strength on an edge hits **20** (not 50 — that's the attractive category threshold), the tick skips the LLM call entirely:
+
+```
+netStrength = sense(edge) - danger(edge)
+if netStrength >= 20:
+  mark(edge, chainDepth)   // path proven — no ask needed
+  result.skipped = true
+else:
+  ask({ receiver: next })  // normal LLM call
+```
+
+20 = confidence-based routing. 50 = category threshold for "attractive" in the marketplace. Different numbers, different purposes.
+
+### L1b: Task Fallback
+
+When pheromone routing finds nothing (no edges with signal) or the selected path fails:
+
+```typescript
+// Query TypeDB: what's the highest-priority open task?
+match $t isa task, has task-id $id, has done false, has task-status "open";
+sort $p desc; limit 1;
+
+// Route as signal to builder unit
+{ receiver: `builder:${taskId}`, data: { taskId, taskName, taskPriority } }
+```
+
+Three outcomes:
+- **Handler exists**: executes, marks path, sets `task.done = true` in TypeDB
+- **Dissolved** (no handler): re-enqueues for the CLI `/work` loop
+- **Failed**: warns the `loop→builder:taskId` edge
+
+This is the engine→Claude Code handoff. Dissolved tasks are how work reaches `/work`.
+
+### The `builder` Unit
+
+`builder` is the bridge between engine ticks and Claude Code:
+
+```
+engine tick                              Claude Code (/work)
+───────────                              ──────────────────
+L1b picks top priority open task
+  → ask({ receiver: 'builder:taskId' })
+      dissolved (no handler)
+        → enqueue({ receiver: 'builder:taskId' })
+                                            SENSE: /api/tasks
+                                            SELECT: picks task
+                                            EXECUTE: real work
+                                            MARK: POST /api/tasks/:id/complete
+```
+
+The engine and Claude Code share the same task pool. The engine routes; Claude Code executes when there's no automated handler.
 
 ### Selection
 
@@ -664,14 +969,29 @@ Harvesters call `select(type, 0.1)` — follow the highway.
 
 ### Sequence Learning
 
-The loop tracks `previousTask`. When B executes after A:
+The loop tracks `previousTarget`. When B executes after A, chain depth grows:
 
 ```
-Success: path(A→B).strength += 5
-Failure: path(A→B).resistance += 8, chain breaks
+Success: mark(A→B, min(chainDepth, 5))   // strength scales with depth, capped at 5
+Failure: warn(A→B, 0.5 or 1.0), chain breaks, chainDepth resets
 ```
 
-The colony learns SEQUENCES. Not "B is good" but "B is good AFTER A."
+The colony learns SEQUENCES. Not "B is good" but "B is good AFTER A." Longer chains mark more strongly (up to 5x).
+
+### L7: Doc Scan → Builder
+
+Every crystallize cycle (hourly), the tick scans `docs/` and upserts skills + capabilities:
+
+```
+docs/*.md checkboxes + gap patterns
+  → scanDocs() → open items
+    → insert skill (skill-id, name, tags, price=0)
+      → insert capability (provider: builder, offered: skill)
+        → visible in /api/tasks
+          → picked up by /work
+```
+
+All doc-extracted tasks are linked to the `builder` unit. This means every TODO in `docs/` is automatically a task for Claude Code. The scan is idempotent — inserts ignore duplicates.
 
 ---
 
@@ -868,16 +1188,20 @@ Claude Code is a unit in the world. Slash commands are the interface:
 ### The Autonomous Loop (`/work`)
 
 ```
-SENSE:   GET /api/tasks → group by category
-SELECT:  attractive first, then ready, then exploratory. Never repelled.
+SENSE:   GET /api/tasks → group by category (attractive/ready/exploratory/repelled)
+SELECT:  attractive first → ready → exploratory. Never repelled.
+         Within category: prefer context-matching tags, higher strength, P0 > P1 > P2
 EXECUTE: read code, edit files, run tests, fix issues
-VERIFY:  tsc --noEmit (no new errors)
-MARK:    POST /api/tasks/:id/complete → reinforce trail
-GROW:    GET /api/tick?interval=0 → see what the colony learned
+VERIFY:  npx tsc --noEmit — fix any errors in touched files before marking
+MARK:    POST /api/tasks/:id/complete { from: "claude" }  → success
+         POST /api/tasks/:id/complete { failed: true }    → failure (warn pheromone)
+GROW:    GET /api/tick?interval=0 → run one tick, see highways/frontiers
 LOOP:    go to SENSE
 ```
 
-Each `/done` teaches the world. Each `/work` cycle makes it smarter. Multiple Claude Code instances sharing one TypeDB = shared intelligence.
+Marking via HTTP (`/api/tasks/:id/complete`) writes through to TypeDB. The in-memory pheromone map updates on the next tick when TypeDB is re-read. So there's a one-tick lag between `/work` marking and the engine seeing the updated strength — not a problem, just worth knowing.
+
+Each completion teaches the world. Each `/work` cycle makes it smarter. Multiple Claude Code instances sharing one TypeDB = shared intelligence.
 
 ---
 
@@ -894,6 +1218,27 @@ Each `/done` teaches the world. Each `/work` cycle makes it smarter. Multiple Cl
 | `src/pages/api/tick.ts` | Growth loop endpoint |
 | `src/schema/one.tql` | TypeDB schema: units, paths, skills, tags, knowledge |
 | `.claude/commands/` | Slash commands: work, next, tasks, done, grow, highways, report |
+
+---
+
+## The Full Cycle
+
+```
+Doc written
+  → tasks extracted (Haiku one-shot)
+    → skill created (same ID, with price)
+      → capability linked (unit can do it)
+        → tick loop picks highest priority open task
+          → routes as signal to builder
+            → success: mark → task done → pheromone grows
+            → failure: warn → task stays → resistance grows
+              → next tick: effective priority shifts
+                → attractive tasks get more work
+                → repelled tasks get avoided
+                  → system self-optimizes
+```
+
+This isn't a task board. It's a **marketplace where work finds workers through pheromone, and price/priority/persona/effort all shape which agent gets which task.**
 
 ---
 
