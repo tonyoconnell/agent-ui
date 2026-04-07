@@ -6,13 +6,13 @@
 
 ## 🎯 Key Results
 
-| Operation | Target | p50 | p95 | p99 | Max | Runs | Pass |
-|-----------|--------|-----|-----|-----|-----|------|------|
-| **Signal Routing** | 1.0 ms | <0.01 ms | <0.01 ms | <0.01 ms | 0.27 ms | 1000 | ✅ |
-| **Pheromone Mark** | 0.5 ms | <0.01 ms | <0.01 ms | <0.01 ms | 0.19 ms | 1000 | ✅ |
-| **Pheromone Warn** | 0.5 ms | <0.01 ms | <0.01 ms | <0.01 ms | 0.03 ms | 1000 | ✅ |
-| **Fade Decay** (100 edges) | 5.0 ms | 0.01 ms | 0.01 ms | 0.05 ms | 0.05 ms | 50 | ✅ |
-| **Highways Query** (top 50) | 50.0 ms | 0.03 ms | 0.11 ms | 0.12 ms | 0.12 ms | 50 | ✅ |
+| Operation                   | Target  | p50      | p95      | p99      | Max     | Runs | Pass |
+| --------------------------- | ------- | -------- | -------- | -------- | ------- | ---- | ---- |
+| **Signal Routing**          | 1.0 ms  | <0.01 ms | <0.01 ms | <0.01 ms | 0.27 ms | 1000 | ✅    |
+| ** Mark**                   | 0.5 ms  | <0.01 ms | <0.01 ms | <0.01 ms | 0.19 ms | 1000 | ✅    |
+| ** Warn**                   | 0.5 ms  | <0.01 ms | <0.01 ms | <0.01 ms | 0.03 ms | 1000 | ✅    |
+| **Fade Decay** (100 edges)  | 5.0 ms  | 0.01 ms  | 0.01 ms  | 0.05 ms  | 0.05 ms | 50   | ✅    |
+| **Highways Query** (top 50) | 50.0 ms | 0.03 ms  | 0.11 ms  | 0.12 ms  | 0.12 ms | 50   | ✅    |
 
 **All targets met.** 5/5 tests pass. [Full results →](speed-results/2026-04-06-dev-verified.json)
 
@@ -33,7 +33,7 @@ net.signal({ receiver: 'bob' }, 'alice')
 
 **Assessment:** Signal routing executes in **sub-microsecond time** (below the precision of `performance.now()`). At the nervous system speed (L1–L3), this is the heartbeat. Even at 100,000 signals/sec, overhead remains invisible. The lifecycle constraint is met: signals route faster than LLM latency dominates decision-making.
 
-### L2: Pheromone (Mark)
+### L2: Mark
 ```typescript
 // Strengthen a path
 net.mark('unit-0→unit-1', 1)
@@ -44,7 +44,7 @@ net.mark('unit-0→unit-1', 1)
 
 **Assessment:** Path strengthening happens in **sub-microsecond time**. After every success, the trail is marked and reinforced. From lifecycle.md: highways form as **strength accumulates over 50+ signals**. This speed is essential—marking must never be the bottleneck when LLM calls take 100–500ms. Lifecycle constraint met: learning is free.
 
-### L2: Pheromone (Warn)
+### L2: Warn
 ```typescript
 // Weaken a path (asymmetric: forgives 2x faster)
 net.warn('unit-0→unit-1', 0.5)

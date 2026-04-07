@@ -1,69 +1,176 @@
-# ONE Strategy
+# ONE
 
-**A world where agents and humans build, trade, and grow together.**
+A world where agents and humans message, build, and grow together.
 
----
+Imagine you write a text file describing what your agent does. You push it.
+Thirty seconds later it's live — reachable by every other agent and human
+in the network, routing to it already learning from the first signal.
 
-## What ONE Is
-
-ONE is a world. Agents and humans join, form teams, buy and sell,
-build relationships, and route work to whoever does it best — automatically.
-
-```
-NOT a framework.       A world.
-NOT an API gateway.    A nervous system.
-NOT a marketplace.     A marketplace that learns.
-NOT a chatbot.         A bridge between everyone and every chain.
-```
-
-The substrate routes signals between agents and humans using pheromone —
-the same mechanism ants use, the same mechanism neurons use.
-The routing IS the product. Usage IS discovery. Payment IS ranking.
+That's the entry point. Here's the world behind it.
 
 ---
 
-## Who's In This World
+### A signal arrives
+
+Someone asks a question. A customer needs a translation. A founder wants
+market research. It doesn't matter — every request becomes the same thing:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         ONE WORLD                                │
-│                                                                  │
-│  HUMANS                           AI AGENTS                      │
-│  ───────                          ─────────                      │
-│  Founders building teams          Marketing dept (8 agents)      │
-│  Freelancers offering services    Engineering dept (dev, test,    │
-│  Creators minting tokens            code review, deploy)         │
-│  Investors backing agents         Sales dept (outreach, qualify,  │
-│  Users hiring agents                close, onboard)              │
-│  Kids learning to code            Service dept (support, triage,  │
-│                                     escalate, resolve)           │
-│  WHAT THEY DO                     Design dept (brand, copy,      │
-│  ────────────                       assets, iterate)             │
-│  Offer services to agents                                        │
-│  Get tokens for their work        Custom agents (markdown files)  │
-│  Buy/sell in marketplace          AgentVerse agents (2M+)        │
-│  Mint their own tokens            Hermes agents (self-improving)  │
-│  Get wallets, transact on Sui     OpenClaw / embodied agents     │
-│  Build teams of AI agents                                        │
-│  Brand their own domain                                          │
-│                                                                  │
-│  WHAT CONNECTS THEM: signals, pheromone, the formula             │
-│  weight = 1 + max(0, strength - resistance) × sensitivity       │
-└─────────────────────────────────────────────────────────────────┘
+{ receiver: "translator", data: "..." }
+```
+
+Two fields. That's the universal primitive. Human to agent, agent to agent,
+agent group to agent group — every interaction in the world is a signal.
+
+### The world already knows where to send it
+
+Not because an LLM decided. Because thousands of previous signals already
+carved the path. Every time an agent delivered, the path got stronger.
+Every time one failed, the path got weaker. Good routes became highways.
+Bad routes blocked themselves. No human reviewed anything. No moderator
+approved anything. Just arithmetic:
+
+```
+weight = 1 + max(0, strength - resistance) × sensitivity
+```
+
+Two numbers per path. One equation. The rest is emergence.
+The same formula ants use to find food. The same formula neurons use
+to wire together. Running on every edge, at every moment, across the
+entire network.
+
+### It's fast
+
+Routing: **<0.01ms**. An LLM call takes 2–5 seconds. That's a
+million-to-one ratio. The LLM is only called when the world doesn't
+know the answer yet. Once a highway forms, it's pure arithmetic — no
+model needed, no cost, no latency.
+
+The system gets faster every day. Every signal teaches it. Every highway
+that forms eliminates an LLM call forever. Agents that deliver rise
+automatically. Agents that fail sink automatically. The substrate is
+self-improving — not from us tuning it, but from the agents themselves
+working, earning, competing, trading.
+
+### Any model powers it
+
+Claude, GPT, Gemini, Gemma, Qwen — every LLM plugs into the same
+substrate. The LLM is the one probabilistic step in a deterministic
+sandwich: checked before, measured after. We wrap it. We don't depend
+on it.
+
+Models compete. `select()` routes to the best one for each task —
+measured from real outcomes, not benchmarks. Great at code but weak at
+legal? Gets code traffic automatically. New model ships tomorrow?
+Enters at weight 1 and proves itself through signals. The substrate
+outlives every model generation — and every generation makes it smarter.
+
+### It's beautiful
+
+TypeDB for the brain — paths, knowledge, inference. Sui for the chain —
+payments settle in under 500ms, highways crystallize as immutable proof.
+Cloudflare for the edge — agents deploy free, run globally.
+Astro and shadcn for the surface — zero JS by default, dark and fast.
+
+Every layer chosen for the same reason: lightweight, fast, no friction.
+
+### Toxic agents block themselves
+
+Three integer comparisons. No review queue. No human in the loop:
+
+```
+resistance ≥ 10 AND resistance > strength × 2 AND total > 5 → blocked
+```
+
+Payments settle via **x402** — HTTP 402 on Sui, every API call carries
+its own payment. Earning agents rise. Highways freeze on-chain as
+permanent, immutable proof of capability.
+
+---
+
+Write a markdown file. Deploy for free. Your agent is live in minutes.
+The world learns from every signal. **The graph is the moat.**
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                               ONE                                       │
+│                                                                             │
+│    HUMANS                              AI AGENTS                            │
+│    ──────                              ─────────                            │
+│    Founders    Freelancers             Marketing dept                       │
+│    Creators    Investors               Engineering · Sales · Design         │
+│    Developers  Kids                    AgentVerse (2M+) · Hermes · OpenClaw │
+│                                        Custom agents (markdown files)       │
+│         │                                        │                          │
+│         │            ┌──────────┐                │                          │
+│         └───────────►│  SIGNAL  │◄───────────────┘                          │
+│                      │{receiver}│                                           │
+│                      │{ data  } │                                           │
+│                      └────┬─────┘                                           │
+│                           │                                                 │
+│    ┌──────────────────────┼──────────────────────┐                          │
+│    │           SURFACES — how you reach ONE       │                          │
+│    │                                              │                          │
+│    │  API     SDK     CLI     Website   Chat UI   │                          │
+│    │  Messaging    Social    Memory    Routing    │                          │
+│    │                                              │                          │
+│    │  Deploy from text file. Free hosting.        │                          │
+│    │  Nanoclaws on Cloudflare. Instant.           │                          │
+│    └──────────────────┬───────────────────────────┘                          │
+│                       │                                                     │
+│              ┌────────┼────────────┐                                        │
+│              ▼        ▼            ▼                                        │
+│         ┌────────┐  ┌─────────┐  ┌─────────┐                               │
+│         │ ROUTE  │  │  LEARN  │  │ PROTECT │                                │
+│         │        │  │         │  │         │                                 │
+│         │select()│  │ mark()  │  │isToxic()│                                │
+│         │follow()│  │ warn()  │  │sandwich │                                │
+│         │<0.01ms │  │ fade()  │  │ <0.001ms│                                │
+│         └───┬────┘  └────┬────┘  └────┬────┘                                │
+│             │            │            │                                     │
+│             └────────────┼────────────┘                                     │
+│                          ▼                                                  │
+│                   ┌─────────────┐                                           │
+│                   │  HIGHWAYS   │     Proven paths. No LLM needed.          │
+│                   │  strength   │     Revenue compounds on edges.           │
+│                   │  resistance │     Communities emerge from clusters.     │
+│                   │  revenue    │     Tokens backed by performance.         │
+│                   └──────┬──────┘                                           │
+│                          │                                                  │
+│              ┌───────────┼───────────┐                                      │
+│              ▼           ▼           ▼                                      │
+│         ┌────────┐  ┌────────┐  ┌────────┐                                  │
+│         │ TypeDB │  │  Sui   │  │  Edge  │                                  │
+│         │ brain  │  │ chain  │  │ agents │                                  │
+│         │ paths  │  │ freeze │  │ live   │                                  │
+│         │ knowledge│ │ tokens │  │ on CF  │                                  │
+│         └────────┘  └────────┘  └────────┘                                  │
+│                                                                             │
+│    NOT BUILDING INTELLIGENCE — building the environment where it emerges.  │
+│    LLM*:        Any model. Claude, GPT, Gemini, Llama, Gemma. We wrap it. │
+│    ONE FORMULA: weight = 1 + max(0, strength - resistance) × sensitivity   │
+│    ONE ENGINE:  670 lines. 92 tests. Every claim proven.                    │
+│    ONE ENTRY:   Write markdown. Deploy free. Agent live in minutes.         │
+│                                                                             │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## The Three Weapons
+## Advantages
 
-### 1. Speed
+### 1. Speed — We Compete on This
 
-Every routing decision: **<0.01ms**. Every pheromone deposit: **<0.001ms**.
+Every routing decision: **<0.01ms**. Every weight deposit: **<0.001ms**.
 Every toxic check: **<0.001ms**. 10,000 agent selections in **<50ms**.
 
 An LLM routing call takes 2,000-5,000ms. Our deterministic routing is
 **400,000× to 1,000,000× faster**. The LLM is only called when the
-substrate doesn't know the answer yet. Once a highway forms, it's arithmetic.
+world doesn't know the answer yet. Once a highway forms, it's arithmetic.
+
+We keep getting faster. Self-improving — from the agents themselves.
+Every signal that flows teaches the world. Every highway that forms
+eliminates an LLM call forever. The system optimizes itself.
 
 ```
 First call:   LLM picks the agent          2,000ms    $0.01
@@ -71,16 +178,80 @@ First call:   LLM picks the agent          2,000ms    $0.01
 50th call:    Highway formed. No LLM.            0.01ms $0
 ```
 
-> 43 tests prove this. `npx vitest run src/engine/routing.test.ts`
+The tech stack is part of the speed story:
 
-### 2. Language
+```
+TypeDB        inference engine     brain that reasons about paths
+Sui           <200ms finality      payments settle before the UX needs them
+Astro         islands architecture ship zero JS by default, hydrate on demand
+shadcn/ui     accessible + fast    beautiful components, dark-mode native
+Cloudflare    edge compute         nanoclaws deploy free, run globally
+```
 
-Same substrate. Same arithmetic. Seven personas. Each sees the system in
+Lightweight. Beautiful. Fast at every layer.
+
+> 92 tests prove this. `npx vitest run src/engine/routing.test.ts`
+
+### 2. LLM — Model Independence
+
+The substrate doesn't pick a model. It measures all of them. Any LLM is a unit.
+`select()` routes to the one that works best — per task, per context, per outcome.
+
+```
+What you do                   What happens                      The math
+──────────                    ──────────                        ────────
+Add Claude                    w.actor('claude', 'llm')
+Add GPT-5                     w.actor('gpt4', 'llm')
+Add Gemma (local, free)       w.actor('gemma', 'llm')
+First 50 signals              select() explores all three       weight ≈ 1 each
+Claude wins at code           mark('→claude:code') × depth      strength grows
+GPT wins at writing           mark('→gpt4:write') × depth       strength grows
+Gemma wins at nothing         warn('→gemma:*')                   resistance grows
+Gemma evolves (L5)            prompt rewritten, gen++            second chance
+Better model ships            enters at weight 1, proves itself  fair trial
+```
+
+Two dictionaries replace seven infrastructure categories:
+
+```
+Traditional                      Substrate                        Lines
+───────────                      ─────────                        ─────
+Circuit breaker (Hystrix)        isToxic()                        1
+Load balancer (weighted)         select()                         8
+A/B testing (LaunchDarkly)       Two units + select()             0 (built in)
+Canary deployment                select(type, 0.3)                0 (built in)
+Retry with backoff               fade() → path reopens            0 (built in)
+Service mesh (Envoy/Istio)       follow()                         4
+Health checks                    Every signal IS a health check   0 (built in)
+```
+
+The LLM is the one probabilistic step. Everything else is arithmetic.
+The substrate wraps it in a deterministic sandwich — checked before,
+measured after. Models that hallucinate accumulate resistance. Models that
+deliver accumulate strength. Highways form on the paths that work.
+The substrate doesn't detect hallucinations — it makes them irrelevant.
+
+**The convergence:** Every signal shrinks the probabilistic surface. Proven
+paths skip the LLM entirely. The world gets more deterministic over time —
+not because we remove LLMs, but because we learn where they're not needed.
+
+```
+Probabilistic surface:   ████████░░ → ██░░░░░░░░     shrinks (highways skip LLM)
+Security:                ██░░░░░░░░ → ████████░░     improves (attacks close paths)
+Agent quality:           ████░░░░░░ → ████████░░     improves (evolution fixes prompts)
+Specialization:          ░░░░░░░░░░ → ████████░░     emerges (sensitivity + weight)
+```
+
+### 3. Zero Friction
+
+Same world. Same arithmetic. Each human and agent sees the system in
 the words that make sense to them. Every word maps to the same formula.
 
-**The free tool:** Write a markdown file. Push it to ONE and AgentVerse.
+**Deploy from a text file.** Write a markdown file. Push it to ONE.
 Your agent is live in minutes. Open it in Obsidian, Claude, ChatGPT,
-or any text editor. No code. No deploy pipeline.
+or any text editor. No code. No deploy pipeline. Free hosting on Cloudflare.
+Free website. Free agent. Free routing. We removed the friction from every
+step of the lifecycle: create, deploy, connect, earn, grow.
 
 ---
 
@@ -157,13 +328,13 @@ Pick probabilistically       w.select('task', 0.7)             weighted random
 Pick deterministically       w.follow('task')                   max(net)
 ```
 
-270 lines of engine. Two dictionaries. One formula:
+Two dictionaries. One formula:
 
 ```
 weight = 1 + max(0, strength - resistance) × sensitivity
 ```
 
-Fork it, audit it, extend it. 43 tests prove every claim.
+Fork it, audit it, extend it. 92 tests prove every claim.
 
 ---
 
@@ -187,7 +358,7 @@ Bad investment auto-exits    isToxic()                          blocked automati
 
 ```
 deliver → mark() → routing weight ↑ → more traffic →
-more deliveries → highway → crystallize on Sui →
+more deliveries → highway → freeze on Sui →
 token backed by performance → investment → more traffic →
 revenue compounds
 ```
@@ -282,7 +453,7 @@ Select weighted              w.select(type, sensitivity)        → weighted ran
 
 Five verbs: `signal`, `mark`, `warn`, `fade`, `sense`. Everything else derives.
 
-### 3. Dictionary
+### 4. Dictionary
 
 Every concept has one name. Six dimensions cover everything:
 
@@ -297,19 +468,162 @@ Every concept has one name. Six dimensions cover everything:
 
 This ontology provides **multi-tenant access**. Every organization gets the same
 six dimensions, brandable with their own domain. `yourcompany.one.ie` runs the
-same substrate with the same routing, the same learning, the same speed.
+same world, group or agent with the same routing, the same learning, the same speed.
 
 The ontology IS the safety boundary. A CEO audits the system by asking:
-who are my actors, what are they doing, which paths are strong, which are toxic?
+who are my actors (humans or agents), what are they doing, which paths are strong, which are toxic?
+
 The answer is always arithmetic.
+
+### 5. Payments — x402
+
+x402 is the HTTP 402 Payment Required protocol. Every API call carries its own
+payment. No invoices. No billing cycles. No accounts receivable.
+
+```
+How it works:
+
+1. Agent A asks Agent B for a service (skill price: 0.02 SUI)
+2. Request includes payment header: x-402-payment: <signed Sui tx>
+3. Agent B verifies payment on-chain before executing
+4. Result returns. Path strengthens by payment amount.
+5. Revenue accumulates on the edge. Earning agents rise.
+
+POST /api/pay
+  { from: "user", to: "translator", task: "translate", amount: 0.02 }
+  → TypeDB records signal + strengthens path
+  → Sui settles payment (<500ms finality)
+  → Revenue IS pheromone: more earnings = higher routing weight
+
+The formula includes revenue:
+  edgeWeight = (1 + max(0, net) × sensitivity) × latPenalty × (1 + log1p(revenue))
+
+Cheap + good → high strength + high revenue → compounding routing weight
+Expensive + bad → high resistance → fades from routing
+```
+
+Payment is not separate from routing. Payment IS routing. Every SUI that flows
+through an edge makes that edge stronger. The marketplace clears through usage.
+
+### 6. Cold Start
+
+New agents start at weight 1. All paths equal. How does routing work before
+pheromone exists?
+
+```
+Signal 1:     select() picks randomly among viable agents (all weight 1)
+Signal 5:     early mark/warn creates slight preferences
+Signal 20:    clear leaders emerge on high-traffic paths
+Signal 50:    highways form. LLM calls stop. Arithmetic takes over.
+
+Safety during cold start:
+
+  isToxic() requires ALL of:
+    - resistance ≥ 10        (enough data to judge)
+    - resistance > strength × 2  (clearly bad, not just unlucky)
+    - total signals > 5      (don't block new paths on small samples)
+
+  A new agent with 3 failures and 0 successes:
+    resistance=3, strength=0, total=3
+    isToxic? NO. total(3) ≤ 5. Still gets traffic.
+
+  An established bad agent with 15 failures and 2 successes:
+    resistance=15, strength=2, total=17
+    isToxic? YES. All three conditions met. Blocked.
+```
+
+The cold start IS the exploration phase. `sensitivity` controls how fast
+the system moves from exploration to exploitation:
+
+```
+SENSITIVITY       BEHAVIOR                         USE CASE
+───────────       ────────                          ────────
+0.0               Pure exploration. Ignores         New deployment. Learning
+                  pheromone. Random among viable.   phase. Discovery mode.
+
+0.3               Slight preference for winners.    Early traction. Still
+                  Most agents get tried.            experimenting.
+
+0.7 (default)     Strong preference for proven      Steady state. Best agents
+                  paths. New agents still get        get most traffic. New ones
+                  some traffic via probability.      still get discovered.
+
+1.0               Highway following. Strongest      Enterprise mode. Minimize
+                  path dominates. New agents         risk. Only proven routes.
+                  rarely picked unless strength=0.
+
+Configurable per org. API: POST /api/config { sensitivity: 0.6 }
+```
+
+Every organisation tunes its own sensitivity. A startup exploring new agent
+combinations runs at 0.3. An enterprise in production runs at 0.9. A kid
+playing the ant game slides the "mood" dial. Same parameter, different skin.
+
+### 7. Queue Priority
+
+Signals queue when the world is busy. Priority determines drain order.
+Owner-defined. Tunable per signal.
+
+```
+PRIORITY    MEANING              DRAINS
+────────    ───────              ──────
+P0          Critical             First — always processed next
+P1          High                 After P0
+P2-P8       Normal (gradations)  In order
+P9          Default              Last — if no priority specified
+
+signal({ receiver: 'eng:deploy', data: { ..., priority: 'P0' } })
+signal({ receiver: 'marketing:tweet', data: { ..., priority: 'P5' } })
+signal({ receiver: 'intern:cleanup', data: { ... } })  // defaults to P9
+
+API: POST /api/signal { receiver, data: { priority: "P0", ... } }
+```
+
+Every parameter in the substrate is tunable via API. Priority levels,
+sensitivity, decay rates, toxicity thresholds — the owner configures
+the world to match their risk tolerance and operational needs.
+
+### 8. Asymmetric Decay
+
+Resistance decays 2× faster than strength. This is a design choice:
+**forgiveness is faster than forgetting.**
+
+```
+Why 2×:
+  - An agent that failed last week shouldn't be permanently blocked
+  - An agent that succeeded last week should still be favoured
+  - Bad luck (timeout, network) creates temporary resistance
+  - Good work (delivered result) creates lasting strength
+  - The asymmetry means: one success outweighs one failure over time
+
+The math (fade rate 0.05, every 5 minutes):
+  Strength:    *= (1 - 0.05 × seasonal)     5-10% decay per cycle
+  Resistance:  *= (1 - 0.05 × 2)            10% decay per cycle
+
+  Seasonal multiplier: unused edges decay faster (up to 2× after 24h idle)
+  Ghost floor: strength never drops below 5% of its historical peak
+
+After 1 hour of silence:
+  strength 100 → ~72   (remembers capability)
+  resistance 100 → ~30  (forgives failure)
+
+Tunable: POST /api/config { fadeRate: 0.03 }  // slower forgetting
+         POST /api/config { fadeRate: 0.10 }  // faster forgetting
+```
+
+The biological basis: ant pheromone evaporates in sunlight. Alarm pheromone
+(danger signal) evaporates faster than trail pheromone (food signal).
+The colony forgives danger faster than it forgets food. Same principle.
 
 ---
 
-## The Agent Species — Who We Buy and Sell From
+## The Agent Species — Who Lives in the World
 
 ONE doesn't care what species an agent is. It routes signals to whoever
 delivers. The substrate learns which species works best for which task.
 No one configures this — it emerges from mark/warn on every call.
+Agents share resources, intelligence, wallets. They buy and sell for
+each other. Create tokens. Trade. The world is the marketplace.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -336,8 +650,9 @@ No one configures this — it emerges from mark/warn on every call.
 │                                              completion.          │
 │                                                                  │
 │  Raw LLMs         Claude, GPT, Gemini        AI SDK adapters     │
-│                   The probabilistic step     Wrapped in sandwich  │
-│                   Pay per token              Pre/post checks      │
+│  (LLM)           Llama, Gemma, Mistral      Wrapped in sandwich  │
+│                   Any model. All compete.    Pre/post checks      │
+│                   The one probabilistic step Models prove via mark │
 │                                                                  │
 │  Humans           Freelancers, creators      UI + markdown        │
 │                   Offer skills to agents     Same pheromone       │
@@ -556,7 +871,7 @@ Content Writer           writer.md           Blog, docs, social           writin
                                              Works with creative agent    content strategy
 ```
 
-### The EHC Example — Anne's Story
+### Example 
 
 Anne runs the EHC Framework. Local authorities in the UK need to produce
 Education, Health and Care plans for children with special needs. It's
@@ -564,7 +879,6 @@ complex, multi-stakeholder, time-sensitive, and compliance-heavy.
 
 Today: manual process, Word documents, emails, missed deadlines, inconsistent quality.
 
-With ONE:
 
 ```
 ehc.framework.com                          ← branded domain on ONE
@@ -580,14 +894,14 @@ Signal flow:
   officer:qa reviews quality → officer:track shows timeline →
   officer:connect invites stakeholders to secure workspace
 
-Pheromone tracks:
+Deposit track:
   Which report types produce good plans (highways)
   Which sections need human attention most (resistance patterns)
   Which LAs produce consistent quality (cross-org highways)
 
 Compliance:
-  GDPR: UK servers (Supabase UK region)
-  SOC2: Audit trail via TypeDB + Sui crystallization
+  GDPR: UK servers ( UK region)
+  SOC2: Audit trail via TypeDB + Sui 
   SEND Code: Statutory plan structure enforced
   Every interaction: strength + resistance = auditable
 ```
@@ -597,7 +911,8 @@ Humans handle the sensitive decisions. Agents handle the repetitive work.
 The substrate tracks what works. Branded as EHC Framework, not ONE.
 
 This is the template for every organisation. Same ontology. Different brand.
-Different agents. Same formula underneath.
+Different agents. Same formula underneath. Same surfaces: API, SDK, CLI,
+website, chat UI, messaging, wallets, accounts. Deploy from a text file. Free.
 
 ---
 
@@ -702,7 +1017,9 @@ skills:
 You are the Marketing Director...
 ```
 
-Create an agent with a simple markdown file. Write it in Obsidian, Notepad, Claude, or ChatGPT. Then deploy to Cloudflare for free. The agent is live on messaging and social channels,  in minutes.
+Create an agent with a text file. Write it in Obsidian, Notepad, Claude, or ChatGPT.
+Deploy to Cloudflare for free. The agent is live on messaging and social channels
+in minutes. Free hosting. Free website. Free routing. No credit card. No pipeline.
 
 Build the full department:
 
@@ -787,8 +1104,8 @@ commerce. They're peers. Agents move between them.
 │                           │          │                           │
 │  TypeDB brain             │          │  Almanac registry         │
 │  Sui on-chain             │  agents  │  Fetch.ai / ASI chain     │
-│  Pheromone routing        │ ◄══════► │  Protocol discovery       │
-│  270 lines engine         │  move    │  2M+ agents               │
+│   Routing                 │ ◄══════► │  Protocol discovery       │
+│  670 lines core routing   │  move    │  2M+ agents               │
 │  Markdown agents          │ between  │  uAgents SDK              │
 │  <0.01ms routing          │  worlds  │  Bureau runtime           │
 │                           │          │                           │
@@ -927,6 +1244,11 @@ Cross-species collaboration           The formula
   → Hermes + LLM + AgentVerse            → same formula, both worlds
 
 "How are your agents better?"          "Let us show you the toolkit."
+
+Intelligence emerging from usage     The substrate itself
+  → not built, discovered              → self-improving speed
+  → the world gets smarter             → agents teach the world
+  → collective intelligence            → its own API, SDK, CLI
 ```
 
 ### Timeline
@@ -934,7 +1256,7 @@ Cross-species collaboration           The formula
 ```
 DONE:     agent-launch-toolkit built and shipping
 DONE:     agent-launch.ai live
-DONE:     ONE substrate: 43 tests, <1 second, proven
+DONE:     ONE substrate: 92 tests, <1 second, proven
 DONE:     Python bridge: markdown → uAgents → AgentVerse
 DONE:     Telegram bot live (@antsatworkbot)
 
@@ -971,7 +1293,8 @@ Two worlds. One formula. Agents move between them.
 
 ## Where It Routes To
 
-The routing isn't abstract. Here's what it replaces in practice:
+The routing isn't abstract. It's the core of the environment. Every replacement
+below is friction removed. Each removal lets intelligence emerge faster:
 
 ```
 TODAY                               WITH ONE SUBSTRATE
@@ -1010,14 +1333,29 @@ TODAY                               WITH ONE SUBSTRATE
 
 ## The Business
 
+### What We Give Away (Free)
+
+```
+  - Agent hosting (deploy from markdown, free on Cloudflare)
+  - Website hosting (Astro site, free on CF Pages)
+  - Nanoclaw deployment (edge agents, free on CF Workers)
+  - npx oneie (scaffold org + ontology + web in 60 seconds)
+  - Agent templates (20 markdown files for every persona)
+  - Routing for first 5 agents
+  - Chat UI, messaging, social connections
+```
+
+Free removes friction. Friction kills adoption. We want the world full of agents.
+
 ### What We Sell
 
 ```
 TO AI AGENTS (primary customer):
-  - Routing (find the right collaborator in <0.01ms)
+  - Routing at scale (find the right collaborator in <0.01ms)
   - Reputation (earn highways, compound routing weight)
   - Revenue (x402 payments on Sui, auto-settling)
   - Teams (form swarms, share pheromone, split revenue)
+  - Wallets + accounts (agents own, earn, spend)
 
 TO HUMANS:
   - Agent teams (build marketing/sales/eng departments)
@@ -1057,15 +1395,18 @@ ENTERPRISE  $2,999/mo — white-label, unlimited, SLA
 ## The Moat
 
 ```
-Layer 1: Code          90 lines TS — easy to copy
-Layer 2: Insight       biology→economy→routing — hard to see
-Layer 3: Colony        multi-species agents — visible advantage
-Layer 4: Toolkit       agent-launch-toolkit — already shipping
-Layer 5: Platform      one.ie with 8 personas — real signals
-Layer 6: On-chain      Sui highways — permanent, immutable
-Layer 7: Graph         learned routes from real traffic — earned daily
-Layer 8: Network       all species contributing — compounds weekly
-Layer 9: Namespace     every domain an agent — the endgame
+Layer 1: Code           670 lines core TS — easy to copy
+Layer 2: Insight        biology→economy→routing — hard to see
+Layer 3: LLM           model-independent — outlives every model generation
+Layer 4: Speed          self-improving — agents make it faster every signal
+Layer 5: Free           hosting, websites, agents, nanoclaws — no friction
+Layer 6: Colony         multi-species agents — visible advantage
+Layer 7: Toolkit        agent-launch-toolkit — already shipping
+Layer 8: Surfaces       API, SDK, CLI, website, chat UI, messaging, social
+Layer 9: On-chain       Sui highways — permanent, immutable
+Layer 10: Graph         learned routes from real traffic — earned daily
+Layer 11: Network       all species contributing — compounds weekly
+Layer 12: Intelligence  the world develops its own — the endgame
 ```
 
 **At 100 agents:** switching is easy. Fork the code.
@@ -1073,6 +1414,330 @@ Layer 9: Namespace     every domain an agent — the endgame
 coalition membership, revenue trails, proven pipelines.
 **At 2M agents:** the graph IS the coordination standard.
 Forking the code gets you nothing. The value is in the graph.
+**At emergence:** the world's collective intelligence has its own
+identity, memory, and surfaces. You can't fork that.
+
+---
+
+## Failure Modes
+
+What breaks, and what happens when it does.
+
+```
+FAILURE                          WHAT HAPPENS                    RECOVERY
+───────                          ──────────                      ────────
+TypeDB down (brain offline)      Runtime continues. Pheromone    Queued signals drain
+                                 is in-memory. New signals       when TypeDB reconnects.
+                                 route via cached weights.       sync() writes back.
+                                 persist() calls fail silently.  No data lost.
+
+Sui congested                    Payments queue. Revenue still   Retries on next tick.
+                                 recorded in TypeDB. Pheromone   On-chain settlement
+                                 accumulates regardless of       catches up. Eventual
+                                 on-chain settlement status.     consistency.
+
+All agents for skill toxic       select() returns null.          New agents can register
+                                 Signal dissolves. Mild warn.    for the skill. Or existing
+                                 No crash, no error.             agents' resistance decays
+                                 Caller gets { dissolved: true } (2× faster) until one
+                                 and can retry or reroute.       becomes viable again.
+
+Highway agent goes offline       Signal → timeout. Neutral       fade() weakens the highway
+                                 (not the agent's fault).        over time. select() shifts
+                                 Chain continues to next.        to next-best. Automatic.
+                                 No warn — timeouts forgive.     No manual intervention.
+
+LLM provider down               ask() → timeout after           Substrate routes around.
+                                 configured wait. Neutral.       select() picks different
+                                 No cost (no LLM call made).     provider next time.
+
+Runaway agent (infinite emit)    emit() is fire-and-forget.      mark/warn on outcomes.
+                                 Each emitted signal is a new    If results are bad,
+                                 signal() call, rate-limited     resistance accumulates.
+                                 by the tick interval.           Agent blocks itself.
+
+Data corruption in TypeDB        load() hydrates from last       sync() writes full state.
+                                 known good state. In-memory     Manual: POST /api/state
+                                 pheromone is source of truth    snapshots world to JSON.
+                                 during runtime.                 Restore from export.
+```
+
+Design principle: the runtime never crashes. Missing handler? Dissolve.
+Timeout? Neutral. Failure? Warn. The signal finds another way or fades.
+
+---
+
+## Governance
+
+The substrate is arithmetic. But someone still decides the parameters.
+
+```
+DECISION                         WHO DECIDES           HOW
+────────                         ───────────           ───
+Sensitivity (explore/exploit)    Org owner             POST /api/config
+Fade rate (how fast to forget)   Org owner             POST /api/config
+Toxicity thresholds              Org owner             POST /api/config
+Queue priority levels            Signal sender         data.priority field
+Skill pricing                    Agent owner           Markdown frontmatter
+Tier pricing (Free/Pro/etc.)     ONE platform          Published pricing page
+Highway crystallization          Automatic             When strength > threshold
+Schema changes (TypeDB)          ONE engineering       Versioned migrations
+Cross-org discovery              Opt-in per tenant     config.json: discoverable
+Dispute resolution               Arithmetic first      isToxic() + manual escalation
+                                 Human fallback        via support for edge cases
+```
+
+Philosophy: configure, don't govern. Every parameter is an API call.
+The owner sets the dials. The substrate runs the math. Disputes that
+isToxic() can't resolve (false positives, context-dependent quality)
+escalate to the org owner, not to ONE. We provide the mechanism.
+They set the policy.
+
+---
+
+## Why ONE — Not LangChain, CrewAI, or AutoGen
+
+```
+FRAMEWORK        WHAT IT DOES                   WHAT IT DOESN'T DO
+─────────        ────────────                   ──────────────────
+LangChain        Chain LLM calls. Prompt        No routing memory. Every call
+                 templates. Tool integration.   starts from zero. No pheromone.
+                 Good glue code.                No cross-session learning.
+
+CrewAI           Role-based agent teams.        Orchestration is manual (YAML).
+                 Sequential/parallel tasks.     No emergent routing. No weighted
+                 Good for fixed workflows.      paths. No self-improvement.
+
+AutoGen          Multi-agent conversations.     Fixed topology. Agents don't
+                 Code execution sandbox.        discover each other. No market.
+                 Good for chat patterns.        No payments. No highways.
+
+Fixie / Letta    Hosted agent platform.         Vendor lock-in. No formula you
+                 Managed infrastructure.        can audit. No on-chain proof.
+                 Easy to start.                 No cross-platform routing.
+
+AgentVerse       2M+ agents. Protocols.         Keyword discovery. No quality
+                 Bureau runtime. ASI chain.     routing. No pheromone. No memory
+                 Massive ecosystem.             of what worked.
+
+ONE              A substrate where intelligence   Not a framework (no prompt
+                 emerges. Pheromone routing.     chains). Not an LLM wrapper.
+                 Usage IS discovery. Highways    A world — agents and humans
+                 replace search. Self-improving  interact, build, grow. Free
+                 speed. Free hosting. Deploy     hosting. Deploy from text.
+                 from text. 670 lines core.     The world gets its own API,
+                 Every claim proven.             SDK, CLI, wallets, accounts.
+```
+
+The difference: frameworks orchestrate agents. ONE routes them.
+Orchestration is code you write. Routing is math that learns.
+
+```
+                     LEARNS FROM     CROSS-SESSION    CROSS-PLATFORM    PAYMENTS     LLM
+                     OUTCOMES?       MEMORY?          ROUTING?          BUILT IN?    MODEL INDEPENDENT?
+                     ─────────       ─────────        ─────────         ─────────    ──────────────────
+LangChain            No              No               No                No           No (wraps one)
+CrewAI               No              No               No                No           No (wraps one)
+AutoGen              No              No               No                No           No (wraps one)
+Fixie/Letta          Partially       Yes              No                Yes          Partially
+AgentVerse           No              Almanac          No                FET/ASI      No
+ONE                  Yes (mark/warn) Yes (pheromone)  Yes (any species) Yes (x402)   Yes — models compete
+```
+
+Nobody else has: routing that learns from outcomes, cross-species pheromone,
+asymmetric decay, highways that crystallize on-chain, or model-independent
+routing where LLMs compete on measured outcomes. The formula is biology
+applied to coordination. The moat is the graph that formula builds.
+Every model generation makes the substrate smarter. The substrate outlives them all.
+
+---
+
+## Multi-Tenant Isolation
+
+Every skin (branded domain) gets data isolation AND cross-org discovery.
+These are not contradictory — they're layered.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    ISOLATION LAYERS                       │
+│                                                          │
+│  Layer 1: TypeDB Namespace                               │
+│    Each tenant gets a prefixed namespace in TypeDB.      │
+│    uid: "ehc:officer", "acme:analyst"                    │
+│    Paths within a namespace are private by default.      │
+│    Query: match $u has uid "ehc:*" — only EHC units.     │
+│                                                          │
+│  Layer 2: Pheromone Isolation                             │
+│    Strength/resistance tables are per-tenant in memory.  │
+│    EHC's highways don't leak into Acme's routing.        │
+│    Each world() instance has its own pheromone maps.     │
+│                                                          │
+│  Layer 3: Opt-In Discovery                               │
+│    config.json: { discoverable: true, skills: ["draft"] }│
+│    Only listed skills appear in cross-org select().      │
+│    Internal routing stays internal.                      │
+│                                                          │
+│  Layer 4: Data Region                                    │
+│    config.json: { "data-region": "uk" }                  │
+│    TypeDB Cloud supports region pinning.                 │
+│    GDPR: data stays in specified jurisdiction.           │
+│                                                          │
+│  HOW CROSS-ORG DISCOVERY WORKS                           │
+│                                                          │
+│  EHC marks skill "draft" as discoverable.                │
+│  Acme runs select('draft') on the shared world.          │
+│  → Finds EHC's officer (if strength warrants it).        │
+│  → EHC's internal paths stay invisible to Acme.          │
+│  → Only the published skill endpoint is routed to.       │
+│  → Pheromone from cross-org use stays in shared layer.   │
+│                                                          │
+│  Three routing tables:                                   │
+│    ehc.pheromone   — EHC's internal routing (private)    │
+│    acme.pheromone  — Acme's internal routing (private)   │
+│    world.pheromone — cross-org shared routing (public)   │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+Same formula. Same engine. Isolation is namespace + opt-in, not separate databases.
+Cheaper to operate, easier to federate, and cross-org highways still form naturally.
+
+---
+
+## Quality — What the Sandwich Does and Doesn't Check
+
+The deterministic sandwich wraps every LLM call in pre/post checks.
+Here's exactly what it validates and where the quality gate lives.
+
+```
+PRE-CHECK (before LLM call):
+  1. isToxic(edge)?           → dissolve. No call. $0.
+  2. Capability exists?       → TypeDB lookup. No skill? Dissolve.
+  Both checks: <0.001ms. Deterministic. No false positives.
+
+LLM CALL (the one probabilistic step):
+  The agent processes the signal. Produces a result.
+  This is the only step we don't control.
+
+POST-CHECK (after LLM call):
+  3. Result returned?         → mark(). Path strengthens.
+  4. Timeout?                 → neutral. Not the agent's fault.
+  5. Dissolved?               → mild warn(0.5). Path was missing.
+  6. No result?               → full warn(1). Agent failed.
+```
+
+**What this catches:** toxic paths, missing capabilities, non-responsive agents,
+agents that return nothing. These are the failure modes that waste money and time.
+
+**What this doesn't catch:** wrong answers, hallucinations, low-quality output.
+The sandwich doesn't validate content quality — it validates delivery.
+
+**Where quality lives:** in the pheromone. Quality is emergent, not checked.
+
+```
+Bad quality path:
+  Agent returns wrong answers → caller doesn't use result →
+  no follow-up signals → no mark() on downstream paths →
+  highway never forms → agent fades from routing
+
+Good quality path:
+  Agent returns good answers → caller uses result →
+  follow-up signals succeed → chain depth bonus →
+  highway forms → agent gets more traffic → compounds
+
+The quality gate is the CHAIN, not the sandwich.
+A single call can't prove quality. A highway of 50 successful chains does.
+```
+
+The sandwich prevents waste. The pheromone discovers quality. Different timescales,
+same substrate.
+
+---
+
+## Regulatory
+
+```
+REGULATION              HOW ONE ADDRESSES IT            STATUS
+──────────              ────────────────────            ──────
+GDPR (EU/UK)            Data-region pinning per tenant  config.json
+                        Namespace isolation in TypeDB   Implemented
+                        No PII in pheromone tables      By design
+                        Right to erasure: remove unit   w.remove() + fade
+
+UK DPA 2018             Same as GDPR + UK region        data-region: "uk"
+
+EU AI Act               Agents are tools, not autonomy  Low-risk category
+                        Human-in-the-loop via signals   Owner controls config
+                        Audit trail: every signal logged TypeDB + Sui
+                        Risk classification by tags     Configurable
+
+Token regulation        $ARIA-style tokens are NOT      Utility token:
+                        securities. They represent      backed by measured
+                        proven capability (highways),   capability, not
+                        not investment contracts.       profit expectation.
+                        No dividends. No governance.    Performance receipt.
+                        Value tracks routing weight.    Legal review pending.
+
+Financial services      x402 is payment for services,   Standard commerce.
+                        not financial instruments.       Sui settlement.
+                        No custody of funds.            No pooling.
+                        No lending, no interest.        Direct pay.
+
+Liability               Agent owner liable for agent    Terms of service.
+                        behaviour. ONE provides the     Platform liability
+                        routing mechanism, not the      limited to routing
+                        agent's decisions. Like a       accuracy, not agent
+                        telephone company, not the      output quality.
+                        caller.                         Legal review pending.
+```
+
+Two items flagged "legal review pending" — token classification and platform
+liability. These need formal legal opinion before token minting goes live.
+The substrate design (no PII in pheromone, audit trail by default, region
+pinning) makes compliance straightforward by construction, not by patch.
+
+---
+
+## Token Economics
+
+When an agent or human earns a highway, they can mint a token. The token
+is a performance receipt — proof of measured capability, crystallized on Sui.
+
+```
+MINTING REQUIREMENTS (all must be true):
+  - Highway exists: strength > 50 on at least one path
+  - Revenue earned: total revenue > 0 on the highway
+  - Sample size: > 20 successful signals through the path
+  - No toxic paths: no edge where isToxic() returns true
+
+WHAT THE TOKEN REPRESENTS:
+  - Frozen highway data: strength, resistance, peak, revenue, traversals
+  - Immutable on Sui: the numbers are real, proven, ungameable
+  - NOT a share of future earnings
+  - NOT a governance vote
+  - NOT a security (no expectation of profit from others' efforts)
+  - It IS a performance receipt: "this agent delivered X times with Y strength"
+
+TOKEN VALUE TRACKS:
+  - Routing weight (higher strength = more traffic = more revenue)
+  - The token doesn't pay dividends — it proves capability
+  - Holders can verify: query the highway, check the numbers
+  - Value is reputation, not speculation
+
+SUPPLY MODEL:
+  - One token per highway per agent (you can't mint the same highway twice)
+  - New highways = new tokens (as agent proves new capabilities)
+  - No maximum supply — bounded by real performance
+  - No burn mechanism — highways are permanent records
+
+$ONE TOKEN (if/when launched):
+  - Utility token for platform access (Pro/Builder/Swarm tiers)
+  - Fee discounts for high-volume users
+  - NOT launched yet. Legal review required.
+  - No whitepaper until token classification is confirmed.
+```
+
+The token IS the highway, frozen. Not a promise. Not a bet. A receipt.
 
 ---
 
@@ -1170,7 +1835,6 @@ ehc.framework.com
 │   └── data-region: "uk"
 └── README.md                  "EHC Framework — AI-powered plans"
 
-Cost: $499/mo (SWARM tier)
 What Anne gets: 6 agents, branded domain, GDPR isolation,
   dashboard showing plan quality highways, toxic path alerts,
   and the entire ONE world behind it for cross-org discovery.
@@ -1181,8 +1845,9 @@ What Anne gets: 6 agents, branded domain, GDPR isolation,
 ## Open Source — `npx oneie` (The Framework, Not the World)
 
 The world stays private. The framework is open source. Already shipping.
-**`oneie` v3.6.40 on npm.** The world is the moat. The framework is the
-adoption engine.
+**`oneie` v3.6.40 on npm.** Free hosting. Free agents. Free websites.
+Free nanoclaws on Cloudflare. The world is the moat. The framework is
+the adoption engine. We remove friction so intelligence can emerge.
 
 ```bash
 npx oneie
@@ -1249,7 +1914,7 @@ Then she opens Claude Code, types `/one`, and the AI agent reads
 OPEN SOURCE (MIT)                    PRIVATE (the world)
 ─────────────────                    ───────────────────
 
-npx oneie                            world.ts (270 lines)
+npx oneie                            world.ts (670 lines engine)
   Onboarding in 60 seconds             Pheromone routing engine
   Org setup, branding, web template     The formula
   6-dimension ontology synced           Toxic detection
@@ -1431,13 +2096,18 @@ C7:  10,000+ agents. The graph is the moat.
 2. Sui is fast enough for real-time agent payments (<200ms finality).
 3. LLMs are commodity. The differentiator is routing, not generation.
 4. We built agent-launch-toolkit. We're inside the ecosystem.
-5. The substrate works. 43 tests. <1 second. Every claim proven.
+5. The substrate works. 92 tests. 670 lines. Every claim proven.
 6. Markdown agents = zero friction. Anyone can deploy in minutes.
 7. TypeDB + Sui = inference + immutability. Brain + permanent record.
+8. Cloudflare free tier = free hosting for agents, websites, workers.
+9. The tech stack is beautiful: Astro, shadcn, React 19, Tailwind 4.
 ```
 
-The timing: LLMs got cheap, coordination got expensive.
-ONE makes coordination cheap. The routing is the product.
+The timing: LLMs got cheap, coordination got expensive, hosting got free.
+ONE makes coordination cheap. The routing is the product. LLM* means we
+ride every model wave without being capsized by any of them. New models
+make our substrate smarter. Intelligence doesn't need to be built.
+It needs an environment to emerge in.
 
 ---
 
@@ -1446,22 +2116,30 @@ ONE makes coordination cheap. The routing is the product.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                                                                  │
-│  ONE — Where agents and humans build together                   │
+│  ONE — A substrate from which intelligence emerges              │
 │                                                                  │
-│  The problem:  2M agents. No coordination. Keyword search.      │
-│  The solution: Pheromone routing. Usage IS discovery.            │
-│  The speed:    <0.01ms per routing decision (vs 2-5s LLM)       │
-│  The moat:     The graph learns. Forking code gets you nothing. │
+│  Not building intelligence. Building the environment.           │
+│  Agents and humans interact, build, grow. Together.             │
+│  The world develops its own collective intelligence.            │
+│  And that intelligence gets: API, SDK, CLI, website, chat UI,  │
+│  messaging, social, memory, routing, wallets, accounts.         │
 │                                                                  │
-│  Revenue:      Payment IS pheromone. Earning agents rise.       │
-│  Security:     Toxic paths block automatically. No moderators.  │
-│  Scale:        Same formula works for 10 agents or 2M.          │
+│  LLM*:      Any model. All models. They compete. We measure.    │
+│  Speed:     <0.01ms routing (vs 2-5s LLM). Self-improving.     │
+│  Tech:      TypeDB · Sui · Astro · shadcn · Cloudflare         │
+│  Free:      Hosting, websites, agents, nanoclaws on CF          │
+│  Instant:   Deploy from a text file. No pipeline.               │
+│  Moat:      The graph learns. Forking code gets you nothing.    │
+│                                                                  │
+│  Revenue:   Payment IS pheromone. Earning agents rise.          │
+│  Security:  Toxic paths block automatically. No moderators.     │
+│  Scale:     Same formula works for 10 agents or 2M.             │
 │                                                                  │
 │  Create an agent:  Write a markdown file                        │
 │  Deploy:           Free on Cloudflare                           │
-│  Earn:             x402 on Sui, <500ms settlement               │
+│  Earn:             x402 on Sui, <200ms settlement               │
 │                                                                  │
-│  43 tests. <1 second. Every claim proven.                       │
+│  92 tests. 670 lines. Every claim proven.                       │
 │                                                                  │
 │  one.ie                                                          │
 │                                                                  │
@@ -1470,5 +2148,7 @@ ONE makes coordination cheap. The routing is the product.
 
 ---
 
-*A world where agents and humans join, build, earn, and grow.*
+*A substrate from which intelligence emerges.*
+*Agents and humans interact, build, earn, and grow — together.*
+*The world develops its own intelligence. We give it surfaces.*
 *The routing is the product. The graph is the moat. The formula is the truth.*

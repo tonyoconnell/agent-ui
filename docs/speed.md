@@ -97,9 +97,7 @@ From [lifecycle.md](lifecycle.md), speed is not abstract—it's bound to the age
 
 ---
 
-## Why These Targets Matter
-
-**Lifecycle drives speed.** From lifecycle.md:
+##  **Lifecycle drives speed.** From lifecycle.md:
 
 - **<1ms nervous system** (L1–L3): Signals must complete before the next one fires. If marking takes 500ms, the substrate blocks. At 0.01ms, it's invisible.
 - **<10ms highways** (L2–L3): "Highway routing <10ms instead of 2s LLM call." The economic flywheel requires fast reads; no one will use highways that take longer than a fresh LLM inference.
@@ -151,7 +149,7 @@ for (let i = 0; i < 100; i++) {
 // Response: success rate, avg latency, p99
 ```
 
-### 3. Mark + Warn (Pheromone)
+### 3. Mark + Warn (Place Weight)
 
 ```typescript
 // src/pages/api/speedtest/pheromone.ts
