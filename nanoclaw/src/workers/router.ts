@@ -2,7 +2,9 @@
  * NanoClaw Router — Receives webhooks, normalizes to signals, queues for processing
  *
  * Routes:
- *   POST /webhook/:channel  — Channel webhooks (telegram, discord, web)
+ *   POST /message           — Send a web message (direct API)
+ *   GET  /messages/:group   — Retrieve conversation history
+ *   POST /webhook/:channel  — Channel webhooks (telegram, discord)
  *   POST /signal            — Substrate signals from other units
  *   GET  /health            — Status check
  *   GET  /highways          — Proven paths
@@ -32,6 +34,129 @@ app.get('/highways', async (c) => {
   const limit = parseInt(c.req.query('limit') || '10')
   const paths = await highways(c.env, limit)
   return c.json({ highways: paths })
+})
+
+// Get conversation history
+app.get('/messages/:group', async (c) => {
+  try {
+    const group = c.req.param('group')
+    const result = await c.env.DB.prepare(`
+      SELECT id, sender, content, role, ts FROM messages
+      WHERE group_id = ?
+      ORDER BY ts ASC
+      LIMIT 100
+    `).bind(group).all()
+
+    return c.json({
+      group,
+      messages: result.results || [],
+    })
+  } catch (e) {
+    console.error('Get messages error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
+})
+
+// Send a web message (direct API) — process synchronously for instant response
+app.post('/message', async (c) => {
+  try {
+    const { group, text, sender = 'user' } = await c.req.json() as {
+      group: string
+      text: string
+      sender?: string
+    }
+
+    if (!group || !text) {
+      return c.json({ ok: false, error: 'group and text required' }, 400)
+    }
+
+    // Ensure group exists
+    await c.env.DB.prepare(`
+      INSERT OR IGNORE INTO groups (id, channel, name, created_at)
+      VALUES (?, ?, ?, ?)
+    `).bind(group, 'web', group, Math.floor(Date.now() / 1000)).run()
+
+    // Store user message
+    const msgId = `web-${Date.now()}`
+    await c.env.DB.prepare(`
+      INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
+      VALUES (?, ?, 'web', ?, ?, 'user', ?)
+    `).bind(msgId, group, sender, text, Date.now()).run()
+
+    // Process immediately (synchronous)
+    const context = await loadContext(c.env, group)
+    const messages = await buildMessages(c.env, group)
+
+    const openaiTools = tools.map(t => ({
+      type: 'function' as const,
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.input_schema,
+      },
+    }))
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${c.env.OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://one.ie',
+        'X-Title': 'NanoClaw',
+      },
+      body: JSON.stringify({
+        model: context.model,
+        max_tokens: 4096,
+        messages: [
+          { role: 'system', content: context.systemPrompt },
+          ...messages,
+        ],
+        tools: openaiTools,
+      }),
+    })
+
+    const resText = await res.text()
+    if (!res.ok) {
+      console.error('OpenRouter error:', res.status, resText.slice(0, 500))
+      await warn(c.env, 'entry', `nanoclaw:${group}`, 0.5)
+      return c.json({ ok: false, error: 'LLM request failed' }, 500)
+    }
+
+    const data = JSON.parse(resText)
+    const choice = data.choices?.[0]?.message
+    let reply = (choice?.content as string) || ''
+
+    // Execute tool calls if any
+    if (choice?.tool_calls) {
+      for (const call of choice.tool_calls) {
+        const input = JSON.parse(call.function.arguments)
+        await executeTool(c.env, group, call.function.name, input)
+      }
+    }
+
+    // Store assistant message if there's a response
+    const respId = `resp-${Date.now()}`
+    if (reply) {
+      await c.env.DB.prepare(`
+        INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
+        VALUES (?, ?, 'web', 'assistant', ?, 'assistant', ?)
+      `).bind(respId, group, reply, Date.now()).run()
+
+      // Mark success
+      await mark(c.env, 'entry', `nanoclaw:${group}`)
+    }
+
+    return c.json({
+      ok: true,
+      id: msgId,
+      group,
+      response: reply || null,
+      responseId: reply ? respId : null,
+    })
+  } catch (e) {
+    console.error('Post message error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
 })
 
 // Channel webhooks

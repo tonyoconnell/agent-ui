@@ -370,6 +370,65 @@ npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 - Always use `CLOUDFLARE_GLOBAL_API_KEY`, never scoped tokens
 - Credentials in `.env` only — never hardcode in CLAUDE.md or wrangler.toml
 
+## NanoClaw API
+
+Edge agent on Cloudflare. Processes messages synchronously (OpenRouter Gemma 4).
+
+### Routes
+
+| Route | Method | Purpose | Response |
+|-------|--------|---------|----------|
+| `/message` | POST | Send message, get instant response | `{ ok, response, id, group, responseId }` |
+| `/messages/:group` | GET | Retrieve conversation history | `{ group, messages[] }` |
+| `/health` | GET | Status check | `{ status, version, service }` |
+| `/highways` | GET | Proven paths | `{ highways[] }` |
+| `/webhook/:channel` | POST | Channel webhooks (telegram, discord) | `{ ok, id, group }` |
+
+### Web Message API (Instant)
+
+```bash
+# Send message, get response in ~3 seconds
+curl -X POST https://nanoclaw.oneie.workers.dev/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "group": "my-conversation",
+    "text": "Your question here",
+    "sender": "user"  # optional
+  }'
+
+# Response includes agent reply
+{
+  "ok": true,
+  "id": "web-1775525928563",
+  "response": "Agent response text...",
+  "responseId": "resp-1775525949861",
+  "group": "my-conversation"
+}
+```
+
+### Get Conversation History
+
+```bash
+curl https://nanoclaw.oneie.workers.dev/messages/my-conversation
+
+{
+  "group": "my-conversation",
+  "messages": [
+    { "id": "web-...", "sender": "user", "content": "...", "role": "user", "ts": 1775525928617 },
+    { "id": "resp-...", "sender": "assistant", "content": "...", "role": "assistant", "ts": 1775525949861 }
+  ]
+}
+```
+
+### Configuration
+
+**Secrets** (set via `wrangler secret put`):
+- `OPENROUTER_API_KEY` — API key for Gemma 4 (required for `/message` endpoint)
+- `TELEGRAM_TOKEN` — Telegram bot token (optional, for webhook pushes)
+- `DISCORD_TOKEN` — Discord bot token (optional, for webhook pushes)
+
+**Model**: `google/gemma-4-26b-a4b-it` via OpenRouter (configurable per group in D1)
+
 ## Skills (USE THESE)
 
 | Skill | Trigger | What it provides |

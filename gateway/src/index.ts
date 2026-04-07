@@ -1,10 +1,11 @@
 /**
- * ONE Gateway — Cloudflare Worker proxy to TypeDB Cloud
+ * ONE Gateway — Cloudflare Worker proxy to TypeDB Cloud + D1
  *
  * Routes:
- *   POST /v1/signin  → JWT auth (cached 61s per isolate)
- *   POST /v1/query   → TypeQL read/write proxy
- *   GET  /health         → Status check
+ *   POST /v1/signin     → JWT auth (cached 61s per isolate)
+ *   POST /v1/query      → TypeQL read/write proxy
+ *   GET  /messages      → Query conversation from D1
+ *   GET  /health        → Status check
  *
  * All TypeDB access goes through here. Browser → Worker → TypeDB Cloud.
  * CORS configured for localhost (dev) + one.ie (prod).
@@ -16,6 +17,7 @@ interface Env {
   TYPEDB_USERNAME: string
   TYPEDB_PASSWORD: string
   VERSION: string
+  DB?: D1Database
 }
 
 // Token cache (per-isolate, 61s TTL)
@@ -117,6 +119,35 @@ export default {
 
         const data = await res.json()
         return Response.json(data, { headers })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Unknown error'
+        return Response.json({ error: msg }, { status: 500, headers })
+      }
+    }
+
+    // GET /messages — Query conversation from D1
+    if (url.pathname === '/messages' && request.method === 'GET') {
+      try {
+        const groupId = url.searchParams.get('group')
+        if (!groupId) {
+          return Response.json({ error: 'group parameter required' }, { status: 400, headers })
+        }
+
+        if (!env.DB) {
+          return Response.json({ error: 'D1 not available' }, { status: 500, headers })
+        }
+
+        const result = await env.DB.prepare(`
+          SELECT id, sender, content, role, ts FROM messages
+          WHERE group_id = ?
+          ORDER BY ts ASC
+          LIMIT 100
+        `).bind(groupId).all()
+
+        return Response.json(
+          { group: groupId, messages: result.results || [] },
+          { headers },
+        )
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Unknown error'
         return Response.json({ error: msg }, { status: 500, headers })

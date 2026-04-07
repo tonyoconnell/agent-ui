@@ -134,7 +134,7 @@ That's your entire agent. Parse → TypeDB → Cloudflare Worker → Live on Tel
 | **Pages** | [one-substrate.pages.dev](https://one-substrate.pages.dev) | Astro SSR + React 19 + 30 API routes |
 | **Gateway** | [api.one.ie](https://api.one.ie/health) | TypeDB proxy, JWT cache, CORS |
 | **Sync** | one-sync.oneie.workers.dev | TypeDB → KV snapshots every 5 min |
-| **NanoClaw** | [nanoclaw.oneie.workers.dev](https://nanoclaw.oneie.workers.dev/health) | Edge agents: Telegram → Queue → LLM → reply |
+| **NanoClaw** | [nanoclaw.oneie.workers.dev](https://nanoclaw.oneie.workers.dev/health) | Edge agents: `/message` (instant), webhooks (Telegram/Discord), queue processor |
 | **TypeDB** | `flsiu1-0.cluster.typedb.com:1729` | 19 units, 18 skills, 1 group, 19 functions |
 
 **Data in TypeDB:**
@@ -147,6 +147,49 @@ marketing world (8 agents):
 system (5): router, scout, harvester, analyst, guard
 example (5): tutor, researcher, coder, writer, concierge
 ```
+
+---
+
+## NanoClaw API
+
+Direct chat API on the edge. Send a message, get an instant response from Gemma 4 (OpenRouter).
+
+```bash
+# Send message
+curl -X POST https://nanoclaw.oneie.workers.dev/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "group": "my-conversation",
+    "text": "What is the ONE substrate?",
+    "sender": "user"
+  }'
+
+# Response in ~3 seconds
+{
+  "ok": true,
+  "response": "The ONE substrate is a signal-based network where agents...",
+  "id": "web-1775525928563",
+  "responseId": "resp-1775525949861",
+  "group": "my-conversation"
+}
+```
+
+**Get conversation history:**
+
+```bash
+curl https://nanoclaw.oneie.workers.dev/messages/my-conversation
+```
+
+**Routes:**
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/message` | POST | Send message, get instant response |
+| `/messages/:group` | GET | Get conversation history |
+| `/health` | GET | Status check |
+| `/highways` | GET | Proven paths (pheromone analysis) |
+
+See [docs/nanoclaw.md](docs/nanoclaw.md) for full API reference.
 
 ---
 
@@ -197,9 +240,9 @@ src/schema/world.tql           TypeDB schema (6 dimensions, 19 functions)
 gateway/src/index.ts           TypeDB proxy worker (128 lines)
 workers/sync/index.ts          TypeDB → KV sync worker
 nanoclaw/src/                  Edge agent worker (816 lines)
-├── workers/router.ts          Hono routes + queue consumer + cron
-├── channels/index.ts          Telegram, Discord, Web adapters
-├── lib/substrate.ts           TypeDB via gateway
+├── workers/router.ts          Hono routes: /message (instant), /messages (history), /webhook/:channel
+├── channels/index.ts          Telegram, Discord, Web adapters (send/normalize)
+├── lib/substrate.ts           TypeDB via gateway (toxicity, highways)
 └── lib/tools.ts               7 Claude tools
 
 agents/                        Markdown agent definitions
