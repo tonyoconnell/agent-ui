@@ -374,6 +374,7 @@ function TaskFlowGrid({ tasks, activeId, onSelect, onStatusChange }: {
 }) {
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<ColumnStatus | null>(null)
+  const [rejectedId, setRejectedId] = useState<string | null>(null)
 
   const planned = tasks.filter(t => t.status === 'todo' || t.status === 'blocked')
   const active = tasks.filter(t => t.status === 'in_progress')
@@ -386,8 +387,28 @@ function TaskFlowGrid({ tasks, activeId, onSelect, onStatusChange }: {
     setDragOverColumn(null)
   }
 
+  // Check if task can be completed (all blockers must be complete)
+  const canComplete = (tid: string): boolean => {
+    const task = tasks.find(t => t.tid === tid)
+    if (!task) return false
+    return task.blockedBy.every(blockerId => {
+      const blocker = tasks.find(t => t.tid === blockerId)
+      return blocker?.status === 'complete'
+    })
+  }
+
   const handleDrop = (column: ColumnStatus) => {
     if (!draggedId) return
+
+    // Validate: can't complete if blockers aren't done
+    if (column === 'complete' && !canComplete(draggedId)) {
+      setRejectedId(draggedId)
+      setTimeout(() => setRejectedId(null), 600)
+      setDraggedId(null)
+      setDragOverColumn(null)
+      return
+    }
+
     const statusMap: Record<ColumnStatus, Task['status']> = {
       planned: 'todo',
       active: 'in_progress',
@@ -403,7 +424,7 @@ function TaskFlowGrid({ tasks, activeId, onSelect, onStatusChange }: {
       <FlowColumn
         label="Planned" count={planned.length} color="#ffffff20"
         tasks={planned} activeId={activeId} onSelect={onSelect}
-        column="planned" draggedId={draggedId} isDragOver={dragOverColumn === 'planned'}
+        column="planned" draggedId={draggedId} rejectedId={rejectedId} isDragOver={dragOverColumn === 'planned'}
         onDragStart={handleDragStart} onDragEnd={handleDragEnd}
         onDragOver={() => setDragOverColumn('planned')} onDragLeave={() => setDragOverColumn(null)}
         onDrop={() => handleDrop('planned')}
@@ -411,7 +432,7 @@ function TaskFlowGrid({ tasks, activeId, onSelect, onStatusChange }: {
       <FlowColumn
         label="Active" count={active.length} color="#fbbf24"
         tasks={active} activeId={activeId} onSelect={onSelect}
-        column="active" draggedId={draggedId} isDragOver={dragOverColumn === 'active'}
+        column="active" draggedId={draggedId} rejectedId={rejectedId} isDragOver={dragOverColumn === 'active'}
         onDragStart={handleDragStart} onDragEnd={handleDragEnd}
         onDragOver={() => setDragOverColumn('active')} onDragLeave={() => setDragOverColumn(null)}
         onDrop={() => handleDrop('active')}
@@ -419,7 +440,7 @@ function TaskFlowGrid({ tasks, activeId, onSelect, onStatusChange }: {
       <FlowColumn
         label="Complete" count={done.length} color="#4ade80"
         tasks={[...failed, ...done]} activeId={activeId} onSelect={onSelect}
-        column="complete" draggedId={draggedId} isDragOver={dragOverColumn === 'complete'}
+        column="complete" draggedId={draggedId} rejectedId={rejectedId} isDragOver={dragOverColumn === 'complete'}
         onDragStart={handleDragStart} onDragEnd={handleDragEnd}
         onDragOver={() => setDragOverColumn('complete')} onDragLeave={() => setDragOverColumn(null)}
         onDrop={() => handleDrop('complete')}
@@ -428,10 +449,10 @@ function TaskFlowGrid({ tasks, activeId, onSelect, onStatusChange }: {
   )
 }
 
-function FlowColumn({ label, count, color, tasks, activeId, onSelect, column, draggedId, isDragOver, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop }: {
+function FlowColumn({ label, count, color, tasks, activeId, onSelect, column, draggedId, rejectedId, isDragOver, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop }: {
   label: string; count: number; color: string
   tasks: Task[]; activeId: string; onSelect: (tid: string) => void
-  column: ColumnStatus; draggedId: string | null; isDragOver: boolean
+  column: ColumnStatus; draggedId: string | null; rejectedId: string | null; isDragOver: boolean
   onDragStart: (tid: string) => void; onDragEnd: () => void
   onDragOver: () => void; onDragLeave: () => void; onDrop: () => void
 }) {
@@ -462,6 +483,7 @@ function FlowColumn({ label, count, color, tasks, activeId, onSelect, column, dr
             isActive={task.tid === activeId}
             onSelect={onSelect}
             isDragging={task.tid === draggedId}
+            isRejected={task.tid === rejectedId}
             onDragStart={() => onDragStart(task.tid)}
             onDragEnd={onDragEnd}
           />
@@ -471,9 +493,9 @@ function FlowColumn({ label, count, color, tasks, activeId, onSelect, column, dr
   )
 }
 
-function TaskRow({ task, isActive, onSelect, isDragging, onDragStart, onDragEnd }: {
+function TaskRow({ task, isActive, onSelect, isDragging, isRejected, onDragStart, onDragEnd }: {
   task: Task; isActive: boolean; onSelect: (tid: string) => void
-  isDragging?: boolean; onDragStart?: () => void; onDragEnd?: () => void
+  isDragging?: boolean; isRejected?: boolean; onDragStart?: () => void; onDragEnd?: () => void
 }) {
   const meta = PHASE_META[task.phase]
   const style = STATUS_STYLES[task.status] || STATUS_STYLES.todo
@@ -492,6 +514,7 @@ function TaskRow({ task, isActive, onSelect, isDragging, onDragStart, onDragEnd 
         ${style.bg} ${style.border}
         ${isActive ? 'ring-1 ring-amber-400/30 scale-[1.02]' : 'hover:border-white/15 hover:bg-white/[0.04]'}
         ${isDragging ? 'opacity-50 scale-95' : ''}
+        ${isRejected ? 'animate-shake ring-2 ring-red-500/50' : ''}
       `}
       style={isActive ? { boxShadow: `0 0 20px ${meta.glow}` } : undefined}
     >
@@ -589,6 +612,7 @@ interface LiveState {
 export function TaskBoard() {
   const [tasks, setTasks] = useState<Task[]>(ROADMAP)
   const [selectedId, setSelectedId] = useState<string>('')
+  const [lastCompletedId, setLastCompletedId] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
   const [live, setLive] = useState<LiveState>({
     highways: [],
@@ -770,9 +794,70 @@ export function TaskBoard() {
             activeId={activeTask?.tid || ''}
             onSelect={setSelectedId}
             onStatusChange={(tid, newStatus) => {
-              setTasks(prev => prev.map(t =>
-                t.tid === tid ? { ...t, status: newStatus } : t
-              ))
+              const prevTask = tasks.find(t => t.tid === tid)
+              const wasComplete = prevTask?.status === 'complete'
+
+              setTasks(prev => {
+                // Update the dragged task
+                const updated = prev.map(t =>
+                  t.tid === tid ? { ...t, status: newStatus } : t
+                )
+
+                // Cascade unblock: if completing, check dependents
+                if (newStatus === 'complete') {
+                  return updated.map(t => {
+                    // Skip if not blocked or not dependent on this task
+                    if (t.status !== 'blocked' || !t.blockedBy.includes(tid)) return t
+                    // Check if all blockers are now complete
+                    const allBlockersComplete = t.blockedBy.every(blockerId => {
+                      const blocker = updated.find(bt => bt.tid === blockerId)
+                      return blocker?.status === 'complete'
+                    })
+                    return allBlockersComplete ? { ...t, status: 'todo' as const } : t
+                  })
+                }
+
+                // Cascade block: if un-completing, check dependents
+                if (newStatus === 'todo' || newStatus === 'in_progress') {
+                  return updated.map(t => {
+                    // If this task blocks others and we're un-completing, mark them blocked
+                    if (t.blockedBy.includes(tid) && t.status === 'todo') {
+                      return { ...t, status: 'blocked' as const }
+                    }
+                    return t
+                  })
+                }
+
+                return updated
+              })
+
+              // Persist status change to TypeDB
+              fetch(`/api/tasks/${tid}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus }),
+              }).catch(() => {}) // Fire and forget, optimistic UI
+
+              // Track last completed for pheromone edges
+              if (newStatus === 'complete' && !wasComplete) {
+                // Edge: lastCompletedId → tid (mark for success)
+                const edgeFrom = lastCompletedId || 'entry'
+                setLastCompletedId(tid)
+
+                // Call pheromone API to reinforce path
+                fetch(`/api/tasks/${tid}/complete`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ from: edgeFrom, failed: false }),
+                }).catch(() => {})
+              } else if (wasComplete && newStatus !== 'complete') {
+                // Regression: warn the path (mark as failure)
+                fetch(`/api/tasks/${tid}/complete`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ from: lastCompletedId || 'entry', failed: true }),
+                }).catch(() => {})
+              }
             }}
           />
         </div>
