@@ -8,7 +8,6 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -400,12 +399,17 @@ function NotFound({ id }: { id: string }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function AgentCard({ className }: Props) {
-  const searchParams = useSearchParams()
-  const focusId = searchParams.get('focus')
-
+  const [focusId, setFocusId] = useState<string | null>(null)
   const [entity, setEntity] = useState<EntityResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Read focus from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+    const id = params.get('focus') || null
+    setFocusId(id)
+  }, [])
 
   // Load entity when focus changes
   useEffect(() => {

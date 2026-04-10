@@ -10,11 +10,13 @@ import { useEffect, useState, useCallback } from "react"
 import { createWorld } from "@/engine"
 import type { World, Edge } from "@/engine"
 import { cn } from "@/lib/utils"
-import { SkinProvider, useSkin } from "@/contexts/SkinContext"
+import { useSkin } from "@/contexts/SkinContext"
 import { SkinSwitcher } from "@/components/controls/SkinSwitcher"
 import { WorldGraph } from "@/components/graph/WorldGraph"
 import { PersonaMenu } from "@/components/world/PersonaMenu"
 import { TimeScrubber } from "@/components/world/TimeScrubber"
+import { OrgTree } from "@/components/world/OrgTree"
+import { AgentCard } from "@/components/world/AgentCard"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -360,7 +362,15 @@ function WorkspaceInner() {
       <StatsHeader actors={world.actors} flows={world.flows} />
 
       <div className="flex-1 flex min-h-0">
-        {/* Main graph */}
+        {/* Left: Organization Tree */}
+        <div
+          className="w-64 border-r flex flex-col overflow-hidden"
+          style={{ borderColor: skin.colors.primary + "20" }}
+        >
+          <OrgTree className="flex-1 overflow-y-auto" />
+        </div>
+
+        {/* Center: Main graph */}
         <div className="flex-1 h-full flex flex-col">
           <div className="flex-1 h-full">
             <WorldGraph world={world.world} agents={world.actors} highways={world.flows} />
@@ -370,18 +380,12 @@ function WorkspaceInner() {
           <TimeScrubber />
         </div>
 
-        {/* Side panel */}
+        {/* Right: Agent detail panel */}
         <div
-          className="w-72 p-4 border-l flex flex-col gap-4 overflow-y-auto"
+          className="w-80 border-l flex flex-col overflow-hidden"
           style={{ borderColor: skin.colors.primary + "20" }}
         >
-          <FlowPanel flows={world.flows} />
-          <Controls onInject={handleInject} onDecay={handleDecay} />
-
-          <div className="mt-auto pt-4 border-t border-slate-800">
-            <div className="text-xs text-slate-600 mb-2">Switch Metaphor</div>
-            <SkinSwitcher variant="compact" className="w-full" />
-          </div>
+          <AgentCard className="flex-1 overflow-y-auto" />
         </div>
       </div>
     </div>
