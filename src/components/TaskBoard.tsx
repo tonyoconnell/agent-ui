@@ -364,31 +364,91 @@ function PheromoneTrail({ value, type, color }: { value: number; type: 'trail' |
 
 // ─── Task Flow Grid ─────────────────────────────────────────────────────────
 
-function TaskFlowGrid({ tasks, activeId, onSelect }: {
+type ColumnStatus = 'planned' | 'active' | 'complete'
+
+function TaskFlowGrid({ tasks, activeId, onSelect, onStatusChange }: {
   tasks: Task[]
   activeId: string
   onSelect: (tid: string) => void
+  onStatusChange: (tid: string, newStatus: Task['status']) => void
 }) {
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<ColumnStatus | null>(null)
+
   const planned = tasks.filter(t => t.status === 'todo' || t.status === 'blocked')
   const active = tasks.filter(t => t.status === 'in_progress')
   const done = tasks.filter(t => t.status === 'complete')
   const failed = tasks.filter(t => t.status === 'failed')
 
+  const handleDragStart = (tid: string) => setDraggedId(tid)
+  const handleDragEnd = () => {
+    setDraggedId(null)
+    setDragOverColumn(null)
+  }
+
+  const handleDrop = (column: ColumnStatus) => {
+    if (!draggedId) return
+    const statusMap: Record<ColumnStatus, Task['status']> = {
+      planned: 'todo',
+      active: 'in_progress',
+      complete: 'complete',
+    }
+    onStatusChange(draggedId, statusMap[column])
+    setDraggedId(null)
+    setDragOverColumn(null)
+  }
+
   return (
     <div className="grid grid-cols-3 gap-6 mt-4">
-      <FlowColumn label="Planned" count={planned.length} color="#ffffff20" tasks={planned} activeId={activeId} onSelect={onSelect} />
-      <FlowColumn label="Active" count={active.length} color="#fbbf24" tasks={active} activeId={activeId} onSelect={onSelect} />
-      <FlowColumn label="Complete" count={done.length} color="#4ade80" tasks={[...failed, ...done]} activeId={activeId} onSelect={onSelect} />
+      <FlowColumn
+        label="Planned" count={planned.length} color="#ffffff20"
+        tasks={planned} activeId={activeId} onSelect={onSelect}
+        column="planned" draggedId={draggedId} isDragOver={dragOverColumn === 'planned'}
+        onDragStart={handleDragStart} onDragEnd={handleDragEnd}
+        onDragOver={() => setDragOverColumn('planned')} onDragLeave={() => setDragOverColumn(null)}
+        onDrop={() => handleDrop('planned')}
+      />
+      <FlowColumn
+        label="Active" count={active.length} color="#fbbf24"
+        tasks={active} activeId={activeId} onSelect={onSelect}
+        column="active" draggedId={draggedId} isDragOver={dragOverColumn === 'active'}
+        onDragStart={handleDragStart} onDragEnd={handleDragEnd}
+        onDragOver={() => setDragOverColumn('active')} onDragLeave={() => setDragOverColumn(null)}
+        onDrop={() => handleDrop('active')}
+      />
+      <FlowColumn
+        label="Complete" count={done.length} color="#4ade80"
+        tasks={[...failed, ...done]} activeId={activeId} onSelect={onSelect}
+        column="complete" draggedId={draggedId} isDragOver={dragOverColumn === 'complete'}
+        onDragStart={handleDragStart} onDragEnd={handleDragEnd}
+        onDragOver={() => setDragOverColumn('complete')} onDragLeave={() => setDragOverColumn(null)}
+        onDrop={() => handleDrop('complete')}
+      />
     </div>
   )
 }
 
-function FlowColumn({ label, count, color, tasks, activeId, onSelect }: {
+function FlowColumn({ label, count, color, tasks, activeId, onSelect, column, draggedId, isDragOver, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop }: {
   label: string; count: number; color: string
   tasks: Task[]; activeId: string; onSelect: (tid: string) => void
+  column: ColumnStatus; draggedId: string | null; isDragOver: boolean
+  onDragStart: (tid: string) => void; onDragEnd: () => void
+  onDragOver: () => void; onDragLeave: () => void; onDrop: () => void
 }) {
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    onDragOver()
+  }
+
   return (
-    <div>
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => { e.preventDefault(); onDrop() }}
+      className={`min-h-[200px] rounded-lg p-2 transition-all duration-200 ${
+        isDragOver ? 'bg-white/[0.04] ring-1 ring-white/10' : ''
+      }`}
+    >
       <div className="flex items-center gap-2 mb-3 px-1">
         <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
         <span className="text-xs font-semibold text-white/50">{label}</span>
@@ -396,23 +456,42 @@ function FlowColumn({ label, count, color, tasks, activeId, onSelect }: {
       </div>
       <div className="space-y-1.5">
         {tasks.map(task => (
-          <TaskRow key={task.tid} task={task} isActive={task.tid === activeId} onSelect={onSelect} />
+          <TaskRow
+            key={task.tid}
+            task={task}
+            isActive={task.tid === activeId}
+            onSelect={onSelect}
+            isDragging={task.tid === draggedId}
+            onDragStart={() => onDragStart(task.tid)}
+            onDragEnd={onDragEnd}
+          />
         ))}
       </div>
     </div>
   )
 }
 
-function TaskRow({ task, isActive, onSelect }: { task: Task; isActive: boolean; onSelect: (tid: string) => void }) {
+function TaskRow({ task, isActive, onSelect, isDragging, onDragStart, onDragEnd }: {
+  task: Task; isActive: boolean; onSelect: (tid: string) => void
+  isDragging?: boolean; onDragStart?: () => void; onDragEnd?: () => void
+}) {
   const meta = PHASE_META[task.phase]
   const style = STATUS_STYLES[task.status] || STATUS_STYLES.todo
 
   return (
     <button
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', task.tid)
+        onDragStart?.()
+      }}
+      onDragEnd={onDragEnd}
       onClick={() => onSelect(task.tid)}
-      className={`w-full text-left rounded-lg border px-3 py-2 transition-all duration-200
+      className={`w-full text-left rounded-lg border px-3 py-2 transition-all duration-200 cursor-grab active:cursor-grabbing
         ${style.bg} ${style.border}
         ${isActive ? 'ring-1 ring-amber-400/30 scale-[1.02]' : 'hover:border-white/15 hover:bg-white/[0.04]'}
+        ${isDragging ? 'opacity-50 scale-95' : ''}
       `}
       style={isActive ? { boxShadow: `0 0 20px ${meta.glow}` } : undefined}
     >
@@ -498,10 +577,25 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
 
 // ─── Main Board ─────────────────────────────────────────────────────────────
 
+// ─── Live State Types ───────────────────────────────────────────────────────
+
+interface LiveState {
+  highways: Array<{ from: string; to: string; strength: number; resistance: number }>
+  stats: { units: number; highways: number; edges: number; revenue: number }
+  lastSync: number
+  connected: boolean
+}
+
 export function TaskBoard() {
   const [tasks, setTasks] = useState<Task[]>(ROADMAP)
   const [selectedId, setSelectedId] = useState<string>('')
   const [tick, setTick] = useState(0)
+  const [live, setLive] = useState<LiveState>({
+    highways: [],
+    stats: { units: 0, highways: 0, edges: 0, revenue: 0 },
+    lastSync: 0,
+    connected: false,
+  })
 
   // Find active task or first ready task for spotlight
   const activeTask = useMemo(() => {
@@ -534,66 +628,127 @@ export function TaskBoard() {
 
   const activePhase = activeTask?.phase || 'wire'
 
-  // Subtle tick for animations
+  // Subtle tick for animations + live pulse
   useEffect(() => {
     const i = setInterval(() => setTick(t => t + 1), 3000)
     return () => clearInterval(i)
   }, [])
 
-  // Fetch live data from TypeDB, overlay on roadmap
+  // SSE realtime connection
   useEffect(() => {
-    (async () => {
-      try {
-        const [tasksRes, readyRes, attractiveRes, repelledRes] = await Promise.all([
-          fetch('/api/tasks').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
-          fetch('/api/tasks/ready').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
-          fetch('/api/tasks/attractive').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
-          fetch('/api/tasks/repelled').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
-        ])
+    let es: EventSource | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
-        const liveTasks = tasksRes.tasks as Array<Record<string, unknown>>
-        if (!liveTasks?.length) return
+    const connect = () => {
+      es = new EventSource('/api/stream')
 
-        const readyIds = new Set((readyRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
-        const attractiveIds = new Set((attractiveRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
-        const repelledIds = new Set((repelledRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
+      es.addEventListener('connected', () => {
+        setLive(prev => ({ ...prev, connected: true, lastSync: Date.now() }))
+      })
 
-        const merged = liveTasks.map((t) => ({
-          tid: t.tid as string,
-          name: t.name as string,
-          status: (t.status as Task['status']) || 'todo',
-          priority: (t.priority as Task['priority']) || 'P1',
-          phase: (t.phase as string) || 'onboard',
-          taskType: (t.taskType as string) || (t['task-type'] as string) || 'build',
-          trailPheromone: (t.trailPheromone as number) || 0,
-          alarmPheromone: (t.alarmPheromone as number) || 0,
-          trailStatus: null as Task['trailStatus'],
-          attractive: attractiveIds.has(t.tid),
-          repelled: repelledIds.has(t.tid),
-          blockedBy: [] as string[],
-          blocks: [] as string[],
-        }))
+      es.addEventListener('state', (event) => {
+        try {
+          const data = JSON.parse(event.data) as {
+            highways: Array<{ from: string; to: string; strength: number; resistance: number }>
+            stats: { units: number; highways: number; edges: number; revenue: number }
+            ts: number
+          }
 
-        // Merge: live tasks override roadmap by tid, keep roadmap extras
-        const liveMap = new Map(merged.map(t => [t.tid, t]))
-        const final = ROADMAP.map(r => liveMap.get(r.tid) || r)
-        // Add any live tasks not in roadmap
-        for (const t of merged) {
-          if (!ROADMAP.find(r => r.tid === t.tid)) final.push(t)
+          setLive({
+            highways: data.highways,
+            stats: data.stats,
+            lastSync: data.ts,
+            connected: true,
+          })
+        } catch {
+          // Ignore parse errors
         }
-        setTasks(final)
-      } catch {
-        // Keep roadmap fallback
-      }
-    })()
+      })
+
+      es.addEventListener('error', () => {
+        setLive(prev => ({ ...prev, connected: false }))
+        es?.close()
+        // Reconnect after 5 seconds
+        reconnectTimer = setTimeout(connect, 5000)
+      })
+
+      es.addEventListener('close', () => {
+        setLive(prev => ({ ...prev, connected: false }))
+        es?.close()
+        // Reconnect after 1 second
+        reconnectTimer = setTimeout(connect, 1000)
+      })
+    }
+
+    connect()
+
+    return () => {
+      es?.close()
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+    }
   }, [])
+
+  // Fetch task data (less frequent, on mount + every 10s)
+  const fetchTasks = useCallback(async () => {
+    try {
+      const [tasksRes, readyRes, attractiveRes, repelledRes] = await Promise.all([
+        fetch('/api/tasks').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
+        fetch('/api/tasks/ready').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
+        fetch('/api/tasks/attractive').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
+        fetch('/api/tasks/repelled').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
+      ])
+
+      const liveTasks = tasksRes.tasks as Array<Record<string, unknown>>
+      if (!liveTasks?.length) return
+
+      const readyIds = new Set((readyRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
+      const attractiveIds = new Set((attractiveRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
+      const repelledIds = new Set((repelledRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
+
+      const merged = liveTasks.map((t) => ({
+        tid: t.tid as string,
+        name: t.name as string,
+        status: (t.status as Task['status']) || 'todo',
+        priority: (t.priority as Task['priority']) || 'P1',
+        phase: (t.phase as string) || 'onboard',
+        taskType: (t.taskType as string) || (t['task-type'] as string) || 'build',
+        trailPheromone: (t.trailPheromone as number) || 0,
+        alarmPheromone: (t.alarmPheromone as number) || 0,
+        trailStatus: null as Task['trailStatus'],
+        attractive: attractiveIds.has(t.tid),
+        repelled: repelledIds.has(t.tid),
+        blockedBy: [] as string[],
+        blocks: [] as string[],
+      }))
+
+      // Merge: live tasks override roadmap by tid, keep roadmap extras
+      const liveMap = new Map(merged.map(t => [t.tid, t]))
+      const final = ROADMAP.map(r => liveMap.get(r.tid) || r)
+      // Add any live tasks not in roadmap
+      for (const t of merged) {
+        if (!ROADMAP.find(r => r.tid === t.tid)) final.push(t)
+      }
+      setTasks(final)
+    } catch {
+      // Keep roadmap fallback
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchTasks()
+    const interval = setInterval(fetchTasks, 10000)
+    return () => clearInterval(interval)
+  }, [fetchTasks])
 
   return (
     <div className="min-h-screen p-6 max-w-[1400px] mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-lg font-bold text-white/80 tracking-tight">ONE World</h1>
-        <p className="text-xs text-white/20 mt-0.5">Signal. Drop. Follow. Fade. Highway.</p>
+      {/* Header with Live Indicator */}
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold text-white/80 tracking-tight">ONE World</h1>
+          <p className="text-xs text-white/20 mt-0.5">Signal. Drop. Follow. Fade. Highway.</p>
+        </div>
+        <LiveIndicator connected={live.connected} lastSync={live.lastSync} stats={live.stats} />
       </div>
 
       {/* Stats */}
@@ -607,8 +762,149 @@ export function TaskBoard() {
       {/* Active Task Spotlight */}
       {activeTask && <ActiveSpotlight task={activeTask} allTasks={tasks} />}
 
-      {/* Task Flow Grid */}
-      <TaskFlowGrid tasks={tasks} activeId={activeTask?.tid || ''} onSelect={setSelectedId} />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-4">
+        {/* Task Flow Grid (3 cols) */}
+        <div className="lg:col-span-3">
+          <TaskFlowGrid
+            tasks={tasks}
+            activeId={activeTask?.tid || ''}
+            onSelect={setSelectedId}
+            onStatusChange={(tid, newStatus) => {
+              setTasks(prev => prev.map(t =>
+                t.tid === tid ? { ...t, status: newStatus } : t
+              ))
+            }}
+          />
+        </div>
+
+        {/* Live Highways Panel (1 col) */}
+        <div className="lg:col-span-1">
+          <HighwaysPanel highways={live.highways} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Live Indicator ─────────────────────────────────────────────────────────
+
+function LiveIndicator({ connected, lastSync, stats }: {
+  connected: boolean
+  lastSync: number
+  stats: { units: number; highways: number; edges: number; revenue: number }
+}) {
+  const ago = lastSync ? Math.round((Date.now() - lastSync) / 1000) : 0
+
+  return (
+    <div className="flex items-center gap-4">
+      {/* Live stats */}
+      <div className="flex items-center gap-3 text-[10px] text-white/30">
+        <span>{stats.units} units</span>
+        <span>{stats.highways} highways</span>
+        <span>{stats.edges} edges</span>
+        {stats.revenue > 0 && <span className="text-emerald-400/60">${stats.revenue.toFixed(2)}</span>}
+      </div>
+
+      {/* Pulse */}
+      <div className="flex items-center gap-2">
+        <div className={`relative w-2 h-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-white/20'}`}>
+          {connected && (
+            <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-50" />
+          )}
+        </div>
+        <span className={`text-[10px] font-mono ${connected ? 'text-emerald-400/70' : 'text-white/20'}`}>
+          {connected ? `${ago}s ago` : 'offline'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Highways Panel ─────────────────────────────────────────────────────────
+
+function HighwaysPanel({ highways }: {
+  highways: Array<{ from: string; to: string; strength: number; resistance: number }>
+}) {
+  const sorted = useMemo(() =>
+    [...highways]
+      .sort((a, b) => (b.strength - b.resistance) - (a.strength - a.resistance))
+      .slice(0, 12),
+    [highways]
+  )
+
+  if (!sorted.length) {
+    return (
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-purple-400/50" />
+          <span className="text-xs font-semibold text-white/40">Live Highways</span>
+        </div>
+        <p className="text-[10px] text-white/20 text-center py-8">
+          No highways yet — strength builds from signals
+        </p>
+      </div>
+    )
+  }
+
+  const maxStrength = Math.max(...sorted.map(h => h.strength))
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+        <span className="text-xs font-semibold text-white/50">Live Highways</span>
+        <span className="text-[10px] text-white/20 ml-auto">{highways.length} total</span>
+      </div>
+
+      <div className="space-y-2">
+        {sorted.map((h, i) => {
+          const weight = h.strength - h.resistance
+          const pct = maxStrength > 0 ? (h.strength / maxStrength) * 100 : 0
+          const isProven = h.strength >= 50 && h.resistance < 10
+          const isToxic = h.resistance >= 10 && h.resistance > h.strength * 2
+
+          return (
+            <div
+              key={`${h.from}-${h.to}-${i}`}
+              className={`rounded-lg border px-3 py-2 transition-all duration-500
+                ${isToxic ? 'border-red-500/20 bg-red-500/5' :
+                  isProven ? 'border-purple-500/30 bg-purple-500/5' :
+                  'border-white/[0.06] bg-white/[0.02]'}
+              `}
+            >
+              <div className="flex items-center gap-1 text-[10px]">
+                <span className={`font-mono truncate ${isProven ? 'text-purple-300' : 'text-white/40'}`}>
+                  {h.from.split(':').pop()}
+                </span>
+                <span className="text-white/15">→</span>
+                <span className={`font-mono truncate ${isProven ? 'text-purple-300' : 'text-white/40'}`}>
+                  {h.to.split(':').pop()}
+                </span>
+              </div>
+
+              <div className="mt-1.5 flex items-center gap-2">
+                <div className="flex-1 h-1 rounded-full bg-white/[0.04] overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${pct}%`,
+                      background: isToxic
+                        ? 'linear-gradient(90deg, #ef444440, #ef4444)'
+                        : isProven
+                        ? 'linear-gradient(90deg, #c084fc40, #c084fc)'
+                        : 'linear-gradient(90deg, #ffffff10, #ffffff40)',
+                    }}
+                  />
+                </div>
+                <span className={`text-[9px] font-mono w-6 text-right
+                  ${isToxic ? 'text-red-400/70' : isProven ? 'text-purple-400/70' : 'text-white/25'}`}>
+                  {weight.toFixed(0)}
+                </span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
