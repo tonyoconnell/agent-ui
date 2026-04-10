@@ -13,30 +13,15 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/opensource.md",
+                "file": "docs/TODO.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "opensource"
-            }
-          },
-          {
-            "id": "e373af67663467f2",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "docs/api.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "api"
+              "title": "TODO"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -198,44 +183,44 @@
       "bases:Create new base": false
     }
   },
-  "active": "5226c9aa1f8fcf08",
+  "active": "fd99b50a9796efdb",
   "lastOpenFiles": [
-    "docs/david-api.md",
-    "docs/task-management.md",
-    "docs/api.md",
-    "scripts/generate-api-key.ts",
-    "src/lib/api-auth.ts",
-    "src/lib/api-key.ts",
-    "src/pages/api/keys.ts",
-    "docs/tasks-and-subscriptions.md",
-    "docs/one-strategy.md",
-    "agents/nanoclaw.md",
-    "src/pages/api/messages.ts",
     "dist/_routes.json",
     "dist/_astro/reactflow.BZV40eAE.css",
-    "dist/_astro/build.N7JvGQwJ.css",
-    "dist/_worker.js/manifest_DfNaddX8.mjs",
-    "dist/_astro/SkinContext.w8RzjPsc.js",
-    "docs/flows.md",
-    "docs/one-strategy 3.md",
-    "docs/opensource.md",
-    "docs/partnership-fetch.md",
-    "docs/partnership.md",
-    "docs/autonomous-orgs.md",
-    "docs/strategy.md",
-    "docs/plan-task-fix.md",
-    "docs/speed-verified.md",
-    "docs/speed.md",
-    "docs/TODO-ONE-strategy.md",
-    "docs/TODO-autonomous-orgs.md",
+    "dist/_astro/build.CJW9BgC-.css",
+    "dist/_worker.js/manifest_D0oIj_JG.mjs",
+    "dist/_astro/utils.CPGtsWvz.js",
+    "dist/_astro/reactflow.QOXe6Xc4.js",
+    "dist/_astro/react-vendor.Uy4Kkaw4.js",
+    "dist/_astro/input.Dbe3Vhil.js",
+    "dist/_astro/index.NXx74f8V.js",
+    "dist/_astro/icons.CILQmzZp.js",
+    "dist/_astro/context.CJEDcsFO.js",
+    "STREAM5-INDEX.md",
+    "STREAM5-QUICK-START.md",
+    "STREAM5-COMPLETE.md",
+    "docs/STREAM5-implementation.md",
+    "docs/TODO-world-page.md",
+    "docs/TODO-signal.md",
+    "docs/signals.md",
+    "docs/world-map-page.md",
+    "docs/dictionary.md",
+    "docs/plan-intent-cache.md",
+    "docs/world-map-page 1.md",
+    "docs/agents.md",
+    "docs/the-stack.md",
     "docs/TODO-task-management.md",
-    "docs/TESTING.md",
-    "docs/tasks-router.md",
-    "docs/sync-skills.md",
-    "docs/autonomous-orgs 1.md",
-    "docs/ONE-strategy 1.md",
-    "docs/metaphors-extended.md",
+    "docs/weights.md",
+    "docs/game.md",
+    "docs/game 1.md",
+    "docs/world-map.md",
+    "docs/routing.md",
+    "docs/routing-simple.md",
+    "docs/plan-llm-routing.md",
+    "docs/partnership-fetch.md",
     "docs/world.md",
+    "docs/SUI.md",
+    "docs/PLAN-emerge.md",
     "nanoclaw/node_modules/miniflare/dist/local-explorer-ui/favicon.svg",
     "nanoclaw/node_modules/@cloudflare/workers-types/entrypoints.svg",
     "nanoclaw/node_modules/undici/docs/assets/lifecycle-diagram.png",

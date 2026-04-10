@@ -12,7 +12,6 @@
  */
 
 import { useEffect, useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { useSkin } from "@/contexts/SkinContext"
 
@@ -39,27 +38,25 @@ const lensIcons: Record<Lens, string> = {
 
 export function LensSwitcher({ className, onLensChange }: LensSwitcherProps) {
   const { skin } = useSkin()
-  const location = useLocation()
-  const navigate = useNavigate()
   const [currentLens, setCurrentLens] = useState<Lens>("colony")
 
   // Read lens from URL on mount
   useEffect(() => {
-    const params = new URLSearchParams(location.search)
+    const params = new URLSearchParams(window.location.search)
     const lens = (params.get("lens") as Lens) || "colony"
     if (["org", "colony", "skills", "money"].includes(lens)) {
       setCurrentLens(lens)
     }
-  }, [location.search])
+  }, [])
 
   const handleLensClick = (lens: Lens) => {
     setCurrentLens(lens)
     onLensChange?.(lens)
 
     // Update URL
-    const params = new URLSearchParams(location.search)
+    const params = new URLSearchParams(window.location.search)
     params.set("lens", lens)
-    navigate(`${location.pathname}?${params.toString()}`, { replace: true })
+    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
   }
 
   return (

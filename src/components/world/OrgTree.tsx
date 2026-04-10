@@ -11,7 +11,6 @@
  */
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -303,9 +302,6 @@ function ErrorState() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function OrgTree({ className }: OrgTreeProps) {
-  const searchParams = useSearchParams()
-  const focusedId = searchParams.get("focus") || undefined
-
   // State
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -313,6 +309,14 @@ export function OrgTree({ className }: OrgTreeProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
     new Set(["ONE"])
   )
+  const [focusedId, setFocusedId] = useState<string | undefined>(undefined)
+
+  // Read focus from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "")
+    const id = params.get("focus") || undefined
+    setFocusedId(id)
+  }, [])
 
   // Fetch data on mount
   useEffect(() => {

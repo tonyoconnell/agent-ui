@@ -393,11 +393,8 @@ function WorkspaceInner() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function WorldWorkspace() {
-  return (
-    <SkinProvider initialSkin="team">
-      <WorkspaceInner />
-    </SkinProvider>
-  )
+  // SkinProvider is now at the page level via WorldPageWrapper
+  return <WorkspaceInner />
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
