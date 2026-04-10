@@ -1,53 +1,48 @@
 /**
  * GET /api/state — Full world state for UI
  *
- * Returns: { units, edges, skills, highways, tags, stats }
+ * Reads from in-memory world. No TypeDB call per request.
+ * Returns: { units, edges, highways, tags, stats }
  */
 import type { APIRoute } from 'astro'
-import { readParsed } from '@/lib/typedb'
-
-type R = Record<string, unknown>
+import { getNet, getUnitMeta, getTagMap, getAllTags } from '@/lib/net'
 
 export const GET: APIRoute = async () => {
-  const [units, edges, tags] = await Promise.all([
-    readParsed(`
-      match $u isa unit, has uid $id, has name $name, has unit-kind $kind,
-        has status $status, has success-rate $sr, has generation $g;
-      select $id, $name, $kind, $status, $sr, $g;
-    `).catch(() => []),
-    readParsed(`
-      match $e (source: $from, target: $to) isa path,
-        has strength $s, has resistance $rs, has traversals $t, has revenue $r;
-      $from has uid $fid; $to has uid $tid;
-      select $fid, $tid, $s, $rs, $t, $r;
-    `).catch(() => []),
-    readParsed(`
-      match $sk isa skill, has gid $gid, has tag $tag;
-      select $gid, $tag;
-    `).catch(() => []),
-  ])
+  const net = await getNet()
+  const unitMeta = getUnitMeta()
+  const tagMap = getTagMap()
+  const allTags = getAllTags()
 
-  // Collect tags
-  const allTags = new Set<string>()
-  const tagMap: Record<string, string[]> = {}
-  for (const r of tags as R[]) {
-    const gid = r.gid as string, tag = r.tag as string
-    allTags.add(tag)
-    ;(tagMap[gid] ||= []).push(tag)
-  }
+  const units = Object.entries(unitMeta).map(([id, m]) => ({
+    id, name: m.name, kind: m.kind, status: m.status, sr: m.successRate, g: m.generation,
+  }))
 
-  const highways = (edges as R[]).filter(e => (e.s as number) >= 50 && (e.rs as number) < 10)
+  const edges = Object.entries(net.strength).map(([path, s]) => {
+    const [fid, tid] = path.split('→')
+    return {
+      fid, tid,
+      s,
+      rs: net.resistance[path] || 0,
+      r: net.revenue[path] || 0,
+      t: 0,
+    }
+  })
+
+  const highways = edges.filter(e => e.s >= 50 && e.rs < 10)
 
   return new Response(JSON.stringify({
-    units, edges, highways,
-    tags: [...allTags].sort(),
+    units,
+    edges,
+    highways,
+    tags: allTags,
+    tagMap,
     stats: {
-      units: (units as R[]).length,
-      proven: (units as R[]).filter(u => u.status === 'proven').length,
+      units: units.length,
+      proven: units.filter(u => u.status === 'proven').length,
       highways: highways.length,
-      edges: (edges as R[]).length,
-      tags: allTags.size,
-      revenue: (edges as R[]).reduce((s, e) => s + ((e.r as number) || 0), 0),
+      edges: edges.length,
+      tags: allTags.length,
+      revenue: edges.reduce((s, e) => s + e.r, 0),
     },
   }), { headers: { 'Content-Type': 'application/json' } })
 }

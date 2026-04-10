@@ -52,26 +52,34 @@ async function getDirectToken(): Promise<string> {
 async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<unknown[]> {
   // Server-side with direct TypeDB URL configured → skip gateway
   if (typeof window === 'undefined' && TYPEDB_URL) {
-    const token = await getDirectToken()
-    const res = await fetch(`${TYPEDB_URL}/v1/query`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        databaseName: TYPEDB_DATABASE,
-        transactionType: txType,
-        query: tql,
-        commit: txType === 'write',
-      }),
-    })
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`TypeDB query failed: ${res.status} - ${text}`)
+    const doQuery = async (retried = false): Promise<unknown[]> => {
+      const token = await getDirectToken()
+      const res = await fetch(`${TYPEDB_URL}/v1/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          databaseName: TYPEDB_DATABASE,
+          transactionType: txType,
+          query: tql,
+          commit: txType === 'write',
+        }),
+      })
+      if (res.status === 401 && !retried) {
+        // Cached token was invalidated server-side — clear and retry once
+        cachedToken = null
+        return doQuery(true)
+      }
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`TypeDB query failed: ${res.status} - ${text}`)
+      }
+      const data = await res.json() as { answers?: unknown[] }
+      return data.answers || []
     }
-    const data = await res.json() as { answers?: unknown[] }
-    return data.answers || []
+    return doQuery()
   }
 
   // Browser or server without direct config → go through gateway

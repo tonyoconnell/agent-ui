@@ -1,46 +1,41 @@
 /**
  * GET /api/health — System health check
  *
- * Returns: { status, typedb, version, uptime, timestamp }
- * Pings TypeDB to verify connectivity.
+ * Reports on in-memory world state. No per-request TypeDB ping.
+ * Returns: { status, world, version, uptime, timestamp }
  */
 import type { APIRoute } from 'astro'
-import { readParsed } from '@/lib/typedb'
+import { getNet, getUnitMeta, loadedAt } from '@/lib/net'
 
 const startTime = Date.now()
 
 export const GET: APIRoute = async () => {
-  let typedbStatus: 'ok' | 'error' = 'error'
-  let typedbLatency = -1
+  const net = await getNet()
+  const units = getUnitMeta()
+  const loaded = loadedAt()
 
-  const t0 = Date.now()
-  try {
-    await readParsed('match $u isa unit; limit 1;')
-    typedbStatus = 'ok'
-    typedbLatency = Date.now() - t0
-  } catch {
-    typedbLatency = Date.now() - t0
-  }
+  const unitCount = Object.keys(units).length
+  const edgeCount = Object.keys(net.strength).length
+  const highwayCount = net.highways(100).length
+  const ageMs = loaded ? Date.now() - loaded : -1
 
-  const uptimeMs = Date.now() - startTime
-  const uptimeSeconds = Math.floor(uptimeMs / 1000)
+  // Degraded if world never loaded or has no data
+  const status = loaded && (unitCount > 0 || edgeCount > 0) ? 'healthy' : 'degraded'
 
-  const health = {
-    status: typedbStatus === 'ok' ? 'healthy' : 'degraded',
-    typedb: {
-      status: typedbStatus,
-      latencyMs: typedbLatency,
+  return new Response(JSON.stringify({
+    status,
+    world: {
+      units: unitCount,
+      edges: edgeCount,
+      highways: highwayCount,
+      loadedAgoMs: ageMs,
     },
     version: '0.6.0',
     phase: 'scale',
-    uptime: uptimeSeconds,
+    uptime: Math.floor((Date.now() - startTime) / 1000),
     timestamp: new Date().toISOString(),
-  }
-
-  const statusCode = typedbStatus === 'ok' ? 200 : 503
-
-  return new Response(JSON.stringify(health), {
-    status: statusCode,
+  }), {
+    status: status === 'healthy' ? 200 : 503,
     headers: { 'Content-Type': 'application/json' },
   })
 }
