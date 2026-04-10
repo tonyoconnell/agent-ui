@@ -10,7 +10,6 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { useSkin } from '@/contexts/SkinContext'
 import { cn } from '@/lib/utils'
 
@@ -21,8 +20,6 @@ interface Props {
 
 export function VisitorBanner({ isAuthenticated = false, className }: Props) {
   const { skin } = useSkin()
-  const location = useLocation()
-  const navigate = useNavigate()
   const [isVisible, setIsVisible] = useState(!isAuthenticated)
 
   // Check localStorage to see if user dismissed the banner
@@ -51,17 +48,18 @@ export function VisitorBanner({ isAuthenticated = false, className }: Props) {
   }
 
   const handleFollowGuide = () => {
-    const params = new URLSearchParams(location.search)
+    const params = new URLSearchParams(window.location.search)
     params.set('guide', '1')
-    navigate(`${location.pathname}?${params.toString()}`, { replace: true })
+    const newUrl = `${window.location.pathname}?${params.toString()}`
+    window.history.replaceState({}, '', newUrl)
   }
 
   const handleBuild = () => {
-    navigate('/build')
+    window.location.href = '/build'
   }
 
   const handleSignUp = () => {
-    navigate('/signup')
+    window.location.href = '/signup'
   }
 
   return (

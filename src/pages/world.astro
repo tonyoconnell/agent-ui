@@ -1,10 +1,17 @@
 ---
 import Layout from "@/layouts/Layout.astro"
 import WorldWorkspace from "@/components/WorldWorkspace"
+import { VisitorBanner } from "@/components/world/VisitorBanner"
+import { GuideNarrator } from "@/components/world/GuideNarrator"
+
+// Check if user is authenticated (from session or headers)
+const isAuthenticated = !!Astro.locals.session?.user
 ---
 
 <Layout title="ONE World">
+  <VisitorBanner client:load isAuthenticated={isAuthenticated} />
   <WorldWorkspace client:load />
+  <GuideNarrator client:load />
 </Layout>
 
 <style is:global>

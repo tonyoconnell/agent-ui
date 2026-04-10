@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils"
 import { SkinProvider, useSkin } from "@/contexts/SkinContext"
 import { SkinSwitcher } from "@/components/controls/SkinSwitcher"
 import { WorldGraph } from "@/components/graph/WorldGraph"
+import { PersonaMenu } from "@/components/world/PersonaMenu"
+import { TimeScrubber } from "@/components/world/TimeScrubber"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -175,8 +177,11 @@ function StatsHeader({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) 
         </div>
       </div>
 
-      {/* Right: Skin Switcher */}
-      <SkinSwitcher variant="icons" />
+      {/* Right: Persona Menu + Skin Switcher */}
+      <div className="flex items-center gap-4">
+        <PersonaMenu />
+        <SkinSwitcher variant="icons" />
+      </div>
     </div>
   )
 }
@@ -356,8 +361,13 @@ function WorkspaceInner() {
 
       <div className="flex-1 flex min-h-0">
         {/* Main graph */}
-        <div className="flex-1 h-full">
-          <WorldGraph world={world.world} agents={world.actors} highways={world.flows} />
+        <div className="flex-1 h-full flex flex-col">
+          <div className="flex-1 h-full">
+            <WorldGraph world={world.world} agents={world.actors} highways={world.flows} />
+          </div>
+
+          {/* Time Scrubber at bottom */}
+          <TimeScrubber />
         </div>
 
         {/* Side panel */}

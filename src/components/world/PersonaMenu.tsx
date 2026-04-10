@@ -22,7 +22,6 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { useSkin } from '@/contexts/SkinContext'
 import { cn } from '@/lib/utils'
 
@@ -91,14 +90,13 @@ interface Props {
 
 export function PersonaMenu({ className }: Props) {
   const { skin } = useSkin()
-  const location = useLocation()
-  const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
   const [currentPersona, setCurrentPersona] = useState<PersonaConfig | null>(null)
 
   // Read persona from URL on mount and when URL changes
   useEffect(() => {
-    const params = new URLSearchParams(location.search)
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
     const personaId = params.get('persona')
     if (personaId) {
       const persona = personas.find((p) => p.id === personaId)
@@ -106,14 +104,14 @@ export function PersonaMenu({ className }: Props) {
     } else {
       setCurrentPersona(null)
     }
-  }, [location.search])
+  }, [])
 
   const handlePersonaSelect = (persona: PersonaConfig) => {
     setCurrentPersona(persona)
     setIsOpen(false)
 
     // Build new URL with persona params
-    const params = new URLSearchParams(location.search)
+    const params = new URLSearchParams(window.location.search)
 
     // Set persona param
     params.set('persona', persona.id)
@@ -123,7 +121,9 @@ export function PersonaMenu({ className }: Props) {
       params.set(key, value)
     }
 
-    navigate(`${location.pathname}?${params.toString()}`, { replace: true })
+    // Navigate using window.location
+    const newUrl = `${window.location.pathname}?${params.toString()}`
+    window.history.replaceState({}, '', newUrl)
   }
 
   const buttonLabel = currentPersona ? currentPersona.label : 'Choose Persona'
