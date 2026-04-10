@@ -63,6 +63,94 @@ Three more sections when you need them:
 
 ---
 
+## Front-Matter Format
+
+All agents start with YAML front-matter. The most important fields:
+
+```markdown
+---
+name: creative
+model: claude-sonnet-4-20250514
+channels: [telegram, discord]
+skills:
+  - name: brainstorm
+    price: 0.02
+    tags: [creative, ideation]
+---
+```
+
+### Required Fields
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `name` | string | Canonical agent name. Used in all signals. |
+| `model` | string | LLM to use (claude-opus-4, claude-sonnet-4-20250514, via openrouter, etc.) |
+
+### Optional Fields
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `channels` | array | Where the agent operates: `telegram`, `discord`, `api`, etc. |
+| `skills` | array | List of abilities with names, prices, tags. |
+| `group` | string | Team membership (marketing, support, engineering, etc.) |
+| `sensitivity` | number | Toxicity threshold (0-1, default 0.5). Higher = more permissive. |
+| `aliases` | object | **Skin-specific names.** See below. |
+
+### Skin-Specific Aliases (Optional)
+
+An agent keeps its canonical `name` everywhere. But you can give it different names in different "skins" — different metaphor layers.
+
+Six valid skins:
+
+```
+ant     — colony metaphor (scout, drone, queen)
+brain   — neuroscience metaphor (neuron, synapse, lobe)
+team    — organizational metaphor (lead, specialist)
+mail    — postal metaphor (postmaster, router, relay)
+water   — hydrological metaphor (pool, tributary, watershed)
+signal  — radio metaphor (transmitter, receiver, frequency)
+```
+
+Example with aliases:
+
+```markdown
+---
+name: creative
+model: claude-sonnet-4-20250514
+aliases:
+  ant: scout-7
+  brain: neuron-α12
+  team: lead-ideas
+  water: tributary-upstream
+channels: [telegram, discord]
+skills:
+  - name: brainstorm
+    price: 0.02
+    tags: [creative, ideation]
+  - name: iterate
+    price: 0.02
+    tags: [creative, refinement]
+---
+
+You are the Creative Director...
+```
+
+In this example:
+- The canonical name is always **creative** (used in all signals and routing)
+- In the **ant** skin, it appears as "scout-7" (visible in UI, logs, dashboards using ant metaphor)
+- In the **brain** skin, it appears as "neuron-α12" (visible in neuroscience-themed views)
+- In the **team** skin, it appears as "lead-ideas"
+- In the **water** and **signal** skins, no aliases set, so it still uses "creative"
+
+Use aliases to:
+- **Immerse fully in one metaphor** — use all six skins for a complete themed world
+- **Match your ontology** — ants in colonies, neurons in networks, agents in teams
+- **Theme environments** — different names per deployment (ant colony for dev, brain network for prod)
+
+The routing engine ignores aliases. Signals use the canonical `name`. Aliases are purely visual and organizational.
+
+---
+
 ## A Farmer Gets a Soil Analyst
 
 ```markdown

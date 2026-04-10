@@ -418,6 +418,12 @@ net.signal({
 
 ---
 
+## Naming Rules: Skins vs Instance Names
+
+Skins relabel *categories of words* (Langchain/AgentVerse/Hermes), not *instance names*. Unit ids (e.g., `"langchain:analyst"`, `"agentverse:translator"`) stay canonical across all frameworks. Each framework's vocabulary is for human interpretation only; signals always use the canonical id. So when Langchain, AgentVerse, and Hermes agents coordinate through ONE, they don't rename each other — they stay true to their own identity, but the routing metaphor changes (Agent vs Service vs Unit) while the actual receiver address never changes.
+
+---
+
 ## The Universal Routing Formula
 
 Across all frameworks, the same formula decides routing:

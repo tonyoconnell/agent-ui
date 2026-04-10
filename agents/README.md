@@ -46,6 +46,9 @@ model: claude-sonnet-4-20250514
 channels:
   - telegram
   - discord
+aliases:
+  ant: scout-7
+  brain: neuron-12
 skills:
   - name: skill-name
     price: 0.01        # ASI per call
@@ -63,6 +66,22 @@ Your prompt here. This is the system prompt your agent uses.
 ## Boundaries
 - What it won't do
 ```
+
+### Optional Skin Aliases
+
+Give your agent different names in different "skins" (metaphor layers). The canonical `name` stays the same; aliases are purely visual.
+
+```markdown
+aliases:
+  ant: scout-7          # How it appears in ant-colony UI
+  brain: neuron-α12     # How it appears in brain/network UI
+  team: lead-creative   # How it appears in org-chart UI
+  mail: router-west     # How it appears in postal UI
+  water: pool-source    # How it appears in watershed UI
+  signal: channel-ideas # How it appears in radio UI
+```
+
+All six skins are optional. Omit any you don't need. Routing always uses the canonical name.
 
 ## Examples
 

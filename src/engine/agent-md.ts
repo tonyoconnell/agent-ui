@@ -46,6 +46,7 @@ export interface AgentSpec {
   group?: string
   tags?: string[]
   context?: string[]  // docs to load as knowledge: ['routing', 'dsl']
+  aliases?: Record<string, string>  // skin → alias mapping: {ant: "scout-7", brain: "neuron-α12", ...}
   prompt: string
   // Sui identity (derived on sync, not from markdown)
   wallet?: string       // Sui address
@@ -94,6 +95,36 @@ const parseSkills = (lines: string[]): SkillSpec[] => {
   return skills
 }
 
+const parseAliases = (lines: string[]): Record<string, string> | undefined => {
+  const aliases: Record<string, string> = {}
+  let inAliases = false
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('aliases:')) {
+      inAliases = true
+      continue
+    }
+
+    if (inAliases) {
+      // Stop when we hit a non-indented key at the root level
+      if (line.match(/^\s/) || trimmed.startsWith('-')) {
+        const colonIdx = trimmed.indexOf(':')
+        if (colonIdx > 0) {
+          const key = trimmed.slice(0, colonIdx).trim()
+          const value = trimmed.slice(colonIdx + 1).trim().replace(/^['"]|['"]$/g, '')
+          aliases[key] = value
+        }
+      } else if (trimmed && !trimmed.startsWith('#')) {
+        // Stop at next root-level key
+        break
+      }
+    }
+  }
+
+  return Object.keys(aliases).length ? aliases : undefined
+}
+
 export const parse = (md: string): AgentSpec => {
   const lines = md.split('\n')
   const spec: AgentSpec = { name: '', prompt: '' }
@@ -102,7 +133,9 @@ export const parse = (md: string): AgentSpec => {
   let inFrontmatter = false
   let frontmatterEnd = 0
   let inSkills = false
+  let inAliases = false
   const skillLines: string[] = []
+  const aliasLines: string[] = []
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -121,6 +154,13 @@ export const parse = (md: string): AgentSpec => {
     if (inFrontmatter) {
       if (trimmed.startsWith('skills:')) {
         inSkills = true
+        inAliases = false
+        continue
+      }
+
+      if (trimmed.startsWith('aliases:')) {
+        inAliases = true
+        inSkills = false
         continue
       }
 
@@ -135,7 +175,18 @@ export const parse = (md: string): AgentSpec => {
         }
       }
 
-      if (!inSkills && trimmed && !trimmed.startsWith('#')) {
+      if (inAliases) {
+        // Collect all indented lines under aliases
+        if (line.match(/^\s/) && trimmed && !trimmed.startsWith('#')) {
+          aliasLines.push(line)
+          continue
+        } else if (trimmed && !trimmed.startsWith('#')) {
+          // Stop aliases section at next root-level key
+          inAliases = false
+        }
+      }
+
+      if (!inSkills && !inAliases && trimmed && !trimmed.startsWith('#')) {
         const colonIdx = trimmed.indexOf(':')
         if (colonIdx > 0) {
           const key = trimmed.slice(0, colonIdx).trim()
@@ -159,6 +210,25 @@ export const parse = (md: string): AgentSpec => {
     spec.skills = parseSkills(skillLines)
   }
 
+  // Parse aliases
+  if (aliasLines.length) {
+    const aliases: Record<string, string> = {}
+    for (const line of aliasLines) {
+      const trimmed = line.trim()
+      if (trimmed && !trimmed.startsWith('#')) {
+        const colonIdx = trimmed.indexOf(':')
+        if (colonIdx > 0) {
+          const key = trimmed.slice(0, colonIdx).trim()
+          const value = trimmed.slice(colonIdx + 1).trim().replace(/^['"]|['"]$/g, '')
+          aliases[key] = value
+        }
+      }
+    }
+    if (Object.keys(aliases).length) {
+      spec.aliases = aliases
+    }
+  }
+
   // Rest is prompt
   spec.prompt = lines.slice(frontmatterEnd + 1).join('\n').trim()
 
@@ -178,6 +248,11 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
   // Unit insert
   const tags = [...(spec.tags || []), ...(spec.group ? [spec.group] : [])]
   const tagStr = tags.map(t => `has tag "${t}"`).join(', ')
+  const aliasStr = spec.aliases
+    ? Object.entries(spec.aliases)
+        .map(([skin, value]) => `has alias-${skin} "${escapeString(value)}"`)
+        .join(', ')
+    : ''
 
   queries.push(`
     insert $u isa unit,
@@ -192,7 +267,7 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
       has sample-count 0,
       has reputation 0.0,
       has balance 0.0,
-      has generation 0${spec.wallet ? `, has wallet "${spec.wallet}"` : ''}${tagStr ? ', ' + tagStr : ''};
+      has generation 0${spec.wallet ? `, has wallet "${spec.wallet}"` : ''}${tagStr ? ', ' + tagStr : ''}${aliasStr ? ', ' + aliasStr : ''};
   `)
 
   // Group membership

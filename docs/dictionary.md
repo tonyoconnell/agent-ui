@@ -84,6 +84,214 @@ When it struggles, it rewrites its own instructions. Generation goes up.
 
 ---
 
+## The Name
+
+A unit appears differently to different people. The substrate maintains four
+layers of identity so each viewer sees what's right for them, and the owner
+controls how the unit is represented everywhere.
+
+### The Four Layers
+
+```
+    layer 1: id              immutable primary key
+    layer 2: name            canonical name (owner sets, everyone sees)
+    layer 3: alias[skin]     optional per-skin variant (owner sets)
+    layer 4: nickname        personal (per-viewer, viewer sets)
+```
+
+Each layer has a different owner and scope:
+
+| Layer | Owner | Scope | Where it lives | When to use |
+|-------|-------|-------|----------------|------------|
+| `id` | System | Global, immutable | TypeDB id field | Never changes. Substrate's reference. |
+| `name` | Unit owner | Global, public | TypeDB name field | Default display. Everyone sees it. |
+| `alias[skin]` | Unit owner | Per-metaphor | TypeDB aliases map | Ant-skin calls it "colony", brain-skin calls it "neuron" |
+| `nickname` | Viewer | Personal | KV per-viewer cache | "My team calls it 'scout' but docs call it 'pathfinder'" |
+
+### Resolution Chain
+
+When code needs to display a unit to a viewer, it resolves in this order:
+
+```
+    displayName(unit, viewer, skin) →
+        viewer.nicknames[unit.id] ??
+        unit.aliases[skin] ??
+        unit.name ??
+        unit.id
+```
+
+First check: does this viewer have a personal nickname?
+If not: does this skin have an alias the owner set?
+If not: use the canonical name.
+If not: fall back to the immutable id (shouldn't happen).
+
+### How It Works
+
+**ID** — System-assigned, never changes:
+
+```
+    id: "scout-42"    ← created at first add()
+    id: "analyst-7"   ← unique forever
+```
+
+**Name** — Owner's public identity:
+
+```
+    // Scout unit's owner sets name once
+    unit('scout-42', { name: 'pathfinder' })
+    
+    // Everyone sees "pathfinder" unless they override it
+    displayName(scout) → "pathfinder"
+```
+
+**Alias** — Owner defines metaphor variants:
+
+```
+    // Scout unit owner configures skins
+    unit('scout-42', {
+      name: 'pathfinder',
+      aliases: {
+        'ant-skin': 'scout',      // In ant metaphor, I'm a scout
+        'brain-skin': 'sensory',  // In brain metaphor, I'm sensory input
+        'team-skin': 'explorer'   // In team metaphor, I'm the explorer
+      }
+    })
+```
+
+**Nickname** — Viewer's personal label:
+
+```
+    // Team A's viewer sets their own nickname
+    kvSet('viewer:jane/nicknames', {
+      'scout-42': 'my-scout'
+    })
+    
+    displayName(scout, viewer=jane) → 'my-scout'
+    displayName(scout, viewer=bob) → 'pathfinder'  // bob didn't set one
+```
+
+### Worked Examples
+
+**Scenario: One Unit, Three Viewers, Two Skins**
+
+Unit `scout-42`:
+- id: `"scout-42"`
+- name: `"pathfinder"`
+- aliases: `{ "ant-skin": "scout", "brain-skin": "sensory" }`
+
+Viewer Jane (team lead):
+- nickname for scout: `"my-scout"`
+
+Viewer Bob (analyst):
+- no nickname set
+
+Viewer Carol (API client using brain metaphor):
+- no nickname set
+
+Results:
+
+| Viewer | Skin | Display | Chain |
+|--------|------|---------|-------|
+| Jane | ant-skin | "my-scout" | nickname exists → return |
+| Bob | ant-skin | "scout" | no nickname → use alias[ant-skin] |
+| Carol | brain-skin | "sensory" | no nickname → use alias[brain-skin] |
+| Carol | ant-skin | "pathfinder" | no nickname → no alias → use name |
+| System | any | "scout-42" | lookup fails → id (shouldn't happen) |
+
+**Scenario: Multi-Year Drift Prevention**
+
+Without the four-layer model, this happens:
+
+```
+    Year 1: unit created, everyone calls it "scout"
+    Year 2: owner renames it to "pathfinder"
+            → Everyone's code breaks looking for "scout"
+            → Personal scripts with hardcoded names stop working
+
+    Three kinds of drift in parallel:
+      internal: docs use "pathfinder", code uses "scout"
+      external: API returns "pathfinder", webhooks expect "scout"
+      personal: Jane's dashboard cached "my-scout", it broke
+```
+
+With four layers:
+
+```
+    Year 1: unit created
+      id: "scout-42"
+      name: "scout"
+      aliases: {}
+      nicknames: { jane: "my-scout" }
+
+    Year 2: owner renames it (updates `name` only)
+      id: "scout-42"  ← unchanged
+      name: "pathfinder"
+      aliases: {}
+      nicknames: { jane: "my-scout" }  ← unchanged
+
+    Nothing breaks:
+      Code using id? Still works.
+      Jane's nickname? Still works.
+      API returns name? Updated.
+      Jane can choose: keep "my-scout" or set new nickname
+```
+
+The four layers decouple change:
+
+- **Owner's rename** (name) — affects new viewers and displays, doesn't break old refs
+- **System reference** (id) — never changes, always reliable
+- **Personal customization** (nickname) — lives in viewer's KV, fully under control
+- **Metaphor translation** (alias) — updates independently per-skin without affecting others
+
+### TypeDB Schema
+
+```typeql
+# The unit entity
+entity unit has uid,
+         has name,
+         has aliases,     # map<skin, string>
+         has tag,
+         has model,
+         has system-prompt,
+         has generation;
+
+# Viewer's personal nicknames stored in KV, indexed by unit id
+# Key: viewer:{viewer-id}/nicknames
+# Value: { "{unit-id}": "nickname", ... }
+```
+
+### KV Layout
+
+```
+    viewer:{viewer-id}/nicknames
+    {
+      "scout-42": "my-scout",
+      "analyst-7": "data-friend",
+      "coder-3": "the-builder"
+    }
+```
+
+TTL: no expiration. Nicknames are persistent user preference.
+Updated via: `kvSet('viewer:{viewer-id}/nicknames', merged)` after viewer updates.
+
+### Why This Works
+
+**Survives ownership change** — If `scout-42` is reassigned to a new owner,
+the id never changes. Old references still work. New owner sets new name.
+Viewers keep their nicknames.
+
+**Survives API evolution** — Name can change without breaking integrations
+that use id. Aliases let you serve different metaphors from the same unit.
+Nicknames let individual teams use their own vocabulary.
+
+**Survives multi-year deployments** — No drift between code, docs, and cache.
+Each layer is independent. Changes to one don't cascade.
+
+**Supports localization** — Aliases become language aliases. Nickname becomes
+translation. Same substrate, different display languages, one database.
+
+---
+
 ## The Five Verbs
 
 A signal arrives. Something happens. Five possible things:

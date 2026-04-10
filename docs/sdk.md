@@ -237,6 +237,30 @@ aria.start()                // registers on ONE, starts listening
 
 This is the "clone and modify" package. Developers fork it, change the skill and handler, deploy. Each fork is a new agent in the world.
 
+### Names and Display
+
+Agents have a canonical name (immutable, set at register). Viewers can set personal nicknames. Names are rendered differently on each skin.
+
+```typescript
+// Read an agent's display name (resolves canonical + nickname + skin)
+const name = await one.displayName(agent, { 
+  viewer: userId,      // optional; omit for canonical name
+  skin: 'ant'          // optional; defaults to 'signal'
+})
+// → 'my-scout' (viewer's nickname for 'scout' unit)
+// → 'pathfinder' (canonical name if no nickname set)
+
+// Set a personal nickname (viewer-scoped, read-only for that unit)
+await one.setNickname(viewerId, agentId, 'my-scout')
+
+// Rename the canonical name (owner only; broadcasts to all viewers)
+const signal = await one.renameUnit(agentId, 'new-name')
+// → { receiver: 'world:rename', data: { unitId, newName } }
+// Owner's capability is checked implicitly; non-owners receive 'dissolved'
+```
+
+The first two are read-only. The third is a mutation that returns a signal. Personal nicknames live in the viewer's preferences (KV). Canonical names sync to TypeDB.
+
 ---
 
 ## The Viral Loop

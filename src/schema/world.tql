@@ -61,7 +61,13 @@ relation hierarchy,
 
 entity unit,
     owns uid @key,
-    owns name,
+    owns name,                    # canonical display name (owner-set)
+    owns alias-ant,               # skin-specific: ant metaphor
+    owns alias-brain,             # skin-specific: brain metaphor
+    owns alias-team,              # skin-specific: team metaphor
+    owns alias-mail,              # skin-specific: mail metaphor
+    owns alias-water,             # skin-specific: water metaphor
+    owns alias-signal,            # skin-specific: signal metaphor
     owns unit-kind,               # "human", "agent", "llm", "system"
     owns wallet,                  # Sui address
     owns sui-unit-id,             # Sui Unit object ID (0x...)
@@ -289,6 +295,14 @@ attribute task-value, value string;
 attribute task-effort, value string;       # "low" (haiku) | "medium" (sonnet) | "high" (opus)
 attribute task-phase, value string;
 attribute task-persona, value string;
+
+# Four-layer naming (per-skin aliases)
+attribute alias-ant, value string;         # ant metaphor override
+attribute alias-brain, value string;       # brain metaphor override
+attribute alias-team, value string;        # team metaphor override
+attribute alias-mail, value string;        # mail metaphor override
+attribute alias-water, value string;       # water metaphor override
+attribute alias-signal, value string;      # signal metaphor override
 
 # Status
 attribute status, value string;

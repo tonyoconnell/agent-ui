@@ -364,6 +364,35 @@ The 6 dimensions model reality. Reality doesn't change. Build once, map everythi
 
 ---
 
+## Actors: What a Unit Knows
+
+Units are the agents in the system. Each unit has identity and optionally a name.
+
+| Field | What it is | Example | Stored in TypeDB |
+|-------|-----------|---------|------------------|
+| `id` | Internal identifier | `"scout-1"` | Yes (@key) |
+| `name` | Owner-set canonical name | `"Scout"` | Yes |
+| `alias-ant` | Ant metaphor alias | `"forager"` | Yes (optional) |
+| `alias-brain` | Brain metaphor alias | `"sensory-node"` | Yes (optional) |
+| `alias-team` | Team metaphor alias | `"Investigator"` | Yes (optional) |
+| `alias-mail` | Mail metaphor alias | `"inbox-scout"` | Yes (optional) |
+| `alias-water` | Water metaphor alias | `"upstream-scout"` | Yes (optional) |
+| `alias-signal` | Signal metaphor alias | `"receive-observe"` | Yes (optional) |
+| `display-name` | Computed display name | Determined by viewer/skin | No (computed) |
+| `tasks` | What it can do | `{ observe, report }` | No (handlers) |
+| `model` | Its brain (if AI) | `"sonnet"`, `"opus"` | Yes |
+| `system-prompt` | Its instructions | `"You analyze data..."` | Yes |
+| `generation` | How many times it rewrote itself | `3` | Yes |
+
+**Key points:**
+
+- `name` is the owner-editable canonical identifier. Set directly on `/world` page.
+- Each `alias-{skin}` is optional and overrides `name` when rendering in that metaphor (ant, brain, team, mail, water, signal).
+- `display-name` is computed on-the-fly based on viewer context and preferred skin. It's not stored in TypeDB—it's the result of `displayName(unit, viewer, skin)`.
+- Viewers can also set personal nicknames (not stored), which override display-name in their local view.
+
+---
+
 *ONE. The ontology that models reality.*
 
 ---

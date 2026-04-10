@@ -136,6 +136,30 @@ group.signal({ receiver: 'scout:explore', data: { url } }, 'user')
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## Group Naming
+
+Groups have a canonical `name` (e.g., `"marketing"`) that can be edited. Per-skin type-suffixes, hull-colors, and rendering change by metaphor, but the group id never changes and routing always uses it. The name serves humans; the id serves signals.
+
+**Ant Skin:**
+```
+group id: "marketing"
+group name: "Marketing Colony"
+type: "colony"
+hull-color: #FFB347  (orange)
+```
+
+**Team Skin:**
+```
+group id: "marketing"
+group name: "Marketing Team"
+type: "team"
+hull-color: #4A90E2  (blue)
+```
+
+Signal flow: same `"marketing"` id. Visual rendering: different "colony" vs "team" labels, different colors. Name editable by owner. Id immutable. That's the contract.
+
+---
+
 ## Coordination
 
 Paths emerge from outcomes. This is the Paths dimension in action:

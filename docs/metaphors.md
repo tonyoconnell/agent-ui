@@ -449,6 +449,12 @@ radio.replay()                         // Recall locked frequencies
 
 ---
 
+## Naming Rules: Skins vs Instance Names
+
+Skins relabel *categories of words* (ant/neuron/agent), not *instance names*. Unit names stay canonical across all skins. Optional per-skin aliases are for visual theming only; signals always use the canonical name. So `"scout"` (the unit id) stays `"scout"` whether viewed as an ant colony, brain, or team — the metaphor changes the label ("ant scout" vs "neuron scout" vs "agent scout"), but the receiver always addresses `"scout"`.
+
+---
+
 ## Comparison Table — All Dimensions
 
 | Dimension | ONE | Ant | Brain | Team | Mail | Water | Radio |

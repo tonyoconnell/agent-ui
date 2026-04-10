@@ -298,6 +298,26 @@ flow through the world without reinforcing any path.
 
 ---
 
+## Edit-as-Signal
+
+The world itself can be edited by sending signals. Renaming is the canonical example:
+
+```typescript
+// Signal to rename a unit (edit-as-signal)
+w.signal({
+  receiver: 'world:rename',
+  data: {
+    id: 'scout',        // unit id (never changes)
+    name: 'scout-fast', // new human-readable name (can change)
+    by: 'user'          // who made the edit
+  }
+})
+```
+
+Renaming is an edit gesture like all others on `/world`. The unit `id` (e.g., `"scout"`) remains canonical for routing — signals always address `"scout"`. The `name` is metadata that can be edited by the group owner. Signals stay routed by canonical id; humans see updated names. Same pattern applies to other edits (recolor, retag, reclassify): the id persists, the skin changes.
+
+---
+
 ## The World
 
 The container that signals move through.
