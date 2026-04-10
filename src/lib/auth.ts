@@ -102,7 +102,7 @@ export function createAuth() {
       password: runtimeEnv.TYPEDB_PASSWORD,
     }),
 
-    baseURL: env.PUBLIC_SITE_URL,
+    baseURL: import.meta.env.PUBLIC_SITE_URL,
 
     session: {
       expiresIn: 60 * 60 * 24 * 30, // 30 days

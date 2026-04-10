@@ -80,7 +80,7 @@ async function getToken(config: TypeDBAdapterConfig): Promise<string> {
     throw new Error(`TypeDB signin failed: ${res.status} - ${text}`);
   }
 
-  const data = await res.json();
+  const data = await res.json() as any;
   const payload = JSON.parse(atob(data.token.split(".")[1]));
   cachedToken = { token: data.token, expires: payload.exp * 1000 };
 
@@ -113,7 +113,7 @@ async function query(
     throw new Error(`TypeDB query failed: ${res.status} - ${text}`);
   }
 
-  const data = await res.json();
+  const data = await res.json() as any;
   return data.answers || [];
 }
 

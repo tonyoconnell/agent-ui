@@ -16,7 +16,7 @@
 import { loop } from './core'
 import { signalLoop, fadeLoop, evolveLoop, knowLoop, frontierLoop, getPriorityEvolve, type Complete } from './loops'
 // Inline type to avoid pulling doc-scan into the Cloudflare bundle
-type VerifiedItem = { id: string; name: string; source: string; tags: string[]; priority: string; done: boolean; verified?: boolean }
+type VerifiedItem = { id: string; name: string; source: string; section: string; tags: string[]; priority: 'P0' | 'P1' | 'P2' | 'P3'; done: boolean; verified: boolean; line: number; raw: string; target?: string; evidence?: string }
 import { byPriority } from './selectors'
 // docMark imported inline below to avoid Cloudflare bundling issues
 import type { PersistentWorld } from './persist'

@@ -23,7 +23,7 @@ async function getWeather(params: z.infer<typeof weatherParams>) {
     const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
 
     const geocodeResponse = await fetch(geocodeUrl);
-    const geocodeData = await geocodeResponse.json();
+    const geocodeData = await geocodeResponse.json() as any;
 
     if (!geocodeData.results || geocodeData.results.length === 0) {
       throw new Error(`Location "${location}" not found`);
@@ -36,7 +36,7 @@ async function getWeather(params: z.infer<typeof weatherParams>) {
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
 
     const weatherResponse = await fetch(weatherUrl);
-    const weatherData = await weatherResponse.json();
+    const weatherData = await weatherResponse.json() as any;
 
     const current = weatherData.current;
 

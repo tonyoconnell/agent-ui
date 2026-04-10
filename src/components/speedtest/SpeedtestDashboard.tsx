@@ -86,7 +86,7 @@ export function SpeedtestDashboard({ onResults }: Props) {
       const response = await fetch('/api/speedtest/run')
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
-      const data = await response.json()
+      const data = await response.json() as SpeedtestResult
       setResults(data)
       onResults?.(data)
     } catch (err) {

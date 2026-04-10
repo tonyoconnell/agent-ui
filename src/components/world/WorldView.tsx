@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react"
-import { world } from "@/engine"
+import { createWorld } from "@/engine"
 import type { World, Edge } from "@/engine"
 import { SkinProvider, useSkin } from "@/contexts/SkinContext"
 import { SkinSwitcher } from "@/components/controls/SkinSwitcher"
@@ -111,7 +111,7 @@ function WorldViewInner() {
 
   // Initialize world
   useEffect(() => {
-    const net = world()
+    const net = createWorld()
 
     // Spawn initial actors
     const actors: ActorData[] = [
@@ -122,16 +122,13 @@ function WorldViewInner() {
       { id: "relay", name: "Relay", status: "ready", actions: { broadcast: {} } },
     ]
 
-    actors.forEach((a) => net.spawnFromJSON(a))
+    actors.forEach((a) => {
+      net.add(a.id).on('default', () => ({}))
+      Object.keys(a.actions).forEach(task => net.get(a.id)?.on(task, () => ({})))
+    })
 
     // Create initial flows
-    net.send({ receiver: "scout", receive: "observe", payload: { init: true } })
-    net.send({
-      receiver: "scout",
-      receive: "observe",
-      payload: {},
-      callback: { receiver: "analyst", receive: "evaluate", payload: {} },
-    })
+    net.signal({ receiver: "scout:observe", data: { init: true } })
 
     setWorldState({ world: net, actors, flows: net.highways(30) })
   }, [])

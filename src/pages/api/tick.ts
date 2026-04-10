@@ -6,16 +6,22 @@
  *
  * Query: ?interval=60 (seconds)
  * Returns: { ticked: boolean, result?: TickResult, lastRun, nextRun }
+ *
+ * The PersistentWorld is cached at module level — loaded once from TypeDB,
+ * then reused across ticks. Pheromone state accumulates in memory between
+ * ticks (as it should). Re-hydrate by passing ?reload=1.
  */
 import type { APIRoute } from 'astro'
-import { world } from '@/engine/persist'
-import { anthropic } from '@/engine/llm'
+import { world, type PersistentWorld } from '@/engine/persist'
+import { openrouter } from '@/engine/llm'
 import { tick } from '@/engine/loop'
 
 let lastTick = 0
+let _world: PersistentWorld | null = null
 
 export const GET: APIRoute = async ({ url }) => {
   const interval = parseInt(url.searchParams.get('interval') || '60', 10) * 1000
+  const reload = url.searchParams.get('reload') === '1'
   const now = Date.now()
 
   if (now - lastTick < interval) {
@@ -27,11 +33,16 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   lastTick = now
-  const apiKey = import.meta.env.ANTHROPIC_API_KEY || ''
-  const complete = anthropic(apiKey)
-  const w = world()
-  await w.load().catch(() => {})  // hydrate pheromone from TypeDB
-  const result = await tick(w, complete)
+  const apiKey = import.meta.env.OPENROUTER_API_KEY || ''
+  const complete = openrouter(apiKey)
+
+  // Load world once; reuse on subsequent ticks (pheromone accumulates in memory)
+  if (!_world || reload) {
+    _world = world()
+    await _world.load().catch(() => {})
+  }
+
+  const result = await tick(_world, complete)
 
   return new Response(JSON.stringify({
     ticked: true,

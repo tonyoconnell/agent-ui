@@ -144,7 +144,7 @@ export const parse = (md: string): AgentSpec => {
 // BUILD — wire spec into substrate agent
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const md = (source: string, net: Colony, complete: Complete, tools?: Record<string, Function>): Agent => {
+export const md = (source: string, net: World, complete: Complete, tools?: Record<string, (...args: unknown[]) => unknown>): Agent => {
   const spec = parse(source)
   const a = agent(spec.id, net)
 

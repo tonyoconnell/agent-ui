@@ -74,11 +74,11 @@ export function KnowledgePanel() {
         fetch('/api/frontiers'),
       ])
       if (hRes.ok) {
-        const hData = await hRes.json()
+        const hData = await hRes.json() as any
         if (hData.hypotheses?.length) setHypotheses(hData.hypotheses)
       }
       if (fRes.ok) {
-        const fData = await fRes.json()
+        const fData = await fRes.json() as any
         if (fData.frontiers?.length) setFrontiers(fData.frontiers)
       }
     } catch {
@@ -98,7 +98,7 @@ export function KnowledgePanel() {
         body: JSON.stringify({ statement: newStatement.trim() }),
       })
       if (res.ok) {
-        const { hid } = await res.json()
+        const { hid } = await res.json() as any
         setHypotheses(prev => [
           { hid, statement: newStatement.trim(), status: 'pending', observations: 0, pValue: 1.0, actionReady: false },
           ...prev,

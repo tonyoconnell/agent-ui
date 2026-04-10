@@ -5,7 +5,8 @@ The LLM is the only probabilistic component. Everything else is math.
 
 **Live:** api.one.ie + one-substrate.pages.dev + nanoclaw.oneie.workers.dev
 **Brain:** TypeDB Cloud (19 units, 18 skills, 19 functions)
-**Agent:** @antsatworkbot on Telegram (Gemma 4 via OpenRouter, substrate-connected)
+**LLM:** All models via [OpenRouter](https://openrouter.ai) — default: `meta-llama/llama-4-maverick` (1M ctx, $0.15/M tokens)
+**Agent:** @antsatworkbot on Telegram (substrate-connected)
 
 ## Quick Start
 
@@ -248,7 +249,7 @@ src/
   lib/          # TypeDB client, auth, edge helpers, utils
 docs/           # Architecture, deploy, cloudflare, nanoclaw, strategy
 gateway/        # CF Worker: TypeDB proxy (api.one.ie)
-workers/sync/   # CF Worker: TypeDB → KV cron (every 5 min)
+workers/sync/   # CF Worker: TypeDB → KV cron (every 1 min, hash-gated writes)
 nanoclaw/       # CF Worker: Edge agents (webhooks → queue → LLM → channels)
 agents/         # Markdown agent definitions
   marketing/    # Marketing team (8 agents)
@@ -268,7 +269,7 @@ migrations/     # D1 schema (signals, messages, tasks, sync_log)
 | `persist.ts` | 258 | PersistentWorld = World + TypeDB sync + sandwich + know/recall |
 | `loop.ts` | 164 | Growth tick: all 7 loops, chain depth, outcome handling |
 | `boot.ts` | 40 | Hydrate from TypeDB, add units, start tick |
-| `llm.ts` | 40 | LLM as unit: anthropic/openai adapters |
+| `llm.ts` | 50 | LLM as unit: openrouter adapter (+ legacy anthropic/openai) |
 | `agent-md.ts` | 280 | Parse markdown agents, sync to TypeDB, wire to runtime |
 | `index.ts` | 29 | Exports |
 
@@ -307,6 +308,32 @@ else               net.warn(edge, 1)             // failure — agent produced n
 // total samples > 5 (don't block new paths)
 const isToxic = (edge) => r >= 10 && r > s * 2 && (r + s) > 5
 ```
+
+### Agent Identity (Sui Wallets)
+```
+SUI_SEED (env, 32 bytes base64) + agent UID → SHA-256 → Ed25519 keypair
+```
+No private keys stored. Every agent derives its keypair on-the-fly from the
+platform seed + its UID. Same UID always produces the same address.
+`addressFor(uid)` returns the public address. `deriveKeypair(uid)` returns
+the full keypair for signing. Lose the seed, lose all wallets.
+
+## Data Flow (Three Layers)
+
+```
+TypeDB (truth)     →    KV (snapshot)    →    globalThis (hot)
+  ~100ms RT              ~10ms read             ~0ms
+  paths persist          5 keys                 30s TTL per isolate
+  full history           paths.json             parsed, ready
+                         units.json
+                         skills.json            KV write only if hash changed
+                         highways.json          Sync triggered on every signal
+                         toxic.json
+```
+
+- **`src/lib/edge.ts`** — in-process cache (`globalThis._edgeKvCache`). All KV reads are 0ms within TTL. Use `kvInvalidate(key)` after a direct KV write.
+- **`workers/sync/index.ts`** — FNV-1a hash per key; skips KV write if data unchanged. Runs every 1 min via cron. Also triggered by `POST /sync` (called from `signal.ts` after every mark/warn).
+- **`src/pages/api/tick.ts`** — `PersistentWorld` is module-level cached. Loaded from TypeDB once; pheromone accumulates in memory between ticks. Force reload: `?reload=1`.
 
 ## Slash Commands
 
@@ -369,6 +396,7 @@ npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 - TypeDB API prefix is `/v1/` (signin, query, databases)
 - Always use `CLOUDFLARE_GLOBAL_API_KEY`, never scoped tokens
 - Credentials in `.env` only — never hardcode in CLAUDE.md or wrangler.toml
+- `SYNC_WORKER_URL` — sync worker base URL (default: `https://one-sync.oneie.workers.dev`). Set in `.env` to trigger KV refresh from signal.ts after path changes.
 
 ## NanoClaw API
 
@@ -423,7 +451,7 @@ curl https://nanoclaw.oneie.workers.dev/messages/my-conversation
 ### Configuration
 
 **Secrets** (set via `wrangler secret put`):
-- `OPENROUTER_API_KEY` — API key for Gemma 4 (required for `/message` endpoint)
+- `OPENROUTER_API_KEY` — API key for LLM calls (required for `/message` endpoint)
 - `TELEGRAM_TOKEN` — Telegram bot token (optional, for webhook pushes)
 - `DISCORD_TOKEN` — Discord bot token (optional, for webhook pushes)
 

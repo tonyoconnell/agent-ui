@@ -46,13 +46,13 @@ const cmcFetch = async (endpoint: string, params?: Record<string, string>) => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    const errorData = await response.json().catch(() => ({})) as any;
     throw new Error(
       `CoinMarketCap API error: ${response.status} - ${errorData?.status?.error_message || response.statusText}`
     );
   }
 
-  return response.json();
+  return response.json() as Promise<any>;
 };
 
 // ============================================

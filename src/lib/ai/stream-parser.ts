@@ -239,7 +239,7 @@ export function isStreamResponse(response: Response): boolean {
  * Handle non-stream response (fallback)
  */
 export async function parseNonStreamResponse(response: Response): Promise<string> {
-	const data = await response.json();
+	const data = await response.json() as any;
 
 	// OpenAI format
 	if (data.choices?.[0]?.message?.content) {

@@ -133,7 +133,7 @@ That's your entire agent. Parse → TypeDB → Cloudflare Worker → Live on Tel
 |---------|-----|------|
 | **Pages** | [one-substrate.pages.dev](https://one-substrate.pages.dev) | Astro SSR + React 19 + 30 API routes |
 | **Gateway** | [api.one.ie](https://api.one.ie/health) | TypeDB proxy, JWT cache, CORS |
-| **Sync** | one-sync.oneie.workers.dev | TypeDB → KV snapshots every 5 min |
+| **Sync** | one-sync.oneie.workers.dev | TypeDB → KV snapshots every 1 min (hash-gated) |
 | **NanoClaw** | [nanoclaw.oneie.workers.dev](https://nanoclaw.oneie.workers.dev/health) | Edge agents: `/message` (instant), webhooks (Telegram/Discord), queue processor |
 | **TypeDB** | `flsiu1-0.cluster.typedb.com:1729` | 19 units, 18 skills, 1 group, 19 functions |
 
@@ -218,7 +218,7 @@ See [docs/deploy.md](docs/deploy.md) for full step-by-step tutorial.
 | Brain | [TypeDB 3.0](https://typedb.com) Cloud |
 | Edge | [Cloudflare](https://cloudflare.com) Workers + Pages + D1 + KV + Queue |
 | Visualization | [ReactFlow](https://reactflow.dev) |
-| LLM | [OpenRouter](https://openrouter.ai) (Gemma 4) / Anthropic Claude |
+| LLM | [OpenRouter](https://openrouter.ai) — default: `meta-llama/llama-4-maverick` (1M ctx) |
 | Styling | Tailwind 4 + shadcn/ui |
 
 ---
@@ -311,7 +311,26 @@ That's what this is.
 
 $0/month on Cloudflare free tier. TypeDB Cloud ~$0/month.
 
-LLM costs on agent operator's API key. Agent castes (Haiku 90% / Sonnet 9% / Opus 1%) reduce average cost to $0.0014/signal.cre
+LLM costs on agent operator's API key. Agent castes (Haiku 90% / Sonnet 9% / Opus 1%) reduce average cost to $0.0014/signal.
+
+---
+
+## Data Flow
+
+```
+TypeDB (truth)     →    KV (snapshot)    →    globalThis (hot)
+  ~100ms RT              ~10ms read             ~0ms
+  paths persist          5 keys                 30s TTL per isolate
+  full history           paths.json             parsed, ready
+                         units.json
+                         skills.json            KV write only if hash changed
+                         highways.json          Sync triggered on every signal
+                         toxic.json
+```
+
+Signal path: `signal.ts → TypeDB write → trigger sync → KV updated → edge reads 0ms cache`
+
+Tick world is cached at module level — loaded once from TypeDB, pheromone accumulates in memory between ticks. Force reload: `GET /api/tick?reload=1`.
 
 ---
 

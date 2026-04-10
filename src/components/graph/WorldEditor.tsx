@@ -96,8 +96,11 @@ interface SignalRecord {
 interface WorldState {
   agents: AgentData[]
   strength: Record<string, number>
+  scent?: Record<string, number>  // legacy alias for strength
   positions: Record<string, { x: number; y: number }>
 }
+
+type ColonyState = WorldState  // legacy name alias
 
 // ============================================================================
 // CELEBRATION PARTICLES - Superhighway formation
@@ -1138,7 +1141,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     }, 1000 / timeLapseSpeed)
 
     return () => clearInterval(interval)
-  }, [isTimeLapse, timeLapseSpeed, colony, onWorldChange])
+  }, [isTimeLapse, timeLapseSpeed, world, onWorldChange])
 
   // Connect handler
   const onConnect: OnConnect = useCallback((connection: Connection) => {
@@ -1155,7 +1158,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     }, eds))
 
     onWorldChange?.()
-  }, [colony, setEdges, onWorldChange])
+  }, [world, setEdges, onWorldChange])
 
   // Edge click
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: FlowEdge) => {
@@ -1216,7 +1219,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     }))
 
     onWorldChange?.()
-  }, [colony, setEdges, onWorldChange])
+  }, [world, setEdges, onWorldChange])
 
   // Delete edge
   const deleteEdge = useCallback((edgeId: string) => {
@@ -1231,10 +1234,10 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     setEdges(eds => eds.filter(e => e.id !== edgeId))
     setEdgeEditor(null)
     onWorldChange?.()
-  }, [colony, setEdges, onWorldChange])
+  }, [world, setEdges, onWorldChange])
 
   // Inject signal with recording
-  const injectSignal = useCallback(async (nodeId: string, task: string) => {
+  const injectSignal = useCallback((nodeId: string, task: string) => {
     const path: { node: string; task: string }[] = [{ node: nodeId, task }]
 
     // Build path by following the callback chain
@@ -1273,14 +1276,10 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     setActiveTracer({ path })
 
     // Actually send the signal
-    await world.send({
-      receiver: nodeId,
-      receive: task,
-      payload: { source: "manual-injection" }
-    })
+    world.signal({ receiver: `${nodeId}:${task}`, data: { source: "manual-injection" } })
 
     onWorldChange?.()
-  }, [colony, agents, edges, isRecording, onWorldChange])
+  }, [world, agents, edges, isRecording, onWorldChange])
 
   // Playback recorded signals
   const playbackSignals = useCallback(async () => {
@@ -1293,10 +1292,9 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
 
       // Inject the signal
       if (record.path.length > 0) {
-        await world.send({
-          receiver: record.path[0].node,
-          receive: record.path[0].task,
-          payload: record.payload
+        world.signal({
+          receiver: `${record.path[0].node}:${record.path[0].task}`,
+          data: record.payload
         })
         onWorldChange?.()
       }
@@ -1306,9 +1304,9 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     }
 
     setIsPlaying(false)
-  }, [signalHistory, colony, timeLapseSpeed, onWorldChange])
+  }, [signalHistory, world, timeLapseSpeed, onWorldChange])
 
-  // Save colony state
+  // Save world state
   const saveColony = useCallback(() => {
     const state: ColonyState = {
       agents: agents.map(a => ({
@@ -1326,12 +1324,12 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `colony-${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `world-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
   }, [agents, world.strength, nodes])
 
-  // Load colony state
+  // Load world state
   const loadColony = useCallback(() => {
     fileInputRef.current?.click()
   }, [])
@@ -1347,8 +1345,8 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
 
         // Restore scent
         Object.keys(world.strength).forEach(key => delete world.strength[key])
-        Object.entries(state.scent).forEach(([key, value]) => {
-          world.strength[key] = value
+        Object.entries(state.strength || state.scent || {}).forEach(([key, value]) => {
+          world.strength[key] = value as number
         })
 
         // Restore positions
@@ -1359,14 +1357,14 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
 
         onWorldChange?.()
       } catch (err) {
-        console.error("Failed to load colony state:", err)
+        console.error("Failed to load world state:", err)
       }
     }
     reader.readAsText(file)
 
     // Reset input
     event.target.value = ""
-  }, [colony, setNodes, onWorldChange])
+  }, [world, setNodes, onWorldChange])
 
   // Drop handler
   const onDrop = useCallback((event: React.DragEvent) => {
@@ -1386,8 +1384,8 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
 
     const newId = `${type}-${Date.now()}`
 
-    const unit = world.add({ receiver: newId })
-    unit.assign("process", (p: unknown) => ({ processed: true, ...(p as object) }))
+    const unit = world.add(newId)
+    unit.on("process", (p: unknown) => ({ processed: true, ...(p as object) }))
 
     const newNode: Node = {
       id: newId,
@@ -1407,7 +1405,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
 
     setNodes(nds => [...nds, newNode])
     onWorldChange?.()
-  }, [colony, setNodes, onWorldChange, reactFlowInstance])
+  }, [world, setNodes, onWorldChange, reactFlowInstance])
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -1493,7 +1491,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
         snapToGrid
         snapGrid={[20, 20]}
         nodeOrigin={[0.5, 0.5]}
-        className="colony-graph"
+        className="world-graph"
         connectionLineStyle={{ stroke: "#3b82f6", strokeWidth: 2 }}
         connectionLineType={ConnectionLineType.Bezier}
       >

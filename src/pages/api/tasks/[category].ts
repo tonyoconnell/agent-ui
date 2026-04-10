@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ params, url }) => {
   const qs = new URLSearchParams()
   tags.forEach(t => qs.append('tag', t))
 
-  const res = await fetch(new URL(`/api/tasks?${qs}`, url).href).then(r => r.json()).catch(() => ({ tasks: [] }))
+  const res = await fetch(new URL(`/api/tasks?${qs}`, url).href).then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] }))
   const tasks = (res.tasks || []).filter((t: { category: string }) => t.category === category)
 
   return new Response(JSON.stringify({ tasks }), {

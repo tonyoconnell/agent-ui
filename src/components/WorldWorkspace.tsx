@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react"
-import { world } from "@/engine"
+import { createWorld } from "@/engine"
 import type { World, Edge } from "@/engine"
 import { cn } from "@/lib/utils"
 import { SkinProvider, useSkin } from "@/contexts/SkinContext"
@@ -54,13 +54,13 @@ function assignEnvelopes(actors: ActorData[], envelopes: ActorData["envelopes"][
 }
 
 async function loadWorld(): Promise<WorldState> {
-  const net = world()
+  const net = createWorld()
 
   // Try live TypeDB data first
   try {
     const stateRes = await fetch("/api/state")
     if (stateRes.ok) {
-      const stateData = await stateRes.json()
+      const stateData = await stateRes.json() as any
       if (stateData?.units?.length > 0) {
         const actors: ActorData[] = (stateData.units as Array<{ uid: string; name: string; status: string }>).map((u: { uid: string; name: string; status: string }) => ({
           id: u.uid,
@@ -71,7 +71,7 @@ async function loadWorld(): Promise<WorldState> {
         }))
 
         actors.forEach((a) => {
-          const u = net.spawn(a.id)
+          const u = net.add(a.id)
           for (const [name, result] of Object.entries(a.actions || {})) {
             u.on(name, () => result)
           }
@@ -91,13 +91,13 @@ async function loadWorld(): Promise<WorldState> {
   // Fallback: static JSON
   try {
     const res = await fetch("/agents.json")
-    const data = await res.json()
+    const data = await res.json() as any
     const actors = data.agents as ActorData[]
 
     actors.forEach((a) => (a.envelopes = a.envelopes || []))
     assignEnvelopes(actors, data.envelopes)
     actors.forEach((a) => {
-      const u = net.spawn(a.id)
+      const u = net.add(a.id)
       for (const [name, result] of Object.entries(a.actions || {})) {
         u.on(name, () => result)
       }
@@ -319,44 +319,14 @@ function WorkspaceInner() {
     return () => clearInterval(interval)
   }, [world?.world])
 
-  const handleInject = useCallback(async () => {
+  const handleInject = useCallback(() => {
     if (!world) return
-    // Fire all 5 parallel chains simultaneously
-    await Promise.allSettled([
-      // Market: scout → analyst → trader
-      world.world.send({
-        receiver: "scout", receive: "observe",
-        payload: { source: "manual", chain: "market" },
-        callback: { receiver: "analyst", receive: "evaluate", payload: { data: "{{result}}" },
-          callback: { receiver: "trader", receive: "execute", payload: { signal: "{{result}}" } } }
-      }),
-      // Intelligence: forager → relay → queen
-      world.world.send({
-        receiver: "forager", receive: "search",
-        payload: { source: "onchain", chain: "intelligence" },
-        callback: { receiver: "relay", receive: "broadcast", payload: { patterns: "{{result}}" },
-          callback: { receiver: "queen", receive: "orchestrate", payload: { intel: "{{result}}" } } }
-      }),
-      // Defense: soldier → sentinel
-      world.world.send({
-        receiver: "soldier", receive: "validate",
-        payload: { signals: "all", chain: "defense" },
-        callback: { receiver: "sentinel", receive: "risk", payload: { validated: "{{result}}" } }
-      }),
-      // Care: nurse monitors colony
-      world.world.send({
-        receiver: "nurse", receive: "monitor",
-        payload: { colony: "all", chain: "care" },
-        callback: { receiver: "nurse", receive: "heal", payload: { unhealthy: "{{result}}" } }
-      }),
-      // Recon: scout → forager → queen
-      world.world.send({
-        receiver: "scout", receive: "scan",
-        payload: { source: "sentiment", chain: "recon" },
-        callback: { receiver: "forager", receive: "harvest", payload: { regions: "{{result}}" },
-          callback: { receiver: "queen", receive: "crystallize", payload: { patterns: "{{result}}" } } }
-      }),
-    ])
+    // Fire chain-head signals; continuations run via .then() on each unit
+    world.world.signal({ receiver: "scout:observe", data: { source: "manual", chain: "market" } })
+    world.world.signal({ receiver: "forager:search", data: { source: "onchain", chain: "intelligence" } })
+    world.world.signal({ receiver: "soldier:validate", data: { signals: "all", chain: "defense" } })
+    world.world.signal({ receiver: "nurse:monitor", data: { colony: "all", chain: "care" } })
+    world.world.signal({ receiver: "scout:scan", data: { source: "sentiment", chain: "recon" } })
     setWorld((prev) => (prev ? { ...prev, flows: world.world.highways(30) } : null))
   }, [world])
 

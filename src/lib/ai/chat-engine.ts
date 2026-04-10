@@ -86,7 +86,7 @@ export async function sendMessage(
 			let errorMessage = `API error: ${response.statusText}`;
 
 			try {
-				const errorData = await response.json();
+				const errorData = await response.json() as any;
 				errorMessage = errorData.error || errorMessage;
 			} catch (e) {
 				// Use default error message

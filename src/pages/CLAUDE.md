@@ -14,6 +14,7 @@
 | `discover.astro` | `/discover` | `DiscoverGrid` | `client:load` |
 | `marketplace.astro` | `/marketplace` | `Marketplace` | `client:load` |
 | `build.astro` | `/build` | `AgentBuilder` | `client:load` |
+| `ceo.astro` | `/ceo` | `CEOPanel` | `client:load` |
 
 ## API Routes
 

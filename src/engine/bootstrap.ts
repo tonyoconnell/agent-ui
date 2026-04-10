@@ -13,6 +13,10 @@
 // Node imports are dynamic to avoid Cloudflare bundling issues
 const nodefs = () => import('node:fs/promises')
 const nodepath = () => import('node:path')
+
+// Resolved at module load — bootstrap only runs in Node, never in CF Workers
+const { readFile, writeFile, readdir, watch } = await nodefs()
+const { join } = await nodepath()
 import { create } from './one-complete'
 
 // ═══════════════════════════════════════════════════════════════════════════

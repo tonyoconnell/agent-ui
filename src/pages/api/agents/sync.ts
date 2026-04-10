@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request }) => {
   // Validate API key if provided (optional for now, can be required later)
   const auth = await validateApiKey(request)
   try {
-    const body = await request.json()
+    const body = await request.json() as any
 
     // Single agent markdown
     if (body.markdown) {

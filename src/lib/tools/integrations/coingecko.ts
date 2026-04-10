@@ -71,7 +71,7 @@ async function getCryptoPrice(params: z.infer<typeof cryptoPriceParams>) {
       throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
 
     // Format response for display
     const formattedResults = Object.entries(data).map(([tokenId, priceData]: [string, any]) => ({
@@ -127,7 +127,7 @@ async function getTokenDetails(params: z.infer<typeof tokenDetailsParams>) {
       throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
 
     // Extract key information
     return {
@@ -241,7 +241,7 @@ async function getPriceHistory(params: z.infer<typeof priceHistoryParams>) {
       throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
 
     // Format for charting
     const formatDate = (timestamp: number) => {
@@ -354,7 +354,7 @@ async function searchTokens(params: z.infer<typeof searchTokensParams>) {
       throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
 
     return {
       success: true,
@@ -407,7 +407,7 @@ async function getTrendingTokens() {
       throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
 
     return {
       success: true,

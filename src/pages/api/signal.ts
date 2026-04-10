@@ -110,50 +110,41 @@ export const POST: APIRoute = async ({ request }) => {
       const systemPrompt = agentInfo[0].sp as string
       const prompt = data || 'No input provided'
 
-      // Execute via Anthropic (default) or OpenAI
-      const apiKey = model.startsWith('gpt')
-        ? (import.meta.env.OPENAI_API_KEY || '')
-        : (import.meta.env.ANTHROPIC_API_KEY || '')
+      // All models route through OpenRouter (OpenAI-compatible API)
+      const apiKey = import.meta.env.OPENROUTER_API_KEY || ''
+
+      // Map agent model names to OpenRouter model IDs
+      const orModel = model.includes('/') ? model  // already namespaced
+        : 'meta-llama/llama-4-maverick'  // default: 1M ctx, $0.15/M tokens, leading open model
 
       if (apiKey) {
         try {
-          if (model.startsWith('gpt')) {
-            const res = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${apiKey}`, 'content-type': 'application/json' },
-              body: JSON.stringify({
-                model,
-                messages: [
-                  { role: 'system', content: systemPrompt },
-                  { role: 'user', content: prompt },
-                ],
-              }),
-            })
-            const d = await res.json() as { choices: Array<{ message: { content: string } }> }
-            result = d.choices[0].message.content
+          const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'HTTP-Referer': 'https://one.ie',
+              'X-Title': 'ONE Substrate',
+            },
+            body: JSON.stringify({
+              model: orModel,
+              max_tokens: 4096,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: prompt },
+              ],
+            }),
+          })
+          if (!res.ok) {
+            console.error('OpenRouter error:', res.status, await res.text().then(t => t.slice(0, 300)))
+            result = null
           } else {
-            const claudeModel = model === 'opus' ? 'claude-opus-4-20250514'
-              : model === 'haiku' ? 'claude-haiku-4-5-20251001'
-              : 'claude-sonnet-4-20250514'
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: {
-                'x-api-key': apiKey,
-                'content-type': 'application/json',
-                'anthropic-version': '2023-06-01',
-              },
-              body: JSON.stringify({
-                model: claudeModel,
-                max_tokens: 4096,
-                system: systemPrompt,
-                messages: [{ role: 'user', content: prompt }],
-              }),
-            })
-            const d = await res.json() as { content: Array<{ text: string }> }
-            result = d.content[0].text
+            const d = await res.json() as { choices: Array<{ message: { content: string } }> }
+            result = d.choices?.[0]?.message?.content || null
           }
-        } catch {
-          // LLM call failed — warn the path
+        } catch (err) {
+          console.error('OpenRouter fetch failed:', err instanceof Error ? err.message : err)
           result = null
         }
       }
@@ -217,7 +208,11 @@ export const POST: APIRoute = async ({ request }) => {
       `)
     }
 
-    // 6. Mirror to Sui (if configured — fire and forget)
+    // 6. Push path changes to KV (fire and forget — keeps edge routing fresh)
+    const syncUrl = import.meta.env.SYNC_WORKER_URL || 'https://one-sync.oneie.workers.dev'
+    fetch(`${syncUrl}/sync`, { method: 'POST' }).catch(() => {})
+
+    // 7. Mirror to Sui (if configured — fire and forget)
     let suiDigest: string | null = null
     try {
       const senderUnit = await resolveUnit(sender)

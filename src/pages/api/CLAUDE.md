@@ -19,8 +19,15 @@ All API routes use `src/lib/typedb.ts` for TypeDB access. Browser → Cloudflare
 | `/api/decay` | POST | Manual decay trigger |
 | `/api/decay-cycle` | POST | Decay with before/after stats |
 | `/api/query` | POST | Run raw TypeQL |
-| `/api/chat` | POST | AI chat endpoint |
+| `/api/chat` | POST | AI chat endpoint (OpenRouter streaming) |
 | `/api/auth/[...all]` | ALL | Better Auth endpoints |
+| `/api/agents/:id/commend` | POST | Boost agent success-rate +0.1, strengthen outgoing paths |
+| `/api/agents/:id/flag` | POST | Lower agent success-rate -0.15, add resistance to paths |
+| `/api/agents/:id/status` | POST | Set agent status active/inactive |
+
+## tick.ts caching
+
+`GET /api/tick` caches the `PersistentWorld` at module level. TypeDB is loaded once; pheromone accumulates in-process between ticks. Add `?reload=1` to force a fresh TypeDB hydration.
 
 ## Tags
 

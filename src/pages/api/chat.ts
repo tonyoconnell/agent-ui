@@ -1,18 +1,18 @@
 import type { APIRoute } from "astro"
 import { streamText } from "ai"
-import { createAnthropic } from "@ai-sdk/anthropic"
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 
 export const prerender = false
 
 /**
  * Simple Chat API Endpoint
  *
- * Uses Anthropic Claude for streaming chat responses
+ * Uses OpenRouter for streaming chat responses
  * Supports world commands via system prompt
  */
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { messages, model = "claude-sonnet-4-20250514" } = await request.json()
+    const { messages, model = "meta-llama/llama-4-maverick" } = await request.json() as any
 
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: "No messages provided" }), {
@@ -21,15 +21,23 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    const apiKey = import.meta.env.ANTHROPIC_API_KEY
+    const apiKey = import.meta.env.OPENROUTER_API_KEY
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
+        JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       )
     }
 
-    const anthropic = createAnthropic({ apiKey })
+    const openrouter = createOpenAICompatible({
+      name: "openrouter",
+      baseURL: "https://openrouter.ai/api/v1",
+      headers: {
+        "HTTP-Referer": "https://one.ie",
+        "X-Title": "ONE Substrate",
+      },
+      apiKey,
+    })
 
     const systemPrompt = `You are a helpful assistant for the ONE world interface.
 You help users control a network of agents and signals.
@@ -46,12 +54,12 @@ Available commands (users can speak these naturally):
 Respond helpfully and suggest commands when appropriate.`
 
     const result = streamText({
-      model: anthropic(model),
+      model: openrouter(model),
       system: systemPrompt,
       messages,
     })
 
-    return result.toDataStreamResponse()
+    return result.toTextStreamResponse()
   } catch (error) {
     console.error("[CHAT API] Error:", error)
     return new Response(

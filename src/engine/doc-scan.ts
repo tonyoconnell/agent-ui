@@ -13,6 +13,8 @@
  * - gapsToSignals() converts unverified specs to signals
  */
 
+import type { Outcome } from './core'
+
 // Node imports are lazy — this module is Node-only but Cloudflare bundler resolves it
 let _node: { readdir: any; readFile: any; join: any; basename: any } | null = null
 async function node() {
@@ -130,7 +132,7 @@ function inferPriority(section: string): Priority {
 
 /** Extract items from a single markdown file */
 function extractItems(content: string, filename: string): DocItem[] {
-  const source = basename(filename, '.md').toLowerCase().replace(/\s+/g, '-')
+  const source = (filename.split('/').pop() ?? filename).replace(/\.md$/, '').toLowerCase().replace(/\s+/g, '-')
   const lines = content.split('\n')
   const items: DocItem[] = []
   let currentSection = 'root'
@@ -194,8 +196,9 @@ function extractItems(content: string, filename: string): DocItem[] {
 
 /** Scan all docs/ and extract items */
 export async function scanDocs(docsDir: string): Promise<DocItem[]> {
+  const { readdir, readFile, join } = await node()
   const files = await readdir(docsDir)
-  const mdFiles = files.filter(f => f.endsWith('.md'))
+  const mdFiles = files.filter((f: string) => f.endsWith('.md'))
   const allItems: DocItem[] = []
   const seenIds = new Set<string>()
 
@@ -348,6 +351,7 @@ export async function verify(item: DocItem): Promise<VerifiedItem> {
 
   // Search for keywords in target files
   const keywords = item.name.toLowerCase().split(/\s+/).filter(w => w.length > 3)
+  const { readFile } = await node()
 
   for (const pattern of targets) {
     try {
@@ -410,7 +414,7 @@ export const docSpecs = (docsDir: string) => async (): Promise<VerifiedItem[]> =
 
 /** Mark function for doc loop: record verification outcome */
 export const docMark = (markFn: (edge: string, n?: number) => void, warnFn: (edge: string, n?: number) => void) =>
-  (item: VerifiedItem, outcome: { result?: unknown }) => {
+  (item: VerifiedItem, outcome: Outcome) => {
     const edge = `doc:${item.source}→${item.target || 'code'}`
     if (outcome.result) {
       markFn(edge)

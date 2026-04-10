@@ -86,7 +86,7 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
   const [input, setInput] = useState('')
   const [listening, setListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | null>(null)
   const localMessages = useStore(messages$)
   const isStreaming = useStore(isStreaming$)
 
@@ -124,29 +124,21 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
   const executeCommand = useCallback(async (command: WorldCommand): Promise<string> => {
     switch (command.type) {
       case 'spawn': {
-        world.spawn(command.id)
+        world.add(command.id)
           .on('signal', () => ({}))
           .on('default', () => ({}))
         return `${skin.icons.actor} Spawned ${command.kind}: ${command.id}`
       }
 
       case 'connect': {
-        await world.send({
-          receiver: command.from,
-          receive: 'connect',
-          payload: { target: command.to },
-          callback: { receiver: command.to, receive: 'connected', payload: {} },
-        })
+        world.signal({ receiver: `${command.from}:connect`, data: { target: command.to } })
+        world.mark(`${command.from}→${command.to}`)
         onWorldUpdate()
         return `${skin.icons.flow} Connected: ${command.from} → ${command.to}`
       }
 
       case 'send': {
-        await world.send({
-          receiver: command.to,
-          receive: 'signal',
-          payload: { ping: true },
-        })
+        world.signal({ receiver: `${command.to}:signal`, data: { ping: true } })
         onWorldUpdate()
         return `${skin.icons.entry} Signal sent to ${command.to}`
       }
@@ -176,14 +168,11 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
       }
 
       case 'inject': {
-        await Promise.all(
-          agents.map((a) =>
-            world.send({
-              receiver: a.id,
-              receive: Object.keys(a.actions)[0] || 'signal',
-              payload: { burst: true },
-            })
-          )
+        agents.forEach((a) =>
+          world.signal({
+            receiver: `${a.id}:${Object.keys(a.actions)[0] || 'signal'}`,
+            data: { burst: true },
+          })
         )
         onWorldUpdate()
         return `${skin.icons.entry} Burst! Signals sent to all ${agents.length} ${t('actor')}s`

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.66",
+    "@ai-sdk/openai-compatible": "^2.0.41",
     "@ai-sdk/react": "^3.0.148",
     "@astrojs/cloudflare": "^12.6.9",
     "@astrojs/node": "^9.4.4",

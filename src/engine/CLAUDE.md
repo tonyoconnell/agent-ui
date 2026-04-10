@@ -85,7 +85,7 @@ if (!task) throw new Error(...)
 | `loop.ts` | ~75 | Tick: select → signal → drain → fade → evolve → know |
 | `boot.ts` | ~39 | Hydrate from TypeDB, start tick loop |
 | ~~asi.ts~~ | deleted | routing absorbed into loop (select → ask → mark/warn) |
-| `llm.ts` | ~40 | LLM as unit: anthropic/openai adapters |
+| `llm.ts` | ~50 | LLM as unit: openrouter adapter (+ legacy anthropic/openai) |
 | `agentverse.ts` | ~83 | 2M agents: register/discover/call |
 | `index.ts` | ~11 | Exports: world, createWorld, unit, llm, asi |
 

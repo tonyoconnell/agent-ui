@@ -65,11 +65,11 @@ export function Marketplace() {
         fetch('/api/revenue'),
       ])
       if (svcRes.ok) {
-        const svcData = await svcRes.json()
+        const svcData = await svcRes.json() as any
         if (svcData.services?.length) setServices(svcData.services)
       }
       if (revRes.ok) {
-        const revData = await revRes.json()
+        const revData = await revRes.json() as any
         if (revData.gdp !== undefined) setRevenue(revData)
       }
     } catch {

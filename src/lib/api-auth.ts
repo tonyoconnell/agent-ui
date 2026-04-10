@@ -34,7 +34,7 @@ export async function validateApiKey(request: Request): Promise<AuthContext> {
     `)
 
     for (const row of rows) {
-      const isValid = await verifyKey(key, row.h)
+      const isValid = await verifyKey(key, row.h as string)
       if (isValid) {
         // Update last-used timestamp (fire and forget)
         const now = new Date().toISOString()
@@ -49,9 +49,9 @@ export async function validateApiKey(request: Request): Promise<AuthContext> {
         }
 
         return {
-          user: row.u,
-          permissions: row.p?.split(',').filter(Boolean) || [],
-          keyId: row.id,
+          user: row.u as string,
+          permissions: (row.p as string | undefined)?.split(',').filter(Boolean) || [],
+          keyId: row.id as string,
           isValid: true
         }
       }

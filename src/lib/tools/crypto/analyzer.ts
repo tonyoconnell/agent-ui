@@ -169,7 +169,7 @@ async function analyzeToken(params: z.infer<typeof analyzeTokenParams>): Promise
     throw new Error(`Failed to fetch token data: ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as any;
   const marketData = data.market_data || {};
 
   // Build basic overview

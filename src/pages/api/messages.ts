@@ -54,7 +54,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
  */
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { groupId, text } = await request.json()
+    const { groupId, text } = await request.json() as any
 
     if (!groupId || !text) {
       return new Response(JSON.stringify({ error: "groupId and text required" }), {

@@ -15,7 +15,7 @@
 import { loop, compose, type Outcome, type Loop } from './core'
 import { signals, struggling, advisors, highways, surges, unexploredTags, unitGaps, fadeAction, knowAction, type StrugglingUnit, type Advisor, type Highway } from './sources'
 // Inline type to avoid pulling doc-scan into the Cloudflare bundle
-type VerifiedItem = { id: string; name: string; source: string; tags: string[]; priority: string; done: boolean; verified?: boolean }
+type VerifiedItem = { id: string; name: string; source: string; section: string; tags: string[]; priority: 'P0' | 'P1' | 'P2' | 'P3'; done: boolean; verified: boolean; line: number; raw: string; target?: string; evidence?: string }
 import { first, byPriority, bySuccessRate, byNeed } from './selectors'
 import { writeSilent, readParsed } from '@/lib/typedb'
 // docMark imported dynamically to avoid Cloudflare bundling issues

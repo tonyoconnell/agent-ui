@@ -545,10 +545,10 @@ export function TaskBoard() {
     (async () => {
       try {
         const [tasksRes, readyRes, attractiveRes, repelledRes] = await Promise.all([
-          fetch('/api/tasks').then(r => r.json()).catch(() => ({ tasks: [] })),
-          fetch('/api/tasks/ready').then(r => r.json()).catch(() => ({ tasks: [] })),
-          fetch('/api/tasks/attractive').then(r => r.json()).catch(() => ({ tasks: [] })),
-          fetch('/api/tasks/repelled').then(r => r.json()).catch(() => ({ tasks: [] })),
+          fetch('/api/tasks').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
+          fetch('/api/tasks/ready').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
+          fetch('/api/tasks/attractive').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
+          fetch('/api/tasks/repelled').then(r => r.json() as Promise<any>).catch(() => ({ tasks: [] })),
         ])
 
         const liveTasks = tasksRes.tasks as Array<Record<string, unknown>>

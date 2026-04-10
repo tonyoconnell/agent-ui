@@ -28,11 +28,11 @@ export const agentverse = (fetch: Fetch): Agentverse => {
   // Register agent in world
   const register = (m: AgentMeta): Unit => {
     meta[m.address] = m
-    const u = net.spawn(m.address)
+    const u = net.add(m.address)
 
     // Default handler: forward to real agent endpoint
-    u.on('default', async (data, emit, ctx) => {
-      const result = await fetch(m.address, data)
+    u.on('default', async (data: unknown, emit: (s: { receiver: string; data: unknown }) => void, ctx: { from: string; self: string }) => {
+      const result = await fetch(m.address, data as RequestInit)
       emit({ receiver: ctx.from, data: result })
     })
 

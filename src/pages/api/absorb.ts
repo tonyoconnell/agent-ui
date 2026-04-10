@@ -13,7 +13,7 @@ import { absorb } from '@/engine/bridge'
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const body = await request.json().catch(() => ({}))
+    const body = await request.json().catch(() => ({})) as any
     const result = await absorb(body.cursor)
     return Response.json({ ok: true, ...result })
   } catch (e) {

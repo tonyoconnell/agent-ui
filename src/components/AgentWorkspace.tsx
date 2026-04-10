@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { world } from "@/engine"
+import { createWorld } from "@/engine"
 import type { World, Edge } from "@/engine"
 import { cn } from "@/lib/utils"
 import { EnvelopeFlowCanvas } from "@/components/EnvelopeFlowCanvas"
@@ -57,9 +57,9 @@ function assignEnvelopes(agents: AgentData[], envelopes: AgentData["envelopes"][
 // Load from JSON
 async function load() {
   const res = await fetch("/agents.json")
-  const data = await res.json()
+  const data = await res.json() as any
 
-  const net = world()
+  const net = createWorld()
   const agents = data.agents as AgentData[]
 
   // Initialize empty envelopes arrays
@@ -70,7 +70,7 @@ async function load() {
 
   // Spawn agents into colony
   agents.forEach(a => {
-    const u = net.spawn(a.id)
+    const u = net.add(a.id)
     for (const [name, result] of Object.entries(a.actions || {})) {
       u.on(name, () => result)
     }
@@ -84,7 +84,7 @@ async function load() {
   // Log highways for signal flow verification (SWP-005)
   console.log("Highways:", net.highways())
 
-  return { colony: net, agents, highways: net.highways(30) }
+  return { world: net, agents, highways: net.highways(30) }
 }
 
 // Status dot
@@ -122,9 +122,15 @@ function Tabs({ tabs, active, onSelect, onClose }: {
       </a>
       <a
         href="/chat"
-        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg mr-4 transition-colors"
+        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg mr-2 transition-colors"
       >
         Chat
+      </a>
+      <a
+        href="/ceo"
+        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg mr-4 transition-colors"
+      >
+        CEO
       </a>
 
       <div className="w-px h-6 bg-slate-700 mr-4" />
@@ -287,45 +293,14 @@ export default function AgentWorkspace() {
   }, [state?.world])
 
   // Signal injection — fire all parallel chains simultaneously
-  const injectSignal = async () => {
+  const injectSignal = () => {
     if (!state) return
-    const chains = [
-      // Market chain: scout → analyst → trader
-      state.world.send({
-        receiver: "scout", receive: "observe",
-        payload: { source: "test", chain: "market" },
-        callback: { receiver: "analyst", receive: "evaluate", payload: { data: "{{result}}" },
-          callback: { receiver: "trader", receive: "execute", payload: { signal: "{{result}}" } } }
-      }),
-      // Intelligence chain: forager → relay → queen
-      state.world.send({
-        receiver: "forager", receive: "search",
-        payload: { source: "onchain", chain: "intelligence" },
-        callback: { receiver: "relay", receive: "broadcast", payload: { patterns: "{{result}}" },
-          callback: { receiver: "queen", receive: "orchestrate", payload: { intel: "{{result}}" } } }
-      }),
-      // Defense chain: soldier → sentinel → sentinel
-      state.world.send({
-        receiver: "soldier", receive: "validate",
-        payload: { signals: "all", chain: "defense" },
-        callback: { receiver: "sentinel", receive: "risk", payload: { validated: "{{result}}" },
-          callback: { receiver: "sentinel", receive: "circuit", payload: { risk: "{{result}}" } } }
-      }),
-      // Care chain: nurse → nurse
-      state.world.send({
-        receiver: "nurse", receive: "monitor",
-        payload: { colony: "all", chain: "care" },
-        callback: { receiver: "nurse", receive: "heal", payload: { unhealthy: "{{result}}" } }
-      }),
-      // Recon chain: scout → forager → queen
-      state.world.send({
-        receiver: "scout", receive: "scan",
-        payload: { source: "sentiment", chain: "recon" },
-        callback: { receiver: "forager", receive: "harvest", payload: { regions: "{{result}}" },
-          callback: { receiver: "queen", receive: "crystallize", payload: { patterns: "{{result}}" } } }
-      }),
-    ]
-    await Promise.allSettled(chains)
+    // Fire chain-head signals; continuations run via .then() on each unit
+    state.world.signal({ receiver: "scout:observe", data: { source: "test", chain: "market" } })
+    state.world.signal({ receiver: "forager:search", data: { source: "onchain", chain: "intelligence" } })
+    state.world.signal({ receiver: "soldier:validate", data: { signals: "all", chain: "defense" } })
+    state.world.signal({ receiver: "nurse:monitor", data: { colony: "all", chain: "care" } })
+    state.world.signal({ receiver: "scout:scan", data: { source: "sentiment", chain: "recon" } })
     setState(prev => prev ? { ...prev, highways: state.world.highways(30) } : null)
   }
 

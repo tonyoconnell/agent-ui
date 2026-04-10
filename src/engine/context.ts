@@ -37,7 +37,7 @@ if (typeof window === 'undefined') {
   try {
     fs = require('fs')
     path = require('path')
-    DOCS_DIR = path.join(process.cwd(), 'docs')
+    DOCS_DIR = path?.join(process.cwd(), 'docs') ?? ''
   } catch { /* browser */ }
 }
 
