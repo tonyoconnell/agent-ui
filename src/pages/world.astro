@@ -10,7 +10,7 @@ const isAuthenticated = !!Astro.locals.session?.user
 ---
 
 <Layout title="ONE World">
-  <WorldPageWrapper client:load>
+  <WorldPageWrapper client:only="react" initialSkin="team">
     <VisitorBanner isAuthenticated={isAuthenticated} />
     <WorldWorkspace />
     <GuideNarrator />
