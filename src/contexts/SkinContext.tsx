@@ -54,9 +54,23 @@ export function SkinProvider({ children, initialSkin = "team" }: { children: Rea
 
 export function useSkin() {
   const context = useContext(SkinContext)
+
+  // Fallback to default skin if context not available (e.g., during hydration)
   if (!context) {
-    throw new Error("useSkin must be used within a SkinProvider")
+    const t = (key: keyof MetaphorSkin): string => {
+      const value = defaultSkin[key]
+      return typeof value === "string" ? value : key
+    }
+
+    return {
+      skin: defaultSkin,
+      skinId: "team",
+      setSkin: () => {}, // no-op fallback
+      t,
+      allSkins: skins,
+    }
   }
+
   return context
 }
 
