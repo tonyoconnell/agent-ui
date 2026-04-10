@@ -4,12 +4,13 @@
  * GET  → List tasks with effective priority. Filter with ?tag=build&tag=P0&sensitivity=0.7
  * POST → Create a task (with value/phase/persona/blocks + auto-computed priority)
  *
- * Tasks are TypeDB entities with a priority formula.
- * Pheromone adjusts effective priority at runtime.
+ * Local dev uses in-memory store (.tasks.json).
+ * Production uses D1 with TypeDB sync.
  */
 import type { APIRoute } from 'astro'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 import { computePriority, effectivePriority, type Value, type Phase } from '@/engine/task-parse'
+import * as store from '@/lib/tasks-store'
 
 type Row = Record<string, unknown>
 
@@ -19,6 +20,52 @@ export const GET: APIRoute = async ({ url }) => {
   const phase = url.searchParams.get('phase')
   const value = url.searchParams.get('value')
 
+  // Try local store first (fast, always available)
+  const localTasks = store.getAllTasks()
+  if (localTasks.length > 0) {
+    let filtered = localTasks
+
+    // Apply filters
+    if (filterTags.length > 0) {
+      filtered = filtered.filter(t => filterTags.every(tag => t.tags.includes(tag)))
+    }
+    if (phase) {
+      filtered = filtered.filter(t => t.phase === phase)
+    }
+    if (value) {
+      filtered = filtered.filter(t => t.value === value)
+    }
+
+    const result = filtered.map(t => {
+      const repelled = t.alarmPheromone >= 30 && t.alarmPheromone > t.trailPheromone
+      const attractive = t.trailPheromone >= 50
+      const exploratory = t.trailPheromone === 0 && t.alarmPheromone === 0
+      const category = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
+      return {
+        tid: t.tid,
+        name: t.name,
+        status: t.status,
+        priority: t.priority,
+        phase: t.phase,
+        value: t.value,
+        persona: t.persona,
+        tags: t.tags,
+        blockedBy: t.blockedBy,
+        blocks: t.blocks,
+        trailPheromone: t.trailPheromone,
+        alarmPheromone: t.alarmPheromone,
+        category,
+        attractive,
+        repelled,
+      }
+    })
+
+    return new Response(JSON.stringify({ tasks: result, source: 'local' }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Fallback to TypeDB
   // Build filter clauses
   const tagMatch = filterTags.map(t => `$t has tag "${t}";`).join('\n      ')
   const phaseMatch = phase ? `$t has task-phase "${phase}";` : ''
@@ -171,10 +218,30 @@ export const POST: APIRoute = async ({ request }) => {
 
   const { score, formula } = computePriority(value, phase, persona, blocks.length)
 
+  // Determine priority label from tags or score
+  const priorityTag = tags.find(t => /^P[0-3]$/.test(t)) as 'P0' | 'P1' | 'P2' | 'P3' | undefined
+  const priority = priorityTag || (score >= 90 ? 'P0' : score >= 70 ? 'P1' : score >= 50 ? 'P2' : 'P3')
+
+  // Write to local store (always works, fast)
+  store.createTask({
+    tid: body.id,
+    name: body.name,
+    status: 'todo',
+    priority,
+    phase,
+    value,
+    persona,
+    tags,
+    blockedBy: [],
+    blocks,
+    trailPheromone: 0,
+    alarmPheromone: 0,
+  })
+
   const tagInserts = tags.map(t => `has tag "${t}"`).join(', ')
   const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 
-  // Create task entity
+  // Also write to TypeDB (may fail if not connected)
   await write(`
     insert $t isa task,
       has task-id "${esc(body.id)}",

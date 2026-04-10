@@ -114,14 +114,43 @@ export const world = (): World => {
   const revenue: Record<string, number> = {}
   const queue: Signal[] = []
 
+  // ── Routing index ─────────────────────────────────────────────────────────
+  // typeIndex: maps each unit-id segment → set of edges that contain it.
+  // Lets follow/select scan only the relevant edges instead of all of strength.
+  // Edges are never removed from typeIndex (stale entries skipped via strength lookup).
+  const typeIndex: Record<string, Set<string>> = {}
+  const indexEdge = (edge: string) => {
+    for (const seg of edge.split('→')) {
+      const type = seg.split(':')[0]
+      if (!typeIndex[type]) typeIndex[type] = new Set()
+      typeIndex[type].add(edge)
+    }
+  }
+
+  // sortedCache: lazily rebuilt sorted array for highways().
+  // Invalidated on every mark/warn/fade; rebuilt once per read cycle.
+  let sortedCache: Edge[] | null = null
+  const invalidate = () => { sortedCache = null }
+  const sorted = (): Edge[] => {
+    if (sortedCache) return sortedCache
+    sortedCache = Object.entries(strength)
+      .map(([path, s]) => ({ path, strength: s - (resistance[path] || 0) }))
+      .filter(e => e.strength > 0)
+      .sort((a, b) => b.strength - a.strength)
+    return sortedCache
+  }
+
   const mark = (path: string, amount = 1) => {
+    if (!(path in strength)) indexEdge(path)
     strength[path] = (strength[path] || 0) + amount
     peak[path] = Math.max(peak[path] || 0, strength[path])
     lastUsed[path] = Date.now()
+    invalidate()
   }
 
   const warn = (path: string, amount = 1) => {
     resistance[path] = (resistance[path] || 0) + amount
+    invalidate()
   }
 
   const sense = (path: string) => strength[path] || 0
@@ -198,24 +227,34 @@ export const world = (): World => {
   }
 
   // follow strongest trail, penalized by resistance, boosted by revenue, penalized by latency
+  // Uses typeIndex when type given: O(k) where k = edges for that type, not O(n) total.
   const follow = (type?: string) => {
-    const trails = Object.entries(strength)
-      .filter(([e]) => !type || matchEdge(e, type))
-      .map(([e, s]) => {
-        const net = s - (resistance[e] || 0)
-        return [e, edgeWeight(e, net, 1)] as const
-      })
-      .filter(([, w]) => w > 1)
-      .sort(([, a], [, b]) => b - a)
-    return trails[0]?.[0].split('→').pop()?.split(':')[0] || null
+    const edges = type
+      ? (typeIndex[type] ? [...typeIndex[type]].filter(e => e in strength) : [])
+      : Object.keys(strength)
+    let bestEdge: string | null = null
+    let bestW = -Infinity
+    for (const e of edges) {
+      if (type && !matchEdge(e, type)) continue
+      const net = (strength[e] || 0) - (resistance[e] || 0)
+      const w = edgeWeight(e, net, 1)
+      if (w > 1 && w > bestW) { bestW = w; bestEdge = e }
+    }
+    return bestEdge?.split('→').pop()?.split(':')[0] || null
   }
 
   // STAN: Stigmergic A* Navigation — weight = (1 + pheromone × sensitivity) × latPenalty × revBoost
   // sensitivity=0 → pure exploration (scout), sensitivity=1 → follow highways (harvester)
+  // Uses typeIndex when type given: O(k) instead of O(n).
   const select = (type?: string, sensitivity = 0.7) => {
-    const viable = Object.entries(strength)
-      .filter(([e]) => !type || matchEdge(e, type))
-      .map(([e, s]) => [e, edgeWeight(e, s - (resistance[e] || 0), sensitivity)] as const)
+    const edges = type
+      ? (typeIndex[type] ? [...typeIndex[type]].filter(e => e in strength) : [])
+      : Object.keys(strength)
+    const viable: [string, number][] = []
+    for (const e of edges) {
+      if (type && !matchEdge(e, type)) continue
+      viable.push([e, edgeWeight(e, (strength[e] || 0) - (resistance[e] || 0), sensitivity)])
+    }
     if (!viable.length) return null
     const pick = (e: string) => e.split('→').pop()?.split(':')[0] || null
     const total = viable.reduce((sum, [, w]) => sum + w, 0)
@@ -237,14 +276,11 @@ export const world = (): World => {
       if (strength[e] < 0.01) { delete strength[e]; delete peak[e]; delete lastUsed[e] }
     }
     for (const e in resistance) { resistance[e] *= (1 - r * 2); resistance[e] < 0.01 && delete resistance[e] }
+    invalidate()
   }
 
-  const highways = (limit = 10): Edge[] =>
-    Object.entries(strength)
-      .map(([path, s]) => ({ path, strength: s - (resistance[path] || 0) }))
-      .filter(e => e.strength > 0)
-      .sort((a, b) => b.strength - a.strength)
-      .slice(0, limit)
+  // highways: O(1) on cache hit (common case — same sorted order between marks)
+  const highways = (limit = 10): Edge[] => sorted().slice(0, limit)
 
   const recordLatency = (path: string, ms: number) => {
     latency[path] = latency[path] ? latency[path] * 0.7 + ms * 0.3 : ms

@@ -105,6 +105,8 @@ const PHASE_META: Record<string, { label: string; color: string; glow: string }>
   intelligence: { label: 'Intelligence', color: '#f472b6', glow: 'rgba(244,114,182,0.3)' },
   scale:        { label: 'Scale',        color: '#f87171', glow: 'rgba(248,113,113,0.3)' },
 }
+const PHASE_META_DEFAULT = { label: 'Unknown', color: '#94a3b8', glow: 'rgba(148,163,184,0.3)' }
+const getPhaseMeta = (phase: string) => PHASE_META[phase] ?? PHASE_META_DEFAULT
 
 const STATUS_STYLES: Record<string, { bg: string; border: string; text: string }> = {
   complete:    { bg: 'bg-emerald-500/8',  border: 'border-emerald-500/20', text: 'text-emerald-400' },
@@ -120,7 +122,7 @@ function PhaseTimeline({ phases, activePhase }: { phases: Phase[]; activePhase: 
   return (
     <div className="flex items-center gap-1 px-2">
       {phases.map((phase, i) => {
-        const meta = PHASE_META[phase.id]
+        const meta = getPhaseMeta(phase.id)
         const pct = phase.total > 0 ? (phase.complete / phase.total) * 100 : 0
         const isActive = phase.id === activePhase
         const isDone = pct === 100
@@ -179,7 +181,7 @@ function PhaseTimeline({ phases, activePhase }: { phases: Phase[]; activePhase: 
 // ─── Active Task Spotlight ──────────────────────────────────────────────────
 
 function ActiveSpotlight({ task, allTasks }: { task: Task; allTasks: Task[] }) {
-  const meta = PHASE_META[task.phase]
+  const meta = getPhaseMeta(task.phase)
   const blockers = allTasks.filter(t => task.blockedBy.includes(t.tid))
   const unblocks = allTasks.filter(t => task.blocks.includes(t.tid))
 
@@ -295,7 +297,7 @@ function ActiveSpotlight({ task, allTasks }: { task: Task; allTasks: Task[] }) {
 
 function MiniCard({ task, align }: { task: Task; align: 'left' | 'right' }) {
   const style = STATUS_STYLES[task.status] || STATUS_STYLES.todo
-  const meta = PHASE_META[task.phase]
+  const meta = getPhaseMeta(task.phase)
 
   return (
     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${style.bg} ${style.border} max-w-[200px]`}>
@@ -497,7 +499,7 @@ function TaskRow({ task, isActive, onSelect, isDragging, isRejected, onDragStart
   task: Task; isActive: boolean; onSelect: (tid: string) => void
   isDragging?: boolean; isRejected?: boolean; onDragStart?: () => void; onDragEnd?: () => void
 }) {
-  const meta = PHASE_META[task.phase]
+  const meta = getPhaseMeta(task.phase)
   const style = STATUS_STYLES[task.status] || STATUS_STYLES.todo
 
   return (
@@ -730,7 +732,7 @@ export function TaskBoard() {
       const repelledIds = new Set((repelledRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
 
       const merged = liveTasks.map((t) => ({
-        tid: t.tid as string,
+        tid: (t.tid || t.id) as string,
         name: t.name as string,
         status: (t.status as Task['status']) || 'todo',
         priority: (t.priority as Task['priority']) || 'P1',
@@ -739,10 +741,10 @@ export function TaskBoard() {
         trailPheromone: (t.trailPheromone as number) || 0,
         alarmPheromone: (t.alarmPheromone as number) || 0,
         trailStatus: null as Task['trailStatus'],
-        attractive: attractiveIds.has(t.tid),
-        repelled: repelledIds.has(t.tid),
-        blockedBy: [] as string[],
-        blocks: [] as string[],
+        attractive: attractiveIds.has(t.tid || t.id),
+        repelled: repelledIds.has(t.tid || t.id),
+        blockedBy: (t.blockedBy as string[]) || [],
+        blocks: (t.blocks as string[]) || [],
       }))
 
       // Merge: live tasks override roadmap by tid, keep roadmap extras
@@ -832,7 +834,7 @@ export function TaskBoard() {
               })
 
               // Persist status change to TypeDB
-              fetch(`/api/tasks/${tid}`, {
+              fetch(`/api/tasks/update/${tid}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus }),

@@ -1,6 +1,6 @@
 import { defineMiddleware } from "astro:middleware";
 
-const PROTECTED_ROUTES = ["/dashboard"];
+const PROTECTED_ROUTES: string[] = [];
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;

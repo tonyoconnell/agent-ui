@@ -17,9 +17,17 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Missing query' }), { status: 400 })
   }
 
-  const answers = type === 'write' ? await write(tql) : await read(tql)
-  const rows = parseAnswers(answers)
-  return new Response(JSON.stringify({ rows }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+  try {
+    const answers = type === 'write' ? await write(tql) : await read(tql)
+    const rows = parseAnswers(answers)
+    return new Response(JSON.stringify({ rows }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return new Response(JSON.stringify({ error: message }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
 }

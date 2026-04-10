@@ -112,6 +112,7 @@ export const world = (): PersistentWorld => {
       if (!from || !to) continue
       writeSilent(`
         match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
+        not { (source: $from, target: $to) isa path; };
         insert (source: $from, target: $to) isa path,
           has strength ${str}, has resistance ${net.resistance[edge] || 0}, has traversals 0, has revenue 0.0;
       `)
@@ -121,9 +122,10 @@ export const world = (): PersistentWorld => {
   // ── World layer ───────────────────────────────────────────────────────
 
   const actor = (id: string, kind = 'agent', opts?: { group?: string }) => {
+    if (!id) return net.add(id)
     const uid = opts?.group ? `${opts.group}/${id}` : id
     writeSilent(`
-      insert $u isa unit, has uid "${uid}", has unit-kind "${kind}", has status "active",
+      insert $u isa unit, has uid "${uid}", has name "${id}", has unit-kind "${kind}", has status "active",
         has success-rate 0.5, has activity-score 0.0, has sample-count 0,
         has reputation 0.0, has balance 0.0, has generation 0;
     `).catch(() => {})

@@ -97,7 +97,7 @@ function RevenueBreakdown() {
 
   useEffect(() => {
     fetch('/api/state')
-      .then(r => r.json())
+      .then(r => r.json() as Promise<any>)
       .then((data: { edges?: Array<{ from: string; to: string; revenue: number; strength: number }> }) => {
         const edges = (data.edges || [])
           .filter((e: { revenue: number }) => e.revenue > 0)
@@ -151,8 +151,8 @@ export function Dashboard() {
 
     try {
       const [healthRes, statsRes] = await Promise.all([
-        fetch('/api/health').then(r => r.json()).catch(() => null),
-        fetch('/api/stats').then(r => r.json()).catch(() => null),
+        fetch('/api/health').then(r => r.json() as Promise<any>).catch(() => null),
+        fetch('/api/stats').then(r => r.json() as Promise<any>).catch(() => null),
         fetch('/api/tick').catch(() => null),         // growth loop (includes decay)
       ])
 
