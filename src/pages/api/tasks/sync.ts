@@ -204,7 +204,7 @@ export const GET: APIRoute = async () => {
   }), { headers: { 'Content-Type': 'application/json' } })
 }
 
-export const POST: APIRoute = async ({ locals }) => {
+export const POST: APIRoute = async (context) => {
   const start = Date.now()
   const { join } = await import('node:path')
   const { writeFile } = await import('node:fs/promises')
@@ -224,7 +224,7 @@ export const POST: APIRoute = async ({ locals }) => {
   let kvWritten = false
 
   // Try to write to CF KV if available (edge runtime)
-  const kv = locals.kv as KVNamespace | undefined
+  const kv = ((context.locals as any)?.runtime?.env as { KV?: KVNamespace })?.KV
   if (kv) {
     try {
       // Read existing hash
