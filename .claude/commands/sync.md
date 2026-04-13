@@ -1,6 +1,20 @@
-Run the doc-scan sync loop. Scans all `docs/TODO-*.md` files, writes to CF KV (hot cache), syncs to TypeDB (durable), writes `todo.json` (snapshot), regenerates `docs/TODO.md` (master index ranked by pheromone weight).
+Run the doc-scan sync loop with full deterministic sandwich. Scans all `docs/TODO-*.md` files, writes to CF KV (hot cache), syncs to TypeDB (durable), writes `todo.json` (snapshot), regenerates `docs/TODO.md` (master index ranked by pheromone weight).
 
 Three-layer architecture: KV (10ms) → TypeDB (100ms) → TODO.md (regenerate).
+
+**GATED: W0 baseline must pass before sync.**
+
+## W0 Gate — Baseline (non-negotiable)
+
+Before syncing, verify the codebase is healthy:
+
+```bash
+npm run verify     # biome check . && tsc --noEmit && vitest run
+```
+
+**If baseline fails:** Fix it first. Do not sync on broken ground.
+
+This is the deterministic sandwich PRE check. The substrate learns from clean state only.
 
 ## Steps
 

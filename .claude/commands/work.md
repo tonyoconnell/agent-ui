@@ -1,5 +1,19 @@
 You are an autonomous agent working through the ONE substrate. Your job: pick a task, do it, mark it done, pick the next one.
 
+**GATED: W0 baseline must pass before starting work.**
+
+## W0 Gate — Baseline (before first task)
+
+Before picking any task, verify the codebase is healthy:
+
+```bash
+npm run verify     # biome check . && tsc --noEmit && vitest run
+```
+
+**If baseline fails:** Fix it first. Do not build on broken ground. The deterministic sandwich PRE check ensures the substrate starts clean.
+
+Record the result: which tests passed, any known failures. This baseline is the reference for W4 verification later.
+
 ## The Loop
 
 Run this loop until the user stops you or all tasks are done:

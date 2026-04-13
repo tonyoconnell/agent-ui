@@ -318,6 +318,9 @@ Fix the source, the downstream fixes become mechanical.
 
 **Already done:** [`DSL.md`](DSL.md) — all 6 dead names replaced (2026-04-14).
 
+**CYCLE GATE:** This cycle cannot start until migration-gate (Phase 9) is complete.
+Once C1-W4 verifies clean, Cycle 2 unlocks automatically.
+
 ### Cycle 1 Tasks
 
 - [ ] Cycle 1 W1: Recon (parallel Haiku × 4)
@@ -462,6 +465,9 @@ are clean, these become mechanical — copy the canonical forms.
 
 **Depends on:** Cycle 1 complete. Core docs are the reference for voice + vocabulary.
 
+**CYCLE GATE:** This cycle cannot start until C1-W4 verifies clean.
+Once C2-W4 verifies clean, Cycle 3 unlocks automatically.
+
 ### Cycle 2 Tasks
 
 - [ ] Cycle 2 W1: Recon (parallel Haiku × 20)
@@ -588,6 +594,10 @@ semi-historical. Changes here are lower-risk but complete the sweep.
 
 **Depends on:** Cycle 2 complete. Voice and vocabulary are now established
 across all active docs.
+
+**FINAL GATE:** This cycle cannot start until C2-W4 verifies clean.
+Once C3-W4 verifies clean, consolidation is complete. All docs speak one vocabulary.
+The substrate knows what works. Pheromone is stable. Ready for growth.
 
 ### Cycle 3 Tasks
 
