@@ -21,7 +21,7 @@
  * Styling: Card with dark background, large readable text
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSkin } from '@/contexts/SkinContext'
 import { cn } from '@/lib/utils'
 
@@ -36,7 +36,7 @@ const guideSteps: GuideStep[] = [
   {
     number: 1,
     title: 'Meet a Unit',
-    narration: 'This is a unit. It\'s an actor in the world.',
+    narration: "This is a unit. It's an actor in the world.",
     action: 'highlight-agent',
   },
   {
@@ -84,7 +84,7 @@ const guideSteps: GuideStep[] = [
   {
     number: 9,
     title: 'Fading',
-    narration: 'Nothing flows? It fades naturally. The world forgets what doesn\'t work.',
+    narration: "Nothing flows? It fades naturally. The world forgets what doesn't work.",
     action: 'fade-path',
   },
   {
@@ -96,13 +96,13 @@ const guideSteps: GuideStep[] = [
   {
     number: 11,
     title: 'You Changed It',
-    narration: 'You just changed the world. Watch it react. The new path will get stronger as it\'s used.',
+    narration: "You just changed the world. Watch it react. The new path will get stronger as it's used.",
     action: 'new-path-reaction',
   },
   {
     number: 12,
-    title: 'You\'re In',
-    narration: 'That\'s it. You touched the world and it reacted. Sign in to keep your changes.',
+    title: "You're In",
+    narration: "That's it. You touched the world and it reacted. Sign in to keep your changes.",
     action: 'offer-signup',
   },
 ]
@@ -146,9 +146,7 @@ export function GuideNarrator({ isOpen: controlledIsOpen, onClose, className }: 
     // Remove guide param from URL
     const params = new URLSearchParams(window.location.search)
     params.delete('guide')
-    const newUrl = params.toString()
-      ? `${window.location.pathname}?${params.toString()}`
-      : window.location.pathname
+    const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname
     window.history.replaceState({}, '', newUrl)
   }, [onClose])
 
@@ -207,11 +205,11 @@ export function GuideNarrator({ isOpen: controlledIsOpen, onClose, className }: 
       className={cn(
         'fixed bottom-24 right-6 w-80 rounded-xl border shadow-2xl z-50 p-6',
         'animate-in slide-in-from-bottom-4',
-        className
+        className,
       )}
       style={{
         backgroundColor: skin.colors.surface,
-        borderColor: skin.colors.primary + '40',
+        borderColor: `${skin.colors.primary}40`,
       }}
     >
       {/* Close button */}
@@ -221,34 +219,18 @@ export function GuideNarrator({ isOpen: controlledIsOpen, onClose, className }: 
         style={{ color: skin.colors.muted }}
         title="Close guide (ESC)"
       >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
       {/* Title */}
-      <h3
-        className="text-lg font-bold mb-2"
-        style={{ color: skin.colors.primary }}
-      >
+      <h3 className="text-lg font-bold mb-2" style={{ color: skin.colors.primary }}>
         {step.title}
       </h3>
 
       {/* Narration */}
-      <p
-        className="text-sm leading-relaxed mb-6"
-        style={{ color: skin.colors.muted }}
-      >
+      <p className="text-sm leading-relaxed mb-6" style={{ color: skin.colors.muted }}>
         {step.narration}
       </p>
 
@@ -268,10 +250,7 @@ export function GuideNarrator({ isOpen: controlledIsOpen, onClose, className }: 
         </button>
 
         {/* Step indicator */}
-        <div
-          className="text-xs font-semibold text-center flex-1"
-          style={{ color: skin.colors.muted }}
-        >
+        <div className="text-xs font-semibold text-center flex-1" style={{ color: skin.colors.muted }}>
           {currentStep} / {guideSteps.length}
         </div>
 
@@ -290,10 +269,7 @@ export function GuideNarrator({ isOpen: controlledIsOpen, onClose, className }: 
       </div>
 
       {/* Progress bar */}
-      <div
-        className="mt-4 h-1 rounded-full overflow-hidden"
-        style={{ backgroundColor: skin.colors.muted + '20' }}
-      >
+      <div className="mt-4 h-1 rounded-full overflow-hidden" style={{ backgroundColor: `${skin.colors.muted}20` }}>
         <div
           className="h-full transition-all duration-300"
           style={{
@@ -304,10 +280,7 @@ export function GuideNarrator({ isOpen: controlledIsOpen, onClose, className }: 
       </div>
 
       {/* Help text */}
-      <p
-        className="mt-4 text-xs text-center"
-        style={{ color: skin.colors.muted + '60' }}
-      >
+      <p className="mt-4 text-xs text-center" style={{ color: `${skin.colors.muted}60` }}>
         Use ← → or arrow keys • ESC to close
       </p>
     </div>

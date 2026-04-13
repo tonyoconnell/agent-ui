@@ -25,7 +25,7 @@ export const GET: APIRoute = async ({ url }) => {
 
   const rows = await readParsed(tql).catch(() => [])
 
-  const hypotheses = rows.map(row => ({
+  const hypotheses = rows.map((row) => ({
     hid: row.hid,
     statement: row.stmt,
     status: row.hs,
@@ -40,7 +40,7 @@ export const GET: APIRoute = async ({ url }) => {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  const { statement } = await request.json() as { statement: string }
+  const { statement } = (await request.json()) as { statement: string }
 
   if (!statement) {
     return new Response(JSON.stringify({ error: 'Missing statement' }), { status: 400 })

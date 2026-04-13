@@ -1,12 +1,13 @@
 # Lib
 
-**Skills: `/typedb` for query patterns, `/react19` for hooks.**
+**Skills: `/typedb` for query patterns, `/react19` for hooks, `/sui` for Sui client patterns.**
 
 ## Files
 
 | File | Purpose | Skill |
 |------|---------|-------|
 | `typedb.ts` | TypeDB client: read/write/decay/callFunction | `/typedb` |
+| `sui.ts` | **NEW:** Sui client: contract functions, keypair derivation, faucet | `/sui` |
 | `auth.ts` | Better Auth server config (PBKDF2, TypeDB backend) | — |
 | `auth-client.ts` | Better Auth client (React) | `/react19` |
 | `typedb-auth-adapter.ts` | TypeDB adapter for Better Auth | `/typedb` |

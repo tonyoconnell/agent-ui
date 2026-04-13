@@ -32,7 +32,7 @@ async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<un
     throw new Error(`Gateway query failed: ${res.status} - ${text}`)
   }
 
-  const data = await res.json() as { answers?: unknown[] }
+  const data = (await res.json()) as { answers?: unknown[] }
   return data.answers || []
 }
 
@@ -44,7 +44,7 @@ export const write = (tql: string) => query(tql, 'write')
 
 /** Parse TypeDB answers into flat key-value objects */
 export function parseAnswers(answers: unknown[]): Record<string, unknown>[] {
-  return (answers as Array<{ data?: Record<string, { value?: unknown; kind?: string }> }>).map(answer => {
+  return (answers as Array<{ data?: Record<string, { value?: unknown; kind?: string }> }>).map((answer) => {
     const result: Record<string, unknown> = {}
     if (!answer?.data) return result
 
@@ -78,7 +78,7 @@ export async function writeBatch(queries: string[]): Promise<void> {
  * Per-path fade-rate when set, falls back to global defaults.
  * From ant biology: success persists, failure forgives.
  */
-export async function decay(strengthRate = 0.05, resistanceRate = 0.20): Promise<void> {
+export async function decay(strengthRate = 0.05, resistanceRate = 0.2): Promise<void> {
   const tf = 1 - strengthRate
   const af = 1 - resistanceRate
 
@@ -111,7 +111,10 @@ export async function decay(strengthRate = 0.05, resistanceRate = 0.20): Promise
 }
 
 /** Execute a TypeQL function (TypeDB 3.0) */
-export async function callFunction(name: string, args: Record<string, unknown> = {}): Promise<Record<string, unknown>[]> {
+export async function callFunction(
+  name: string,
+  args: Record<string, unknown> = {},
+): Promise<Record<string, unknown>[]> {
   const argStr = Object.entries(args)
     .map(([k, v]) => `$${k} = ${typeof v === 'string' ? `"${v}"` : v}`)
     .join(', ')

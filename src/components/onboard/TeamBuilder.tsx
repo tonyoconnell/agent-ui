@@ -10,15 +10,15 @@
  */
 
 import { useState, useTransition } from 'react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 interface Agent {
   name: string
   task: string
-  emitsTo: string  // "name:task" or empty for terminal
+  emitsTo: string // "name:task" or empty for terminal
   model: string
 }
 
@@ -86,13 +86,16 @@ export function TeamBuilder() {
   const addAgent = () => {
     if (!agentName || !agentTask) return
     const clean = agentName.toLowerCase().replace(/[^a-z0-9-]/g, '')
-    if (agents.some(a => a.name === clean)) return
-    setAgents([...agents, {
-      name: clean,
-      task: agentTask.toLowerCase().replace(/[^a-z0-9-]/g, ''),
-      emitsTo: agentEmitsTo,
-      model: agentModel,
-    }])
+    if (agents.some((a) => a.name === clean)) return
+    setAgents([
+      ...agents,
+      {
+        name: clean,
+        task: agentTask.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+        emitsTo: agentEmitsTo,
+        model: agentModel,
+      },
+    ])
     setAgentName('')
     setAgentTask('')
     setAgentEmitsTo('')
@@ -101,13 +104,17 @@ export function TeamBuilder() {
 
   const removeAgent = (index: number) => {
     const removed = agents[index]
-    setAgents(agents.filter((_, i) => i !== index).map(a => {
-      // Clear emitsTo references to the removed agent
-      if (a.emitsTo.startsWith(removed.name + ':') || a.emitsTo === removed.name) {
-        return { ...a, emitsTo: '' }
-      }
-      return a
-    }))
+    setAgents(
+      agents
+        .filter((_, i) => i !== index)
+        .map((a) => {
+          // Clear emitsTo references to the removed agent
+          if (a.emitsTo.startsWith(`${removed.name}:`) || a.emitsTo === removed.name) {
+            return { ...a, emitsTo: '' }
+          }
+          return a
+        }),
+    )
   }
 
   const applyTemplate = (key: string) => {
@@ -127,7 +134,7 @@ export function TeamBuilder() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teamName, agents, brief: brief || undefined }),
       })
-      const data = await res.json() as TeamResult
+      const data = (await res.json()) as TeamResult
       setResult(data)
     })
   }
@@ -136,7 +143,7 @@ export function TeamBuilder() {
   const chainPreview = () => {
     if (agents.length === 0) return null
     // Find the entry point (agent not referenced by any emitsTo)
-    const targets = new Set(agents.map(a => a.name))
+    const targets = new Set(agents.map((a) => a.name))
     for (const a of agents) {
       if (a.emitsTo) {
         const targetName = a.emitsTo.includes(':') ? a.emitsTo.split(':')[0] : a.emitsTo
@@ -151,7 +158,7 @@ export function TeamBuilder() {
       let current: string | undefined = entry
       while (current && !visited.has(current)) {
         visited.add(current)
-        const agent = agents.find(a => a.name === current)
+        const agent = agents.find((a) => a.name === current)
         if (!agent) break
         chain.push(`${agent.name}:${agent.task}`)
         if (!agent.emitsTo) break
@@ -173,12 +180,8 @@ export function TeamBuilder() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white">
-          Build a Team
-        </h1>
-        <p className="mt-3 text-lg text-slate-400">
-          group + actors + flow + signal
-        </p>
+        <h1 className="text-4xl font-bold tracking-tight text-white">Build a Team</h1>
+        <p className="mt-3 text-lg text-slate-400">group + actors + flow + signal</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -270,7 +273,9 @@ export function TeamBuilder() {
                 className="h-9 w-full rounded-md border border-[#353548] bg-[#0f0f17] px-3 text-sm text-white"
               >
                 {MODELS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
                 ))}
               </select>
             </div>
@@ -354,9 +359,7 @@ export function TeamBuilder() {
         {/* 4. Brief */}
         <div className="rounded-xl border border-[#252538] bg-[#161622] p-6 space-y-4">
           <h2 className="text-lg font-semibold text-white">4. First signal</h2>
-          <p className="text-sm text-slate-400">
-            The brief that starts the chain. Sent to the first agent.
-          </p>
+          <p className="text-sm text-slate-400">The brief that starts the chain. Sent to the first agent.</p>
           <Textarea
             value={brief}
             onChange={(e) => setBrief(e.target.value)}
@@ -372,10 +375,7 @@ export function TeamBuilder() {
           disabled={!teamName || agents.length < 2 || isPending}
           className="w-full h-12 text-base font-semibold bg-violet-600 hover:bg-violet-500 text-white"
         >
-          {isPending
-            ? 'Creating team...'
-            : `Deploy ${teamName || 'team'} (${agents.length} agents)`
-          }
+          {isPending ? 'Creating team...' : `Deploy ${teamName || 'team'} (${agents.length} agents)`}
         </Button>
 
         {/* Result */}
@@ -386,7 +386,7 @@ export function TeamBuilder() {
               Group: <span className="font-mono text-white">{result.group}</span>
             </p>
             <div className="flex justify-center gap-2 flex-wrap">
-              {result.agents?.map(a => (
+              {result.agents?.map((a) => (
                 <Badge key={a} variant="outline" className="border-emerald-500/30 text-emerald-400">
                   {a}
                 </Badge>
@@ -415,34 +415,54 @@ export function TeamBuilder() {
         <div className="mt-8 rounded-xl border border-[#252538] bg-[#161622] p-6 space-y-3">
           <h3 className="text-sm font-medium text-slate-500">DSL equivalent</h3>
           <pre className="text-xs font-mono text-slate-400 overflow-x-auto leading-relaxed">
-{`const w = world({ persist: typedb() })
+            {`const w = world({ persist: typedb() })
 
 w.group('${teamName}', 'team')
 
-${agents.map(a =>
-  `w.actor('${a.name}', 'agent', { group: '${teamName}', model: '${a.model}' })
-  .on('${a.task}', (data, emit) => {${a.emitsTo ? `
-    emit({ receiver: '${a.emitsTo}', data: result })` : `
-    return result`}
-  })`
-).join('\n\n')}
-${agents.filter(a => a.emitsTo).map(a => {
-  const target = a.emitsTo.includes(':') ? a.emitsTo.split(':')[0] : a.emitsTo
-  return `w.flow('${a.name}', '${target}', { group: '${teamName}' }).strengthen()`
-}).join('\n')}
-${brief ? `
-w.signal({ receiver: '${agents[0].name}:${agents[0].task}', data: { brief: '...' } })` : ''}`}
+${agents
+  .map(
+    (a) =>
+      `w.actor('${a.name}', 'agent', { group: '${teamName}', model: '${a.model}' })
+  .on('${a.task}', (data, emit) => {${
+    a.emitsTo
+      ? `
+    emit({ receiver: '${a.emitsTo}', data: result })`
+      : `
+    return result`
+  }
+  })`,
+  )
+  .join('\n\n')}
+${agents
+  .filter((a) => a.emitsTo)
+  .map((a) => {
+    const target = a.emitsTo.includes(':') ? a.emitsTo.split(':')[0] : a.emitsTo
+    return `w.flow('${a.name}', '${target}', { group: '${teamName}' }).strengthen()`
+  })
+  .join('\n')}
+${
+  brief
+    ? `
+w.signal({ receiver: '${agents[0].name}:${agents[0].task}', data: { brief: '...' } })`
+    : ''
+}`}
           </pre>
         </div>
       )}
 
       {/* Links */}
       <div className="mt-12 flex justify-center gap-6 text-sm text-slate-500">
-        <a href="/build" className="hover:text-violet-400 transition-colors">Build single agent</a>
+        <a href="/build" className="hover:text-violet-400 transition-colors">
+          Build single agent
+        </a>
         <span>|</span>
-        <a href="/discover" className="hover:text-violet-400 transition-colors">Discover agents</a>
+        <a href="/discover" className="hover:text-violet-400 transition-colors">
+          Discover agents
+        </a>
         <span>|</span>
-        <a href="/world" className="hover:text-violet-400 transition-colors">View world</a>
+        <a href="/world" className="hover:text-violet-400 transition-colors">
+          View world
+        </a>
       </div>
     </div>
   )

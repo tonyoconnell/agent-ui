@@ -2,8 +2,8 @@
  * Chat Component Exports
  */
 
-export { ChatMessage } from "./ChatMessage"
-export { ChatWelcome } from "./ChatWelcome"
-export { ChatSettings } from "./ChatSettings"
-export { ChatSuggestions } from "./ChatSuggestions"
-export { MarkdownRenderer } from "./MarkdownRenderer"
+export { ChatMessage } from './ChatMessage'
+export { ChatSettings } from './ChatSettings'
+export { ChatSuggestions } from './ChatSuggestions'
+export { ChatWelcome } from './ChatWelcome'
+export { MarkdownRenderer } from './MarkdownRenderer'

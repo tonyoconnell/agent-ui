@@ -12,7 +12,7 @@
  * Controls at bottom of canvas for scrubbing through time.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSkin } from '@/contexts/SkinContext'
 import { cn } from '@/lib/utils'
 
@@ -32,11 +32,7 @@ interface TimeScrubberProps {
   className?: string
 }
 
-export function TimeScrubber({
-  onTimeChange,
-  onSignalsLoaded,
-  className,
-}: TimeScrubberProps) {
+export function TimeScrubber({ onTimeChange, onSignalsLoaded, className }: TimeScrubberProps) {
   const { skin } = useSkin()
   const [isLive, setIsLive] = useState(true)
   const [currentTime, setCurrentTime] = useState(Date.now())
@@ -61,31 +57,31 @@ export function TimeScrubber({
   }, [isLive])
 
   // Load signals for the current time window
-  const loadSignals = useCallback(async (timestamp: number) => {
-    if (typeof window === 'undefined') return
-    setIsLoading(true)
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 3000)
-    try {
-      const windowStart = timestamp
-      const windowEnd = timestamp + 60000 // 1 minute window
-      const response = await fetch(
-        `/api/signals?from=${windowStart}&to=${windowEnd}`,
-        { signal: controller.signal }
-      )
-      clearTimeout(timeout)
-      if (response.ok) {
-        const data = (await response.json()) as Signal[]
-        setSignals(data)
-        onSignalsLoaded?.(data)
+  const loadSignals = useCallback(
+    async (timestamp: number) => {
+      if (typeof window === 'undefined') return
+      setIsLoading(true)
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 3000)
+      try {
+        const windowStart = timestamp
+        const windowEnd = timestamp + 60000 // 1 minute window
+        const response = await fetch(`/api/signals?from=${windowStart}&to=${windowEnd}`, { signal: controller.signal })
+        clearTimeout(timeout)
+        if (response.ok) {
+          const data = (await response.json()) as Signal[]
+          setSignals(data)
+          onSignalsLoaded?.(data)
+        }
+      } catch (error) {
+        clearTimeout(timeout)
+        console.error('Failed to load signals:', error)
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      clearTimeout(timeout)
-      console.error('Failed to load signals:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [onSignalsLoaded])
+    },
+    [onSignalsLoaded],
+  )
 
   // Load signals when time changes
   useEffect(() => {
@@ -151,13 +147,10 @@ export function TimeScrubber({
 
   return (
     <div
-      className={cn(
-        'relative border-t px-6 py-4 flex flex-col gap-3',
-        className
-      )}
+      className={cn('relative border-t px-6 py-4 flex flex-col gap-3', className)}
       style={{
         backgroundColor: skin.colors.surface,
-        borderColor: skin.colors.muted + '20',
+        borderColor: `${skin.colors.muted}20`,
       }}
     >
       {/* Timeline slider */}
@@ -169,7 +162,7 @@ export function TimeScrubber({
             disabled={isLive}
             className="px-2 py-1 rounded text-xs font-mono transition-colors disabled:opacity-30"
             style={{
-              backgroundColor: skin.colors.muted + '10',
+              backgroundColor: `${skin.colors.muted}10`,
               color: skin.colors.muted,
             }}
             title="Skip back 10 minutes"
@@ -181,7 +174,7 @@ export function TimeScrubber({
             disabled={isLive}
             className="px-2 py-1 rounded text-xs font-mono transition-colors disabled:opacity-30"
             style={{
-              backgroundColor: skin.colors.muted + '10',
+              backgroundColor: `${skin.colors.muted}10`,
               color: skin.colors.muted,
             }}
             title="Step back 1 minute"
@@ -195,13 +188,13 @@ export function TimeScrubber({
           onClick={handleGoLive}
           className={cn(
             'px-4 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap',
-            isLive ? 'shadow-lg' : 'hover:bg-white/5'
+            isLive ? 'shadow-lg' : 'hover:bg-white/5',
           )}
           style={{
-            backgroundColor: isLive ? skin.colors.primary : skin.colors.primary + '20',
+            backgroundColor: isLive ? skin.colors.primary : `${skin.colors.primary}20`,
             color: isLive ? skin.colors.surface : skin.colors.primary,
             borderWidth: 1,
-            borderColor: isLive ? skin.colors.primary : skin.colors.primary + '40',
+            borderColor: isLive ? skin.colors.primary : `${skin.colors.primary}40`,
           }}
           title="Jump to live"
         >
@@ -215,7 +208,7 @@ export function TimeScrubber({
             disabled={isLive}
             className="px-2 py-1 rounded text-xs font-mono transition-colors disabled:opacity-30"
             style={{
-              backgroundColor: skin.colors.muted + '10',
+              backgroundColor: `${skin.colors.muted}10`,
               color: skin.colors.muted,
             }}
             title="Step forward 1 minute"
@@ -227,7 +220,7 @@ export function TimeScrubber({
             disabled={isLive}
             className="px-2 py-1 rounded text-xs font-mono transition-colors disabled:opacity-30"
             style={{
-              backgroundColor: skin.colors.muted + '10',
+              backgroundColor: `${skin.colors.muted}10`,
               color: skin.colors.muted,
             }}
             title="Skip forward 10 minutes"
@@ -241,7 +234,7 @@ export function TimeScrubber({
           <div
             className="ml-auto px-3 py-1 rounded text-xs font-semibold"
             style={{
-              backgroundColor: skin.colors.warning + '20',
+              backgroundColor: `${skin.colors.warning}20`,
               color: skin.colors.warning,
             }}
           >
@@ -252,10 +245,7 @@ export function TimeScrubber({
 
       {/* Slider */}
       <div className="flex items-center gap-3">
-        <span
-          className="text-xs font-mono"
-          style={{ color: skin.colors.muted + '60', minWidth: '40px' }}
-        >
+        <span className="text-xs font-mono" style={{ color: `${skin.colors.muted}60`, minWidth: '40px' }}>
           {formatTime(minTime)}
         </span>
 
@@ -276,7 +266,7 @@ export function TimeScrubber({
 
         <span
           className="text-xs font-mono"
-          style={{ color: skin.colors.muted + '60', minWidth: '40px', textAlign: 'right' }}
+          style={{ color: `${skin.colors.muted}60`, minWidth: '40px', textAlign: 'right' }}
         >
           NOW
         </span>
@@ -284,11 +274,10 @@ export function TimeScrubber({
 
       {/* Signal count */}
       {!isLive && (
-        <div
-          className="text-xs"
-          style={{ color: skin.colors.muted + '60' }}
-        >
-          {isLoading ? 'Loading signals...' : `${signals.length} signal${signals.length !== 1 ? 's' : ''} in this minute`}
+        <div className="text-xs" style={{ color: `${skin.colors.muted}60` }}>
+          {isLoading
+            ? 'Loading signals...'
+            : `${signals.length} signal${signals.length !== 1 ? 's' : ''} in this minute`}
         </div>
       )}
     </div>

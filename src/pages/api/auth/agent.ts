@@ -22,22 +22,64 @@
  */
 
 import type { APIRoute } from 'astro'
-import { write, readParsed } from '@/lib/typedb'
 import { generateApiKey, hashKey } from '@/lib/api-key'
 import { addressFor } from '@/lib/sui'
+import { readParsed, write } from '@/lib/typedb'
 
 export const prerender = false
 
 // Word lists for auto-generated names
 const ADJECTIVES = [
-  'swift', 'bright', 'calm', 'keen', 'bold', 'fair', 'warm', 'deep',
-  'sharp', 'clear', 'quick', 'pure', 'wise', 'true', 'free', 'safe',
-  'strong', 'light', 'fast', 'sure', 'fresh', 'steady', 'ready', 'prime',
+  'swift',
+  'bright',
+  'calm',
+  'keen',
+  'bold',
+  'fair',
+  'warm',
+  'deep',
+  'sharp',
+  'clear',
+  'quick',
+  'pure',
+  'wise',
+  'true',
+  'free',
+  'safe',
+  'strong',
+  'light',
+  'fast',
+  'sure',
+  'fresh',
+  'steady',
+  'ready',
+  'prime',
 ]
 const NOUNS = [
-  'scout', 'spark', 'pilot', 'forge', 'pulse', 'bloom', 'ridge', 'crest',
-  'drift', 'wave', 'grove', 'stone', 'flint', 'ember', 'frost', 'vale',
-  'reed', 'lark', 'wren', 'crane', 'fern', 'brook', 'cliff', 'dawn',
+  'scout',
+  'spark',
+  'pilot',
+  'forge',
+  'pulse',
+  'bloom',
+  'ridge',
+  'crest',
+  'drift',
+  'wave',
+  'grove',
+  'stone',
+  'flint',
+  'ember',
+  'frost',
+  'vale',
+  'reed',
+  'lark',
+  'wren',
+  'crane',
+  'fern',
+  'brook',
+  'cliff',
+  'dawn',
 ]
 
 function autoName(): string {
@@ -48,13 +90,20 @@ function autoName(): string {
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const body = await request.json().catch(() => ({})) as {
-      name?: string; uid?: string; kind?: string
+    const body = (await request.json().catch(() => ({}))) as {
+      name?: string
+      uid?: string
+      kind?: string
     }
 
     const name = body.name || autoName()
     const kind = body.kind || 'agent'
-    const uid = body.uid || name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')
+    const uid =
+      body.uid ||
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
 
     // Check if unit already exists
     const existing = await readParsed(`
@@ -68,7 +117,11 @@ export const POST: APIRoute = async ({ request }) => {
     // If new, create the unit
     if (!returning) {
       let wallet = ''
-      try { wallet = await addressFor(uid) } catch { /* SUI_SEED not set */ }
+      try {
+        wallet = await addressFor(uid)
+      } catch {
+        /* SUI_SEED not set */
+      }
 
       const now = new Date().toISOString()
       const walletClause = wallet ? `, has wallet "${esc(wallet)}"` : ''
@@ -88,7 +141,11 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Always derive wallet (deterministic — same uid = same address)
     let wallet = ''
-    try { wallet = await addressFor(uid) } catch { /* SUI_SEED not set */ }
+    try {
+      wallet = await addressFor(uid)
+    } catch {
+      /* SUI_SEED not set */
+    }
 
     // Always generate a fresh API key
     const apiKey = generateApiKey()
@@ -117,7 +174,7 @@ export const POST: APIRoute = async ({ request }) => {
       // Relation creation is best-effort — key still works via user-id match
     })
 
-    const existingName = returning && existing[0]?.n ? existing[0].n as string : name
+    const existingName = returning && existing[0]?.n ? (existing[0].n as string) : name
 
     return new Response(
       JSON.stringify({
@@ -135,14 +192,14 @@ export const POST: APIRoute = async ({ request }) => {
           'Content-Type': 'application/json',
           'X-ONE-Protocol': 'v1',
         },
-      }
+      },
     )
   } catch (error: any) {
     console.error('[Agent Onboarding]', error)
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }
 
@@ -153,10 +210,17 @@ export const GET: APIRoute = async () => {
       endpoint: 'POST /api/auth/agent',
       description: 'Zero-friction agent onboarding. Send {} to get a complete identity.',
       input: { name: 'optional', uid: 'optional (derived from name)', kind: 'optional (default: agent)' },
-      output: { uid: 'string', name: 'string', wallet: 'sui address', apiKey: 'shown once', keyId: 'string', returning: 'boolean' },
-      example: 'curl -X POST /api/auth/agent -d \'{}\'',
+      output: {
+        uid: 'string',
+        name: 'string',
+        wallet: 'sui address',
+        apiKey: 'shown once',
+        keyId: 'string',
+        returning: 'boolean',
+      },
+      example: "curl -X POST /api/auth/agent -d '{}'",
     }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json' } },
   )
 }
 

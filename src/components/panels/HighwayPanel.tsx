@@ -1,7 +1,7 @@
-import type { Edge } from "@/engine"
+import type { Edge } from '@/engine'
 
 interface HighwayPanelProps {
-  highways: Edge[]  // Array of { path: string, strength: number }
+  highways: Edge[] // Array of { path: string, strength: number }
 }
 
 export function HighwayPanel({ highways }: HighwayPanelProps) {
@@ -15,19 +15,12 @@ export function HighwayPanel({ highways }: HighwayPanelProps) {
               <code className="text-xs text-slate-400">{path}</code>
             </div>
             <div className="w-24 h-2 bg-[#252538] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-500 rounded-full"
-                style={{ width: `${Math.min(strength, 100)}%` }}
-              />
+              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(strength, 100)}%` }} />
             </div>
-            <span className="text-xs text-slate-500 w-12 text-right">
-              {strength.toFixed(0)}
-            </span>
+            <span className="text-xs text-slate-500 w-12 text-right">{strength.toFixed(0)}</span>
           </div>
         ))}
-        {highways.length === 0 && (
-          <div className="text-xs text-slate-600">No highways yet</div>
-        )}
+        {highways.length === 0 && <div className="text-xs text-slate-600">No highways yet</div>}
       </div>
     </div>
   )

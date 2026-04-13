@@ -4,7 +4,7 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 34
-completed: 0
+completed: 14
 status: ACTIVE
 ---
 
@@ -181,21 +181,23 @@ All seven loops have a testing analog. They run in parallel:
 
 ---
 
-## Current Baseline (2026-04-14, post-Cycle 1)
+## Current Baseline (2026-04-14, post-Cycle 2)
 
 ```
-VITEST:    108 tests, 107 pass, 1 flaky (probabilistic distribution test)
-BIOME:     1 error (noImplicitAnyLet in context.ts), 4 warnings (unused vars in bootstrap.ts)
-TSC:       4 transitive errors (non-engine UI files), 0 in engine
-COVERAGE:  src/engine/ — 5 test files, core runtime untested (Cycle 2)
+VITEST:    165 tests, 165 pass, 0 failures
+BIOME:     5 warnings (pre-existing bootstrap.ts unused vars)
+TSC:       0 errors
+COVERAGE:  src/engine/ — 7 test files covering world, persist, context, task-parse, routing, one, llm-router, intent
 ```
 
 | File | Tests | Status |
 |------|------:|--------|
-| `src/engine/routing.test.ts` | 43 | Pass — proves every routing.md claim |
-| `src/engine/task-parse.test.ts` | 18 | Pass — priority formula, wave, context parsing |
+| `src/engine/routing.test.ts` | 54 | Pass — 15 Acts: cold start → highway, introspection, speed benchmarks |
+| `src/engine/persist.test.ts` | 26 | Pass — isToxic, actor, flow, sandwich, subscribe, tasksFor ranking |
 | `src/engine/one.test.ts` | 25 | Pass — chains, SOPs, timers, priority, emit |
-| `src/engine/llm-router.test.ts` | 11 | Pass (1 flaky: probabilistic distribution) |
+| `src/engine/context.test.ts` | 20 | Pass — CANONICAL, readDoc, loadContext, contextForSkill, docIndex |
+| `src/engine/task-parse.test.ts` | 18 | Pass — priority formula, wave, context, model mappings, schema |
+| `src/engine/llm-router.test.ts` | 11 | Pass — LLM routing, model selection |
 | `src/engine/intent.test.ts` | 11 | Pass — intent cache |
 
 ---
@@ -249,7 +251,7 @@ COVERAGE:  src/engine/ — 5 test files, core runtime untested (Cycle 2)
   exit: npm run verify (biome + tsc + vitest) exits 0 with all 65+ tests passing
   tags: engine, build, P0
 
-- [ ] Add vitest config for path aliases and coverage
+- [x] Add vitest config for path aliases and coverage
   id: vitest-coverage
   value: high
   effort: low
@@ -295,7 +297,7 @@ COVERAGE:  src/engine/ — 5 test files, core runtime untested (Cycle 2)
 
 ### Tasks
 
-- [ ] Test world.ts: unit creation, signal routing, mark/warn/fade
+- [x] Test world.ts: unit creation, signal routing, mark/warn/fade
   id: test-engine-core
   value: critical
   effort: medium
@@ -305,7 +307,7 @@ COVERAGE:  src/engine/ — 5 test files, core runtime untested (Cycle 2)
   exit: world.ts has dedicated test file. Covers: add, signal, mark, warn, fade, sense, danger, select, follow, highways, ask (4 outcomes), queue/drain
   tags: engine, test, P0
 
-- [ ] Test persist.ts: TypeDB sync, toxic check, know/recall, subscribe/tasksFor
+- [x] Test persist.ts: TypeDB sync, toxic check, know/recall, subscribe/tasksFor
   id: test-persist
   value: critical
   effort: medium
@@ -325,7 +327,7 @@ COVERAGE:  src/engine/ — 5 test files, core runtime untested (Cycle 2)
   exit: loop.ts test file. Covers: L1 signal, L2 mark/warn, L3 fade interval, L5 evolution trigger, L6 know, L7 frontier detection
   tags: engine, test, P0
 
-- [ ] Test task-parse.ts: priority formula, TODO parsing
+- [x] Test task-parse.ts: priority formula, TODO parsing
   id: test-task-parse
   value: high
   effort: low
@@ -343,7 +345,7 @@ COVERAGE:  src/engine/ — 5 test files, core runtime untested (Cycle 2)
   exit: task-sync.ts test file. Covers: insertTask, insertBlocks, markTaskDone. Mocks TypeDB.
   tags: engine, test, P1
 
-- [ ] Test context.ts: loadContext, contextForSkill, inferDocsFromTags
+- [x] Test context.ts: loadContext, contextForSkill, inferDocsFromTags
   id: test-context
   value: high
   effort: low
@@ -370,7 +372,7 @@ COVERAGE:  src/engine/ — 5 test files, core runtime untested (Cycle 2)
   exit: agent-md.ts test file. Covers: parse frontmatter + system prompt, toTypeDB generates valid TQL, skill extraction
   tags: engine, test, P2
 
-- [ ] Test tag subscription: subscribe, tasksFor, overlap ranking
+- [x] Test tag subscription: subscribe, tasksFor, overlap ranking
   id: test-tag-subscription
   value: critical
   effort: medium
@@ -398,7 +400,7 @@ COVERAGE:  src/engine/ — 5 test files, core runtime untested (Cycle 2)
   exit: Agent with tags: [engine, build] in markdown → syncAgent writes tags to TypeDB → tasksFor returns matching open tasks
   tags: engine, test, P1
 
-- [ ] Speed benchmarks as tests: routing <0.005ms, mark <0.001ms
+- [x] Speed benchmarks as tests: routing <0.005ms, mark <0.001ms
   id: test-speed-benchmarks
   value: high
   effort: low
@@ -535,19 +537,19 @@ COVERAGE:  src/engine/ — 5 test files, core runtime untested (Cycle 2)
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — Green baseline
+- [x] **Cycle 1: WIRE** — Green baseline
   - [x] W1 — Recon (Haiku x 3)
   - [x] W2 — Decide (Opus)
   - [x] W3 — Edits (Sonnet x 3)
   - [x] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 2: PROVE** — Test the substrate
-  - [ ] W1 — Recon (Haiku x 6)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 6)
-  - [ ] W4 — Verify (Sonnet x 1)
+- [x] **Cycle 2: PROVE** — Test the substrate
+  - [x] W1 — Recon (Haiku x 6)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 3)
+  - [x] W4 — Verify (Sonnet x 1)
 - [ ] **Cycle 3: GROW** — Test the lifecycle
-  - [ ] W1 — Recon (Haiku x 5)
-  - [ ] W2 — Decide (Opus)
+  - [x] W1 — Recon (Haiku x 3)
+  - [x] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet x 5)
   - [ ] W4 — Verify (Sonnet x 1)
 

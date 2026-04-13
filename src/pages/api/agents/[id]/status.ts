@@ -10,7 +10,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   const id = params.id
   if (!id) return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400 })
 
-  const { status } = await request.json() as { status: string }
+  const { status } = (await request.json()) as { status: string }
   if (status !== 'active' && status !== 'inactive') {
     return new Response(JSON.stringify({ error: 'status must be active or inactive' }), { status: 400 })
   }

@@ -2,7 +2,7 @@
  * Chat Store — Nanostores for chat state
  */
 
-import { atom, map } from 'nanostores'
+import { atom } from 'nanostores'
 
 // Streaming state
 export const isStreaming$ = atom(false)

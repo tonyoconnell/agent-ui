@@ -11,8 +11,8 @@
  * Run: npx ts-node scripts/e2e-test.ts
  */
 
-import * as http from 'http'
-import * as https from 'https'
+import * as http from 'node:http'
+import * as https from 'node:https'
 
 interface TestResult {
   name: string
@@ -85,10 +85,7 @@ function fetchUrl(url: string, options?: Record<string, unknown>): Promise<Respo
   })
 }
 
-function postJson(
-  url: string,
-  body: Record<string, unknown>,
-): Promise<Response> {
+function postJson(url: string, body: Record<string, unknown>): Promise<Response> {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url)
     const isHttps = urlObj.protocol === 'https:'
@@ -149,9 +146,7 @@ async function test(
       latencyMs: totalLatency,
       details: result.details,
     })
-    console.log(
-      `✓ ${name} (${totalLatency}ms)`,
-    )
+    console.log(`✓ ${name} (${totalLatency}ms)`)
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e)
     results.push({
@@ -176,9 +171,7 @@ async function testPagesHealth() {
     const latency = Date.now() - t0
 
     if (!res.ok) {
-      throw new Error(
-        `Pages health returned ${res.status}`,
-      )
+      throw new Error(`Pages health returned ${res.status}`)
     }
 
     const body = res.body as Record<string, unknown>
@@ -200,9 +193,7 @@ async function testGatewayHealth() {
     const latency = Date.now() - t0
 
     if (!res.ok) {
-      throw new Error(
-        `Gateway health returned ${res.status}`,
-      )
+      throw new Error(`Gateway health returned ${res.status}`)
     }
 
     const body = res.body as Record<string, unknown>
@@ -227,9 +218,7 @@ async function testQueryViaPages() {
     const latency = Date.now() - t0
 
     if (!res.ok) {
-      throw new Error(
-        `Pages /api/query returned ${res.status}: ${JSON.stringify(res.body)}`,
-      )
+      throw new Error(`Pages /api/query returned ${res.status}: ${JSON.stringify(res.body)}`)
     }
 
     const body = res.body as Record<string, unknown>
@@ -253,9 +242,7 @@ async function testStateQuery() {
     const latency = Date.now() - t0
 
     if (!res.ok) {
-      throw new Error(
-        `Pages /api/state returned ${res.status}`,
-      )
+      throw new Error(`Pages /api/state returned ${res.status}`)
     }
 
     const body = res.body as Record<string, unknown[]>
@@ -282,9 +269,7 @@ async function testSignalEndpoint() {
 
     // Signal may not have a receiver, but should respond
     if (res.status > 599) {
-      throw new Error(
-        `Pages /api/signal returned ${res.status}`,
-      )
+      throw new Error(`Pages /api/signal returned ${res.status}`)
     }
 
     const body = res.body as Record<string, unknown>
@@ -305,9 +290,7 @@ async function testStatsEndpoint() {
     const latency = Date.now() - t0
 
     if (!res.ok) {
-      throw new Error(
-        `Pages /api/stats returned ${res.status}`,
-      )
+      throw new Error(`Pages /api/stats returned ${res.status}`)
     }
 
     const body = res.body as Record<string, unknown>
@@ -328,7 +311,7 @@ async function testStatsEndpoint() {
 // ============================================================================
 
 function printResults() {
-  console.log('\n' + '='.repeat(80))
+  console.log(`\n${'='.repeat(80)}`)
   console.log('E2E TEST RESULTS')
   console.log('='.repeat(80))
 
@@ -345,7 +328,7 @@ function printResults() {
     })
   }
 
-  console.log('\n' + '-'.repeat(80))
+  console.log(`\n${'-'.repeat(80)}`)
   console.log('LATENCY BREAKDOWN')
   console.log('-'.repeat(80))
 
@@ -358,16 +341,13 @@ function printResults() {
     }
   })
 
-  const avgLatency =
-    passed.length > 0
-      ? Math.round(passed.reduce((sum, r) => sum + r.latencyMs, 0) / passed.length)
-      : 0
+  const avgLatency = passed.length > 0 ? Math.round(passed.reduce((sum, r) => sum + r.latencyMs, 0) / passed.length) : 0
 
-  console.log('\n' + '-'.repeat(80))
+  console.log(`\n${'-'.repeat(80)}`)
   console.log(`Average latency (passing tests): ${avgLatency}ms`)
   console.log(`P95 latency: ${sorted[Math.floor(sorted.length * 0.05)]?.latencyMs ?? 'N/A'}ms`)
   console.log(`Max latency: ${sorted[0]?.latencyMs ?? 'N/A'}ms`)
-  console.log('='.repeat(80) + '\n')
+  console.log(`${'='.repeat(80)}\n`)
 
   const exitCode = failed.length > 0 ? 1 : 0
   process.exit(exitCode)

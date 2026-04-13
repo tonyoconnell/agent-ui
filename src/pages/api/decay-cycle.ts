@@ -15,10 +15,8 @@ async function getDecayStats() {
     select $fid, $tid, $s, $r;
   `).catch(() => [])
 
-  const avgStrength = edges.length
-    ? edges.reduce((sum, e) => sum + ((e.s as number) || 0), 0) / edges.length : 0
-  const avgResistance = edges.length
-    ? edges.reduce((sum, e) => sum + ((e.r as number) || 0), 0) / edges.length : 0
+  const avgStrength = edges.length ? edges.reduce((sum, e) => sum + ((e.s as number) || 0), 0) / edges.length : 0
+  const avgResistance = edges.length ? edges.reduce((sum, e) => sum + ((e.r as number) || 0), 0) / edges.length : 0
 
   return {
     edges: edges.length,
@@ -28,21 +26,25 @@ async function getDecayStats() {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  const body = await request.json().catch(() => ({})) as {
+  const body = (await request.json().catch(() => ({}))) as {
     trailRate?: number
     resistanceRate?: number
   }
 
   const trailRate = body.trailRate ?? 0.05
-  const resistanceRate = body.resistanceRate ?? 0.20
+  const resistanceRate = body.resistanceRate ?? 0.2
 
   const before = await getDecayStats()
   await decay(trailRate, resistanceRate)
   const after = await getDecayStats()
 
-  return new Response(JSON.stringify({
-    before, after,
-    decayed: { trailRate, resistanceRate },
-    timestamp: new Date().toISOString(),
-  }), { headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      before,
+      after,
+      decayed: { trailRate, resistanceRate },
+      timestamp: new Date().toISOString(),
+    }),
+    { headers: { 'Content-Type': 'application/json' } },
+  )
 }

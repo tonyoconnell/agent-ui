@@ -7,7 +7,11 @@ import type { APIRoute } from 'astro'
 import { write } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request }) => {
-  const { from, to, strength = 1.0 } = await request.json() as {
+  const {
+    from,
+    to,
+    strength = 1.0,
+  } = (await request.json()) as {
     from: string
     to: string
     strength?: number
@@ -28,7 +32,7 @@ export const POST: APIRoute = async ({ request }) => {
       insert
         (source: $from, target: $to) isa path,
           has strength 0.0, has resistance ${strength}, has traversals 0, has revenue 0.0;
-    `)
+    `),
   )
 
   return new Response(JSON.stringify({ ok: true }), {

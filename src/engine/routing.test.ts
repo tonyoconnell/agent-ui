@@ -360,6 +360,63 @@ describe('Act 6: Four outcomes — every call teaches the system', () => {
     expect(ms).toBeLessThan(100) // timeout at 50ms, detected quickly
     // No warn(). Agent was slow, not bad. Chain continues. Fair.
   }, 1000)
+
+  it('failure: agent throws → full warn, path blocked', async () => {
+    w.add('broken').on('default', () => {
+      throw new Error('Task failed')
+    })
+
+    const outcome = await w.ask({ receiver: 'broken', data: {} }, 'user', 100)
+    expect(outcome.failure).toBe(true)
+    expect(outcome.result).toBeUndefined()
+    expect(outcome.timeout).toBeUndefined()
+    expect(outcome.dissolved).toBeUndefined()
+    // Agent exists but produced nothing → warn with full strength
+  })
+
+  it('failure: agent returns nothing → full warn, path blocked', async () => {
+    w.add('silent').on('default', () => undefined)
+
+    const outcome = await w.ask({ receiver: 'silent', data: {} }, 'user', 100)
+    expect(outcome.failure).toBe(true)
+    expect(outcome.result).toBeUndefined()
+    // Agent exists but produced no result → equivalent to failure
+  })
+
+  it('all 4 outcomes are distinct', async () => {
+    // 1. Result
+    w.add('good').on('default', () => 'success')
+    const result = await w.ask({ receiver: 'good', data: {} }, 'user', 100)
+    expect(result.result).toBe('success')
+    expect(result.timeout).toBeUndefined()
+    expect(result.dissolved).toBeUndefined()
+    expect(result.failure).toBeUndefined()
+
+    // 2. Timeout
+    w.add('slow').on('default', () => new Promise((r) => setTimeout(() => r('late'), 5000)))
+    const timeout = await w.ask({ receiver: 'slow', data: {} }, 'user', 50)
+    expect(timeout.timeout).toBe(true)
+    expect(timeout.result).toBeUndefined()
+    expect(timeout.dissolved).toBeUndefined()
+    expect(timeout.failure).toBeUndefined()
+
+    // 3. Dissolved
+    const dissolved = await w.ask({ receiver: 'missing', data: {} }, 'user', 100)
+    expect(dissolved.dissolved).toBe(true)
+    expect(dissolved.result).toBeUndefined()
+    expect(dissolved.timeout).toBeUndefined()
+    expect(dissolved.failure).toBeUndefined()
+
+    // 4. Failure
+    w.add('broken').on('default', () => {
+      throw new Error('Task failed')
+    })
+    const failure = await w.ask({ receiver: 'broken', data: {} }, 'user', 100)
+    expect(failure.failure).toBe(true)
+    expect(failure.result).toBeUndefined()
+    expect(failure.timeout).toBeUndefined()
+    expect(failure.dissolved).toBeUndefined()
+  })
 })
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -829,6 +886,112 @@ describe('Act 13: Transaction costs at scale', () => {
     expect(ms).toBeLessThan(1) // pick one from 1000 in <1ms
     // AgentVerse: 2M agents, partitioned by type → ~1000 candidates per query
     // Total routing time: <1ms. The LLM call after it: 2-5 seconds.
+  })
+})
+
+describe('Act 14: Introspection — has, list, get, remove', () => {
+  let w: World
+  beforeEach(() => {
+    w = world()
+  })
+
+  it('has() returns false for missing unit', () => {
+    expect(w.has('ghost')).toBe(false)
+  })
+
+  it('has() returns true after add', () => {
+    w.add('scout')
+    expect(w.has('scout')).toBe(true)
+  })
+
+  it('list() returns all unit IDs', () => {
+    w.add('scout')
+    w.add('analyst')
+    expect(w.list()).toContain('scout')
+    expect(w.list()).toContain('analyst')
+    expect(w.list().length).toBe(2)
+  })
+
+  it('get() returns the unit', () => {
+    const _scout = w.add('scout')
+    expect(w.get('scout')).toBeDefined()
+    expect(w.get('scout')?.id).toBe('scout')
+  })
+
+  it('get() returns undefined for missing unit', () => {
+    expect(w.get('ghost')).toBeUndefined()
+  })
+
+  it('remove() makes has() return false', () => {
+    w.add('scout')
+    w.remove('scout')
+    expect(w.has('scout')).toBe(false)
+  })
+
+  it('remove() does not crash on missing unit', () => {
+    expect(() => w.remove('ghost')).not.toThrow()
+  })
+})
+
+describe('Act 15: Speed Benchmarks — the claims from speed.md', () => {
+  let w: World
+  beforeEach(() => {
+    w = world()
+    w.add('a')
+    w.add('b')
+    w.add('c')
+    // Build some paths
+    for (let i = 0; i < 100; i++) {
+      w.mark('a→b', 1)
+      w.mark('b→c', 1)
+      w.mark('a→c', 0.5)
+    }
+  })
+
+  it('isToxic check: <0.001ms (3 integer comparisons)', () => {
+    w.warn('a→b', 100) // make it clearly toxic
+    const t0 = performance.now()
+    for (let i = 0; i < 10000; i++) {
+      const s = w.sense('a→b')
+      const r = w.danger('a→b')
+      // inline toxic check
+      r >= 10 && r > s * 2 && r + s > 5
+    }
+    const ms = (performance.now() - t0) / 10000
+    expect(ms).toBeLessThan(0.001)
+  })
+
+  it('mark 10,000 paths: <10ms total', () => {
+    const t0 = performance.now()
+    for (let i = 0; i < 10000; i++) {
+      w.mark(`x→y${i % 100}`, 1)
+    }
+    const ms = performance.now() - t0
+    expect(ms).toBeLessThan(10)
+  })
+
+  it('select from 100 paths: <1ms', () => {
+    // Build 100 paths
+    for (let i = 0; i < 100; i++) {
+      w.add(`unit${i}`)
+      w.mark(`a→unit${i}`, Math.random() * 50)
+    }
+    const t0 = performance.now()
+    for (let i = 0; i < 1000; i++) {
+      w.select()
+    }
+    const ms = (performance.now() - t0) / 1000
+    expect(ms).toBeLessThan(1)
+  })
+
+  it('fade 1000 paths: <5ms', () => {
+    for (let i = 0; i < 1000; i++) {
+      w.mark(`p${i}→q${i}`, 50)
+    }
+    const t0 = performance.now()
+    w.fade(0.05)
+    const ms = performance.now() - t0
+    expect(ms).toBeLessThan(5)
   })
 })
 

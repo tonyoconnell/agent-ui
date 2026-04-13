@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Minimal agent conversation test: CMO → Citation → Social
  *
@@ -11,10 +12,10 @@
  * Run: npx ts-node scripts/test-conversation.ts
  */
 
-import * as http from 'http'
-import * as https from 'https'
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'node:fs'
+import * as http from 'node:http'
+import * as https from 'node:https'
+import * as path from 'node:path'
 
 interface Conversation {
   timestamp: number
@@ -181,11 +182,11 @@ async function sendSignal(
 // ============================================================================
 
 async function runConversation() {
-  console.log('\n' + '='.repeat(80))
+  console.log(`\n${'='.repeat(80)}`)
   console.log('AGENT CONVERSATION TEST: CMO → Citation → Social')
-  console.log('='.repeat(80) + '\n')
+  console.log(`${'='.repeat(80)}\n`)
 
-  let prevResult: Record<string, unknown> | null = null
+  let _prevResult: Record<string, unknown> | null = null
 
   for (const step of TEST_FLOW) {
     // Wait if specified
@@ -220,7 +221,7 @@ async function runConversation() {
         const preview = result.response.substring(0, 200)
         console.log(`  Response (preview): ${preview}${result.response.length > 200 ? '...' : ''}`)
       }
-      prevResult = {
+      _prevResult = {
         sender: step.sender,
         receiver: step.receiver,
         latencyMs: result.latencyMs,
@@ -249,7 +250,7 @@ function printReport() {
   console.log(`\nCompleted: ${passed.length}/${conversations.length}`)
   console.log(`Failed: ${failed.length}/${conversations.length}`)
 
-  console.log('\n' + '-'.repeat(80))
+  console.log(`\n${'-'.repeat(80)}`)
   console.log('TIMELINE')
   console.log('-'.repeat(80))
 
@@ -262,7 +263,7 @@ function printReport() {
     }
   })
 
-  console.log('\n' + '-'.repeat(80))
+  console.log(`\n${'-'.repeat(80)}`)
   console.log('METRICS')
   console.log('-'.repeat(80))
 
@@ -281,7 +282,7 @@ function printReport() {
   fs.writeFileSync(reportPath, JSON.stringify(conversations, null, 2))
   console.log(`\nFull report saved to: ${reportPath}`)
 
-  console.log('='.repeat(80) + '\n')
+  console.log(`${'='.repeat(80)}\n`)
 }
 
 // ============================================================================

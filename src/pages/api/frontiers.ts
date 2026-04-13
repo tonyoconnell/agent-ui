@@ -20,7 +20,7 @@ export const GET: APIRoute = async () => {
   `).catch(() => [])
 
   const frontiers = rows
-    .map(row => ({
+    .map((row) => ({
       fid: row.fid,
       type: row.ft,
       description: row.fd,

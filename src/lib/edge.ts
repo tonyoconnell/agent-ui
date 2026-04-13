@@ -11,7 +11,9 @@
 // globalThis survives across requests within the same Worker isolate (~seconds).
 // Safe to cast: each KV key holds a known shape.
 
-declare const globalThis: { _edgeKvCache?: Record<string, { v: unknown; ts: number }> }
+declare global {
+  var _edgeKvCache: Record<string, { v: unknown; ts: number }> | undefined
+}
 const _cache = (globalThis._edgeKvCache ??= {})
 const TTL = 30_000 // 30 seconds per isolate
 

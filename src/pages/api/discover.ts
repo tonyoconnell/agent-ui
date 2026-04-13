@@ -29,7 +29,7 @@ export const GET: APIRoute = async ({ url }) => {
       `).catch(() => [])
 
       if (routes.length > 0) {
-        const agents = routes.map(r => ({
+        const agents = routes.map((r) => ({
           uid: r.uid as string,
           name: r.n as string,
           unitKind: r.k as string,
@@ -59,7 +59,7 @@ export const GET: APIRoute = async ({ url }) => {
       `).catch(() => [])
 
       if (cheap.length > 0) {
-        const agents = cheap.map(r => ({
+        const agents = cheap.map((r) => ({
           uid: r.uid as string,
           name: r.n as string,
           unitKind: r.k as string,
@@ -77,9 +77,7 @@ export const GET: APIRoute = async ({ url }) => {
     }
 
     // Fallback: manual join (original approach)
-    const taskMatch = taskFilter
-      ? `$t has name $tn; $tn contains "${taskFilter.toLowerCase()}";`
-      : `$t has name $tn;`
+    const taskMatch = taskFilter ? `$t has name $tn; $tn contains "${taskFilter.toLowerCase()}";` : `$t has name $tn;`
 
     const rows = await readParsed(`
       match
@@ -107,7 +105,7 @@ export const GET: APIRoute = async ({ url }) => {
 
       for (const row of strengthRows) {
         const uid = row.uid as string
-        strengthMap[uid] = (strengthMap[uid] || 0) + (row.s as number || 0)
+        strengthMap[uid] = (strengthMap[uid] || 0) + ((row.s as number) || 0)
       }
     }
 

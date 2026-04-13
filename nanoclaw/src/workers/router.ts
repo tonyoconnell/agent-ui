@@ -11,11 +11,11 @@
  */
 
 import { Hono } from 'hono'
-import type { Env, QueueMessage, Signal, GroupContext } from '../types'
 import { normalize, send } from '../channels'
-import { ensureRegistered, isToxic, mark, warn, highways } from '../lib/substrate'
-import { tools, executeTool } from '../lib/tools'
+import { ensureRegistered, highways, isToxic, mark, warn } from '../lib/substrate'
+import { executeTool, tools } from '../lib/tools'
 import { personas } from '../personas'
+import type { Env, GroupContext, QueueMessage } from '../types'
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -27,7 +27,7 @@ const app = new Hono<{ Bindings: Env }>()
 
 app.use('*', async (c, next) => {
   const apiKey = c.env.API_KEY
-  if (!apiKey) return next()  // no key set — open (main nanoclaw behaviour)
+  if (!apiKey) return next() // no key set — open (main nanoclaw behaviour)
 
   const path = new URL(c.req.url).pathname
   const isPublic = path === '/health' || path.startsWith('/webhook/')
@@ -44,15 +44,17 @@ app.use('*', async (c, next) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Health check
-app.get('/health', (c) => c.json({
-  status: 'ok',
-  version: c.env.VERSION,
-  service: 'nanoclaw-router',
-}))
+app.get('/health', (c) =>
+  c.json({
+    status: 'ok',
+    version: c.env.VERSION,
+    service: 'nanoclaw-router',
+  }),
+)
 
 // Proven paths
 app.get('/highways', async (c) => {
-  const limit = parseInt(c.req.query('limit') || '10')
+  const limit = parseInt(c.req.query('limit') || '10', 10)
   const paths = await highways(c.env, limit)
   return c.json({ highways: paths })
 })
@@ -66,7 +68,9 @@ app.get('/messages/:group', async (c) => {
       WHERE group_id = ?
       ORDER BY ts ASC
       LIMIT 100
-    `).bind(group).all()
+    `)
+      .bind(group)
+      .all()
 
     return c.json({
       group,
@@ -81,7 +85,11 @@ app.get('/messages/:group', async (c) => {
 // Send a web message (direct API) — process synchronously for instant response
 app.post('/message', async (c) => {
   try {
-    const { group, text, sender = 'user' } = await c.req.json() as {
+    const {
+      group,
+      text,
+      sender = 'user',
+    } = (await c.req.json()) as {
       group: string
       text: string
       sender?: string
@@ -95,20 +103,24 @@ app.post('/message', async (c) => {
     await c.env.DB.prepare(`
       INSERT OR IGNORE INTO groups (id, channel, name, created_at)
       VALUES (?, ?, ?, ?)
-    `).bind(group, 'web', group, Math.floor(Date.now() / 1000)).run()
+    `)
+      .bind(group, 'web', group, Math.floor(Date.now() / 1000))
+      .run()
 
     // Store user message
     const msgId = `web-${Date.now()}`
     await c.env.DB.prepare(`
       INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
       VALUES (?, ?, 'web', ?, ?, 'user', ?)
-    `).bind(msgId, group, sender, text, Date.now()).run()
+    `)
+      .bind(msgId, group, sender, text, Date.now())
+      .run()
 
     // Process immediately (synchronous)
     const context = await loadContext(c.env, group)
     const messages = await buildMessages(c.env, group)
 
-    const openaiTools = tools.map(t => ({
+    const openaiTools = tools.map((t) => ({
       type: 'function' as const,
       function: {
         name: t.name,
@@ -121,17 +133,14 @@ app.post('/message', async (c) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${c.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${c.env.OPENROUTER_API_KEY}`,
         'HTTP-Referer': 'https://one.ie',
         'X-Title': 'NanoClaw',
       },
       body: JSON.stringify({
         model: context.model,
         max_tokens: 4096,
-        messages: [
-          { role: 'system', content: context.systemPrompt },
-          ...messages,
-        ],
+        messages: [{ role: 'system', content: context.systemPrompt }, ...messages],
         tools: openaiTools,
       }),
     })
@@ -145,7 +154,7 @@ app.post('/message', async (c) => {
 
     const data = JSON.parse(resText)
     const choice = data.choices?.[0]?.message
-    let reply = (choice?.content as string) || ''
+    const reply = (choice?.content as string) || ''
 
     // Execute tool calls if any
     if (choice?.tool_calls) {
@@ -161,7 +170,9 @@ app.post('/message', async (c) => {
       await c.env.DB.prepare(`
         INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
         VALUES (?, ?, 'web', 'assistant', ?, 'assistant', ?)
-      `).bind(respId, group, reply, Date.now()).run()
+      `)
+        .bind(respId, group, reply, Date.now())
+        .run()
 
       // Mark success
       await mark(c.env, 'entry', `nanoclaw:${group}`)
@@ -200,20 +211,24 @@ app.post('/webhook/:channel', async (c) => {
     await c.env.DB.prepare(`
       INSERT OR IGNORE INTO groups (id, channel, name, created_at)
       VALUES (?, ?, ?, ?)
-    `).bind(signal.group, channel, signal.group, Math.floor(Date.now() / 1000)).run()
+    `)
+      .bind(signal.group, channel, signal.group, Math.floor(Date.now() / 1000))
+      .run()
 
     // Store message in D1
     await c.env.DB.prepare(`
       INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
       VALUES (?, ?, ?, ?, ?, 'user', ?)
-    `).bind(signal.id, signal.group, channel, signal.sender, signal.content, signal.ts).run()
+    `)
+      .bind(signal.id, signal.group, channel, signal.sender, signal.content, signal.ts)
+      .run()
 
     // Process synchronously for Telegram/Discord — eliminates queue latency (~30s → ~3s)
     if (channel.startsWith('telegram') || channel === 'discord') {
       const context = await loadContext(c.env, signal.group)
       const messages = await buildMessages(c.env, signal.group)
 
-      const openaiTools = tools.map(t => ({
+      const openaiTools = tools.map((t) => ({
         type: 'function' as const,
         function: { name: t.name, description: t.description, parameters: t.input_schema },
       }))
@@ -222,7 +237,7 @@ app.post('/webhook/:channel', async (c) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${c.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${c.env.OPENROUTER_API_KEY}`,
           'HTTP-Referer': 'https://one.ie',
           'X-Title': 'NanoClaw',
         },
@@ -235,7 +250,7 @@ app.post('/webhook/:channel', async (c) => {
       })
 
       if (res.ok) {
-        const data = await res.json() as any
+        const data = (await res.json()) as any
         const choice = data.choices?.[0]?.message
         const reply = (choice?.content as string) || ''
 
@@ -249,7 +264,9 @@ app.post('/webhook/:channel', async (c) => {
           await c.env.DB.prepare(`
             INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
             VALUES (?, ?, ?, 'assistant', ?, 'assistant', ?)
-          `).bind(`resp-${Date.now()}`, signal.group, channel, reply, Date.now()).run()
+          `)
+            .bind(`resp-${Date.now()}`, signal.group, channel, reply, Date.now())
+            .run()
 
           await send(c.env, signal.group, reply)
           await mark(c.env, 'entry', `nanoclaw:${signal.group}`)
@@ -270,7 +287,7 @@ app.post('/webhook/:channel', async (c) => {
           group: signal.group,
         } satisfies QueueMessage)
       }
-    } catch (e) {
+    } catch (_e) {
       console.log('Queue unavailable (local dev)')
     }
 
@@ -303,7 +320,7 @@ app.post('/signal', async (c) => {
         data,
       } satisfies QueueMessage)
     }
-  } catch (e) {
+  } catch (_e) {
     console.log('Queue unavailable (local dev)')
   }
 
@@ -316,7 +333,7 @@ app.post('/signal', async (c) => {
 
 async function loadContext(env: Env, groupId: string): Promise<GroupContext> {
   // Check KV cache (but always validate model)
-  const cached = await env.KV.get(`context:${groupId}`, 'json') as GroupContext | null
+  const cached = (await env.KV.get(`context:${groupId}`, 'json')) as GroupContext | null
   if (cached) {
     if (cached.model?.startsWith('claude-') || cached.model?.startsWith('gpt-')) {
       cached.model = 'google/gemma-4-26b-a4b-it'
@@ -325,15 +342,15 @@ async function loadContext(env: Env, groupId: string): Promise<GroupContext> {
   }
 
   // Resolve persona: worker-level BOT_PERSONA takes priority, then group-prefix
-  const personaKey = env.BOT_PERSONA
-    ?? Object.keys(personas).find(k => groupId.startsWith(`tg-${k}`))
-    ?? null
-  const botDefault = personaKey ? personas[personaKey] ?? null : null
+  const personaKey = env.BOT_PERSONA ?? Object.keys(personas).find((k) => groupId.startsWith(`tg-${k}`)) ?? null
+  const botDefault = personaKey ? (personas[personaKey] ?? null) : null
 
   // Default context
   const ctx: GroupContext = {
     id: groupId,
-    systemPrompt: botDefault?.systemPrompt ?? `You are a helpful AI assistant connected to the ONE substrate.
+    systemPrompt:
+      botDefault?.systemPrompt ??
+      `You are a helpful AI assistant connected to the ONE substrate.
 You can use tools to interact with other agents in the network.
 Be concise and helpful. Mark successful collaborations, warn on failures.`,
     model: botDefault?.model ?? 'google/gemma-4-26b-a4b-it',
@@ -343,7 +360,9 @@ Be concise and helpful. Mark successful collaborations, warn on failures.`,
   // Check D1 for group-specific config
   const row = await env.DB.prepare(`
     SELECT name, system_prompt, model, sensitivity FROM groups WHERE id = ?
-  `).bind(groupId).first()
+  `)
+    .bind(groupId)
+    .first()
 
   if (row) {
     ctx.name = row.name as string
@@ -368,9 +387,11 @@ async function buildMessages(env: Env, groupId: string): Promise<{ role: string;
     SELECT role, content FROM messages
     WHERE group_id = ?
     ORDER BY ts DESC LIMIT 20
-  `).bind(groupId).all()
+  `)
+    .bind(groupId)
+    .all()
 
-  return (rows.results || []).reverse().map(r => ({
+  return (rows.results || []).reverse().map((r) => ({
     role: r.role as string,
     content: r.content as string,
   }))
@@ -384,7 +405,7 @@ async function processMessage(env: Env, msg: QueueMessage): Promise<void> {
   const messages = await buildMessages(env, groupId)
 
   // Call OpenRouter (Gemma 4)
-  const openaiTools = tools.map(t => ({
+  const openaiTools = tools.map((t) => ({
     type: 'function' as const,
     function: {
       name: t.name,
@@ -397,17 +418,14 @@ async function processMessage(env: Env, msg: QueueMessage): Promise<void> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
       'HTTP-Referer': 'https://one.ie',
       'X-Title': 'NanoClaw',
     },
     body: JSON.stringify({
       model: context.model,
       max_tokens: 4096,
-      messages: [
-        { role: 'system', content: context.systemPrompt },
-        ...messages,
-      ],
+      messages: [{ role: 'system', content: context.systemPrompt }, ...messages],
       tools: openaiTools,
     }),
   })
@@ -431,7 +449,7 @@ async function processMessage(env: Env, msg: QueueMessage): Promise<void> {
 
   // Process response (OpenAI format: choices[0].message.content)
   const choice = data.choices?.[0]?.message
-  let reply = (choice?.content as string) || ''
+  const reply = (choice?.content as string) || ''
   console.log('Reply extracted:', reply.slice(0, 200) || '(empty)', 'tool_calls:', !!choice?.tool_calls)
 
   if (choice?.tool_calls) {
@@ -448,7 +466,9 @@ async function processMessage(env: Env, msg: QueueMessage): Promise<void> {
     await env.DB.prepare(`
       INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
       VALUES (?, ?, 'system', 'assistant', ?, 'assistant', ?)
-    `).bind(`resp-${Date.now()}`, groupId, reply, Date.now()).run()
+    `)
+      .bind(`resp-${Date.now()}`, groupId, reply, Date.now())
+      .run()
 
     // Send reply to channel
     console.log('Sending to channel:', groupId)
@@ -486,7 +506,9 @@ export default {
     const tasks = await env.DB.prepare(`
       SELECT id, group_id, prompt FROM tasks
       WHERE enabled = 1 AND next_run <= ?
-    `).bind(now).all()
+    `)
+      .bind(now)
+      .all()
 
     for (const task of tasks.results || []) {
       await env.AGENT_QUEUE.send({

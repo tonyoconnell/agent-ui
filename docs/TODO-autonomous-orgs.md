@@ -8,7 +8,7 @@
 >
 > **Schema:** Tasks map to `world.tql` dimension 3b. Execute with `/wave`. Create with `/todo`.
 
-- [ ] Schema: Add task, task-dependency, task-execution entities to world.tql
+- [x] Schema: Add task, task-dependency, task-execution entities to world.tql
   value: critical
   effort: low
   phase: C1
@@ -16,8 +16,9 @@
   blocks: task-orchestration
   exit: task, task-dependency, task-execution entities defined in schema
   tags: typedb, schema, P0, foundation
+  done: world.tql has task entity (task-id, status, value, effort, wave, phase, persona, priority-score, exit-condition) + blocks relation
 
-- [ ] Functions: Write 6 task selection functions (priority, critical-path, bottleneck, etc.)
+- [x] Functions: Write 6 task selection functions (priority, critical-path, bottleneck, etc.)
   value: critical
   effort: medium
   phase: C1
@@ -25,6 +26,7 @@
   blocks: task-orchestration
   exit: priority(), critical_path(), bottleneck(), cost(), revenue(), idle() functions in TypeDB
   tags: typedb, routing, P0, foundation
+  done: world.tql has open_tasks, tasks_by_priority, blocked_tasks, task_blockers, best_unit_for_task, tasks_for_unit (names differ but coverage matches)
 
 - [ ] Seed: Insert Phase 1 tasks (marketing, engineering, telegram, dashboard)
   value: critical
@@ -70,7 +72,7 @@
   exit: ReactFlow visualization showing tasks, dependencies, pheromone trails
   tags: ui, reactflow, P1, visualization
 
-- [ ] Agents: Create 8 marketing agents (markdown or HTTP)
+- [x] Agents: Create 8 marketing agents (markdown or HTTP)
   value: critical
   effort: medium
   phase: C1
@@ -78,6 +80,7 @@
   blocks: marketing-dept-live
   exit: 8 marketing agents (director, creative, media-buyer, etc.) alive on Telegram
   tags: agent, marketing, P0, deployment
+  done: agents/marketing/ has 8 agent .md files: director, creative, media-buyer, seo, content, analyst, ads, social
 
 - [ ] Telegram: Wire signals to @antsatworkbot channel
   value: critical

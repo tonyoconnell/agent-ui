@@ -1,6 +1,6 @@
 # Schema Directory
 
-**Skill: `/typedb` — Use for ALL TQL work. TypeDB 3.x uses `fun` NOT `rule`.**
+**Skills: `/typedb` for TQL work (TypeDB 3.x uses `fun` NOT `rule`), `/sui` for Sui entity mapping.**
 
 TypeDB 3.0 schema for the ONE world. TypeDB is the brain — not task tracker.
 

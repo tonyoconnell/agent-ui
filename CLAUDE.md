@@ -281,7 +281,7 @@ agents/         # Markdown agent definitions
 migrations/     # D1 schema (signals, messages, tasks, sync_log)
 .claude/
   commands/     # Slash commands: /work, /tasks, /done, /grow, /highways
-  skills/       # /deploy, /typedb, /astro, /react19, /reactflow, /shadcn
+  skills/       # /sui, /deploy, /typedb, /astro, /react19, /reactflow, /shadcn
   rules/        # Auto-loaded rules for engine, react, astro
 ```
 
@@ -297,12 +297,24 @@ migrations/     # D1 schema (signals, messages, tasks, sync_log)
 | `agent-md.ts` | 280 | Parse markdown agents, sync to TypeDB, wire to runtime |
 | `api.ts` | 70 | `apiUnit()` — any HTTP endpoint as a substrate unit |
 | `apis/index.ts` | 45 | Pre-built: github, slack, notion, mailchimp, pagerduty, discord, stripe |
+| `bridge.ts` | 150 | Sui ↔ TypeDB: mirror/absorb/resolve paths on-chain |
 | `durable-ask.ts` | 120 | `durableAsk()` — pending asks in D1, survive worker restarts |
 | `human.ts` | 90 | `human()` — a person as a substrate unit (Telegram, Discord) |
 | `agentverse-bridge.ts` | 50 | `bridgeAgentverse()` — 2M AV agents as proxy units in main world |
 | `federation.ts` | 55 | `federate()` — another ONE world as a unit in this one |
 | `intent.ts` | 130 | Intent cache — typed text → canonical intent → shared D1 cache entry |
 | `index.ts` | 29 | Exports |
+
+## Sui Integration (Testnet ✅)
+
+| Component | What |
+|-----------|------|
+| `src/move/one/sources/one.move` | Move contract: Unit, Signal, Path, payment, fade (680 lines, 7 objects, 6 verbs) |
+| `src/lib/sui.ts` | Sui client: all contract functions, keypair derivation, faucet |
+| `src/engine/bridge.ts` | Mirror/absorb: Runtime ↔ Sui ↔ TypeDB (mark/warn auto-propagate) |
+| `src/schema/world.tql` | TypeQL schema: `sui-unit-id`, `sui-path-id` attributes on unit/path |
+| Testnet Package | `0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e` |
+| Status | Phase 1-5 done (on testnet). Phase 2 in flight (wallets). See `/sui` skill + `docs/TODO-SUI.md` |
 
 ## Key Patterns
 
@@ -539,6 +551,7 @@ curl -X POST https://donal-claw.oneie.workers.dev/message \
 
 | Skill | Trigger | What it provides |
 |-------|---------|-----------------|
+| `/sui` | Move contracts, wallets, Sui integration | Build Move contracts, agent wallets, mirror/absorb bridge, escrow patterns, TypeDB ↔ Sui sync |
 | `/deploy` | Deploy to Cloudflare | Gateway + sync + Pages. Uses CLOUDFLARE_GLOBAL_API_KEY |
 | `/typedb` | Any TQL, schema, query work | TypeDB 3.0 syntax, functions (NOT rules) |
 | `/reactflow` | Graph visualization | Custom nodes, dark theme |
@@ -547,6 +560,7 @@ curl -X POST https://donal-claw.oneie.workers.dev/message \
 | `/shadcn` | UI components | shadcn/ui dark theme |
 
 **CRITICAL: TypeDB 3.x removed `rule` syntax. Use `fun` (functions) only.**
+**NEW: `/sui` skill for Sui Move contracts, agent wallets, bridge (testnet ✅, Phase 2 in flight).**
 
 ## Canonical Docs (READ THESE)
 

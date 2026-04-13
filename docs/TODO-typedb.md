@@ -4,7 +4,7 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 25
-completed: 0
+completed: 4
 status: ACTIVE
 ---
 
@@ -131,7 +131,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   exit: resolveContext(task, net) returns {docs, hypotheses, blockers, highways, model}
   tags: engine, build, P0
 
-- [ ] Wire contextForSkill into task selection
+- [x] Wire contextForSkill into task selection
   id: wire-context-for-skill
   value: critical
   effort: low
@@ -140,6 +140,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: resolve-context
   exit: contextForSkill called with task tags during loop.ts task orchestration
   tags: engine, build, P0
+  done: context.ts:92 exports contextForSkill(), tested in context.test.ts (20 tests)
 
 - [ ] Add inferDocsFromTags mapping
   id: infer-docs-from-tags
@@ -200,7 +201,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
 
 ### Tasks
 
-- [ ] Add task-wave attribute to world.tql
+- [x] Add task-wave attribute to world.tql
   id: task-wave-attr
   value: critical
   effort: low
@@ -209,8 +210,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: wave-routing, wave-builder-unit
   exit: task entity owns task-wave (W1|W2|W3|W4), attribute defined
   tags: typedb, schema, P0
+  done: world.tql line 127: task owns task-wave, attribute task-wave value string at line 298
 
-- [ ] Parse wave position from TODO files
+- [x] Parse wave position from TODO files
   id: parse-wave
   value: high
   effort: low
@@ -219,6 +221,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: wave-routing
   exit: task-parse.ts reads wave: field, defaults W3 (edit) for backwards compat
   tags: engine, build, P1
+  done: task-parse.ts has WAVE_MODEL mapping (W1→haiku etc), tested in task-parse.test.ts
 
 - [ ] Route task to model by wave
   id: wave-routing
@@ -249,7 +252,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   exit: builder unit has recon→decide→edit→verify handlers, each .then() carries accumulated context
   tags: engine, build, P0
 
-- [ ] Add task-context field to world.tql
+- [x] Add task-context field to world.tql
   id: task-context-attr
   value: medium
   effort: low
@@ -257,6 +260,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: task entity owns task-context (comma-separated doc keys for context resolution)
   tags: typedb, schema, P2
+  done: world.tql line 130: task owns task-context, attribute task-context value string at line 301
 
 - [ ] Create rubric scorer that emits tagged-edge marks
   id: rubric-scorer

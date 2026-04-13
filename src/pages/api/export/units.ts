@@ -35,7 +35,7 @@ export const GET: APIRoute = async () => {
       select $id, $n, $k, $sr, $g;
     `)
 
-    const units: UnitExport[] = results.map(r => ({
+    const units: UnitExport[] = results.map((r) => ({
       id: r.id as string,
       uid: r.id as string,
       name: r.n as string,

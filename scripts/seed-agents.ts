@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Seed all agents from agents/ directory into TypeDB
  *
@@ -9,10 +10,10 @@
  * and syncs to TypeDB Cloud.
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
-import * as crypto from 'crypto'
-import { fileURLToPath } from 'url'
+import * as crypto from 'node:crypto'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -73,12 +74,12 @@ function parseYamlValue(value: string): unknown {
   value = value.trim()
   if (value === 'true') return true
   if (value === 'false') return false
-  if (!isNaN(Number(value))) return Number(value)
+  if (!Number.isNaN(Number(value))) return Number(value)
   if (value.startsWith('[') && value.endsWith(']')) {
     return value
       .slice(1, -1)
       .split(',')
-      .map(s => s.trim().replace(/^['"]|['"]$/g, ''))
+      .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
   }
   return value.replace(/^['"]|['"]$/g, '')
 }
@@ -179,7 +180,10 @@ function parseAgent(md: string): AgentData {
     spec.skills = parseSkills(skillLines)
   }
 
-  spec.prompt = lines.slice(frontmatterEnd + 1).join('\n').trim()
+  spec.prompt = lines
+    .slice(frontmatterEnd + 1)
+    .join('\n')
+    .trim()
   return spec
 }
 
@@ -192,7 +196,7 @@ function agentToQueries(spec: AgentData): string[] {
   const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
 
   const tags = [...(spec.tags || []), ...(spec.group ? [spec.group] : [])]
-  const tagStr = tags.map(t => `has tag "${t}"`).join(', ')
+  const tagStr = tags.map((t) => `has tag "${t}"`).join(', ')
 
   const wallet = deriveWallet(uid)
   const walletStr = wallet ? `, has wallet "${wallet}"` : ''
@@ -213,12 +217,12 @@ function agentToQueries(spec: AgentData): string[] {
       has sample-count 0,
       has reputation 0.0,
       has balance 0.0,
-      has generation 0${tagStr ? ', ' + tagStr : ''}${walletStr};
+      has generation 0${tagStr ? `, ${tagStr}` : ''}${walletStr};
   `)
 
   for (const skill of spec.skills || []) {
     const skillId = spec.group ? `${spec.group}:${skill.name}` : skill.name
-    const skillTags = skill.tags?.map(t => `has tag "${t}"`).join(', ') || ''
+    const skillTags = skill.tags?.map((t) => `has tag "${t}"`).join(', ') || ''
 
     // Guard: only insert skill if it doesn't already exist
     queries.push(`
@@ -226,7 +230,7 @@ function agentToQueries(spec: AgentData): string[] {
       insert $s isa skill,
         has skill-id "${skillId}",
         has name "${skill.name}",
-        has price ${skill.price || 0}${skillTags ? ', ' + skillTags : ''};
+        has price ${skill.price || 0}${skillTags ? `, ${skillTags}` : ''};
     `)
 
     // Guard: only link capability if it doesn't already exist
@@ -261,7 +265,7 @@ async function executeQuery(token: string, tql: string): Promise<void> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       databaseName: TYPEDB_DATABASE,
@@ -368,8 +372,8 @@ async function main() {
 
   // Director paths for each group
   for (const group of groups) {
-    const groupAgents = allAgents.filter(a => a.group === group)
-    const director = groupAgents.find(a => a.name.includes('director') || a.name === 'cmo')
+    const groupAgents = allAgents.filter((a) => a.group === group)
+    const director = groupAgents.find((a) => a.name.includes('director') || a.name === 'cmo')
 
     if (director) {
       const directorUid = `${group}:${director.name}`
@@ -391,21 +395,21 @@ async function main() {
   // Alliance edges — pre-drawn pheromone paths from Donal's alliances.yaml
   // Imported from src/worlds/donal-marketing.ts alliance table
   const allianceEdges: Array<{ from: string; to: string; strength: number }> = [
-    { from: 'ai-ranking',   to: 'citation',  strength: 50 },
-    { from: 'citation',     to: 'social',    strength: 50 },
-    { from: 'citation',     to: 'forum',     strength: 50 },
-    { from: 'citation',     to: 'niche-dir', strength: 50 },
-    { from: 'forum',        to: 'outreach',  strength: 50 },
-    { from: 'outreach',     to: 'quick',     strength: 50 },
-    { from: 'quick',        to: 'full',      strength: 50 },
-    { from: 'ai-ranking',   to: 'schema',    strength: 50 },
-    { from: 'full',         to: 'schema',    strength: 50 },
-    { from: 'full',         to: 'monthly',   strength: 50 },
-    { from: 'monthly',      to: 'schema',    strength: 50 },
+    { from: 'ai-ranking', to: 'citation', strength: 50 },
+    { from: 'citation', to: 'social', strength: 50 },
+    { from: 'citation', to: 'forum', strength: 50 },
+    { from: 'citation', to: 'niche-dir', strength: 50 },
+    { from: 'forum', to: 'outreach', strength: 50 },
+    { from: 'outreach', to: 'quick', strength: 50 },
+    { from: 'quick', to: 'full', strength: 50 },
+    { from: 'ai-ranking', to: 'schema', strength: 50 },
+    { from: 'full', to: 'schema', strength: 50 },
+    { from: 'full', to: 'monthly', strength: 50 },
+    { from: 'monthly', to: 'schema', strength: 50 },
   ]
 
   // Only seed alliance edges if both ends exist in the current agent set
-  const allUids = new Set(allAgents.map(a => a.group ? `${a.group}:${a.name}` : a.name))
+  const allUids = new Set(allAgents.map((a) => (a.group ? `${a.group}:${a.name}` : a.name)))
   let allianceCount = 0
   for (const edge of allianceEdges) {
     const fromUid = `marketing:${edge.from}`
@@ -424,7 +428,7 @@ async function main() {
   console.log(`  ${allianceCount} alliance edges (strength=50, from alliances.yaml)`)
 
   // Wallet summary
-  const walletCount = allAgents.filter(a => {
+  const walletCount = allAgents.filter((a) => {
     const uid = a.group ? `${a.group}:${a.name}` : a.name
     return deriveWallet(uid) !== null
   }).length
@@ -475,7 +479,7 @@ async function main() {
   console.log(`  ${allAgents.length * 3} paths created (approx)`)
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error('❌ Fatal error:', e)
   process.exit(1)
 })

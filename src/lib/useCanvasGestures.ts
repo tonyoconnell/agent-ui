@@ -102,20 +102,21 @@ export function useCanvasGestures() {
   }, [])
 
   const updatePathDraw = useCallback((toX: number, toY: number) => {
-    setPathDraw((prev) =>
-      prev.isDrawing ? { ...prev, toX, toY } : prev
-    )
+    setPathDraw((prev) => (prev.isDrawing ? { ...prev, toX, toY } : prev))
   }, [])
 
   const cancelPathDraw = useCallback(() => {
     setPathDraw({ isDrawing: false })
   }, [])
 
-  const completePathDraw = useCallback((toId: string) => {
-    const result = pathDraw.from && toId ? { from: pathDraw.from, to: toId } : null
-    setPathDraw({ isDrawing: false })
-    return result // caller will emit signal
-  }, [pathDraw])
+  const completePathDraw = useCallback(
+    (toId: string) => {
+      const result = pathDraw.from && toId ? { from: pathDraw.from, to: toId } : null
+      setPathDraw({ isDrawing: false })
+      return result // caller will emit signal
+    },
+    [pathDraw],
+  )
 
   const startEdgeHover = useCallback((edgeId: string, x: number, y: number) => {
     setEdgeHover({ edgeId, x, y })
@@ -155,9 +156,7 @@ export function useCanvasGestures() {
   }, [])
 
   const updateLasso = useCallback((endX: number, endY: number) => {
-    setLasso((prev) =>
-      prev.isLassoing ? { ...prev, endX, endY } : prev
-    )
+    setLasso((prev) => (prev.isLassoing ? { ...prev, endX, endY } : prev))
   }, [])
 
   const completeLasso = useCallback(() => {

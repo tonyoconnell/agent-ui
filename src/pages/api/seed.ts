@@ -6,7 +6,7 @@
  * Idempotent: checks for existing data before inserting.
  */
 import type { APIRoute } from 'astro'
-import { write, readParsed, writeBatch } from '@/lib/typedb'
+import { readParsed, write } from '@/lib/typedb'
 
 export const POST: APIRoute = async () => {
   const results: string[] = []
@@ -17,12 +17,15 @@ export const POST: APIRoute = async () => {
   `).catch(() => [])
 
   if (existing.length > 0) {
-    return new Response(JSON.stringify({
-      seeded: false,
-      message: `World already has ${existing.length} units. Delete first to re-seed.`,
-    }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({
+        seeded: false,
+        message: `World already has ${existing.length} units. Delete first to re-seed.`,
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
   }
 
   // ─── Swarms ───────────────────────────────────────────────────────────────
@@ -75,7 +78,8 @@ export const POST: APIRoute = async () => {
       name: 'Summarizer',
       kind: 'agent',
       model: 'sonnet',
-      systemPrompt: 'You are a concise summarizer. Given any text, produce a clear summary capturing the key points. Be brief and precise.',
+      systemPrompt:
+        'You are a concise summarizer. Given any text, produce a clear summary capturing the key points. Be brief and precise.',
       swarm: 'swarm-agents',
     },
     {
@@ -83,7 +87,8 @@ export const POST: APIRoute = async () => {
       name: 'Translator',
       kind: 'agent',
       model: 'sonnet',
-      systemPrompt: 'You are a multilingual translator. Translate the given text to the requested language. If no language is specified, translate to English. Preserve meaning and tone.',
+      systemPrompt:
+        'You are a multilingual translator. Translate the given text to the requested language. If no language is specified, translate to English. Preserve meaning and tone.',
       swarm: 'swarm-agents',
     },
     {
@@ -91,7 +96,8 @@ export const POST: APIRoute = async () => {
       name: 'Analyst',
       kind: 'agent',
       model: 'sonnet',
-      systemPrompt: 'You are a data analyst. Given data or a question, provide structured analysis with insights, patterns, and recommendations. Use clear formatting.',
+      systemPrompt:
+        'You are a data analyst. Given data or a question, provide structured analysis with insights, patterns, and recommendations. Use clear formatting.',
       swarm: 'swarm-agents',
     },
   ]
@@ -184,7 +190,7 @@ export const POST: APIRoute = async () => {
   ]
 
   for (const s of skills) {
-    const tagInserts = s.tags.map(t => `has tag "${t}"`).join(', ')
+    const tagInserts = s.tags.map((t) => `has tag "${t}"`).join(', ')
     await write(`
       insert $s isa skill,
         has skill-id "${s.id}",
@@ -221,11 +227,14 @@ export const POST: APIRoute = async () => {
   }
   results.push(`${edges.length} paths`)
 
-  return new Response(JSON.stringify({
-    seeded: true,
-    created: results,
-    timestamp: new Date().toISOString(),
-  }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+  return new Response(
+    JSON.stringify({
+      seeded: true,
+      created: results,
+      timestamp: new Date().toISOString(),
+    }),
+    {
+      headers: { 'Content-Type': 'application/json' },
+    },
+  )
 }

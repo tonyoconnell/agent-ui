@@ -7,9 +7,9 @@
  * STREAM 4: Display only. No inline editing yet (STREAM 5).
  */
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
@@ -66,7 +66,7 @@ interface Props {
 
 function truncateId(id: string, chars = 8): string {
   if (id.length <= chars) return id
-  return id.slice(0, chars) + '...'
+  return `${id.slice(0, chars)}...`
 }
 
 function formatTime(ts: string): string {
@@ -126,16 +126,14 @@ function UnitCard({ entity }: { entity: EntityResponse }) {
   const stats = entity.stats!
 
   const successRate = stats.successRate ?? 0
-  const isOwner = false // TODO: STREAM 5 — check auth context
+  const _isOwner = false // TODO: STREAM 5 — check auth context
 
   return (
     <div className="space-y-4 p-4">
       {/* Name & Type */}
       <div>
         <h2 className="text-xl font-semibold text-white">{spec.name}</h2>
-        {spec.kind && (
-          <p className="text-sm text-slate-400 mt-1">{spec.kind}</p>
-        )}
+        {spec.kind && <p className="text-sm text-slate-400 mt-1">{spec.kind}</p>}
       </div>
 
       <div className="border-t border-slate-700" />
@@ -161,11 +159,7 @@ function UnitCard({ entity }: { entity: EntityResponse }) {
           <div className="text-xs font-mono text-slate-500 uppercase">Skills</div>
           <div className="flex flex-wrap gap-2">
             {spec.tags.map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="text-xs bg-slate-700 text-slate-100"
-              >
+              <Badge key={tag} variant="secondary" className="text-xs bg-slate-700 text-slate-100">
                 {tag}
               </Badge>
             ))}
@@ -188,9 +182,7 @@ function UnitCard({ entity }: { entity: EntityResponse }) {
             {truncateId(stats.wallet, 16)}
           </a>
           {stats.balance !== undefined && (
-            <div className="text-xs text-slate-400">
-              Balance: ${stats.balance.toFixed(2)}
-            </div>
+            <div className="text-xs text-slate-400">Balance: ${stats.balance.toFixed(2)}</div>
           )}
         </div>
       )}
@@ -205,17 +197,10 @@ function UnitCard({ entity }: { entity: EntityResponse }) {
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm text-slate-400">Success</span>
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                'text-sm font-mono',
-                successRate >= 80 ? 'text-green-400' : 'text-yellow-400'
-              )}
-            >
+            <span className={cn('text-sm font-mono', successRate >= 80 ? 'text-green-400' : 'text-yellow-400')}>
               {successRate.toFixed(0)}%
             </span>
-            <span className="text-sm font-mono text-slate-600">
-              {percentBar(successRate)}
-            </span>
+            <span className="text-sm font-mono text-slate-600">{percentBar(successRate)}</span>
           </div>
         </div>
 
@@ -223,9 +208,7 @@ function UnitCard({ entity }: { entity: EntityResponse }) {
         {stats.sampleCount !== undefined && (
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-400">Calls</span>
-            <span className="text-sm font-mono text-slate-300">
-              {stats.sampleCount}
-            </span>
+            <span className="text-sm font-mono text-slate-300">{stats.sampleCount}</span>
           </div>
         )}
 
@@ -233,9 +216,7 @@ function UnitCard({ entity }: { entity: EntityResponse }) {
         {stats.balance !== undefined && (
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-400">Earnings</span>
-            <span className="text-sm font-mono text-amber-400">
-              ${stats.balance.toFixed(2)}
-            </span>
+            <span className="text-sm font-mono text-amber-400">${stats.balance.toFixed(2)}</span>
           </div>
         )}
 
@@ -243,9 +224,7 @@ function UnitCard({ entity }: { entity: EntityResponse }) {
         {stats.reputation !== undefined && (
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-400">Reputation</span>
-            <span className="text-sm font-mono text-slate-300">
-              {stats.reputation.toFixed(2)}
-            </span>
+            <span className="text-sm font-mono text-slate-300">{stats.reputation.toFixed(2)}</span>
           </div>
         )}
       </div>
@@ -255,18 +234,12 @@ function UnitCard({ entity }: { entity: EntityResponse }) {
       {/* Recent Signals */}
       {entity.recentSignals && entity.recentSignals.length > 0 && (
         <div className="space-y-2">
-          <div className="text-xs font-mono text-slate-500 uppercase">
-            Recent Signals
-          </div>
+          <div className="text-xs font-mono text-slate-500 uppercase">Recent Signals</div>
           <div className="space-y-1">
             {entity.recentSignals.map((sig) => (
-              <div
-                key={sig.id}
-                className="flex items-center justify-between text-xs font-mono"
-              >
+              <div key={sig.id} className="flex items-center justify-between text-xs font-mono">
                 <div className="flex-1 text-slate-400">
-                  {sig.outcome === 'success' ? '✓' : '✗'}{' '}
-                  {sig.from} → {sig.to}
+                  {sig.outcome === 'success' ? '✓' : '✗'} {sig.from} → {sig.to}
                   {sig.skill && ` · ${sig.skill}`}
                 </div>
                 <span className="text-amber-400">${sig.revenue.toFixed(2)}</span>
@@ -284,13 +257,9 @@ function UnitCard({ entity }: { entity: EntityResponse }) {
       {/* System Prompt (Expandable) */}
       {spec.systemPrompt && (
         <div className="space-y-2">
-          <div className="text-xs font-mono text-slate-500 uppercase">
-            System Prompt
-          </div>
+          <div className="text-xs font-mono text-slate-500 uppercase">System Prompt</div>
           <details className="text-xs">
-            <summary className="cursor-pointer text-slate-400 hover:text-slate-300">
-              [expand]
-            </summary>
+            <summary className="cursor-pointer text-slate-400 hover:text-slate-300">[expand]</summary>
             <pre className="mt-2 overflow-auto max-h-24 bg-slate-900 p-2 rounded text-slate-300 whitespace-pre-wrap text-xs">
               {spec.systemPrompt}
             </pre>
@@ -341,9 +310,7 @@ function GroupCard({ entity }: { entity: EntityResponse }) {
       {/* Name */}
       <div>
         <h2 className="text-xl font-semibold text-white">{spec.name}</h2>
-        {spec.type && (
-          <p className="text-sm text-slate-400 mt-1">{spec.type}</p>
-        )}
+        {spec.type && <p className="text-sm text-slate-400 mt-1">{spec.type}</p>}
       </div>
 
       <div className="border-t border-slate-700" />
@@ -351,9 +318,7 @@ function GroupCard({ entity }: { entity: EntityResponse }) {
       {/* Members */}
       <div>
         <div className="text-xs font-mono text-slate-500 uppercase">Members</div>
-        <div className="text-lg font-semibold text-white mt-1">
-          {stats.members ?? 0}
-        </div>
+        <div className="text-lg font-semibold text-white mt-1">{stats.members ?? 0}</div>
       </div>
 
       <div className="border-t border-slate-700" />
@@ -387,9 +352,7 @@ function NotFound({ id }: { id: string }) {
   return (
     <div className="p-4 text-center space-y-3">
       <p className="text-slate-400">Entity not found</p>
-      {id && (
-        <p className="text-xs font-mono text-slate-500">{truncateId(id, 20)}</p>
-      )}
+      {id && <p className="text-xs font-mono text-slate-500">{truncateId(id, 20)}</p>}
     </div>
   )
 }
@@ -484,12 +447,7 @@ export function AgentCard({ className }: Props) {
 
   // Render entity
   return (
-    <Card
-      className={cn(
-        'h-full bg-slate-800 border-slate-700 flex flex-col overflow-hidden',
-        className
-      )}
-    >
+    <Card className={cn('h-full bg-slate-800 border-slate-700 flex flex-col overflow-hidden', className)}>
       <div className="flex-1 overflow-y-auto">
         {entity.kind === 'unit' && <UnitCard entity={entity} />}
         {entity.kind === 'group' && <GroupCard entity={entity} />}

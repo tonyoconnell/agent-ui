@@ -13,9 +13,7 @@ export const GET: APIRoute = async () => {
       select $sid, $tid, $str, $r;
     `)
 
-    const toxic = results
-      .filter(r => ((r.r as number) + (r.str as number)) > 5)
-      .map(r => `${r.sid}\u2192${r.tid}`)
+    const toxic = results.filter((r) => (r.r as number) + (r.str as number) > 5).map((r) => `${r.sid}\u2192${r.tid}`)
 
     return Response.json(toxic, {
       headers: { 'Cache-Control': 'public, max-age=5' },

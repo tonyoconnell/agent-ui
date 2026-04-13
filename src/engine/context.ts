@@ -179,7 +179,7 @@ const extractPatterns = (content: string): string[] => {
 
   // Extract code blocks with key patterns
   const codeRegex = /```(?:typescript|tql|)?\n([\s\S]*?)```/g
-  let match
+  let match: RegExpExecArray | null
   while ((match = codeRegex.exec(content)) !== null) {
     const code = match[1].trim()
     // Keep short, meaningful code blocks

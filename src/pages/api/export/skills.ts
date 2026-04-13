@@ -53,7 +53,7 @@ export const GET: APIRoute = async () => {
       providerMap.get(sid)!.push(r.uid as string)
     }
 
-    const skills: SkillExport[] = skillRows.map(r => ({
+    const skills: SkillExport[] = skillRows.map((r) => ({
       id: r.sid as string,
       name: r.name as string,
       price: r.p as number,

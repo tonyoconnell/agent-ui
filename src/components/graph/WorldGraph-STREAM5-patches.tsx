@@ -12,7 +12,7 @@
 // IMPORTS TO ADD (at top of file, after existing imports)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useEffect, useRef, useState } from 'react'
 // import { useCallback } from "react"  // Add useCallback if not already imported
 // import { useCanvasGestures } from "@/lib/useCanvasGestures"
 // import {
@@ -49,9 +49,9 @@ export function RenameInput({
   }, [])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       onSubmit(value)
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       onCancel()
     }
   }
@@ -66,11 +66,10 @@ export function RenameInput({
       onBlur={() => onSubmit(value)}
       className="text-white font-medium text-sm px-1 py-0 rounded outline-none flex-1 min-w-0"
       style={{
-        backgroundColor: skin.colors.primary + "40",
+        backgroundColor: `${skin.colors.primary}40`,
         border: `1px solid ${skin.colors.primary}`,
-        color: "white",
+        color: 'white',
       }}
-      autoFocus
     />
   )
 }

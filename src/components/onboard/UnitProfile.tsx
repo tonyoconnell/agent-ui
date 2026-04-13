@@ -76,19 +76,11 @@ export function UnitProfile({ unit, capabilities, edges }: Props) {
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight text-white font-mono">
-                {unit.name}
-              </h1>
-              <Badge className={kindColors[unit.unitKind] || kindColors.system}>
-                {unit.unitKind}
-              </Badge>
-              <Badge className={statusColors[unit.status] || statusColors.active}>
-                {unit.status}
-              </Badge>
+              <h1 className="text-3xl font-bold tracking-tight text-white font-mono">{unit.name}</h1>
+              <Badge className={kindColors[unit.unitKind] || kindColors.system}>{unit.unitKind}</Badge>
+              <Badge className={statusColors[unit.status] || statusColors.active}>{unit.status}</Badge>
             </div>
-            <p className="mt-1 text-sm text-slate-500 font-mono">
-              {unit.name}.one.ie
-            </p>
+            <p className="mt-1 text-sm text-slate-500 font-mono">{unit.name}.one.ie</p>
           </div>
         </div>
       </div>
@@ -101,13 +93,8 @@ export function UnitProfile({ unit, capabilities, edges }: Props) {
           { label: 'Activity', value: unit.activityScore.toFixed(1), color: 'text-blue-400' },
           { label: 'Signals', value: unit.sampleCount.toString(), color: 'text-amber-400' },
         ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-xl border border-[#252538] bg-[#161622] p-4"
-          >
-            <div className={`text-2xl font-bold font-mono ${stat.color}`}>
-              {stat.value}
-            </div>
+          <div key={stat.label} className="rounded-xl border border-[#252538] bg-[#161622] p-4">
+            <div className={`text-2xl font-bold font-mono ${stat.color}`}>{stat.value}</div>
             <div className="mt-1 text-xs text-slate-500">{stat.label}</div>
           </div>
         ))}
@@ -119,15 +106,11 @@ export function UnitProfile({ unit, capabilities, edges }: Props) {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs text-slate-500">Sui Wallet</div>
-              <div className="mt-1 font-mono text-sm text-white truncate max-w-[300px]">
-                {unit.wallet}
-              </div>
+              <div className="mt-1 font-mono text-sm text-white truncate max-w-[300px]">{unit.wallet}</div>
             </div>
             <div className="text-right">
               <div className="text-xs text-slate-500">Balance</div>
-              <div className="mt-1 font-mono text-sm text-emerald-400">
-                {unit.balance.toFixed(4)} SUI
-              </div>
+              <div className="mt-1 font-mono text-sm text-emerald-400">{unit.balance.toFixed(4)} SUI</div>
             </div>
           </div>
         </div>
@@ -149,10 +132,7 @@ export function UnitProfile({ unit, capabilities, edges }: Props) {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {capabilities.map((cap, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-[#252538] bg-[#161622] p-4"
-              >
+              <div key={i} className="rounded-xl border border-[#252538] bg-[#161622] p-4">
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-medium text-white">{cap.taskName}</span>
                   <span className="font-mono text-sm text-emerald-400">
@@ -177,9 +157,7 @@ export function UnitProfile({ unit, capabilities, edges }: Props) {
       <div className="mb-8">
         <h2 className="mb-4 text-lg font-semibold text-white">
           Connections
-          {edges.length > 0 && (
-            <span className="ml-2 text-sm font-normal text-slate-500">({edges.length})</span>
-          )}
+          {edges.length > 0 && <span className="ml-2 text-sm font-normal text-slate-500">({edges.length})</span>}
         </h2>
 
         {edges.length === 0 ? (
@@ -201,10 +179,7 @@ export function UnitProfile({ unit, capabilities, edges }: Props) {
                       <span className="font-mono text-sm font-medium text-white group-hover:text-violet-300 transition-colors">
                         {edge.targetName}
                       </span>
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] border-[#353548] text-slate-500"
-                      >
+                      <Badge variant="outline" className="text-[10px] border-[#353548] text-slate-500">
                         {edge.targetKind}
                       </Badge>
                     </div>
@@ -226,11 +201,17 @@ export function UnitProfile({ unit, capabilities, edges }: Props) {
 
       {/* Links */}
       <div className="mt-12 flex justify-center gap-6 text-sm text-slate-500">
-        <a href="/discover" className="hover:text-violet-400 transition-colors">Discover</a>
+        <a href="/discover" className="hover:text-violet-400 transition-colors">
+          Discover
+        </a>
         <span>|</span>
-        <a href="/build" className="hover:text-violet-400 transition-colors">Build</a>
+        <a href="/build" className="hover:text-violet-400 transition-colors">
+          Build
+        </a>
         <span>|</span>
-        <a href="/signup" className="hover:text-violet-400 transition-colors">Sign up</a>
+        <a href="/signup" className="hover:text-violet-400 transition-colors">
+          Sign up
+        </a>
       </div>
     </div>
   )

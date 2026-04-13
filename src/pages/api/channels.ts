@@ -32,7 +32,7 @@ export const GET: APIRoute = async () => {
 
     for (const r of signalRows) {
       const ts = new Date(r.ts as string)
-      const channelName = `${r.fn as string} → ${r.tn as string}`
+      const _channelName = `${r.fn as string} → ${r.tn as string}`
       const channelKey = `${r.fid}-${r.tid}`
 
       if (!channels[channelKey]) {
@@ -45,7 +45,7 @@ export const GET: APIRoute = async () => {
       }
 
       // Update lastAt if this signal is more recent
-      if (r.ts as string > channels[channelKey].lastAt) {
+      if ((r.ts as string) > channels[channelKey].lastAt) {
         channels[channelKey].lastAt = r.ts as string
       }
     }
@@ -54,7 +54,7 @@ export const GET: APIRoute = async () => {
     const stats: ChannelStat[] = Object.entries(channels)
       .map(([key, data]) => {
         // Reconstruct channel name from signals
-        const sig = signalRows.find(r => `${r.fid}-${r.tid}` === key)
+        const sig = signalRows.find((r) => `${r.fid}-${r.tid}` === key)
         return {
           name: sig ? `${sig.fn as string} → ${sig.tn as string}` : key,
           perDay: data.count,

@@ -20,9 +20,9 @@
  *   --force    Re-insert even if task already exists (delete first)
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
-import { fileURLToPath } from 'url'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const docsDir = path.resolve(__dirname, '../docs')
@@ -56,7 +56,7 @@ interface Task {
   effort: Effort
   phase: Phase
   persona: string
-  blocksIds: string[]  // IDs of tasks THIS task blocks
+  blocksIds: string[] // IDs of tasks THIS task blocks
   exit: string
   tags: string[]
   priorityScore: number
@@ -69,7 +69,13 @@ interface Task {
 const VALUE_SCORES: Record<Value, number> = { critical: 30, high: 25, medium: 20, low: 10 }
 const PHASE_SCORES: Record<Phase, number> = { C1: 40, C2: 35, C3: 30, C4: 25, C5: 20, C6: 15, C7: 10 }
 const PERSONA_SCORES: Record<string, number> = {
-  ceo: 25, dev: 20, investor: 15, gamer: 15, kid: 10, freelancer: 10, agent: 5,
+  ceo: 25,
+  dev: 20,
+  investor: 15,
+  gamer: 15,
+  kid: 10,
+  freelancer: 10,
+  agent: 5,
 }
 const EFFORT_MAP: Record<string, Effort> = { haiku: 'low', sonnet: 'medium', opus: 'high' }
 
@@ -98,8 +104,8 @@ function parseTodoMd(content: string): Task[] {
   const lines = content.split('\n')
   const tasks: Task[] = []
 
-  let currentPhase: Phase = 'C4'  // default if no heading found
-  let current: Partial<Task> & { blocksIds?: string[] } | null = null
+  let currentPhase: Phase = 'C4' // default if no heading found
+  let current: (Partial<Task> & { blocksIds?: string[] }) | null = null
 
   const flush = () => {
     if (!current?.name) return
@@ -153,7 +159,7 @@ function parseTodoMd(content: string): Task[] {
 
       // Parse the rest of the line after **Name**
       // Format: **Name** — formula [model] `tags`
-      const nameInLine = '**' + rawName + '**'
+      const nameInLine = `**${rawName}**`
       const afterName = line.slice(line.indexOf(nameInLine) + nameInLine.length).trim()
 
       let value: Value = 'medium'
@@ -170,14 +176,22 @@ function parseTodoMd(content: string): Task[] {
 
         // Extract backtick tags (last part)
         const backtickMatch = withoutDash.match(/`([^`]+)`/)
-        tags = backtickMatch ? backtickMatch[1].split(',').map(t => t.trim()).filter(Boolean) : []
+        tags = backtickMatch
+          ? backtickMatch[1]
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : []
 
         // Extract model in brackets e.g. [sonnet]
         const modelMatch = withoutDash.match(/\[(\w+)\]/)
         effort = modelMatch ? (EFFORT_MAP[modelMatch[1].toLowerCase()] ?? 'medium') : 'medium'
 
         // Formula is everything before [ or `
-        const formulaStr = withoutDash.replace(/\[.*?\]/g, '').replace(/`.*?`/g, '').trim()
+        const formulaStr = withoutDash
+          .replace(/\[.*?\]/g, '')
+          .replace(/`.*?`/g, '')
+          .trim()
 
         // Extract value
         const valueMatch = formulaStr.match(/\b(critical|high|medium|low)=(\d+)/)
@@ -193,7 +207,7 @@ function parseTodoMd(content: string): Task[] {
 
         // Extract blocking count
         const blocksCountMatch = formulaStr.match(/blocks\((\d+)\)/)
-        const blockingCount = blocksCountMatch ? parseInt(blocksCountMatch[1]) : 0
+        const blockingCount = blocksCountMatch ? parseInt(blocksCountMatch[1], 10) : 0
 
         // Compute priority
         const v = VALUE_SCORES[value] ?? 20
@@ -242,8 +256,10 @@ function parseTodoMd(content: string): Task[] {
 
       const blocksMatch = trimmed.match(/^blocks:\s*(.+)$/)
       if (blocksMatch) {
-        current.blocksIds = blocksMatch[1].split(',').map(s => s.trim()).filter(Boolean)
-        continue
+        current.blocksIds = blocksMatch[1]
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
       }
     }
   }
@@ -251,7 +267,7 @@ function parseTodoMd(content: string): Task[] {
   flush()
 
   // Only return open tasks (not done)
-  return tasks.filter(t => !t.done)
+  return tasks.filter((t) => !t.done)
 }
 
 // ── Escape ─────────────────────────────────────────────────────────────────────
@@ -263,7 +279,7 @@ function esc(s: string): string {
 // ── Query builders ─────────────────────────────────────────────────────────────
 
 function taskInsertQuery(t: Task): string {
-  const tagParts = t.tags.map(tag => `has tag "${esc(tag)}"`).join(', ')
+  const tagParts = t.tags.map((tag) => `has tag "${esc(tag)}"`).join(', ')
   const tagClause = tagParts ? `, ${tagParts}` : ''
   const exitClause = t.exit ? `, has exit-condition "${esc(t.exit)}"` : ''
   const now = new Date().toISOString().replace('Z', '')
@@ -286,7 +302,7 @@ function taskInsertQuery(t: Task): string {
 }
 
 function skillInsertQuery(t: Task): string {
-  const tagParts = t.tags.map(tag => `has tag "${esc(tag)}"`).join(', ')
+  const tagParts = t.tags.map((tag) => `has tag "${esc(tag)}"`).join(', ')
   const tagClause = tagParts ? `, ${tagParts}` : ''
   return `
     insert $s isa skill,
@@ -337,7 +353,7 @@ async function executeQuery(token: string, tql: string, txType: 'read' | 'write'
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       databaseName: TYPEDB_DATABASE,
@@ -359,11 +375,9 @@ async function executeQuery(token: string, tql: string, txType: 'read' | 'write'
 
 async function getExistingTaskIds(token: string): Promise<Set<string>> {
   try {
-    const result = await executeQuery(
-      token,
-      'match $t isa task, has task-id $id; select $id;',
-      'read'
-    ) as { answers?: Array<{ data?: { id?: { value?: string } } }> }
+    const result = (await executeQuery(token, 'match $t isa task, has task-id $id; select $id;', 'read')) as {
+      answers?: Array<{ data?: { id?: { value?: string } } }>
+    }
 
     const ids = new Set<string>()
     for (const ans of result.answers ?? []) {
@@ -378,11 +392,9 @@ async function getExistingTaskIds(token: string): Promise<Set<string>> {
 
 async function getExistingSkillIds(token: string): Promise<Set<string>> {
   try {
-    const result = await executeQuery(
-      token,
-      'match $s isa skill, has skill-id $id; select $id;',
-      'read'
-    ) as { answers?: Array<{ data?: { id?: { value?: string } } }> }
+    const result = (await executeQuery(token, 'match $s isa skill, has skill-id $id; select $id;', 'read')) as {
+      answers?: Array<{ data?: { id?: { value?: string } } }>
+    }
 
     const ids = new Set<string>()
     for (const ans of result.answers ?? []) {
@@ -404,9 +416,9 @@ async function getExistingSkillIds(token: string): Promise<Set<string>> {
 //   agent → builder (fallback)
 
 function resolveUnit(t: Task): string {
-  const tags = t.tags.map(s => s.toLowerCase())
+  const tags = t.tags.map((s) => s.toLowerCase())
   if (tags.includes('marketing')) return 'marketing:director'
-  if (t.persona === 'ceo') return 'builder'  // ceo tasks go to builder in dev
+  if (t.persona === 'ceo') return 'builder' // ceo tasks go to builder in dev
   if (t.persona === 'investor') return 'builder'
   if (tags.includes('typedb') || tags.includes('schema')) return 'builder'
   return 'builder'
@@ -552,7 +564,7 @@ async function main() {
 
   // 4. Insert blocks relations
   console.log('Seeding blocks relations...')
-  const taskIds = new Set(tasks.map(t => t.id))
+  const taskIds = new Set(tasks.map((t) => t.id))
   for (const t of tasks) {
     for (const blockedId of t.blocksIds) {
       // Only insert if both ends exist in our task set
@@ -577,7 +589,7 @@ async function main() {
   if (failed > 0) console.log(`  ${failed} failures`)
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error('Fatal error:', e)
   process.exit(1)
 })

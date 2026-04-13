@@ -2,7 +2,7 @@
  * Channel Adapters — Normalize webhooks to signals
  */
 
-import type { Signal, Env } from '../types'
+import type { Env, Signal } from '../types'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TELEGRAM
@@ -84,7 +84,7 @@ export const sendDiscord = async (env: Env, channelId: string, text: string): Pr
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bot ${env.DISCORD_TOKEN}`,
+      Authorization: `Bot ${env.DISCORD_TOKEN}`,
     },
     body: JSON.stringify({ content: text }),
   })
@@ -116,12 +116,18 @@ export const normalizeWeb = (payload: WebMessage): Signal => ({
 
 export const normalize = (channel: string, payload: unknown): Signal | null => {
   switch (channel) {
-    case 'telegram': return normalizeTelegram(payload as TelegramUpdate)
-    case 'telegram-donal': return normalizeTelegram(payload as TelegramUpdate, 'tg-donal')
-    case 'telegram-one': return normalizeTelegram(payload as TelegramUpdate, 'tg-one')
-    case 'discord': return normalizeDiscord(payload as DiscordMessage)
-    case 'web': return normalizeWeb(payload as WebMessage)
-    default: return null
+    case 'telegram':
+      return normalizeTelegram(payload as TelegramUpdate)
+    case 'telegram-donal':
+      return normalizeTelegram(payload as TelegramUpdate, 'tg-donal')
+    case 'telegram-one':
+      return normalizeTelegram(payload as TelegramUpdate, 'tg-one')
+    case 'discord':
+      return normalizeDiscord(payload as DiscordMessage)
+    case 'web':
+      return normalizeWeb(payload as WebMessage)
+    default:
+      return null
   }
 }
 

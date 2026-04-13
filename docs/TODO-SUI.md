@@ -115,6 +115,19 @@ Every unit knows its on-chain object. Every path knows its on-chain path.
 
 ---
 
+## Phase 2: Identity & Wallet (Next)
+
+One agent, multiple chains. Deterministic keypair from substrate UID.
+
+- [ ] **2.1 Keypair derivation** — `deriveAgentKeypair(uid, seed)` in `src/lib/sui.ts` + tests
+- [ ] **2.2 Wire to /api/agents/sync** — returns `{ wallet: 0x... }` on agent creation
+- [ ] **2.3 Wallet Adapter UI** — `@mysten/dapp-kit` in browser for manual signing
+- [ ] **2.4 Read-only Discovery** — follow() + select() read Sui Path weights, weight pheromone by on-chain strength
+- [ ] **2.5 Transaction history** — `/api/agent/{id}/transactions` → Sui Explorer links
+- [ ] **2.6 Gas sponsorship** — Protocol pays gas for new agent creation (Phase 3 escrow setup)
+
+---
+
 ## After Testnet (build from real data)
 
 Once Steps 1-5 are done and we have real on-chain state, these open up:
@@ -159,9 +172,10 @@ Once Steps 1-5 are done and we have real on-chain state, these open up:
 
 ```
 Steps 1-5 (testnet):     33 done, 0 open ← TESTNET COMPLETE
-After testnet:           22 open (builds on real data)
+Phase 2 (identity):      0 done, 6 open ← IN FLIGHT
+Phases 3-6 (after P2):   0 done, 22 open
 ──────────────────────────────────────────
-Total: 33 done, 22 open
+Total: 33 done, 28 open
 ```
 
 ---

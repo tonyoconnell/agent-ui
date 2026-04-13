@@ -17,16 +17,14 @@ export const GET: APIRoute = async () => {
   const loaded = loadedAt()
 
   const unitCount = Object.keys(units).length
-  const agentCount = Object.values(units).filter(u => u.kind === 'agent' || u.kind === 'llm').length
+  const agentCount = Object.values(units).filter((u) => u.kind === 'agent' || u.kind === 'llm').length
   const edgeCount = Object.keys(net.strength).length
   const highwayCount = net.highways(100).length
   const ageMs = loaded ? Date.now() - loaded : -1
 
   // Calculate success rate across all units
   const unitList = Object.values(units)
-  const avgSuccessRate = unitList.length > 0
-    ? unitList.reduce((s, u) => s + u.successRate, 0) / unitList.length
-    : 0
+  const avgSuccessRate = unitList.length > 0 ? unitList.reduce((s, u) => s + u.successRate, 0) / unitList.length : 0
 
   // Get total revenue (all paths)
   const totalRevenue = Object.values(net.revenue).reduce((s, v) => s + v, 0)
@@ -79,6 +77,6 @@ export const GET: APIRoute = async () => {
     {
       status: status === 'healthy' ? 200 : 503,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1' },
-    }
+    },
   )
 }

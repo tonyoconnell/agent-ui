@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Ingest Donal's knowledge corpus → JSONL chunks → promotable to L6 hypotheses
  *
@@ -9,9 +10,9 @@
  * Run: bun run scripts/ingest-knowledge.ts
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
-import * as crypto from 'crypto'
+import * as crypto from 'node:crypto'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 
 interface KnowledgeChunk {
   id: string
@@ -32,9 +33,7 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 }
 
 function generateId(source: string, index: number): string {
-  const hash = crypto.createHash('sha256')
-    .update(`${source}:${index}`)
-    .digest('hex')
+  const hash = crypto.createHash('sha256').update(`${source}:${index}`).digest('hex')
   return hash.slice(0, 16)
 }
 
@@ -108,7 +107,7 @@ function extractTags(title: string, content: string): string[] {
   // Tags from content frequency
   const contentLower = content.toLowerCase()
   const keywords = ['google', 'ai', 'ranking', 'visibility', 'gmb', 'yelp', 'nap', 'e-a-t']
-  keywords.forEach(kw => {
+  keywords.forEach((kw) => {
     if (contentLower.includes(kw)) tags.add(kw)
   })
 
@@ -126,10 +125,11 @@ async function ingestKnowledge() {
   }
 
   // Find all .md files
-  const files = fs.readdirSync(DONAL_PATH, { recursive: true })
+  const files = fs
+    .readdirSync(DONAL_PATH, { recursive: true })
     .filter((f): f is string => typeof f === 'string')
-    .filter(f => f.endsWith('.md'))
-    .map(f => path.join(DONAL_PATH, f))
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => path.join(DONAL_PATH, f))
 
   console.log(`Found ${files.length} markdown files\n`)
 
@@ -153,14 +153,16 @@ async function ingestKnowledge() {
     const outputFile = path.join(OUTPUT_DIR, `${category}.jsonl`)
 
     // Append chunks as JSONL
-    const lines = chunks.map(chunk => JSON.stringify(chunk)).join('\n')
-    fs.appendFileSync(outputFile, lines + '\n')
+    const lines = chunks.map((chunk) => JSON.stringify(chunk)).join('\n')
+    fs.appendFileSync(outputFile, `${lines}\n`)
 
     fileIndex[filename] = chunks.length
     totalChunks += chunks.length
     totalChars += chunks.reduce((sum, c) => sum + c.character_count, 0)
 
-    console.log(`✓ ${filename} — ${chunks.length} chunks (${chunks.reduce((sum, c) => sum + c.character_count, 0)} chars)`)
+    console.log(
+      `✓ ${filename} — ${chunks.length} chunks (${chunks.reduce((sum, c) => sum + c.character_count, 0)} chars)`,
+    )
   }
 
   console.log(`\n${'─'.repeat(60)}`)
@@ -169,11 +171,11 @@ async function ingestKnowledge() {
   console.log(`Average chunk size: ${Math.round(totalChars / totalChunks)} chars`)
   console.log(`Output files: ${fs.readdirSync(OUTPUT_DIR).length}`)
   console.log(`\nFiles saved:`)
-  fs.readdirSync(OUTPUT_DIR).forEach(f => {
+  fs.readdirSync(OUTPUT_DIR).forEach((f) => {
     const lines = fs.readFileSync(path.join(OUTPUT_DIR, f), 'utf-8').split('\n').length - 1
     console.log(`  ${f.padEnd(20)} ${lines} chunks`)
   })
-  console.log('─'.repeat(60) + '\n')
+  console.log(`${'─'.repeat(60)}\n`)
 
   console.log('Next: Promote chunks to L6 hypotheses in TypeDB')
   console.log('  match $c ... select ...; # query chunks')
@@ -181,7 +183,7 @@ async function ingestKnowledge() {
   console.log('')
 }
 
-ingestKnowledge().catch(e => {
+ingestKnowledge().catch((e) => {
   console.error('FATAL:', e)
   process.exit(1)
 })

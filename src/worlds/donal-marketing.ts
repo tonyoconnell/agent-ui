@@ -24,16 +24,16 @@ export const donalMarketingAgents = [
   'cmo',
 
   // 10 priced skill agents from operation-fury-plus
-    'ai-ranking',
-    'citation',
-    'forum',
-    'full',
-    'monthly',
-    'niche-dir',
-    'outreach',
-    'quick',
-    'schema',
-    'social',
+  'ai-ranking',
+  'citation',
+  'forum',
+  'full',
+  'monthly',
+  'niche-dir',
+  'outreach',
+  'quick',
+  'schema',
+  'social',
 ] as const
 
 export const donalMarketing: WorldSpec = {

@@ -12,9 +12,9 @@
  *   return () => unsubscribe()
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react'
-import type { EventEmitter } from 'events'
-import { EventEmitter as EE } from 'events'
+import type { EventEmitter } from 'node:events'
+import { EventEmitter as EE } from 'node:events'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export interface Signal {
   id: string
@@ -49,7 +49,7 @@ let pollInterval: ReturnType<typeof setInterval> | null = null
 let lastSignalTs: number = 0
 let reconnectAttempts = 0
 const maxReconnectAttempts = 5
-const reconnectDelay = (attempt: number) => Math.min(1000 * Math.pow(2, attempt), 10000)
+const reconnectDelay = (attempt: number) => Math.min(1000 * 2 ** attempt, 10000)
 
 // Clean up global state
 const cleanup = () => {
@@ -168,7 +168,7 @@ const fallbackToPolling = () => {
       const res = await fetch(`/api/signals?limit=50&since=${since}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-      const data = await res.json()
+      const data = (await res.json()) as { signals?: unknown[] }
       if (data.signals && Array.isArray(data.signals)) {
         data.signals.forEach((s: any) => {
           const signal: Signal = {
@@ -230,18 +230,15 @@ export function useSignalStream() {
     }
   }, [])
 
-  const subscribe = useCallback(
-    (handler: (signal: Signal) => void) => {
-      if (!emitterRef.current) {
-        emitterRef.current = globalEmitter || createEmitter()
-      }
-      emitterRef.current.on('signal', handler)
-      return () => {
-        emitterRef.current?.off('signal', handler)
-      }
-    },
-    []
-  )
+  const subscribe = useCallback((handler: (signal: Signal) => void) => {
+    if (!emitterRef.current) {
+      emitterRef.current = globalEmitter || createEmitter()
+    }
+    emitterRef.current.on('signal', handler)
+    return () => {
+      emitterRef.current?.off('signal', handler)
+    }
+  }, [])
 
   return {
     signals: globalState?.signals || [],

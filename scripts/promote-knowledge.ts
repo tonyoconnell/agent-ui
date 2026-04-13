@@ -10,8 +10,8 @@
  * Run: bun run scripts/promote-knowledge.ts
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 
 // Load .env manually (bun supports this natively)
 const envPath = path.join(process.cwd(), '.env')
@@ -53,12 +53,12 @@ async function typedbQuery(tql: string, txType: 'read' | 'write' = 'read') {
     throw new Error(`TypeDB query failed: ${res.status} - ${text.slice(0, 200)}`)
   }
 
-  const data = await res.json() as { answers?: unknown[] }
+  const data = (await res.json()) as { answers?: unknown[] }
   return data.answers || []
 }
 
 function parseAnswers(answers: unknown[]): Record<string, unknown>[] {
-  return (answers as Array<{ data?: Record<string, { value?: unknown }> }>).map(answer => {
+  return (answers as Array<{ data?: Record<string, { value?: unknown }> }>).map((answer) => {
     const result: Record<string, unknown> = {}
     if (!answer?.data) return result
     for (const [varName, concept] of Object.entries(answer.data)) {
@@ -75,10 +75,10 @@ async function fetchExistingHids(hids: string[]): Promise<Set<string>> {
   try {
     const answers = await typedbQuery(
       `match $h isa hypothesis, has hid $id; $id like "^knowledge-"; select $id;`,
-      'read'
+      'read',
     )
     const rows = parseAnswers(answers)
-    return new Set(rows.map(r => r.id as string))
+    return new Set(rows.map((r) => r.id as string))
   } catch {
     // On error, assume none exist (will fail on insert if duplicate — that's fine)
     return new Set()
@@ -89,7 +89,7 @@ async function fetchExistingHids(hids: string[]): Promise<Set<string>> {
 function escapeForTql(s: string): string {
   return s
     .replace(/\\/g, '\\\\')
-    .replace(/"/g, "'")  // replace double quotes with single quotes per spec
+    .replace(/"/g, "'") // replace double quotes with single quotes per spec
     .replace(/\n/g, ' ')
     .replace(/\r/g, ' ')
     .trim()
@@ -121,7 +121,7 @@ async function promoteKnowledge() {
     process.exit(1)
   }
 
-  const files = fs.readdirSync(OUTPUT_DIR).filter(f => f.endsWith('.jsonl'))
+  const files = fs.readdirSync(OUTPUT_DIR).filter((f) => f.endsWith('.jsonl'))
   console.log(`Found ${files.length} JSONL files\n`)
 
   // Load all chunks first
@@ -130,7 +130,10 @@ async function promoteKnowledge() {
   for (const file of files) {
     const filepath = path.join(OUTPUT_DIR, file)
     const category = file.replace('.jsonl', '')
-    const lines = fs.readFileSync(filepath, 'utf-8').split('\n').filter(l => l.trim())
+    const lines = fs
+      .readFileSync(filepath, 'utf-8')
+      .split('\n')
+      .filter((l) => l.trim())
 
     for (const line of lines) {
       try {
@@ -160,7 +163,7 @@ async function promoteKnowledge() {
   }
 
   let totalInserted = 0
-  let totalSkipped = existingHids.size
+  const totalSkipped = existingHids.size
   let totalErrors = 0
 
   // Process in batches of BATCH_SIZE
@@ -188,11 +191,11 @@ async function promoteKnowledge() {
 
     // Small pause between batches to avoid overwhelming TypeDB
     if (i + BATCH_SIZE < toInsert.length) {
-      await new Promise(r => setTimeout(r, 100))
+      await new Promise((r) => setTimeout(r, 100))
     }
   }
 
-  console.log('\n' + '─'.repeat(60))
+  console.log(`\n${'─'.repeat(60)}`)
   console.log(`Total chunks found:  ${allChunks.length}`)
   console.log(`Skipped (existing):  ${totalSkipped}`)
   console.log(`Inserted:            ${totalInserted}`)
@@ -211,7 +214,7 @@ async function promoteKnowledge() {
   console.log('  recall("moving") → hypotheses matching "moving"')
 }
 
-promoteKnowledge().catch(e => {
+promoteKnowledge().catch((e) => {
   console.error('FATAL:', e)
   process.exit(1)
 })

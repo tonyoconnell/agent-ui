@@ -33,7 +33,7 @@ export const GET: APIRoute = async ({ url }) => {
       select $sid, $tid, $str, $r;
     `)
 
-    const highways: HighwayExport[] = results.map(r => ({
+    const highways: HighwayExport[] = results.map((r) => ({
       from: r.sid as string,
       to: r.tid as string,
       strength: r.str as number,

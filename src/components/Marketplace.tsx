@@ -5,7 +5,7 @@
  * Dark theme grid cards with price badges, provider reputation.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -65,11 +65,11 @@ export function Marketplace() {
         fetch('/api/revenue'),
       ])
       if (svcRes.ok) {
-        const svcData = await svcRes.json() as any
+        const svcData = (await svcRes.json()) as any
         if (svcData.services?.length) setServices(svcData.services)
       }
       if (revRes.ok) {
-        const revData = await revRes.json() as any
+        const revData = (await revRes.json()) as any
         if (revData.gdp !== undefined) setRevenue(revData)
       }
     } catch {
@@ -79,10 +79,12 @@ export function Marketplace() {
     }
   }, [filter])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   // Unique task types for filter
-  const taskTypes = [...new Set(services.map(s => s.task))]
+  const taskTypes = [...new Set(services.map((s) => s.task))]
 
   // Cheapest provider per task
   const cheapest = new Map<string, Service>()
@@ -104,7 +106,11 @@ export function Marketplace() {
         <StatCard label="GDP" value={`${revenue.gdp.toFixed(2)}`} unit="tokens" />
         <StatCard label="Transactions" value={`${revenue.total_transactions}`} />
         <StatCard label="Services" value={`${services.length}`} />
-        <StatCard label="Top Earner" value={revenue.top_earners[0]?.uid || '—'} sub={revenue.top_earners[0] ? `${revenue.top_earners[0].revenue.toFixed(2)} tokens` : ''} />
+        <StatCard
+          label="Top Earner"
+          value={revenue.top_earners[0]?.uid || '—'}
+          sub={revenue.top_earners[0] ? `${revenue.top_earners[0].revenue.toFixed(2)} tokens` : ''}
+        />
       </div>
 
       {/* Filter */}
@@ -112,17 +118,21 @@ export function Marketplace() {
         <button
           onClick={() => setFilter('')}
           className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-            filter === '' ? 'bg-indigo-600 text-white' : 'bg-[#161622] text-slate-400 hover:text-white border border-[#252538]'
+            filter === ''
+              ? 'bg-indigo-600 text-white'
+              : 'bg-[#161622] text-slate-400 hover:text-white border border-[#252538]'
           }`}
         >
           All
         </button>
-        {taskTypes.map(t => (
+        {taskTypes.map((t) => (
           <button
             key={t}
             onClick={() => setFilter(t)}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              filter === t ? 'bg-indigo-600 text-white' : 'bg-[#161622] text-slate-400 hover:text-white border border-[#252538]'
+              filter === t
+                ? 'bg-indigo-600 text-white'
+                : 'bg-[#161622] text-slate-400 hover:text-white border border-[#252538]'
             }`}
           >
             {t}
@@ -136,8 +146,8 @@ export function Marketplace() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {services
-            .filter(s => !filter || s.task === filter)
-            .map(service => (
+            .filter((s) => !filter || s.task === filter)
+            .map((service) => (
               <ServiceCard
                 key={`${service.provider}:${service.task}`}
                 service={service}

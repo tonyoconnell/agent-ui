@@ -6,14 +6,13 @@
  * Shows world state changes in real-time
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { useChat } from '@ai-sdk/react'
 import { useStore } from '@nanostores/react'
-import { Send, Mic, Square, Sparkles } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Mic, Send, Sparkles, Square } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSkin } from '@/contexts/SkinContext'
-import { messages$, addMessage, isStreaming$, setStreaming } from '@/stores/chat-store'
 import type { World } from '@/engine'
+import { cn } from '@/lib/utils'
+import { addMessage, isStreaming$, messages$, setStreaming } from '@/stores/chat-store'
 
 // World command types
 type WorldCommand =
@@ -86,14 +85,14 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
   const [input, setInput] = useState('')
   const [listening, setListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | null>(null)
+  const recognitionRef = useRef<any>(null)
   const localMessages = useStore(messages$)
   const isStreaming = useStore(isStreaming$)
 
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [localMessages])
+  }, [])
 
   // Voice input setup
   useEffect(() => {
@@ -103,7 +102,7 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
       recognition.interimResults = false
       recognition.onresult = (e: any) => {
         const text = e.results[0][0].transcript
-        setInput((prev) => prev + ' ' + text)
+        setInput((prev) => `${prev} ${text}`)
         setListening(false)
       }
       recognition.onend = () => setListening(false)
@@ -121,67 +120,71 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
   }
 
   // Execute command on world
-  const executeCommand = useCallback(async (command: WorldCommand): Promise<string> => {
-    switch (command.type) {
-      case 'spawn': {
-        world.add(command.id)
-          .on('signal', () => ({}))
-          .on('default', () => ({}))
-        return `${skin.icons.actor} Spawned ${command.kind}: ${command.id}`
-      }
+  const executeCommand = useCallback(
+    async (command: WorldCommand): Promise<string> => {
+      switch (command.type) {
+        case 'spawn': {
+          world
+            .add(command.id)
+            .on('signal', () => ({}))
+            .on('default', () => ({}))
+          return `${skin.icons.actor} Spawned ${command.kind}: ${command.id}`
+        }
 
-      case 'connect': {
-        world.signal({ receiver: `${command.from}:connect`, data: { target: command.to } })
-        world.mark(`${command.from}→${command.to}`)
-        onWorldUpdate()
-        return `${skin.icons.flow} Connected: ${command.from} → ${command.to}`
-      }
+        case 'connect': {
+          world.signal({ receiver: `${command.from}:connect`, data: { target: command.to } })
+          world.mark(`${command.from}→${command.to}`)
+          onWorldUpdate()
+          return `${skin.icons.flow} Connected: ${command.from} → ${command.to}`
+        }
 
-      case 'send': {
-        world.signal({ receiver: `${command.to}:signal`, data: { ping: true } })
-        onWorldUpdate()
-        return `${skin.icons.entry} Signal sent to ${command.to}`
-      }
+        case 'send': {
+          world.signal({ receiver: `${command.to}:signal`, data: { ping: true } })
+          onWorldUpdate()
+          return `${skin.icons.entry} Signal sent to ${command.to}`
+        }
 
-      case 'strengthen': {
-        world.mark(`${command.from}:task → ${command.to}:task`, 10)
-        onWorldUpdate()
-        return `${skin.icons.open} Strengthened: ${command.from} → ${command.to}`
-      }
+        case 'strengthen': {
+          world.mark(`${command.from}:task → ${command.to}:task`, 10)
+          onWorldUpdate()
+          return `${skin.icons.open} Strengthened: ${command.from} → ${command.to}`
+        }
 
-      case 'query': {
-        if (command.query === 'agents') {
-          return `${skin.icons.group} ${t('actor')}s:\n${agents
-            .map((a) => `  ${skin.icons.actor} ${a.name} (${a.id})`)
+        case 'query': {
+          if (command.query === 'agents') {
+            return `${skin.icons.group} ${t('actor')}s:\n${agents
+              .map((a) => `  ${skin.icons.actor} ${a.name} (${a.id})`)
+              .join('\n')}`
+          }
+          const flows = world.highways(10)
+          return `${skin.icons.open} Top ${t('flow')}s:\n${flows
+            .map((f) => `  ${f.path}: ${f.strength.toFixed(0)}`)
             .join('\n')}`
         }
-        const flows = world.highways(10)
-        return `${skin.icons.open} Top ${t('flow')}s:\n${flows
-          .map((f) => `  ${f.path}: ${f.strength.toFixed(0)}`)
-          .join('\n')}`
-      }
 
-      case 'decay': {
-        world.fade(command.rate || 0.2)
-        onWorldUpdate()
-        return `Decay applied (${((command.rate || 0.2) * 100).toFixed(0)}%). Trails fading...`
-      }
+        case 'decay': {
+          world.fade(command.rate || 0.2)
+          onWorldUpdate()
+          return `Decay applied (${((command.rate || 0.2) * 100).toFixed(0)}%). Trails fading...`
+        }
 
-      case 'inject': {
-        agents.forEach((a) =>
-          world.signal({
-            receiver: `${a.id}:${Object.keys(a.actions)[0] || 'signal'}`,
-            data: { burst: true },
-          })
-        )
-        onWorldUpdate()
-        return `${skin.icons.entry} Burst! Signals sent to all ${agents.length} ${t('actor')}s`
-      }
+        case 'inject': {
+          agents.forEach((a) =>
+            world.signal({
+              receiver: `${a.id}:${Object.keys(a.actions)[0] || 'signal'}`,
+              data: { burst: true },
+            }),
+          )
+          onWorldUpdate()
+          return `${skin.icons.entry} Burst! Signals sent to all ${agents.length} ${t('actor')}s`
+        }
 
-      default:
-        return 'Unknown command'
-    }
-  }, [world, agents, skin, t, onWorldUpdate])
+        default:
+          return 'Unknown command'
+      }
+    },
+    [world, agents, skin, t, onWorldUpdate],
+  )
 
   // Handle send
   const handleSend = useCallback(async () => {
@@ -219,15 +222,9 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
   }
 
   return (
-    <div
-      className="flex flex-col h-full"
-      style={{ backgroundColor: skin.colors.background }}
-    >
+    <div className="flex flex-col h-full" style={{ backgroundColor: skin.colors.background }}>
       {/* Header */}
-      <div
-        className="px-4 py-3 border-b flex items-center gap-2"
-        style={{ borderColor: skin.colors.muted + '30' }}
-      >
+      <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: `${skin.colors.muted}30` }}>
         <Sparkles className="w-5 h-5" style={{ color: skin.colors.primary }} />
         <span className="font-medium text-white">World Chat</span>
         <span className="text-xs ml-auto" style={{ color: skin.colors.muted }}>
@@ -241,28 +238,17 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
           <div className="text-center py-8" style={{ color: skin.colors.muted }}>
             <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">Speak or type to command the world</p>
-            <p className="text-xs mt-2 opacity-60">
-              "Create a scout" · "Connect scout to analyst" · "Show highways"
-            </p>
+            <p className="text-xs mt-2 opacity-60">"Create a scout" · "Connect scout to analyst" · "Show highways"</p>
           </div>
         )}
 
         {localMessages.map((msg) => (
           <div
             key={msg.id}
-            className={cn(
-              'rounded-lg px-3 py-2 max-w-[85%]',
-              msg.role === 'user' ? 'ml-auto' : 'mr-auto'
-            )}
+            className={cn('rounded-lg px-3 py-2 max-w-[85%]', msg.role === 'user' ? 'ml-auto' : 'mr-auto')}
             style={{
-              backgroundColor:
-                msg.role === 'user'
-                  ? skin.colors.primary + '20'
-                  : skin.colors.surface,
-              borderColor:
-                msg.role === 'user'
-                  ? skin.colors.primary + '40'
-                  : skin.colors.muted + '30',
+              backgroundColor: msg.role === 'user' ? `${skin.colors.primary}20` : skin.colors.surface,
+              borderColor: msg.role === 'user' ? `${skin.colors.primary}40` : `${skin.colors.muted}30`,
               borderWidth: 1,
             }}
           >
@@ -271,7 +257,7 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
               <div
                 className="mt-2 text-xs px-2 py-1 rounded inline-block"
                 style={{
-                  backgroundColor: skin.colors.success + '20',
+                  backgroundColor: `${skin.colors.success}20`,
                   color: skin.colors.success,
                 }}
               >
@@ -284,19 +270,13 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
       </div>
 
       {/* Input */}
-      <div
-        className="p-3 border-t"
-        style={{ borderColor: skin.colors.muted + '30' }}
-      >
+      <div className="p-3 border-t" style={{ borderColor: `${skin.colors.muted}30` }}>
         <div className="flex gap-2">
           {/* Voice button */}
           <button
             type="button"
             onClick={toggleVoice}
-            className={cn(
-              'px-3 py-2 rounded-lg transition-all',
-              listening && 'animate-pulse'
-            )}
+            className={cn('px-3 py-2 rounded-lg transition-all', listening && 'animate-pulse')}
             style={{
               backgroundColor: listening ? '#ef4444' : skin.colors.surface,
               color: listening ? 'white' : skin.colors.muted,
@@ -316,7 +296,7 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
             className="flex-1 px-3 py-2 rounded-lg text-sm text-white placeholder:text-slate-500 outline-none"
             style={{
               backgroundColor: skin.colors.surface,
-              borderColor: skin.colors.muted + '30',
+              borderColor: `${skin.colors.muted}30`,
               borderWidth: 1,
             }}
           />

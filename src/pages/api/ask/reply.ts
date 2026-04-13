@@ -15,7 +15,7 @@ import type { APIRoute } from 'astro'
 import { resolveAsk } from '@/engine/durable-ask'
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const body = await request.json() as { id?: string; result?: unknown }
+  const body = (await request.json()) as { id?: string; result?: unknown }
   if (!body?.id) return new Response(JSON.stringify({ ok: false, error: 'missing id' }), { status: 400 })
 
   const env = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env

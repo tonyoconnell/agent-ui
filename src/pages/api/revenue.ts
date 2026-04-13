@@ -46,13 +46,16 @@ export const GET: APIRoute = async () => {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 20)
 
-  return new Response(JSON.stringify({
-    gdp,
-    total_revenue: gdp,
-    total_transactions: signals.length,
-    top_earners: topEarners,
-    edges: edges.length,
-  }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+  return new Response(
+    JSON.stringify({
+      gdp,
+      total_revenue: gdp,
+      total_transactions: signals.length,
+      top_earners: topEarners,
+      edges: edges.length,
+    }),
+    {
+      headers: { 'Content-Type': 'application/json' },
+    },
+  )
 }

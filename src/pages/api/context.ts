@@ -9,14 +9,7 @@
  */
 
 import type { APIRoute } from 'astro'
-import {
-  loadContext,
-  contextForSkill,
-  readDoc,
-  docIndex,
-  ingestDocs,
-  CANONICAL,
-} from '@/engine/context'
+import { CANONICAL, contextForSkill, docIndex, ingestDocs, loadContext, readDoc } from '@/engine/context'
 
 export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url)
@@ -48,7 +41,7 @@ export const GET: APIRoute = async ({ request }) => {
 
   // Merged docs
   if (docs) {
-    const keys = docs.split(',').map(d => d.trim())
+    const keys = docs.split(',').map((d) => d.trim())
     const context = loadContext(keys)
     return new Response(JSON.stringify({ docs: keys, context }), {
       headers: { 'Content-Type': 'application/json' },
@@ -57,12 +50,15 @@ export const GET: APIRoute = async ({ request }) => {
 
   // Default: index
   const index = docIndex()
-  return new Response(JSON.stringify({
-    canonical: CANONICAL,
-    docs: index,
-  }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+  return new Response(
+    JSON.stringify({
+      canonical: CANONICAL,
+      docs: index,
+    }),
+    {
+      headers: { 'Content-Type': 'application/json' },
+    },
+  )
 }
 
 export const POST: APIRoute = async ({ request }) => {

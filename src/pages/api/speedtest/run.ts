@@ -12,8 +12,8 @@
  */
 
 import type { APIRoute } from 'astro'
-import { benchmark, percentiles, type BenchmarkResult, type SpeedtestResult } from '@/lib/speedtest'
 import { createWorld } from '@/engine'
+import { type BenchmarkResult, benchmark, type SpeedtestResult } from '@/lib/speedtest'
 
 export const GET: APIRoute = async ({ url }) => {
   const results: Record<string, BenchmarkResult> = {}
@@ -31,7 +31,7 @@ export const GET: APIRoute = async ({ url }) => {
         net.add('bob')
         net.signal({ receiver: 'bob', data: { test: 1 } }, 'alice')
       },
-      1000
+      1000,
     )
 
     // ────────────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ export const GET: APIRoute = async ({ url }) => {
       () => {
         net.mark('unit-0→unit-1', 1)
       },
-      1000
+      1000,
     )
 
     // ────────────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ export const GET: APIRoute = async ({ url }) => {
       () => {
         net.warn('unit-0→unit-1', 0.5)
       },
-      1000
+      1000,
     )
 
     // ────────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ export const GET: APIRoute = async ({ url }) => {
       () => {
         net.fade(0.05)
       },
-      50
+      50,
     )
 
     // ────────────────────────────────────────────────────────────────────
@@ -95,7 +95,7 @@ export const GET: APIRoute = async ({ url }) => {
       async () => {
         await net2.ask({ receiver: 'alice:ping', data: {} }, 'entry', 100)
       },
-      100
+      100,
     )
 
     // ────────────────────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ export const GET: APIRoute = async ({ url }) => {
       async () => {
         await net3.ask({ receiver: 'chain-0:task', data: { depth: 0 } }, 'entry', 500)
       },
-      20
+      20,
     )
 
     // ────────────────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ export const GET: APIRoute = async ({ url }) => {
           net4.drain()
         }
       },
-      100
+      100,
     )
 
     // ────────────────────────────────────────────────────────────────────
@@ -155,7 +155,7 @@ export const GET: APIRoute = async ({ url }) => {
       () => {
         net.highways(50)
       },
-      50
+      50,
     )
 
     // ────────────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ export const GET: APIRoute = async ({ url }) => {
       () => {
         net.select('task', 0.5)
       },
-      100
+      100,
     )
 
     // ────────────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ export const GET: APIRoute = async ({ url }) => {
       () => {
         net.follow('task')
       },
-      100
+      100,
     )
 
     const speedtest: SpeedtestResult = {
@@ -193,12 +193,9 @@ export const GET: APIRoute = async ({ url }) => {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: String(error), timestamp: new Date().toISOString() }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
+    return new Response(JSON.stringify({ error: String(error), timestamp: new Date().toISOString() }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }

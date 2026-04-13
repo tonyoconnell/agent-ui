@@ -16,11 +16,7 @@ export interface SignalResponse {
 /**
  * Send a signal via POST /api/signal
  */
-async function sendSignal(
-  receiver: string,
-  data: unknown,
-  sender = 'ui:world'
-): Promise<SignalResponse> {
+async function sendSignal(receiver: string, data: unknown, sender = 'ui:world'): Promise<SignalResponse> {
   try {
     const res = await fetch('/api/signal', {
       method: 'POST',

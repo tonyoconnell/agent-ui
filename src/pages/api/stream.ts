@@ -60,8 +60,8 @@ export const GET: APIRoute = async () => {
           type R = Record<string, unknown>
 
           const highways = (edges as R[])
-            .filter(e => (e.s as number) >= 30)
-            .map(e => ({
+            .filter((e) => (e.s as number) >= 30)
+            .map((e) => ({
               from: e.fid as string,
               to: e.tid as string,
               strength: e.s as number,
@@ -76,7 +76,7 @@ export const GET: APIRoute = async () => {
             edges: (edges as R[]).length,
             skills: (skills as R[]).length,
             revenue: (edges as R[]).reduce((sum, e) => sum + ((e.rev as number) || 0), 0),
-            proven: (units as R[]).filter(u => u.st === 'proven').length,
+            proven: (units as R[]).filter((u) => u.st === 'proven').length,
           }
 
           send('state', { highways, stats, units, ts: Date.now() })
@@ -93,11 +93,18 @@ export const GET: APIRoute = async () => {
       interval = setInterval(tick, 2000)
 
       // Clean up after 5 minutes
-      timeout = setTimeout(() => {
-        send('close', { reason: 'timeout', ts: Date.now() })
-        cleanup()
-        try { controller.close() } catch { /* already closed */ }
-      }, 5 * 60 * 1000)
+      timeout = setTimeout(
+        () => {
+          send('close', { reason: 'timeout', ts: Date.now() })
+          cleanup()
+          try {
+            controller.close()
+          } catch {
+            /* already closed */
+          }
+        },
+        5 * 60 * 1000,
+      )
     },
     cancel() {
       // Browser closed connection

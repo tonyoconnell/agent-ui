@@ -12,9 +12,9 @@
  */
 
 import type { APIRoute } from 'astro'
-import { write } from '@/lib/typedb'
-import { generateApiKey, hashKey } from '@/lib/api-key'
 import { validateApiKey } from '@/lib/api-auth'
+import { generateApiKey, hashKey } from '@/lib/api-key'
+import { write } from '@/lib/typedb'
 
 export const prerender = false
 
@@ -22,10 +22,10 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const auth = await validateApiKey(request)
     if (!auth.isValid) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized. Provide Authorization: Bearer <api_key>' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'Unauthorized. Provide Authorization: Bearer <api_key>' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     const body = await request.json().catch(() => ({}))
@@ -65,14 +65,14 @@ export const POST: APIRoute = async ({ request }) => {
         permissions,
         note: 'Save your API key — it cannot be retrieved again.',
       }),
-      { status: 201, headers: { 'Content-Type': 'application/json' } }
+      { status: 201, headers: { 'Content-Type': 'application/json' } },
     )
   } catch (error: any) {
     console.error('[API Key Generation]', error)
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }
 
@@ -80,20 +80,20 @@ export const DELETE: APIRoute = async ({ request }) => {
   try {
     const auth = await validateApiKey(request)
     if (!auth.isValid) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     const body = await request.json()
     const { keyId } = body as { keyId?: string }
 
     if (!keyId) {
-      return new Response(
-        JSON.stringify({ error: 'keyId is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'keyId is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     // Revoke — only if the key belongs to this user
@@ -105,16 +105,15 @@ export const DELETE: APIRoute = async ({ request }) => {
       insert $k has key-status "revoked";
     `)
 
-    return new Response(
-      JSON.stringify({ keyId, status: 'revoked' }),
-      { headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ keyId, status: 'revoked' }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (error: any) {
     console.error('[API Key Revocation]', error)
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }
 

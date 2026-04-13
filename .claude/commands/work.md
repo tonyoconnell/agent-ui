@@ -14,6 +14,8 @@ npm run verify     # biome check . && tsc --noEmit && vitest run
 
 Record the result: which tests passed, any known failures. This baseline is the reference for W4 verification later.
 
+**Rubric context:** Read `docs/rubrics.md` — you will score your work against fit/form/truth/taste before marking done.
+
 ## The Loop
 
 Run this loop until the user stops you or all tasks are done:

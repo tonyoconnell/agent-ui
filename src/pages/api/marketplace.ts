@@ -27,14 +27,17 @@ export const GET: APIRoute = async ({ url }) => {
   const rows = await readParsed(tql).catch(() => [])
 
   // Aggregate: group by provider+task, find best price, total revenue
-  const services = new Map<string, {
-    provider: string
-    task: string
-    price: number
-    strength: number
-    revenue: number
-    calls: number
-  }>()
+  const services = new Map<
+    string,
+    {
+      provider: string
+      task: string
+      price: number
+      strength: number
+      revenue: number
+      calls: number
+    }
+  >()
 
   for (const row of rows) {
     const key = `${row.to_id}:${row.task}`

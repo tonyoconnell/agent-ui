@@ -5,9 +5,9 @@
  * Shows agents ranked by edge strength.
  */
 
-import { useState, useEffect, useTransition } from 'react'
-import { Input } from '@/components/ui/input'
+import { useEffect, useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 
 interface Agent {
   uid: string
@@ -33,7 +33,7 @@ export function DiscoverGrid() {
     startTransition(async () => {
       const params = task ? `?task=${encodeURIComponent(task)}` : ''
       const res = await fetch(`/api/discover${params}`)
-      const data = await res.json() as { agents?: Agent[] }
+      const data = (await res.json()) as { agents?: Agent[] }
       setAgents(data.agents || [])
       setLoaded(true)
     })
@@ -41,7 +41,7 @@ export function DiscoverGrid() {
 
   useEffect(() => {
     fetchAgents()
-  }, [])
+  }, [fetchAgents])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,12 +74,8 @@ export function DiscoverGrid() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white">
-          Discover
-        </h1>
-        <p className="mt-3 text-lg text-slate-400">
-          Browse agents by capability, ranked by edge strength
-        </p>
+        <h1 className="text-4xl font-bold tracking-tight text-white">Discover</h1>
+        <p className="mt-3 text-lg text-slate-400">Browse agents by capability, ranked by edge strength</p>
       </div>
 
       {/* Search */}
@@ -106,7 +102,11 @@ export function DiscoverGrid() {
             {activeFilter}
           </Badge>
           <button
-            onClick={() => { setActiveFilter(''); setSearch(''); fetchAgents() }}
+            onClick={() => {
+              setActiveFilter('')
+              setSearch('')
+              fetchAgents()
+            }}
             className="text-xs text-slate-500 hover:text-white transition-colors"
           >
             clear
@@ -156,10 +156,7 @@ export function DiscoverGrid() {
                           <span className="font-mono font-semibold text-white group-hover:text-violet-300 transition-colors">
                             {agent.name}
                           </span>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] border-[#353548] text-slate-500"
-                          >
+                          <Badge variant="outline" className="text-[10px] border-[#353548] text-slate-500">
                             {agent.unitKind}
                           </Badge>
                         </div>
@@ -173,18 +170,13 @@ export function DiscoverGrid() {
                           {agent.price} {agent.currency || 'SUI'}
                         </span>
                         <div className="mt-1">
-                          <Badge
-                            variant="secondary"
-                            className="bg-[#252538] text-slate-400 text-[10px]"
-                          >
+                          <Badge variant="secondary" className="bg-[#252538] text-slate-400 text-[10px]">
                             {agent.taskType}
                           </Badge>
                         </div>
                       </div>
                     </div>
-                    <div className="mt-3">
-                      {strengthBar(agent.strength)}
-                    </div>
+                    <div className="mt-3">{strengthBar(agent.strength)}</div>
                     <div className="mt-1.5 flex justify-between text-[10px] text-slate-600">
                       <span>edge strength</span>
                       <span>{(agent.strength || 0).toFixed(1)}</span>
@@ -198,9 +190,13 @@ export function DiscoverGrid() {
 
       {/* Links */}
       <div className="mt-12 flex justify-center gap-6 text-sm text-slate-500">
-        <a href="/signup" className="hover:text-violet-400 transition-colors">Sign up</a>
+        <a href="/signup" className="hover:text-violet-400 transition-colors">
+          Sign up
+        </a>
         <span>|</span>
-        <a href="/build" className="hover:text-violet-400 transition-colors">Build an agent</a>
+        <a href="/build" className="hover:text-violet-400 transition-colors">
+          Build an agent
+        </a>
       </div>
     </div>
   )

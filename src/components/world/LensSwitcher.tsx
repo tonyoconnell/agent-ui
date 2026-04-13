@@ -11,40 +11,40 @@
  * CSS transforms + D3 transitions only.
  */
 
-import { useEffect, useState } from "react"
-import { cn } from "@/lib/utils"
-import { useSkin } from "@/contexts/SkinContext"
+import { useEffect, useState } from 'react'
+import { useSkin } from '@/contexts/SkinContext'
+import { cn } from '@/lib/utils'
 
 interface LensSwitcherProps {
   className?: string
   onLensChange?: (lens: string) => void
 }
 
-type Lens = "org" | "colony" | "skills" | "money"
+type Lens = 'org' | 'colony' | 'skills' | 'money'
 
 const lensLabels: Record<Lens, string> = {
-  org: "Organization",
-  colony: "Colony",
-  skills: "Skills",
-  money: "Money",
+  org: 'Organization',
+  colony: 'Colony',
+  skills: 'Skills',
+  money: 'Money',
 }
 
 const lensIcons: Record<Lens, string> = {
-  org: "🏢",
-  colony: "🐜",
-  skills: "🎯",
-  money: "💰",
+  org: '🏢',
+  colony: '🐜',
+  skills: '🎯',
+  money: '💰',
 }
 
 export function LensSwitcher({ className, onLensChange }: LensSwitcherProps) {
   const { skin } = useSkin()
-  const [currentLens, setCurrentLens] = useState<Lens>("colony")
+  const [currentLens, setCurrentLens] = useState<Lens>('colony')
 
   // Read lens from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const lens = (params.get("lens") as Lens) || "colony"
-    if (["org", "colony", "skills", "money"].includes(lens)) {
+    const lens = (params.get('lens') as Lens) || 'colony'
+    if (['org', 'colony', 'skills', 'money'].includes(lens)) {
       setCurrentLens(lens)
     }
   }, [])
@@ -55,25 +55,23 @@ export function LensSwitcher({ className, onLensChange }: LensSwitcherProps) {
 
     // Update URL
     const params = new URLSearchParams(window.location.search)
-    params.set("lens", lens)
-    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
+    params.set('lens', lens)
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
   }
 
   return (
-    <div className={cn("flex gap-2 p-2 bg-black/30 rounded-xl", className)}>
-      {(["org", "colony", "skills", "money"] as Lens[]).map((lens) => (
+    <div className={cn('flex gap-2 p-2 bg-black/30 rounded-xl', className)}>
+      {(['org', 'colony', 'skills', 'money'] as Lens[]).map((lens) => (
         <button
           key={lens}
           onClick={() => handleLensClick(lens)}
           className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-            currentLens === lens
-              ? "text-white shadow-lg"
-              : "text-slate-400 hover:text-white hover:bg-white/5"
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+            currentLens === lens ? 'text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5',
           )}
           style={{
-            backgroundColor: currentLens === lens ? skin.colors.primary + "30" : undefined,
-            borderColor: currentLens === lens ? skin.colors.primary : "transparent",
+            backgroundColor: currentLens === lens ? `${skin.colors.primary}30` : undefined,
+            borderColor: currentLens === lens ? skin.colors.primary : 'transparent',
             borderWidth: 1,
             boxShadow: currentLens === lens ? `0 0 20px ${skin.colors.primary}30` : undefined,
           }}

@@ -13,36 +13,35 @@
  * The metaphor IS the understanding.
  */
 
-import { useMemo, useState } from "react"
 import {
-  ReactFlow,
   Background,
-  Controls,
-  MiniMap,
-  Handle,
-  Position,
-  getBezierPath,
   BaseEdge,
+  Controls,
   EdgeLabelRenderer,
-  useNodesState,
-  useEdgesState,
-  type Node,
-  type Edge as FlowEdge,
   type EdgeProps,
+  getBezierPath,
+  Handle,
+  MiniMap,
+  type Node,
   type NodeProps,
-} from "@xyflow/react"
-import "@xyflow/react/dist/style.css"
-import type { Edge } from "@/engine"
-import type { World } from "@/engine"
-import { cn } from "@/lib/utils"
-import { useSkin } from "@/contexts/SkinContext"
+  Position,
+  ReactFlow,
+  useEdgesState,
+  useNodesState,
+  type Edge as XYEdge,
+} from '@xyflow/react'
+import { useMemo, useState } from 'react'
+import '@xyflow/react/dist/style.css'
+import { useSkin } from '@/contexts/SkinContext'
+import type { Edge, World } from '@/engine'
+import { cn } from '@/lib/utils'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const splitPath = (p: string): [string, string] | null => {
-  const parts = p.includes(" → ") ? p.split(" → ") : p.split("→")
+  const parts = p.includes(' → ') ? p.split(' → ') : p.split('→')
   return parts[0] && parts[1] ? [parts[0], parts[1]] : null
 }
 
@@ -98,12 +97,16 @@ function FlowEdge(props: EdgeProps) {
   const edgeData = data as FlowEdgeData | undefined
   const strength = edgeData?.strength || 0
   const isOpen = edgeData?.isOpen || false
-  const fromTask = edgeData?.fromTask || ""
-  const toTask = edgeData?.toTask || ""
+  const fromTask = edgeData?.fromTask || ''
+  const toTask = edgeData?.toTask || ''
 
   const [path, labelX, labelY] = getBezierPath({
-    sourceX, sourceY, sourcePosition,
-    targetX, targetY, targetPosition,
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
     curvature: 0.25,
   })
 
@@ -113,8 +116,8 @@ function FlowEdge(props: EdgeProps) {
 
   // Particle animation varies by metaphor
   const particleCount = isOpen ? 3 : 0
-  const particleDuration = skin.id === "brain" ? "0.8s" : skin.id === "signal" ? "1.2s" : "2s"
-  const particleSize = skin.id === "water" ? 4 : skin.id === "brain" ? 2 : 3
+  const particleDuration = skin.id === 'brain' ? '0.8s' : skin.id === 'signal' ? '1.2s' : '2s'
+  const particleSize = skin.id === 'water' ? 4 : skin.id === 'brain' ? 2 : 3
 
   return (
     <g className="react-flow__edge-path">
@@ -125,7 +128,7 @@ function FlowEdge(props: EdgeProps) {
         stroke={color}
         strokeWidth={strokeWidth + 14}
         strokeOpacity={glowOpacity}
-        className={isOpen ? "animate-pulse" : ""}
+        className={isOpen ? 'animate-pulse' : ''}
       />
 
       {/* Main flow */}
@@ -135,7 +138,7 @@ function FlowEdge(props: EdgeProps) {
         style={{
           stroke: color,
           strokeWidth,
-          strokeLinecap: "round",
+          strokeLinecap: 'round',
           filter: isOpen ? `drop-shadow(0 0 8px ${color})` : undefined,
         }}
       />
@@ -144,18 +147,8 @@ function FlowEdge(props: EdgeProps) {
       {particleCount > 0 && (
         <g className="flow-particles">
           {Array.from({ length: particleCount }).map((_, i) => (
-            <circle
-              key={i}
-              r={particleSize - i * 0.5}
-              fill={skin.colors.success}
-              opacity={1 - i * 0.25}
-            >
-              <animateMotion
-                dur={particleDuration}
-                repeatCount="indefinite"
-                path={path}
-                begin={`${i * 0.3}s`}
-              />
+            <circle key={i} r={particleSize - i * 0.5} fill={skin.colors.success} opacity={1 - i * 0.25}>
+              <animateMotion dur={particleDuration} repeatCount="indefinite" path={path} begin={`${i * 0.3}s`} />
             </circle>
           ))}
         </g>
@@ -165,26 +158,28 @@ function FlowEdge(props: EdgeProps) {
       <EdgeLabelRenderer>
         <div
           className={cn(
-            "absolute pointer-events-none px-2 py-1 rounded-lg text-[10px] font-mono",
-            "transform -translate-x-1/2 -translate-y-1/2 transition-all border",
-            selected && "ring-2"
+            'absolute pointer-events-none px-2 py-1 rounded-lg text-[10px] font-mono',
+            'transform -translate-x-1/2 -translate-y-1/2 transition-all border',
+            selected && 'ring-2',
           )}
           style={{
             left: labelX,
             top: labelY,
-            backgroundColor: isOpen ? skin.colors.success + "25" : skin.colors.surface,
-            borderColor: isOpen ? skin.colors.success + "50" : skin.colors.muted + "30",
+            backgroundColor: isOpen ? `${skin.colors.success}25` : skin.colors.surface,
+            borderColor: isOpen ? `${skin.colors.success}50` : `${skin.colors.muted}30`,
             color: isOpen ? skin.colors.success : skin.colors.muted,
             boxShadow: isOpen ? `0 0 15px ${skin.colors.success}30` : undefined,
           }}
         >
           <span style={{ color: skin.colors.muted }}>{fromTask}</span>
-          <span className="mx-1" style={{ color: skin.colors.muted + "80" }}>→</span>
+          <span className="mx-1" style={{ color: `${skin.colors.muted}80` }}>
+            →
+          </span>
           <span style={{ color: isOpen ? skin.colors.success : skin.colors.secondary }}>{toTask}</span>
           <span
             className="ml-2 px-1.5 py-0.5 rounded text-[9px]"
             style={{
-              backgroundColor: isOpen ? skin.colors.success + "30" : skin.colors.muted + "20",
+              backgroundColor: isOpen ? `${skin.colors.success}30` : `${skin.colors.muted}20`,
               color: isOpen ? skin.colors.success : skin.colors.muted,
             }}
           >
@@ -210,17 +205,10 @@ function ActorNode({ data, selected }: NodeProps) {
   return (
     <div
       onClick={() => setExpanded(!expanded)}
-      className={cn(
-        "rounded-xl border transition-all duration-300 cursor-pointer select-none",
-        "w-[190px]"
-      )}
+      className={cn('rounded-xl border transition-all duration-300 cursor-pointer select-none', 'w-[190px]')}
       style={{
         background: `linear-gradient(to bottom, ${skin.colors.surface}, ${skin.colors.background})`,
-        borderColor: selected
-          ? skin.colors.primary
-          : isOpen
-          ? skin.colors.success + "60"
-          : skin.colors.muted + "40",
+        borderColor: selected ? skin.colors.primary : isOpen ? `${skin.colors.success}60` : `${skin.colors.muted}40`,
         boxShadow: isOpen ? `0 0 25px ${skin.colors.success}30` : undefined,
       }}
     >
@@ -249,10 +237,7 @@ function ActorNode({ data, selected }: NodeProps) {
       />
 
       {/* Header */}
-      <div
-        className="px-3 py-2.5 border-b"
-        style={{ borderColor: skin.colors.muted + "30" }}
-      >
+      <div className="px-3 py-2.5 border-b" style={{ borderColor: `${skin.colors.muted}30` }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {/* Metaphor icon */}
@@ -278,7 +263,7 @@ function ActorNode({ data, selected }: NodeProps) {
             <span
               className="text-[10px] font-mono px-1.5 py-0.5 rounded"
               style={{
-                backgroundColor: isOpen ? skin.colors.success + "20" : skin.colors.muted + "20",
+                backgroundColor: isOpen ? `${skin.colors.success}20` : `${skin.colors.muted}20`,
                 color: isOpen ? skin.colors.success : skin.colors.muted,
               }}
             >
@@ -289,17 +274,14 @@ function ActorNode({ data, selected }: NodeProps) {
       </div>
 
       {/* Actions */}
-      <div
-        className="px-3 py-2 border-b"
-        style={{ borderColor: skin.colors.muted + "20" }}
-      >
+      <div className="px-3 py-2 border-b" style={{ borderColor: `${skin.colors.muted}20` }}>
         <div className="flex flex-wrap gap-1">
           {d.actions.map(({ name }) => (
             <span
               key={name}
               className="text-[9px] px-1.5 py-0.5 rounded font-mono"
               style={{
-                backgroundColor: isOpen ? skin.colors.primary + "20" : skin.colors.muted + "15",
+                backgroundColor: isOpen ? `${skin.colors.primary}20` : `${skin.colors.muted}15`,
                 color: isOpen ? skin.colors.primary : skin.colors.muted,
               }}
             >
@@ -312,10 +294,12 @@ function ActorNode({ data, selected }: NodeProps) {
       {/* Traffic bars with metaphor labels */}
       <div className="px-3 py-2 space-y-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[8px] w-6" style={{ color: skin.colors.muted }}>IN</span>
+          <span className="text-[8px] w-6" style={{ color: skin.colors.muted }}>
+            IN
+          </span>
           <div
             className="flex-1 h-1.5 rounded-full overflow-hidden"
-            style={{ backgroundColor: skin.colors.muted + "20" }}
+            style={{ backgroundColor: `${skin.colors.muted}20` }}
           >
             <div
               className="h-full rounded-full transition-all"
@@ -333,10 +317,12 @@ function ActorNode({ data, selected }: NodeProps) {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[8px] w-6" style={{ color: skin.colors.muted }}>OUT</span>
+          <span className="text-[8px] w-6" style={{ color: skin.colors.muted }}>
+            OUT
+          </span>
           <div
             className="flex-1 h-1.5 rounded-full overflow-hidden"
-            style={{ backgroundColor: skin.colors.muted + "20" }}
+            style={{ backgroundColor: `${skin.colors.muted}20` }}
           >
             <div
               className="h-full rounded-full transition-all"
@@ -384,7 +370,7 @@ function EntryNode({ data }: NodeProps) {
       className="rounded-xl border px-4 py-3 select-none"
       style={{
         background: `linear-gradient(135deg, ${skin.colors.success}20, ${skin.colors.success}08)`,
-        borderColor: skin.colors.success + "40",
+        borderColor: `${skin.colors.success}40`,
         boxShadow: `0 0 20px ${skin.colors.success}15`,
       }}
     >
@@ -403,19 +389,16 @@ function EntryNode({ data }: NodeProps) {
       <div className="flex items-center gap-3">
         <div
           className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-          style={{ backgroundColor: skin.colors.success + "25" }}
+          style={{ backgroundColor: `${skin.colors.success}25` }}
         >
           {skin.icons.entry}
         </div>
         <div>
-          <div
-            className="font-semibold text-sm uppercase tracking-wide"
-            style={{ color: skin.colors.success }}
-          >
-            {t("send")}
+          <div className="font-semibold text-sm uppercase tracking-wide" style={{ color: skin.colors.success }}>
+            {t('send')}
           </div>
-          <div className="text-[10px] font-mono" style={{ color: skin.colors.success + "90" }}>
-            {d.signals} {t("carrier")}s
+          <div className="text-[10px] font-mono" style={{ color: `${skin.colors.success}90` }}>
+            {d.signals} {t('carrier')}s
           </div>
         </div>
       </div>
@@ -448,8 +431,8 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
       const sp = splitPath(path)
       if (!sp) continue
       const [from, to] = sp
-      const sourceId = from === "entry" ? "entry" : from.split(":")[0]
-      const targetId = to.split(":")[0]
+      const sourceId = from === 'entry' ? 'entry' : from.split(':')[0]
+      const targetId = to.split(':')[0]
 
       if (stats[sourceId]) {
         stats[sourceId].outgoing += strength
@@ -479,13 +462,13 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
       const sp = splitPath(h.path)
       if (!sp) continue
       const [from, to] = sp
-      const sourceId = from === "entry" ? "entry" : from.split(":")[0]
-      const targetId = to.split(":")[0]
+      const sourceId = from === 'entry' ? 'entry' : from.split(':')[0]
+      const targetId = to.split(':')[0]
       if (outgoing[sourceId]) outgoing[sourceId].add(targetId)
     }
 
-    const queue = ["entry"]
-    const visited = new Set(["entry"])
+    const queue = ['entry']
+    const visited = new Set(['entry'])
     while (queue.length) {
       const current = queue.shift()!
       for (const targetId of outgoing[current] || new Set()) {
@@ -498,7 +481,7 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
     }
 
     // Count how many agents were reached via BFS (have trail-based ranks)
-    const trailRankedCount = Object.keys(ranks).filter(id => id !== 'entry').length
+    const trailRankedCount = Object.keys(ranks).filter((id) => id !== 'entry').length
     const useFallbackGrid = trailRankedCount === 0
 
     let nextRank = 1
@@ -525,7 +508,7 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
         byRank[r].push(id)
       })
       Object.entries(byRank).forEach(([rankStr, ids]) => {
-        const rank = parseInt(rankStr)
+        const rank = parseInt(rankStr, 10)
         const totalHeight = (ids.length - 1) * rowHeight
         const baseY = 200 - totalHeight / 2
         ids.forEach((id, i) => {
@@ -535,20 +518,20 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
     }
 
     const entryNode: Node = {
-      id: "entry",
-      type: "entry",
-      position: positions["entry"] || { x: 100, y: 200 },
-      data: { signals: highways.filter((h) => h.path.startsWith("entry")).length },
+      id: 'entry',
+      type: 'entry',
+      position: positions.entry || { x: 100, y: 200 },
+      data: { signals: highways.filter((h) => h.path.startsWith('entry')).length },
     }
 
     const actorNodes: Node[] = agents.map((agent) => ({
       id: agent.id,
-      type: "actor",
+      type: 'actor',
       position: positions[agent.id] || { x: 400, y: 200 },
       data: {
         id: agent.id,
         name: agent.name,
-        status: agent.status || "active",
+        status: agent.status || 'active',
         actions: Object.entries(agent.actions).map(([name, result]) => ({ name, result })),
         incoming: { strength: actorStats[agent.id]?.incoming || 0 },
         outgoing: { strength: actorStats[agent.id]?.outgoing || 0 },
@@ -560,7 +543,7 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
   }, [agents, highways, actorStats])
 
   // Build edges
-  const initialEdges = useMemo((): FlowEdge[] => {
+  const initialEdges = useMemo((): XYEdge[] => {
     const edgeMap: Record<string, { strength: number; fromTask: string; toTask: string }> = {}
 
     for (const h of highways) {
@@ -569,16 +552,16 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
       const sp = splitPath(path)
       if (!sp) continue
       const [from, to] = sp
-      const sourceId = from === "entry" ? "entry" : from.split(":")[0]
-      const targetId = to.split(":")[0]
+      const sourceId = from === 'entry' ? 'entry' : from.split(':')[0]
+      const targetId = to.split(':')[0]
       if (sourceId === targetId) continue
 
       const key = `${sourceId}→${targetId}`
       if (!edgeMap[key]) {
         edgeMap[key] = {
           strength: 0,
-          fromTask: from.split(":")[1] || "signal",
-          toTask: to.split(":")[1] || "receive",
+          fromTask: from.split(':')[1] || 'signal',
+          toTask: to.split(':')[1] || 'receive',
         }
       }
       edgeMap[key].strength += strength
@@ -586,16 +569,16 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
 
     return Object.entries(edgeMap)
       .filter(([key]) => {
-        const [source] = key.split("→")
-        return source === "entry" || agents.some((a) => a.id === source)
+        const [source] = key.split('→')
+        return source === 'entry' || agents.some((a) => a.id === source)
       })
       .map(([key, { strength, fromTask, toTask }]) => {
-        const [source, target] = key.split("→")
+        const [source, target] = key.split('→')
         return {
           id: key,
           source,
           target,
-          type: "flow",
+          type: 'flow',
           data: {
             strength,
             fromTask,
@@ -628,32 +611,28 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
         minZoom={0.3}
         maxZoom={2}
         onNodeClick={(_, node) => {
-          if (node.type === "actor" && onSelectAgent) {
+          if (node.type === 'actor' && onSelectAgent) {
             onSelectAgent(node.id)
           }
         }}
       >
-        <Background
-          color={skin.colors.muted + "30"}
-          gap={30}
-          size={1}
-        />
+        <Background color={`${skin.colors.muted}30`} gap={30} size={1} />
         <Controls
           style={{
             backgroundColor: skin.colors.surface,
-            borderColor: skin.colors.muted + "30",
+            borderColor: `${skin.colors.muted}30`,
           }}
         />
         <MiniMap
           nodeColor={(node) => {
-            if (node.type === "entry") return skin.colors.success
+            if (node.type === 'entry') return skin.colors.success
             const d = node.data as ActorNodeData
             return d?.isOpen ? skin.colors.success : skin.colors.primary
           }}
-          maskColor={skin.colors.background + "90"}
+          maskColor={`${skin.colors.background}90`}
           style={{
             backgroundColor: skin.colors.surface,
-            borderColor: skin.colors.muted + "30",
+            borderColor: `${skin.colors.muted}30`,
           }}
         />
       </ReactFlow>

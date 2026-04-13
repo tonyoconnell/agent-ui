@@ -1,4 +1,4 @@
-import type { APIRoute } from "astro"
+import type { APIRoute } from 'astro'
 
 export const prerender = false
 
@@ -11,9 +11,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const groupId = url.searchParams.get('group')
 
     if (!groupId) {
-      return new Response(JSON.stringify({ error: "group parameter required" }), {
+      return new Response(JSON.stringify({ error: 'group parameter required' }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       })
     }
 
@@ -21,31 +21,37 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const db = locals?.runtime?.env?.DB
 
     if (!db) {
-      return new Response(JSON.stringify({ error: "D1 database not available" }), {
+      return new Response(JSON.stringify({ error: 'D1 database not available' }), {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       })
     }
 
-    const messages = await db.prepare(`
+    const messages = await db
+      .prepare(`
       SELECT id, sender, content, role, ts FROM messages
       WHERE group_id = ?
       ORDER BY ts ASC
       LIMIT 50
-    `).bind(groupId).all()
+    `)
+      .bind(groupId)
+      .all()
 
-    return new Response(JSON.stringify({
-      group: groupId,
-      messages: messages.results || [],
-    }), {
-      headers: { "Content-Type": "application/json" },
-    })
-  } catch (error) {
-    console.error("[MESSAGES API] Error:", error)
     return new Response(
-      JSON.stringify({ error: "Failed to retrieve messages" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({
+        group: groupId,
+        messages: messages.results || [],
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
     )
+  } catch (error) {
+    console.error('[MESSAGES API] Error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to retrieve messages' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }
 
@@ -54,12 +60,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
  */
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { groupId, text } = await request.json() as any
+    const { groupId, text } = (await request.json()) as any
 
     if (!groupId || !text) {
-      return new Response(JSON.stringify({ error: "groupId and text required" }), {
+      return new Response(JSON.stringify({ error: 'groupId and text required' }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       })
     }
 
@@ -80,13 +86,13 @@ export const POST: APIRoute = async ({ request }) => {
 
     const data = await res.json()
     return new Response(JSON.stringify(data), {
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error("[MESSAGES POST] Error:", error)
-    return new Response(
-      JSON.stringify({ error: "Failed to post message" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    )
+    console.error('[MESSAGES POST] Error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to post message' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }

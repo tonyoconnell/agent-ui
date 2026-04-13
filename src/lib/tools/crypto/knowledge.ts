@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { toolRegistry, type Tool } from '../registry';
+import { z } from 'zod'
+import { type Tool, toolRegistry } from '../registry'
 
 /**
  * Token Knowledge Tool
@@ -24,96 +24,96 @@ const TOKEN_FILE_MAP: Record<string, string> = {
   'fetch-ai': 'token-fetch.md',
   'ocean-protocol': 'token-ocean.md',
   'artificial-superintelligence-alliance': 'token-asi.md',
-  'near': 'token-near.md',
-  'singularitynet': 'token-singularitynet.md',
-  'ai16z': 'token-ai16z.md',
+  near: 'token-near.md',
+  singularitynet: 'token-singularitynet.md',
+  ai16z: 'token-ai16z.md',
   'internet-computer': 'token-icp.md',
-  'bittensor': 'token-bittensor.md',
+  bittensor: 'token-bittensor.md',
   // Alternative IDs (registry/aliases)
   'asi-alliance': 'token-asi.md',
   'near-protocol': 'token-near.md',
-};
+}
 
 // ============================================
 // YAML Frontmatter Parser
 // ============================================
 
 interface TokenFrontmatter {
-  title?: string;
-  dimension?: string;
-  category?: string;
-  tags?: string[];
-  related_dimensions?: string;
-  scope?: string;
-  created?: string;
-  updated?: string;
-  version?: string;
-  ai_context?: string;
-  [key: string]: unknown;
+  title?: string
+  dimension?: string
+  category?: string
+  tags?: string[]
+  related_dimensions?: string
+  scope?: string
+  created?: string
+  updated?: string
+  version?: string
+  ai_context?: string
+  [key: string]: unknown
 }
 
 /**
  * Parse YAML frontmatter from markdown content
  */
 function parseFrontmatter(content: string): { frontmatter: TokenFrontmatter; body: string } {
-  const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
-  const match = content.match(frontmatterRegex);
+  const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/
+  const match = content.match(frontmatterRegex)
 
   if (!match) {
-    return { frontmatter: {}, body: content };
+    return { frontmatter: {}, body: content }
   }
 
-  const yamlContent = match[1];
-  const body = match[2];
+  const yamlContent = match[1]
+  const body = match[2]
 
   // Simple YAML parser for our structured frontmatter
-  const frontmatter: TokenFrontmatter = {};
-  const lines = yamlContent.split('\n');
+  const frontmatter: TokenFrontmatter = {}
+  const lines = yamlContent.split('\n')
 
-  let currentKey: string | null = null;
-  let multilineValue = '';
-  let isMultiline = false;
+  let currentKey: string | null = null
+  let multilineValue = ''
+  let isMultiline = false
 
   for (const line of lines) {
     // Check for multiline indicator
     if (line.endsWith('|')) {
-      currentKey = line.slice(0, -1).replace(':', '').trim();
-      isMultiline = true;
-      multilineValue = '';
-      continue;
+      currentKey = line.slice(0, -1).replace(':', '').trim()
+      isMultiline = true
+      multilineValue = ''
+      continue
     }
 
     // Handle multiline content
     if (isMultiline && line.startsWith('  ')) {
-      multilineValue += (multilineValue ? '\n' : '') + line.trim();
-      continue;
+      multilineValue += (multilineValue ? '\n' : '') + line.trim()
+      continue
     } else if (isMultiline && currentKey) {
-      frontmatter[currentKey] = multilineValue;
-      isMultiline = false;
-      currentKey = null;
+      frontmatter[currentKey] = multilineValue
+      isMultiline = false
+      currentKey = null
     }
 
     // Parse key-value pairs
-    const colonIndex = line.indexOf(':');
+    const colonIndex = line.indexOf(':')
     if (colonIndex > 0) {
-      const key = line.slice(0, colonIndex).trim();
-      let value = line.slice(colonIndex + 1).trim();
+      const key = line.slice(0, colonIndex).trim()
+      const value = line.slice(colonIndex + 1).trim()
 
       // Handle arrays (comma-separated on same line)
       if (key === 'tags' && value) {
-        frontmatter[key] = value.split(',').map(t => t.trim());
+        frontmatter[key] = value.split(',').map((t) => t.trim())
       } else if (value) {
-        frontmatter[key] = value;
+        frontmatter[key] = value
       }
     }
   }
 
   // Don't forget the last multiline value
   if (isMultiline && currentKey) {
-    frontmatter[currentKey] = multilineValue;
+    frontmatter[currentKey] = multilineValue
   }
 
-  return { frontmatter, body };
+  return { frontmatter, body }
 }
 
 // ============================================
@@ -124,38 +124,38 @@ function parseFrontmatter(content: string): { frontmatter: TokenFrontmatter; bod
  * Extract a specific section from markdown by heading
  */
 function extractSection(body: string, headingPattern: RegExp): string {
-  const lines = body.split('\n');
-  let capturing = false;
-  let capturedLines: string[] = [];
-  let headingLevel = 0;
+  const lines = body.split('\n')
+  let capturing = false
+  const capturedLines: string[] = []
+  let headingLevel = 0
 
   for (const line of lines) {
     // Check if this is a heading
-    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/)
 
     if (headingMatch) {
-      const level = headingMatch[1].length;
-      const title = headingMatch[2];
+      const level = headingMatch[1].length
+      const title = headingMatch[2]
 
       // If we're already capturing and hit same or higher level heading, stop
       if (capturing && level <= headingLevel) {
-        break;
+        break
       }
 
       // Check if this heading matches our pattern
       if (headingPattern.test(title)) {
-        capturing = true;
-        headingLevel = level;
-        continue;
+        capturing = true
+        headingLevel = level
+        continue
       }
     }
 
     if (capturing) {
-      capturedLines.push(line);
+      capturedLines.push(line)
     }
   }
 
-  return capturedLines.join('\n').trim();
+  return capturedLines.join('\n').trim()
 }
 
 /**
@@ -163,54 +163,54 @@ function extractSection(body: string, headingPattern: RegExp): string {
  */
 function extractExecutiveSummary(body: string): string {
   // Try to find executive summary section
-  const summary = extractSection(body, /executive\s*summary|key\s*findings|tl;?dr/i);
+  const summary = extractSection(body, /executive\s*summary|key\s*findings|tl;?dr/i)
 
   if (summary) {
-    return summary;
+    return summary
   }
 
   // Fallback: get content between first and second ## heading
-  const lines = body.split('\n');
-  let capturing = false;
-  let capturedLines: string[] = [];
+  const lines = body.split('\n')
+  let capturing = false
+  const capturedLines: string[] = []
 
   for (const line of lines) {
     if (line.startsWith('## ')) {
-      if (capturing) break;
-      capturing = true;
-      continue;
+      if (capturing) break
+      capturing = true
+      continue
     }
     if (capturing) {
-      capturedLines.push(line);
+      capturedLines.push(line)
     }
   }
 
-  return capturedLines.slice(0, 50).join('\n').trim();
+  return capturedLines.slice(0, 50).join('\n').trim()
 }
 
 /**
  * Extract the risk assessment section
  */
 function extractRiskAssessment(body: string): string {
-  return extractSection(body, /risk\s*assessment|risk\s*analysis|risk\s*score/i);
+  return extractSection(body, /risk\s*assessment|risk\s*analysis|risk\s*score/i)
 }
 
 /**
  * Extract the investment thesis section
  */
 function extractInvestmentThesis(body: string): string {
-  const thesis = extractSection(body, /investment\s*thesis|recommendation|conclusion/i);
+  const thesis = extractSection(body, /investment\s*thesis|recommendation|conclusion/i)
 
   // Also check for the specific thesis format used in token files
   if (!thesis) {
     // Look for the > blockquote thesis format
-    const thesisMatch = body.match(/### Investment Thesis[\s\S]*?(>[\s\S]*?)(?=---|##|$)/i);
+    const thesisMatch = body.match(/### Investment Thesis[\s\S]*?(>[\s\S]*?)(?=---|##|$)/i)
     if (thesisMatch) {
-      return thesisMatch[1].trim();
+      return thesisMatch[1].trim()
     }
   }
 
-  return thesis;
+  return thesis
 }
 
 // ============================================
@@ -218,21 +218,21 @@ function extractInvestmentThesis(body: string): string {
 // ============================================
 
 interface TokenKnowledgeResult {
-  success: boolean;
+  success: boolean
   data?: {
-    frontmatter: TokenFrontmatter;
-    executive_summary: string;
-    risk_assessment: string;
-    investment_thesis: string;
-    full_content: string;
-  };
-  error?: string;
+    frontmatter: TokenFrontmatter
+    executive_summary: string
+    risk_assessment: string
+    investment_thesis: string
+    full_content: string
+  }
+  error?: string
   metadata?: {
-    tokenId: string;
-    filename: string;
-    availableTokens: string[];
-    timestamp: number;
-  };
+    tokenId: string
+    filename: string
+    availableTokens: string[]
+    timestamp: number
+  }
 }
 
 // ============================================
@@ -241,13 +241,13 @@ interface TokenKnowledgeResult {
 
 const tokenKnowledgeParams = z.object({
   token_id: z.string().describe('CoinGecko token ID (e.g., "virtual-protocol", "render-token", "fetch-ai")'),
-});
+})
 
 async function getTokenKnowledge(params: z.infer<typeof tokenKnowledgeParams>): Promise<TokenKnowledgeResult> {
-  const { token_id } = params;
+  const { token_id } = params
 
   // Check if we have knowledge for this token
-  const filename = TOKEN_FILE_MAP[token_id];
+  const filename = TOKEN_FILE_MAP[token_id]
 
   if (!filename) {
     return {
@@ -259,13 +259,13 @@ async function getTokenKnowledge(params: z.infer<typeof tokenKnowledgeParams>): 
         availableTokens: Object.keys(TOKEN_FILE_MAP),
         timestamp: Date.now(),
       },
-    };
+    }
   }
 
   try {
     // In browser environment, we need to fetch from a static path
     // The knowledge files should be accessible via the server
-    const knowledgePath = `/knowledge/crypto/${filename}`;
+    const _knowledgePath = `/knowledge/crypto/${filename}`
 
     // For server-side (Astro SSR), we can read the file directly
     // For client-side, we'd need an API endpoint
@@ -273,37 +273,34 @@ async function getTokenKnowledge(params: z.infer<typeof tokenKnowledgeParams>): 
     // Check if we're in Node.js environment
     if (typeof process !== 'undefined' && process.versions?.node) {
       // Server-side: read file directly
-      const fs = await import('fs/promises');
-      const path = await import('path');
+      const fs = await import('node:fs/promises')
+      const path = await import('node:path')
 
-      console.log('[TokenKnowledge] CWD:', process.cwd());
-      console.log('[TokenKnowledge] Looking for:', filename);
+      console.log('[TokenKnowledge] CWD:', process.cwd())
+      console.log('[TokenKnowledge] Looking for:', filename)
 
       // Try multiple possible paths for the knowledge files
       const possiblePaths = [
         path.join(process.cwd(), 'one/knowledge/crypto', filename),
         path.join(process.cwd(), '../one/knowledge/crypto', filename),
         path.join(process.cwd(), '../../one/knowledge/crypto', filename),
-      ];
+      ]
 
-      console.log('[TokenKnowledge] Trying paths:', possiblePaths);
+      console.log('[TokenKnowledge] Trying paths:', possiblePaths)
 
-      let content: string | null = null;
-      let usedPath = '';
+      let content: string | null = null
+      let _usedPath = ''
 
       for (const filePath of possiblePaths) {
         try {
-          content = await fs.readFile(filePath, 'utf-8');
-          usedPath = filePath;
-          break;
-        } catch {
-          // Try next path
-          continue;
-        }
+          content = await fs.readFile(filePath, 'utf-8')
+          _usedPath = filePath
+          break
+        } catch {}
       }
 
       if (!content) {
-        console.log('[TokenKnowledge] File not found at any path');
+        console.log('[TokenKnowledge] File not found at any path')
         return {
           success: false,
           error: `Token knowledge file not found: ${filename}`,
@@ -313,13 +310,13 @@ async function getTokenKnowledge(params: z.infer<typeof tokenKnowledgeParams>): 
             availableTokens: Object.keys(TOKEN_FILE_MAP),
             timestamp: Date.now(),
           },
-        };
+        }
       }
 
-      console.log('[TokenKnowledge] Found file, content length:', content.length);
+      console.log('[TokenKnowledge] Found file, content length:', content.length)
 
       // Parse the content
-      const { frontmatter, body } = parseFrontmatter(content);
+      const { frontmatter, body } = parseFrontmatter(content)
 
       return {
         success: true,
@@ -336,20 +333,21 @@ async function getTokenKnowledge(params: z.infer<typeof tokenKnowledgeParams>): 
           availableTokens: Object.keys(TOKEN_FILE_MAP),
           timestamp: Date.now(),
         },
-      };
+      }
     }
 
     // Client-side: return error suggesting server-side usage
     return {
       success: false,
-      error: 'Token knowledge retrieval is only available server-side. Use this tool in an API route or server component.',
+      error:
+        'Token knowledge retrieval is only available server-side. Use this tool in an API route or server component.',
       metadata: {
         tokenId: token_id,
         filename,
         availableTokens: Object.keys(TOKEN_FILE_MAP),
         timestamp: Date.now(),
       },
-    };
+    }
   } catch (error) {
     return {
       success: false,
@@ -360,7 +358,7 @@ async function getTokenKnowledge(params: z.infer<typeof tokenKnowledgeParams>): 
         availableTokens: Object.keys(TOKEN_FILE_MAP),
         timestamp: Date.now(),
       },
-    };
+    }
   }
 }
 
@@ -370,29 +368,30 @@ async function getTokenKnowledge(params: z.infer<typeof tokenKnowledgeParams>): 
 
 export const tokenKnowledgeTool: Tool = {
   name: 'get_token_knowledge',
-  description: 'Retrieve pre-analyzed token research from the knowledge base. Returns comprehensive analysis including executive summary, risk assessment, and investment thesis for AI tokens. Available tokens: virtual-protocol, render-token, fetch-ai, ocean-protocol, artificial-superintelligence-alliance, near, singularitynet, ai16z, internet-computer, bittensor.',
+  description:
+    'Retrieve pre-analyzed token research from the knowledge base. Returns comprehensive analysis including executive summary, risk assessment, and investment thesis for AI tokens. Available tokens: virtual-protocol, render-token, fetch-ai, ocean-protocol, artificial-superintelligence-alliance, near, singularitynet, ai16z, internet-computer, bittensor.',
   category: 'data',
   parameters: tokenKnowledgeParams,
   execute: getTokenKnowledge,
   cacheable: true,
   cacheTTL: 3600000, // Cache for 1 hour (knowledge files don't change often)
   tags: ['crypto', 'knowledge', 'analysis', 'research', 'ai-tokens'],
-};
+}
 
 // ============================================
 // Helper function for listing available tokens
 // ============================================
 
 export function getAvailableTokens(): string[] {
-  return Object.keys(TOKEN_FILE_MAP);
+  return Object.keys(TOKEN_FILE_MAP)
 }
 
 export function hasTokenKnowledge(tokenId: string): boolean {
-  return tokenId in TOKEN_FILE_MAP;
+  return tokenId in TOKEN_FILE_MAP
 }
 
 // ============================================
 // Register Tool
 // ============================================
 
-toolRegistry.register(tokenKnowledgeTool);
+toolRegistry.register(tokenKnowledgeTool)

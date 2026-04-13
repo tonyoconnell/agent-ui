@@ -1,7 +1,5 @@
 ---
-import Layout from "@/layouts/Layout.astro"
-import { UnitProfile } from "@/components/onboard/UnitProfile"
-import { readParsed } from "@/lib/typedb"
+import { readParsed } from '@/lib/typedb'
 
 const { name } = Astro.params
 
@@ -23,7 +21,7 @@ let unit = {
   sampleCount: 0,
 }
 
-let capabilities: Array<{
+let _capabilities: Array<{
   taskName: string
   taskType: string
   price: number
@@ -90,7 +88,7 @@ try {
     select $tn, $tt, $p;
   `).catch(() => [])
 
-  capabilities = capRows.map((r) => ({
+  _capabilities = capRows.map((r) => ({
     taskName: (r.tn as string) || '',
     taskType: (r.tt as string) || '',
     price: (r.p as number) || 0,

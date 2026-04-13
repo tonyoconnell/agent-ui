@@ -13,7 +13,7 @@ import type { APIRoute } from 'astro'
 import { write } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request }) => {
-  const { name, wallet, capabilities } = await request.json() as {
+  const { name, wallet, capabilities } = (await request.json()) as {
     name: string
     wallet?: string
     capabilities: Array<{
@@ -32,7 +32,10 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'At least one capability is required' }), { status: 400 })
   }
 
-  const safeName = name.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32)
+  const safeName = name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '')
+    .slice(0, 32)
   if (!safeName) {
     return new Response(JSON.stringify({ error: 'Invalid name' }), { status: 400 })
   }
@@ -59,7 +62,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 2. Create tasks and capability relations
     for (const cap of capabilities) {
-      const safeTaskName = cap.taskName.toLowerCase().replace(/[^a-z0-9-_ ]/g, '').slice(0, 64)
+      const safeTaskName = cap.taskName
+        .toLowerCase()
+        .replace(/[^a-z0-9-_ ]/g, '')
+        .slice(0, 64)
       const tid = `${uid}:${safeTaskName.replace(/\s+/g, '-')}`
       const price = Math.max(0, cap.price || 0)
       const currency = cap.currency || 'SUI'

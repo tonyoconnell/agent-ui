@@ -35,7 +35,7 @@
   exit: CEO sees top 10 by net strength (reputation = mark - warn). Arithmetic only.
   tags: ui, analytics, P0, ceo
 
-- [ ] Implement isToxic() blocking: resistance >= 10 AND resistance > 2× strength
+- [x] Implement isToxic() blocking: resistance >= 10 AND resistance > 2× strength
   value: critical
   effort: low
   phase: C1
@@ -43,8 +43,9 @@
   blocks: safety-live
   exit: Toxic paths auto-blocked, no LLM waste, cost = $0
   tags: engineering, security, P0, foundation
+  done: persist.ts exports isToxic(), tested in persist.test.ts (6 cases)
 
-- [ ] Build markdown agent deployment: write file, push, live in minutes
+- [x] Build markdown agent deployment: write file, push, live in minutes
   value: critical
   effort: high
   phase: C1
@@ -52,6 +53,7 @@
   blocks: agent-marketplace-live
   exit: Users write agent.md → /api/agents/sync → live on ONE + AgentVerse
   tags: agent, integration, P0, deployment
+  done: agent-md.ts parseAgentMd + syncAgent + /api/agents/sync endpoint live
 
 - [ ] Create 7-persona vocabulary layer: CEO/Dev/Investor/Gamer/Kid/Freelancer/Agent
   value: high

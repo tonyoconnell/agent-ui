@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { toolRegistry, type Tool } from '../registry';
+import { z } from 'zod'
+import { type Tool, toolRegistry } from '../registry'
 
 /**
  * Calculator Tool - Perform mathematical calculations
@@ -10,12 +10,12 @@ import { toolRegistry, type Tool } from '../registry';
  */
 const calculatorParams = z.object({
   expression: z.string().describe('Mathematical expression to evaluate (e.g., "2 + 2", "sqrt(16)", "sin(pi/2)")'),
-});
+})
 
 // Safe math evaluator using Function constructor with restricted scope
 function evaluateMath(expr: string): number {
   // Remove whitespace
-  const cleaned = expr.trim();
+  const cleaned = expr.trim()
 
   // Allowed math functions and constants
   const mathContext = {
@@ -60,69 +60,65 @@ function evaluateMath(expr: string): number {
     min: Math.min,
     random: Math.random,
     sign: Math.sign,
-  };
+  }
 
   // Build safe evaluation context
-  const contextKeys = Object.keys(mathContext).join(',');
-  const contextValues = Object.values(mathContext);
+  const _contextKeys = Object.keys(mathContext).join(',')
+  const contextValues = Object.values(mathContext)
 
   try {
     // Create a function with restricted scope
-    const fn = new Function(
-      ...Object.keys(mathContext),
-      `"use strict"; return (${cleaned});`
-    );
+    const fn = new Function(...Object.keys(mathContext), `"use strict"; return (${cleaned});`)
 
-    const result = fn(...contextValues);
+    const result = fn(...contextValues)
 
-    if (typeof result !== 'number' || !isFinite(result)) {
-      throw new Error('Invalid result');
+    if (typeof result !== 'number' || !Number.isFinite(result)) {
+      throw new Error('Invalid result')
     }
 
-    return result;
+    return result
   } catch (error) {
     throw new Error(
       `Invalid expression: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
-      `Supported functions: ${Object.keys(mathContext).join(', ')}`
-    );
+        `Supported functions: ${Object.keys(mathContext).join(', ')}`,
+    )
   }
 }
 
 async function calculate(params: z.infer<typeof calculatorParams>) {
-  const { expression } = params;
+  const { expression } = params
 
   try {
-    const result = evaluateMath(expression);
+    const result = evaluateMath(expression)
 
     return {
       expression,
       result,
       formatted: formatResult(result),
-    };
+    }
   } catch (error) {
-    throw new Error(
-      `Calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    throw new Error(`Calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
 
 function formatResult(num: number): string {
   // Format with appropriate precision
   if (Number.isInteger(num)) {
-    return num.toString();
+    return num.toString()
   }
 
   // For decimals, use up to 10 significant digits
-  const rounded = Math.round(num * 1e10) / 1e10;
-  return rounded.toString();
+  const rounded = Math.round(num * 1e10) / 1e10
+  return rounded.toString()
 }
 
 export const calculatorTool: Tool = {
   name: 'calculator',
-  description: 'Perform mathematical calculations. Supports basic operations (+, -, *, /, %), powers (pow, sqrt), trigonometry (sin, cos, tan), logarithms (log, log10), and constants (pi, e). Examples: "2 + 2", "sqrt(16)", "sin(pi/2)", "log10(100)"',
+  description:
+    'Perform mathematical calculations. Supports basic operations (+, -, *, /, %), powers (pow, sqrt), trigonometry (sin, cos, tan), logarithms (log, log10), and constants (pi, e). Examples: "2 + 2", "sqrt(16)", "sin(pi/2)", "log10(100)"',
   category: 'utility',
   parameters: calculatorParams,
   execute: calculate,
-};
+}
 
-toolRegistry.register(calculatorTool);
+toolRegistry.register(calculatorTool)

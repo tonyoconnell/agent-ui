@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { toolRegistry, type Tool } from '../registry';
+import { z } from 'zod'
+import { type Tool, toolRegistry } from '../registry'
 
 /**
  * Chart Creation Tool - Generate chart visualizations
@@ -16,12 +16,14 @@ const chartParams = z.object({
   description: z.string().optional(),
   chartType: z.enum(['line', 'bar', 'pie', 'area', 'doughnut']),
   labels: z.array(z.string()),
-  datasets: z.array(z.object({
-    label: z.string(),
-    data: z.array(z.number()),
-    color: z.string().optional(),
-  })),
-});
+  datasets: z.array(
+    z.object({
+      label: z.string(),
+      data: z.array(z.number()),
+      color: z.string().optional(),
+    }),
+  ),
+})
 
 async function createChart(params: z.infer<typeof chartParams>) {
   // Return structured data that existing DynamicChart component can render
@@ -30,15 +32,16 @@ async function createChart(params: z.infer<typeof chartParams>) {
     type: 'ui',
     component: 'chart',
     data: params,
-  };
+  }
 }
 
 export const createChartTool: Tool = {
   name: 'create_chart',
-  description: 'Create a chart visualization. Supports: line (trends), bar (comparisons), pie (proportions), area (cumulative), doughnut (distribution)',
+  description:
+    'Create a chart visualization. Supports: line (trends), bar (comparisons), pie (proportions), area (cumulative), doughnut (distribution)',
   category: 'data',
   parameters: chartParams,
   execute: createChart,
-};
+}
 
-toolRegistry.register(createChartTool);
+toolRegistry.register(createChartTool)

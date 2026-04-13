@@ -1,14 +1,15 @@
 # API Routes
 
-**Skills: `/typedb` for TQL queries, `/astro` for route patterns.**
+**Skills: `/typedb` for TQL queries, `/astro` for route patterns, `/sui` for Sui integration endpoints.**
 
-All API routes use `src/lib/typedb.ts` for TypeDB access. Browser → Cloudflare Worker → TypeDB Cloud.
+All API routes use `src/lib/typedb.ts` for TypeDB access. Browser → Cloudflare Worker → TypeDB Cloud. Sui integration via `src/lib/sui.ts` (Phase 2+).
 
 ## Routes
 
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/signal` | POST | Send signal into substrate, mark pheromone |
+| `/api/absorb` | POST | **NEW:** Poll Sui events, sync to TypeDB (bridge) |
 | `/api/tick` | GET | Run one growth cycle (interval-gated, 60s default) |
 | `/api/state` | GET | Full world state for UI (units, edges, tags) |
 | `/api/stats` | GET | Aggregate stats (units, skills, highways, revenue) |

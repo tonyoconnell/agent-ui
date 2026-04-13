@@ -6,17 +6,16 @@
  * Same data. Switchable lenses. Infinite clarity.
  */
 
-import { useEffect, useState, useCallback } from "react"
-import { createWorld } from "@/engine"
-import type { World, Edge } from "@/engine"
-import { cn } from "@/lib/utils"
-import { useSkin } from "@/contexts/SkinContext"
-import { SkinSwitcher } from "@/components/controls/SkinSwitcher"
-import { WorldGraph } from "@/components/graph/WorldGraph"
-import { PersonaMenu } from "@/components/world/PersonaMenu"
-import { TimeScrubber } from "@/components/world/TimeScrubber"
-import { OrgTree } from "@/components/world/OrgTree"
-import { AgentCard } from "@/components/world/AgentCard"
+import { useCallback, useEffect, useState } from 'react'
+import { SkinSwitcher } from '@/components/controls/SkinSwitcher'
+import { WorldGraph } from '@/components/graph/WorldGraph'
+import { AgentCard } from '@/components/world/AgentCard'
+import { OrgTree } from '@/components/world/OrgTree'
+import { PersonaMenu } from '@/components/world/PersonaMenu'
+import { TimeScrubber } from '@/components/world/TimeScrubber'
+import { useSkin } from '@/contexts/SkinContext'
+import type { Edge, World } from '@/engine'
+import { createWorld } from '@/engine'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -49,11 +48,11 @@ interface WorldState {
 // DATA LOADING
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function assignEnvelopes(actors: ActorData[], envelopes: ActorData["envelopes"][0][]) {
+function assignEnvelopes(actors: ActorData[], envelopes: ActorData['envelopes'][0][]) {
   for (const env of envelopes) {
     const actor = actors.find((a) => a.id === env.receiver)
     if (actor) actor.envelopes.push(env)
-    if (env.callback) assignEnvelopes(actors, [env.callback as ActorData["envelopes"][0]])
+    if (env.callback) assignEnvelopes(actors, [env.callback as ActorData['envelopes'][0]])
   }
 }
 
@@ -75,17 +74,19 @@ async function loadWorld(): Promise<WorldState> {
 
   // Try live TypeDB data first (3s timeout)
   try {
-    const stateRes = await fetchWithTimeout("/api/state", 3000)
+    const stateRes = await fetchWithTimeout('/api/state', 3000)
     if (stateRes?.ok) {
-      const stateData = await stateRes.json() as any
+      const stateData = (await stateRes.json()) as any
       if (stateData?.units?.length > 0) {
-        const actors: ActorData[] = (stateData.units as Array<{ id: string; name: string; status: string }>).map((u) => ({
-          id: u.id,
-          name: u.name,
-          status: u.status,
-          actions: {},
-          envelopes: [],
-        }))
+        const actors: ActorData[] = (stateData.units as Array<{ id: string; name: string; status: string }>).map(
+          (u) => ({
+            id: u.id,
+            name: u.name,
+            status: u.status,
+            actions: {},
+            envelopes: [],
+          }),
+        )
 
         actors.forEach((a) => {
           const u = net.add(a.id)
@@ -107,9 +108,9 @@ async function loadWorld(): Promise<WorldState> {
 
   // Fallback: static JSON
   try {
-    const res = await fetchWithTimeout("/agents.json", 3000)
+    const res = await fetchWithTimeout('/agents.json', 3000)
     if (!res) throw new Error('Timeout')
-    const data = await res.json() as any
+    const data = (await res.json()) as any
     const actors = data.agents as ActorData[]
 
     actors.forEach((a) => (a.envelopes = a.envelopes || []))
@@ -146,7 +147,7 @@ function StatsHeader({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) 
       className="flex items-center justify-between px-6 py-3 border-b"
       style={{
         backgroundColor: skin.colors.surface,
-        borderColor: skin.colors.primary + "30",
+        borderColor: `${skin.colors.primary}30`,
       }}
     >
       {/* Left: Nav + Stats */}
@@ -186,9 +187,9 @@ function StatsHeader({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) 
 
         {/* Stats */}
         <div className="flex items-center gap-4 text-sm">
-          <Stat icon={skin.icons.actor} label={`${t("actor")}s`} value={actors.length} color={skin.colors.primary} />
-          <Stat icon={skin.icons.flow} label={`${t("flow")}s`} value={flows.length} color={skin.colors.secondary} />
-          <Stat icon={skin.icons.open} label={t("open")} value={openFlows} color={skin.colors.success} />
+          <Stat icon={skin.icons.actor} label={`${t('actor')}s`} value={actors.length} color={skin.colors.primary} />
+          <Stat icon={skin.icons.flow} label={`${t('flow')}s`} value={flows.length} color={skin.colors.secondary} />
+          <Stat icon={skin.icons.open} label={t('open')} value={openFlows} color={skin.colors.success} />
           <Stat icon="Σ" label="strength" value={totalStrength.toFixed(0)} color={skin.colors.warning} />
         </div>
       </div>
@@ -210,110 +211,6 @@ function Stat({ icon, label, value, color }: { icon: string; label: string; valu
       <span className="font-mono font-medium" style={{ color }}>
         {value}
       </span>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SKINNED FLOW PANEL
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function FlowPanel({ flows }: { flows: Edge[] }) {
-  const { skin, t } = useSkin()
-
-  const openFlows = flows.filter((f) => f.strength >= 50)
-  const closingFlows = flows.filter((f) => f.strength > 0 && f.strength < 5)
-
-  return (
-    <div
-      className="rounded-xl p-4 border"
-      style={{
-        backgroundColor: skin.colors.surface,
-        borderColor: skin.colors.primary + "30",
-      }}
-    >
-      <h3 className="text-sm uppercase mb-3" style={{ color: skin.colors.primary }}>
-        {skin.icons.open} {t("open")} {t("flow")}s
-      </h3>
-
-      <div className="space-y-2">
-        {openFlows.map(({ path, strength }) => (
-          <div key={path} className="flex items-center gap-3">
-            <div className="flex-1">
-              <code className="text-xs text-slate-400">{path}</code>
-            </div>
-            <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: skin.colors.muted + "30" }}>
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${Math.min(strength, 100)}%`, backgroundColor: skin.colors.success }}
-              />
-            </div>
-            <span className="text-xs font-mono w-8 text-right" style={{ color: skin.colors.success }}>
-              {strength.toFixed(0)}
-            </span>
-          </div>
-        ))}
-
-        {openFlows.length === 0 && <div className="text-xs text-slate-600">No {t("open")} {t("flow")}s yet</div>}
-      </div>
-
-      {closingFlows.length > 0 && (
-        <>
-          <h3 className="text-sm uppercase mt-4 mb-2" style={{ color: skin.colors.warning }}>
-            {t("closing")}
-          </h3>
-          <div className="space-y-1">
-            {closingFlows.slice(0, 3).map(({ path, strength }) => (
-              <div key={path} className="flex items-center gap-2 text-xs">
-                <code className="text-slate-500 flex-1 truncate">{path}</code>
-                <span style={{ color: skin.colors.warning }}>{strength.toFixed(1)}</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CONTROL BUTTONS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function Controls({
-  onInject,
-  onDecay,
-}: {
-  onInject: () => void
-  onDecay: () => void
-}) {
-  const { skin, t } = useSkin()
-
-  return (
-    <div className="space-y-2">
-      <button
-        onClick={onInject}
-        className="w-full px-3 py-2 text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
-        style={{
-          backgroundColor: skin.colors.success + "20",
-          color: skin.colors.success,
-          borderColor: skin.colors.success + "50",
-          borderWidth: 1,
-        }}
-      >
-        {skin.icons.entry} {t("send")}
-      </button>
-
-      <button
-        onClick={onDecay}
-        className="w-full px-3 py-2 text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
-        style={{
-          backgroundColor: skin.colors.muted + "20",
-          color: skin.colors.muted,
-        }}
-      >
-        ⏱️ {t("decay")}
-      </button>
     </div>
   )
 }
@@ -342,7 +239,10 @@ function WorkspaceInner() {
       })
     }
     attempt()
-    return () => { cancelled = true; clearTimeout(timer) }
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [])
 
   // Periodic decay
@@ -353,20 +253,20 @@ function WorkspaceInner() {
       setWorld((prev) => (prev ? { ...prev, flows: world.world.highways(30) } : null))
     }, 5000)
     return () => clearInterval(interval)
-  }, [world?.world])
+  }, [world?.world, world])
 
-  const handleInject = useCallback(() => {
+  const _handleInject = useCallback(() => {
     if (!world) return
     // Fire chain-head signals; continuations run via .then() on each unit
-    world.world.signal({ receiver: "scout:observe", data: { source: "manual", chain: "market" } })
-    world.world.signal({ receiver: "forager:search", data: { source: "onchain", chain: "intelligence" } })
-    world.world.signal({ receiver: "soldier:validate", data: { signals: "all", chain: "defense" } })
-    world.world.signal({ receiver: "nurse:monitor", data: { colony: "all", chain: "care" } })
-    world.world.signal({ receiver: "scout:scan", data: { source: "sentiment", chain: "recon" } })
+    world.world.signal({ receiver: 'scout:observe', data: { source: 'manual', chain: 'market' } })
+    world.world.signal({ receiver: 'forager:search', data: { source: 'onchain', chain: 'intelligence' } })
+    world.world.signal({ receiver: 'soldier:validate', data: { signals: 'all', chain: 'defense' } })
+    world.world.signal({ receiver: 'nurse:monitor', data: { colony: 'all', chain: 'care' } })
+    world.world.signal({ receiver: 'scout:scan', data: { source: 'sentiment', chain: 'recon' } })
     setWorld((prev) => (prev ? { ...prev, flows: world.world.highways(30) } : null))
   }, [world])
 
-  const handleDecay = useCallback(() => {
+  const _handleDecay = useCallback(() => {
     if (!world) return
     world.world.fade(0.2)
     setWorld((prev) => (prev ? { ...prev, flows: world.world.highways(30) } : null))
@@ -374,10 +274,7 @@ function WorkspaceInner() {
 
   if (!world) {
     return (
-      <div
-        className="h-screen flex items-center justify-center"
-        style={{ backgroundColor: skin.colors.background }}
-      >
+      <div className="h-screen flex items-center justify-center" style={{ backgroundColor: skin.colors.background }}>
         <div className="flex items-center gap-3">
           <span className="text-3xl animate-pulse">{skin.icons.group}</span>
           <span className="text-slate-500">Loading {skin.name}...</span>
@@ -394,7 +291,7 @@ function WorkspaceInner() {
         {/* Left: Organization Tree */}
         <div
           className="w-64 border-r flex flex-col overflow-hidden"
-          style={{ borderColor: skin.colors.primary + "20" }}
+          style={{ borderColor: `${skin.colors.primary}20` }}
         >
           <OrgTree className="flex-1 overflow-y-auto" />
         </div>
@@ -406,9 +303,7 @@ function WorkspaceInner() {
               world={world.world}
               agents={world.actors}
               highways={world.flows}
-              onSelectAgent={(id) =>
-                window.dispatchEvent(new CustomEvent('world:focus', { detail: { id } }))
-              }
+              onSelectAgent={(id) => window.dispatchEvent(new CustomEvent('world:focus', { detail: { id } }))}
             />
           </div>
 
@@ -419,7 +314,7 @@ function WorkspaceInner() {
         {/* Right: Agent detail panel */}
         <div
           className="w-80 border-l flex flex-col overflow-hidden"
-          style={{ borderColor: skin.colors.primary + "20" }}
+          style={{ borderColor: `${skin.colors.primary}20` }}
         >
           <AgentCard className="flex-1 overflow-y-auto" />
         </div>

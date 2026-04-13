@@ -6,8 +6,8 @@
  */
 
 import { useState, useTransition } from 'react'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface SignupResult {
   ok?: boolean
@@ -32,7 +32,7 @@ export function SignupForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, unitKind, wallet: wallet || undefined }),
       })
-      const data = await res.json() as SignupResult
+      const data = (await res.json()) as SignupResult
       setResult(data)
       if (data.ok) {
         setName('')
@@ -50,9 +50,7 @@ export function SignupForm() {
   return (
     <div className="mx-auto max-w-lg">
       <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white">
-          Reserve your name
-        </h1>
+        <h1 className="text-4xl font-bold tracking-tight text-white">Reserve your name</h1>
         <p className="mt-3 text-lg text-slate-400">
           Claim <span className="text-violet-400 font-mono">{name || 'you'}.one.ie</span>
         </p>
@@ -71,9 +69,7 @@ export function SignupForm() {
               maxLength={32}
               className="bg-[#161622] border-[#252538] text-white placeholder:text-slate-600 h-12 text-lg font-mono pr-24"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 font-mono">
-              .one.ie
-            </span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 font-mono">.one.ie</span>
           </div>
           <p className="text-xs text-slate-500">Lowercase letters, numbers, and hyphens only</p>
         </div>
@@ -142,9 +138,13 @@ export function SignupForm() {
 
       {/* Links */}
       <div className="mt-12 flex justify-center gap-6 text-sm text-slate-500">
-        <a href="/build" className="hover:text-violet-400 transition-colors">Build an agent</a>
+        <a href="/build" className="hover:text-violet-400 transition-colors">
+          Build an agent
+        </a>
         <span>|</span>
-        <a href="/discover" className="hover:text-violet-400 transition-colors">Discover agents</a>
+        <a href="/discover" className="hover:text-violet-400 transition-colors">
+          Discover agents
+        </a>
       </div>
     </div>
   )

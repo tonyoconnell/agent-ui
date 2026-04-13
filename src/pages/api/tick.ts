@@ -5,20 +5,20 @@
  * Query: ?interval=60 (seconds), ?reload=1 (force meta refresh), ?peek=1 (don't run, just report)
  */
 import type { APIRoute } from 'astro'
-import { getNet, reloadMeta } from '@/lib/net'
 import { openrouter } from '@/engine/llm'
 import { tick } from '@/engine/loop'
+import { getNet, reloadMeta } from '@/lib/net'
 
 let lastTick = 0
 
 // Named interval constants (ms)
-const L1_INTERVAL = 100          // signal routing per message
-const L2_INTERVAL = 1000         // trail accumulation per outcome
-const L3_INTERVAL = 300_000      // fade every 5 min
-const L4_INTERVAL = 60_000       // economic payment tracking per min
-const L5_INTERVAL = 600_000      // evolution every 10 min (24h cooldown per unit)
-const L6_INTERVAL = 3_600_000    // knowledge/highway crystallization every hour
-const L7_INTERVAL = 3_600_000    // frontier detection every hour
+const L1_INTERVAL = 100 // signal routing per message
+const L2_INTERVAL = 1000 // trail accumulation per outcome
+const L3_INTERVAL = 300_000 // fade every 5 min
+const L4_INTERVAL = 60_000 // economic payment tracking per min
+const L5_INTERVAL = 600_000 // evolution every 10 min (24h cooldown per unit)
+const L6_INTERVAL = 3_600_000 // knowledge/highway crystallization every hour
+const L7_INTERVAL = 3_600_000 // frontier detection every hour
 
 let lastL1 = 0
 let lastL2 = 0
@@ -51,7 +51,7 @@ export const GET: APIRoute = async ({ url }) => {
         },
         timestamp: new Date().toISOString(),
       }),
-      { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1' } }
+      { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1' } },
     )
   }
 
@@ -72,7 +72,7 @@ export const GET: APIRoute = async ({ url }) => {
           l7: { interval: L7_INTERVAL, lastAtMs: lastL7, nextAtMs: lastL7 + L7_INTERVAL },
         },
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } },
     )
   }
 
@@ -119,6 +119,6 @@ export const GET: APIRoute = async ({ url }) => {
         l7: { interval: L7_INTERVAL, lastAtMs: lastL7, nextAtMs: lastL7 + L7_INTERVAL },
       },
     }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json' } },
   )
 }

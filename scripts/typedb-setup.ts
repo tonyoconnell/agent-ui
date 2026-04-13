@@ -9,9 +9,9 @@
  *   npx tsx scripts/typedb-setup.ts --seed    # Seed data only
  */
 
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -53,7 +53,7 @@ async function getToken(): Promise<string> {
     throw new Error(`Signin failed: ${res.status} - ${text}`)
   }
 
-  const data = await res.json() as { token: string }
+  const data = (await res.json()) as { token: string }
   return data.token
 }
 
@@ -63,13 +63,13 @@ async function query(
   token: string,
   tql: string,
   txType: 'read' | 'write' | 'schema' = 'read',
-  commit = true
+  commit = true,
 ): Promise<unknown> {
   const res = await fetch(`${TYPEDB_URL}/v1/query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       databaseName: TYPEDB_DATABASE,
@@ -91,18 +91,18 @@ async function query(
 
 async function listDatabases(token: string): Promise<string[]> {
   const res = await fetch(`${TYPEDB_URL}/v1/databases`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}` },
   })
   if (!res.ok) return []
-  const data = await res.json() as { databases?: Array<{ name: string }> }
+  const data = (await res.json()) as { databases?: Array<{ name: string }> }
   // Handle both string[] and {name: string}[] formats
-  return (data.databases || []).map(d => typeof d === 'string' ? d : d.name)
+  return (data.databases || []).map((d) => (typeof d === 'string' ? d : d.name))
 }
 
 async function createDatabase(token: string, name: string): Promise<boolean> {
   const res = await fetch(`${TYPEDB_URL}/v1/databases/${name}`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}` },
   })
   return res.ok
 }
@@ -156,7 +156,7 @@ async function loadSchema(): Promise<boolean> {
   // Remove # comments (but keep string literals)
   schema = schema
     .split('\n')
-    .map(line => {
+    .map((line) => {
       // Don't strip inside strings
       const hashIndex = line.indexOf('#')
       if (hashIndex === -1) return line
@@ -166,7 +166,7 @@ async function loadSchema(): Promise<boolean> {
       if (quotes % 2 === 1) return line // Inside a string, keep it
       return beforeHash.trimEnd()
     })
-    .filter(line => line.trim().length > 0) // Remove empty lines
+    .filter((line) => line.trim().length > 0) // Remove empty lines
     .join('\n')
 
   console.log(`Schema: ${schema.split('\n').length} lines (comments stripped)`)
@@ -207,7 +207,9 @@ async function seedData(): Promise<boolean> {
     const token = await getToken()
 
     // Check if already seeded
-    const result = await query(token, 'match $u isa unit, has uid $id; select $id; limit 1;', 'read') as { answers?: unknown[] }
+    const result = (await query(token, 'match $u isa unit, has uid $id; select $id; limit 1;', 'read')) as {
+      answers?: unknown[]
+    }
     if (result.answers && result.answers.length > 0) {
       console.log('Data already exists. Skipping seed.')
       return true
@@ -221,12 +223,16 @@ async function seedData(): Promise<boolean> {
     ]
 
     for (const g of groups) {
-      await query(token, `
+      await query(
+        token,
+        `
         insert $g isa group,
           has gid "${g.id}",
           has name "${g.name}",
           has purpose "${g.purpose}";
-      `, 'write')
+      `,
+        'write',
+      )
     }
     console.log(`Groups: ${groups.length}`)
 
@@ -243,13 +249,17 @@ async function seedData(): Promise<boolean> {
     ]
 
     for (const u of units) {
-      await query(token, `
+      await query(
+        token,
+        `
         insert $u isa unit,
           has uid "${u.id}",
           has name "${u.name}",
           has unit-kind "${u.kind}",
           has status "active";
-      `, 'write')
+      `,
+        'write',
+      )
     }
     console.log(`Units: ${units.length}`)
 
@@ -262,7 +272,9 @@ async function seedData(): Promise<boolean> {
     ]
 
     for (const e of edges) {
-      await query(token, `
+      await query(
+        token,
+        `
         match
           $from isa unit, has uid "${e.from}";
           $to isa unit, has uid "${e.to}";
@@ -272,7 +284,9 @@ async function seedData(): Promise<boolean> {
             has resistance 0.0,
             has traversals 0,
             has revenue 0.0;
-      `, 'write')
+      `,
+        'write',
+      )
     }
     console.log(`Paths: ${edges.length}`)
 

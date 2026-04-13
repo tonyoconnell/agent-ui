@@ -32,7 +32,7 @@ const CORS_ORIGINS = [
 ]
 
 function corsHeaders(origin: string | null): Record<string, string> {
-  const allowed = origin && CORS_ORIGINS.some(o => origin.startsWith(o)) ? origin : CORS_ORIGINS[0]
+  const allowed = origin && CORS_ORIGINS.some((o) => origin.startsWith(o)) ? origin : CORS_ORIGINS[0]
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -59,7 +59,7 @@ async function getToken(env: Env): Promise<string> {
     throw new Error(`TypeDB signin failed: ${res.status}`)
   }
 
-  const data = await res.json() as { token: string }
+  const data = (await res.json()) as { token: string }
   const payload = JSON.parse(atob(data.token.split('.')[1]))
   cachedToken = { token: data.token, expires: payload.exp * 1000 }
   return cachedToken.token
@@ -78,18 +78,14 @@ export default {
 
     // Health check
     if (url.pathname === '/health') {
-      return Response.json(
-        { status: 'ok', version: env.VERSION, database: env.TYPEDB_DATABASE },
-        { headers },
-      )
+      return Response.json({ status: 'ok', version: env.VERSION, database: env.TYPEDB_DATABASE }, { headers })
     }
-
 
     // POST /typedb/query — proxy TypeQL queries to TypeDB Cloud /v1/query
     if (url.pathname === '/typedb/query' && request.method === 'POST') {
       try {
         const token = await getToken(env)
-        const body = await request.json() as {
+        const body = (await request.json()) as {
           query: string
           transactionType?: 'read' | 'write'
           commit?: boolean
@@ -99,13 +95,13 @@ export default {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             databaseName: env.TYPEDB_DATABASE,
             transactionType: body.transactionType || 'read',
             query: body.query,
-            commit: body.commit ?? (body.transactionType === 'write'),
+            commit: body.commit ?? body.transactionType === 'write',
           }),
         })
 
@@ -142,12 +138,11 @@ export default {
           WHERE group_id = ?
           ORDER BY ts ASC
           LIMIT 100
-        `).bind(groupId).all()
+        `)
+          .bind(groupId)
+          .all()
 
-        return Response.json(
-          { group: groupId, messages: result.results || [] },
-          { headers },
-        )
+        return Response.json({ group: groupId, messages: result.results || [] }, { headers })
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Unknown error'
         return Response.json({ error: msg }, { status: 500, headers })

@@ -140,19 +140,19 @@ For Risk Assessment:
 - "Generate trading signal"
 - "Analyze team vesting"
 - "Check smart contract audits"
-`;
+`
 
 /**
  * Get system prompt with optional token pre-filled
  */
 export function getCryptoAnalysisPrompt(tokenId?: string): string {
-  let prompt = CRYPTO_ANALYSIS_SYSTEM_PROMPT;
+  let prompt = CRYPTO_ANALYSIS_SYSTEM_PROMPT
 
   if (tokenId) {
-    prompt += `\n\n## Current Context\nYou are analyzing: **${tokenId}**\nStart with a quick overview unless the user requests a specific analysis type.`;
+    prompt += `\n\n## Current Context\nYou are analyzing: **${tokenId}**\nStart with a quick overview unless the user requests a specific analysis type.`
   }
 
-  return prompt;
+  return prompt
 }
 
 /**
@@ -166,7 +166,7 @@ export const EXAMPLE_ANALYSIS_PROMPTS = {
   history: (symbol: string, days: number) => `Show me ${symbol} price history for the last ${days} days`,
   trending: () => `What are the trending tokens right now?`,
   aiTokens: () => `Show me the top AI-related tokens`,
-};
+}
 
 /**
  * Suggested prompts for analysis follow-up
@@ -191,10 +191,5 @@ export const FOLLOW_UP_SUGGESTIONS = {
     'Check smart contract audits',
     'Deep research on team',
   ],
-  afterChart: [
-    'Analyze the trend',
-    'Add volume overlay',
-    'Show RSI indicator',
-    'Compare to market average',
-  ],
-};
+  afterChart: ['Analyze the trend', 'Add volume overlay', 'Show RSI indicator', 'Compare to market average'],
+}

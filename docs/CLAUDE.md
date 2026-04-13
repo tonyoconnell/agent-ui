@@ -32,8 +32,10 @@ Apply to `docs/*.md`
 | Implementation | tutorial.md, the-stack.md, people.md, groups.md | How to build |
 | Strategy | strategy.md, one-protocol.md, integration.md | The play |
 | Commerce | agent-launch.md, asi-world.md | The business |
+| Execution | TODO-*.md (template, task-management, SUI, rename, etc.) | Wave-based tasks, executed by /wave, self-verifying |
 
 README.md is the index. Link everything back to it.
+**NEW:** `TODO-SUI.md` — Sui integration phases 1-6, testnet complete, Phase 2 (identity) in flight. Use `/sui` skill.
 
 ---
 

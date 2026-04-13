@@ -38,12 +38,12 @@ export function percentiles(times: number[]): {
   const sorted = [...times].sort((a, b) => a - b)
   const sum = times.reduce((a, b) => a + b, 0)
   const mean = sum / times.length
-  const variance = times.reduce((a, x) => a + Math.pow(x - mean, 2), 0) / times.length
+  const variance = times.reduce((a, x) => a + (x - mean) ** 2, 0) / times.length
   const stddev = Math.sqrt(variance)
 
   return {
     min: sorted[0],
-    p50: sorted[Math.floor(times.length * 0.50)],
+    p50: sorted[Math.floor(times.length * 0.5)],
     p95: sorted[Math.floor(times.length * 0.95)],
     p99: sorted[Math.floor(times.length * 0.99)],
     max: sorted[sorted.length - 1],
@@ -58,7 +58,7 @@ export function percentiles(times: number[]): {
 export async function benchmark(
   name: string,
   fn: () => Promise<void> | void,
-  runs: number = 100
+  runs: number = 100,
 ): Promise<BenchmarkResult> {
   const times: number[] = []
 
@@ -85,10 +85,6 @@ export async function benchmark(
 /**
  * Check if a result exceeds threshold by percentage
  */
-export function checkRegression(
-  result: BenchmarkResult,
-  baseline: number,
-  threshold: number = 0.2
-): boolean {
+export function checkRegression(result: BenchmarkResult, baseline: number, threshold: number = 0.2): boolean {
   return result.p95_ms > baseline * (1 + threshold)
 }

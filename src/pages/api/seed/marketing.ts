@@ -5,7 +5,7 @@
  * Idempotent: checks for existing marketing group before inserting.
  */
 import type { APIRoute } from 'astro'
-import { write, readParsed } from '@/lib/typedb'
+import { readParsed, write } from '@/lib/typedb'
 
 const MARKETING_UNITS = [
   { uid: 'marketing:director', name: 'director', tags: ['marketing', 'strategy', 'routing'] },
@@ -66,12 +66,12 @@ export const POST: APIRoute = async () => {
       has purpose "AI marketing department using weight-based routing",
       has group-type "world",
       has status "active";
-  `).catch(e => results.push(`Group error: ${e.message}`))
+  `).catch((e) => results.push(`Group error: ${e.message}`))
   results.push('Marketing group created')
 
   // Create units
   for (const u of MARKETING_UNITS) {
-    const tagStr = u.tags.map(t => `has tag "${t}"`).join(', ')
+    const tagStr = u.tags.map((t) => `has tag "${t}"`).join(', ')
     await write(`
       insert $u isa unit,
         has uid "${u.uid}",
@@ -86,7 +86,7 @@ export const POST: APIRoute = async () => {
         has balance 0.0,
         has generation 0,
         ${tagStr};
-    `).catch(e => results.push(`Unit ${u.uid} error: ${e.message}`))
+    `).catch((e) => results.push(`Unit ${u.uid} error: ${e.message}`))
   }
   results.push(`${MARKETING_UNITS.length} units created`)
 

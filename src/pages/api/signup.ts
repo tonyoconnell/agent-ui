@@ -8,7 +8,7 @@ import type { APIRoute } from 'astro'
 import { write } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request }) => {
-  const { name, unitKind, wallet } = await request.json() as {
+  const { name, unitKind, wallet } = (await request.json()) as {
     name: string
     unitKind: string
     wallet?: string
@@ -19,7 +19,10 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // Sanitize name: lowercase, alphanumeric + hyphens
-  const safeName = name.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32)
+  const safeName = name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '')
+    .slice(0, 32)
   if (!safeName) {
     return new Response(JSON.stringify({ error: 'Invalid name' }), { status: 400 })
   }

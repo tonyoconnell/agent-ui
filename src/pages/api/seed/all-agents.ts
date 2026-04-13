@@ -26,10 +26,10 @@
  * }
  */
 
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 import type { APIRoute } from 'astro'
-import { write, readParsed } from '@/lib/typedb'
-import * as fs from 'fs'
-import * as path from 'path'
+import { readParsed, write } from '@/lib/typedb'
 
 interface AgentData {
   name: string
@@ -47,12 +47,12 @@ function parseYamlValue(value: string): unknown {
   value = value.trim()
   if (value === 'true') return true
   if (value === 'false') return false
-  if (!isNaN(Number(value))) return Number(value)
+  if (!Number.isNaN(Number(value))) return Number(value)
   if (value.startsWith('[') && value.endsWith(']')) {
     return value
       .slice(1, -1)
       .split(',')
-      .map(s => s.trim().replace(/^['"]|['"]$/g, ''))
+      .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
   }
   return value.replace(/^['"]|['"]$/g, '')
 }
@@ -151,7 +151,10 @@ function parseAgent(md: string): AgentData {
     spec.skills = parseSkills(skillLines)
   }
 
-  spec.prompt = lines.slice(frontmatterEnd + 1).join('\n').trim()
+  spec.prompt = lines
+    .slice(frontmatterEnd + 1)
+    .join('\n')
+    .trim()
   return spec
 }
 
@@ -165,7 +168,7 @@ function agentToQueries(spec: AgentData): string[] {
 
   // Unit insert
   const tags = [...(spec.tags || []), ...(spec.group ? [spec.group] : [])]
-  const tagStr = tags.map(t => `has tag "${t}"`).join(', ')
+  const tagStr = tags.map((t) => `has tag "${t}"`).join(', ')
 
   const promptClean = escapeString(spec.prompt.slice(0, 5000))
   queries.push(`
@@ -181,19 +184,19 @@ function agentToQueries(spec: AgentData): string[] {
       has sample-count 0,
       has reputation 0.0,
       has balance 0.0,
-      has generation 0${tagStr ? ', ' + tagStr : ''};
+      has generation 0${tagStr ? `, ${tagStr}` : ''};
   `)
 
   // Skills and capabilities
   for (const skill of spec.skills || []) {
     const skillId = spec.group ? `${spec.group}:${skill.name}` : skill.name
-    const skillTags = skill.tags?.map(t => `has tag "${t}"`).join(', ') || ''
+    const skillTags = skill.tags?.map((t) => `has tag "${t}"`).join(', ') || ''
 
     queries.push(`
       insert $s isa skill,
         has skill-id "${skillId}",
         has name "${skill.name}",
-        has price ${skill.price || 0}${skillTags ? ', ' + skillTags : ''};
+        has price ${skill.price || 0}${skillTags ? `, ${skillTags}` : ''};
     `)
 
     queries.push(`
@@ -212,7 +215,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const agentsDir = '/Users/toc/Server/envelopes/agents'
   const files = fs.readdirSync(agentsDir)
-  const agentFiles = files.filter(f => f.endsWith('.md') && f !== 'README.md')
+  const agentFiles = files.filter((f) => f.endsWith('.md') && f !== 'README.md')
 
   const results: string[] = []
   const agents: Array<{
@@ -249,14 +252,14 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // Also check subdirectories
-  const subdirs = fs.readdirSync(agentsDir).filter(f => {
+  const subdirs = fs.readdirSync(agentsDir).filter((f) => {
     const stat = fs.statSync(path.join(agentsDir, f))
     return stat.isDirectory()
   })
 
   for (const subdir of subdirs) {
     const subPath = path.join(agentsDir, subdir)
-    const subFiles = fs.readdirSync(subPath).filter(f => f.endsWith('.md') && f !== 'README.md')
+    const subFiles = fs.readdirSync(subPath).filter((f) => f.endsWith('.md') && f !== 'README.md')
 
     for (const file of subFiles) {
       const filePath = path.join(subPath, file)
@@ -281,7 +284,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   // Check existing
   const existing = await readParsed('match $u isa unit, has uid $uid; select $uid;').catch(() => [])
-  const existingUids = new Set(existing.map(e => (e.uid as string) || ''))
+  const existingUids = new Set(existing.map((e) => (e.uid as string) || ''))
 
   if (existingUids.size > 0) {
     results.push(`Found ${existingUids.size} existing units (skipping)`)
@@ -331,7 +334,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Create director paths
-    const directorAgent = groupAgents_.find(a => a.name.includes('director'))
+    const directorAgent = groupAgents_.find((a) => a.name.includes('director'))
     if (directorAgent) {
       const directorUid = `${groupName}:${directorAgent.name}`
       for (const agent of groupAgents_) {
@@ -388,21 +391,15 @@ export const POST: APIRoute = async ({ request }) => {
 
 export const GET: APIRoute = async () => {
   // Query current state
-  const units = await readParsed(
-    `match $u isa unit, has uid $uid, has name $n; select $uid, $n;`
-  ).catch(() => [])
+  const units = await readParsed(`match $u isa unit, has uid $uid, has name $n; select $uid, $n;`).catch(() => [])
 
-  const skills = await readParsed(
-    `match $s isa skill, has skill-id $id, has name $n; select $id, $n;`
-  ).catch(() => [])
+  const skills = await readParsed(`match $s isa skill, has skill-id $id, has name $n; select $id, $n;`).catch(() => [])
 
   const paths = await readParsed(
-    `match $p (source: $s, target: $t) isa path, has strength $str; select $str; limit 100;`
+    `match $p (source: $s, target: $t) isa path, has strength $str; select $str; limit 100;`,
   ).catch(() => [])
 
-  const groups = await readParsed(
-    `match $g isa group, has gid $gid; select $gid;`
-  ).catch(() => [])
+  const groups = await readParsed(`match $g isa group, has gid $gid; select $gid;`).catch(() => [])
 
   return Response.json({
     ok: true,

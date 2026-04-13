@@ -14,7 +14,7 @@ import type { APIRoute } from 'astro'
 import { write } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request }) => {
-  const { teamName, agents, brief } = await request.json() as {
+  const { teamName, agents, brief } = (await request.json()) as {
     teamName: string
     agents: Array<{
       name: string
@@ -33,7 +33,10 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'A team needs at least 2 agents' }), { status: 400 })
   }
 
-  const safeTeam = teamName.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32)
+  const safeTeam = teamName
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '')
+    .slice(0, 32)
   if (!safeTeam) {
     return new Response(JSON.stringify({ error: 'Invalid team name' }), { status: 400 })
   }
@@ -51,8 +54,14 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 2. Create each agent unit + membership + skill + capability
     for (const agent of agents) {
-      const safeName = agent.name.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32)
-      const safeTask = agent.task.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 64)
+      const safeName = agent.name
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '')
+        .slice(0, 32)
+      const safeTask = agent.task
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '')
+        .slice(0, 64)
       const model = agent.model || 'sonnet'
       const uid = `${safeTeam}-${safeName}`
       const skillId = `${uid}:${safeTask}`
@@ -107,9 +116,15 @@ export const POST: APIRoute = async ({ request }) => {
     // 3. Create paths (flows) between agents
     for (const agent of agents) {
       if (!agent.emitsTo) continue
-      const sourceName = agent.name.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32)
+      const sourceName = agent.name
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '')
+        .slice(0, 32)
       const targetName = agent.emitsTo.includes(':')
-        ? agent.emitsTo.split(':')[0].toLowerCase().replace(/[^a-z0-9-]/g, '')
+        ? agent.emitsTo
+            .split(':')[0]
+            .toLowerCase()
+            .replace(/[^a-z0-9-]/g, '')
         : agent.emitsTo.toLowerCase().replace(/[^a-z0-9-]/g, '')
       const sourceUid = `${safeTeam}-${sourceName}`
       const targetUid = `${safeTeam}-${targetName}`
@@ -130,7 +145,10 @@ export const POST: APIRoute = async ({ request }) => {
     // 4. Log the initial signal if brief provided
     if (brief) {
       const firstAgent = agents[0]
-      const safeName = firstAgent.name.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32)
+      const safeName = firstAgent.name
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '')
+        .slice(0, 32)
       const firstUid = `${safeTeam}-${safeName}`
 
       await write(`
@@ -143,13 +161,16 @@ export const POST: APIRoute = async ({ request }) => {
       `).catch(() => {}) // signal logging is best-effort
     }
 
-    return new Response(JSON.stringify({
-      ok: true,
-      group: safeTeam,
-      agents: agents.map(a => `${safeTeam}-${a.name.toLowerCase().replace(/[^a-z0-9-]/g, '')}`),
-    }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        group: safeTeam,
+        agents: agents.map((a) => `${safeTeam}-${a.name.toLowerCase().replace(/[^a-z0-9-]/g, '')}`),
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     if (message.includes('already') || message.includes('unique') || message.includes('key')) {

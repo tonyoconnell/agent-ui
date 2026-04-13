@@ -4,10 +4,11 @@
  * Returns: { kind, spec, stats, wallet, recentSignals[] }
  * Caching: 1s
  */
+
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 
 type EntityResponse = {
   kind: 'unit' | 'group' | 'not-found'
@@ -54,28 +55,24 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
     const data = JSON.parse(raw)
     const agent = (data.agents || []).find((a: { id: string }) => a.id === id)
     if (agent) {
-      return Response.json({
-        kind: 'unit',
-        id,
-        spec: {
-          name: agent.name,
-          kind: agent.caste || 'unit',
-          model: agent.model || 'meta-llama/llama-4-maverick',
-          tags: agent.tags || [],
-        },
-        stats: { successRate: agent.successRate ?? 75 },
-      } as EntityResponse, { headers: { 'Cache-Control': 'public, max-age=1' } })
+      return Response.json(
+        {
+          kind: 'unit',
+          id,
+          spec: {
+            name: agent.name,
+            kind: agent.caste || 'unit',
+            model: agent.model || 'meta-llama/llama-4-maverick',
+            tags: agent.tags || [],
+          },
+          stats: { successRate: agent.successRate ?? 75 },
+        } as EntityResponse,
+        { headers: { 'Cache-Control': 'public, max-age=1' } },
+      )
     }
-  } catch { /* fall through */ }
-
-  return Response.json({
-    kind: 'unit',
-    id,
-    spec: { name: id, kind: 'unit', model: 'unknown' },
-    stats: { successRate: 50 },
-  } as EntityResponse, {
-    headers: { 'Cache-Control': 'public, max-age=1' },
-  })
+  } catch {
+    /* fall through */
+  }
 
   try {
     // Try to find as unit
@@ -96,7 +93,7 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
         select $tag;
       `).catch(() => [])
 
-      const tags = tagRows.map(tr => tr.tag as string)
+      const tags = tagRows.map((tr) => tr.tag as string)
 
       // Recent signals
       const signalRows = await readParsed(`
@@ -110,7 +107,7 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
         select $fid, $fn, $tid, $tn, $data, $amt, $ok, $ts;
       `).catch(() => [])
 
-      const recentSignals = signalRows.map(sr => ({
+      const recentSignals = signalRows.map((sr) => ({
         id: `${sr.fid}-${sr.tid}-${sr.ts}`,
         from: sr.fn as string,
         to: sr.tn as string,
@@ -185,9 +182,6 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
     return Response.json({ kind: 'not-found', id } as EntityResponse, { status: 404 })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    return Response.json(
-      { kind: 'not-found', id, error: message } as EntityResponse,
-      { status: 404 }
-    )
+    return Response.json({ kind: 'not-found', id, error: message } as EntityResponse, { status: 404 })
   }
 }

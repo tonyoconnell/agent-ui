@@ -12,23 +12,14 @@
  */
 
 import type { APIRoute } from 'astro'
-import {
-  parse,
-  syncAgent,
-  syncAgentWithIdentity,
-  syncWorld,
-  toTypeDB,
-  worldToTypeDB,
-  type AgentSpec,
-  type WorldSpec,
-} from '@/engine/agent-md'
-import { validateApiKey, requireAuth } from '@/lib/api-auth'
+import { type AgentSpec, parse, syncAgentWithIdentity, syncWorld, toTypeDB, type WorldSpec } from '@/engine/agent-md'
+import { validateApiKey } from '@/lib/api-auth'
 
 export const POST: APIRoute = async ({ request }) => {
   // Validate API key if provided (optional for now, can be required later)
-  const auth = await validateApiKey(request)
+  const _auth = await validateApiKey(request)
   try {
-    const body = await request.json() as any
+    const body = (await request.json()) as any
 
     // Single agent markdown
     if (body.markdown) {
@@ -39,7 +30,7 @@ export const POST: APIRoute = async ({ request }) => {
         uid: spec.group ? `${spec.group}:${spec.name}` : spec.name,
         wallet: spec.wallet || null,
         suiObjectId: spec.suiObjectId || null,
-        skills: spec.skills?.map(s => s.name) || [],
+        skills: spec.skills?.map((s) => s.name) || [],
       })
     }
 
@@ -62,19 +53,17 @@ export const POST: APIRoute = async ({ request }) => {
       await syncWorld(worldSpec)
 
       // Then derive identity for each agent (Sui keypair + on-chain Unit)
-      const results = await Promise.all(
-        agents.map(a => syncAgentWithIdentity(a).catch(() => a))
-      )
+      const results = await Promise.all(agents.map((a) => syncAgentWithIdentity(a).catch(() => a)))
 
       return Response.json({
         ok: true,
         world: worldName,
-        agents: results.map(a => ({
+        agents: results.map((a) => ({
           name: a.name,
           uid: `${worldName}:${a.name}`,
           wallet: a.wallet || null,
           suiObjectId: a.suiObjectId || null,
-          skills: a.skills?.map(s => s.name) || [],
+          skills: a.skills?.map((s) => s.name) || [],
         })),
       })
     }

@@ -6,15 +6,26 @@ The user specifies which task: `$ARGUMENTS`
 
 ## W4 Gate — Verification (non-negotiable)
 
-Before marking a task complete, verify the work is solid:
+Before marking a task complete, verify the work is solid across **four quality dimensions**:
 
 ```bash
 npm run verify     # biome check . && tsc --noEmit && vitest run
 ```
 
+**Quality Rubric (fit/form/truth/taste):**
+- **Fit (0.35):** Does the work answer the actual task? Does it unblock dependents?
+- **Form (0.20):** Is the code shape right? Files organized? Types clean? Tests for new code?
+- **Truth (0.30):** Are assumptions correct? Does it match schema/spec? No hallucinated APIs?
+- **Taste (0.15):** Does it match the agent's style? (e.g., Sonnet patterns in RFC-era code)
+
+**Golden zone:** All four dims ≥ 0.65 → score ≥ 0.85 → mark with full strength.
+**Borderline:** Any dim < 0.5 → full warn(1). Do not mark done.
+
 **If verification fails:** Fix it. Do not reinforce broken paths. False positives poison the pheromone.
 
 This is the deterministic sandwich POST check. The substrate only learns from verified outcomes.
+
+**Read: `docs/rubrics.md` — quality scoring is the same arithmetic as path strength.**
 
 ## Steps
 

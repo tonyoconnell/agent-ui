@@ -9,21 +9,21 @@
  */
 
 import type { APIRoute } from 'astro'
-import { write, readParsed } from '@/lib/typedb'
 import { generateApiKey, hashKey } from '@/lib/api-key'
+import { readParsed, write } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const body = await request.json() as any
+    const body = (await request.json()) as any
 
     // Generate new API key
     if (body.action === 'generate') {
       const { user, permissions = ['read'] } = body
       if (!user) {
-        return new Response(
-          JSON.stringify({ error: 'user field required' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: 'user field required' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        })
       }
 
       const plainKey = generateApiKey()
@@ -49,9 +49,9 @@ export const POST: APIRoute = async ({ request }) => {
           key: plainKey,
           user,
           permissions,
-          message: 'Save this key — you cannot view it again. Share with David securely.'
+          message: 'Save this key — you cannot view it again. Share with David securely.',
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
       )
     }
 
@@ -59,10 +59,10 @@ export const POST: APIRoute = async ({ request }) => {
     if (body.action === 'revoke') {
       const { keyId } = body
       if (!keyId) {
-        return new Response(
-          JSON.stringify({ error: 'keyId field required' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: 'keyId field required' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        })
       }
 
       await write(`
@@ -71,23 +71,23 @@ export const POST: APIRoute = async ({ request }) => {
         insert $k has key-status "revoked";
       `)
 
-      return new Response(
-        JSON.stringify({ ok: true, message: 'Key revoked' }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ ok: true, message: 'Key revoked' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
-    return new Response(
-      JSON.stringify({ error: 'Unknown action. Use generate, revoke, or validate' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: 'Unknown action. Use generate, revoke, or validate' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
     console.error('[API Keys] Error:', msg)
-    return new Response(
-      JSON.stringify({ error: msg }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }
 
@@ -99,10 +99,10 @@ export const GET: APIRoute = async ({ url }) => {
     if (action === 'list') {
       const user = url.searchParams.get('user')
       if (!user) {
-        return new Response(
-          JSON.stringify({ error: 'user query param required' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: 'user query param required' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        })
       }
 
       const rows = await readParsed(`
@@ -115,21 +115,21 @@ export const GET: APIRoute = async ({ url }) => {
         select $id, $p, $s, $c, $lu;
       `)
 
-      return new Response(
-        JSON.stringify({ ok: true, keys: rows }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ ok: true, keys: rows }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
-    return new Response(
-      JSON.stringify({ error: 'Unknown action. Use list' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: 'Unknown action. Use list' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
-    return new Response(
-      JSON.stringify({ error: msg }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }

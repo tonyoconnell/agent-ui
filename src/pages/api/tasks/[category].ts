@@ -23,11 +23,11 @@ export const GET: APIRoute = async ({ params, url }) => {
     let filtered = localTasks
 
     if (tags.length > 0) {
-      filtered = filtered.filter(t => tags.every(tag => t.tags.includes(tag)))
+      filtered = filtered.filter((t) => tags.every((tag) => t.tags.includes(tag)))
     }
 
     const result = filtered
-      .map(t => {
+      .map((t) => {
         const repelled = t.alarmPheromone >= 30 && t.alarmPheromone > t.trailPheromone
         const attractive = t.trailPheromone >= 50
         const exploratory = t.trailPheromone === 0 && t.alarmPheromone === 0
@@ -50,7 +50,7 @@ export const GET: APIRoute = async ({ params, url }) => {
           repelled,
         }
       })
-      .filter(t => t.category === category)
+      .filter((t) => t.category === category)
 
     return new Response(JSON.stringify({ tasks: result }), {
       headers: { 'Content-Type': 'application/json' },
@@ -59,10 +59,10 @@ export const GET: APIRoute = async ({ params, url }) => {
 
   // Fallback: fetch from TypeDB path via index route (absolute URL required)
   const qs = new URLSearchParams()
-  tags.forEach(t => qs.append('tag', t))
+  tags.forEach((t) => qs.append('tag', t))
   const base = `${url.protocol}//${url.host}`
   const res = await fetch(`${base}/api/tasks?${qs}`)
-    .then(r => r.json() as Promise<{ tasks: Array<{ category: string }> }>)
+    .then((r) => r.json() as Promise<{ tasks: Array<{ category: string }> }>)
     .catch(() => ({ tasks: [] }))
   const tasks = (res.tasks || []).filter((t: { category: string }) => t.category === category)
 

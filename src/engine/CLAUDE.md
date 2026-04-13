@@ -1,6 +1,6 @@
 # Engine
 
-**Skills: `/react19` for hooks/state, `/typedb` for persist layer queries.**
+**Skills: `/react19` for hooks/state, `/typedb` for persist layer queries, `/sui` for Sui integration (bridge.ts, Phase 2+).**
 
 ~90 lines. Two fields. Signal flows. Queue waits. TypeDB remembers.
 
@@ -98,6 +98,7 @@ if (!task) throw new Error(...)
 | `persist.ts` | ~154 | PersistentWorld: world + TypeDB persistence + knowledge |
 | `loop.ts` | ~75 | Tick: select → signal → drain → fade → evolve → know |
 | `boot.ts` | ~39 | Hydrate from TypeDB, start tick loop |
+| `bridge.ts` | ~150 | **NEW:** Sui ↔ TypeDB: mirror/absorb (mark/warn auto-propagate to Sui) |
 | ~~asi.ts~~ | deleted | routing absorbed into loop (select → ask → mark/warn) |
 | `llm.ts` | ~50 | LLM as unit: openrouter adapter (+ legacy anthropic/openai) |
 | `agentverse.ts` | ~83 | 2M agents: register/discover/call |

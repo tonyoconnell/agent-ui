@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Ingest Online Optimisers (Donal's) agents from GitHub into ONE.
  *
@@ -23,16 +24,16 @@
  *   Donal's Python keeps earning under his own retainers; ours ships to Agentverse.
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
-import { execSync } from 'child_process'
-import { fileURLToPath } from 'url'
+import { execSync } from 'node:child_process'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '..')
 
 const DRY = process.argv.includes('--dry')
-const ONLY = process.argv.find(a => a.startsWith('--only='))?.slice(7)
+const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Repo read — prefer local clone at ../donal/{name}, fall back to gh api
@@ -51,10 +52,7 @@ const readFile = (repo: string, filePath: string): string => {
   if (fs.existsSync(localPath)) {
     return fs.readFileSync(localPath, 'utf-8')
   }
-  const b64 = execSync(
-    `gh api "/repos/${repo}/contents/${filePath}" --jq .content`,
-    { encoding: 'utf-8' }
-  ).trim()
+  const b64 = execSync(`gh api "/repos/${repo}/contents/${filePath}" --jq .content`, { encoding: 'utf-8' }).trim()
   return Buffer.from(b64, 'base64').toString('utf-8')
 }
 
@@ -62,14 +60,9 @@ const listDir = (repo: string, dirPath: string): string[] => {
   const slug = repo.split('/')[1]
   const localPath = path.join(LOCAL_DONAL_ROOT, slug, dirPath)
   if (fs.existsSync(localPath)) {
-    return fs
-      .readdirSync(localPath)
-      .filter(f => !f.startsWith('.'))
+    return fs.readdirSync(localPath).filter((f) => !f.startsWith('.'))
   }
-  const out = execSync(
-    `gh api "/repos/${repo}/contents/${dirPath}" --jq '.[] | .name'`,
-    { encoding: 'utf-8' }
-  )
+  const out = execSync(`gh api "/repos/${repo}/contents/${dirPath}" --jq '.[] | .name'`, { encoding: 'utf-8' })
   return out.trim().split('\n').filter(Boolean)
 }
 
@@ -78,11 +71,11 @@ const listDir = (repo: string, dirPath: string): string[] => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FuryEndpoint {
-  file: string          // e.g. "ai_audit_deep.py"
-  slug: string          // e.g. "ai-ranking"  (kebab, from AGENT_NAME)
-  agentName: string     // e.g. "oo-ai-ranking-audit"
-  token: string         // e.g. "$AUDIT"
-  desc: string          // AGENT_DESC body
+  file: string // e.g. "ai_audit_deep.py"
+  slug: string // e.g. "ai-ranking"  (kebab, from AGENT_NAME)
+  agentName: string // e.g. "oo-ai-ranking-audit"
+  token: string // e.g. "$AUDIT"
+  desc: string // AGENT_DESC body
   spotFee: number
   deepFee: number | null
   promptStandard: string
@@ -98,17 +91,14 @@ const extractString = (src: string, key: string): string | null => {
   // Multiline concat form: wrapper.DESC = (\n    "a "\n    "b"\n)
   // Require the closing ) to be on its own line so embedded ")" in string
   // literals (e.g. "by vertical)") don't trip the lazy match.
-  const multi = new RegExp(
-    `wrapper\\.${key}\\s*=\\s*\\(\\s*\\n([\\s\\S]*?)\\n\\s*\\)`,
-    'm'
-  )
+  const multi = new RegExp(`wrapper\\.${key}\\s*=\\s*\\(\\s*\\n([\\s\\S]*?)\\n\\s*\\)`, 'm')
   const mm = src.match(multi)
   if (mm) {
     return mm[1]
       .split('\n')
-      .map(l => l.trim())
-      .filter(l => l.startsWith('"'))
-      .map(l => {
+      .map((l) => l.trim())
+      .filter((l) => l.startsWith('"'))
+      .map((l) => {
         // Strip leading/trailing quotes, preserve embedded ones
         const stripped = l.replace(/^"/, '').replace(/"\s*$/, '')
         return stripped
@@ -135,15 +125,15 @@ const slugify = (agentName: string, token: string): string => {
   // Default: strip "oo-" prefix, drop "-audit" / "-builder" suffix noise
   return agentName
     .replace(/^oo-/, '')
-    .replace(/-audit$/, '')     // "ai-ranking-audit" → "ai-ranking"
-    .replace(/-builder$/, '')   // "citation-builder" → "citation"
-    .replace(/-prospector$/, '')// "outreach-prospector" → "outreach"
-    .replace(/-finder$/, '')    // "forum-finder" → "forum"
-    .replace(/-profile$/, '')   // "social-profile" → "social"
+    .replace(/-audit$/, '') // "ai-ranking-audit" → "ai-ranking"
+    .replace(/-builder$/, '') // "citation-builder" → "citation"
+    .replace(/-prospector$/, '') // "outreach-prospector" → "outreach"
+    .replace(/-finder$/, '') // "forum-finder" → "forum"
+    .replace(/-profile$/, '') // "social-profile" → "social"
     .replace(/-directory$/, '-dir')
-    .replace(/-build$/, '')     // "schema-build" → "schema"
-    .replace(/-report$/, '')    // "monthly-report" → "monthly"
-    .replace(/^ai-ranking$/, 'ai-ranking')  // keep flagship intact
+    .replace(/-build$/, '') // "schema-build" → "schema"
+    .replace(/-report$/, '') // "monthly-report" → "monthly"
+    .replace(/^ai-ranking$/, 'ai-ranking') // keep flagship intact
 }
 
 const parseFuryEndpoint = (file: string, src: string): FuryEndpoint | null => {
@@ -164,9 +154,7 @@ const parseFuryEndpoint = (file: string, src: string): FuryEndpoint | null => {
     extractTripleQuoted(src, 'PROMPT') ??
     extractTripleQuoted(src, 'AUDIT_PROMPT_STANDARD')
 
-  const promptDeep =
-    extractTripleQuoted(src, 'PROMPT_DEEP') ??
-    extractTripleQuoted(src, 'AUDIT_PROMPT_DEEP')
+  const promptDeep = extractTripleQuoted(src, 'PROMPT_DEEP') ?? extractTripleQuoted(src, 'AUDIT_PROMPT_DEEP')
 
   if (!promptStandard) {
     console.warn(`  ⚠️  ${file}: no PROMPT_STANDARD / PROMPT / AUDIT_PROMPT_STANDARD`)
@@ -197,42 +185,45 @@ interface Personality {
   ambition: number
   urgency: number
   confrontation: number
-  source?: string  // agency-operator slug we looked up (may differ from ours)
+  source?: string // agency-operator slug we looked up (may differ from ours)
 }
 
 const DEFAULT_PERSONALITY: Personality = {
-  risk: 3, diligence: 4, tone: 3, ambition: 3, urgency: 3, confrontation: 3,
+  risk: 3,
+  diligence: 4,
+  tone: 3,
+  ambition: 3,
+  urgency: 3,
+  confrontation: 3,
 }
 
 // Our ingested slugs → agency-operator slug in personalities.py
 // For agents that don't have a direct entry, we pick the closest sibling.
 const PERSONALITY_SLUG_MAP: Record<string, string> = {
   'ai-ranking': 'ai_ranking',
-  'citation':   'head_seo_gbp',   // closest sibling in the SEO family
-  'niche-dir':  'head_seo_gbp',
-  'forum':      'head_seo_gbp',
-  'social':     'head_seo_gbp',
-  'outreach':   'sales_manager',
-  'quick':      'head_seo_gbp',
-  'full':       'head_seo_gbp',
-  'schema':     'head_webdev',
-  'monthly':    'head_reports',
+  citation: 'head_seo_gbp', // closest sibling in the SEO family
+  'niche-dir': 'head_seo_gbp',
+  forum: 'head_seo_gbp',
+  social: 'head_seo_gbp',
+  outreach: 'sales_manager',
+  quick: 'head_seo_gbp',
+  full: 'head_seo_gbp',
+  schema: 'head_webdev',
+  monthly: 'head_reports',
 }
 
 const DIMENSION_LABELS: Record<keyof Omit<Personality, 'source'>, [string, string]> = {
-  risk:          ['cautious',   'aggressive'],
-  diligence:     ['big-picture','obsessive detail'],
-  tone:          ['dry/formal', 'casual/warm'],
-  ambition:      ['safe bets',  'moonshots'],
-  urgency:       ['long-horizon','ship-today'],
+  risk: ['cautious', 'aggressive'],
+  diligence: ['big-picture', 'obsessive detail'],
+  tone: ['dry/formal', 'casual/warm'],
+  ambition: ['safe bets', 'moonshots'],
+  urgency: ['long-horizon', 'ship-today'],
   confrontation: ['diplomatic', 'blunt'],
 }
 
 const parsePersonality = (pySrc: string, slug: string): Personality | null => {
   // match line like:  "head_seo_gbp":  {"risk": 2, "diligence": 5, ...},
-  const re = new RegExp(
-    `"${slug}"\\s*:\\s*\\{([^}]+)\\}`
-  )
+  const re = new RegExp(`"${slug}"\\s*:\\s*\\{([^}]+)\\}`)
   const m = pySrc.match(re)
   if (!m) return null
   const fields: Record<string, number> = {}
@@ -279,19 +270,19 @@ interface Edge {
 // cross-holdings (undirected), but his reasons are directional — we encode
 // the direction he intended in each reason.
 const allianceEdges: Edge[] = [
-  { from: 'ai-ranking',   to: 'citation',  reason: 'flags gaps, fills them' },
-  { from: 'citation',     to: 'social',    reason: 'NAP data feeds profile builder' },
-  { from: 'citation',     to: 'forum',     reason: 'NAP data feeds outreach venues' },
-  { from: 'citation',     to: 'niche-dir', reason: 'batch sibling submissions' },
-  { from: 'forum',        to: 'outreach',  reason: 'discovers venues, works them' },
-  { from: 'outreach',     to: 'quick',     reason: 'feeds lead funnel' },
-  { from: 'quick',        to: 'full',      reason: 'VSL hook upsells to full audit' },
-  { from: 'ai-ranking',   to: 'schema',    reason: 'audit recommends schema gaps' },
-  { from: 'full',         to: 'schema',    reason: 'audit recommends schema gaps' },
-  { from: 'full',         to: 'monthly',   reason: 'full audit feeds retainer reports' },
-  { from: 'monthly',      to: 'schema',    reason: 'monthly schema refreshes' },
+  { from: 'ai-ranking', to: 'citation', reason: 'flags gaps, fills them' },
+  { from: 'citation', to: 'social', reason: 'NAP data feeds profile builder' },
+  { from: 'citation', to: 'forum', reason: 'NAP data feeds outreach venues' },
+  { from: 'citation', to: 'niche-dir', reason: 'batch sibling submissions' },
+  { from: 'forum', to: 'outreach', reason: 'discovers venues, works them' },
+  { from: 'outreach', to: 'quick', reason: 'feeds lead funnel' },
+  { from: 'quick', to: 'full', reason: 'VSL hook upsells to full audit' },
+  { from: 'ai-ranking', to: 'schema', reason: 'audit recommends schema gaps' },
+  { from: 'full', to: 'schema', reason: 'audit recommends schema gaps' },
+  { from: 'full', to: 'monthly', reason: 'full audit feeds retainer reports' },
+  { from: 'monthly', to: 'schema', reason: 'monthly schema refreshes' },
 ]
-const ALLIANCE_STRENGTH = 50  // matches 50 FET cross-holding from alliances.yaml
+const ALLIANCE_STRENGTH = 50 // matches 50 FET cross-holding from alliances.yaml
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Emit: agents/donal/{slug}.md  — DUAL FORMAT
@@ -329,16 +320,14 @@ ${rows}
 ${source}`
 }
 
-const upstreamDownstream = (slug: string): {
+const upstreamDownstream = (
+  slug: string,
+): {
   upstream: Array<{ from: string; reason: string }>
   downstream: Array<{ to: string; reason: string }>
 } => {
-  const upstream = allianceEdges
-    .filter(e => e.to === slug)
-    .map(e => ({ from: e.from, reason: e.reason }))
-  const downstream = allianceEdges
-    .filter(e => e.from === slug)
-    .map(e => ({ to: e.to, reason: e.reason }))
+  const upstream = allianceEdges.filter((e) => e.to === slug).map((e) => ({ from: e.from, reason: e.reason }))
+  const downstream = allianceEdges.filter((e) => e.from === slug).map((e) => ({ to: e.to, reason: e.reason }))
   return { upstream, downstream }
 }
 
@@ -373,14 +362,19 @@ const podDiagram = (slug: string): string => {
 const pricingRationale = (ep: FuryEndpoint): string => {
   // Derived rules from Donal's alliances.yaml fee ladder.
   const bracket =
-    ep.spotFee <= 0.05 ? 'cheap entry-point — discovery agent'
-    : ep.spotFee <= 0.10 ? 'mid-tier — repeatable batch work'
-    : ep.spotFee <= 0.20 ? 'VSL hook tier — conversion pressure'
-    : ep.spotFee <= 0.50 ? 'retainer deliverable — monthly work'
-    : 'flagship tier — full audit / consultancy'
-  const deep = ep.deepFee !== null
-    ? `| deep     | ${ep.deepFee} FET | Premium tier, expanded sections, higher word count, deeper recommendations |`
-    : ''
+    ep.spotFee <= 0.05
+      ? 'cheap entry-point — discovery agent'
+      : ep.spotFee <= 0.1
+        ? 'mid-tier — repeatable batch work'
+        : ep.spotFee <= 0.2
+          ? 'VSL hook tier — conversion pressure'
+          : ep.spotFee <= 0.5
+            ? 'retainer deliverable — monthly work'
+            : 'flagship tier — full audit / consultancy'
+  const deep =
+    ep.deepFee !== null
+      ? `| deep     | ${ep.deepFee} FET | Premium tier, expanded sections, higher word count, deeper recommendations |`
+      : ''
   return `| Tier     | Fee  | When it fires |
 |----------|-----:|---------------|
 | standard | ${ep.spotFee} FET | ${bracket} |
@@ -394,8 +388,8 @@ const emitAgentMarkdown = (ep: FuryEndpoint, p: Personality): string => {
 
   // Clean single-sentence summary — no mid-word truncation
   const sentences = ep.desc.split('. ').filter(Boolean)
-  const oneLineRole = (sentences[0] ?? ep.desc).replace(/\s+/g, ' ').trim() + '.'
-  const twoLineRole = sentences.slice(0, 2).join('. ').replace(/\s+/g, ' ').trim() + '.'
+  const oneLineRole = `${(sentences[0] ?? ep.desc).replace(/\s+/g, ' ').trim()}.`
+  const twoLineRole = `${sentences.slice(0, 2).join('. ').replace(/\s+/g, ' ').trim()}.`
 
   const skillLines: string[] = [
     `  - name: standard`,
@@ -413,15 +407,11 @@ const emitAgentMarkdown = (ep: FuryEndpoint, p: Personality): string => {
   }
 
   const upstreamTable = upstream.length
-    ? upstream
-        .map(u => `| \`marketing:${u.from}\` | ${u.reason} |`)
-        .join('\n')
+    ? upstream.map((u) => `| \`marketing:${u.from}\` | ${u.reason} |`).join('\n')
     : '| — | This agent is the entry point of its chain |'
 
   const downstreamTable = downstream.length
-    ? downstream
-        .map(d => `| \`marketing:${d.to}\` | ${d.reason} |`)
-        .join('\n')
+    ? downstream.map((d) => `| \`marketing:${d.to}\` | ${d.reason} |`).join('\n')
     : '| — | This agent is a terminal in its chain |'
 
   const front = `---
@@ -524,12 +514,16 @@ net.signal({
 })
 \`\`\`
 
-${downstream.length ? `Fan-out to downstream agents after completion:
+${
+  downstream.length
+    ? `Fan-out to downstream agents after completion:
 
 \`\`\`typescript
-${downstream.map(d => `emit({ receiver: 'marketing:${d.to}', data: result })  // ${d.reason}`).join('\n')}
+${downstream.map((d) => `emit({ receiver: 'marketing:${d.to}', data: result })  // ${d.reason}`).join('\n')}
 \`\`\`
-` : 'This agent is a terminal node. Results return to caller via `replyTo`.'}
+`
+    : 'This agent is a terminal node. Results return to caller via `replyTo`.'
+}
 
 ## Pricing
 
@@ -595,12 +589,10 @@ ${ep.deepFee !== null ? `- deep — Premium tier, expanded analysis (${ep.deepFe
 // ─────────────────────────────────────────────────────────────────────────────
 
 const emitWorldSpec = (endpoints: FuryEndpoint[]): string => {
-  const agentImports = endpoints
-    .map(e => `    '${e.slug}',`)
-    .join('\n')
+  const agentImports = endpoints.map((e) => `    '${e.slug}',`).join('\n')
 
   const edgesTs = allianceEdges
-    .map(e => `  { from: '${e.from}', to: '${e.to}', strength: ${ALLIANCE_STRENGTH}, reason: '${e.reason}' },`)
+    .map((e) => `  { from: '${e.from}', to: '${e.to}', strength: ${ALLIANCE_STRENGTH}, reason: '${e.reason}' },`)
     .join('\n')
 
   return `/**
@@ -662,7 +654,7 @@ export const ALLIANCE_STRENGTH = ${ALLIANCE_STRENGTH}
 
 const emitReadme = (endpoints: FuryEndpoint[]): string => {
   const rows = endpoints
-    .map(e => `| ${e.slug} | ${e.token} | ${e.spotFee} | ${e.deepFee ?? '—'} | ${e.agentName} |`)
+    .map((e) => `| ${e.slug} | ${e.token} | ${e.spotFee} | ${e.deepFee ?? '—'} | ${e.agentName} |`)
     .join('\n')
 
   return `# Donal Agents (ingested)
@@ -733,7 +725,7 @@ async function main() {
   const source = hasLocal(FURY_REPO) ? 'local ../donal/' : 'gh api'
 
   console.log(`📂 Listing ${FURY_REPO}/endpoints/  (via ${source})`)
-  const files = listDir(FURY_REPO, 'endpoints').filter(f => f.endsWith('.py'))
+  const files = listDir(FURY_REPO, 'endpoints').filter((f) => f.endsWith('.py'))
   console.log(`   found ${files.length} endpoint files\n`)
 
   const endpoints: FuryEndpoint[] = []
@@ -814,7 +806,7 @@ async function main() {
   console.log(`   npx agentlaunch deploy                 # ship to Agentverse`)
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error('❌ Fatal:', e)
   process.exit(1)
 })

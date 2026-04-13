@@ -5,7 +5,7 @@
  * and alert list. Dark theme. Polls /api/health and /api/stats.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -41,8 +41,10 @@ function HealthDot({ ok }: { ok: boolean }) {
   return (
     <span
       className={cn(
-        "inline-block w-2.5 h-2.5 rounded-full",
-        ok ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]" : "bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.5)]"
+        'inline-block w-2.5 h-2.5 rounded-full',
+        ok
+          ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]'
+          : 'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.5)]',
       )}
     />
   )
@@ -79,7 +81,7 @@ function AlertRow({ alert }: { alert: Alert }) {
   const icons = { error: '!', warning: '!', info: 'i' }
 
   return (
-    <div className={cn("flex items-start gap-3 p-3 rounded-lg border", colors[alert.type])}>
+    <div className={cn('flex items-start gap-3 p-3 rounded-lg border', colors[alert.type])}>
       <span className="text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center border border-current shrink-0 mt-0.5">
         {icons[alert.type]}
       </span>
@@ -97,7 +99,7 @@ function RevenueBreakdown() {
 
   useEffect(() => {
     fetch('/api/state')
-      .then(r => r.json() as Promise<any>)
+      .then((r) => r.json() as Promise<any>)
       .then((data: { edges?: Array<{ from: string; to: string; revenue: number; strength: number }> }) => {
         const edges = (data.edges || [])
           .filter((e: { revenue: number }) => e.revenue > 0)
@@ -116,10 +118,12 @@ function RevenueBreakdown() {
 
   return (
     <div className="space-y-2">
-      {paths.map(p => (
+      {paths.map((p) => (
         <div key={`${p.from}-${p.to}`} className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-slate-400 truncate">{p.from} → {p.to}</div>
+            <div className="text-xs text-slate-400 truncate">
+              {p.from} → {p.to}
+            </div>
           </div>
           <div className="w-24 h-1.5 rounded-full overflow-hidden bg-[#252538]">
             <div
@@ -127,9 +131,7 @@ function RevenueBreakdown() {
               style={{ width: `${(p.revenue / maxRevenue) * 100}%` }}
             />
           </div>
-          <span className="text-xs font-mono text-emerald-400 w-16 text-right">
-            ${p.revenue.toFixed(1)}
-          </span>
+          <span className="text-xs font-mono text-emerald-400 w-16 text-right">${p.revenue.toFixed(1)}</span>
         </div>
       ))}
     </div>
@@ -151,9 +153,13 @@ export function Dashboard() {
 
     try {
       const [healthRes, statsRes] = await Promise.all([
-        fetch('/api/health').then(r => r.json() as Promise<any>).catch(() => null),
-        fetch('/api/stats').then(r => r.json() as Promise<any>).catch(() => null),
-        fetch('/api/tick').catch(() => null),         // growth loop (includes decay)
+        fetch('/api/health')
+          .then((r) => r.json() as Promise<any>)
+          .catch(() => null),
+        fetch('/api/stats')
+          .then((r) => r.json() as Promise<any>)
+          .catch(() => null),
+        fetch('/api/tick').catch(() => null), // growth loop (includes decay)
       ])
 
       if (healthRes) {
@@ -215,12 +221,14 @@ export function Dashboard() {
       setAlerts(newAlerts)
       setLastRefresh(now)
     } catch {
-      setAlerts([{
-        id: 'fetch-error',
-        type: 'error',
-        message: 'Failed to fetch dashboard data',
-        timestamp: now,
-      }])
+      setAlerts([
+        {
+          id: 'fetch-error',
+          type: 'error',
+          message: 'Failed to fetch dashboard data',
+          timestamp: now,
+        },
+      ])
     } finally {
       setLoading(false)
     }
@@ -254,14 +262,10 @@ export function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">ONE World Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Phase 6: Scale {health?.version && `/ v${health.version}`}
-          </p>
+          <p className="text-sm text-slate-500 mt-1">Phase 6: Scale {health?.version && `/ v${health.version}`}</p>
         </div>
         <div className="flex items-center gap-4">
-          {lastRefresh && (
-            <span className="text-xs text-slate-500">Updated {lastRefresh}</span>
-          )}
+          {lastRefresh && <span className="text-xs text-slate-500">Updated {lastRefresh}</span>}
           <button
             onClick={fetchData}
             className="text-xs px-3 py-1.5 bg-[#252538] hover:bg-[#303048] text-slate-300 rounded-md transition-colors"
@@ -279,9 +283,7 @@ export function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* System Health */}
             <div className="bg-[#0a0a0f] border border-[#252538] rounded-lg p-5">
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                System Health
-              </h2>
+              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">System Health</h2>
               <HealthRow
                 label="TypeDB"
                 ok={health?.typedb?.status === 'ok'}
@@ -292,18 +294,12 @@ export function Dashboard() {
                 ok={health?.status === 'healthy'}
                 detail={health?.uptime !== undefined ? formatUptime(health.uptime) : undefined}
               />
-              <HealthRow
-                label="API"
-                ok={!!health}
-                detail={health?.phase ?? undefined}
-              />
+              <HealthRow label="API" ok={!!health} detail={health?.phase ?? undefined} />
             </div>
 
             {/* Alerts */}
             <div className="bg-[#0a0a0f] border border-[#252538] rounded-lg p-5">
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                Alerts
-              </h2>
+              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Alerts</h2>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {alerts.map((a) => (
                   <AlertRow key={a.id} alert={a} />
@@ -314,15 +310,9 @@ export function Dashboard() {
 
           {/* Stats Cards */}
           <div>
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              World Stats
-            </h2>
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">World Stats</h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <StatCard
-                label="Units"
-                value={stats?.units?.total ?? 0}
-                sub={`${stats?.units?.proven ?? 0} proven`}
-              />
+              <StatCard label="Units" value={stats?.units?.total ?? 0} sub={`${stats?.units?.proven ?? 0} proven`} />
               <StatCard
                 label="Tasks"
                 value={stats?.tasks?.total ?? 0}
@@ -348,28 +338,16 @@ export function Dashboard() {
 
           {/* Revenue Breakdown */}
           <div className="bg-[#0a0a0f] border border-[#252538] rounded-lg p-5">
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              Revenue
-            </h2>
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Revenue</h2>
             <RevenueBreakdown />
           </div>
 
           {/* Actions */}
           <div className="bg-[#0a0a0f] border border-[#252538] rounded-lg p-5">
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              Actions
-            </h2>
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Actions</h2>
             <div className="flex flex-wrap gap-3">
-              <ActionButton
-                label="Run Decay Cycle"
-                endpoint="/api/decay-cycle"
-                method="POST"
-              />
-              <ActionButton
-                label="Seed World"
-                endpoint="/api/seed"
-                method="POST"
-              />
+              <ActionButton label="Run Decay Cycle" endpoint="/api/decay-cycle" method="POST" />
+              <ActionButton label="Seed World" endpoint="/api/seed" method="POST" />
             </div>
           </div>
         </>
@@ -397,11 +375,11 @@ function ActionButton({ label, endpoint, method }: { label: string; endpoint: st
       onClick={handleClick}
       disabled={status === 'loading'}
       className={cn(
-        "text-sm px-4 py-2 rounded-md transition-colors",
-        status === 'idle' && "bg-[#252538] hover:bg-[#303048] text-slate-300",
-        status === 'loading' && "bg-[#252538] text-slate-500 cursor-wait",
-        status === 'done' && "bg-emerald-900/50 text-emerald-400 border border-emerald-400/20",
-        status === 'error' && "bg-red-900/50 text-red-400 border border-red-400/20",
+        'text-sm px-4 py-2 rounded-md transition-colors',
+        status === 'idle' && 'bg-[#252538] hover:bg-[#303048] text-slate-300',
+        status === 'loading' && 'bg-[#252538] text-slate-500 cursor-wait',
+        status === 'done' && 'bg-emerald-900/50 text-emerald-400 border border-emerald-400/20',
+        status === 'error' && 'bg-red-900/50 text-red-400 border border-red-400/20',
       )}
     >
       {status === 'loading' ? 'Running...' : status === 'done' ? 'Done' : status === 'error' ? 'Failed' : label}

@@ -1,6 +1,6 @@
-import type { APIRoute } from "astro"
-import { streamText } from "ai"
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { streamText } from 'ai'
+import type { APIRoute } from 'astro'
 
 export const prerender = false
 
@@ -12,29 +12,29 @@ export const prerender = false
  */
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { messages, model = "meta-llama/llama-4-maverick" } = await request.json() as any
+    const { messages, model = 'meta-llama/llama-4-maverick' } = (await request.json()) as any
 
     if (!messages || messages.length === 0) {
-      return new Response(JSON.stringify({ error: "No messages provided" }), {
+      return new Response(JSON.stringify({ error: 'No messages provided' }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       })
     }
 
     const apiKey = import.meta.env.OPENROUTER_API_KEY
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      )
+      return new Response(JSON.stringify({ error: 'OPENROUTER_API_KEY not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     const openrouter = createOpenAICompatible({
-      name: "openrouter",
-      baseURL: "https://openrouter.ai/api/v1",
+      name: 'openrouter',
+      baseURL: 'https://openrouter.ai/api/v1',
       headers: {
-        "HTTP-Referer": "https://one.ie",
-        "X-Title": "ONE Substrate",
+        'HTTP-Referer': 'https://one.ie',
+        'X-Title': 'ONE Substrate',
       },
       apiKey,
     })
@@ -61,10 +61,10 @@ Respond helpfully and suggest commands when appropriate.`
 
     return result.toTextStreamResponse()
   } catch (error) {
-    console.error("[CHAT API] Error:", error)
-    return new Response(
-      JSON.stringify({ error: "Chat request failed" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    )
+    console.error('[CHAT API] Error:', error)
+    return new Response(JSON.stringify({ error: 'Chat request failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }

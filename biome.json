@@ -1,7 +1,14 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
   "files": {
-    "includes": ["src/**", "nanoclaw/**", "gateway/**", "workers/**", "scripts/**"]
+    "includes": [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "nanoclaw/src/**/*.ts",
+      "gateway/src/**/*.ts",
+      "workers/sync/src/**/*.ts",
+      "scripts/**/*.ts"
+    ]
   },
   "linter": {
     "enabled": true,
@@ -15,16 +22,29 @@
         "noExplicitAny": "off",
         "noAssignInExpressions": "off",
         "noThenProperty": "off",
-        "useIterableCallbackReturn": "off"
+        "useIterableCallbackReturn": "off",
+        "noArrayIndexKey": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
-        "useConst": "warn"
+        "useConst": "warn",
+        "useNodejsImportProtocol": "warn",
+        "useTemplate": "warn"
       },
       "correctness": {
         "noUnusedVariables": "warn",
         "noUnusedImports": "warn",
-        "noUnusedFunctionParameters": "off"
+        "noUnusedFunctionParameters": "off",
+        "useParseIntRadix": "warn",
+        "useExhaustiveDependencies": "warn"
+      },
+      "a11y": {
+        "useButtonType": "off",
+        "noStaticElementInteractions": "off",
+        "useKeyWithClickEvents": "off",
+        "useSemanticElements": "off",
+        "noLabelWithoutControl": "off",
+        "noSvgWithoutTitle": "off"
       }
     }
   },

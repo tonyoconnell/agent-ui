@@ -8,9 +8,9 @@
  * Production uses D1 with TypeDB sync.
  */
 import type { APIRoute } from 'astro'
-import { readParsed, write, writeSilent } from '@/lib/typedb'
-import { computePriority, effectivePriority, type Value, type Phase } from '@/engine/task-parse'
+import { computePriority, effectivePriority, type Phase, type Value } from '@/engine/task-parse'
 import * as store from '@/lib/tasks-store'
+import { readParsed, write, writeSilent } from '@/lib/typedb'
 
 type Row = Record<string, unknown>
 
@@ -27,16 +27,16 @@ export const GET: APIRoute = async ({ url }) => {
 
     // Apply filters
     if (filterTags.length > 0) {
-      filtered = filtered.filter(t => filterTags.every(tag => t.tags.includes(tag)))
+      filtered = filtered.filter((t) => filterTags.every((tag) => t.tags.includes(tag)))
     }
     if (phase) {
-      filtered = filtered.filter(t => t.phase === phase)
+      filtered = filtered.filter((t) => t.phase === phase)
     }
     if (value) {
-      filtered = filtered.filter(t => t.value === value)
+      filtered = filtered.filter((t) => t.value === value)
     }
 
-    const result = filtered.map(t => {
+    const result = filtered.map((t) => {
       const repelled = t.alarmPheromone >= 30 && t.alarmPheromone > t.trailPheromone
       const attractive = t.trailPheromone >= 50
       const exploratory = t.trailPheromone === 0 && t.alarmPheromone === 0
@@ -67,12 +67,12 @@ export const GET: APIRoute = async ({ url }) => {
 
   // Fallback to TypeDB
   // Build filter clauses
-  const tagMatch = filterTags.map(t => `$t has tag "${t}";`).join('\n      ')
+  const tagMatch = filterTags.map((t) => `$t has tag "${t}";`).join('\n      ')
   const phaseMatch = phase ? `$t has task-phase "${phase}";` : ''
   const valueMatch = value ? `$t has task-value "${value}";` : ''
 
   // Query tasks from TypeDB
-  const tasks = await readParsed(`
+  const tasks = (await readParsed(`
     match $t isa task,
       has task-id $id, has name $name, has done $done,
       has task-value $val, has task-phase $ph, has task-persona $persona,
@@ -82,13 +82,13 @@ export const GET: APIRoute = async ({ url }) => {
     ${phaseMatch}
     ${valueMatch}
     select $id, $name, $done, $val, $ph, $persona, $priority, $formula, $source, $status;
-  `).catch(() => []) as Row[]
+  `).catch(() => [])) as Row[]
 
   // Get tags per task
-  const tagRows = await readParsed(`
+  const tagRows = (await readParsed(`
     match $t isa task, has task-id $id, has tag $tag;
     select $id, $tag;
-  `).catch(() => []) as Row[]
+  `).catch(() => [])) as Row[]
 
   const tagMap: Record<string, string[]> = {}
   for (const r of tagRows) {
@@ -98,11 +98,11 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   // Get blocks per task
-  const blockRows = await readParsed(`
+  const blockRows = (await readParsed(`
     match (blocker: $a, blocked: $b) isa blocks;
     $a has task-id $aid; $b has task-id $bid;
     select $aid, $bid;
-  `).catch(() => []) as Row[]
+  `).catch(() => [])) as Row[]
 
   const blockMap: Record<string, string[]> = {}
   const blockedByMap: Record<string, string[]> = {}
@@ -116,12 +116,12 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   // Get pheromone from paths (skill-id → capability → unit → inbound paths)
-  const edges = await readParsed(`
+  const edges = (await readParsed(`
     match $e (source: $from, target: $to) isa path,
       has strength $s, has resistance $rs, has traversals $tr;
     $to has uid $tid;
     select $tid, $s, $rs, $tr;
-  `).catch(() => []) as Row[]
+  `).catch(() => [])) as Row[]
 
   // Aggregate pheromone per unit
   const pheromone: Record<string, { strength: number; resistance: number; traversals: number }> = {}
@@ -134,11 +134,11 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   // Map task-id → unit-id via capability
-  const capRows = await readParsed(`
+  const capRows = (await readParsed(`
     match (provider: $u, offered: $sk) isa capability;
     $u has uid $uid; $sk has skill-id $sid;
     select $uid, $sid;
-  `).catch(() => []) as Row[]
+  `).catch(() => [])) as Row[]
 
   const taskUnit: Record<string, string> = {}
   for (const r of capRows) {
@@ -146,7 +146,7 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   // Build response
-  const result = tasks.map(t => {
+  const result = tasks.map((t) => {
     const id = t.id as string
     const unitId = taskUnit[id] || 'builder'
     const ph = pheromone[unitId] || { strength: 0, resistance: 0, traversals: 0 }
@@ -191,7 +191,7 @@ export const GET: APIRoute = async ({ url }) => {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  const body = await request.json() as {
+  const body = (await request.json()) as {
     id: string
     name: string
     tags?: string[]
@@ -219,7 +219,7 @@ export const POST: APIRoute = async ({ request }) => {
   const { score, formula } = computePriority(value, phase, persona, blocks.length)
 
   // Determine priority label from tags or score
-  const priorityTag = tags.find(t => /^P[0-3]$/.test(t)) as 'P0' | 'P1' | 'P2' | 'P3' | undefined
+  const priorityTag = tags.find((t) => /^P[0-3]$/.test(t)) as 'P0' | 'P1' | 'P2' | 'P3' | undefined
   const priority = priorityTag || (score >= 90 ? 'P0' : score >= 70 ? 'P1' : score >= 50 ? 'P2' : 'P3')
 
   // Write to local store (always works, fast)
@@ -238,7 +238,7 @@ export const POST: APIRoute = async ({ request }) => {
     alarmPheromone: 0,
   })
 
-  const tagInserts = tags.map(t => `has tag "${t}"`).join(', ')
+  const tagInserts = tags.map((t) => `has tag "${t}"`).join(', ')
   const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 
   // Also write to TypeDB (may fail if not connected)
@@ -255,14 +255,14 @@ export const POST: APIRoute = async ({ request }) => {
       has source-file "api",
       ${body.exit ? `has exit-condition "${esc(body.exit)}",` : ''}
       has done false,
-      ${tagInserts ? tagInserts + ',' : ''}
+      ${tagInserts ? `${tagInserts},` : ''}
       has created ${new Date().toISOString().replace('Z', '')};
   `).catch(() => {})
 
   // Create matching skill for capability routing
   await writeSilent(`
     insert $s isa skill, has skill-id "${esc(body.id)}", has name "${esc(body.name)}",
-      ${tagInserts ? tagInserts + ',' : ''} has price ${price}, has currency "SUI";
+      ${tagInserts ? `${tagInserts},` : ''} has price ${price}, has currency "SUI";
   `)
 
   // Link to unit via capability
@@ -280,12 +280,15 @@ export const POST: APIRoute = async ({ request }) => {
     `)
   }
 
-  return new Response(JSON.stringify({
-    ok: true,
-    task: body.id,
-    priorityScore: score,
-    formula,
-    tags,
-    unit: unitId,
-  }), { headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      task: body.id,
+      priorityScore: score,
+      formula,
+      tags,
+      unit: unitId,
+    }),
+    { headers: { 'Content-Type': 'application/json' } },
+  )
 }

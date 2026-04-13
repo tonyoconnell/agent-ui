@@ -9,7 +9,7 @@
  * Condition: Only show when NOT authenticated (check session context)
  */
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSkin } from '@/contexts/SkinContext'
 import { cn } from '@/lib/utils'
 
@@ -67,11 +67,11 @@ export function VisitorBanner({ isAuthenticated = false, className }: Props) {
       className={cn(
         'relative overflow-hidden border-b transition-all duration-300 ease-out',
         'animate-in slide-in-from-top-4',
-        className
+        className,
       )}
       style={{
         backgroundColor: `linear-gradient(135deg, ${skin.colors.primary}15 0%, ${skin.colors.secondary}10 100%)`,
-        borderColor: skin.colors.primary + '30',
+        borderColor: `${skin.colors.primary}30`,
       }}
     >
       {/* Animated gradient background */}
@@ -86,10 +86,7 @@ export function VisitorBanner({ isAuthenticated = false, className }: Props) {
       <div className="relative px-6 py-4 flex items-center justify-between gap-6">
         {/* Main message */}
         <div className="flex-1">
-          <p
-            className="text-sm leading-relaxed font-medium"
-            style={{ color: skin.colors.muted }}
-          >
+          <p className="text-sm leading-relaxed font-medium" style={{ color: skin.colors.muted }}>
             This is the ONE world. It's alive right now. Click anything. Drag anything. Or{' '}
             <button
               onClick={handleFollowGuide}
@@ -120,10 +117,10 @@ export function VisitorBanner({ isAuthenticated = false, className }: Props) {
             onClick={handleBuild}
             className="px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:bg-white/10"
             style={{
-              backgroundColor: skin.colors.primary + '20',
+              backgroundColor: `${skin.colors.primary}20`,
               color: skin.colors.primary,
               borderWidth: 1,
-              borderColor: skin.colors.primary + '40',
+              borderColor: `${skin.colors.primary}40`,
             }}
             title="Build your own agents"
           >
@@ -134,10 +131,10 @@ export function VisitorBanner({ isAuthenticated = false, className }: Props) {
             onClick={handleSignUp}
             className="px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:bg-white/10"
             style={{
-              backgroundColor: skin.colors.primary + '20',
+              backgroundColor: `${skin.colors.primary}20`,
               color: skin.colors.primary,
               borderWidth: 1,
-              borderColor: skin.colors.primary + '40',
+              borderColor: `${skin.colors.primary}40`,
             }}
             title="Sign up for an account"
           >
@@ -151,18 +148,8 @@ export function VisitorBanner({ isAuthenticated = false, className }: Props) {
             style={{ color: skin.colors.muted }}
             title="Dismiss this banner"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>

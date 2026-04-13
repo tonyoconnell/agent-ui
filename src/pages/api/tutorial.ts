@@ -7,9 +7,8 @@
  * GET  ?student=uid — Check progress across all phases
  */
 import type { APIRoute } from 'astro'
-import { write, readParsed, writeSilent } from '@/lib/typedb'
 import { parse, syncAgent } from '@/engine/agent-md'
-import { decay } from '@/lib/typedb'
+import { decay, readParsed, write, writeSilent } from '@/lib/typedb'
 
 const PHASES = [
   { phase: 1, title: 'Birth', description: 'Create an agent from markdown' },
@@ -115,7 +114,7 @@ async function getProgress(student: string) {
     select $oid, $p, $s;
   `).catch(() => [])
 
-  const completed = rows.filter(r => r.s === 'complete').length
+  const completed = rows.filter((r) => r.s === 'complete').length
   return { phases: rows, completed, overall: completed / 7 }
 }
 
@@ -152,7 +151,7 @@ async function phase1(): Promise<{ actions: string[]; state: Record<string, unkn
     actions,
     state: {
       unit: units[0] || { model: 'echo exists' },
-      skills: skills.map(s => ({ id: s.sid, tag: s.tag })),
+      skills: skills.map((s) => ({ id: s.sid, tag: s.tag })),
     },
   }
 }
@@ -259,10 +258,12 @@ async function phase4(): Promise<{ actions: string[]; state: Record<string, unkn
     select $s, $r;
   `).catch(() => [])
 
-  actions.push(`Before: strength=${(before[0]?.s as number)?.toFixed(2)}, resistance=${(before[0]?.r as number)?.toFixed(2)}`)
+  actions.push(
+    `Before: strength=${(before[0]?.s as number)?.toFixed(2)}, resistance=${(before[0]?.r as number)?.toFixed(2)}`,
+  )
 
   // Run asymmetric decay
-  await decay(0.05, 0.20)
+  await decay(0.05, 0.2)
   actions.push('Decayed: strength ×0.95, resistance ×0.80 (asymmetric)')
 
   // Snapshot after
@@ -272,7 +273,9 @@ async function phase4(): Promise<{ actions: string[]; state: Record<string, unkn
     select $s, $r;
   `).catch(() => [])
 
-  actions.push(`After: strength=${(after[0]?.s as number)?.toFixed(2)}, resistance=${(after[0]?.r as number)?.toFixed(2)}`)
+  actions.push(
+    `After: strength=${(after[0]?.s as number)?.toFixed(2)}, resistance=${(after[0]?.r as number)?.toFixed(2)}`,
+  )
 
   return {
     actions,
@@ -323,7 +326,7 @@ async function phase5(): Promise<{ actions: string[]; state: Record<string, unkn
     state: {
       path: { strength: p.s, resistance: p.r, net },
       isHighway,
-      highways: highways.map(h => ({ from: h.fid, to: h.tid, strength: h.s })),
+      highways: highways.map((h) => ({ from: h.fid, to: h.tid, strength: h.s })),
       explanation: isHighway
         ? 'Net ≥ 20 → proven path. The tick will skip the LLM call entirely. Faster and cheaper.'
         : 'Not enough net strength yet. Keep marking successful signals.',
@@ -361,11 +364,12 @@ async function phase6(): Promise<{ actions: string[]; state: Record<string, unkn
   return {
     actions,
     state: {
-      criteria: { successRateBelow: 0.50, minSamples: 20, cooldown: '24 hours' },
-      struggling: struggling.map(u => ({ id: u.id, successRate: u.sr, samples: u.sc, generation: u.g })),
-      allUnits: allUnits.map(u => ({ id: u.id, successRate: u.sr, samples: u.sc, generation: u.g })),
+      criteria: { successRateBelow: 0.5, minSamples: 20, cooldown: '24 hours' },
+      struggling: struggling.map((u) => ({ id: u.id, successRate: u.sr, samples: u.sc, generation: u.g })),
+      allUnits: allUnits.map((u) => ({ id: u.id, successRate: u.sr, samples: u.sc, generation: u.g })),
       evolutionHistory: evoHistory,
-      explanation: 'L5 Evolution: substrate rewrites struggling agent prompts. Old prompts saved as hypotheses for rollback. Two layers of learning: substrate (pheromone) + agent (prompt evolution).',
+      explanation:
+        'L5 Evolution: substrate rewrites struggling agent prompts. Old prompts saved as hypotheses for rollback. Two layers of learning: substrate (pheromone) + agent (prompt evolution).',
     },
   }
 }
@@ -380,8 +384,8 @@ async function phase7(): Promise<{ actions: string[]; state: Record<string, unkn
   `).catch(() => [])
   actions.push(`Hypotheses: ${hypotheses.length} total`)
 
-  const confirmed = hypotheses.filter(h => h.hs === 'confirmed')
-  const testing = hypotheses.filter(h => h.hs === 'testing')
+  const confirmed = hypotheses.filter((h) => h.hs === 'confirmed')
+  const testing = hypotheses.filter((h) => h.hs === 'testing')
   actions.push(`  Confirmed: ${confirmed.length}, Testing: ${testing.length}`)
 
   // Query frontiers
@@ -404,10 +408,11 @@ async function phase7(): Promise<{ actions: string[]; state: Record<string, unkn
   return {
     actions,
     state: {
-      hypotheses: hypotheses.slice(0, 10).map(h => ({ id: h.hid, statement: h.stmt, status: h.hs })),
-      frontiers: frontiers.map(f => ({ id: f.fid, type: f.ft, description: f.fd, status: f.fs })),
-      highways: highways.map(h => ({ from: h.fid, to: h.tid, strength: h.s })),
-      explanation: 'L6 Crystallize: highways → confirmed hypotheses (permanent knowledge). Fading paths → testing hypotheses (watch these). L7 Frontier: tag gaps + unit gaps → unexplored territory. Knowledge couples back to evolution: strong patterns trigger priority evolution.',
+      hypotheses: hypotheses.slice(0, 10).map((h) => ({ id: h.hid, statement: h.stmt, status: h.hs })),
+      frontiers: frontiers.map((f) => ({ id: f.fid, type: f.ft, description: f.fd, status: f.fs })),
+      highways: highways.map((h) => ({ from: h.fid, to: h.tid, strength: h.s })),
+      explanation:
+        'L6 Crystallize: highways → confirmed hypotheses (permanent knowledge). Fading paths → testing hypotheses (watch these). L7 Frontier: tag gaps + unit gaps → unexplored territory. Knowledge couples back to evolution: strong patterns trigger priority evolution.',
     },
   }
 }
@@ -425,8 +430,8 @@ export const GET: APIRoute = async ({ url }) => {
   await ensureObjectives(student)
   const progress = await getProgress(student)
 
-  const phases = PHASES.map(p => {
-    const obj = progress.phases.find(r => (r.oid as string)?.includes(`phase-${p.phase}`))
+  const phases = PHASES.map((p) => {
+    const obj = progress.phases.find((r) => (r.oid as string)?.includes(`phase-${p.phase}`))
     return {
       ...p,
       status: (obj?.s as string) || 'pending',
@@ -440,7 +445,7 @@ export const GET: APIRoute = async ({ url }) => {
 // ── POST — Execute a phase ──────────────────────────────────────────────
 
 export const POST: APIRoute = async ({ request }) => {
-  const body = await request.json() as {
+  const body = (await request.json()) as {
     phase: number
     student: string
   }

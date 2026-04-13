@@ -12,26 +12,26 @@
  * Usage: <PheromoneGraph client:load />
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react"
 import {
-  ReactFlow,
   Background,
-  Controls,
-  MiniMap,
-  Handle,
-  Position,
-  getBezierPath,
   BaseEdge,
+  Controls,
   EdgeLabelRenderer,
-  useNodesState,
-  useEdgesState,
-  type Node,
-  type Edge as FlowEdge,
   type EdgeProps,
+  type Edge as FlowEdge,
+  getBezierPath,
+  Handle,
+  MiniMap,
+  type Node,
   type NodeProps,
-} from "@xyflow/react"
-import "@xyflow/react/dist/style.css"
-import dagre from "@dagrejs/dagre"
+  Position,
+  ReactFlow,
+  useEdgesState,
+  useNodesState,
+} from '@xyflow/react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import '@xyflow/react/dist/style.css'
+import dagre from '@dagrejs/dagre'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -80,7 +80,7 @@ interface TaskData {
   blocks: string[]
   trailPheromone: number
   alarmPheromone: number
-  category: "attractive" | "ready" | "exploratory" | "repelled"
+  category: 'attractive' | 'ready' | 'exploratory' | 'repelled'
 }
 
 // Node data shapes (must be indexable per ReactFlow requirements)
@@ -114,23 +114,23 @@ interface PheromoneEdgeData {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const C = {
-  bg: "#0a0a0f",
-  surface: "#161622",
-  border: "#252538",
-  muted: "#6b7280",
-  agentBg: "#0f1729",
-  agentBorder: "#1e3a6b",
-  agentText: "#60a5fa",
-  agentAccent: "#3b82f6",
-  taskBg: "#140f1e",
-  taskBorder: "#3b1f6b",
-  taskText: "#c084fc",
-  taskAccent: "#a855f7",
-  highway: "#f59e0b",
-  toxic: "#ef4444",
-  normal: "#334155",
-  success: "#22c55e",
-  white: "#f1f5f9",
+  bg: '#0a0a0f',
+  surface: '#161622',
+  border: '#252538',
+  muted: '#6b7280',
+  agentBg: '#0f1729',
+  agentBorder: '#1e3a6b',
+  agentText: '#60a5fa',
+  agentAccent: '#3b82f6',
+  taskBg: '#140f1e',
+  taskBorder: '#3b1f6b',
+  taskText: '#c084fc',
+  taskAccent: '#a855f7',
+  highway: '#f59e0b',
+  toxic: '#ef4444',
+  normal: '#334155',
+  success: '#22c55e',
+  white: '#f1f5f9',
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -145,15 +145,17 @@ function PheromoneEdge(props: EdgeProps) {
   const highway = d?.highway ?? false
 
   const [path, labelX, labelY] = getBezierPath({
-    sourceX, sourceY, sourcePosition,
-    targetX, targetY, targetPosition,
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
     curvature: 0.2,
   })
 
   // Stroke width: log scale 1–10px
-  const strokeWidth = strength > 0
-    ? Math.max(1, Math.min(10, Math.log(strength + 1) * 2))
-    : 1
+  const strokeWidth = strength > 0 ? Math.max(1, Math.min(10, Math.log(strength + 1) * 2)) : 1
 
   const color = toxic ? C.toxic : highway ? C.highway : C.normal
   const opacity = toxic ? 0.9 : highway ? 0.95 : 0.6
@@ -161,25 +163,9 @@ function PheromoneEdge(props: EdgeProps) {
   return (
     <g>
       {/* Glow for highways */}
-      {highway && (
-        <path
-          d={path}
-          fill="none"
-          stroke={C.highway}
-          strokeWidth={strokeWidth + 8}
-          strokeOpacity={0.15}
-        />
-      )}
+      {highway && <path d={path} fill="none" stroke={C.highway} strokeWidth={strokeWidth + 8} strokeOpacity={0.15} />}
       {/* Glow for toxic */}
-      {toxic && (
-        <path
-          d={path}
-          fill="none"
-          stroke={C.toxic}
-          strokeWidth={strokeWidth + 6}
-          strokeOpacity={0.2}
-        />
-      )}
+      {toxic && <path d={path} fill="none" stroke={C.toxic} strokeWidth={strokeWidth + 6} strokeOpacity={0.2} />}
 
       <BaseEdge
         id={id}
@@ -188,7 +174,7 @@ function PheromoneEdge(props: EdgeProps) {
           stroke: color,
           strokeWidth,
           strokeOpacity: opacity,
-          strokeDasharray: toxic ? "6 3" : undefined,
+          strokeDasharray: toxic ? '6 3' : undefined,
         }}
       />
 
@@ -198,10 +184,10 @@ function PheromoneEdge(props: EdgeProps) {
           style={{
             left: labelX,
             top: labelY,
-            transform: "translate(-50%, -50%)",
-            backgroundColor: toxic ? "#ef444420" : highway ? "#f59e0b20" : "#ffffff10",
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: toxic ? '#ef444420' : highway ? '#f59e0b20' : '#ffffff10',
             color: toxic ? C.toxic : highway ? C.highway : C.muted,
-            border: `1px solid ${toxic ? "#ef444440" : highway ? "#f59e0b40" : "#ffffff15"}`,
+            border: `1px solid ${toxic ? '#ef444440' : highway ? '#f59e0b40' : '#ffffff15'}`,
           }}
         >
           {strength.toFixed(0)}
@@ -218,14 +204,14 @@ function PheromoneEdge(props: EdgeProps) {
 function AgentNode({ data, selected }: NodeProps) {
   const d = data as AgentNodeData
   const srPct = ((d.successRate ?? 0) * 100).toFixed(0)
-  const isProven = d.status === "proven"
+  const isProven = d.status === 'proven'
 
   return (
     <div
       className="rounded-xl border select-none min-w-[150px]"
       style={{
         backgroundColor: C.agentBg,
-        borderColor: selected ? C.agentAccent : isProven ? C.agentBorder + "cc" : C.agentBorder,
+        borderColor: selected ? C.agentAccent : isProven ? `${C.agentBorder}cc` : C.agentBorder,
         boxShadow: selected ? `0 0 20px ${C.agentAccent}40` : undefined,
       }}
     >
@@ -241,25 +227,30 @@ function AgentNode({ data, selected }: NodeProps) {
       />
 
       {/* Header */}
-      <div
-        className="px-3 py-2 border-b"
-        style={{ borderColor: C.agentBorder + "60" }}
-      >
+      <div className="px-3 py-2 border-b" style={{ borderColor: `${C.agentBorder}60` }}>
         <div className="flex items-center gap-2">
-          <span className="text-[10px]" style={{ color: C.agentText }}>◈</span>
-          <span className="text-sm font-medium" style={{ color: C.white }}>{d.label}</span>
+          <span className="text-[10px]" style={{ color: C.agentText }}>
+            ◈
+          </span>
+          <span className="text-sm font-medium" style={{ color: C.white }}>
+            {d.label}
+          </span>
         </div>
-        <div className="text-[9px] mt-0.5" style={{ color: C.muted }}>{d.kind || "unit"}</div>
+        <div className="text-[9px] mt-0.5" style={{ color: C.muted }}>
+          {d.kind || 'unit'}
+        </div>
       </div>
 
       {/* Stats */}
       <div className="px-3 py-2 space-y-1">
         <div className="flex items-center justify-between">
-          <span className="text-[9px]" style={{ color: C.muted }}>success</span>
+          <span className="text-[9px]" style={{ color: C.muted }}>
+            success
+          </span>
           <span
             className="text-[9px] font-mono px-1.5 py-0.5 rounded"
             style={{
-              backgroundColor: isProven ? C.success + "20" : C.agentAccent + "20",
+              backgroundColor: isProven ? `${C.success}20` : `${C.agentAccent}20`,
               color: isProven ? C.success : C.agentText,
             }}
           >
@@ -289,23 +280,17 @@ function AgentNode({ data, selected }: NodeProps) {
 function TaskNode({ data, selected }: NodeProps) {
   const d = data as TaskNodeData
   const isBlocked = d.blockedBy.length > 0
-  const isRepelled = d.category === "repelled"
-  const isAttractive = d.category === "attractive"
+  const isRepelled = d.category === 'repelled'
+  const isAttractive = d.category === 'attractive'
 
-  const accentColor = isBlocked
-    ? C.muted
-    : isRepelled
-    ? C.toxic
-    : isAttractive
-    ? C.highway
-    : C.taskAccent
+  const accentColor = isBlocked ? C.muted : isRepelled ? C.toxic : isAttractive ? C.highway : C.taskAccent
 
   return (
     <div
       className="rounded-xl border select-none min-w-[150px]"
       style={{
         backgroundColor: C.taskBg,
-        borderColor: selected ? C.taskAccent : accentColor + "60",
+        borderColor: selected ? C.taskAccent : `${accentColor}60`,
         boxShadow: isAttractive ? `0 0 16px ${C.highway}20` : undefined,
         opacity: isBlocked ? 0.55 : 1,
       }}
@@ -322,25 +307,32 @@ function TaskNode({ data, selected }: NodeProps) {
       />
 
       {/* Header */}
-      <div
-        className="px-3 py-2 border-b"
-        style={{ borderColor: C.taskBorder + "60" }}
-      >
+      <div className="px-3 py-2 border-b" style={{ borderColor: `${C.taskBorder}60` }}>
         <div className="flex items-center gap-2">
-          <span className="text-[10px]" style={{ color: accentColor }}>▣</span>
+          <span className="text-[10px]" style={{ color: accentColor }}>
+            ▣
+          </span>
           <span className="text-sm font-medium leading-tight" style={{ color: C.white }}>
             {d.label}
           </span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[9px]" style={{ color: C.muted }}>p:{d.priority.toFixed(1)}</span>
+          <span className="text-[9px]" style={{ color: C.muted }}>
+            p:{d.priority.toFixed(1)}
+          </span>
           {isBlocked && (
-            <span className="text-[9px] px-1 py-0.5 rounded" style={{ backgroundColor: C.muted + "20", color: C.muted }}>
+            <span
+              className="text-[9px] px-1 py-0.5 rounded"
+              style={{ backgroundColor: `${C.muted}20`, color: C.muted }}
+            >
               blocked
             </span>
           )}
           {isAttractive && (
-            <span className="text-[9px] px-1 py-0.5 rounded" style={{ backgroundColor: C.highway + "20", color: C.highway }}>
+            <span
+              className="text-[9px] px-1 py-0.5 rounded"
+              style={{ backgroundColor: `${C.highway}20`, color: C.highway }}
+            >
               ★
             </span>
           )}
@@ -352,7 +344,7 @@ function TaskNode({ data, selected }: NodeProps) {
         <div
           className="text-[9px] font-mono px-1.5 py-0.5 rounded inline-block"
           style={{
-            backgroundColor: accentColor + "15",
+            backgroundColor: `${accentColor}15`,
             color: accentColor,
           }}
         >
@@ -383,7 +375,7 @@ function layoutWithDagre(nodes: Node[], edges: FlowEdge[]): Node[] {
   try {
     const g = new dagre.graphlib.Graph()
     g.setDefaultEdgeLabel(() => ({}))
-    g.setGraph({ rankdir: "LR", nodesep: 60, ranksep: 120 })
+    g.setGraph({ rankdir: 'LR', nodesep: 60, ranksep: 120 })
 
     nodes.forEach((n) => {
       g.setNode(n.id, { width: 170, height: 80 })
@@ -426,22 +418,19 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
 
   const fetchData = useCallback(async () => {
     try {
-      const [stateRes, tasksRes] = await Promise.all([
-        fetch("/api/state"),
-        fetch("/api/tasks"),
-      ])
+      const [stateRes, tasksRes] = await Promise.all([fetch('/api/state'), fetch('/api/tasks')])
 
-      if (!stateRes.ok || !tasksRes.ok) throw new Error("Fetch failed")
+      if (!stateRes.ok || !tasksRes.ok) throw new Error('Fetch failed')
 
-      const stateJson = await stateRes.json() as StateData
-      const tasksJson = await tasksRes.json() as { tasks: TaskData[] }
+      const stateJson = (await stateRes.json()) as StateData
+      const tasksJson = (await tasksRes.json()) as { tasks: TaskData[] }
 
       setState(stateJson)
       setTasks(tasksJson.tasks || [])
       setLastRefresh(new Date())
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error")
+      setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
@@ -461,20 +450,20 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
     // Agent nodes
     const agentNodes: Node[] = (state.units || []).map((u) => ({
       id: `agent:${u.id}`,
-      type: "agent",
+      type: 'agent',
       position: { x: 0, y: 0 }, // placed by dagre
       data: {
         label: u.name || u.id,
         successRate: u.sr ?? 0,
-        kind: u.kind || "unit",
-        status: u.status || "active",
+        kind: u.kind || 'unit',
+        status: u.status || 'active',
       } satisfies AgentNodeData,
     }))
 
     // Task nodes
     const taskNodes: Node[] = tasks.map((t) => ({
       id: `task:${t.tid}`,
-      type: "task",
+      type: 'task',
       position: { x: 0, y: 0 }, // placed by dagre
       data: {
         label: t.name,
@@ -499,7 +488,7 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
           id: `edge:${e.from}→${e.to}`,
           source: `agent:${e.from}`,
           target: `agent:${e.to}`,
-          type: "pheromone",
+          type: 'pheromone',
           data: {
             strength: e.strength,
             resistance: e.resistance,
@@ -513,19 +502,19 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
     // For now: connect task to agent if task.tid starts with agent.id or shares prefix
     const taskAgentEdges: FlowEdge[] = []
     for (const t of tasks) {
-      const parts = t.tid.split(":")
+      const parts = t.tid.split(':')
       const agentId = parts.length > 1 ? parts[0] : null
       if (agentId && agentIds.has(`agent:${agentId}`)) {
         taskAgentEdges.push({
           id: `ta:${t.tid}`,
           source: `agent:${agentId}`,
           target: `task:${t.tid}`,
-          type: "pheromone",
+          type: 'pheromone',
           data: {
             strength: t.trailPheromone,
             resistance: t.alarmPheromone,
-            toxic: t.category === "repelled",
-            highway: t.category === "attractive",
+            toxic: t.category === 'repelled',
+            highway: t.category === 'attractive',
           } satisfies PheromoneEdgeData,
         })
       }
@@ -547,10 +536,7 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
   const stats = state?.stats
 
   return (
-    <div
-      className="relative h-full w-full flex flex-col"
-      style={{ backgroundColor: C.bg }}
-    >
+    <div className="relative h-full w-full flex flex-col" style={{ backgroundColor: C.bg }}>
       {/* Top bar */}
       <div
         className="flex items-center justify-between px-4 py-2 border-b shrink-0"
@@ -614,26 +600,20 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
         {loading && (
           <div
             className="absolute inset-0 flex items-center justify-center z-10 text-sm"
-            style={{ color: C.muted, backgroundColor: C.bg + "cc" }}
+            style={{ color: C.muted, backgroundColor: `${C.bg}cc` }}
           >
             Loading pheromone data...
           </div>
         )}
 
         {error && !loading && (
-          <div
-            className="absolute inset-0 flex items-center justify-center z-10 text-sm"
-            style={{ color: C.toxic }}
-          >
+          <div className="absolute inset-0 flex items-center justify-center z-10 text-sm" style={{ color: C.toxic }}>
             {error}
           </div>
         )}
 
         {!loading && !error && initialNodes.length === 0 && (
-          <div
-            className="absolute inset-0 flex items-center justify-center z-10 text-sm"
-            style={{ color: C.muted }}
-          >
+          <div className="absolute inset-0 flex items-center justify-center z-10 text-sm" style={{ color: C.muted }}>
             No agents or tasks found. Run a tick to populate.
           </div>
         )}
@@ -665,16 +645,14 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
           />
           <MiniMap
             nodeColor={(n) => {
-              if (n.type === "agent") return C.agentAccent
-              if (n.type === "task") {
+              if (n.type === 'agent') return C.agentAccent
+              if (n.type === 'task') {
                 const d = n.data as TaskNodeData
-                return d.category === "attractive" ? C.highway
-                  : d.category === "repelled" ? C.toxic
-                  : C.taskAccent
+                return d.category === 'attractive' ? C.highway : d.category === 'repelled' ? C.toxic : C.taskAccent
               }
               return C.muted
             }}
-            maskColor={C.bg + "b0"}
+            maskColor={`${C.bg}b0`}
             style={{ backgroundColor: C.surface, borderColor: C.border }}
           />
         </ReactFlow>

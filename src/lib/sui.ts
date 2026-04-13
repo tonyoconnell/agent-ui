@@ -12,8 +12,8 @@
  * Network in env: SUI_NETWORK (testnet | mainnet | devnet)
  */
 
+import { getFullnodeUrl, SuiClient } from '@mysten/sui/client'
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
-import { SuiClient, getFullnodeUrl } from '@mysten/sui/client'
 import { Transaction } from '@mysten/sui/transactions'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -52,9 +52,12 @@ export function getClient(): SuiClient {
  * For agents that bring their own wallet (Phase 2), skip this and use their keypair.
  */
 export async function deriveKeypair(uid: string): Promise<Ed25519Keypair> {
-  if (!SEED_B64) throw new Error('SUI_SEED not configured. Generate: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'base64\'))"')
+  if (!SEED_B64)
+    throw new Error(
+      "SUI_SEED not configured. Generate: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+    )
 
-  const seed = Uint8Array.from(atob(SEED_B64), c => c.charCodeAt(0))
+  const seed = Uint8Array.from(atob(SEED_B64), (c) => c.charCodeAt(0))
   const encoder = new TextEncoder()
 
   // HKDF-like: SHA-256(seed || uid) → 32 bytes → Ed25519 keypair
@@ -134,10 +137,7 @@ export async function createUnit(
   const tx = new Transaction()
   const unit = tx.moveCall({
     target: `${PACKAGE_ID}::substrate::create_unit`,
-    arguments: [
-      tx.pure.string(name),
-      tx.pure.string(unitType),
-    ],
+    arguments: [tx.pure.string(name), tx.pure.string(unitType)],
   })
 
   // Transfer the Unit object to the agent's own address
@@ -157,11 +157,7 @@ export async function createUnit(
 // REGISTER TASK — Agent declares a capability
 // ═════════════════���════════════════════════════════��════════════════════════
 
-export async function registerTask(
-  uid: string,
-  unitObjectId: string,
-  taskName: string,
-): Promise<{ digest: string }> {
+export async function registerTask(uid: string, unitObjectId: string, taskName: string): Promise<{ digest: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
 
   const keypair = await deriveKeypair(uid)
@@ -169,10 +165,7 @@ export async function registerTask(
 
   tx.moveCall({
     target: `${PACKAGE_ID}::substrate::register_task`,
-    arguments: [
-      tx.object(unitObjectId),
-      tx.pure.string(taskName),
-    ],
+    arguments: [tx.object(unitObjectId), tx.pure.string(taskName)],
   })
 
   const result = await signAndExecute(tx, keypair)
@@ -195,9 +188,8 @@ async function ensureFunded(address: string): Promise<void> {
 }
 
 async function requestFaucet(address: string): Promise<void> {
-  const faucetUrl = NETWORK === 'testnet'
-    ? 'https://faucet.testnet.sui.io/v1/gas'
-    : 'https://faucet.devnet.sui.io/v1/gas'
+  const faucetUrl =
+    NETWORK === 'testnet' ? 'https://faucet.testnet.sui.io/v1/gas' : 'https://faucet.devnet.sui.io/v1/gas'
 
   await fetch(faucetUrl, {
     method: 'POST',
@@ -231,11 +223,7 @@ export async function getOwnedUnits(address: string) {
 // MARK / WARN — Pheromone on-chain
 // ════════════════════════════════════════���══════════════════════════════════
 
-export async function mark(
-  uid: string,
-  pathObjectId: string,
-  amount: number = 1,
-): Promise<{ digest: string }> {
+export async function mark(uid: string, pathObjectId: string, amount: number = 1): Promise<{ digest: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
   const keypair = await deriveKeypair(uid)
   const tx = new Transaction()
@@ -246,11 +234,7 @@ export async function mark(
   return signAndExecute(tx, keypair)
 }
 
-export async function warn(
-  uid: string,
-  pathObjectId: string,
-  amount: number = 1,
-): Promise<{ digest: string }> {
+export async function warn(uid: string, pathObjectId: string, amount: number = 1): Promise<{ digest: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
   const keypair = await deriveKeypair(uid)
   const tx = new Transaction()
@@ -326,12 +310,7 @@ export async function consume(
 
   tx.moveCall({
     target: `${PACKAGE_ID}::substrate::consume`,
-    arguments: [
-      tx.object(signalObjectId),
-      tx.object(unitObjectId),
-      tx.object(pathObjectId),
-      tx.object(PROTOCOL_ID),
-    ],
+    arguments: [tx.object(signalObjectId), tx.object(unitObjectId), tx.object(pathObjectId), tx.object(PROTOCOL_ID)],
   })
 
   return signAndExecute(tx, keypair)
@@ -389,11 +368,7 @@ export async function createPath(
 
   tx.moveCall({
     target: `${PACKAGE_ID}::substrate::create_path`,
-    arguments: [
-      tx.pure.id(sourceUnitId),
-      tx.pure.id(targetUnitId),
-      tx.pure.string(pathType),
-    ],
+    arguments: [tx.pure.id(sourceUnitId), tx.pure.id(targetUnitId), tx.pure.string(pathType)],
   })
 
   const result = await signAndExecute(tx, keypair)
@@ -410,10 +385,7 @@ export async function createPath(
 // CRYSTALLIZE — Freeze highway permanently
 // ═══════════════════════════════════════════════════════════════════════════
 
-export async function crystallize(
-  uid: string,
-  pathObjectId: string,
-): Promise<{ digest: string; highwayId: string }> {
+export async function crystallize(uid: string, pathObjectId: string): Promise<{ digest: string; highwayId: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
 
   const keypair = await deriveKeypair(uid)

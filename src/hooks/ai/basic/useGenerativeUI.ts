@@ -6,27 +6,27 @@
  * - No persistence
  */
 
-import { useState } from "react";
+import { useState } from 'react'
 
 export interface GenerativeUIComponent {
-	type: "chart" | "table" | "form" | "card" | "list" | "timeline";
-	props: Record<string, any>;
+  type: 'chart' | 'table' | 'form' | 'card' | 'list' | 'timeline'
+  props: Record<string, any>
 }
 
 export function useGenerativeUI() {
-	const [components, setComponents] = useState<GenerativeUIComponent[]>([]);
+  const [components, setComponents] = useState<GenerativeUIComponent[]>([])
 
-	const renderComponent = (component: GenerativeUIComponent) => {
-		setComponents((prev) => [...prev, component]);
-	};
+  const renderComponent = (component: GenerativeUIComponent) => {
+    setComponents((prev) => [...prev, component])
+  }
 
-	const clearComponents = () => {
-		setComponents([]);
-	};
+  const clearComponents = () => {
+    setComponents([])
+  }
 
-	return {
-		components,
-		renderComponent,
-		clearComponents,
-	};
+  return {
+    components,
+    renderComponent,
+    clearComponents,
+  }
 }

@@ -72,10 +72,11 @@ describe('Act 1: STAN routes away from failures, toward success', () => {
       net.mark(`entry→${model}`, 0.1) // cold start — each path exists
     }
 
-    // Simulate 60 signals routed equally (20 per model)
+    // Simulate 300 signals routed equally (100 per model)
+    // 100 samples per model reduces variance enough that 90% vs 75% success rates are reliably distinguishable
     for (const model of ['gemma', 'llama', 'sonnet']) {
       const llm = { gemma: GEMMA, llama: LLAMA, sonnet: SONNET }[model]!
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 100; i++) {
         const result = await llm.call('summarise this')
         const quality = scoreQuality(result, llm.quality)
         qualityMark(net, `entry→${model}`, quality)
@@ -86,39 +87,40 @@ describe('Act 1: STAN routes away from failures, toward success', () => {
     const llamaNet = net.sense('entry→llama') - net.danger('entry→llama')
     const sonnetNet = net.sense('entry→sonnet') - net.danger('entry→sonnet')
 
-    console.log('\n  After 20 signals each:')
-    console.log(`  gemma  net strength: ${gemmaNet.toFixed(2)}  (90% success, quality 0.75)`)
-    console.log(`  llama  net strength: ${llamaNet.toFixed(2)}  (75% success, quality 0.70)`)
-    console.log(`  sonnet net strength: ${sonnetNet.toFixed(2)} (95% success, quality 0.92)`)
+    console.log('\n  After 100 signals each:')
+    console.log(`  gemma  net strength: ${gemmaNet.toFixed(2)}  (90% success × quality 0.75 → expected ~80)`)
+    console.log(`  llama  net strength: ${llamaNet.toFixed(2)}  (75% success × quality 0.70 → expected ~50)`)
+    console.log(`  sonnet net strength: ${sonnetNet.toFixed(2)} (95% success × quality 0.92 → expected ~175)`)
 
     // Sonnet should lead (highest success × quality)
     // Gemma second (good success, reasonable quality)
     // Llama last (worst success rate)
     expect(sonnetNet).toBeGreaterThan(gemmaNet)
     expect(gemmaNet).toBeGreaterThan(llamaNet)
-  }, 10000)
+  }, 30000)
 
-  it('STAN distribution shifts toward best model over 100 signals', async () => {
+  it('STAN distribution shifts toward best model over 300 picks', async () => {
     const net = world()
     net.add('gemma').on('complete', async () => await GEMMA.call('test'))
     net.add('llama').on('complete', async () => await LLAMA.call('test'))
     net.add('sonnet').on('complete', async () => await SONNET.call('test'))
 
-    // Bootstrap: 30 signals per model to build initial pheromone
+    // Bootstrap: 100 signals per model to build robust pheromone (large sample → stable weights)
     for (const [name, llm] of [
       ['gemma', GEMMA],
       ['llama', LLAMA],
       ['sonnet', SONNET],
     ] as const) {
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 100; i++) {
         const result = await llm.call('task')
         qualityMark(net, `entry→${name}`, scoreQuality(result, llm.quality))
       }
     }
 
-    // Now simulate 100 STAN-routed signals (let pheromone decide)
+    // Now simulate 300 STAN-routed signals (let pheromone decide)
+    // Larger sample reduces variance in probabilistic routing
     const picks: Record<string, number> = { gemma: 0, llama: 0, sonnet: 0 }
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 300; i++) {
       const pick = net.select(undefined, 0.7) // sensitivity=0.7 — exploit + explore
       if (pick && pick in picks) picks[pick]++
     }
@@ -128,18 +130,18 @@ describe('Act 1: STAN routes away from failures, toward success', () => {
     const llamaShare = ((picks.llama / total) * 100).toFixed(1)
     const sonnetShare = ((picks.sonnet / total) * 100).toFixed(1)
 
-    console.log('\n  STAN routing distribution (100 picks, sensitivity=0.7):')
+    console.log('\n  STAN routing distribution (300 picks, sensitivity=0.7):')
     console.log(`  gemma:  ${gemmaShare}%  (90% success)`)
     console.log(`  llama:  ${llamaShare}%  (75% success)`)
     console.log(`  sonnet: ${sonnetShare}% (95% success)`)
     console.log('  → worse models get fewer signals. no config.')
 
-    // Sonnet + gemma should dominate. Llama should be minority.
+    // Sonnet + gemma should dominate. Llama should be clear minority.
     expect(picks.llama).toBeLessThan(picks.gemma)
     expect(picks.llama).toBeLessThan(picks.sonnet)
-    // Combined best two should have 75%+ of traffic
-    expect(picks.gemma + picks.sonnet).toBeGreaterThan(75)
-  }, 15000)
+    // Combined best two should have 80%+ of traffic (larger sample, stronger signal)
+    expect(picks.gemma + picks.sonnet).toBeGreaterThan(240) // 80% of 300
+  }, 45000)
 })
 
 // ═══════════════════════════════════════════════════════════════════════════

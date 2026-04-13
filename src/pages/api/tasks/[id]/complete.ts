@@ -5,8 +5,8 @@
  * Updates pheromone in local store (fast), TypeDB (silent), and triggers KV sync.
  */
 import type { APIRoute } from 'astro'
-import { writeSilent } from '@/lib/typedb'
 import * as store from '@/lib/tasks-store'
+import { writeSilent } from '@/lib/typedb'
 
 function triggerKvSync() {
   const syncUrl = import.meta.env.SYNC_WORKER_URL || 'https://one-sync.oneie.workers.dev'
@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'Missing task id' }), { status: 400 })
   }
 
-  const body = await request.json().catch(() => ({})) as { failed?: boolean; from?: string }
+  const body = (await request.json().catch(() => ({}))) as { failed?: boolean; from?: string }
   const failed = body.failed === true
   const from = body.from || 'loop'
 

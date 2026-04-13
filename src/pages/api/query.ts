@@ -5,10 +5,10 @@
  * Returns: { rows: Record<string, unknown>[] }
  */
 import type { APIRoute } from 'astro'
-import { read, write, parseAnswers } from '@/lib/typedb'
+import { parseAnswers, read, write } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request }) => {
-  const { query: tql, type = 'read' } = await request.json() as {
+  const { query: tql, type = 'read' } = (await request.json()) as {
     query: string
     type?: 'read' | 'write'
   }

@@ -27,7 +27,7 @@ export const GET: APIRoute = async () => {
       select $sid, $tid, $str, $r;
     `)
 
-    const paths: PathExport[] = results.map(r => {
+    const paths: PathExport[] = results.map((r) => {
       const strength = r.str as number
       const resistance = r.r as number
       return {

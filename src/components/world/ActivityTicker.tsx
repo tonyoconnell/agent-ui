@@ -14,9 +14,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { useSignalStream, type Signal } from '@/lib/streamSignals'
 import { useSkin } from '@/contexts/SkinContext'
-import { cn } from '@/lib/utils'
+import { type Signal, useSignalStream } from '@/lib/streamSignals'
 
 interface ActivityTickerProps {
   onFocusUnit?: (id: string) => void
@@ -77,7 +76,7 @@ export function ActivityTicker({ onFocusUnit, maxVisible = 10 }: ActivityTickerP
         className="px-4 py-3 border-t flex items-center justify-between text-sm"
         style={{
           backgroundColor: skin.colors.surface,
-          borderColor: skin.colors.muted + '20',
+          borderColor: `${skin.colors.muted}20`,
           color: skin.colors.muted,
         }}
       >
@@ -85,7 +84,7 @@ export function ActivityTicker({ onFocusUnit, maxVisible = 10 }: ActivityTickerP
           <div className="w-2 h-2 rounded-full bg-slate-600 animate-pulse" />
           <span>Waiting for signals...</span>
         </div>
-        <span className="text-xs" style={{ color: skin.colors.muted + '60' }}>
+        <span className="text-xs" style={{ color: `${skin.colors.muted}60` }}>
           Real-time feed
         </span>
       </div>
@@ -97,7 +96,7 @@ export function ActivityTicker({ onFocusUnit, maxVisible = 10 }: ActivityTickerP
       className="px-4 py-3 border-t overflow-x-auto"
       style={{
         backgroundColor: skin.colors.surface,
-        borderColor: skin.colors.muted + '20',
+        borderColor: `${skin.colors.muted}20`,
       }}
       ref={scrollContainerRef}
     >
@@ -115,34 +114,27 @@ export function ActivityTicker({ onFocusUnit, maxVisible = 10 }: ActivityTickerP
               className="flex-shrink-0 px-3 py-2 rounded-lg border cursor-pointer hover:border-opacity-100 transition-all duration-200 font-mono text-xs whitespace-nowrap"
               style={{
                 backgroundColor: skin.colors.background,
-                borderColor: outcomeColor + '40',
+                borderColor: `${outcomeColor}40`,
                 borderWidth: '1px',
               }}
               title={`From: ${signal.fromName}\nTo: ${signal.toName}\nOutcome: ${signal.outcome}`}
             >
               {/* Source */}
-              <span style={{ color: skin.colors.primary }}>
-                {signal.fromName.slice(0, 8)}
-              </span>
+              <span style={{ color: skin.colors.primary }}>{signal.fromName.slice(0, 8)}</span>
 
               {/* Arrow */}
-              <span
-                className="mx-1"
-                style={{ color: skin.colors.muted + '60' }}
-              >
+              <span className="mx-1" style={{ color: `${skin.colors.muted}60` }}>
                 →
               </span>
 
               {/* Target */}
-              <span style={{ color: skin.colors.secondary }}>
-                {signal.toName.slice(0, 8)}
-              </span>
+              <span style={{ color: skin.colors.secondary }}>{signal.toName.slice(0, 8)}</span>
 
               {/* Skill */}
               <span
                 className="mx-1 px-1.5 py-0.5 rounded"
                 style={{
-                  backgroundColor: skin.colors.muted + '15',
+                  backgroundColor: `${skin.colors.muted}15`,
                   color: skin.colors.muted,
                 }}
               >
@@ -150,25 +142,17 @@ export function ActivityTicker({ onFocusUnit, maxVisible = 10 }: ActivityTickerP
               </span>
 
               {/* Outcome */}
-              <span style={{ color: outcomeColor }}>
-                {outcomeIcon}
-              </span>
+              <span style={{ color: outcomeColor }}>{outcomeIcon}</span>
 
               {/* Revenue */}
               {signal.revenue !== 0 && (
-                <span
-                  className="ml-1"
-                  style={{ color: revenueColor }}
-                >
+                <span className="ml-1" style={{ color: revenueColor }}>
                   {isRevenue ? '+' : '-'}${Math.abs(signal.revenue).toFixed(2)}
                 </span>
               )}
 
               {/* Timestamp */}
-              <span
-                className="ml-2"
-                style={{ color: skin.colors.muted + '60' }}
-              >
+              <span className="ml-2" style={{ color: `${skin.colors.muted}60` }}>
                 {formatTime(signal.ts)}
               </span>
             </div>

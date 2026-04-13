@@ -76,7 +76,7 @@ export const GET: APIRoute = async ({ url }) => {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
+    const _message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify([]), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },

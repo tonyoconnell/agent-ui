@@ -4,7 +4,7 @@
  * CEO-only view.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -55,30 +55,29 @@ function srColor(sr: number) {
 }
 
 function netStrength(id: string, edges: Edge[]): number {
-  return edges
-    .filter(e => e.from === id)
-    .reduce((sum, e) => sum + (e.strength - e.resistance), 0)
+  return edges.filter((e) => e.from === id).reduce((sum, e) => sum + (e.strength - e.resistance), 0)
 }
 
 function topSkill(id: string, edges: Edge[]): string | null {
-  const out = edges.filter(e => e.from === id).sort((a, b) => (b.strength - b.resistance) - (a.strength - a.resistance))
+  const out = edges.filter((e) => e.from === id).sort((a, b) => b.strength - b.resistance - (a.strength - a.resistance))
   return out[0]?.to ?? null
 }
 
 function StatusDot({ active }: { active: boolean }) {
   return (
-    <span className={cn(
-      'inline-block w-2 h-2 rounded-full flex-shrink-0',
-      active
-        ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]'
-        : 'bg-slate-600'
-    )} />
+    <span
+      className={cn(
+        'inline-block w-2 h-2 rounded-full flex-shrink-0',
+        active ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-slate-600',
+      )}
+    />
   )
 }
 
 function SrBar({ value }: { value: number }) {
   const pct = Math.round(value * 100)
-  const color = value >= 0.75 ? 'bg-emerald-500' : value >= 0.5 ? 'bg-blue-500' : value >= 0.25 ? 'bg-amber-500' : 'bg-red-500'
+  const color =
+    value >= 0.75 ? 'bg-emerald-500' : value >= 0.5 ? 'bg-blue-500' : value >= 0.25 ? 'bg-amber-500' : 'bg-red-500'
   return (
     <div className="flex items-center gap-2">
       <div className="w-16 h-1.5 bg-[#252538] rounded-full overflow-hidden">
@@ -93,7 +92,8 @@ function NetStrengthBadge({ value }: { value: number }) {
   const color = value > 10 ? 'text-emerald-400' : value > 0 ? 'text-slate-400' : 'text-red-400'
   return (
     <span className={cn('text-xs tabular-nums font-mono w-12 text-right', color)}>
-      {value > 0 ? '+' : ''}{value.toFixed(1)}
+      {value > 0 ? '+' : ''}
+      {value.toFixed(1)}
     </span>
   )
 }
@@ -114,16 +114,14 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
     <div
       className={cn(
         'flex items-center gap-3 px-4 py-3 hover:bg-[#1a1a2e] transition-colors',
-        agent.status === 'inactive' && 'opacity-50'
+        agent.status === 'inactive' && 'opacity-50',
       )}
     >
       <StatusDot active={agent.status === 'active'} />
 
       <div className="flex-1 min-w-0">
         <div className="text-sm text-slate-200 truncate">{agent.name || agent.id}</div>
-        {skill && (
-          <div className="text-xs text-slate-600 truncate">→ {skill}</div>
-        )}
+        {skill && <div className="text-xs text-slate-600 truncate">→ {skill}</div>}
       </div>
 
       {agent.g > 0 && (
@@ -141,7 +139,7 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
           label="★"
           title="Commend — boost success-rate +10%, strengthen outgoing paths"
           color="text-emerald-400 hover:bg-emerald-400/10"
-          loading={pending[agent.id + 'commend']}
+          loading={pending[`${agent.id}commend`]}
           disabled={agent.status === 'inactive'}
           onClick={() => onAction(agent.id, 'commend')}
         />
@@ -149,7 +147,7 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
           label="⚑"
           title="Flag — lower success-rate −15%, add resistance"
           color="text-amber-400 hover:bg-amber-400/10"
-          loading={pending[agent.id + 'flag']}
+          loading={pending[`${agent.id}flag`]}
           disabled={agent.status === 'inactive'}
           onClick={() => onAction(agent.id, 'flag')}
         />
@@ -158,7 +156,7 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
             label="✕"
             title="Deactivate — remove from routing"
             color="text-slate-500 hover:bg-slate-500/10"
-            loading={pending[agent.id + 'fire']}
+            loading={pending[`${agent.id}fire`]}
             onClick={() => onAction(agent.id, 'fire')}
           />
         ) : (
@@ -166,7 +164,7 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
             label="↑"
             title="Activate — restore to routing"
             color="text-blue-400 hover:bg-blue-400/10"
-            loading={pending[agent.id + 'hire']}
+            loading={pending[`${agent.id}hire`]}
             onClick={() => onAction(agent.id, 'hire')}
           />
         )}
@@ -200,7 +198,7 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
 // ─── Toxic Paths ─────────────────────────────────────────────────────────────
 
 function ToxicPaths({ edges }: { edges: Edge[] }) {
-  const toxic = edges.filter(e => e.toxic || (e.resistance >= 10 && e.resistance > e.strength * 2))
+  const toxic = edges.filter((e) => e.toxic || (e.resistance >= 10 && e.resistance > e.strength * 2))
   if (toxic.length === 0) return null
 
   return (
@@ -235,7 +233,7 @@ export function CEOPanel() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/state').then(r => r.json()) as StateResponse
+      const res = (await fetch('/api/state').then((r) => r.json())) as StateResponse
       setAgents([...(res.units || [])])
       setEdges(res.edges || [])
       setStats(res.stats || { units: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 })
@@ -251,7 +249,7 @@ export function CEOPanel() {
   }, [load])
 
   async function act(id: string, action: Action) {
-    setPending(p => ({ ...p, [id + action]: true }))
+    setPending((p) => ({ ...p, [id + action]: true }))
     try {
       if (action === 'hire' || action === 'fire') {
         const status = action === 'hire' ? 'active' : 'inactive'
@@ -260,19 +258,21 @@ export function CEOPanel() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status }),
         })
-        setAgents(a => a.map(u => u.id === id ? { ...u, status } : u))
+        setAgents((a) => a.map((u) => (u.id === id ? { ...u, status } : u)))
         showToast(action === 'hire' ? `${id} activated` : `${id} deactivated`)
       } else {
         await fetch(`/api/agents/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
-        setAgents(a => a.map(u => {
-          if (u.id !== id) return u
-          const delta = action === 'commend' ? 0.1 : -0.15
-          return { ...u, sr: Math.min(0.95, Math.max(0.05, u.sr + delta)) }
-        }))
+        setAgents((a) =>
+          a.map((u) => {
+            if (u.id !== id) return u
+            const delta = action === 'commend' ? 0.1 : -0.15
+            return { ...u, sr: Math.min(0.95, Math.max(0.05, u.sr + delta)) }
+          }),
+        )
         showToast(action === 'commend' ? `★ ${id} commended` : `⚑ ${id} flagged`)
       }
     } finally {
-      setPending(p => ({ ...p, [id + action]: false }))
+      setPending((p) => ({ ...p, [id + action]: false }))
     }
   }
 
@@ -282,20 +282,18 @@ export function CEOPanel() {
   }
 
   // Derived views
-  const agentsWithNet = agents.map(a => ({
+  const agentsWithNet = agents.map((a) => ({
     ...a,
     net: netStrength(a.id, edges),
     topSkill: topSkill(a.id, edges),
   }))
 
   const topPerformers = [...agentsWithNet]
-    .filter(a => a.status === 'active')
+    .filter((a) => a.status === 'active')
     .sort((a, b) => b.net - a.net)
     .slice(0, 10)
 
-  const atRisk = agentsWithNet
-    .filter(a => a.sr < 0.4 && a.status === 'active')
-    .sort((a, b) => a.sr - b.sr)
+  const atRisk = agentsWithNet.filter((a) => a.sr < 0.4 && a.status === 'active').sort((a, b) => a.sr - b.sr)
 
   const avgSr = agents.length ? agents.reduce((s, a) => s + a.sr, 0) / agents.length : 0
 
@@ -309,7 +307,6 @@ export function CEOPanel() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-slate-200 p-6 space-y-6 max-w-5xl mx-auto">
-
       {/* Toast */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 bg-[#1a1a2e] border border-[#252538] rounded-lg px-4 py-2 text-sm text-emerald-400 shadow-lg animate-in fade-in slide-in-from-top-2">
@@ -324,10 +321,8 @@ export function CEOPanel() {
           <p className="text-xs text-slate-500 mt-0.5">
             Avg SR: <span className={cn('font-mono', srColor(avgSr))}>{Math.round(avgSr * 100)}%</span>
             {' · '}
-            {agents.filter(a => a.status === 'active').length} active
-            {atRisk.length > 0 && (
-              <span className="text-red-400 ml-2">· {atRisk.length} at risk</span>
-            )}
+            {agents.filter((a) => a.status === 'active').length} active
+            {atRisk.length > 0 && <span className="text-red-400 ml-2">· {atRisk.length} at risk</span>}
           </p>
         </div>
         <button
@@ -345,13 +340,11 @@ export function CEOPanel() {
       {topPerformers.length > 0 && (
         <div className="bg-[#161622] border border-[#252538] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-[#252538] flex items-center justify-between">
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-              Top Performers
-            </h2>
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Top Performers</h2>
             <span className="text-xs text-slate-600">net strength = mark − warn</span>
           </div>
           <div className="divide-y divide-[#1e1e30]">
-            {topPerformers.map(agent => (
+            {topPerformers.map((agent) => (
               <AgentRow
                 key={agent.id}
                 agent={agent}
@@ -375,7 +368,7 @@ export function CEOPanel() {
             </h2>
           </div>
           <div className="divide-y divide-[#1e1e30]">
-            {atRisk.map(agent => (
+            {atRisk.map((agent) => (
               <AgentRow
                 key={agent.id}
                 agent={agent}
@@ -402,7 +395,7 @@ export function CEOPanel() {
         <div className="divide-y divide-[#1e1e30]">
           {agentsWithNet
             .sort((a, b) => b.sr - a.sr)
-            .map(agent => (
+            .map((agent) => (
               <AgentRow
                 key={agent.id}
                 agent={agent}
@@ -417,10 +410,18 @@ export function CEOPanel() {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600 pb-2">
-        <span><span className="text-emerald-400">★</span> Commend — SR +10%, strengthen outgoing paths</span>
-        <span><span className="text-amber-400">⚑</span> Flag — SR −15%, add resistance to paths</span>
-        <span><span className="text-slate-400">✕</span> Deactivate — exclude from routing</span>
-        <span><span className="text-blue-400">↑</span> Activate — restore to routing</span>
+        <span>
+          <span className="text-emerald-400">★</span> Commend — SR +10%, strengthen outgoing paths
+        </span>
+        <span>
+          <span className="text-amber-400">⚑</span> Flag — SR −15%, add resistance to paths
+        </span>
+        <span>
+          <span className="text-slate-400">✕</span> Deactivate — exclude from routing
+        </span>
+        <span>
+          <span className="text-blue-400">↑</span> Activate — restore to routing
+        </span>
       </div>
     </div>
   )
@@ -429,7 +430,12 @@ export function CEOPanel() {
 // ─── ActionBtn ────────────────────────────────────────────────────────────────
 
 function ActionBtn({
-  label, title, color, loading, disabled, onClick
+  label,
+  title,
+  color,
+  loading,
+  disabled,
+  onClick,
 }: {
   label: string
   title: string
@@ -446,7 +452,7 @@ function ActionBtn({
       className={cn(
         'w-7 h-7 rounded text-sm font-mono transition-colors flex items-center justify-center',
         color,
-        (loading || disabled) && 'opacity-30 cursor-not-allowed'
+        (loading || disabled) && 'opacity-30 cursor-not-allowed',
       )}
     >
       {loading ? '…' : label}

@@ -5,7 +5,7 @@
  * Production uses D1 with TypeDB sync.
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export interface ProjectTask {
@@ -138,7 +138,7 @@ export function cascadeUnblock(completedTid: string): string[] {
     if (!task.blockedBy.includes(completedTid)) continue
 
     // Check if all blockers are now complete
-    const allBlockersComplete = task.blockedBy.every(bid => {
+    const allBlockersComplete = task.blockedBy.every((bid) => {
       const blocker = tasks.get(bid)
       return blocker?.status === 'complete'
     })

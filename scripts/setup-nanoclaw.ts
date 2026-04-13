@@ -16,10 +16,10 @@
  *   7. Prints full credential summary
  */
 
-import { execSync } from 'child_process'
-import { writeFileSync, readFileSync, existsSync } from 'fs'
-import { randomBytes } from 'crypto'
-import { resolve } from 'path'
+import { execSync } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -46,7 +46,9 @@ Usage:
   bun run scripts/setup-nanoclaw.ts --name <name> --persona <persona> [--token <telegram_token>]
 
 Available personas:
-${Object.entries(personas).map(([k, v]) => `  ${k.padEnd(16)} — ${v.description}`).join('\n')}
+${Object.entries(personas)
+  .map(([k, v]) => `  ${k.padEnd(16)} — ${v.description}`)
+  .join('\n')}
 
 Example:
   bun run scripts/setup-nanoclaw.ts --name donal --persona donal --token 1234:ABC...
@@ -61,18 +63,18 @@ function loadEnv(): Record<string, string> {
   return Object.fromEntries(
     readFileSync(ENV_FILE, 'utf8')
       .split('\n')
-      .filter(l => l.includes('=') && !l.startsWith('#'))
-      .map(l => {
+      .filter((l) => l.includes('=') && !l.startsWith('#'))
+      .map((l) => {
         const [k, ...v] = l.split('=')
         return [k.trim(), v.join('=').trim()]
-      })
+      }),
   )
 }
 
 const env = loadEnv()
 const CF_API_KEY = env.CLOUDFLARE_GLOBAL_API_KEY
 const CF_EMAIL = env.CLOUDFLARE_EMAIL
-const CF_ACCOUNT_ID = env.CLOUDFLARE_ACCOUNT_ID
+const _CF_ACCOUNT_ID = env.CLOUDFLARE_ACCOUNT_ID
 const OPENROUTER_API_KEY = env.OPENROUTER_API_KEY
 
 if (!CF_API_KEY || !CF_EMAIL) {
@@ -105,14 +107,11 @@ function run(cmd: string, opts: { cwd?: string; silent?: boolean } = {}) {
 }
 
 function setSecret(workerConfig: string, secretName: string, secretValue: string) {
-  const proc = Bun.spawnSync(
-    ['npx', 'wrangler', 'secret', 'put', secretName, '--config', workerConfig],
-    {
-      cwd: NANOCLAW,
-      env: CF_ENV,
-      stdin: new TextEncoder().encode(secretValue + '\n'),
-    }
-  )
+  const proc = Bun.spawnSync(['npx', 'wrangler', 'secret', 'put', secretName, '--config', workerConfig], {
+    cwd: NANOCLAW,
+    env: CF_ENV,
+    stdin: new TextEncoder().encode(`${secretValue}\n`),
+  })
   if (proc.exitCode !== 0) {
     throw new Error(`Failed to set secret ${secretName}: ${new TextDecoder().decode(proc.stderr)}`)
   }
@@ -210,10 +209,8 @@ if (telegramToken) {
 if (telegramToken) {
   console.log(`\n5/5 Registering Telegram webhook...`)
   const webhookUrl = `${workerUrl}/webhook/telegram`
-  const res = await fetch(
-    `https://api.telegram.org/bot${telegramToken}/setWebhook?url=${webhookUrl}`
-  )
-  const data = await res.json() as any
+  const res = await fetch(`https://api.telegram.org/bot${telegramToken}/setWebhook?url=${webhookUrl}`)
+  const data = (await res.json()) as any
   if (data.ok) {
     console.log(`   → Webhook registered: ${webhookUrl}`)
   } else {

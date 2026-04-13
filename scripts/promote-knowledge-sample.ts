@@ -6,8 +6,8 @@
  * Full corpus can be synced in batch via separate runner
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 import fetch from 'node-fetch'
 
 const OUTPUT_DIR = path.join(process.cwd(), 'docs', 'knowledge')
@@ -20,7 +20,7 @@ async function postWrite(tql: string) {
     body: JSON.stringify({
       query: tql,
       transactionType: 'write',
-      commit: true
+      commit: true,
     }),
   })
 
@@ -43,7 +43,10 @@ async function promoteSample() {
     process.exit(1)
   }
 
-  const lines = fs.readFileSync(seoFile, 'utf-8').split('\n').filter(l => l.trim())
+  const lines = fs
+    .readFileSync(seoFile, 'utf-8')
+    .split('\n')
+    .filter((l) => l.trim())
   const sample = lines.slice(0, 10)
 
   console.log(`Promoting ${sample.length} SEO knowledge chunks...\n`)
@@ -53,16 +56,9 @@ async function promoteSample() {
     try {
       const chunk: any = JSON.parse(line)
 
-      const escapedTitle = chunk.title
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .slice(0, 150)
+      const escapedTitle = chunk.title.replace(/\\/g, '\\\\').replace(/"/g, '\\"').slice(0, 150)
 
-      const escapedDesc = chunk.content
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, ' ')
-        .slice(0, 500)
+      const escapedDesc = chunk.content.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, ' ').slice(0, 500)
 
       const tql = `
         insert $h isa hypothesis,
@@ -93,7 +89,7 @@ async function promoteSample() {
   console.log('')
 }
 
-promoteSample().catch(e => {
+promoteSample().catch((e) => {
   console.error('FATAL:', e)
   process.exit(1)
 })

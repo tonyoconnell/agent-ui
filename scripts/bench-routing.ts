@@ -19,7 +19,7 @@ function bench(label: string, fn: () => unknown): number {
   const elapsed = performance.now() - t0
   const perOp = elapsed / RUNS
   const pass = perOp < 0.01
-  const bar = '█'.repeat(Math.min(40, Math.ceil(perOp / 0.001)))
+  const _bar = '█'.repeat(Math.min(40, Math.ceil(perOp / 0.001)))
   console.log(`  ${pass ? '✓' : '·'} ${label.padEnd(36)} ${perOp.toFixed(6)}ms  ${pass ? 'PASS' : 'slow'}`)
   return perOp
 }
@@ -50,7 +50,7 @@ console.log('══════════════════════�
 console.log('  PRACTICAL SIZE (live substrate: ~10 edges)')
 {
   const net = world()
-  seedEdges(net, 4, 2)  // 4 units × 2 edges ≈ 8 edges
+  seedEdges(net, 4, 2) // 4 units × 2 edges ≈ 8 edges
   bench('select()   ~10 edges', () => net.select())
   bench('follow()   ~10 edges', () => net.follow())
   bench('highways() ~10 edges', () => net.highways(10))
@@ -66,7 +66,7 @@ console.log()
 console.log('  GROWTH SIZE (~50 edges, 20 active units)')
 {
   const net = world()
-  seedEdges(net, 18, 3)  // 18 × 3 = 54 edges
+  seedEdges(net, 18, 3) // 18 × 3 = 54 edges
   bench('select()   ~50 edges', () => net.select())
   bench('follow()   ~50 edges', () => net.follow())
   bench('highways() ~50 edges', () => net.highways(10))
@@ -80,7 +80,7 @@ console.log()
 console.log('  SCALE SIZE (~500 edges, for reference only)')
 {
   const net = world()
-  seedEdges(net, 100, 5)  // 100 × 5 = 500 edges
+  seedEdges(net, 100, 5) // 100 × 5 = 500 edges
   bench('select()   ~500 edges', () => net.select())
   bench('follow()   ~500 edges', () => net.follow())
   bench('mark()     ~500 edges', () => net.mark('unit-0→unit-1'))

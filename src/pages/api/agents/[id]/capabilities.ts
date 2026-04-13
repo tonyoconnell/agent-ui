@@ -4,7 +4,7 @@
  * Body: { taskName: string, taskType: string, price: number, currency: string }
  */
 import type { APIRoute } from 'astro'
-import { write, readParsed } from '@/lib/typedb'
+import { readParsed, write } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ params, request }) => {
   const uid = params.id
@@ -12,7 +12,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'Missing agent id' }), { status: 400 })
   }
 
-  const { taskName, taskType, price, currency } = await request.json() as {
+  const { taskName, taskType, price, currency } = (await request.json()) as {
     taskName: string
     taskType: string
     price: number
@@ -32,7 +32,10 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: `Agent "${uid}" not found` }), { status: 404 })
   }
 
-  const safeTaskName = taskName.toLowerCase().replace(/[^a-z0-9-_ ]/g, '').slice(0, 64)
+  const safeTaskName = taskName
+    .toLowerCase()
+    .replace(/[^a-z0-9-_ ]/g, '')
+    .slice(0, 64)
   const tid = `${uid}:${safeTaskName.replace(/\s+/g, '-')}`
   const safePrice = Math.max(0, price || 0)
   const safeCurrency = currency || 'SUI'

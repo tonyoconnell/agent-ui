@@ -9,8 +9,8 @@
  *   skin.colors.primary  // Returns the primary color
  */
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
-import { skins, defaultSkin, type MetaphorSkin } from "@/skins"
+import { createContext, type ReactNode, useCallback, useContext, useState } from 'react'
+import { defaultSkin, type MetaphorSkin, skins } from '@/skins'
 
 interface SkinContextType {
   skin: MetaphorSkin
@@ -22,7 +22,7 @@ interface SkinContextType {
 
 const SkinContext = createContext<SkinContextType | null>(null)
 
-export function SkinProvider({ children, initialSkin = "team" }: { children: ReactNode; initialSkin?: string }) {
+export function SkinProvider({ children, initialSkin = 'team' }: { children: ReactNode; initialSkin?: string }) {
   const [skinId, setSkinId] = useState(initialSkin)
   const skin = skins[skinId] || defaultSkin
 
@@ -30,8 +30,8 @@ export function SkinProvider({ children, initialSkin = "team" }: { children: Rea
     if (skins[id]) {
       setSkinId(id)
       // Persist preference
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem("skin", id)
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('skin', id)
       }
     }
   }, [])
@@ -40,16 +40,12 @@ export function SkinProvider({ children, initialSkin = "team" }: { children: Rea
   const t = useCallback(
     (key: keyof MetaphorSkin): string => {
       const value = skin[key]
-      return typeof value === "string" ? value : key
+      return typeof value === 'string' ? value : key
     },
-    [skin]
+    [skin],
   )
 
-  return (
-    <SkinContext.Provider value={{ skin, skinId, setSkin, t, allSkins: skins }}>
-      {children}
-    </SkinContext.Provider>
-  )
+  return <SkinContext.Provider value={{ skin, skinId, setSkin, t, allSkins: skins }}>{children}</SkinContext.Provider>
 }
 
 export function useSkin() {
@@ -59,12 +55,12 @@ export function useSkin() {
   if (!context) {
     const t = (key: keyof MetaphorSkin): string => {
       const value = defaultSkin[key]
-      return typeof value === "string" ? value : key
+      return typeof value === 'string' ? value : key
     }
 
     return {
       skin: defaultSkin,
-      skinId: "team",
+      skinId: 'team',
       setSkin: () => {}, // no-op fallback
       t,
       allSkins: skins,

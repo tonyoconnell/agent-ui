@@ -51,7 +51,7 @@ export interface World {
     s: Signal,
     from?: string,
     timeout?: number,
-  ) => Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean }>
+  ) => Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean; failure?: boolean }>
   enqueue: (s: Signal) => void
   drain: () => Signal | null
   pending: () => number
@@ -86,16 +86,46 @@ export const unit = (id: string, route?: Route): Unit => {
     const emit: Emit = (s) => route?.(s, receiver)
     const ctx = { from, self: receiver }
 
-    task?.(data, emit, ctx).then((result) => {
-      // Auto-reply: if signal had replyTo, send result back (closes ask())
-      const replyTo = (data as Record<string, unknown>)?.replyTo as string
-      replyTo && route?.({ receiver: replyTo, data: result }, receiver)
-      // Continuation: fire .then() template
-      next[taskName] && route?.(next[taskName](result), receiver)
-    })
+    const taskResult = task?.(data, emit, ctx)
+    if (taskResult) {
+      taskResult
+        .then((result) => {
+          // Auto-reply: if signal had replyTo, send result back (closes ask())
+          const replyTo = (data as Record<string, unknown>)?.replyTo as string
+          const isFailure = result === null || result === undefined
+
+          if (isFailure && replyTo) {
+            // Task produced no result → failure
+            route?.({ receiver: replyTo, data: { failure: true } }, receiver)
+          } else if (replyTo) {
+            route?.({ receiver: replyTo, data: result }, receiver)
+          }
+
+          // Continuation: fire .then() template (only if task succeeded)
+          if (!isFailure) {
+            next[taskName] && route?.(next[taskName](result), receiver)
+          }
+        })
+        .catch((err) => {
+          // Task threw an error → failure
+          const replyTo = (data as Record<string, unknown>)?.replyTo as string
+          if (replyTo) {
+            route?.({ receiver: replyTo, data: { failure: true } }, receiver)
+          }
+        })
+    }
   }
 
-  u.on = (n, f) => ((tasks[n] = (d, e, c) => Promise.resolve(f(d, e, c))), u)
+  u.on = (n, f) => (
+    (tasks[n] = (d, e, c) => {
+      try {
+        return Promise.resolve(f(d, e, c))
+      } catch (err) {
+        return Promise.reject(err)
+      }
+    }),
+    u
+  )
   u.then = (n, t) => ((next[n] = t), u)
   u.role = (n, t, ctx) => (
     (tasks[n] = (d, e, c) => tasks[t]?.({ ...ctx, ...(d as object) }, e, c) ?? Promise.resolve(null)), u
@@ -192,9 +222,15 @@ export const world = (): World => {
       } // Fix 4: dissolution is visible
       const rid = `r:${Date.now()}`
       const u = unit(rid, (reply) => signal(reply, rid))
-      u.on('default', (result) => {
+      u.on('default', (data) => {
         delete units[rid]
-        resolve({ result })
+        if ((data as Record<string, unknown>)?.failure === true) {
+          resolve({ dissolved: true })
+        } else {
+          resolve({ result: data })
+        }
+        // Return null to prevent this from routing further
+        return null
       })
       units[rid] = u
       signal({ ...s, data: { ...((s.data as object) || {}), replyTo: rid } }, from)

@@ -21,10 +21,8 @@
  * After that, this endpoint is fully deterministic.
  */
 import type { APIRoute } from 'astro'
+import { EFFORT_MODEL, effectivePriority, WAVE_MODEL } from '@/engine/task-parse'
 import { readParsed } from '@/lib/typedb'
-import { effectivePriority, EFFORT_MODEL, WAVE_MODEL } from '@/engine/task-parse'
-
-type Row = Record<string, unknown>
 
 /** FNV-1a hash for KV write comparison */
 function fnv1a(data: string): string {
@@ -64,18 +62,34 @@ async function readPheromone(): Promise<Map<string, { strength: number; resistan
 
 /** Render TODO.md as master index with links to TODO-*.md files + tasks by phase */
 function renderTodo(
-  tasks: Array<{ id: string; name: string; done: boolean; value: string; effort: string; phase: string; persona: string; priority: number; formula: string; tags: string[]; exit: string; blocks: string[]; source: string }>,
-  pheromone: Map<string, { strength: number; resistance: number }>
+  tasks: Array<{
+    id: string
+    name: string
+    done: boolean
+    value: string
+    effort: string
+    phase: string
+    persona: string
+    priority: number
+    formula: string
+    tags: string[]
+    exit: string
+    blocks: string[]
+    source: string
+  }>,
+  pheromone: Map<string, { strength: number; resistance: number }>,
 ): string {
-  const open = tasks.filter(t => !t.done)
-  const done = tasks.filter(t => t.done)
+  const open = tasks.filter((t) => !t.done)
+  const done = tasks.filter((t) => t.done)
 
   // Compute effective priority
-  const ranked = open.map(t => {
-    const ph = pheromone.get(t.id) || { strength: 0, resistance: 0 }
-    const effective = effectivePriority(t.priority, ph.strength, ph.resistance)
-    return { ...t, effective, ...ph }
-  }).sort((a, b) => b.effective - a.effective)
+  const ranked = open
+    .map((t) => {
+      const ph = pheromone.get(t.id) || { strength: 0, resistance: 0 }
+      const effective = effectivePriority(t.priority, ph.strength, ph.resistance)
+      return { ...t, effective, ...ph }
+    })
+    .sort((a, b) => b.effective - a.effective)
 
   // Group by source TODO file
   const sources = new Map<string, { open: number; done: number }>()
@@ -118,9 +132,7 @@ function renderTodo(
   lines.push('')
 
   for (const t of ranked.slice(0, 15)) {
-    const ph = t.strength > 0 || t.resistance > 0
-      ? ` [s:${t.strength.toFixed(0)} r:${t.resistance.toFixed(0)}]`
-      : ''
+    const ph = t.strength > 0 || t.resistance > 0 ? ` [s:${t.strength.toFixed(0)} r:${t.resistance.toFixed(0)}]` : ''
     const model = EFFORT_MODEL[(t as any).effort as keyof typeof EFFORT_MODEL] || 'sonnet'
     lines.push(`- [ ] **${t.name}**${ph} [${model}] \`${t.tags.join(', ')}\` ← [TODO-${t.source}](TODO-${t.source}.md)`)
     if (t.exit) lines.push(`  exit: ${t.exit}`)
@@ -133,23 +145,28 @@ function renderTodo(
   // Group by phase
   const phases = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7']
   const phaseNames: Record<string, string> = {
-    C1: 'Foundation', C2: 'Collaboration', C3: 'Commerce',
-    C4: 'Expansion', C5: 'Analytics', C6: 'Products', C7: 'Scale',
+    C1: 'Foundation',
+    C2: 'Collaboration',
+    C3: 'Commerce',
+    C4: 'Expansion',
+    C5: 'Analytics',
+    C6: 'Products',
+    C7: 'Scale',
   }
 
   for (const phase of phases) {
-    const phTasks = ranked.filter(t => t.phase === phase)
+    const phTasks = ranked.filter((t) => t.phase === phase)
     if (phTasks.length === 0) continue
 
     lines.push(`## ${phase}: ${phaseNames[phase]}`)
     lines.push('')
 
     for (const t of phTasks) {
-      const ph = t.strength > 0 || t.resistance > 0
-        ? ` [s:${t.strength.toFixed(0)} r:${t.resistance.toFixed(0)}]`
-        : ''
+      const ph = t.strength > 0 || t.resistance > 0 ? ` [s:${t.strength.toFixed(0)} r:${t.resistance.toFixed(0)}]` : ''
       const model = EFFORT_MODEL[(t as any).effort as keyof typeof EFFORT_MODEL] || 'sonnet'
-      lines.push(`- [ ] **${t.name}** — ${t.formula}${ph} [${model}] \`${t.tags.join(', ')}\` ← [${t.source}](TODO-${t.source}.md)`)
+      lines.push(
+        `- [ ] **${t.name}** — ${t.formula}${ph} [${model}] \`${t.tags.join(', ')}\` ← [${t.source}](TODO-${t.source}.md)`,
+      )
       if (t.exit) lines.push(`  exit: ${t.exit}`)
       if (t.blocks.length) lines.push(`  blocks: ${t.blocks.join(', ')}`)
     }
@@ -181,27 +198,30 @@ export const GET: APIRoute = async () => {
   const docsDir = join(process.cwd(), 'docs')
   const tasks = await scanTodos(docsDir)
 
-  return new Response(JSON.stringify({
-    total: tasks.length,
-    open: tasks.filter(t => !t.done).length,
-    done: tasks.filter(t => t.done).length,
-    tasks: tasks.map(t => ({
-      id: t.id,
-      name: t.name,
-      value: t.value,
-      effort: t.effort,
-      model: EFFORT_MODEL[t.effort] || 'sonnet',
-      phase: t.phase,
-      persona: t.persona,
-      priority: t.priority,
-      formula: t.formula,
-      tags: t.tags,
-      blocks: t.blocks,
-      exit: t.exit,
-      done: t.done,
-      source: t.source,
-    })),
-  }), { headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      total: tasks.length,
+      open: tasks.filter((t) => !t.done).length,
+      done: tasks.filter((t) => t.done).length,
+      tasks: tasks.map((t) => ({
+        id: t.id,
+        name: t.name,
+        value: t.value,
+        effort: t.effort,
+        model: EFFORT_MODEL[t.effort] || 'sonnet',
+        phase: t.phase,
+        persona: t.persona,
+        priority: t.priority,
+        formula: t.formula,
+        tags: t.tags,
+        blocks: t.blocks,
+        exit: t.exit,
+        done: t.done,
+        source: t.source,
+      })),
+    }),
+    { headers: { 'Content-Type': 'application/json' } },
+  )
 }
 
 export const POST: APIRoute = async (context) => {
@@ -263,57 +283,62 @@ export const POST: APIRoute = async (context) => {
   const todoJson = {
     generated: new Date().toISOString(),
     total: tasks.length,
-    open: tasks.filter(t => !t.done).length,
-    done: tasks.filter(t => t.done).length,
+    open: tasks.filter((t) => !t.done).length,
+    done: tasks.filter((t) => t.done).length,
     synced,
     blocks,
     errors,
     kvWritten,
-    tasks: tasks.map(t => {
-      const ph = pheromone.get(t.id) || { strength: 0, resistance: 0 }
-      const wave = (t as any).wave || 'W3'
-      const context = (t as any).context || []
-      return {
-        id: t.id,
-        name: t.name,
-        done: t.done,
-        value: t.value,
-        effort: t.effort,
-        wave,
-        model: WAVE_MODEL[wave as keyof typeof WAVE_MODEL] || EFFORT_MODEL[t.effort] || 'sonnet',
-        phase: t.phase,
-        persona: t.persona,
-        context,
-        priority: t.priority,
-        effective: effectivePriority(t.priority, ph.strength, ph.resistance),
-        formula: t.formula,
-        tags: t.tags,
-        blocks: t.blocks,
-        exit: t.exit,
-        source: t.source,
-        strength: ph.strength,
-        resistance: ph.resistance,
-      }
-    }).sort((a, b) => b.effective - a.effective),
+    tasks: tasks
+      .map((t) => {
+        const ph = pheromone.get(t.id) || { strength: 0, resistance: 0 }
+        const wave = (t as any).wave || 'W3'
+        const context = (t as any).context || []
+        return {
+          id: t.id,
+          name: t.name,
+          done: t.done,
+          value: t.value,
+          effort: t.effort,
+          wave,
+          model: WAVE_MODEL[wave as keyof typeof WAVE_MODEL] || EFFORT_MODEL[t.effort] || 'sonnet',
+          phase: t.phase,
+          persona: t.persona,
+          context,
+          priority: t.priority,
+          effective: effectivePriority(t.priority, ph.strength, ph.resistance),
+          formula: t.formula,
+          tags: t.tags,
+          blocks: t.blocks,
+          exit: t.exit,
+          source: t.source,
+          strength: ph.strength,
+          resistance: ph.resistance,
+        }
+      })
+      .sort((a, b) => b.effective - a.effective),
   }
   await writeFile(todoJsonPath, JSON.stringify(todoJson, null, 2), 'utf-8')
 
   const totalMs = Date.now() - start
-  return new Response(JSON.stringify({
-    ok: true,
-    parsed: tasks.length,
-    synced,
-    blocks,
-    errors,
-    pheromone: pheromone.size,
-    kvWritten,
-    timing: {
-      kv: `${kvMs}ms`,
-      typedb: `${typedbMs}ms`,
-      total: `${totalMs}ms`,
-    },
-    elapsed: `${totalMs}ms`,
-    open: tasks.filter(t => !t.done).length,
-    done: tasks.filter(t => t.done).length,
-  }), { headers: { 'Content-Type': 'application/json' } })
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      parsed: tasks.length,
+      synced,
+      blocks,
+      errors,
+      pheromone: pheromone.size,
+      kvWritten,
+      timing: {
+        kv: `${kvMs}ms`,
+        typedb: `${typedbMs}ms`,
+        total: `${totalMs}ms`,
+      },
+      elapsed: `${totalMs}ms`,
+      open: tasks.filter((t) => !t.done).length,
+      done: tasks.filter((t) => t.done).length,
+    }),
+    { headers: { 'Content-Type': 'application/json' } },
+  )
 }

@@ -5,7 +5,7 @@
  * Frontiers show expected value. Objectives show progress bar.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -38,24 +38,104 @@ interface Objective {
 // ─── Fallback Data ──────────────────────────────────────────────────────────
 
 const FALLBACK_HYPOTHESES: Hypothesis[] = [
-  { hid: 'h-001', statement: 'Agents self-organize around high-revenue tasks', status: 'testing', observations: 42, pValue: 0.12, actionReady: false },
-  { hid: 'h-002', statement: 'Pheromone decay rate 5% optimal for trail stability', status: 'confirmed', observations: 120, pValue: 0.003, actionReady: true },
-  { hid: 'h-003', statement: 'Three-hop signal chains outperform direct routing', status: 'pending', observations: 8, pValue: 0.85, actionReady: false },
-  { hid: 'h-004', statement: 'Alarm pheromone prevents cascading failures', status: 'testing', observations: 34, pValue: 0.24, actionReady: false },
+  {
+    hid: 'h-001',
+    statement: 'Agents self-organize around high-revenue tasks',
+    status: 'testing',
+    observations: 42,
+    pValue: 0.12,
+    actionReady: false,
+  },
+  {
+    hid: 'h-002',
+    statement: 'Pheromone decay rate 5% optimal for trail stability',
+    status: 'confirmed',
+    observations: 120,
+    pValue: 0.003,
+    actionReady: true,
+  },
+  {
+    hid: 'h-003',
+    statement: 'Three-hop signal chains outperform direct routing',
+    status: 'pending',
+    observations: 8,
+    pValue: 0.85,
+    actionReady: false,
+  },
+  {
+    hid: 'h-004',
+    statement: 'Alarm pheromone prevents cascading failures',
+    status: 'testing',
+    observations: 34,
+    pValue: 0.24,
+    actionReady: false,
+  },
 ]
 
 const FALLBACK_FRONTIERS: Frontier[] = [
-  { fid: 'f-001', type: 'capability', description: 'Multi-agent negotiation protocols', expectedValue: 0.82, status: 'open' },
-  { fid: 'f-002', type: 'market', description: 'Cross-colony service arbitrage', expectedValue: 0.71, status: 'exploring' },
-  { fid: 'f-003', type: 'knowledge', description: 'Emergent task specialization patterns', expectedValue: 0.65, status: 'open' },
-  { fid: 'f-004', type: 'capability', description: 'Real-time hypothesis testing via signal analysis', expectedValue: 0.58, status: 'exploring' },
+  {
+    fid: 'f-001',
+    type: 'capability',
+    description: 'Multi-agent negotiation protocols',
+    expectedValue: 0.82,
+    status: 'open',
+  },
+  {
+    fid: 'f-002',
+    type: 'market',
+    description: 'Cross-colony service arbitrage',
+    expectedValue: 0.71,
+    status: 'exploring',
+  },
+  {
+    fid: 'f-003',
+    type: 'knowledge',
+    description: 'Emergent task specialization patterns',
+    expectedValue: 0.65,
+    status: 'open',
+  },
+  {
+    fid: 'f-004',
+    type: 'capability',
+    description: 'Real-time hypothesis testing via signal analysis',
+    expectedValue: 0.58,
+    status: 'exploring',
+  },
 ]
 
 const FALLBACK_OBJECTIVES: Objective[] = [
-  { oid: 'o-001', type: 'growth', description: 'Reach 100 active agents', priority: 0.9, progress: 0.35, status: 'active' },
-  { oid: 'o-002', type: 'revenue', description: '10 tokens GDP per cycle', priority: 0.85, progress: 0.58, status: 'active' },
-  { oid: 'o-003', type: 'resilience', description: 'Zero cascading failures in 1000 signals', priority: 0.7, progress: 0.82, status: 'active' },
-  { oid: 'o-004', type: 'knowledge', description: 'Confirm 5 hypotheses', priority: 0.6, progress: 0.2, status: 'active' },
+  {
+    oid: 'o-001',
+    type: 'growth',
+    description: 'Reach 100 active agents',
+    priority: 0.9,
+    progress: 0.35,
+    status: 'active',
+  },
+  {
+    oid: 'o-002',
+    type: 'revenue',
+    description: '10 tokens GDP per cycle',
+    priority: 0.85,
+    progress: 0.58,
+    status: 'active',
+  },
+  {
+    oid: 'o-003',
+    type: 'resilience',
+    description: 'Zero cascading failures in 1000 signals',
+    priority: 0.7,
+    progress: 0.82,
+    status: 'active',
+  },
+  {
+    oid: 'o-004',
+    type: 'knowledge',
+    description: 'Confirm 5 hypotheses',
+    priority: 0.6,
+    progress: 0.2,
+    status: 'active',
+  },
 ]
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -63,22 +143,19 @@ const FALLBACK_OBJECTIVES: Objective[] = [
 export function KnowledgePanel() {
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>(FALLBACK_HYPOTHESES)
   const [frontiers, setFrontiers] = useState<Frontier[]>(FALLBACK_FRONTIERS)
-  const [objectives, setObjectives] = useState<Objective[]>(FALLBACK_OBJECTIVES)
+  const [objectives, _setObjectives] = useState<Objective[]>(FALLBACK_OBJECTIVES)
   const [newStatement, setNewStatement] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
-      const [hRes, fRes] = await Promise.all([
-        fetch('/api/hypotheses'),
-        fetch('/api/frontiers'),
-      ])
+      const [hRes, fRes] = await Promise.all([fetch('/api/hypotheses'), fetch('/api/frontiers')])
       if (hRes.ok) {
-        const hData = await hRes.json() as any
+        const hData = (await hRes.json()) as any
         if (hData.hypotheses?.length) setHypotheses(hData.hypotheses)
       }
       if (fRes.ok) {
-        const fData = await fRes.json() as any
+        const fData = (await fRes.json()) as any
         if (fData.frontiers?.length) setFrontiers(fData.frontiers)
       }
     } catch {
@@ -86,7 +163,9 @@ export function KnowledgePanel() {
     }
   }, [])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const handleSubmitHypothesis = async () => {
     if (!newStatement.trim()) return
@@ -98,8 +177,8 @@ export function KnowledgePanel() {
         body: JSON.stringify({ statement: newStatement.trim() }),
       })
       if (res.ok) {
-        const { hid } = await res.json() as any
-        setHypotheses(prev => [
+        const { hid } = (await res.json()) as any
+        setHypotheses((prev) => [
           { hid, statement: newStatement.trim(), status: 'pending', observations: 0, pValue: 1.0, actionReady: false },
           ...prev,
         ])
@@ -126,8 +205,8 @@ export function KnowledgePanel() {
         <div className="flex gap-2 mb-4">
           <input
             value={newStatement}
-            onChange={e => setNewStatement(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSubmitHypothesis()}
+            onChange={(e) => setNewStatement(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmitHypothesis()}
             placeholder="State a hypothesis..."
             className="flex-1 bg-[#0a0a0f] border border-[#252538] rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"
           />
@@ -140,7 +219,7 @@ export function KnowledgePanel() {
           </button>
         </div>
 
-        {hypotheses.map(h => (
+        {hypotheses.map((h) => (
           <div key={h.hid} className="bg-[#161622] rounded-xl border border-[#252538] p-4 mb-3">
             <div className="flex items-start justify-between mb-2">
               <p className="text-sm text-white flex-1 mr-3">{h.statement}</p>
@@ -166,7 +245,7 @@ export function KnowledgePanel() {
 
       {/* Frontiers */}
       <Section title="Frontiers" count={frontiers.length}>
-        {frontiers.map(f => (
+        {frontiers.map((f) => (
           <div key={f.fid} className="bg-[#161622] rounded-xl border border-[#252538] p-4 mb-3">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 mr-3">
@@ -193,7 +272,7 @@ export function KnowledgePanel() {
 
       {/* Objectives */}
       <Section title="Objectives" count={objectives.length}>
-        {objectives.map(o => (
+        {objectives.map((o) => (
           <div key={o.oid} className="bg-[#161622] rounded-xl border border-[#252538] p-4 mb-3">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 mr-3">
@@ -251,9 +330,5 @@ const STATUS_COLORS: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   const colors = STATUS_COLORS[status] || STATUS_COLORS.pending
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs border whitespace-nowrap ${colors}`}>
-      {status}
-    </span>
-  )
+  return <span className={`px-2 py-0.5 rounded-full text-xs border whitespace-nowrap ${colors}`}>{status}</span>
 }

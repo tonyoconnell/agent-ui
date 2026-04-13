@@ -4,7 +4,7 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 27
-completed: 0
+completed: 10
 status: ACTIVE
 syncs_with: TODO-testing.md
 ---
@@ -145,7 +145,7 @@ cycle's patterns are verified and promoted to durable learning.
 
 ### Tasks
 
-- [ ] Implement register(): unit creation with kind and status
+- [x] Implement register(): unit creation with kind and status
   id: impl-register
   value: critical
   effort: medium
@@ -154,6 +154,7 @@ cycle's patterns are verified and promoted to durable learning.
   blocks: impl-capable, test-lifecycle-gates
   exit: `persist.actor(id, kind, opts)` creates unit with uid, name, unit-kind, status, timestamps. Works for all species.
   tags: engine, lifecycle, P0
+  done: persist.ts actor() creates units, tested in persist.test.ts
 
 - [ ] Implement capable(): declare unit capabilities
   id: impl-capable
@@ -165,7 +166,7 @@ cycle's patterns are verified and promoted to durable learning.
   exit: `persist.capable(unit, skill, price)` creates capability relation. TypeDB function `has_capability(unit, skill)` returns true.
   tags: engine, lifecycle, P0
 
-- [ ] Implement discover(): find units by capability
+- [x] Implement discover(): find units by capability
   id: impl-discover
   value: critical
   effort: medium
@@ -174,6 +175,7 @@ cycle's patterns are verified and promoted to durable learning.
   blocks: impl-signal
   exit: `suggest_route(from, skill)` returns units ranked by pheromone. New units appear last. Proven units appear first.
   tags: engine, lifecycle, P0
+  done: suggest_route function in world.tql, /api/discover endpoint exists
 
 - [ ] API endpoint: POST /api/agents/register
   id: api-register
@@ -194,7 +196,7 @@ cycle's patterns are verified and promoted to durable learning.
   exit: Endpoint accepts ?skill=X&limit=N, returns ranked units with strength scores. Uses suggest_route internally.
   tags: api, lifecycle, P1
 
-- [ ] TypeDB schema: unit status transitions
+- [x] TypeDB schema: unit status transitions
   id: schema-status
   value: high
   effort: low
@@ -202,6 +204,7 @@ cycle's patterns are verified and promoted to durable learning.
   persona: dev
   exit: world.tql has unit-kind enum, status tracking, created/updated timestamps. Functions: unit_status(uid), unit_classification(uid).
   tags: schema, lifecycle, P1
+  done: world.tql has unit-kind, unit_classification(), needs_evolution() functions
 
 - [ ] Lifecycle gate: REGISTER → CAPABLE requires unit_exists
   id: gate-register-capable
@@ -249,7 +252,7 @@ curl "localhost:4321/api/agents/discover?skill=translate"
 
 ### Tasks
 
-- [ ] Implement signal lifecycle: route → execute → mark/warn
+- [x] Implement signal lifecycle: route → execute → mark/warn
   id: impl-signal
   value: critical
   effort: high
@@ -258,8 +261,9 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   blocks: impl-drop, impl-alarm
   exit: `world.ask()` returns 4 outcomes. Each outcome triggers appropriate mark/warn. Signal logged to TypeDB.
   tags: engine, lifecycle, P0
+  done: world.ts signal() + ask() with auto-reply, tested in one.test.ts + persist.test.ts
 
-- [ ] Implement drop(): mark on success
+- [x] Implement drop(): mark on success
   id: impl-drop
   value: critical
   effort: low
@@ -268,8 +272,9 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   blocks: impl-highway
   exit: `mark(edge, strength)` increases edge.strength. Chain depth scales the mark. Traversals increment.
   tags: engine, lifecycle, P0
+  done: world.ts mark() + persist.ts flow().strengthen(), tested in routing.test.ts
 
-- [ ] Implement alarm(): warn on failure
+- [x] Implement alarm(): warn on failure
   id: impl-alarm
   value: critical
   effort: low
@@ -278,8 +283,9 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   blocks: impl-highway
   exit: `warn(edge, resistance)` increases edge.resistance. isToxic check with cold-start protection.
   tags: engine, lifecycle, P0
+  done: persist.ts warn() + isToxic(), tested in persist.test.ts (6 isToxic cases)
 
-- [ ] Implement fade(): asymmetric decay
+- [x] Implement fade(): asymmetric decay
   id: impl-fade
   value: high
   effort: low
@@ -287,6 +293,7 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   persona: dev
   exit: `world.fade(rate)` decays strength by rate, resistance by 2*rate. Resistance forgives faster.
   tags: engine, lifecycle, P1
+  done: persist.ts fade(), tested in routing.test.ts (asymmetric decay verified)
 
 - [ ] Lifecycle gate: SIGNAL → DROP requires { result }
   id: gate-signal-drop
@@ -306,7 +313,7 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   exit: warn() called with appropriate strength: 0 for timeout, 0.5 for dissolved, 1.0 for failure.
   tags: engine, lifecycle, P1
 
-- [ ] 4 outcome types fully implemented
+- [x] 4 outcome types fully implemented
   id: impl-outcomes
   value: critical
   effort: medium
@@ -314,6 +321,7 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   persona: dev
   exit: { result }, { timeout }, { dissolved }, { failure } all handled distinctly. Tests prove each path.
   tags: engine, lifecycle, P0
+  done: world.ts ask() returns 4 outcomes, persist.ts sandwich checks, tested in one.test.ts + persist.test.ts
 
 - [ ] Signal logging to TypeDB
   id: impl-signal-log
@@ -352,7 +360,7 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
 
 ### Tasks
 
-- [ ] Implement highway detection: strength ≥ 50, traversals ≥ 50
+- [x] Implement highway detection: strength ≥ 50, traversals ≥ 50
   id: impl-highway
   value: critical
   effort: medium
@@ -361,6 +369,7 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   blocks: impl-crystallize
   exit: `isHighway(edge)` returns true when threshold met. TypeDB function `edge_classification(from, to)` returns "highway".
   tags: engine, lifecycle, P0
+  done: isHighway() in one-prod.ts, highways() in world.ts, is_highway/path_status in world.tql
 
 - [ ] Implement crystallize(): freeze highway to Sui
   id: impl-crystallize
@@ -417,7 +426,7 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   exit: Endpoint triggers know() → Sui write. Returns { tx_hash, highways_frozen: N }. Auth required.
   tags: api, lifecycle, P1
 
-- [ ] Sui wallet derivation: UID → keypair
+- [x] Sui wallet derivation: UID → keypair
   id: impl-sui-wallet
   value: high
   effort: medium
@@ -425,6 +434,7 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   persona: dev
   exit: `addressFor(uid)` derives Sui address from SUI_SEED + uid. Same uid = same address. Deterministic.
   tags: engine, lifecycle, P1
+  done: deriveKeypair(uid) in src/lib/sui.ts, HKDF-SHA256(seed||uid) → Ed25519
 
 - [ ] ProvenCapability on-chain structure
   id: impl-proven-capability

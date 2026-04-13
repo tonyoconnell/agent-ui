@@ -21,7 +21,7 @@
  * Selected option highlighted
  */
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSkin } from '@/contexts/SkinContext'
 import { cn } from '@/lib/utils'
 
@@ -136,9 +136,9 @@ export function PersonaMenu({ className }: Props) {
         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
         style={{
           color: skin.colors.primary,
-          backgroundColor: isOpen ? skin.colors.primary + '15' : 'transparent',
+          backgroundColor: isOpen ? `${skin.colors.primary}15` : 'transparent',
           borderWidth: 1,
-          borderColor: isOpen ? skin.colors.primary + '40' : skin.colors.primary + '20',
+          borderColor: isOpen ? `${skin.colors.primary}40` : `${skin.colors.primary}20`,
         }}
       >
         <span className="truncate max-w-xs">[{buttonLabel} ▾]</span>
@@ -150,7 +150,7 @@ export function PersonaMenu({ className }: Props) {
           className="absolute top-full right-0 mt-2 w-56 rounded-lg border shadow-xl z-50 overflow-hidden"
           style={{
             backgroundColor: skin.colors.surface,
-            borderColor: skin.colors.primary + '40',
+            borderColor: `${skin.colors.primary}40`,
           }}
         >
           <div className="max-h-96 overflow-y-auto">
@@ -163,11 +163,11 @@ export function PersonaMenu({ className }: Props) {
                   className={cn(
                     'w-full text-left px-4 py-3 border-b transition-colors',
                     'hover:bg-white/5',
-                    isSelected && 'font-semibold'
+                    isSelected && 'font-semibold',
                   )}
                   style={{
-                    backgroundColor: isSelected ? skin.colors.primary + '20' : undefined,
-                    borderColor: skin.colors.muted + '20',
+                    backgroundColor: isSelected ? `${skin.colors.primary}20` : undefined,
+                    borderColor: `${skin.colors.muted}20`,
                     color: isSelected ? skin.colors.primary : skin.colors.muted,
                   }}
                 >
@@ -183,12 +183,7 @@ export function PersonaMenu({ className }: Props) {
       )}
 
       {/* Click outside to close */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />}
     </div>
   )
 }

@@ -1,10 +1,11 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @import "tw-animate-css";
 
 /* Premium Shop Hero Animations */
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) scale(1);
   }
   50% {
@@ -33,7 +34,8 @@
 }
 
 @keyframes gradient {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -60,9 +62,23 @@
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
 }
 
 .animate-shake {
@@ -71,7 +87,8 @@
 
 /* Premium Hero Glow Effects */
 @keyframes glow-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
     filter: blur(40px);
   }
@@ -86,7 +103,8 @@
 }
 
 @keyframes border-dance {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -115,7 +133,8 @@
 
 /* Floating animation */
 @keyframes float-gentle {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
   50% {
@@ -133,7 +152,8 @@
 }
 
 @keyframes pulse-slow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -152,7 +172,9 @@
 @custom-variant dark (&:is(.dark *));
 @plugin "@tailwindcss/typography";
 
-@variant dark (.dark &);
+@variant dark
+(
+.dark &);
 
 @theme {
   --color-background: 0 0% 100%;
@@ -252,8 +274,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-orbit {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
   }
 }
 
@@ -370,43 +392,43 @@ html, body {
 
 /* Keep gradient text readable when background clipping is unavailable */
 .bg-clip-text.text-transparent {
-  color: hsl(var(--color-primary)) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
+  color: hsl(var(--color-primary));
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
   .bg-clip-text.text-transparent {
-    color: transparent !important;
-    -webkit-text-fill-color: transparent !important;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
   }
 }
 
 /* Ensure gradient backgrounds work with text clipping */
 .bg-clip-text {
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-box-decoration-break: clone !important;
-  box-decoration-break: clone !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 /* Premium gradient text utility - guaranteed to work */
 .gradient-text {
-  background: linear-gradient(to right, hsl(var(--color-primary)), hsl(216 100% 50%), hsl(var(--color-secondary))) !important;
-  background-size: 200% auto !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  color: transparent !important;
-  animation: gradient 8s ease infinite !important;
+  background: linear-gradient(to right, hsl(var(--color-primary)), hsl(216 100% 50%), hsl(var(--color-secondary)));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  animation: gradient 8s ease infinite;
 }
 
 /* Fallback for browsers that don't support background-clip */
 @supports not ((-webkit-background-clip: text) or (background-clip: text)) {
   .gradient-text {
-    background: none !important;
-    -webkit-text-fill-color: inherit !important;
-    color: hsl(var(--color-primary)) !important;
+    background: none;
+    -webkit-text-fill-color: inherit;
+    color: hsl(var(--color-primary));
   }
 }
 
@@ -416,11 +438,11 @@ html, body {
   border-radius: 0.5rem;
   padding: 1rem;
   overflow-x: auto;
-  background-color: hsl(0 0% 10%) !important;
+  background-color: hsl(0 0% 10%);
 }
 
 .dark .prose pre {
-  background-color: hsl(0 0% 10%) !important;
+  background-color: hsl(0 0% 10%);
 }
 
 /* Inline code styling */
@@ -437,57 +459,57 @@ html, body {
 
 /* Streamdown / Markdown code block styling for chat messages */
 .is-assistant pre {
-  background-color: hsl(var(--color-muted)) !important;
-  border: 1px solid hsl(var(--color-border)) !important;
-  border-radius: 0.5rem !important;
-  padding: 1rem !important;
-  overflow-x: auto !important;
-  margin: 0.5rem 0 !important;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+  background-color: hsl(var(--color-muted));
+  border: 1px solid hsl(var(--color-border));
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 .is-assistant code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
-  font-size: 0.875rem !important;
-  line-height: 1.5 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 .is-assistant pre code {
-  background: none !important;
-  padding: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  display: block !important;
+  background: none;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  display: block;
 }
 
 .is-assistant :not(pre) > code {
-  background-color: hsl(var(--color-muted)) !important;
-  padding: 0.125rem 0.375rem !important;
-  border-radius: 0.25rem !important;
-  font-size: 0.875em !important;
+  background-color: hsl(var(--color-muted));
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
 }
 
 /* Code block language label */
 .is-assistant pre > div:first-child {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  margin-bottom: 0.5rem !important;
-  padding-bottom: 0.5rem !important;
-  border-bottom: 1px solid hsl(var(--color-border)) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid hsl(var(--color-border));
 }
 
 .is-assistant pre > div:first-child > span {
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-  text-transform: uppercase !important;
-  color: hsl(var(--color-muted-foreground)) !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: hsl(var(--color-muted-foreground));
 }
 
 /* Ensure translucent card utility pulls full surface color */
 .bg-card\/50 {
-  --tw-bg-opacity: 1 !important;
-  background-color: hsl(var(--color-card)) !important;
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--color-card));
 }
 
 /* Scroll area styles */
@@ -506,9 +528,9 @@ html, body {
 [data-radix-alert-dialog-overlay],
 [data-vaul-overlay],
 #command-modal > .absolute.inset-0 {
-  background-color: hsl(var(--color-overlay)) !important;
-  --tw-bg-opacity: 1 !important;
-  opacity: 1 !important;
+  background-color: hsl(var(--color-overlay));
+  --tw-bg-opacity: 1;
+  opacity: 1;
 }
 
 @theme inline {
@@ -658,8 +680,8 @@ body {
 [data-radix-alert-dialog-content],
 [data-vaul-drawer],
 [data-state="open"] {
-  background-color: hsl(var(--color-card)) !important;
-  --tw-bg-opacity: 1 !important;
+  background-color: hsl(var(--color-card));
+  --tw-bg-opacity: 1;
 }
 
 /* Ensure modal overlays are always visible */
@@ -668,8 +690,8 @@ body {
 [data-vaul-overlay],
 .modal-overlay,
 .dialog-overlay {
-  background-color: hsla(0, 0%, 0%, 0.75) !important;
-  opacity: 1 !important;
+  background-color: hsla(0, 0%, 0%, 0.75);
+  opacity: 1;
 }
 
 /* Dark mode modal overlays */
@@ -677,7 +699,7 @@ body {
 .dark [data-radix-alert-dialog-overlay],
 .dark [data-vaul-overlay],
 .dark .modal-overlay {
-  background-color: hsla(0, 0%, 0%, 0.85) !important;
+  background-color: hsla(0, 0%, 0%, 0.85);
 }
 
 /* 2. BACKDROP BLUR FIXES - Ensure proper background */
@@ -721,37 +743,37 @@ body {
     hsl(var(--color-primary)),
     hsl(280 100% 60%),
     hsl(var(--color-secondary))
-  ) !important;
-  background-size: 200% auto !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  display: inline-block !important;
-  animation: gradient 8s ease infinite !important;
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
+  animation: gradient 8s ease infinite;
 }
 
 /* Fallback for unsupported browsers */
 @supports not ((-webkit-background-clip: text) or (background-clip: text)) {
   .gradient-text {
-    background: none !important;
-    -webkit-text-fill-color: inherit !important;
-    color: hsl(var(--color-primary)) !important;
-    font-weight: 700 !important;
+    background: none;
+    -webkit-text-fill-color: inherit;
+    color: hsl(var(--color-primary));
+    font-weight: 700;
   }
 }
 
 /* Fix any bg-clip-text issues */
 .bg-clip-text {
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-box-decoration-break: clone !important;
-  box-decoration-break: clone !important;
-  display: inline-block !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  display: inline-block;
 }
 
 /* Ensure text-transparent works correctly */
 .text-transparent {
-  -webkit-text-fill-color: transparent !important;
+  -webkit-text-fill-color: transparent;
 }
 
 /* 4. GLASS MORPHISM FIXES - Proper backgrounds */
@@ -788,21 +810,21 @@ body {
 [data-radix-dropdown-menu-content],
 [data-radix-select-content],
 [data-radix-tooltip-content] {
-  background-color: hsl(var(--color-popover)) !important;
-  color: hsl(var(--color-popover-foreground)) !important;
-  --tw-bg-opacity: 1 !important;
-  border: 1px solid hsl(var(--color-border)) !important;
+  background-color: hsl(var(--color-popover));
+  color: hsl(var(--color-popover-foreground));
+  --tw-bg-opacity: 1;
+  border: 1px solid hsl(var(--color-border));
 }
 
 /* 6. CARD TRANSPARENCY FIXES */
 .bg-card {
-  background-color: hsl(var(--color-card)) !important;
-  --tw-bg-opacity: 1 !important;
+  background-color: hsl(var(--color-card));
+  --tw-bg-opacity: 1;
 }
 
 .bg-background {
-  background-color: hsl(var(--color-background)) !important;
-  --tw-bg-opacity: 1 !important;
+  background-color: hsl(var(--color-background));
+  --tw-bg-opacity: 1;
 }
 
 /* 7. TEXT ON GRADIENT BACKGROUNDS - Always readable */
@@ -822,13 +844,13 @@ body {
 /* 9. FIX TRANSPARENT BUTTONS AND INPUTS */
 /* Button specific fixes */
 button[class*="bg-"] {
-  --tw-bg-opacity: 1 !important;
+  --tw-bg-opacity: 1;
 }
 
 /* 10. SHEET/DRAWER FIXES */
 [data-vaul-drawer] {
-  background-color: hsl(var(--color-card)) !important;
-  --tw-bg-opacity: 1 !important;
+  background-color: hsl(var(--color-card));
+  --tw-bg-opacity: 1;
 }
 
 /* 11. PREVENT TEXT BECOMING INVISIBLE */
@@ -840,40 +862,40 @@ button[class*="bg-"] {
 
 /* Force minimum contrast for all text */
 body * {
-  text-shadow: none !important;
+  text-shadow: none;
 }
 
 /* Except for gradient text which needs the effect */
 .gradient-text {
-  text-shadow: none !important;
+  text-shadow: none;
 }
 
 /* 12. COMMAND PALETTE / SEARCH MODAL FIXES */
 [cmdk-root],
 [cmdk-dialog],
 .command-palette {
-  background-color: hsl(var(--color-background)) !important;
-  --tw-bg-opacity: 1 !important;
+  background-color: hsl(var(--color-background));
+  --tw-bg-opacity: 1;
 }
 
 /* 13. TOAST/NOTIFICATION FIXES */
 [data-sonner-toast],
 .toast,
 .notification {
-  background-color: hsl(var(--color-card)) !important;
-  border: 1px solid hsl(var(--color-border)) !important;
-  --tw-bg-opacity: 1 !important;
+  background-color: hsl(var(--color-card));
+  border: 1px solid hsl(var(--color-border));
+  --tw-bg-opacity: 1;
 }
 
 /* 14. ENSURE MODAL CONTENT IS ALWAYS ABOVE OVERLAY */
 [data-radix-dialog-content],
 [data-radix-alert-dialog-content] {
-  z-index: 51 !important;
+  z-index: 51;
 }
 
 [data-radix-dialog-overlay],
 [data-radix-alert-dialog-overlay] {
-  z-index: 50 !important;
+  z-index: 50;
 }
 
 /* ============================================================================
@@ -1025,11 +1047,11 @@ body * {
 .markdown-content {
   /* Reset margins for chat context */
   & > *:first-child {
-    margin-top: 0 !important;
+    margin-top: 0;
   }
 
   & > *:last-child {
-    margin-bottom: 0 !important;
+    margin-bottom: 0;
   }
 
   /* Paragraphs */
@@ -1144,7 +1166,7 @@ body * {
 
   /* Prevent any content from covering the mobile nav */
   main, .main-content, [role="main"] {
-    padding-bottom: 5rem !important;
+    padding-bottom: 5rem;
   }
 }
 
@@ -1154,71 +1176,71 @@ body * {
    ============================================================================ */
 
 .colony-graph {
-  background: #060608 !important;
+  background: #060608;
 }
 
 /* Controls panel - dark theme */
 .react-flow__controls {
-  background-color: #0f0f14 !important;
-  border: 1px solid #252538 !important;
-  border-radius: 0.5rem !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+  background-color: #0f0f14;
+  border: 1px solid #252538;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
 .react-flow__controls button {
-  background-color: #0f0f14 !important;
-  border-color: #252538 !important;
-  color: #94a3b8 !important;
-  width: 28px !important;
-  height: 28px !important;
+  background-color: #0f0f14;
+  border-color: #252538;
+  color: #94a3b8;
+  width: 28px;
+  height: 28px;
 }
 
 .react-flow__controls button:hover {
-  background-color: #1e293b !important;
-  color: #fff !important;
+  background-color: #1e293b;
+  color: #fff;
 }
 
 .react-flow__controls button svg {
-  fill: currentColor !important;
+  fill: currentColor;
 }
 
 .react-flow__controls-button:first-child {
-  border-top-left-radius: 0.375rem !important;
-  border-top-right-radius: 0.375rem !important;
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
 }
 
 .react-flow__controls-button:last-child {
-  border-bottom-left-radius: 0.375rem !important;
-  border-bottom-right-radius: 0.375rem !important;
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
 }
 
 /* MiniMap - dark theme */
 .react-flow__minimap {
-  background-color: #0a0a0f !important;
-  border: 1px solid #252538 !important;
-  border-radius: 0.5rem !important;
+  background-color: #0a0a0f;
+  border: 1px solid #252538;
+  border-radius: 0.5rem;
 }
 
 .react-flow__minimap-mask {
-  fill: rgba(6, 6, 8, 0.85) !important;
+  fill: rgba(6, 6, 8, 0.85);
 }
 
 /* Node selection */
 .react-flow__node.selected {
-  outline: none !important;
+  outline: none;
 }
 
 /* Edge selection */
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: #3b82f6 !important;
+  stroke: #3b82f6;
 }
 
 /* Panel styling */
 .react-flow__panel {
-  margin: 0 !important;
+  margin: 0;
 }
 
 /* Attribution hidden */
 .react-flow__attribution {
-  display: none !important;
+  display: none;
 }

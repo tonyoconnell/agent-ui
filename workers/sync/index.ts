@@ -39,7 +39,7 @@ export default {
       endpoints.map(async (key) => {
         const res = await fetch(`${base}/api/export/${key}`)
         if (!res.ok) throw new Error(`${key}: ${res.status}`)
-        const data = await res.json() as unknown[]
+        const data = (await res.json()) as unknown[]
         const json = JSON.stringify(data)
         const newHash = hashStr(json)
 
@@ -55,12 +55,12 @@ export default {
           count: Array.isArray(data) ? data.length : Object.keys(data as object).length,
           changed: oldHash !== newHash,
         }
-      })
+      }),
     )
 
     const synced = results
-      .filter(r => r.status === 'fulfilled')
-      .map(r => (r as PromiseFulfilledResult<{ key: string; count: number; changed: boolean }>).value)
+      .filter((r) => r.status === 'fulfilled')
+      .map((r) => (r as PromiseFulfilledResult<{ key: string; count: number; changed: boolean }>).value)
 
     const failed = results
       .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
@@ -77,7 +77,7 @@ export default {
         body: JSON.stringify({ cursor }),
       })
       if (res.ok) {
-        const data = await res.json() as { count: number; cursor: string }
+        const data = (await res.json()) as { count: number; cursor: string }
         absorbed = data.count
         if (data.cursor) {
           await env.KV.put('sui_event_cursor', data.cursor)
@@ -93,7 +93,7 @@ export default {
       console.error('Sync failures:', JSON.stringify(failed))
     }
 
-    const changed = synced.filter(s => s.changed).map(s => s.key)
+    const changed = synced.filter((s) => s.changed).map((s) => s.key)
     console.log('Sync complete:', JSON.stringify({ synced: synced.length, changed, absorbed }))
   },
 

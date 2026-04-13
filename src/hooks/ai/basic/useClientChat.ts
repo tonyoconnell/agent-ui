@@ -7,12 +7,12 @@
  * - Access to GPT-4, Claude, Llama, etc.
  */
 
-import { useChat } from "@ai-sdk/react";
+import { useChat } from '@ai-sdk/react'
 
 export interface UseClientChatOptions {
-	apiKey: string;
-	model?: string;
-	initialMessages?: Array<{ role: "user" | "assistant"; content: string }>;
+  apiKey: string
+  model?: string
+  initialMessages?: Array<{ role: 'user' | 'assistant'; content: string }>
 }
 
 /**
@@ -27,32 +27,27 @@ export interface UseClientChatOptions {
  */
 
 export function useClientChat(options: UseClientChatOptions) {
-	const {
-		apiKey,
-		model = "google/gemini-2.5-flash-lite",
-		initialMessages = [],
-	} = options;
+  const { apiKey, model = 'google/gemini-2.5-flash-lite', initialMessages = [] } = options
 
-	const { messages, input, handleInputChange, handleSubmit, isLoading, error } =
-		useChat({
-			api: "/api/chat",
-			body: {
-				apiKey, // User's OpenRouter API key
-				model,
-			},
-			initialMessages,
-		});
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+    api: '/api/chat',
+    body: {
+      apiKey, // User's OpenRouter API key
+      model,
+    },
+    initialMessages,
+  })
 
-	return {
-		messages,
-		input,
-		handleInputChange,
-		handleSubmit,
-		isLoading,
-		error,
-		// Free tier limitations
-		isPersistent: false,
-		canInviteHumans: false,
-		hasAnalytics: false,
-	};
+  return {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    error,
+    // Free tier limitations
+    isPersistent: false,
+    canInviteHumans: false,
+    hasAnalytics: false,
+  }
 }

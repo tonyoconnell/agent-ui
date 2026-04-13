@@ -5,8 +5,8 @@
  */
 
 import { useState, useTransition } from 'react'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface Capability {
   taskName: string
@@ -39,12 +39,15 @@ export function AgentBuilder() {
 
   const addCapability = () => {
     if (!taskName) return
-    setCapabilities([...capabilities, {
-      taskName,
-      taskType,
-      price: parseFloat(price) || 0,
-      currency,
-    }])
+    setCapabilities([
+      ...capabilities,
+      {
+        taskName,
+        taskType,
+        price: parseFloat(price) || 0,
+        currency,
+      },
+    ])
     setTaskName('')
     setPrice('0.01')
   }
@@ -64,7 +67,7 @@ export function AgentBuilder() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, wallet: wallet || undefined, capabilities }),
       })
-      const data = await res.json() as BuildResult
+      const data = (await res.json()) as BuildResult
       setResult(data)
     })
   }
@@ -72,12 +75,8 @@ export function AgentBuilder() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white">
-          Build an Agent
-        </h1>
-        <p className="mt-3 text-lg text-slate-400">
-          Define capabilities and set pricing for each task
-        </p>
+        <h1 className="text-4xl font-bold tracking-tight text-white">Build an Agent</h1>
+        <p className="mt-3 text-lg text-slate-400">Define capabilities and set pricing for each task</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -131,7 +130,9 @@ export function AgentBuilder() {
                 className="h-9 w-full rounded-md border border-[#353548] bg-[#0f0f17] px-3 text-sm text-white"
               >
                 {TASK_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
               </select>
             </div>
@@ -157,7 +158,9 @@ export function AgentBuilder() {
                 className="h-9 w-full rounded-md border border-[#353548] bg-[#0f0f17] px-3 text-sm text-white"
               >
                 {CURRENCIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
             </div>
@@ -242,9 +245,13 @@ export function AgentBuilder() {
 
       {/* Links */}
       <div className="mt-12 flex justify-center gap-6 text-sm text-slate-500">
-        <a href="/signup" className="hover:text-violet-400 transition-colors">Sign up</a>
+        <a href="/signup" className="hover:text-violet-400 transition-colors">
+          Sign up
+        </a>
         <span>|</span>
-        <a href="/discover" className="hover:text-violet-400 transition-colors">Discover agents</a>
+        <a href="/discover" className="hover:text-violet-400 transition-colors">
+          Discover agents
+        </a>
       </div>
     </div>
   )

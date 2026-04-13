@@ -1,106 +1,15 @@
-"use client";
-
-import * as React from "react";
-import { useState, useEffect } from "react";
-
-// UI Components
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
-import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Toggle } from "@/components/ui/toggle";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+'use client'
 
 // Icons - Comprehensive set
 import {
   AlertCircle,
   AlertTriangle,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   ArrowRight,
   Bell,
   Bold,
-  BookOpen,
-  Calendar,
   Check,
   CheckCircle,
   ChevronDown,
@@ -122,7 +31,6 @@ import {
   Folder,
   Globe,
   Grid3x3,
-  Hand,
   Heart,
   HelpCircle,
   Home,
@@ -130,7 +38,6 @@ import {
   Info,
   Italic,
   Layers,
-  LayoutDashboard,
   Link,
   Loader2,
   Lock,
@@ -142,7 +49,6 @@ import {
   Moon,
   MoreHorizontal,
   MoreVertical,
-  MousePointer2,
   Music,
   Package,
   Palette,
@@ -162,7 +68,6 @@ import {
   Target,
   Terminal,
   Trash,
-  TrendingUp,
   Underline,
   Upload,
   User,
@@ -173,10 +78,59 @@ import {
   X,
   XCircle,
   Zap,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-} from "lucide-react";
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+// UI Components
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { Toggle } from '@/components/ui/toggle'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 // ============================================================
 // ICON LIBRARY DATA
@@ -184,114 +138,114 @@ import {
 
 const iconCategories = {
   Actions: [
-    { name: "Plus", icon: Plus },
-    { name: "Minus", icon: Minus },
-    { name: "X", icon: X },
-    { name: "Check", icon: Check },
-    { name: "Edit", icon: Edit },
-    { name: "Pencil", icon: Pencil },
-    { name: "Trash", icon: Trash },
-    { name: "Save", icon: Save },
-    { name: "Download", icon: Download },
-    { name: "Upload", icon: Upload },
-    { name: "Copy", icon: Copy },
-    { name: "Share", icon: Share },
-    { name: "RefreshCw", icon: RefreshCw },
-    { name: "Search", icon: Search },
-    { name: "Filter", icon: Filter },
+    { name: 'Plus', icon: Plus },
+    { name: 'Minus', icon: Minus },
+    { name: 'X', icon: X },
+    { name: 'Check', icon: Check },
+    { name: 'Edit', icon: Edit },
+    { name: 'Pencil', icon: Pencil },
+    { name: 'Trash', icon: Trash },
+    { name: 'Save', icon: Save },
+    { name: 'Download', icon: Download },
+    { name: 'Upload', icon: Upload },
+    { name: 'Copy', icon: Copy },
+    { name: 'Share', icon: Share },
+    { name: 'RefreshCw', icon: RefreshCw },
+    { name: 'Search', icon: Search },
+    { name: 'Filter', icon: Filter },
   ],
   Navigation: [
-    { name: "Home", icon: Home },
-    { name: "Menu", icon: Menu },
-    { name: "ChevronDown", icon: ChevronDown },
-    { name: "ChevronRight", icon: ChevronRight },
-    { name: "ArrowRight", icon: ArrowRight },
-    { name: "ExternalLink", icon: ExternalLink },
-    { name: "Link", icon: Link },
-    { name: "MoreHorizontal", icon: MoreHorizontal },
-    { name: "MoreVertical", icon: MoreVertical },
+    { name: 'Home', icon: Home },
+    { name: 'Menu', icon: Menu },
+    { name: 'ChevronDown', icon: ChevronDown },
+    { name: 'ChevronRight', icon: ChevronRight },
+    { name: 'ArrowRight', icon: ArrowRight },
+    { name: 'ExternalLink', icon: ExternalLink },
+    { name: 'Link', icon: Link },
+    { name: 'MoreHorizontal', icon: MoreHorizontal },
+    { name: 'MoreVertical', icon: MoreVertical },
   ],
   Status: [
-    { name: "Check", icon: Check },
-    { name: "CheckCircle", icon: CheckCircle },
-    { name: "XCircle", icon: XCircle },
-    { name: "AlertCircle", icon: AlertCircle },
-    { name: "AlertTriangle", icon: AlertTriangle },
-    { name: "Info", icon: Info },
-    { name: "HelpCircle", icon: HelpCircle },
-    { name: "Loader2", icon: Loader2 },
-    { name: "Circle", icon: Circle },
+    { name: 'Check', icon: Check },
+    { name: 'CheckCircle', icon: CheckCircle },
+    { name: 'XCircle', icon: XCircle },
+    { name: 'AlertCircle', icon: AlertCircle },
+    { name: 'AlertTriangle', icon: AlertTriangle },
+    { name: 'Info', icon: Info },
+    { name: 'HelpCircle', icon: HelpCircle },
+    { name: 'Loader2', icon: Loader2 },
+    { name: 'Circle', icon: Circle },
   ],
   Media: [
-    { name: "Image", icon: Image },
-    { name: "Video", icon: Video },
-    { name: "Music", icon: Music },
-    { name: "FileText", icon: FileText },
-    { name: "Folder", icon: Folder },
-    { name: "Play", icon: Play },
-    { name: "Eye", icon: Eye },
-    { name: "EyeOff", icon: EyeOff },
+    { name: 'Image', icon: Image },
+    { name: 'Video', icon: Video },
+    { name: 'Music', icon: Music },
+    { name: 'FileText', icon: FileText },
+    { name: 'Folder', icon: Folder },
+    { name: 'Play', icon: Play },
+    { name: 'Eye', icon: Eye },
+    { name: 'EyeOff', icon: EyeOff },
   ],
   Communication: [
-    { name: "Mail", icon: Mail },
-    { name: "MessageSquare", icon: MessageSquare },
-    { name: "Bell", icon: Bell },
-    { name: "Send", icon: ArrowRight },
+    { name: 'Mail', icon: Mail },
+    { name: 'MessageSquare', icon: MessageSquare },
+    { name: 'Bell', icon: Bell },
+    { name: 'Send', icon: ArrowRight },
   ],
   User: [
-    { name: "User", icon: User },
-    { name: "Users", icon: Users },
-    { name: "Settings", icon: Settings },
-    { name: "Lock", icon: Lock },
-    { name: "LogOut", icon: LogOut },
+    { name: 'User', icon: User },
+    { name: 'Users', icon: Users },
+    { name: 'Settings', icon: Settings },
+    { name: 'Lock', icon: Lock },
+    { name: 'LogOut', icon: LogOut },
   ],
   Commerce: [
-    { name: "ShoppingCart", icon: ShoppingCart },
-    { name: "CreditCard", icon: CreditCard },
-    { name: "Package", icon: Package },
-    { name: "Heart", icon: Heart },
-    { name: "Star", icon: Star },
+    { name: 'ShoppingCart', icon: ShoppingCart },
+    { name: 'CreditCard', icon: CreditCard },
+    { name: 'Package', icon: Package },
+    { name: 'Heart', icon: Heart },
+    { name: 'Star', icon: Star },
   ],
   Development: [
-    { name: "Code", icon: Code },
-    { name: "Terminal", icon: Terminal },
-    { name: "Database", icon: Database },
-    { name: "Cloud", icon: Cloud },
-    { name: "Globe", icon: Globe },
-    { name: "Layers", icon: Layers },
-    { name: "Rocket", icon: Rocket },
-    { name: "Zap", icon: Zap },
+    { name: 'Code', icon: Code },
+    { name: 'Terminal', icon: Terminal },
+    { name: 'Database', icon: Database },
+    { name: 'Cloud', icon: Cloud },
+    { name: 'Globe', icon: Globe },
+    { name: 'Layers', icon: Layers },
+    { name: 'Rocket', icon: Rocket },
+    { name: 'Zap', icon: Zap },
   ],
   Theming: [
-    { name: "Sun", icon: Sun },
-    { name: "Moon", icon: Moon },
-    { name: "Palette", icon: Palette },
-    { name: "Sparkles", icon: Sparkles },
-    { name: "Wand2", icon: Wand2 },
+    { name: 'Sun', icon: Sun },
+    { name: 'Moon', icon: Moon },
+    { name: 'Palette', icon: Palette },
+    { name: 'Sparkles', icon: Sparkles },
+    { name: 'Wand2', icon: Wand2 },
   ],
-};
+}
 
 // ============================================================
 // CSS ANIMATION DATA
 // ============================================================
 
 interface CSSAnimation {
-  name: string;
-  description: string;
-  class: string;
-  previewClass: string;
-  code: string;
-  isInfinite?: boolean;
-  isShimmer?: boolean;
-  isGradient?: boolean;
+  name: string
+  description: string
+  class: string
+  previewClass: string
+  code: string
+  isInfinite?: boolean
+  isShimmer?: boolean
+  isGradient?: boolean
 }
 
 const cssAnimations: CSSAnimation[] = [
   {
-    name: "fade-in",
-    description: "Fade in from opacity 0 to 1",
-    class: "animate-fade-in",
-    previewClass: "animate-fade-in",
+    name: 'fade-in',
+    description: 'Fade in from opacity 0 to 1',
+    class: 'animate-fade-in',
+    previewClass: 'animate-fade-in',
     code: `@keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -299,10 +253,10 @@ const cssAnimations: CSSAnimation[] = [
 .animate-fade-in { animation: fadeIn 0.5s ease-in forwards; }`,
   },
   {
-    name: "fade-in-up",
-    description: "Fade in while sliding up",
-    class: "animate-[fadeInUp_0.6s_ease-out_forwards]",
-    previewClass: "animate-[fadeInUp_0.6s_ease-out_forwards]",
+    name: 'fade-in-up',
+    description: 'Fade in while sliding up',
+    class: 'animate-[fadeInUp_0.6s_ease-out_forwards]',
+    previewClass: 'animate-[fadeInUp_0.6s_ease-out_forwards]',
     code: `@keyframes fadeInUp {
   from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
@@ -310,10 +264,10 @@ const cssAnimations: CSSAnimation[] = [
 /* Usage: animate-[fadeInUp_0.6s_ease-out_forwards] */`,
   },
   {
-    name: "float-gentle",
-    description: "Gentle floating animation (infinite)",
-    class: "animate-float-gentle",
-    previewClass: "animate-float-gentle",
+    name: 'float-gentle',
+    description: 'Gentle floating animation (infinite)',
+    class: 'animate-float-gentle',
+    previewClass: 'animate-float-gentle',
     isInfinite: true,
     code: `@keyframes float-gentle {
   0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -322,10 +276,10 @@ const cssAnimations: CSSAnimation[] = [
 .animate-float-gentle { animation: float-gentle 6s ease-in-out infinite; }`,
   },
   {
-    name: "pulse-slow",
-    description: "Slow pulsing effect (infinite)",
-    class: "animate-pulse-slow",
-    previewClass: "animate-pulse-slow",
+    name: 'pulse-slow',
+    description: 'Slow pulsing effect (infinite)',
+    class: 'animate-pulse-slow',
+    previewClass: 'animate-pulse-slow',
     isInfinite: true,
     code: `@keyframes pulse-slow {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -334,10 +288,10 @@ const cssAnimations: CSSAnimation[] = [
 .animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }`,
   },
   {
-    name: "shimmer",
-    description: "Shimmer loading effect (infinite)",
-    class: "animate-shimmer",
-    previewClass: "",
+    name: 'shimmer',
+    description: 'Shimmer loading effect (infinite)',
+    class: 'animate-shimmer',
+    previewClass: '',
     isShimmer: true,
     isInfinite: true,
     code: `@keyframes shimmer {
@@ -347,10 +301,10 @@ const cssAnimations: CSSAnimation[] = [
 .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }`,
   },
   {
-    name: "gradient",
-    description: "Animated gradient background (infinite)",
-    class: "animate-gradient",
-    previewClass: "",
+    name: 'gradient',
+    description: 'Animated gradient background (infinite)',
+    class: 'animate-gradient',
+    previewClass: '',
     isGradient: true,
     isInfinite: true,
     code: `@keyframes gradient {
@@ -360,10 +314,10 @@ const cssAnimations: CSSAnimation[] = [
 .animate-gradient { background-size: 200% auto; animation: gradient 3s ease infinite; }`,
   },
   {
-    name: "bounce-in",
-    description: "Bouncy entrance animation",
-    class: "animate-bounce-in",
-    previewClass: "animate-bounce-in",
+    name: 'bounce-in',
+    description: 'Bouncy entrance animation',
+    class: 'animate-bounce-in',
+    previewClass: 'animate-bounce-in',
     code: `@keyframes bounce-in {
   0% { opacity: 0; transform: translateY(20px); }
   60% { opacity: 1; transform: translateY(-5px); }
@@ -372,10 +326,10 @@ const cssAnimations: CSSAnimation[] = [
 .animate-bounce-in { animation: bounce-in 0.5s ease-out forwards; }`,
   },
   {
-    name: "scale-in",
-    description: "Scale in from smaller size",
-    class: "animate-scale-in",
-    previewClass: "animate-scale-in",
+    name: 'scale-in',
+    description: 'Scale in from smaller size',
+    class: 'animate-scale-in',
+    previewClass: 'animate-scale-in',
     code: `@keyframes scale-in {
   0% { opacity: 0; transform: scale(0.95); }
   100% { opacity: 1; transform: scale(1); }
@@ -383,10 +337,10 @@ const cssAnimations: CSSAnimation[] = [
 .animate-scale-in { animation: scale-in 0.3s ease-out forwards; }`,
   },
   {
-    name: "slide-in",
-    description: "Slide in from right",
-    class: "animate-slide-in",
-    previewClass: "animate-slide-in",
+    name: 'slide-in',
+    description: 'Slide in from right',
+    class: 'animate-slide-in',
+    previewClass: 'animate-slide-in',
     code: `@keyframes slide-in {
   0% { opacity: 0; transform: translateX(20px); }
   100% { opacity: 1; transform: translateX(0); }
@@ -394,10 +348,10 @@ const cssAnimations: CSSAnimation[] = [
 .animate-slide-in { animation: slide-in 0.4s ease-out forwards; }`,
   },
   {
-    name: "glow-pulse",
-    description: "Glowing pulse effect (infinite)",
-    class: "animate-glow-pulse",
-    previewClass: "animate-glow-pulse",
+    name: 'glow-pulse',
+    description: 'Glowing pulse effect (infinite)',
+    class: 'animate-glow-pulse',
+    previewClass: 'animate-glow-pulse',
     isInfinite: true,
     code: `@keyframes glow-pulse {
   0%, 100% { box-shadow: 0 0 20px rgba(var(--color-primary), 0.3); }
@@ -405,76 +359,71 @@ const cssAnimations: CSSAnimation[] = [
 }
 .animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }`,
   },
-];
+]
 
 // ============================================================
 // CONTRAST CALCULATOR
 // ============================================================
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result
     ? {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16),
       }
-    : null;
+    : null
 }
 
 function getLuminance(r: number, g: number, b: number): number {
   const [rs, gs, bs] = [r, g, b].map((c) => {
-    c = c / 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+    c = c / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs
 }
 
 function getContrastRatio(color1: string, color2: string): number {
-  const rgb1 = hexToRgb(color1);
-  const rgb2 = hexToRgb(color2);
-  if (!rgb1 || !rgb2) return 0;
+  const rgb1 = hexToRgb(color1)
+  const rgb2 = hexToRgb(color2)
+  if (!rgb1 || !rgb2) return 0
 
-  const l1 = getLuminance(rgb1.r, rgb1.g, rgb1.b);
-  const l2 = getLuminance(rgb2.r, rgb2.g, rgb2.b);
+  const l1 = getLuminance(rgb1.r, rgb1.g, rgb1.b)
+  const l2 = getLuminance(rgb2.r, rgb2.g, rgb2.b)
 
-  const lighter = Math.max(l1, l2);
-  const darker = Math.min(l1, l2);
+  const lighter = Math.max(l1, l2)
+  const darker = Math.min(l1, l2)
 
-  return (lighter + 0.05) / (darker + 0.05);
+  return (lighter + 0.05) / (darker + 0.05)
 }
 
 function getWCAGRating(ratio: number): { level: string; color: string } {
-  if (ratio >= 7) return { level: "AAA", color: "text-green-500" };
-  if (ratio >= 4.5) return { level: "AA", color: "text-green-500" };
-  if (ratio >= 3) return { level: "AA Large", color: "text-yellow-500" };
-  return { level: "Fail", color: "text-red-500" };
+  if (ratio >= 7) return { level: 'AAA', color: 'text-green-500' }
+  if (ratio >= 4.5) return { level: 'AA', color: 'text-green-500' }
+  if (ratio >= 3) return { level: 'AA Large', color: 'text-yellow-500' }
+  return { level: 'Fail', color: 'text-red-500' }
 }
 
 // ============================================================
 // COPY TO CLIPBOARD COMPONENT
 // ============================================================
 
-function CopyButton({ text, className = "" }: { text: string; className?: string }) {
-  const [copied, setCopied] = useState(false);
+function CopyButton({ text, className = '' }: { text: string; className?: string }) {
+  const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error("Failed to copy:", err);
+      console.error('Failed to copy:', err)
     }
-  };
+  }
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={handleCopy}
-      className={`h-8 px-2 ${className}`}
-    >
+    <Button variant="ghost" size="sm" onClick={handleCopy} className={`h-8 px-2 ${className}`}>
       {copied ? (
         <>
           <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
@@ -487,14 +436,14 @@ function CopyButton({ text, className = "" }: { text: string; className?: string
         </>
       )}
     </Button>
-  );
+  )
 }
 
 // ============================================================
 // CODE BLOCK WITH COPY
 // ============================================================
 
-function CodeBlock({ code, language = "css" }: { code: string; language?: string }) {
+function CodeBlock({ code, language = 'css' }: { code: string; language?: string }) {
   return (
     <div className="relative rounded-lg bg-muted">
       <div className="flex items-center justify-between px-4 py-2 border-b">
@@ -505,7 +454,7 @@ function CodeBlock({ code, language = "css" }: { code: string; language?: string
         <code>{code}</code>
       </pre>
     </div>
-  );
+  )
 }
 
 // ============================================================
@@ -513,58 +462,56 @@ function CodeBlock({ code, language = "css" }: { code: string; language?: string
 // ============================================================
 
 export function DesignSystemShowcase() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [foregroundColor, setForegroundColor] = useState("#1a365d");
-  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
-  const [playingAnimation, setPlayingAnimation] = useState<string | null>(null);
-  const [progress, setProgress] = useState(33);
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('All')
+  const [foregroundColor, setForegroundColor] = useState('#1a365d')
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff')
+  const [playingAnimation, setPlayingAnimation] = useState<string | null>(null)
+  const [progress, setProgress] = useState(33)
 
   // Function to play a specific animation
   const playAnimation = (animName: string) => {
     // Remove animation
-    setPlayingAnimation(null);
+    setPlayingAnimation(null)
 
     // Force reflow by using setTimeout
     setTimeout(() => {
-      setPlayingAnimation(animName);
+      setPlayingAnimation(animName)
 
       // For non-infinite animations, reset after animation completes
-      if (!cssAnimations.find(a => a.name === animName)?.isInfinite) {
+      if (!cssAnimations.find((a) => a.name === animName)?.isInfinite) {
         setTimeout(() => {
-          setPlayingAnimation(null);
-        }, 1000); // Reset after 1 second
+          setPlayingAnimation(null)
+        }, 1000) // Reset after 1 second
       }
-    }, 10);
-  };
+    }, 10)
+  }
 
   // Animate progress
   useEffect(() => {
     const timer = setInterval(() => {
-      setProgress((prev) => (prev >= 100 ? 0 : prev + 10));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+      setProgress((prev) => (prev >= 100 ? 0 : prev + 10))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
-  const contrastRatio = getContrastRatio(foregroundColor, backgroundColor);
-  const wcagRating = getWCAGRating(contrastRatio);
+  const contrastRatio = getContrastRatio(foregroundColor, backgroundColor)
+  const wcagRating = getWCAGRating(contrastRatio)
 
   // Filter icons based on search
   const filteredIcons = Object.entries(iconCategories).reduce(
     (acc, [category, icons]) => {
-      if (selectedCategory !== "All" && category !== selectedCategory) {
-        return acc;
+      if (selectedCategory !== 'All' && category !== selectedCategory) {
+        return acc
       }
-      const filtered = icons.filter((icon) =>
-        icon.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const filtered = icons.filter((icon) => icon.name.toLowerCase().includes(searchQuery.toLowerCase()))
       if (filtered.length > 0) {
-        acc[category] = filtered;
+        acc[category] = filtered
       }
-      return acc;
+      return acc
     },
-    {} as Record<string, typeof iconCategories.Actions>
-  );
+    {} as Record<string, typeof iconCategories.Actions>,
+  )
 
   return (
     <TooltipProvider>
@@ -580,9 +527,7 @@ export function DesignSystemShowcase() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">Component Showcase</h2>
-                <p className="text-muted-foreground">
-                  Live interactive demos of all shadcn/ui components
-                </p>
+                <p className="text-muted-foreground">Live interactive demos of all shadcn/ui components</p>
               </div>
             </div>
           </div>
@@ -620,7 +565,9 @@ export function DesignSystemShowcase() {
                       <Button size="sm">Small</Button>
                       <Button size="default">Default</Button>
                       <Button size="lg">Large</Button>
-                      <Button size="icon"><Plus className="h-4 w-4" /></Button>
+                      <Button size="icon">
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
                     <Separator />
                     <div className="flex flex-wrap gap-2">
@@ -645,26 +592,44 @@ export function DesignSystemShowcase() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      <Toggle aria-label="Toggle bold"><Bold className="h-4 w-4" /></Toggle>
-                      <Toggle aria-label="Toggle italic"><Italic className="h-4 w-4" /></Toggle>
-                      <Toggle aria-label="Toggle underline"><Underline className="h-4 w-4" /></Toggle>
+                      <Toggle aria-label="Toggle bold">
+                        <Bold className="h-4 w-4" />
+                      </Toggle>
+                      <Toggle aria-label="Toggle italic">
+                        <Italic className="h-4 w-4" />
+                      </Toggle>
+                      <Toggle aria-label="Toggle underline">
+                        <Underline className="h-4 w-4" />
+                      </Toggle>
                     </div>
                     <Separator />
                     <div className="space-y-2">
                       <Label>Text Alignment</Label>
                       <ToggleGroup type="single" defaultValue="left">
-                        <ToggleGroupItem value="left"><AlignLeft className="h-4 w-4" /></ToggleGroupItem>
-                        <ToggleGroupItem value="center"><AlignCenter className="h-4 w-4" /></ToggleGroupItem>
-                        <ToggleGroupItem value="right"><AlignRight className="h-4 w-4" /></ToggleGroupItem>
+                        <ToggleGroupItem value="left">
+                          <AlignLeft className="h-4 w-4" />
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="center">
+                          <AlignCenter className="h-4 w-4" />
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="right">
+                          <AlignRight className="h-4 w-4" />
+                        </ToggleGroupItem>
                       </ToggleGroup>
                     </div>
                     <Separator />
                     <div className="space-y-2">
                       <Label>Multi-select</Label>
-                      <ToggleGroup type="multiple" defaultValue={["bold"]}>
-                        <ToggleGroupItem value="bold"><Bold className="h-4 w-4" /></ToggleGroupItem>
-                        <ToggleGroupItem value="italic"><Italic className="h-4 w-4" /></ToggleGroupItem>
-                        <ToggleGroupItem value="underline"><Underline className="h-4 w-4" /></ToggleGroupItem>
+                      <ToggleGroup type="multiple" defaultValue={['bold']}>
+                        <ToggleGroupItem value="bold">
+                          <Bold className="h-4 w-4" />
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="italic">
+                          <Italic className="h-4 w-4" />
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="underline">
+                          <Underline className="h-4 w-4" />
+                        </ToggleGroupItem>
                       </ToggleGroup>
                     </div>
                   </CardContent>
@@ -750,11 +715,15 @@ export function DesignSystemShowcase() {
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                           <Checkbox id="check1" defaultChecked />
-                          <Label htmlFor="check1" className="font-normal">Checked by default</Label>
+                          <Label htmlFor="check1" className="font-normal">
+                            Checked by default
+                          </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox id="check2" />
-                          <Label htmlFor="check2" className="font-normal">Unchecked</Label>
+                          <Label htmlFor="check2" className="font-normal">
+                            Unchecked
+                          </Label>
                         </div>
                       </div>
                     </div>
@@ -838,9 +807,15 @@ export function DesignSystemShowcase() {
                     </div>
                     <Separator />
                     <div className="flex flex-wrap gap-2">
-                      <Badge className="gap-1"><CheckCircle className="h-3 w-3" /> Success</Badge>
-                      <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> Error</Badge>
-                      <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Pending</Badge>
+                      <Badge className="gap-1">
+                        <CheckCircle className="h-3 w-3" /> Success
+                      </Badge>
+                      <Badge variant="destructive" className="gap-1">
+                        <XCircle className="h-3 w-3" /> Error
+                      </Badge>
+                      <Badge variant="secondary" className="gap-1">
+                        <Clock className="h-3 w-3" /> Pending
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -880,9 +855,7 @@ export function DesignSystemShowcase() {
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>Dialog Title</DialogTitle>
-                          <DialogDescription>
-                            This is a dialog description explaining the purpose.
-                          </DialogDescription>
+                          <DialogDescription>This is a dialog description explaining the purpose.</DialogDescription>
                         </DialogHeader>
                         <div className="py-4">
                           <p>Dialog content goes here.</p>
@@ -900,9 +873,7 @@ export function DesignSystemShowcase() {
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone.
-                          </AlertDialogDescription>
+                          <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -954,9 +925,15 @@ export function DesignSystemShowcase() {
                       <DropdownMenuContent>
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem><Copy className="mr-2 h-4 w-4" /> Copy</DropdownMenuItem>
-                        <DropdownMenuItem><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive"><Trash className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Copy className="mr-2 h-4 w-4" /> Copy
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          <Trash className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </CardContent>
@@ -983,20 +960,16 @@ export function DesignSystemShowcase() {
                     </TableHeader>
                     <TableBody>
                       {[
-                        { name: "John Doe", status: "Active", role: "Admin", amount: "$250.00" },
-                        { name: "Jane Smith", status: "Pending", role: "User", amount: "$150.00" },
-                        { name: "Bob Johnson", status: "Inactive", role: "User", amount: "$350.00" },
+                        { name: 'John Doe', status: 'Active', role: 'Admin', amount: '$250.00' },
+                        { name: 'Jane Smith', status: 'Pending', role: 'User', amount: '$150.00' },
+                        { name: 'Bob Johnson', status: 'Inactive', role: 'User', amount: '$350.00' },
                       ].map((row) => (
                         <TableRow key={row.name}>
                           <TableCell className="font-medium">{row.name}</TableCell>
                           <TableCell>
                             <Badge
                               variant={
-                                row.status === "Active"
-                                  ? "default"
-                                  : row.status === "Pending"
-                                  ? "secondary"
-                                  : "outline"
+                                row.status === 'Active' ? 'default' : row.status === 'Pending' ? 'secondary' : 'outline'
                               }
                             >
                               {row.status}
@@ -1026,15 +999,11 @@ export function DesignSystemShowcase() {
                     </AccordionItem>
                     <AccordionItem value="item-2">
                       <AccordionTrigger>Is it accessible?</AccordionTrigger>
-                      <AccordionContent>
-                        Yes. All components follow WAI-ARIA guidelines.
-                      </AccordionContent>
+                      <AccordionContent>Yes. All components follow WAI-ARIA guidelines.</AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="item-3">
                       <AccordionTrigger>Can I customize it?</AccordionTrigger>
-                      <AccordionContent>
-                        Yes. You have full control over the code and styling.
-                      </AccordionContent>
+                      <AccordionContent>Yes. You have full control over the code and styling.</AccordionContent>
                     </AccordionItem>
                   </Accordion>
                 </CardContent>
@@ -1098,9 +1067,7 @@ export function DesignSystemShowcase() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">Icon Library</h2>
-                <p className="text-muted-foreground">
-                  100+ Lucide icons organized by category
-                </p>
+                <p className="text-muted-foreground">100+ Lucide icons organized by category</p>
               </div>
             </div>
           </div>
@@ -1123,7 +1090,9 @@ export function DesignSystemShowcase() {
               <SelectContent>
                 <SelectItem value="All">All Categories</SelectItem>
                 {Object.keys(iconCategories).map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1205,16 +1174,14 @@ export function DesignSystemShowcase() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">CSS Animation Library</h2>
-                <p className="text-muted-foreground">
-                  Pre-built animations for smooth interactions
-                </p>
+                <p className="text-muted-foreground">Pre-built animations for smooth interactions</p>
               </div>
             </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
             {cssAnimations.map((anim) => {
-              const isPlaying = playingAnimation === anim.name;
+              const isPlaying = playingAnimation === anim.name
 
               return (
                 <Card key={anim.name}>
@@ -1223,14 +1190,12 @@ export function DesignSystemShowcase() {
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-lg">{anim.name}</CardTitle>
                         {anim.isInfinite && (
-                          <Badge variant="secondary" className="text-xs">infinite</Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            infinite
+                          </Badge>
                         )}
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => playAnimation(anim.name)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => playAnimation(anim.name)}>
                         <Play className="h-3 w-3 mr-1" />
                         Play
                       </Button>
@@ -1252,15 +1217,14 @@ export function DesignSystemShowcase() {
                         <div
                           className={`h-12 w-32 rounded-lg ${isPlaying ? 'animate-gradient' : ''}`}
                           style={{
-                            background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)), hsl(var(--primary)))",
-                            backgroundSize: "200% auto"
+                            background:
+                              'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)), hsl(var(--primary)))',
+                            backgroundSize: '200% auto',
                           }}
                         />
                       ) : (
                         /* Standard animation */
-                        <div
-                          className={`h-12 w-12 rounded-lg bg-primary ${isPlaying ? anim.previewClass : ''}`}
-                        />
+                        <div className={`h-12 w-12 rounded-lg bg-primary ${isPlaying ? anim.previewClass : ''}`} />
                       )}
                     </div>
 
@@ -1274,7 +1238,7 @@ export function DesignSystemShowcase() {
                     </div>
                   </CardContent>
                 </Card>
-              );
+              )
             })}
           </div>
         </section>
@@ -1292,9 +1256,7 @@ export function DesignSystemShowcase() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">Contrast Checker</h2>
-                <p className="text-muted-foreground">
-                  Validate color combinations for WCAG accessibility
-                </p>
+                <p className="text-muted-foreground">Validate color combinations for WCAG accessibility</p>
               </div>
             </div>
           </div>
@@ -1302,9 +1264,7 @@ export function DesignSystemShowcase() {
           <Card>
             <CardHeader>
               <CardTitle>Color Contrast Analyzer</CardTitle>
-              <CardDescription>
-                Enter two colors to check if they meet WCAG accessibility standards
-              </CardDescription>
+              <CardDescription>Enter two colors to check if they meet WCAG accessibility standards</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-6 lg:grid-cols-2">
@@ -1365,9 +1325,7 @@ export function DesignSystemShowcase() {
                       <p className="text-sm text-muted-foreground">Contrast Ratio</p>
                     </div>
                     <div className="rounded-lg border bg-background p-4 text-center">
-                      <p className={`text-3xl font-bold ${wcagRating.color}`}>
-                        {wcagRating.level}
-                      </p>
+                      <p className={`text-3xl font-bold ${wcagRating.color}`}>{wcagRating.level}</p>
                       <p className="text-sm text-muted-foreground">WCAG Rating</p>
                     </div>
                   </div>
@@ -1379,22 +1337,28 @@ export function DesignSystemShowcase() {
                 <h4 className="font-semibold mb-2">WCAG Guidelines</h4>
                 <div className="grid gap-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <Badge variant={contrastRatio >= 4.5 ? "default" : "outline"}>
+                    <Badge variant={contrastRatio >= 4.5 ? 'default' : 'outline'}>
                       {contrastRatio >= 4.5 ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                     </Badge>
-                    <span><strong>AA Normal Text:</strong> 4.5:1 contrast ratio required</span>
+                    <span>
+                      <strong>AA Normal Text:</strong> 4.5:1 contrast ratio required
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={contrastRatio >= 3 ? "default" : "outline"}>
+                    <Badge variant={contrastRatio >= 3 ? 'default' : 'outline'}>
                       {contrastRatio >= 3 ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                     </Badge>
-                    <span><strong>AA Large Text:</strong> 3:1 contrast ratio required</span>
+                    <span>
+                      <strong>AA Large Text:</strong> 3:1 contrast ratio required
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={contrastRatio >= 7 ? "default" : "outline"}>
+                    <Badge variant={contrastRatio >= 7 ? 'default' : 'outline'}>
                       {contrastRatio >= 7 ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                     </Badge>
-                    <span><strong>AAA Normal Text:</strong> 7:1 contrast ratio required</span>
+                    <span>
+                      <strong>AAA Normal Text:</strong> 7:1 contrast ratio required
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1403,7 +1367,7 @@ export function DesignSystemShowcase() {
         </section>
       </div>
     </TooltipProvider>
-  );
+  )
 }
 
-export default DesignSystemShowcase;
+export default DesignSystemShowcase

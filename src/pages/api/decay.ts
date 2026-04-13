@@ -10,7 +10,7 @@ import type { APIRoute } from 'astro'
 import { decay } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request }) => {
-  const body = await request.json().catch(() => ({})) as {
+  const body = (await request.json().catch(() => ({}))) as {
     trailRate?: number
     resistanceRate?: number
   }

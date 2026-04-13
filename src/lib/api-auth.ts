@@ -3,8 +3,8 @@
  * Validates API keys on incoming requests
  */
 
-import { readParsed, writeSilent } from '@/lib/typedb'
 import { verifyKey } from '@/lib/api-key'
+import { readParsed, writeSilent } from '@/lib/typedb'
 
 export interface AuthContext {
   user: string
@@ -52,7 +52,7 @@ export async function validateApiKey(request: Request): Promise<AuthContext> {
           user: row.u as string,
           permissions: (row.p as string | undefined)?.split(',').filter(Boolean) || [],
           keyId: row.id as string,
-          isValid: true
+          isValid: true,
         }
       }
     }

@@ -11,10 +11,14 @@
 import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
 
-const isToxic = (s: number, r: number) => r >= 10 && r > s * 2 && (r + s) > 5
+const isToxic = (s: number, r: number) => r >= 10 && r > s * 2 && r + s > 5
 
 const emptyState = () => ({
-  units: [], edges: [], highways: [], tags: [], tagMap: {},
+  units: [],
+  edges: [],
+  highways: [],
+  tags: [],
+  tagMap: {},
   stats: { units: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 },
   loading: true,
 })
@@ -28,13 +32,19 @@ async function fromKV(kv: KVNamespace) {
     kv.get('toxic.json'),
   ])
 
-  const pathRows: Array<{ from: string; to: string; strength: number; resistance: number; revenue?: number; toxic?: boolean }> =
-    pathsRaw ? JSON.parse(pathsRaw) : []
+  const pathRows: Array<{
+    from: string
+    to: string
+    strength: number
+    resistance: number
+    revenue?: number
+    toxic?: boolean
+  }> = pathsRaw ? JSON.parse(pathsRaw) : []
   const unitRows: Array<{ uid: string; name: string; kind?: string; successRate?: number; generation?: number }> =
     unitsRaw ? JSON.parse(unitsRaw) : []
   const toxicSet = new Set<string>(toxicRaw ? JSON.parse(toxicRaw) : [])
 
-  const units = unitRows.map(u => ({
+  const units = unitRows.map((u) => ({
     id: u.uid,
     name: u.name,
     kind: u.kind ?? 'agent',
@@ -43,7 +53,7 @@ async function fromKV(kv: KVNamespace) {
     g: u.generation ?? 1,
   }))
 
-  const edges = pathRows.map(p => ({
+  const edges = pathRows.map((p) => ({
     from: p.from,
     to: p.to,
     strength: p.strength,
@@ -52,7 +62,7 @@ async function fromKV(kv: KVNamespace) {
     toxic: p.toxic ?? toxicSet.has(`${p.from}→${p.to}`) ?? isToxic(p.strength, p.resistance),
   }))
 
-  const highways = edges.filter(e => !e.toxic && e.strength >= 50)
+  const highways = edges.filter((e) => !e.toxic && e.strength >= 50)
 
   return {
     units,
@@ -62,7 +72,7 @@ async function fromKV(kv: KVNamespace) {
     tagMap: {},
     stats: {
       units: units.length,
-      proven: units.filter(u => u.status === 'proven').length,
+      proven: units.filter((u) => u.status === 'proven').length,
       highways: highways.length,
       edges: edges.length,
       tags: 0,
@@ -85,23 +95,39 @@ async function fromTypeDB() {
     `).catch(() => []),
   ])
 
-  const units = unitRows.map(r => ({
-    id: r.id as string, name: r.n as string, kind: r.k as string,
-    status: 'active', sr: r.sr as number, g: r.g as number,
+  const units = unitRows.map((r) => ({
+    id: r.id as string,
+    name: r.n as string,
+    kind: r.k as string,
+    status: 'active',
+    sr: r.sr as number,
+    g: r.g as number,
   }))
 
-  const edges = pathRows.map(r => {
-    const s = r.str as number, res = r.r as number
-    return { from: r.sid as string, to: r.tid as string, strength: s, resistance: res, revenue: 0, toxic: isToxic(s, res) }
+  const edges = pathRows.map((r) => {
+    const s = r.str as number,
+      res = r.r as number
+    return {
+      from: r.sid as string,
+      to: r.tid as string,
+      strength: s,
+      resistance: res,
+      revenue: 0,
+      toxic: isToxic(s, res),
+    }
   })
 
-  const highways = edges.filter(e => !e.toxic && e.strength >= 50)
+  const highways = edges.filter((e) => !e.toxic && e.strength >= 50)
 
   return {
-    units, edges, highways, tags: [], tagMap: {},
+    units,
+    edges,
+    highways,
+    tags: [],
+    tagMap: {},
     stats: {
       units: units.length,
-      proven: units.filter(u => u.status === 'proven').length,
+      proven: units.filter((u) => u.status === 'proven').length,
       highways: highways.length,
       edges: edges.length,
       tags: 0,
@@ -113,12 +139,7 @@ async function fromTypeDB() {
 export const GET: APIRoute = async (context) => {
   const kv = ((context.locals as any)?.runtime?.env as KVEnv)?.KV
 
-  const data = kv
-    ? await fromKV(kv).catch(() => fromTypeDB())
-    : await fromTypeDB()
+  const data = kv ? await fromKV(kv).catch(() => fromTypeDB()) : await fromTypeDB()
 
-  return new Response(
-    JSON.stringify(data ?? emptyState()),
-    { headers: { 'Content-Type': 'application/json' } }
-  )
+  return new Response(JSON.stringify(data ?? emptyState()), { headers: { 'Content-Type': 'application/json' } })
 }

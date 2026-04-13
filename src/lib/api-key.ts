@@ -28,18 +28,12 @@ export async function hashKey(key: string): Promise<string> {
 
   const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH))
   const encoder = new TextEncoder()
-  const keyObj = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(key),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  )
+  const keyObj = await crypto.subtle.importKey('raw', encoder.encode(key), 'PBKDF2', false, ['deriveBits'])
 
   const derivedBits = await crypto.subtle.deriveBits(
     { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
     keyObj,
-    KEY_LENGTH * 8
+    KEY_LENGTH * 8,
   )
 
   const hash = new Uint8Array(derivedBits)
@@ -63,18 +57,12 @@ export async function verifyKey(key: string, hash: string): Promise<boolean> {
   const storedHash = Uint8Array.from(atob(parts[4]), (c) => c.charCodeAt(0))
 
   const encoder = new TextEncoder()
-  const keyObj = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(key),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  )
+  const keyObj = await crypto.subtle.importKey('raw', encoder.encode(key), 'PBKDF2', false, ['deriveBits'])
 
   const derivedBits = await crypto.subtle.deriveBits(
     { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
     keyObj,
-    storedHash.length * 8
+    storedHash.length * 8,
   )
 
   const computedHash = new Uint8Array(derivedBits)

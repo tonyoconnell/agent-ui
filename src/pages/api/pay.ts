@@ -5,11 +5,11 @@
  * Records signal with amount, strengthens path by payment amount (revenue = weight).
  */
 import type { APIRoute } from 'astro'
+import { resolveUnit } from '@/lib/sui'
 import { write } from '@/lib/typedb'
-import { pay as suiPay, resolveUnit } from '@/lib/sui'
 
 export const POST: APIRoute = async ({ request }) => {
-  const { from, to, task, amount } = await request.json() as {
+  const { from, to, task, amount } = (await request.json()) as {
     from: string
     to: string
     task: string
@@ -56,11 +56,11 @@ export const POST: APIRoute = async ({ request }) => {
         (source: $from, target: $to) isa path,
           has strength ${amount}, has resistance 0.0,
           has traversals 1, has revenue ${amount};
-    `)
+    `),
   )
 
   // Mirror to Sui (if both units have wallets)
-  let suiDigest: string | null = null
+  const suiDigest: string | null = null
   try {
     const fromUnit = await resolveUnit(from)
     const toUnit = await resolveUnit(to)

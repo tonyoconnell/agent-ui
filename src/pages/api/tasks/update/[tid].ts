@@ -6,8 +6,8 @@
  * Updates local store first (fast), then TypeDB (may fail), then triggers KV sync.
  */
 import type { APIRoute } from 'astro'
-import { writeSilent } from '@/lib/typedb'
 import * as store from '@/lib/tasks-store'
+import { writeSilent } from '@/lib/typedb'
 
 const VALID_STATUSES = new Set(['todo', 'in_progress', 'complete', 'blocked', 'failed'])
 
@@ -27,7 +27,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'Invalid task id format' }), { status: 400 })
   }
 
-  const body = await request.json().catch(() => ({})) as { status?: string }
+  const body = (await request.json().catch(() => ({}))) as { status?: string }
   const { status } = body
 
   if (!status || !VALID_STATUSES.has(status)) {

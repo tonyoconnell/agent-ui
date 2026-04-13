@@ -3,7 +3,7 @@
  */
 
 import type { Env } from '../types'
-import { query, mark, warn, suggestRoute, highways } from './substrate'
+import { highways, mark, query, suggestRoute, warn } from './substrate'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOOL DEFINITIONS
@@ -100,7 +100,7 @@ export const executeTool = async (
   env: Env,
   group: string,
   tool: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ): Promise<unknown> => {
   const selfId = `nanoclaw:${group}`
 
@@ -115,34 +115,41 @@ export const executeTool = async (
       })
       return { sent: true, receiver: input.receiver }
 
-    case 'discover':
+    case 'discover': {
       const units = await suggestRoute(env, selfId, input.skill as string)
       return { skill: input.skill, units }
+    }
 
-    case 'remember':
+    case 'remember': {
       const key = input.key as string
       const value = input.value as string
       await env.KV.put(`knowledge:${group}:${key}`, value)
       return { stored: key }
+    }
 
-    case 'recall':
+    case 'recall': {
       const q = input.query as string
       // Check local KV first
       const local = await env.KV.get(`knowledge:${group}:${q}`)
       if (local) return { key: q, value: local, source: 'local' }
 
       // Query TypeDB for hypotheses
-      const rows = await query(env, `
+      const rows = await query(
+        env,
+        `
         match $h isa hypothesis, has statement $s;
         $s contains "${q}";
         select $s; limit 5;
-      `)
+      `,
+      )
       return { query: q, results: rows, source: 'substrate' }
+    }
 
-    case 'highways':
+    case 'highways': {
       const limit = (input.limit as number) || 5
       const paths = await highways(env, limit)
       return { highways: paths }
+    }
 
     case 'mark':
       await mark(env, selfId, input.target as string, (input.strength as number) || 1)

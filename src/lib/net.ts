@@ -67,7 +67,8 @@ export async function getNet(): Promise<PersistentWorld> {
 
   _loading = (async () => {
     const net = createNet()
-    const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error('TypeDB timeout')), ms))
+    const timeout = (ms: number) =>
+      new Promise((_, reject) => setTimeout(() => reject(new Error('TypeDB timeout')), ms))
 
     await Promise.all([
       Promise.race([net.load().catch(() => {}), timeout(5000)]).catch(() => {}),
@@ -88,16 +89,26 @@ export async function reloadMeta() {
 }
 
 /** Cached unit metadata keyed by uid. */
-export function getUnitMeta(): Record<string, UnitMeta> { return _units }
+export function getUnitMeta(): Record<string, UnitMeta> {
+  return _units
+}
 
 /** Cached tag map: skill-id → string[]. */
-export function getTagMap(): TagMap { return _tags }
+export function getTagMap(): TagMap {
+  return _tags
+}
 
 /** All known tags, sorted. */
-export function getAllTags(): string[] { return _allTags }
+export function getAllTags(): string[] {
+  return _allTags
+}
 
 /** Synchronous access — returns null if world not loaded yet. No TypeDB call. */
-export function getNetSync(): PersistentWorld | null { return _net }
+export function getNetSync(): PersistentWorld | null {
+  return _net
+}
 
 /** Unix ms when the world was last loaded from TypeDB. 0 = never. */
-export function loadedAt(): number { return _loadedAt }
+export function loadedAt(): number {
+  return _loadedAt
+}

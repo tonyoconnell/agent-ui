@@ -11,8 +11,8 @@
  *   5. mark() on success / warn() on failure
  */
 import type { APIRoute } from 'astro'
-import { write, readParsed, writeSilent } from '@/lib/typedb'
-import { send as suiSend, mark as suiMark, warn as suiWarn, resolveUnit } from '@/lib/sui'
+import { resolveUnit, send as suiSend } from '@/lib/sui'
+import { readParsed, write, writeSilent } from '@/lib/typedb'
 
 /** Validate UID format (alphanumeric, hyphens, colons only) */
 function validateUid(uid: string): boolean {
@@ -30,7 +30,13 @@ function escapeTqlString(str: string): string {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  const { sender, receiver, data, amount = 0, task } = await request.json() as {
+  const {
+    sender,
+    receiver,
+    data,
+    amount = 0,
+    task,
+  } = (await request.json()) as {
     sender: string
     receiver: string
     data?: string
@@ -114,8 +120,9 @@ export const POST: APIRoute = async ({ request }) => {
       const apiKey = import.meta.env.OPENROUTER_API_KEY || ''
 
       // Map agent model names to OpenRouter model IDs
-      const orModel = model.includes('/') ? model  // already namespaced
-        : 'meta-llama/llama-4-maverick'  // default: 1M ctx, $0.15/M tokens, leading open model
+      const orModel = model.includes('/')
+        ? model // already namespaced
+        : 'meta-llama/llama-4-maverick' // default: 1M ctx, $0.15/M tokens, leading open model
 
       if (apiKey) {
         try {
@@ -123,7 +130,7 @@ export const POST: APIRoute = async ({ request }) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`,
+              Authorization: `Bearer ${apiKey}`,
               'HTTP-Referer': 'https://one.ie',
               'X-Title': 'ONE Substrate',
             },
@@ -137,10 +144,10 @@ export const POST: APIRoute = async ({ request }) => {
             }),
           })
           if (!res.ok) {
-            console.error('OpenRouter error:', res.status, await res.text().then(t => t.slice(0, 300)))
+            console.error('OpenRouter error:', res.status, await res.text().then((t) => t.slice(0, 300)))
             result = null
           } else {
-            const d = await res.json() as { choices: Array<{ message: { content: string } }> }
+            const d = (await res.json()) as { choices: Array<{ message: { content: string } }> }
             result = d.choices?.[0]?.message?.content || null
           }
         } catch (err) {
@@ -235,16 +242,19 @@ export const POST: APIRoute = async ({ request }) => {
       // Sui not configured or tx failed — TypeDB signal still recorded
     }
 
-    return new Response(JSON.stringify({
-      ok: true,
-      routed,
-      result: result?.slice(0, 500),
-      latency,
-      success,
-      sui: suiDigest,
-    }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        routed,
+        result: result?.slice(0, 500),
+        latency,
+        success,
+        sui: suiDigest,
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), { status: 500 })

@@ -5,9 +5,9 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import type { BenchmarkResult, SpeedtestResult } from '@/lib/speedtest'
 
 interface Props {
@@ -86,7 +86,7 @@ export function SpeedtestDashboard({ onResults }: Props) {
       const response = await fetch('/api/speedtest/run')
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
-      const data = await response.json() as SpeedtestResult
+      const data = (await response.json()) as SpeedtestResult
       setResults(data)
       onResults?.(data)
     } catch (err) {
@@ -116,7 +116,9 @@ export function SpeedtestDashboard({ onResults }: Props) {
       </div>
 
       {/* Error */}
-      {error && <div className="p-4 bg-red-900/30 border border-red-700 rounded text-red-200 text-sm font-mono">{error}</div>}
+      {error && (
+        <div className="p-4 bg-red-900/30 border border-red-700 rounded text-red-200 text-sm font-mono">{error}</div>
+      )}
 
       {/* Results Grid */}
       {results && (
@@ -139,14 +141,19 @@ export function SpeedtestDashboard({ onResults }: Props) {
               <div>
                 <div className="text-xs text-slate-500 mb-1">Passes</div>
                 <div className="text-xl font-mono font-bold text-cyan-400">
-                  {Object.entries(results.results).filter(([k, r]) => r.p95_ms < (BASELINE_THRESHOLDS[k] || 100)).length}/
-                  {Object.entries(results.results).length}
+                  {
+                    Object.entries(results.results).filter(([k, r]) => r.p95_ms < (BASELINE_THRESHOLDS[k] || 100))
+                      .length
+                  }
+                  /{Object.entries(results.results).length}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-slate-500 mb-1">Total Ops</div>
                 <div className="text-xl font-mono font-bold text-slate-300">
-                  {Object.values(results.results).reduce((sum, r) => sum + r.runs, 0).toLocaleString()}
+                  {Object.values(results.results)
+                    .reduce((sum, r) => sum + r.runs, 0)
+                    .toLocaleString()}
                 </div>
               </div>
             </div>

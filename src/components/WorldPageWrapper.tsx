@@ -9,17 +9,17 @@
  * React tree on the client, so we import and render them here.
  */
 
-import { SkinProvider } from "@/contexts/SkinContext"
-import { VisitorBanner } from "@/components/world/VisitorBanner"
-import WorldWorkspace from "@/components/WorldWorkspace"
-import { GuideNarrator } from "@/components/world/GuideNarrator"
+import WorldWorkspace from '@/components/WorldWorkspace'
+import { GuideNarrator } from '@/components/world/GuideNarrator'
+import { VisitorBanner } from '@/components/world/VisitorBanner'
+import { SkinProvider } from '@/contexts/SkinContext'
 
 interface Props {
   initialSkin?: string
   isAuthenticated?: boolean
 }
 
-export function WorldPageWrapper({ initialSkin = "team", isAuthenticated = false }: Props) {
+export function WorldPageWrapper({ initialSkin = 'team', isAuthenticated = false }: Props) {
   return (
     <SkinProvider initialSkin={initialSkin}>
       <VisitorBanner isAuthenticated={isAuthenticated} />
