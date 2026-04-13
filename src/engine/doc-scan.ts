@@ -24,6 +24,7 @@ async function node() {
   _node = { readdir: fsp.readdir, readFile: fsp.readFile, join: path.join, basename: path.basename }
   return _node
 }
+
 import type { Signal } from './world'
 
 // Simple glob replacement — matches recursive directory patterns
@@ -46,55 +47,55 @@ async function simpleGlob(pattern: string, cwd: string): Promise<string[]> {
 }
 
 export interface DocItem {
-  id: string            // slug for skill-id
-  name: string          // human-readable name
-  source: string        // source file (e.g., "gaps", "TODO", "plan")
-  section: string       // section heading where found
-  tags: string[]        // inferred tags
-  done: boolean         // checked checkbox
-  priority: Priority    // inferred from section/context
-  line: number          // line number in source file
-  raw: string           // original text
+  id: string // slug for skill-id
+  name: string // human-readable name
+  source: string // source file (e.g., "gaps", "TODO", "plan")
+  section: string // section heading where found
+  tags: string[] // inferred tags
+  done: boolean // checked checkbox
+  priority: Priority // inferred from section/context
+  line: number // line number in source file
+  raw: string // original text
 }
 
 type Priority = 'P0' | 'P1' | 'P2' | 'P3'
 
 // Priority inference from section headings
 const PRIORITY_MAP: Record<string, Priority> = {
-  'critical': 'P0',
-  'unblock': 'P0',
+  critical: 'P0',
+  unblock: 'P0',
   'priority order': 'P0',
   'security checklist': 'P0',
-  'high': 'P1',
+  high: 'P1',
   'make it real': 'P1',
   'phase 1': 'P1',
   'phase 2': 'P1',
-  'foundation': 'P1',
+  foundation: 'P1',
   'chat integration': 'P1',
-  'medium': 'P2',
+  medium: 'P2',
   'engine quality': 'P2',
   'phase 3': 'P2',
   'phase 4': 'P2',
   'phase 5': 'P2',
-  'low': 'P3',
-  'later': 'P3',
+  low: 'P3',
+  later: 'P3',
   'visual polish': 'P3',
-  'scale': 'P3',
+  scale: 'P3',
   'phase 6': 'P3',
-  'phase 7': 'P2',  // "NEXT" phase gets P2
+  'phase 7': 'P2', // "NEXT" phase gets P2
 }
 
 // Tag inference from keywords in item text
 const TAG_KEYWORDS: Record<string, string[]> = {
-  'build':      ['deploy', 'worker', 'wrangler', 'cloudflare', 'migration', 'schema', 'build'],
-  'ui':         ['ui', 'panel', 'node', 'edge', 'graph', 'reactflow', 'visual', 'color', 'badge', 'keyboard'],
-  'engine':     ['routing', 'fade', 'decay', 'evolution', 'evolve', 'pheromone', 'loop', 'highway', 'strength'],
-  'commerce':   ['payment', 'escrow', 'x402', 'sui', 'revenue', 'price', 'marketplace'],
-  'typedb':     ['typedb', 'tql', 'schema', 'query', 'knowledge', 'hypothesis'],
-  'agent':      ['agent', 'llm', 'prompt', 'model', 'nanoclaw', 'telegram', 'channel'],
-  'security':   ['auth', 'identity', 'token', 'credential', 'security', 'toxic'],
-  'marketing':  ['seo', 'content', 'social', 'signup', 'campaign', 'blog'],
-  'infra':      ['deploy', 'worker', 'cron', 'sync', 'gateway', 'cloudflare', 'kv', 'd1'],
+  build: ['deploy', 'worker', 'wrangler', 'cloudflare', 'migration', 'schema', 'build'],
+  ui: ['ui', 'panel', 'node', 'edge', 'graph', 'reactflow', 'visual', 'color', 'badge', 'keyboard'],
+  engine: ['routing', 'fade', 'decay', 'evolution', 'evolve', 'pheromone', 'loop', 'highway', 'strength'],
+  commerce: ['payment', 'escrow', 'x402', 'sui', 'revenue', 'price', 'marketplace'],
+  typedb: ['typedb', 'tql', 'schema', 'query', 'knowledge', 'hypothesis'],
+  agent: ['agent', 'llm', 'prompt', 'model', 'nanoclaw', 'telegram', 'channel'],
+  security: ['auth', 'identity', 'token', 'credential', 'security', 'toxic'],
+  marketing: ['seo', 'content', 'social', 'signup', 'campaign', 'blog'],
+  infra: ['deploy', 'worker', 'cron', 'sync', 'gateway', 'cloudflare', 'kv', 'd1'],
 }
 
 /** Slugify text into a skill-id */
@@ -114,7 +115,7 @@ function inferTags(text: string, source: string): string[] {
   const tags: string[] = [source] // always tag with source doc name
 
   for (const [tag, keywords] of Object.entries(TAG_KEYWORDS)) {
-    if (keywords.some(kw => lower.includes(kw))) {
+    if (keywords.some((kw) => lower.includes(kw))) {
       if (!tags.includes(tag)) tags.push(tag)
     }
   }
@@ -210,7 +211,7 @@ export async function scanDocs(docsDir: string): Promise<DocItem[]> {
       // Deduplicate by id
       if (seenIds.has(item.id)) {
         // Prefer higher priority duplicate
-        const existing = allItems.find(i => i.id === item.id)
+        const existing = allItems.find((i) => i.id === item.id)
         if (existing && item.priority < existing.priority) {
           Object.assign(existing, item)
         }
@@ -236,11 +237,11 @@ export function groupByPriority(items: DocItem[]): Record<Priority, DocItem[]> {
 /** Render items as TODO.md content, with optional TypeDB pheromone data */
 export function renderTodo(
   items: DocItem[],
-  pheromone?: Map<string, { strength: number; resistance: number }>
+  pheromone?: Map<string, { strength: number; resistance: number }>,
 ): string {
   const groups = groupByPriority(items)
-  const open = items.filter(i => !i.done)
-  const done = items.filter(i => i.done)
+  const open = items.filter((i) => !i.done)
+  const done = items.filter((i) => i.done)
 
   let md = `# TODO\n\n`
   md += `> ONE Substrate: Markdown agents, TypeDB brain, Cloudflare edge, weight-based routing.\n`
@@ -254,7 +255,7 @@ export function renderTodo(
   }
 
   for (const priority of ['P0', 'P1', 'P2', 'P3'] as Priority[]) {
-    const group = groups[priority].filter(i => !i.done)
+    const group = groups[priority].filter((i) => !i.done)
     if (group.length === 0) continue
 
     md += `## ${sectionNames[priority]}\n\n`
@@ -273,7 +274,7 @@ export function renderTodo(
     for (const item of group) {
       const p = pheromone?.get(item.id)
       const weight = p ? ` [w:${(p.strength - p.resistance).toFixed(1)}]` : ''
-      const tags = item.tags.filter(t => !['P0','P1','P2','P3'].includes(t)).join(', ')
+      const tags = item.tags.filter((t) => !['P0', 'P1', 'P2', 'P3'].includes(t)).join(', ')
       md += `- [ ] **${item.name}**${weight} — ${item.raw !== item.name ? item.raw : `(${item.source})`}`
       if (tags) md += ` \`${tags}\``
       md += `\n`
@@ -293,7 +294,7 @@ export function renderTodo(
   // Summary
   md += `---\n\n## Summary\n\n`
   md += `\`\`\`\n`
-  md += `Open:  ${open.length} (P0: ${groups.P0.filter(i=>!i.done).length}, P1: ${groups.P1.filter(i=>!i.done).length}, P2: ${groups.P2.filter(i=>!i.done).length}, P3: ${groups.P3.filter(i=>!i.done).length})\n`
+  md += `Open:  ${open.length} (P0: ${groups.P0.filter((i) => !i.done).length}, P1: ${groups.P1.filter((i) => !i.done).length}, P2: ${groups.P2.filter((i) => !i.done).length}, P3: ${groups.P3.filter((i) => !i.done).length})\n`
   md += `Done:  ${done.length}\n`
   md += `Total: ${items.length}\n`
   md += `\`\`\`\n`
@@ -308,19 +309,19 @@ export function renderTodo(
 /** Verification status for a doc item */
 export interface VerifiedItem extends DocItem {
   verified: boolean
-  target?: string      // inferred code file
-  evidence?: string    // what confirmed it
+  target?: string // inferred code file
+  evidence?: string // what confirmed it
 }
 
 /** Map tag/keyword to likely code locations */
 const CODE_TARGETS: Record<string, string[]> = {
-  'engine':    ['src/engine/**/*.ts'],
-  'ui':        ['src/components/**/*.tsx', 'src/pages/**/*.astro'],
-  'typedb':    ['src/schema/**/*.tql', 'src/lib/typedb.ts'],
-  'commerce':  ['src/lib/x402.ts', 'src/pages/api/pay/**/*.ts'],
-  'agent':     ['agents/**/*.md', 'nanoclaw/**/*.ts'],
-  'infra':     ['gateway/**/*.ts', 'workers/**/*.ts', 'wrangler.toml'],
-  'build':     ['package.json', 'astro.config.mjs'],
+  engine: ['src/engine/**/*.ts'],
+  ui: ['src/components/**/*.tsx', 'src/pages/**/*.astro'],
+  typedb: ['src/schema/**/*.tql', 'src/lib/typedb.ts'],
+  commerce: ['src/lib/x402.ts', 'src/pages/api/pay/**/*.ts'],
+  agent: ['agents/**/*.md', 'nanoclaw/**/*.ts'],
+  infra: ['gateway/**/*.ts', 'workers/**/*.ts', 'wrangler.toml'],
+  build: ['package.json', 'astro.config.mjs'],
 }
 
 /** Infer target code files from item tags */
@@ -350,7 +351,10 @@ export async function verify(item: DocItem): Promise<VerifiedItem> {
   }
 
   // Search for keywords in target files
-  const keywords = item.name.toLowerCase().split(/\s+/).filter(w => w.length > 3)
+  const keywords = item.name
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 3)
   const { readFile } = await node()
 
   for (const pattern of targets) {
@@ -361,13 +365,13 @@ export async function verify(item: DocItem): Promise<VerifiedItem> {
           const content = await readFile(file, 'utf-8')
           const lower = content.toLowerCase()
           // Check if any keyword appears
-          const found = keywords.some(kw => lower.includes(kw))
+          const found = keywords.some((kw) => lower.includes(kw))
           if (found) {
             return {
               ...item,
               verified: true,
               target: file,
-              evidence: `keyword-match: ${keywords.find(kw => lower.includes(kw))}`,
+              evidence: `keyword-match: ${keywords.find((kw) => lower.includes(kw))}`,
             }
           }
         } catch {
@@ -390,8 +394,8 @@ export async function verifyAll(items: DocItem[]): Promise<VerifiedItem[]> {
 /** Convert unverified items to signals for the work queue */
 export function gapsToSignals(items: VerifiedItem[]): Signal[] {
   return items
-    .filter(i => !i.verified && !i.done)
-    .map(i => ({
+    .filter((i) => !i.verified && !i.done)
+    .map((i) => ({
       receiver: 'worker:implement',
       data: {
         id: i.id,
@@ -401,7 +405,7 @@ export function gapsToSignals(items: VerifiedItem[]): Signal[] {
         tags: i.tags,
         priority: i.priority,
         targets: inferTargets(i),
-      }
+      },
     }))
 }
 
@@ -409,11 +413,12 @@ export function gapsToSignals(items: VerifiedItem[]): Signal[] {
 export const docSpecs = (docsDir: string) => async (): Promise<VerifiedItem[]> => {
   const items = await scanDocs(docsDir)
   const verified = await verifyAll(items)
-  return verified.filter(i => !i.verified && !i.done)
+  return verified.filter((i) => !i.verified && !i.done)
 }
 
 /** Mark function for doc loop: record verification outcome */
-export const docMark = (markFn: (edge: string, n?: number) => void, warnFn: (edge: string, n?: number) => void) =>
+export const docMark =
+  (markFn: (edge: string, n?: number) => void, warnFn: (edge: string, n?: number) => void) =>
   (item: VerifiedItem, outcome: Outcome) => {
     const edge = `doc:${item.source}→${item.target || 'code'}`
     if (outcome.result) {

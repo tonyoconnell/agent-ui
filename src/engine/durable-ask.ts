@@ -33,21 +33,20 @@ export const durableAsk = async (
   env: DurableAskEnv,
   s: Signal,
   from = 'entry',
-  timeoutMs = 86_400_000,  // 24h default for human-in-loop
-  channel?: { type: 'telegram' | 'discord'; id: string }
+  timeoutMs = 86_400_000, // 24h default for human-in-loop
+  channel?: { type: 'telegram' | 'discord'; id: string },
 ): Promise<DurableAskResult> => {
   const id = `ask:${crypto.randomUUID()}`
   const expiresAt = Date.now() + timeoutMs
 
   await env.DB.prepare(
     `INSERT INTO pending_asks (id, signal_json, from_unit, expires_at, channel, channel_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    id, JSON.stringify(s), from, expiresAt,
-    channel?.type ?? null, channel?.id ?? null, Date.now()
-  ).run()
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(id, JSON.stringify(s), from, expiresAt, channel?.type ?? null, channel?.id ?? null, Date.now())
+    .run()
 
-  const signalWithReply = { ...s, data: { ...(s.data as object || {}), replyTo: id } }
+  const _signalWithReply = { ...s, data: { ...((s.data as object) || {}), replyTo: id } }
 
   // Poll D1 within the CF isolate's lifetime (~25s), then rely on webhook
   const POLL_MS = 1_000
@@ -56,9 +55,9 @@ export const durableAsk = async (
   return new Promise((resolve) => {
     const deadline = Date.now() + SYNC_LIMIT
     const poll = setInterval(async () => {
-      const row = await env.DB.prepare(
-        'SELECT resolved, result_json FROM pending_asks WHERE id = ?'
-      ).bind(id).first<{ resolved: number; result_json: string | null }>()
+      const row = await env.DB.prepare('SELECT resolved, result_json FROM pending_asks WHERE id = ?')
+        .bind(id)
+        .first<{ resolved: number; result_json: string | null }>()
 
       if (row?.resolved) {
         clearInterval(poll)
@@ -74,7 +73,7 @@ export const durableAsk = async (
         if (Date.now() >= expiresAt) {
           resolve({ timeout: true })
         } else {
-          resolve({ timeout: true })  // soft timeout — ask still open in D1
+          resolve({ timeout: true }) // soft timeout — ask still open in D1
         }
       }
     }, POLL_MS)
@@ -86,14 +85,10 @@ export const durableAsk = async (
  *   - POST /api/ask/reply (Telegram/Discord webhook, external approval UI)
  *   - Any handler that holds the ask ID
  */
-export const resolveAsk = async (
-  env: DurableAskEnv,
-  id: string,
-  result: unknown
-): Promise<boolean> => {
-  const r = await env.DB.prepare(
-    'UPDATE pending_asks SET resolved = 1, result_json = ? WHERE id = ? AND resolved = 0'
-  ).bind(JSON.stringify(result), id).run()
+export const resolveAsk = async (env: DurableAskEnv, id: string, result: unknown): Promise<boolean> => {
+  const r = await env.DB.prepare('UPDATE pending_asks SET resolved = 1, result_json = ? WHERE id = ? AND resolved = 0')
+    .bind(JSON.stringify(result), id)
+    .run()
   return (r.meta.changes ?? 0) > 0
 }
 
@@ -102,11 +97,13 @@ export const resolveAsk = async (
  */
 export const getPendingAsk = async (
   env: DurableAskEnv,
-  id: string
+  id: string,
 ): Promise<{ signal: Signal; from: string; expiresAt: number } | null> => {
   const row = await env.DB.prepare(
-    'SELECT signal_json, from_unit, expires_at FROM pending_asks WHERE id = ? AND resolved = 0 AND expires_at > ?'
-  ).bind(id, Date.now()).first<{ signal_json: string; from_unit: string; expires_at: number }>()
+    'SELECT signal_json, from_unit, expires_at FROM pending_asks WHERE id = ? AND resolved = 0 AND expires_at > ?',
+  )
+    .bind(id, Date.now())
+    .first<{ signal_json: string; from_unit: string; expires_at: number }>()
   if (!row) return null
   return {
     signal: JSON.parse(row.signal_json) as Signal,
@@ -119,8 +116,8 @@ export const getPendingAsk = async (
  * Expire stale asks. Run from cron worker.
  */
 export const expireAsks = async (env: DurableAskEnv): Promise<number> => {
-  const r = await env.DB.prepare(
-    'UPDATE pending_asks SET resolved = 1 WHERE expires_at < ? AND resolved = 0'
-  ).bind(Date.now()).run()
+  const r = await env.DB.prepare('UPDATE pending_asks SET resolved = 1 WHERE expires_at < ? AND resolved = 0')
+    .bind(Date.now())
+    .run()
   return r.meta.changes ?? 0
 }

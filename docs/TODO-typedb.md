@@ -459,6 +459,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
 - [DSL.md](DSL.md) — the programming model
 - [rubrics.md](rubrics.md) — POST-check: fit/form/truth/taste → mark(edge, score)
 - [TODO-template.md](TODO-template.md) — the wave pattern
+- [TODO-task-management.md](TODO-task-management.md) — self-learning task system
 - [TODO-signal.md](TODO-signal.md) — first wave-pattern TODO
 - [dictionary.md](dictionary.md) — concept reference
 

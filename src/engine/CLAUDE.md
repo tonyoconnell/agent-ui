@@ -4,6 +4,20 @@
 
 ~90 lines. Two fields. Signal flows. Queue waits. TypeDB remembers.
 
+## Substrate Learning
+
+This folder IS the nervous system. Every file here participates in the self-learning loop:
+
+```
+signal → mark/warn → fade → highway → know → evolve
+  │         │          │        │        │       │
+world.ts  persist.ts  loop.ts  loop.ts  persist  loop.ts
+```
+
+**Speed contract:** mark/warn `<0.001ms` (in-memory). Routing `<0.005ms`. The learning is invisible vs the LLM.
+
+**Context:** [DSL.md](../../docs/DSL.md) defines the signal grammar. [dictionary.md](../../docs/dictionary.md) defines the names. [routing.md](../../docs/routing.md) defines the sandwich. [rubrics.md](../../docs/rubrics.md) defines quality scoring as tagged edges. [patterns.md](../../docs/patterns.md) defines the 10 emergent patterns. [lifecycle.md](../../docs/lifecycle.md) defines into/through/out. [speed.md](../../docs/speed.md) defines the benchmarks that make the learning rate possible.
+
 ## Two Layers
 
 ```

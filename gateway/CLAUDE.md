@@ -2,6 +2,21 @@
 
 Cloudflare Worker proxy: browser → Worker → TypeDB Cloud.
 
+## Substrate Learning
+
+The gateway is the bridge between the edge (fast, volatile) and the brain (slow, persistent). Every TypeDB query flows through here:
+
+```
+browser → gateway (<10ms) → TypeDB Cloud (~100ms)
+                    │
+                    └── JWT cached per-isolate (61s TTL)
+                        No cold-start penalty on repeat queries
+```
+
+The gateway doesn't learn — it relays. But its speed determines how fast the brain can be queried. At `<10ms` gateway latency, TypeDB's `~300ms` query time dominates. The nervous system (`src/engine/`) avoids this by running in-memory and syncing to TypeDB asynchronously.
+
+**Context:** [speed.md](../../docs/speed.md) — gateway `<10ms` p50, why it matters for learning rate. [routing.md](../../docs/routing.md) — the sandwich that determines when TypeDB is queried vs skipped.
+
 ## Routes
 
 | Route | Method | Purpose |

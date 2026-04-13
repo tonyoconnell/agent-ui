@@ -52,17 +52,14 @@ DOCUMENT:
  * Extract tasks from a doc using Haiku (one-shot).
  * Returns the structured TODO markdown content.
  */
-export async function extractTasks(
-  docPath: string,
-  complete: Complete
-): Promise<string> {
+export async function extractTasks(docPath: string, complete: Complete): Promise<string> {
   const fsp = await import('node:fs/promises')
   const path = await import('node:path')
 
   const content = await fsp.readFile(docPath, 'utf-8')
   const docName = path.basename(docPath, '.md')
 
-  const contextedPrompt = EXTRACT_PROMPT + `\n[Extracted from: ${docName}.md]\n\n` + content
+  const contextedPrompt = `${EXTRACT_PROMPT}\n[Extracted from: ${docName}.md]\n\n${content}`
   const result = await complete(contextedPrompt)
   return result
 }
@@ -71,11 +68,7 @@ export async function extractTasks(
  * Extract and write TODO file for a single doc.
  * Returns the output path.
  */
-export async function extractAndWrite(
-  docPath: string,
-  docsDir: string,
-  complete: Complete
-): Promise<string> {
+export async function extractAndWrite(docPath: string, docsDir: string, complete: Complete): Promise<string> {
   const { writeFile } = await import('node:fs/promises')
   const { basename, join } = await import('node:path')
 
@@ -94,23 +87,33 @@ export async function extractAndWrite(
 export async function extractAll(
   docsDir: string,
   complete: Complete,
-  opts?: { force?: boolean; include?: string[] }
+  opts?: { force?: boolean; include?: string[] },
 ): Promise<{ extracted: string[]; skipped: string[] }> {
   const { readdir } = await import('node:fs/promises')
   const { join, basename } = await import('node:path')
 
   const entries = await readdir(docsDir)
   const existing = new Set(
-    entries.filter(f => f.startsWith('TODO-')).map(f => f.replace('TODO-', '').replace('.md', ''))
+    entries.filter((f) => f.startsWith('TODO-')).map((f) => f.replace('TODO-', '').replace('.md', '')),
   )
 
   // Strategy docs worth extracting (skip READMEs, CLAUDEs, existing TODOs)
-  const SKIP = new Set(['README', 'CLAUDE', 'TODO', 'SEED-REPORT', 'e2e-test-report', 'e2e-test-quickstart', 'TESTING', 'SECURE-DEPLOY', 'DOMAIN-CONFIG'])
+  const SKIP = new Set([
+    'README',
+    'CLAUDE',
+    'TODO',
+    'SEED-REPORT',
+    'e2e-test-report',
+    'e2e-test-quickstart',
+    'TESTING',
+    'SECURE-DEPLOY',
+    'DOMAIN-CONFIG',
+  ])
   const docs = entries
-    .filter(f => f.endsWith('.md'))
-    .filter(f => !f.startsWith('TODO-'))
-    .filter(f => !SKIP.has(basename(f, '.md')))
-    .filter(f => !opts?.include || opts.include.includes(basename(f, '.md')))
+    .filter((f) => f.endsWith('.md'))
+    .filter((f) => !f.startsWith('TODO-'))
+    .filter((f) => !SKIP.has(basename(f, '.md')))
+    .filter((f) => !opts?.include || opts.include.includes(basename(f, '.md')))
 
   const extracted: string[] = []
   const skipped: string[] = []

@@ -10,8 +10,7 @@
  *   pheromone (strength, resistance, learning)
  */
 
-const readFile = async (path: string, enc: BufferEncoding) =>
-  (await import('node:fs/promises')).readFile(path, enc)
+const readFile = async (path: string, enc: BufferEncoding) => (await import('node:fs/promises')).readFile(path, enc)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -56,11 +55,11 @@ export const create = () => {
 
   const fade = (rate = 0.02) => {
     for (const p in strength) {
-      strength[p] *= (1 - rate)
+      strength[p] *= 1 - rate
       if (strength[p] < 0.01) delete strength[p]
     }
     for (const p in resistance) {
-      resistance[p] *= (1 - rate * 2)  // forgive 2x faster
+      resistance[p] *= 1 - rate * 2 // forgive 2x faster
       if (resistance[p] < 0.01) delete resistance[p]
     }
   }
@@ -69,14 +68,15 @@ export const create = () => {
   const isToxic = (path: string) => {
     const r = resistance[path] || 0
     const s = strength[path] || 0
-    return r >= 10 && r > s * 2 && (r + s) > 5
+    return r >= 10 && r > s * 2 && r + s > 5
   }
 
-  const highways = (n = 10) => Object.keys(strength)
-    .map(p => ({ path: p, strength: net(p) }))
-    .filter(x => x.strength > 0)
-    .sort((a, b) => b.strength - a.strength)
-    .slice(0, n)
+  const highways = (n = 10) =>
+    Object.keys(strength)
+      .map((p) => ({ path: p, strength: net(p) }))
+      .filter((x) => x.strength > 0)
+      .sort((a, b) => b.strength - a.strength)
+      .slice(0, n)
 
   // ── Queue ─────────────────────────────────────────────────
   const emit: Emit = (to, data = {}) => {
@@ -86,12 +86,14 @@ export const create = () => {
 
   const drain = () => {
     if (!queue.length) return null
-    queue.sort((a, b) => a.priority - b.priority)  // lower = higher priority
+    queue.sort((a, b) => a.priority - b.priority) // lower = higher priority
     return queue.shift()!
   }
 
   // ── Handlers ──────────────────────────────────────────────
-  const on = (id: string, fn: Handler) => { handlers[id] = fn }
+  const on = (id: string, fn: Handler) => {
+    handlers[id] = fn
+  }
 
   const ask = async (to: string, data: Data = {}, from = 'entry'): Promise<Outcome> => {
     const path = `${from}→${to}`
@@ -120,7 +122,10 @@ export const create = () => {
   }
 
   const getContext = (...keys: string[]) =>
-    keys.map(k => context[k]).filter(Boolean).join('\n\n---\n\n')
+    keys
+      .map((k) => context[k])
+      .filter(Boolean)
+      .join('\n\n---\n\n')
 
   // ── Chains (timers, SOPs, workflows) ──────────────────────
   const chains: Record<string, string[]> = {}
@@ -163,7 +168,7 @@ export const create = () => {
     }
 
     // Periodic fade
-    if (cycle % 3000 === 0) fade()  // ~5 min at 100ms
+    if (cycle % 3000 === 0) fade() // ~5 min at 100ms
 
     // Drain
     const sig = drain()
@@ -210,7 +215,9 @@ export const create = () => {
       setTimeout(loop, delay)
     }
     loop()
-    return () => { running = false }
+    return () => {
+      running = false
+    }
   }
 
   // ── Stats ─────────────────────────────────────────────────
@@ -224,17 +231,34 @@ export const create = () => {
 
   return {
     // Core
-    on, emit, ask, tick, run,
+    on,
+    emit,
+    ask,
+    tick,
+    run,
     // Pheromone
-    mark, warn, fade, net, isHighway, isToxic, highways,
+    mark,
+    warn,
+    fade,
+    net,
+    isHighway,
+    isToxic,
+    highways,
     // Context
-    loadContext, getContext,
+    loadContext,
+    getContext,
     // Chains
-    chain, timer, sop,
+    chain,
+    timer,
+    sop,
     // State
     stats,
-    get strength() { return { ...strength } },
-    get resistance() { return { ...resistance } },
+    get strength() {
+      return { ...strength }
+    },
+    get resistance() {
+      return { ...resistance }
+    },
   }
 }
 
@@ -262,7 +286,10 @@ export const bootstrap = async (configPath = 'substrate.md') => {
   const timerMatch = md.match(/## Timers\n[\s\S]*?\|[-\s|]+\|([\s\S]*?)(?=\n## |\n---|\n$)/)
   if (timerMatch) {
     for (const line of timerMatch[1].trim().split('\n')) {
-      const cells = line.split('|').map(c => c.trim()).filter(Boolean)
+      const cells = line
+        .split('|')
+        .map((c) => c.trim())
+        .filter(Boolean)
       if (cells.length >= 2) {
         const signal = cells[0]
         const ms = parseMs(cells[1])
@@ -277,7 +304,7 @@ export const bootstrap = async (configPath = 'substrate.md') => {
     const sopBlocks = sopMatch[1].split(/### Before `([^`]+)`/)
     for (let i = 1; i < sopBlocks.length; i += 2) {
       const target = sopBlocks[i]
-      const prereqs = sopBlocks[i + 1]?.match(/- (\S+)/g)?.map(m => m.slice(2)) || []
+      const prereqs = sopBlocks[i + 1]?.match(/- (\S+)/g)?.map((m) => m.slice(2)) || []
       if (prereqs.length) one.sop(target, prereqs)
     }
   }
@@ -288,7 +315,7 @@ export const bootstrap = async (configPath = 'substrate.md') => {
     const wfBlocks = wfMatch[1].split(/### (\S+)/)
     for (let i = 1; i < wfBlocks.length; i += 2) {
       const name = wfBlocks[i]
-      const steps = wfBlocks[i + 1]?.match(/\d+\. (\S+)/g)?.map(m => m.replace(/\d+\. /, '')) || []
+      const steps = wfBlocks[i + 1]?.match(/\d+\. (\S+)/g)?.map((m) => m.replace(/\d+\. /, '')) || []
       if (steps.length) one.chain(name, steps)
     }
   }
@@ -301,11 +328,16 @@ const parseMs = (s: string): number => {
   if (!m) return 0
   const n = parseInt(m[1], 10)
   switch (m[2]) {
-    case 's': return n * 1000
-    case 'm': return n * 60_000
-    case 'h': return n * 3600_000
-    case 'd': return n * 86400_000
-    default: return n
+    case 's':
+      return n * 1000
+    case 'm':
+      return n * 60_000
+    case 'h':
+      return n * 3600_000
+    case 'd':
+      return n * 86400_000
+    default:
+      return n
   }
 }
 

@@ -1,9 +1,9 @@
-import type { Envelope, ActionHandler } from "./types"
+import type { ActionHandler, Envelope } from './types'
 
 export class Agent {
   id: string
   name: string
-  status: "ready" | "idle" | "error" = "idle"
+  status: 'ready' | 'idle' | 'error' = 'idle'
   actions: Record<string, ActionHandler>
   envelopes: Envelope[] = []
   route: (envelope: Envelope) => Promise<void> = async () => {}
@@ -24,29 +24,29 @@ export class Agent {
   }
 
   async execute(envelope: Envelope): Promise<void> {
-    this.status = "ready"
+    this.status = 'ready'
     const { action, inputs } = envelope.env
 
     try {
       const result = await this.actions[action]?.(inputs)
-      envelope.payload = { status: "resolved", results: result }
+      envelope.payload = { status: 'resolved', results: result }
 
       if (envelope.callback) {
         this.substitute(envelope.callback, result)
         await this.route(envelope.callback)
       }
-      this.status = "idle"
+      this.status = 'idle'
     } catch {
-      envelope.payload.status = "rejected"
-      this.status = "error"
+      envelope.payload.status = 'rejected'
+      this.status = 'error'
     }
   }
 
   private substitute(envelope: Envelope, results: unknown): void {
     const walk = (o: Record<string, unknown>) => {
       for (const k in o) {
-        if (typeof o[k] === "string" && (o[k] as string).startsWith("{{")) o[k] = results
-        else if (o[k] && typeof o[k] === "object") walk(o[k] as Record<string, unknown>)
+        if (typeof o[k] === 'string' && (o[k] as string).startsWith('{{')) o[k] = results
+        else if (o[k] && typeof o[k] === 'object') walk(o[k] as Record<string, unknown>)
       }
     }
     walk(envelope.env.inputs)

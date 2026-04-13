@@ -6,6 +6,14 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "check": "biome check .",
+    "check:fix": "biome check --fix .",
+    "format": "biome format --write .",
+    "lint": "biome lint .",
+    "typecheck": "tsc --noEmit",
+    "verify": "biome check . && tsc --noEmit && vitest run",
     "bootstrap": "bash scripts/bootstrap.sh",
     "seed:tasks": "bun run scripts/seed-tasks.ts",
     "seed:agents": "bun run scripts/seed-agents.ts"
@@ -77,6 +85,7 @@
     "wrangler": "^4.80.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.11",
     "@types/node": "^25.5.2",
     "typescript": "5.9.2",
     "vitest": "^4.1.2"

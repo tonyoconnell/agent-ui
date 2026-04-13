@@ -377,7 +377,30 @@ TypeDB (truth)     →    KV (snapshot)    →    globalThis (hot)
 /grow       Run one growth tick
 /highways   Proven paths, toxic paths, frontiers
 /report     Record session outcomes to substrate
+/todo       Create a TODO from a source doc (uses TODO-template.md)
+/wave       Run the next wave of a cycle-based TODO
 ```
+
+## TODO Rules
+
+**ALWAYS use `docs/TODO-template.md` when creating any new TODO file.** Use `/todo` to create them.
+
+Every TODO MUST have:
+1. **Source of truth** referencing DSL.md, dictionary.md, rubrics.md
+2. **Routing diagram** — signal flow down, quality marks up, fan-out sideways
+3. **Schema reference** — tasks map to `world.tql` dimension 3b
+4. **Wave structure** — W1 (Haiku recon), W2 (Opus decide), W3 (Sonnet edit), W4 (Sonnet verify)
+5. **Task metadata** — id, value, effort, phase, persona, blocks, exit, tags
+6. **Rubric scoring in W4** — fit/form/truth/taste as tagged edges via `markDims()`
+7. **Self-checkoff** — W4 verify pass → mark done → update checkbox → unblock dependents
+8. **See Also** linking DSL.md, dictionary.md, rubrics.md, TODO-template.md, TODO-task-management.md
+
+DSL.md and dictionary.md are loaded as base context in every Wave 2 decision. Non-negotiable.
+
+**Testing wraps every cycle** (the deterministic sandwich):
+- **W0 (baseline):** `npm run verify` before starting any cycle — biome + typecheck + vitest
+- **W4 (verify):** `npm run verify` after edits — no regressions, new tests for new code
+- **Cycle gate:** all tests green, biome clean, types clean, rubric >= 0.65
 
 ## Tech Stack
 

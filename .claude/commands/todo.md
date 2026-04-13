@@ -1,0 +1,107 @@
+Create a new TODO from a source doc using the wave template. Arguments: `$ARGUMENTS` (source doc path or name)
+
+## Context Loading
+
+Before creating the TODO, load these as baseline context:
+- **DSL.md** — signal grammar, handler patterns, known/emergent routing
+- **dictionary.md** — canonical names, dead names, unit/signal/path definitions
+- **rubrics.md** — quality scoring: fit/form/truth/taste as tagged edges
+- **TODO-template.md** — the wave pattern: cycles, waves, model assignment
+
+Read all four docs. They define the language the TODO speaks.
+
+## Steps
+
+1. **Read the source doc** from `docs/$ARGUMENTS` (or `$ARGUMENTS` if full path).
+   If no arguments, ask which doc to convert.
+
+2. **Read the four context docs:**
+   ```
+   docs/DSL.md
+   docs/dictionary.md
+   docs/rubrics.md
+   docs/TODO-template.md
+   ```
+
+3. **Analyze the source doc.** Identify:
+   - What changes when this is done (the goal)
+   - Which files are affected
+   - Natural cycle boundaries (Wire → Prove → Grow)
+   - How many tasks per cycle
+   - Dependencies between tasks (blocks relations)
+   - Exit conditions for each task
+
+4. **Create the TODO file** at `docs/TODO-{docname}.md` following the template:
+
+   **Required sections:**
+   - Frontmatter (title, type, version, priority, total_tasks, status)
+   - Goal + source of truth (always include DSL.md, dictionary.md, rubrics.md)
+   - **Routing diagram** — signal flow down, marks up, fan-out sideways
+   - **Schema reference** — link tasks to world.tql task entity
+   - **Dependency graph** — waves acquire context, .then() carries it forward
+   - **Testing** — W0 baseline (`npm run verify`), W4 verify + rubric, cycle gate
+   - Cycles with wave pattern (W1-W4 per cycle)
+   - Tasks with full metadata (id, value, effort, phase, persona, blocks, exit, tags)
+   - Source of truth table
+   - Cost discipline
+   - Status checkboxes
+   - Execution commands
+   - See Also (always include DSL.md, dictionary.md, rubrics.md)
+
+   **Task metadata rules:**
+   - `id`: kebab-case, unique within the TODO
+   - `value`: critical (can't ship without) | high | medium
+   - `effort`: low (haiku) | medium (sonnet) | high (opus)
+   - `phase`: C1 (foundation) → C7 (scale)
+   - `persona`: who does this best
+   - `blocks`: task IDs this blocks (dependency graph)
+   - `exit`: verifiable condition — not "done", but "GET /api/x returns 200"
+   - `tags`: domain + action + priority (engine, build, P0)
+
+5. **Verify** the TODO file:
+   - Every task has all 7 metadata fields
+   - Blocks references point to real task IDs within the file
+   - Exit conditions are verifiable (grep, curl, type check)
+   - DSL.md and dictionary.md are in the source of truth
+   - Routing section shows signal flow
+
+6. **Report:**
+   - How many cycles, how many tasks per cycle
+   - The critical path (longest dependency chain)
+   - Estimated cost breakdown per cycle
+   - Suggest: "Run `/wave TODO-{docname}.md` to start Cycle 1"
+
+## The Template Shape
+
+```
+ROUTING DIAGRAM (signal down, marks up, fan-out sideways)
+    │
+SCHEMA (link to world.tql task entity)
+    │
+DEPENDENCY GRAPH (waves acquire context via .then())
+    │
+TESTING (W0 baseline, W4 verify, cycle gate)
+    │
+CYCLE 1: WIRE
+    Tasks with metadata
+    │
+CYCLE 2: PROVE
+    Tasks with metadata
+    │
+CYCLE 3: GROW
+    Tasks with metadata
+    │
+SOURCE OF TRUTH TABLE
+COST DISCIPLINE
+STATUS CHECKBOXES
+SEE ALSO (DSL, dictionary, rubrics, + domain docs)
+```
+
+## Rules
+
+- **Always include DSL.md + dictionary.md + rubrics.md** in source of truth and See Also
+- **Always include the routing diagram** — it's the architecture
+- **Tasks are signals** — use the DSL vocabulary (signal, mark, warn, etc.)
+- **Exit conditions must be verifiable** — by code, not by human judgment
+- **Blocks create the dependency graph** — think about what must complete first
+- **The template IS a unit** — it runs via `/wave`, checks off via selfCheckoff

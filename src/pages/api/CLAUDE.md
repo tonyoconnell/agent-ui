@@ -25,6 +25,21 @@ All API routes use `src/lib/typedb.ts` for TypeDB access. Browser → Cloudflare
 | `/api/agents/:id/flag` | POST | Lower agent success-rate -0.15, add resistance to paths |
 | `/api/agents/:id/status` | POST | Set agent status active/inactive |
 
+## Substrate Learning
+
+API routes are the substrate's nerve endings. Every endpoint participates in the loop:
+
+```
+POST /api/signal   → signal enters → mark/warn → learning happens
+GET  /api/tick     → select → ask → mark/warn → fade → evolve → know
+GET  /api/state    → read the learning state (highways, toxic, units)
+POST /api/tasks/:id/complete → selfCheckoff → mark path → unblock dependents
+```
+
+`/api/tick` is the heartbeat. It runs the full 7-loop cycle: signal routing (L1), path marking (L2), fade (L3), economics (L4), evolution (L5), knowledge (L6), frontier detection (L7). The `PersistentWorld` is module-level cached — pheromone accumulates in-process between ticks at memory speed.
+
+**Context:** [DSL.md](../../docs/DSL.md) — signal grammar these endpoints accept. [routing.md](../../docs/routing.md) — the sandwich every signal passes through. [speed.md](../../docs/speed.md) — tick runs at `<0.005ms` routing + `<0.001ms` mark. [rubrics.md](../../docs/rubrics.md) — quality scoring flows through these endpoints.
+
 ## tick.ts caching
 
 `GET /api/tick` caches the `PersistentWorld` at module level. TypeDB is loaded once; pheromone accumulates in-process between ticks. Add `?reload=1` to force a fresh TypeDB hydration.

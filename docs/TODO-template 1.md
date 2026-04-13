@@ -12,17 +12,10 @@ status: TEMPLATE
 
 > **Goal:** {One sentence. What changes when this is done.}
 >
-> **Source of truth:** [{source-doc}]({source-doc}.md) — {what it defines},
-> [DSL.md](DSL.md) — the signal language,
-> [dictionary.md](dictionary.md) — everything named,
-> [rubrics.md](rubrics.md) — quality scoring (fit/form/truth/taste → mark)
+> **Source of truth:** [{source-doc}]({source-doc}.md) — {what it defines}
 >
 > **Shape:** {N} cycles, four waves each. Haiku reads, Opus decides, Sonnet
 > writes, Sonnet checks. Same loop as the substrate, different receivers.
->
-> **Schema:** Tasks map to `world.tql` dimension 3b — `task` entity with
-> `task-wave` (W1-W4), `task-context` (doc keys), `blocks` relation.
-> Each task creates a matching `skill` for capability routing.
 
 ## Routing
 
@@ -66,72 +59,6 @@ Weak dimensions (`< 0.65`) emit fan-out signals to specialists.
 The graph learns what kind of work succeeds on which paths, by dimension.
 
 **Context accumulates down. Quality marks flow up. Weights route sideways.**
-
-## Testing — The Deterministic Sandwich Around Waves
-
-Every cycle is wrapped in deterministic checks. Tests are the PRE and POST
-of the TODO lifecycle — the same sandwich that wraps every LLM call.
-
-```
-    PRE (before W1)                    POST (after W4)
-    ───────────────                    ────────────────
-    npm run verify                     npm run verify
-    ├── biome check .                  ├── biome check .     (no new lint)
-    ├── tsc --noEmit                   ├── tsc --noEmit      (no new type errors)
-    └── vitest run                     ├── vitest run        (no regressions)
-                                       └── new tests pass    (exit condition verified)
-
-    BASELINE                           VERIFICATION
-    "what passes now"                  "what still passes + what's new"
-```
-
-### W0 — Baseline (before every cycle)
-
-Run `npm run verify` and record the result. This is the PRE check.
-
-```bash
-# The three deterministic checks
-npx biome check .                    # lint + format
-npx tsc --noEmit                     # type safety
-npx vitest run                       # all tests pass
-
-# Combined (fails fast)
-npm run verify
-```
-
-If baseline fails, **fix it first**. Don't start a cycle on a broken foundation.
-Record: which tests pass, how many, any known failures.
-
-### W4+ — Verification (after every cycle)
-
-W4 already does rubric scoring. Testing is the deterministic half:
-
-1. **`biome check .`** — no new lint errors in touched files
-2. **`tsc --noEmit`** — no new type errors
-3. **`vitest run`** — no regressions (all baseline tests still pass)
-4. **New tests** — if the cycle added functionality, tests exist for it
-5. **Exit condition** — the task's `exit:` field is verifiable
-
-```
-W4 verify = rubric scoring (quality, probabilistic)
-          + test suite    (correctness, deterministic)
-          + biome         (style, deterministic)
-          + typecheck     (safety, deterministic)
-```
-
-**If tests fail after W3 edits:** re-enter W3 with the test failure as context.
-The failure IS the signal. Route it back to the editor. Max 3 loops.
-
-### Cycle Gate = Tests Green
-
-A cycle is complete when:
-- [ ] All baseline tests still pass (no regressions)
-- [ ] New tests cover new functionality
-- [ ] `biome check .` clean on touched files
-- [ ] `tsc --noEmit` passes
-- [ ] W4 rubric score >= 0.65 on all dimensions
-
----
 
 ```
    CYCLE 1: WIRE           CYCLE 2: PROVE          CYCLE 3: GROW
@@ -240,9 +167,6 @@ Parallelism within waves. Sequential between waves.
 ## Source of Truth
 
 **[{source-doc}]({source-doc}.md)** — {what it locks down}
-**[DSL.md](DSL.md)** — signal grammar, `{ receiver, data }`, mark/warn/fade
-**[dictionary.md](dictionary.md)** — canonical names, unit/signal/path definitions
-**[rubrics.md](rubrics.md)** — quality scoring: fit/form/truth/taste as tagged edges
 
 | Item | Canonical | Exceptions |
 |------|-----------|------------|
@@ -278,11 +202,7 @@ with line numbers and context.
 
 ### Wave 2 — Decide (Opus, in main context)
 
-**Context loaded:** DSL.md + dictionary.md (always) + source-of-truth doc +
-domain docs from task tags. Hypotheses from `recall()`. This is the
-non-negotiable baseline — every W2 decision speaks the DSL vocabulary.
-
-Take N reports + source-of-truth doc + DSL + dictionary. For each finding, decide:
+Take N reports + source-of-truth doc. For each finding, decide:
 - **Act** → produce anchor (exact old text) + new text
 - **Keep** → it's an exception
 - **Judgment** → explain reasoning
@@ -324,19 +244,10 @@ Read all files in this cycle. Check:
 4. Voice is consistent
 
 **Rubric scoring:** Each edit is scored against `[rubrics.md](rubrics.md)` —
-fit (0.35), form (0.20), truth (0.30), taste (0.15). Four tagged-edge marks:
-`mark(edge:fit, s)`, `mark(edge:form, s)`, `mark(edge:truth, s)`, `mark(edge:taste, s)`.
+fit (0.35), form (0.20), truth (0.30), taste (0.15). Score feeds `mark(edge, score)`.
 Below 0.5 → `warn()`. Must-nots bypass scoring entirely.
-Weak dims (`< 0.65`) fan out as signals to specialist coaches.
 
 **If inconsistencies:** spawn micro-edits (Wave 3.5), re-verify. Max 3 loops.
-
-**Self-checkoff:** If all edits verify clean and exit conditions pass:
-1. Mark task done in TypeDB (`markTaskDone(task.id)`)
-2. Update this file's checkbox (`- [ ]` → `- [x]`)
-3. Strengthen the path (`mark('loop→builder:taskId', 5)`)
-4. Unblock dependents (query `blocks` relation → enqueue signals)
-5. If all tasks in phase complete → `know()` (promote to learning)
 
 ### Cycle 1 Gate
 
@@ -456,13 +367,10 @@ with the edit prompt as body. `/work` picks highest-pheromone skill.
 ## See Also
 
 - [{source-doc}]({source-doc}.md) — source of truth
-- [DSL.md](DSL.md) — signal grammar (always loaded in W2)
-- [dictionary.md](dictionary.md) — canonical names (always loaded in W2)
-- [rubrics.md](rubrics.md) — quality scoring: fit/form/truth/taste as tagged edges
-- [TODO-task-management.md](TODO-task-management.md) — self-learning task system
-- [TODO-typedb.md](TODO-typedb.md) — context flows along the graph
+- [rubrics.md](rubrics.md) — POST-check scoring: fit/form/truth/taste → mark(edge, score)
 - [TODO-signal.md](TODO-signal.md) — first wave-pattern TODO (reference)
 - [TODO-rename.md](TODO-rename.md) — first use of this template
+- [names.md](names.md) — canonical naming spec
 
 ---
 

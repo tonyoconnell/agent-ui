@@ -14,8 +14,8 @@
  * Run: npx vitest run src/engine/routing.test.ts
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import { world, type World } from './world'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { type World, world } from './world'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 1: COLD START
@@ -27,7 +27,9 @@ import { world, type World } from './world'
 describe('Act 1: Cold Start — an empty world receives a signal', () => {
   let w: World
 
-  beforeEach(() => { w = world() })
+  beforeEach(() => {
+    w = world()
+  })
 
   it('signal to missing unit dissolves silently — 0ms, $0', () => {
     const t0 = performance.now()
@@ -67,7 +69,9 @@ describe('Act 1: Cold Start — an empty world receives a signal', () => {
 describe('Act 2: First agent — queued signals fire, trails appear', () => {
   let w: World
 
-  beforeEach(() => { w = world() })
+  beforeEach(() => {
+    w = world()
+  })
 
   it('add() auto-delivers queued signals and marks the first trail', () => {
     // Two queries waiting from Act 1
@@ -87,25 +91,29 @@ describe('Act 2: First agent — queued signals fire, trails appear', () => {
 
   it('"analyst:process" resolves to unit=analyst, task=process', async () => {
     let taskName = ''
-    w.add('analyst')
-      .on('process', (data) => { taskName = 'process'; return Promise.resolve('done') })
+    w.add('analyst').on('process', (data) => {
+      taskName = 'process'
+      return Promise.resolve('done')
+    })
 
     const t0 = performance.now()
     w.signal({ receiver: 'analyst:process', data: { query: 'analyze this' } })
     const ms = performance.now() - t0
 
-    await new Promise(r => setTimeout(r, 10))
+    await new Promise((r) => setTimeout(r, 10))
     expect(taskName).toBe('process')
     expect(ms).toBeLessThan(1) // address resolution + delivery + mark: <1ms
   })
 
   it('bare "analyst" calls the default handler', async () => {
     let taskName = ''
-    w.add('analyst')
-      .on('default', () => { taskName = 'default'; return Promise.resolve('ok') })
+    w.add('analyst').on('default', () => {
+      taskName = 'default'
+      return Promise.resolve('ok')
+    })
 
     w.signal({ receiver: 'analyst', data: {} })
-    await new Promise(r => setTimeout(r, 10))
+    await new Promise((r) => setTimeout(r, 10))
     expect(taskName).toBe('default')
   })
 
@@ -133,19 +141,18 @@ describe('Act 3: Signal chains — scout → analyst → reporter', () => {
     // Wire the team: scout finds, analyst classifies, reporter summarizes
     w.add('scout')
       .on('observe', () => Promise.resolve({ finding: 'anomaly detected' }))
-      .then('observe', r => ({ receiver: 'analyst', data: r }))
+      .then('observe', (r) => ({ receiver: 'analyst', data: r }))
 
     w.add('analyst')
       .on('default', () => Promise.resolve({ classification: 'critical' }))
-      .then('default', r => ({ receiver: 'reporter', data: r }))
+      .then('default', (r) => ({ receiver: 'reporter', data: r }))
 
-    w.add('reporter')
-      .on('default', () => Promise.resolve({ summary: 'critical anomaly reported' }))
+    w.add('reporter').on('default', () => Promise.resolve({ summary: 'critical anomaly reported' }))
 
     // One signal enters. Three agents work. Two continuations fire.
     const t0 = performance.now()
     w.signal({ receiver: 'scout:observe', data: { tick: 1 } })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     const ms = performance.now() - t0
 
     // Every edge in the chain has pheromone
@@ -162,8 +169,14 @@ describe('Act 3: Signal chains — scout → analyst → reporter', () => {
     const w = world()
     const received: string[] = []
 
-    w.add('logger').on('default', () => { received.push('logger'); return Promise.resolve('logged') })
-    w.add('metrics').on('default', () => { received.push('metrics'); return Promise.resolve('tracked') })
+    w.add('logger').on('default', () => {
+      received.push('logger')
+      return Promise.resolve('logged')
+    })
+    w.add('metrics').on('default', () => {
+      received.push('metrics')
+      return Promise.resolve('tracked')
+    })
 
     w.add('router').on('default', (data, emit) => {
       // One signal in, two signals out
@@ -173,7 +186,7 @@ describe('Act 3: Signal chains — scout → analyst → reporter', () => {
     })
 
     w.signal({ receiver: 'router', data: { event: 'user-action' } })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
 
     expect(received).toContain('logger')
     expect(received).toContain('metrics')
@@ -194,7 +207,9 @@ describe('Act 3: Signal chains — scout → analyst → reporter', () => {
 describe('Act 4: The Formula — one equation for 2M agents', () => {
   let w: World
 
-  beforeEach(() => { w = world() })
+  beforeEach(() => {
+    w = world()
+  })
 
   it('base weight of 1: no path is ever invisible', () => {
     // A brand-new agent on AgentVerse with zero history
@@ -239,8 +254,8 @@ describe('Act 5: follow() vs select() — search vs discovery', () => {
   beforeEach(() => {
     w = world()
     // Two agents: one proven, one new
-    w.add('veteran')   // 200 successful calls
-    w.add('newcomer')  // 5 successful calls
+    w.add('veteran') // 200 successful calls
+    w.add('newcomer') // 5 successful calls
     w.mark('user→veteran', 200)
     w.mark('user→newcomer', 5)
   })
@@ -307,7 +322,9 @@ describe('Act 5: follow() vs select() — search vs discovery', () => {
 describe('Act 6: Four outcomes — every call teaches the system', () => {
   let w: World
 
-  beforeEach(() => { w = world() })
+  beforeEach(() => {
+    w = world()
+  })
 
   it('result: agent delivered → mark the path', async () => {
     w.add('analyst').on('default', () => Promise.resolve({ insight: 'pattern found' }))
@@ -333,7 +350,7 @@ describe('Act 6: Four outcomes — every call teaches the system', () => {
   })
 
   it('timeout: agent too slow → neutral, no punishment', async () => {
-    w.add('slow').on('default', () => new Promise(r => setTimeout(() => r('late'), 5000)))
+    w.add('slow').on('default', () => new Promise((r) => setTimeout(() => r('late'), 5000)))
 
     const t0 = performance.now()
     const outcome = await w.ask({ receiver: 'slow', data: {} }, 'user', 50)
@@ -359,7 +376,9 @@ describe('Act 6: Four outcomes — every call teaches the system', () => {
 describe('Act 7: Weight mechanics — how 2M agents self-rank', () => {
   let w: World
 
-  beforeEach(() => { w = world() })
+  beforeEach(() => {
+    w = world()
+  })
 
   it('mark() accumulates: 50 successes build reputation', () => {
     const t0 = performance.now()
@@ -426,8 +445,8 @@ describe('Act 7: Weight mechanics — how 2M agents self-rank', () => {
     const top = w.highways(2)
     const ms = performance.now() - t0
 
-    expect(top[0].path).toBe('user→fast-agent')   // net 50
-    expect(top[1].path).toBe('user→ok-agent')      // net 10 (beats net 5)
+    expect(top[0].path).toBe('user→fast-agent') // net 50
+    expect(top[1].path).toBe('user→ok-agent') // net 10 (beats net 5)
     expect(top.length).toBe(2)
     expect(ms).toBeLessThan(1)
     // The top-agents page is one function call. Sub-millisecond.
@@ -452,7 +471,7 @@ describe('Act 8: Toxicity — automatic moderation for 2M agents', () => {
 
     const r = w.resistance['user→scammer'] || 0
     const s = w.strength['user→scammer'] || 0
-    const toxic = r >= 10 && r > s * 2 && (r + s) > 5
+    const toxic = r >= 10 && r > s * 2 && r + s > 5
 
     expect(toxic).toBe(true)
     // r=15 >= 10 ✓  (enough data to judge)
@@ -467,7 +486,7 @@ describe('Act 8: Toxicity — automatic moderation for 2M agents', () => {
 
     const r = w.resistance['user→new-agent'] || 0
     const s = w.strength['user→new-agent'] || 0
-    const toxic = r >= 10 && r > s * 2 && (r + s) > 5
+    const toxic = r >= 10 && r > s * 2 && r + s > 5
 
     expect(toxic).toBe(false)
     // r=3, not >= 10. Not enough data. New agent gets a chance.
@@ -481,7 +500,7 @@ describe('Act 8: Toxicity — automatic moderation for 2M agents', () => {
 
     const r = w.resistance['user→resilient'] || 0
     const s = w.strength['user→resilient'] || 0
-    const toxic = r >= 10 && r > s * 2 && (r + s) > 5
+    const toxic = r >= 10 && r > s * 2 && r + s > 5
 
     expect(toxic).toBe(false)
     // r=12 >= 10 ✓, but 12 > 8×2=16? NO. Strength keeps up.
@@ -541,7 +560,9 @@ describe('Act 9: Chain depth — the platform discovers pipelines', () => {
 describe('Act 10: Latency and revenue — speed and money talk', () => {
   let w: World
 
-  beforeEach(() => { w = world() })
+  beforeEach(() => {
+    w = world()
+  })
 
   it('latency tracked as EMA — recent speed matters more', () => {
     w.mark('user→agent', 10)
@@ -592,7 +613,7 @@ describe('Act 10: Latency and revenue — speed and money talk', () => {
 
   it('revenue accumulates — lifetime earnings compound', () => {
     w.recordRevenue('user→agent', 0.05) // first sale
-    w.recordRevenue('user→agent', 0.10) // second sale
+    w.recordRevenue('user→agent', 0.1) // second sale
     expect(w.revenue['user→agent']).toBeCloseTo(0.15)
     // On Sui: every envelope is a signed proof of payment.
     // Revenue is not a database field — it's a trail of transactions.
@@ -770,7 +791,7 @@ describe('Act 13: Transaction costs at scale', () => {
     for (let i = 0; i < 10_000; i++) {
       const r = w.resistance['user→scammer'] || 0
       const s = w.strength['user→scammer'] || 0
-      const _toxic = r >= 10 && r > s * 2 && (r + s) > 5
+      const _toxic = r >= 10 && r > s * 2 && r + s > 5
     }
     const ms = performance.now() - t0
 

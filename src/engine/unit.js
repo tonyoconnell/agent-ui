@@ -15,12 +15,12 @@
  * This is how data flows between chained operations.
  */
 const substitute = (envelope, result) => {
-  const payload = {};
+  const payload = {}
   for (const [k, v] of Object.entries(envelope.payload || {})) {
-    payload[k] = v === "{{result}}" ? result : v;
+    payload[k] = v === '{{result}}' ? result : v
   }
-  return { ...envelope, payload };
-};
+  return { ...envelope, payload }
+}
 
 /**
  * Create a Unit from an envelope.
@@ -30,8 +30,8 @@ const substitute = (envelope, result) => {
  * @returns {Function} A receive function (the Unit itself)
  */
 const unit = (envelope, route) => {
-  const { receiver: id } = envelope;
-  const s = {};
+  const { receiver: id } = envelope
+  const s = {}
 
   /**
    * The receive function IS the unit.
@@ -40,55 +40,53 @@ const unit = (envelope, route) => {
   const receive = ({ receive: t, payload, callback }) => {
     // Unknown target: reject with context
     if (!s[t]) {
-      return Promise.reject({ id, target: t, error: `Unknown target: ${t}` });
+      return Promise.reject({ id, target: t, error: `Unknown target: ${t}` })
     }
 
     return s[t](payload)
       .then((result) => {
         if (callback) {
-          const next = substitute(callback, result);
+          const next = substitute(callback, result)
           // Cross-unit routing: different receiver + route function available
           if (next.receiver && next.receiver !== id && route) {
-            return route(next);
+            return route(next)
           }
           // Local routing: same unit or no external route
-          return receive(next);
+          return receive(next)
         }
-        return result;
+        return result
       })
-      .catch((error) =>
-        Promise.reject({ id, target: t, payload, error })
-      );
-  };
+      .catch((error) => Promise.reject({ id, target: t, payload, error }))
+  }
 
   /**
    * Assign a service to this unit.
    * Services are the "verbs" - what the unit can do.
    */
-  receive.assign = (n, f) => (s[n] = (p) => Promise.resolve(f(p)), receive);
+  receive.assign = (n, f) => ((s[n] = (p) => Promise.resolve(f(p))), receive)
 
   /**
    * Assign a role (context-bound service).
    * Same logic, different perspective.
    */
-  receive.role = (n, svc, ctx) => (s[n] = (p) => s[svc]({ ...ctx, ...p }), receive);
+  receive.role = (n, svc, ctx) => ((s[n] = (p) => s[svc]({ ...ctx, ...p })), receive)
 
   /**
    * Check if a service exists.
    */
-  receive.has = (n) => n in s;
+  receive.has = (n) => n in s
 
   /**
    * List all available services.
    */
-  receive.list = () => Object.keys(s);
+  receive.list = () => Object.keys(s)
 
   /**
    * The unit's identity.
    */
-  receive.id = id;
+  receive.id = id
 
-  return receive;
-};
+  return receive
+}
 
-export { unit };
+export { unit }

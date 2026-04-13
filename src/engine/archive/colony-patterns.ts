@@ -54,14 +54,14 @@ const unit = (id: string, route: (e: Envelope, from: string) => void): Unit => {
   const u: Unit = ({ receiver, payload }, from = 'entry') => {
     const taskName = receiver.includes(':') ? receiver.split(':')[1] : 'default'
     const task = tasks[taskName] || tasks.default
-    const emit: Emit = e => route(e, receiver)
-    task?.(payload, emit, { from, self: receiver }).then(result =>
-      next[taskName] && route(next[taskName](result), receiver)
+    const emit: Emit = (e) => route(e, receiver)
+    task?.(payload, emit, { from, self: receiver }).then(
+      (result) => next[taskName] && route(next[taskName](result), receiver),
     )
   }
 
-  u.on = (n, f) => (tasks[n] = (p, e, c) => Promise.resolve(f(p, e, c)), u)
-  u.then = (n, t) => (next[n] = t, u)
+  u.on = (n, f) => ((tasks[n] = (p, e, c) => Promise.resolve(f(p, e, c))), u)
+  u.then = (n, t) => ((next[n] = t), u)
   u.id = id
   u.state = state
   return u
@@ -71,14 +71,19 @@ const world = (): World => {
   const units: Record<string, Unit> = {}
   const scent: Record<string, number> = {}
 
-  const mark = (edge: string, strength = 1) => { scent[edge] = (scent[edge] || 0) + strength }
+  const mark = (edge: string, strength = 1) => {
+    scent[edge] = (scent[edge] || 0) + strength
+  }
   const smell = (edge: string) => scent[edge] || 0
-  const fade = (r = 0.1) => Object.keys(scent).forEach(e => {
-    scent[e] *= (1 - r)
-    scent[e] < 0.01 && delete scent[e]
-  })
+  const fade = (r = 0.1) =>
+    Object.keys(scent).forEach((e) => {
+      scent[e] *= 1 - r
+      scent[e] < 0.01 && delete scent[e]
+    })
   const highways = (limit = 10) =>
-    Object.entries(scent).sort(([, a], [, b]) => b - a).slice(0, limit)
+    Object.entries(scent)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
       .map(([path, strength]) => ({ path, strength }))
 
   const send = ({ receiver, payload }: Envelope, from = 'entry') => {
@@ -93,7 +98,7 @@ const world = (): World => {
     return u
   }
 
-  return { spawn, send, mark, smell, fade, highways, get: id => units[id] }
+  return { spawn, send, mark, smell, fade, highways, get: (id) => units[id] }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -110,14 +115,14 @@ const setupPerception = (c: World) => {
         return { tier: 'elite' }
       }
       // At-risk: sr < 0.40, as >= 25, sc >= 30
-      if (successRate < 0.40 && activityScore >= 25 && sampleCount >= 30) {
+      if (successRate < 0.4 && activityScore >= 25 && sampleCount >= 30) {
         return { tier: 'at-risk' }
       }
       return { tier: 'standard' }
     })
     .then('classify', ({ tier }) => ({
       receiver: 'registry:update-tier',
-      payload: { tier }
+      payload: { tier },
     }))
 }
 
@@ -155,7 +160,7 @@ const setupHomeostasis = (c: World) => {
 const setupHypothesis = (c: World) => {
   c.spawn('hypothesis')
     .on('observe', ({ id, outcome }: any, emit, ctx) => {
-      const h = ctx.self // hypothesis state would be stored
+      const _h = ctx.self // hypothesis state would be stored
       // State machine: pending → testing → confirmed/rejected
       // Transitions based on accumulated observations
       emit({ receiver: 'hypothesis:evaluate', payload: { id, outcome } })
@@ -170,7 +175,7 @@ const setupHypothesis = (c: World) => {
         return { status: 'confirmed', actionReady: true }
       }
       // testing → rejected (p > 0.20, obs >= 100)
-      if (status === 'testing' && pValue > 0.20 && observationCount >= 100) {
+      if (status === 'testing' && pValue > 0.2 && observationCount >= 100) {
         return { status: 'rejected' }
       }
       return { status }
@@ -196,7 +201,7 @@ const setupTaskAllocation = (c: World) => {
       // NEGATION pattern: ready = todo AND no incomplete blockers
       const ready = Object.entries(tasks)
         .filter(([_, t]) => t.status === 'todo')
-        .filter(([_, t]) => t.blockers.every(b => tasks[b]?.status === 'complete'))
+        .filter(([_, t]) => t.blockers.every((b) => tasks[b]?.status === 'complete'))
         .map(([id]) => id)
       return { ready }
     })
@@ -204,7 +209,7 @@ const setupTaskAllocation = (c: World) => {
       // Attractive: ready + trail pheromone >= 50
       const ready = Object.entries(tasks)
         .filter(([_, t]) => t.status === 'todo')
-        .filter(([_, t]) => t.blockers.every(b => tasks[b]?.status === 'complete'))
+        .filter(([_, t]) => t.blockers.every((b) => tasks[b]?.status === 'complete'))
         .filter(([id]) => (trailPheromone[id] || 0) >= 50)
         .map(([id]) => id)
       return { attractive: ready }
@@ -212,8 +217,8 @@ const setupTaskAllocation = (c: World) => {
     .on('query-repelled', () => {
       // Repelled: alarm >= 30 AND alarm > trail
       const repelled = Object.keys(tasks)
-        .filter(id => (alarmPheromone[id] || 0) >= 30)
-        .filter(id => (alarmPheromone[id] || 0) > (trailPheromone[id] || 0))
+        .filter((id) => (alarmPheromone[id] || 0) >= 30)
+        .filter((id) => (alarmPheromone[id] || 0) > (trailPheromone[id] || 0))
       return { repelled }
     })
     .on('reinforce', ({ from, to }: any) => {
@@ -228,12 +233,12 @@ const setupTaskAllocation = (c: World) => {
     })
     .on('decay', () => {
       // Asymmetric decay: trail 5%, alarm 20%
-      Object.keys(trailPheromone).forEach(k => {
+      Object.keys(trailPheromone).forEach((k) => {
         trailPheromone[k] *= 0.95
         if (trailPheromone[k] < 0.1) delete trailPheromone[k]
       })
-      Object.keys(alarmPheromone).forEach(k => {
-        alarmPheromone[k] *= 0.80
+      Object.keys(alarmPheromone).forEach((k) => {
+        alarmPheromone[k] *= 0.8
         if (alarmPheromone[k] < 0.1) delete alarmPheromone[k]
       })
       c.fade(0.05)

@@ -4,7 +4,7 @@
  * Run: bun test src/engine/one.test.ts
  */
 
-import { describe, it, expect, beforeEach } from 'bun:test'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { create } from './one-complete'
 
 describe('ONE', () => {
@@ -27,7 +27,10 @@ describe('ONE', () => {
 
     it('processes signals with tick', async () => {
       let called = false
-      one.on('test', () => { called = true; return 'done' })
+      one.on('test', () => {
+        called = true
+        return 'done'
+      })
       one.emit('test')
 
       const result = await one.tick()
@@ -52,7 +55,9 @@ describe('ONE', () => {
     })
 
     it('warns paths on failure', async () => {
-      one.on('test', () => { throw new Error('fail') })
+      one.on('test', () => {
+        throw new Error('fail')
+      })
       one.emit('test')
       await one.tick()
 
@@ -92,9 +97,18 @@ describe('ONE', () => {
   describe('chains', () => {
     it('executes chain steps in order', async () => {
       const steps: string[] = []
-      one.on('step1', () => { steps.push('1'); return 'ok' })
-      one.on('step2', () => { steps.push('2'); return 'ok' })
-      one.on('step3', () => { steps.push('3'); return 'ok' })
+      one.on('step1', () => {
+        steps.push('1')
+        return 'ok'
+      })
+      one.on('step2', () => {
+        steps.push('2')
+        return 'ok'
+      })
+      one.on('step3', () => {
+        steps.push('3')
+        return 'ok'
+      })
 
       one.chain('mychain', ['step1', 'step2', 'step3'])
       one.emit('chain:mychain')
@@ -111,9 +125,18 @@ describe('ONE', () => {
 
     it('stops chain on failure', async () => {
       const steps: string[] = []
-      one.on('step1', () => { steps.push('1'); return 'ok' })
-      one.on('step2', () => { steps.push('2'); throw new Error() })
-      one.on('step3', () => { steps.push('3'); return 'ok' })
+      one.on('step1', () => {
+        steps.push('1')
+        return 'ok'
+      })
+      one.on('step2', () => {
+        steps.push('2')
+        throw new Error()
+      })
+      one.on('step3', () => {
+        steps.push('3')
+        return 'ok'
+      })
 
       one.chain('mychain', ['step1', 'step2', 'step3'])
       one.emit('chain:mychain')
@@ -127,8 +150,14 @@ describe('ONE', () => {
   describe('sops', () => {
     it('runs prereqs before target', async () => {
       const order: string[] = []
-      one.on('prereq', () => { order.push('prereq'); return true })
-      one.on('target', () => { order.push('target'); return 'done' })
+      one.on('prereq', () => {
+        order.push('prereq')
+        return true
+      })
+      one.on('target', () => {
+        order.push('target')
+        return 'done'
+      })
 
       one.sop('target', ['prereq'])
       one.emit('target')
@@ -139,7 +168,9 @@ describe('ONE', () => {
     })
 
     it('blocks target if prereq fails', async () => {
-      one.on('prereq', () => { throw new Error() })
+      one.on('prereq', () => {
+        throw new Error()
+      })
       one.on('target', () => 'done')
 
       one.sop('target', ['prereq'])
@@ -154,10 +185,13 @@ describe('ONE', () => {
   describe('timers', () => {
     it('emits on schedule', async () => {
       let count = 0
-      one.on('tick', () => { count++; return true })
+      one.on('tick', () => {
+        count++
+        return true
+      })
       one.timer('tick', 10) // 10ms
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       for (let i = 0; i < 10; i++) await one.tick()
 
       expect(count).toBeGreaterThan(0)
@@ -181,9 +215,18 @@ describe('ONE', () => {
   describe('priority', () => {
     it('processes higher priority first', async () => {
       const order: number[] = []
-      one.on('low', () => { order.push(3); return true })
-      one.on('med', () => { order.push(2); return true })
-      one.on('high', () => { order.push(1); return true })
+      one.on('low', () => {
+        order.push(3)
+        return true
+      })
+      one.on('med', () => {
+        order.push(2)
+        return true
+      })
+      one.on('high', () => {
+        order.push(1)
+        return true
+      })
 
       one.emit('low', { priority: 3 })
       one.emit('med', { priority: 2 })
@@ -240,7 +283,10 @@ describe('ONE', () => {
         emit('step2')
         return 'ok'
       })
-      one.on('step2', () => { step2Called = true; return 'ok' })
+      one.on('step2', () => {
+        step2Called = true
+        return 'ok'
+      })
 
       one.emit('step1')
       await one.tick() // step1
@@ -251,9 +297,9 @@ describe('ONE', () => {
   })
 })
 
-describe('ONE Production', () => {
-  // Import prod version
-  const { create: createProd } = require('./one-prod')
+describe('ONE Production', async () => {
+  // Import prod version (dynamic import in ESM)
+  const { create: createProd } = await import('./one-prod')
 
   it('retries on failure', async () => {
     let attempts = 0
@@ -295,7 +341,10 @@ describe('ONE Production', () => {
     const one = createProd({})
     let processed = 0
 
-    one.on('work', () => { processed++; return true })
+    one.on('work', () => {
+      processed++
+      return true
+    })
 
     for (let i = 0; i < 10; i++) one.emit('work')
 

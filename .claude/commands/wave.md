@@ -4,6 +4,19 @@ Run the next wave of a cycle-based TODO. Arguments: `$ARGUMENTS` (TODO filename,
 
 Read the TODO file from `docs/$ARGUMENTS`. Find the current cycle and wave by scanning the Status section for the first unchecked `- [ ]` wave entry.
 
+## W0 — Baseline (before first wave of a cycle)
+
+If this is Wave 1 (first wave of a new cycle), run the baseline check first:
+
+```bash
+npm run verify   # biome check . && tsc --noEmit && vitest run
+```
+
+Record the result: how many tests pass, any known failures.
+If baseline fails, fix it before starting the cycle. Don't build on broken ground.
+
+---
+
 ## Wave Execution
 
 ### Wave 1 — Recon (Haiku, parallel)
@@ -42,11 +55,20 @@ Read the TODO file from `docs/$ARGUMENTS`. Find the current cycle and wave by sc
 
 ### Wave 4 — Verify (Sonnet, single)
 
-1. Spawn ONE verification agent using Agent tool with `model: "sonnet"`
-2. Agent reads all files touched in this cycle and checks consistency per the TODO's verify checklist
-3. If clean → mark Wave 4 complete → mark cycle complete
-4. If inconsistencies → spawn micro-edit agents (Wave 3.5) → re-verify
-5. Max 3 verify loops. If still dirty after 3, halt and report to user.
+1. **Deterministic checks first** (before spawning the agent):
+   ```bash
+   npx biome check .              # lint + format
+   npx tsc --noEmit 2>&1 | grep "error TS" | head -10    # type errors
+   npx vitest run                  # test suite
+   ```
+   If any fail on files touched in W3, route the failure back to W3 (max 3 loops).
+
+2. Spawn ONE verification agent using Agent tool with `model: "sonnet"`
+3. Agent reads all files touched in this cycle and checks consistency per the TODO's verify checklist
+4. Agent also verifies: no regressions (baseline tests still pass), new tests if new functionality
+5. If clean → mark Wave 4 complete → mark cycle complete
+6. If inconsistencies → spawn micro-edit agents (Wave 3.5) → re-verify
+7. Max 3 verify loops. If still dirty after 3, halt and report to user.
 
 ## After Each Wave
 

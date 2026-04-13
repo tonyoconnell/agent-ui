@@ -12,6 +12,20 @@
 | `typedb-auth-adapter.ts` | TypeDB adapter for Better Auth | `/typedb` |
 | `utils.ts` | cn() and other utilities | `/shadcn` |
 
+## Substrate Learning
+
+This folder connects the nervous system to the brain. `typedb.ts` is the synapse:
+
+```
+mark() in engine  →  writeSilent() in typedb.ts  →  TypeDB Cloud
+  <0.001ms              fire-and-forget                ~100ms
+  (in-memory)           (non-blocking)                 (persistent)
+```
+
+`readParsed()` hydrates the in-memory state from TypeDB on boot. After that, the engine runs at memory speed. TypeDB catches up asynchronously via `writeSilent()`. This is why mark/warn is `<0.001ms` — the write to TypeDB is fire-and-forget.
+
+**Context:** [DSL.md](../../docs/DSL.md) — what flows through these clients. [routing.md](../../docs/routing.md) — the sandwich that wraps every TypeDB call. [speed.md](../../docs/speed.md) — why fire-and-forget matters (43,200 marks/day at memory speed).
+
 ## TypeDB Client Usage
 
 ```typescript

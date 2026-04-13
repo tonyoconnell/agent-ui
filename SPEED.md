@@ -1,4 +1,4 @@
-# Speed
+i # Speed
 
 Every millisecond matters. This is the speed contract for this repo.
 

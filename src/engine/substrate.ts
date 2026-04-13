@@ -11,11 +11,17 @@
  * Both do the same thing: run tick.
  */
 
-import { world as createWorld, type World, type Signal, type Emit } from './world'
 import { readParsed, writeSilent } from '@/lib/typedb'
-// doc-scan imported dynamically to avoid Cloudflare bundling issues
-import { parseSubstrate, getSopPrereqs, getWorkflowSteps, getHandlerContext, type SubstrateConfig as ParsedConfig } from './substrate-config'
 import { loadContext } from './context'
+// doc-scan imported dynamically to avoid Cloudflare bundling issues
+import {
+  getHandlerContext,
+  getSopPrereqs,
+  getWorkflowSteps,
+  type SubstrateConfig as ParsedConfig,
+  parseSubstrate,
+} from './substrate-config'
+import { world as createWorld, type Emit, type Signal, type World } from './world'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -57,17 +63,17 @@ export type SubstrateOptions = {
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-const DEFAULTS = {
-  fadeInterval: 300_000,      // 5 minutes
-  evolveInterval: 600_000,    // 10 minutes
-  knowInterval: 3_600_000,    // 1 hour
+const _DEFAULTS = {
+  fadeInterval: 300_000, // 5 minutes
+  evolveInterval: 600_000, // 10 minutes
+  knowInterval: 3_600_000, // 1 hour
   frontierInterval: 3_600_000, // 1 hour
-  docsInterval: 3_600_000,    // 1 hour
+  docsInterval: 3_600_000, // 1 hour
   docsDir: 'docs',
 }
 
 const FADE_RATE = 0.05
-const EVOLUTION_THRESHOLD = 0.50
+const EVOLUTION_THRESHOLD = 0.5
 const EVOLUTION_MIN_SAMPLES = 20
 const EVOLUTION_COOLDOWN_MS = 86_400_000
 const HIGHWAY_THRESHOLD = 20
@@ -81,7 +87,8 @@ const fadeHandler = (net: World) => () => {
   return { faded: true, rate: FADE_RATE }
 }
 
-const evolveHandler = (net: World, complete?: (p: string) => Promise<string>, context?: string) =>
+const evolveHandler =
+  (net: World, complete?: (p: string) => Promise<string>, context?: string) =>
   async (_: unknown, emit: (s: Signal) => void) => {
     const now = Date.now()
     const rows = await readParsed(`
@@ -95,16 +102,19 @@ const evolveHandler = (net: World, complete?: (p: string) => Promise<string>, co
     for (const u of rows) {
       emit({
         receiver: 'world:evolve-unit',
-        data: { id: u.id, prompt: u.sp, successRate: u.sr, sampleCount: u.sc, generation: u.g }
+        data: { id: u.id, prompt: u.sp, successRate: u.sr, sampleCount: u.sc, generation: u.g },
       })
     }
     return { queued: rows.length }
   }
 
-const evolveUnitHandler = (net: World, complete?: (p: string) => Promise<string>, context?: string) =>
-  async (data: unknown) => {
+const evolveUnitHandler =
+  (net: World, complete?: (p: string) => Promise<string>, context?: string) => async (data: unknown) => {
     const { id, prompt, successRate, generation } = data as {
-      id: string; prompt: string; successRate: number; generation: number
+      id: string
+      prompt: string
+      successRate: number
+      generation: number
     }
 
     if (!complete) return { skipped: 'no-complete-fn' }
@@ -119,15 +129,19 @@ const evolveUnitHandler = (net: World, complete?: (p: string) => Promise<string>
     // Consult advisors (A2A through the world)
     const advice: string[] = []
     for (const a of advisorRows) {
-      const { result } = await net.ask({
-        receiver: `${a.uid}:advise`,
-        data: { from: id, prompt, successRate }
-      }, id as string)
+      const { result } = await net.ask(
+        {
+          receiver: `${a.uid}:advise`,
+          data: { from: id, prompt, successRate },
+        },
+        id as string,
+      )
       if (result) advice.push(String(result))
     }
 
     // Rewrite prompt with context (DSL, dictionary, best practices)
-    const newPrompt = await complete(`
+    const newPrompt = await complete(
+      `
 ${context ? `# Context\n\n${context}\n\n---\n\n` : ''}# Task
 
 Agent "${id}" has ${(successRate * 100).toFixed(0)}% success (gen ${generation}).
@@ -137,7 +151,8 @@ Rewrite this prompt to improve performance. Follow the patterns in the context a
 
 Current prompt:
 ${prompt}
-    `.trim()).catch(() => null)
+    `.trim(),
+    ).catch(() => null)
 
     if (!newPrompt) return { failed: 'rewrite-failed' }
 
@@ -161,7 +176,7 @@ ${prompt}
   }
 
 const knowHandler = (net: World) => async () => {
-  const highways = net.highways(100).filter(h => h.strength >= HIGHWAY_THRESHOLD)
+  const highways = net.highways(100).filter((h) => h.strength >= HIGHWAY_THRESHOLD)
   let crystallized = 0
 
   for (const h of highways) {
@@ -193,11 +208,11 @@ const frontierHandler = (net: World) => async () => {
     byTag[tag].push(sid)
   }
 
-  const explored = new Set(Object.keys(net.strength).flatMap(e => e.split('→')))
+  const explored = new Set(Object.keys(net.strength).flatMap((e) => e.split('→')))
   let frontiers = 0
 
   for (const [tag, skills] of Object.entries(byTag)) {
-    const unexplored = skills.filter(s => !explored.has(s))
+    const unexplored = skills.filter((s) => !explored.has(s))
     if (unexplored.length > skills.length * 0.7 && unexplored.length >= 3) {
       writeSilent(`
         insert $f isa frontier, has fid "tag-${tag}-${Date.now()}",
@@ -217,7 +232,7 @@ const docsHandler = (docsDir: string) => async (_: unknown, emit: (s: Signal) =>
   const { scanDocs, verifyAll } = await import('./doc-scan')
   const items = await scanDocs(docsDir)
   const verified = await verifyAll(items)
-  const gaps = verified.filter(i => !i.verified && !i.done)
+  const gaps = verified.filter((i) => !i.verified && !i.done)
 
   for (const gap of gaps) {
     emit({
@@ -228,11 +243,11 @@ const docsHandler = (docsDir: string) => async (_: unknown, emit: (s: Signal) =>
         source: gap.source,
         priority: gap.priority,
         tags: gap.tags,
-      }
+      },
     })
   }
 
-  return { total: items.length, verified: verified.filter(i => i.verified).length, gaps: gaps.length }
+  return { total: items.length, verified: verified.filter((i) => i.verified).length, gaps: gaps.length }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -312,7 +327,7 @@ export const createSubstrate = async (options: SubstrateOptions = {}) => {
 
     return steps.map((step, i) => ({
       receiver: step,
-      data: { ...(sig.data as object || {}), _workflow: name, _step: i, _total: steps.length }
+      data: { ...((sig.data as object) || {}), _workflow: name, _step: i, _total: steps.length },
     }))
   }
 
@@ -338,18 +353,17 @@ export const createSubstrate = async (options: SubstrateOptions = {}) => {
   }
 
   // ── Workflow handler ──────────────────────────────────────
-  net.add('workflow')
-    .on('default', async (data, emit) => {
-      const name = (data as Record<string, unknown>)?._name as string
-      const steps = getWorkflowSteps(config, name)
-      for (const step of steps) {
-        emit({ receiver: step, data })
-      }
-      return { expanded: steps.length }
-    })
+  net.add('workflow').on('default', async (data, emit) => {
+    const name = (data as Record<string, unknown>)?._name as string
+    const steps = getWorkflowSteps(config, name)
+    for (const step of steps) {
+      emit({ receiver: step, data })
+    }
+    return { expanded: steps.length }
+  })
 
   // ── Timers from config ────────────────────────────────────
-  const timers: Timer[] = config.timers.map(t => ({
+  const timers: Timer[] = config.timers.map((t) => ({
     signal: t.signal,
     interval: t.interval,
     priority: t.priority,
@@ -392,7 +406,7 @@ export const createSubstrate = async (options: SubstrateOptions = {}) => {
     }
 
     // Execute
-    const from = (sig.data as Record<string, unknown>)?.from as string || 'entry'
+    const from = ((sig.data as Record<string, unknown>)?.from as string) || 'entry'
     const edge = `${from}→${sig.receiver}`
     const outcome = await net.ask(sig, from)
 
@@ -414,17 +428,17 @@ export const createSubstrate = async (options: SubstrateOptions = {}) => {
 
   // ── Control ───────────────────────────────────────────────
   const enableTimer = (signal: string, enabled = true) => {
-    const t = timers.find(t => t.signal === signal)
+    const t = timers.find((t) => t.signal === signal)
     if (t) t.enabled = enabled
   }
 
   const forceTimer = (signal: string) => {
-    const t = timers.find(t => t.signal === signal)
+    const t = timers.find((t) => t.signal === signal)
     if (t) t.last = 0
   }
 
   const setTimerInterval = (signal: string, ms: number) => {
-    const t = timers.find(t => t.signal === signal)
+    const t = timers.find((t) => t.signal === signal)
     if (t) t.interval = ms
   }
 
@@ -433,7 +447,7 @@ export const createSubstrate = async (options: SubstrateOptions = {}) => {
     Object.assign(config, newConfig)
     // Update timers
     for (const t of newConfig.timers) {
-      const existing = timers.find(x => x.signal === t.signal)
+      const existing = timers.find((x) => x.signal === t.signal)
       if (existing) {
         existing.interval = t.interval
         existing.priority = t.priority
@@ -450,7 +464,7 @@ export const createSubstrate = async (options: SubstrateOptions = {}) => {
     highways: net.highways(10),
     pathCount: Object.keys(net.strength).length,
     unitCount: net.list().length,
-    timers: timers.map(t => ({ signal: t.signal, interval: t.interval, enabled: t.enabled })),
+    timers: timers.map((t) => ({ signal: t.signal, interval: t.interval, enabled: t.enabled })),
     sops: config.sops.length,
     workflows: config.workflows.length,
   })

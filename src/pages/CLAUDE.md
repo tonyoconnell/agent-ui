@@ -16,6 +16,21 @@
 | `build.astro` | `/build` | `AgentBuilder` | `client:load` |
 | `ceo.astro` | `/ceo` | `CEOPanel` | `client:load` |
 
+## Substrate Learning
+
+Pages are the surface of the substrate. Each page reads from the learning state:
+
+```
+/world      → highways, paths, units (the graph as it learns)
+/tasks      → task priority + pheromone (what the substrate recommends)
+/dashboard  → aggregate stats (how fast the system is learning)
+/ceo        → governance view (which paths are toxic, which are proven)
+```
+
+SSR renders from the latest TypeDB/KV state. React islands hydrate with live pheromone data. The learning is visible — highways form, paths fade, toxic edges turn red.
+
+**Context:** [lifecycle.md](../../docs/lifecycle.md) — what users see at each stage. [speed.md](../../docs/speed.md) — TTFB `<200ms`, FCP `<500ms`. [routing.md](../../docs/routing.md) — what the visualized paths mean.
+
 ## API Routes
 
 See `api/CLAUDE.md` for API documentation. Core route is `POST /api/signal` —

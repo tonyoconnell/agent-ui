@@ -19,12 +19,12 @@ let fs: typeof import('fs') | null = null
 let path: typeof import('path') | null = null
 let DOCS_DIR = ''
 
-const initFs = async () => {
+const _initFs = async () => {
   if (typeof window !== 'undefined') return false
   if (fs) return true
   try {
-    fs = await import('fs')
-    path = await import('path')
+    fs = await import('node:fs')
+    path = await import('node:path')
     DOCS_DIR = path.join(process.cwd(), 'docs')
     return true
   } catch {
@@ -35,10 +35,12 @@ const initFs = async () => {
 // Sync init for server contexts
 if (typeof window === 'undefined') {
   try {
-    fs = require('fs')
-    path = require('path')
+    fs = require('node:fs')
+    path = require('node:path')
     DOCS_DIR = path?.join(process.cwd(), 'docs') ?? ''
-  } catch { /* browser */ }
+  } catch {
+    /* browser */
+  }
 }
 
 import { writeSilent } from '@/lib/typedb'
@@ -76,7 +78,7 @@ export const readDoc = (name: string): string | null => {
 /** Load multiple docs as merged context */
 export const loadContext = (keys: (DocKey | string)[]): string => {
   return keys
-    .map(k => {
+    .map((k) => {
       const filename = CANONICAL[k as DocKey] || k
       const content = readDoc(filename)
       if (!content) return null
@@ -132,7 +134,7 @@ export interface DocMeta {
 /** Extract first heading and first paragraph from markdown */
 const extractMeta = (content: string, name: string): DocMeta => {
   const lines = content.split('\n')
-  const titleLine = lines.find(l => l.startsWith('# '))
+  const titleLine = lines.find((l) => l.startsWith('# '))
   const title = titleLine?.slice(2).trim() || name.replace('.md', '')
 
   // Find first non-empty, non-heading, non-code line
@@ -154,9 +156,10 @@ const extractMeta = (content: string, name: string): DocMeta => {
 /** Get index of all docs (server-side only) */
 export const docIndex = (): DocMeta[] => {
   if (!fs || !DOCS_DIR || !fs.existsSync(DOCS_DIR)) return []
-  return fs.readdirSync(DOCS_DIR)
-    .filter(f => f.endsWith('.md') && !f.startsWith('TODO') && !f.startsWith('PLAN'))
-    .map(name => {
+  return fs
+    .readdirSync(DOCS_DIR)
+    .filter((f) => f.endsWith('.md') && !f.startsWith('TODO') && !f.startsWith('PLAN'))
+    .map((name) => {
       const content = readDoc(name)
       return content ? extractMeta(content, name) : null
     })
@@ -206,7 +209,7 @@ export const ingestDocs = async (): Promise<number> => {
     const content = readDoc(doc.name)
     if (!content) continue
 
-    const patterns = extractPatterns(content)
+    const _patterns = extractPatterns(content)
     const hid = `doc:${doc.name.replace('.md', '')}`
 
     // Upsert hypothesis for this doc
@@ -228,7 +231,7 @@ export const ingestDocs = async (): Promise<number> => {
           has action-ready true;
       `)
       count++
-    } catch (e) {
+    } catch (_e) {
       // Silent fail for individual docs
     }
   }
@@ -241,10 +244,10 @@ export const recallDocs = async (query?: string): Promise<{ hid: string; stateme
   // For now, just return from memory. TypeDB recall would go here.
   const docs = docIndex()
   const results = docs
-    .filter(d => !query || d.name.includes(query) || d.title.toLowerCase().includes(query.toLowerCase()))
-    .map(d => ({
+    .filter((d) => !query || d.name.includes(query) || d.title.toLowerCase().includes(query.toLowerCase()))
+    .map((d) => ({
       hid: `doc:${d.name.replace('.md', '')}`,
-      statement: `${d.title}: ${d.description}`
+      statement: `${d.title}: ${d.description}`,
     }))
   return results
 }

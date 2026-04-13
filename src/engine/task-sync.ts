@@ -29,10 +29,11 @@ async function ensureBuilder() {
 
 /** Insert a single task entity into TypeDB */
 async function insertTask(task: Task): Promise<void> {
-  const tags = [...new Set(task.tags)].map(t => `has tag "${esc(t)}"`).join(', ')
+  const tags = [...new Set(task.tags)].map((t) => `has tag "${esc(t)}"`).join(', ')
   const nameEsc = esc(task.name).slice(0, 200)
 
   // Insert task entity
+  const contextStr = task.context?.length ? `has task-context "${esc(task.context.join(','))}",` : ''
   await writeSilent(`
     insert $t isa task,
       has task-id "${esc(task.id)}",
@@ -40,21 +41,23 @@ async function insertTask(task: Task): Promise<void> {
       has task-status "${task.done ? 'done' : 'open'}",
       has task-value "${esc(task.value)}",
       has task-effort "${esc(task.effort)}",
+      has task-wave "${esc(task.wave || 'W3')}",
       has task-phase "${esc(task.phase)}",
       has task-persona "${esc(task.persona)}",
+      ${contextStr}
       has priority-score ${task.priority.toFixed(1)},
       has priority-formula "${esc(task.formula)}",
       has source-file "${esc(task.source)}",
       ${task.exit ? `has exit-condition "${esc(task.exit)}",` : ''}
       has done ${task.done},
-      ${tags ? tags + ',' : ''}
+      ${tags ? `${tags},` : ''}
       has created ${new Date().toISOString().replace('Z', '')};
   `)
 
   // Insert matching skill (for capability routing backward compat)
   await writeSilent(`
     insert $s isa skill, has skill-id "${esc(task.id)}", has name "${nameEsc}",
-      ${tags ? tags + ',' : ''} has price 0.0, has currency "SUI";
+      ${tags ? `${tags},` : ''} has price 0.0, has currency "SUI";
   `)
 
   // Link skill to builder unit via capability
@@ -67,11 +70,11 @@ async function insertTask(task: Task): Promise<void> {
 /** Insert blocks relations between tasks */
 async function insertBlocks(tasks: Task[]): Promise<number> {
   let count = 0
-  const taskIds = new Set(tasks.map(t => t.id))
+  const taskIds = new Set(tasks.map((t) => t.id))
 
   for (const task of tasks) {
     for (const blockedId of task.blocks) {
-      if (!taskIds.has(blockedId)) continue  // skip if blocked task doesn't exist
+      if (!taskIds.has(blockedId)) continue // skip if blocked task doesn't exist
       await writeSilent(`
         match $a isa task, has task-id "${esc(task.id)}";
               $b isa task, has task-id "${esc(blockedId)}";
@@ -93,7 +96,7 @@ export async function syncTasks(tasks: Task[]): Promise<{ synced: number; blocks
   // Insert tasks in batches
   for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
     const batch = tasks.slice(i, i + BATCH_SIZE)
-    const results = await Promise.allSettled(batch.map(t => insertTask(t)))
+    const results = await Promise.allSettled(batch.map((t) => insertTask(t)))
     for (const r of results) {
       if (r.status === 'fulfilled') synced++
       else errors++
@@ -123,8 +126,33 @@ export async function loadTasks(): Promise<Task[]> {
       has task-value $val, has task-effort $effort, has task-phase $phase, has task-persona $persona,
       has priority-score $priority, has priority-formula $formula,
       has source-file $source, has task-status $status;
-    select $id, $name, $done, $val, $effort, $phase, $persona, $priority, $formula, $source, $status;
+    $t has task-wave $wave;
+    select $id, $name, $done, $val, $effort, $wave, $phase, $persona, $priority, $formula, $source, $status;
+  `).catch(() =>
+    // Fallback without wave (backward compat for tasks created before wave field)
+    readParsed(`
+      match $t isa task,
+        has task-id $id, has name $name, has done $done,
+        has task-value $val, has task-effort $effort, has task-phase $phase, has task-persona $persona,
+        has priority-score $priority, has priority-formula $formula,
+        has source-file $source, has task-status $status;
+      select $id, $name, $done, $val, $effort, $phase, $persona, $priority, $formula, $source, $status;
+    `).catch(() => []),
+  )
+
+  // Load context per task (optional field)
+  const contextRows = await readParsed(`
+    match $t isa task, has task-id $id, has task-context $ctx;
+    select $id, $ctx;
   `).catch(() => [])
+
+  const contextMap: Record<string, string[]> = {}
+  for (const r of contextRows) {
+    contextMap[r.id as string] = (r.ctx as string)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }
 
   // Get tags per task
   const tagRows = await readParsed(`
@@ -153,14 +181,16 @@ export async function loadTasks(): Promise<Task[]> {
     blockMap[aid].push(r.bid as string)
   }
 
-  return rows.map(r => ({
+  return rows.map((r) => ({
     id: r.id as string,
     name: r.name as string,
     done: r.done as boolean,
     value: r.val as Task['value'],
     effort: (r.effort as Task['effort']) || 'medium',
+    wave: (r.wave as Task['wave']) || 'W3',
     phase: r.phase as Task['phase'],
     persona: r.persona as string,
+    context: contextMap[r.id as string] || [],
     blocks: blockMap[r.id as string] || [],
     exit: '',
     tags: tagMap[r.id as string] || [],

@@ -16,13 +16,13 @@
  *   }, 'scout')
  */
 
-import { unit, type Unit } from './world'
+import { type Unit, unit } from './world'
 
 export interface ApiOpts {
   base: string
-  auth?: string                          // 'Bearer TOKEN' or 'Basic ...'
+  auth?: string // 'Bearer TOKEN' or 'Basic ...'
   headers?: Record<string, string>
-  timeout?: number                       // ms, default 10_000
+  timeout?: number // ms, default 10_000
 }
 
 const buildHeaders = (opts: ApiOpts): Record<string, string> => ({
@@ -53,21 +53,29 @@ export const apiUnit = (id: string, opts: ApiOpts): Unit => {
     .on('post', async (data) => {
       const { path, body } = data as { path: string; body: unknown }
       const res = await fetch(base + path, {
-        method: 'POST', headers: h, body: JSON.stringify(body), signal: ctrl(timeout).signal
+        method: 'POST',
+        headers: h,
+        body: JSON.stringify(body),
+        signal: ctrl(timeout).signal,
       }).catch(() => null)
       return res?.ok ? await res.json() : null
     })
     .on('put', async (data) => {
       const { path, body } = data as { path: string; body: unknown }
       const res = await fetch(base + path, {
-        method: 'PUT', headers: h, body: JSON.stringify(body), signal: ctrl(timeout).signal
+        method: 'PUT',
+        headers: h,
+        body: JSON.stringify(body),
+        signal: ctrl(timeout).signal,
       }).catch(() => null)
       return res?.ok ? await res.json() : null
     })
     .on('del', async (data) => {
       const { path } = data as { path: string }
       const res = await fetch(base + path, {
-        method: 'DELETE', headers: h, signal: ctrl(timeout).signal
+        method: 'DELETE',
+        headers: h,
+        signal: ctrl(timeout).signal,
       }).catch(() => null)
       return res?.ok ? { deleted: true } : null
     })

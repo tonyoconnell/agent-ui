@@ -17,6 +17,7 @@ const nodepath = () => import('node:path')
 // Resolved at module load — bootstrap only runs in Node, never in CF Workers
 const { readFile, writeFile, readdir, watch } = await nodefs()
 const { join } = await nodepath()
+
 import { create } from './one-complete'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -55,20 +56,27 @@ const scanFile = async (path: string): Promise<Todo[]> => {
 
     // Track sections
     const h = line.match(/^#{1,4}\s+(.+)/)
-    if (h) { section = h[1]; continue }
+    if (h) {
+      section = h[1]
+      continue
+    }
 
     // Checkbox: - [ ] or - [x]
     const cb = line.match(/^(\s*)[-*]\s+\[([ xX])\]\s+(.+)/)
     if (cb) {
-      const indent = cb[1].length
+      const _indent = cb[1].length
       const done = cb[2] !== ' '
       const text = cb[3].trim()
       const id = `${path}:${i + 1}`
 
       // Infer priority from section
-      const priority = /critical|urgent|P0/i.test(section) ? 'P0' :
-                       /high|important|P1/i.test(section) ? 'P1' :
-                       /medium|P2/i.test(section) ? 'P2' : 'P3'
+      const priority = /critical|urgent|P0/i.test(section)
+        ? 'P0'
+        : /high|important|P1/i.test(section)
+          ? 'P1'
+          : /medium|P2/i.test(section)
+            ? 'P2'
+            : 'P3'
 
       // Infer tags from text
       const tags: string[] = []
@@ -122,7 +130,7 @@ const markDone = async (file: string, line: number): Promise<boolean> => {
   return false
 }
 
-const createDoc = async (folder: string, name: string, content: string): Promise<string> => {
+const _createDoc = async (folder: string, name: string, content: string): Promise<string> => {
   const path = join(folder, `${name}.md`)
   await writeFile(path, content)
   return path
@@ -131,7 +139,7 @@ const createDoc = async (folder: string, name: string, content: string): Promise
 const appendToDoc = async (file: string, content: string): Promise<boolean> => {
   try {
     const existing = await readFile(file, 'utf-8').catch(() => '')
-    await writeFile(file, existing + '\n\n' + content)
+    await writeFile(file, `${existing}\n\n${content}`)
     return true
   } catch {
     return false
@@ -164,13 +172,13 @@ export const bootstrap = async (options: BootstrapOptions) => {
   // Scan: emit todos as signals
   one.on('scan', async (d, e) => {
     const todos = await scanFolder(folder)
-    const open = todos.filter(t => !t.done)
+    const open = todos.filter((t) => !t.done)
 
     for (const todo of open) {
       e('todo', {
         ...todo,
         priority: todo.priority === 'P0' ? 0 : todo.priority === 'P1' ? 1 : todo.priority === 'P2' ? 2 : 3,
-        _from: 'scan'
+        _from: 'scan',
       })
     }
 
@@ -192,7 +200,7 @@ export const bootstrap = async (options: BootstrapOptions) => {
     } else if (tags.includes('feature')) {
       e('worker:implement', d)
     } else {
-      e('worker:implement', d)  // default
+      e('worker:implement', d) // default
     }
 
     return { routed: true }
@@ -212,7 +220,8 @@ export const bootstrap = async (options: BootstrapOptions) => {
     const ctx = one.getContext('DSL', 'dictionary', 'loop')
 
     // Ask LLM to implement
-    const result = await complete(`
+    const result = await complete(
+      `
 ${ctx}
 
 ---
@@ -222,7 +231,8 @@ Task: ${text}
 Implement this task. If it's a code change, provide the code.
 If it's a doc change, provide the content.
 Be concise and direct.
-    `.trim()).catch(() => null)
+    `.trim(),
+    ).catch(() => null)
 
     if (!result) {
       return { failed: true }
@@ -261,7 +271,8 @@ Be concise and direct.
     }
 
     const ctx = one.getContext('DSL', 'dictionary')
-    const content = await complete(`
+    const content = await complete(
+      `
 ${ctx}
 
 ---
@@ -269,7 +280,8 @@ ${ctx}
 Write documentation for: ${text}
 
 Be concise. Use markdown. Include code examples if relevant.
-    `.trim()).catch(() => null)
+    `.trim(),
+    ).catch(() => null)
 
     if (content) {
       await markDone(file, line)
@@ -282,7 +294,7 @@ Be concise. Use markdown. Include code examples if relevant.
   // Fix: bug fixes
   one.on('worker:fix', async (d, e) => {
     const { text } = d as Todo
-    e('worker:implement', d)  // same as implement for now
+    e('worker:implement', d) // same as implement for now
     return { fixing: true }
   })
 
@@ -300,12 +312,10 @@ Be concise. Use markdown. Include code examples if relevant.
     const highways = one.highways(20)
 
     // Find patterns worth documenting
-    const patterns = highways
-      .filter(h => h.strength > 10)
-      .map(h => h.path)
+    const patterns = highways.filter((h) => h.strength > 10).map((h) => h.path)
 
     if (patterns.length > 0) {
-      const content = `# Learned Patterns\n\n${patterns.map(p => `- ${p}`).join('\n')}\n`
+      const content = `# Learned Patterns\n\n${patterns.map((p) => `- ${p}`).join('\n')}\n`
       await appendToDoc(join(folder, 'LEARNED.md'), content)
     }
 
@@ -319,9 +329,9 @@ Be concise. Use markdown. Include code examples if relevant.
   })
 
   // ── Timers ────────────────────────────────────────────────
-  one.timer('scan', 60_000)        // scan every minute
-  one.timer('know', 3_600_000)     // crystallize every hour
-  one.timer('fade', 300_000)       // decay every 5 min
+  one.timer('scan', 60_000) // scan every minute
+  one.timer('know', 3_600_000) // crystallize every hour
+  one.timer('fade', 300_000) // decay every 5 min
 
   // ── Watch folder for changes ──────────────────────────────
   if (watchFolder) {

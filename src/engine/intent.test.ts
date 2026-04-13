@@ -10,8 +10,8 @@
  * Run: npx vitest run src/engine/intent.test.ts
  */
 
-import { describe, it, expect } from 'vitest'
-import { resolveIntent, type Intent, type ResolveResult } from './intent'
+import { describe, expect, it } from 'vitest'
+import { type Intent, type ResolveResult, resolveIntent } from './intent'
 
 // ── Test intents (from docs/plan-intent-cache.md) ─────────────────────────
 
@@ -43,21 +43,20 @@ const INTENTS: Intent[] = [
   },
 ]
 
-const resolve = (input: string) =>
-  resolveIntent(input, { intents: INTENTS })
+const resolve = (input: string) => resolveIntent(input, { intents: INTENTS })
 
 // ── Act 1: Every variation → same intent ───────────────────────────────────
 
 describe('Act 1 — All return policy variations → refund-policy', () => {
   const variations = [
-    'Return Policy',           // button click (exact label match)
-    'return policy',           // lowercase
-    'how do I return this',    // single keyword: 'return'
-    'I want a refund',         // single keyword: 'refund'
+    'Return Policy', // button click (exact label match)
+    'return policy', // lowercase
+    'how do I return this', // single keyword: 'return'
+    'I want a refund', // single keyword: 'refund'
     'can I get my money back', // phrase keyword: 'money back'
-    'send back my order',      // phrase keyword: 'send back'
-    'exchange an item',        // single keyword: 'exchange'
-    'REFUND',                  // uppercase, terse
+    'send back my order', // phrase keyword: 'send back'
+    'exchange an item', // single keyword: 'exchange'
+    'REFUND', // uppercase, terse
   ]
 
   it('all resolve to refund-policy', async () => {
@@ -69,7 +68,7 @@ describe('Act 1 — All return policy variations → refund-policy', () => {
       results.push(r!)
     }
 
-    const intents = results.map(r => r.intent)
+    const intents = results.map((r) => r.intent)
     const unique = new Set(intents)
     console.log('\n── Act 1: Return policy variations ──')
     variations.forEach((v, i) => {
@@ -104,11 +103,11 @@ describe('Act 1 — All return policy variations → refund-policy', () => {
 
 describe('Act 2 — Seed set coverage: all five intents', () => {
   const fixtures: Array<{ input: string; expected: string }> = [
-    { input: 'Return Policy',          expected: 'refund-policy' },
+    { input: 'Return Policy', expected: 'refund-policy' },
     { input: 'when will my order ship', expected: 'shipping-info' },
-    { input: 'track my order',          expected: 'order-tracking' },
-    { input: 'I want to cancel',        expected: 'cancellation' },
-    { input: 'talk to a real person',   expected: 'human-handoff' },
+    { input: 'track my order', expected: 'order-tracking' },
+    { input: 'I want to cancel', expected: 'cancellation' },
+    { input: 'talk to a real person', expected: 'human-handoff' },
   ]
 
   it('button text resolves to matching intent', async () => {
@@ -165,14 +164,14 @@ describe('Act 3 — LLM normaliser for ambiguous queries', () => {
 describe('Act 4 — 200 users, 1 LLM call', () => {
   it('proves the Day 7 scenario from the plan', async () => {
     const variations = [
-      'Return Policy',           // exact label
-      'how do I return this',    // keyword: return
-      'I want a refund',         // keyword: refund
+      'Return Policy', // exact label
+      'how do I return this', // keyword: return
+      'I want a refund', // keyword: refund
       'can I get my money back', // keyword: money back
-      'send back the item',      // keyword: send back
-      'exchange this item',      // keyword: exchange
-      'refund please',           // keyword: refund
-      'return this',             // keyword: return
+      'send back the item', // keyword: send back
+      'exchange this item', // keyword: exchange
+      'refund please', // keyword: refund
+      'return this', // keyword: return
     ]
 
     // Simulate a cache keyed by intent name
@@ -226,9 +225,13 @@ describe('Act 4 — 200 users, 1 LLM call', () => {
 describe('Act 5 — Speed: keyword match is instant', () => {
   it('resolves 1000 queries under 100ms total', async () => {
     const queries = [
-      'return this', 'refund', 'where is my order',
-      'cancel my subscription', 'talk to someone',
-      'shipping information', 'track order 12345',
+      'return this',
+      'refund',
+      'where is my order',
+      'cancel my subscription',
+      'talk to someone',
+      'shipping information',
+      'track order 12345',
     ]
 
     const start = performance.now()
@@ -243,8 +246,8 @@ describe('Act 5 — Speed: keyword match is instant', () => {
     console.log(`  Per query:        ${perQuery.toFixed(3)}ms`)
     console.log(`  Throughput:       ${Math.round(1000 / (ms / 1000))} resolutions/sec`)
 
-    expect(ms).toBeLessThan(1000)  // 1000 async keyword matches < 1s
-    expect(perQuery).toBeLessThan(1)  // < 1ms per query (async overhead included)
+    expect(ms).toBeLessThan(1000) // 1000 async keyword matches < 1s
+    expect(perQuery).toBeLessThan(1) // < 1ms per query (async overhead included)
   })
 })
 

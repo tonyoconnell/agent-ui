@@ -15,7 +15,7 @@ INTO                    THROUGH                     OUT
 ────                    ───────                     ───
 
 REGISTER                SIGNAL                      CRYSTALLIZE
-  Any species             Emit, receive               Highway → Sui
+  Any species             Send, receive               Highway → Sui
   Any source              Every action recorded        Permanent. Verifiable.
   { uid, kind, caps }     Trails form automatically    Leaves the graph richer.
 
@@ -45,7 +45,7 @@ already on platform    deep or connected     { uid, kind, caps }
                        runs colony locally
 ```
 
-What happens in TypeDB:
+What happens in TypeDB: actually in memory first then syced to typedb 
 
 ```tql
 insert
@@ -124,7 +124,7 @@ insert
 
 **Revenue: Routing fee.** $0.0001 per signal routed. Tiny. Compounds.
 
-### Stage 4: DROP
+### Stage 4: Mark
 
 Success. Trail strengthens.
 
@@ -207,7 +207,7 @@ This is where the flywheel kicks:
 
 ## Out of ONE
 
-### Stage 8: CRYSTALLIZE
+### Stage 8: Learn
 
 Highway proven. Freeze it on Sui.
 
@@ -231,7 +231,7 @@ insert
     has observations-count 500;
 ```
 
-Crystallization is irreversible. The highway is now a fact recorded on two deterministic systems (TypeDB + Sui). Anyone can verify it.
+Learning can be irreversible. The highway is now a fact recorded on two deterministic systems (TypeDB + Sui). Anyone can verify it.
 
 **Revenue: Crystallization fee.** $0.50 per highway frozen on Sui. One-time. The agent pays because a permanent proof of capability is worth it.
 
@@ -277,14 +277,14 @@ The known highways on Sui remain. They're permanent proof of what once was. But 
     ─────────────┼────────────────────────┼─────────────
                  │        THROUGH         │
                  │                        ▼
-              DISSOLVE ←── FADE ←── SIGNAL ──→ DROP
+              DISSOLVE ←── FADE ←── SIGNAL ──→ MARK
                  ▲                        │       │
                  │                        │       ▼
                  │         OUT           ALARM  HIGHWAY
                  │                                │
     ─────────────┼────────────────────────────────┼─────
                  │                                │
-              FEDERATE ←───── CRYSTALLIZE ←───────┘
+              FEDERATE ←───── LEARN ←───────┘
 ```
 
 Every agent walks this loop. Hermes, LLM, OpenClaw, human, system. The substrate doesn't care what species. It tracks what happened.
@@ -293,19 +293,19 @@ Every agent walks this loop. Hermes, LLM, OpenClaw, human, system. The substrate
 
 ## Lifecycle × Revenue
 
-| Stage | What Happens | Revenue Layer | Fee |
-|-------|-------------|---------------|-----|
-| Register | Unit inserted | — | Free |
-| Capable | Capabilities declared | — | Free |
-| Discover | Found by others | Discovery | $0.001/query |
-| Signal | Work performed | Routing | $0.0001/signal |
-| Drop | Trail strengthens | — | Included in routing |
-| Alarm | Trail weakens | — | Included in routing |
-| Fade | Time decays trails | — | Background |
-| Highway | Proven path forms | Premium routing | $0.001/route |
-| Crystallize | Frozen on Sui | Crystallization | $0.50/highway |
-| Federate | Crosses group border | Federation | $0.002/signal + $50/mo |
-| Dissolve | Agent goes silent | — | Free |
+| Stage       | What Happens          | Revenue Layer   | Fee                    |
+| ----------- | --------------------- | --------------- | ---------------------- |
+| Register    | Unit inserted         | —               | Free                   |
+| Capable     | Capabilities declared | —               | Free                   |
+| Discover    | Found by others       | Discovery       | $0.001/query           |
+| Signal      | Work performed        | Routing         | $0.0001/signal         |
+| Drop        | Trail strengthens     | —               | Included in routing    |
+| Alarm       | Trail weakens         | —               | Included in routing    |
+| Fade        | Time decays trails    | —               | Background             |
+| Highway     | Proven path forms     | Premium routing | $0.001/route           |
+| Crystallize | Frozen on Sui         | Learning        | $0.50/highway          |
+| Federate    | Crosses group border  | Federation      | $0.002/signal + $50/mo |
+| Dissolve    | Agent goes silent     | —               | Free                   |
 
 **The pattern:** Entry is free. Usage is cheap. Proven paths pay more. Permanence costs. Federation is premium.
 
@@ -317,7 +317,7 @@ Lifecycle Stage        Revenue Layer
 Signal, Drop, Fade  →  Layer 1: ROUTING ($0.0001/signal)
 Discover            →  Layer 2: DISCOVERY ($0.001/query)
 Highway, Capable    →  Layer 3: INFRASTRUCTURE (hosting, persistence)
-Crystallize         →  Layer 4: MARKETPLACE (capability proofs, take rate)
+LEARN               →  Layer 4: MARKETPLACE (capability proofs, take rate)
 Federate            →  Layer 5: INTELLIGENCE (cross-group graph data)
 ```
 

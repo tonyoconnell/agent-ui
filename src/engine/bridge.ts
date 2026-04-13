@@ -23,11 +23,8 @@
  * The bridge is 3 functions. Everything else is plumbing.
  */
 
-import {
-  createUnit, createPath, mark as suiMark, warn as suiWarn,
-  send as suiSend, addressFor, getClient, deriveKeypair,
-} from '@/lib/sui'
-import { writeSilent, readParsed } from '@/lib/typedb'
+import { createPath, createUnit, getClient, mark as suiMark, warn as suiWarn } from '@/lib/sui'
+import { readParsed, writeSilent } from '@/lib/typedb'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RESOLVE — Find Sui object IDs from TypeDB
@@ -56,7 +53,7 @@ export async function resolvePath(from: string, to: string): Promise<string | nu
     $e (source: $from, target: $to) isa path, has sui-path-id $pid;
     select $pid;
   `).catch(() => [])
-  return rows.length ? rows[0].pid as string : null
+  return rows.length ? (rows[0].pid as string) : null
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

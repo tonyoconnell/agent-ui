@@ -1,4 +1,4 @@
-import type { Envelope } from "./types"
+import type { Envelope } from './types'
 
 interface Props {
   action: string
@@ -13,7 +13,7 @@ export function createEnvelope(props: Props): Envelope {
   return {
     id,
     env: { envelope: id, action: props.action, inputs: props.inputs },
-    payload: { status: "pending", results: null },
+    payload: { status: 'pending', results: null },
     callback: props.callback ? createEnvelope(props.callback) : null,
     metadata: { sender: props.sender, receiver: props.receiver, timestamp: Date.now() },
   }

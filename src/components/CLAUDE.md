@@ -2,6 +2,21 @@
 
 **Skills: `/react19` for React patterns, `/reactflow` for graphs, `/shadcn` for UI components.**
 
+## Substrate Learning
+
+Components visualize the learning. The graph that routes signals is the same graph the UI renders:
+
+```
+net.highways(30)    → HighwayPanel bars        (proven paths)
+net.strength        → ReactFlow edge thickness  (learning state)
+net.resistance      → ReactFlow edge color      (failure state)
+rubric dims         → per-skill radar chart      (fit/form/truth/taste)
+```
+
+**Speed contract:** Components read from in-memory state via API (`/api/state`, `/api/export/highways`). KV cache delivers `<10ms`. The UI shows the learning AS IT HAPPENS — highways forming, paths fading, toxic edges blocking.
+
+**Context:** [DSL.md](../../docs/DSL.md) — signal grammar the UI represents. [dictionary.md](../../docs/dictionary.md) — canonical names for display. [routing.md](../../docs/routing.md) — what highways/toxic/fading mean. [rubrics.md](../../docs/rubrics.md) — quality dims to visualize. [speed.md](../../docs/speed.md) — why real-time visualization is possible.
+
 ## Organization
 
 ```

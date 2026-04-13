@@ -14,8 +14,7 @@
  * - Graceful shutdown
  */
 
-const readFile = async (path: string, enc: BufferEncoding) =>
-  (await import('node:fs/promises')).readFile(path, enc)
+const readFile = async (path: string, enc: BufferEncoding) => (await import('node:fs/promises')).readFile(path, enc)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -29,10 +28,10 @@ type Log = (level: 'debug' | 'info' | 'warn' | 'error', msg: string, meta?: Data
 
 export type Config = {
   // Limits
-  maxQueue?: number        // default 1000
-  maxRetries?: number      // default 3
-  timeout?: number         // default 30000ms
-  tokenBudget?: number     // default Infinity
+  maxQueue?: number // default 1000
+  maxRetries?: number // default 3
+  timeout?: number // default 30000ms
+  tokenBudget?: number // default Infinity
 
   // Persistence
   persist?: {
@@ -105,11 +104,11 @@ export const create = (config: Config = {}) => {
 
   const fade = (rate = 0.02) => {
     for (const p in strength) {
-      strength[p] *= (1 - rate)
+      strength[p] *= 1 - rate
       if (strength[p] < 0.01) delete strength[p]
     }
     for (const p in resistance) {
-      resistance[p] *= (1 - rate * 2)
+      resistance[p] *= 1 - rate * 2
       if (resistance[p] < 0.01) delete resistance[p]
     }
   }
@@ -118,14 +117,15 @@ export const create = (config: Config = {}) => {
   const isToxic = (path: string) => {
     const r = resistance[path] || 0
     const s = strength[path] || 0
-    return r >= 10 && r > s * 2 && (r + s) > 5
+    return r >= 10 && r > s * 2 && r + s > 5
   }
 
-  const highways = (n = 10) => Object.keys(strength)
-    .map(p => ({ path: p, strength: net(p) }))
-    .filter(x => x.strength > 0)
-    .sort((a, b) => b.strength - a.strength)
-    .slice(0, n)
+  const highways = (n = 10) =>
+    Object.keys(strength)
+      .map((p) => ({ path: p, strength: net(p) }))
+      .filter((x) => x.strength > 0)
+      .sort((a, b) => b.strength - a.strength)
+      .slice(0, n)
 
   // ── Queue (bounded) ───────────────────────────────────────
   const emit: Emit = (to, data = {}) => {
@@ -146,7 +146,9 @@ export const create = (config: Config = {}) => {
   }
 
   // ── Handlers ──────────────────────────────────────────────
-  const on = (id: string, fn: Handler) => { handlers[id] = fn }
+  const on = (id: string, fn: Handler) => {
+    handlers[id] = fn
+  }
 
   const ask = async (to: string, data: Data = {}, from = 'entry'): Promise<Outcome> => {
     const path = `${from}→${to}`
@@ -168,9 +170,7 @@ export const create = (config: Config = {}) => {
     try {
       const result = await Promise.race([
         handler(data, emit),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('timeout')), timeout)
-        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout)),
       ])
       return result !== undefined ? { result } : { timeout: true }
     } catch (err) {
@@ -197,7 +197,10 @@ export const create = (config: Config = {}) => {
   }
 
   const getContext = (...keys: string[]) =>
-    keys.map(k => context[k]).filter(Boolean).join('\n\n---\n\n')
+    keys
+      .map((k) => context[k])
+      .filter(Boolean)
+      .join('\n\n---\n\n')
 
   // ── Chains ────────────────────────────────────────────────
   const chains: Record<string, string[]> = {}
@@ -244,9 +247,7 @@ export const create = (config: Config = {}) => {
 
     // Periodic persist
     if (persist && cycle % 100 === 0) {
-      await persist.save({ strength, resistance, cycle }).catch(err =>
-        log('error', 'Persist failed', { err })
-      )
+      await persist.save({ strength, resistance, cycle }).catch((err) => log('error', 'Persist failed', { err }))
     }
 
     // Drain
@@ -268,7 +269,13 @@ export const create = (config: Config = {}) => {
         if (!outcome.result) {
           warn(path, 0.5)
           log('info', `SOP blocked: ${to}`, { prereq: p })
-          return { cycle, path, outcome: { dissolved: true, error: 'sop_failed' }, ms: Date.now() - start, queue: queue.length }
+          return {
+            cycle,
+            path,
+            outcome: { dissolved: true, error: 'sop_failed' },
+            ms: Date.now() - start,
+            queue: queue.length,
+          }
         }
       }
     }
@@ -305,7 +312,9 @@ export const create = (config: Config = {}) => {
       setTimeout(loop, delay)
     }
     loop()
-    return () => { running = false }
+    return () => {
+      running = false
+    }
   }
 
   const shutdown = async () => {
@@ -322,9 +331,7 @@ export const create = (config: Config = {}) => {
 
     // Final persist
     if (persist) {
-      await persist.save({ strength, resistance, cycle }).catch(err =>
-        log('error', 'Final persist failed', { err })
-      )
+      await persist.save({ strength, resistance, cycle }).catch((err) => log('error', 'Final persist failed', { err }))
     }
 
     log('info', `Shutdown complete. Processed ${processed} remaining signals.`)
@@ -363,19 +370,38 @@ export const create = (config: Config = {}) => {
 
   return {
     // Core
-    on, emit, ask, tick, run, shutdown, load,
+    on,
+    emit,
+    ask,
+    tick,
+    run,
+    shutdown,
+    load,
     // Pheromone
-    mark, warn, fade, net, isHighway, isToxic, highways,
+    mark,
+    warn,
+    fade,
+    net,
+    isHighway,
+    isToxic,
+    highways,
     // Context
-    loadContext, getContext,
+    loadContext,
+    getContext,
     // Chains
-    chain, timer, sop,
+    chain,
+    timer,
+    sop,
     // Tracking
     trackTokens,
     // State
     stats,
-    get strength() { return { ...strength } },
-    get resistance() { return { ...resistance } },
+    get strength() {
+      return { ...strength }
+    },
+    get resistance() {
+      return { ...resistance }
+    },
   }
 }
 
@@ -394,15 +420,15 @@ export const typedbPersist = (write: (q: string) => Promise<void>, read: (q: str
         match $f isa unit, has uid "${from}"; $t isa unit, has uid "${to}";
         insert (source: $f, target: $t) isa path,
           has strength ${str.toFixed(2)}, has resistance ${res.toFixed(2)}, has traversals 0;
-      `).catch(() => {})  // ignore if exists
+      `).catch(() => {}) // ignore if exists
     }
   },
 
   load: async (): Promise<State | null> => {
-    const rows = await read(`
+    const rows = (await read(`
       match $e (source: $f, target: $t) isa path, has strength $s, has resistance $r;
       $f has uid $fid; $t has uid $tid; select $fid, $tid, $s, $r;
-    `).catch(() => []) as { fid: string; tid: string; s: number; r: number }[]
+    `).catch(() => [])) as { fid: string; tid: string; s: number; r: number }[]
 
     if (!rows.length) return null
 
@@ -495,8 +521,7 @@ export const withRollback = (one: ReturnType<typeof create>, maxHistory = 100) =
   const getHistory = (n = 10) => history.slice(-n)
 
   // Find by handler
-  const findByHandler = (handler: string, n = 10) =>
-    history.filter(h => h.handler === handler).slice(-n)
+  const findByHandler = (handler: string, n = 10) => history.filter((h) => h.handler === handler).slice(-n)
 
   return { ...one, undo, getHistory, findByHandler }
 }
@@ -522,13 +547,13 @@ export const withAuth = (one: ReturnType<typeof create>, auth: AuthConfig) => {
     }
 
     if (!token) {
-      (one as any).log?.('warn', `Auth: missing token for ${to}`)
+      ;(one as any).log?.('warn', `Auth: missing token for ${to}`)
       return
     }
 
     const valid = await auth.validate(token).catch(() => false)
     if (!valid) {
-      (one as any).log?.('warn', `Auth: invalid token for ${to}`)
+      ;(one as any).log?.('warn', `Auth: invalid token for ${to}`)
       return
     }
 
@@ -550,13 +575,13 @@ export const createRateLimiter = (maxConcurrent = 5, minDelayMs = 100) => {
   const acquire = async (): Promise<() => void> => {
     // Wait for slot
     while (running >= maxConcurrent) {
-      await new Promise<void>(resolve => waiting.push(resolve))
+      await new Promise<void>((resolve) => waiting.push(resolve))
     }
 
     // Enforce min delay
     const now = Date.now()
     const delay = Math.max(0, minDelayMs - (now - lastCall))
-    if (delay > 0) await new Promise(r => setTimeout(r, delay))
+    if (delay > 0) await new Promise((r) => setTimeout(r, delay))
 
     running++
     lastCall = Date.now()
@@ -569,7 +594,12 @@ export const createRateLimiter = (maxConcurrent = 5, minDelayMs = 100) => {
     }
   }
 
-  return { acquire, get running() { return running } }
+  return {
+    acquire,
+    get running() {
+      return running
+    },
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -4,10 +4,10 @@
  * One function. Hydrate. Spawn. Tick.
  */
 
-import { world } from './persist'  // formerly one.ts
-import { tick } from './loop'
 import { readParsed } from '@/lib/typedb'
-import type { Signal } from './world'  // formerly substrate.ts
+import { tick } from './loop'
+import { world } from './persist' // formerly one.ts
+import type { Signal } from './world' // formerly substrate.ts
 
 export const boot = async (complete?: (prompt: string) => Promise<string>, interval = 10_000) => {
   const w = world()
@@ -16,9 +16,9 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
   await w.load()
 
   // Spawn units from TypeDB
-  const units = await readParsed(
-    `match $u isa unit, has uid $id, has unit-kind $kind; select $id, $kind;`
-  ).catch(() => [])
+  const units = await readParsed(`match $u isa unit, has uid $id, has unit-kind $kind; select $id, $kind;`).catch(
+    () => [],
+  )
   for (const u of units) w.actor(u.id as string, u.kind as string)
 
   // Breathe
@@ -26,7 +26,7 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
   const loop = (async () => {
     while (alive) {
       await tick(w, complete).catch(() => {})
-      await new Promise(r => setTimeout(r, interval))
+      await new Promise((r) => setTimeout(r, interval))
     }
   })()
 
@@ -35,6 +35,9 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
     signal: (s: Signal) => w.signal(s),
     ask: (s: Signal) => w.ask(s),
     enqueue: (s: Signal) => w.enqueue(s),
-    stop: () => { alive = false; return loop },
+    stop: () => {
+      alive = false
+      return loop
+    },
   }
 }

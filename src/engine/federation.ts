@@ -12,8 +12,7 @@
  *   // → forwards to https://legal.one.ie/api/signal with { receiver: 'review', data: { contract } }
  */
 
-import { unit, type Unit } from './world'
-import type { Signal } from './world'
+import { type Unit, unit } from './world'
 
 export const federate = (id: string, baseUrl: string, apiKey: string): Unit => {
   const base = baseUrl.replace(/\/$/, '')
@@ -22,17 +21,16 @@ export const federate = (id: string, baseUrl: string, apiKey: string): Unit => {
     Authorization: `Bearer ${apiKey}`,
   }
 
-  return unit(id)
-    .on('default', async (data) => {
-      // data may carry { receiver, ...rest } for intra-world routing
-      const { receiver, ...rest } = (data as { receiver?: string } & Record<string, unknown>) ?? {}
-      const res = await fetch(`${base}/api/signal`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ sender: id, receiver: receiver ?? 'entry', data: rest }),
-      }).catch(() => null)
-      return res?.ok ? await res.json() : null
-    })
+  return unit(id).on('default', async (data) => {
+    // data may carry { receiver, ...rest } for intra-world routing
+    const { receiver, ...rest } = (data as { receiver?: string } & Record<string, unknown>) ?? {}
+    const res = await fetch(`${base}/api/signal`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ sender: id, receiver: receiver ?? 'entry', data: rest }),
+    }).catch(() => null)
+    return res?.ok ? await res.json() : null
+  })
 }
 
 /**
@@ -49,13 +47,12 @@ export const federateSignal = (receiver: string, baseUrl: string, apiKey: string
     Authorization: `Bearer ${apiKey}`,
   }
 
-  return unit(receiver)
-    .on('default', async (data) => {
-      const res = await fetch(`${base}/api/signal`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ receiver, data }),
-      }).catch(() => null)
-      return res?.ok ? await res.json() : null
-    })
+  return unit(receiver).on('default', async (data) => {
+    const res = await fetch(`${base}/api/signal`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ receiver, data }),
+    }).catch(() => null)
+    return res?.ok ? await res.json() : null
+  })
 }

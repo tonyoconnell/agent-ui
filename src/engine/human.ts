@@ -22,15 +22,15 @@
  *   )
  */
 
-import { unit, type Unit } from './world'
-import { durableAsk, type DurableAskEnv } from './durable-ask'
+import { type DurableAskEnv, durableAsk } from './durable-ask'
+import { type Unit, unit } from './world'
 
 export interface HumanOpts {
   env: DurableAskEnv
-  telegram?: number           // Telegram user/chat ID
-  discord?: string            // Discord channel ID
-  timeout?: number            // ms, default 24h
-  botToken?: string           // Telegram bot token (if not in env)
+  telegram?: number // Telegram user/chat ID
+  discord?: string // Discord channel ID
+  timeout?: number // ms, default 24h
+  botToken?: string // Telegram bot token (if not in env)
 }
 
 const tg = async (botToken: string, chatId: number, text: string) => {
@@ -42,7 +42,7 @@ const tg = async (botToken: string, chatId: number, text: string) => {
 }
 
 export const human = (id: string, opts: HumanOpts): Unit => {
-  const timeout = opts.timeout ?? 86_400_000  // 24h
+  const timeout = opts.timeout ?? 86_400_000 // 24h
 
   const notify = async (text: string, askId: string) => {
     if (opts.telegram && opts.botToken) {
@@ -53,8 +53,11 @@ export const human = (id: string, opts: HumanOpts): Unit => {
 
   const wait = (askId: string, signal: import('./world').Signal) =>
     durableAsk(
-      opts.env, signal, id, timeout,
-      opts.telegram ? { type: 'telegram', id: String(opts.telegram) } : undefined
+      opts.env,
+      signal,
+      id,
+      timeout,
+      opts.telegram ? { type: 'telegram', id: String(opts.telegram) } : undefined,
     )
 
   return unit(id)

@@ -5,8 +5,8 @@
  * The substrate does the rest.
  */
 
-import type { World, Unit, Signal, Emit } from './world'
 import { writeSilent } from '@/lib/typedb'
+import type { Emit, Unit, World } from './world'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -57,7 +57,7 @@ export const agent = (id: string, net: World): Agent => {
 
     pipe: (from, to) => {
       const [target, task] = to.includes(':') ? to.split(':') : [id, to]
-      u.then(from, result => ({ receiver: `${target}:${task}`, data: result }))
+      u.then(from, (result) => ({ receiver: `${target}:${task}`, data: result }))
       return a
     },
 
@@ -94,7 +94,7 @@ export const agent = (id: string, net: World): Agent => {
             has system-prompt "${system.replace(/"/g, '\\"')}",
             has success-rate 0.5, has activity-score 0.0, has sample-count 0,
             has reputation 0.0, has balance 0.0, has generation 0;
-        `).catch(() => {})
+        `).catch(() => {}),
       )
       return a
     },

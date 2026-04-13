@@ -17,38 +17,32 @@
  *   net.signal({ receiver: 'av:agent1abc:translate', data: { text: 'Hello' } }, 'writer')
  */
 
+import { type Agentverse, agentverse, sync } from './agentverse'
 import type { World } from './world'
-import { agentverse, sync, type Agentverse } from './agentverse'
 
 type FetchFn = (address: string, data: unknown) => Promise<unknown>
 
-export const bridgeAgentverse = async (
-  net: World,
-  fetchFn: FetchFn,
-  apiKey: string
-): Promise<Agentverse> => {
+export const bridgeAgentverse = async (net: World, fetchFn: FetchFn, apiKey: string): Promise<Agentverse> => {
   const av = agentverse(fetchFn)
   await sync(av, apiKey)
 
   // Proxy unit per discovered AV agent
   for (const id of av.list()) {
-    net.add(`av:${id}`)
-      .on('default', async (data) => {
-        const result = await av.call(id, 'default', data)
-        return result ?? null  // null → warn() in main world
-      })
+    net.add(`av:${id}`).on('default', async (data) => {
+      const result = await av.call(id, 'default', data)
+      return result ?? null // null → warn() in main world
+    })
   }
 
   // Discovery proxy: finds best AV agent by domain, routes to it
-  net.add('av')
-    .on('discover', async (data) => {
-      const { domain, task } = data as { domain: string; task: unknown }
-      const agents = av.discover(domain, 5)
-      if (!agents.length) return null
-      // First call: use AV's own pheromone ranking
-      // Subsequent calls: STAN in main world re-ranks by real outcomes
-      return await av.call(agents[0].address, domain, task)
-    })
+  net.add('av').on('discover', async (data) => {
+    const { domain, task } = data as { domain: string; task: unknown }
+    const agents = av.discover(domain, 5)
+    if (!agents.length) return null
+    // First call: use AV's own pheromone ranking
+    // Subsequent calls: STAN in main world re-ranks by real outcomes
+    return await av.call(agents[0].address, domain, task)
+  })
 
   return av
 }

@@ -1,5 +1,13 @@
 # TODO: autonomous-orgs
 
+> **Source of truth:** [DSL.md](DSL.md) — signal language,
+> [dictionary.md](dictionary.md) — canonical names,
+> [rubrics.md](rubrics.md) — quality scoring,
+> [patterns.md](patterns.md) — 10 emergent patterns,
+> [routing.md](routing.md) — the deterministic sandwich
+>
+> **Schema:** Tasks map to `world.tql` dimension 3b. Execute with `/wave`. Create with `/todo`.
+
 - [ ] Schema: Add task, task-dependency, task-execution entities to world.tql
   value: critical
   effort: low
@@ -88,3 +96,15 @@
   blocks: metrics-live
   exit: Weekly report showing success rates, revenue, top performers, emerging frontiers
   tags: analytics, metrics, P2, knowledge
+
+---
+
+## See Also
+
+- [DSL.md](DSL.md) — the signal language (always loaded)
+- [dictionary.md](dictionary.md) — everything named (always loaded)
+- [rubrics.md](rubrics.md) — quality scoring as tagged edges
+- [patterns.md](patterns.md) — 10 emergent patterns
+- [routing.md](routing.md) — the deterministic sandwich
+- [TODO-template.md](TODO-template.md) — the wave pattern
+- [TODO-task-management.md](TODO-task-management.md) — self-learning task system

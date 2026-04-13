@@ -4,6 +4,25 @@
 
 TypeDB 3.0 schema for the ONE world. TypeDB is the brain — not task tracker.
 
+## Substrate Learning
+
+This folder IS the brain. Schema defines what the substrate can learn:
+
+```
+task entity     → what work exists (priority, wave, context, exit condition)
+path relation   → what the graph learned (strength, resistance, revenue)
+capability      → who can do what (unit → skill at price)
+hypothesis      → what was discovered (confirmed, testing, rejected)
+frontier        → what's unexplored (tag clusters, unit gaps)
+signal          → what happened (event log with latency, success)
+```
+
+**The schema shapes the learning.** Every `mark()` writes to `path.strength`. Every `warn()` writes to `path.resistance`. Every `know()` promotes to `hypothesis`. Rubric dimensions are tagged edges — `path` from agent→skill:fit, agent→skill:truth, etc. The schema doesn't need new entities for quality scoring — tags on paths ARE the dimensions.
+
+**Speed contract:** TypeDB is the slow layer (~100ms writes, ~300ms queries). The nervous system (`src/engine/`) runs in-memory at `<0.001ms`. TypeDB catches up on a schedule. But the schema defines WHAT is learned — the engine defines HOW FAST.
+
+**Context:** [DSL.md](../../docs/DSL.md) — signal grammar. [dictionary.md](../../docs/dictionary.md) — canonical names. [routing.md](../../docs/routing.md) — the sandwich. [rubrics.md](../../docs/rubrics.md) — quality as tagged edges. [patterns.md](../../docs/patterns.md) — 10 emergent patterns from this schema. [lifecycle.md](../../docs/lifecycle.md) — into/through/out. [speed.md](../../docs/speed.md) — why in-memory matters.
+
 ## Files
 
 | File | Purpose |

@@ -15,16 +15,16 @@
  */
 
 export interface Intent {
-  name: string        // 'refund-policy'
-  label: string       // 'Return Policy'
-  keywords: string[]  // ['return', 'refund', 'money back']
+  name: string // 'refund-policy'
+  label: string // 'Return Policy'
+  keywords: string[] // ['return', 'refund', 'money back']
   examples?: string[] // typed queries that mapped here (auto-learned)
 }
 
 export interface ResolveResult {
   intent: string
   resolver: 'exact' | 'keyword' | 'typedb' | 'llm' | 'unknown'
-  confidence: number  // 0.0–1.0
+  confidence: number // 0.0–1.0
 }
 
 // ── Resolver ────────────────────────────────────────────────────────────────
@@ -39,13 +39,13 @@ export const resolveIntent = async (
     db?: D1Database
     complete?: (prompt: string) => Promise<string>
     intents?: Intent[]
-  } = {}
+  } = {},
 ): Promise<ResolveResult | null> => {
   const lower = input.toLowerCase().trim()
-  const words = lower.split(/\W+/).filter(w => w.length > 2)
+  const words = lower.split(/\W+/).filter((w) => w.length > 2)
 
   // ── Step 1: Keyword match ─────────────────────────────────────────────────
-  const intents = opts.intents ?? await loadIntents(opts.db)
+  const intents = opts.intents ?? (await loadIntents(opts.db))
 
   for (const intent of intents) {
     // Label match: button text clicked (or typed) exactly
@@ -53,8 +53,8 @@ export const resolveIntent = async (
       return { intent: intent.name, resolver: 'keyword', confidence: 0.95 }
     }
 
-    const kws = intent.keywords.map(k => k.toLowerCase())
-    const matches = kws.filter(kw => lower.includes(kw))
+    const kws = intent.keywords.map((k) => k.toLowerCase())
+    const matches = kws.filter((kw) => lower.includes(kw))
 
     // Two keyword hits → high confidence
     if (matches.length >= 2) {
@@ -62,7 +62,7 @@ export const resolveIntent = async (
     }
     // Single keyword hit — any intent size
     if (matches.length === 1) {
-      return { intent: intent.name, resolver: 'keyword', confidence: 0.70 }
+      return { intent: intent.name, resolver: 'keyword', confidence: 0.7 }
     }
   }
 
@@ -80,17 +80,19 @@ export const resolveIntent = async (
         return {
           intent: rows[0].n as string,
           resolver: 'typedb',
-          confidence: rows[0].c as number
+          confidence: rows[0].c as number,
         }
       }
-    } catch { /* TypeDB unavailable — continue to step 3 */ }
+    } catch {
+      /* TypeDB unavailable — continue to step 3 */
+    }
   }
 
   // ── Step 3: LLM normaliser ────────────────────────────────────────────────
   // Tiny prompt: pick the closest intent name, or "unknown"
   if (!opts.complete || intents.length === 0) return null
 
-  const intentList = intents.map(i => `${i.name}: ${i.label}`).join('\n')
+  const intentList = intents.map((i) => `${i.name}: ${i.label}`).join('\n')
   try {
     const raw = await opts.complete(
       `Map this user message to the closest intent name. Reply with ONLY the intent name, nothing else. If none match well, reply "unknown".
@@ -98,12 +100,17 @@ export const resolveIntent = async (
 Known intents:
 ${intentList}
 
-User message: "${input}"`
+User message: "${input}"`,
     )
-    const resolved = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '')
-    if (resolved === 'unknown' || !intents.find(i => i.name === resolved)) return null
+    const resolved = raw
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '')
+    if (resolved === 'unknown' || !intents.find((i) => i.name === resolved)) return null
     return { intent: resolved, resolver: 'llm', confidence: 0.75 }
-  } catch { return null }
+  } catch {
+    return null
+  }
 }
 
 // ── Intent management ────────────────────────────────────────────────────────
@@ -113,7 +120,7 @@ export const loadIntents = async (db?: D1Database): Promise<Intent[]> => {
   const rows = await db
     .prepare('SELECT name, label, keywords, examples FROM intents ORDER BY hit_count DESC')
     .all<{ name: string; label: string; keywords: string; examples: string | null }>()
-  return (rows.results ?? []).map(r => ({
+  return (rows.results ?? []).map((r) => ({
     name: r.name,
     label: r.label,
     keywords: JSON.parse(r.keywords) as string[],
@@ -134,41 +141,40 @@ export const loadIntents = async (db?: D1Database): Promise<Intent[]> => {
 export const seedIntents = async (db: D1Database, intents: Intent[]) => {
   const now = Date.now()
   for (const i of intents) {
-    await db.prepare(`
+    await db
+      .prepare(`
       INSERT OR REPLACE INTO intents (name, label, keywords, examples, hit_count, created_at, updated_at)
       VALUES (?, ?, ?, ?,
         COALESCE((SELECT hit_count FROM intents WHERE name = ?), 0),
         COALESCE((SELECT created_at FROM intents WHERE name = ?), ?),
         ?)
-    `).bind(
-      i.name, i.label, JSON.stringify(i.keywords),
-      i.examples ? JSON.stringify(i.examples) : null,
-      i.name, i.name, now, now
-    ).run()
+    `)
+      .bind(
+        i.name,
+        i.label,
+        JSON.stringify(i.keywords),
+        i.examples ? JSON.stringify(i.examples) : null,
+        i.name,
+        i.name,
+        now,
+        now,
+      )
+      .run()
   }
 }
 
-export const recordQuery = async (
-  db: D1Database,
-  raw: string,
-  result: ResolveResult | null,
-  cached: boolean
-) => {
-  await db.prepare(
-    'INSERT INTO intent_queries (raw, intent, resolver, cached, ts) VALUES (?, ?, ?, ?, ?)'
-  ).bind(
-    raw,
-    result?.intent ?? null,
-    result?.resolver ?? 'unknown',
-    cached ? 1 : 0,
-    Date.now()
-  ).run()
+export const recordQuery = async (db: D1Database, raw: string, result: ResolveResult | null, cached: boolean) => {
+  await db
+    .prepare('INSERT INTO intent_queries (raw, intent, resolver, cached, ts) VALUES (?, ?, ?, ?, ?)')
+    .bind(raw, result?.intent ?? null, result?.resolver ?? 'unknown', cached ? 1 : 0, Date.now())
+    .run()
 }
 
 export const bumpHitCount = async (db: D1Database, intentName: string) => {
-  await db.prepare(
-    'UPDATE intents SET hit_count = hit_count + 1, updated_at = ? WHERE name = ?'
-  ).bind(Date.now(), intentName).run()
+  await db
+    .prepare('UPDATE intents SET hit_count = hit_count + 1, updated_at = ? WHERE name = ?')
+    .bind(Date.now(), intentName)
+    .run()
 }
 
 /**
@@ -177,10 +183,11 @@ export const bumpHitCount = async (db: D1Database, intentName: string) => {
  */
 export const unknownQueries = async (
   db: D1Database,
-  opts: { limit?: number; minFrequency?: number; since?: number } = {}
+  opts: { limit?: number; minFrequency?: number; since?: number } = {},
 ): Promise<Array<{ raw: string; frequency: number }>> => {
   const { limit = 50, minFrequency = 3, since = Date.now() - 7 * 86_400_000 } = opts
-  const rows = await db.prepare(`
+  const rows = await db
+    .prepare(`
     SELECT raw, COUNT(*) as frequency
     FROM intent_queries
     WHERE intent IS NULL AND cached = 0 AND ts > ?
@@ -188,6 +195,8 @@ export const unknownQueries = async (
     HAVING frequency >= ?
     ORDER BY frequency DESC
     LIMIT ?
-  `).bind(since, minFrequency, limit).all<{ raw: string; frequency: number }>()
+  `)
+    .bind(since, minFrequency, limit)
+    .all<{ raw: string; frequency: number }>()
   return rows.results ?? []
 }

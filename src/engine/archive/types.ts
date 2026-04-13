@@ -6,7 +6,7 @@ export interface Envelope {
     inputs: Record<string, unknown>
   }
   payload: {
-    status: "pending" | "resolved" | "rejected"
+    status: 'pending' | 'resolved' | 'rejected'
     results: unknown
   }
   callback: Envelope | null

@@ -2,6 +2,23 @@
 
 **When docs reference code patterns, use the matching skill: `/typedb` for TQL, `/react19` for React, `/astro` for pages.**
 
+## Substrate Learning
+
+Docs are the training data. Every doc participates in the learning loop:
+
+```
+DSL.md + dictionary.md    → loaded as BASE CONTEXT in every Wave 2 decision
+routing.md + patterns.md  → loaded as DOMAIN CONTEXT per task tags
+rubrics.md                → defines quality scoring (fit/form/truth/taste as tagged edges)
+speed.md                  → defines the benchmarks that make the learning rate possible
+lifecycle.md              → defines the journey: register → signal → highway → crystallize
+TODO-*.md                 → queues of signals, executed by /wave, self-checkoff on verify
+```
+
+**DSL.md and dictionary.md are non-negotiable.** Every TODO, every wave, every task decision loads them. They define the vocabulary the system speaks. If a doc uses a dead name, the learning diverges.
+
+**ALWAYS use [TODO-template.md](TODO-template.md) when creating any TODO file.** Use `/todo` to create them. Every TODO MUST have: routing diagram, schema reference, DSL+dictionary+rubrics as source of truth, wave structure (W1-W4), task metadata (id/value/effort/phase/persona/blocks/exit/tags), rubric scoring in W4, self-checkoff on verify, See Also section. No exceptions.
+
 Apply to `docs/*.md`
 
 ---

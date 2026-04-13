@@ -124,8 +124,10 @@ entity task,
     owns task-status,              # "open" | "active" | "done" | "blocked"
     owns task-value,               # "critical" | "high" | "medium"
     owns task-effort,              # "low" (haiku) | "medium" (sonnet) | "high" (opus)
+    owns task-wave,                # "W1" | "W2" | "W3" | "W4" — wave position in cycle
     owns task-phase,               # "C1".."C7"
     owns task-persona,             # "ceo" | "dev" | "investor" | "gamer" | "kid" | "freelancer" | "agent"
+    owns task-context,             # "dsl,routing,dictionary" — doc keys loaded at selection
     owns priority-score,           # computed: value + phase + persona + blocking
     owns priority-formula,         # auditable: "critical=30 + C1=40 + ceo=25 + blocks(3)=15"
     owns source-file,              # which doc it came from
@@ -293,8 +295,10 @@ attribute source-file, value string;
 attribute exit-condition, value string;
 attribute task-value, value string;
 attribute task-effort, value string;       # "low" (haiku) | "medium" (sonnet) | "high" (opus)
+attribute task-wave, value string;         # "W1" | "W2" | "W3" | "W4"
 attribute task-phase, value string;
 attribute task-persona, value string;
+attribute task-context, value string;      # "dsl,routing,dictionary" — doc keys for context
 
 # Four-layer naming (per-skin aliases)
 attribute alias-ant, value string;         # ant metaphor override
@@ -560,6 +564,34 @@ fun blocked_tasks() -> { task }:
 fun task_blockers($t: task) -> { task }:
     match (blocker: $b, blocked: $t) isa blocks; $b has done false;
     return { $b };
+
+# --- Task Subscription (tag matching) ---
+
+# Tasks matching a unit's tags — "what can I work on?"
+fun tasks_for_unit($u: unit) -> { task }:
+    match $u has tag $tag;
+          $t isa task, has tag $tag, has done false, has task-status "open";
+    return { $t };
+
+# Units matching a task's tags — "who can do this?"
+fun units_for_task($t: task) -> { unit }:
+    match $t has tag $tag;
+          $u isa unit, has tag $tag, has status "active";
+    return { $u };
+
+# Best unit for a task: tag overlap + pheromone strength
+fun best_unit_for_task($t: task) -> unit:
+    match $t has tag $tag;
+          $u isa unit, has tag $tag, has status "active";
+          (source: $any, target: $u) isa path, has strength $s;
+    sort $s desc; limit 1;
+    return $u;
+
+# Tasks by tag (open, sorted by priority)
+fun tasks_by_tag($tag: string) -> { task }:
+    match $t isa task, has tag $tag, has done false, has priority-score $p;
+    sort $p desc;
+    return { $t };
 
 
 # =============================================================================

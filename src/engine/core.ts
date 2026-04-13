@@ -7,8 +7,6 @@
  * selectors, actions, and feedback mechanisms.
  */
 
-import type { Signal } from './world'
-
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -48,7 +46,7 @@ export const loop = <T>(
   sense: Source<T>,
   select: Selector<T>,
   act: Actor<T>,
-  mark: Marker<T>
+  mark: Marker<T>,
 ): (() => Promise<LoopResult<T>>) => {
   return async () => {
     // Sense: observe state
@@ -76,7 +74,7 @@ export const loop = <T>(
 export const compose = <T, U>(
   parent: Loop<T>,
   spawn: (item: T) => Loop<U> | null,
-  merge: (parentOutcome: Outcome, childOutcomes: Outcome[]) => Outcome | Promise<Outcome>
+  merge: (parentOutcome: Outcome, childOutcomes: Outcome[]) => Outcome | Promise<Outcome>,
 ): (() => Promise<LoopResult<T>>) => {
   return async () => {
     const items = await parent.sense()
@@ -93,12 +91,7 @@ export const compose = <T, U>(
     const childOutcomes: Outcome[] = []
 
     if (childLoop) {
-      const childRunner = loop(
-        childLoop.sense,
-        childLoop.select,
-        childLoop.act,
-        childLoop.mark
-      )
+      const childRunner = loop(childLoop.sense, childLoop.select, childLoop.act, childLoop.mark)
       // Run child until exhausted (up to 10 iterations)
       for (let i = 0; i < 10; i++) {
         const { outcome } = await childRunner()
@@ -123,7 +116,7 @@ export const compose = <T, U>(
 export const schedule = <T>(
   runner: () => Promise<LoopResult<T>>,
   interval: number,
-  onResult?: (result: LoopResult<T>) => void
+  onResult?: (result: LoopResult<T>) => void,
 ): (() => void) => {
   let timer: ReturnType<typeof setInterval> | null = null
 

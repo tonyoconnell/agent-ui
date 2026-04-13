@@ -33,7 +33,7 @@ The TODO format:
 1. Report: how many docs processed, how many tasks found per doc
 2. Run the deterministic parser to verify: `scanTodos(docsDir)` from `src/engine/task-parse.ts`
 3. Show the priority breakdown: count per phase, count per value, top 5 by priority score
-4. Suggest: "Run `/sync-docs` to push these to TypeDB"
+4. Suggest: "Run `/sync` to push these to KV (hot) and TypeDB (durable)"
 
 ## Important:
 - Haiku runs ONCE per doc. After that, edit the TODO-{docname}.md files directly.

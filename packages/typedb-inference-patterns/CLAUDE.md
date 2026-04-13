@@ -4,6 +4,21 @@
 
 REFERENCE MATERIAL for the 6 lessons from Deborah Gordon's ant research.
 
+## Substrate Learning
+
+These patterns ARE the learning. The 6 lessons map directly to the runtime:
+
+```
+L1 Classification  → unit_classification() in world.tql  → proven/active/at-risk
+L2 Quality Rules   → path_status() in world.tql          → highway/fresh/fading/toxic
+L3 State Machines  → hypothesis lifecycle                 → pending → testing → confirmed
+L4 Negation        → ready = open AND no incomplete blockers
+L5 Aggregates      → total_contribution(), highway_count()
+L6 Emergence       → frontier detection, autonomous objectives
+```
+
+**Context:** [patterns.md](../../docs/patterns.md) — the 10 patterns that emerge from these 6 lessons. [routing.md](../../docs/routing.md) — how the patterns compose in the sandwich. [rubrics.md](../../docs/rubrics.md) — quality scoring adds resolution to L2.
+
 ## Canonical Schema
 
 The production schema is `src/schema/one.tql`. These standalone files are REFERENCE ONLY — they use different entity names and cannot be loaded alongside one.tql.

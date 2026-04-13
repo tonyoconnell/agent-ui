@@ -23,7 +23,7 @@ type Template = (result: unknown) => Signal
 type Route = (s: Signal, from: string) => void
 
 type SignalData = { marks?: boolean; weight?: number; [k: string]: unknown }
-const asData = (d: unknown): SignalData => (d && typeof d === 'object' ? d as SignalData : {})
+const asData = (d: unknown): SignalData => (d && typeof d === 'object' ? (d as SignalData) : {})
 
 export interface Unit {
   (s: Signal, from?: string): void
@@ -47,7 +47,11 @@ export interface World {
   add: (id: string) => Unit
   remove: (id: string) => void
   signal: (s: Signal, from?: string) => void
-  ask: (s: Signal, from?: string, timeout?: number) => Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean }>
+  ask: (
+    s: Signal,
+    from?: string,
+    timeout?: number,
+  ) => Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean }>
   enqueue: (s: Signal) => void
   drain: () => Signal | null
   pending: () => number
@@ -79,10 +83,10 @@ export const unit = (id: string, route?: Route): Unit => {
     const taskName = receiver.includes(':') ? receiver.split(':')[1] : 'default'
     const task = tasks[taskName] || tasks.default
 
-    const emit: Emit = s => route?.(s, receiver)
+    const emit: Emit = (s) => route?.(s, receiver)
     const ctx = { from, self: receiver }
 
-    task?.(data, emit, ctx).then(result => {
+    task?.(data, emit, ctx).then((result) => {
       // Auto-reply: if signal had replyTo, send result back (closes ask())
       const replyTo = (data as Record<string, unknown>)?.replyTo as string
       replyTo && route?.({ receiver: replyTo, data: result }, receiver)
@@ -91,10 +95,12 @@ export const unit = (id: string, route?: Route): Unit => {
     })
   }
 
-  u.on = (n, f) => (tasks[n] = (d, e, c) => Promise.resolve(f(d, e, c)), u)
-  u.then = (n, t) => (next[n] = t, u)
-  u.role = (n, t, ctx) => (tasks[n] = (d, e, c) => tasks[t]?.({ ...ctx, ...(d as object) }, e, c) ?? Promise.resolve(null), u)
-  u.has = n => n in tasks
+  u.on = (n, f) => ((tasks[n] = (d, e, c) => Promise.resolve(f(d, e, c))), u)
+  u.then = (n, t) => ((next[n] = t), u)
+  u.role = (n, t, ctx) => (
+    (tasks[n] = (d, e, c) => tasks[t]?.({ ...ctx, ...(d as object) }, e, c) ?? Promise.resolve(null)), u
+  )
+  u.has = (n) => n in tasks
   u.list = () => Object.keys(tasks)
   u.id = id
   return u
@@ -130,12 +136,14 @@ export const world = (): World => {
   // sortedCache: lazily rebuilt sorted array for highways().
   // Invalidated on every mark/warn/fade; rebuilt once per read cycle.
   let sortedCache: Edge[] | null = null
-  const invalidate = () => { sortedCache = null }
+  const invalidate = () => {
+    sortedCache = null
+  }
   const sorted = (): Edge[] => {
     if (sortedCache) return sortedCache
     sortedCache = Object.entries(strength)
       .map(([path, s]) => ({ path, strength: s - (resistance[path] || 0) }))
-      .filter(e => e.strength > 0)
+      .filter((e) => e.strength > 0)
       .sort((a, b) => b.strength - a.strength)
     return sortedCache
   }
@@ -171,16 +179,29 @@ export const world = (): World => {
   }
 
   // ask: signal and wait for reply. Returns { result, timeout, dissolved }.
-  const ask = (s: Signal, from = 'entry', timeout = 30000): Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean }> =>
-    new Promise(resolve => {
+  const ask = (
+    s: Signal,
+    from = 'entry',
+    timeout = 30000,
+  ): Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean }> =>
+    new Promise((resolve) => {
       const unitId = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
-      if (!units[unitId]) { resolve({ dissolved: true }); return }  // Fix 4: dissolution is visible
+      if (!units[unitId]) {
+        resolve({ dissolved: true })
+        return
+      } // Fix 4: dissolution is visible
       const rid = `r:${Date.now()}`
       const u = unit(rid, (reply) => signal(reply, rid))
-      u.on('default', (result) => { delete units[rid]; resolve({ result }) })
+      u.on('default', (result) => {
+        delete units[rid]
+        resolve({ result })
+      })
       units[rid] = u
-      signal({ ...s, data: { ...(s.data as object || {}), replyTo: rid } }, from)
-      setTimeout(() => { delete units[rid]; resolve({ timeout: true }) }, timeout)  // Fix 1: timeout ≠ failure
+      signal({ ...s, data: { ...((s.data as object) || {}), replyTo: rid } }, from)
+      setTimeout(() => {
+        delete units[rid]
+        resolve({ timeout: true })
+      }, timeout) // Fix 1: timeout ≠ failure
     })
 
   // queue: signals waiting to be consumed, drained by priority
@@ -189,7 +210,7 @@ export const world = (): World => {
     if (!queue.length) return null
     // Skip signals scheduled for the future
     const now = Date.now()
-    const ready = queue.filter(s => !s.after || s.after <= now)
+    const ready = queue.filter((s) => !s.after || s.after <= now)
     if (!ready.length) return null
     // P0 first: find highest priority signal (lower P number = higher priority)
     let best = 0
@@ -212,17 +233,21 @@ export const world = (): World => {
     let i = queue.length
     while (i--) {
       const uid = queue[i].receiver.includes(':') ? queue[i].receiver.split(':')[0] : queue[i].receiver
-      if (uid === id) { signal(queue[i]); queue.splice(i, 1) }
+      if (uid === id) {
+        signal(queue[i])
+        queue.splice(i, 1)
+      }
     }
     return u
   }
 
   // unit stops receiving. trails remain, fade naturally
-  const remove = (id: string) => { delete units[id] }
+  const remove = (id: string) => {
+    delete units[id]
+  }
 
   // exact segment match: "analyst" matches "scout→analyst:process" but "an" doesn't
-  const matchEdge = (edge: string, type: string) =>
-    edge.split('→').some(s => s.split(':')[0] === type)
+  const matchEdge = (edge: string, type: string) => edge.split('→').some((s) => s.split(':')[0] === type)
 
   // weight factors shared by follow/select
   const edgeWeight = (e: string, net: number, sensitivity: number) => {
@@ -235,7 +260,9 @@ export const world = (): World => {
   // Uses typeIndex when type given: O(k) where k = edges for that type, not O(n) total.
   const follow = (type?: string) => {
     const edges = type
-      ? (typeIndex[type] ? [...typeIndex[type]].filter(e => e in strength) : [])
+      ? typeIndex[type]
+        ? [...typeIndex[type]].filter((e) => e in strength)
+        : []
       : Object.keys(strength)
     let bestEdge: string | null = null
     let bestW = -Infinity
@@ -243,7 +270,10 @@ export const world = (): World => {
       if (type && !matchEdge(e, type)) continue
       const net = (strength[e] || 0) - (resistance[e] || 0)
       const w = edgeWeight(e, net, 1)
-      if (w > 1 && w > bestW) { bestW = w; bestEdge = e }
+      if (w > 1 && w > bestW) {
+        bestW = w
+        bestEdge = e
+      }
     }
     return bestEdge?.split('→').pop()?.split(':')[0] || null
   }
@@ -253,7 +283,9 @@ export const world = (): World => {
   // Uses typeIndex when type given: O(k) instead of O(n).
   const select = (type?: string, sensitivity = 0.7) => {
     const edges = type
-      ? (typeIndex[type] ? [...typeIndex[type]].filter(e => e in strength) : [])
+      ? typeIndex[type]
+        ? [...typeIndex[type]].filter((e) => e in strength)
+        : []
       : Object.keys(strength)
     const viable: [string, number][] = []
     for (const e of edges) {
@@ -264,7 +296,10 @@ export const world = (): World => {
     const pick = (e: string) => e.split('→').pop()?.split(':')[0] || null
     const total = viable.reduce((sum, [, w]) => sum + w, 0)
     let r = Math.random() * total
-    for (const [e, w] of viable) { r -= w; if (r <= 0) return pick(e) }
+    for (const [e, w] of viable) {
+      r -= w
+      if (r <= 0) return pick(e)
+    }
     return pick(viable.at(-1)![0])
   }
 
@@ -275,12 +310,19 @@ export const world = (): World => {
     for (const e in strength) {
       const age = (Date.now() - (lastUsed[e] || 0)) / 3_600_000
       const seasonal = 1 + Math.min(age, 24) / 24
-      strength[e] *= (1 - r * seasonal)
+      strength[e] *= 1 - r * seasonal
       const floor = (peak[e] || 0) * 0.05
       if (strength[e] < floor) strength[e] = floor
-      if (strength[e] < 0.01) { delete strength[e]; delete peak[e]; delete lastUsed[e] }
+      if (strength[e] < 0.01) {
+        delete strength[e]
+        delete peak[e]
+        delete lastUsed[e]
+      }
     }
-    for (const e in resistance) { resistance[e] *= (1 - r * 2); resistance[e] < 0.01 && delete resistance[e] }
+    for (const e in resistance) {
+      resistance[e] *= 1 - r * 2
+      resistance[e] < 0.01 && delete resistance[e]
+    }
     invalidate()
   }
 
@@ -295,14 +337,43 @@ export const world = (): World => {
     revenue[path] = (revenue[path] || 0) + amount
   }
 
-  const isHighway = (path: string, threshold = 20) =>
-    (strength[path] || 0) - (resistance[path] || 0) >= threshold
+  const isHighway = (path: string, threshold = 20) => (strength[path] || 0) - (resistance[path] || 0) >= threshold
 
   const has = (id: string) => id in units
   const list = () => Object.keys(units)
   const get = (id: string) => units[id]
 
-  return { units, strength, resistance, peak, lastUsed, latency, revenue, queue, add, remove, signal, ask, enqueue, drain, pending, mark, warn, sense, danger, follow, select, fade, highways, recordLatency, recordRevenue, isHighway, has, list, get }
+  return {
+    units,
+    strength,
+    resistance,
+    peak,
+    lastUsed,
+    latency,
+    revenue,
+    queue,
+    add,
+    remove,
+    signal,
+    ask,
+    enqueue,
+    drain,
+    pending,
+    mark,
+    warn,
+    sense,
+    danger,
+    follow,
+    select,
+    fade,
+    highways,
+    recordLatency,
+    recordRevenue,
+    isHighway,
+    has,
+    list,
+    get,
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

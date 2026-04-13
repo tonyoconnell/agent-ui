@@ -1,80 +1,100 @@
-export { world, isToxic } from "./persist"
-export type { PersistentWorld, Insight } from "./persist"
-export { world as createWorld, unit } from "./world"
-export type { World, Unit, Signal, Emit, Edge } from "./world"
-export { llm, anthropic, openai } from "./llm"
-export { agent } from "./agent"
-export type { Agent, AgentCtx } from "./agent"
-export { md, parse } from "./md"
-
+export type { Agent, AgentCtx } from './agent'
+export { agent } from './agent'
+export type { AgentSpec, SkillSpec, WorldSpec } from './agent-md'
 // Agent markdown → TypeDB
 export {
-  parse as parseAgentMd,
-  toTypeDB,
-  worldToTypeDB,
-  syncAgent,
-  syncAgentWithIdentity,
-  syncWorld,
-  syncFromMarkdown,
   loadAgent,
   loadWorld,
+  parse as parseAgentMd,
+  parseDirectory,
+  syncAgent,
+  syncAgentWithIdentity,
+  syncFromMarkdown,
+  syncWorld,
+  toTypeDB,
   wireAgent,
   wireWorld,
-  parseDirectory,
-} from "./agent-md"
-export type { AgentSpec, SkillSpec, WorldSpec } from "./agent-md"
+  worldToTypeDB,
+} from './agent-md'
+export { anthropic, llm, openai } from './llm'
+export { md, parse } from './md'
+export type { Insight, PersistentWorld, TaskMatch } from './persist'
+export { isToxic, world } from './persist'
+export type { Edge, Emit, Signal, Unit, World } from './world'
+export { unit, world as createWorld } from './world'
 
 // DocItem, VerifiedItem — import directly from "./doc-scan" (uses Node.js APIs)
 
-// Task management — parse, sync, extract (uses Node.js APIs)
-export { parseTodoFile, computePriority, effectivePriority, scanTodos, EFFORT_MODEL } from "./task-parse"
-export type { Task, Value, Phase, Effort } from "./task-parse"
-export { syncTasks, markTaskDone, loadTasks } from "./task-sync"
-export { extractTasks, extractAndWrite, extractAll } from "./task-extract"
-
-export { agentverse } from "./agentverse"
-export { boot } from "./boot"
-
+export { agentverse } from './agentverse'
+export { boot } from './boot'
 // Bridge — three systems, one truth
-export { resolve, resolvePath, mirrorMark, mirrorWarn, mirrorActor, absorb } from "./bridge"
-
-// Loop system — the one loop
-export { loop, compose, schedule } from "./core"
-export type { Outcome, Source, Selector, Actor, Marker, Loop, LoopResult } from "./core"
-
-// Sources — what to sense
-export { signals, struggling, advisors, highways, surges, unexploredTags, unitGaps, fadeAction, knowAction } from "./sources"
-export type { StrugglingUnit, Advisor, Highway } from "./sources"
-
-// Selectors — how to choose
-export { first, random, byPheromone, weighted, byPriority, priorityWeighted, bySuccessRate, byNeed, fallback, filtered, roundRobin } from "./selectors"
-
-// Composed loops
-export { signalLoop, fadeLoop, evolveLoop, consultLoop, knowLoop, frontierLoop, docLoop, getPriorityEvolve } from "./loops"
-export type { Complete } from "./loops"
-
-// Tick orchestrator
-export { tick, resetTick, getCycle, forceLoop } from "./tick"
-export type { TickResult } from "./tick"
-
-// Legacy tick
-export { tick as legacyTick } from "./loop"
-export type { TickResult as LegacyTickResult } from "./loop"
-
-// ONE v2 (uses Node.js — import directly from "./one", "./one-complete", etc.)
-export { one } from "./one"
-export type { SubstrateConfig, TimerConfig, SopConfig, WorkflowConfig, HandlerConfig } from "./substrate-config"
-export type { TickResult as SubstrateTickResult, SubstrateOptions } from "./substrate"
-export type { Config as ProdConfig, TickResult as ProdTickResult } from "./one-prod"
-
+export { absorb, mirrorActor, mirrorMark, mirrorWarn, resolve, resolvePath } from './bridge'
+export type { DocKey, DocMeta } from './context'
 // Context — docs as knowledge
 export {
-  loadContext,
+  CANONICAL,
   contextForSkill,
-  readDoc,
   docIndex,
   ingestDocs,
+  loadContext,
+  readDoc,
   recallDocs,
-  CANONICAL,
-} from "./context"
-export type { DocKey, DocMeta } from "./context"
+} from './context'
+export type { Actor, Loop, LoopResult, Marker, Outcome, Selector, Source } from './core'
+// Loop system — the one loop
+export { compose, loop, schedule } from './core'
+export type { TickResult as LegacyTickResult } from './loop'
+// Legacy tick
+export { tick as legacyTick } from './loop'
+export type { Complete } from './loops'
+// Composed loops
+export {
+  consultLoop,
+  docLoop,
+  evolveLoop,
+  fadeLoop,
+  frontierLoop,
+  getPriorityEvolve,
+  knowLoop,
+  signalLoop,
+} from './loops'
+// ONE v2 (uses Node.js — import directly from "./one", "./one-complete", etc.)
+export { one } from './one'
+export type { Config as ProdConfig, TickResult as ProdTickResult } from './one-prod'
+// Selectors — how to choose
+export {
+  byNeed,
+  byPheromone,
+  byPriority,
+  bySuccessRate,
+  fallback,
+  filtered,
+  first,
+  priorityWeighted,
+  random,
+  roundRobin,
+  weighted,
+} from './selectors'
+export type { Advisor, Highway, StrugglingUnit } from './sources'
+// Sources — what to sense
+export {
+  advisors,
+  fadeAction,
+  highways,
+  knowAction,
+  signals,
+  struggling,
+  surges,
+  unexploredTags,
+  unitGaps,
+} from './sources'
+export type { SubstrateOptions, TickResult as SubstrateTickResult } from './substrate'
+export type { HandlerConfig, SopConfig, SubstrateConfig, TimerConfig, WorkflowConfig } from './substrate-config'
+export { extractAll, extractAndWrite, extractTasks } from './task-extract'
+export type { Effort, Phase, Task, Value, Wave } from './task-parse'
+// Task management — parse, sync, extract (uses Node.js APIs)
+export { computePriority, EFFORT_MODEL, effectivePriority, parseTodoFile, scanTodos, WAVE_MODEL } from './task-parse'
+export { loadTasks, markTaskDone, syncTasks } from './task-sync'
+export type { TickResult } from './tick'
+// Tick orchestrator
+export { forceLoop, getCycle, resetTick, tick } from './tick'

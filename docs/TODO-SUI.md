@@ -2,6 +2,14 @@
 
 > Goal: deploy to testnet, sync one agent, see it on-chain. Build from real data.
 
+> **Source of truth:** [DSL.md](DSL.md) — signal language,
+> [dictionary.md](dictionary.md) — canonical names,
+> [rubrics.md](rubrics.md) — quality scoring,
+> [speed.md](speed.md) — the benchmarks,
+> [lifecycle.md](lifecycle.md) — crystallize stage
+>
+> **Schema:** Tasks map to `world.tql` dimension 3b. Sui entities mirror in `sui.tql`. Execute with `/wave`. Create with `/todo`.
+
 ---
 
 ## Step 1: Get on Testnet (DO THIS FIRST)
@@ -159,3 +167,15 @@ Total: 33 done, 22 open
 ---
 
 *Deploy first. Verify on-chain. Build from real data.*
+
+---
+
+## See Also
+
+- [DSL.md](DSL.md) — the signal language (always loaded)
+- [dictionary.md](dictionary.md) — everything named (always loaded)
+- [rubrics.md](rubrics.md) — quality scoring as tagged edges
+- [speed.md](speed.md) — crystallization speed: sub-second Sui finality
+- [lifecycle.md](lifecycle.md) — stage 8: CRYSTALLIZE (highway → Sui → permanent proof)
+- [TODO-template.md](TODO-template.md) — the wave pattern
+- [TODO-task-management.md](TODO-task-management.md) — self-learning task system

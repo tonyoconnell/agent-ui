@@ -1,5 +1,13 @@
 # TODO: ONE-strategy
 
+> **Source of truth:** [DSL.md](DSL.md) — signal language,
+> [dictionary.md](dictionary.md) — canonical names,
+> [rubrics.md](rubrics.md) — quality scoring,
+> [speed.md](speed.md) — the benchmarks,
+> [lifecycle.md](lifecycle.md) — into/through/out
+>
+> **Schema:** Tasks map to `world.tql` dimension 3b. Execute with `/wave`. Create with `/todo`.
+
 - [x] Prove deterministic routing speed: <0.01ms per decision
   value: critical
   effort: low
@@ -125,3 +133,15 @@
   blocks: domains-live
   exit: creator.domain → agents live, branded, routing under your control
   tags: integration, branding, P1, expansion
+
+---
+
+## See Also
+
+- [DSL.md](DSL.md) — the signal language (always loaded)
+- [dictionary.md](dictionary.md) — everything named (always loaded)
+- [rubrics.md](rubrics.md) — quality scoring as tagged edges
+- [speed.md](speed.md) — why the learning rate matters
+- [lifecycle.md](lifecycle.md) — into/through/out
+- [TODO-template.md](TODO-template.md) — the wave pattern
+- [TODO-task-management.md](TODO-task-management.md) — self-learning task system

@@ -7,25 +7,26 @@
 
 import { readParsed, writeSilent } from '@/lib/typedb'
 import type { PersistentWorld } from './persist'
+
 // doc-scan and node:path imported dynamically to avoid Cloudflare bundling issues
 
 type Complete = (prompt: string) => Promise<string>
 
 // ── Named constants ─────────────────────────────────────────────────────
-const HIGHWAY_THRESHOLD = 20       // net strength to skip LLM (confidence-based routing)
-const CHAIN_CAP = 5                // max chain depth multiplier
-const FADE_INTERVAL = 300_000      // 5 minutes between decay cycles
+const HIGHWAY_THRESHOLD = 20 // net strength to skip LLM (confidence-based routing)
+const CHAIN_CAP = 5 // max chain depth multiplier
+const FADE_INTERVAL = 300_000 // 5 minutes between decay cycles
 const FADE_RATE = 0.05
-const EVOLUTION_INTERVAL = 600_000      // 10 minutes between evolution sweeps
-const EVOLUTION_COOLDOWN = 86_400_000   // 24 hours between rewrites per agent
-const EVOLUTION_THRESHOLD = 0.50        // success rate below which agents evolve
-const PRIORITY_EVOLUTION_THRESHOLD = 0.65  // relaxed threshold for priority units
+const EVOLUTION_INTERVAL = 600_000 // 10 minutes between evolution sweeps
+const EVOLUTION_COOLDOWN = 86_400_000 // 24 hours between rewrites per agent
+const EVOLUTION_THRESHOLD = 0.5 // success rate below which agents evolve
+const PRIORITY_EVOLUTION_THRESHOLD = 0.65 // relaxed threshold for priority units
 const EVOLUTION_MIN_SAMPLES = 20
-const REVENUE_SKIP_THRESHOLD = 1.0      // revenue above which low-success agents are spared
-const REVENUE_MIN_SUCCESS = 0.30        // min success rate even for profitable agents
-const CRYSTALLIZE_INTERVAL = 3_600_000  // 1 hour between knowledge cycles
-const SURGE_THRESHOLD = 10              // strength delta to flag as surge
-const FRONTIER_MIN_ACTIVITY = 3         // min edges involving a unit to consider it active
+const REVENUE_SKIP_THRESHOLD = 1.0 // revenue above which low-success agents are spared
+const REVENUE_MIN_SUCCESS = 0.3 // min success rate even for profitable agents
+const CRYSTALLIZE_INTERVAL = 3_600_000 // 1 hour between knowledge cycles
+const SURGE_THRESHOLD = 10 // strength delta to flag as surge
+const FRONTIER_MIN_ACTIVITY = 3 // min edges involving a unit to consider it active
 
 export type TickResult = {
   cycle: number
@@ -95,24 +96,82 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
   }
 
   // L1b: TASK ORCHESTRATION — pick highest-priority open task
-  // Runs when pheromone routing found nothing or failed (dissolved/no result)
+  // If previousTarget exists, try tag-filtered selection first (subscription routing).
+  // Falls back to global priority if no tag match.
   if (!result.selected || result.success === false) {
-    const topTasks = await readParsed(`
-      match $t isa task, has task-id $id, has name $name, has done false,
-        has priority-score $p, has task-status "open";
-      select $id, $name, $p;
-      sort $p desc; limit 1;
-    `).catch(() => [])
+    let topTasks: Record<string, unknown>[] = []
+
+    // Try tag-filtered first: if we have a known executor, match its tags
+    if (previousTarget) {
+      topTasks = await readParsed(`
+        match $u isa unit, has uid "${previousTarget}", has tag $tag;
+        $t isa task, has task-id $id, has name $name, has done false,
+          has priority-score $p, has task-status "open", has tag $tag;
+        $t has task-effort $effort, has task-phase $phase;
+        select $id, $name, $p, $effort, $phase;
+        sort $p desc; limit 1;
+      `).catch(() => [])
+    }
+
+    // Fallback: global priority (no tag filter)
+    if (!topTasks.length) {
+      topTasks = await readParsed(`
+        match $t isa task, has task-id $id, has name $name, has done false,
+          has priority-score $p, has task-status "open";
+        $t has task-effort $effort, has task-phase $phase;
+        select $id, $name, $p, $effort, $phase;
+        sort $p desc; limit 1;
+      `).catch(() =>
+        readParsed(`
+          match $t isa task, has task-id $id, has name $name, has done false,
+            has priority-score $p, has task-status "open";
+          select $id, $name, $p;
+          sort $p desc; limit 1;
+        `).catch(() => []),
+      )
+    }
 
     if (topTasks.length > 0) {
       const taskId = topTasks[0].id as string
       const taskName = topTasks[0].name as string
       const taskPriority = topTasks[0].p as number
+      const taskEffort = (topTasks[0].effort as string) || 'medium'
+      const taskPhase = (topTasks[0].phase as string) || 'C4'
       result.task = { id: taskId, name: taskName, priority: taskPriority }
       result.selected = taskId
 
-      // Route as signal: enqueue for the builder unit
-      const taskSignal = { receiver: `builder:${taskId}`, data: { taskId, taskName, taskPriority } }
+      // Load task context: exit condition, tags, wave, context docs
+      const taskMeta = await readParsed(`
+        match $t isa task, has task-id "${taskId}";
+        $t has exit-condition $exit;
+        select $exit;
+      `).catch(() => [])
+      const exitCondition = (taskMeta[0]?.exit as string) || ''
+
+      // Load context doc keys if set
+      const ctxRows = await readParsed(`
+        match $t isa task, has task-id "${taskId}", has task-context $ctx;
+        select $ctx;
+      `).catch(() => [])
+      const contextDocs = ctxRows.length ? (ctxRows[0].ctx as string).split(',').map((s) => s.trim()) : []
+
+      // Load hypotheses about this task path (what the graph has learned)
+      const learned = await net.recall(taskId).catch(() => [])
+
+      // Route as signal: enqueue for the builder unit WITH full context
+      const taskSignal = {
+        receiver: `builder:${taskId}`,
+        data: {
+          taskId,
+          taskName,
+          taskPriority,
+          effort: taskEffort,
+          phase: taskPhase,
+          exit: exitCondition,
+          contextDocs,
+          learned: learned.slice(0, 5),
+        },
+      }
       const edge = `loop→builder:${taskId}`
 
       // Try to execute via ask (if builder has a handler)
@@ -177,10 +236,10 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     `).catch(() => [])
 
     // Deduplicate by unit id (query returns one row per skill×tag)
-    const unitIds = [...new Set(struggling.map(s => s.id as string))]
+    const unitIds = [...new Set(struggling.map((s) => s.id as string))]
 
     for (const uid of unitIds) {
-      const u = struggling.find(s => s.id === uid)!
+      const u = struggling.find((s) => s.id === uid)!
       const isPriority = priorityEvolve.includes(uid)
 
       // Priority units evolve with a relaxed threshold
@@ -196,14 +255,20 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       if (totalRevenue > REVENUE_SKIP_THRESHOLD && (u.sr as number) > REVENUE_MIN_SUCCESS) continue
 
       // EV-2: Gather skill info for targeted feedback
-      const skillInfo = struggling.filter(s => s.id === uid).map(s => `${s.sid} [${s.tag}]`).join(', ')
+      const skillInfo = struggling
+        .filter((s) => s.id === uid)
+        .map((s) => `${s.sid} [${s.tag}]`)
+        .join(', ')
 
       // KL-2: Hypothesis → evolution link — include confirmed insights
       const knownPatterns = await net.recall(uid).catch(() => [])
-      const insights = knownPatterns.filter(k => k.confidence > 0.7).map(k => k.pattern).join('; ')
+      const insights = knownPatterns
+        .filter((k) => k.confidence > 0.7)
+        .map((k) => k.pattern)
+        .join('; ')
 
       const prompt = await complete(
-        `Agent "${uid}" has ${((u.sr as number) * 100).toFixed(0)}% success over ${u.sc} tasks (gen ${u.g}). Skills: ${skillInfo}. Known patterns: ${insights || 'none'}. Rewrite its prompt to improve:\n\n${u.sp}`
+        `Agent "${uid}" has ${((u.sr as number) * 100).toFixed(0)}% success over ${u.sc} tasks (gen ${u.g}). Skills: ${skillInfo}. Known patterns: ${insights || 'none'}. Rewrite its prompt to improve:\n\n${u.sp}`,
       ).catch(() => null)
       if (!prompt) continue
 
@@ -232,7 +297,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
 
     // L6: auto-hypothesize from state changes
     let hypoCount = 0
-    for (const i of insights.filter(i => i.confidence >= 0.8)) {
+    for (const i of insights.filter((i) => i.confidence >= 0.8)) {
       writeSilent(`
         insert $h isa hypothesis, has hid "path-${i.pattern.replace(/[→:]/g, '-')}-${cycle}",
           has statement "path ${i.pattern} is proven (confidence ${i.confidence.toFixed(2)})",
@@ -240,7 +305,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       `).catch(() => {})
       hypoCount++
     }
-    for (const f of net.highways(50).filter(h => h.strength >= 10 && h.strength < 20)) {
+    for (const f of net.highways(50).filter((h) => h.strength >= 10 && h.strength < 20)) {
       writeSilent(`
         insert $h isa hypothesis, has hid "fade-${f.path.replace(/[→:]/g, '-')}-${cycle}",
           has statement "path ${f.path} is degrading (strength ${f.strength.toFixed(1)})",
@@ -262,11 +327,11 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         hypoCount++
       }
     }
-    lastStrengths = Object.fromEntries(net.highways(100).map(h => [h.path, h.strength]))
+    lastStrengths = Object.fromEntries(net.highways(100).map((h) => [h.path, h.strength]))
 
     // LC-1: Knowledge → Evolution coupling — strong patterns trigger priority evolution
-    for (const i of insights.filter(i => i.confidence >= 0.8)) {
-      const units = i.pattern.split('→').map(s => s.split(':')[0])
+    for (const i of insights.filter((i) => i.confidence >= 0.8)) {
+      const units = i.pattern.split('→').map((s) => s.split(':')[0])
       priorityEvolve.push(...units)
     }
 
@@ -277,10 +342,10 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     const byTag: Record<string, string[]> = {}
     for (const r of tagRows) (byTag[r.tag as string] ||= []).push(r.sid as string)
 
-    const explored = new Set(Object.keys(net.strength).flatMap(e => e.split('→')))
+    const explored = new Set(Object.keys(net.strength).flatMap((e) => e.split('→')))
     let frontierCount = 0
     for (const [tag, skills] of Object.entries(byTag)) {
-      const unexplored = skills.filter(s => !explored.has(s))
+      const unexplored = skills.filter((s) => !explored.has(s))
       if (unexplored.length > skills.length * 0.7 && unexplored.length >= 3) {
         writeSilent(`
           insert $f isa frontier, has fid "tag-${tag}-${cycle}",
@@ -301,8 +366,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         const edgeRev = `${allUnits[j]}→${allUnits[i]}`
         if (!explored.has(allUnits[i]) || !explored.has(allUnits[j])) continue
         if (net.sense(edgeFwd) === 0 && net.sense(edgeRev) === 0) {
-          const actI = Object.keys(net.strength).filter(e => e.includes(allUnits[i])).length
-          const actJ = Object.keys(net.strength).filter(e => e.includes(allUnits[j])).length
+          const actI = Object.keys(net.strength).filter((e) => e.includes(allUnits[i])).length
+          const actJ = Object.keys(net.strength).filter((e) => e.includes(allUnits[j])).length
           if (actI >= FRONTIER_MIN_ACTIVITY && actJ >= FRONTIER_MIN_ACTIVITY) {
             writeSilent(`
               insert $f isa frontier, has fid "gap-${allUnits[i]}-${allUnits[j]}-${cycle}",
@@ -324,7 +389,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       const { scanDocs } = await import('./doc-scan')
       const docsDir = join(process.cwd(), 'docs')
       const docItems = await scanDocs(docsDir)
-      const openItems = docItems.filter(i => !i.done)
+      const openItems = docItems.filter((i) => !i.done)
 
       // Ensure builder unit exists for capability relations
       await writeSilent(`
@@ -334,7 +399,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       `).catch(() => {}) // Ignore if already exists
 
       for (const item of openItems) {
-        const tags = [...new Set(item.tags)].map(t => `has tag "${t.replace(/"/g, "'")}"`)
+        const tags = [...new Set(item.tags)].map((t) => `has tag "${t.replace(/"/g, "'")}"`)
         const nameEsc = item.name.replace(/"/g, "'").slice(0, 200)
         const skillId = item.id.replace(/"/g, "'")
 
@@ -352,7 +417,9 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
 
         docsSynced++
       }
-    } catch { /* docs scan is best-effort */ }
+    } catch {
+      /* docs scan is best-effort */
+    }
 
     lastCrystallize = now
     result.crystallized = insights.length

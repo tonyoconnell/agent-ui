@@ -10,5 +10,20 @@
     },
     "jsx": "preserve",
     "jsxImportSource": "react"
-  }
+  },
+  "exclude": [
+    "src/components/design/**",
+    "src/components/ai/**",
+    "src/hooks/ai/**",
+    "src/hooks/use-toast.ts",
+    "src/lib/streamSignals.ts",
+    "src/lib/tools/**",
+    "src/engine/archive/**",
+    "src/engine/llm-router.test.ts",
+    "src/components/world/WorldChat.tsx",
+    "src/pages/api/export/public/**",
+    "src/pages/api/entity/**",
+    "packages/**",
+    "scripts/**"
+  ]
 }

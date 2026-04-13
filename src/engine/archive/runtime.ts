@@ -1,5 +1,5 @@
-import type { Envelope } from "./types"
-import type { Agent } from "./agent"
+import type { Agent } from './agent'
+import type { Envelope } from './types'
 
 export class Runtime {
   private agents = new Map<string, Agent>()
@@ -14,7 +14,7 @@ export class Runtime {
   }
 
   private async route(envelope: Envelope): Promise<void> {
-    const agent = this.agents.get(envelope.metadata?.receiver || "")
+    const agent = this.agents.get(envelope.metadata?.receiver || '')
     if (!agent) throw new Error(`Agent not found: ${envelope.metadata?.receiver}`)
     agent.envelopes.push(envelope)
     await agent.execute(envelope)

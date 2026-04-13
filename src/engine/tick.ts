@@ -14,23 +14,38 @@
  */
 
 import { loop } from './core'
-import { signalLoop, fadeLoop, evolveLoop, knowLoop, frontierLoop, getPriorityEvolve, type Complete } from './loops'
+import { type Complete, evolveLoop, fadeLoop, frontierLoop, knowLoop, signalLoop } from './loops'
+
 // Inline type to avoid pulling doc-scan into the Cloudflare bundle
-type VerifiedItem = { id: string; name: string; source: string; section: string; tags: string[]; priority: 'P0' | 'P1' | 'P2' | 'P3'; done: boolean; verified: boolean; line: number; raw: string; target?: string; evidence?: string }
-import { byPriority } from './selectors'
+type VerifiedItem = {
+  id: string
+  name: string
+  source: string
+  section: string
+  tags: string[]
+  priority: 'P0' | 'P1' | 'P2' | 'P3'
+  done: boolean
+  verified: boolean
+  line: number
+  raw: string
+  target?: string
+  evidence?: string
+}
+
 // docMark imported inline below to avoid Cloudflare bundling issues
 import type { PersistentWorld } from './persist'
+import { byPriority } from './selectors'
 
 // ══════════════════════════════════════════════════���════════════════════════
 // INTERVALS
 // ═══════════════════════════════════════════════════════════════════════════
 
 const INTERVALS = {
-  fade:     300_000,    // 5 minutes
-  evolve:   600_000,    // 10 minutes
-  know:     3_600_000,  // 1 hour
-  frontier: 3_600_000,  // 1 hour
-  docs:     3_600_000,  // 1 hour
+  fade: 300_000, // 5 minutes
+  evolve: 600_000, // 10 minutes
+  know: 3_600_000, // 1 hour
+  frontier: 3_600_000, // 1 hour
+  docs: 3_600_000, // 1 hour
 } as const
 
 type LoopName = keyof typeof INTERVALS
@@ -78,7 +93,7 @@ const createDocLoop = (net: PersistentWorld, docsDir: string) => {
         docSpecs(docsDir),
         byPriority(),
         async () => ({ result: null }),
-        docMark(net.mark.bind(net), net.warn.bind(net))
+        docMark(net.mark.bind(net), net.warn.bind(net)),
       )
     }
     return _loop()
@@ -89,11 +104,7 @@ const createDocLoop = (net: PersistentWorld, docsDir: string) => {
 // THE TICK
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const tick = async (
-  net: PersistentWorld,
-  complete?: Complete,
-  docsDir = 'docs'
-): Promise<TickResult> => {
+export const tick = async (net: PersistentWorld, complete?: Complete, docsDir = 'docs'): Promise<TickResult> => {
   const now = Date.now()
   cycle++
 
@@ -109,8 +120,7 @@ export const tick = async (
   if (sigResult.item) {
     result.signal = {
       selected: sigResult.item.receiver,
-      success: sigResult.outcome?.result !== undefined ? true :
-               sigResult.outcome?.timeout ? null : false,
+      success: sigResult.outcome?.result !== undefined ? true : sigResult.outcome?.timeout ? null : false,
       skipped: sigResult.outcome?.result === 'highway',
     }
   }
@@ -162,7 +172,8 @@ export const tick = async (
   if (shouldRun('docs', now)) {
     const docLoop = createDocLoop(net, docsDir)
     // Run multiple iterations to scan all gaps
-    let verified = 0, gaps = 0
+    let verified = 0,
+      gaps = 0
     for (let i = 0; i < 50; i++) {
       const docResult = await docLoop()
       if (!docResult.item) break
@@ -184,8 +195,7 @@ export const tick = async (
 // HELPERS
 // ══════════════════════════════════════════════════════��════════════════════
 
-const shouldRun = (name: LoopName, now: number): boolean =>
-  now - lastRun[name] >= INTERVALS[name]
+const shouldRun = (name: LoopName, now: number): boolean => now - lastRun[name] >= INTERVALS[name]
 
 /**
  * Reset tick state (for testing)

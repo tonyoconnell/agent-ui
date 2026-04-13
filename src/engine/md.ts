@@ -5,7 +5,7 @@
  * Steps, skills, arrows, intervals, memory (per-user), tiers, secrets, tools, price.
  */
 
-import { agent, type Agent } from './agent'
+import { type Agent, agent } from './agent'
 import type { World } from './world'
 
 type Complete = (prompt: string, ctx?: Record<string, unknown>) => Promise<string>
@@ -42,7 +42,8 @@ type AgentSpec = {
 const parseInterval = (header: string): number | null => {
   const m = header.match(/(\d+)\s*(seconds?|minutes?|hours?|mins?|hrs?|s|m|h)/)
   if (!m) return null
-  const n = +m[1], u = m[2][0]
+  const n = +m[1],
+    u = m[2][0]
   return n * ({ s: 1, m: 60, h: 3600 } as Record<string, number>)[u]
 }
 
@@ -51,13 +52,37 @@ const parseTier = (line: string): TierSpec | null => {
   if (!m) return null
   const [, name, threshold, token, rest] = m
   const qm = rest.match(/^(\d+)\/(hour|day|minute)\s*,?\s*(.*)/)
-  if (qm) return { name, quota: +qm[1], period: qm[2], description: qm[3], threshold: +(threshold || 0), token: token ? `$${token}` : '' }
-  return { name, period: 'hour', description: rest.replace(/^unlimited\s*,?\s*/, ''), threshold: +(threshold || 0), token: token ? `$${token}` : '' }
+  if (qm)
+    return {
+      name,
+      quota: +qm[1],
+      period: qm[2],
+      description: qm[3],
+      threshold: +(threshold || 0),
+      token: token ? `$${token}` : '',
+    }
+  return {
+    name,
+    period: 'hour',
+    description: rest.replace(/^unlimited\s*,?\s*/, ''),
+    threshold: +(threshold || 0),
+    token: token ? `$${token}` : '',
+  }
 }
 
 export const parse = (md: string): AgentSpec => {
   const lines = md.split('\n')
-  const spec: AgentSpec = { id: '', personality: '', steps: [], skills: [], memory: {}, perUser: false, tiers: [], secrets: [], tools: [] }
+  const spec: AgentSpec = {
+    id: '',
+    personality: '',
+    steps: [],
+    skills: [],
+    memory: {},
+    perUser: false,
+    tiers: [],
+    secrets: [],
+    tools: [],
+  }
   let section = 'top'
   let pending: SkillSpec | null = null
   const intervalLines: string[] = []
@@ -83,17 +108,21 @@ export const parse = (md: string): AgentSpec => {
       const hl = header.toLowerCase()
       if (hl === 'steps') section = 'steps'
       else if (hl === 'skills') section = 'skills'
-      else if (hl.startsWith('remember')) { section = 'remember'; spec.perUser = hl.includes('per-user') || hl.includes('per user') }
-      else if (hl === 'tools') section = 'tools'
+      else if (hl.startsWith('remember')) {
+        section = 'remember'
+        spec.perUser = hl.includes('per-user') || hl.includes('per user')
+      } else if (hl === 'tools') section = 'tools'
       else if (hl === 'tiers') section = 'tiers'
       else if (hl === 'secrets') section = 'secrets'
       else if (hl === 'price') section = 'price'
       else if (hl.startsWith('every')) {
         section = 'every'
         const secs = parseInterval(header)
-        if (secs) { spec.interval = { seconds: secs, prompt: '' }; intervalLines.length = 0 }
-      }
-      else section = 'other'
+        if (secs) {
+          spec.interval = { seconds: secs, prompt: '' }
+          intervalLines.length = 0
+        }
+      } else section = 'other'
       continue
     }
 
@@ -103,36 +132,66 @@ export const parse = (md: string): AgentSpec => {
     }
 
     if (line.startsWith('→') || line.startsWith('->')) {
-      const targets = line.replace(/^(→|->)\s*/, '').split(',').map(t => t.trim()).filter(Boolean)
+      const targets = line
+        .replace(/^(→|->)\s*/, '')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
       if (pending) pending.targets = targets
       continue
     }
 
     if (section === 'steps') {
       const m = line.match(/^\d+\.\s+\*{0,2}(\w[\w-]*)\*{0,2}\s*[—–-]\s*(.+)/)
-      if (m) { flush(); pending = { name: m[1], prompt: m[2] }; continue }
+      if (m) {
+        flush()
+        pending = { name: m[1], prompt: m[2] }
+        continue
+      }
     }
 
     if (section === 'skills') {
       const m = line.match(/^[-*]\s+\*{0,2}(\w[\w-]*)\*{0,2}\s*[—–-]\s*(.+)/)
-      if (m) { flush(); pending = { name: m[1], prompt: m[2] }; continue }
+      if (m) {
+        flush()
+        pending = { name: m[1], prompt: m[2] }
+        continue
+      }
     }
 
-    if (section === 'every' && line) { intervalLines.push(line); continue }
+    if (section === 'every' && line) {
+      intervalLines.push(line)
+      continue
+    }
 
     if (section === 'remember') {
       const m = line.match(/^[-*]\s+(\w[\w-]*):\s*(.+)/)
       if (m) {
         const v = m[2].trim()
-        spec.memory[m[1]] = v === 'true' ? true : v === 'false' ? false : isNaN(+v) ? v : +v
+        spec.memory[m[1]] = v === 'true' ? true : v === 'false' ? false : Number.isNaN(+v) ? v : +v
         continue
       }
     }
 
-    if (section === 'tiers') { const t = parseTier(line); if (t) spec.tiers.push(t); continue }
-    if (section === 'secrets') { const m = line.match(/^[-*]\s+(\w+)/); if (m) spec.secrets.push(m[1]); continue }
-    if (section === 'tools') { const m = line.match(/^[-*]\s+(\w[\w-]*)/); if (m) spec.tools.push(m[1]); continue }
-    if (section === 'price') { const m = line.match(/^([\d.]+)\s*(\w+)?/); if (m) spec.price = { amount: +m[1], currency: m[2] || 'USDC' }; continue }
+    if (section === 'tiers') {
+      const t = parseTier(line)
+      if (t) spec.tiers.push(t)
+      continue
+    }
+    if (section === 'secrets') {
+      const m = line.match(/^[-*]\s+(\w+)/)
+      if (m) spec.secrets.push(m[1])
+      continue
+    }
+    if (section === 'tools') {
+      const m = line.match(/^[-*]\s+(\w[\w-]*)/)
+      if (m) spec.tools.push(m[1])
+      continue
+    }
+    if (section === 'price') {
+      const m = line.match(/^([\d.]+)\s*(\w+)?/)
+      if (m) spec.price = { amount: +m[1], currency: m[2] || 'USDC' }
+    }
   }
 
   flush()
@@ -144,7 +203,12 @@ export const parse = (md: string): AgentSpec => {
 // BUILD — wire spec into substrate agent
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const md = (source: string, net: World, complete: Complete, tools?: Record<string, (...args: unknown[]) => unknown>): Agent => {
+export const md = (
+  source: string,
+  net: World,
+  complete: Complete,
+  tools?: Record<string, (...args: unknown[]) => unknown>,
+): Agent => {
   const spec = parse(source)
   const a = agent(spec.id, net)
 
@@ -162,12 +226,12 @@ export const md = (source: string, net: World, complete: Complete, tools?: Recor
       const mem = Object.fromEntries(ctx.memory.entries())
       const memCtx = Object.keys(mem).length ? `\n\nYour memory:\n${JSON.stringify(mem)}` : ''
       const result = await complete(`${step.prompt}\n\nInput:\n${input}${memCtx}`, { system: spec.personality })
-      step.targets?.forEach(t => ctx.emit({ receiver: t, data: { result } }))
+      step.targets?.forEach((t) => ctx.emit({ receiver: t, data: { result } }))
       return { result }
     })
     if (i < spec.steps.length - 1) a.pipe(step.name, spec.steps[i + 1].name)
     if (i === spec.steps.length - 1 && step.targets?.length) {
-      step.targets.forEach(t => a.pipe(step.name, t))
+      step.targets.forEach((t) => a.pipe(step.name, t))
     }
   }
 
@@ -178,7 +242,7 @@ export const md = (source: string, net: World, complete: Complete, tools?: Recor
       const mem = Object.fromEntries(ctx.memory.entries())
       const memCtx = Object.keys(mem).length ? `\n\nYour memory:\n${JSON.stringify(mem)}` : ''
       const result = await complete(`${skill.prompt}\n\nInput:\n${input}${memCtx}`, { system: spec.personality })
-      skill.targets?.forEach(t => ctx.emit({ receiver: t, data: { result } }))
+      skill.targets?.forEach((t) => ctx.emit({ receiver: t, data: { result } }))
       return { result }
     })
   }

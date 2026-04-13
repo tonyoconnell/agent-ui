@@ -29,6 +29,7 @@ async function node() {
 export type Value = 'critical' | 'high' | 'medium'
 export type Phase = 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7'
 export type Effort = 'low' | 'medium' | 'high'
+export type Wave = 'W1' | 'W2' | 'W3' | 'W4'
 
 // Effort → model mapping: low=haiku, medium=sonnet, high=opus
 export const EFFORT_MODEL: Record<Effort, string> = {
@@ -37,14 +38,24 @@ export const EFFORT_MODEL: Record<Effort, string> = {
   high: 'opus',
 }
 
+// Wave → model mapping: W1=haiku (recon), W2=opus (decide), W3=sonnet (edit), W4=sonnet (verify)
+export const WAVE_MODEL: Record<Wave, string> = {
+  W1: 'haiku',
+  W2: 'opus',
+  W3: 'sonnet',
+  W4: 'sonnet',
+}
+
 export interface Task {
   id: string
   name: string
   done: boolean
   value: Value
   effort: Effort
+  wave: Wave
   phase: Phase
   persona: string
+  context: string[]
   blocks: string[]
   exit: string
   tags: string[]
@@ -59,13 +70,22 @@ export interface Task {
 const VALUE_SCORES: Record<Value, number> = { critical: 30, high: 25, medium: 20 }
 const PHASE_SCORES: Record<Phase, number> = { C1: 40, C2: 35, C3: 30, C4: 25, C5: 20, C6: 15, C7: 10 }
 const PERSONA_SCORES: Record<string, number> = {
-  ceo: 25, dev: 20, investor: 15, gamer: 15, kid: 10, freelancer: 10, agent: 5,
+  ceo: 25,
+  dev: 20,
+  investor: 15,
+  gamer: 15,
+  kid: 10,
+  freelancer: 10,
+  agent: 5,
 }
 
 // ── Priority Formula ────────────────────────────────────────────────────
 
 export function computePriority(
-  value: Value, phase: Phase, persona: string, blockingCount: number
+  value: Value,
+  phase: Phase,
+  persona: string,
+  blockingCount: number,
 ): { score: number; formula: string } {
   const v = VALUE_SCORES[value] ?? 20
   const p = PHASE_SCORES[phase] ?? 25
@@ -80,9 +100,7 @@ export function computePriority(
   return { score, formula }
 }
 
-export function effectivePriority(
-  score: number, strength: number, resistance: number, sensitivity = 0.7
-): number {
+export function effectivePriority(score: number, strength: number, resistance: number, sensitivity = 0.7): number {
   return score + (strength - resistance) * sensitivity
 }
 
@@ -101,7 +119,7 @@ function slugify(text: string): string {
 // ── Parser ──────────────────────────────────────────────────────────────
 
 const CHECKBOX = /^- \[([ x])\] (.+)$/
-const META = /^  (\w[\w-]*):\s*(.+)$/
+const META = /^ {2}(\w[\w-]*):\s*(.+)$/
 
 export function parseTodoFile(content: string, source: string): Task[] {
   const lines = content.split('\n')
@@ -113,8 +131,10 @@ export function parseTodoFile(content: string, source: string): Task[] {
     if (!current?.name) return
     const value = (current.value as Value) || 'medium'
     const effort = (current.effort as Effort) || 'medium'
+    const wave = (current.wave as Wave) || 'W3'
     const phase = (current.phase as Phase) || 'C4'
     const persona = current.persona || 'agent'
+    const context = current.context || []
     const blocks = current.blocks || []
     const { score, formula } = computePriority(value, phase, persona, blocks.length)
 
@@ -124,8 +144,10 @@ export function parseTodoFile(content: string, source: string): Task[] {
       done: current.done ?? false,
       value,
       effort,
+      wave,
       phase,
       persona,
+      context,
       blocks,
       exit: current.exit || '',
       tags: current.tags || [],
@@ -155,14 +177,45 @@ export function parseTodoFile(content: string, source: string): Task[] {
       if (metaMatch) {
         const [, key, val] = metaMatch
         switch (key) {
-          case 'value': current.value = val.trim() as Value; break
-          case 'effort': current.effort = val.trim() as Effort; break
-          case 'phase': current.phase = val.trim() as Phase; break
-          case 'persona': current.persona = val.trim(); break
-          case 'blocks': current.blocks = val.split(',').map(s => s.trim()).filter(Boolean); break
-          case 'exit': current.exit = val.trim(); break
-          case 'tags': current.tags = val.split(',').map(s => s.trim()).filter(Boolean); break
-          case 'id': current.id = val.trim(); break
+          case 'value':
+            current.value = val.trim() as Value
+            break
+          case 'effort':
+            current.effort = val.trim() as Effort
+            break
+          case 'wave':
+            current.wave = val.trim() as Wave
+            break
+          case 'phase':
+            current.phase = val.trim() as Phase
+            break
+          case 'persona':
+            current.persona = val.trim()
+            break
+          case 'context':
+            current.context = val
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+            break
+          case 'blocks':
+            current.blocks = val
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+            break
+          case 'exit':
+            current.exit = val.trim()
+            break
+          case 'tags':
+            current.tags = val
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+            break
+          case 'id':
+            current.id = val.trim()
+            break
         }
       } else if (line.trim() === '' || line.startsWith('#')) {
         // blank line or heading ends the current item's metadata
@@ -174,7 +227,7 @@ export function parseTodoFile(content: string, source: string): Task[] {
   // Recompute priorities now that we know all blocking counts
   const blockCounts = new Map<string, number>()
   for (const t of tasks) {
-    for (const b of t.blocks) {
+    for (const _b of t.blocks) {
       blockCounts.set(t.id, (blockCounts.get(t.id) || 0) + 1)
     }
   }
@@ -182,13 +235,13 @@ export function parseTodoFile(content: string, source: string): Task[] {
   const blockerCounts = new Map<string, number>()
   for (const t of tasks) {
     for (const b of t.blocks) {
-      blockerCounts.set(b, (blockerCounts.get(b) || 0))
+      blockerCounts.set(b, blockerCounts.get(b) || 0)
     }
   }
   // Count how many tasks list each ID in their blocks
   const blocksOthers = new Map<string, number>()
   for (const t of tasks) {
-    for (const dep of t.blocks) {
+    for (const _dep of t.blocks) {
       // t blocks dep — meaning dep can't start until t is done
       // Actually: "blocks: X" means THIS task blocks X
       blocksOthers.set(t.id, (blocksOthers.get(t.id) || 0) + 1)
@@ -224,7 +277,7 @@ export async function scanTodos(docsDir: string): Promise<Task[]> {
 
   // Deduplicate by id (first wins)
   const seen = new Set<string>()
-  return all.filter(t => {
+  return all.filter((t) => {
     if (seen.has(t.id)) return false
     seen.add(t.id)
     return true

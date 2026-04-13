@@ -20,11 +20,11 @@
  * Markdown → AgentSpec → Runtime unit
  */
 
-import { write, writeSilent, readParsed } from '@/lib/typedb'
-import { world as createWorld, type World } from './world'
-import { loadContext, type DocKey } from './context'
-import type { PersistentWorld } from './persist'
 import { addressFor, createUnit as createUnitOnChain, registerTask as registerTaskOnChain } from '@/lib/sui'
+import { readParsed, write, writeSilent } from '@/lib/typedb'
+import { loadContext } from './context'
+import type { PersistentWorld } from './persist'
+import type { World } from './world'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -45,12 +45,12 @@ export interface AgentSpec {
   sensitivity?: number
   group?: string
   tags?: string[]
-  context?: string[]  // docs to load as knowledge: ['routing', 'dsl']
-  aliases?: Record<string, string>  // skin → alias mapping: {ant: "scout-7", brain: "neuron-α12", ...}
+  context?: string[] // docs to load as knowledge: ['routing', 'dsl']
+  aliases?: Record<string, string> // skin → alias mapping: {ant: "scout-7", brain: "neuron-α12", ...}
   prompt: string
   // Sui identity (derived on sync, not from markdown)
-  wallet?: string       // Sui address
-  suiObjectId?: string  // on-chain Unit object ID
+  wallet?: string // Sui address
+  suiObjectId?: string // on-chain Unit object ID
 }
 
 export interface WorldSpec {
@@ -67,9 +67,12 @@ const parseYamlValue = (value: string): unknown => {
   value = value.trim()
   if (value === 'true') return true
   if (value === 'false') return false
-  if (!isNaN(Number(value))) return Number(value)
+  if (!Number.isNaN(Number(value))) return Number(value)
   if (value.startsWith('[') && value.endsWith(']')) {
-    return value.slice(1, -1).split(',').map(s => s.trim().replace(/^['"]|['"]$/g, ''))
+    return value
+      .slice(1, -1)
+      .split(',')
+      .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
   }
   return value.replace(/^['"]|['"]$/g, '')
 }
@@ -95,7 +98,7 @@ const parseSkills = (lines: string[]): SkillSpec[] => {
   return skills
 }
 
-const parseAliases = (lines: string[]): Record<string, string> | undefined => {
+const _parseAliases = (lines: string[]): Record<string, string> | undefined => {
   const aliases: Record<string, string> = {}
   let inAliases = false
 
@@ -112,7 +115,10 @@ const parseAliases = (lines: string[]): Record<string, string> | undefined => {
         const colonIdx = trimmed.indexOf(':')
         if (colonIdx > 0) {
           const key = trimmed.slice(0, colonIdx).trim()
-          const value = trimmed.slice(colonIdx + 1).trim().replace(/^['"]|['"]$/g, '')
+          const value = trimmed
+            .slice(colonIdx + 1)
+            .trim()
+            .replace(/^['"]|['"]$/g, '')
           aliases[key] = value
         }
       } else if (trimmed && !trimmed.startsWith('#')) {
@@ -192,13 +198,27 @@ export const parse = (md: string): AgentSpec => {
           const key = trimmed.slice(0, colonIdx).trim()
           const value = trimmed.slice(colonIdx + 1).trim()
           switch (key) {
-            case 'name': spec.name = value; break
-            case 'model': spec.model = value; break
-            case 'sensitivity': spec.sensitivity = Number(value); break
-            case 'group': spec.group = value; break
-            case 'channels': spec.channels = parseYamlValue(value) as string[]; break
-            case 'tags': spec.tags = parseYamlValue(value) as string[]; break
-            case 'context': spec.context = parseYamlValue(value) as string[]; break
+            case 'name':
+              spec.name = value
+              break
+            case 'model':
+              spec.model = value
+              break
+            case 'sensitivity':
+              spec.sensitivity = Number(value)
+              break
+            case 'group':
+              spec.group = value
+              break
+            case 'channels':
+              spec.channels = parseYamlValue(value) as string[]
+              break
+            case 'tags':
+              spec.tags = parseYamlValue(value) as string[]
+              break
+            case 'context':
+              spec.context = parseYamlValue(value) as string[]
+              break
           }
         }
       }
@@ -219,7 +239,10 @@ export const parse = (md: string): AgentSpec => {
         const colonIdx = trimmed.indexOf(':')
         if (colonIdx > 0) {
           const key = trimmed.slice(0, colonIdx).trim()
-          const value = trimmed.slice(colonIdx + 1).trim().replace(/^['"]|['"]$/g, '')
+          const value = trimmed
+            .slice(colonIdx + 1)
+            .trim()
+            .replace(/^['"]|['"]$/g, '')
           aliases[key] = value
         }
       }
@@ -230,7 +253,10 @@ export const parse = (md: string): AgentSpec => {
   }
 
   // Rest is prompt
-  spec.prompt = lines.slice(frontmatterEnd + 1).join('\n').trim()
+  spec.prompt = lines
+    .slice(frontmatterEnd + 1)
+    .join('\n')
+    .trim()
 
   return spec
 }
@@ -247,7 +273,7 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
 
   // Unit insert
   const tags = [...(spec.tags || []), ...(spec.group ? [spec.group] : [])]
-  const tagStr = tags.map(t => `has tag "${t}"`).join(', ')
+  const tagStr = tags.map((t) => `has tag "${t}"`).join(', ')
   const aliasStr = spec.aliases
     ? Object.entries(spec.aliases)
         .map(([skin, value]) => `has alias-${skin} "${escapeString(value)}"`)
@@ -267,7 +293,7 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
       has sample-count 0,
       has reputation 0.0,
       has balance 0.0,
-      has generation 0${spec.wallet ? `, has wallet "${spec.wallet}"` : ''}${tagStr ? ', ' + tagStr : ''}${aliasStr ? ', ' + aliasStr : ''};
+      has generation 0${spec.wallet ? `, has wallet "${spec.wallet}"` : ''}${tagStr ? `, ${tagStr}` : ''}${aliasStr ? `, ${aliasStr}` : ''};
   `)
 
   // Group membership
@@ -282,14 +308,14 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
   // Skills and capabilities
   for (const skill of spec.skills || []) {
     const skillId = spec.group ? `${spec.group}:${skill.name}` : skill.name
-    const skillTags = skill.tags?.map(t => `has tag "${t}"`).join(', ') || ''
+    const skillTags = skill.tags?.map((t) => `has tag "${t}"`).join(', ') || ''
 
     // Insert skill (if not exists, using match-not-insert pattern)
     queries.push(`
       insert $s isa skill,
         has skill-id "${skillId}",
         has name "${skill.name}",
-        has price ${skill.price || 0}${skill.description ? `, has description "${escapeString(skill.description)}"` : ''}${skillTags ? ', ' + skillTags : ''};
+        has price ${skill.price || 0}${skill.description ? `, has description "${escapeString(skill.description)}"` : ''}${skillTags ? `, ${skillTags}` : ''};
     `)
 
     // Capability relation
@@ -322,7 +348,7 @@ export const worldToTypeDB = (spec: WorldSpec): string[] => {
   }
 
   // Create initial paths (all agents connect to director if exists)
-  const director = spec.agents.find(a => a.name.includes('director'))
+  const director = spec.agents.find((a) => a.name.includes('director'))
   if (director) {
     for (const agent of spec.agents) {
       if (agent.name !== director.name) {
@@ -346,7 +372,7 @@ export const worldToTypeDB = (spec: WorldSpec): string[] => {
 export const syncAgent = async (spec: AgentSpec): Promise<void> => {
   const queries = toTypeDB(spec)
   for (const q of queries) {
-    await write(q).catch(e => console.warn('TypeDB insert:', e.message))
+    await write(q).catch((e) => console.warn('TypeDB insert:', e.message))
   }
 }
 
@@ -388,7 +414,7 @@ export const syncAgentWithIdentity = async (spec: AgentSpec): Promise<AgentSpec>
         writeSilent(`
           match $u isa unit, has uid "${uid}";
           insert $u has wallet "${address}";
-        `)
+        `),
       )
 
       // Register skills on-chain
@@ -409,7 +435,7 @@ export const syncAgentWithIdentity = async (spec: AgentSpec): Promise<AgentSpec>
 export const syncWorld = async (spec: WorldSpec): Promise<void> => {
   const queries = worldToTypeDB(spec)
   for (const q of queries) {
-    await write(q).catch(e => console.warn('TypeDB insert:', e.message))
+    await write(q).catch((e) => console.warn('TypeDB insert:', e.message))
   }
 }
 
@@ -444,7 +470,7 @@ export const loadAgent = async (uid: string): Promise<AgentSpec | null> => {
     name: row.n as string,
     model: row.m as string,
     prompt: row.p as string,
-    skills: skills.map(s => ({
+    skills: skills.map((s) => ({
       name: s.sn as string,
       price: s.p as number,
     })),
@@ -487,7 +513,7 @@ type Complete = (prompt: string, ctx?: Record<string, unknown>) => Promise<strin
 export const wireAgent = (
   spec: AgentSpec,
   net: World | PersistentWorld,
-  complete: Complete
+  complete: Complete,
 ): ReturnType<World['add']> => {
   const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
   const unit = net.add(uid)
@@ -502,10 +528,7 @@ export const wireAgent = (
   for (const skill of spec.skills || []) {
     unit.on(skill.name, async (data, emit, ctx) => {
       const input = typeof data === 'string' ? data : JSON.stringify(data)
-      const result = await complete(
-        `${fullPrompt}\n\nTask: ${skill.name}\nInput: ${input}`,
-        { system: fullPrompt }
-      )
+      const result = await complete(`${fullPrompt}\n\nTask: ${skill.name}\nInput: ${input}`, { system: fullPrompt })
       return { result }
     })
   }
@@ -523,7 +546,7 @@ export const wireAgent = (
 export const wireWorld = (
   spec: WorldSpec,
   net: World | PersistentWorld,
-  complete: Complete
+  complete: Complete,
 ): Map<string, ReturnType<World['add']>> => {
   const units = new Map<string, ReturnType<World['add']>>()
 
@@ -540,11 +563,9 @@ export const wireWorld = (
 // FILE SYSTEM — Parse directory of markdown files
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const parseDirectory = async (
-  files: { name: string; content: string }[]
-): Promise<WorldSpec> => {
+export const parseDirectory = async (files: { name: string; content: string }[]): Promise<WorldSpec> => {
   // Find README.md for world metadata
-  const readme = files.find(f => f.name.toLowerCase() === 'readme.md')
+  const readme = files.find((f) => f.name.toLowerCase() === 'readme.md')
   const worldName = readme
     ? (readme.content.match(/^#\s+(.+)/m)?.[1] || 'world').toLowerCase().replace(/\s+/g, '-')
     : 'world'
