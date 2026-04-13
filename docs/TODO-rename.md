@@ -1,8 +1,57 @@
-# TODO: Rename Dead Names Across Docs
+# TODO: One Vocabulary → One Ontology → One Pass
+
+Migrate the substrate vocabulary from metaphor-laden names to neutral primitives.
+Rename files to match the six dimensions. Execute in two parts:
+1. **Migration** (9 phases) — code, schema, types, APIs, components
+2. **Consolidation** (3 cycles) — docs, governance, learning
+
+One vocabulary. One ontology. One pass.
+
+---
+
+## Phase: Codebase & Schema Migration (9 phases, prerequisite)
+
+**Prerequisite for doc consolidation (Cycles 1-3).** Must complete before renaming docs.
+Covers ~120 files across engine, schema, types, APIs, components, and configuration.
+
+The migration table (source of truth):
+
+| Old | New | Context |
+|-----|-----|---------|
+| `colony()` | `world()` | container, runtime |
+| `spawn` | `add` | create unit |
+| `despawn` | `remove` | destroy unit |
+| `scent` | `strength` | positive weight |
+| `alarm` | `resistance` | negative weight |
+| `crystallize` | `know` | promote to knowledge |
+| `swarm` / `Swarm` | `group` / `Group` | TypeDB entity |
+| `swarm-type` | `group-type` | TypeDB attribute |
+| `sid` | `gid` | group identifier |
+| File renames | File renames | src/engine, src/schema |
+
+**Phases 0-9 execute sequentially with parallelism within each phase.**
+See [migration.md](migration.md) for full file-by-file execution details.
+
+- **Phase 0:** File renames (sequential, 1 operator)
+- **Phases 1-2:** Core engine + schema (5 + 8 files, parallel)
+- **Phases 3-4:** Types/lib + API endpoints (5 + 11 files, parallel)
+- **Phases 5-6:** Components + Claude config (7 + 9 files, parallel)
+- **Phase 7:** Docs (59 files, parallel) ← Feeds into Cycles below
+- **Phase 8:** Packages + scripts (12 files, parallel)
+- **Phase 9:** Archive (optional, 4 files, parallel)
+
+**Gate:** All phases complete + `npm run build` succeeds + no broken imports.
+Then advance to Cycles 1-3 (doc consolidation).
+
+---
+
+## Cycle: Doc Consolidation (3 cycles, post-migration)
 
 **Goal:** Propagate [`names.md`](names.md) — the locked naming spec — through every
 `docs/*.md` file. Kill 10 dead names. Preserve metaphor aliases. Leave the
 doc tree speaking one vocabulary.
+
+**Depends on:** All 9 migration phases complete. Codebase + schema speak new vocabulary.
 
 **Shape:** Three cycles (Wire → Prove → Grow), each with four waves.
 Every wave is one tick of the substrate loop — select → ask → mark/warn → drain.
@@ -74,6 +123,11 @@ cycle's patterns are verified and promoted to durable learning.
 ---
 
 ## Source of Truth
+
+> **Source of truth:** [names.md](names.md) — canonical naming spec,
+> [DSL.md](DSL.md) — the signal language,
+> [dictionary.md](dictionary.md) — everything named,
+> [rubrics.md](rubrics.md) — quality scoring (fit/form/truth/taste → mark)
 
 **[`names.md`](names.md)** — 10 retired names, 10 canonical replacements.
 
@@ -421,18 +475,37 @@ That means Wave 2's diff specs were wrong.
 
 ## Status
 
-- [x] **Cycle 0** — DSL.md (done 2026-04-14, all 6 dead names replaced)
-- [ ] **Cycle 1: WIRE** — Core canonical docs
+### Migration Phases (prerequisite)
+
+- [ ] **Phase 0** — File renames (sequential, 1 operator). See [migration.md Phase 0](migration.md#phase-0--file-renames-sequential-one-operator)
+  - [ ] Commit renamed files before launching agents
+- [ ] **Phase 1** — Core engine (5 files × parallel Sonnet)
+- [ ] **Phase 2** — Schema (8 files × parallel Sonnet)
+  - [ ] Phase 1 + 2 gate: import paths verified, no broken types
+- [ ] **Phase 3** — Types/lib (5 files × parallel Sonnet)
+- [ ] **Phase 4** — API endpoints (11 files × parallel Sonnet)
+- [ ] **Phase 5** — Components (7 files × parallel Sonnet)
+- [ ] **Phase 6** — Claude config (9 files × parallel Sonnet)
+- [ ] **Phase 7** — Docs (59 files × parallel Haiku/Sonnet)
+- [ ] **Phase 8** — Packages/scripts (12 files × parallel Sonnet)
+- [ ] **Phase 9** — Archive (optional, 4 files × parallel Sonnet)
+  - [ ] Gate: `npm run build` succeeds, grep verification clean
+  - **Gate status:** All migration phases pass → unlock doc cycles
+
+### Doc Consolidation Cycles (post-migration)
+
+- [ ] **Pre-cycle** — DSL.md (done 2026-04-14, all 6 dead names replaced)
+- [ ] **Cycle 1: WIRE** — Core canonical docs (5 files)
   - [ ] W1 — Recon (Haiku × 4)
   - [ ] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet × 4)
   - [ ] W4 — Verify (Sonnet × 1)
-- [ ] **Cycle 2: PROVE** — High-traffic docs
+- [ ] **Cycle 2: PROVE** — High-traffic docs (~20 files)
   - [ ] W1 — Recon (Haiku × 20)
   - [ ] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet × 20)
   - [ ] W4 — Verify (Sonnet × 1)
-- [ ] **Cycle 3: GROW** — Strategy/agent docs
+- [ ] **Cycle 3: GROW** — Strategy/agent docs (~20 files)
   - [ ] W1 — Recon (Haiku × 20)
   - [ ] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet × 20)
@@ -452,14 +525,28 @@ prompt as body. `/work` picks highest-pheromone skill. Same loop, live routing.
 
 ## See Also
 
-- [names.md](names.md) — the locked naming spec (source of truth)
-- [DSL.md](DSL.md) — first doc updated (Cycle 0, complete)
-- [TODO-signal.md](TODO-signal.md) — the wave pattern that inspired this format
-- [dictionary.md](dictionary.md) — primary Cycle 1 target
-- [routing.md](routing.md) — primary Cycle 1 target
-- [metaphors.md](metaphors.md) — metaphor alias reference (what NOT to rename)
+### Foundation (always loaded)
+- [names.md](names.md) — canonical naming spec (source of truth)
+- [DSL.md](DSL.md) — the signal language (Cycles load this)
+- [dictionary.md](dictionary.md) — everything named (Cycles load this)
+
+### Execution Plans
+- [migration.md](migration.md) — **9 phases, codebase + schema migration (prerequisite)**
+  - Phase 0-9: file renames, engine, schema, types, APIs, components, docs, packages, archive
+- **This file** — 3 cycles, doc consolidation (depends on migration.md)
+  - Cycle 1: WIRE (core docs), Cycle 2: PROVE (tutorials), Cycle 3: GROW (strategy)
+
+### Quality & Learning
+- [rubrics.md](rubrics.md) — quality scoring as tagged edges (fit/form/truth/taste)
+- [TODO-template.md](TODO-template.md) — the wave pattern (reusable)
+- [TODO-task-management.md](TODO-task-management.md) — self-learning task system
+- [TODO-signal.md](TODO-signal.md) — signal-based task routing
+
+### Reference
+- [routing.md](routing.md) — how signals find paths (Cycle 1 target)
+- [metaphors.md](metaphors.md) — six skins (what NOT to rename in metaphor columns)
 
 ---
 
-*Three cycles. Four waves each. Haiku reads, Opus decides, Sonnet writes,
-Sonnet checks. Same loop as the substrate, different receivers.*
+*Nine phases on the codebase. Three cycles on the docs. Four waves each.
+Same loop as the substrate — signal, decide, execute, verify.*
