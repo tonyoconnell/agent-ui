@@ -6,6 +6,7 @@
  */
 
 import { betterAuth } from "better-auth";
+import { bearer } from "better-auth/plugins";
 import { typedbAdapter } from "./typedb-auth-adapter";
 
 // PBKDF2 password hashing (Web Crypto API)
@@ -126,6 +127,10 @@ export function createAuth() {
     trustedOrigins: [
       "http://localhost:4321",
       "http://localhost:3000",
+    ],
+
+    plugins: [
+      bearer(),
     ],
   });
 }

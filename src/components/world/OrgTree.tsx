@@ -320,18 +320,31 @@ export function OrgTree({ className }: OrgTreeProps) {
 
   // Fetch data on mount
   useEffect(() => {
+    async function fetchWithTimeout(url: string, timeout = 3000): Promise<Response | null> {
+      const controller = new AbortController()
+      const id = setTimeout(() => controller.abort(), timeout)
+      try {
+        const res = await fetch(url, { signal: controller.signal })
+        clearTimeout(id)
+        return res
+      } catch {
+        clearTimeout(id)
+        return null
+      }
+    }
+
     async function loadData() {
       try {
         setLoading(true)
         setError(null)
 
-        // Fetch groups and units in parallel
+        // Fetch groups and units in parallel (3s timeout each)
         const [groupsRes, unitsRes] = await Promise.all([
-          fetch("/api/export/groups.json"),
-          fetch("/api/export/units.json"),
+          fetchWithTimeout("/api/export/groups.json", 3000),
+          fetchWithTimeout("/api/export/units.json", 3000),
         ])
 
-        if (!groupsRes.ok || !unitsRes.ok) {
+        if (!groupsRes?.ok || !unitsRes?.ok) {
           throw new Error("Failed to fetch org data")
         }
 
@@ -394,6 +407,8 @@ export function OrgTree({ className }: OrgTreeProps) {
     )
     newParams.set("focus", unitId)
     window.history.replaceState({}, "", `?${newParams.toString()}`)
+    // Notify sibling components (AgentCard listens for this)
+    window.dispatchEvent(new CustomEvent('world:focus', { detail: { id: unitId } }))
   }
 
   // Render

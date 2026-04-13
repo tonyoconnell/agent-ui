@@ -1,0 +1,4 @@
+{
+  "paths": [],
+  "note": "Initial path seeds. Each entry: { source, target, strength }. Empty = let the world learn from scratch."
+}

@@ -11,79 +11,13 @@
  *   const rows = parseAnswers(answers)
  */
 
-// Gateway URL (browser goes through Worker, server can go direct)
+// Gateway URL — all queries route through Cloudflare Worker
 const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://one-gateway.oneie.workers.dev'
 
-// Public config only (credentials moved to runtime/worker env)
-const TYPEDB_URL = import.meta.env.TYPEDB_URL || ''
-const TYPEDB_DATABASE = import.meta.env.TYPEDB_DATABASE || 'one'
-
-// Token cache (server-side direct mode)
-let cachedToken: { token: string; expires: number } | null = null
-
-async function getDirectToken(): Promise<string> {
-  if (cachedToken && cachedToken.expires > Date.now() + 60_000) {
-    return cachedToken.token
-  }
-
-  // Credentials: import.meta.env (Astro SSR) → globalThis (CF Worker) → process.env (Node)
-  const username = import.meta.env.TYPEDB_USERNAME || (globalThis as any).TYPEDB_USERNAME || 'admin'
-  const password = import.meta.env.TYPEDB_PASSWORD || (globalThis as any).TYPEDB_PASSWORD || ''
-
-  if (!password) {
-    throw new Error('TYPEDB_PASSWORD not configured. Set in .env, wrangler secret, or TYPEDB_PASSWORD env var')
-  }
-
-  const res = await fetch(`${TYPEDB_URL}/v1/signin`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  })
-
-  if (!res.ok) throw new Error(`TypeDB signin failed: ${res.status}`)
-
-  const data = await res.json() as { token: string }
-  const payload = JSON.parse(atob(data.token.split('.')[1]))
-  cachedToken = { token: data.token, expires: payload.exp * 1000 }
-  return cachedToken.token
-}
-
-/** Execute a TypeQL query via gateway or direct */
+/** Execute a TypeQL query via Cloudflare gateway */
 async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<unknown[]> {
-  // Server-side with direct TypeDB URL configured → skip gateway
-  if (typeof window === 'undefined' && TYPEDB_URL) {
-    const doQuery = async (retried = false): Promise<unknown[]> => {
-      const token = await getDirectToken()
-      const res = await fetch(`${TYPEDB_URL}/v1/query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          databaseName: TYPEDB_DATABASE,
-          transactionType: txType,
-          query: tql,
-          commit: txType === 'write',
-        }),
-      })
-      if (res.status === 401 && !retried) {
-        // Cached token was invalidated server-side — clear and retry once
-        cachedToken = null
-        return doQuery(true)
-      }
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`TypeDB query failed: ${res.status} - ${text}`)
-      }
-      const data = await res.json() as { answers?: unknown[] }
-      return data.answers || []
-    }
-    return doQuery()
-  }
-
-  // Browser or server without direct config → go through gateway
-  const res = await fetch(`${GATEWAY_URL}/v1/query`, {
+  // Always route through Cloudflare gateway
+  const res = await fetch(`${GATEWAY_URL}/typedb/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

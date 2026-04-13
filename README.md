@@ -8,7 +8,7 @@
 
 Two fields. That's all that flows. The LLM is the only probabilistic component. Everything else is math.
 
-**Live now:** [api.one.ie](https://api.one.ie/health) | [app](https://one-substrate.pages.dev) | [@antsatworkbot](https://t.me/antsatworkbot) on Telegram
+**Live now:** [api.one.ie](https://api.one.ie/health) · [app](https://one-substrate.pages.dev) · [@onedotbot](https://t.me/onedotbot) on Telegram
 
 ---
 
@@ -134,7 +134,8 @@ That's your entire agent. Parse → TypeDB → Cloudflare Worker → Live on Tel
 | **Pages** | [one-substrate.pages.dev](https://one-substrate.pages.dev) | Astro SSR + React 19 + 30 API routes |
 | **Gateway** | [api.one.ie](https://api.one.ie/health) | TypeDB proxy, JWT cache, CORS |
 | **Sync** | one-sync.oneie.workers.dev | TypeDB → KV snapshots every 1 min (hash-gated) |
-| **NanoClaw** | [nanoclaw.oneie.workers.dev](https://nanoclaw.oneie.workers.dev/health) | Edge agents: `/message` (instant), webhooks (Telegram/Discord), queue processor |
+| **NanoClaw** | [nanoclaw.oneie.workers.dev](https://nanoclaw.oneie.workers.dev/health) | Edge agents: instant Telegram/Discord, API, queue |
+| **Donal-Claw** | [donal-claw.oneie.workers.dev](https://donal-claw.oneie.workers.dev/health) | OO Marketing CMO bot (API key auth) |
 | **TypeDB** | `flsiu1-0.cluster.typedb.com:1729` | 19 units, 18 skills, 1 group, 19 functions |
 
 **Data in TypeDB:**
@@ -152,44 +153,58 @@ example (5): tutor, researcher, coder, writer, concierge
 
 ## NanoClaw API
 
-Direct chat API on the edge. Send a message, get an instant response from Gemma 4 (OpenRouter).
+Each NanoClaw instance is a **persona** — same Cloudflare Worker codebase, different config. Telegram webhooks process synchronously (~3s). No queue latency.
+
+### Spin up a new agent
 
 ```bash
-# Send message
-curl -X POST https://nanoclaw.oneie.workers.dev/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "group": "my-conversation",
-    "text": "What is the ONE substrate?",
-    "sender": "user"
-  }'
+# See available personas
+bun run scripts/setup-nanoclaw.ts
 
-# Response in ~3 seconds
-{
-  "ok": true,
-  "response": "The ONE substrate is a signal-based network where agents...",
-  "id": "web-1775525928563",
-  "responseId": "resp-1775525949861",
-  "group": "my-conversation"
+# Full deploy with Telegram bot
+bun run scripts/setup-nanoclaw.ts --name alice --persona one --token 1234:ABC...
+```
+
+One command: generates API key → CF queue → deploy → secrets → webhook → credentials printed.
+
+### Add a persona
+
+```typescript
+// nanoclaw/src/personas.ts
+personas['myagent'] = {
+  name: 'My Agent',
+  description: 'Does X',
+  model: 'anthropic/claude-haiku-4-5',
+  systemPrompt: `You are...`,
 }
 ```
 
-**Get conversation history:**
+Then: `bun run scripts/setup-nanoclaw.ts --name myagent --persona myagent`
+
+### Web API
 
 ```bash
-curl https://nanoclaw.oneie.workers.dev/messages/my-conversation
+# Open worker
+curl -X POST https://nanoclaw.oneie.workers.dev/message \
+  -H "Content-Type: application/json" \
+  -d '{"group": "chat", "text": "What is ONE?"}'
+
+# Auth-gated worker (donal-claw)
+curl -X POST https://donal-claw.oneie.workers.dev/message \
+  -H "Authorization: Bearer <API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"group": "donal", "text": "Full SEO audit for elitemovers.ie"}'
 ```
 
-**Routes:**
+| Route | Auth | Description |
+|-------|------|-------------|
+| `GET /health` | Public | Status check |
+| `POST /webhook/:channel` | Public | Telegram/Discord webhooks |
+| `POST /message` | API key* | Send message, instant response |
+| `GET /messages/:group` | API key* | Conversation history |
+| `GET /highways` | API key* | Proven paths |
 
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/message` | POST | Send message, get instant response |
-| `/messages/:group` | GET | Get conversation history |
-| `/health` | GET | Status check |
-| `/highways` | GET | Proven paths (pheromone analysis) |
-
-See [docs/nanoclaw.md](docs/nanoclaw.md) for full API reference.
+*Only enforced when `API_KEY` secret is set on the worker.
 
 ---
 
@@ -239,13 +254,19 @@ src/schema/world.tql           TypeDB schema (6 dimensions, 19 functions)
 
 gateway/src/index.ts           TypeDB proxy worker (128 lines)
 workers/sync/index.ts          TypeDB → KV sync worker
-nanoclaw/src/                  Edge agent worker (816 lines)
-├── workers/router.ts          Hono routes: /message (instant), /messages (history), /webhook/:channel
+nanoclaw/src/                  Edge agent worker
+├── personas.ts                Bot personas (model + system prompt) — single source of truth
+├── workers/router.ts          Hono routes + auth middleware + sync Telegram processing
 ├── channels/index.ts          Telegram, Discord, Web adapters (send/normalize)
 ├── lib/substrate.ts           TypeDB via gateway (toxicity, highways)
 └── lib/tools.ts               7 Claude tools
+nanoclaw/wrangler.toml         Main instance (open, Gemma 4 default)
+nanoclaw/wrangler.donal.toml   Donal's CMO bot (BOT_PERSONA=donal, API key auth)
+
+scripts/setup-nanoclaw.ts      One-command NanoClaw deployment script
 
 agents/                        Markdown agent definitions
+├── donal/                     OO Agency Pod — 11 marketing agents
 ├── marketing/                 8 marketing team agents
 └── *.md                       Example agents
 ```

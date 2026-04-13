@@ -42,7 +42,7 @@ Five verbs. Every metaphor. Same meaning.
 | **mark**   | leave weight on path   | deposit     | potentiate    | volume     | score       |
 | **follow** | traverse weighted path | smell trail | sense synapse | track flow | query route |
 | **fade**   | decay over time        | evaporate   | decay         | cool       | forget      |
-| **sense**  | perceive environment   | antennae    | receptors     | indicators | sensors     |
+| **sense**  | perceive environment   | antennae    | receptors     | indicators | tools       |
 
 ```typescript
 // The five operations

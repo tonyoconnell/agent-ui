@@ -15,7 +15,7 @@
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-export type Signal = { receiver: string; data?: unknown }
+export type Signal = { receiver: string; data?: unknown; after?: number }
 export type Emit = (s: Signal) => void
 export type Edge = { path: string; strength: number }
 type Task = (data: unknown, emit: Emit, ctx: { from: string; self: string }) => Promise<unknown>
@@ -187,14 +187,19 @@ export const world = (): World => {
   const enqueue = (s: Signal) => queue.push(s)
   const drain = (): Signal | null => {
     if (!queue.length) return null
+    // Skip signals scheduled for the future
+    const now = Date.now()
+    const ready = queue.filter(s => !s.after || s.after <= now)
+    if (!ready.length) return null
     // P0 first: find highest priority signal (lower P number = higher priority)
     let best = 0
-    for (let i = 1; i < queue.length; i++) {
-      const pi = ((queue[i].data as Record<string, unknown>)?.priority as string) || 'P9'
-      const pb = ((queue[best].data as Record<string, unknown>)?.priority as string) || 'P9'
+    for (let i = 1; i < ready.length; i++) {
+      const pi = ((ready[i].data as Record<string, unknown>)?.priority as string) || 'P9'
+      const pb = ((ready[best].data as Record<string, unknown>)?.priority as string) || 'P9'
       if (pi < pb) best = i
     }
-    const [s] = queue.splice(best, 1)
+    const s = ready[best]
+    queue.splice(queue.indexOf(s), 1)
     signal(s)
     return s
   }

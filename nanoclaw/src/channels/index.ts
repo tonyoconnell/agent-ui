@@ -18,13 +18,13 @@ interface TelegramUpdate {
   }
 }
 
-export const normalizeTelegram = (payload: TelegramUpdate): Signal | null => {
+export const normalizeTelegram = (payload: TelegramUpdate, botPrefix = 'tg'): Signal | null => {
   const msg = payload.message
   if (!msg?.text) return null
 
   return {
-    id: `tg-${msg.message_id}`,
-    group: `tg-${msg.chat.id}`,
+    id: `${botPrefix}-${msg.message_id}`,
+    group: `${botPrefix}-${msg.chat.id}`,
     channel: 'telegram',
     sender: msg.from?.username || msg.from?.id.toString() || 'unknown',
     content: msg.text,
@@ -34,9 +34,23 @@ export const normalizeTelegram = (payload: TelegramUpdate): Signal | null => {
 }
 
 export const sendTelegram = async (env: Env, groupId: string, text: string): Promise<void> => {
-  if (!env.TELEGRAM_TOKEN) return
-  const chatId = groupId.replace('tg-', '')
-  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage`, {
+  // Resolve token and chat ID based on bot-specific group prefix
+  let token: string | undefined
+  let chatId: string
+
+  if (groupId.startsWith('tg-donal-')) {
+    token = env.TELEGRAM_TOKEN_DONAL
+    chatId = groupId.replace('tg-donal-', '')
+  } else if (groupId.startsWith('tg-one-')) {
+    token = env.TELEGRAM_TOKEN_ONE
+    chatId = groupId.replace('tg-one-', '')
+  } else {
+    token = env.TELEGRAM_TOKEN
+    chatId = groupId.replace('tg-', '')
+  }
+
+  if (!token) return
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
@@ -103,6 +117,8 @@ export const normalizeWeb = (payload: WebMessage): Signal => ({
 export const normalize = (channel: string, payload: unknown): Signal | null => {
   switch (channel) {
     case 'telegram': return normalizeTelegram(payload as TelegramUpdate)
+    case 'telegram-donal': return normalizeTelegram(payload as TelegramUpdate, 'tg-donal')
+    case 'telegram-one': return normalizeTelegram(payload as TelegramUpdate, 'tg-one')
     case 'discord': return normalizeDiscord(payload as DiscordMessage)
     case 'web': return normalizeWeb(payload as WebMessage)
     default: return null

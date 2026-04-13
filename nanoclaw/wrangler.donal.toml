@@ -1,0 +1,44 @@
+# Donal-Claw — Donal's private edge agent on Cloudflare free tier
+# Separate deployment of the NanoClaw codebase, wired to the OO marketing CMO persona.
+#
+# Deploy:  cd nanoclaw && npx wrangler deploy --config wrangler.donal.toml
+# Logs:    npx wrangler tail donal-claw --config wrangler.donal.toml
+
+name = "donal-claw"
+main = "src/workers/router.ts"
+workers_dev = true
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+VERSION = "1.0.0"
+GATEWAY_URL = "https://one-gateway.oneie.workers.dev"
+# Sets the default persona for every conversation on this worker.
+# Maps to the "donal" entry in BOT_DEFAULTS — the OO Marketing CMO prompt.
+BOT_PERSONA = "donal"
+
+# D1 Database (shared with nanoclaw — groups namespaced by chat ID)
+[[d1_databases]]
+binding = "DB"
+database_name = "one"
+database_id = "0aa5fceb-667a-470e-b08c-40ead2f4525d"
+
+# KV Namespace (shared with nanoclaw)
+[[kv_namespaces]]
+binding = "KV"
+id = "1c1dac4766e54a2c85425022a3b1e9da"
+
+# Queue for agent processing
+[[queues.producers]]
+binding = "AGENT_QUEUE"
+queue = "donal-agents"
+
+[[queues.consumers]]
+queue = "donal-agents"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+
+# Secrets (set with: wrangler secret put --config wrangler.donal.toml)
+# OPENROUTER_API_KEY   — same key as nanoclaw is fine
+# TELEGRAM_TOKEN       — Donal's own bot token from @BotFather

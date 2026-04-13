@@ -1,6 +1,7 @@
 /**
  * CEOPanel — Hire, fire, commend, and flag agents.
- * Shows full agent roster + top performers. CEO-only view.
+ * Shows top performers, at-risk agents, stats bar, toxic paths, and full roster.
+ * CEO-only view.
  */
 
 import { useState, useEffect, useCallback } from 'react'
@@ -18,11 +19,28 @@ interface Agent {
 }
 
 interface Edge {
-  fid: string
-  tid: string
-  s: number
-  r: number
-  t: number
+  from: string
+  to: string
+  strength: number
+  resistance: number
+  revenue: number
+  toxic: boolean
+}
+
+interface Stats {
+  units: number
+  proven: number
+  highways: number
+  edges: number
+  tags: number
+  revenue: number
+}
+
+interface StateResponse {
+  units: Agent[]
+  edges: Edge[]
+  highways: Edge[]
+  stats: Stats
 }
 
 type Action = 'commend' | 'flag' | 'hire' | 'fire'
@@ -36,10 +54,21 @@ function srColor(sr: number) {
   return 'text-red-400'
 }
 
+function netStrength(id: string, edges: Edge[]): number {
+  return edges
+    .filter(e => e.from === id)
+    .reduce((sum, e) => sum + (e.strength - e.resistance), 0)
+}
+
+function topSkill(id: string, edges: Edge[]): string | null {
+  const out = edges.filter(e => e.from === id).sort((a, b) => (b.strength - b.resistance) - (a.strength - a.resistance))
+  return out[0]?.to ?? null
+}
+
 function StatusDot({ active }: { active: boolean }) {
   return (
     <span className={cn(
-      'inline-block w-2 h-2 rounded-full',
+      'inline-block w-2 h-2 rounded-full flex-shrink-0',
       active
         ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]'
         : 'bg-slate-600'
@@ -53,9 +82,143 @@ function SrBar({ value }: { value: number }) {
   return (
     <div className="flex items-center gap-2">
       <div className="w-16 h-1.5 bg-[#252538] rounded-full overflow-hidden">
-        <div className={cn('h-full rounded-full', color)} style={{ width: `${pct}%` }} />
+        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
       </div>
-      <span className={cn('text-xs tabular-nums', srColor(value))}>{pct}%</span>
+      <span className={cn('text-xs tabular-nums w-8', srColor(value))}>{pct}%</span>
+    </div>
+  )
+}
+
+function NetStrengthBadge({ value }: { value: number }) {
+  const color = value > 10 ? 'text-emerald-400' : value > 0 ? 'text-slate-400' : 'text-red-400'
+  return (
+    <span className={cn('text-xs tabular-nums font-mono w-12 text-right', color)}>
+      {value > 0 ? '+' : ''}{value.toFixed(1)}
+    </span>
+  )
+}
+
+// ─── Agent Row ────────────────────────────────────────────────────────────────
+
+interface AgentRowProps {
+  agent: Agent
+  net: number
+  skill: string | null
+  pending: Record<string, boolean>
+  onAction: (id: string, action: Action) => void
+  showNet?: boolean
+}
+
+function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: AgentRowProps) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 px-4 py-3 hover:bg-[#1a1a2e] transition-colors',
+        agent.status === 'inactive' && 'opacity-50'
+      )}
+    >
+      <StatusDot active={agent.status === 'active'} />
+
+      <div className="flex-1 min-w-0">
+        <div className="text-sm text-slate-200 truncate">{agent.name || agent.id}</div>
+        {skill && (
+          <div className="text-xs text-slate-600 truncate">→ {skill}</div>
+        )}
+      </div>
+
+      {agent.g > 0 && (
+        <span className="text-xs text-purple-400 border border-purple-400/30 rounded px-1.5 py-0.5 flex-shrink-0">
+          gen {agent.g}
+        </span>
+      )}
+
+      <SrBar value={agent.sr} />
+
+      {showNet && <NetStrengthBadge value={net} />}
+
+      <div className="flex gap-1 flex-shrink-0">
+        <ActionBtn
+          label="★"
+          title="Commend — boost success-rate +10%, strengthen outgoing paths"
+          color="text-emerald-400 hover:bg-emerald-400/10"
+          loading={pending[agent.id + 'commend']}
+          disabled={agent.status === 'inactive'}
+          onClick={() => onAction(agent.id, 'commend')}
+        />
+        <ActionBtn
+          label="⚑"
+          title="Flag — lower success-rate −15%, add resistance"
+          color="text-amber-400 hover:bg-amber-400/10"
+          loading={pending[agent.id + 'flag']}
+          disabled={agent.status === 'inactive'}
+          onClick={() => onAction(agent.id, 'flag')}
+        />
+        {agent.status === 'active' ? (
+          <ActionBtn
+            label="✕"
+            title="Deactivate — remove from routing"
+            color="text-slate-500 hover:bg-slate-500/10"
+            loading={pending[agent.id + 'fire']}
+            onClick={() => onAction(agent.id, 'fire')}
+          />
+        ) : (
+          <ActionBtn
+            label="↑"
+            title="Activate — restore to routing"
+            color="text-blue-400 hover:bg-blue-400/10"
+            loading={pending[agent.id + 'hire']}
+            onClick={() => onAction(agent.id, 'hire')}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Stats Bar ────────────────────────────────────────────────────────────────
+
+function StatsBar({ stats }: { stats: Stats }) {
+  return (
+    <div className="grid grid-cols-4 gap-4">
+      <StatCard label="Total Units" value={stats.units} color="text-slate-200" />
+      <StatCard label="Proven" value={stats.proven} color="text-emerald-400" />
+      <StatCard label="Highways" value={stats.highways} color="text-blue-400" />
+      <StatCard label="Revenue" value={`$${stats.revenue.toFixed(2)}`} color="text-amber-400" />
+    </div>
+  )
+}
+
+function StatCard({ label, value, color }: { label: string; value: string | number; color: string }) {
+  return (
+    <div className="bg-[#161622] border border-[#252538] rounded-xl p-4 text-center">
+      <div className={cn('text-2xl font-bold tabular-nums', color)}>{value}</div>
+      <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+    </div>
+  )
+}
+
+// ─── Toxic Paths ─────────────────────────────────────────────────────────────
+
+function ToxicPaths({ edges }: { edges: Edge[] }) {
+  const toxic = edges.filter(e => e.toxic || (e.resistance >= 10 && e.resistance > e.strength * 2))
+  if (toxic.length === 0) return null
+
+  return (
+    <div className="bg-[#1a0f0f] border border-red-900/50 rounded-xl p-4">
+      <h2 className="text-xs font-semibold text-red-400 uppercase tracking-widest mb-3">
+        ⚠ Toxic Paths — {toxic.length}
+      </h2>
+      <div className="space-y-1.5">
+        {toxic.slice(0, 8).map((e, i) => (
+          <div key={i} className="flex items-center gap-3 text-xs font-mono">
+            <span className="text-slate-400 truncate flex-1">{e.from}</span>
+            <span className="text-slate-600">→</span>
+            <span className="text-slate-400 truncate flex-1">{e.to}</span>
+            <span className="text-emerald-400/60">+{e.strength.toFixed(1)}</span>
+            <span className="text-red-400">−{e.resistance.toFixed(1)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -64,25 +227,21 @@ function SrBar({ value }: { value: number }) {
 
 export function CEOPanel() {
   const [agents, setAgents] = useState<Agent[]>([])
-  const [highways, setHighways] = useState<Edge[]>([])
+  const [edges, setEdges] = useState<Edge[]>([])
+  const [stats, setStats] = useState<Stats>({ units: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 })
   const [loading, setLoading] = useState(true)
   const [pending, setPending] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/state').then(r => r.json()) as {
-      units: Agent[]
-      edges: Edge[]
+    try {
+      const res = await fetch('/api/state').then(r => r.json()) as StateResponse
+      setAgents([...(res.units || [])])
+      setEdges(res.edges || [])
+      setStats(res.stats || { units: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 })
+    } finally {
+      setLoading(false)
     }
-    const sorted = [...(res.units || [])].sort((a, b) => b.sr - a.sr)
-    setAgents(sorted)
-    // Highways = edges where strength > resistance
-    const hw = (res.edges || [])
-      .filter(e => e.s > e.r)
-      .sort((a, b) => (b.s - b.r) - (a.s - a.r))
-      .slice(0, 10)
-    setHighways(hw)
-    setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -95,22 +254,22 @@ export function CEOPanel() {
     setPending(p => ({ ...p, [id + action]: true }))
     try {
       if (action === 'hire' || action === 'fire') {
+        const status = action === 'hire' ? 'active' : 'inactive'
         await fetch(`/api/agents/${encodeURIComponent(id)}/status`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: action === 'hire' ? 'active' : 'inactive' }),
+          body: JSON.stringify({ status }),
         })
-        setAgents(a => a.map(u => u.id === id ? { ...u, status: action === 'hire' ? 'active' : 'inactive' } : u))
-        showToast(action === 'hire' ? `${id} hired` : `${id} fired`)
+        setAgents(a => a.map(u => u.id === id ? { ...u, status } : u))
+        showToast(action === 'hire' ? `${id} activated` : `${id} deactivated`)
       } else {
         await fetch(`/api/agents/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
-        // Optimistic sr update
         setAgents(a => a.map(u => {
           if (u.id !== id) return u
           const delta = action === 'commend' ? 0.1 : -0.15
           return { ...u, sr: Math.min(0.95, Math.max(0.05, u.sr + delta)) }
         }))
-        showToast(action === 'commend' ? `${id} commended` : `${id} flagged`)
+        showToast(action === 'commend' ? `★ ${id} commended` : `⚑ ${id} flagged`)
       }
     } finally {
       setPending(p => ({ ...p, [id + action]: false }))
@@ -122,151 +281,146 @@ export function CEOPanel() {
     setTimeout(() => setToast(null), 2500)
   }
 
-  const activeCount = agents.filter(a => a.status === 'active').length
+  // Derived views
+  const agentsWithNet = agents.map(a => ({
+    ...a,
+    net: netStrength(a.id, edges),
+    topSkill: topSkill(a.id, edges),
+  }))
+
+  const topPerformers = [...agentsWithNet]
+    .filter(a => a.status === 'active')
+    .sort((a, b) => b.net - a.net)
+    .slice(0, 10)
+
+  const atRisk = agentsWithNet
+    .filter(a => a.sr < 0.4 && a.status === 'active')
+    .sort((a, b) => a.sr - b.sr)
+
   const avgSr = agents.length ? agents.reduce((s, a) => s + a.sr, 0) / agents.length : 0
-  const atRisk = agents.filter(a => a.sr < 0.35).length
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <span className="text-slate-500 text-sm">Loading...</span>
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <span className="text-slate-500 text-sm">Loading world state…</span>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-slate-200 p-6 space-y-6">
+    <div className="min-h-screen bg-[#0a0a0f] text-slate-200 p-6 space-y-6 max-w-5xl mx-auto">
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-[#1a1a2e] border border-[#252538] rounded-lg px-4 py-2 text-sm text-emerald-400 shadow-lg">
+        <div className="fixed top-4 right-4 z-50 bg-[#1a1a2e] border border-[#252538] rounded-lg px-4 py-2 text-sm text-emerald-400 shadow-lg animate-in fade-in slide-in-from-top-2">
           {toast}
         </div>
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-100">CEO Control Panel</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Hire · Fire · Commend · Flag</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Avg SR: <span className={cn('font-mono', srColor(avgSr))}>{Math.round(avgSr * 100)}%</span>
+            {' · '}
+            {agents.filter(a => a.status === 'active').length} active
+            {atRisk.length > 0 && (
+              <span className="text-red-400 ml-2">· {atRisk.length} at risk</span>
+            )}
+          </p>
         </div>
-        <div className="flex gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-emerald-400">{activeCount}</div>
-            <div className="text-xs text-slate-500">Active</div>
-          </div>
-          <div>
-            <div className={cn('text-2xl font-bold', avgSr >= 0.6 ? 'text-emerald-400' : avgSr >= 0.4 ? 'text-amber-400' : 'text-red-400')}>
-              {Math.round(avgSr * 100)}%
-            </div>
-            <div className="text-xs text-slate-500">Avg SR</div>
-          </div>
-          <div>
-            <div className={cn('text-2xl font-bold', atRisk > 0 ? 'text-red-400' : 'text-slate-500')}>{atRisk}</div>
-            <div className="text-xs text-slate-500">At Risk</div>
-          </div>
-        </div>
+        <button
+          onClick={load}
+          className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-2 py-1 rounded border border-[#252538] hover:border-slate-500"
+        >
+          ↻ Refresh
+        </button>
       </div>
 
-      {/* Highways — top 10 performers */}
-      {highways.length > 0 && (
-        <div className="bg-[#161622] border border-[#252538] rounded-xl p-4">
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Top Paths</h2>
-          <div className="space-y-1.5">
-            {highways.map((e, i) => (
-              <div key={i} className="flex items-center gap-3 text-xs">
-                <span className="text-slate-600 w-4">{i + 1}</span>
-                <span className="text-slate-300 font-mono">{e.fid}</span>
-                <span className="text-slate-600">→</span>
-                <span className="text-slate-300 font-mono">{e.tid}</span>
-                <span className="ml-auto text-emerald-400">+{e.s.toFixed(1)}</span>
-                {e.r > 0 && <span className="text-red-400">−{e.r.toFixed(1)}</span>}
-              </div>
+      {/* Stats Bar */}
+      <StatsBar stats={stats} />
+
+      {/* Top Performers */}
+      {topPerformers.length > 0 && (
+        <div className="bg-[#161622] border border-[#252538] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#252538] flex items-center justify-between">
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+              Top Performers
+            </h2>
+            <span className="text-xs text-slate-600">net strength = mark − warn</span>
+          </div>
+          <div className="divide-y divide-[#1e1e30]">
+            {topPerformers.map(agent => (
+              <AgentRow
+                key={agent.id}
+                agent={agent}
+                net={agent.net}
+                skill={agent.topSkill}
+                pending={pending}
+                onAction={act}
+                showNet
+              />
             ))}
           </div>
         </div>
       )}
 
-      {/* Agent Roster */}
+      {/* At-Risk Agents */}
+      {atRisk.length > 0 && (
+        <div className="bg-[#161622] border border-red-900/40 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-red-900/40">
+            <h2 className="text-xs font-semibold text-red-400 uppercase tracking-widest">
+              At-Risk Agents — SR &lt; 40%
+            </h2>
+          </div>
+          <div className="divide-y divide-[#1e1e30]">
+            {atRisk.map(agent => (
+              <AgentRow
+                key={agent.id}
+                agent={agent}
+                net={agent.net}
+                skill={agent.topSkill}
+                pending={pending}
+                onAction={act}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Toxic Paths */}
+      <ToxicPaths edges={edges} />
+
+      {/* Full Roster */}
       <div className="bg-[#161622] border border-[#252538] rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-[#252538]">
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-            Agent Roster — {agents.length} units
+            Full Roster — {agents.length} units
           </h2>
         </div>
         <div className="divide-y divide-[#1e1e30]">
-          {agents.map(agent => (
-            <div
-              key={agent.id}
-              className={cn(
-                'flex items-center gap-4 px-4 py-3 hover:bg-[#1a1a2e] transition-colors',
-                agent.status === 'inactive' && 'opacity-50'
-              )}
-            >
-              {/* Status dot + name */}
-              <StatusDot active={agent.status === 'active'} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm text-slate-200 truncate">{agent.name || agent.id}</div>
-                <div className="text-xs text-slate-600 truncate">{agent.id}</div>
-              </div>
-
-              {/* Gen badge */}
-              {agent.g > 0 && (
-                <span className="text-xs text-purple-400 border border-purple-400/30 rounded px-1.5 py-0.5">
-                  gen {agent.g}
-                </span>
-              )}
-
-              {/* SR bar */}
-              <SrBar value={agent.sr} />
-
-              {/* Actions */}
-              <div className="flex gap-1">
-                <ActionBtn
-                  label="★"
-                  title="Commend — boost success-rate"
-                  color="text-emerald-400 hover:bg-emerald-400/10"
-                  loading={pending[agent.id + 'commend']}
-                  disabled={agent.status === 'inactive'}
-                  onClick={() => act(agent.id, 'commend')}
-                />
-                <ActionBtn
-                  label="⚑"
-                  title="Flag — lower success-rate, increase resistance"
-                  color="text-amber-400 hover:bg-amber-400/10"
-                  loading={pending[agent.id + 'flag']}
-                  disabled={agent.status === 'inactive'}
-                  onClick={() => act(agent.id, 'flag')}
-                />
-                {agent.status === 'active' ? (
-                  <ActionBtn
-                    label="✕"
-                    title="Fire — set inactive"
-                    color="text-red-400 hover:bg-red-400/10"
-                    loading={pending[agent.id + 'fire']}
-                    onClick={() => act(agent.id, 'fire')}
-                  />
-                ) : (
-                  <ActionBtn
-                    label="↑"
-                    title="Hire — set active"
-                    color="text-blue-400 hover:bg-blue-400/10"
-                    loading={pending[agent.id + 'hire']}
-                    onClick={() => act(agent.id, 'hire')}
-                  />
-                )}
-              </div>
-            </div>
-          ))}
+          {agentsWithNet
+            .sort((a, b) => b.sr - a.sr)
+            .map(agent => (
+              <AgentRow
+                key={agent.id}
+                agent={agent}
+                net={agent.net}
+                skill={agent.topSkill}
+                pending={pending}
+                onAction={act}
+              />
+            ))}
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex gap-6 text-xs text-slate-600">
-        <span><span className="text-emerald-400">★</span> Commend — boosts SR +10%, strengthens paths</span>
-        <span><span className="text-amber-400">⚑</span> Flag — lowers SR −15%, adds resistance</span>
-        <span><span className="text-red-400">✕</span> Fire — marks inactive, excluded from routing</span>
-        <span><span className="text-blue-400">↑</span> Hire — reactivates agent</span>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600 pb-2">
+        <span><span className="text-emerald-400">★</span> Commend — SR +10%, strengthen outgoing paths</span>
+        <span><span className="text-amber-400">⚑</span> Flag — SR −15%, add resistance to paths</span>
+        <span><span className="text-slate-400">✕</span> Deactivate — exclude from routing</span>
+        <span><span className="text-blue-400">↑</span> Activate — restore to routing</span>
       </div>
     </div>
   )

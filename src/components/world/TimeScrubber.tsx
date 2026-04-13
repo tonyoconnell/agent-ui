@@ -64,18 +64,23 @@ export function TimeScrubber({
   const loadSignals = useCallback(async (timestamp: number) => {
     if (typeof window === 'undefined') return
     setIsLoading(true)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
     try {
       const windowStart = timestamp
       const windowEnd = timestamp + 60000 // 1 minute window
       const response = await fetch(
-        `/api/signals?from=${windowStart}&to=${windowEnd}`
+        `/api/signals?from=${windowStart}&to=${windowEnd}`,
+        { signal: controller.signal }
       )
+      clearTimeout(timeout)
       if (response.ok) {
         const data = (await response.json()) as Signal[]
         setSignals(data)
         onSignalsLoaded?.(data)
       }
     } catch (error) {
+      clearTimeout(timeout)
       console.error('Failed to load signals:', error)
     } finally {
       setIsLoading(false)

@@ -9,7 +9,7 @@
    │  $0     │    │  $0     │    │  LLM    │    │ 4 types │    │mark/warn│
    └────┬────┘    └────┬────┘    └────┬────┘    └────┬────┘    └────┬────┘
         │              │              │              │              │
-       bad            no           Claude         result          fade
+       bad            no            ONE          result          fade
       paths         skill           SDK          timeout         select
      dissolve      dissolve                     dissolved        follow
                                                  failure
@@ -122,7 +122,7 @@ even with zero weight. No path is ever invisible — just expensive.
 │                                                              │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
-│   select(type?, sensitivity?)  Stochastic (STAN)             │
+│   select(type?, sensitivity?)  Stochastic                    │
 │   ────────────────────────     Weighted random selection      │
 │   weight = 1 + net × sens     Exploration built in.          │
 │   Used by: tick loop,          "Where should I go next?"      │
@@ -731,6 +731,59 @@ Signals that can't be delivered yet wait in a priority queue.
 > pheromone deposited on both deliveries. Queue drops to 0 in **<1ms**.
 > At AgentVerse: a user requests an agent that doesn't exist yet. The signal
 > waits. The agent registers. The request auto-delivers. Nothing lost.
+
+**Scheduling.** Signals carry an optional `after` timestamp (Unix ms). `drain()` skips them until that time:
+
+```typescript
+net.enqueue({
+  receiver: 'slack:post',
+  data: { channel: '#standup', text: summary },
+  after: new Date('2026-04-14T09:00:00Z').getTime()  // fires at 9am Monday
+})
+// drain() ignores this signal until then
+// Priority ordering still applies among ready signals
+```
+
+---
+
+## Receiver Types
+
+The router never knows what type a receiver is. The formula is the same for all six:
+
+```
+TYPE         LATENCY       COST          HOW TO CREATE
+─────────────────────────────────────────────────────────────────────
+Function     < 0.01ms      $0            net.add(id).on(task, fn)
+Highway      0.11ms        $0            emerges after ~50 successes
+API          50–500ms      API rate      apiUnit(id, opts) or github/slack/etc
+Agent (LLM)  800–2000ms    ~$0.001       llm(id, complete)
+Human        5min–24h      attention     human(id, { env, telegram })
+World        network       cross-world   federate(id, url, key) or bridgeAgentverse()
+```
+
+Every type returns `{ result }` → `mark()`, timeout → neutral, dissolved → `warn(0.5)`, null → `warn(1)`.
+
+```typescript
+import { apiUnit, github, slack } from '@/engine/api'
+import { human } from '@/engine/human'
+import { federate } from '@/engine/federation'
+import { bridgeAgentverse } from '@/engine/agentverse-bridge'
+
+// API units
+net.units['github']  = github(GITHUB_TOKEN)
+net.units['slack']   = slack(SLACK_TOKEN)
+
+// Human unit — Telegram message + durable D1 wait
+net.units['anthony'] = human('anthony', { env, telegram: ID, botToken: TOKEN })
+
+// Federated world — signals cross network boundary
+net.units['world-b'] = federate('world-b', 'https://world-b.one.ie', KEY)
+
+// AgentVerse — 2M agents as proxy units
+const av = await bridgeAgentverse(net, fetchFn, AV_KEY)
+```
+
+Pheromone learns all of them. The human who responds in 3 minutes. The Slack API that starts rate-limiting. The federated world that goes down. All accumulate strength and resistance identically.
 
 ---
 

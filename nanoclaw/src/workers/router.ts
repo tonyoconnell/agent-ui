@@ -15,8 +15,29 @@ import type { Env, QueueMessage, Signal, GroupContext } from '../types'
 import { normalize, send } from '../channels'
 import { ensureRegistered, isToxic, mark, warn, highways } from '../lib/substrate'
 import { tools, executeTool } from '../lib/tools'
+import { personas } from '../personas'
 
 const app = new Hono<{ Bindings: Env }>()
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTH MIDDLEWARE
+// Webhooks are exempt (Telegram signs them). Health is always public.
+// All other routes require Authorization: Bearer <API_KEY> when API_KEY is set.
+// ═══════════════════════════════════════════════════════════════════════════
+
+app.use('*', async (c, next) => {
+  const apiKey = c.env.API_KEY
+  if (!apiKey) return next()  // no key set — open (main nanoclaw behaviour)
+
+  const path = new URL(c.req.url).pathname
+  const isPublic = path === '/health' || path.startsWith('/webhook/')
+  if (isPublic) return next()
+
+  const auth = c.req.header('Authorization') || ''
+  if (auth === `Bearer ${apiKey}`) return next()
+
+  return c.json({ ok: false, error: 'Unauthorized' }, 401)
+})
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ROUTES
@@ -187,7 +208,60 @@ app.post('/webhook/:channel', async (c) => {
       VALUES (?, ?, ?, ?, ?, 'user', ?)
     `).bind(signal.id, signal.group, channel, signal.sender, signal.content, signal.ts).run()
 
-    // Queue for agent processing (skip if queue unavailable in local dev)
+    // Process synchronously for Telegram/Discord — eliminates queue latency (~30s → ~3s)
+    if (channel.startsWith('telegram') || channel === 'discord') {
+      const context = await loadContext(c.env, signal.group)
+      const messages = await buildMessages(c.env, signal.group)
+
+      const openaiTools = tools.map(t => ({
+        type: 'function' as const,
+        function: { name: t.name, description: t.description, parameters: t.input_schema },
+      }))
+
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${c.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://one.ie',
+          'X-Title': 'NanoClaw',
+        },
+        body: JSON.stringify({
+          model: context.model,
+          max_tokens: 1024,
+          messages: [{ role: 'system', content: context.systemPrompt }, ...messages],
+          tools: openaiTools,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json() as any
+        const choice = data.choices?.[0]?.message
+        const reply = (choice?.content as string) || ''
+
+        if (choice?.tool_calls) {
+          for (const call of choice.tool_calls) {
+            await executeTool(c.env, signal.group, call.function.name, JSON.parse(call.function.arguments))
+          }
+        }
+
+        if (reply) {
+          await c.env.DB.prepare(`
+            INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
+            VALUES (?, ?, ?, 'assistant', ?, 'assistant', ?)
+          `).bind(`resp-${Date.now()}`, signal.group, channel, reply, Date.now()).run()
+
+          await send(c.env, signal.group, reply)
+          await mark(c.env, 'entry', `nanoclaw:${signal.group}`)
+        }
+      } else {
+        await warn(c.env, 'entry', `nanoclaw:${signal.group}`, 0.5)
+      }
+
+      return c.json({ ok: true, id: signal.id, group: signal.group })
+    }
+
+    // Queue for other channel types (substrate signals, scheduled tasks)
     try {
       if (c.env.AGENT_QUEUE) {
         await c.env.AGENT_QUEUE.send({
@@ -250,13 +324,19 @@ async function loadContext(env: Env, groupId: string): Promise<GroupContext> {
     return cached
   }
 
+  // Resolve persona: worker-level BOT_PERSONA takes priority, then group-prefix
+  const personaKey = env.BOT_PERSONA
+    ?? Object.keys(personas).find(k => groupId.startsWith(`tg-${k}`))
+    ?? null
+  const botDefault = personaKey ? personas[personaKey] ?? null : null
+
   // Default context
   const ctx: GroupContext = {
     id: groupId,
-    systemPrompt: `You are a helpful AI assistant connected to the ONE substrate.
+    systemPrompt: botDefault?.systemPrompt ?? `You are a helpful AI assistant connected to the ONE substrate.
 You can use tools to interact with other agents in the network.
 Be concise and helpful. Mark successful collaborations, warn on failures.`,
-    model: 'google/gemma-4-26b-a4b-it',
+    model: botDefault?.model ?? 'google/gemma-4-26b-a4b-it',
     sensitivity: 0.5,
   }
 

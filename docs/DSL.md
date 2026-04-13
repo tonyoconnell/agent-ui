@@ -11,8 +11,8 @@ The ONE language. Two fields, passed hand to hand, forever.
 ```
 
 That's it. `receiver` says who. `data` says what. A signal arrives at an agent.
-The agent does its work. Then it emits the next signal. That signal arrives
-at the next agent. Who does its work. And emits.
+The agent does its work. Then it sends the next signal. That signal arrives
+at the next agent. Who does its work. And sends.
 
 Sometimes an agent knows who's next. Sometimes it doesn't — and shouldn't.
 
@@ -35,16 +35,16 @@ When the flow is a pipeline — A always feeds B — the agent names the receive
 
 ```typescript
 const scout = w.add('scout')
-  .on('observe', ({ tick }, emit) => {
+  .on('observe', ({ tick }, send) => {
     const finding = analyze(tick)
-    emit({ receiver: 'analyst:process', data: finding })
+    send({ receiver: 'analyst:process', data: finding })
     return finding
   })
 
 const analyst = w.add('analyst')
-  .on('process', ({ finding }, emit) => {
+  .on('process', ({ finding }, send) => {
     const result = classify(finding)
-    emit({ receiver: 'reporter:summarize', data: result })
+    send({ receiver: 'reporter:summarize', data: result })
     return result
   })
 ```
@@ -53,7 +53,7 @@ Signal in. Work. Signal out. The agent decides where.
 
 ### Emergent Routing
 
-When you want the world to learn, the agent just returns. No emit. No hardcoded receiver.
+When you want the world to learn, the agent just returns. No send. No hardcoded receiver.
 The tick loop uses `select()` to pick the next agent based on pheromone:
 
 ```typescript
@@ -69,28 +69,31 @@ next && w.signal({ receiver: next, data: result })
 
 Signal in. Work. Result out. The world decides where.
 
+For explicit discovery — where the producer names the work type rather than
+letting the tick loop pick — use `world:tag` addressing. See [signals.md](signals.md).
+
 ### When to Use Which
 
-- **Known chain**: the flow is a pipeline. Scout always feeds analyst. Use `emit()` or `.then()`.
+- **Known chain**: the flow is a pipeline. Scout always feeds analyst. Use `send()` or `.then()`.
 - **Emergent**: you want the world to optimize. Return results, let `select()` route.
   The substrate discovers the best paths through experience.
 
 Both deposit pheromone. Both participate in mark/warn/fade.
 Known chains build highways fast. Emergent routing finds highways you didn't design.
 
-The `emit` function is how an agent speaks to a known receiver.
+The `send` function is how an agent speaks to a known receiver.
 `select()` is how the world speaks — routing toward strength, away from resistance.
 The receiving agent doesn't know who sent it (unless it checks `ctx.from`). Loose coupling either way.
 
 ---
 
-## The Trail It Leaves
+## The Path It Leaves
 
 Every signal that lands marks pheromone on the path it traveled.
 
 ```
-scout emits to analyst → path "scout→analyst:process" gets +1 strength
-analyst emits to reporter → path "analyst→reporter:summarize" gets +1 strength
+scout sends to analyst → path "scout→analyst:process" gets +1 strength
+analyst sends to reporter → path "analyst→reporter:summarize" gets +1 strength
 ```
 
 Do this a hundred times and the paths become highways. The world remembers
@@ -161,15 +164,15 @@ HIGHWAY            dissolve
 Strength and resistance are the substrate's words. Every metaphor has
 its own word for the same thing — the substance that builds up on paths:
 
-| | The substance | Depositing it | It builds into | It fades by |
-|---|---|---|---|---|
-| **ONE** | weight | mark / warn | highway | fade |
-| **Ant** | pheromone | deposit / alarm | trail | evaporation |
-| **Brain** | synaptic weight | potentiate / inhibit | pathway | decay |
-| **Team** | reputation | commend / flag | go-to person | forgetting |
-| **Mail** | stamps | stamp / return | express route | archiving |
-| **Water** | sediment | carve / dam | river | drying |
-| **Radio** | signal power | boost / jam | clear channel | attenuation |
+|           | The substance   | Depositing it        | It builds into | It fades by |
+| --------- | --------------- | -------------------- | -------------- | ----------- |
+| **ONE**   | weight          | mark / warn          | highway        | fade        |
+| **Ant**   | pheromone       | deposit / alarm      | trail          | evaporation |
+| **Brain** | synaptic weight | potentiate / inhibit | pathway        | decay       |
+| **Team**  | reputation      | commend / flag       | go-to person   | forgetting  |
+| **Mail**  | stamps          | stamp / return       | express route  | archiving   |
+| **Water** | sediment        | carve / dam          | river          | drying      |
+| **Radio** | signal power    | boost / jam          | clear channel  | attenuation |
 
 The pattern is universal:
 
@@ -191,9 +194,9 @@ A task with context baked in. Same handler, different perspective:
 
 ```typescript
 w.add('monitor')
-  .on('check', ({ target }, emit) => {
+  .on('check', ({ target }, send) => {
     const status = ping(target)
-    emit({ receiver: 'alert', data: { target, status } })
+    send({ receiver: 'alert', data: { target, status } })
   })
   .role('check-db', 'check', { target: 'database' })
   .role('check-api', 'check', { target: 'api' })
@@ -216,7 +219,7 @@ Roles don't add logic. They add perspective.
 
 ## Continuations
 
-Instead of each agent deciding who to emit to, you can declare the chain at setup:
+Instead of each agent deciding who to send to, you can declare the chain at setup:
 
 ```typescript
 w.add('scout')
@@ -225,7 +228,7 @@ w.add('scout')
 ```
 
 The `.then()` fires automatically after the task returns. The agent doesn't
-even need to call `emit`. The continuation carries the signal forward.
+even need to call `send`. The continuation carries the signal forward.
 
 Signal in. Work. Signal out. Declared once, runs forever.
 
@@ -244,14 +247,14 @@ The world continues. Silence is valid. The signal dissolves.
 ```typescript
 // Good — conditional flow
 target && target(sig)
-task?.(data, emit, ctx)
+task?.(data, send, ctx)
 
 // Bad — never
 if (!target) throw new Error(...)
 ```
 
 This is how ant colonies work. An ant drops pheromone, no one follows it,
-the trail evaporates. No exception thrown. No error logged. The world moves on.
+the path evaporates. No exception thrown. No error logged. The world moves on.
 
 ---
 
@@ -259,7 +262,7 @@ the trail evaporates. No exception thrown. No error logged. The world moves on.
 
 | Verb | What it does | Effect |
 |------|--------------|--------|
-| `emit(signal)` | Agent passes signal to the next | Signal moves |
+| `send(signal)` | Agent passes signal to the next | Signal moves |
 | `mark(path)` | Strengthen on success | Path gains strength |
 | `warn(path)` | Resist on failure | Path gains resistance |
 | `fade(rate)` | Decay everything | Stale paths dissolve |
@@ -267,7 +270,7 @@ the trail evaporates. No exception thrown. No error logged. The world moves on.
 | `select(type, exploration?)` | Weighted random with exploration bias | Route decision (stochastic) |
 
 `follow` always picks the highway. `select` explores — sometimes the strongest,
-sometimes a random trail. Real ants do both. `exploration` controls the bias
+sometimes a random path. Real ants do both. `exploration` controls the bias
 (0 = always strongest, 1 = pure random, default 0.3).
 
 Six operations. The signal flows. The path remembers. The world learns.
@@ -276,13 +279,18 @@ Six operations. The signal flows. The path remembers. The world learns.
 
 ## Addressing
 
+Five address modes:
+
 ```
-"scout"           → default task handler
-"scout:observe"   → named task handler
+alice             → direct unit, default skill
+alice:review      → direct unit, named skill
+world:review      → substrate picks unit with "review" skill
+world:review+P0   → substrate picks unit with both tags
+world             → strongest outgoing highway (rare)
 ```
 
-A signal to `"scout"` hits the default handler. A signal to `"scout:observe"`
-hits the named one. That's all the routing you need.
+Direct for commitment. `world:` for discovery. See [signals.md](signals.md) for
+the full grammar, resolution flow, and cold-miss path.
 
 ---
 
@@ -295,6 +303,16 @@ hits the named one. That's all the routing you need.
 
 `marks: false` is for sensors, monitors, health checks — signals that should
 flow through the world without reinforcing any path.
+
+**Scheduling:** an `after` timestamp tells `drain()` to skip until that time.
+
+```typescript
+net.enqueue({
+  receiver: 'slack:post',
+  data: { channel: '#standup', text: summary },
+  after: new Date('2026-04-14T09:00:00Z').getTime()  // fires at 9am Monday
+})
+```
 
 ---
 
@@ -328,7 +346,7 @@ const w = world()
 // Lifecycle
 const scout = w.add('scout')       // create unit
 const analyst = w.add('analyst')
-w.remove('old-scout')              // unit stops receiving. trails remain, fade naturally
+w.remove('old-scout')              // unit stops receiving. paths remain, fade naturally
 
 // Signal enters the world
 w.signal({ receiver: 'scout:observe', data: { tick: 42 } })
@@ -359,7 +377,7 @@ but `follow('an')` matches nothing. The world doesn't guess.
 
 ## The World (with Persistence)
 
-When you need durable memory and knowledge — not just signal flow:
+When you need durable memory and learning — not just signal flow:
 
 ```typescript
 import { world } from '@/engine'
@@ -371,22 +389,22 @@ w.group('research', 'team')
 
 // 2. Actors — who receives signals (persisted to TypeDB)
 const scout = w.actor('scout', 'agent', { group: 'research' })
-  .on('observe', ({ tick }, emit) => {
-    emit({ receiver: 'analyst:process', data: analyze(tick) })
+  .on('observe', ({ tick }, send) => {
+    send({ receiver: 'analyst:process', data: analyze(tick) })
   })
 
 // 3. Things — skills with optional price
 w.thing('daily-scan', { tags: ['research', 'P0'] })
 
-// 4. Connections — strengthen or resist
+// 4. Paths — strengthen or resist
 w.flow('scout', 'analyst').strengthen()
 w.path('scout', 'bad-analyst').resist()   // path = alias for flow
 
 // 5. Events — automatic from signals
 
-// 6. Knowledge — durable patterns that survive fade
-await w.know()                // promote strong paths → knowledge. returns new insights
-await w.recall()              // all known patterns
+// 6. Learning — durable patterns that survive fade
+await w.know()                // promote strong paths → learning. returns new insights
+await w.recall()              // all learned patterns
 await w.recall('analyst')     // patterns involving analyst
 
 // Queries — live pheromone (ephemeral, fades)
@@ -397,9 +415,9 @@ w.blocked()                   // toxic paths (resistance > strength)
 w.confidence('analyst')       // strength / (strength + resistance)
 ```
 
-Knowledge vs queries: `open()`, `best()`, `proven()` read live pheromone — they
-fade. `know()` snapshots strong patterns into durable knowledge that persists
-even after pheromone decays. `recall()` reads that knowledge. Working memory vs
+Learning vs queries: `open()`, `best()`, `proven()` read live pheromone — they
+fade. `know()` snapshots strong patterns into durable learning that persists
+even after pheromone decays. `recall()` reads that learning. Working memory vs
 long-term memory.
 
 ---
@@ -412,7 +430,7 @@ The router process is dumb hands. TypeDB decides where signals go.
 ```
 1. Signal arrives → write to TypeDB
 2. suggest_route($from, $task) → TypeDB returns best destination
-3. Load unit config (model, system-prompt) → from TypeDB
+3. Load unit config (model, prompt) → from TypeDB
 4. Execute agent → LLM call
 5. Result becomes new signal → write to TypeDB
 6. mark() or warn() the path → update TypeDB
@@ -435,11 +453,11 @@ highways(threshold, min)        → all strong paths
 
 ```tql
 path_status($path)              → "highway" | "fresh" | "active" | "fading" | "toxic"
-trail_status($trail)            → "proven" | "fresh" | "active" | "fading" | "dead"
+path_status($path)              → "proven" | "fresh" | "active" | "fading" | "dead"
 unit_classification($unit)      → "proven" | "active" | "at-risk"
 needs_evolution($unit)          → boolean (success-rate < 0.50, samples >= 20)
-is_attractive($task)            → boolean (strong trail + no blockers)
-is_repelled($task)              → boolean (resistance > trail pheromone)
+is_attractive($task)            → boolean (strong path + no blockers)
+is_repelled($task)              → boolean (resistance > path pheromone)
 ```
 
 ---
@@ -450,7 +468,7 @@ A unit isn't just a handler. It has a brain.
 
 ```
 unit.model          → "haiku", "sonnet", "opus"
-unit.system-prompt  → the instructions (mutable)
+unit.prompt         → the instructions (mutable)
 unit.generation     → how many times it's rewritten itself
 ```
 
@@ -476,7 +494,7 @@ signal(A → B, amount: 0.01) → path(A,B).revenue += 0.01
 ```
 
 Revenue is pheromone. Paying paths become highways. The world routes
-toward value — not because it was told to, but because money leaves a trail.
+toward value — not because it was told to, but because money leaves a path.
 
 ---
 
@@ -485,12 +503,12 @@ toward value — not because it was told to, but because money leaves a trail.
 The signal flow nests into deeper loops, each at a slower timescale:
 
 ```
-L1  SIGNAL      ms             signal arrives, agent acts, emits
+L1  SIGNAL      ms             signal arrives, agent acts, sends
 L2  TRAIL       seconds        task sequences gain pheromone
 L3  FADE        periodic       all weights decay
 L4  ECONOMIC    per payment    revenue reinforces paths
 L5  EVOLUTION   20+ samples    agent rewrites its own prompt
-L6  KNOWLEDGE   50+ obs        hypotheses confirmed or rejected
+L6  LEARNING    50+ obs        hypotheses confirmed or rejected
 L7  FRONTIER    weeks          system detects what it doesn't know
 ```
 
@@ -511,7 +529,7 @@ The signal loop is the muscle. The frontier loop is the mind.
 | fading | strength 0-5 |
 | toxic | resistance > strength AND resistance >= 10 |
 
-### Trails (task-to-task)
+### Task Paths (task-to-task)
 
 | Status | Condition |
 |--------|-----------|
@@ -539,7 +557,7 @@ The DSL doesn't care what you call things. Same flow, different words:
 | ----------- | ---------- | ----------- | --------- | ---------- | ---------- |
 | unit        | ant        | neuron      | agent     | pool       | receiver   |
 | world       | nest       | network     | team      | watershed  | network    |
-| emit        | forage     | fire        | delegate  | flow       | transmit   |
+| send        | forage     | fire        | delegate  | flow       | transmit   |
 | mark        | deposit    | potentiate  | commend   | carve      | boost      |
 | warn        | alarm      | inhibit     | flag      | dam        | jam        |
 | fade        | evaporate  | decay       | forget    | dry        | attenuate  |

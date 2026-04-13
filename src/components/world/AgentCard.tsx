@@ -411,6 +411,16 @@ export function AgentCard({ className }: Props) {
     setFocusId(id)
   }, [])
 
+  // Listen for focus changes from OrgTree / WorldGraph clicks
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id || null
+      setFocusId(id)
+    }
+    window.addEventListener('world:focus', handler)
+    return () => window.removeEventListener('world:focus', handler)
+  }, [])
+
   // Load entity when focus changes
   useEffect(() => {
     if (!focusId) {
@@ -421,16 +431,21 @@ export function AgentCard({ className }: Props) {
     setLoading(true)
     setError(null)
 
-    fetch(`/api/entity/${focusId}`)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
+
+    fetch(`/api/entity/${focusId}`, { signal: controller.signal })
       .then((res) => {
+        clearTimeout(timeout)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
       })
-      .then((data: EntityResponse) => {
-        setEntity(data)
+      .then((data) => {
+        setEntity(data as EntityResponse)
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Unknown error')
+        clearTimeout(timeout)
+        setError(err instanceof Error ? err.message : 'Failed to load entity')
         setEntity(null)
       })
       .finally(() => {

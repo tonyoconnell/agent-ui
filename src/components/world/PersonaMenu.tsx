@@ -168,7 +168,7 @@ export function PersonaMenu({ className }: Props) {
                   style={{
                     backgroundColor: isSelected ? skin.colors.primary + '20' : undefined,
                     borderColor: skin.colors.muted + '20',
-                    color: isSelected ? skin.colors.primary : skin.colors.text,
+                    color: isSelected ? skin.colors.primary : skin.colors.muted,
                   }}
                 >
                   <div className="flex items-center justify-between">

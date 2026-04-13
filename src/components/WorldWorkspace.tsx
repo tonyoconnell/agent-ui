@@ -57,17 +57,30 @@ function assignEnvelopes(actors: ActorData[], envelopes: ActorData["envelopes"][
   }
 }
 
+async function fetchWithTimeout(url: string, timeout = 3000): Promise<Response | null> {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+  try {
+    const res = await fetch(url, { signal: controller.signal })
+    clearTimeout(id)
+    return res
+  } catch {
+    clearTimeout(id)
+    return null
+  }
+}
+
 async function loadWorld(): Promise<WorldState> {
   const net = createWorld()
 
-  // Try live TypeDB data first
+  // Try live TypeDB data first (3s timeout)
   try {
-    const stateRes = await fetch("/api/state")
-    if (stateRes.ok) {
+    const stateRes = await fetchWithTimeout("/api/state", 3000)
+    if (stateRes?.ok) {
       const stateData = await stateRes.json() as any
       if (stateData?.units?.length > 0) {
-        const actors: ActorData[] = (stateData.units as Array<{ uid: string; name: string; status: string }>).map((u: { uid: string; name: string; status: string }) => ({
-          id: u.uid,
+        const actors: ActorData[] = (stateData.units as Array<{ id: string; name: string; status: string }>).map((u) => ({
+          id: u.id,
           name: u.name,
           status: u.status,
           actions: {},
@@ -94,7 +107,8 @@ async function loadWorld(): Promise<WorldState> {
 
   // Fallback: static JSON
   try {
-    const res = await fetch("/agents.json")
+    const res = await fetchWithTimeout("/agents.json", 3000)
+    if (!res) throw new Error('Timeout')
     const data = await res.json() as any
     const actors = data.agents as ActorData[]
 
@@ -313,7 +327,22 @@ function WorkspaceInner() {
   const [world, setWorld] = useState<WorldState | null>(null)
 
   useEffect(() => {
-    loadWorld().then(setWorld)
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout>
+
+    const attempt = () => {
+      loadWorld().then((w) => {
+        if (cancelled) return
+        if (w.actors.length > 0) {
+          setWorld(w)
+        } else {
+          // World still loading — retry in 2s
+          timer = setTimeout(attempt, 2000)
+        }
+      })
+    }
+    attempt()
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [])
 
   // Periodic decay
@@ -373,7 +402,14 @@ function WorkspaceInner() {
         {/* Center: Main graph */}
         <div className="flex-1 h-full flex flex-col">
           <div className="flex-1 h-full">
-            <WorldGraph world={world.world} agents={world.actors} highways={world.flows} />
+            <WorldGraph
+              world={world.world}
+              agents={world.actors}
+              highways={world.flows}
+              onSelectAgent={(id) =>
+                window.dispatchEvent(new CustomEvent('world:focus', { detail: { id } }))
+              }
+            />
           </div>
 
           {/* Time Scrubber at bottom */}

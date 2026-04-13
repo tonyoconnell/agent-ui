@@ -12,6 +12,7 @@
 // IMPORTS TO ADD (at top of file, after existing imports)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+import { useState, useRef, useEffect, useCallback } from "react"
 // import { useCallback } from "react"  // Add useCallback if not already imported
 // import { useCanvasGestures } from "@/lib/useCanvasGestures"
 // import {

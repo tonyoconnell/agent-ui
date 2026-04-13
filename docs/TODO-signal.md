@@ -311,34 +311,34 @@ terminates when Wave 4 reports clean.
 
 ## Status
 
-- [ ] Wave 1 — Reconnaissance (10 Haiku, parallel)
-  - [ ] A1 plan-llm-routing.md triage
-  - [ ] A2 receivers.md catalog
-  - [ ] A3 gaps-receivers.md gap list
-  - [ ] A4 plan-receivers.md build order
-  - [ ] A5 primitives.md signal shape
-  - [ ] A6 events.md signal shape
-  - [ ] A7 DSL.md Addressing verbatim
-  - [ ] A8 dictionary.md Receiver verbatim
-  - [ ] A9 tutorial receiver examples
-  - [ ] A10 flows.md receiver patterns
-- [ ] Wave 2 — Synthesis (Opus, main context)
-  - [ ] Decide plan-llm-routing.md fate
-  - [ ] Walk gaps, mark closed
-  - [ ] Walk plan-receivers.md, re-prioritize
-  - [ ] Produce diff specs for E1–E9
-- [ ] Wave 3 — Edits (Sonnet, parallel)
-  - [ ] E1 DSL.md ## Addressing
-  - [ ] E2 DSL.md ### Emergent Routing
-  - [ ] E3 dictionary.md ## The Receiver
-  - [ ] E4 primitives.md (conditional)
-  - [ ] E5 events.md (conditional)
-  - [ ] E6 gaps-receivers.md
-  - [ ] E7 plan-receivers.md
-  - [ ] E8 plan-llm-routing.md tombstone
-  - [ ] E9 receivers.md cross-link
-- [ ] Wave 4 — Verify (Sonnet)
-- [ ] Mark complete
+- [x] Wave 1 — Reconnaissance (10 Haiku, parallel)
+  - [x] A1 plan-llm-routing.md triage
+  - [x] A2 receivers.md catalog
+  - [x] A3 gaps-receivers.md gap list
+  - [x] A4 plan-receivers.md build order
+  - [x] A5 primitives.md signal shape
+  - [x] A6 events.md signal shape
+  - [x] A7 DSL.md Addressing verbatim
+  - [x] A8 dictionary.md Receiver verbatim
+  - [x] A9 tutorial receiver examples
+  - [x] A10 flows.md receiver patterns
+- [x] Wave 2 — Synthesis (Opus, main context)
+  - [x] Decide plan-llm-routing.md fate → no edit (covers model selection, orthogonal)
+  - [x] Walk gaps, mark closed → all already closed, no edit needed
+  - [x] Walk plan-receivers.md, re-prioritize → no edit needed
+  - [x] Produce diff specs for E1–E5 (E6–E9 not needed)
+- [x] Wave 3 — Edits (Sonnet, parallel)
+  - [x] E1 DSL.md ## Addressing — five-mode table
+  - [x] E2 DSL.md ### Emergent Routing — cross-ref to signals.md
+  - [x] E3 dictionary.md ## The Receiver — world: as legal receiver
+  - [x] E4 primitives.md — receiver field updated with world:tag
+  - [x] E5 receivers.md cross-link — already present / applied
+  - [~] E6 gaps-receivers.md — skipped (all gaps already ✅)
+  - [~] E7 plan-receivers.md — skipped (no addressing content)
+  - [~] E8 plan-llm-routing.md tombstone — skipped (covers different ground)
+  - [~] E9 receivers.md cross-link — merged into E5
+- [x] Wave 4 — Verify (Sonnet) — 8/8 checks pass after micro-fix (Three→Five address modes)
+- [x] Mark complete
 
 ---
 

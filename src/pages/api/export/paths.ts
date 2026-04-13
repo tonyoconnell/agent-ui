@@ -21,27 +21,21 @@ export const GET: APIRoute = async () => {
   try {
     const results = await readParsed(`
       match
-        (source: $s, target: $t) isa path, has strength $str, has resistance $r;
+        $p (source: $s, target: $t) isa path, has strength $str, has resistance $r;
         $s has uid $sid;
         $t has uid $tid;
-        ?$p has revenue $rev;
-        ?$p has last-used $lu;
-      select $sid, $tid, $str, $r, $rev, $lu;
+      select $sid, $tid, $str, $r;
     `)
 
     const paths: PathExport[] = results.map(r => {
       const strength = r.str as number
       const resistance = r.r as number
-      const isToxic = resistance > strength && resistance >= 10.0
-
       return {
         from: r.sid as string,
         to: r.tid as string,
         strength,
         resistance,
-        ...(r.rev && { revenue: r.rev as number }),
-        ...(r.lu && { lastUsedAt: r.lu as string }),
-        toxic: isToxic,
+        toxic: resistance > strength && resistance >= 10.0,
       }
     })
 

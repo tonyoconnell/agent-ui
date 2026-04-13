@@ -170,7 +170,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       match $u isa unit, has uid $id, has system-prompt $sp, has success-rate $sr,
             has sample-count $sc, has generation $g;
       $sr < ${EVOLUTION_THRESHOLD}; $sc >= ${EVOLUTION_MIN_SAMPLES};
-      not { $u has last-evolved $le; $le > ${new Date(now - EVOLUTION_COOLDOWN).toISOString().replace('Z', '')}; };
+      not { $u has last-evolved $le; $le > ${new Date(now - EVOLUTION_COOLDOWN).toISOString().slice(0, 19)}; };
       (provider: $u, offered: $sk) isa capability;
       $sk has skill-id $sid, has tag $tag;
       select $id, $sp, $sr, $sc, $g, $sid, $tag;
@@ -217,7 +217,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         match $u isa unit, has uid "${uid}", has system-prompt $sp, has generation $g;
         delete $sp of $u; delete $g of $u;
         insert $u has system-prompt "${prompt.replace(/"/g, '\\"')}", has generation (${u.g} + 1),
-               has last-evolved ${new Date(now).toISOString().replace('Z', '')};
+               has last-evolved ${new Date(now).toISOString().slice(0, 19)};
       `)
     }
     lastEvolve = now

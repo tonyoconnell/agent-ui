@@ -247,7 +247,7 @@ export function GuideNarrator({ isOpen: controlledIsOpen, onClose, className }: 
       {/* Narration */}
       <p
         className="text-sm leading-relaxed mb-6"
-        style={{ color: skin.colors.text }}
+        style={{ color: skin.colors.muted }}
       >
         {step.narration}
       </p>

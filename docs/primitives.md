@@ -12,7 +12,7 @@ Source of truth: `src/schema/one.tql`
 
 Two fields. That's all that flows. Everything else derives from this.
 
-- `receiver` — who gets it (`"unit"` or `"unit:task"`)
+- `receiver` — who gets it (`"unit"`, `"unit:task"`, or `"world:tag"` — see [signals.md](signals.md))
 - `data` — anything (JSON string in TypeDB)
 
 Signals are free. Attach `amount > 0` and it's a payment (x402).

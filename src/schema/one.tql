@@ -1,0 +1,114 @@
+# =============================================================================
+# ONE ONTOLOGY — 6 dimensions. 100 lines. Stable forever.
+# =============================================================================
+#
+# ONE is a world. A world contains groups.
+# Groups contain: actors, things, paths, events, learning.
+# That's reality. It doesn't change.
+#
+# =============================================================================
+
+define
+
+# 1. GROUPS — containers for everything else
+entity group,
+    owns gid @key,
+    owns name,
+    owns group-type,                  # "world", "friends", "team", "community", "org", "dao"
+    plays hierarchy:parent,
+    plays hierarchy:child,
+    plays membership:group;
+
+relation hierarchy,
+    relates parent,
+    relates child;
+
+# 2. ACTORS — who can act
+entity actor,
+    owns aid @key,
+    owns name,
+    owns actor-type,                  # "human", "agent", "animal", "world"
+    owns model,                       # LLM model (if AI)
+    owns prompt,                      # system prompt (mutable, evolves)
+    owns generation,                  # prompt iteration count
+    owns tag @card(0..),              # flat labels
+    plays path:source,
+    plays path:target,
+    plays capability:provider,
+    plays membership:member,
+    plays signal:sender,
+    plays signal:receiver;
+
+# 3. THINGS — what exists
+entity thing,
+    owns tid @key,
+    owns name,
+    owns thing-type,                  # "skill", "task", "token", "service"
+    owns price,                       # 0 = free, >0 = paid
+    owns tag @card(0..),
+    plays capability:offered;
+
+# 4. PATHS — connections with weight
+relation path,
+    relates source,
+    relates target,
+    owns strength,                    # mark() increments
+    owns resistance,                  # warn() increments
+    owns traversals;                  # count
+
+relation capability,
+    relates provider,
+    relates offered,
+    owns price;
+
+relation membership,
+    relates group,
+    relates member;
+
+# 5. EVENTS — what happened
+relation signal,
+    relates sender,
+    relates receiver,
+    owns data,                        # JSON payload
+    owns amount,                      # payment (0 = free)
+    owns success,
+    owns ts;
+
+# 6. LEARNING — what was discovered
+entity hypothesis,
+    owns hid @key,
+    owns statement,
+    owns confidence,
+    owns observations;
+
+# =============================================================================
+# ATTRIBUTES
+# =============================================================================
+
+attribute gid, value string;
+attribute aid, value string;
+attribute tid, value string;
+attribute hid, value string;
+attribute name, value string;
+attribute group-type, value string;
+attribute actor-type, value string;
+attribute thing-type, value string;
+attribute model, value string;
+attribute prompt, value string;
+attribute tag, value string;
+attribute statement, value string;
+attribute data, value string;
+attribute strength, value double;
+attribute resistance, value double;
+attribute price, value double;
+attribute amount, value double;
+attribute confidence, value double;
+attribute traversals, value integer;
+attribute generation, value integer;
+attribute observations, value integer;
+attribute success, value boolean;
+attribute ts, value datetime;
+
+# =============================================================================
+# 6 dimensions. 3 entities. 5 relations. 22 attributes. ONE.
+# =============================================================================

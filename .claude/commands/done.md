@@ -1,4 +1,4 @@
-Mark a task as complete in the ONE substrate and reinforce the pheromone trail.
+Mark a task as complete in the ONE substrate and reinforce the pheromone path.
 
 The user specifies which task: `$ARGUMENTS`
 
@@ -23,4 +23,4 @@ curl -s -X POST http://localhost:4321/api/tasks/THE_ID/complete \
    - The unit's updated success rate
    - What the world suggests next (highest-strength attractive task)
 
-5. If the task failed instead, call with `{"failed": true}` — this deposits resistance (+8.0) instead of trail (+5.0). Ask the user if it failed before marking success.
+5. If the task failed instead, call with `{"failed": true}` — this deposits resistance (+8.0) instead of strength (+5.0). Ask the user if it failed before marking success.

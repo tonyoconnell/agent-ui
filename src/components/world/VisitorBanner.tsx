@@ -88,7 +88,7 @@ export function VisitorBanner({ isAuthenticated = false, className }: Props) {
         <div className="flex-1">
           <p
             className="text-sm leading-relaxed font-medium"
-            style={{ color: skin.colors.text }}
+            style={{ color: skin.colors.muted }}
           >
             This is the ONE world. It's alive right now. Click anything. Drag anything. Or{' '}
             <button

@@ -27,12 +27,10 @@ export const GET: APIRoute = async ({ url }) => {
         (source: $s, target: $t) isa path, has strength $str, has resistance $r;
         $s has uid $sid;
         $t has uid $tid;
-        $str >= 20;
-        ?$p has revenue $rev;
-        ?$p has traversals $trav;
+        $str >= 20.0;
       sort $str desc;
       limit ${limit};
-      select $sid, $tid, $str, $r, $rev, $trav;
+      select $sid, $tid, $str, $r;
     `)
 
     const highways: HighwayExport[] = results.map(r => ({
@@ -40,8 +38,6 @@ export const GET: APIRoute = async ({ url }) => {
       to: r.tid as string,
       strength: r.str as number,
       resistance: r.r as number,
-      ...(r.rev && { revenue: r.rev as number }),
-      ...(r.trav && { traversals: r.trav as number }),
     }))
 
     return Response.json(highways, {

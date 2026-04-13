@@ -6,6 +6,9 @@ It doesn't know if the receiver is an AI, a function, a human, an API, or anothe
 It doesn't care. It routes by weight. Strength and resistance accumulate the same way
 for all of them. The formula is universal.
 
+This doc catalogs *what* can be a receiver. For *how* to address receivers — direct,
+`world:tag`, bare `world` — see [signals.md](signals.md).
+
 ---
 
 ## The Universal Interface

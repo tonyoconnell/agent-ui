@@ -28,9 +28,9 @@ let _loading: Promise<PersistentWorld> | null = null
 async function loadMeta() {
   const [unitRows, tagRows] = await Promise.all([
     readParsed(`
-      match $u isa unit, has uid $id, has name $name, has unit-kind $kind,
-        has status $status, has success-rate $sr, has generation $g;
-      select $id, $name, $kind, $status, $sr, $g;
+      match $u isa unit, has uid $id, has name $name,
+        has success-rate $sr, has generation $g;
+      select $id, $name, $sr, $g;
     `).catch(() => []),
     readParsed(`
       match $sk isa skill, has skill-id $gid, has tag $tag;
@@ -42,8 +42,8 @@ async function loadMeta() {
   for (const r of unitRows) {
     _units[r.id as string] = {
       name: r.name as string,
-      kind: r.kind as string,
-      status: r.status as string,
+      kind: 'agent',
+      status: 'active',
       successRate: r.sr as number,
       generation: r.g as number,
     }
@@ -67,9 +67,11 @@ export async function getNet(): Promise<PersistentWorld> {
 
   _loading = (async () => {
     const net = createNet()
+    const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error('TypeDB timeout')), ms))
+
     await Promise.all([
-      net.load().catch(() => {}),
-      loadMeta(),
+      Promise.race([net.load().catch(() => {}), timeout(5000)]).catch(() => {}),
+      Promise.race([loadMeta(), timeout(5000)]).catch(() => {}),
     ])
     _net = net
     _loadedAt = Date.now()
@@ -93,6 +95,9 @@ export function getTagMap(): TagMap { return _tags }
 
 /** All known tags, sorted. */
 export function getAllTags(): string[] { return _allTags }
+
+/** Synchronous access — returns null if world not loaded yet. No TypeDB call. */
+export function getNetSync(): PersistentWorld | null { return _net }
 
 /** Unix ms when the world was last loaded from TypeDB. 0 = never. */
 export function loadedAt(): number { return _loadedAt }

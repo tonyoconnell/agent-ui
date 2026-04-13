@@ -7,23 +7,26 @@ Run this loop until the user stops you or all tasks are done:
 ### 1. SENSE — Read what's available
 
 ```bash
-curl -s http://localhost:4321/api/tasks | jq '.tasks | group_by(.category) | map({category: .[0].category, count: length, tasks: [.[] | {name, skill, tags, strength, resistance}]})'
+curl -s http://localhost:4321/api/tasks | jq '.tasks | map(select(.status == "open")) | sort_by(-.priority) | map({tid, name, priority, category, blockedBy, blocks: (.blocks | length), tags})'
 ```
 
 If the server isn't running, start it with `npm run dev` and wait for it.
 
 ### 2. SELECT — Pick the best task
 
-Priority order:
-- **Attractive** tasks first (proven sequences, strength >= 50) — follow the pheromone
-- **Ready** tasks second (available, some signal) — safe bet
-- **Exploratory** tasks third (no data) — scout new territory
-- **Never** pick repelled tasks — the world says avoid them
+Scan the task list top-to-bottom (highest priority first). **Skip any task where `blockedBy` is non-empty** — those tasks have open dependencies that must complete first.
 
-Within a category, prefer:
+Report: `Working on: {task name} (priority: {score}, category: {category}, blocks: {n} others)`
+
+If all open tasks are blocked, report the deadlock and fall back to pheromone-based routing:
+```bash
+curl -s http://localhost:4321/api/state | jq '.highways | sort_by(-.strength) | .[0:5]'
+```
+
+Within unblocked tasks, prefer:
+- **P0** over P1 over P2
+- Higher priority-score (formula already computed)
 - Tags matching current context (if you just did "build", keep building)
-- Higher strength (more proven)
-- P0 over P1 over P2
 
 Tell the user what you picked and why.
 
@@ -71,7 +74,7 @@ Report: what highways formed, what evolved, what frontiers were detected.
 
 ### 7. CONTINUE — Go to step 1
 
-Pick the next task. The pheromone landscape has shifted — your success strengthened a path. New tasks may have become attractive. Follow the trail.
+Pick the next task. The pheromone landscape has shifted — your success strengthened a path. New tasks may have become attractive. Follow the path.
 
 ## Creating Tasks Along the Way
 
@@ -88,7 +91,7 @@ Tag it accurately. The world needs good signal.
 ## Rules
 
 - **One task at a time.** Complete or fail before moving on.
-- **Honest outcomes.** If it failed, mark it failed. Alarm pheromone is how the world learns what doesn't work. False positives poison the data.
+- **Honest outcomes.** If it failed, mark it failed. Resistance is how the world learns what doesn't work. False positives poison the data.
 - **Follow the pheromone.** If the world says a path is attractive, trust it — previous work proved it.
 - **Scout sparingly.** Exploratory tasks are high-risk. Don't spend all your time on unknowns.
 - **Create tasks for surprises.** Found a bug? Create a task. Need a dependency? Create a task. The world sees everything you teach it.

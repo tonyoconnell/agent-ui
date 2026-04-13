@@ -1,12 +1,28 @@
-# ONE Substrate
+# ONE
 
-Signal-based substrate for AI agents. 670 lines of engine. Zero returns.
+Signal-based world for AI agents. 670 lines of engine. Zero returns.
 The LLM is the only probabilistic component. Everything else is math.
+
+**Ontology:** `src/schema/one.tql` — 100 lines, 6 dimensions, stable forever.
+**Naming:** `docs/naming.md` — canonical names, retired names, never rename again.
 
 **Live:** api.one.ie + one-substrate.pages.dev + nanoclaw.oneie.workers.dev
 **Brain:** TypeDB Cloud (19 units, 18 skills, 19 functions)
 **LLM:** All models via [OpenRouter](https://openrouter.ai) — default: `meta-llama/llama-4-maverick` (1M ctx, $0.15/M tokens)
-**Agent:** @antsatworkbot on Telegram (substrate-connected)
+**Bots:** @onedotbot (ONE assistant) · donal-claw (OO Marketing CMO) · @antsatworkbot (substrate)
+
+## The 6 Dimensions (LOCKED)
+
+| # | Dimension | Ontology | Runtime | What |
+|---|-----------|----------|---------|------|
+| 1 | **Groups** | `group` | `group` | Containers — worlds, teams, orgs |
+| 2 | **Actors** | `actor` | `unit` | Who acts — humans, agents, animals, worlds |
+| 3 | **Things** | `thing` | `skill` | What exists — skills, tasks, tokens |
+| 4 | **Paths** | `path` | `path` | Weighted connections — strength, resistance |
+| 5 | **Events** | `signal` | `signal` | What happened — signals, payments |
+| 6 | **Learning** | `hypothesis` | `hypothesis` | What was discovered — patterns |
+
+**Dead names (never use):** knowledge, connections, people, node, scent, alarm, trail, colony (as dimension)
 
 ## Quick Start
 
@@ -27,7 +43,7 @@ signal → unit → handler → result       paths persist (strength, resistance
   → auto-reply → mark/warn             units persist (model, prompt, gen)
   → .then() → continuation             signals logged (event history)
   → fade → select → drain              skills + tags (classification)
-  → ask → { result | timeout | dissolved }  knowledge (hypotheses, frontiers)
+  → ask → { result | timeout | dissolved }  learning (hypotheses, frontiers)
 
 loops L1-L3 (ms to min)               loops L4-L7 (hours to weeks)
 ```
@@ -71,7 +87,7 @@ L7 FRONTIER   every hour      detect unexplored tag clusters
 
 ### Signal
 ```typescript
-type Signal = { receiver: string; data?: unknown }
+type Signal = { receiver: string; data?: unknown; after?: number }
 ```
 The universal primitive. Receiver is `"unit"` or `"unit:skill"`.
 
@@ -89,7 +105,7 @@ Auto-reply: if signal has `replyTo`, result goes back automatically.
 ```typescript
 world()
   .add(id)                // create unit (drains queued signals)
-  .remove(id)             // remove unit (trails remain, fade naturally)
+  .remove(id)             // remove unit (paths remain, fade naturally)
   .signal(signal, from?)  // route signal, auto-mark pheromone
   .ask(signal, from?)     // signal + wait → { result | timeout | dissolved }
   .enqueue(signal)        // queue for later (priority-ordered drain)
@@ -111,7 +127,7 @@ persist()
   .ask(s, from?)            // pre-checked: toxic + capability → dissolve
   .open(n?)                 // top paths as {from, to, strength}
   .blocked()                // toxic paths
-  .know()                   // promote highways to permanent knowledge
+  .know()                   // promote highways to permanent learning
   .recall(match?)           // query hypotheses from TypeDB
   .load()                   // hydrate pheromone + queue from TypeDB
   .sync()                   // write all state to TypeDB
@@ -251,7 +267,15 @@ docs/           # Architecture, deploy, cloudflare, nanoclaw, strategy
 gateway/        # CF Worker: TypeDB proxy (api.one.ie)
 workers/sync/   # CF Worker: TypeDB → KV cron (every 1 min, hash-gated writes)
 nanoclaw/       # CF Worker: Edge agents (webhooks → queue → LLM → channels)
+  src/
+    personas.ts       # All bot personas (model + system prompt). Add here, auto-discovered everywhere.
+    workers/router.ts # Hono router: auth middleware, sync Telegram processing, queue for substrate
+    channels/         # normalize/send per channel (telegram, discord, web)
+    lib/              # substrate.ts, tools.ts
+  wrangler.toml        # Main nanoclaw (no API key, Gemma 4 default)
+  wrangler.donal.toml  # Donal's CMO bot (BOT_PERSONA=donal, API key auth)
 agents/         # Markdown agent definitions
+  donal/        # OO Agency Pod — 11 marketing agents (cmo, full, citation, etc.)
   marketing/    # Marketing team (8 agents)
   *.md          # Example agents (tutor, researcher, coder, writer, concierge)
 migrations/     # D1 schema (signals, messages, tasks, sync_log)
@@ -271,6 +295,13 @@ migrations/     # D1 schema (signals, messages, tasks, sync_log)
 | `boot.ts` | 40 | Hydrate from TypeDB, add units, start tick |
 | `llm.ts` | 50 | LLM as unit: openrouter adapter (+ legacy anthropic/openai) |
 | `agent-md.ts` | 280 | Parse markdown agents, sync to TypeDB, wire to runtime |
+| `api.ts` | 70 | `apiUnit()` — any HTTP endpoint as a substrate unit |
+| `apis/index.ts` | 45 | Pre-built: github, slack, notion, mailchimp, pagerduty, discord, stripe |
+| `durable-ask.ts` | 120 | `durableAsk()` — pending asks in D1, survive worker restarts |
+| `human.ts` | 90 | `human()` — a person as a substrate unit (Telegram, Discord) |
+| `agentverse-bridge.ts` | 50 | `bridgeAgentverse()` — 2M AV agents as proxy units in main world |
+| `federation.ts` | 55 | `federate()` — another ONE world as a unit in this one |
+| `intent.ts` | 130 | Intent cache — typed text → canonical intent → shared D1 cache entry |
 | `index.ts` | 29 | Exports |
 
 ## Key Patterns
@@ -342,7 +373,7 @@ TypeDB (truth)     →    KV (snapshot)    →    globalThis (hot)
 /next       Pick one task and do it
 /tasks      See tasks by category + tags (/tasks P0 build)
 /add-task   Create tagged skill
-/done       Mark outcome, reinforce trail
+/done       Mark outcome, reinforce path
 /grow       Run one growth tick
 /highways   Proven paths, toxic paths, frontiers
 /report     Record session outcomes to substrate
@@ -352,7 +383,7 @@ TypeDB (truth)     →    KV (snapshot)    →    globalThis (hot)
 
 - **Astro 5**: Islands architecture, SSR
 - **React 19**: Actions, use(), transitions
-- **TypeDB 3.0**: Brain — paths, classification, evolution, knowledge
+- **TypeDB 3.0**: Brain — paths, classification, evolution, learning
 - **Tailwind 4**: Styling
 - **shadcn/ui**: Component library
 - **ReactFlow**: Graph visualization
@@ -389,6 +420,7 @@ npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 | Gateway | https://api.one.ie/health |
 | Sync | https://one-sync.oneie.workers.dev |
 | NanoClaw | https://nanoclaw.oneie.workers.dev/health |
+| Donal-Claw | https://donal-claw.oneie.workers.dev/health |
 | TypeDB | `flsiu1-0.cluster.typedb.com:1729` |
 
 **Key facts:**
@@ -400,62 +432,85 @@ npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 
 ## NanoClaw API
 
-Edge agent on Cloudflare. Processes messages synchronously (OpenRouter Gemma 4).
+Edge agents on Cloudflare. Each worker is a persona — same codebase, different config.
+Telegram webhooks process **synchronously** (~3s). Queue used only for substrate signals.
+
+### Live Workers
+
+| Worker | URL | Persona | Auth |
+|--------|-----|---------|------|
+| nanoclaw | `nanoclaw.oneie.workers.dev` | Default (Gemma 4) | Open |
+| donal-claw | `donal-claw.oneie.workers.dev` | OO Marketing CMO | API key |
+
+**@onedotbot** on Telegram → `nanoclaw.oneie.workers.dev/webhook/telegram-one` (ONE assistant persona)
 
 ### Routes
 
-| Route | Method | Purpose | Response |
-|-------|--------|---------|----------|
-| `/message` | POST | Send message, get instant response | `{ ok, response, id, group, responseId }` |
-| `/messages/:group` | GET | Retrieve conversation history | `{ group, messages[] }` |
-| `/health` | GET | Status check | `{ status, version, service }` |
-| `/highways` | GET | Proven paths | `{ highways[] }` |
-| `/webhook/:channel` | POST | Channel webhooks (telegram, discord) | `{ ok, id, group }` |
+| Route | Method | Auth | Purpose |
+|-------|--------|------|---------|
+| `/health` | GET | Public | Status check |
+| `/webhook/:channel` | POST | Public | Telegram/Discord webhooks |
+| `/message` | POST | API key* | Send message, instant response |
+| `/messages/:group` | GET | API key* | Conversation history |
+| `/highways` | GET | API key* | Proven paths |
 
-### Web Message API (Instant)
+*Auth only required when `API_KEY` secret is set on the worker.
+
+### Personas
+
+Defined in `nanoclaw/src/personas.ts`. Add an entry → auto-discovered by router + setup script.
+
+```typescript
+// nanoclaw/src/personas.ts
+personas = {
+  donal: { name: 'OO Marketing CMO', model: 'anthropic/claude-haiku-4-5', systemPrompt: '...' },
+  one:   { name: 'ONE Assistant',     model: 'anthropic/claude-haiku-4-5', systemPrompt: '...' },
+  // add new personas here
+}
+```
+
+Persona selection order: `BOT_PERSONA` env var → group ID prefix (`tg-donal-*`) → default.
+
+### Spin up a new NanoClaw in one command
 
 ```bash
-# Send message, get response in ~3 seconds
+# List available personas
+bun run scripts/setup-nanoclaw.ts
+
+# Deploy with Telegram bot
+bun run scripts/setup-nanoclaw.ts --name alice --persona one --token 1234:ABC...
+
+# Deploy without bot (wire Telegram later)
+bun run scripts/setup-nanoclaw.ts --name alice --persona one
+```
+
+The script: generates API key → creates CF queue → deploys worker → sets secrets → registers webhook → prints credentials.
+
+### Web Message API
+
+```bash
+# Open worker (no auth)
 curl -X POST https://nanoclaw.oneie.workers.dev/message \
   -H "Content-Type: application/json" \
-  -d '{
-    "group": "my-conversation",
-    "text": "Your question here",
-    "sender": "user"  # optional
-  }'
+  -d '{"group": "my-conversation", "text": "What is ONE?"}'
 
-# Response includes agent reply
-{
-  "ok": true,
-  "id": "web-1775525928563",
-  "response": "Agent response text...",
-  "responseId": "resp-1775525949861",
-  "group": "my-conversation"
-}
+# Auth-gated worker (donal-claw)
+curl -X POST https://donal-claw.oneie.workers.dev/message \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <API_KEY>" \
+  -d '{"group": "donal", "text": "Full SEO audit for elitemovers.ie"}'
 ```
 
-### Get Conversation History
+### Secrets
 
-```bash
-curl https://nanoclaw.oneie.workers.dev/messages/my-conversation
-
-{
-  "group": "my-conversation",
-  "messages": [
-    { "id": "web-...", "sender": "user", "content": "...", "role": "user", "ts": 1775525928617 },
-    { "id": "resp-...", "sender": "assistant", "content": "...", "role": "assistant", "ts": 1775525949861 }
-  ]
-}
-```
-
-### Configuration
-
-**Secrets** (set via `wrangler secret put`):
-- `OPENROUTER_API_KEY` — API key for LLM calls (required for `/message` endpoint)
-- `TELEGRAM_TOKEN` — Telegram bot token (optional, for webhook pushes)
-- `DISCORD_TOKEN` — Discord bot token (optional, for webhook pushes)
-
-**Model**: `google/gemma-4-26b-a4b-it` via OpenRouter (configurable per group in D1)
+| Secret | Required | Purpose |
+|--------|----------|---------|
+| `OPENROUTER_API_KEY` | Yes | LLM calls |
+| `TELEGRAM_TOKEN` | Optional | Default Telegram bot reply |
+| `TELEGRAM_TOKEN_ONE` | Optional | @onedotbot reply token |
+| `TELEGRAM_TOKEN_DONAL` | Optional | Multi-bot routing on main nanoclaw |
+| `API_KEY` | Optional | Enables auth on non-webhook routes |
+| `DISCORD_TOKEN` | Optional | Discord reply token |
 
 ## Skills (USE THESE)
 
@@ -478,9 +533,12 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 
 | Doc | What it defines | Syncs with |
 |-----|----------------|------------|
+| `src/schema/one.tql` | **THE ONTOLOGY** — 100 lines, 6 dimensions, stable forever | Everything |
+| `docs/naming.md` | **THE NAMES** — canonical names, dead names, dimension→runtime map | All docs, schemas, APIs |
+| `docs/one-ontology.md` | **THE SPEC** — 6 dimensions explained, actor/group/thing types, universal mapping | `one.tql`, `naming.md` |
 | `docs/AUTONOMOUS_ORG.md` | **THE BLUEPRINT** — ONE-strategy as executable task graph with pheromone routing, 7 personas, revenue forecast | `world.tql`, `tick.ts`, revenue loops |
 | `docs/metaphors-extended.md` | **THE ROSETTA STONE** — Langchain, AgentVerse, Hermes, all frameworks speak ONE pheromone | Framework integrations, all routing |
-| `docs/dictionary.md` | Complete naming guide — every concept, dimension, verb | Everything |
+| `docs/dictionary.md` | Concept reference — detailed descriptions of every primitive | `naming.md` (naming.md is authoritative) |
 | `docs/DSL.md` | The programming model — signal, emit, mark, warn, fade, follow, select | `world.ts`, `persist.ts` |
 | `docs/routing.md` | How signals find their way — formula, layers, tick, outcomes | `loop.ts`, `persist.ts` |
 | `docs/metaphors.md` | Six skins, one truth — ant/brain/team/mail/water/radio | `src/skins/index.ts`, `skins.tql` |

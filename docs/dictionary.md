@@ -25,7 +25,7 @@ sliding through a mail slot.
                     ┌──────────────────────┐
                     │       SIGNAL         │
                     │                      │
-                    │   receiver: "scout"  │
+                    │   receiver: "world:scout"  │
                     │   data: { tick: 42 } │
                     │                      │
                     └──────────────────────┘
@@ -67,6 +67,9 @@ it's a unit.
 A unit has **tasks** — named things it knows how to do. Send a signal to
 `"scout"` and it runs the default task. Send to `"scout:observe"` and it
 runs the `observe` task specifically.
+
+`world:` is also a legal receiver — it means "substrate, you choose the
+unit." See [signals.md](signals.md) for the three-mode grammar.
 
 ### What a Unit Knows
 
@@ -734,6 +737,99 @@ The Fetch.ai agent registry, modeled as a world:
     discover(domain) ── find agents by pheromone strength
     call(address)    ── invoke and record outcome (mark or warn)
 ```
+
+Bridge into the main substrate world so pheromone is shared:
+
+```typescript
+import { bridgeAgentverse } from '@/engine/agentverse-bridge'
+const av = await bridgeAgentverse(net, fetchFn, AV_API_KEY)
+// Creates 'av:address' proxy units in net
+// net.signal({ receiver: 'av:discover', data: { domain: 'translate', task } })
+```
+
+### API Unit — HTTP Endpoint as Unit
+
+Any external HTTP API wrapped as a substrate unit. `null` return → `warn()` fires automatically.
+
+```typescript
+import { apiUnit, github, slack, mailchimp } from '@/engine'
+
+// Pre-built wrappers
+net.units['github']    = github(TOKEN)        // tasks: get | post | put | del
+net.units['slack']     = slack(TOKEN)
+net.units['mailchimp'] = mailchimp(TOKEN, 'us1')
+
+// Custom
+net.units['xero'] = apiUnit('xero', { base: 'https://api.xero.com', auth: `Bearer ${KEY}` })
+```
+
+STAN penalises slow APIs via `latencyPenalty`. Rate-limited or failing APIs accumulate resistance and eventually dissolve — same as any bad path, zero configuration.
+
+### Human Unit — Person as Unit
+
+A human in the loop. Routed identically to an LLM. Same formula. Same pheromone.
+
+```typescript
+import { human } from '@/engine/human'
+
+net.units['anthony'] = human('anthony', {
+  env,                      // { DB: D1Database }
+  telegram: 123456789,
+  botToken: TELEGRAM_TOKEN,
+  timeout: 3_600_000        // 1h — default 24h
+})
+// Tasks: approve | review | choose
+// Sends Telegram message, waits via durableAsk() in D1
+```
+
+Fast humans become highways. Slow humans accumulate resistance. The substrate measures them the same way it measures agents.
+
+### Durable Ask — D1-Persisted Reply
+
+`ask()` in-memory dies when the CF Worker isolate recycles. For human-in-loop flows that wait hours, `durableAsk()` writes the pending reply to D1 and polls until it resolves.
+
+```typescript
+import { durableAsk, resolveAsk } from '@/engine/durable-ask'
+
+// In a handler:
+const { result, timeout } = await durableAsk(env, signal, 'entry', 86_400_000)
+
+// From Telegram webhook:
+await resolveAsk(env, askId, { text: 'approved', from: telegramUser })
+```
+
+Reply endpoint: `POST /api/ask/reply` — accepts `{ id, result }` from any external system.
+
+### Federation — Another World as Unit
+
+Mount another ONE substrate as a unit. Signal chains cross world boundaries transparently. Pheromone tracks which worlds are reliable.
+
+```typescript
+import { federate } from '@/engine/federation'
+
+net.units['world-legal']   = federate('world-legal',   'https://legal.one.ie',   KEY)
+net.units['world-finance'] = federate('world-finance', 'https://finance.one.ie', KEY)
+// net.signal({ receiver: 'world-legal:review', data: { contract } }, 'drafter')
+// → POSTs to https://legal.one.ie/api/signal
+```
+
+### Intent Cache — Typed Text to Canonical Intent
+
+Two-tier semantic cache for chat applications. Buttons seed the intent registry. Typed variations map to the same bucket — one LLM call, shared by everyone who asks however they ask.
+
+```typescript
+import { resolveIntent, seedIntents } from '@/engine/intent'
+
+await seedIntents(env.DB, [
+  { name: 'refund-policy', label: 'Return Policy',
+    keywords: ['return', 'refund', 'money back', 'exchange'] }
+])
+
+const resolved = await resolveIntent('how do I return this', { intents })
+// → { intent: 'refund-policy', resolver: 'keyword', confidence: 0.70 }
+```
+
+Three-step resolver: keyword match (0ms, $0) → TypeDB patterns (<5ms, $0) → LLM normaliser (50ms, $0.0001). 200 users asking about returns → 1 LLM call after day one.
 
 ### Persist — TypeDB Sync
 

@@ -497,26 +497,42 @@ export function WorldGraph({ world, agents, highways, onSelectAgent }: WorldGrap
       }
     }
 
+    // Count how many agents were reached via BFS (have trail-based ranks)
+    const trailRankedCount = Object.keys(ranks).filter(id => id !== 'entry').length
+    const useFallbackGrid = trailRankedCount === 0
+
     let nextRank = 1
     agents.forEach((a) => {
       if (ranks[a.id] === undefined) ranks[a.id] = nextRank++
     })
 
-    const byRank: Record<number, string[]> = {}
-    Object.entries(ranks).forEach(([id, r]) => {
-      if (!byRank[r]) byRank[r] = []
-      byRank[r].push(id)
-    })
-
     const positions: Record<string, { x: number; y: number }> = {}
-    Object.entries(byRank).forEach(([rankStr, ids]) => {
-      const rank = parseInt(rankStr)
-      const totalHeight = (ids.length - 1) * rowHeight
-      const baseY = 200 - totalHeight / 2
-      ids.forEach((id, i) => {
-        positions[id] = { x: startX + rank * colWidth, y: baseY + i * rowHeight }
+
+    if (useFallbackGrid) {
+      // No trail data — arrange in a grid (3 columns)
+      const cols = 3
+      const gridColWidth = colWidth
+      const gridRowHeight = rowHeight
+      agents.forEach((a, i) => {
+        const col = i % cols
+        const row = Math.floor(i / cols)
+        positions[a.id] = { x: startX + colWidth + col * gridColWidth, y: 100 + row * gridRowHeight }
       })
-    })
+    } else {
+      const byRank: Record<number, string[]> = {}
+      Object.entries(ranks).forEach(([id, r]) => {
+        if (!byRank[r]) byRank[r] = []
+        byRank[r].push(id)
+      })
+      Object.entries(byRank).forEach(([rankStr, ids]) => {
+        const rank = parseInt(rankStr)
+        const totalHeight = (ids.length - 1) * rowHeight
+        const baseY = 200 - totalHeight / 2
+        ids.forEach((id, i) => {
+          positions[id] = { x: startX + rank * colWidth, y: baseY + i * rowHeight }
+        })
+      })
+    }
 
     const entryNode: Node = {
       id: "entry",

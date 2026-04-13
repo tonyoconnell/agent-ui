@@ -6,6 +6,8 @@
  */
 import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 type EntityResponse = {
   kind: 'unit' | 'group' | 'not-found'
@@ -45,6 +47,35 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
   if (!id) {
     return Response.json({ kind: 'not-found', id: '' } as EntityResponse, { status: 404 })
   }
+
+  // Look up in agents.json before falling back to stub
+  try {
+    const raw = readFileSync(join(process.cwd(), 'public/agents.json'), 'utf-8')
+    const data = JSON.parse(raw)
+    const agent = (data.agents || []).find((a: { id: string }) => a.id === id)
+    if (agent) {
+      return Response.json({
+        kind: 'unit',
+        id,
+        spec: {
+          name: agent.name,
+          kind: agent.caste || 'unit',
+          model: agent.model || 'meta-llama/llama-4-maverick',
+          tags: agent.tags || [],
+        },
+        stats: { successRate: agent.successRate ?? 75 },
+      } as EntityResponse, { headers: { 'Cache-Control': 'public, max-age=1' } })
+    }
+  } catch { /* fall through */ }
+
+  return Response.json({
+    kind: 'unit',
+    id,
+    spec: { name: id, kind: 'unit', model: 'unknown' },
+    stats: { successRate: 50 },
+  } as EntityResponse, {
+    headers: { 'Cache-Control': 'public, max-age=1' },
+  })
 
   try {
     // Try to find as unit

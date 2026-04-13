@@ -1,4 +1,4 @@
-export { world } from "./persist"
+export { world, isToxic } from "./persist"
 export type { PersistentWorld, Insight } from "./persist"
 export { world as createWorld, unit } from "./world"
 export type { World, Unit, Signal, Emit, Edge } from "./world"

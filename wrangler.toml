@@ -4,6 +4,12 @@ compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
+# KV — shared with sync worker (same namespace ID)
+# Snapshots: paths.json, units.json, skills.json, highways.json, toxic.json
+[[kv_namespaces]]
+binding = "KV"
+id = "1c1dac4766e54a2c85425022a3b1e9da"
+
 # Pages environment configuration
 [env.production]
 vars = { ENVIRONMENT = "production" }

@@ -9,8 +9,14 @@ export interface Env {
   GATEWAY_URL: string
   OPENROUTER_API_KEY: string
   TELEGRAM_TOKEN?: string
+  TELEGRAM_TOKEN_DONAL?: string
+  TELEGRAM_TOKEN_ONE?: string
   DISCORD_TOKEN?: string
   VERSION: string
+  /** Worker-level persona key. If set, all groups on this worker use this persona as default. */
+  BOT_PERSONA?: string
+  /** If set, all non-webhook routes require Authorization: Bearer <API_KEY> */
+  API_KEY?: string
 }
 
 export interface Signal {

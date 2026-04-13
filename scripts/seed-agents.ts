@@ -11,16 +11,45 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
+import * as crypto from 'crypto'
 import { fileURLToPath } from 'url'
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const agentsDir = path.resolve(__dirname, '../agents')
 
-// Load environment
+// Load .env manually (this script runs outside Astro/Vite)
+const envPath = path.resolve(__dirname, '../.env')
+if (fs.existsSync(envPath)) {
+  for (const line of fs.readFileSync(envPath, 'utf-8').split('\n')) {
+    const m = line.match(/^([A-Z_]+)=(.*)$/)
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2]
+  }
+}
+
 const TYPEDB_URL = process.env.TYPEDB_URL || 'https://cloud.typedb.com'
 const TYPEDB_DATABASE = process.env.TYPEDB_DATABASE || 'one'
 const TYPEDB_USERNAME = process.env.TYPEDB_USERNAME || 'admin'
 const TYPEDB_PASSWORD = process.env.TYPEDB_PASSWORD || ''
+const SUI_SEED_B64 = process.env.SUI_SEED || ''
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sui wallet derivation — matches src/lib/sui.ts::deriveKeypair exactly
+// SHA-256(seed || uid) → 32-byte secret → Ed25519 → address
+// ─────────────────────────────────────────────────────────────────────────────
+
+const walletCache = new Map<string, string>()
+
+function deriveWallet(uid: string): string | null {
+  if (!SUI_SEED_B64) return null
+  if (walletCache.has(uid)) return walletCache.get(uid)!
+  const seed = Buffer.from(SUI_SEED_B64, 'base64')
+  const secret = crypto.createHash('sha256').update(seed).update(uid).digest()
+  const kp = Ed25519Keypair.fromSecretKey(new Uint8Array(secret))
+  const address = kp.getPublicKey().toSuiAddress()
+  walletCache.set(uid, address)
+  return address
+}
 
 interface SkillSpec {
   name: string
@@ -103,7 +132,9 @@ function parseAgent(md: string): AgentData {
       }
 
       if (inSkills) {
-        if (trimmed.startsWith('- ') || trimmed.startsWith('  ')) {
+        // Check raw line indentation (trimmed strips leading spaces, making the
+        // original `trimmed.startsWith('  ')` check always false)
+        if (line.startsWith('  ') || line.startsWith('\t')) {
           skillLines.push(line)
           continue
         } else if (trimmed && !trimmed.startsWith('#')) {
@@ -163,8 +194,13 @@ function agentToQueries(spec: AgentData): string[] {
   const tags = [...(spec.tags || []), ...(spec.group ? [spec.group] : [])]
   const tagStr = tags.map(t => `has tag "${t}"`).join(', ')
 
+  const wallet = deriveWallet(uid)
+  const walletStr = wallet ? `, has wallet "${wallet}"` : ''
+
   const promptClean = escapeString(spec.prompt.slice(0, 5000))
+  // Guard: only insert if unit doesn't already exist
   queries.push(`
+    match not { $u isa unit, has uid "${uid}"; };
     insert $u isa unit,
       has uid "${uid}",
       has name "${spec.name}",
@@ -177,23 +213,27 @@ function agentToQueries(spec: AgentData): string[] {
       has sample-count 0,
       has reputation 0.0,
       has balance 0.0,
-      has generation 0${tagStr ? ', ' + tagStr : ''};
+      has generation 0${tagStr ? ', ' + tagStr : ''}${walletStr};
   `)
 
   for (const skill of spec.skills || []) {
     const skillId = spec.group ? `${spec.group}:${skill.name}` : skill.name
     const skillTags = skill.tags?.map(t => `has tag "${t}"`).join(', ') || ''
 
+    // Guard: only insert skill if it doesn't already exist
     queries.push(`
+      match not { $s isa skill, has skill-id "${skillId}"; };
       insert $s isa skill,
         has skill-id "${skillId}",
         has name "${skill.name}",
         has price ${skill.price || 0}${skillTags ? ', ' + skillTags : ''};
     `)
 
+    // Guard: only link capability if it doesn't already exist
     queries.push(`
       match $u isa unit, has uid "${uid}";
             $s isa skill, has skill-id "${skillId}";
+            not { (provider: $u, offered: $s) isa capability; };
       insert (provider: $u, offered: $s) isa capability, has price ${skill.price || 0};
     `)
   }
@@ -279,7 +319,15 @@ async function main() {
     }
   }
 
-  scanDir(agentsDir)
+  // Scope: only seed agents/donal/ by default. Pass --all to seed everything.
+  const seedAll = process.argv.includes('--all')
+  const donalDir = path.join(agentsDir, 'donal')
+  if (seedAll) {
+    scanDir(agentsDir)
+  } else {
+    console.log('  (scoped to agents/donal/ — pass --all for everything)')
+    scanDir(donalDir, 'marketing')
+  }
 
   console.log(`\n📊 Summary:`)
   console.log(`  ${allAgents.length} agents`)
@@ -291,9 +339,10 @@ async function main() {
   // Generate all queries
   const allQueries: string[] = []
 
-  // Groups
+  // Groups (idempotent)
   for (const group of groups) {
     allQueries.push(`
+      match not { $g isa group, has gid "${group}"; };
       insert $g isa group,
         has gid "${group}",
         has name "${group}",
@@ -311,6 +360,7 @@ async function main() {
       allQueries.push(`
         match $g isa group, has gid "${agent.group}";
               $u isa unit, has uid "${agent.group}:${agent.name}";
+              not { (group: $g, member: $u) isa membership; };
         insert (group: $g, member: $u) isa membership;
       `)
     }
@@ -319,7 +369,7 @@ async function main() {
   // Director paths for each group
   for (const group of groups) {
     const groupAgents = allAgents.filter(a => a.group === group)
-    const director = groupAgents.find(a => a.name.includes('director'))
+    const director = groupAgents.find(a => a.name.includes('director') || a.name === 'cmo')
 
     if (director) {
       const directorUid = `${group}:${director.name}`
@@ -329,6 +379,7 @@ async function main() {
           allQueries.push(`
             match $from isa unit, has uid "${directorUid}";
                   $to isa unit, has uid "${uid}";
+                  not { (source: $from, target: $to) isa path; };
             insert (source: $from, target: $to) isa path,
               has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
           `)
@@ -336,6 +387,48 @@ async function main() {
       }
     }
   }
+
+  // Alliance edges — pre-drawn pheromone paths from Donal's alliances.yaml
+  // Imported from src/worlds/donal-marketing.ts alliance table
+  const allianceEdges: Array<{ from: string; to: string; strength: number }> = [
+    { from: 'ai-ranking',   to: 'citation',  strength: 50 },
+    { from: 'citation',     to: 'social',    strength: 50 },
+    { from: 'citation',     to: 'forum',     strength: 50 },
+    { from: 'citation',     to: 'niche-dir', strength: 50 },
+    { from: 'forum',        to: 'outreach',  strength: 50 },
+    { from: 'outreach',     to: 'quick',     strength: 50 },
+    { from: 'quick',        to: 'full',      strength: 50 },
+    { from: 'ai-ranking',   to: 'schema',    strength: 50 },
+    { from: 'full',         to: 'schema',    strength: 50 },
+    { from: 'full',         to: 'monthly',   strength: 50 },
+    { from: 'monthly',      to: 'schema',    strength: 50 },
+  ]
+
+  // Only seed alliance edges if both ends exist in the current agent set
+  const allUids = new Set(allAgents.map(a => a.group ? `${a.group}:${a.name}` : a.name))
+  let allianceCount = 0
+  for (const edge of allianceEdges) {
+    const fromUid = `marketing:${edge.from}`
+    const toUid = `marketing:${edge.to}`
+    if (allUids.has(fromUid) && allUids.has(toUid)) {
+      allQueries.push(`
+        match $from isa unit, has uid "${fromUid}";
+              $to isa unit, has uid "${toUid}";
+              not { (source: $from, target: $to) isa path; };
+        insert (source: $from, target: $to) isa path,
+          has strength ${edge.strength}.0, has resistance 0.0, has traversals 0, has revenue 0.0;
+      `)
+      allianceCount++
+    }
+  }
+  console.log(`  ${allianceCount} alliance edges (strength=50, from alliances.yaml)`)
+
+  // Wallet summary
+  const walletCount = allAgents.filter(a => {
+    const uid = a.group ? `${a.group}:${a.name}` : a.name
+    return deriveWallet(uid) !== null
+  }).length
+  console.log(`  ${walletCount} Sui wallets derived`)
 
   console.log(`\n📝 Generated ${allQueries.length} queries`)
 

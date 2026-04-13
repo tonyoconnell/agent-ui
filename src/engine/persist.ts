@@ -14,6 +14,19 @@ export type Insight = { pattern: string; confidence: number }
 
 const escapeStr = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 
+// Standalone export so state.ts and other callers can use it without a world instance.
+// O(1) — reads from in-memory maps only. Never touches TypeDB.
+// Cold-start protection: requires enough samples before blocking.
+export const isToxic = (
+  edge: string,
+  strength: Record<string, number>,
+  resistance: Record<string, number>
+): boolean => {
+  const s = strength[edge] || 0
+  const r = resistance[edge] || 0
+  return r >= 10 && r > s * 2 && (r + s) > 5
+}
+
 export interface PersistentWorld extends World {
   actor: (id: string, kind?: string, opts?: { group?: string }) => ReturnType<World['add']>
   group: (id: string, type?: string, opts?: { parent?: string }) => void
@@ -22,6 +35,7 @@ export interface PersistentWorld extends World {
   path: (from: string, to: string) => { strengthen: (n?: number) => void; resist: (n?: number) => void }
   open: (n?: number) => { from: string; to: string; strength: number }[]
   blocked: () => { from: string; to: string }[]
+  toxic: () => { path: string; strength: number; resistance: number }[]
   best: (type: string) => string | null
   proven: () => { id: string; strength: number }[]
   confidence: (type: string) => number
@@ -173,6 +187,12 @@ export const world = (): PersistentWorld => {
       .filter(([e, a]) => a > (net.strength[e] || 0))
       .map(([e]) => { const [from, to] = e.split('→'); return { from, to } })
 
+  // toxic: all paths currently meeting the isToxic threshold — useful for UI
+  const toxic = () =>
+    Object.keys({ ...net.strength, ...net.resistance })
+      .filter(e => checkToxic(e))
+      .map(e => ({ path: e, strength: net.strength[e] || 0, resistance: net.resistance[e] || 0 }))
+
   // best: highest net strength targeting this type
   const best = (type: string): string | null => {
     let bestId: string | null = null
@@ -222,11 +242,29 @@ export const world = (): PersistentWorld => {
   }
 
   const recall = async (match?: string): Promise<Insight[]> => {
-    const q = match
-      ? `match $h isa hypothesis, has statement $s, has p-value $p; $s contains "${match}"; select $s, $p;`
-      : `match $h isa hypothesis, has statement $s, has p-value $p; select $s, $p;`
-    const rows = await readParsed(q).catch(() => [])
-    return rows.map(r => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
+    // Query confirmed/testing hypotheses (engine-generated knowledge)
+    const confirmedQ = match
+      ? `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status $st; $s contains "${match}"; { $st = "confirmed"; } or { $st = "testing"; }; select $s, $p;`
+      : `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status $st; { $st = "confirmed"; } or { $st = "testing"; }; select $s, $p;`
+
+    // Also query pending hypotheses (promoted domain knowledge from JSONL corpus)
+    const pendingQ = match
+      ? `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status "pending"; $s contains "${match}"; select $s, $p;`
+      : `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status "pending"; select $s, $p;`
+
+    const [confirmedRows, pendingRows] = await Promise.all([
+      readParsed(confirmedQ).catch(() => [] as Record<string, unknown>[]),
+      match ? readParsed(pendingQ).catch(() => [] as Record<string, unknown>[]) : Promise.resolve([] as Record<string, unknown>[]),
+    ])
+
+    // Confirmed/testing get full confidence boost; pending start at 0.5 (p-value 0.5 → confidence 0.5)
+    const confirmed = confirmedRows.map(r => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
+    const pending = pendingRows.map(r => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
+
+    // Merge: confirmed first, then pending (deduped by pattern)
+    const seen = new Set(confirmed.map(i => i.pattern))
+    const merged = [...confirmed, ...pending.filter(i => !seen.has(i.pattern))]
+    return merged
   }
 
   // span: ingest docs to TypeDB as confirmed hypotheses
@@ -237,24 +275,36 @@ export const world = (): PersistentWorld => {
 
   // ── The sandwich: TypeDB validates before and after LLM ─────────────
 
-  // Toxic = resistance overwhelms strength, with cold-start protection.
-  // Requires: resistance >= 10 (enough data), resistance > 2x strength (clearly bad, not marginal),
-  // and total signals > 5 (don't block on first few interactions).
-  const isToxic = (edge: string) => {
-    const a = net.resistance[edge] || 0
-    const s = net.strength[edge] || 0
-    return a >= 10 && a > s * 2 && (a + s) > 5
-  }
+  // Delegates to the exported standalone isToxic for O(1) in-memory check.
+  const checkToxic = (edge: string) => isToxic(edge, net.strength, net.resistance)
 
   const signal = (s: Signal, from = 'entry') => {
     const edge = `${from}→${s.receiver}`
-    if (isToxic(edge)) return
+    if (checkToxic(edge)) {
+      console.log(`[TOXIC] blocked: ${edge}`)
+      return
+    }
+    const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
+    if (net.has(uid)) {
+      writeSilent(`
+        match $u isa unit, has uid "${uid}", has sample-count $sc;
+        delete $sc of $u; insert $u has sample-count ($sc + 1);
+      `)
+      writeSilent(`
+        match $u isa unit, has uid "${uid}";
+        not { $u has sample-count; };
+        insert $u has sample-count 1;
+      `)
+    }
     net.signal(s, from)
   }
 
   const ask = async (s: Signal, from = 'entry', timeout?: number) => {
     const edge = `${from}→${s.receiver}`
-    if (isToxic(edge)) return { dissolved: true }
+    if (checkToxic(edge)) {
+      console.log(`[TOXIC] blocked: ${edge}`)
+      return { dissolved: true }
+    }
     // Pre-check: capability exists? (TypeDB)
     const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
     const skill = s.receiver.includes(':') ? s.receiver.split(':')[1] : null
@@ -265,12 +315,24 @@ export const world = (): PersistentWorld => {
       ).catch(() => [])
       if (!ok.length) return { dissolved: true }
     }
-    return net.ask(s, from, timeout)
+    const outcome = await net.ask(s, from, timeout)
+    if (!outcome.dissolved) {
+      writeSilent(`
+        match $u isa unit, has uid "${uid}", has sample-count $sc;
+        delete $sc of $u; insert $u has sample-count ($sc + 1);
+      `)
+      writeSilent(`
+        match $u isa unit, has uid "${uid}";
+        not { $u has sample-count; };
+        insert $u has sample-count 1;
+      `)
+    }
+    return outcome
   }
 
   return {
     ...net, mark, warn, fade, enqueue, signal, ask,
-    actor, group, thing, flow, path, open, blocked,
+    actor, group, thing, flow, path, open, blocked, toxic,
     best, proven, confidence, know, recall, span, context, sync, load,
   }
 }
