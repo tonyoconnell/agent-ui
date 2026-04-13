@@ -9,6 +9,166 @@ One vocabulary. One ontology. One pass.
 
 ---
 
+## Tasks: Phase Gates and Milestones
+
+Every phase has an explicit gate task. When complete, it unblocks the next phase.
+
+### Phase 0 Gate (PREREQUISITE)
+
+- [ ] Phase 0: Execute file renames
+  id: phase-0-rename
+  value: critical
+  effort: low
+  phase: P0
+  persona: operator (human)
+  blocks: phase-1-start
+  exit: All Phase 0 renames complete (git mv), commit, no compile errors
+  tags: migration, sequential, P0
+
+**Phase 0 blocks:** Phase 1 + Phase 2 start
+
+---
+
+### Phase 1 Gate (Core Engine)
+
+- [ ] Phase 1: Migrate engine files (5 files × parallel)
+  id: phase-1-complete
+  value: critical
+  effort: high
+  phase: P1
+  persona: sonnet
+  blocks: phase-2-start
+  exit: All 5 engine files converted. Import paths fixed. tsc passes.
+  tags: migration, engine, P0
+
+---
+
+### Phase 2 Gate (Schema)
+
+- [ ] Phase 2: Migrate schema files (8 files × parallel)
+  id: phase-2-complete
+  value: critical
+  effort: high
+  phase: P2
+  persona: sonnet
+  blocks: phase-3-start
+  exit: All 8 schema files converted. world.tql compiles. No broken TypeQL.
+  tags: migration, schema, P0
+
+**Gate between 1 + 2:** `npm run build` succeeds, all import paths resolved.
+
+---
+
+### Phase 3 Gate (Types & Lib)
+
+- [ ] Phase 3: Migrate types/lib/skins (5 files × parallel)
+  id: phase-3-complete
+  value: high
+  effort: high
+  phase: P3
+  persona: sonnet
+  blocks: phase-4-start
+  exit: All 5 files converted. tsc --noEmit clean.
+  tags: migration, types, P1
+
+---
+
+### Phase 4 Gate (API Endpoints)
+
+- [ ] Phase 4: Migrate API endpoints (11 files × parallel)
+  id: phase-4-complete
+  value: high
+  effort: high
+  phase: P4
+  persona: sonnet
+  blocks: phase-5-start
+  exit: All 11 files converted. API routes typed. tsc clean.
+  tags: migration, api, P1
+
+---
+
+### Phase 5 Gate (Components)
+
+- [ ] Phase 5: Migrate components (7 files × parallel)
+  id: phase-5-complete
+  value: high
+  effort: high
+  phase: P5
+  persona: sonnet
+  blocks: phase-6-start
+  exit: All 7 component files converted. React types clean.
+  tags: migration, components, P1
+
+---
+
+### Phase 6 Gate (Claude Config)
+
+- [ ] Phase 6: Migrate Claude config (9 files × parallel)
+  id: phase-6-complete
+  value: high
+  effort: medium
+  phase: P6
+  persona: sonnet
+  blocks: phase-7-start
+  exit: All 9 config files converted. CLAUDE.md, rules, commands all updated.
+  tags: migration, config, P1
+
+---
+
+### Phase 7 Gate (Docs)
+
+- [ ] Phase 7: Migrate docs (59 files × parallel Haiku)
+  id: phase-7-complete
+  value: high
+  effort: high
+  phase: P7
+  persona: haiku
+  blocks: phase-8-start, cycle-1-wire-start
+  exit: All 59 doc files converted. No dead names in prose (except metaphor tables).
+  tags: migration, docs, P1
+
+---
+
+### Phase 8 Gate (Packages & Scripts)
+
+- [ ] Phase 8: Migrate packages/scripts (12 files × parallel)
+  id: phase-8-complete
+  value: medium
+  effort: high
+  phase: P8
+  persona: sonnet
+  blocks: phase-9-start
+  exit: All 12 files converted. Build succeeds.
+  tags: migration, packages, P2
+
+---
+
+### Phase 9 Gate (Archive, Optional)
+
+- [ ] Phase 9: Migrate archive (4 files × parallel, optional)
+  id: phase-9-complete
+  value: low
+  effort: medium
+  phase: P9
+  persona: sonnet
+  blocks: cycle-1-wire-start
+  exit: Archive files converted (or skipped if not deploying)
+  tags: migration, archive, P3
+
+**Migration Final Gate:**
+
+- [ ] Migration complete verification
+  id: migration-gate
+  value: critical
+  effort: low
+  phase: P9
+  persona: operator
+  blocks: cycle-1-wire-start
+  exit: `npm run build` succeeds. Grep verification clean (no old vocab in engine/schema/types/api/components). All tests green.
+  tags: migration, gate, P0
+
+---
+
 ## Phase: Codebase & Schema Migration (9 phases, prerequisite)
 
 **Prerequisite for doc consolidation (Cycles 1-3).** Must complete before renaming docs.
@@ -158,6 +318,48 @@ Fix the source, the downstream fixes become mechanical.
 
 **Already done:** [`DSL.md`](DSL.md) — all 6 dead names replaced (2026-04-14).
 
+### Cycle 1 Tasks
+
+- [ ] Cycle 1 W1: Recon (parallel Haiku × 4)
+  id: cycle-1-w1
+  value: critical
+  effort: low
+  phase: C1
+  persona: haiku
+  blocks: cycle-1-w2
+  exit: 4 reports in. Each reports dead names with line numbers, metaphor flags.
+  tags: docs, wire, recon, P0
+
+- [ ] Cycle 1 W2: Decide (Opus)
+  id: cycle-1-w2
+  value: critical
+  effort: medium
+  phase: C1
+  persona: opus
+  blocks: cycle-1-w3
+  exit: Edit specs produced. Replace/Keep/Judgment for each dead name. DSL + names.md loaded.
+  tags: docs, wire, decide, P0
+
+- [ ] Cycle 1 W3: Edits (parallel Sonnet × 4)
+  id: cycle-1-w3
+  value: critical
+  effort: high
+  phase: C1
+  persona: sonnet
+  blocks: cycle-1-w4
+  exit: All 4 files edited. No content loss. Anchors matched or dissolved reported.
+  tags: docs, wire, edit, P0
+
+- [ ] Cycle 1 W4: Verify (Sonnet × 1)
+  id: cycle-1-w4
+  value: critical
+  effort: medium
+  phase: C1
+  persona: sonnet
+  blocks: cycle-2-prove-start
+  exit: Zero dead names in prose (except metaphor tables). Rubric >= 0.65. Links resolve.
+  tags: docs, wire, verify, P0
+
 ---
 
 ### Wave 1 — Recon (parallel Haiku × 4)
@@ -260,6 +462,48 @@ are clean, these become mechanical — copy the canonical forms.
 
 **Depends on:** Cycle 1 complete. Core docs are the reference for voice + vocabulary.
 
+### Cycle 2 Tasks
+
+- [ ] Cycle 2 W1: Recon (parallel Haiku × 20)
+  id: cycle-2-w1
+  value: high
+  effort: medium
+  phase: C2
+  persona: haiku
+  blocks: cycle-2-w2
+  exit: 20 reports in. Dead names flagged per file, metaphor exceptions noted.
+  tags: docs, prove, recon, P0
+
+- [ ] Cycle 2 W2: Decide (Opus)
+  id: cycle-2-w2
+  value: high
+  effort: high
+  phase: C2
+  persona: opus
+  blocks: cycle-2-w3
+  exit: Edit specs for ~20 files. Judgment calls for ants.md, game docs, metaphor tables.
+  tags: docs, prove, decide, P0
+
+- [ ] Cycle 2 W3: Edits (parallel Sonnet × 20)
+  id: cycle-2-w3
+  value: high
+  effort: high
+  phase: C2
+  persona: sonnet
+  blocks: cycle-2-w4
+  exit: ~300 total edits applied. No content loss. Anchors matched.
+  tags: docs, prove, edit, P1
+
+- [ ] Cycle 2 W4: Verify (Sonnet × 1)
+  id: cycle-2-w4
+  value: high
+  effort: medium
+  phase: C2
+  persona: sonnet
+  blocks: cycle-3-grow-start
+  exit: Zero dead names in high-traffic docs. Tutorial code matches DSL.md. Rubric >= 0.65.
+  tags: docs, prove, verify, P0
+
 ---
 
 ### Wave 1 — Recon (parallel Haiku × 20)
@@ -344,6 +588,48 @@ semi-historical. Changes here are lower-risk but complete the sweep.
 
 **Depends on:** Cycle 2 complete. Voice and vocabulary are now established
 across all active docs.
+
+### Cycle 3 Tasks
+
+- [ ] Cycle 3 W1: Recon (parallel Haiku × 20)
+  id: cycle-3-w1
+  value: medium
+  effort: medium
+  phase: C3
+  persona: haiku
+  blocks: cycle-3-w2
+  exit: 20 reports in. External system vocabulary (AgentVerse, Hermes) flagged separately.
+  tags: docs, grow, recon, P1
+
+- [ ] Cycle 3 W2: Decide (Opus)
+  id: cycle-3-w2
+  value: medium
+  effort: high
+  phase: C3
+  persona: opus
+  blocks: cycle-3-w3
+  exit: Edit specs for ~20 strategy docs. External vocabulary preserved. Judgment recorded.
+  tags: docs, grow, decide, P1
+
+- [ ] Cycle 3 W3: Edits (parallel Sonnet × 20)
+  id: cycle-3-w3
+  value: medium
+  effort: high
+  phase: C3
+  persona: sonnet
+  blocks: cycle-3-w4
+  exit: ~200 total edits applied. External system vocabulary preserved.
+  tags: docs, grow, edit, P1
+
+- [ ] Cycle 3 W4: Verify (Sonnet × 1)
+  id: cycle-3-w4
+  value: medium
+  effort: medium
+  phase: C3
+  persona: sonnet
+  blocks: consolidation-complete
+  exit: Zero dead names in ONE-vocabulary context. External systems intact. Rubric >= 0.65. Final sweep complete.
+  tags: docs, grow, verify, P0
 
 ---
 
@@ -475,41 +761,40 @@ That means Wave 2's diff specs were wrong.
 
 ## Status
 
-### Migration Phases (prerequisite)
+### Migration Phases (prerequisite) — 50 tasks
 
-- [ ] **Phase 0** — File renames (sequential, 1 operator). See [migration.md Phase 0](migration.md#phase-0--file-renames-sequential-one-operator)
-  - [ ] Commit renamed files before launching agents
-- [ ] **Phase 1** — Core engine (5 files × parallel Sonnet)
-- [ ] **Phase 2** — Schema (8 files × parallel Sonnet)
-  - [ ] Phase 1 + 2 gate: import paths verified, no broken types
-- [ ] **Phase 3** — Types/lib (5 files × parallel Sonnet)
-- [ ] **Phase 4** — API endpoints (11 files × parallel Sonnet)
-- [ ] **Phase 5** — Components (7 files × parallel Sonnet)
-- [ ] **Phase 6** — Claude config (9 files × parallel Sonnet)
-- [ ] **Phase 7** — Docs (59 files × parallel Haiku/Sonnet)
-- [ ] **Phase 8** — Packages/scripts (12 files × parallel Sonnet)
-- [ ] **Phase 9** — Archive (optional, 4 files × parallel Sonnet)
-  - [ ] Gate: `npm run build` succeeds, grep verification clean
-  - **Gate status:** All migration phases pass → unlock doc cycles
+| Task | Model | Status | Blocks |
+|------|-------|--------|--------|
+| Phase 0: Renames | human | [ ] | P1 start |
+| Phase 1: Engine | sonnet | [ ] | P2 start |
+| Phase 2: Schema | sonnet | [ ] | P3 start |
+| Phase 3: Types | sonnet | [ ] | P4 start |
+| Phase 4: APIs | sonnet | [ ] | P5 start |
+| Phase 5: Components | sonnet | [ ] | P6 start |
+| Phase 6: Config | sonnet | [ ] | P7 start |
+| Phase 7: Docs (59 files) | haiku | [ ] | P8 start + C1 start |
+| Phase 8: Packages | sonnet | [ ] | P9 start |
+| Phase 9: Archive (opt) | sonnet | [ ] | migration-gate |
+| **Migration Gate** | human | [ ] | **C1 WIRE unlock** |
 
-### Doc Consolidation Cycles (post-migration)
+### Doc Consolidation Cycles (post-migration) — 12 tasks
 
-- [ ] **Pre-cycle** — DSL.md (done 2026-04-14, all 6 dead names replaced)
-- [ ] **Cycle 1: WIRE** — Core canonical docs (5 files)
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet × 4)
-  - [ ] W4 — Verify (Sonnet × 1)
-- [ ] **Cycle 2: PROVE** — High-traffic docs (~20 files)
-  - [ ] W1 — Recon (Haiku × 20)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet × 20)
-  - [ ] W4 — Verify (Sonnet × 1)
-- [ ] **Cycle 3: GROW** — Strategy/agent docs (~20 files)
-  - [ ] W1 — Recon (Haiku × 20)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet × 20)
-  - [ ] W4 — Verify (Sonnet × 1)
+| Cycle | Wave | Model | Status | Blocks |
+|-------|------|-------|--------|--------|
+| **C1: WIRE** | W1 | haiku | [ ] | C1-W2 |
+| | W2 | opus | [ ] | C1-W3 |
+| | W3 | sonnet | [ ] | C1-W4 |
+| | W4 | sonnet | [ ] | **C2 PROVE unlock** |
+| **C2: PROVE** | W1 | haiku | [ ] | C2-W2 |
+| | W2 | opus | [ ] | C2-W3 |
+| | W3 | sonnet | [ ] | C2-W4 |
+| | W4 | sonnet | [ ] | **C3 GROW unlock** |
+| **C3: GROW** | W1 | haiku | [ ] | C3-W2 |
+| | W2 | opus | [ ] | C3-W3 |
+| | W3 | sonnet | [ ] | C3-W4 |
+| | W4 | sonnet | [ ] | **CONSOLIDATION COMPLETE** |
+
+**Baseline:** DSL.md (done 2026-04-14)
 
 ---
 
