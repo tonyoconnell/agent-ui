@@ -164,8 +164,8 @@ export const ContextContentBody = ({ children, className, ...props }: ContextCon
 export type ContextContentFooterProps = ComponentProps<'div'>
 
 export const ContextContentFooter = ({ children, className, ...props }: ContextContentFooterProps) => {
-  const { modelId, usage } = useContextValue()
   // TODO: Integrate with tokenlens when available for cost calculation
+  // const { modelId, usage } = useContextValue()
   const costUSD = undefined
   const totalCost = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -190,7 +190,7 @@ export const ContextContentFooter = ({ children, className, ...props }: ContextC
 export type ContextInputUsageProps = ComponentProps<'div'>
 
 export const ContextInputUsage = ({ className, children, ...props }: ContextInputUsageProps) => {
-  const { usage, modelId } = useContextValue()
+  const { usage } = useContextValue()
   const inputTokens = usage?.inputTokens ?? 0
 
   if (children) {
@@ -219,7 +219,7 @@ export const ContextInputUsage = ({ className, children, ...props }: ContextInpu
 export type ContextOutputUsageProps = ComponentProps<'div'>
 
 export const ContextOutputUsage = ({ className, children, ...props }: ContextOutputUsageProps) => {
-  const { usage, modelId } = useContextValue()
+  const { usage } = useContextValue()
   const outputTokens = usage?.outputTokens ?? 0
 
   if (children) {
@@ -248,7 +248,7 @@ export const ContextOutputUsage = ({ className, children, ...props }: ContextOut
 export type ContextReasoningUsageProps = ComponentProps<'div'>
 
 export const ContextReasoningUsage = ({ className, children, ...props }: ContextReasoningUsageProps) => {
-  const { usage, modelId } = useContextValue()
+  const { usage } = useContextValue()
   const reasoningTokens = usage?.reasoningTokens ?? 0
 
   if (children) {
@@ -277,7 +277,7 @@ export const ContextReasoningUsage = ({ className, children, ...props }: Context
 export type ContextCacheUsageProps = ComponentProps<'div'>
 
 export const ContextCacheUsage = ({ className, children, ...props }: ContextCacheUsageProps) => {
-  const { usage, modelId } = useContextValue()
+  const { usage } = useContextValue()
   const cacheTokens = usage?.cachedInputTokens ?? 0
 
   if (children) {

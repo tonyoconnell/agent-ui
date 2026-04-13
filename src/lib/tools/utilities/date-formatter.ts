@@ -153,7 +153,7 @@ function dateDiff(date1: Date, date2: Date, unit: string): number {
 }
 
 async function formatDateTool(params: z.infer<typeof dateFormatterParams>) {
-  const { date: dateStr, operation, format, amount, unit, compareDate, timezone } = params
+  const { date: dateStr, operation, format, amount, unit, compareDate } = params
 
   try {
     const date = parseDate(dateStr)

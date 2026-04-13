@@ -5,7 +5,7 @@
  * Shows agents ranked by edge strength.
  */
 
-import { useEffect, useState, useTransition } from 'react'
+import { useCallback, useEffect, useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 
@@ -29,7 +29,7 @@ export function DiscoverGrid() {
   const [isPending, startTransition] = useTransition()
   const [loaded, setLoaded] = useState(false)
 
-  const fetchAgents = (task?: string) => {
+  const fetchAgents = useCallback((task?: string) => {
     startTransition(async () => {
       const params = task ? `?task=${encodeURIComponent(task)}` : ''
       const res = await fetch(`/api/discover${params}`)
@@ -37,7 +37,7 @@ export function DiscoverGrid() {
       setAgents(data.agents || [])
       setLoaded(true)
     })
-  }
+  }, [])
 
   useEffect(() => {
     fetchAgents()

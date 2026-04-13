@@ -274,20 +274,36 @@ export const world = (): PersistentWorld => {
       ? `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status "pending"; $s contains "${match}"; select $s, $p;`
       : `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status "pending"; select $s, $p;`
 
-    const [confirmedRows, pendingRows] = await Promise.all([
+    // Query failed attempts on tasks (signals with success=false related to taskId)
+    const failedAttemptsQ = match
+      ? `match $sig isa signal, has data $d, has success false; $d contains "${match}"; select $d;`
+      : ''
+
+    const [confirmedRows, pendingRows, failedRows] = await Promise.all([
       readParsed(confirmedQ).catch(() => [] as Record<string, unknown>[]),
       match
         ? readParsed(pendingQ).catch(() => [] as Record<string, unknown>[])
+        : Promise.resolve([] as Record<string, unknown>[]),
+      failedAttemptsQ
+        ? readParsed(failedAttemptsQ).catch(() => [] as Record<string, unknown>[])
         : Promise.resolve([] as Record<string, unknown>[]),
     ])
 
     // Confirmed/testing get full confidence boost; pending start at 0.5 (p-value 0.5 → confidence 0.5)
     const confirmed = confirmedRows.map((r) => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
     const pending = pendingRows.map((r) => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
+    const failed = failedRows.map((r) => ({
+      pattern: `failed: ${typeof r.d === 'string' ? r.d : JSON.stringify(r.d)}`,
+      confidence: 0.3, // Lower confidence for past failures
+    }))
 
-    // Merge: confirmed first, then pending (deduped by pattern)
+    // Merge: confirmed first, then pending, then failed (deduped by pattern)
     const seen = new Set(confirmed.map((i) => i.pattern))
-    const merged = [...confirmed, ...pending.filter((i) => !seen.has(i.pattern))]
+    const merged = [
+      ...confirmed,
+      ...pending.filter((i) => !seen.has(i.pattern)),
+      ...failed.filter((i) => !seen.has(i.pattern)),
+    ]
     return merged
   }
 

@@ -47,6 +47,16 @@ import type { Edge, World } from '@/engine'
 import { cn } from '@/lib/utils'
 
 // ============================================================================
+// HELPERS
+// ============================================================================
+
+// Parse path strings (handles both "a → b" and "a→b")
+const splitPath = (p: string): [string, string] | null => {
+  const parts = p.includes(' → ') ? p.split(' → ') : p.split('→')
+  return parts[0] && parts[1] ? [parts[0], parts[1]] : null
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -952,12 +962,6 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
   // Celebration state
   const [celebrations, setCelebrations] = useState<{ id: string; x: number; y: number }[]>([])
 
-  // Parse path strings (handles both "a → b" and "a→b")
-  const splitPath = (p: string): [string, string] | null => {
-    const parts = p.includes(' → ') ? p.split(' → ') : p.split('→')
-    return parts[0] && parts[1] ? [parts[0], parts[1]] : null
-  }
-
   // Signal tracer
   const [activeTracer, setActiveTracer] = useState<{ path: { node: string; task: string }[] } | null>(null)
 
@@ -999,7 +1003,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     }
 
     return stats
-  }, [highways, agents, heatMapEnabled, splitPath])
+  }, [highways, agents, heatMapEnabled])
 
   // Build initial nodes
   const initialNodes = useMemo((): Node[] => {
@@ -1083,7 +1087,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     }))
 
     return [entryNode, ...chamberNodes]
-  }, [agents, highways, agentStats, splitPath])
+  }, [agents, highways, agentStats])
 
   // Build initial edges
   const initialEdges = useMemo((): FlowEdge[] => {
@@ -1126,7 +1130,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
           },
         }
       })
-  }, [highways, agents, splitPath])
+  }, [highways, agents])
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
@@ -1217,7 +1221,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
         }
       }),
     )
-  }, [highways, agentStats, setNodes, setEdges, splitPath])
+  }, [highways, agentStats, setNodes, setEdges])
 
   // Inject signal with recording
   const injectSignal = useCallback(
@@ -1396,7 +1400,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
 
       onWorldChange?.()
     },
-    [world, setEdges, onWorldChange, splitPath],
+    [world, setEdges, onWorldChange],
   )
 
   // Delete edge

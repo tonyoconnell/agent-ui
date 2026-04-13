@@ -12,7 +12,16 @@ vi.mock('@/lib/typedb', () => ({
   writeSilent: vi.fn().mockResolvedValue(undefined),
 }))
 
-import { CANONICAL, contextForSkill, type DocKey, docIndex, inferDocsFromTags, loadContext, readDoc, resolveContext } from './context'
+import {
+  CANONICAL,
+  contextForSkill,
+  type DocKey,
+  docIndex,
+  inferDocsFromTags,
+  loadContext,
+  readDoc,
+  resolveContext,
+} from './context'
 
 // ─── CANONICAL mapping ───────────────────────────────────────────────────────
 

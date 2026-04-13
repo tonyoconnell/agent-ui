@@ -6,7 +6,7 @@
  * the substrate smarter.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { world as createWorld } from './world'
 
 describe('loop.ts — growth tick', () => {

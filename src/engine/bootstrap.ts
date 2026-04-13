@@ -187,7 +187,7 @@ export const bootstrap = async (options: BootstrapOptions) => {
 
   // Todo: route to appropriate handler
   one.on('todo', async (d, e) => {
-    const { text, tags } = d as Todo
+    const { tags } = d as Todo
 
     if (tags.includes('test')) {
       e('worker:test', d)
@@ -293,14 +293,13 @@ Be concise. Use markdown. Include code examples if relevant.
 
   // Fix: bug fixes
   one.on('worker:fix', async (d, e) => {
-    const { text } = d as Todo
     e('worker:implement', d) // same as implement for now
     return { fixing: true }
   })
 
   // Complete: log completions, update knowledge
   one.on('complete', async (d) => {
-    const { id, text, result } = d as { id: string; text: string; result: string }
+    const { text } = d as { id: string; text: string; result: string }
     console.log(`[DONE] ${text}`)
 
     // Could save to knowledge base here

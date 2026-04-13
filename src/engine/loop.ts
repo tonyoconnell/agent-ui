@@ -6,6 +6,7 @@
  */
 
 import { readParsed, writeSilent } from '@/lib/typedb'
+import { inferDocsFromTags, loadContext } from './context'
 import type { PersistentWorld } from './persist'
 
 // doc-scan and node:path imported dynamically to avoid Cloudflare bundling issues
@@ -147,25 +148,37 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       result.task = { id: taskId, name: taskName, priority: taskPriority }
       result.selected = taskId
 
-      // Load task context: exit condition, tags, wave, context docs
-      const taskMeta = await readParsed(`
-        match $t isa task, has task-id "${taskId}";
-        $t has exit-condition $exit;
-        select $exit;
-      `).catch(() => [])
+      // Load task metadata: exit condition, tags, explicit context keys
+      const [taskMeta, tagRows, ctxRows] = await Promise.all([
+        readParsed(`
+          match $t isa task, has task-id "${taskId}";
+          $t has exit-condition $exit;
+          select $exit;
+        `).catch(() => []),
+        readParsed(`
+          match $t isa task, has task-id "${taskId}", has tag $tag;
+          select $tag;
+        `).catch(() => []),
+        readParsed(`
+          match $t isa task, has task-id "${taskId}", has task-context $ctx;
+          select $ctx;
+        `).catch(() => []),
+      ])
       const exitCondition = (taskMeta[0]?.exit as string) || ''
+      const taskTags = tagRows.map((r) => r.tag as string)
 
-      // Load context doc keys if set
-      const ctxRows = await readParsed(`
-        match $t isa task, has task-id "${taskId}", has task-context $ctx;
-        select $ctx;
-      `).catch(() => [])
-      const contextDocs = ctxRows.length ? (ctxRows[0].ctx as string).split(',').map((s) => s.trim()) : []
+      // Enrich: infer docs from tags + merge with explicit task-context
+      // DSL + dictionary always included as base context (inferDocsFromTags guarantees this)
+      const inferredKeys = inferDocsFromTags(taskTags)
+      const explicitKeys = ctxRows.length ? (ctxRows[0].ctx as string).split(',').map((s) => s.trim()) : []
+      const allKeys = [...new Set([...inferredKeys, ...explicitKeys])]
+      const contextDocs = allKeys
+      const contextText = loadContext(allKeys) // merged doc content for executor
 
       // Load hypotheses about this task path (what the graph has learned)
       const learned = await net.recall(taskId).catch(() => [])
 
-      // Route as signal: enqueue for the builder unit WITH full context
+      // Route as signal: enqueue for the builder unit WITH full context envelope
       const taskSignal = {
         receiver: `builder:${taskId}`,
         data: {
@@ -175,7 +188,9 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
           effort: taskEffort,
           phase: taskPhase,
           exit: exitCondition,
-          contextDocs,
+          tags: taskTags,
+          contextDocs, // doc keys for reference
+          context: contextText, // full merged doc content (always includes DSL + dictionary)
           learned: learned.slice(0, 5),
         },
       }

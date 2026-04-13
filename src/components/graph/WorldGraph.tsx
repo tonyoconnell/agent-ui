@@ -92,7 +92,7 @@ interface FlowEdgeData {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function FlowEdge(props: EdgeProps) {
-  const { skin, t } = useSkin()
+  const { skin } = useSkin()
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } = props
   const edgeData = data as FlowEdgeData | undefined
   const strength = edgeData?.strength || 0
@@ -196,7 +196,7 @@ function FlowEdge(props: EdgeProps) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function ActorNode({ data, selected }: NodeProps) {
-  const { skin, t } = useSkin()
+  const { skin } = useSkin()
   const [expanded, setExpanded] = useState(false)
   const d = data as ActorNodeData
   const isOpen = d.isOpen

@@ -8,7 +8,7 @@
  * - Multi-tenant
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { backendConfig } from '@/config/backend'
 
 export interface UseBackendChatOptions {
@@ -31,7 +31,7 @@ export function useBackendChat(options: UseBackendChatOptions) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
       const response = await fetch(`${backendConfig.endpoints.api}/chat/threads/${threadId}`, {
         headers: {
@@ -44,7 +44,7 @@ export function useBackendChat(options: UseBackendChatOptions) {
       console.error('Failed to load messages:', err)
       setError(err as Error)
     }
-  }
+  }, [threadId])
 
   // Load persisted messages from database
   useEffect(() => {

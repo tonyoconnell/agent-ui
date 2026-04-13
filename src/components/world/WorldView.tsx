@@ -35,7 +35,7 @@ interface WorldState {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function StatsBar({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) {
-  const { skin, t } = useSkin()
+  const { skin } = useSkin()
   const openFlows = flows.filter((f) => f.strength >= 50).length
   const totalStrength = flows.reduce((sum, f) => sum + f.strength, 0)
 

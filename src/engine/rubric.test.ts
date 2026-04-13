@@ -201,13 +201,21 @@ describe('markDims — tagged edge marks', () => {
     const marks: [string, number][] = []
     const warns: [string, number][] = []
     const net = {
-      mark: (p: string, a: number) => marks.push([p, a]),
-      warn: (p: string, a: number) => warns.push([p, a]),
+      mark: (p: string, a?: number) => {
+        marks.push([p, a ?? 1])
+      },
+      warn: (p: string, a?: number) => {
+        warns.push([p, a ?? 1])
+      },
     }
 
     markDims(net, 'scout→analyst', {
-      fit: 0.9, form: 0.8, truth: 1.0, taste: 0.7,
-      violations: [], composite: 0.88,
+      fit: 0.9,
+      form: 0.8,
+      truth: 1.0,
+      taste: 0.7,
+      violations: [],
+      composite: 0.88,
     })
 
     expect(marks.length).toBe(4) // all dims >= 0.65
@@ -220,13 +228,21 @@ describe('markDims — tagged edge marks', () => {
     const marks: [string, number][] = []
     const warns: [string, number][] = []
     const net = {
-      mark: (p: string, a: number) => marks.push([p, a]),
-      warn: (p: string, a: number) => warns.push([p, a]),
+      mark: (p: string, a?: number) => {
+        marks.push([p, a ?? 1])
+      },
+      warn: (p: string, a?: number) => {
+        warns.push([p, a ?? 1])
+      },
     }
 
     markDims(net, 'scout→analyst', {
-      fit: 0.9, form: 0.3, truth: 0.4, taste: 0.8,
-      violations: [], composite: 0.6,
+      fit: 0.9,
+      form: 0.3,
+      truth: 0.4,
+      taste: 0.8,
+      violations: [],
+      composite: 0.6,
     })
 
     expect(marks.length).toBe(2) // fit + taste >= 0.65
@@ -239,13 +255,21 @@ describe('markDims — tagged edge marks', () => {
     const marks: [string, number][] = []
     const warns: [string, number][] = []
     const net = {
-      mark: (p: string, a: number) => marks.push([p, a]),
-      warn: (p: string, a: number) => warns.push([p, a]),
+      mark: (p: string, a?: number) => {
+        marks.push([p, a ?? 1])
+      },
+      warn: (p: string, a?: number) => {
+        warns.push([p, a ?? 1])
+      },
     }
 
     markDims(net, 'scout→analyst', {
-      fit: 0.55, form: 0.60, truth: 0.52, taste: 0.64,
-      violations: [], composite: 0.57,
+      fit: 0.55,
+      form: 0.6,
+      truth: 0.52,
+      taste: 0.64,
+      violations: [],
+      composite: 0.57,
     })
 
     expect(marks.length).toBe(0) // all borderline

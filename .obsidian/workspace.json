@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/TODO.md",
+                "file": "docs/PLAN-collusion-mitigation.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "TODO"
+              "title": "PLAN-collusion-mitigation"
             }
           },
           {
@@ -199,6 +199,9 @@
   },
   "active": "fd99b50a9796efdb",
   "lastOpenFiles": [
+    "docs/TODO-collusion.md",
+    "docs/TODO.md",
+    "docs/PLAN-collusion-mitigation.md",
     "docs/TESTING.md",
     "docs/telegram-bot-setup.md",
     "docs/sync-skills.md",
@@ -222,9 +225,6 @@
     "docs/SECURE-DEPLOY.md",
     "docs/speed-hyperliquid.md",
     "docs/routing.md",
-    "docs/SEED-REPORT.md",
-    "docs/fastest-ai.md",
-    "docs/agent-speed-advantage.md",
     "src/engine/task-sync.test.ts",
     "src/pages/api/agents/register.ts",
     "src/engine/loop.test.ts",

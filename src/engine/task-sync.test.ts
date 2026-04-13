@@ -134,9 +134,32 @@ describe('task-sync.ts — TypeDB persistence', () => {
           source: 'TODO.md',
           tags: [],
           blocks: ['blocked1', 'blocked2'],
+          context: [],
+          exit: '',
+          line: 0,
         },
-        createTask({ id: 'blocked1', name: 'Blocked Task 1', value: 'high', effort: 'low', wave: 'W3', phase: 'C2', persona: 'dev', priority: 30, tags: [] }),
-        createTask({ id: 'blocked2', name: 'Blocked Task 2', value: 'medium', effort: 'medium', wave: 'W3', phase: 'C2', persona: 'dev', priority: 20, tags: [] }),
+        createTask({
+          id: 'blocked1',
+          name: 'Blocked Task 1',
+          value: 'high',
+          effort: 'low',
+          wave: 'W3',
+          phase: 'C2',
+          persona: 'dev',
+          priority: 30,
+          tags: [],
+        }),
+        createTask({
+          id: 'blocked2',
+          name: 'Blocked Task 2',
+          value: 'medium',
+          effort: 'medium',
+          wave: 'W3',
+          phase: 'C2',
+          persona: 'dev',
+          priority: 20,
+          tags: [],
+        }),
       ]
 
       const result = await syncTasks(tasks)
@@ -165,6 +188,9 @@ describe('task-sync.ts — TypeDB persistence', () => {
           source: 'TODO.md',
           tags: [],
           blocks: ['nonexistent-task'], // This task doesn't exist
+          context: [],
+          exit: '',
+          line: 0,
         },
       ]
 
@@ -180,16 +206,19 @@ describe('task-sync.ts — TypeDB persistence', () => {
         id: `task-${i}`,
         name: `Task ${i}`,
         done: false,
-        value: 'high',
-        effort: 'low',
-        wave: 'W2',
-        phase: 'C2',
+        value: 'high' as const,
+        effort: 'low' as const,
+        wave: 'W2' as const,
+        phase: 'C2' as const,
         persona: 'dev',
         priority: 50 - i,
         formula: 'priority',
         source: 'TODO.md',
         tags: [],
         blocks: [],
+        context: [],
+        exit: '',
+        line: i,
       }))
 
       const result = await syncTasks(tasks)
@@ -206,7 +235,17 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
     it('should ensure builder unit exists', async () => {
       const tasks: Task[] = [
-        createTask({ id: 'task-1', name: 'Test', value: 'high', effort: 'low', wave: 'W2', phase: 'C2', persona: 'dev', priority: 50, tags: [] }),
+        createTask({
+          id: 'task-1',
+          name: 'Test',
+          value: 'high',
+          effort: 'low',
+          wave: 'W2',
+          phase: 'C2',
+          persona: 'dev',
+          priority: 50,
+          tags: [],
+        }),
       ]
 
       await syncTasks(tasks)
@@ -243,7 +282,17 @@ describe('task-sync.ts — TypeDB persistence', () => {
   describe('tagging and categorization', () => {
     it('should include all tags in task entity', async () => {
       const tasks: Task[] = [
-        createTask({ id: 'tagged-task', name: 'Tagged Task', value: 'high', effort: 'low', wave: 'W2', phase: 'C2', persona: 'dev', priority: 50, tags: ['P0', 'engine', 'test', 'critical'] }),
+        createTask({
+          id: 'tagged-task',
+          name: 'Tagged Task',
+          value: 'high',
+          effort: 'low',
+          wave: 'W2',
+          phase: 'C2',
+          persona: 'dev',
+          priority: 50,
+          tags: ['P0', 'engine', 'test', 'critical'],
+        }),
       ]
 
       await syncTasks(tasks)
@@ -260,7 +309,17 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
     it('should include tags in matching skill entity', async () => {
       const tasks: Task[] = [
-        createTask({ id: 'skill-task', name: 'Skill Task', value: 'high', effort: 'low', wave: 'W2', phase: 'C2', persona: 'dev', priority: 50, tags: ['routing', 'build'] }),
+        createTask({
+          id: 'skill-task',
+          name: 'Skill Task',
+          value: 'high',
+          effort: 'low',
+          wave: 'W2',
+          phase: 'C2',
+          persona: 'dev',
+          priority: 50,
+          tags: ['routing', 'build'],
+        }),
       ]
 
       await syncTasks(tasks)
@@ -283,8 +342,28 @@ describe('task-sync.ts — TypeDB persistence', () => {
       vi.mocked(typedb.writeSilent).mockImplementationOnce(() => Promise.reject(new Error('Insert failed')))
 
       const tasks: Task[] = [
-        createTask({ id: 'task-1', name: 'Task 1', value: 'high', effort: 'low', wave: 'W2', phase: 'C2', persona: 'dev', priority: 50, tags: [] }),
-        createTask({ id: 'task-2', name: 'Task 2', value: 'high', effort: 'low', wave: 'W2', phase: 'C2', persona: 'dev', priority: 40, tags: [] }),
+        createTask({
+          id: 'task-1',
+          name: 'Task 1',
+          value: 'high',
+          effort: 'low',
+          wave: 'W2',
+          phase: 'C2',
+          persona: 'dev',
+          priority: 50,
+          tags: [],
+        }),
+        createTask({
+          id: 'task-2',
+          name: 'Task 2',
+          value: 'high',
+          effort: 'low',
+          wave: 'W2',
+          phase: 'C2',
+          persona: 'dev',
+          priority: 40,
+          tags: [],
+        }),
       ]
 
       // Reset mocks for this test
