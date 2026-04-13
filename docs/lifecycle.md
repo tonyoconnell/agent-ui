@@ -2,6 +2,10 @@
 
 **Into ONE. Through ONE. Out of ONE.**
 
+> **Verified:** `lifecycle.test.ts` — 19 tests prove the full journey using world.ts alone.
+> Agent register → signal → highway in 100 signals. 3-unit chain self-learning.
+> Wave pattern context accumulation. Fade asymmetry. New path overtakes incumbent.
+
 ---
 
 ## The Two Lifecycles

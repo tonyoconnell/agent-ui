@@ -35,10 +35,12 @@ export {
   CANONICAL,
   contextForSkill,
   docIndex,
+  inferDocsFromTags,
   ingestDocs,
   loadContext,
   readDoc,
   recallDocs,
+  resolveContext,
 } from './context'
 export type { Actor, Loop, LoopResult, Marker, Outcome, Selector, Source } from './core'
 // Loop system — the one loop

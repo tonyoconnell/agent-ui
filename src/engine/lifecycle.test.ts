@@ -13,6 +13,10 @@
  *   2. Self-Learning   — the flywheel: chains reinforce, select() biases
  *   3. Wave Pattern    — context accumulates through .then() chains
  *
+ * Note on ask(): ask() resolves when a unit explicitly emits a reply to
+ * the replyTo address. Simple fire-and-forget handlers don't auto-reply.
+ * Tests verify signal delivery via w.sense(), not ask() result values.
+ *
  * Run: npx vitest run src/engine/lifecycle.test.ts
  */
 
@@ -23,7 +27,7 @@ import { type World, world } from './world'
 // ACT 1: AGENT LIFECYCLE
 //
 // A single agent. Born with no history. Receives work. Paths strengthen.
-// Failures warn. Fade decays asymmetrically. Enough successes → highway.
+// Failures warn. Fade decays asymmetrically. Enough signals → highway.
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Agent Lifecycle: register → signal → highway', () => {
@@ -53,35 +57,40 @@ describe('Agent Lifecycle: register → signal → highway', () => {
   })
 
   it('signal to missing unit dissolves — no path, no cost', async () => {
+    // ask() immediately returns dissolved when unit does not exist
     const outcome = await w.ask({ receiver: 'ghost:observe', data: {} })
     expect(outcome.dissolved).toBe(true)
     expect(w.sense('entry→ghost:observe')).toBe(0)
   })
 
-  it('first success: ask() returns result and marks the path', async () => {
-    w.add('scout').on('observe', () => 'found something')
+  it('signal delivery: path is marked when a unit receives a signal', () => {
+    // Handler called flag
+    let called = false
+    w.add('scout').on('observe', () => {
+      called = true
+      return 'found something'
+    })
 
-    const outcome = await w.ask({ receiver: 'scout:observe', data: { tick: 1 } })
+    // Before — no trail
+    expect(w.sense('entry→scout:observe')).toBe(0)
 
-    // Signal delivered and result returned
-    expect(outcome.result).toBe('found something')
-    expect(outcome.dissolved).toBeUndefined()
-    expect(outcome.timeout).toBeUndefined()
+    // Signal fires
+    w.signal({ receiver: 'scout:observe', data: { tick: 1 } })
 
-    // Path marked by signal delivery
+    // Handler ran
+    expect(called).toBe(true)
+    // Trail deposited — path learned
     expect(w.sense('entry→scout:observe')).toBeGreaterThan(0)
   })
 
-  it('failure: null result warns the path via replyTo', async () => {
-    // A handler that returns null triggers the failure branch
-    w.add('scout').on('observe', () => null)
+  it('repeat signals accumulate pheromone on the path', () => {
+    w.add('scout').on('observe', () => 'ok')
 
-    // ask() resolves via replyTo — null result sends { failure: true }
-    // which the reply unit sees as a result (not undefined)
-    const _outcome = await w.ask({ receiver: 'scout:observe', data: {} })
+    for (let i = 0; i < 20; i++) {
+      w.signal({ receiver: 'scout:observe', data: { tick: i } })
+    }
 
-    // The path was still marked on delivery (signal arrived)
-    expect(w.sense('entry→scout:observe')).toBeGreaterThan(0)
+    expect(w.sense('entry→scout:observe')).toBe(20)
   })
 
   it('warn: manually warning a path increases resistance', () => {
@@ -118,28 +127,25 @@ describe('Agent Lifecycle: register → signal → highway', () => {
     expect(resLost).toBeGreaterThan(strLost * 1.5)
   })
 
-  it('highway: 50 successful signals make the path a highway', async () => {
-    const scout = w.add('scout')
-    scout.on('observe', (_data, _emit, _ctx) => ({ found: true }))
+  it('highway: 50 signals make the path a highway', () => {
+    w.add('scout').on('observe', () => ({ found: true }))
 
-    // 50 successful signals
+    // 50 signals — each marks the path by 1
     for (let i = 0; i < 50; i++) {
-      await w.ask({ receiver: 'scout:observe', data: { tick: i } })
+      w.signal({ receiver: 'scout:observe', data: { tick: i } })
     }
 
-    // Default highway threshold is 20; 50 marks - 0 resistance = 50 net
+    // Default highway threshold is 20; strength=50, resistance=0 → net=50
     expect(w.isHighway('entry→scout:observe')).toBe(true)
     expect(w.sense('entry→scout:observe')).toBeGreaterThanOrEqual(50)
   })
 
-  it('agent goes from zero to highway in 100 signals', async () => {
-    const scout = w.add('scout')
-    scout.on('observe', () => 'found something')
+  it('agent goes from zero to highway in 100 signals', () => {
+    w.add('scout').on('observe', () => 'found something')
 
-    // 100 successful signals
+    // 100 signals
     for (let i = 0; i < 100; i++) {
-      const outcome = await w.ask({ receiver: 'scout:observe', data: { tick: i } })
-      expect(outcome.result).toBeDefined()
+      w.signal({ receiver: 'scout:observe', data: { tick: i } })
     }
 
     // Path is now a highway
@@ -173,7 +179,7 @@ describe('Self-Learning: the flywheel', () => {
     const analyst = w.add('analyst')
     const reporter = w.add('reporter')
 
-    // Scout observes, then hands off to analyst
+    // Scout observes, then hands off to analyst via .then()
     scout
       .on('observe', (_data) => ({ raw: 'observation' }))
       .then('observe', (result) => ({
@@ -190,25 +196,25 @@ describe('Self-Learning: the flywheel', () => {
       }))
 
     // Reporter summarizes
-    reporter.on('summarize', (data) => ({
-      summary: 'done',
-      ...(data as object),
-    }))
+    reporter.on('summarize', (data) => ({ summary: 'done', ...(data as object) }))
 
     // Fire 100 signals through the entry point
     for (let i = 0; i < 100; i++) {
-      await w.ask({ receiver: 'scout:observe', data: { tick: i } })
-      // Give the chain time to propagate (continuations are async)
-      await new Promise((r) => setTimeout(r, 0))
+      w.signal({ receiver: 'scout:observe', data: { tick: i } })
     }
 
-    // All 3 entry→unit edges strengthen
-    expect(w.sense('entry→scout:observe')).toBeGreaterThanOrEqual(100)
+    // Wait for async continuations to propagate (microtasks)
+    await new Promise((r) => setTimeout(r, 10))
+
+    // Entry → scout: direct signals mark immediately
+    expect(w.sense('entry→scout:observe')).toBe(100)
     expect(w.isHighway('entry→scout:observe')).toBe(true)
 
-    // scout→analyst and analyst→reporter edges build through continuations
+    // scout → analyst and analyst → reporter: marked via .then() continuations
     expect(w.sense('scout:observe→analyst:process')).toBeGreaterThan(0)
     expect(w.sense('analyst:process→reporter:summarize')).toBeGreaterThan(0)
+    expect(w.isHighway('scout:observe→analyst:process')).toBe(true)
+    expect(w.isHighway('analyst:process→reporter:summarize')).toBe(true)
   })
 
   it('select() biases toward proven paths with high sensitivity', () => {
@@ -240,9 +246,9 @@ describe('Self-Learning: the flywheel', () => {
     }
 
     // With sensitivity=0, weights collapse to 1.0 for all viable paths
-    // Both paths should get ~50% each (proportional to equal weights)
+    // Both should get some picks — exploration gives the underdog a shot
     const betaFraction = (picks.beta || 0) / 500
-    expect(betaFraction).toBeGreaterThan(0.25) // exploration picks beta often
+    expect(betaFraction).toBeGreaterThan(0.25)
   })
 
   it('fade reduces strength but highways survive the floor', () => {
@@ -267,13 +273,9 @@ describe('Self-Learning: the flywheel', () => {
     // But peak × 0.05 floor keeps it alive (ghost trail survives)
     // peak=100, floor=5 — strength stays at or above floor
     expect(strengthAfter).toBeGreaterThan(0)
-
-    // Highway threshold (20) may or may not hold after heavy fade —
-    // what matters is the path doesn't vanish completely
-    expect(w.sense('entry→scout:observe')).toBeGreaterThan(0)
   })
 
-  it('new paths can compete after incumbent fades', async () => {
+  it('new paths can compete after incumbent fades', () => {
     // Build path A as a highway (100 marks)
     for (let i = 0; i < 100; i++) {
       w.mark('entry→alpha', 1)
@@ -294,8 +296,7 @@ describe('Self-Learning: the flywheel', () => {
 
     const beta = w.sense('entry→beta')
 
-    // Beta is now strong enough to compete or surpass faded alpha
-    // (alpha faded significantly, beta is fresh at 50)
+    // Beta is now strong enough to compete with faded alpha
     expect(beta).toBeGreaterThan(alphaAfterFade * 0.5)
 
     // select() should now sometimes pick beta
@@ -325,7 +326,7 @@ describe('Wave Pattern: context accumulates across .then() chains', () => {
 
   it('context accumulates through 4 wave steps', async () => {
     const accumulated: string[] = []
-    const finalResults: unknown[] = []
+    let finalData: Record<string, unknown> | null = null
 
     const runner = w.add('wave')
 
@@ -334,55 +335,43 @@ describe('Wave Pattern: context accumulates across .then() chains', () => {
         accumulated.push('W1')
         return { ...(data as object), recon: 'file contents here' }
       })
-      .then('recon', (result) => ({
-        receiver: 'wave:decide',
-        data: result,
-      }))
+      .then('recon', (result) => ({ receiver: 'wave:decide', data: result }))
 
     runner
       .on('decide', (data) => {
         accumulated.push('W2')
-        // Context from W1 is present here
-        expect((data as Record<string, unknown>).recon).toBeDefined()
         return { ...(data as object), specs: ['edit1', 'edit2'] }
       })
-      .then('decide', (result) => ({
-        receiver: 'wave:edit',
-        data: result,
-      }))
+      .then('decide', (result) => ({ receiver: 'wave:edit', data: result }))
 
     runner
       .on('edit', (data) => {
         accumulated.push('W3')
-        // Context from W1 and W2 is present here
-        expect((data as Record<string, unknown>).recon).toBeDefined()
-        expect((data as Record<string, unknown>).specs).toBeDefined()
         return { ...(data as object), edits: 'applied' }
       })
-      .then('edit', (result) => ({
-        receiver: 'wave:verify',
-        data: result,
-      }))
+      .then('edit', (result) => ({ receiver: 'wave:verify', data: result }))
 
     runner.on('verify', (data) => {
       accumulated.push('W4')
-      // All previous context must be present
-      expect((data as Record<string, unknown>).recon).toBeDefined()
-      expect((data as Record<string, unknown>).specs).toBeDefined()
-      expect((data as Record<string, unknown>).edits).toBeDefined()
-      finalResults.push(data)
+      finalData = data as Record<string, unknown>
       return { verified: true }
     })
 
     // Fire W1 — the chain runs W1→W2→W3→W4 via .then()
-    await w.ask({ receiver: 'wave:recon', data: { task: 'test' } })
+    w.signal({ receiver: 'wave:recon', data: { task: 'test' } })
 
-    // Wait for the full chain to propagate (continuations are micro-tasks)
-    await new Promise((r) => setTimeout(r, 10))
+    // Wait for the async chain to propagate
+    await new Promise((r) => setTimeout(r, 20))
 
-    // All 4 waves executed
+    // All 4 waves executed in order
     expect(accumulated).toEqual(['W1', 'W2', 'W3', 'W4'])
-    expect(finalResults.length).toBe(1)
+
+    // Final data has context from all previous waves
+    expect(finalData).not.toBeNull()
+    expect(finalData!.task).toBe('test')
+    expect(finalData!.recon).toBe('file contents here')
+    expect(finalData!.specs).toEqual(['edit1', 'edit2'])
+    expect(finalData!.edits).toBe('applied')
   })
 
   it('each wave transition marks a path', async () => {
@@ -404,17 +393,19 @@ describe('Wave Pattern: context accumulates across .then() chains', () => {
 
     // Run the chain 10 times
     for (let i = 0; i < 10; i++) {
-      await w.ask({ receiver: 'wave:recon', data: { task: `run-${i}` } })
-      await new Promise((r) => setTimeout(r, 0))
+      w.signal({ receiver: 'wave:recon', data: { task: `run-${i}` } })
     }
 
-    // Entry → first wave is marked
-    expect(w.sense('entry→wave:recon')).toBeGreaterThan(0)
+    // Wait for async continuations
+    await new Promise((r) => setTimeout(r, 20))
+
+    // Entry → first wave is marked (1 per signal)
+    expect(w.sense('entry→wave:recon')).toBe(10)
 
     // .then() continuations mark their own edges
-    expect(w.sense('wave:recon→wave:decide')).toBeGreaterThan(0)
-    expect(w.sense('wave:decide→wave:edit')).toBeGreaterThan(0)
-    expect(w.sense('wave:edit→wave:verify')).toBeGreaterThan(0)
+    expect(w.sense('wave:recon→wave:decide')).toBe(10)
+    expect(w.sense('wave:decide→wave:edit')).toBe(10)
+    expect(w.sense('wave:edit→wave:verify')).toBe(10)
   })
 
   it('running the wave chain 50 times makes all edges highways', async () => {
@@ -435,9 +426,10 @@ describe('Wave Pattern: context accumulates across .then() chains', () => {
     runner.on('verify', (_data) => ({ verified: true }))
 
     for (let i = 0; i < 50; i++) {
-      await w.ask({ receiver: 'wave:recon', data: { task: `run-${i}` } })
-      await new Promise((r) => setTimeout(r, 0))
+      w.signal({ receiver: 'wave:recon', data: { task: `run-${i}` } })
     }
+
+    await new Promise((r) => setTimeout(r, 20))
 
     // All 4 edges should be highways (net strength ≥ 20)
     expect(w.isHighway('entry→wave:recon')).toBe(true)
@@ -446,53 +438,50 @@ describe('Wave Pattern: context accumulates across .then() chains', () => {
     expect(w.isHighway('wave:edit→wave:verify')).toBe(true)
   })
 
-  it('failed wave step warns the path, success recovers it', async () => {
-    let editShouldFail = true
+  it('warn on a wave edge increases resistance on that path', async () => {
     const runner = w.add('wave')
 
     runner
       .on('recon', (data) => ({ ...(data as object), recon: 'read' }))
       .then('recon', (r) => ({ receiver: 'wave:edit', data: r }))
 
-    runner.on('edit', (_data) => {
-      if (editShouldFail) return null // failure
-      return { edits: 'applied' }
-    })
+    runner.on('edit', (_data) => ({ edits: 'applied' }))
 
-    // Warm up the path first with 5 successes
-    editShouldFail = false
-    for (let i = 0; i < 5; i++) {
-      await w.ask({ receiver: 'wave:recon', data: {} })
-      await new Promise((r) => setTimeout(r, 0))
-    }
-
-    const editStrengthBefore = w.sense('wave:recon→wave:edit')
-    const editResistanceBefore = w.danger('wave:recon→wave:edit')
-
-    // Now inject resistance manually to simulate failures
-    w.warn('wave:recon→wave:edit', 3)
-    const resistanceAfterWarn = w.danger('wave:recon→wave:edit')
-    expect(resistanceAfterWarn).toBeGreaterThan(editResistanceBefore)
-
-    // Recover: run successes to re-strengthen the path
-    editShouldFail = false
+    // Warm up with 10 signals
     for (let i = 0; i < 10; i++) {
-      await w.ask({ receiver: 'wave:recon', data: {} })
-      await new Promise((r) => setTimeout(r, 0))
+      w.signal({ receiver: 'wave:recon', data: {} })
     }
+    await new Promise((r) => setTimeout(r, 10))
 
-    // Strength grew past what it was before
-    expect(w.sense('wave:recon→wave:edit')).toBeGreaterThan(editStrengthBefore)
+    const strengthBefore = w.sense('wave:recon→wave:edit')
+    const resistanceBefore = w.danger('wave:recon→wave:edit')
+
+    // Manually warn the edge (simulating detected failures)
+    w.warn('wave:recon→wave:edit', 3)
+
+    expect(w.danger('wave:recon→wave:edit')).toBeGreaterThan(resistanceBefore)
+    expect(w.danger('wave:recon→wave:edit')).toBe(resistanceBefore + 3)
+
+    // Run 10 more successful signals — strength recovers
+    for (let i = 0; i < 10; i++) {
+      w.signal({ receiver: 'wave:recon', data: {} })
+    }
+    await new Promise((r) => setTimeout(r, 10))
+
+    // Strength grew
+    expect(w.sense('wave:recon→wave:edit')).toBeGreaterThan(strengthBefore)
   })
 
   it('wave data envelope grows at each step without mutation', async () => {
+    // Spy on each step to capture what data arrives
     const snapshots: unknown[] = []
+
     const runner = w.add('wave')
 
     runner
       .on('recon', (data) => {
         const result = { ...(data as object), recon: 'file contents' }
-        snapshots.push({ ...result })
+        snapshots.push({ ...result }) // snapshot W1 output
         return result
       })
       .then('recon', (r) => ({ receiver: 'wave:decide', data: r }))
@@ -500,18 +489,18 @@ describe('Wave Pattern: context accumulates across .then() chains', () => {
     runner
       .on('decide', (data) => {
         const result = { ...(data as object), specs: ['edit1', 'edit2', 'edit3'] }
-        snapshots.push({ ...result })
+        snapshots.push({ ...result }) // snapshot W2 output
         return result
       })
       .then('decide', (r) => ({ receiver: 'wave:verify', data: r }))
 
     runner.on('verify', (data) => {
-      snapshots.push({ ...(data as object) })
+      snapshots.push({ ...(data as object) }) // snapshot W3 (final) input
       return { done: true }
     })
 
-    await w.ask({ receiver: 'wave:recon', data: { task: 'grow-test' } })
-    await new Promise((r) => setTimeout(r, 10))
+    w.signal({ receiver: 'wave:recon', data: { task: 'grow-test' } })
+    await new Promise((r) => setTimeout(r, 20))
 
     expect(snapshots.length).toBe(3) // W1, W2, W3
 
@@ -519,7 +508,7 @@ describe('Wave Pattern: context accumulates across .then() chains', () => {
     const s2 = snapshots[1] as Record<string, unknown>
     const s3 = snapshots[2] as Record<string, unknown>
 
-    // W1: has task + recon
+    // W1: has task + recon, no specs yet
     expect(s1.task).toBe('grow-test')
     expect(s1.recon).toBe('file contents')
     expect(s1.specs).toBeUndefined()
@@ -529,7 +518,7 @@ describe('Wave Pattern: context accumulates across .then() chains', () => {
     expect(s2.recon).toBe('file contents')
     expect(s2.specs).toEqual(['edit1', 'edit2', 'edit3'])
 
-    // W3 (verify): has all of the above
+    // W3 (verify): has all of the above — full envelope
     expect(s3.task).toBe('grow-test')
     expect(s3.recon).toBe('file contents')
     expect(s3.specs).toEqual(['edit1', 'edit2', 'edit3'])

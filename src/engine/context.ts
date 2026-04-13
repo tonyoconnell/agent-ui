@@ -121,6 +121,71 @@ export const contextForSkill = (skill: string): string => {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// INFER — Tags → docs. The graph decides what context to load.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Map task tags to relevant doc keys. Multiple tags merge (union). */
+export const inferDocsFromTags = (tags: string[]): DocKey[] => {
+  const TAG_DOCS: Record<string, DocKey[]> = {
+    engine: ['dsl', 'routing'],
+    routing: ['routing', 'dsl'],
+    signal: ['dsl', 'routing'],
+    typedb: ['dsl'],
+    schema: ['dsl'],
+    ui: ['dictionary'],
+    commerce: ['sdk'],
+    api: ['sdk', 'dsl'],
+    test: ['routing', 'patterns'],
+    lifecycle: ['routing', 'dsl'],
+    agent: ['dsl', 'dictionary'],
+    build: ['dsl', 'routing'],
+    deploy: ['nanoclaw'],
+    metaphor: ['metaphors', 'dictionary'],
+    learning: ['loops', 'patterns'],
+    fix: ['dsl', 'routing'],
+    docs: ['dictionary', 'dsl'],
+    sui: ['dsl'],
+  }
+  const seen = new Set<DocKey>()
+  for (const tag of tags) {
+    for (const doc of TAG_DOCS[tag] || []) seen.add(doc)
+  }
+  // Always include DSL + dictionary as base context
+  seen.add('dsl')
+  seen.add('dictionary')
+  return [...seen]
+}
+
+/** Build full context envelope for a task. Everything the executor needs. */
+export const resolveContext = async (
+  task: { tags: string[]; id?: string; exit?: string; blocks?: string[] },
+  net?: {
+    recall?: (match?: string) => Promise<{ pattern: string; confidence: number }[]>
+    highways?: (n?: number) => { path: string; strength: number }[]
+  },
+): Promise<{
+  docs: string
+  hypotheses: { pattern: string; confidence: number }[]
+  highways: { path: string; strength: number }[]
+  exit: string | undefined
+  unblocks: string[] | undefined
+}> => {
+  const docKeys = inferDocsFromTags(task.tags)
+  const docs = loadContext(docKeys)
+  const hypotheses = task.id && net?.recall ? await net.recall(task.id).catch(() => []) : []
+  const allHighways = net?.highways ? net.highways(20) : []
+  // Filter highways relevant to task tags
+  const highways = allHighways.filter((h) => task.tags.some((tag) => h.path.includes(tag)))
+  return {
+    docs,
+    hypotheses,
+    highways,
+    exit: task.exit,
+    unblocks: task.blocks,
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // INDEX — List all docs
 // ═══════════════════════════════════════════════════════════════════════════
 

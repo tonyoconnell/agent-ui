@@ -28,9 +28,10 @@ weight = 1 + max(0, strength - resistance) × sensitivity
 | **Security** | Toxic paths block automatically — no rules needed |
 | **Routing** | follow() = deterministic, select() = weighted random |
 
-> **Proven.** 43 tests. <1 second. Every claim below was tested, timed, and measured.
-> The test reads like this document — a journey from cold start to emergent highway.
-> `npx vitest run src/engine/routing.test.ts`
+> **Proven.** 54 tests in `routing.test.ts` + 26 in `persist.test.ts` + 19 in `lifecycle.test.ts`.
+> 194 total tests across 9 files. Every claim below was tested, timed, and measured.
+> Speed benchmarks: isToxic `<0.001ms`, mark 10k `<10ms`, select `<1ms`, fade 1k `<5ms`.
+> `npx vitest run`
 
 ---
 

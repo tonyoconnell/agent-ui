@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { compositeScore, formatRubric, scoreInterpretation, scoreWork, w4Verify } from './rubric-score'
+import { compositeScore, formatRubric, markDims, scoreInterpretation, scoreWork, w4Verify } from './rubric-score'
 
 describe('Rubric Scoring — W4 Quality Gate', () => {
   describe('Golden work (≥0.85 composite)', () => {
@@ -189,5 +189,66 @@ describe('Rubric Scoring — W4 Quality Gate', () => {
       expect(verify.strength).toBeUndefined()
       // In substrate: warn() is called, path gets resistance instead
     })
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// markDims — 4 tagged edges per rubric score
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('markDims — tagged edge marks', () => {
+  it('marks strong dimensions (>= 0.65)', () => {
+    const marks: [string, number][] = []
+    const warns: [string, number][] = []
+    const net = {
+      mark: (p: string, a: number) => marks.push([p, a]),
+      warn: (p: string, a: number) => warns.push([p, a]),
+    }
+
+    markDims(net, 'scout→analyst', {
+      fit: 0.9, form: 0.8, truth: 1.0, taste: 0.7,
+      violations: [], composite: 0.88,
+    })
+
+    expect(marks.length).toBe(4) // all dims >= 0.65
+    expect(marks[0]).toEqual(['scout→analyst:fit', 0.9])
+    expect(marks[2]).toEqual(['scout→analyst:truth', 1.0])
+    expect(warns.length).toBe(0)
+  })
+
+  it('warns weak dimensions (< 0.5)', () => {
+    const marks: [string, number][] = []
+    const warns: [string, number][] = []
+    const net = {
+      mark: (p: string, a: number) => marks.push([p, a]),
+      warn: (p: string, a: number) => warns.push([p, a]),
+    }
+
+    markDims(net, 'scout→analyst', {
+      fit: 0.9, form: 0.3, truth: 0.4, taste: 0.8,
+      violations: [], composite: 0.6,
+    })
+
+    expect(marks.length).toBe(2) // fit + taste >= 0.65
+    expect(warns.length).toBe(2) // form + truth < 0.5
+    expect(warns[0]).toEqual(['scout→analyst:form', 0.7]) // 1 - 0.3
+    expect(warns[1]).toEqual(['scout→analyst:truth', 0.6]) // 1 - 0.4
+  })
+
+  it('borderline dimensions (0.5-0.64) are neutral — no mark, no warn', () => {
+    const marks: [string, number][] = []
+    const warns: [string, number][] = []
+    const net = {
+      mark: (p: string, a: number) => marks.push([p, a]),
+      warn: (p: string, a: number) => warns.push([p, a]),
+    }
+
+    markDims(net, 'scout→analyst', {
+      fit: 0.55, form: 0.60, truth: 0.52, taste: 0.64,
+      violations: [], composite: 0.57,
+    })
+
+    expect(marks.length).toBe(0) // all borderline
+    expect(warns.length).toBe(0) // none below 0.5
   })
 })

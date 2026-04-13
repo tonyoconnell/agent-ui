@@ -29,7 +29,7 @@ weight = 1 + max(0, strength - resistance) × sensitivity
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ FRONTEND (Astro 5)                                          │
+│ FRONTEND (Astro 6)                                          │
 │ SSR: TTFB <200ms, FCP <500ms                               │
 │ React 19 islands: hydration <100ms                          │
 └──────────────────┬──────────────────────────────────────────┘
@@ -62,16 +62,18 @@ weight = 1 + max(0, strength - resistance) × sensitivity
 
 ## Verified Benchmarks (All Tested)
 
-Extracted from `src/engine/routing.test.ts` (43 tests, <1 second).
+Verified by 194 tests across 9 test files (<8 seconds total).
+Primary: `routing.test.ts` (54 tests), `persist.test.ts` (26), `lifecycle.test.ts` (19).
 
 ### Routing Layer
 
-| Operation | Time | Test | What it replaces |
-|-----------|------|------|-----------------|
-| **Routing decision** | **<0.005ms** | select() from 1,000 paths | LLM routing (2,000–5,000ms) |
-| **Follow strongest** | **<0.05ms** | 100 calls return same path | AgentVerse keyword search |
-| **Select from 1,000** | **<1ms** | 1,000 routing decisions | Keyword search + ranking API |
-| **10,000 follow() calls** | **<50ms** | Parallel batch | 10,000 search API calls |
+| Operation                 | Time         | Test                       | What it replaces             |
+| ------------------------- | ------------ | -------------------------- | ---------------------------- |
+| **Routing decision**      | **<0.005ms** | select() from 1,000 paths  | LLM routing (2,000–5,000ms)  |
+| **Follow strongest**      | **<0.05ms**  | 100 calls return same path | Keyword search               |
+| **Select from 1,000**     | **<1ms**     | 1,000 routing decisions    | Keyword search + ranking API |
+| **10,000 follow() calls** | **<50ms**    | Parallel batch             | 10,000 search API calls      |
+|                           |              |                            |                              |
 
 ### Pheromone Layer
 

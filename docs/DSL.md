@@ -2,6 +2,10 @@
 
 The ONE language. Two fields, passed hand to hand, forever.
 
+> **Verified:** 194 tests prove signal flow, mark/warn/fade, select/follow,
+> ask (4 outcomes), .then() chains, tag subscription, isToxic sandwich.
+> `npx vitest run`
+
 ---
 
 ## The Signal

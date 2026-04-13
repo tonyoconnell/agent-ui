@@ -1,4 +1,4 @@
-i # Speed
+# Speed
 
 Every millisecond matters. This is the speed contract for this repo.
 
@@ -8,15 +8,15 @@ See [docs/fastest-ai.md](docs/fastest-ai.md) for the full positioning.
 
 ## Benchmarks (This Repo)
 
-| Operation | Baseline | Target | Status |
-|-----------|----------|--------|--------|
-| Signal routing | <0.005ms | <0.01ms | ✓ |
-| Mark pheromone | <0.001ms | <0.001ms | ✓ |
-| Fade (1,000 paths) | <5ms | <10ms | ✓ |
-| Ask round-trip (3-unit chain) | <100ms | <150ms | ✓ |
-| Toxic check | <0.001ms | <0.001ms | ✓ |
-| Select from 1,000 paths | <1ms | <2ms | ✓ |
-| TypeDB query (top 50 paths) | 300ms p50 | 500ms p50 | ✓ |
+| Operation                     | Baseline  | Target    | Status |
+| ----------------------------- | --------- | --------- | ------ |
+| Signal routing                | <0.005ms  | <0.01ms   | ✓      |
+| Deposit weight                | <0.001ms  | <0.001ms  | ✓      |
+| Fade (1,000 paths)            | <5ms      | <10ms     | ✓      |
+| Ask round-trip (3-unit chain) | <100ms    | <150ms    | ✓      |
+| Toxic check                   | <0.001ms  | <0.001ms  | ✓      |
+| Select from 1,000 paths       | <1ms      | <2ms      | ✓      |
+| TypeDB query (top 50 paths)   | 300ms p50 | 500ms p50 | ✓      |
 
 Run speedtest suite:
 ```bash
@@ -45,7 +45,7 @@ curl https://one-substrate.pages.dev/api/export/units
 ## Stack Layers
 
 ### Frontend
-- Astro 5 SSR: TTFB <200ms
+- Astro 6 SSR: TTFB <200ms
 - React 19 islands: hydration <100ms
 - Dark theme: zero runtime overhead
 
@@ -54,7 +54,7 @@ curl https://one-substrate.pages.dev/api/export/units
 - KV cache: highways <10ms
 - Worker regions: 5+ (sub-100ms global)
 
-### Runtime (ONE Substrate)
+### Runtime (ONE )
 - In-memory routing (no DB)
 - Async TypeDB sync (doesn't block)
 - Pheromone: strength/resistance maps

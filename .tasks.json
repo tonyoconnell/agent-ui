@@ -2,7 +2,7 @@
   "drag-drop-markwarn": {
     "tid": "drag-drop-markwarn",
     "name": "Add mark/warn on status change",
-    "status": "blocked",
+    "status": "complete",
     "priority": "P1",
     "phase": "C1",
     "value": "high",
@@ -16,15 +16,15 @@
       "drag-drop-pheromone"
     ],
     "blocks": [],
-    "trailPheromone": 0,
+    "trailPheromone": 5,
     "alarmPheromone": 0,
     "createdAt": 1775807442785,
-    "updatedAt": 1775807443753
+    "updatedAt": 1776120196217
   },
   "drag-drop-pheromone": {
     "tid": "drag-drop-pheromone",
     "name": "Track previous task for pheromone",
-    "status": "blocked",
+    "status": "complete",
     "priority": "P1",
     "phase": "C1",
     "value": "high",
@@ -40,15 +40,15 @@
     "blocks": [
       "drag-drop-markwarn"
     ],
-    "trailPheromone": 0,
+    "trailPheromone": 5,
     "alarmPheromone": 0,
     "createdAt": 1775807443753,
-    "updatedAt": 1775807445911
+    "updatedAt": 1776120178449
   },
   "drag-drop-cascade": {
     "tid": "drag-drop-cascade",
     "name": "Cascade unblock on complete",
-    "status": "todo",
+    "status": "complete",
     "priority": "P0",
     "phase": "C1",
     "value": "high",
@@ -64,10 +64,10 @@
     "blocks": [
       "drag-drop-pheromone"
     ],
-    "trailPheromone": 0,
+    "trailPheromone": 5,
     "alarmPheromone": 0,
     "createdAt": 1775807445911,
-    "updatedAt": 1775807455196
+    "updatedAt": 1776120154775
   },
   "drag-drop-validation": {
     "tid": "drag-drop-validation",

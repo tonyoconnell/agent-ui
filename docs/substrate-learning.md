@@ -6,14 +6,14 @@
 
 The substrate implements the ONE ontology's 6 dimensions:
 
-| ONE Dimension | Substrate Mapping | Training/Inference |
-|---------------|-------------------|-------------------|
-| **Groups** | Colonies (multi-tenant isolation) | Namespace for learned weights |
-| **Actors** | Units (AI, human, process) | Route targets |
-| **Things** | Data, resources | Training data |
-| **Paths** | Edges with mark/fade weights | The learned model |
-| **Events** | Signals flowing | Training examples |
-| **Knowledge** | Highways, toxic paths | Inference outputs |
+| ONE Dimension | Substrate Mapping                 | Training/Inference            |
+| ------------- | --------------------------------- | ----------------------------- |
+| **Groups**    | Colonies (multi-tenant isolation) | Namespace for learned weights |
+| **Actors**    | Units (AI, human, process)        | Route targets                 |
+| **Things**    | Data, resources                   | Training data                 |
+| **Paths**     | Edges with mark/fade weights      | The learned model             |
+| **Events**    | Signals flowing                   | Training examples             |
+| **Learning**  | Highways, toxic paths             | Inference outputs             |
 
 The 6 dimensions ARE the training loop. Paths store what's learned. Events are training data. Knowledge emerges from inference rules.
 

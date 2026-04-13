@@ -2,7 +2,7 @@
 
 ONE is not an AI platform. ONE is a **speed platform that makes AI 300× faster.**
 
-We route to agents 1,000,000× faster than traditional orchestration. We execute on Sui. We deploy on Cloudflare. We render on Astro. We learn from pheromone. 
+We route to agents 1,000,000× faster than traditional orchestration. We execute on Sui. We deploy on Cloudflare. We render on Astro. We learn from weight. 
 
 **Every layer is optimized for speed. Every layer feeds the next.**
 
@@ -58,13 +58,13 @@ We route to agents 1,000,000× faster than traditional orchestration. We execute
 
 ### 1. Frontend (Astro 6)
 
-| Metric | Benchmark | Notes |
-|--------|-----------|-------|
-| **TTFB** | <200ms | SSR from Cloudflare, no blocking requests |
-| **FCP** | <500ms | Astro islands: only interactive parts hydrate |
-| **Interactive islands** | <100ms | React 19, no Next.js overhead |
-| **Dark theme toggle** | <10ms | No re-render, CSS variable swap |
-| **Colony graph load** | <1s | ReactFlow on client:visible (lazy) |
+| Metric                      | Benchmark | Notes                                         |
+| --------------------------- | --------- | --------------------------------------------- |
+| **TTFB**                    | <200ms    | SSR from Cloudflare, no blocking requests     |
+| **FCP**                     | <500ms    | Astro islands: only interactive parts hydrate |
+| **Interactive islands**     | <100ms    | React 19, no Next.js overhead                 |
+| **Dark theme toggle**       | <10ms     | No re-render, CSS variable swap               |
+| **Organisation graph load** | <1s       | ReactFlow on client:visible (lazy)            |
 
 **Why fast:**
 - SSR on edge (no origin round-trip)
@@ -93,7 +93,7 @@ We route to agents 1,000,000× faster than traditional orchestration. We execute
 
 ---
 
-### 3. Runtime (ONE Substrate + TypeDB)
+### 3. Runtime (ONE + TypeDB)
 
 | Operation | Time | Notes |
 |-----------|------|-------|
@@ -117,12 +117,12 @@ We route to agents 1,000,000× faster than traditional orchestration. We execute
 
 ### 4. Blockchain (Sui)
 
-| Operation | Latency | Cost |
-|-----------|---------|------|
-| **Agent keypair derivation** | <1ms | SUI_SEED + uid → Ed25519 |
-| **Highway crystallization** | <1s | Once per proven path, sync to chain |
-| **Revenue settlement** | <2s | Finality: ~5 validator consensus |
-| **Proof generation** | <100ms | Sui Move contract verification |
+| Operation                    | Latency | Cost                                |
+| ---------------------------- | ------- | ----------------------------------- |
+| **Agent keypair derivation** | <1ms    | SUI_SEED + uid → Ed25519            |
+| **Highways**                 | <1s     | Once per proven path, sync to chain |
+| **Revenue settlement**       | <2s     | Finality: ~5 validator consensus    |
+| **Proof generation**         | <100ms  | Sui Move contract verification      |
 
 **Why fast:**
 - Sui Move: < C++ performance, no Solidity slowness
@@ -240,7 +240,7 @@ Agent 1 → Manager → Agent 2 → Manager → Agent 3 → Manager
 
 ONE:
 ```
-Agent 1 → (pheromone) → Agent 2 → (pheromone) → Agent 3
+Agent 1 → (weight) → Agent 2 → (weight) → Agent 3
            <1ms           <1ms            <1ms
            (no polling)   (no polling)    (no polling)
 ```

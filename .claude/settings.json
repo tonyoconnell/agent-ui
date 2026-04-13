@@ -34,6 +34,32 @@
           }
         ]
       }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/task-complete-verify.sh",
+            "timeout": 120000,
+            "blocking": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end-verify.sh",
+            "timeout": 30000,
+            "blocking": false
+          }
+        ]
+      }
     ]
   }
 }

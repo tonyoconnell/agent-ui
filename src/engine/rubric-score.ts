@@ -128,6 +128,27 @@ export function w4Verify(score: RubricScore): {
   }
 }
 
+/** Emit 4 tagged-edge marks into the pheromone graph.
+ *  Each dimension is a separate path: edge:fit, edge:form, edge:truth, edge:taste.
+ *  The graph learns which dimensions are strong/weak per skill. */
+export function markDims(
+  net: { mark: (path: string, amount?: number) => void; warn: (path: string, amount?: number) => void },
+  edge: string,
+  score: RubricScore,
+): void {
+  const dims = ['fit', 'form', 'truth', 'taste'] as const
+  for (const dim of dims) {
+    const taggedEdge = `${edge}:${dim}`
+    const val = score[dim]
+    if (val >= 0.65) {
+      net.mark(taggedEdge, val)
+    } else if (val < 0.5) {
+      net.warn(taggedEdge, 1 - val)
+    }
+    // 0.5-0.64: borderline — no mark, no warn. Neutral.
+  }
+}
+
 /** Format rubric result for reporting */
 export function formatRubric(score: RubricScore, verify: ReturnType<typeof w4Verify>): string {
   const dims = [

@@ -57,7 +57,14 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
   const result: TickResult = { cycle, selected: null, success: null, highways: [] }
 
   // L1+L2: SELECT → ASK → MARK/WARN (closed feedback loop)
-  const next = net.select()
+  // Prefer deterministic routing (follow) when paths are proven.
+  // Fall back to probabilistic (select) for exploration.
+  let next = previousTarget ? net.follow() : null
+  if (!next) {
+    // No proven path from current unit, use probabilistic selection
+    next = net.select()
+  }
+
   if (next) {
     result.selected = next
     const edge = previousTarget ? `${previousTarget}→${next}` : `entry→${next}`

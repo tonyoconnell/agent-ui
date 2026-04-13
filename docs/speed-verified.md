@@ -1,4 +1,4 @@
-# ⚡ Speed Verified: ONE Substrate Performance
+# ⚡ Speed Verified: ONE Performance
 
 **Date:** 2026-04-06  
 **Environment:** Node.js dev (macOS, darwin x64)  

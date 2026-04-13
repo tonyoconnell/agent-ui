@@ -36,9 +36,9 @@ Route to trader (pre-check cache)         <0.01ms  ← FAST
     ↓
 Think (LLM, but path is proven)           1,500ms
     ↓
-Execute (emit to Hyperliquid)             <1ms
+Execute (send to Hyperliquid)             <1ms
     ↓
-Settle (Sui proof)                        <2s
+Settle (Sui proof)                        <200ms
 ```
 
 **Total: 1.5 seconds. We're 2.6× faster. But here's the real advantage:**

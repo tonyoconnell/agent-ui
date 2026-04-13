@@ -221,11 +221,60 @@ function ToxicPaths({ edges }: { edges: Edge[] }) {
   )
 }
 
+// ─── Highways ────────────────────────────────────────────────────────────────
+
+function HighwaysSection({ edges }: { edges: Edge[] }) {
+  if (edges.length === 0) return null
+
+  const maxStrength = Math.max(...edges.map((e) => e.strength), 1)
+
+  return (
+    <div className="bg-[#161622] border border-[#252538] rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#252538] flex items-center justify-between">
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+          Proven Highways — top {edges.length}
+        </h2>
+        <span className="text-xs text-slate-600">strength ≥ 50, non-toxic</span>
+      </div>
+      <div className="divide-y divide-[#1e1e30]">
+        {edges.map((e, i) => {
+          const net = e.strength - e.resistance
+          const pct = Math.round((e.strength / maxStrength) * 100)
+          return (
+            <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+              <span className="text-xs text-slate-600 w-4 tabular-nums">{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 text-xs font-mono">
+                  <span className="text-slate-300 truncate max-w-[120px]">{e.from}</span>
+                  <span className="text-slate-600">→</span>
+                  <span className="text-slate-300 truncate max-w-[120px]">{e.to}</span>
+                </div>
+                <div className="mt-1 h-0.5 w-full bg-[#252538] rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-500/60 rounded-full" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+              <div className="flex gap-3 flex-shrink-0 text-xs tabular-nums">
+                <span className="text-emerald-400/70">+{e.strength.toFixed(0)}</span>
+                {e.resistance > 0 && <span className="text-red-400/70">−{e.resistance.toFixed(0)}</span>}
+                <span className={cn('font-mono', net > 10 ? 'text-emerald-400' : 'text-slate-400')}>
+                  {net > 0 ? '+' : ''}
+                  {net.toFixed(0)} net
+                </span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function CEOPanel() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
+  const [highways, setHighways] = useState<Edge[]>([])
   const [stats, setStats] = useState<Stats>({ units: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 })
   const [loading, setLoading] = useState(true)
   const [pending, setPending] = useState<Record<string, boolean>>({})
@@ -236,6 +285,7 @@ export function CEOPanel() {
       const res = (await fetch('/api/state').then((r) => r.json())) as StateResponse
       setAgents([...(res.units || [])])
       setEdges(res.edges || [])
+      setHighways((res.highways || []).slice(0, 10))
       setStats(res.stats || { units: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 })
     } finally {
       setLoading(false)
@@ -381,6 +431,9 @@ export function CEOPanel() {
           </div>
         </div>
       )}
+
+      {/* Proven Highways */}
+      <HighwaysSection edges={highways} />
 
       {/* Toxic Paths */}
       <ToxicPaths edges={edges} />

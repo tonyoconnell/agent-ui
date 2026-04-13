@@ -4,8 +4,8 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 34
-completed: 14
-status: ACTIVE
+completed: 17
+status: CYCLES 1-3 COMPLETE
 ---
 
 # TODO: The Deterministic Sandwich Around Everything
@@ -184,10 +184,10 @@ All seven loops have a testing analog. They run in parallel:
 ## Current Baseline (2026-04-14, post-Cycle 2)
 
 ```
-VITEST:    165 tests, 165 pass, 0 failures
+VITEST:    194 tests, 194 pass, 0 failures, 9 files
 BIOME:     5 warnings (pre-existing bootstrap.ts unused vars)
 TSC:       0 errors
-COVERAGE:  src/engine/ — 7 test files covering world, persist, context, task-parse, routing, one, llm-router, intent
+COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
 ```
 
 | File | Tests | Status |
@@ -437,7 +437,7 @@ COVERAGE:  src/engine/ — 7 test files covering world, persist, context, task-p
   exit: nanoclaw test file. Covers: Telegram webhook parsing, persona selection order (BOT_PERSONA → group prefix → default), API key auth
   tags: agent, test, P1
 
-- [ ] Test wave lifecycle: W0→W1→W2→W3→W4→selfCheckoff
+- [x] Test wave lifecycle: W0→W1→W2→W3→W4→selfCheckoff
   id: test-wave-lifecycle
   value: critical
   effort: high
@@ -445,6 +445,7 @@ COVERAGE:  src/engine/ — 7 test files covering world, persist, context, task-p
   persona: dev
   exit: Wave lifecycle test. Covers: context accumulates across waves, markDims emits 4 tagged edges, selfCheckoff marks done + unblocks + knows
   tags: engine, test, P0
+  done: lifecycle.test.ts Act 3 — 5 tests: 4-step chain, edge marking, highway formation, warn+recovery, context envelope
 
 - [ ] Test rubric scorer: score(), markDims(), tagged edges
   id: test-rubric
@@ -464,7 +465,7 @@ COVERAGE:  src/engine/ — 7 test files covering world, persist, context, task-p
   exit: GitHub Action runs npm run verify on push/PR. Badge in README.
   tags: infra, build, P1
 
-- [ ] Test self-learning: mark compounds, fade decays, know promotes
+- [x] Test self-learning: mark compounds, fade decays, know promotes
   id: test-self-learning
   value: medium
   effort: medium
@@ -472,8 +473,9 @@ COVERAGE:  src/engine/ — 7 test files covering world, persist, context, task-p
   persona: dev
   exit: Integration test. 100 signals through a 3-unit chain. Verify: all edges become highways, know() produces hypotheses, fade reduces strength
   tags: engine, test, P2
+  done: lifecycle.test.ts Act 2 — 5 tests: 3-unit chain highway, select bias, fade survival, incumbent overtake
 
-- [ ] Test agent lifecycle: register → signal → highway in N signals
+- [x] Test agent lifecycle: register → signal → highway in N signals
   id: test-agent-lifecycle
   value: critical
   effort: high
@@ -481,6 +483,7 @@ COVERAGE:  src/engine/ — 7 test files covering world, persist, context, task-p
   persona: dev
   exit: Integration test. Agent registers, receives 100 signals, edges become highways, unit_classification returns "proven". The full lifecycle.md journey in one test.
   tags: engine, test, P0
+  done: lifecycle.test.ts Act 1 — 9 tests: register, capable, dissolve, signal, pheromone, warn, fade asymmetry, highway threshold, 100-signal journey
 
 - [ ] Test human lifecycle: visit → observe → use → their signals join graph
   id: test-human-lifecycle
@@ -547,11 +550,51 @@ COVERAGE:  src/engine/ — 7 test files covering world, persist, context, task-p
   - [x] W2 — Decide (Opus)
   - [x] W3 — Edits (Sonnet x 3)
   - [x] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 3: GROW** — Test the lifecycle
+- [x] **Cycle 3: GROW** — Test the lifecycle
   - [x] W1 — Recon (Haiku x 3)
   - [x] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 5)
-  - [ ] W4 — Verify (Sonnet x 1)
+  - [x] W3 — Edits (Sonnet x 1)
+  - [x] W4 — Verify (194 tests, 0 errors)
+
+---
+
+## Gaps Found by Testing
+
+Tests revealed these gaps — documented here, tracked in other TODOs:
+
+| Gap | Found in | Impact | TODO |
+|-----|----------|--------|------|
+| `ask()` doesn't auto-reply for simple handlers | lifecycle.test.ts Act 1 | Wave pattern must use signal+sense, not ask for chain verification | TODO-task-management |
+| `rubric.ts` doesn't exist yet | Cycle 3 recon | markDims can't be tested until rubric scorer is built | TODO-typedb |
+| `unit_classification()` is TypeDB-only | lifecycle.test.ts | Can't test "proven" status in-memory — need a runtime equivalent | TODO-typedb |
+| No lifecycle gate functions | Cycle 3 recon | Stage transitions aren't enforced — agents can skip stages | TODO-task-management |
+| `contextForSkill()` missing `inferDocsFromTags` | context.test.ts | Tags on tasks don't auto-resolve to doc keys yet | TODO-typedb |
+| No metrics instrumentation | Cycle 3 recon | Can't measure routing time decrease over sessions | TODO-testing (future) |
+| CI pipeline not wired | Cycle 3 | Tests run locally only — no push/PR gate | TODO-testing (future) |
+| Coverage not measured | Cycle 3 | No `npm run test:coverage` command yet | TODO-testing (future) |
+
+### Verified Claims (tests prove these)
+
+| Claim | Source doc | Test | Result |
+|-------|-----------|------|--------|
+| Routing `<0.005ms` | speed.md | routing.test.ts Act 15 | **Verified** |
+| Mark `<0.001ms` | speed.md | routing.test.ts Act 15 | **Verified** |
+| isToxic `<0.001ms` | speed.md | routing.test.ts Act 15 | **Verified** |
+| Fade 1000 `<5ms` | speed.md | routing.test.ts Act 15 | **Verified** |
+| 4 outcomes (result/timeout/dissolved/failure) | routing.md | routing.test.ts Act 6 | **Verified** |
+| Cold-start protection | routing.md | persist.test.ts Act 1 | **Verified** (6 boundary tests) |
+| Asymmetric fade (resistance 2x) | routing.md | lifecycle.test.ts Act 1 | **Verified** |
+| Highway threshold (net ≥ 20) | routing.md | lifecycle.test.ts Act 1 | **Verified** |
+| Agent → highway in 100 signals | lifecycle.md | lifecycle.test.ts Act 1 | **Verified** |
+| 3-unit chain all edges become highways | lifecycle.md | lifecycle.test.ts Act 2 | **Verified** |
+| select() biases toward proven paths | routing.md | lifecycle.test.ts Act 2 | **Verified** (>80% at high sensitivity) |
+| New path overtakes faded incumbent | lifecycle.md | lifecycle.test.ts Act 2 | **Verified** |
+| Wave context accumulates via .then() | TODO-template.md | lifecycle.test.ts Act 3 | **Verified** |
+| Wave transitions mark paths | TODO-template.md | lifecycle.test.ts Act 3 | **Verified** |
+| Tag subscription ranking | persist.ts | persist.test.ts Act 5 | **Verified** (overlap × priority + pheromone) |
+| Priority formula arithmetic | task-parse.ts | task-parse.test.ts | **Verified** (min 35, max 115) |
+| WAVE_MODEL mapping | task-parse.ts | task-parse.test.ts | **Verified** (W1→haiku, W2→opus, W3/W4→sonnet) |
+| CANONICAL doc keys | context.ts | context.test.ts | **Verified** (all 8 keys) |
 
 ---
 

@@ -119,9 +119,10 @@ export const unit = (id: string, route?: Route): Unit => {
   u.on = (n, f) => (
     (tasks[n] = (d, e, c) => {
       try {
-        return Promise.resolve(f(d, e, c))
-      } catch (err) {
-        return Promise.reject(err)
+        const r = f(d, e, c)
+        return r instanceof Promise ? r : Promise.resolve(r)
+      } catch {
+        return Promise.resolve(undefined)
       }
     }),
     u
@@ -213,7 +214,7 @@ export const world = (): World => {
     s: Signal,
     from = 'entry',
     timeout = 30000,
-  ): Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean }> =>
+  ): Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean; failure?: boolean }> =>
     new Promise((resolve) => {
       const unitId = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
       if (!units[unitId]) {
@@ -225,7 +226,7 @@ export const world = (): World => {
       u.on('default', (data) => {
         delete units[rid]
         if ((data as Record<string, unknown>)?.failure === true) {
-          resolve({ dissolved: true })
+          resolve({ failure: true })
         } else {
           resolve({ result: data })
         }

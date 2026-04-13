@@ -52,6 +52,10 @@ export interface PersistentWorld extends World {
   recall: (match?: string) => Promise<Insight[]>
   span: () => Promise<number>
   context: (keys: (DocKey | string)[]) => string
+  capable: (unitId: string, skillId: string, price?: number) => void
+  canDeclareCapability: (uid: string) => Promise<boolean>
+  canBeDiscovered: (uid: string) => Promise<boolean>
+  selfCheckoff: (taskId: string) => Promise<void>
   subscribe: (unitId: string, tags: string[]) => void
   tasksFor: (unitId: string) => Promise<TaskMatch[]>
   sync: () => Promise<void>
@@ -299,11 +303,14 @@ export const world = (): PersistentWorld => {
   const checkToxic = (edge: string) => isToxic(edge, net.strength, net.resistance)
 
   const signal = (s: Signal, from = 'entry') => {
+    const t0 = performance.now()
     const edge = `${from}→${s.receiver}`
+
     if (checkToxic(edge)) {
       console.log(`[TOXIC] blocked: ${edge}`)
       return
     }
+
     const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
     if (net.has(uid)) {
       writeSilent(`
@@ -316,7 +323,26 @@ export const world = (): PersistentWorld => {
         insert $u has sample-count 1;
       `)
     }
+
+    // Execute signal and log to TypeDB
     net.signal(s, from)
+
+    // Log signal for observability: sender, receiver, data, success, latency, timestamp
+    const latency = performance.now() - t0
+    const timestamp = new Date().toISOString()
+    const dataStr = JSON.stringify(s.data || {})
+      .slice(0, 500)
+      .replace(/"/g, "'")
+
+    writeSilent(`
+      insert $sig isa signal,
+        has sender "${from}",
+        has receiver "${s.receiver}",
+        has data "${dataStr}",
+        has latency ${latency.toFixed(2)},
+        has timestamp "${timestamp}",
+        has success true;
+    `).catch(() => {}) // Best-effort logging
   }
 
   const ask = async (s: Signal, from = 'entry', timeout?: number) => {
@@ -348,6 +374,75 @@ export const world = (): PersistentWorld => {
       `)
     }
     return outcome
+  }
+
+  // ── Capability + lifecycle gates ────────────────────────────────────────
+
+  // capable: declare that a unit can perform a skill (creates capability relation)
+  const capable = (unitId: string, skillId: string, price = 0) => {
+    writeSilent(`
+      match $u isa unit, has uid "${unitId}"; $s isa skill, has skill-id "${skillId}";
+      not { (provider: $u, offered: $s) isa capability; };
+      insert (provider: $u, offered: $s) isa capability, has price ${price};
+    `).catch(() => {})
+  }
+
+  // canDeclareCapability: gate — unit must exist with status "active"
+  const canDeclareCapability = async (uid: string): Promise<boolean> => {
+    const rows = await readParsed(`
+      match $u isa unit, has uid "${uid}", has status "active"; select $u;
+    `).catch(() => [])
+    return rows.length > 0
+  }
+
+  // canBeDiscovered: gate — unit must have at least one capability relation
+  const canBeDiscovered = async (uid: string): Promise<boolean> => {
+    const rows = await readParsed(`
+      match $u isa unit, has uid "${uid}"; (provider: $u, offered: $s) isa capability; select $s;
+    `).catch(() => [])
+    return rows.length > 0
+  }
+
+  // selfCheckoff: mark task done, unblock dependents, promote to knowledge
+  const selfCheckoff = async (taskId: string) => {
+    // Mark task done in TypeDB
+    await writeSilent(`
+      match $t isa task, has task-id "${taskId}";
+      delete has done of $t;
+      insert $t has done true;
+    `).catch(() => {})
+    // Update task-status
+    await writeSilent(`
+      match $t isa task, has task-id "${taskId}", has task-status $s;
+      delete $s of $t;
+      insert $t has task-status "done";
+    `).catch(() => {})
+    // Unblock dependents: find tasks blocked by this one
+    const blocked = await readParsed(`
+      match (blocker: $b, blocked: $t) isa blocks;
+      $b isa task, has task-id "${taskId}";
+      $t has task-id $tid;
+      select $tid;
+    `).catch(() => [])
+    for (const row of blocked) {
+      const tid = row.tid as string
+      // Check if all blockers of this dependent are now done
+      const stillBlocked = await readParsed(`
+        match (blocker: $b, blocked: $t) isa blocks;
+        $t isa task, has task-id "${tid}";
+        $b has done false;
+        select $b;
+      `).catch(() => [])
+      if (stillBlocked.length === 0) {
+        await writeSilent(`
+          match $t isa task, has task-id "${tid}", has task-status $s;
+          delete $s of $t;
+          insert $t has task-status "open";
+        `).catch(() => {})
+      }
+    }
+    // Mark the completion path
+    mark(`builder→${taskId}`, 1)
   }
 
   // ── Tag subscription ───────────────────────────────────────────────────
@@ -424,6 +519,10 @@ export const world = (): PersistentWorld => {
     recall,
     span,
     context,
+    capable,
+    canDeclareCapability,
+    canBeDiscovered,
+    selfCheckoff,
     subscribe,
     tasksFor,
     sync,

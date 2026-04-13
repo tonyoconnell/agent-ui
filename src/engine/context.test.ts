@@ -12,7 +12,7 @@ vi.mock('@/lib/typedb', () => ({
   writeSilent: vi.fn().mockResolvedValue(undefined),
 }))
 
-import { CANONICAL, contextForSkill, type DocKey, docIndex, loadContext, readDoc } from './context'
+import { CANONICAL, contextForSkill, type DocKey, docIndex, inferDocsFromTags, loadContext, readDoc, resolveContext } from './context'
 
 // ─── CANONICAL mapping ───────────────────────────────────────────────────────
 
@@ -156,5 +156,75 @@ describe('docIndex', () => {
     const dsl = index.find((d) => d.name === 'DSL.md')
     expect(dsl).toBeDefined()
     expect(dsl!.lines).toBeGreaterThan(10)
+  })
+})
+
+// ─── inferDocsFromTags ──────────────────────────────────────────────────────
+
+describe('inferDocsFromTags', () => {
+  it('always includes dsl and dictionary as base context', () => {
+    const docs = inferDocsFromTags([])
+    expect(docs).toContain('dsl')
+    expect(docs).toContain('dictionary')
+  })
+
+  it('maps engine tag to dsl + routing', () => {
+    const docs = inferDocsFromTags(['engine'])
+    expect(docs).toContain('dsl')
+    expect(docs).toContain('routing')
+  })
+
+  it('maps ui tag to dictionary', () => {
+    const docs = inferDocsFromTags(['ui'])
+    expect(docs).toContain('dictionary')
+  })
+
+  it('maps commerce tag to sdk', () => {
+    const docs = inferDocsFromTags(['commerce'])
+    expect(docs).toContain('sdk')
+  })
+
+  it('merges docs from multiple tags without duplicates', () => {
+    const docs = inferDocsFromTags(['engine', 'routing', 'test'])
+    const unique = new Set(docs)
+    expect(docs.length).toBe(unique.size) // no duplicates
+    expect(docs).toContain('routing')
+    expect(docs).toContain('patterns')
+  })
+
+  it('unknown tags still get base context', () => {
+    const docs = inferDocsFromTags(['nonexistent-tag'])
+    expect(docs).toContain('dsl')
+    expect(docs).toContain('dictionary')
+    expect(docs.length).toBe(2) // only base
+  })
+})
+
+// ─── resolveContext ─────────────────────────────────────────────────────────
+
+describe('resolveContext', () => {
+  it('returns docs string from tags', async () => {
+    const ctx = await resolveContext({ tags: ['engine'] })
+    expect(ctx.docs).toContain('DSL')
+    expect(ctx.hypotheses).toEqual([])
+    expect(ctx.highways).toEqual([])
+  })
+
+  it('passes exit condition through', async () => {
+    const ctx = await resolveContext({ tags: [], exit: 'all tests pass', blocks: ['other-task'] })
+    expect(ctx.exit).toBe('all tests pass')
+    expect(ctx.unblocks).toEqual(['other-task'])
+  })
+
+  it('filters highways by task tags', async () => {
+    const mockNet = {
+      highways: () => [
+        { path: 'entry→engine:build', strength: 50 },
+        { path: 'entry→ui:render', strength: 30 },
+      ],
+    }
+    const ctx = await resolveContext({ tags: ['engine'] }, mockNet)
+    expect(ctx.highways.length).toBe(1)
+    expect(ctx.highways[0].path).toContain('engine')
   })
 })
