@@ -14,6 +14,16 @@ status: TEMPLATE
 > weeks, or sprints. Width = tasks-per-wave. Depth = waves-per-cycle. Learning
 > = cycles-per-path. (See `.claude/rules/engine.md` → The Two Locked Rules.)
 >
+> **Parallelism directive (read first):** **Maximize agents per wave.** Every
+> wave must fan out to the natural width of the work, in a **single message**
+> with multiple tool calls. Defaults: W1 ≥ 4 Haiku (one per read target),
+> W2 ≥ 2 Opus shards when findings exceed ~20 (fold per-domain, reconcile at
+> end), W3 = one Sonnet per file (never batch files into one agent, never split
+> one file across agents — anchor collisions), W4 ≥ 2 Sonnet verifiers (shard
+> by check type: consistency, cross-ref, voice, rubric). If a wave is serial,
+> it must be because the work is genuinely serial, not because parallelism
+> was skipped. **Sequential between waves, maximum parallel within waves.**
+>
 > **Goal:** {One sentence. What changes when this is done.}
 >
 > **Source of truth:** [{source-doc}]({source-doc}.md) — {what it defines},
@@ -70,6 +80,11 @@ Weak dimensions (`< 0.65`) emit fan-out signals to specialists.
 The graph learns what kind of work succeeds on which paths, by dimension.
 
 **Context accumulates down. Quality marks flow up. Weights route sideways.**
+
+**Fan-out is the default.** Every wave spawns all its agents in a single
+message with multiple tool calls — never a loop of sequential `Agent` calls.
+Each in-flight agent is its own `ask()`; the wave drains on `{result |
+timeout | dissolved}` per agent, not on a serial wait.
 
 ## Testing — The Deterministic Sandwich Around Waves
 
@@ -200,44 +215,57 @@ cycle's patterns are verified and promoted to durable learning.
 ```
      ┌──────────────────────────────────────────────────────────┐
      │                                                          │
-     │  WAVE 1 (Haiku x N, parallel)                            │
-     │    select: N read jobs                                   │
-     │    ask:    spawn all in one message                      │
+     │  WAVE 1 (Haiku x N, parallel — N ≥ 4, one per read target)│
+     │    select: N read jobs (one file/doc per agent, never    │
+     │            batch — batching throws away parallelism)     │
+     │    ask:    spawn ALL in ONE message (multi tool_use)     │
      │    outcome: { result | timeout | dissolved }             │
      │    mark:   each return                                   │
      │    drain:  collect into Wave 2 inputs                    │
      │                                                          │
-     │  WAVE 2 (Opus, in main context)                          │
-     │    fold:   N reports + source-of-truth → diff specs      │
+     │  WAVE 2 (Opus, parallel shards when findings > ~20)      │
+     │    shard:  split findings by domain/file group           │
+     │    fold:   each shard → diff specs independently         │
+     │            (≥ 2 Opus agents in parallel; main context    │
+     │            only reconciles + resolves conflicts)         │
      │    decide: judgment calls, exceptions                    │
-     │    send:   M edit prompts                                │
+     │    send:   M edit prompts (M ≥ file count)               │
      │                                                          │
-     │  WAVE 3 (Sonnet x M, parallel)                           │
-     │    select: M edit jobs                                   │
-     │    ask:    spawn all in one message                      │
+     │  WAVE 3 (Sonnet x M, parallel — M = files touched)       │
+     │    select: one agent per file (never split a file across │
+     │            agents; never batch multiple files per agent) │
+     │    ask:    spawn ALL M in ONE message                    │
      │    outcome: { result | dissolved | failure }             │
      │    mark:   successful edits                              │
      │    warn:   anchor mismatches → re-spawn once             │
      │    drain:  all edits applied                             │
      │                                                          │
-     │  WAVE 4 (Sonnet x 1, sequential)                         │
-     │    sense:  read all updated files                        │
-     │    check:  cross-file consistency                        │
+     │  WAVE 4 (Sonnet x K, parallel by check type — K ≥ 2)     │
+     │    shard:  {consistency, cross-ref, voice, rubric}       │
+     │    sense:  each shard reads all updated files            │
+     │    check:  each shard owns one dimension                 │
+     │    fold:   main context merges K reports                 │
      │    if clean → mark, advance to next cycle                │
-     │    if dirty → spawn micro-edits → re-check (max 3)      │
+     │    if dirty → spawn micro-edits in parallel → re-check   │
      │                                                          │
      └──────────────────────────────────────────────────────────┘
 ```
 
-| Wave | Model | Pattern | Why this model |
-|------|-------|---------|----------------|
-| 1 | **Haiku** | Parallel reads, report verbatim | Pure I/O, no judgment, cost ~ free |
-| 2 | **Opus** (main) | Sequential synthesis + decisions | Never delegate understanding |
-| 3 | **Sonnet** | Parallel writes from specs | Prose fit matters, decisions already made |
-| 4 | **Sonnet** | Single cross-check pass | Holds multiple files, no decisions left |
+| Wave | Model | Agents | Pattern | Why this model |
+|------|-------|--------|---------|----------------|
+| 1 | **Haiku** | **N ≥ 4** (one per read target) | Parallel reads, report verbatim | Pure I/O, no judgment, cost ~ free — spawn wide |
+| 2 | **Opus** | **1** (small work) or **≥ 2 shards** (findings > ~20) | Sharded synthesis, main context reconciles | Never delegate understanding, but shard by domain when work exceeds one context |
+| 3 | **Sonnet** | **M = files touched** (one per file) | Parallel writes from specs | Prose fit matters, decisions already made — parallelize by file to avoid anchor races |
+| 4 | **Sonnet** | **K ≥ 2** (by check type) | Parallel cross-check shards, main folds | Each check dimension is independent; sharding halves wall-time |
 
 **The rule:** Haiku reads, Opus decides, Sonnet writes, Sonnet checks.
-Parallelism within waves. Sequential between waves.
+**Maximum parallelism within every wave. Sequential only between waves.**
+
+**Sizing heuristic:**
+- `N` (W1) = count of distinct read targets. If you're spawning fewer Haiku than files-to-read, you're leaving parallelism on the floor.
+- `W2 shards` = `ceil(findings / 20)`. One shard fits comfortably in one Opus context; more shards = more parallel decide.
+- `M` (W3) = count of files touched. Never batch files. Never split files.
+- `K` (W4) = at least one agent per rubric dimension + one for cross-file consistency.
 
 ---
 
@@ -263,12 +291,15 @@ Parallelism within waves. Sequential between waves.
 
 ---
 
-### Wave 1 — Recon (parallel Haiku x N)
+### Wave 1 — Recon (parallel Haiku x N, N ≥ 4)
 
-Spawn N agents in one message. Each reads one file, reports findings
-with line numbers and context.
+Spawn **all N agents in a single message with multiple `Agent` tool calls** —
+never loop. Each reads exactly one file/target and reports findings with line
+numbers and context. If you have 8 files, spawn 8 agents, not 2 batches of 4.
 
 **Hard rule:** "Report verbatim. Do not propose changes. Under 300 words."
+**Parallelism rule:** one target per agent. Batching targets into one agent
+serializes work that should be concurrent.
 
 | Agent | File | What to look for |
 |-------|------|-----------------|
@@ -280,11 +311,17 @@ with line numbers and context.
 
 ---
 
-### Wave 2 — Decide (Opus, in main context)
+### Wave 2 — Decide (Opus, sharded when findings > ~20)
 
 **Context loaded:** DSL.md + dictionary.md (always) + source-of-truth doc +
 domain docs from task tags. Hypotheses from `recall()`. This is the
 non-negotiable baseline — every W2 decision speaks the DSL vocabulary.
+
+**Sharding:** if W1 produced more than ~20 findings, split them into
+domain/file-group shards and spawn **≥ 2 Opus agents in parallel** — each
+shard produces its own diff specs. Main context then reconciles: dedupe
+overlaps, resolve cross-shard conflicts, finalize the M edit prompts. For
+small work (< 20 findings), one Opus pass in main context is fine.
 
 Take N reports + source-of-truth doc + DSL + dictionary. For each finding, decide:
 - **Act** → produce anchor (exact old text) + new text
@@ -306,11 +343,16 @@ RATIONALE: "<one sentence>"
 
 ---
 
-### Wave 3 — Edits (parallel Sonnet x M)
+### Wave 3 — Edits (parallel Sonnet x M, M = files touched)
 
-One agent per file. Each gets: file path, list of anchors + replacements.
+**One agent per file. All M spawned in a single message with multiple
+`Agent` tool calls.** Each gets: file path, list of anchors + replacements.
 Rule: "Use `Edit` with exact anchor. Do not modify anything else.
 If anchor doesn't match, return dissolved."
+
+**Never batch files into one agent** (serializes edits that could run in
+parallel). **Never split one file across agents** (anchor collisions, write
+races). File = unit of parallelism.
 
 | Job | File | Est. edits |
 |-----|------|-----------|
@@ -319,9 +361,20 @@ If anchor doesn't match, return dissolved."
 
 ---
 
-### Wave 4 — Verify (Sonnet x 1)
+### Wave 4 — Verify (parallel Sonnet x K, K ≥ 2)
 
-Read all files in this cycle. Check:
+**Shard verification by check type**, spawn all K in a single message. Each
+shard reads all updated files but owns one dimension — no overlap, no serial
+wait. Main context folds the K reports into a single pass/fail.
+
+| Shard | Owns | Reads |
+|-------|------|-------|
+| V1 | Consistency (internal logic, naming) | all touched files |
+| V2 | Cross-references (links, imports, anchors) | touched + referrers |
+| V3 | Voice + form (tone, structure) | all touched files |
+| V4 | Rubric scoring (fit/form/truth/taste) | all touched files + `rubrics.md` |
+
+Checks:
 1. {consistency check}
 2. {consistency check}
 3. Cross-references between files still work
@@ -333,7 +386,8 @@ fit (0.35), form (0.20), truth (0.30), taste (0.15). Four tagged-edge marks:
 Below 0.5 → `warn()`. Must-nots bypass scoring entirely.
 Weak dims (`< 0.65`) fan out as signals to specialist coaches.
 
-**If inconsistencies:** spawn micro-edits (Wave 3.5), re-verify. Max 3 loops.
+**If inconsistencies:** spawn micro-edits **in parallel** (Wave 3.5, one
+agent per affected file), re-verify with the same K shards. Max 3 loops.
 
 **Self-checkoff:** If all edits verify clean and exit conditions pass:
 1. Mark task done in TypeDB (`markTaskDone(task.id)`)
@@ -376,34 +430,39 @@ Weak dims (`< 0.65`) fan out as signals to specialist coaches.
 
 | Cycle | Wave | Agents | Model | Est. cost share |
 |-------|------|--------|-------|-----------------|
-| 1 | W1 | {N} | Haiku | ~{N}% |
-| 1 | W2 | 0 | Opus | ~0% |
-| 1 | W3 | {M} | Sonnet | ~{N}% |
-| 1 | W4 | 1 | Sonnet | ~{N}% |
+| 1 | W1 | {N ≥ 4}  | Haiku  | ~{N}% |
+| 1 | W2 | {1 or ≥ 2 shards} | Opus   | ~{N}% |
+| 1 | W3 | {M = files} | Sonnet | ~{N}% |
+| 1 | W4 | {K ≥ 2}  | Sonnet | ~{N}% |
 | 2 | W1-W4 | ... | ... | ... |
 | 3 | W1-W4 | ... | ... | ... |
 
 **Hard stop:** if any Wave 4 loops more than 3 times, halt and escalate.
+
+**Parallelism is cheap, serial is expensive.** Haiku and Sonnet billing is
+per-token, not per-agent. Ten Haiku reading one file each costs the same as
+one Haiku reading ten files — but finishes in ~1/10 the wall-time and
+deposits ten parallel marks on ten paths. Always prefer more agents.
 
 ---
 
 ## Status
 
 - [ ] **Cycle 1: WIRE** — {scope}
-  - [ ] W1 — Recon (Haiku x {N})
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x {M})
-  - [ ] W4 — Verify (Sonnet x 1)
+  - [ ] W1 — Recon (Haiku x {N ≥ 4}, parallel)
+  - [ ] W2 — Decide (Opus x {1 or ≥ 2 shards})
+  - [ ] W3 — Edits (Sonnet x {M = files}, parallel)
+  - [ ] W4 — Verify (Sonnet x {K ≥ 2}, parallel by check type)
 - [ ] **Cycle 2: PROVE** — {scope}
-  - [ ] W1 — Recon (Haiku x {N})
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x {M})
-  - [ ] W4 — Verify (Sonnet x 1)
+  - [ ] W1 — Recon (Haiku x {N ≥ 4}, parallel)
+  - [ ] W2 — Decide (Opus x {1 or ≥ 2 shards})
+  - [ ] W3 — Edits (Sonnet x {M = files}, parallel)
+  - [ ] W4 — Verify (Sonnet x {K ≥ 2}, parallel by check type)
 - [ ] **Cycle 3: GROW** — {scope}
-  - [ ] W1 — Recon (Haiku x {N})
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x {M})
-  - [ ] W4 — Verify (Sonnet x 1)
+  - [ ] W1 — Recon (Haiku x {N ≥ 4}, parallel)
+  - [ ] W2 — Decide (Opus x {1 or ≥ 2 shards})
+  - [ ] W3 — Edits (Sonnet x {M = files}, parallel)
+  - [ ] W4 — Verify (Sonnet x {K ≥ 2}, parallel by check type)
 
 ---
 
@@ -428,18 +487,22 @@ Weak dims (`< 0.65`) fan out as signals to specialist coaches.
   │
   ├── reads TODO, finds current cycle + wave
   │
-  ├── Wave 1? → spawn N Haiku agents (parallel, model: haiku)
+  ├── Wave 1? → spawn N ≥ 4 Haiku in ONE message (one per target)
   │              collect reports, mark wave complete
   │
-  ├── Wave 2? → synthesize in main context (Opus decides)
-  │              produce diff specs, mark wave complete
+  ├── Wave 2? → if findings > ~20: spawn ≥ 2 Opus shards in parallel
+  │              else: synthesize in main context
+  │              reconcile shards, produce diff specs, mark wave complete
   │
-  ├── Wave 3? → spawn M Sonnet agents (parallel, model: sonnet)
+  ├── Wave 3? → spawn M Sonnet (M = files touched) in ONE message
+  │              one agent per file — never batch, never split
   │              collect results, mark/warn, mark wave complete
   │
-  └── Wave 4? → spawn 1 Sonnet verifier
+  └── Wave 4? → spawn K ≥ 2 Sonnet verifiers in ONE message
+                 (sharded by check type: consistency / cross-ref /
+                  voice / rubric)
                  if clean → mark cycle complete, advance
-                 if dirty → micro-edits → re-verify (max 3)
+                 if dirty → parallel micro-edits → re-verify (max 3)
 ```
 
 ---
