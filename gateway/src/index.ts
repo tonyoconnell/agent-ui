@@ -20,17 +20,95 @@ interface Env {
   DB?: D1Database
   KV?: KVNamespace
   BROADCAST_SECRET?: string
+  WS_HUB: DurableObjectNamespace
 }
 
 // Token cache (per-isolate, 61s TTL)
 let cachedToken: { token: string; expires: number } | null = null
 
-// WebSocket client tracking (per-isolate — cross-isolate needs Durable Objects)
-const connectedClients = new Set<WebSocket>()
-
 // Security: Limits and allowed message types
 const MAX_WS_CONNECTIONS = 100
 const ALLOWED_MESSAGE_TYPES = ['complete', 'unblock', 'mark', 'warn', 'task-update', 'sync']
+
+/**
+ * WsHub — Durable Object that centralizes WebSocket connections.
+ *
+ * All /ws upgrades and /broadcast POSTs route to the same DO instance
+ * (named "global") so they share the connectedClients Set. This fixes
+ * the cross-isolate limitation of module-level Sets in CF Workers.
+ *
+ * Uses the hibernation API: accepted sockets survive DO eviction and
+ * wake the DO only on message receipt — no idle memory cost.
+ */
+export class WsHub {
+  private state: DurableObjectState
+
+  constructor(state: DurableObjectState, _env: Env) {
+    this.state = state
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url)
+
+    // WebSocket upgrade
+    if (url.pathname === '/connect') {
+      const pair = new WebSocketPair()
+      const [client, server] = Object.values(pair) as [WebSocket, WebSocket]
+
+      // Hibernation: DO sleeps between messages, socket persists
+      this.state.acceptWebSocket(server)
+
+      return new Response(null, { status: 101, webSocket: client })
+    }
+
+    // Broadcast to all connected sockets
+    if (url.pathname === '/send' && request.method === 'POST') {
+      const message = await request.text()
+      const sockets = this.state.getWebSockets()
+      let sent = 0
+      for (const ws of sockets) {
+        try {
+          ws.send(message)
+          sent++
+        } catch {
+          // Socket closed, ignore
+        }
+      }
+      return Response.json({ ok: true, sent })
+    }
+
+    // Count connections (for limit check)
+    if (url.pathname === '/count') {
+      return Response.json({ count: this.state.getWebSockets().length })
+    }
+
+    return new Response('Not found', { status: 404 })
+  }
+
+  // Hibernation: called when a hibernated socket receives a message
+  webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): void {
+    if (typeof message === 'string' && message === 'ping') {
+      ws.send('pong')
+    }
+  }
+
+  // Hibernation: called when a socket closes
+  webSocketClose(ws: WebSocket, _code: number, _reason: string, _wasClean: boolean): void {
+    try {
+      ws.close()
+    } catch {
+      // already closed
+    }
+  }
+
+  webSocketError(ws: WebSocket, _error: unknown): void {
+    try {
+      ws.close()
+    } catch {
+      // already closed
+    }
+  }
+}
 
 const CORS_ORIGINS = [
   'http://localhost:4321',
@@ -91,6 +169,7 @@ export default {
     }
 
     // GET /ws — WebSocket upgrade for live TaskBoard updates
+    // Routes to the WsHub Durable Object so all isolates see the same clients.
     if (url.pathname === '/ws') {
       // Security: Check origin against allowed CORS origins
       const wsOrigin = request.headers.get('Origin')
@@ -98,31 +177,24 @@ export default {
         return new Response('Origin not allowed', { status: 403, headers })
       }
 
-      // Security: Limit connections per isolate
-      if (connectedClients.size >= MAX_WS_CONNECTIONS) {
-        return new Response('Too many connections', { status: 503, headers })
-      }
-
       if (request.headers.get('Upgrade') !== 'websocket') {
         return new Response('Expected WebSocket upgrade', { status: 426, headers })
       }
-      const pair = new WebSocketPair()
-      const [client, server] = Object.values(pair) as [WebSocket, WebSocket]
-      server.accept()
-      connectedClients.add(server)
-      server.addEventListener('message', (event: MessageEvent) => {
-        if (event.data === 'ping') server.send('pong')
-      })
-      server.addEventListener('close', () => {
-        connectedClients.delete(server)
-      })
-      server.addEventListener('error', () => {
-        connectedClients.delete(server)
-      })
-      return new Response(null, { status: 101, webSocket: client })
+
+      // Security: Enforce global connection limit via DO
+      const hubId = env.WS_HUB.idFromName('global')
+      const hub = env.WS_HUB.get(hubId)
+      const countRes = await hub.fetch('https://do/count')
+      const { count } = (await countRes.json()) as { count: number }
+      if (count >= MAX_WS_CONNECTIONS) {
+        return new Response('Too many connections', { status: 503, headers })
+      }
+
+      // Forward the upgrade to the DO (with the Upgrade header preserved)
+      return hub.fetch('https://do/connect', request)
     }
 
-    // POST /broadcast — relay a WsMessage to all connected WebSocket clients
+    // POST /broadcast — relay a WsMessage to all connected WebSocket clients via DO
     if (url.pathname === '/broadcast' && request.method === 'POST') {
       // Security: Require shared secret
       const secret = request.headers.get('X-Broadcast-Secret')
@@ -142,16 +214,15 @@ export default {
           )
         }
 
-        let sent = 0
-        for (const client of connectedClients) {
-          try {
-            client.send(message)
-            sent++
-          } catch {
-            connectedClients.delete(client)
-          }
-        }
-        return Response.json({ ok: true, sent }, { headers })
+        // Forward to the global WsHub DO — all isolates share this one hub
+        const hubId = env.WS_HUB.idFromName('global')
+        const hub = env.WS_HUB.get(hubId)
+        const result = await hub.fetch('https://do/send', {
+          method: 'POST',
+          body: message,
+        })
+        const data = (await result.json()) as { ok: boolean; sent: number }
+        return Response.json(data, { headers })
       } catch {
         return Response.json({ error: 'Invalid JSON' }, { status: 400, headers })
       }

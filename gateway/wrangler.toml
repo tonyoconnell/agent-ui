@@ -25,6 +25,16 @@ database_id = "0aa5fceb-667a-470e-b08c-40ead2f4525d"
 binding = "KV"
 id = "1c1dac4766e54a2c85425022a3b1e9da"
 
+# Durable Object: WsHub centralizes WebSocket connections across isolates
+[[durable_objects.bindings]]
+name = "WS_HUB"
+class_name = "WsHub"
+
+# Migration: new_sqlite_classes for WsHub (required on first deploy)
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["WsHub"]
+
 # Custom domain
 [[routes]]
 pattern = "api.one.ie"

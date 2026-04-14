@@ -121,14 +121,10 @@ async function main(): Promise<void> {
   const broadcastOk = broadcastRes.status === 200
   logResult('Broadcast accepted → 200', broadcastOk, `status=${broadcastRes.status}`)
 
-  // NOTE: Cross-isolate limitation means the broadcast may land on a different
-  // isolate than our WebSocket connection. This is expected and documented.
+  // With the WsHub Durable Object, broadcasts route to the same DO that holds
+  // all WebSocket connections, so cross-isolate delivery works reliably.
   const received = await receivedPromise
-  logResult(
-    'WebSocket receives broadcast',
-    received,
-    received ? 'same-isolate delivery' : 'cross-isolate — known limitation',
-  )
+  logResult('WebSocket receives broadcast', received, received ? 'DO-routed delivery' : 'broadcast failed to deliver')
 
   // Test 6: /tasks returns data
   const tasksRes = await fetch(`${GATEWAY}/tasks`, {
@@ -177,10 +173,9 @@ async function main(): Promise<void> {
   const total = results.length
   console.log(`\x1b[1m${passed}/${total} tests passed\x1b[0m`)
 
-  // Cross-isolate test is informational, not a hard fail
-  const criticalPassed = results.filter((r) => r.name !== 'WebSocket receives broadcast').every((r) => r.passed)
-
-  process.exit(criticalPassed ? 0 : 1)
+  // With the DO, all tests are critical — broadcast delivery is verified
+  const allPassed = results.every((r) => r.passed)
+  process.exit(allPassed ? 0 : 1)
 }
 
 main().catch((e) => {

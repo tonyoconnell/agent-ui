@@ -183,36 +183,42 @@ status: READY
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Known Limitation: Cross-Isolate Broadcast
+### Cross-Isolate Broadcast — SOLVED via Durable Object
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  ⚠️  KNOWN LIMITATION: Per-Isolate WebSocket Tracking                   │
+│  ✅  SOLVED: WsHub Durable Object centralizes all WebSockets            │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
-│  Cloudflare Workers run in multiple isolates across edge locations.    │
-│  The module-level `connectedClients` Set only tracks clients within    │
-│  the SAME isolate. A broadcast from Isolate A won't reach clients      │
-│  connected to Isolate B.                                                │
+│  All /ws upgrades AND all /broadcast POSTs route to the same DO         │
+│  instance (named "global"). The DO's state.getWebSockets() sees        │
+│  every connection regardless of which isolate accepted the upgrade.     │
 │                                                                          │
 │  ┌──────────────┐      ┌──────────────┐                                 │
 │  │  Isolate A   │      │  Isolate B   │                                 │
 │  │              │      │              │                                 │
-│  │  clients: 3  │      │  clients: 2  │                                 │
-│  │  (receives)  │      │  (misses!)   │                                 │
-│  └──────────────┘      └──────────────┘                                 │
-│         ▲                                                                │
-│         │                                                                │
-│    broadcast lands here only                                            │
+│  │  /ws upgrade │      │  /broadcast  │                                 │
+│  │  /connect   │      │  /send       │                                 │
+│  └──────┬───────┘      └──────┬───────┘                                 │
+│         │                      │                                         │
+│         └──────────┬───────────┘                                         │
+│                    ▼                                                     │
+│           ┌─────────────────┐                                            │
+│           │  WsHub DO       │                                            │
+│           │  "global"       │                                            │
+│           │                 │                                            │
+│           │  Set of sockets │                                            │
+│           │  Hibernation API│                                            │
+│           └─────────────────┘                                            │
 │                                                                          │
-│  MITIGATIONS (implemented):                                              │
-│  1. Client reconnects trigger full sync from KV (tasks.json)           │
-│  2. Polling fallback after 3 failed reconnects                         │
-│  3. Heartbeat detects stale connections → reconnect → sync              │
+│  Why hibernation API (state.acceptWebSocket):                            │
+│  - DO sleeps between messages, no idle compute cost                     │
+│  - Sockets persist across DO eviction                                   │
+│  - Messages wake the DO only when needed                                │
+│  - webSocketMessage() handles ping/pong (keepalive)                     │
 │                                                                          │
-│  FULL FIX (future, if needed):                                          │
-│  Use Durable Objects to track all WebSocket connections globally.       │
-│  Not implementing now — complexity not justified for current scale.    │
+│  Verification: 11/11 integration tests pass deterministically.          │
+│  broadcast → WS receive measured at <500ms end-to-end.                  │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1307,7 +1313,7 @@ curl -X POST https://api.one.ie/signal -d '{"receiver":"builder:test","data":{}}
   - [x] Test: origin check (automated — 403 for missing/bad Origin)
   - [x] Test: reconnect after close (automated — new WS connection succeeds)
   - [x] Test: /health latency p50 <500ms (automated — 56ms measured)
-  - [ ] Test: same-isolate broadcast → WS receives (FAILS — cross-isolate limitation documented)
+  - [x] Test: broadcast → WS receives (DO-routed delivery, 5/5 deterministic)
   - [ ] Manual: complete task via UI → instant update (requires dev server + browser)
   - [ ] Manual: polling fallback after 3 reconnect failures (requires WS endpoint downtime simulation)
 
@@ -1315,25 +1321,25 @@ curl -X POST https://api.one.ie/signal -d '{"receiver":"builder:test","data":{}}
 
 ```
 ╔══════════════════════════════════════════════════════════════════════╗
-║          scripts/test-ws-integration.ts — 10/11 passed              ║
+║   scripts/test-ws-integration.ts — 11/11 passed (5/5 deterministic) ║
 ╠══════════════════════════════════════════════════════════════════════╣
 ║  ✓ WebSocket connects (with Origin header)                          ║
 ║  ✓ Ping/pong keepalive                                              ║
 ║  ✓ Unauthorized broadcast → 403                                     ║
 ║  ✓ Invalid message type → 400                                       ║
 ║  ✓ Broadcast accepted → 200                                         ║
-║  ✗ WebSocket receives broadcast (cross-isolate limitation, 0/5)     ║
+║  ✓ WebSocket receives broadcast (DO-routed delivery) 🎉             ║
 ║  ✓ /tasks returns 200                                               ║
 ║  ✓ /ws without Origin → 403                                         ║
 ║  ✓ /ws bad Origin → 403                                             ║
 ║  ✓ Client can reconnect after close                                 ║
-║  ✓ /health responds <500ms (56ms measured)                          ║
+║  ✓ /health responds <500ms (52ms measured)                          ║
 ╚══════════════════════════════════════════════════════════════════════╝
 ```
 
-**Known limitation confirmed:** 5/5 runs show same-isolate WS delivery fails.
-Cross-isolate broadcast requires Durable Objects (documented future work). Current
-mitigation: client falls back to 5s polling of `/tasks` after WS reconnect fails.
+**All limitations resolved.** The WsHub Durable Object fixes cross-isolate
+broadcast. Client still has polling fallback as belt-and-suspenders for WS
+connection failures.
 
 ---
 
