@@ -8,6 +8,7 @@
     "preview": "astro preview",
     "test": "vitest run",
     "test:watch": "vitest watch",
+    "test:bench": "PERF_SCALE=1 vitest run src/engine/routing.test.ts",
     "check": "biome check .",
     "check:fix": "biome check --fix .",
     "format": "biome format --write .",

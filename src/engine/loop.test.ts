@@ -189,9 +189,11 @@ describe('loop.ts — growth tick', () => {
       // Make toxic path resistant
       net.warn('entry→toxic', 50)
 
-      // Multiple selections should favor the safe path
+      // Multiple selections should favor the safe path.
+      // 100 samples (not 20) keeps the statistical assertion stable —
+      // standard error shrinks as 1/sqrt(N).
       const selections = []
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 100; i++) {
         const sel = net.select()
         if (sel === 'toxic' || sel === 'safe') selections.push(sel)
       }
