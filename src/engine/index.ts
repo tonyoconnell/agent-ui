@@ -47,6 +47,9 @@ export {
 export type { Actor, Loop, LoopResult, Marker, Outcome, Selector, Source } from './core'
 // Loop system — the one loop
 export { compose, loop, schedule } from './core'
+export type { Caller, ModelSpec, RouteChoice, RouteOutcome, RouteRequest } from './llm-router'
+// LLM router — tags × pheromone × rubrics
+export { chooseModel, markOutcome, openAiCaller, route, seedModels } from './llm-router'
 export type { TickResult as LegacyTickResult } from './loop'
 // Legacy tick
 export { tick as legacyTick } from './loop'
@@ -107,6 +110,3 @@ export { modelForWave, waveRunner } from './wave-runner'
 export type { CloseOpts, Stage, StageOutcome, WorkLoop } from './work-loop'
 // Work loop — developer loop as signals on the substrate
 export { workLoop } from './work-loop'
-export type { Caller, ModelSpec, RouteChoice, RouteOutcome, RouteRequest } from './llm-router'
-// LLM router — tags × pheromone × rubrics
-export { chooseModel, markOutcome, openAiCaller, route, seedModels } from './llm-router'

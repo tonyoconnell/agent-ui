@@ -121,7 +121,7 @@ export const chooseModel = (net: World, models: ModelSpec[], req: RouteRequest):
     return { model: m, edge, weight: Math.max(0.001, s - r) }
   })
 
-  const totalWeight = scored.reduce((a, b) => a + b.weight, 0)
+  const _totalWeight = scored.reduce((a, b) => a + b.weight, 0)
   const anyLearned = scored.some((s) => s.weight > 0.1)
 
   // Cold start: nothing learned yet — pick cheapest affordable
@@ -219,7 +219,9 @@ export const route = async (
 ): Promise<{ choice: RouteChoice; outcome: RouteOutcome }> => {
   const choice = chooseModel(net, models, req)
   const t0 = Date.now()
-  const outcome = await caller(choice.model, req).catch((err): RouteOutcome => ({ failure: true, response: String(err) }))
+  const outcome = await caller(choice.model, req).catch(
+    (err): RouteOutcome => ({ failure: true, response: String(err) }),
+  )
   outcome.latencyMs = outcome.latencyMs ?? Date.now() - t0
   markOutcome(net, choice, outcome)
   return { choice, outcome }
@@ -236,12 +238,7 @@ export const route = async (
  *   const caller = openAiCaller({ apiKey: env.OPENROUTER_API_KEY })
  *   const { choice, outcome } = await route(net, models, req, caller)
  */
-export const openAiCaller = (opts: {
-  apiKey: string
-  baseUrl?: string
-  referer?: string
-  title?: string
-}): Caller => {
+export const openAiCaller = (opts: { apiKey: string; baseUrl?: string; referer?: string; title?: string }): Caller => {
   const base = opts.baseUrl ?? 'https://openrouter.ai/api/v1'
   return async (model, req) => {
     const res = await fetch(`${base}/chat/completions`, {

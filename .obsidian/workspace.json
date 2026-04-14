@@ -199,6 +199,7 @@
   },
   "active": "fd99b50a9796efdb",
   "lastOpenFiles": [
+    "src/__tests__/integration/ownership.test.ts",
     "docs/llm-routing.md",
     "src/__tests__/integration/wave-lock.test.ts",
     "src/__tests__/integration/parallel-sessions.test.ts",
@@ -234,7 +235,6 @@
     "SPEED.md",
     "docs/speed.md",
     "docs/speed-verified.md",
-    "docs/SECURE-DEPLOY.md",
     "nanoclaw/node_modules/miniflare/dist/local-explorer-ui/favicon.svg",
     "nanoclaw/node_modules/@cloudflare/workers-types/entrypoints.svg",
     "nanoclaw/node_modules/undici/docs/assets/lifecycle-diagram.png",

@@ -76,9 +76,7 @@ function releaseTask(tid: string, sessionId: string): ReleaseResult {
   // Release wave lock if no other active tasks in this wave belong to this session
   if (task) {
     const wave = task.phase
-    const stillActive = Array.from(ownerRegistry.values()).some(
-      (c) => c.owner === sessionId
-    )
+    const stillActive = Array.from(ownerRegistry.values()).some((c) => c.owner === sessionId)
     if (!stillActive) {
       waveLocks.delete(wave)
     }
@@ -212,8 +210,8 @@ describe('wave-lock: exclusive wave ownership between sessions', () => {
     const TID_W4 = 'wave-lock-T3'
     makeTask(TID_W4, 'Wave Task W4', 'W4')
 
-    const resA = claimTask(TID_A, SESSION_A)   // W3 → SESSION_A
-    const resB = claimTask(TID_W4, SESSION_B)  // W4 → SESSION_B
+    const resA = claimTask(TID_A, SESSION_A) // W3 → SESSION_A
+    const resB = claimTask(TID_W4, SESSION_B) // W4 → SESSION_B
 
     expect(resA.ok).toBe(true)
     expect(resB.ok).toBe(true)
