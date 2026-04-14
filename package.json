@@ -81,6 +81,7 @@
     "lucide-react": "^0.546.0",
     "marked": "^18.0.0",
     "motion": "^12.34.0",
+    "nanoid": "^5.1.7",
     "nanostores": "^1.2.0",
     "react": "^19.1.1",
     "react-day-picker": "^9.13.2",
