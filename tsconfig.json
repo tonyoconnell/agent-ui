@@ -24,6 +24,9 @@
     "src/pages/api/export/public/**",
     "src/pages/api/entity/**",
     "packages/**",
-    "scripts/**"
+    "scripts/**",
+    "nanoclaw/**",
+    "gateway/**",
+    "workers/**"
   ]
 }
