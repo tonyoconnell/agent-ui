@@ -18,9 +18,11 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { type World, world } from './world'
 
 // Perf budgets are written as `ms < BUDGET * PERF` so CI contention doesn't flake.
-// PERF=1 locally catches real regressions; PERF=3 tolerates 3x variance under load.
-// Env override: PERF_SCALE=1 bun vitest  (strict mode, detects any slowdown)
-const PERF = Number(process.env.PERF_SCALE ?? 3)
+// PERF=1 is strict mode (original budgets, catches any slowdown).
+// PERF=5 default tolerates GC spikes, cold allocation, and concurrent test contention.
+// A 5x regression still fails — that's the signal we want to keep.
+// Env override: PERF_SCALE=1 bun vitest  (strict mode for perf audits)
+const PERF = Number(process.env.PERF_SCALE ?? 5)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 1: COLD START

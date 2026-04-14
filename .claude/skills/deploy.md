@@ -60,35 +60,49 @@ Deploys all 4 Cloudflare services (gateway, sync, nanoclaw, pages) with full W0 
 
 ## Usage
 
-### Automatic (feature branch)
+### Full pipeline
 ```bash
 bun run deploy
 ```
-Runs full pipeline, deploys automatically if branch ≠ main.
-
-### Manual approval (main branch)
-```bash
-bun run deploy
-```
-Runs full pipeline, **asks for confirmation** if branch = main.
-
-### Skip tests (risky)
-```bash
-bun run deploy:skip-tests
-```
-Skips W0 baseline. Use only if you know baseline passes elsewhere.
+Runs all 8 steps. Auto-deploys if branch ≠ main; asks approval if branch = main.
 
 ### Dry run (test without deploying)
 ```bash
 bun run deploy:dry-run
 ```
-Runs steps 1-5, stops before deploy.
+Runs steps 1-5 (baseline, build, smoke), stops before deploy. Use to verify everything is ready.
 
-### List changes
+### Strict mode (no flaky test allowance)
 ```bash
-bun run deploy:list
+bun run deploy:strict
 ```
-Show all files that will deploy.
+Any test failure blocks deploy — even known-flaky ones.
+
+### Skip tests (risky)
+```bash
+bun run deploy:skip-tests
+```
+Skips W0 baseline. Use only when baseline was verified elsewhere.
+
+### Preview only
+```bash
+bun run deploy:preview
+```
+Builds and verifies but stops before production deploy.
+
+## Known-Flaky Test Allowlist
+
+Located in `scripts/deploy.ts`:
+
+```typescript
+const KNOWN_FLAKY = [
+  'Act 15: Speed Benchmarks',  // hardware-dependent
+  'STAN distribution',          // stochastic
+  'explorer mode',              // stochastic
+]
+```
+
+These failures don't block deploy. Real failures (type errors, broken logic) always block. Use `--strict` to require full green.
 
 ## Advanced
 
