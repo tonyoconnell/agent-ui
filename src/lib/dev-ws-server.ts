@@ -10,7 +10,7 @@ import { getTasksCache, updateTasksCache } from './ws-cache'
 import { registerDevBroadcaster } from './ws-server'
 
 let wss: WebSocketServer | null = null
-const clients = new Set<WebSocket>()
+const clients = new Map<WebSocket, { tags: string[] }>()
 
 // Re-export so existing imports of `@/lib/dev-ws-server` keep working.
 export { updateTasksCache }
@@ -42,7 +42,7 @@ export function attachWebSocketServer(httpServer: Server) {
 
   wss.on('connection', (ws: WebSocket) => {
     console.log('[WS] Client connected')
-    clients.add(ws)
+    clients.set(ws, { tags: [] })
 
     // Send full tasks state on connect
     const snapshot = getTasksCache()
@@ -60,7 +60,9 @@ export function attachWebSocketServer(httpServer: Server) {
       try {
         const msg = JSON.parse(data.toString())
         if (msg.type === 'subscribe') {
-          console.log('[WS] Subscribed to:', msg.channel)
+          const tags: string[] = Array.isArray(msg.tags) ? msg.tags : []
+          clients.set(ws, { tags })
+          console.log('[WS] Subscribed to:', msg.channel, 'tags:', tags)
           // Send current state again on explicit subscribe
           const current = getTasksCache()
           if (current) {
@@ -100,14 +102,17 @@ export function attachWebSocketServer(httpServer: Server) {
 export function broadcastToDevClients(message: Record<string, unknown>) {
   const payload = JSON.stringify(message)
   let sent = 0
+  const msgTags = Array.isArray(message.tags) ? (message.tags as string[]) : []
 
-  clients.forEach((ws) => {
-    if (ws.readyState === 1) {
-      // OPEN
-      ws.send(payload, (err) => {
-        if (!err) sent++
-      })
+  clients.forEach((meta, ws) => {
+    if (ws.readyState !== 1) return // OPEN only
+    // Tag filter: if both sides have tags, only send on intersection
+    if (meta.tags.length > 0 && msgTags.length > 0) {
+      if (!meta.tags.some((t) => msgTags.includes(t))) return
     }
+    ws.send(payload, (err) => {
+      if (!err) sent++
+    })
   })
 
   return sent

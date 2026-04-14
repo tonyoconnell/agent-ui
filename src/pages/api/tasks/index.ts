@@ -93,13 +93,16 @@ export const GET: APIRoute = async ({ url }) => {
   const phaseMatch = phase ? `$t has task-phase "${phase}";` : ''
   const valueMatch = value ? `$t has task-value "${value}";` : ''
 
-  // Query tasks from TypeDB
+  // Query tasks from TypeDB. Note: TypeQL 3.x requires the `not {}` block on
+  // its own statement (ended by `;`) — it can't continue a `has` chain with a
+  // comma. Keeping clauses on separate `;` statements is the safe canonical form.
   const tasks = (await readParsed(`
-    match $t isa task, not { $t has task-status "active"; },
+    match $t isa task,
       has task-id $id, has name $name, has done $done,
       has task-value $val, has task-phase $ph, has task-persona $persona,
       has priority-score $priority, has priority-formula $formula,
       has source-file $source, has task-status $status;
+    not { $t has task-status "active"; };
     ${tagMatch}
     ${phaseMatch}
     ${valueMatch}
