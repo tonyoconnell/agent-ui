@@ -217,11 +217,11 @@ insert $t2 isa task,
   has created 2026-04-07T00:00:00;
 
 # Task 3: Telegram Integration (HIGH, DEV+CEO, P0)
-# Exit: signals visible in @antsatworkbot channel
+# Exit: signals visible in @onedotbot channel
 insert $t3 isa task,
   has task-id "telegram-integration",
   has name "Telegram Integration for Agent Signals",
-  has description "Wire signals → Telegram API. Subscribe marketing agents to @antsatworkbot channel. Real-time pheromone visibility.",
+  has description "Wire signals → Telegram API. Subscribe marketing agents to @onedotbot channel. Real-time pheromone visibility.",
   has phase "cycle:C1",
   has value "high",
   has weapon "speed",
@@ -703,7 +703,7 @@ External Integrations       5+          AgentVerse, Hermes, OpenClaw...
 - [ ] **Docs:** Cross-link dictionary.md + one-ontology.md to task execution
 - [ ] **Dashboard:** Show task graph + pheromone in real-time
 - [ ] **Agents:** Create 8 marketing agents (markdown or HTTP)
-- [ ] **Telegram:** Wire signals to @antsatworkbot channel
+- [ ] **Telegram:** Wire signals to @onedotbot channel
 - [ ] **Monitoring:** Weekly success metrics dashboard
 
 ---

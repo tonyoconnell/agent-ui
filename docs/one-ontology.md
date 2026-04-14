@@ -58,6 +58,7 @@ relation membership, relates group, relates member;
 # 5. EVENTS
 relation signal, relates sender, relates receiver,
     owns data, owns amount, owns success, owns ts;
+# data convention: { tags?: string[], weight?: number, content?: unknown }
 
 # 6. LEARNING
 entity hypothesis,

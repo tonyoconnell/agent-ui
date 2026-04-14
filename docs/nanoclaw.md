@@ -54,7 +54,7 @@ No ngrok. Stable URLs. Free. See [PLAN-tunnels.md](PLAN-tunnels.md).
 - [x] Telegram adapter: normalize incoming, send replies via Bot API
 - [x] Discord adapter: normalize incoming, send replies via Discord API
 - [x] Web adapter: normalize incoming (no push — client polls)
-- [x] `TELEGRAM_TOKEN` secret set (`@antsatworkbot`)
+- [x] `TELEGRAM_TOKEN_ONE` secret set (`@onedotbot`)
 - [x] Telegram webhook live → `nanoclaw.oneie.workers.dev/webhook/telegram`
 - [x] Test message accepted: `{"ok":true,"id":"tg-1001","group":"tg-631201674"}`
 

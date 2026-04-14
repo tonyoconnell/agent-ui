@@ -284,7 +284,7 @@ A human reading "Deploy 8 agents on Telegram" knows that's a task. Haiku knows i
                                         ← exit condition = task definition
 
 "Wire signals → Telegram API. Subscribe marketing agents to
- @antsatworkbot channel."
+ @onedotbot channel."
                                         ← action buried in prose
 ```
 

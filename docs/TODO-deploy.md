@@ -36,7 +36,7 @@
 | Step | What | Status | Verified |
 |------|------|--------|----------|
 | 11d | `OPENROUTER_API_KEY` secret set | Done | ✓ |
-| 11e | `TELEGRAM_TOKEN` secret set (`@antsatworkbot`) | Done | ✓ |
+| 11e | `TELEGRAM_TOKEN_ONE` secret set (`@onedotbot`) | Done | ✓ |
 | 11f | Telegram webhook live | Done | ✓ |
 | 11g | LLM call verified (Gemma 4 via OpenRouter) | Done | ✓ |
 | 11h | Test message accepted (`tg-631201674`) | Done | ✓ |

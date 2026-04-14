@@ -7,10 +7,9 @@ import { wsManager } from '@/lib/ws-server'
 
 export const GET: APIRoute = async () => {
   const timestamp = new Date().toISOString()
-  // Cast to WsMessage type
   const message = {
     type: 'task-update' as const,
-    message: `WebSocket test broadcast at ${timestamp}`,
+    task: { tid: 'ws-test', name: `WebSocket test at ${timestamp}`, status: 'active' },
     timestamp: Date.now(),
   }
 

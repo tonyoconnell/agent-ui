@@ -37,6 +37,30 @@ Maybe it stays silent. Both are fine.
 
 ---
 
+## The Three Slots of Data
+
+`data` is `unknown` — anything flows. By convention, every signal's `data`
+follows the same three-slot shape:
+
+```
+data = { tags, weight, content }
+```
+
+| Field | Type | Default | Meaning |
+|-------|------|---------|---------|
+| `tags` | `string[]` | `[]` | Classification + routing key. `world:review+P0` addressing reads these. |
+| `weight` | `number` | `1` | Pheromone deposit on delivery. Positive = `mark()`. Negative = `warn()`. |
+| `content` | anything | `undefined` | The actual payload — rubric scores, task bodies, API responses, markdown. |
+
+All three are optional. A signal with only `content` is a plain delivery (weight 1).
+A signal with only `weight` is a pure mark. A signal with only `tags` is a
+classification beacon. The shape names what was always possible; it does not
+restrict what `data` can carry.
+
+`Signal.after` stays at the top level — it's a routing directive, not payload.
+
+---
+
 ## The Receiver
 
 A signal needs somewhere to land. That's a **unit**.

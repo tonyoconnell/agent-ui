@@ -68,6 +68,9 @@ export {
 // ONE v2 (uses Node.js — import directly from "./one", "./one-complete", etc.)
 export { one } from './one'
 export type { Config as ProdConfig, TickResult as ProdTickResult } from './one-prod'
+export type { DimScores, DimWeights } from './rubric'
+// Rubric — dimension-weighted pheromone scoring
+export { DEFAULT_WEIGHTS, markDims, score } from './rubric'
 // Selectors — how to choose
 export {
   byNeed,

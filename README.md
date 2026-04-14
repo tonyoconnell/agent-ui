@@ -12,6 +12,17 @@ Two fields. That's all that flows. The LLM is the only probabilistic component. 
 
 ---
 
+## The Six Verbs
+
+```
+send()   — signal moves to next receiver
+mark()   — path gets stronger (this worked)
+warn()   — path gets weaker (this failed)
+fade()   — everything slowly decays
+follow() — go where the trail is strongest
+harden() — proven path becomes permanent
+```
+
 ## The Two Locked Rules
 
 1. **Closed loop** — every signal closes: `mark()` on result, `warn()` on failure, `dissolve` on missing. No silent returns. Parallel width only compounds if every branch deposits pheromone.
@@ -24,10 +35,10 @@ These compound. Breaking either breaks the flywheel.
 ## The DSL
 
 ```typescript
-{ receiver: 'scout:observe', data: { tick: 42 } }
+{ receiver: 'scout:observe', data: { tags: ['recon'], weight: 1, content: { tick: 42 } } }
 ```
 
-`receiver` says who. `data` says what. A signal arrives at an agent. The agent does its work. Then it emits the next signal.
+`receiver` says who. `data` has three slots: `tags` (classification), `weight` (pheromone), `content` (payload). A signal arrives at an agent. The agent does its work. Then it emits the next signal.
 
 ```
 scout receives { tick: 42 }
@@ -186,17 +197,47 @@ example (5): tutor, researcher, coder, writer, concierge
 
 Each NanoClaw instance is a **persona** — same Cloudflare Worker codebase, different config. Telegram webhooks process synchronously (~3s). No queue latency.
 
-### Spin up a new agent
+### Add a Claw to Any Agent
+
+**Three ways to deploy:**
 
 ```bash
-# See available personas
-bun run scripts/setup-nanoclaw.ts
+# 1. From agent markdown (reads agents/*.md, auto-adds persona)
+bun run scripts/setup-nanoclaw.ts --name tutor --agent tutor
 
-# Full deploy with Telegram bot
-bun run scripts/setup-nanoclaw.ts --name alice --persona one --token 1234:ABC...
+# 2. From predefined persona
+bun run scripts/setup-nanoclaw.ts --name alice --persona one
+
+# 3. With Telegram bot
+bun run scripts/setup-nanoclaw.ts --name tutor --agent tutor --token 1234:ABC...
+
+# List available personas and agents
+bun run scripts/setup-nanoclaw.ts
 ```
 
-One command: generates API key → CF queue → deploy → secrets → webhook → credentials printed.
+**API endpoint:**
+
+```bash
+# Generate config for any agent
+curl -X POST http://localhost:4321/api/claw \
+  -H "Content-Type: application/json" \
+  -d '{"agentId": "tutor"}'
+
+# Returns: persona, wranglerConfig, deployCommands, tools available
+```
+
+One command: reads agent markdown → adds persona → generates API key → CF queue → deploy → secrets → webhook → credentials printed.
+
+**Tools available to every claw:**
+
+| Tool | What it does |
+|------|-------------|
+| `signal` | Emit signal to substrate |
+| `discover` | Find agents by tag |
+| `remember` | Store insight in TypeDB |
+| `recall` | Retrieve learned patterns |
+| `highways` | Get proven paths |
+| `mark` / `warn` | Feedback on paths |
 
 ### Local development with tunnels
 
@@ -216,20 +257,6 @@ curl "https://api.telegram.org/bot${TOKEN}/setWebhook?url=https://local.one.ie/w
 ```
 
 No ngrok limits. Stable URLs. Free via Cloudflare Tunnel.
-
-### Add a persona
-
-```typescript
-// nanoclaw/src/personas.ts
-personas['myagent'] = {
-  name: 'My Agent',
-  description: 'Does X',
-  model: 'anthropic/claude-haiku-4-5',
-  systemPrompt: `You are...`,
-}
-```
-
-Then: `bun run scripts/setup-nanoclaw.ts --name myagent --persona myagent`
 
 ### Web API
 
@@ -307,6 +334,32 @@ See [docs/deploy.md](docs/deploy.md) for full tutorial, or [docs/speed.md](docs/
 
 ---
 
+## API Routes
+
+Routes implement the Six Verbs from [dictionary.md](docs/dictionary.md): `send`, `mark`, `warn`, `fade`, `follow`, `harden`.
+
+| Route | Method | Verb | Purpose |
+|-------|--------|------|---------|
+| `/api/signal` | POST | send | Emit signal `{receiver, data: {tags, weight, content}}` |
+| `/api/mark` | POST | mark | Strengthen a path |
+| `/api/tick` | GET | tick | Run growth cycle (L1-L7 loops) |
+| `/api/decay` | POST | fade | Asymmetric decay |
+| `/api/subscribe` | POST | follow | Subscribe unit to tags |
+| `/api/claw` | POST | — | Generate NanoClaw config for any agent |
+| `/api/tasks` | GET/POST | — | List/create tasks with pheromone categories |
+| `/api/tasks/:id/complete` | POST | mark/warn | Close loop with outcome |
+| `/api/agents/sync` | POST | — | Sync agent markdown to TypeDB |
+| `/api/agents/:id/commend` | POST | mark | Boost success-rate +0.1 |
+| `/api/agents/:id/flag` | POST | warn | Lower success-rate −0.15 |
+| `/api/state` | GET | — | Full world state (units, edges, highways) |
+| `/api/export/highways` | GET | follow | Proven paths |
+| `/api/export/toxic` | GET | — | Blocked paths |
+| `/api/hypotheses` | GET | harden | Confirmed learnings |
+
+Full API docs: [src/pages/api/CLAUDE.md](src/pages/api/CLAUDE.md)
+
+---
+
 ## Files
 
 ```
@@ -332,7 +385,15 @@ nanoclaw/src/                  Edge agent worker
 nanoclaw/wrangler.toml         Main instance (open, Gemma 4 default)
 nanoclaw/wrangler.donal.toml   Donal's CMO bot (BOT_PERSONA=donal, API key auth)
 
-scripts/setup-nanoclaw.ts      One-command NanoClaw deployment script
+scripts/setup-nanoclaw.ts      One-command NanoClaw deployment (--agent or --persona)
+
+.claude/commands/              Slash commands
+├── claw.md                    /claw — add NanoClaw to any agent
+├── see.md                     /see — read world state (tasks, highways, frontiers)
+├── create.md                  /create — emit new entity (task, agent, signal)
+├── do.md                      /do — drive work through substrate
+├── close.md                   /close — close signal loop with outcome
+└── sync.md                    /sync — reconcile state
 
 agents/                        Markdown agent definitions
 ├── donal/                     OO Agency Pod — 11 marketing agents

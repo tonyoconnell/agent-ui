@@ -236,7 +236,7 @@ One agent per file. Each gets the diff specs from W2.
 
 ### Tasks
 
-- [ ] **1a. Recon dictionary.md for current Seed/Name/Weight/Events sections**
+- [x] **1a. Recon dictionary.md for current Seed/Name/Weight/Events sections**
   id: c1-recon-dictionary
   value: critical
   effort: low
@@ -246,7 +246,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: Report lists exact line ranges + current phrasing of data/tags/weight in dictionary.md
   tags: docs, recon, P0
 
-- [ ] **1b. Recon DSL.md for signal grammar + current examples**
+- [x] **1 Recon DSL.md for signal grammar + current examples**
   id: c1-recon-dsl
   value: critical
   effort: low
@@ -256,7 +256,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: Report lists every `{ receiver, data }` example and mark/warn usage
   tags: docs, recon, P0
 
-- [ ] **1c. Recon naming.md for canonical names list**
+- [x] **1 Recon naming.md for canonical names list**
   id: c1-recon-naming
   value: high
   effort: low
@@ -266,7 +266,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: Report confirms whether tags/weight/content are currently canonical names
   tags: docs, recon, P1
 
-- [ ] **1d. Recon one-ontology.md Events dimension**
+- [x] **1 Recon one-ontology.md Events dimension**
   id: c1-recon-ontology
   value: high
   effort: low
@@ -276,7 +276,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: Report on signal-relation data field description
   tags: docs, recon, P1
 
-- [ ] **1e. Recon engine.md + CLAUDE.md Signal blocks**
+- [x] **1 Recon engine.md + CLAUDE.md Signal blocks**
   id: c1-recon-rules
   value: high
   effort: low
@@ -286,7 +286,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: Report all Signal type declarations and mark/warn prose across the two rule docs
   tags: docs, recon, P1
 
-- [ ] **1f. Decide diff specs for all 6 docs (Opus)**
+- [x] **1 Decide diff specs for all 6 docs (Opus)**
   id: c1-decide
   value: critical
   effort: medium
@@ -296,7 +296,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: 6 diff spec sets produced, judgment recorded for subscribe-verb question
   tags: docs, decide, P0
 
-- [ ] **1g. Edit dictionary.md — add "Three Slots of Data" section**
+- [x] **1 Edit dictionary.md — add "Three Slots of Data" section**
   id: c1-edit-dictionary
   value: critical
   effort: medium
@@ -306,7 +306,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: New section after line 38; Events section (612) notes the shape
   tags: docs, edit, P0
 
-- [ ] **1h. Edit DSL.md — canonical examples use {tags, weight, content}**
+- [x] **1 Edit DSL.md — canonical examples use {tags, weight, content}**
   id: c1-edit-dsl
   value: critical
   effort: medium
@@ -316,7 +316,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: All Signal examples show the three-slot data shape
   tags: docs, edit, P0
 
-- [ ] **1i. Edit naming.md — add tags/weight/content as canonical**
+- [x] **1 Edit naming.md — add tags/weight/content as canonical**
   id: c1-edit-naming
   value: high
   effort: low
@@ -326,7 +326,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: Three new entries in the canonical names table
   tags: docs, edit, P1
 
-- [ ] **1j. Edit one-ontology.md — Events data shape**
+- [x] **1 Edit one-ontology.md — Events data shape**
   id: c1-edit-ontology
   value: high
   effort: low
@@ -336,7 +336,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: Events dimension documents data = {tags, weight, content}
   tags: docs, edit, P1
 
-- [ ] **1k. Edit engine.md rule — Signal block**
+- [x] **1 Edit engine.md rule — Signal block**
   id: c1-edit-engine-rule
   value: high
   effort: low
@@ -346,7 +346,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: `.claude/rules/engine.md` Signal section names the three slots
   tags: docs, edit, P1
 
-- [ ] **1l. Edit CLAUDE.md — Core Concepts → Signal**
+- [x] **1 Edit CLAUDE.md — Core Concepts → Signal**
   id: c1-edit-claude-md
   value: high
   effort: low
@@ -356,7 +356,7 @@ One agent per file. Each gets the diff specs from W2.
   exit: CLAUDE.md Signal line includes the shape
   tags: docs, edit, P1
 
-- [ ] **1m. Verify C1 — consistency + green gate**
+- [x] **1 Verify C1 — consistency + green gate**
   id: c1-verify
   value: critical
   effort: low
@@ -431,7 +431,7 @@ Key decisions:
 
 ### Tasks
 
-- [ ] **2a. Recon tasksFor + agent-md tags + ws broadcast + TaskBoard sub**
+- [x] **2 Recon tasksFor + agent-md tags + ws broadcast + TaskBoard sub**
   id: c2-recon
   value: critical
   effort: low
@@ -441,7 +441,7 @@ Key decisions:
   exit: 4 reports on existing tag-match + ws plumbing
   tags: engine, recon, P0
 
-- [ ] **2b. Decide subscribe API + persistence + ws filter + endpoint**
+- [x] **2 Decide subscribe API + persistence + ws filter + endpoint**
   id: c2-decide
   value: critical
   effort: medium
@@ -451,7 +451,7 @@ Key decisions:
   exit: API spec + migration plan for 5 edit jobs
   tags: engine, decide, P0
 
-- [ ] **2c. Add subscribe(tags) to Unit/World in world.ts**
+- [x] **2 Add subscribe(tags) to Unit/World in world.ts**
   id: c2-edit-world-sub
   value: critical
   effort: medium
@@ -461,7 +461,7 @@ Key decisions:
   exit: `unit.subscribe([t1, t2])` installs tag-match; `world.signal()` fan-outs to matching subs
   tags: engine, edit, P0
 
-- [ ] **2d. Persist subscriptions in persist.ts**
+- [x] **2 Persist subscriptions in persist.ts**
   id: c2-edit-persist-sub
   value: high
   effort: low
@@ -471,7 +471,7 @@ Key decisions:
   exit: Subscriptions survive restart via TypeDB (or explicit no-persist decision recorded)
   tags: engine, typedb, edit, P1
 
-- [ ] **2e. Tag-filtered broadcast in dev-ws-server.ts**
+- [x] **2 Tag-filtered broadcast in dev-ws-server.ts**
   id: c2-edit-ws
   value: high
   effort: low
@@ -481,7 +481,7 @@ Key decisions:
   exit: Broadcast sends only to clients whose subscribed tags intersect signal.data.tags
   tags: infra, edit, P1
 
-- [ ] **2f. TaskBoard subscribes with tags on WebSocket connect**
+- [x] **2 TaskBoard subscribes with tags on WebSocket connect**
   id: c2-edit-taskboard
   value: high
   effort: low
@@ -491,7 +491,7 @@ Key decisions:
   exit: TaskBoard sends `{type: 'subscribe', tags: [...]}` on connect
   tags: ui, edit, P1
 
-- [ ] **2g. New /api/subscribe endpoint**
+- [x] **2 New /api/subscribe endpoint**
   id: c2-new-endpoint
   value: medium
   effort: low
@@ -501,7 +501,7 @@ Key decisions:
   exit: `POST /api/subscribe {receiver, tags}` creates a subscription; GET lists
   tags: api, edit, P1
 
-- [ ] **2h. Tests + verify C2 gate**
+- [x] **2 Tests + verify C2 gate**
   id: c2-verify
   value: critical
   effort: medium
@@ -547,16 +547,16 @@ helper — not by TypeScript. Simpler, zero-risk, no call-site migration needed.
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — Docs alignment (dictionary, DSL, naming, ontology, rules, CLAUDE.md)
-  - [ ] W1 — Recon (Haiku × 5)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet × 6)
-  - [ ] W4 — Verify (Sonnet × 1)
-- [ ] **Cycle 2: GROW** — Router tag-read + Subscribe verb (ws filter + endpoint)
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet × 5)
-  - [ ] W4 — Verify (Sonnet × 1)
+- [x] **Cycle 1: WIRE** — Docs alignment (dictionary, DSL, naming, ontology, rules, CLAUDE.md)
+  - [x] W1 — Recon (Haiku × 6)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet × 6)
+  - [x] W4 — Verify (Sonnet × 1) — rubric {fit:0.92, form:0.88, truth:0.95, taste:0.95}
+- [x] **Cycle 2: GROW** — Router tag-read + Subscribe verb (ws filter + endpoint)
+  - [x] W1 — Recon (Haiku × 4)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet × 4, dissolved × 1)
+  - [x] W4 — Verify (Sonnet × 1) — rubric {fit:0.95, form:0.95, truth:0.92, taste:0.93}
 
 ---
 

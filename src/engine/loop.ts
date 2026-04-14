@@ -8,6 +8,7 @@
 import { readParsed, writeSilent } from '@/lib/typedb'
 import { inferDocsFromTags, loadContext } from './context'
 import type { PersistentWorld } from './persist'
+import { EFFORT_MODEL, WAVE_MODEL } from './task-parse'
 
 // doc-scan and node:path imported dynamically to avoid Cloudflare bundling issues
 
@@ -51,6 +52,8 @@ let previousTarget: string | null = null
 let chainDepth = 0
 let priorityEvolve: string[] = []
 let lastStrengths: Record<string, number> = {}
+const taskFailures = new Map<string, number>() // failure count per task for hypothesis generation
+const tagFailures = new Map<string, number>() // failure count per tag-cluster for pattern hypotheses
 
 export const tick = async (net: PersistentWorld, complete?: Complete): Promise<TickResult> => {
   const now = Date.now()
@@ -148,8 +151,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       result.task = { id: taskId, name: taskName, priority: taskPriority }
       result.selected = taskId
 
-      // Load task metadata: exit condition, tags, explicit context keys
-      const [taskMeta, tagRows, ctxRows] = await Promise.all([
+      // Load task metadata: exit condition, tags, explicit context keys, wave position
+      const [taskMeta, tagRows, ctxRows, waveRows] = await Promise.all([
         readParsed(`
           match $t isa task, has task-id "${taskId}";
           $t has exit-condition $exit;
@@ -162,6 +165,10 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         readParsed(`
           match $t isa task, has task-id "${taskId}", has task-context $ctx;
           select $ctx;
+        `).catch(() => []),
+        readParsed(`
+          match $t isa task, has task-id "${taskId}", has task-wave $wave;
+          select $wave;
         `).catch(() => []),
       ])
       const exitCondition = (taskMeta[0]?.exit as string) || ''
@@ -183,6 +190,12 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
 
       // Route as signal: enqueue for the builder unit WITH full context envelope
       // Entry point is builder:task — the dispatch handler strips replyTo before recon
+      const taskWave = (waveRows[0]?.wave as string) || 'W3'
+      const taskModel =
+        WAVE_MODEL[taskWave as keyof typeof WAVE_MODEL] ||
+        EFFORT_MODEL[taskEffort as keyof typeof EFFORT_MODEL] ||
+        'sonnet'
+
       const taskSignal = {
         receiver: 'builder:task',
         data: {
@@ -190,6 +203,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
           taskName,
           taskPriority,
           effort: taskEffort,
+          wave: taskWave,
+          model: taskModel,
           phase: taskPhase,
           exit: exitCondition,
           tags: taskTags,
@@ -220,6 +235,19 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
           delete $d of $t; delete $st of $t;
           insert $t has done true, has task-status "done";
         `)
+        // L6: Record which context docs led to success as a testable hypothesis
+        if (contextDocs?.length) {
+          const contextKey = contextDocs.slice(0, 5).join(',')
+          writeSilent(`
+            insert $h isa hypothesis,
+              has hid "ctx:${taskId.replace(/"/g, '')}:${Date.now()}",
+              has statement "docs:${contextKey}→${taskId}:success",
+              has hypothesis-status "testing",
+              has observations-count 1,
+              has p-value 0.5,
+              has action-ready false;
+          `)
+        }
       } else if (outcome.dissolved) {
         // No handler — task is queued for external execution (CLI /work loop)
         net.enqueue(taskSignal)
@@ -227,6 +255,38 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       } else {
         net.warn(edge, 0.5)
         result.success = false
+        // Track repeated failures → auto-hypothesize at threshold
+        const failCount = (taskFailures.get(taskId) || 0) + 1
+        taskFailures.set(taskId, failCount)
+        if (failCount >= 3) {
+          writeSilent(`
+            insert $h isa hypothesis,
+              has hid "fail:${taskId.replace(/"/g, '')}:${Date.now()}",
+              has statement "task:${taskId}:repeated-failure:count=${failCount}",
+              has hypothesis-status "testing",
+              has observations-count ${failCount},
+              has p-value 0.5,
+              has action-ready false;
+          `)
+          taskFailures.delete(taskId)
+        }
+        // wave-failure-hypotheses: track failures by tag cluster
+        const taskData = taskSignal.data as { tags?: string[] }
+        const tagKey = taskData.tags?.length ? taskData.tags.slice().sort().join('::') : 'untagged'
+        const tagFailCount = (tagFailures.get(tagKey) || 0) + 1
+        tagFailures.set(tagKey, tagFailCount)
+        if (tagFailCount >= 3) {
+          writeSilent(`
+            insert $h isa hypothesis,
+              has hid "tagfail:${tagKey.replace(/[^a-z0-9]/gi, '-').slice(0, 40)}:${Date.now()}",
+              has statement "tag-cluster:${tagKey}:repeated-failure:wave=${taskWave}:count=${tagFailCount}",
+              has hypothesis-status "testing",
+              has observations-count ${tagFailCount},
+              has p-value 0.5,
+              has action-ready false;
+          `)
+          tagFailures.delete(tagKey)
+        }
       }
     }
   }
@@ -299,8 +359,53 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         .map((k) => k.pattern)
         .join('; ')
 
+      // rubric-evolution-feed: read per-dim pheromone → targeted guidance
+      const dimHints: string[] = []
+      const dimGuide = {
+        fit: 'improve task relevance — adhere to exit conditions',
+        form: 'improve code structure and formatting quality',
+        truth: 'improve factual accuracy — verify all claims before output',
+        taste: 'improve voice — cleaner, more direct prose and naming',
+      } as const
+      for (const dim of ['fit', 'form', 'truth', 'taste'] as const) {
+        const edge = `entry→builder:verify:${dim}`
+        const s = net.sense(edge)
+        const r = net.danger(edge)
+        if (r > s && s + r > 2) dimHints.push(dimGuide[dim])
+      }
+      const dimGuidance = dimHints.length ? ` Dim weaknesses from graph: ${dimHints.join('; ')}.` : ''
+
+      // evolve-builder: per-wave pheromone → wave-specific guidance
+      // Each wave transition edge tracks that wave's success rate independently.
+      const waveGuideMap = {
+        'recon (W1)': 'improve file reading and pattern surfacing — be more specific about what to look for',
+        'decide (W2)': 'improve decision quality — produce clearer implementation plans with file paths',
+        'edit (W3)': 'improve edit precision — anchor strings must match exactly, one change per file',
+        'verify (W4)': 'improve verification rigour — check exit condition explicitly, score all four dims',
+      } as const
+      const waveRates = (
+        [
+          ['recon (W1)', 'wave-runner:W1→wave-runner:W2'],
+          ['decide (W2)', 'wave-runner:W2→wave-runner:W3'],
+          ['edit (W3)', 'wave-runner:W3→wave-runner:W4'],
+          ['verify (W4)', 'wave-runner:W4→wave-runner:W1'],
+        ] as const
+      )
+        .map(([name, edge]) => {
+          const s = net.sense(edge)
+          const r = net.danger(edge)
+          return s + r > 3 ? { name, rate: s / (s + r) } : null
+        })
+        .filter((x): x is { name: keyof typeof waveGuideMap; rate: number } => x !== null)
+        .sort((a, b) => a.rate - b.rate)
+      const weakWave = waveRates[0]
+      const waveGuidance =
+        weakWave && weakWave.rate < 0.6
+          ? ` Weakest wave: ${weakWave.name} (${(weakWave.rate * 100).toFixed(0)}% success) — ${waveGuideMap[weakWave.name]}.`
+          : ''
+
       const prompt = await complete(
-        `Agent "${uid}" has ${((u.sr as number) * 100).toFixed(0)}% success over ${u.sc} tasks (gen ${u.g}). Skills: ${skillInfo}. Known patterns: ${insights || 'none'}. Rewrite its prompt to improve:\n\n${u.sp}`,
+        `Agent "${uid}" has ${((u.sr as number) * 100).toFixed(0)}% success over ${u.sc} tasks (gen ${u.g}). Skills: ${skillInfo}. Known patterns: ${insights || 'none'}.${dimGuidance}${waveGuidance} Rewrite its prompt to improve:\n\n${u.sp}`,
       ).catch(() => null)
       if (!prompt) continue
 
@@ -387,6 +492,34 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
             has frontier-status "unexplored";
         `).catch(() => {})
         frontierCount++
+      }
+    }
+
+    // FR-2: wave-frontiers — tag clusters where some waves have never been executed
+    const taskTagWaveRows = await readParsed(`
+      match $t isa task, has tag $tg, has task-wave $w; select $tg, $w;
+    `).catch(() => [] as Record<string, unknown>[])
+    if (taskTagWaveRows.length > 0) {
+      const byTagWaves: Record<string, Set<string>> = {}
+      for (const r of taskTagWaveRows) {
+        const tg = r.tg as string
+        const w = r.w as string
+        if (!byTagWaves[tg]) byTagWaves[tg] = new Set()
+        byTagWaves[tg].add(w)
+      }
+      const allWaves = ['W1', 'W2', 'W3', 'W4']
+      for (const [tag, covered] of Object.entries(byTagWaves)) {
+        const missing = allWaves.filter((w) => !covered.has(w))
+        if (missing.length > 0) {
+          writeSilent(`
+            insert $f isa frontier, has fid "wave-${tag.replace(/[^a-z0-9]/gi, '-')}-${cycle}",
+              has frontier-type "wave-gap",
+              has frontier-description "tag '${tag}': waves ${missing.join(',')} never executed (covered: ${[...covered].join(',')})",
+              has expected-value ${(missing.length / 4).toFixed(2)},
+              has frontier-status "unexplored";
+          `).catch(() => {})
+          frontierCount++
+        }
       }
     }
 

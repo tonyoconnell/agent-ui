@@ -9,7 +9,7 @@ The LLM is the only probabilistic component. Everything else is math.
 **Live:** api.one.ie + one-substrate.pages.dev + nanoclaw.oneie.workers.dev
 **Brain:** TypeDB Cloud (19 units, 18 skills, 19 functions)
 **LLM:** All models via [OpenRouter](https://openrouter.ai) — default: `meta-llama/llama-4-maverick` (1M ctx, $0.15/M tokens)
-**Bots:** @onedotbot (ONE assistant) · donal-claw (OO Marketing CMO) · @antsatworkbot (substrate)
+**Bots:** @onedotbot (ONE assistant) · donal-claw (OO Marketing CMO)
 
 ## The 6 Dimensions (LOCKED)
 
@@ -106,6 +106,7 @@ L7 FRONTIER   every hour      detect unexplored tag clusters
 ### Signal
 ```typescript
 type Signal = { receiver: string; data?: unknown; after?: number }
+// data convention: { tags?: string[], weight?: number, content?: unknown }
 ```
 The universal primitive. Receiver is `"unit"` or `"unit:skill"`.
 
@@ -613,20 +614,36 @@ personas = {
 
 Persona selection order: `BOT_PERSONA` env var → group ID prefix (`tg-donal-*`) → default.
 
-### Spin up a new NanoClaw in one command
+### Add a Claw to Any Agent
 
+**API endpoint:**
 ```bash
-# List available personas
-bun run scripts/setup-nanoclaw.ts
+# Generate claw config for any agent
+curl -X POST http://localhost:4321/api/claw \
+  -H "Content-Type: application/json" \
+  -d '{"agentId": "tutor"}'
 
-# Deploy with Telegram bot
-bun run scripts/setup-nanoclaw.ts --name alice --persona one --token 1234:ABC...
-
-# Deploy without bot (wire Telegram later)
-bun run scripts/setup-nanoclaw.ts --name alice --persona one
+# Returns: persona, wranglerConfig, deployCommands, tools available
 ```
 
-The script: generates API key → creates CF queue → deploys worker → sets secrets → registers webhook → prints credentials.
+**CLI command:**
+```bash
+# Deploy claw from agent markdown (reads agents/*.md)
+bun run scripts/setup-nanoclaw.ts --name tutor --agent tutor
+
+# Deploy claw from predefined persona
+bun run scripts/setup-nanoclaw.ts --name alice --persona one
+
+# Add Telegram bot
+bun run scripts/setup-nanoclaw.ts --name tutor --agent tutor --token 1234:ABC...
+
+# List available personas and agents
+bun run scripts/setup-nanoclaw.ts
+```
+
+**Slash command:** `/claw <agent-id>` — generates config and deploy instructions.
+
+The script: reads agent markdown → adds persona to personas.ts → generates API key → creates CF queue → deploys worker → sets secrets → registers webhook → prints credentials.
 
 ### Web Message API
 

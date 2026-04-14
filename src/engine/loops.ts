@@ -211,11 +211,14 @@ export const evolveLoop = (net: PersistentWorld, complete: Complete) =>
 
       // Synthesize: LLM rewrites prompt with failures + patterns + advice
       const skillInfo = unit.skills.join(', ')
+      const focusHint = unit.weakDim
+        ? `\nFocus: the "${unit.weakDim}" dimension has the lowest rubric score — prioritize improving it.`
+        : ''
       const newPrompt = await complete(
         `Agent "${unit.id}" has ${(unit.successRate * 100).toFixed(0)}% success over ${unit.sampleCount} tasks (gen ${unit.generation}).
 Skills: ${skillInfo}
 Known patterns: ${insights || 'none'}
-Advisor feedback: ${advice || 'none'}
+Advisor feedback: ${advice || 'none'}${focusHint}
 
 Rewrite its prompt to improve:
 

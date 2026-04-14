@@ -298,11 +298,32 @@ the full grammar, resolution flow, and cold-miss path.
 
 ---
 
-## Signal Data Flags
+## Signal Data Shape
 
 ```typescript
-{ receiver: 'x', data: { marks: false } }   // observe without leaving pheromone
-{ receiver: 'x', data: { weight: 5 } }      // mark 5 instead of default 1
+data = { tags, weight, content }
+```
+
+By convention, every `data` payload uses three named slots:
+
+| Field | Default | Meaning |
+|-------|---------|---------|
+| `tags` | `[]` | Routing + classification. `world:review+P0` addressing reads these. |
+| `weight` | `1` | Pheromone on delivery. `> 0` = mark. `< 0` = warn. |
+| `content` | `undefined` | The payload. Rubric scores, task bodies, API responses — anything. |
+
+```typescript
+// Plain delivery (weight 1, untagged)
+send({ receiver: 'analyst:process', data: { content: finding } })
+
+// Tagged + weighted (rubric mark)
+send({ receiver: 'world', data: { tags: ['fit'], weight: 0.9, content: { dim: 'fit', score: 0.9 } } })
+
+// Observe without leaving pheromone
+send({ receiver: 'x', data: { marks: false } })
+
+// Override mark weight
+send({ receiver: 'x', data: { weight: 5 } })
 ```
 
 `marks: false` is for sensors, monitors, health checks — signals that should

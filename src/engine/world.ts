@@ -22,7 +22,7 @@ type Task = (data: unknown, emit: Emit, ctx: { from: string; self: string }) => 
 type Template = (result: unknown) => Signal
 type Route = (s: Signal, from: string) => void
 
-type SignalData = { marks?: boolean; weight?: number; [k: string]: unknown }
+type SignalData = { marks?: boolean; weight?: number; tags?: string[] | string; [k: string]: unknown }
 const asData = (d: unknown): SignalData => (d && typeof d === 'object' ? (d as SignalData) : {})
 
 export interface Unit {
@@ -32,6 +32,8 @@ export interface Unit {
   role: (name: string, task: string, ctx: Record<string, unknown>) => Unit
   has: (name: string) => boolean
   list: () => string[]
+  subscribe: (tags: string[]) => Unit
+  subscribedTags: () => string[]
   id: string
 }
 
@@ -133,6 +135,12 @@ export const unit = (id: string, route?: Route): Unit => {
   )
   u.has = (n) => n in tasks
   u.list = () => Object.keys(tasks)
+  let _subscribedTags: string[] = []
+  u.subscribe = (tags) => {
+    _subscribedTags = [...tags]
+    return u
+  }
+  u.subscribedTags = () => _subscribedTags
   u.id = id
   return u
 }
@@ -207,6 +215,19 @@ export const world = (): World => {
     d.marks !== false && mark(edge, d.weight ?? 1)
 
     target({ receiver, data }, from)
+
+    // Tag fan-out: deliver to any unit subscribed on tags that intersect data.tags
+    const sigTags = Array.isArray(d.tags) ? d.tags : []
+    if (sigTags.length > 0) {
+      for (const [uid, sub] of Object.entries(units)) {
+        if (uid === unitId) continue
+        const subTags = sub.subscribedTags()
+        if (subTags.length > 0 && subTags.some((t) => sigTags.includes(t))) {
+          d.marks !== false && mark(`${from}→${uid}`, d.weight ?? 1)
+          sub({ receiver: uid, data }, from)
+        }
+      }
+    }
   }
 
   // ask: signal and wait for reply. Returns { result, timeout, dissolved }.

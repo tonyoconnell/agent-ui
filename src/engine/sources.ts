@@ -21,6 +21,7 @@ export type StrugglingUnit = {
   generation: number
   skills: string[]
   tags: string[]
+  weakDim?: string // 'fit' | 'form' | 'truth' | 'taste' — from rubric pheromone paths
 }
 
 export type Advisor = {
@@ -111,6 +112,16 @@ export const struggling = (net: PersistentWorld) => async (): Promise<Struggling
     if (!unit.tags.includes(tag)) unit.tags.push(tag)
   }
 
+  // Compute weakest rubric dimension from tagged pheromone paths (entry→builder:verify:dim)
+  const DIMS = ['fit', 'form', 'truth', 'taste'] as const
+  for (const unit of Object.values(byUnit)) {
+    const dimStrengths = DIMS.map((dim) => ({
+      dim,
+      strength: net.sense(`entry→builder:verify:${dim}`),
+    }))
+    const weakest = dimStrengths.reduce((a, b) => (a.strength < b.strength ? a : b))
+    if (weakest.strength < 0.5) unit.weakDim = weakest.dim
+  }
   return Object.values(byUnit)
 }
 

@@ -565,7 +565,7 @@ SHIPPING:
   ✓ Auto-wallet minting — agents join AgentVerse autonomously
   ✓ bun oneie — scaffolding, v3.6.40 on npm
   ✓ Marketing department — 8 agents, all markdown
-  ✓ Telegram bot — @antsatworkbot, live
+  ✓ Telegram bot — @onedotbot, live
   ✓ 20+ agent templates — ready to fork and deploy
   ✓ ONE platform — one.ie, TypeDB Cloud, Cloudflare Workers
 ```

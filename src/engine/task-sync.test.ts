@@ -52,12 +52,14 @@ describe('task-sync.ts — TypeDB persistence', () => {
       const result = await syncTasks(tasks)
 
       expect(result.synced).toBe(1)
-      expect(typedb.writeSilent).toHaveBeenCalled()
+      expect(typedb.write).toHaveBeenCalled()
 
-      // Should create task entity, skill entity, and capability
-      expect(typedb.writeSilent).toHaveBeenCalledWith(expect.stringContaining('insert $t isa task'))
-      expect(typedb.writeSilent).toHaveBeenCalledWith(expect.stringContaining('insert $s isa skill'))
-      expect(typedb.writeSilent).toHaveBeenCalledWith(expect.stringContaining('insert (provider'))
+      // Batched insert: task entity, skill entity, and capability are in one write call
+      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
+      const batchCall = writeCalls.find((c) => c.includes('task-1'))
+      expect(batchCall).toContain('$t0 isa task')
+      expect(batchCall).toContain('$s0 isa skill')
+      expect(batchCall).toContain('(provider: $u, offered: $s0) isa capability')
     })
 
     it('should escape special characters in task names', async () => {
@@ -74,10 +76,10 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
       await syncTasks(tasks)
 
-      // Should escape quotes
-      expect(typedb.writeSilent).toHaveBeenCalledWith(
-        expect.stringContaining('Task with \\"quotes\\" and \\\\backslash'),
-      )
+      // Should escape quotes in the batch write call
+      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
+      const batchCall = writeCalls.find((c) => c.includes('task-escape'))
+      expect(batchCall).toContain('Task with \\"quotes\\" and \\\\backslash')
     })
 
     it('should include all task fields in TypeDB query', async () => {
@@ -103,9 +105,9 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
       await syncTasks(tasks)
 
-      // Find the task entity insert call (not the builder unit call)
-      const calls = vi.mocked(typedb.writeSilent).mock.calls.map((c) => c[0] as string)
-      const taskCall = calls.find((c) => c.includes('full-task') && c.includes('insert $t isa task'))
+      // Find the task entity insert call (batch write contains match+insert)
+      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
+      const taskCall = writeCalls.find((c) => c.includes('full-task') && c.includes('$t0 isa task'))
 
       expect(taskCall).toBeDefined()
       expect(taskCall).toContain('Full Task')
@@ -166,10 +168,10 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
       expect(result.blocks).toBe(2)
 
-      // Should have created blocks relations
-      expect(typedb.writeSilent).toHaveBeenCalledWith(
-        expect.stringContaining('insert (blocker: $a, blocked: $b) isa blocks'),
-      )
+      // Blocks relations are inserted via write() with match+insert
+      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
+      const blocksCall = writeCalls.find((c) => c.includes('isa blocks'))
+      expect(blocksCall).toContain('(blocker: $a0, blocked: $b0) isa blocks')
     })
 
     it('should skip blocks relations for non-existent tasks', async () => {
@@ -187,7 +189,7 @@ describe('task-sync.ts — TypeDB persistence', () => {
           formula: 'priority',
           source: 'TODO.md',
           tags: [],
-          blocks: ['nonexistent-task'], // This task doesn't exist
+          blocks: ['nonexistent-task'], // This task doesn't exist in the batch
           context: [],
           exit: '',
           line: 0,
@@ -198,7 +200,7 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
       // Should still insert the task, but blocks count should be 0
       expect(result.synced).toBe(1)
-      expect(result.blocks).toBe(0) // No blocks created
+      expect(result.blocks).toBe(0) // No blocks created (nonexistent-task not in batch)
     })
 
     it('should batch insert tasks in groups', async () => {
@@ -225,12 +227,12 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
       expect(result.synced).toBe(25)
 
-      // Each task creates 3 writes: task entity, skill entity, capability
-      // Plus 1 for ensureBuilder
-      // Plus 1 for insertBlocks call
-      // Total: 25*3 + 1 + 1 = 77 calls
-      const callCount = vi.mocked(typedb.writeSilent).mock.calls.length
-      expect(callCount).toBeGreaterThan(50) // At least 50 calls
+      // 25 tasks fit in one batch (TASKS_PER_QUERY=25), so 1 write call for tasks
+      // Plus 1 writeSilent for ensureBuilder
+      const writeCalls = vi.mocked(typedb.write).mock.calls
+      expect(writeCalls.length).toBeGreaterThanOrEqual(1)
+      const silentCalls = vi.mocked(typedb.writeSilent).mock.calls
+      expect(silentCalls.some((c) => (c[0] as string).includes('builder'))).toBe(true)
     })
 
     it('should ensure builder unit exists', async () => {
@@ -250,7 +252,7 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
       await syncTasks(tasks)
 
-      // Should ensure builder unit exists (first call)
+      // Should ensure builder unit exists (writeSilent, first call)
       const calls = vi.mocked(typedb.writeSilent).mock.calls.map((c) => c[0] as string)
       expect(calls.some((c) => c.includes('builder') && c.includes('insert $u isa unit'))).toBe(true)
     })
@@ -297,10 +299,10 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
       await syncTasks(tasks)
 
-      const calls = vi.mocked(typedb.writeSilent).mock.calls.map((c) => c[0] as string)
-      const taskCall = calls.find((c) => c.includes('tagged-task') && c.includes('insert $t isa task'))
+      // Batch write contains all tags for task + skill
+      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
+      const taskCall = writeCalls.find((c) => c.includes('tagged-task') && c.includes('$t0 isa task'))
 
-      // Should include each tag
       expect(taskCall).toContain('has tag "P0"')
       expect(taskCall).toContain('has tag "engine"')
       expect(taskCall).toContain('has tag "test"')
@@ -324,23 +326,17 @@ describe('task-sync.ts — TypeDB persistence', () => {
 
       await syncTasks(tasks)
 
-      // Find the skill insert call
-      const skillCall = vi
-        .mocked(typedb.writeSilent)
-        .mock.calls.map((c) => c[0] as string)
-        .find((c) => c.includes('insert $s isa skill'))
+      // Skill insert is in the same batch write as the task
+      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
+      const batchCall = writeCalls.find((c) => c.includes('skill-task') && c.includes('$s0 isa skill'))
 
-      expect(skillCall).toContain('has tag "routing"')
-      expect(skillCall).toContain('has tag "build"')
+      expect(batchCall).toContain('has tag "routing"')
+      expect(batchCall).toContain('has tag "build"')
     })
   })
 
   describe('error handling', () => {
     it('should count insertion errors', async () => {
-      // Mock one success and one failure
-      vi.mocked(typedb.writeSilent).mockImplementationOnce(() => Promise.resolve(undefined))
-      vi.mocked(typedb.writeSilent).mockImplementationOnce(() => Promise.reject(new Error('Insert failed')))
-
       const tasks: Task[] = [
         createTask({
           id: 'task-1',
@@ -366,9 +362,13 @@ describe('task-sync.ts — TypeDB persistence', () => {
         }),
       ]
 
-      // Reset mocks for this test
+      // Reset mocks and make batch write fail
       vi.clearAllMocks()
-      vi.mocked(typedb.writeSilent).mockRejectedValueOnce(new Error('Fail'))
+      vi.mocked(typedb.writeSilent).mockResolvedValue(undefined) // ensureBuilder succeeds
+      vi.mocked(typedb.write).mockRejectedValueOnce(new Error('Batch failed')) // batch fails
+      // Per-task fallback also fails for both
+      vi.mocked(typedb.write).mockRejectedValueOnce(new Error('Fail'))
+      vi.mocked(typedb.write).mockRejectedValueOnce(new Error('Fail'))
 
       const result = await syncTasks(tasks)
 

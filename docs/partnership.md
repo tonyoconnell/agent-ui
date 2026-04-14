@@ -829,7 +829,7 @@ DONE:     agent-launch-toolkit built and shipping
 DONE:     agent-launch.ai live
 DONE:     ONE substrate: 43 tests, <1 second, proven
 DONE:     Python bridge: markdown -> uAgents -> AgentVerse
-DONE:     Telegram bot live (@antsatworkbot)
+DONE:     Telegram bot live (@onedotbot)
 DONE:     TypeDB Cloud: 19 units, 18 skills, 19 functions
 
 NOW:      Send marketing dept (8 agents) into AgentVerse

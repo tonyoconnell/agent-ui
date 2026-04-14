@@ -146,11 +146,12 @@ Two layers of learning:
 ```typescript
 type Signal = {
   receiver: string      // "unit" or "unit:task"
-  data?: unknown        // anything
+  data?: unknown        // { tags?, weight?, content? } by convention
 }
 ```
 
-The universal primitive.
+The universal primitive. `data` is untyped — convention shapes it:
+`tags` (routing/classification), `weight` (pheromone deposit), `content` (payload).
 
 ---
 

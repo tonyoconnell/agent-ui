@@ -35,23 +35,96 @@ const get = (flag: string) => {
   return i !== -1 ? args[i + 1] : null
 }
 
-const name = get('--name')
-const persona = get('--persona')
+let name = get('--name')
+let persona = get('--persona')
+const agentId = get('--agent')
 const telegramToken = get('--token')
+
+// If --agent is provided, read from agent markdown file
+if (agentId) {
+  const agentPath = resolve(ROOT, 'agents', `${agentId}.md`)
+  const groupPaths = [
+    resolve(ROOT, 'agents', 'marketing', `${agentId}.md`),
+    resolve(ROOT, 'agents', 'donal', `${agentId}.md`),
+    resolve(ROOT, 'agents', 'debbie', `${agentId}.md`),
+  ]
+
+  let agentFile: string | null = null
+  const tryPath = [agentPath, ...groupPaths].find((p) => existsSync(p))
+  if (tryPath) {
+    agentFile = readFileSync(tryPath, 'utf8')
+  }
+
+  if (!agentFile) {
+    console.error(`Agent ${agentId} not found in agents/ directory`)
+    console.log(`Tried: ${[agentPath, ...groupPaths].join(', ')}`)
+    process.exit(1)
+  }
+
+  // Parse agent markdown (simple YAML frontmatter extraction)
+  const frontmatterMatch = agentFile.match(/^---\n([\s\S]*?)\n---/)
+  const body = agentFile.replace(/^---\n[\s\S]*?\n---\n*/, '').trim()
+
+  if (frontmatterMatch) {
+    const fm = frontmatterMatch[1]
+    const getName = fm.match(/^name:\s*(.+)$/m)?.[1]?.trim()
+    const getModel = fm.match(/^model:\s*(.+)$/m)?.[1]?.trim()
+
+    name = name || getName || agentId
+    persona = persona || getName?.toLowerCase().replace(/[^a-z0-9]/g, '') || agentId
+
+    // Dynamically add persona if not in personas.ts
+    const { personas } = await import('../nanoclaw/src/personas.ts')
+    if (!personas[persona]) {
+      console.log(`\n📝 Agent "${agentId}" not in personas.ts — adding dynamically...`)
+      const personaEntry = `
+  ${persona}: {
+    name: '${getName || agentId}',
+    description: 'Agent from ${agentId}.md',
+    model: '${getModel || 'anthropic/claude-haiku-4-5'}',
+    systemPrompt: \`${body.replace(/`/g, '\\`').slice(0, 2000)}\`,
+  },`
+
+      const personasPath = resolve(ROOT, 'nanoclaw/src/personas.ts')
+      const personasContent = readFileSync(personasPath, 'utf8')
+      const updated = personasContent.replace(
+        /export const personas: Record<string, Persona> = \{/,
+        `export const personas: Record<string, Persona> = {${personaEntry}`,
+      )
+      writeFileSync(personasPath, updated)
+      console.log(`   → Added persona "${persona}" to nanoclaw/src/personas.ts`)
+    }
+  }
+}
 
 if (!name || !persona) {
   const { personas } = await import('../nanoclaw/src/personas.ts')
   console.log(`
 Usage:
   bun run scripts/setup-nanoclaw.ts --name <name> --persona <persona> [--token <telegram_token>]
+  bun run scripts/setup-nanoclaw.ts --name <name> --agent <agent-id> [--token <telegram_token>]
 
 Available personas:
 ${Object.entries(personas)
-  .map(([k, v]) => `  ${k.padEnd(16)} — ${v.description}`)
+  .map(([k, v]) => `  ${k.padEnd(16)} — ${(v as { description: string }).description}`)
   .join('\n')}
 
-Example:
+Available agents (agents/*.md):
+  ${
+    existsSync(resolve(ROOT, 'agents'))
+      ? `${execSync('ls agents/*.md agents/**/*.md 2>/dev/null || true', { cwd: ROOT, encoding: 'utf8' })
+          .split('\n')
+          .filter(Boolean)
+          .map((f) => f.replace('agents/', '').replace('.md', ''))
+          .slice(0, 10)
+          .join(', ')}...`
+      : 'none'
+  }
+
+Examples:
   bun run scripts/setup-nanoclaw.ts --name donal --persona donal --token 1234:ABC...
+  bun run scripts/setup-nanoclaw.ts --name tutor --agent tutor
+  bun run scripts/setup-nanoclaw.ts --name creative --agent marketing/creative
 `)
   process.exit(1)
 }

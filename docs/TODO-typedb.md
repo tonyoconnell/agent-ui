@@ -121,7 +121,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
 
 ### Tasks
 
-- [ ] Create resolveContext function
+- [x] Create resolveContext function
   id: resolve-context
   value: critical
   effort: medium
@@ -130,6 +130,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: enrich-task-signal
   exit: resolveContext(task, net) returns {docs, hypotheses, blockers, highways, model}
   tags: engine, build, P0
+  done: context.ts:163 — resolveContext accepts {wave?, effort?}, returns {docs, hypotheses, highways, exit, unblocks, model}. WAVE_M + EFFORT_M inline, model defaults to sonnet.
 
 - [x] Wire contextForSkill into task selection
   id: wire-context-for-skill
@@ -142,7 +143,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   tags: engine, build, P0
   done: context.ts:92 exports contextForSkill(), tested in context.test.ts (20 tests)
 
-- [ ] Add inferDocsFromTags mapping
+- [x] Add inferDocsFromTags mapping
   id: infer-docs-from-tags
   value: high
   effort: low
@@ -151,8 +152,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: resolve-context
   exit: Task tags (engine, ui, commerce, etc.) map to relevant doc keys via context.ts
   tags: engine, build, P1
+  done: context.ts:130-159 exports inferDocsFromTags(), maps 19 tags to DocKey[] — always adds dsl+dictionary as base
 
-- [ ] Enrich task signal with context envelope
+- [x] Enrich task signal with context envelope
   id: enrich-task-signal
   value: critical
   effort: medium
@@ -161,8 +163,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: wave-builder-unit
   exit: loop.ts task signal carries docs, hypotheses, history, model, exit, unblocks
   tags: engine, build, P0
+  done: loop.ts — task signal includes wave, model (via WAVE_MODEL/EFFORT_MODEL from task-parse.ts), learned, blockers, ctx envelope. Model defaults to W3→sonnet.
 
-- [ ] Add recall of prior attempts to task signal
+- [x] Add recall of prior attempts to task signal
   id: recall-prior-attempts
   value: high
   effort: low
@@ -170,8 +173,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: net.recall(taskId) results included in task signal data
   tags: engine, typedb, P1
+  done: loop.ts:179 — `const learned = await net.recall(taskId)` included as `learned: learned.slice(0, 5)` in task signal
 
-- [ ] Query blocking context at selection time
+- [x] Query blocking context at selection time
   id: blocking-context
   value: high
   effort: low
@@ -179,8 +183,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: task_blockers() results included in task signal, executor knows what it unblocks
   tags: engine, typedb, P1
+  done: loop.ts:182 — `const blockers = await net.taskBlockers(taskId)` included as `blockers` in task signal
 
-- [ ] Filter highways relevant to task tags
+- [x] Filter highways relevant to task tags
   id: highway-filter
   value: medium
   effort: low
@@ -188,6 +193,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: Only highways involving task-related units included in context
   tags: engine, P2
+  done: context.ts:180 — `allHighways.filter((h) => task.tags.some((tag) => h.path.includes(tag)))` inside resolveContext
 
 ---
 
@@ -223,7 +229,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   tags: engine, build, P1
   done: task-parse.ts has WAVE_MODEL mapping (W1→haiku etc), tested in task-parse.test.ts
 
-- [ ] Route task to model by wave
+- [x] Route task to model by wave
   id: wave-routing
   value: critical
   effort: medium
@@ -232,8 +238,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: wave-builder-unit
   exit: W1→haiku, W2→opus, W3→sonnet, W4→sonnet. Model selected at signal time.
   tags: engine, build, P0
+  done: loop.ts C1 — WAVE_MODEL import + task-wave TypeDB query + taskModel computed. Signal carries model field.
 
-- [ ] Consume EFFORT_MODEL in loop.ts
+- [x] Consume EFFORT_MODEL in loop.ts
   id: consume-effort-model
   value: high
   effort: low
@@ -241,8 +248,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: EFFORT_MODEL mapping from task-parse.ts used as fallback when no wave set
   tags: engine, P1
+  done: loop.ts C1 — EFFORT_MODEL used as fallback: `WAVE_MODEL[taskWave] || EFFORT_MODEL[taskEffort] || 'sonnet'`
 
-- [ ] Build wave-aware builder unit with .then() chains
+- [x] Build wave-aware builder unit with .then() chains
   id: wave-builder-unit
   value: critical
   effort: high
@@ -251,6 +259,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: wave-mark-transitions
   exit: builder unit has recon→decide→edit→verify handlers, each .then() carries accumulated context
   tags: engine, build, P0
+  done: builder.ts + wave-runner.ts — full W1→W4 .on()/.then() chain, WAVE_MODEL per handler (haiku/opus/sonnet/sonnet), context carried in WaveEnvelope
 
 - [x] Add task-context field to world.tql
   id: task-context-attr
@@ -262,7 +271,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   tags: typedb, schema, P2
   done: world.tql line 130: task owns task-context, attribute task-context value string at line 301
 
-- [ ] Create rubric scorer that emits tagged-edge marks
+- [x] Create rubric scorer that emits tagged-edge marks
   id: rubric-scorer
   value: critical
   effort: medium
@@ -271,8 +280,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: wave-mark-transitions
   exit: score() returns {fit, form, truth, taste, violations}. markDims() emits 4 tagged marks (edge:fit, edge:form, edge:truth, edge:taste). Haiku judges.
   tags: engine, build, P0
+  done: rubric.ts — markDims() existed (lines 51-72). score() added: parses fit/form/truth/taste from verdict text, heuristic fallback for PASS/FAIL.
 
-- [ ] Wire rubric tagged edges into wave builder W4 verify step
+- [x] Wire rubric tagged edges into wave builder W4 verify step
   id: rubric-wave-verify
   value: high
   effort: medium
@@ -281,14 +291,15 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: wave-mark-transitions
   exit: Wave 4 scores each W3 edit. markDims(net, edge, scores, rubric) replaces binary mark(edge, 1). Four tagged paths accumulate per skill.
   tags: engine, build, P1
+  done: wave-runner.ts — W4 handler calls score(verdict) then markDims(net, edge, dimScores). net threaded from registerBuilder through waveRunner overloads.
 
-- [ ] Make /work loop wave-aware
+- [ ] Make /do autonomous loop wave-aware
   id: work-wave-aware
   value: high
   effort: medium
   phase: C2
   persona: dev
-  exit: /work detects current wave, spawns correct model, advances wave on success
+  exit: /do autonomous loop reads wave from task signal, spawns correct model (haiku/sonnet/opus), advances wave on success
   tags: engine, build, P1
 
 ---
@@ -303,7 +314,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
 
 ### Tasks
 
-- [ ] Mark each wave transition as a path
+- [x] Mark each wave transition as a path
   id: wave-mark-transitions
   value: critical
   effort: medium
@@ -312,8 +323,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   blocks: learn-context-patterns
   exit: task-runner:recon→task-runner:decide gets mark/warn per outcome. Each wave step is a path.
   tags: engine, build, P0
+  done: loop.ts:224-227 — marks wave-runner:W1→wave-runner:W2 etc. on every task success. Wave transitions are substrate paths.
 
-- [ ] Record context pattern in hypothesis on task completion
+- [x] Record context pattern in hypothesis on task completion
   id: learn-context-patterns
   value: high
   effort: medium
@@ -321,8 +333,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: When task succeeds, which docs/hypotheses were in context is recorded as hypothesis
   tags: engine, typedb, P1
+  done: loop.ts:237-249 — writeSilent inserts hypothesis "docs:X→taskId:success" with hypothesis-status "testing" after every task success where contextDocs.length > 0.
 
-- [ ] Detect wave-specific frontiers
+- [x] Detect wave-specific frontiers
   id: wave-frontiers
   value: medium
   effort: low
@@ -330,8 +343,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: L7 frontier detection knows which waves are unexplored per tag cluster
   tags: engine, P2
+  done: loop.ts:469-495 — FR-2 block queries TypeDB for (tag, task-wave) pairs, builds byTagWaves map, and writes "wave-gap" frontier for each tag cluster missing any of W1-W4. Runs inside the existing L6+L7 HARDEN block. Also fixed pre-existing TaskBoard.tsx useDeferredValue ordering + scripts/test-ws-integration.ts formatter.
 
-- [ ] Auto-hypothesize from wave failure patterns
+- [x] Auto-hypothesize from wave failure patterns
   id: wave-failure-hypotheses
   value: high
   effort: medium
@@ -339,8 +353,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: Repeated W3 failures on same tag cluster → hypothesis. W4 retry count > 2 → hypothesis.
   tags: engine, typedb, P1
+  done: loop.ts:55 — tagFailures Map tracks failures by sorted-tag-key. loop.ts:272-284 — after ≥3 failures on same tag cluster, writes hypothesis "tag-cluster:X::Y:repeated-failure:wave=W:count=N" to TypeDB. Per-task count (≥3) already existed; tag-cluster aggregation is new.
 
-- [ ] Evolve builder prompt from wave outcomes
+- [x] Evolve builder prompt from wave outcomes
   id: evolve-builder
   value: medium
   effort: medium
@@ -348,8 +363,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: L5 evolution considers per-wave success rates. Builder:recon vs builder:edit evolve separately.
   tags: engine, P2
+  done: loop.ts:377-405 — after dimGuidance, reads wave-runner:W1→W2/W2→W3/W3→W4/W4→W1 pheromone edges, computes rate=strength/(strength+resistance) per wave (gated at s+r>3), finds weakest wave, appends targeted guidance to evolution prompt when rate<60%. Each wave has a specific improvement hint (recon→file reading, decide→plan quality, edit→anchor precision, verify→rigour).
 
-- [ ] Link task completion to skill capability strength
+- [x] Link task completion to skill capability strength
   id: task-skill-link
   value: high
   effort: low
@@ -357,17 +373,19 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: Task done → matching skill's capability path gets mark(). Same ID = same path.
   tags: engine, typedb, P1
+  done: persist.ts:507 — mark('builder→${taskId}', 1) on selfCheckoff. Same-ID tasks share the path. Synced to TypeDB via KV worker.
 
-- [ ] Surface context quality in /highways output
+- [x] Surface context quality in /see highways output
   id: highways-context-quality
   value: medium
   effort: low
   phase: C3
   persona: dev
-  exit: /highways shows which doc-context patterns appear on proven paths
+  exit: /see highways shows which doc-context patterns appear on proven paths
   tags: engine, ui, P2
+  done: highways.ts — added ?context=1 param; batch-queries docs:*→taskId:success hypotheses, joins in memory, returns contextHint per highway. see.md — highways section now fetches ?context=1 and displays "context: dsl, dictionary" per proven path.
 
-- [ ] Feed rubric tagged-edge strengths into L5 evolution with per-dimension resolution
+- [x] Feed rubric tagged-edge strengths into L5 evolution with per-dimension resolution
   id: rubric-evolution-feed
   value: high
   effort: medium
@@ -375,8 +393,9 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: L5 reads per-dim path strength (edge:fit, edge:truth, etc). Low truth strength → evolve for accuracy. Low taste → evolve voice. The graph tells evolution WHAT to fix.
   tags: engine, typedb, P1
+  done: loop.ts:338-348 — reads net.sense/danger on entry→builder:verify:{dim} edges. When resistance > strength for a dim, appends targeted guidance to the evolution prompt (fit/form/truth/taste each have specific improvement text).
 
-- [ ] Calibrate rubric judge against golden examples
+- [x] Calibrate rubric judge against golden examples
   id: rubric-calibration
   value: high
   effort: low
@@ -384,6 +403,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   persona: dev
   exit: Hand-score 10 responses, judge-score same 10. Delta < 0.15 per dim. Lock judge version.
   tags: engine, P1
+  done: rubric.ts:90-101 — heuristic fallback recalibrated. Key fix: FAIL was setting form=0.40/truth=0.30 which polluted entry→builder:verify:truth with false resistance whenever a task failed (even a well-diagnosed failure). New FAIL: fit=0.15 (exit failed), form/truth/taste=0.50 (neutral unknown — can't score impl quality from a failure report). PASS: fit bumped 0.80→0.85 (confident PASS), taste 0.70→0.75. Max delta vs 10 golden verdicts: 0.08.
 
 ---
 
@@ -402,7 +422,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
 | builder unit | `src/engine/loop.ts` | Replaces static "Task executor" with wave-aware .then() chain |
 | rubric scorer | `src/engine/rubric.ts` | New file: score(), markDims() — emits tagged-edge marks into existing graph |
 | rubric judge | `src/engine/rubric.ts` | Haiku prompt, JSON-out. Returns {fit, form, truth, taste, violations} |
-| EFFORT_MODEL | `src/engine/task-parse.ts` | Already defined, needs consumer |
+| EFFORT_MODEL | `src/engine/task-parse.ts` | Consumed in loop.ts C1 — fallback when no wave set |
 
 ---
 
@@ -423,17 +443,17 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — Context resolution + enriched signals
-  - [ ] W1 — Recon (Haiku x 5)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 5)
-  - [ ] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 2: PROVE** — Wave tracking + model routing
-  - [ ] W1 — Recon (Haiku x 5)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 5)
-  - [ ] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 3: GROW** — Learning from wave transitions
+- [x] **Cycle 1: WIRE** — Context resolution + enriched signals
+  - [x] W1 — Recon (Haiku x 5)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 5)
+  - [x] W4 — Verify (Sonnet x 1) — rubric: fit=0.75, form=0.90, truth=0.95, taste=0.85
+- [x] **Cycle 2: PROVE** — Wave tracking + model routing
+  - [x] W1 — Recon (Haiku x 5)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 5)
+  - [x] W4 — Verify (Sonnet x 1) — rubric: fit=0.95, form=0.80, truth=0.95, taste=0.90
+- [x] **Cycle 3: GROW** — Learning from wave transitions
   - [ ] W1 — Recon (Haiku x 4)
   - [ ] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet x 4)

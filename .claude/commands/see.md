@@ -52,14 +52,15 @@ No mark(), no warn(), no side effects. Every noun is read-only.
 
 ### highways
 
-1. GET `http://localhost:4321/api/state`
+1. GET `http://localhost:4321/api/export/highways?context=1` (falls back to `/api/state` if server not running)
 2. Show paths where `strength ≥ 50`, sorted by strength desc (default limit 20; use `--limit N` to override)
-3. Each: from → to, strength, traversals, revenue
+3. Each: from → to, strength, traversals, revenue — and `context: <docs>` if contextHint is present
 4. Report:
    ```
    Highways:  N paths ≥ 50 strength
    Hardened:  N paths promoted to permanent (L6)
    Top path:  <from> → <to>  strength=N  traversals=M  revenue=$X
+              context: dsl, dictionary  (docs that led to success on this path)
    ```
 
 ### toxic

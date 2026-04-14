@@ -16,10 +16,12 @@ type HighwayExport = {
   revenue?: number
   successRate?: number
   traversals?: number
+  contextHint?: string // top doc keys that led to success on this path
 }
 
 export const GET: APIRoute = async ({ url }) => {
   const limit = parseInt(url.searchParams.get('limit') || '100', 10)
+  const withContext = url.searchParams.has('context')
 
   try {
     const results = await readParsed(`
@@ -39,6 +41,24 @@ export const GET: APIRoute = async ({ url }) => {
       strength: r.str as number,
       resistance: r.r as number,
     }))
+
+    if (withContext) {
+      // Batch-query docs:*→taskId:success hypotheses — 1 query, join in memory
+      const hypoRows = await readParsed(`
+        match $h isa hypothesis, has statement $s;
+        $s contains "success";
+        select $s;
+      `).catch(() => [] as Record<string, unknown>[])
+      const contextMap = new Map<string, string>()
+      for (const r of hypoRows) {
+        const m = (r.s as string).match(/^docs:([^→]+)→([^:]+):success$/)
+        if (m) contextMap.set(m[2], m[1])
+      }
+      for (const h of highways) {
+        const taskId = h.to.match(/builder:(.+)$/)?.[1]
+        if (taskId && contextMap.has(taskId)) h.contextHint = contextMap.get(taskId)
+      }
+    }
 
     return Response.json(highways, {
       headers: { 'Cache-Control': 'public, max-age=1' },

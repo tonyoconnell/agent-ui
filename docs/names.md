@@ -67,8 +67,16 @@ These are the ONLY names for each concept. All docs, schemas, and APIs use these
 | ------------ | ---------------------------------- |
 | `strength`   | Success weight — mark() increments |
 | `resistance` | Failure weight — warn() increments |
-| `resistance` | Failure weight — warn() increments |
-| `tags`       |                                    |
+
+### Signal Data Fields
+
+Convention inside `data` — not a type constraint. All fields optional.
+
+| Field     | Type        | What                                               |
+|-----------|-------------|----------------------------------------------------|
+| `tags`    | `string[]`  | Classification + routing key                       |
+| `weight`  | `number`    | Pheromone strength. Positive marks, negative warns |
+| `content` | anything    | The actual payload                                 |
 
 ### Verbs
 

@@ -6,6 +6,7 @@
  */
 
 import { parseAnswers, read, readParsed, writeSilent } from '@/lib/typedb'
+import { relayToGateway, wsManager } from '@/lib/ws-server'
 import { mirrorActor, mirrorMark, mirrorWarn } from './bridge'
 import { type DocKey, ingestDocs, loadContext } from './context'
 import { world as createWorld, type Signal, type World } from './world'
@@ -72,6 +73,13 @@ export const world = (): PersistentWorld => {
     net.mark(edge, strength)
     const [from, to] = edge.split('→')
     if (!from || !to) return
+    // Broadcast pheromone change to connected TaskBoard clients (task edges only)
+    const taskMatch = to.trim().match(/^builder:(.+)$/)
+    if (taskMatch?.[1]) {
+      const markMsg = { type: 'mark' as const, taskId: taskMatch[1], strength: net.sense(edge), timestamp: Date.now() }
+      wsManager.broadcast(markMsg)
+      relayToGateway(markMsg) // reach production WS clients via Gateway
+    }
     writeSilent(`
       match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
       $e (source: $from, target: $to) isa path, has strength $s, has traversals $t;
@@ -86,6 +94,18 @@ export const world = (): PersistentWorld => {
     net.warn(edge, strength)
     const [from, to] = edge.split('→')
     if (!from || !to) return
+    // Broadcast pheromone change to connected TaskBoard clients (task edges only)
+    const taskMatch = to.trim().match(/^builder:(.+)$/)
+    if (taskMatch?.[1]) {
+      const warnMsg = {
+        type: 'warn' as const,
+        taskId: taskMatch[1],
+        resistance: net.danger(edge),
+        timestamp: Date.now(),
+      }
+      wsManager.broadcast(warnMsg)
+      relayToGateway(warnMsg) // reach production WS clients via Gateway
+    }
     writeSilent(`
       match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
       $e (source: $from, target: $to) isa path, has resistance $a;

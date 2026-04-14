@@ -82,14 +82,15 @@
   tags: agent, marketing, P0, deployment
   done: agents/marketing/ has 8 agent .md files: director, creative, media-buyer, seo, content, analyst, ads, social
 
-- [ ] Telegram: Wire signals to @antsatworkbot channel
+- [x] Telegram: Wire signals to @onedotbot channel
   value: critical
   effort: medium
   phase: C1
   persona: dev
   blocks: marketing-dept-live
-  exit: Agents signal @antsatworkbot, channel receives and routes back
+  exit: Agents signal @onedotbot, channel receives and routes back
   tags: agent, telegram, P0, integration
+  done: TELEGRAM_TOKEN_ONE set, webhook live at /webhook/telegram-one
 
 - [ ] Monitoring: Weekly success metrics dashboard
   value: medium

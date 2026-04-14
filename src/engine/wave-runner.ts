@@ -22,6 +22,7 @@
  */
 
 import type { PersistentWorld } from './persist'
+import { markDims, score } from './rubric'
 import { WAVE_MODEL } from './task-parse'
 import type { Unit } from './world'
 
@@ -120,14 +121,24 @@ export function waveRunner(net: PersistentWorld): Unit
  * Wire an existing unit as a 4-wave runner with a live LLM caller.
  * Used by builder.ts: waveRunner(net.add('builder'), complete, onDone)
  */
-export function waveRunner(u: Unit, complete: Completer, onDone?: OnComplete): Unit
+export function waveRunner(
+  u: Unit,
+  complete: Completer,
+  onDone?: OnComplete,
+  net?: Pick<PersistentWorld, 'mark' | 'warn'>,
+): Unit
 
-export function waveRunner(netOrUnit: PersistentWorld | Unit, complete?: Completer, onDone?: OnComplete): Unit {
+export function waveRunner(
+  netOrUnit: PersistentWorld | Unit,
+  complete?: Completer,
+  onDone?: OnComplete,
+  net?: Pick<PersistentWorld, 'mark' | 'warn'>,
+): Unit {
   // Dispatch: PersistentWorld has .actor(); Unit has .on()
   if ('actor' in netOrUnit) {
     return _wireUnit(netOrUnit.add('wave-runner'))
   }
-  return _wireUnitWithLLM(netOrUnit, complete!, onDone)
+  return _wireUnitWithLLM(netOrUnit, complete!, onDone, net)
 }
 
 // ── Internal: stub-based wiring (Form 1) ──────────────────────────────────
@@ -202,7 +213,12 @@ function _wireUnit(u: Unit): Unit {
 
 // ── Internal: LLM-based wiring (Form 2, used by builder.ts) ───────────────
 
-function _wireUnitWithLLM(u: Unit, complete: Completer, onDone?: OnComplete): Unit {
+function _wireUnitWithLLM(
+  u: Unit,
+  complete: Completer,
+  onDone?: OnComplete,
+  net?: Pick<PersistentWorld, 'mark' | 'warn'>,
+): Unit {
   // ENTRY POINT — strips replyTo before entering the wave chain
   u.on('task', async (data, emit) => {
     const d = data as TaskEnvelope & { replyTo?: string }
@@ -309,7 +325,8 @@ function _wireUnitWithLLM(u: Unit, complete: Completer, onDone?: OnComplete): Un
       env.exit ? `EXIT CONDITION: ${env.exit}` : '',
       env.edits ? `CHANGES MADE:\n${env.edits}` : '',
       '',
-      'W4 VERIFY: Does the exit condition pass? Answer with PASS or FAIL, then explain.',
+      'W4 VERIFY: Does the exit condition pass? Answer PASS or FAIL, then explain.',
+      'End your response with scores (each 0.0–1.0): fit:N form:N truth:N taste:N',
     ]
       .filter(Boolean)
       .join('\n')
@@ -317,10 +334,18 @@ function _wireUnitWithLLM(u: Unit, complete: Completer, onDone?: OnComplete): Un
     const verdict = await complete(prompt, model)
     if (!verdict) return null
 
+    const dimScores = score(verdict)
     const ok = verdict.trim().toUpperCase().startsWith('PASS')
+    const edge = `entry→${u.id}:verify`
+    if (net) markDims(net, edge, dimScores)
+
     const result: WaveEnvelope = {
       ...env,
-      verify: { ok, message: verdict.slice(0, 200) },
+      verify: {
+        ok,
+        score: (dimScores.fit + dimScores.form + dimScores.truth + dimScores.taste) / 4,
+        message: verdict.slice(0, 200),
+      },
     }
 
     if (ok) onDone?.(result)

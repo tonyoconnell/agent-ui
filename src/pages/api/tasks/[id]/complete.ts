@@ -12,7 +12,7 @@ import { execSync } from 'node:child_process'
 import type { APIRoute } from 'astro'
 import * as store from '@/lib/tasks-store'
 import { writeSilent } from '@/lib/typedb'
-import { wsManager } from '@/lib/ws-server'
+import { relayToGateway, wsManager } from '@/lib/ws-server'
 
 function triggerKvSync() {
   const syncUrl = import.meta.env.SYNC_WORKER_URL || 'https://one-sync.oneie.workers.dev'
@@ -115,13 +115,15 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   // Broadcast pheromone change to all connected TaskBoard instances
   const task = store.getTask(id)
-  wsManager.broadcast({
-    type: failed ? 'warn' : 'mark',
-    taskId: id,
-    strength: task?.trailPheromone ?? 0,
-    resistance: task?.alarmPheromone ?? 0,
-    timestamp: Date.now(),
-  })
+  if (failed) {
+    const msg = { type: 'warn' as const, taskId: id, resistance: task?.alarmPheromone ?? 0, timestamp: Date.now() }
+    wsManager.broadcast(msg)
+    relayToGateway(msg)
+  } else {
+    const msg = { type: 'mark' as const, taskId: id, strength: task?.trailPheromone ?? 0, timestamp: Date.now() }
+    wsManager.broadcast(msg)
+    relayToGateway(msg)
+  }
 
   return new Response(JSON.stringify({ ok: true, tid: id, outcome: failed ? 'failed' : 'success' }), {
     headers: { 'Content-Type': 'application/json' },

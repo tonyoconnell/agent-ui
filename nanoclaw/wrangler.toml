@@ -37,7 +37,7 @@ crons = ["* * * * *"]
 
 # Secrets (set with: wrangler secret put)
 # OPENROUTER_API_KEY
-# TELEGRAM_TOKEN          — legacy / default bot (@antsatworkbot)
-# TELEGRAM_TOKEN_DONAL    — Donal's CMO bot (webhook: /webhook/telegram-donal)
-# TELEGRAM_TOKEN_ONE      — ONE assistant bot (webhook: /webhook/telegram-one)
+# TELEGRAM_TOKEN          — your bot token (get from @BotFather, webhook: /webhook/telegram)
+# TELEGRAM_TOKEN_ONE      — ONE assistant bot @onedotbot (webhook: /webhook/telegram-one)
+# TELEGRAM_TOKEN_<NAME>   — add your own bot (webhook: /webhook/telegram-<name>)
 # DISCORD_TOKEN

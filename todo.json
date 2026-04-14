@@ -345,8 +345,8 @@
       "resistance": 0
     },
     {
-      "id": "telegram-wire-signals-to-antsatworkbot-channel",
-      "name": "Telegram: Wire signals to @antsatworkbot channel",
+      "id": "telegram-wire-signals-to-onedotbot-channel",
+      "name": "Telegram: Wire signals to @onedotbot channel",
       "done": false,
       "value": "critical",
       "effort": "medium",
@@ -367,7 +367,7 @@
       "blocks": [
         "marketing-dept-live"
       ],
-      "exit": "Agents signal @antsatworkbot, channel receives and routes back",
+      "exit": "Agents signal @onedotbot, channel receives and routes back",
       "source": "autonomous-orgs",
       "strength": 0,
       "resistance": 0

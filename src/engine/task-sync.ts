@@ -9,12 +9,13 @@
  */
 
 import { readParsed, write, writeSilent } from '@/lib/typedb'
-import { wsManager } from '@/lib/ws-server'
+import { relayToGateway, wsManager } from '@/lib/ws-server'
 import type { PersistentWorld } from './persist'
 import type { Task } from './task-parse'
 
 const UNIT_ID = 'builder'
-const BATCH_SIZE = 10
+const TASKS_PER_QUERY = 25
+const BLOCKS_PER_QUERY = 50
 
 function esc(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
@@ -29,15 +30,13 @@ async function ensureBuilder() {
   `)
 }
 
-/** Insert a single task entity into TypeDB */
-async function insertTask(task: Task): Promise<void> {
+/** Render insert block for one task — used inside a packed batch query */
+function renderTaskInsert(task: Task, idx: number): string {
   const tags = [...new Set(task.tags)].map((t) => `has tag "${esc(t)}"`).join(', ')
   const nameEsc = esc(task.name).slice(0, 200)
-
-  // Insert task entity
   const contextStr = task.context?.length ? `has task-context "${esc(task.context.join(','))}",` : ''
-  await writeSilent(`
-    insert $t isa task,
+  return `
+    $t${idx} isa task,
       has task-id "${esc(task.id)}",
       has name "${nameEsc}",
       has task-status "${task.done ? 'done' : 'open'}",
@@ -54,35 +53,72 @@ async function insertTask(task: Task): Promise<void> {
       has done ${task.done},
       ${tags ? `${tags},` : ''}
       has created ${new Date().toISOString().replace('Z', '')};
-  `)
-
-  // Insert matching skill (for capability routing backward compat)
-  await writeSilent(`
-    insert $s isa skill, has skill-id "${esc(task.id)}", has name "${nameEsc}",
+    $s${idx} isa skill, has skill-id "${esc(task.id)}", has name "${nameEsc}",
       ${tags ? `${tags},` : ''} has price 0.0, has currency "SUI";
-  `)
-
-  // Link skill to builder unit via capability
-  await writeSilent(`
-    match $u isa unit, has uid "${UNIT_ID}"; $s isa skill, has skill-id "${esc(task.id)}";
-    insert (provider: $u, offered: $s) isa capability, has price 0.0;
-  `)
+    (provider: $u, offered: $s${idx}) isa capability, has price 0.0;`
 }
 
-/** Insert blocks relations between tasks */
-async function insertBlocks(tasks: Task[]): Promise<number> {
-  let count = 0
-  const taskIds = new Set(tasks.map((t) => t.id))
+/** Insert a packed batch of tasks in one TypeDB round-trip */
+async function insertTaskBatch(batch: Task[]): Promise<number> {
+  if (batch.length === 0) return 0
+  const inserts = batch.map((t, i) => renderTaskInsert(t, i)).join('\n')
+  try {
+    await write(`
+      match $u isa unit, has uid "${UNIT_ID}";
+      insert ${inserts}
+    `)
+    return batch.length
+  } catch {
+    // Packed query failed — fall back to per-task (isolates the bad row)
+    let ok = 0
+    for (const t of batch) {
+      try {
+        await write(`
+          match $u isa unit, has uid "${UNIT_ID}";
+          insert ${renderTaskInsert(t, 0)}
+        `)
+        ok++
+      } catch {}
+    }
+    return ok
+  }
+}
 
+/** Insert blocks relations — packed into multi-pair queries */
+async function insertBlocks(tasks: Task[]): Promise<number> {
+  const taskIds = new Set(tasks.map((t) => t.id))
+  const pairs: Array<[string, string]> = []
   for (const task of tasks) {
     for (const blockedId of task.blocks) {
-      if (!taskIds.has(blockedId)) continue // skip if blocked task doesn't exist
-      await writeSilent(`
-        match $a isa task, has task-id "${esc(task.id)}";
-              $b isa task, has task-id "${esc(blockedId)}";
-        insert (blocker: $a, blocked: $b) isa blocks;
-      `)
-      count++
+      if (taskIds.has(blockedId)) pairs.push([task.id, blockedId])
+    }
+  }
+
+  let count = 0
+  for (let i = 0; i < pairs.length; i += BLOCKS_PER_QUERY) {
+    const batch = pairs.slice(i, i + BLOCKS_PER_QUERY)
+    const matches = batch
+      .map(
+        ([blocker, blocked], j) =>
+          `$a${j} isa task, has task-id "${esc(blocker)}"; $b${j} isa task, has task-id "${esc(blocked)}";`,
+      )
+      .join('\n')
+    const inserts = batch.map((_, j) => `(blocker: $a${j}, blocked: $b${j}) isa blocks;`).join('\n')
+    try {
+      await write(`match ${matches} insert ${inserts}`)
+      count += batch.length
+    } catch {
+      // Fall back: pair-by-pair
+      for (const [blocker, blocked] of batch) {
+        try {
+          await write(`
+            match $a isa task, has task-id "${esc(blocker)}";
+                  $b isa task, has task-id "${esc(blocked)}";
+            insert (blocker: $a, blocked: $b) isa blocks;
+          `)
+          count++
+        } catch {}
+      }
     }
   }
   return count
@@ -92,21 +128,20 @@ async function insertBlocks(tasks: Task[]): Promise<number> {
 export async function syncTasks(tasks: Task[]): Promise<{ synced: number; blocks: number; errors: number }> {
   await ensureBuilder()
 
-  const activeQ = `match $t isa task, has task-id $id, has task-status "active"; select $id;`
-  const activeRows = await readParsed(activeQ).catch(() => [])
-  const activeIds = new Set(activeRows.map((r) => r.id as string))
+  // Skip tasks that already exist OR are currently claimed (status="active")
+  const existingRows = await readParsed(`match $t isa task, has task-id $id; select $id;`).catch(() => [])
+  const activeIds = new Set(existingRows.map((r) => r.id as string))
 
   let synced = 0
   let errors = 0
 
-  // Insert tasks in batches
-  for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
-    const batch = tasks.slice(i, i + BATCH_SIZE)
-    const results = await Promise.allSettled(batch.filter((t) => !activeIds.has(t.id)).map((t) => insertTask(t)))
-    for (const r of results) {
-      if (r.status === 'fulfilled') synced++
-      else errors++
-    }
+  // Insert tasks in packed batches (one TypeDB round-trip per batch)
+  const pending = tasks.filter((t) => !activeIds.has(t.id))
+  for (let i = 0; i < pending.length; i += TASKS_PER_QUERY) {
+    const batch = pending.slice(i, i + TASKS_PER_QUERY)
+    const ok = await insertTaskBatch(batch)
+    synced += ok
+    errors += batch.length - ok
   }
 
   // Insert blocks relations
@@ -122,12 +157,9 @@ export async function markTaskDone(taskId: string): Promise<void> {
     delete $d of $t; delete $st of $t;
     insert $t has done true, has task-status "done";
   `)
-  wsManager.broadcast({
-    type: 'complete',
-    taskId,
-    status: 'complete',
-    timestamp: Date.now(),
-  })
+  const completeMsg = { type: 'complete' as const, taskId, timestamp: Date.now() }
+  wsManager.broadcast(completeMsg)
+  relayToGateway(completeMsg)
 }
 
 /**
@@ -194,20 +226,14 @@ export async function selfCheckoff(
     }
   }
 
-  // 6. Broadcast completion and unblock events via WebSocket
-  wsManager.broadcast({
-    type: 'complete',
-    taskId,
-    status: 'complete',
-    timestamp: Date.now(),
-  })
+  // 6. Broadcast completion and unblock events via WebSocket + Gateway relay
+  const completeMsg = { type: 'complete' as const, taskId, timestamp: Date.now() }
+  wsManager.broadcast(completeMsg)
+  relayToGateway(completeMsg)
   for (const unblockedId of unblocked) {
-    wsManager.broadcast({
-      type: 'unblock',
-      taskId: unblockedId,
-      status: 'todo',
-      timestamp: Date.now(),
-    })
+    const unblockMsg = { type: 'unblock' as const, taskId: unblockedId, unblockedBy: taskId, timestamp: Date.now() }
+    wsManager.broadcast(unblockMsg)
+    relayToGateway(unblockMsg)
   }
 
   return { marked: 1, unblocked }

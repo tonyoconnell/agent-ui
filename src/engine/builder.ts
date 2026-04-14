@@ -30,5 +30,5 @@ export type BuilderOnDone = (envelope: WaveEnvelope) => void
  */
 export const registerBuilder = (net: PersistentWorld, complete: BuilderComplete, onDone?: BuilderOnDone) => {
   const u = net.add('builder')
-  return waveRunner(u, complete, onDone)
+  return waveRunner(u, complete, onDone, net)
 }

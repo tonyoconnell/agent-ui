@@ -160,7 +160,7 @@ export const inferDocsFromTags = (tags: string[]): DocKey[] => {
 
 /** Build full context envelope for a task. Everything the executor needs. */
 export const resolveContext = async (
-  task: { tags: string[]; id?: string; exit?: string; blocks?: string[] },
+  task: { tags: string[]; id?: string; exit?: string; blocks?: string[]; wave?: string; effort?: string },
   net?: {
     recall?: (match?: string) => Promise<{ pattern: string; confidence: number }[]>
     highways?: (n?: number) => { path: string; strength: number }[]
@@ -171,6 +171,7 @@ export const resolveContext = async (
   highways: { path: string; strength: number }[]
   exit: string | undefined
   unblocks: string[] | undefined
+  model: string
 }> => {
   const docKeys = inferDocsFromTags(task.tags)
   const docs = loadContext(docKeys)
@@ -178,12 +179,16 @@ export const resolveContext = async (
   const allHighways = net?.highways ? net.highways(20) : []
   // Filter highways relevant to task tags
   const highways = allHighways.filter((h) => task.tags.some((tag) => h.path.includes(tag)))
+  const WAVE_M: Record<string, string> = { W1: 'haiku', W2: 'opus', W3: 'sonnet', W4: 'sonnet' }
+  const EFFORT_M: Record<string, string> = { low: 'haiku', medium: 'sonnet', high: 'opus' }
+  const model = (task.wave && WAVE_M[task.wave]) || (task.effort && EFFORT_M[task.effort]) || 'sonnet'
   return {
     docs,
     hypotheses,
     highways,
     exit: task.exit,
     unblocks: task.blocks,
+    model,
   }
 }
 

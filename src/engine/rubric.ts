@@ -70,3 +70,33 @@ export function markDims(net: Net, edge: string, scores: DimScores, dimensions?:
     }
   }
 }
+
+/**
+ * Parse dimension scores from W4 verdict text.
+ * Looks for "fit:N form:N truth:N taste:N" pattern (0–1 floats).
+ * Falls back to heuristics: PASS → balanced pass, FAIL → reduced scores.
+ */
+export function score(verdict: string): DimScores & { violations: string[] } {
+  const match = verdict.match(/fit[:\s]+([\d.]+).*?form[:\s]+([\d.]+).*?truth[:\s]+([\d.]+).*?taste[:\s]+([\d.]+)/is)
+  if (match) {
+    return {
+      fit: Math.min(1, parseFloat(match[1])),
+      form: Math.min(1, parseFloat(match[2])),
+      truth: Math.min(1, parseFloat(match[3])),
+      taste: Math.min(1, parseFloat(match[4])),
+      violations: [],
+    }
+  }
+  const pass = verdict.trim().toUpperCase().startsWith('PASS')
+  // PASS: exit condition met → fit is confident; form/truth/taste moderately high (unknown without scores)
+  // FAIL: exit condition failed → fit is very low; form/truth/taste are UNKNOWN (neutral 0.50)
+  //       Rationale: a failed implementation can still be diagnosed accurately (truth stays neutral)
+  //       and L5 evolution should not conclude "low truth = agent lies" when it just means task failed.
+  return {
+    fit: pass ? 0.85 : 0.15,
+    form: pass ? 0.75 : 0.5,
+    truth: pass ? 0.8 : 0.5,
+    taste: pass ? 0.75 : 0.5,
+    violations: pass ? [] : [verdict.slice(0, 120).trim()],
+  }
+}
