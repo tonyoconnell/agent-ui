@@ -4,7 +4,7 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 27
-completed: 12
+completed: 15
 status: ACTIVE
 syncs_with: TODO-testing.md
 ---
@@ -189,7 +189,7 @@ cycle's patterns are verified and promoted to durable learning.
   tags: api, lifecycle, P1
   done: src/pages/api/agents/register.ts implemented, tested, working (2026-04-14)
 
-- [ ] API endpoint: GET /api/agents/discover
+- [x] API endpoint: GET /api/agents/discover
   id: api-discover
   value: high
   effort: low
@@ -197,6 +197,7 @@ cycle's patterns are verified and promoted to durable learning.
   persona: dev
   exit: Endpoint accepts ?skill=X&limit=N, returns ranked units with strength scores. Uses suggest_route internally.
   tags: api, lifecycle, P1
+  done: src/pages/api/agents/discover.ts implemented; path-strength query bounded by uid list (prevents Cartesian scan); composite sort by strength × successRate (2026-04-14)
 
 - [x] TypeDB schema: unit status transitions
   id: schema-status
@@ -208,7 +209,7 @@ cycle's patterns are verified and promoted to durable learning.
   tags: schema, lifecycle, P1
   done: world.tql has unit-kind, unit_classification(), needs_evolution() functions
 
-- [ ] Lifecycle gate: REGISTER → CAPABLE requires unit_exists
+- [x] Lifecycle gate: REGISTER → CAPABLE requires unit_exists
   id: gate-register-capable
   value: high
   effort: low
@@ -217,8 +218,9 @@ cycle's patterns are verified and promoted to durable learning.
   blocks: gate-capable-discover
   exit: `canDeclareCapability(uid)` returns true only if unit exists with status "active". Gate enforced before capability insert.
   tags: engine, lifecycle, P1
+  done: src/engine/persist.ts exposes canDeclareCapability(uid); enforced before capability insert. See commit ea88ef7.
 
-- [ ] Lifecycle gate: CAPABLE → DISCOVER requires has_capability
+- [x] Lifecycle gate: CAPABLE → DISCOVER requires has_capability
   id: gate-capable-discover
   value: high
   effort: low
@@ -226,6 +228,7 @@ cycle's patterns are verified and promoted to durable learning.
   persona: dev
   exit: `canBeDiscovered(uid)` returns true only if at least one capability relation exists. Gate enforced in suggest_route.
   tags: engine, lifecycle, P1
+  done: Enforced structurally in src/pages/api/agents/discover.ts — the match query joins unit → capability → skill, so units without a capability relation cannot appear in results. Gate is non-bypassable by query shape (2026-04-14).
 
 ### Cycle 1 Gate
 
