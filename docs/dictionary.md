@@ -295,9 +295,9 @@ translation. Same substrate, different display languages, one database.
 
 ---
 
-## The Five Verbs
+## The Six Verbs
 
-A signal arrives. Something happens. Five possible things:
+A signal arrives. Something happens. Six possible things:
 
 ```
   EMIT ───── send a signal to someone else
@@ -305,22 +305,32 @@ A signal arrives. Something happens. Five possible things:
   WARN ───── leave a warning on the path (this failed)
   FADE ───── let time erode everything
   FOLLOW ─── find where the marks are strongest
+  HARDEN ── freeze the proven path into permanent record
 ```
 
-That's it. Five verbs run the whole system.
+Five verbs run the runtime. The sixth runs at a slower cadence — once an hour,
+the L6 loop picks the strongest paths and hardens them into durable memory
+(TypeDB hypothesis) or on-chain state (Sui frozen Highway). Everything else
+keeps moving; hardened paths stop decaying.
 
 ```
     ┌──────────────────────────────────────────────────┐
-    │                 THE FIVE VERBS                    │
+    │                 THE SIX VERBS                    │
     │                                                  │
     │   emit()   ── signal moves ──→ next receiver     │
     │   mark()   ── path gets stronger                 │
     │   warn()   ── path gets weaker                   │
     │   fade()   ── everything slowly decays           │
     │   follow() ── go where the trail is strongest    │
+    │   harden() ── proven path becomes permanent      │
     │                                                  │
     └──────────────────────────────────────────────────┘
 ```
+
+Per skin, `harden` is called: imprint (ant), myelinate/consolidate (brain),
+codify/document (team), seal (mail), bedrock (water), license (radio),
+freeze_object (ledger/Sui). Across all seven skins it means the same thing:
+*usage has proven this path; make it stop decaying.*
 
 ---
 

@@ -639,11 +639,10 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 | `docs/naming.md` | **THE NAMES** — canonical names, dead names, dimension→runtime map | All docs, schemas, APIs |
 | `docs/one-ontology.md` | **THE SPEC** — 6 dimensions explained, actor/group/thing types, universal mapping | `one.tql`, `naming.md` |
 | `docs/AUTONOMOUS_ORG.md` | **THE BLUEPRINT** — ONE-strategy as executable task graph with pheromone routing, 7 personas, revenue forecast | `world.tql`, `tick.ts`, revenue loops |
-| `docs/metaphors-extended.md` | **THE ROSETTA STONE** — Langchain, AgentVerse, Hermes, all frameworks speak ONE pheromone | Framework integrations, all routing |
-| `docs/dictionary.md` | Concept reference — detailed descriptions of every primitive | `naming.md` (naming.md is authoritative) |
-| `docs/DSL.md` | The programming model — signal, emit, mark, warn, fade, follow, select | `world.ts`, `persist.ts` |
+| `docs/metaphors.md` | **THE ROSETTA STONE** — 7 skins (ant/brain/team/mail/water/radio/ledger) + framework mappings (Langchain, AgentVerse, Hermes, Human). Merged from metaphors-extended.md on 2026-04-14. | `src/skins/index.ts`, `skins.tql`, all framework integrations |
+| `docs/dictionary.md` | Concept reference — 6 verbs (signal/mark/warn/fade/follow/harden) + dimensions | `naming.md` (naming.md is authoritative) |
+| `docs/DSL.md` | The programming model — signal, emit, mark, warn, fade, follow, select, harden | `world.ts`, `persist.ts` |
 | `docs/routing.md` | How signals find their way — formula, layers, tick, outcomes | `loop.ts`, `persist.ts` |
-| `docs/metaphors.md` | Six skins, one truth — ant/brain/team/mail/water/radio | `src/skins/index.ts`, `skins.tql` |
 | `docs/sdk.md` | SDK contract — register, discover, hire, earn | Public API surface |
 | `docs/world-map-page.md` | BUILD SPEC — /world page design, direct manipulation, personas, visitor mode, 12-component limit | `src/pages/world.astro`, `src/components/WorldMap/*` |
 

@@ -790,7 +790,7 @@ no rerender, no refetch. Driven by `?skin=`.
 | **water**  | watershed     | pool        | channel     | river          |
 | **signal** | network       | receiver    | frequency   | band           |
 
-The rosetta stone is `docs/metaphors-extended.md`. Skin only changes
+The rosetta stone is `docs/metaphors.md` (framework mappings section). Skin only changes
 **labels and visuals** — never structure. The agent at `marketing:creative`
 is the same actor whether you call it an ant, neuron, or mailbox.
 
@@ -1119,7 +1119,7 @@ NO more than 12 components see "The Whole Component Set" — anything else is cr
 - `docs/dictionary.md` — **the source of truth for every word on screen**
 - `docs/world-map.md` — the design (territory)
 - `docs/one-ontology.md` — the six dimensions
-- `docs/metaphors-extended.md` — skin rosetta stone
+- `docs/metaphors.md` — skin rosetta stone (7 skins + framework mappings)
 - `docs/DSL.md` — `signal`, `mark`, `warn`, `follow`, `select` (every gesture is one of these)
 - `agents/` — markdown agent specs the page renders
 - `src/pages/world.astro` — the page shell
