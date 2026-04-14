@@ -1,8 +1,10 @@
 ---
+import Layout from "@/layouts/Layout.astro"
+import { ChatClientV2 } from "@/components/ai/ChatClientV2"
 ---
 
-<Layout title="World Chat">
-  <WorldView client:load />
+<Layout title="Chat">
+  <ChatClientV2 client:only="react" hideHeader={true} sidebarInitialCollapsed={true} />
 </Layout>
 
 <style is:global>

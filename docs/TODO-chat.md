@@ -486,11 +486,11 @@ curl -s -X POST http://localhost:4321/api/chat \
   - [x] W2 — Decide (Opus): streamdown install, 3 missing UI + 3 elements + 12 generative-ui, hooks skip
   - [x] W3 — Copy: streamdown installed, 15 files copied, 1 tsc fix (DynamicProduct result narrowing)
   - [x] W4 — Verify: 409/409 tests · 0 warnings · tsc clean · rubric fit=0.9 form=0.85 truth=0.95 taste=0.8
-- [ ] **Cycle 3: GROW** — Top-level components + pages + API
-  - [ ] W1 — Recon (Haiku x 3)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Copy + wire (Sonnet x 4)
-  - [ ] W4 — Verify + smoke test (Sonnet x 1)
+- [x] **Cycle 3: GROW** — Top-level components + pages + API
+  - [x] W1 — Recon (Haiku x 3): ChatClientV2 imports mapped, 4 missing ai components identified, API routes confirmed prerender=false
+  - [x] W2 — Decide (Opus): 15 components + 2 API routes copy verbatim; chat.astro fix (empty frontmatter + client:only="react")
+  - [x] W3 — Copy + wire: 15 ai components, 2 API routes, chat.astro rewritten; 8 type fixes (provider API version delta, request.json() narrowing, dead _renderMessage_OLD removed)
+  - [x] W4 — Verify: 409/409 tests · biome clean · tsc clean · rubric fit=0.9 form=0.85 truth=0.95 taste=0.8
 
 ---
 
