@@ -43,6 +43,7 @@ export interface WaveEnvelope extends TaskEnvelope {
     score?: number
     message?: string
   }
+  _replyTo?: string // internal: ask() reply address, carried from W1 → W4
 }
 
 type Completer = (prompt: string, model: string) => Promise<string | null>
@@ -58,6 +59,19 @@ type OnComplete = (envelope: WaveEnvelope) => void
  * @param onDone    — fires when W4 verify succeeds with full envelope
  */
 export function waveRunner(u: Unit, complete: Completer, onDone?: OnComplete): Unit {
+  // ENTRY POINT — strips replyTo (added by ask()) before entering the wave chain.
+  // ask() injects replyTo into data, which would cause auto-reply after W1.
+  // This dispatch captures it as _replyTo and fires recon cleanly.
+  u.on('task', async (data, emit) => {
+    const d = data as TaskEnvelope & { replyTo?: string }
+    const replyTo = d.replyTo
+    // Delete replyTo so world.ts doesn't auto-reply (we reply from W4 via _replyTo)
+    delete d.replyTo
+    emit({ receiver: `${u.id}:recon`, data: { ...d, ...(replyTo && { _replyTo: replyTo }) } })
+    // Return null: isFailure=true but replyTo is deleted → no auto-reply sent
+    return null
+  })
+
   // W1 RECON — haiku reads task + context, surfaces patterns
   u.on('recon', async (data) => {
     const env = data as TaskEnvelope
@@ -146,7 +160,7 @@ export function waveRunner(u: Unit, complete: Completer, onDone?: OnComplete): U
   }))
 
   // W4 VERIFY — sonnet verifies, emits pheromone
-  u.on('verify', async (data) => {
+  u.on('verify', async (data, emit) => {
     const env = data as WaveEnvelope
     const model = WAVE_MODEL.W4
 
@@ -170,6 +184,10 @@ export function waveRunner(u: Unit, complete: Completer, onDone?: OnComplete): U
     }
 
     if (ok) onDone?.(result)
+
+    // Close ask(): forward final result back to the original caller
+    if (env._replyTo) emit({ receiver: env._replyTo, data: result })
+
     return result
   })
 

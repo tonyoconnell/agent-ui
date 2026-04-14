@@ -19,7 +19,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-0-rename
   value: critical
   effort: low
-  phase: P0
+  phase: C1
   persona: operator (human)
   blocks: phase-1-start
   exit: All Phase 0 renames complete (git mv), commit, no compile errors
@@ -35,7 +35,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-1-complete
   value: critical
   effort: high
-  phase: P1
+  phase: C1
   persona: sonnet
   blocks: phase-2-start
   exit: All 5 engine files converted. Import paths fixed. tsc passes.
@@ -49,7 +49,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-2-complete
   value: critical
   effort: high
-  phase: P2
+  phase: C2
   persona: sonnet
   blocks: phase-3-start
   exit: All 8 schema files converted. world.tql compiles. No broken TypeQL.
@@ -65,7 +65,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-3-complete
   value: high
   effort: high
-  phase: P3
+  phase: C3
   persona: sonnet
   blocks: phase-4-start
   exit: All 5 files converted. tsc --noEmit clean.
@@ -79,7 +79,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-4-complete
   value: high
   effort: high
-  phase: P4
+  phase: C4
   persona: sonnet
   blocks: phase-5-start
   exit: All 11 files converted. API routes typed. tsc clean.
@@ -93,7 +93,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-5-complete
   value: high
   effort: high
-  phase: P5
+  phase: C5
   persona: sonnet
   blocks: phase-6-start
   exit: All 7 component files converted. React types clean.
@@ -107,7 +107,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-6-complete
   value: high
   effort: medium
-  phase: P6
+  phase: C6
   persona: sonnet
   blocks: phase-7-start
   exit: All 9 config files converted. CLAUDE.md, rules, commands all updated.
@@ -121,7 +121,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-7-complete
   value: high
   effort: high
-  phase: P7
+  phase: C7
   persona: haiku
   blocks: phase-8-start, cycle-1-wire-start
   exit: All 59 doc files converted. No dead names in prose (except metaphor tables).
@@ -135,7 +135,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-8-complete
   value: medium
   effort: high
-  phase: P8
+  phase: C7
   persona: sonnet
   blocks: phase-9-start
   exit: All 12 files converted. Build succeeds.
@@ -149,7 +149,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: phase-9-complete
   value: low
   effort: medium
-  phase: P9
+  phase: C7
   persona: sonnet
   blocks: cycle-1-wire-start
   exit: Archive files converted (or skipped if not deploying)
@@ -161,7 +161,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   id: migration-gate
   value: critical
   effort: low
-  phase: P9
+  phase: C7
   persona: operator
   blocks: cycle-1-wire-start
   exit: `npm run build` succeeds. Grep verification clean (no old vocab in engine/schema/types/api/components). All tests green.

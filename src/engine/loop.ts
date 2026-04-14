@@ -182,8 +182,9 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       const blockers = await net.taskBlockers(taskId).catch(() => [])
 
       // Route as signal: enqueue for the builder unit WITH full context envelope
+      // Entry point is builder:task — the dispatch handler strips replyTo before recon
       const taskSignal = {
-        receiver: `builder:${taskId}`,
+        receiver: 'builder:task',
         data: {
           taskId,
           taskName,
@@ -201,7 +202,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       const edge = `loop→builder:${taskId}`
 
       // Try to execute via ask (if builder has a handler)
-      const outcome = await net.ask(taskSignal, 'loop', 5000)
+      // Timeout: 120s to allow full W1→W4 chain (4 LLM calls)
+      const outcome = await net.ask(taskSignal, 'loop', 120_000)
 
       if (outcome.result !== undefined) {
         chainDepth++

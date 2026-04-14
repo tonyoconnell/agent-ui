@@ -4,7 +4,7 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 27
-completed: 10
+completed: 12
 status: ACTIVE
 syncs_with: TODO-testing.md
 ---
@@ -156,7 +156,7 @@ cycle's patterns are verified and promoted to durable learning.
   tags: engine, lifecycle, P0
   done: persist.ts actor() creates units, tested in persist.test.ts
 
-- [ ] Implement capable(): declare unit capabilities
+- [x] Implement capable(): declare unit capabilities
   id: impl-capable
   value: critical
   effort: medium
@@ -165,6 +165,7 @@ cycle's patterns are verified and promoted to durable learning.
   blocks: impl-discover
   exit: `persist.capable(unit, skill, price)` creates capability relation. TypeDB function `has_capability(unit, skill)` returns true.
   tags: engine, lifecycle, P0
+  done: persist.ts:411 capable() + world.tql:390 can_receive() function (2026-04-14)
 
 - [x] Implement discover(): find units by capability
   id: impl-discover

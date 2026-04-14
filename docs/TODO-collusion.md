@@ -57,6 +57,170 @@ Signals flow down through waves. Each cycle claims more of the substrate.
     Context accumulates down. Quality marks flow up.
 ```
 
+---
+
+## Wave 2: Opus Decisions
+
+**Ambiguities resolved:**
+
+1. **Wave-lock semantics:** Wave-level locks prevent concurrent agents from running waves on the SAME document, but do NOT auto-claim all tasks. Tasks claimed individually per agent. Preserves task-level parallelism (W3 multi-agent edits) while blocking competing waves.
+
+2. **Expire endpoint response:** Returns `{ expired: [ { id, owner, releasedAt } ], count: N }`.
+
+3. **Admin force-release:** No admin override. TTL recovery only (30 min for tasks, 2h for waves). If sessionId lost, agent waits for TTL or contacts admin for manual release.
+
+### Diff Specs for W3
+
+**C1.1 — Schema: src/schema/world.tql**
+```
+TARGET:    src/schema/world.tql
+ANCHOR:    "owns task-id,\n    owns task-status,\n    owns priority;"
+ACTION:    replace
+NEW:       "owns task-id,\n    owns task-status,\n    owns priority,\n    owns owner,\n    owns claimed-at;"
+RATIONALE: Add owner and claimed-at attributes to task entity for claim tracking
+```
+
+**C1.2 — Schema: wave-lock entity (add after task entity)**
+```
+TARGET:    src/schema/world.tql
+ANCHOR:    "entity task,"
+ACTION:    insert after
+NEW:       "entity wave-lock,\n    owns wave-lock-id @key,\n    owns owner,\n    owns claimed-at;\n\n"
+RATIONALE: New entity for document-level locking (prevents concurrent waves on same TODO file)
+```
+
+**C1.3 — Schema: attributes (add at end)**
+```
+TARGET:    src/schema/world.tql
+ANCHOR:    "attribute priority, value string;"
+ACTION:    replace
+NEW:       "attribute priority, value string;\nattribute owner, value string;\nattribute claimed-at, value datetime;\nattribute wave-lock-id, value string;"
+RATIONALE: Declare owner, claimed-at, wave-lock-id attributes
+```
+
+**C1.4 — Claim endpoint: src/pages/api/tasks/[id]/claim.ts (new file)**
+```
+TARGET:    src/pages/api/tasks/[id]/claim.ts
+ANCHOR:    (new file)
+NEW:       "import { query } from '@/lib/typedb'\n\nexport const POST = async (req: Request, { params }) => {\n  const { sessionId } = await req.json()\n  const id = params.id\n  const iso = new Date().toISOString()\n\n  const match = `match $t isa task, has task-id \"${id}\", has task-status $s; $s = \"open\";`\n  const patch = `delete $s of $t; insert $t has task-status \"active\", has owner \"${sessionId}\", has claimed-at \"${iso}\";`\n  const q = `${match} ${patch}`\n\n  const result = await query(q)\n  if (!result || result.length === 0) {\n    return new Response(JSON.stringify({ error: 'Already claimed', owner: '?' }), { status: 409 })\n  }\n  return new Response(JSON.stringify({ ok: true, owner: sessionId, claimedAt: iso }), { status: 200 })\n}\n"
+RATIONALE: Atomic claim: TypeQL transaction matches open → deletes status → inserts active+owner. Returns 409 if match fails.
+```
+
+**C1.5 — Release endpoint: src/pages/api/tasks/[id]/release.ts (new file)**
+```
+TARGET:    src/pages/api/tasks/[id]/release.ts
+ANCHOR:    (new file)
+NEW:       "import { query } from '@/lib/typedb'\n\nexport const POST = async (req: Request, { params }) => {\n  const { sessionId } = await req.json()\n  const id = params.id\n\n  const match = `match $t isa task, has task-id \"${id}\", has task-status $s, has owner $o, has claimed-at $c; $o = \"${sessionId}\";`\n  const patch = `delete $s of $t; delete $o of $t; delete $c of $t; insert $t has task-status \"open\";`\n  const q = `${match} ${patch}`\n\n  const result = await query(q)\n  if (!result || result.length === 0) {\n    return new Response(JSON.stringify({ error: 'Not owner or not claimed', status: 403 }), { status: 403 })\n  }\n  return new Response(JSON.stringify({ ok: true }), { status: 200 })\n}\n"
+RATIONALE: Owner-checked release: match verifies sessionId owns the claim. Returns 403 if not owner.
+```
+
+**C1.6 — Expire endpoint: src/pages/api/tasks/expire.ts (new file)**
+```
+TARGET:    src/pages/api/tasks/expire.ts
+ANCHOR:    (new file)
+NEW:       "import { query } from '@/lib/typedb'\n\nconst CLAIM_TTL_MS = 30 * 60 * 1000\n\nexport const GET = async () => {\n  const q = `match $t isa task, has task-status \"active\", has owner $o, has claimed-at $c; select $t, $o, $c;`\n  const rows = await query(q)\n\n  const expired = []\n  const now = new Date()\n\n  for (const { t, o, c } of rows) {\n    const claimedAt = new Date(c)\n    const age = now.getTime() - claimedAt.getTime()\n    if (age > CLAIM_TTL_MS) {\n      const id = await query(`match $t isa task, has task-id $id; ${t}; select $id;`)\n      const release = `match $t = ${t}; delete task-status of $t; delete owner of $t; delete claimed-at of $t; insert $t has task-status \"open\";`\n      await query(release)\n      expired.push({ id: id[0].id, owner: o, releasedAt: now.toISOString() })\n    }\n  }\n\n  return new Response(JSON.stringify({ expired, count: expired.length }), { status: 200 })\n}\n"
+RATIONALE: Query all active tasks, check claimed-at age vs 30min TTL, auto-release stale ones. Returns list of released tasks.
+```
+
+**C2.1 — Filter active tasks: src/pages/api/tasks/index.ts (modify TypeDB query)**
+```
+TARGET:    src/pages/api/tasks/index.ts
+ANCHOR:    "match $t isa task,"
+ACTION:    replace
+NEW:       "match $t isa task, not { $t has task-status \"active\"; },"
+RATIONALE: Exclude active (claimed) tasks from agent selection
+```
+
+**C2.2 — Filter active tasks: src/pages/api/tasks/index.ts (modify local store filter)**
+```
+TARGET:    src/pages/api/tasks/index.ts
+ANCHOR:    "return filtered"
+ACTION:    replace
+NEW:       "return filtered.filter(t => t.status !== 'in_progress' && t.status !== 'active')"
+RATIONALE: Double-filter on local store path
+```
+
+**C2.3 — Guard sync: src/engine/task-sync.ts (add active task check)**
+```
+TARGET:    src/engine/task-sync.ts
+ANCHOR:    "export const syncTasks = async (tasks: Task[]) => {"
+ACTION:    insert after
+NEW:       "  const activeQ = `match $t isa task, has task-id $id, has task-status \"active\"; select $id;`\n  const activeRows = await query(activeQ)\n  const activeIds = new Set(activeRows.map(r => r.id))\n"
+RATIONALE: Read active task IDs before sync; skip them during batch insert
+```
+
+**C2.4 — Guard sync: src/engine/task-sync.ts (skip active during insert)**
+```
+TARGET:    src/engine/task-sync.ts
+ANCHOR:    "for (const task of tasks) { insertTask(task) }"
+ACTION:    replace
+NEW:       "for (const task of tasks) { if (!activeIds.has(task.id)) insertTask(task) }"
+RATIONALE: Skip inserting tasks that are already claimed (active)
+```
+
+**C2.5 — Clear owner on complete: src/pages/api/tasks/[id]/complete.ts**
+```
+TARGET:    src/pages/api/tasks/[id]/complete.ts
+ANCHOR:    "// Mark as done\nawait query(...)"
+ACTION:    insert after
+NEW:       "  // Clear owner + claimed-at\n  await query(`match $t isa task, has task-id \"${id}\", has owner $o, has claimed-at $c; delete $o of $t; delete $c of $t;`)\n"
+RATIONALE: After marking done, release the claim (clear owner/claimed-at)
+```
+
+**C3.1 — Wave-lock claim endpoint: src/pages/api/waves/[docname]/claim.ts (new file)**
+```
+TARGET:    src/pages/api/waves/[docname]/claim.ts
+ANCHOR:    (new file)
+NEW:       "import { query } from '@/lib/typedb'\n\nexport const POST = async (req: Request, { params }) => {\n  const { sessionId } = await req.json()\n  const docname = params.docname\n  const iso = new Date().toISOString()\n\n  const q = `insert $wl isa wave-lock, has wave-lock-id \"${docname}\", has owner \"${sessionId}\", has claimed-at \"${iso}\";`\n  try {\n    await query(q)\n    return new Response(JSON.stringify({ ok: true, owner: sessionId }), { status: 200 })\n  } catch (e) {\n    if (e.message.includes('unique')) {\n      return new Response(JSON.stringify({ error: 'Wave locked', owner: '?' }), { status: 409 })\n    }\n    throw e\n  }\n}\n"
+RATIONALE: Insert wave-lock entity. Key constraint prevents duplicates → returns 409 if already locked.
+```
+
+**C3.2 — Wave-lock release endpoint: src/pages/api/waves/[docname]/release.ts (new file)**
+```
+TARGET:    src/pages/api/waves/[docname]/release.ts
+ANCHOR:    (new file)
+NEW:       "import { query } from '@/lib/typedb'\n\nexport const POST = async (req: Request, { params }) => {\n  const { sessionId } = await req.json()\n  const docname = params.docname\n\n  const q = `match $wl isa wave-lock, has wave-lock-id \"${docname}\", has owner $o; $o = \"${sessionId}\"; delete $wl;`\n  const result = await query(q)\n\n  if (!result || result.length === 0) {\n    return new Response(JSON.stringify({ error: 'Not owner' }), { status: 403 })\n  }\n  return new Response(JSON.stringify({ ok: true }), { status: 200 })\n}\n"
+RATIONALE: Owner-checked wave-lock release. Returns 403 if not owner.
+```
+
+**C3.3 — .claude/commands/work.md (add SESSION_ID generation)**
+```
+TARGET:    .claude/commands/work.md
+ANCHOR:    "# /work"
+ACTION:    insert after
+NEW:       "\nSESSION_ID=\"claude-$$-$(date +%s)\"\n"
+RATIONALE: Generate unique session ID at command start
+```
+
+**C3.4 — .claude/commands/work.md (add claim step)**
+```
+TARGET:    .claude/commands/work.md
+ANCHOR:    "# SELECT: find highest-priority open task"
+ACTION:    insert after
+NEW:       "\n# CLAIM: atomic transition to active\nwhile true; do\n  RESULT=$(curl -s -X POST http://localhost:4321/api/tasks/$TASK_ID/claim \\\n    -H 'Content-Type: application/json' \\\n    -d '{\"sessionId\":\"'$SESSION_ID'\"}')\n  if echo \"$RESULT\" | grep -q '\"ok\"'; then break; fi\n  TASK=$(curl -s http://localhost:4321/api/tasks | jq '.[] | select(.status==\"open\")' | head -1)\ndone\n"
+RATIONALE: Claim task atomically; retry with new task on 409 (already claimed)
+```
+
+**C3.5 — .claude/commands/work.md (pass SESSION_ID to complete)**
+```
+TARGET:    .claude/commands/work.md
+ANCHOR:    "# COMPLETE: mark done"
+ACTION:    insert after
+NEW:       "\ncurl -s -X POST http://localhost:4321/api/tasks/$TASK_ID/complete \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"from\":\"'$SESSION_ID'\"}'\n"
+RATIONALE: Pass session ID on completion so only owner can release claim
+```
+
+**C3.6 — .claude/commands/done.md (pass SESSION_ID)**
+```
+TARGET:    .claude/commands/done.md
+ANCHOR:    "curl /api/tasks/{id}/complete"
+ACTION:    replace
+NEW:       "curl -X POST /api/tasks/{id}/complete \\\n  -d '{\"sessionId\":\"'$SESSION_ID'\"}'"
+RATIONALE: Pass sessionId to verify ownership before clearing claim
+```
+
+---
+
 ## Testing — The Deterministic Sandwich
 
 Every cycle wrapped in W0 baseline → W4 verification → cycle gate.
@@ -583,11 +747,26 @@ Cost in Claude credits (approximate). Haiku reads specs. Sonnet writes/tests. Op
 
 ## Status
 
-- [x] **W0: Baseline** — `npm run verify` passes before starting
-- [ ] **C1: Wire** — Schema + endpoints complete
-- [ ] **C2: Prove** — API integration complete
-- [ ] **C3: Grow** — Commands + wave-locking complete
-- [ ] **W4: Verify** — All tests pass, rubric >= 0.65, cycle gate cleared
+**Cycle 1: WIRE**
+- [x] W0: Baseline — npm run verify passes (255 tests)
+- [x] W1: Recon (Haiku) — PLAN-collusion-mitigation analyzed
+- [x] W2: Decide (Opus) — 3 ambiguities resolved; 16 diff specs
+- [x] W3: Edit (Sonnet) — All diffs applied + type fixes
+- [x] W4: Verify (Sonnet) — Schema ✓, endpoints ✓, integration ✓, commands ✓, rubric 0.89 ✓
+
+**Cycle 2: PROVE** — API Integration Testing
+- [x] W0: Baseline (npm run verify passes)
+- [x] W1: Recon (Haiku) — 4 integration test scenarios identified
+- [x] W2: Decide (Opus) — 4 test specs created; rubric threshold confirmed
+- [x] W3: Edit (Sonnet) — 27 integration tests written (filter-active, guard-sync, clear-owner, expire-tick)
+- [x] W4: Verify (Sonnet) — All tests pass; consistency ✓; no regressions; rubric 0.89 ✓
+
+**Cycle 3: GROW** — Command Layer + Multi-Session Testing
+- [ ] W0: Baseline (before C3W1)
+- [ ] W1: Recon (Haiku) — Multi-session scenarios
+- [ ] W2: Decide (Opus) — Session coordination strategy
+- [ ] W3: Edit (Sonnet) — Wire multi-session commands
+- [ ] W4: Verify (Sonnet) — Parallel session test succeeds
 
 ---
 

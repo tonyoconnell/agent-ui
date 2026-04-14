@@ -69,6 +69,12 @@ export const POST: APIRoute = async ({ params, request }) => {
     store.cascadeUnblock(id)
   }
 
+  // Clear owner + claimed-at
+  writeSilent(`
+    match $t isa task, has task-id "${id}", has owner $o, has claimed-at $c;
+    delete $o of $t; delete $c of $t;
+  `).catch(() => {})
+
   // Update task status in TypeDB (using task-id, not unit uid)
   writeSilent(`
     match $t isa task, has task-id "${id}", has task-status $st;

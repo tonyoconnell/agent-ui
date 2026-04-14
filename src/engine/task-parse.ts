@@ -265,7 +265,10 @@ export function parseTodoFile(content: string, source: string): Task[] {
 export async function scanTodos(docsDir: string): Promise<Task[]> {
   const { readdir, readFile, join, basename } = await node()
   const entries = await readdir(docsDir).catch(() => [])
-  const todoFiles = entries.filter((f: string) => f.startsWith('TODO-') && f.endsWith('.md'))
+  const todoFiles = entries.filter(
+    // template files are not real TODOs
+    (f: string) => f.startsWith('TODO-') && f.endsWith('.md') && !/^TODO-template.*\.md$/.test(f),
+  )
 
   const all: Task[] = []
   for (const file of todoFiles) {

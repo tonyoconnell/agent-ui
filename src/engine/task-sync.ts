@@ -90,13 +90,17 @@ async function insertBlocks(tasks: Task[]): Promise<number> {
 export async function syncTasks(tasks: Task[]): Promise<{ synced: number; blocks: number; errors: number }> {
   await ensureBuilder()
 
+  const activeQ = `match $t isa task, has task-id $id, has task-status "active"; select $id;`
+  const activeRows = await readParsed(activeQ).catch(() => [])
+  const activeIds = new Set(activeRows.map((r) => r.id as string))
+
   let synced = 0
   let errors = 0
 
   // Insert tasks in batches
   for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
     const batch = tasks.slice(i, i + BATCH_SIZE)
-    const results = await Promise.allSettled(batch.map((t) => insertTask(t)))
+    const results = await Promise.allSettled(batch.filter((t) => !activeIds.has(t.id)).map((t) => insertTask(t)))
     for (const r of results) {
       if (r.status === 'fulfilled') synced++
       else errors++

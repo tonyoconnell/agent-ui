@@ -11,7 +11,7 @@ import { join } from 'node:path'
 export interface ProjectTask {
   tid: string
   name: string
-  status: 'todo' | 'in_progress' | 'complete' | 'blocked' | 'failed'
+  status: 'todo' | 'in_progress' | 'active' | 'complete' | 'blocked' | 'failed'
   priority: 'P0' | 'P1' | 'P2' | 'P3'
   phase: string
   value: string

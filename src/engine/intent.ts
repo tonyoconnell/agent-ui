@@ -67,24 +67,27 @@ export const resolveIntent = async (
   }
 
   // ── Step 2: TypeDB keyword registry ──────────────────────────────────────
-  // Broader word-level match against TypeDB intent graph
-  for (const word of words) {
-    try {
-      // Dynamic import so this file compiles fine without typedb in scope
-      const { readParsed } = await import('@/lib/typedb')
-      const rows = await readParsed(`
-        match $i isa intent, has keyword "${word}", has name $n, has confidence $c;
-        select $n, $c; sort $c desc; limit 1;
-      `)
-      if (rows.length > 0) {
-        return {
-          intent: rows[0].n as string,
-          resolver: 'typedb',
-          confidence: rows[0].c as number,
+  // Broader word-level match against TypeDB intent graph.
+  // Skip when caller provides explicit intents (in-memory mode, tests).
+  if (!opts.intents && opts.db) {
+    for (const word of words) {
+      try {
+        // Dynamic import so this file compiles fine without typedb in scope
+        const { readParsed } = await import('@/lib/typedb')
+        const rows = await readParsed(`
+          match $i isa intent, has keyword "${word}", has name $n, has confidence $c;
+          select $n, $c; sort $c desc; limit 1;
+        `)
+        if (rows.length > 0) {
+          return {
+            intent: rows[0].n as string,
+            resolver: 'typedb',
+            confidence: rows[0].c as number,
+          }
         }
+      } catch {
+        /* TypeDB unavailable — continue to step 3 */
       }
-    } catch {
-      /* TypeDB unavailable — continue to step 3 */
     }
   }
 

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/PLAN-collusion-mitigation.md",
+                "file": "docs/TODO-collusion.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "PLAN-collusion-mitigation"
+              "title": "TODO-collusion"
             }
           },
           {
@@ -199,10 +199,21 @@
   },
   "active": "fd99b50a9796efdb",
   "lastOpenFiles": [
-    "src/engine/wave-runner.ts",
+    "src/pages/api/loop/highways.ts",
+    "src/pages/api/loop/close.ts",
+    "src/pages/api/loop/stage.ts",
+    "src/pages/api/loop",
+    "src/__tests__/integration/expire-tick.test.ts",
+    "src/__tests__/integration/clear-owner.test.ts",
+    "src/__tests__/integration/guard-sync.test.ts",
+    "src/__tests__/integration/filter-active.test.ts",
+    "docs/PLAN-collusion-mitigation.md",
+    "src/__tests__/integration",
+    "src/__tests__",
+    "src/engine/work-loop.ts",
+    "docs/work-loop.md",
     "docs/TODO-collusion.md",
     "docs/TODO.md",
-    "docs/PLAN-collusion-mitigation.md",
     "docs/TESTING.md",
     "docs/telegram-bot-setup.md",
     "docs/sync-skills.md",
@@ -224,17 +235,6 @@
     "docs/speed.md",
     "docs/speed-verified.md",
     "docs/SECURE-DEPLOY.md",
-    "docs/speed-hyperliquid.md",
-    "src/engine/task-sync.test.ts",
-    "src/pages/api/agents/register.ts",
-    "src/engine/loop.test.ts",
-    "src/engine/loop-tag-routing.test.ts",
-    "src/engine/lifecycle.test.ts",
-    "src/engine/rubric.test.ts",
-    "src/engine/rubric-score.ts",
-    "todo.json",
-    "src/engine/persist.test.ts",
-    "src/engine/context.test.ts",
     "nanoclaw/node_modules/miniflare/dist/local-explorer-ui/favicon.svg",
     "nanoclaw/node_modules/@cloudflare/workers-types/entrypoints.svg",
     "nanoclaw/node_modules/undici/docs/assets/lifecycle-diagram.png",

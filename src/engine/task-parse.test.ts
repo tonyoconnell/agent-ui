@@ -7,9 +7,12 @@
  * Run: npx vitest run src/engine/task-parse.test.ts
  */
 
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Wave } from './task-parse'
-import { computePriority, EFFORT_MODEL, effectivePriority, parseTodoFile, WAVE_MODEL } from './task-parse'
+import { computePriority, EFFORT_MODEL, effectivePriority, parseTodoFile, scanTodos, WAVE_MODEL } from './task-parse'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRIORITY FORMULA
@@ -201,6 +204,21 @@ describe('TODO Parser — checkbox + indented metadata', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // INTEGRATION — parse real TODO files
 // ═══════════════════════════════════════════════════════════════════════════
+
+describe('scanTodos — template filter', () => {
+  it('skips TODO-template.md (template files are not real TODOs)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'task-parse-'))
+    const task = `- [ ] Real task\n  id: real\n  value: high\n  phase: C1\n  persona: dev\n  tags: engine\n`
+    const templateTask = `- [ ] Template example task\n  id: template-example\n  value: high\n  phase: C1\n  persona: dev\n  tags: engine\n`
+    writeFileSync(join(dir, 'TODO-real.md'), task)
+    writeFileSync(join(dir, 'TODO-template.md'), templateTask)
+
+    const tasks = await scanTodos(dir)
+    const ids = tasks.map((t) => t.id)
+    expect(ids).toContain('real')
+    expect(ids).not.toContain('template-example')
+  })
+})
 
 describe('Integration — parse structure matches TypeDB schema', () => {
   it('every Task field maps to a world.tql attribute', () => {

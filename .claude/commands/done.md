@@ -40,9 +40,8 @@ This is the deterministic sandwich POST check. The substrate only learns from ve
 3. Call the complete endpoint:
 
 ```bash
-curl -s -X POST http://localhost:4321/api/tasks/THE_ID/complete \
-  -H 'Content-Type: application/json' \
-  -d '{"from": "claude"}'
+curl -X POST /api/tasks/{id}/complete \
+  -d '{"sessionId":"'$SESSION_ID'"}'
 ```
 
 3. If the server isn't running, note what was completed for later recording. The pheromone will be applied when the system next boots.

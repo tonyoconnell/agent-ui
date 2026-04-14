@@ -4,7 +4,7 @@ type: roadmap
 version: 2.0.0
 priority: Wire → Prove → Grow
 total_tasks: 24
-completed: 0
+completed: 2
 status: ACTIVE
 ---
 

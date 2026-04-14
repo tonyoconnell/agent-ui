@@ -5,6 +5,7 @@
  */
 
 import { readParsed } from '@/lib/typedb'
+import { registerBuilder } from './builder'
 import { tick } from './loop'
 import { world } from './persist' // formerly one.ts
 import type { Signal } from './world' // formerly substrate.ts
@@ -20,6 +21,13 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
     () => [],
   )
   for (const u of units) w.actor(u.id as string, u.kind as string)
+
+  // Register builder unit with wave chain (W1→W4)
+  // The simple complete adapter ignores model — callers needing model-aware routing
+  // should call registerBuilder() directly with a model-aware complete function.
+  if (complete) {
+    registerBuilder(w, (prompt, _model) => complete(prompt).catch(() => null))
+  }
 
   // Breathe
   let alive = true

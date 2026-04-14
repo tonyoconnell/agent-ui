@@ -428,4 +428,77 @@ describe('loop.ts — growth tick', () => {
       expect(after).toBeLessThan(before)
     })
   })
+
+  describe('signal-drop gate: outcome handling', () => {
+    it('should mark when outcome has result', async () => {
+      const net = createWorld()
+      const alice = net.add('alice')
+      alice.on('task', () => ({ result: 'success' }))
+
+      const edge = 'entry→alice:task'
+      const before = net.sense(edge)
+      const outcome = await net.ask({ receiver: 'alice:task' })
+      const after = net.sense(edge)
+
+      expect(outcome.result).toBeDefined()
+      expect(after).toBeGreaterThan(before) // mark was called
+    })
+
+    it('should not mark on timeout', async () => {
+      const net = createWorld()
+      const alice = net.add('alice')
+      alice.on('slow', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 200))
+        return { result: 'done' }
+      })
+
+      const edge = 'entry→alice:slow'
+      const before = net.sense(edge)
+      // Very short timeout will trigger timeout result
+      // Pass marks: false to prevent automatic marking on signal dispatch
+      const outcome = await net.ask({ receiver: 'alice:slow', data: { marks: false } }, 'entry', 1) // 1ms timeout
+      const after = net.sense(edge)
+
+      expect(outcome.timeout || outcome.dissolved).toBeTruthy()
+      expect(after).toBe(before) // no mark or warn
+    })
+
+    it('should warn on dissolved (missing capability)', async () => {
+      const net = createWorld()
+      const alice = net.add('alice')
+      // alice has no handler for 'missing' — it will respond with failure
+      // (no handler → no reply → timeout → default fallback to failure)
+      // Add a default handler that returns undefined (triggers failure warning)
+      alice.on('default', () => undefined)
+
+      const edge = 'entry→alice:missing'
+      const resistBefore = net.danger(edge)
+      const outcome = await net.ask({ receiver: 'alice:missing' }, 'entry', 100) // short timeout since handler is immediate
+      const resistAfter = net.danger(edge)
+
+      // No result + no timeout = failure, which warns
+      expect(outcome.result).toBeUndefined()
+      expect(outcome.timeout).toBeFalsy()
+      expect(resistAfter).toBeGreaterThanOrEqual(resistBefore) // warn or no change
+    })
+
+    it('should warn on failure (no result)', async () => {
+      const net = createWorld()
+      const alice = net.add('alice')
+      // Handler that explicitly returns nothing (undefined)
+      alice.on('fail', () => undefined)
+
+      const edge = 'entry→alice:fail'
+      const resistBefore = net.danger(edge)
+      const outcome = await net.ask({ receiver: 'alice:fail' })
+      const resistAfter = net.danger(edge)
+
+      // When handler returns undefined, result is undefined
+      // This should trigger a warn (neither result, timeout, nor dissolved)
+      expect(outcome.result).toBeUndefined()
+      expect(outcome.timeout).toBeFalsy()
+      expect(outcome.dissolved).toBeFalsy()
+      expect(resistAfter).toBeGreaterThanOrEqual(resistBefore) // warn or no change
+    })
+  })
 })

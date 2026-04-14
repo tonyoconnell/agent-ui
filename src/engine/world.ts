@@ -221,7 +221,8 @@ export const world = (): World => {
         resolve({ dissolved: true })
         return
       } // Fix 4: dissolution is visible
-      const rid = `r:${Date.now()}`
+      // rid must NOT contain ':' — signal routing splits on ':' to get unit ID
+      const rid = `ask${Date.now()}${Math.random().toString(36).slice(2, 6)}`
       const u = unit(rid, (reply) => signal(reply, rid))
       u.on('default', (data) => {
         delete units[rid]

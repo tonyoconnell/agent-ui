@@ -106,6 +106,28 @@ L7 FRONTIER   every hour      detect unexplored territory
 
 ---
 
+## Learning from Experience
+
+The substrate remembers what doesn't work and what you've learned:
+
+```typescript
+// Recall failed attempts on a task + confirmed hypotheses
+const learned = await net.recall('task-id')
+// Returns: [
+//   { pattern: "pattern-found", confidence: 0.9 },
+//   { pattern: "failed: timeout error", confidence: 0.3 },
+//   ...
+// ]
+
+// See what tasks you're unblocking by completing this one
+const blockers = await net.taskBlockers('task-id')
+// Returns: [{ id: 'task-2', name: 'Next task' }, ...]
+```
+
+The executor can see **what failed before** and **what you'll unblock**. Knowledge informs action.
+
+---
+
 ## Agent = Markdown
 
 ```markdown

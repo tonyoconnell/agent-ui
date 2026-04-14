@@ -95,8 +95,8 @@ if (!task) throw new Error(...)
 | File | Lines | Purpose |
 |------|------:|---------|
 | `world.ts` | ~212 | Foundation: unit + world + pheromone + queue + ask |
-| `persist.ts` | ~154 | PersistentWorld: world + TypeDB persistence + knowledge |
-| `loop.ts` | ~75 | Tick: select → signal → drain → fade → evolve → know |
+| `persist.ts` | ~180 | PersistentWorld: world + TypeDB persistence + knowledge + recall + task blocking |
+| `loop.ts` | ~85 | Tick: select → signal → drain → fade → evolve → know. Routes task signals with full context. |
 | `boot.ts` | ~39 | Hydrate from TypeDB, start tick loop |
 | `bridge.ts` | ~150 | **NEW:** Sui ↔ TypeDB: mirror/absorb (mark/warn auto-propagate to Sui) |
 | ~~asi.ts~~ | deleted | routing absorbed into loop (select → ask → mark/warn) |
@@ -127,6 +127,10 @@ net.drain()
 
 // Ask (signal + wait for reply)
 const result = await net.ask({ receiver: 'agent:task', data: {} })
+
+// Knowledge from experience
+const learned = await net.recall('task-id')  // hypotheses + failed attempts
+const blockers = await net.taskBlockers('task-id')  // what gets unblocked
 
 // Pheromone
 net.mark('a→b', 1)        // strengthen

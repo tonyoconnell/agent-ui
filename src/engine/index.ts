@@ -29,6 +29,8 @@ export { agentverse } from './agentverse'
 export { boot } from './boot'
 // Bridge — three systems, one truth
 export { absorb, mirrorActor, mirrorMark, mirrorWarn, resolve, resolvePath } from './bridge'
+export type { BuilderComplete, BuilderOnDone } from './builder'
+export { registerBuilder } from './builder'
 export type { DocKey, DocMeta } from './context'
 // Context — docs as knowledge
 export {
@@ -100,3 +102,8 @@ export { loadTasks, markTaskDone, syncTasks } from './task-sync'
 export type { TickResult } from './tick'
 // Tick orchestrator
 export { forceLoop, getCycle, resetTick, tick } from './tick'
+export type { TaskEnvelope, WaveEnvelope } from './wave-runner'
+export { modelForWave, waveRunner } from './wave-runner'
+export type { CloseOpts, Stage, StageOutcome, WorkLoop } from './work-loop'
+// Work loop — developer loop as signals on the substrate
+export { workLoop } from './work-loop'

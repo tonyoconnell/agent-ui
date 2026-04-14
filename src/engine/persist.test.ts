@@ -463,3 +463,54 @@ describe('Act 7: taskBlockers() — visibility into blocking relationships', () 
     expect(lastCall).toContain('blocked')
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 8: canBeDiscovered() — lifecycle gate for agent discovery
+//
+// canBeDiscovered(uid) enforces the CAPABLE → DISCOVER gate.
+// A unit is only discoverable if it has at least one capability relation.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 8: canBeDiscovered() — discovery lifecycle gate', () => {
+  let w: PersistentWorld
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    w = world()
+  })
+
+  it('canBeDiscovered() returns true when unit has capabilities', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([{ s: 'skill-1' }]) // has capability
+
+    const discoverable = await w.canBeDiscovered('capable-unit')
+
+    expect(discoverable).toBe(true)
+  })
+
+  it('canBeDiscovered() returns false when unit has no capabilities', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([]) // no capabilities
+
+    const discoverable = await w.canBeDiscovered('dormant-unit')
+
+    expect(discoverable).toBe(false)
+  })
+
+  it('canBeDiscovered() returns false on TypeDB errors', async () => {
+    vi.mocked(readParsed).mockRejectedValue(new Error('TypeDB unavailable'))
+
+    const discoverable = await w.canBeDiscovered('unit')
+
+    expect(discoverable).toBe(false)
+  })
+
+  it('canBeDiscovered() queries capability relations for the unit', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+
+    await w.canBeDiscovered('test-unit-id')
+
+    const calls = vi.mocked(readParsed).mock.calls
+    const lastCall = calls[calls.length - 1][0] as string
+    expect(lastCall).toContain('test-unit-id')
+    expect(lastCall).toContain('capability')
+  })
+})

@@ -134,8 +134,15 @@ entity task,
     owns exit-condition,           # what "done" looks like
     owns done,                     # boolean
     owns created,
+    owns owner,
+    owns claimed-at,
     plays blocks:blocker,
     plays blocks:blocked;
+
+entity wave-lock,
+    owns wave-lock-id @key,
+    owns owner,
+    owns claimed-at;
 
 relation blocks,
     relates blocker,
@@ -299,6 +306,9 @@ attribute task-wave, value string;         # "W1" | "W2" | "W3" | "W4"
 attribute task-phase, value string;
 attribute task-persona, value string;
 attribute task-context, value string;      # "dsl,routing,dictionary" — doc keys for context
+attribute owner, value string;
+attribute claimed-at, value datetime;
+attribute wave-lock-id, value string;
 
 # Four-layer naming (per-skin aliases)
 attribute alias-ant, value string;         # ant metaphor override

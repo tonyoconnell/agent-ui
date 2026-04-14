@@ -36,29 +36,31 @@ export const GET: APIRoute = async ({ url }) => {
       filtered = filtered.filter((t) => t.value === value)
     }
 
-    const result = filtered.map((t) => {
-      const repelled = t.alarmPheromone >= 30 && t.alarmPheromone > t.trailPheromone
-      const attractive = t.trailPheromone >= 50
-      const exploratory = t.trailPheromone === 0 && t.alarmPheromone === 0
-      const category = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
-      return {
-        tid: t.tid,
-        name: t.name,
-        status: t.status,
-        priority: t.priority,
-        phase: t.phase,
-        value: t.value,
-        persona: t.persona,
-        tags: t.tags,
-        blockedBy: t.blockedBy,
-        blocks: t.blocks,
-        trailPheromone: t.trailPheromone,
-        alarmPheromone: t.alarmPheromone,
-        category,
-        attractive,
-        repelled,
-      }
-    })
+    const result = filtered
+      .filter((t) => t.status !== 'in_progress' && t.status !== 'active')
+      .map((t) => {
+        const repelled = t.alarmPheromone >= 30 && t.alarmPheromone > t.trailPheromone
+        const attractive = t.trailPheromone >= 50
+        const exploratory = t.trailPheromone === 0 && t.alarmPheromone === 0
+        const category = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
+        return {
+          tid: t.tid,
+          name: t.name,
+          status: t.status,
+          priority: t.priority,
+          phase: t.phase,
+          value: t.value,
+          persona: t.persona,
+          tags: t.tags,
+          blockedBy: t.blockedBy,
+          blocks: t.blocks,
+          trailPheromone: t.trailPheromone,
+          alarmPheromone: t.alarmPheromone,
+          category,
+          attractive,
+          repelled,
+        }
+      })
 
     return new Response(JSON.stringify({ tasks: result, source: 'local' }), {
       headers: { 'Content-Type': 'application/json' },
@@ -73,7 +75,7 @@ export const GET: APIRoute = async ({ url }) => {
 
   // Query tasks from TypeDB
   const tasks = (await readParsed(`
-    match $t isa task,
+    match $t isa task, not { $t has task-status "active"; },
       has task-id $id, has name $name, has done $done,
       has task-value $val, has task-phase $ph, has task-persona $persona,
       has priority-score $priority, has priority-formula $formula,

@@ -2,10 +2,10 @@
 
 > ONE Substrate — self-learning task system.
 > Tasks are signals. Waves are loops. The template is a unit.
-> 155 open, 74 done. Priority + pheromone adjusts at runtime.
+> 189 open, 87 done. Priority + pheromone adjusts at runtime.
 >
 > **Sync:** `POST /api/tasks/sync` or `/sync` — writes to KV (10ms), then TypeDB (100ms)
-> **Generated:** 2026-04-13T22:41:22
+> **Generated:** 2026-04-14T00:15:10
 
 ---
 
@@ -13,16 +13,16 @@
 
 | TODO | Open | Done | Status |
 |------|-----:|-----:|--------|
+| [TODO-collusion](TODO-collusion.md) | 38 | 9 | PROVE |
 | [TODO-SUI](TODO-SUI.md) | 30 | 28 | PROVE |
-| [TODO-task-management](TODO-task-management.md) | 26 | 0 | WIRE |
+| [TODO-task-management](TODO-task-management.md) | 24 | 2 | PROVE |
 | [TODO-rename](TODO-rename.md) | 23 | 0 | WIRE |
-| [TODO-lifecycle](TODO-lifecycle.md) | 18 | 10 | PROVE |
+| [TODO-lifecycle](TODO-lifecycle.md) | 16 | 12 | PROVE |
 | [TODO-testing](TODO-testing.md) | 16 | 18 | PROVE |
 | [TODO-typedb](TODO-typedb.md) | 16 | 3 | PROVE |
 | [TODO-ONE-strategy](TODO-ONE-strategy.md) | 11 | 3 | PROVE |
+| [TODO-template](TODO-template.md) | 8 | 0 | WIRE |
 | [TODO-autonomous-orgs](TODO-autonomous-orgs.md) | 7 | 3 | PROVE |
-| [TODO-template](TODO-template.md) | 5 | 0 | WIRE |
-| [TODO-template 1](TODO-template 1.md) | 3 | 0 | WIRE |
 | [TODO-deploy](TODO-deploy.md) | 0 | 4 | DONE |
 | [TODO-signal](TODO-signal.md) | 0 | 5 | DONE |
 
@@ -40,14 +40,8 @@
   exit: /api/tick picks highest-priority task, executes signal, marks outcome
 - [ ] **Telegram: Wire signals to @antsatworkbot channel** [sonnet] `agent, telegram, P0, integration` ← [TODO-autonomous-orgs](TODO-autonomous-orgs.md)
   exit: Agents signal @antsatworkbot, channel receives and routes back
-- [ ] **Implement capable(): declare unit capabilities** [sonnet] `engine, lifecycle, P0` ← [TODO-lifecycle](TODO-lifecycle.md)
-  exit: `persist.capable(unit, skill, price)` creates capability relation. TypeDB function `has_capability(unit, skill)` returns true.
 - [ ] **Add DSL + dictionary as base context in every wave** [haiku] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
   exit: contextForSkill loads DSL.md + dictionary.md as baseline for all tasks
-- [ ] **Create inferDocsFromTags in context.ts** [haiku] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
-  exit: engine→[dsl,routing], typedb→[dsl], ui→[dictionary], commerce→[sdk], etc.
-- [ ] **Build resolveContext function** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
-  exit: resolveContext(task, net) returns {base, domain, learned, highways, model, exit}
 - [ ] **Enrich task signal in loop.ts with full envelope** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
   exit: loop.ts L1b builds full context envelope before routing to builder
 - [ ] **Add task-wave and task-context to world.tql** [haiku] `typedb, schema, P0` ← [TODO-task-management](TODO-task-management.md)
@@ -56,10 +50,16 @@
   exit: unit('wave-runner').on('recon',...).then('recon',→decide).on('decide',...).then('decide',→edit)...
 - [ ] **Create 7-persona vocabulary layer: CEO/Dev/Investor/Gamer/Kid/Freelancer/Agent** [sonnet] `foundation, design, P1, governance` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
   exit: Every formula maps to 7 vocabulary skins. Same math, different words.
-- [ ] **API endpoint: POST /api/agents/register** [haiku] `api, lifecycle, P1` ← [TODO-lifecycle](TODO-lifecycle.md)
-  exit: Endpoint accepts { uid, kind, capabilities[] }, returns { uid, status: "registered" }. Validates input. Creates unit + capabilities.
 - [ ] **Lifecycle gate: REGISTER → CAPABLE requires unit_exists** [haiku] `engine, lifecycle, P1` ← [TODO-lifecycle](TODO-lifecycle.md)
   exit: `canDeclareCapability(uid)` returns true only if unit exists with status "active". Gate enforced before capability insert.
+- [ ] **Map waves to core.ts sense→select→act→mark** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
+  exit: W1=sense, W2=select, W3=act, W4=mark. Each wave is a Loop<T> from core.ts.
+- [ ] **Build context envelope that accumulates across waves** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
+  exit: Each .then() carries previous output + new context. W4 has full history of all waves.
+- [ ] **Create rubric scorer with tagged-edge marks** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
+  exit: markDims() emits edge:fit, edge:form, edge:truth, edge:taste. Haiku judges.
+- [ ] **Self-checkoff: W4 verify pass marks task done** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
+  exit: selfCheckoff() → markTaskDone + update checkbox + mark path + unblock + know
 
 ---
 
@@ -80,30 +80,21 @@
 - [ ] **Telegram: Wire signals to @antsatworkbot channel** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [sonnet] `agent, telegram, P0, integration` ← [autonomous-orgs](TODO-autonomous-orgs.md)
   exit: Agents signal @antsatworkbot, channel receives and routes back
   blocks: marketing-dept-live
-- [ ] **Implement capable(): declare unit capabilities** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [sonnet] `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
-  exit: `persist.capable(unit, skill, price)` creates capability relation. TypeDB function `has_capability(unit, skill)` returns true.
-  blocks: impl-discover
 - [ ] **Add DSL + dictionary as base context in every wave** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [haiku] `engine, build, P0` ← [task-management](TODO-task-management.md)
   exit: contextForSkill loads DSL.md + dictionary.md as baseline for all tasks
   blocks: wave-context-envelope
-- [ ] **Create inferDocsFromTags in context.ts** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [haiku] `engine, build, P0` ← [task-management](TODO-task-management.md)
-  exit: engine→[dsl,routing], typedb→[dsl], ui→[dictionary], commerce→[sdk], etc.
-  blocks: wave-context-envelope
-- [ ] **Build resolveContext function** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [sonnet] `engine, build, P0` ← [task-management](TODO-task-management.md)
-  exit: resolveContext(task, net) returns {base, domain, learned, highways, model, exit}
-  blocks: enrich-task-signal
 - [ ] **Enrich task signal in loop.ts with full envelope** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [sonnet] `engine, build, P0` ← [task-management](TODO-task-management.md)
   exit: loop.ts L1b builds full context envelope before routing to builder
   blocks: wave-context-envelope
 - [ ] **Create 7-persona vocabulary layer: CEO/Dev/Investor/Gamer/Kid/Freelancer/Agent** — high=25 + C1=40 + dev=20 + blocks(1)=5 [sonnet] `foundation, design, P1, governance` ← [ONE-strategy](TODO-ONE-strategy.md)
   exit: Every formula maps to 7 vocabulary skins. Same math, different words.
   blocks: persona-translation
-- [ ] **API endpoint: POST /api/agents/register** — high=25 + C1=40 + dev=20 + blocks(1)=5 [haiku] `api, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
-  exit: Endpoint accepts { uid, kind, capabilities[] }, returns { uid, status: "registered" }. Validates input. Creates unit + capabilities.
-  blocks: api-discover
 - [ ] **Lifecycle gate: REGISTER → CAPABLE requires unit_exists** — high=25 + C1=40 + dev=20 + blocks(1)=5 [haiku] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
   exit: `canDeclareCapability(uid)` returns true only if unit exists with status "active". Gate enforced before capability insert.
   blocks: gate-capable-discover
+- [ ] ****1a. Update world.tql**** — critical=30 + C1=40 + haiku=5 + blocks(2)=10 [haiku] `schema, foundation, P0` ← [collusion](TODO-collusion.md)
+  exit: `grep "owns owner" src/schema/world.tql` returns true; wave-lock entity defined
+  blocks: c1-schema-attribute, c2-filter-tasks
 - [ ] **API endpoint: GET /api/agents/discover** — high=25 + C1=40 + dev=20 [haiku] `api, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
   exit: Endpoint accepts ?skill=X&limit=N, returns ranked units with strength scores. Uses suggest_route internally.
 - [ ] **Lifecycle gate: CAPABLE → DISCOVER requires has_capability** — high=25 + C1=40 + dev=20 [haiku] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
@@ -114,6 +105,24 @@
   exit: task_blockers() results in signal. Builder knows its work unblocks N others.
 - [ ] **Wire TaskCompleted hook for verify gate** — high=25 + C1=40 + dev=20 [sonnet] `infra, build, P1` ← [testing](TODO-testing.md)
   exit: TaskCompleted hook runs npm run verify. Blocks if tests regress. Gates the mark.
+- [ ] ****1b. Update world.tql attributes**** — critical=30 + C1=40 + haiku=5 + blocks(1)=5 [haiku] `schema, foundation, P0` ← [collusion](TODO-collusion.md)
+  exit: `grep "attribute owner, value string" src/schema/world.tql` returns true
+  blocks: c2-filter-tasks
+- [ ] ****2a. Create src/pages/api/tasks/[id]/claim.ts**** — critical=30 + C1=40 + sonnet=5 + blocks(1)=5 [sonnet] `endpoint, atomicity, P0` ← [collusion](TODO-collusion.md)
+  exit: `curl POST /api/tasks/{id}/claim` returns 200 with owner; 409 if already claimed
+  blocks: c1-claim-test
+- [ ] ****2b. Write atomic TypeQL query for claim**** — critical=30 + C1=40 + sonnet=5 + blocks(1)=5 [haiku] `typedb, atomicity, P0` ← [collusion](TODO-collusion.md)
+  exit: Query has `match ... has task-status $s; $s = "open"; delete ... insert active + owner`
+  blocks: c1-claim-create
+- [ ] ****4a. Create src/pages/api/tasks/expire.ts**** — high=25 + C1=40 + sonnet=5 + blocks(2)=10 [sonnet] `endpoint, recovery, P0` ← [collusion](TODO-collusion.md)
+  exit: `curl GET /api/tasks/expire` returns `{ expired: [...], count: N }`
+  blocks: c1-expire-test, c2-tick-integration
+- [ ] ****4c. Claim collision test**** — critical=30 + C1=40 + sonnet=5 + blocks(1)=5 [sonnet] `test, atomicity, P0` ← [collusion](TODO-collusion.md)
+  exit: Two concurrent claims return 200 + 409; only one gets owner
+  blocks: c1-prove-baseline
+- [ ] ****4f. W0 baseline (before C1)**** — critical=30 + C1=40 + haiku=5 + blocks(1)=5 [haiku] `gate, baseline, P0` ← [collusion](TODO-collusion.md)
+  exit: `npm run verify` passes; all baseline tests green
+  blocks: c1-schema-task
 - [ ] **Cycle 1 W1: Recon (parallel Haiku × 4)** — critical=30 + C1=40 + haiku=5 + blocks(1)=5 [haiku] `docs, wire, recon, P0` ← [rename](TODO-rename.md)
   exit: 4 reports in. Each reports dead names with line numbers, metaphor flags.
   blocks: cycle-1-w2
@@ -130,6 +139,26 @@
   exit: Stop hook runs verify, reports any regressions introduced during session.
 - [ ] **Filter highways relevant to task tags** — medium=20 + C1=40 + dev=20 [haiku] `engine, P2` ← [typedb](TODO-typedb.md)
   exit: Only highways involving task-related units included in context
+- [ ] ****2c. Re-read confirmation pattern (claim verify)**** — high=25 + C1=40 + sonnet=5 + blocks(1)=5 [haiku] `typedb, verification, P0` ← [collusion](TODO-collusion.md)
+  exit: Second TypeQL query confirms match or rejects claim
+  blocks: c1-claim-test
+- [ ] ****3a. Create src/pages/api/tasks/[id]/release.ts**** — high=25 + C1=40 + sonnet=5 + blocks(1)=5 [sonnet] `endpoint, ownership, P0` ← [collusion](TODO-collusion.md)
+  exit: `curl POST /api/tasks/{id}/release {sessionId}` returns 200; 403 if wrong owner
+  blocks: c1-release-test
+- [ ] ****3b. Owner-checked release query**** — high=25 + C1=40 + sonnet=5 + blocks(1)=5 [haiku] `typedb, safety, P0` ← [collusion](TODO-collusion.md)
+  exit: TypeQL matches owner before deleting; non-owner gets empty result
+  blocks: c1-release-create
+- [ ] ****4b. TTL check logic (30 minutes)**** — high=25 + C1=40 + sonnet=5 + blocks(1)=5 [haiku] `ttl, recovery, P0` ← [collusion](TODO-collusion.md)
+  exit: `const CLAIM_TTL_MS = 30 * 60 * 1000` defined; tasks older than TTL are released
+  blocks: c1-expire-create
+- [ ] ****4d. Release safety test**** — high=25 + C1=40 + sonnet=5 + blocks(1)=5 [haiku] `test, safety, P0` ← [collusion](TODO-collusion.md)
+  exit: Wrong owner gets 403; correct owner gets 200
+  blocks: c1-prove-baseline
+- [ ] ****4e. Expire recovery test**** — high=25 + C1=40 + sonnet=5 + blocks(1)=5 [sonnet] `test, recovery, P0` ← [collusion](TODO-collusion.md)
+  exit: Task with claimed-at 31 minutes ago is auto-released
+  blocks: c1-prove-baseline
+- [ ] ****4g. W4 verify (after C1)**** — critical=30 + C1=40 + sonnet=5 [haiku] `gate, verify, P0` ← [collusion](TODO-collusion.md)
+  exit: `npm run verify` passes; claim/release/expire tests pass; rubric ≥ 0.65 all dims
 
 ---
 
@@ -196,6 +225,32 @@
   exit: doc-scan.ts test file. Covers: extractItems (checkboxes, gaps), inferTags, inferPriority, verify (keyword match), gapsToSignals
 - [ ] **Test agent-md.ts: parse, toTypeDB, syncAgent** — medium=20 + C2=35 + dev=20 [sonnet] `engine, test, P2` ← [testing](TODO-testing.md)
   exit: agent-md.ts test file. Covers: parse frontmatter + system prompt, toTypeDB generates valid TQL, skill extraction
+- [ ] ****5a. Modify src/pages/api/tasks/index.ts (local store path)**** — high=25 + C2=35 + sonnet=5 + blocks(1)=5 [haiku] `api, filtering, P0` ← [collusion](TODO-collusion.md)
+  exit: `filtered = filtered.filter(t => t.status !== 'in_progress')` added
+  blocks: c2-filter-test
+- [ ] ****5b. Modify src/pages/api/tasks/index.ts (TypeDB path)**** — high=25 + C2=35 + sonnet=5 + blocks(1)=5 [haiku] `api, filtering, typedb, P0` ← [collusion](TODO-collusion.md)
+  exit: TypeQL has `not { $t has task-status "active"; };` in match clause
+  blocks: c2-filter-test
+- [ ] ****6a. Modify src/engine/task-sync.ts**** — high=25 + C2=35 + sonnet=5 + blocks(1)=5 [sonnet] `sync, safety, P0` ← [collusion](TODO-collusion.md)
+  exit: `syncTasks()` reads active task IDs before batch; skips them during insert
+  blocks: c2-sync-test
+- [ ] ****6b. Active ID set pattern**** — high=25 + C2=35 + sonnet=5 + blocks(1)=5 [haiku] `sync, safety, P0` ← [collusion](TODO-collusion.md)
+  exit: `const activeIds = new Set(...)` populated from TypeDB match
+  blocks: c2-sync-guard
+- [ ] ****7a. Modify src/pages/api/tasks/[id]/complete.ts**** — high=25 + C2=35 + sonnet=5 + blocks(1)=5 [haiku] `api, cleanup, P0` ← [collusion](TODO-collusion.md)
+  exit: After `task-status = "done"`, fire `delete owner of $t; delete claimed-at of $t`
+  blocks: c2-complete-test
+- [ ] ****8b. Filter exclusion test**** — high=25 + C2=35 + sonnet=5 + blocks(1)=5 [sonnet] `test, filtering, P0` ← [collusion](TODO-collusion.md)
+  exit: Claim a task, GET /api/tasks → task not in list
+  blocks: c2-prove-baseline
+- [ ] ****8c. Sync guard test**** — high=25 + C2=35 + sonnet=5 + blocks(1)=5 [sonnet] `test, sync, P0` ← [collusion](TODO-collusion.md)
+  exit: Sync with active task in TypeDB → active task unchanged
+  blocks: c2-prove-baseline
+- [ ] ****8d. Owner cleanup test**** — high=25 + C2=35 + sonnet=5 + blocks(1)=5 [haiku] `test, cleanup, P0` ← [collusion](TODO-collusion.md)
+  exit: After complete, re-read task → owner field is empty
+  blocks: c2-prove-baseline
+- [ ] ****8f. W4 verify (after C2)**** — critical=30 + C2=35 + sonnet=5 [haiku] `gate, verify, P0` ← [collusion](TODO-collusion.md)
+  exit: All C2 tests pass; no regressions; rubric ≥ 0.65 all dims
 - [ ] **Cycle 2 W1: Recon (parallel Haiku × 20)** — high=25 + C2=35 + haiku=5 + blocks(1)=5 [sonnet] `docs, prove, recon, P0` ← [rename](TODO-rename.md)
   exit: 20 reports in. Dead names flagged per file, metaphor exceptions noted.
   blocks: cycle-2-w2
@@ -208,6 +263,12 @@
 - [ ] **Cycle 2 W4: Verify (Sonnet × 1)** — high=25 + C2=35 + sonnet=5 + blocks(1)=5 [sonnet] `docs, prove, verify, P0` ← [rename](TODO-rename.md)
   exit: Zero dead names in high-traffic docs. Tutorial code matches DSL.md. Rubric >= 0.65.
   blocks: cycle-3-grow-start
+- [ ] ****8a. Modify src/pages/api/tick.ts or create dedicated endpoint**** — medium=20 + C2=35 + sonnet=5 + blocks(1)=5 [sonnet] `tick, recovery, P0` ← [collusion](TODO-collusion.md)
+  exit: `/api/tick` calls `expire()` or `/api/tick/expire` exists and runs on cycle
+  blocks: c2-tick-test
+- [ ] ****8e. Tick integration test**** — medium=20 + C2=35 + sonnet=5 + blocks(1)=5 [sonnet] `test, integration, P0` ← [collusion](TODO-collusion.md)
+  exit: `/api/tick` calls expire; stale tasks auto-released
+  blocks: c2-prove-baseline
 
 ---
 
@@ -273,6 +334,9 @@
   exit: L5 reads per-dim path strength (edge:fit, edge:truth, etc). Low truth strength → evolve for accuracy. Low taste → evolve voice. The graph tells evolution WHAT to fix.
 - [ ] **Calibrate rubric judge against golden examples** — high=25 + C3=30 + dev=20 [haiku] `engine, P1` ← [typedb](TODO-typedb.md)
   exit: Hand-score 10 responses, judge-score same 10. Delta < 0.15 per dim. Lock judge version.
+- [ ] ****12f. Two-session parallel work test**** — critical=30 + C3=30 + sonnet=5 + blocks(1)=5 [opus] `test, integration, P0` ← [collusion](TODO-collusion.md)
+  exit: Two /work sessions simultaneously → each picks different task, both complete successfully
+  blocks: c3-grow-baseline
 - [ ] **Implement dissolve(): graceful exit** — medium=20 + C3=30 + dev=20 [haiku] `engine, lifecycle, P2` ← [lifecycle](TODO-lifecycle.md)
   exit: `world.remove(id)` removes unit. Paths remain and fade naturally. No penalty. Silence.
 - [ ] **Detect failing wave patterns as frontiers** — medium=20 + C3=30 + dev=20 [haiku] `engine, P2` ← [task-management](TODO-task-management.md)
@@ -287,6 +351,41 @@
   exit: L5 evolution considers per-wave success rates. Builder:recon vs builder:edit evolve separately.
 - [ ] **Surface context quality in /highways output** — medium=20 + C3=30 + dev=20 [haiku] `engine, ui, P2` ← [typedb](TODO-typedb.md)
   exit: /highways shows which doc-context patterns appear on proven paths
+- [ ] ****9a. Create src/pages/api/waves/[docname]/claim.ts**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `endpoint, wave-lock, P1` ← [collusion](TODO-collusion.md)
+  exit: `curl POST /api/waves/TODO-rename.md/claim` returns 200; 409 if locked
+  blocks: c3-wave-test
+- [ ] ****9b. Create src/pages/api/waves/[docname]/release.ts**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `endpoint, wave-lock, P1` ← [collusion](TODO-collusion.md)
+  exit: `curl POST /api/waves/TODO-rename.md/release` releases lock (owner-checked)
+  blocks: c3-wave-test
+- [ ] ****10a. Modify .claude/commands/work.md (add SESSION_ID generation)**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, session, P0` ← [collusion](TODO-collusion.md)
+  exit: `SESSION_ID="claude-$$-$(date +%s)"` added at top
+  blocks: c3-work-test
+- [ ] ****10b. Add claim step after SELECT**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `command, claim, P0` ← [collusion](TODO-collusion.md)
+  exit: POST /api/tasks/{id}/claim with SESSION_ID; retry on 409
+  blocks: c3-work-test
+- [ ] ****10c. Pass SESSION_ID to complete**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, integration, P0` ← [collusion](TODO-collusion.md)
+  exit: POST /api/tasks/{id}/complete includes `"from": "$SESSION_ID"`
+  blocks: c3-work-test
+- [ ] ****11a. Modify .claude/commands/done.md (pass SESSION_ID)**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, release, P0` ← [collusion](TODO-collusion.md)
+  exit: POST /api/tasks/{id}/complete includes `"sessionId": "$SESSION_ID"`
+  blocks: c3-done-test
+- [ ] ****12c. Session ID generation test**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `test, session, P0` ← [collusion](TODO-collusion.md)
+  exit: Two `/work` invocations generate unique SESSION_IDs
+  blocks: c3-grow-baseline
+- [ ] ****12d. /done release test**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `test, release, P0` ← [collusion](TODO-collusion.md)
+  exit: After `/done`, task owner is cleared; task back to open
+  blocks: c3-grow-baseline
+- [ ] ****12g. W4 verify (after C3)**** — critical=30 + C3=30 + sonnet=5 [haiku] `gate, verify, P0` ← [collusion](TODO-collusion.md)
+  exit: All C3 tests pass; parallel session test succeeds; rubric ≥ 0.65 all dims
+- [ ] ****12a. Modify .claude/commands/wave.md (add wave claim)**** — medium=20 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `command, wave-lock, P1` ← [collusion](TODO-collusion.md)
+  exit: Before wave execution, POST /api/waves/{docname}/claim; abort if 409
+  blocks: c3-wave-test
+- [ ] ****12b. Release wave lock after completion**** — medium=20 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, wave-lock, P1` ← [collusion](TODO-collusion.md)
+  exit: After final wave step, POST /api/waves/{docname}/release
+  blocks: c3-wave-test
+- [ ] ****12e. Wave-lock exclusivity test**** — medium=20 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `test, wave-lock, P1` ← [collusion](TODO-collusion.md)
+  exit: Two sessions claim same wave; second gets 409 conflict
+  blocks: c3-grow-baseline
 - [ ] **Cycle 3 W1: Recon (parallel Haiku × 20)** — medium=20 + C3=30 + haiku=5 + blocks(1)=5 [sonnet] `docs, grow, recon, P1` ← [rename](TODO-rename.md)
   exit: 20 reports in. External system vocabulary (AgentVerse, Hermes) flagged separately.
   blocks: cycle-3-w2
@@ -346,14 +445,14 @@
 - [ ] ****Cycle 1: WIRE** — Context into tasks** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
 - [ ] ****Cycle 2: PROVE** — Waves as core loops** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
 - [ ] ****Cycle 3: GROW** — Self-learning** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
-- [ ] ****Cycle 1: WIRE** — {scope}** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template 1](TODO-template 1.md)
-- [ ] ****Cycle 2: PROVE** — {scope}** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template 1](TODO-template 1.md)
-- [ ] ****Cycle 3: GROW** — {scope}** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template 1](TODO-template 1.md)
 - [ ] **All baseline tests still pass (no regressions)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
 - [ ] **New tests cover new functionality** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
 - [ ] **`biome check .` clean on touched files** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
 - [ ] **`tsc --noEmit` passes** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
 - [ ] **W4 rubric score >= 0.65 on all dimensions** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
+- [ ] ****Cycle 1: WIRE** — {scope}** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
+- [ ] ****Cycle 2: PROVE** — {scope}** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
+- [ ] ****Cycle 3: GROW** — {scope}** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
 - [ ] ****Cycle 1: WIRE** — Context resolution + enriched signals** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [typedb](TODO-typedb.md)
 - [ ] ****Cycle 2: PROVE** — Wave tracking + model routing** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [typedb](TODO-typedb.md)
 - [ ] ****Cycle 3: GROW** — Learning from wave transitions** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [typedb](TODO-typedb.md)
@@ -418,12 +517,23 @@
 - [x] **Schema: Add task, task-dependency, task-execution entities to world.tql** `typedb, schema, P0, foundation` ← [autonomous-orgs](TODO-autonomous-orgs.md)
 - [x] **Functions: Write 6 task selection functions (priority, critical-path, bottleneck, etc.)** `typedb, routing, P0, foundation` ← [autonomous-orgs](TODO-autonomous-orgs.md)
 - [x] **Agents: Create 8 marketing agents (markdown or HTTP)** `agent, marketing, P0, deployment` ← [autonomous-orgs](TODO-autonomous-orgs.md)
+- [x] ****W0: Baseline** — `npm run verify` passes before starting** `` ← [collusion](TODO-collusion.md)
+- [x] ****W1: Recon** (Haiku) — PLAN-collusion-mitigation analyzed** `` ← [collusion](TODO-collusion.md)
+- [x] ****W2: Decide** (Opus) — 3 ambiguities resolved; diff specs ready for W3** `` ← [collusion](TODO-collusion.md)
+- [x] ****W3: Edit** (Sonnet) — All 16 diffs applied; W3.5 type fixes applied** `` ← [collusion](TODO-collusion.md)
+- [x] ****W4: Verify** (Sonnet) — Schema ✓, endpoints ✓, integration ✓, commands ✓, rubric 0.89 ✓** `` ← [collusion](TODO-collusion.md)
+- [x] ****C1: Wire** — Schema + endpoints complete** `` ← [collusion](TODO-collusion.md)
+- [x] ****C2: Prove** — API integration complete** `` ← [collusion](TODO-collusion.md)
+- [x] ****C3: Grow** — Commands + wave-locking complete** `` ← [collusion](TODO-collusion.md)
+- [x] ****Cycle 1 COMPLETE** — All tests pass, rubric >= 0.65, cycle gate cleared** `` ← [collusion](TODO-collusion.md)
 - [x] ****Critical:** TypeDB credentials in build output → moved to runtime/secrets** `` ← [deploy](TODO-deploy.md)
 - [x] ****High:** TQL injection → input validation + escaping added** `` ← [deploy](TODO-deploy.md)
 - [x] **Credentials removed from `dist/`** `` ← [deploy](TODO-deploy.md)
 - [x] **`docs/SECURE-DEPLOY.md` created** `` ← [deploy](TODO-deploy.md)
 - [x] **Implement register(): unit creation with kind and status** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
+- [x] **Implement capable(): declare unit capabilities** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Implement discover(): find units by capability** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
+- [x] **API endpoint: POST /api/agents/register** `api, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
 - [x] **TypeDB schema: unit status transitions** `schema, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Implement signal lifecycle: route → execute → mark/warn** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Implement drop(): mark on success** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
@@ -437,6 +547,8 @@
 - [x] **Wave 3 — Edits (Sonnet, parallel)** `` ← [signal](TODO-signal.md)
 - [x] **Wave 4 — Verify (Sonnet) — 8/8 checks pass after micro-fix (Three→Five address modes)** `` ← [signal](TODO-signal.md)
 - [x] **Mark complete** `` ← [signal](TODO-signal.md)
+- [x] **Create inferDocsFromTags in context.ts** `engine, build, P0` ← [task-management](TODO-task-management.md)
+- [x] **Build resolveContext function** `engine, build, P0` ← [task-management](TODO-task-management.md)
 - [x] **Fix one.test.ts: bun:test → vitest import** `engine, fix, P0` ← [testing](TODO-testing.md)
 - [x] **Triage 85 type errors — fix or suppress with intent** `engine, fix, P0` ← [testing](TODO-testing.md)
 - [x] **Fix 21 biome lint issues or configure intentional exceptions** `engine, fix, P1` ← [testing](TODO-testing.md)
