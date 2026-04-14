@@ -9,6 +9,7 @@
  */
 
 import { readParsed, write, writeSilent } from '@/lib/typedb'
+import { wsManager } from '@/lib/ws-server'
 import type { PersistentWorld } from './persist'
 import type { Task } from './task-parse'
 
@@ -121,6 +122,12 @@ export async function markTaskDone(taskId: string): Promise<void> {
     delete $d of $t; delete $st of $t;
     insert $t has done true, has task-status "done";
   `)
+  wsManager.broadcast({
+    type: 'complete',
+    taskId,
+    status: 'complete',
+    timestamp: Date.now(),
+  })
 }
 
 /**
@@ -185,6 +192,22 @@ export async function selfCheckoff(
     if (remaining.length === 0) {
       await net.know()
     }
+  }
+
+  // 6. Broadcast completion and unblock events via WebSocket
+  wsManager.broadcast({
+    type: 'complete',
+    taskId,
+    status: 'complete',
+    timestamp: Date.now(),
+  })
+  for (const unblockedId of unblocked) {
+    wsManager.broadcast({
+      type: 'unblock',
+      taskId: unblockedId,
+      status: 'todo',
+      timestamp: Date.now(),
+    })
   }
 
   return { marked: 1, unblocked }

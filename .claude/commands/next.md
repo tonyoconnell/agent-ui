@@ -21,4 +21,11 @@ curl -s -X POST http://localhost:4321/api/tasks/SKILL_ID/complete \
   -H 'Content-Type: application/json' -d '{"from": "claude"}'
 ```
 
-7. Report what was done and what unlocked.
+7. **Report with deterministic numbers (Rule 3):**
+   ```
+   Task:        <name> (<tags>)
+   Picked:      strength <N>, priority <P>
+   Tests:       <passed>/<total> pass (<ms>)
+   Path:        <from> → <to>, +<strength>
+   Unlocked:    <N> blocked tasks now ready
+   ```

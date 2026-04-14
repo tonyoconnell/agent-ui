@@ -46,10 +46,16 @@ curl -X POST /api/tasks/{id}/complete \
 
 3. If the server isn't running, note what was completed for later recording. The pheromone will be applied when the system next boots.
 
-4. Report:
-   - What was completed
-   - The path that was reinforced (from → to, +5.0 strength)
-   - The unit's updated success rate
-   - What the world suggests next (highest-strength attractive task)
+4. **Report with deterministic numbers (Rule 3):**
+   ```
+   Task:        <id>
+   Rubric:      fit 0.92 · form 0.85 · truth 0.90 · taste 0.80 → 0.88
+   Tests:       326/326 pass (4.23s)
+   Path:        <from> → <to>, +5.0 strength
+   Unit rate:   0.87 → 0.89 success
+   Next:        <highest-strength attractive task>
+   ```
+   Every dimension is a separate tagged edge (via `markDims()` in `src/engine/rubric.ts`).
+   The substrate learns which paths produce fit code vs form code vs truth code vs taste.
 
-5. If the task failed instead, call with `{"failed": true}` — this deposits resistance (+8.0) instead of strength (+5.0). Ask the user if it failed before marking success.
+5. If the task failed instead, call with `{"failed": true}` — this deposits resistance (+8.0) instead of strength (+5.0). Report the dimension that dropped below 0.5. Ask the user if it failed before marking success.

@@ -29,3 +29,17 @@ curl -s http://localhost:4321/api/tick?interval=0 | jq .
    - Frontier: detects unexplored tag clusters
 
 4. Suggest what's next based on the tick result.
+
+5. **Report with deterministic numbers (Rule 3):**
+   ```
+   Tick:        <cycle N>
+   L1 signal:   <ms>, <routed> signals
+   L2 trail:    <marked> paths, <warned> paths
+   L3 fade:     <decayed> paths, <recovered> claims
+   L5 evolve:   <N> agents rewritten
+   L6 know:     <N> highways crystallized, <N> hypotheses
+   L7 frontier: <N> unexplored clusters
+   Highways:    <top 3 paths with strength>
+   ```
+   Emit the per-loop timings (`lastAtMs`, `nextAtMs`) so the substrate can learn
+   which loops pay off. If a loop never produces outcomes, its pheromone fades.

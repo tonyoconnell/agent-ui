@@ -60,6 +60,19 @@ This is the deterministic sandwich PRE check. The substrate learns from clean st
    - `/next` to pick the single best task
    - `/work` for autonomous loop
 
+8. **Report with deterministic numbers (Rule 3):**
+   ```
+   Scan:        <N> TODO-*.md files, <N> total tasks (<M> done)
+   KV:          <written|skipped (hash match)>, <ms>
+   TypeDB:      <N> tasks inserted, <N> skills inserted, <N> relations, <ms>
+   todo.json:   <bytes>, <ms>
+   TODO.md:     <regenerated|unchanged>
+   Top 5:       <task-id>@<priority>, <task-id>@<priority>, ...
+   ```
+   Emit the sync latency. Hash-gated writes should skip KV on no-op; emit the
+   skip count. This is how the substrate learns whether docs actually changed
+   or we're just pinging the pipeline.
+
 ## The Sync Chain
 
 ```

@@ -20,7 +20,7 @@
  *   bun run deploy --strict         # fail on any test failure
  */
 
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -88,6 +88,32 @@ function run(
     stdout: result.stdout ?? '',
     stderr: result.stderr ?? '',
   }
+}
+
+// Async spawn — for real parallelism. Unlike run() which blocks.
+function runAsync(
+  cmd: string,
+  cmdArgs: string[],
+  opts: { cwd?: string; env?: Record<string, string> } = {},
+): Promise<{ ok: boolean; code: number; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    const child = spawn(cmd, cmdArgs, {
+      cwd: opts.cwd ?? ROOT,
+      env: { ...process.env, ...(opts.env ?? {}) },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let stdout = ''
+    let stderr = ''
+    child.stdout?.on('data', (d: Buffer) => {
+      stdout += d.toString()
+    })
+    child.stderr?.on('data', (d: Buffer) => {
+      stderr += d.toString()
+    })
+    child.on('close', (code) => {
+      resolve({ ok: code === 0, code: code ?? 1, stdout, stderr })
+    })
+  })
 }
 
 function die(msg: string, extra?: string): never {
@@ -350,10 +376,18 @@ async function approve(branch: string): Promise<boolean> {
 // Step 7: Deploy
 // ─────────────────────────────────────────────────────────────────────────────
 
-function deployService(name: string, cwd: string, args: string[], env: Record<string, string>) {
+type DeployResult = { name: string; elapsed: number; version: string; previewUrl?: string }
+
+// Deploy a single service via wrangler CLI direct (faster than `bun wrangler`).
+// Uses runAsync for true parallelism — spawnSync blocks the event loop.
+async function deployService(
+  name: string,
+  cwd: string,
+  args: string[],
+  env: Record<string, string>,
+): Promise<DeployResult> {
   const start = Date.now()
-  console.log(c.gray(`  → ${name}...`))
-  const result = run('bun', ['wrangler', ...args], { cwd, env, silent: true })
+  const result = await runAsync('wrangler', args, { cwd, env })
   const elapsed = Date.now() - start
 
   if (!result.ok) {
@@ -362,58 +396,55 @@ function deployService(name: string, cwd: string, args: string[], env: Record<st
     die(`${name} deploy failed`)
   }
 
-  // Extract version ID from output
   const versionMatch = result.stdout.match(/Version ID:\s*([a-f0-9-]+)/i)
-  const version = versionMatch ? versionMatch[1]?.slice(0, 12) : '?'
+  const version = versionMatch ? (versionMatch[1]?.slice(0, 12) ?? '?') : '?'
 
-  console.log(c.green(`  ✓ ${name}`) + c.gray(` (${elapsed}ms, v${version})`))
+  // Pages outputs a preview URL like "https://b7746117.one-substrate.pages.dev"
+  const previewMatch = result.stdout.match(/https:\/\/([a-f0-9]+)\.one-substrate\.pages\.dev/)
+  const previewUrl = previewMatch ? previewMatch[0] : undefined
+
+  return { name, elapsed, version, previewUrl }
 }
 
-function deployAll(creds: Record<string, string>) {
-  const env = {
-    ...creds,
-    PATH: process.env.PATH ?? '',
+async function deployAll(creds: Record<string, string>): Promise<DeployResult[]> {
+  const env = { ...creds, PATH: process.env.PATH ?? '' }
+
+  // Workers are independent — parallelize for ~3× speedup.
+  console.log(c.gray(`  → Gateway, Sync, NanoClaw (parallel)...`))
+  const workerStart = Date.now()
+  const workers = await Promise.all([
+    deployService('Gateway', join(ROOT, 'gateway'), ['deploy'], env),
+    deployService('Sync', join(ROOT, 'workers/sync'), ['deploy'], env),
+    deployService('NanoClaw', join(ROOT, 'nanoclaw'), ['deploy'], env),
+  ])
+  const workerElapsed = Date.now() - workerStart
+
+  for (const w of workers) {
+    console.log(c.green(`  ✓ ${w.name}`) + c.gray(` (${w.elapsed}ms, v${w.version})`))
   }
-
-  deployService('Gateway', join(ROOT, 'gateway'), ['deploy'], env)
-  deployService('Sync', join(ROOT, 'workers/sync'), ['deploy'], env)
-  deployService('NanoClaw', join(ROOT, 'nanoclaw'), ['deploy'], env)
-  deployService('Pages', ROOT, ['pages', 'deploy', 'dist/', '--project-name=one-substrate', '--commit-dirty=true'], env)
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Step 8: Health checks
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function healthCheck() {
-  const urls = [
-    { name: 'Gateway', url: 'https://api.one.ie/health' },
-    { name: 'Pages', url: 'https://one-substrate.pages.dev/' },
-    { name: 'Sync', url: 'https://one-sync.oneie.workers.dev/' },
-    { name: 'NanoClaw', url: 'https://nanoclaw.oneie.workers.dev/health' },
-  ]
-
-  const results = await Promise.all(
-    urls.map(async ({ name, url }) => {
-      try {
-        const start = Date.now()
-        const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
-        const elapsed = Date.now() - start
-        return { name, url, ok: res.ok, status: res.status, elapsed }
-      } catch (_e) {
-        return { name, url, ok: false, status: 0, elapsed: 0 }
-      }
-    }),
+  console.log(
+    c.gray(`  (parallel total: ${workerElapsed}ms — vs ~${workers.reduce((a, b) => a + b.elapsed, 0)}ms sequential)`),
   )
 
-  for (const r of results) {
-    if (r.ok) {
-      console.log(c.green(`  ✓ ${r.name}`) + c.gray(` ${r.status} in ${r.elapsed}ms — ${r.url}`))
-    } else {
-      console.log(c.yellow(`  ⊘ ${r.name}`) + c.gray(` warming up — ${r.url}`))
-    }
+  // Pages deploys last so workers back it.
+  console.log(c.gray(`  → Pages...`))
+  const pages = await deployService(
+    'Pages',
+    ROOT,
+    ['pages', 'deploy', 'dist/', '--project-name=one-substrate', '--commit-dirty=true'],
+    env,
+  )
+  console.log(c.green(`  ✓ ${pages.name}`) + c.gray(` (${pages.elapsed}ms)`))
+  if (pages.previewUrl) {
+    console.log(c.blue(`    📎 Preview: ${pages.previewUrl}`))
   }
+
+  return [...workers, pages]
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 8: Health checks (implemented as healthCheckWithRetry below)
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
@@ -458,13 +489,17 @@ async function main() {
     return
   }
 
-  step(7, 8, 'Deploy — 4 services')
-  deployAll(creds)
+  step(7, 8, 'Deploy — 4 services (parallel workers + pages)')
+  const deployResults = await deployAll(creds)
 
   step(8, 8, 'Health checks')
-  await healthCheck()
+  const health = await healthCheckWithRetry()
+
+  // Rule 3: record deploy to substrate — let the world learn from its own deploys
+  await recordToSubstrate({ branch, deployResults, health, totalFailures: verify.totalFailures })
 
   const totalElapsed = ((Date.now() - startTotal) / 1000).toFixed(1)
+  const preview = deployResults.find((r) => r.previewUrl)?.previewUrl
 
   console.log()
   console.log(c.green('═'.repeat(60)))
@@ -472,10 +507,89 @@ async function main() {
   console.log(c.green('═'.repeat(60)))
   console.log()
   console.log(`  Branch:          ${branch}`)
-  console.log(`  Tests allowed:   ${verify.allowedFailures} flaky (${verify.totalFailures} total failures)`)
+  console.log(
+    `  Tests:           ${verify.totalFailures === 0 ? 'all pass' : `${verify.allowedFailures} flaky allowed`}`,
+  )
   console.log(`  Services:        4/4 deployed`)
+  console.log(`  Health:          ${health.filter((h) => h.ok).length}/${health.length} responding`)
+  if (preview) console.log(`  Preview:         ${preview}`)
   console.log()
   process.exit(0)
+}
+
+// Health check with 3 retries for slow-warming services (Pages CDN propagation).
+async function healthCheckWithRetry() {
+  const urls = [
+    { name: 'Gateway', url: 'https://api.one.ie/health' },
+    { name: 'Pages', url: 'https://one-substrate.pages.dev/' },
+    { name: 'Sync', url: 'https://one-sync.oneie.workers.dev/' },
+    { name: 'NanoClaw', url: 'https://nanoclaw.oneie.workers.dev/health' },
+  ]
+
+  async function check(
+    name: string,
+    url: string,
+    attempt = 1,
+  ): Promise<{ name: string; url: string; ok: boolean; status: number; elapsed: number; attempts: number }> {
+    try {
+      const start = Date.now()
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+      const elapsed = Date.now() - start
+      if (res.ok) return { name, url, ok: true, status: res.status, elapsed, attempts: attempt }
+    } catch {}
+    if (attempt < 3) {
+      await new Promise((r) => setTimeout(r, 2000 * attempt))
+      return check(name, url, attempt + 1)
+    }
+    return { name, url, ok: false, status: 0, elapsed: 0, attempts: attempt }
+  }
+
+  const results = await Promise.all(urls.map(({ name, url }) => check(name, url)))
+  for (const r of results) {
+    if (r.ok) {
+      const retry = r.attempts > 1 ? c.gray(` (retry ${r.attempts})`) : ''
+      console.log(c.green(`  ✓ ${r.name}`) + c.gray(` ${r.status} in ${r.elapsed}ms`) + retry)
+    } else {
+      console.log(c.red(`  ✗ ${r.name}`) + c.gray(` failed after 3 retries — ${r.url}`))
+    }
+  }
+  return results
+}
+
+// Rule 3: emit deploy event as a substrate signal so paths learn.
+// POST to /api/signal with deploy metadata; mark() on full health, warn() on failure.
+async function recordToSubstrate(data: {
+  branch: string
+  deployResults: DeployResult[]
+  health: Array<{ name: string; ok: boolean; elapsed: number }>
+  totalFailures: number
+}) {
+  try {
+    const allHealthy = data.health.every((h) => h.ok)
+    const receiver = allHealthy ? 'deploy:success' : 'deploy:degraded'
+    const payload = {
+      receiver,
+      data: {
+        branch: data.branch,
+        services: data.deployResults.map((r) => ({ name: r.name, elapsed: r.elapsed, version: r.version })),
+        healthMs: Object.fromEntries(data.health.map((h) => [h.name.toLowerCase(), h.elapsed])),
+        testFailures: data.totalFailures,
+        timestamp: new Date().toISOString(),
+      },
+    }
+    const res = await fetch('https://one-substrate.pages.dev/api/signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(3000),
+    })
+    if (res.ok) {
+      console.log(c.gray(`  ✓ Recorded to substrate: ${receiver}`))
+    }
+  } catch {
+    // Non-fatal — the substrate might be unreachable during a deploy that broke it
+    console.log(c.gray(`  ⊘ Substrate record skipped (non-fatal)`))
+  }
 }
 
 main().catch((e) => die('Unexpected error', String(e)))

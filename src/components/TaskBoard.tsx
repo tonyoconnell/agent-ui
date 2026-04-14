@@ -1381,7 +1381,7 @@ export function TaskBoard() {
     }
   }, [])
 
-  // Fetch task data (less frequent, on mount + every 10s)
+  // Fetch task data — initial load only (WebSocket handles live updates)
   const fetchTasks = useCallback(async () => {
     try {
       const [tasksRes, readyRes, attractiveRes, repelledRes] = await Promise.all([
@@ -1413,8 +1413,9 @@ export function TaskBoard() {
         priority: (t.priority as Task['priority']) || 'P1',
         phase: (t.phase as string) || 'onboard',
         taskType: (t.taskType as string) || (t['task-type'] as string) || 'build',
-        trailPheromone: (t.trailPheromone as number) || 0,
-        alarmPheromone: (t.alarmPheromone as number) || 0,
+        // Use live API pheromone data (strength/resistance) if available
+        trailPheromone: (t.strength as number) || (t.trailPheromone as number) || 0,
+        alarmPheromone: (t.resistance as number) || (t.alarmPheromone as number) || 0,
         trailStatus: null as Task['trailStatus'],
         attractive: attractiveIds.has(t.tid || t.id),
         repelled: repelledIds.has(t.tid || t.id),
@@ -1435,11 +1436,75 @@ export function TaskBoard() {
     }
   }, [])
 
+  // Initial data load via HTTP GET
   useEffect(() => {
     fetchTasks()
-    const interval = setInterval(fetchTasks, 10000)
-    return () => clearInterval(interval)
   }, [fetchTasks])
+
+  // WebSocket for instant push updates (replaces 2s polling)
+  useEffect(() => {
+    let ws: WebSocket | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+    const connect = () => {
+      ws = new WebSocket('ws://localhost:4322/api/ws')
+
+      ws.onopen = () => {
+        // Subscribe to task updates
+        ws?.send(JSON.stringify({ type: 'subscribe', channel: 'tasks' }))
+      }
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data) as {
+            type: string
+            taskId?: string
+            strength?: number
+            resistance?: number
+            [key: string]: unknown
+          }
+
+          if (msg.type === 'task-update') {
+            // Update specific task in state
+            setTasks((prev) => prev.map((t) => (t.tid === msg.taskId ? { ...t, strength: msg.strength, ...msg } : t)))
+          }
+
+          if (msg.type === 'mark' || msg.type === 'warn') {
+            // Update pheromone for edge
+            setTasks((prev) =>
+              prev.map((t) =>
+                t.tid === msg.taskId
+                  ? {
+                      ...t,
+                      trailPheromone: msg.strength ?? t.trailPheromone,
+                      alarmPheromone: msg.resistance ?? t.alarmPheromone,
+                    }
+                  : t,
+              ),
+            )
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      ws.onerror = () => {
+        // Silently degrade — SSE + HTTP remain functional
+      }
+
+      ws.onclose = () => {
+        // Reconnect after 3 seconds
+        reconnectTimer = setTimeout(connect, 3000)
+      }
+    }
+
+    connect()
+
+    return () => {
+      ws?.close()
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen p-6 max-w-[1400px] mx-auto">

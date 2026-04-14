@@ -1,0 +1,69 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: W0 Baseline — biome + typecheck + vitest
+        run: bun run verify
+
+      - name: Build
+        run: NODE_ENV=production bun run build
+
+      - name: Deploy to Cloudflare (feature branches auto)
+        if: github.ref != 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_API_KEY }}
+          CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Explicitly blank scoped token — force Global Key auth
+          CLOUDFLARE_API_TOKEN: ''
+        run: |
+          # Feature branches deploy to Pages preview + workers staging only
+          bunx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true --branch="${GITHUB_REF#refs/heads/}"
+
+      - name: Deploy to Production (main requires approval via protected env)
+        if: github.ref == 'refs/heads/main'
+        environment: production   # GitHub env with required reviewer
+        env:
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_API_KEY }}
+          CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ''
+        run: |
+          # Parallel worker deploys + pages
+          (cd gateway && bunx wrangler deploy) &
+          (cd workers/sync && bunx wrangler deploy) &
+          (cd nanoclaw && bunx wrangler deploy) &
+          wait
+          bunx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+
+      - name: Health check
+        run: |
+          sleep 10
+          curl -sf https://api.one.ie/health || echo "Gateway warming"
+          curl -sf https://one-substrate.pages.dev/ || echo "Pages warming"
+          curl -sf https://one-sync.oneie.workers.dev/ || echo "Sync warming"
+          curl -sf https://nanoclaw.oneie.workers.dev/health || echo "NanoClaw warming"
