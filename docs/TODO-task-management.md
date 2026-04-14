@@ -232,7 +232,7 @@ async function selfCheckoff(task: Task, net: PersistentWorld) {
     net.enqueue({ receiver: `builder:${t.bid}`, data: { unblocked: true } })
   }
 
-  // 5. Phase gate — if all tasks in phase complete, crystallize
+  // 5. Phase gate — if all tasks in phase complete, harden
   const remaining = await readParsed(`
     match $t isa task, has task-phase "${task.phase}", has done false; select $t;
   `)

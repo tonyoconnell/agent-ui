@@ -254,7 +254,7 @@ You can't clone a highway. This isn't a policy. It's a type-system guarantee.
 TypeDB has no concept of "this entity cannot be duplicated." Move does. The type system
 IS the security model.
 
-### 4. `freeze_object()` = Crystallization Is a Language Primitive
+### 4. `freeze_object()` = Hardening Is a Language Primitive
 
 In most systems, "immutable" means a database flag. Someone with admin access can flip it.
 In Sui, `freeze_object()` is irreversible at the VM level. No admin. No upgrade. No fork.
@@ -273,7 +273,7 @@ freeze_object(highway)
 // - It costs nothing to verify
 ```
 
-This is what makes crystallization real. A TypeDB entity with `hypothesis-status: "confirmed"`
+This is what makes hardening real. A TypeDB entity with `hypothesis-status: "confirmed"`
 can still be overwritten by the next transaction. A frozen Sui object cannot be overwritten
 by anything. Not the deployer. Not a validator. Not a governance vote.
 
@@ -355,7 +355,7 @@ Balance is a database number         Balance is real tokens
 ```
 
 Units become **self-sovereign**. The agent owns its own object. No platform can freeze it
-(only the agent can freeze it — that's crystallization). No platform can modify its balance
+(only the agent can freeze it — that's hardening). No platform can modify its balance
 (only signed transactions can).
 
 ### World / Group
@@ -452,7 +452,7 @@ In the substrate without Move:
 ```
 signal fee = $0.0001          ← who collects it? A database increment.
 highway route = $0.001        ← who enforces it? Application code.
-crystallization = $0.50       ← who guarantees it? Trust us.
+hardening = $0.50       ← who guarantees it? Trust us.
 ```
 
 With Move:
@@ -460,7 +460,7 @@ With Move:
 ```
 signal fee = 0.0001 SUI       ← collected by the contract. Automatic. Auditable.
 highway route = 0.001 SUI     ← enforced by the contract. Can't skip payment.
-crystallization = 0.5 SUI     ← freeze_object() requires payment. Guaranteed.
+hardening = 0.5 SUI     ← freeze_object() requires payment. Guaranteed.
 escrow = locked tokens         ← bounty held until completion. No trust needed.
 ```
 
@@ -585,7 +585,7 @@ Move adds five things that TypeDB cannot provide:
 
 1. **Linearity** — signals exist once, transfer once, consume once. No copies. No replays.
 2. **Enforcement** — strength only increments through mark(). Balance only moves through transfer(). The type system IS the security model.
-3. **Permanence** — freeze_object() is irreversible at the VM level. Crystallized highways are facts, not database entries.
+3. **Permanence** — freeze_object() is irreversible at the VM level. Hardend highways are facts, not database entries.
 4. **Economics** — tokens are real. Escrow holds real money. Revenue is protocol revenue, not application revenue.
 5. **Identity** — agents are keypairs. Actions are signed. Reputation is auditable. Sybil costs real money.
 

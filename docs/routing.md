@@ -118,7 +118,7 @@ even with zero weight. No path is ever invisible — just expensive.
 │   follow(type?)              Deterministic                   │
 │   ─────────────              Always picks strongest path     │
 │   net strength - resistance  Sorted. Top wins.               │
-│   Used by: crystallize,      "What's the proven route?"      │
+│   Used by: harden,      "What's the proven route?"      │
 │   highway detection                                          │
 │                                                              │
 ├──────────────────────────────────────────────────────────────┤
@@ -350,7 +350,7 @@ Every 10 seconds, the world breathes:
     │        │                                                │
     │        ▼                                                │
     │   ┌─────────┐                                           │
-    │   │  KNOW   │ ← every hour: crystallize highways        │
+    │   │  KNOW   │ ← every hour: harden highways        │
     │   │         │   hypothesize, detect frontiers            │
     │   └─────────┘                                           │
     │                                                         │
@@ -816,7 +816,7 @@ From cold start to breathing world:
       │                            select → ask → mark/warn
       │                            drain queue
       │                            fade (5min), evolve (10min)
-      │                            crystallize (1hr)
+      │                            harden (1hr)
       ▼
     running.
 ```

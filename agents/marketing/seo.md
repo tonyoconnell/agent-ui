@@ -34,7 +34,7 @@ Get ONE ranking for terms people search when they want AI agents.
 "create ai agent free"      → Register stage  
 "ai agent hosting"          → Capable stage
 "ai agent marketplace"      → Discover stage
-"tokenize ai agent"         → Crystallize stage
+"tokenize ai agent"         → Harden stage
 ```
 
 **Long-tail (lower competition):**

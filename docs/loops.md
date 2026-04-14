@@ -62,7 +62,7 @@ Nested feedback loops at different timescales. Faster loops feed slower loops.
 │ ┌─────────────────────────────────────────────────────────────┐ │
 │ │ L7  FRONTIER   every hour      detect new territory         │ │
 │ │ ┌─────────────────────────────────────────────────────────┐ │ │
-│ │ │ L6  KNOWLEDGE  every hour      crystallize highways      │ │ │
+│ │ │ L6  KNOWLEDGE  every hour      harden highways      │ │ │
 │ │ │ ┌─────────────────────────────────────────────────────┐ │ │ │
 │ │ │ │ L5  EVOLUTION  every 10 min    rewrite prompts      │ │ │ │
 │ │ │ │ ┌───────────────────────────────────────────────┐   │ │ │ │
@@ -264,7 +264,7 @@ console.log(`Evolution: ${before}% → ${after}% avg success`)
 
 ## L6: Knowledge Loop
 
-Crystallize highways. Detect surges. Generate hypotheses.
+Harden highways. Detect surges. Generate hypotheses.
 
 ```typescript
 export const knowLoop = (net, cycle) => loop<{ action: 'know' }>(
@@ -290,7 +290,7 @@ export const knowLoop = (net, cycle) => loop<{ action: 'know' }>(
       priorityEvolve.push(...i.pattern.split('→'))
     }
     
-    return { result: { crystallized: insights.length } }
+    return { result: { hardened: insights.length } }
   },
   () => {}
 )
@@ -300,7 +300,7 @@ export const knowLoop = (net, cycle) => loop<{ action: 'know' }>(
 
 | Metric | What it shows | How to test |
 |--------|---------------|-------------|
-| `crystallized` | Paths promoted | Count insights returned |
+| `hardened` | Paths promoted | Count insights returned |
 | `surges` | Rapid changes | Count paths with delta > threshold |
 | `hypotheses` | Beliefs generated | Count new hypothesis entities |
 | `priority_evolve` | Triggered evolutions | Length of priority queue |
@@ -429,7 +429,7 @@ type TickResult = {
   signal: { selected: string | null; success: boolean | null; skipped?: boolean }
   fade?: boolean
   evolved?: number
-  crystallized?: number
+  hardened?: number
   hypotheses?: number
   frontiers?: number
   docs?: { verified: number; gaps: number }

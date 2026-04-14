@@ -22,7 +22,7 @@ curl -s -X POST http://localhost:4321/api/tasks \
 
 3. Run a growth tick to process the new data:
 ```bash
-curl -s http://localhost:4321/api/tick?interval=0 | jq '{cycle, highways: [.highways[] | .path], evolved, crystallized, frontiers}'
+curl -s http://localhost:4321/api/tick?interval=0 | jq '{cycle, highways: [.highways[] | .path], evolved, hardened, frontiers}'
 ```
 
 4. Summarize: what was done, what trails were reinforced, what the world learned.

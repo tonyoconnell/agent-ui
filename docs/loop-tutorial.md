@@ -173,7 +173,7 @@ Common timers:
 ```typescript
 one.timer('fade', 300_000)      // decay pheromone every 5 min
 one.timer('evolve', 600_000)    // check for evolution every 10 min
-one.timer('know', 3_600_000)    // crystallize knowledge every hour
+one.timer('know', 3_600_000)    // harden knowledge every hour
 ```
 
 ---

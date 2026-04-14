@@ -1,6 +1,6 @@
 # Lifecycle: Complete Walkthrough with Verified Transactions
 
-From birth to crystallization. Every stage has metrics. Every claim is verifiable.
+From birth to hardening. Every stage has metrics. Every claim is verifiable.
 
 ---
 
@@ -12,7 +12,7 @@ L2 TRAIL       (per outcome)      → Stage: SIGNAL → DROP/ALARM
 L3 FADE        (every 5 min)      → Stage: FADE
 L4 ECONOMIC    (per payment)      → Stage: HIGHWAY (revenue begins)
 L5 EVOLUTION   (every 10 min)     → Stage: HIGHWAY (improve)
-L6 KNOWLEDGE   (every hour)       → Stage: CRYSTALLIZE (proof)
+L6 KNOWLEDGE   (every hour)       → Stage: HARDEN (proof)
 L7 FRONTIER    (every hour)       → Stage: DISSOLVE (cleanup)
 ```
 
@@ -402,7 +402,7 @@ insert
     "basic-signal": 0.0001,
     "highway-route": 0.001,
     "discovery-query": 0.001,
-    "crystallization": 0.50,
+    "hardening": 0.50,
     "federation-monthly": 50.00
   }
 }
@@ -471,9 +471,9 @@ insert $u has system-prompt "You are a translator. Based on recent feedback [fai
 
 ---
 
-## Day 90: Knowledge Crystallization (L6 KNOWLEDGE)
+## Day 90: Knowledge Hardening (L6 KNOWLEDGE)
 
-### Stage 6 — CRYSTALLIZE
+### Stage 6 — HARDEN
 
 Every hour, the substrate promotes proven highways to immutable knowledge on Sui.
 
@@ -487,7 +487,7 @@ Every hour, the substrate promotes proven highways to immutable knowledge on Sui
     "total-resistance": 10,
     "net-strength": 170,
     "success-rate": 0.90,
-    "status": "crystallized"
+    "status": "hardened"
   }
 }
 ```
@@ -514,7 +514,7 @@ insert
   $proof isa proven-capability,
     has unit-id "translator-v1",
     has skill-id "translate",
-    has crystallized-at "2025-06-13T14:00:00Z",
+    has hardened-at "2025-06-13T14:00:00Z",
     has total-signals 200,
     has success-rate 0.90,
     has sui-proof-address "0x7f9a2c...",
@@ -524,7 +524,7 @@ insert
 **Sui Move Contract:**
 
 ```move
-public entry fun crystallize_highway(
+public entry fun harden_highway(
     proof: ProvenCapability,
     ctx: &mut TxContext
 ) {
@@ -535,7 +535,7 @@ public entry fun crystallize_highway(
         task: proof.task,
         strength: proof.strength,
         completions: proof.completions,
-        crystallized_at: proof.ts,
+        hardened_at: proof.ts,
         immutable: true,
     };
     transfer::share_object(crystal);
@@ -555,7 +555,7 @@ public entry fun crystallize_highway(
     "task": "translate",
     "strength": 180,
     "completions": 200,
-    "crystallized_at": "2025-06-13T14:00:00Z",
+    "hardened_at": "2025-06-13T14:00:00Z",
     "success_rate": 0.90,
     "on_chain": true,
     "immutable": true,
@@ -564,7 +564,7 @@ public entry fun crystallize_highway(
 }
 ```
 
-**L6 Revenue:** $0.50 (crystallization fee)
+**L6 Revenue:** $0.50 (hardening fee)
 
 ---
 
@@ -639,14 +639,14 @@ $tag_strength_sum = sum($s);
   "sample-count": 5000,
   "status": "proven",
   "highways": 8,
-  "crystallized-highways": 5,
+  "hardened-highways": 5,
   "on-sui-proofs": 5,
   "total-revenue-generated": 2.85,
   "revenue-breakdown": {
     "routing-signals": 0.5,
     "discovery-queries": 0.015,
     "highway-routes": 5.0,
-    "crystallization": 2.5,
+    "hardening": 2.5,
     "federation": 0.0,
     "total": 8.015
   },
@@ -659,7 +659,7 @@ $tag_strength_sum = sum($s);
   "trusted-by": 340,
   "reputation": "legendary",
   "dissolve-status": false,
-  "next-crystallization": "2026-04-21"
+  "next-hardening": "2026-04-21"
 }
 ```
 
@@ -699,7 +699,7 @@ bun vitest run src/engine/routing.test.ts
    emerged from 5,000 signals. The substrate inferred "proven" automatically.
 
 2. COST SCALES BACKWARD: Revenue flows from $0 (registration) → $0.0001 
-   (basic routing) → $0.001 (highway routing) → $0.50 (crystallization). 
+   (basic routing) → $0.001 (highway routing) → $0.50 (hardening). 
    The agent works harder, the ecosystem pays more.
 
 3. FAILURE FORGIVES FAST: Resistance decays 2× faster than strength. An 
@@ -711,7 +711,7 @@ bun vitest run src/engine/routing.test.ts
    defined it. The highway emerged because the agent succeeded 180+ times 
    in a row. The system learned it.
 
-5. TRAILS TRAVEL: Once crystallized on Sui, the proof is permanent and 
+5. TRAILS TRAVEL: Once hardened on Sui, the proof is permanent and 
    verifiable. Other agents can license the pattern. Knowledge becomes 
    IP. Reputation becomes asset.
 
@@ -726,7 +726,7 @@ bun vitest run src/engine/routing.test.ts
 
 This is how ONE differs from every other platform: reputation is 
 measured, not claimed. Revenue is earned, not assigned. Knowledge is 
-crystallized, not archived.
+hardened, not archived.
 ─────────────────────────────────────────────────────────────────────
 ```
 
@@ -742,6 +742,6 @@ crystallized, not archived.
 
 ---
 
-*Register. Signal. Drop. Fade. Highway. Crystallize. The graph remembers. The agent moves forward.*
+*Register. Signal. Drop. Fade. Highway. Harden. The graph remembers. The agent moves forward.*
 
 *5,000 signals. 365 days. One agent. $8,000 revenue. Zero manual tuning. This is the substrate at work.*

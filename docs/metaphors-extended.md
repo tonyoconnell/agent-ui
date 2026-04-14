@@ -15,7 +15,7 @@ A Langchain agent and an AgentVerse agent and a Hermes agent and a human freelan
 But they speak different languages:
 - Langchain: "Agent", "Tool", "Chain", "callback"
 - AgentVerse: "Bureau", "Agent", "Protocol", "Almanac"
-- Hermes: "Goal", "Subtask", "Advice", "Crystallize"
+- Hermes: "Goal", "Subtask", "Advice", "Harden"
 - Human: "Job", "Task", "Skill", "Reputation"
 
 **Solution:** Map everything to the same 5 verbs underneath:
@@ -38,7 +38,7 @@ signal → mark → warn → fade → follow
 | **Success** | deposit | potentiate | commend | deliver | carve | mark | success callback | ACK | hypothesis_confirmed | paid | success |
 | **Failure** | alarm | inhibit | flag | return | dam | warn | error callback | NACK | hypothesis_rejected | unpaid | failure |
 | **Path** | trail | synapse | workflow | route | channel | frequency | execution path | agent registry | advice network | career path | service registry |
-| **Strong path** | highway | pathway | pipeline | express | river | channel | proven agent | famous bureau | crystallized pattern | top freelancer | high-reputation agent |
+| **Strong path** | highway | pathway | pipeline | express | river | channel | proven agent | famous bureau | hardened pattern | top freelancer | high-reputation agent |
 | **Decay** | evaporate | decay | forget | archive | dry | attenuate | cache expire | reputation reset | time decay | experience fades | timeout |
 | **Routing** | smell-following | synaptic weight | skill-matching | zipcode lookup | flow rate | signal strength | agent selection | bureau discovery | advice lookup | word-of-mouth | almanac query |
 | **Best path** | strongest trail | highest synapse | top performer | fastest route | main river | strongest signal | best agent | flagship bureau | proven peer | trusted friend | top rated |
@@ -60,7 +60,7 @@ Agent decision             select()              Choose next tool
 Callback                   emit()                Fan out results
 Memory                     path strength         What worked before
 Tool use tracking          pheromone             How often tool succeeded
-Retrieval augmented gen    highways              Best practices crystallized
+Retrieval augmented gen    highways              Best practices hardened
 Agent failure              warn()                Accumulate resistance
 ```
 
@@ -232,9 +232,9 @@ Subtask                   handler/.on()         Steps to achieve goal
 Tool (40+)                handler/.on()         Built-in capabilities
 Feedback loop             mark/warn             Learn from outcomes
 Evolution/improvement     L5 loop               Rewrite prompts
-Hypothesis                crystallized path    Permanent pattern
+Hypothesis                hardened path    Permanent pattern
 MCP server                world integration    Connect to substrate
-Crystallize               highway→pattern      Save to TypeDB
+Harden               highway→pattern      Save to TypeDB
 ```
 
 **How Hermes Maps:**
@@ -247,7 +247,7 @@ agent.set_goal(goal)                // signal({receiver: "hermes:agent", data: {
 → tool_call(tool, params)           // .on("tool_name", handler)
 → feedback_integrate(success)       // mark/warn paths
 → evolution_trigger()               // L5 loop (rewrite prompt)
-→ hypothesis_save()                 // Crystallize to TypeDB
+→ hypothesis_save()                 // Harden to TypeDB
 ```
 
 **Code Example:**
@@ -276,7 +276,7 @@ const unit = world().add('hermes:researcher')
             const highways = await readParsed(`
               match $e (source: $from, target: $to) isa path,
                 has strength $s,
-                has crystallized true,
+                has hardened true,
                 has metadata $meta;
               $s >= 50;
               select $from, $to, $s, $meta;
@@ -329,7 +329,7 @@ const unit = world().add('hermes:researcher')
       }
     }
     
-    // ONE: if this represents a new hypothesis, crystallize it
+    // ONE: if this represents a new hypothesis, harden it
     if (result.confidence >= 0.80) {
       // Save as permanent pattern (L6)
       await write(`
@@ -405,7 +405,7 @@ net.signal({
 // 5. Hermes consults MCP tools + proven peers
 // 6. Results flow back up the chain
 // 7. Each successful path gets marked (pheromone)
-// 8. Highways crystallize (which translator for which language pair works best)
+// 8. Highways harden (which translator for which language pair works best)
 
 // Pheromone flows across frameworks:
 // langchain→translate path gets marked when AgentVerse succeeds

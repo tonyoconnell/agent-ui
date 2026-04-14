@@ -73,7 +73,7 @@ scent            strength         positive weight map
 alarm            resistance       negative weight map
 spawn            add              create unit
 despawn          remove           destroy unit
-crystallize      know             promote to knowledge
+harden      know             promote to knowledge
 swarm            group            container of units
 Swarm            Group            entity name (TypeDB)
 swarm-type       group-type       attribute name
@@ -162,7 +162,7 @@ import.*Colony                import.*World
 colony()                      world()
 net.scent                     net.strength
 net.alarm                     net.resistance
-crystallize                   know
+harden                   know
 Colony                        World
 ```
 
@@ -174,7 +174,7 @@ import.*substrate             import from './world'
 import.*one                   import from './persist'
 colony                        world
 spawn                         add
-crystallize                   know
+harden                   know
 ```
 
 ### 1D · `src/engine/index.ts`
@@ -222,7 +222,7 @@ All terms. File references: `one.tql` → `world.tql`.
 ### 2C · `src/schema/skins.tql`
 
 ```
-colony → world, swarm → group, crystallize → know
+colony → world, swarm → group, harden → know
 ```
 
 ### 2D · `src/schema/sui.tql`
@@ -500,33 +500,33 @@ git rm "docs/agents 1.md"
 | ID | File | Hits | Terms |
 |----|------|-----:|-------|
 | 7A | `docs/README.md` | 15 | all |
-| 7B | `docs/groups.md` (was swarm.md) | 33 | `swarm`→`group`, `colony`→`world`, `crystallize`→`know`, `scent`→`strength`, `spawn`→`add` |
-| 7C | `docs/code-tutorial.md` | 59 | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance`, `crystallize`→`know`, `spawn`→`add`, `swarm`→`group` |
+| 7B | `docs/groups.md` (was swarm.md) | 33 | `swarm`→`group`, `colony`→`world`, `harden`→`know`, `scent`→`strength`, `spawn`→`add` |
+| 7C | `docs/code-tutorial.md` | 59 | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance`, `harden`→`know`, `spawn`→`add`, `swarm`→`group` |
 | 7D | `docs/examples.md` | 53 | `colony`→`world`, `scent`→`strength`, `spawn`→`add`, `swarm`→`group` |
 | 7E | `docs/100-lines.md` | 47 | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance`, `spawn`→`add`, `swarm`→`group`, `swarm-type`→`group-type` |
 | 7F | `docs/one-protocol-gaps.md` | 44 | `colony`→`world`, `spawn`→`add`, `swarm`→`group` |
-| 7G | `docs/task-management.md` | 37 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `scent`→`strength`, `spawn`→`add` |
-| 7H | `docs/ants.md` | 37 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `spawn`→`add`, `swarm`→`group` |
+| 7G | `docs/task-management.md` | 37 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know`, `scent`→`strength`, `spawn`→`add` |
+| 7H | `docs/ants.md` | 37 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know`, `spawn`→`add`, `swarm`→`group` |
 
 ### Ontology & architecture docs
 
 | ID | File | Hits | Terms |
 |----|------|-----:|-------|
 | 7I | `docs/world.md` | 26 | `colony`→`world`, `scent`→`strength`, `swarm`→`group` |
-| 7J | `docs/ontology.md` | 18 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `swarm`→`group` |
+| 7J | `docs/ontology.md` | 18 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know`, `swarm`→`group` |
 | 7K | `docs/architecture.md` | 18 | `colony`→`world`, `alarm`→`resistance`, `swarm`→`group`, `swarm-type`→`group-type` |
-| 7L | `docs/one-ontology.md` | 5 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know` |
+| 7L | `docs/one-ontology.md` | 5 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know` |
 | 7M | `docs/primitives.md` | 11 | `alarm`→`resistance`, `swarm`→`group`, `swarm-type`→`group-type`, `colony`→`world` |
 | 7N | `docs/loops.md` | 13 | `colony`→`world`, `alarm`→`resistance`, `scent`→`strength`, `swarm`→`group`, `swarm-type`→`group-type` |
-| 7O | `docs/the-stack.md` | 3 | `colony`→`world`, `crystallize`→`know`, `scent`→`strength` |
+| 7O | `docs/the-stack.md` | 3 | `colony`→`world`, `harden`→`know`, `scent`→`strength` |
 
 ### Flow & signal docs
 
 | ID | File | Hits | Terms |
 |----|------|-----:|-------|
-| 7P | `docs/flows.md` | 15 | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance`, `crystallize`→`know`, `spawn`→`add`, `swarm`→`group` |
+| 7P | `docs/flows.md` | 15 | `colony`→`world`, `scent`→`strength`, `alarm`→`resistance`, `harden`→`know`, `spawn`→`add`, `swarm`→`group` |
 | 7Q | `docs/flow.md` | 12 | `colony`→`world`, `alarm`→`resistance`, `spawn`→`add` |
-| 7R | `docs/events.md` (was signal.md) | 1 | `crystallize`→`know` |
+| 7R | `docs/events.md` (was signal.md) | 1 | `harden`→`know` |
 | 7S | `docs/patterns.md` | 9 | `colony`→`world`, `alarm`→`resistance`, `swarm`→`group` |
 | 7T | `docs/effects.md` | 13 | `colony`→`world`, `alarm`→`resistance`, `spawn`→`add`, `swarm`→`group` |
 
@@ -534,9 +534,9 @@ git rm "docs/agents 1.md"
 
 | ID | File | Hits | Terms |
 |----|------|-----:|-------|
-| 7U | `docs/knowledge.md` (was emergence.md) | 14 | `colony`→`world`, `crystallize`→`know`, `scent`→`strength`, `swarm`→`group` |
-| 7V | `docs/lifecycle.md` | 12 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `swarm`→`group` |
-| 7W | `docs/llm-training.md` | 20 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `scent`→`strength`, `spawn`→`add` |
+| 7U | `docs/knowledge.md` (was emergence.md) | 14 | `colony`→`world`, `harden`→`know`, `scent`→`strength`, `swarm`→`group` |
+| 7V | `docs/lifecycle.md` | 12 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know`, `swarm`→`group` |
+| 7W | `docs/llm-training.md` | 20 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know`, `scent`→`strength`, `spawn`→`add` |
 | 7X | `docs/substrate-learning.md` | 10 | `colony`→`world`, `alarm`→`resistance`, `swarm`→`group` |
 | 7Y | `docs/llms.md` | 23 | `colony`→`world`, `alarm`→`resistance`, `scent`→`strength` |
 
@@ -554,10 +554,10 @@ git rm "docs/agents 1.md"
 
 | ID | File | Hits | Terms |
 |----|------|-----:|-------|
-| 7AE | `docs/strategy.md` | 15 | `colony`→`world`, `crystallize`→`know`, `swarm`→`group` |
-| 7AF | `docs/value.md` | 23 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `swarm`→`group` |
-| 7AG | `docs/revenue.md` | 12 | `colony`→`world`, `crystallize`→`know`, `swarm`→`group` |
-| 7AH | `docs/contracts.md` | 23 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `swarm`→`group` |
+| 7AE | `docs/strategy.md` | 15 | `colony`→`world`, `harden`→`know`, `swarm`→`group` |
+| 7AF | `docs/value.md` | 23 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know`, `swarm`→`group` |
+| 7AG | `docs/revenue.md` | 12 | `colony`→`world`, `harden`→`know`, `swarm`→`group` |
+| 7AH | `docs/contracts.md` | 23 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know`, `swarm`→`group` |
 | 7AI | `docs/opensource.md` | 16 | `colony`→`world`, `swarm`→`group` |
 | 7AJ | `docs/asi-world.md` | 3 | `colony`→`world` |
 
@@ -567,15 +567,15 @@ git rm "docs/agents 1.md"
 |----|------|-----:|-------|
 | 7AK | `docs/people.md` (was agents.md) | 8 | `colony`→`world`, `swarm`→`group` |
 | 7AL | `docs/hermes-agent.md` | 26 | `colony`→`world`, `alarm`→`resistance`, `spawn`→`add`, `swarm`→`group` |
-| 7AM | `docs/integration.md` | 7 | `colony`→`world`, `crystallize`→`know`, `spawn`→`add` |
+| 7AM | `docs/integration.md` | 7 | `colony`→`world`, `harden`→`know`, `spawn`→`add` |
 | 7AN | `docs/agent-launch.md` | 1 | `colony`→`world` |
-| 7AO | `docs/claude-code-integration.md` | 15 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know` |
+| 7AO | `docs/claude-code-integration.md` | 15 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know` |
 
 ### Chain & commerce docs
 
 | ID | File | Hits | Terms |
 |----|------|-----:|-------|
-| 7AP | `docs/SUI.md` | 11 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know` |
+| 7AP | `docs/SUI.md` | 11 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know` |
 | 7AQ | `docs/sync-skills.md` | 2 | `swarm`→`group` |
 
 ### UI docs
@@ -589,10 +589,10 @@ git rm "docs/agents 1.md"
 
 | ID | File | Hits | Terms |
 |----|------|-----:|-------|
-| 7AT | `docs/plan.md` | 7 | `colony`→`world`, `crystallize`→`know`, `scent`→`strength` |
-| 7AU | `docs/Update Plan.md` | 26 | `colony`→`world`, `crystallize`→`know`, `scent`→`strength`, `swarm`→`group` |
+| 7AT | `docs/plan.md` | 7 | `colony`→`world`, `harden`→`know`, `scent`→`strength` |
+| 7AU | `docs/Update Plan.md` | 26 | `colony`→`world`, `harden`→`know`, `scent`→`strength`, `swarm`→`group` |
 | 7AV | `docs/PLAN-emerge.md` | 10 | `colony`→`world`, `scent`→`strength`, `swarm`→`group` |
-| 7AW | `docs/TODO.md` | 24 | `colony`→`world`, `alarm`→`resistance`, `crystallize`→`know`, `scent`→`strength`, `spawn`→`add`, `swarm`→`group` |
+| 7AW | `docs/TODO.md` | 24 | `colony`→`world`, `alarm`→`resistance`, `harden`→`know`, `scent`→`strength`, `spawn`→`add`, `swarm`→`group` |
 | 7AX | `docs/TODO-emerge.md` | 12 | `colony`→`world` |
 | 7AY | `docs/TODO-ui.md` | 9 | `colony`→`world`, `alarm`→`resistance`, `spawn`→`add` |
 | 7AZ | `docs/TODO-fill-gaps.md` | 9 | `colony`→`world`, `alarm`→`resistance`, `swarm`→`group` |
@@ -705,7 +705,7 @@ VOCABULARY (find → replace, substrate context only):
   scent → strength
   alarm → resistance
   spawn → add | despawn → remove
-  crystallize → know
+  harden → know
   swarm → group | Swarm → Group
   swarm-type → group-type
   sid → gid
@@ -769,7 +769,7 @@ After all phases complete:
 grep -rn "colony\b" src/engine/*.ts
 grep -rn "\bscent\b" src/engine/*.ts
 grep -rn "\bdespawn\b" src/engine/*.ts
-grep -rn "\bcrystallize\b" src/engine/*.ts
+grep -rn "\bharden\b" src/engine/*.ts
 
 # No old terms in schema
 grep -n "entity swarm" src/schema/world.tql

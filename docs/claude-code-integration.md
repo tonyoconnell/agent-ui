@@ -129,7 +129,7 @@ When the dev server is running, the Dashboard polls `/api/tick` every 15 seconds
 3. **Drains** the priority queue (P0 first)
 4. **Fades** all paths every 5 min (trails 5%, alarms 10%)
 5. **Evolves** struggling agents every 10 min (rewrites prompts)
-6. **Crystallizes** proven paths every hour (permanent knowledge)
+6. **Hardens** proven paths every hour (permanent knowledge)
 7. **Hypothesizes** about strong/fading paths (self-observation)
 8. **Detects frontiers** from unexplored tag clusters
 

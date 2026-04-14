@@ -963,7 +963,7 @@ On-chain contracts             Inference rules
 | Path | Shared | Both endpoints modify |
 | Highway | Frozen | Immutable forever |
 
-`freeze_object()` IS crystallization. Not a metaphor. A Move function.
+`freeze_object()` IS hardening. Not a metaphor. A Move function.
 
 ---
 

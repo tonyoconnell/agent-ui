@@ -227,7 +227,7 @@ const system = net.add('world')
     for (const i of insights.filter(x => x.confidence >= 0.8)) {
       await saveHypothesis(i.pattern, 'confirmed')
     }
-    return { crystallized: insights.length }
+    return { hardened: insights.length }
   })
 
   // ── L7: Frontier ─────────────────────────────────────────

@@ -28,7 +28,7 @@ units receive                    units persist
 handlers run                     signals recorded
 continuations chain              classification inferred
 strength/resistance accumulate   evolution detected
-queue holds work                 knowledge crystallizes
+queue holds work                 knowledge hardens
 
 loops L1-L3 (ms-min)            loops L4-L7 (hours-weeks)
 ```

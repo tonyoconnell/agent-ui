@@ -177,7 +177,7 @@ ${prompt}
 
 const knowHandler = (net: World) => async () => {
   const highways = net.highways(100).filter((h) => h.strength >= HIGHWAY_THRESHOLD)
-  let crystallized = 0
+  let hardened = 0
 
   for (const h of highways) {
     const confidence = h.strength / (h.strength + 50)
@@ -187,11 +187,11 @@ const knowHandler = (net: World) => async () => {
           has statement "path ${h.path} is proven (strength ${h.strength.toFixed(1)})",
           has hypothesis-status "confirmed", has observations-count 100, has p-value 0.01;
       `).catch(() => {})
-      crystallized++
+      hardened++
     }
   }
 
-  return { highways: highways.length, crystallized }
+  return { highways: highways.length, hardened }
 }
 
 const frontierHandler = (net: World) => async () => {

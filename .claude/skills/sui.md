@@ -20,7 +20,7 @@ Build secure, production-ready Move contracts for the ONE substrate and agent ec
 | 1 | Get on testnet, publish contract, fund protocol | ✅ DONE |
 | 2 | Wallet adapter, agent identity, discovery | ⏳ In flight |
 | 3 | Escrow, x402 payment flow, multi-currency | 📋 Next |
-| 4 | On-chain fade, crystallize highways, frozen objects | 📋 Next |
+| 4 | On-chain fade, harden highways, frozen objects | 📋 Next |
 | 5 | Colony economics, treasury, federation | 📋 Next |
 | 6 | Mainnet, audit, SDK, multi-chain | 📋 Next |
 

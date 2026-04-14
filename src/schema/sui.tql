@@ -74,13 +74,13 @@ relation path,
     owns path-status;             # INFERRED: "highway", "open", "closing", "blocked", "toxic"
 
 # Move: struct Highway has key { id: UID } — frozen object (immutable)
-# Sui: transfer::freeze_object(highway) — crystallized, permanent
+# Sui: transfer::freeze_object(highway) — hardened, permanent
 entity highway,
     owns highway-id @key,
     owns source-ref,              # unit-id
     owns target-ref,              # unit-id
-    owns crystallized-strength,   # strength at time of freezing
-    owns crystallized-at,         # timestamp
+    owns hardened-strength,   # strength at time of freezing
+    owns hardened-at,         # timestamp
     owns confidence;              # how certain this pattern is
 
 # =============================================================================
@@ -142,8 +142,8 @@ attribute sample-count, value integer;
 
 attribute source-ref, value string;
 attribute target-ref, value string;
-attribute crystallized-strength, value double;
-attribute crystallized-at, value datetime;
+attribute hardened-strength, value double;
+attribute hardened-at, value datetime;
 attribute deadline, value datetime;
 attribute timestamp, value datetime;
 
@@ -317,9 +317,9 @@ fun success_rate($uid: string) -> double:
         $f (target: $u) isa path, has hits $h, has misses $m;
     return sum($h) / (sum($h) + sum($m));
 
-# --- Crystallized Knowledge ---
+# --- Hardend Knowledge ---
 
-fun crystallized($min: double) -> { highway }:
+fun hardened($min: double) -> { highway }:
     match $h isa highway, has confidence $c; $c >= $min;
     return { $h };
 
@@ -329,7 +329,7 @@ fun crystallized($min: double) -> { highway }:
 # TQL defines it. Move enforces it. TypeDB reasons over it.
 #
 # What TQL infers, Move has already validated on-chain.
-# What Move emits, TQL crystallizes into knowledge.
+# What Move emits, TQL hardens into knowledge.
 # They are two views of the same truth.
 #
 # Updated for Phase 2: swarm → group, sid → gid, alarm → resistance

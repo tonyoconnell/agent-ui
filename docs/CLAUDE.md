@@ -11,7 +11,7 @@ DSL.md + dictionary.md    → loaded as BASE CONTEXT in every Wave 2 decision
 routing.md + patterns.md  → loaded as DOMAIN CONTEXT per task tags
 rubrics.md                → defines quality scoring (fit/form/truth/taste as tagged edges)
 speed.md                  → defines the benchmarks that make the learning rate possible
-lifecycle.md              → defines the journey: register → signal → highway → crystallize
+lifecycle.md              → defines the journey: register → signal → highway → harden
 TODO-*.md                 → queues of signals, executed by /wave, self-checkoff on verify
 ```
 

@@ -59,7 +59,7 @@ export type TickResult = {
   signal: { selected: string | null; success: boolean | null; skipped?: boolean }
   fade?: boolean
   evolved?: number
-  crystallized?: number
+  hardened?: number
   hypotheses?: number
   frontiers?: number
   docs?: { verified: number; gaps: number }
@@ -150,8 +150,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete, docsDir = 
     const knowResult = await knowLoop(net, cycle)()
     lastRun.know = now
     if (knowResult.outcome?.result) {
-      const r = knowResult.outcome.result as { crystallized?: number; hypotheses?: number }
-      result.crystallized = r.crystallized
+      const r = knowResult.outcome.result as { hardened?: number; hypotheses?: number }
+      result.hardened = r.hardened
       result.hypotheses = r.hypotheses
     }
   }

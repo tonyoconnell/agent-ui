@@ -62,7 +62,7 @@ export const signals = (net: World) => (): Signal[] => {
 export const fadeAction = () => (): { action: 'fade' }[] => [{ action: 'fade' }]
 
 /**
- * Single "know" action - returns one item when it's time to crystallize.
+ * Single "know" action - returns one item when it's time to harden.
  */
 export const knowAction = () => (): { action: 'know' }[] => [{ action: 'know' }]
 
@@ -151,7 +151,7 @@ export const advisors = (skillTags: string[]) => async (): Promise<Advisor[]> =>
 const HIGHWAY_THRESHOLD = 20
 
 /**
- * Highways strong enough to crystallize into knowledge.
+ * Highways strong enough to harden into knowledge.
  */
 export const highways =
   (net: World, threshold = HIGHWAY_THRESHOLD) =>

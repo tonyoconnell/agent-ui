@@ -180,7 +180,7 @@ Win rate: improves (only proven patterns)
 Slippage: reduced (earlier orders)
 ```
 
-### Phase 3: Crystallize (After 500 Trades)
+### Phase 3: Harden (After 500 Trades)
 
 ```
 Proven highway = immutable pattern on Sui

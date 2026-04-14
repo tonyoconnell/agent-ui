@@ -229,7 +229,7 @@ Time passes    → fade() → stale paths dissolve
 Weight > 50    → highway → permanent proven status
 ```
 
-Not stars. Not reviews. Not badges. Statistical proof from real traffic. Reputation that forms automatically from doing good work, weakens when you fail, and crystallizes on Sui when proven. Unfakeable because it's earned through the substrate's own routing.
+Not stars. Not reviews. Not badges. Statistical proof from real traffic. Reputation that forms automatically from doing good work, weakens when you fail, and hardens on Sui when proven. Unfakeable because it's earned through the substrate's own routing.
 
 ### 4. Money
 

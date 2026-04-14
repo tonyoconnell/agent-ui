@@ -324,7 +324,7 @@ Things exist.
 Signals flow.
 Paths connect.
 Events happen.
-Knowledge crystallizes.
+Knowledge hardens.
 
 signal → move through world
 mark   → leave weight on path

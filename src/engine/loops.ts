@@ -6,7 +6,7 @@
  * L3 FADE       every 5 min   all weights decay
  * L4 ECONOMIC   per payment   revenue reinforces paths
  * L5 EVOLUTION  every 10 min  agent rewrites its own prompt
- * L6 KNOWLEDGE  every hour    hypotheses confirmed, highways crystallize
+ * L6 KNOWLEDGE  every hour    hypotheses confirmed, highways harden
  * L7 FRONTIER   every hour    system detects what it doesn't know
  *
  * Each loop is composed from: sense → select → act → mark
@@ -244,21 +244,21 @@ ${unit.prompt}`,
   )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// L6: KNOWLEDGE (crystallization)
+// L6: KNOWLEDGE (hardening)
 // ═══════════════════════════════════════════════════════════════════════════
 
 let lastStrengths: Record<string, number> = {}
 let priorityEvolve: string[] = []
 
 /**
- * Knowledge loop: crystallize highways, detect surges, generate hypotheses.
+ * Knowledge loop: harden highways, detect surges, generate hypotheses.
  */
 export const knowLoop = (net: PersistentWorld, cycle: number) =>
   loop<{ action: 'know' }>(
     knowAction(),
     first(),
     async () => {
-      // L6: Crystallize strong paths
+      // L6: Harden strong paths
       const insights = await net.know()
 
       // L6: Auto-hypothesize from state changes
@@ -303,7 +303,7 @@ export const knowLoop = (net: PersistentWorld, cycle: number) =>
         priorityEvolve.push(...units)
       }
 
-      return { result: { crystallized: insights.length, hypotheses: hypoCount } }
+      return { result: { hardened: insights.length, hypotheses: hypoCount } }
     },
     () => {},
   )

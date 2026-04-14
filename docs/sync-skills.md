@@ -66,7 +66,7 @@ These appear duplicated across projects (same content):
 | Location | Content |
 |----------|---------|
 | `ants-at-work/.claude/skills/caste-selector/` | Ant caste selection |
-| `ants-at-work/.claude/skills/crystallization/` | Pattern emergence |
+| `ants-at-work/.claude/skills/hardening/` | Pattern emergence |
 | `ants-at-work/.claude/skills/emergence-detection/` | Detect emergent behavior |
 | `ants-at-work/.claude/skills/genome-evolution/` | Evolutionary algorithms |
 | `ants-at-work/.claude/skills/pheromone-analyzer/` | Pheromone analysis |

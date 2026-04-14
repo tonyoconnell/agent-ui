@@ -103,7 +103,7 @@ entity traversal,
     owns timestamp;
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PATTERNS — Crystallized knowledge
+# PATTERNS — Hardend knowledge
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 #   superhighway / pathway / best-practice / express-route / river / clear-channel
@@ -244,7 +244,7 @@ fun success_rate($actor_id: string) -> double:
         $c (target: $a) isa connection, has hits $h, has misses $m;
     return sum($h) / (sum($h) + sum($m));
 
-# Active patterns (crystallized knowledge)
+# Active patterns (hardened knowledge)
 fun patterns($min_confidence: double) -> { pattern }:
     match
         $p isa pattern, has confidence $c;

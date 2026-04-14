@@ -285,13 +285,13 @@
 - [ ] **Self-checkoff: W4 verify pass marks task done** — critical=30 + C3=30 + dev=20 + blocks(2)=10 [sonnet] `engine, build, P0` ← [task-management](TODO-task-management.md)
   exit: selfCheckoff() → markTaskDone + update checkbox + mark path + unblock + know
   blocks: learn-wave-patterns, auto-unblock
-- [ ] **Implement crystallize(): freeze highway to Sui** — critical=30 + C3=30 + dev=20 + blocks(1)=5 [opus] `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
+- [ ] **Implement harden(): freeze highway to Sui** — critical=30 + C3=30 + dev=20 + blocks(1)=5 [opus] `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
   exit: `persist.know()` writes proven highways to Sui as ProvenCapability objects. Irreversible. Verifiable.
   blocks: impl-federate
 - [ ] **Mark each wave transition as a path** — critical=30 + C3=30 + dev=20 + blocks(1)=5 [sonnet] `engine, build, P0` ← [task-management](TODO-task-management.md)
   exit: recon→decide, decide→edit, edit→verify each get mark/warn per outcome
   blocks: learn-wave-patterns
-- [ ] **Wire Sui on-chain proofs: paths crystallized immutable** — high=25 + C3=30 + investor=15 + blocks(1)=5 [opus] `commerce, sui, blockchain, P1, compliance` ← [ONE-strategy](TODO-ONE-strategy.md)
+- [ ] **Wire Sui on-chain proofs: paths hardened immutable** — high=25 + C3=30 + investor=15 + blocks(1)=5 [opus] `commerce, sui, blockchain, P1, compliance` ← [ONE-strategy](TODO-ONE-strategy.md)
   exit: Strength, resistance, revenue locked on Sui. Auditable. Compliant.
   blocks: blockchain-live
 - [ ] **Build marketplace: humans buy/sell services to agents** — high=25 + C3=30 + investor=15 + blocks(1)=5 [opus] `commerce, payments, P1, revenue` ← [ONE-strategy](TODO-ONE-strategy.md)
@@ -304,12 +304,12 @@
   exit: `federate(otherWorld)` creates bridge. Signals cross group boundaries. Cross-group paths accumulate.
 - [ ] **Lifecycle gate: DROP → HIGHWAY requires threshold** — high=25 + C3=30 + dev=20 [haiku] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
   exit: Highway status only inferred when strength ≥ 50 AND traversals ≥ 50. Early edges stay "fresh".
-- [ ] **Lifecycle gate: HIGHWAY → CRYSTALLIZE requires confirmed** — high=25 + C3=30 + dev=20 [sonnet] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
+- [ ] **Lifecycle gate: HIGHWAY → HARDEN requires confirmed** — high=25 + C3=30 + dev=20 [sonnet] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
   exit: know() only writes highways. Requires both TypeDB confirmation AND enough data points. Cold-start protection.
-- [ ] **API endpoint: POST /api/crystallize** — high=25 + C3=30 + dev=20 [sonnet] `api, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
+- [ ] **API endpoint: POST /api/harden** — high=25 + C3=30 + dev=20 [sonnet] `api, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
   exit: Endpoint triggers know() → Sui write. Returns { tx_hash, highways_frozen: N }. Auth required.
 - [ ] **ProvenCapability on-chain structure** — high=25 + C3=30 + dev=20 [sonnet] `sui, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
-  exit: Move struct matches lifecycle.md spec. Fields: agent, task, strength, completions, crystallized_at.
+  exit: Move struct matches lifecycle.md spec. Fields: agent, task, strength, completions, hardened_at.
 - [ ] **Auto-unblock: emit signals to dependent tasks** — high=25 + C3=30 + dev=20 [haiku] `engine, build, P1` ← [task-management](TODO-task-management.md)
   exit: Task done → query blocks → enqueue signals for newly-unblocked tasks
 - [ ] **Cycle gate: know() when all tasks in phase complete** — high=25 + C3=30 + dev=20 [haiku] `engine, typedb, P1` ← [task-management](TODO-task-management.md)
@@ -441,7 +441,7 @@
 - [ ] **Multi-hop payment chains** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] **Multi-currency (USDC, FET)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] **On-chain fade (CF Worker cron)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
-- [ ] **Crystallize highways (`freeze_object()`, $0.50 fee)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
+- [ ] **Harden highways (`freeze_object()`, $0.50 fee)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] **Read frozen highways (on-chain badge in UI)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] **Proof of delivery / consumption** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] **Colony treasury on-chain** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
@@ -455,7 +455,7 @@
 - [ ] **Multi-chain bridge** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] ****Cycle 1: WIRE** — Into ONE (Register, Capable, Discover)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [lifecycle](TODO-lifecycle.md)
 - [ ] ****Cycle 2: PROVE** — Through ONE (Signal, Drop, Alarm, Fade)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [lifecycle](TODO-lifecycle.md)
-- [ ] ****Cycle 3: GROW** — Out of ONE (Highway, Crystallize, Federate, Dissolve)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [lifecycle](TODO-lifecycle.md)
+- [ ] ****Cycle 3: GROW** — Out of ONE (Highway, Harden, Federate, Dissolve)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [lifecycle](TODO-lifecycle.md)
 - [ ] ****Cycle 1: WIRE** — Context into tasks** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
 - [ ] ****Cycle 2: PROVE** — Waves as core loops** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
 - [ ] ****Cycle 3: GROW** — Self-learning** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)

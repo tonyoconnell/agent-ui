@@ -5,7 +5,7 @@
 ---
 
 ```
-REGISTER → CAPABLE → DISCOVER → SIGNAL → DROP/ALARM → FADE → HIGHWAY → CRYSTALLIZE → FEDERATE → DISSOLVE
+REGISTER → CAPABLE → DISCOVER → SIGNAL → DROP/ALARM → FADE → HIGHWAY → HARDEN → FEDERATE → DISSOLVE
     0          1          2         3         4/5          6        7           8            9          10
     │          │          │         │          │           │        │           │            │           │
     Sui        TypeDB     TypeDB    Runtime    Runtime     Runtime  Runtime     Sui          Sui         Runtime
@@ -178,21 +178,21 @@ const best = w.follow('analyst')  // deterministic — strongest path
 
 ---
 
-## Stage 8: Crystallize
+## Stage 8: Harden
 
 **Freeze proven knowledge permanently on-chain.**
 
 ```typescript
-await crystallize(uid, pathObjectId)
+await harden(uid, pathObjectId)
 ```
 
 | System | What happens |
 |--------|------|
-| Sui | `crystallize(path)` → `freeze_object(highway)` — immutable forever |
+| Sui | `harden(path)` → `freeze_object(highway)` — immutable forever |
 | Sui | Highway object: source, target, strength, confidence, revenue, timestamp |
 | TypeDB | Hypothesis promoted to "confirmed" with p-value <= 0.05 |
 
-**What crystallization means:**
+**What hardening means:**
 - No function can modify the Highway object
 - No authority can unfreeze it
 - Anyone can read it and verify
@@ -230,7 +230,7 @@ w.remove('scout')  // optional — trails remain, fade naturally
 | TypeDB | Paths remain. Fade reduces them to zero over time. |
 | Sui | `dissolve(unit, colony)` — balance returns to colony treasury |
 
-**Crystallized highways survive dissolution.** The agent is gone, but the knowledge it created is permanent.
+**Hardend highways survive dissolution.** The agent is gone, but the knowledge it created is permanent.
 
 ---
 
@@ -269,7 +269,7 @@ L2  TRAIL      per outcome     mark/warn → strength/resistance
 L3  FADE       every 5 min     asymmetric decay (resistance forgives 2x)
 L4  ECONOMIC   per payment     revenue on paths (capability price)
 L5  EVOLUTION  every 10 min    rewrite struggling agent prompts
-L6  KNOWLEDGE  every hour      crystallize highways, hypothesize
+L6  KNOWLEDGE  every hour      harden highways, hypothesize
 L7  FRONTIER   every hour      detect unexplored tag clusters
 ```
 
@@ -298,7 +298,7 @@ Published to Sui testnet 2026-04-06. 8 proof transactions.
 |-------|------|------|
 | 2 | Identity & Wallet | Stage 0 — self-sovereign keypairs, browser wallet |
 | 3 | Escrow & x402 | Stages 3-5 — locked payment for async tasks |
-| 4 | Crystallization | Stages 7-8 — on-chain fade, freeze highways |
+| 4 | Hardening | Stages 7-8 — on-chain fade, freeze highways |
 | 5 | Colony Economics | Stages 9-10 — federation, dissolve, treasury |
 | 6 | Mainnet | All — security audit, deploy, SDK |
 
@@ -331,7 +331,7 @@ Published to Sui testnet 2026-04-06. 8 proof transactions.
 
 - **Unit objects** — Owned by agent keypair, self-sovereign
 - **Path objects** — Source, target, strength, resistance, confidence
-- **Signal events** — Marked, Warned, Crystallized with block height
+- **Signal events** — Marked, Warned, Hardend with block height
 - **Frozen highways** — `freeze_object()` makes knowledge permanent
 - **Cross-chain proof** — Sui testnet 2026-04-06 ✓
 
@@ -348,7 +348,7 @@ Published to Sui testnet 2026-04-06. 8 proof transactions.
 | Warn path | ✓ | ✓ | ✓ | Live |
 | Fade decay | ✓ | ✓ | Phase 4 | Live (runtime) |
 | Follow highway | ✓ | ✓ | — | Live |
-| Crystallize | Phase 4 | ✓ | ✓ | Designed |
+| Harden | Phase 4 | ✓ | ✓ | Designed |
 | Cross-group | Phase 5 | ✓ | Phase 5 | Planned |
 | Dissolve unit | ✓ | ✓ | Phase 5 | Live (partial) |
 
@@ -504,7 +504,7 @@ const highways = await db.readParsed(`
 const top10 = net.highways(10)  // [{ from, to, strength }, ...]
 ```
 
-### Stage 8: Crystallize (Phase 4)
+### Stage 8: Harden (Phase 4)
 
 ```typescript
 // After highway detected, freeze on-chain
@@ -553,7 +553,7 @@ tx.moveCall({
   arguments: [tx.object(scoutUnitId), tx.object(treasuryId)]
 })
 
-// Highways survive dissolution (crystallized)
+// Highways survive dissolution (hardened)
 // Paths fade naturally over time (L3 loop)
 ```
 
@@ -636,7 +636,7 @@ const history = await db.readParsed(`
    - Resistance forgives faster (2x decay)
 
 6. **Immutable highways** — Frozen knowledge can't be poisoned
-   - Once crystallized, path is permanent fact
+   - Once hardened, path is permanent fact
    - No future mark/warn can modify it
 
 ---
@@ -654,7 +654,7 @@ const history = await db.readParsed(`
 | select() | < 1ms | $0 | Weighted random (ant-like) |
 | TypeDB query | 10-500ms | $0.01 | Depends on clause complexity |
 | Sui transaction | 1-3s | 1000+ gas | Block finality ~1s |
-| crystallize() | 3-5s | 5000+ gas | Freeze object on-chain |
+| harden() | 3-5s | 5000+ gas | Freeze object on-chain |
 
 ---
 
@@ -701,7 +701,7 @@ Pheromone synchronizes across machines (100ms sync window).
 - **Emit** — Handler can fire multiple downstream signals
 - **Channel hooks** — Push results to Telegram, Discord, email, webhook
 - **TypeDB mutations** — Ask can read knowledge, mark updates brain
-- **Sui transactions** — Crystallize freezes highways on-chain
+- **Sui transactions** — Harden freezes highways on-chain
 
 ---
 
@@ -744,9 +744,9 @@ net.highways(5)  // scout→analyst now in top 5 (strength: 2)
 // Every 5 minutes: strength *= 0.95, resistance *= 0.90
 // After 2 days idle: strength → 0, path dissolves
 
-// 8. Crystallize
+// 8. Harden
 // Once strength >= 50 for 1 hour:
-// await crystallize('scout→analyst')
+// await harden('scout→analyst')
 // On-chain: Highway frozen, immutable forever
 
 // 9. Federation (Phase 5)
@@ -769,4 +769,4 @@ net.highways(5)  // scout→analyst now in top 5 (strength: 2)
 
 ---
 
-*Register. Signal. Mark. Fade. Highway. Crystallize. Dissolve. The path remembers.*
+*Register. Signal. Mark. Fade. Highway. Harden. Dissolve. The path remembers.*

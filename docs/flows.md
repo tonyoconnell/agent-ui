@@ -70,7 +70,7 @@ A signal is born, routed, consumed, and may spawn children.
 An actor (unit/agent) moves through predictable phases:
 
 ```
-SPAWN → IDLE → SENSE → ACT → LEARN → SPECIALIZE → CRYSTALLIZE
+SPAWN → IDLE → SENSE → ACT → LEARN → SPECIALIZE → HARDEN
   │                                        │              │
   │                                        ▼              ▼
   │                                    highway        frozen on-chain
@@ -89,7 +89,7 @@ SPAWN → IDLE → SENSE → ACT → LEARN → SPECIALIZE → CRYSTALLIZE
 | **Act** | Executes task, emits signals | `emit({ receiver, data })` |
 | **Learn** | Paths strengthen from successful flow | `mark(from→to, strength)` |
 | **Specialize** | Repeated success creates preferred routes | Strength accumulates |
-| **Crystallize** | Proven paths become highways | `strength ≥ 50 → highway` |
+| **Harden** | Proven paths become highways | `strength ≥ 50 → highway` |
 
 ### Death and Rebirth
 
@@ -165,7 +165,7 @@ First signal:    A ──→ B         (strength: 0, new path created)
 Success:         A ══→ B         (strength: +1.0, mark)
 Repeated:        A ═══→ B        (strength: 15, strengthening)
 Proven:          A ════→ B  ★    (strength: 50+, HIGHWAY)
-Crystallized:    A ════→ B  ◆    (frozen on-chain, permanent)
+Hardend:    A ════→ B  ◆    (frozen on-chain, permanent)
 ```
 
 ### The Learning Loop

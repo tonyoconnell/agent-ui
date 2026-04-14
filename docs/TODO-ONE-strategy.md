@@ -64,7 +64,7 @@
   exit: Every formula maps to 7 vocabulary skins. Same math, different words.
   tags: foundation, design, P1, governance
 
-- [ ] Wire Sui on-chain proofs: paths crystallized immutable
+- [ ] Wire Sui on-chain proofs: paths hardened immutable
   value: high
   effort: high
   phase: C3

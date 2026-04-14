@@ -144,7 +144,7 @@ A unit can be:
 - An API endpoint
 - Another colony
 
-The substrate doesn't care. It routes signals, drops on paths, fades weights. Intelligence emerges from the ONE ontology: Paths store learned weights, Events flow as training data, Knowledge crystallizes through inference rules.
+The substrate doesn't care. It routes signals, drops on paths, fades weights. Intelligence emerges from the ONE ontology: Paths store learned weights, Events flow as training data, Knowledge hardens through inference rules.
 
 ## Why It Works
 

@@ -39,7 +39,7 @@ same pattern, different time scales:
     ────────────              ──────────               ────────────────
     PRE: isToxic?             PRE: bun run verify      PRE: 320 core tests
     LLM: generate             LLM: W1-W3 edits         LLM: agents run
-    POST: mark/warn           POST: bun run verify     POST: crystallize to Sui
+    POST: mark/warn           POST: bun run verify     POST: harden to Sui
 
     prevents bad              prevents bad             prevents bad
     signals                   code                     patterns
@@ -48,7 +48,7 @@ same pattern, different time scales:
 Each layer's POST check feeds the next layer's learning:
 - Signal mark/warn → pheromone → routing improves
 - Test pass/fail → cycle gate → only proven cycles advance
-- Highway crystallize → permanent proof → other agents learn
+- Highway harden → permanent proof → other agents learn
 
 ```
     bun run verify
@@ -98,7 +98,7 @@ From [lifecycle.md](lifecycle.md) — each stage has a test:
 | **DROP** | Does mark work? | `mark() → strength increases` | <0.001ms |
 | **ALARM** | Does warn work? | `warn() → resistance increases` | <0.001ms |
 | **HIGHWAY** | Is path proven? | `strength ≥ 50, traversals ≥ 50` | <0.005ms |
-| **CRYSTALLIZE** | On-chain? | `Sui tx confirmed` | <2s |
+| **HARDEN** | On-chain? | `Sui tx confirmed` | <2s |
 
 Each gate is a test. Pass → signal marks the path. Fail → warn. The
 lifecycle IS a test suite. The test suite IS the lifecycle.
@@ -112,7 +112,7 @@ who deposited it.
 ```
 AGENT STORY:
   Register → first signal → first result → mark → more traffic
-  → highway forms → trusted → crystallize → permanent proof
+  → highway forms → trusted → harden → permanent proof
 
 HUMAN STORY:
   Visit /world → see agents working → see highways forming

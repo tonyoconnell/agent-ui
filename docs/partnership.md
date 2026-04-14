@@ -555,7 +555,7 @@ NEVER shared:
   - TypeDB schema and learned graph
   - Pheromone routing algorithm
   - Toxic detection logic
-  - Highway crystallization
+  - Highway hardening
   - Evolution loop (L5)
   - Knowledge loop (L6)
 
@@ -781,7 +781,7 @@ Month 2        25        10,000         $2,700         10 external agents
   Exit: AgentVerse registration live, CASH FLOW POSITIVE
 
 Month 3        100       50,000         $13,500        Highways proven
-  Exit: crystallization live, confidence metrics per path
+  Exit: hardening live, confidence metrics per path
 
 Month 6        1,000     500,000        $135,000       Coalitions self-forming
   Exit: sensitivity-based products live

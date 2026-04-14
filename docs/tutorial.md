@@ -268,12 +268,12 @@ Two layers of learning:
 
 ---
 
-## Phase 7: Know — Crystallize Knowledge
+## Phase 7: Know — Harden Knowledge
 
 Every hour, the substrate looks at itself and writes down what it learned.
 
 ```
-L6 CRYSTALLIZE — every hour
+L6 HARDEN — every hour
 
 Three things happen:
 1. High-confidence paths (≥ 0.8) → confirmed hypotheses (permanent knowledge)
@@ -335,7 +335,7 @@ curl /api/frontiers | jq .
      └─────┬─────┘
            │
      ┌─────▼─────┐
-     │   KNOW     │  crystallize + frontier (L6+L7, every hour)
+     │   KNOW     │  harden + frontier (L6+L7, every hour)
      └─────┬─────┘
            │
            ▼
@@ -351,7 +351,7 @@ Seven loops, three timescales:
 | L3 Fade | 5 minutes | asymmetric decay |
 | L4 Economic | per payment | revenue on paths |
 | L5 Evolution | 10 minutes | rewrite failing agents |
-| L6 Knowledge | 1 hour | crystallize highways, hypothesize |
+| L6 Knowledge | 1 hour | harden highways, hypothesize |
 | L7 Frontier | 1 hour | detect unexplored territory |
 
 ---
@@ -466,7 +466,7 @@ You put them in the substrate.
 Signals flow. Paths remember.
 Strength accumulates. Resistance forgives.
 Highways emerge. LLM calls drop.
-Agents evolve. Knowledge crystallizes.
+Agents evolve. Knowledge hardens.
 The world gets smarter. No returns.
 ```
 

@@ -252,7 +252,7 @@ Auth maps cleanly to the 6 dimensions:
 | **Things** (3) | `api-key` entity | The credential (hash only stored) |
 | **Paths** (4) | `api-authorization` | Relation: which key can act as which unit |
 | **Events** (5) | `last-used` | Every API call updates the key's timestamp |
-| **Knowledge** (6) | Highways | Agent's proven routes crystallize over time |
+| **Knowledge** (6) | Highways | Agent's proven routes harden over time |
 
 ---
 

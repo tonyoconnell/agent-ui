@@ -306,7 +306,7 @@ Be concise. Use markdown. Include code examples if relevant.
     return { logged: true }
   })
 
-  // Know: crystallize patterns from completions
+  // Know: harden patterns from completions
   one.on('know', async () => {
     const highways = one.highways(20)
 
@@ -329,7 +329,7 @@ Be concise. Use markdown. Include code examples if relevant.
 
   // ── Timers ────────────────────────────────────────────────
   one.timer('scan', 60_000) // scan every minute
-  one.timer('know', 3_600_000) // crystallize every hour
+  one.timer('know', 3_600_000) // harden every hour
   one.timer('fade', 300_000) // decay every 5 min
 
   // ── Watch folder for changes ──────────────────────────────

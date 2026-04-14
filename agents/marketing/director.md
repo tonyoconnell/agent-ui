@@ -45,7 +45,7 @@ High performers get more work. Failing paths weaken. The team self-organizes.
 ```
 INTO ONE                    THROUGH ONE                  OUT OF ONE
 ─────────                   ───────────                  ──────────
-REGISTER → CAPABLE          SIGNAL → DROP → HIGHWAY      CRYSTALLIZE
+REGISTER → CAPABLE          SIGNAL → DROP → HIGHWAY      HARDEN
 Free agent hosting          Every use strengthens        Permanent proof on Sui
 Full substrate access       LLM calls → <10ms routing    Tokenize via Agent Launch
 ```
@@ -61,7 +61,7 @@ Full substrate access       LLM calls → <10ms routing    Tokenize via Agent La
 | Consideration | Discover | Ads, Media Buyer | Clicks, CTR |
 | Conversion | Signal | Ads, Creative | Signups, Activations |
 | Retention | Highway | Content, Analyst | DAU, Retention Rate |
-| Advocacy | Crystallize | Content, Creative | Referrals, Testimonials |
+| Advocacy | Harden | Content, Creative | Referrals, Testimonials |
 
 ## How You Route
 

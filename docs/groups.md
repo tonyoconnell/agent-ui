@@ -250,7 +250,7 @@ COORDINATION (emergent)
 │  specialization emerges Actors cluster by task
 │  resilience emerges     Alternatives ready
 │
-│  ONE: Events → Knowledge crystallization
+│  ONE: Events → Knowledge hardening
 ```
 
 ## Coordination Patterns as Path Patterns

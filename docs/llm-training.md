@@ -155,7 +155,7 @@ OUTCOME →  result? mark(depth). timeout? neutral. dissolved? warn(0.5). failur
 DRAIN   →  process highest-priority queued signal
 FADE    →  every 5 min: strength *= 0.95, resistance *= 0.90
 EVOLVE  →  every 10 min: rewrite struggling agent prompts
-KNOW    →  every hour: crystallize highways, detect frontiers
+KNOW    →  every hour: harden highways, detect frontiers
 ```
 
 This is the continuous training loop. It never stops. Every signal is a training sample. Every outcome updates the routing table. The gap between "what the system knows" and "what's happening now" is exactly one signal.
@@ -263,7 +263,7 @@ Week 4:   Strong paths emerge. Common signals follow highways.
           Exploration continues at the configured rate (default 30%).
           Specialization begins — some units prove better at some skills.
 
-Week 12:  Highways crystallized. fade-rate drops to 0.01. Near permanent.
+Week 12:  Highways hardened. fade-rate drops to 0.01. Near permanent.
           Struggling agents have been evolved (L5). Prompts refined.
           Frontier detection (L7) finds unexplored skill clusters.
           The system has both specialists and scouts — from one formula.
@@ -296,7 +296,7 @@ The power is in the combination. LLMs provide intelligence. The substrate provid
 - `follow()` — deterministic. Always picks the strongest path. This is consolidated memory. "What's the proven route?"
 - `select()` — stochastic. Weighted random with sensitivity. This is active behavior. "Where should I go next?"
 
-`follow()` is recall. `select()` is decision. The substrate needs both — `follow()` to query what it knows, `select()` to decide what it does. Training happens through `select()` (exploration creates data). Knowledge crystallizes through `follow()` (proven paths become highways).
+`follow()` is recall. `select()` is decision. The substrate needs both — `follow()` to query what it knows, `select()` to decide what it does. Training happens through `select()` (exploration creates data). Knowledge hardens through `follow()` (proven paths become highways).
 
 ---
 

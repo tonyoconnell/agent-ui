@@ -14,7 +14,7 @@ curl -s http://localhost:4321/api/tick?interval=0 | jq .
    - **Cycle number**: which tick this was
    - **Highways**: top paths with strength (the world's proven routes)
    - **Evolved**: how many agents had their prompts rewritten (L5)
-   - **Crystallized**: how many paths were promoted to permanent knowledge (L6)
+   - **Hardend**: how many paths were promoted to permanent knowledge (L6)
    - **Hypotheses**: what the substrate observed about itself (L6)
    - **Frontiers**: unexplored territory detected from tag gaps (L7)
 
@@ -24,7 +24,7 @@ curl -s http://localhost:4321/api/tick?interval=0 | jq .
    - Drain: processes the priority queue
    - Fade: decays trails (every 5 min)
    - Evolve: rewrites struggling agents (every 10 min, 24h cooldown)
-   - Crystallize: promotes highways to knowledge (every hour)
+   - Harden: promotes highways to knowledge (every hour)
    - Hypothesize: writes observations about strong/fading paths
    - Frontier: detects unexplored tag clusters
 
@@ -37,7 +37,7 @@ curl -s http://localhost:4321/api/tick?interval=0 | jq .
    L2 trail:    <marked> paths, <warned> paths
    L3 fade:     <decayed> paths, <recovered> claims
    L5 evolve:   <N> agents rewritten
-   L6 know:     <N> highways crystallized, <N> hypotheses
+   L6 know:     <N> highways hardened, <N> hypotheses
    L7 frontier: <N> unexplored clusters
    Highways:    <top 3 paths with strength>
    ```

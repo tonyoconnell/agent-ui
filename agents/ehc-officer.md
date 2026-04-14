@@ -147,7 +147,7 @@ the repetitive bits. Pheromone tracks what works.
 ## Compliance
 
 - GDPR: All data stays in UK servers (Supabase UK region)
-- SOC2 Type 2: Audit trail via TypeDB + Sui crystallization
+- SOC2 Type 2: Audit trail via TypeDB + Sui hardening
 - DPA: Data Processing Agreement with each LA
 - SEND Code of Practice: Plan structure follows statutory guidance
 - Every path has: strength, resistance, peak, traversals — auditable

@@ -17,7 +17,7 @@ const PHASES = [
   { phase: 4, title: 'Decay', description: 'Run asymmetric fade' },
   { phase: 5, title: 'Highway', description: 'Prove a path, skip LLM' },
   { phase: 6, title: 'Evolve', description: 'Agent self-improvement' },
-  { phase: 7, title: 'Know', description: 'Crystallize knowledge, detect frontiers' },
+  { phase: 7, title: 'Know', description: 'Harden knowledge, detect frontiers' },
 ]
 
 const ECHO_MARKDOWN = `---
@@ -412,7 +412,7 @@ async function phase7(): Promise<{ actions: string[]; state: Record<string, unkn
       frontiers: frontiers.map((f) => ({ id: f.fid, type: f.ft, description: f.fd, status: f.fs })),
       highways: highways.map((h) => ({ from: h.fid, to: h.tid, strength: h.s })),
       explanation:
-        'L6 Crystallize: highways → confirmed hypotheses (permanent knowledge). Fading paths → testing hypotheses (watch these). L7 Frontier: tag gaps + unit gaps → unexplored territory. Knowledge couples back to evolution: strong patterns trigger priority evolution.',
+        'L6 Harden: highways → confirmed hypotheses (permanent knowledge). Fading paths → testing hypotheses (watch these). L7 Frontier: tag gaps + unit gaps → unexplored territory. Knowledge couples back to evolution: strong patterns trigger priority evolution.',
     },
   }
 }

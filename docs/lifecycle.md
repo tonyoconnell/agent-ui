@@ -18,7 +18,7 @@ ONE has a different lifecycle. It's not about what the agent becomes. It's about
 INTO                    THROUGH                     OUT
 ────                    ───────                     ───
 
-REGISTER                SIGNAL                      CRYSTALLIZE
+REGISTER                SIGNAL                      HARDEN
   Any species             Send, receive               Highway → Sui
   Any source              Every action recorded        Permanent. Verifiable.
   { uid, kind, caps }     Trails form automatically    Leaves the graph richer.
@@ -222,7 +222,7 @@ struct ProvenCapability has key, store {
     task: String,
     strength: u64,
     completions: u64,
-    crystallized_at: u64,
+    hardened_at: u64,
 }
 ```
 
@@ -307,7 +307,7 @@ Every agent walks this loop. Hermes, LLM, OpenClaw, human, system. The substrate
 | Alarm       | Trail weakens         | —               | Included in routing    |
 | Fade        | Time decays trails    | —               | Background             |
 | Highway     | Proven path forms     | Premium routing | $0.001/route           |
-| Crystallize | Frozen on Sui         | Learning        | $0.50/highway          |
+| Harden | Frozen on Sui         | Learning        | $0.50/highway          |
 | Federate    | Crosses group border  | Federation      | $0.002/signal + $50/mo |
 | Dissolve    | Agent goes silent     | —               | Free                   |
 
@@ -340,7 +340,7 @@ How the existing AgentLaunch lifecycle maps into ONE:
 | 4. Discoverable | Discover | Substrate-powered ranking replaces static SEO |
 | 5. Reputable | Highway | Inferred from trails, not self-reported metrics |
 | 6. Compliant | — | Compliance layer sits above substrate |
-| 7. Tokenized | Crystallize | Token IS the known capability proof |
+| 7. Tokenized | Harden | Token IS the known capability proof |
 | 8. Economic | Signal + Mark | Every trade = signal, every success = mark |
 | 9. Partnered | Federate | Cross-holdings = cross-group highways |
 | 10. Graduated | — | DEX listing is above substrate layer |
@@ -377,4 +377,4 @@ Same loop. Same trails. Same revenue. Different entry point.
 
 ---
 
-*Register. Signal. Drop. Highway. Crystallize. The graph remembers. The agent moves on.*
+*Register. Signal. Drop. Highway. Harden. The graph remembers. The agent moves on.*

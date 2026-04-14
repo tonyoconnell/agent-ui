@@ -890,7 +890,7 @@ The game IS the substrate, visualized.
 
 Every `mark()` in the game is the same `mark()` that production AI agents use.
 Every `warn()` is the same firewall. Every `fade()` is the same forgetting.
-Every `know()` is the same knowledge crystallization.
+Every `know()` is the same knowledge hardening.
 
 **You're not playing a game about ant colonies.**
 **You're playing the actual ant colony algorithm that routes AI agents in production.**

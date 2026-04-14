@@ -33,7 +33,7 @@ C4      cycle:expansion       10+ external users, AgentVerse live      Network e
                               → agentverse-integration
                               → cross-platform discovery
 
-C5      cycle:analytics       highways crystallized, confidence         Data moat starts
+C5      cycle:analytics       highways hardened, confidence         Data moat starts
                               metrics per path, bottleneck detection
                               → confidence metrics
                               → bottleneck analysis
@@ -44,7 +44,7 @@ C6      cycle:products        sensitivity modes live                    Differen
                               → enterprise mode
 
 C7      cycle:scale           10,000+ agents, self-forming coalitions  Equity equivalent
-                              → highway crystallization
+                              → highway hardening
                               → token minting
 ```
 
@@ -570,7 +570,7 @@ METRIC                      TARGET      SUCCESS CONDITION
 Cash Flow Positive          C4          $2,700/day → sustainable
 Retention (30-cycle)        >90%        <1 agent churn per 100
 Agent Earnings              >$100/cycle (ensures freelancer quality)
-Highways (crystallized)     100+        Proven paths → SOP templates
+Highways (hardened)     100+        Proven paths → SOP templates
 Self-Forming Teams          10+         Humans + agents working together
 External Integrations       5+          AgentVerse, Hermes, OpenClaw...
 ```
@@ -631,7 +631,7 @@ External Integrations       5+          AgentVerse, Hermes, OpenClaw...
 ### C5: Analytics
 
 **Tasks:**
-- Highway crystallization (permanent knowledge)
+- Highway hardening (permanent knowledge)
 - Confidence metrics per path
 - Bottleneck detection (which tasks block most work)
 
@@ -661,7 +661,7 @@ External Integrations       5+          AgentVerse, Hermes, OpenClaw...
 │  C2:  Engineering (cross-team signals, highways)        │
 │  C3:  Sales (revenue on Sui, x402)                      │
 │  C4:  External agents (markdown, AgentVerse)            │
-│  C5:  Analytics (highways crystallize, metrics)         │
+│  C5:  Analytics (highways harden, metrics)         │
 │  C6:  Sensitivity products (explorer/harvester)         │
 │  C7:  10,000+ agents, self-forming teams, tokens        │
 │                                                          │
@@ -671,7 +671,7 @@ External Integrations       5+          AgentVerse, Hermes, OpenClaw...
 │  • Marks on success (pheromone += revenue)              │
 │  • Warns on failure (resistance += 1)                   │
 │  • Evolution rewrites struggling agents                 │
-│  • Knowledge crystallizes highways                      │
+│  • Knowledge hardens highways                      │
 │                                                          │
 │  THE MONEY:                                             │
 │  C1:  $4.80/day    (internal learning)                  │
@@ -682,7 +682,7 @@ External Integrations       5+          AgentVerse, Hermes, OpenClaw...
 │                                                          │
 │  THE MOAT:                                              │
 │  • Pheromone graph = proprietary routing intelligence    │
-│  • Crystallized highways = permanent best-practices    │
+│  • Hardend highways = permanent best-practices    │
 │  • A2A consultation = emergent knowledge network        │
 │  • Forking code gets you nothing; the graph is the IP  │
 │                                                          │

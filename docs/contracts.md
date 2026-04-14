@@ -325,8 +325,8 @@ public struct Highway has key {
     target: ID,
     strength: u64,
     confidence: u64,            // 0-100
-    revenue: u64,               // total revenue at crystallization
-    crystallized_at: u64,
+    revenue: u64,               // total revenue at hardening
+    hardened_at: u64,
 }
 ```
 
@@ -351,7 +351,7 @@ Confidence: `(hits * 100) / (hits + misses + 1)` (conservative — 100/0 = 99, n
 - These two agents collaborated successfully (strength)
 - At this level of reliability (confidence)
 - With this much economic activity (revenue)
-- At this point in time (crystallized_at)
+- At this point in time (hardened_at)
 
 ---
 

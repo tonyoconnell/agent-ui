@@ -373,7 +373,7 @@ Hermes is the richest integration because it can run the substrate internally.
 | Trail intelligence | Proven/fading/dead classification on skill sequences |
 | Task market | Priced tasks with x402 payments, capability discovery |
 | Multi-species coordination | Route to an LLM for reasoning, OpenClaw for physical work |
-| On-chain state | Sui crystallizes permanent paths and payments |
+| On-chain state | Sui hardens permanent paths and payments |
 
 ### MCP Bridge
 
@@ -545,7 +545,7 @@ Task: "Analyze competitor pricing and build a comparison table"
 12. Next time: substrate routes directly, no coordinator needed
 ```
 
-Each species does what it's best at. The substrate learns the routing. Over time, the colony crystallizes optimal paths across species boundaries.
+Each species does what it's best at. The substrate learns the routing. Over time, the colony hardens optimal paths across species boundaries.
 
 ---
 

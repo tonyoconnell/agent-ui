@@ -845,3 +845,35 @@ prompt as body. `/work` picks highest-pheromone skill. Same loop, live routing.
 
 *Nine phases on the codebase. Three cycles on the docs. Four waves each.
 Same loop as the substrate — signal, decide, execute, verify.*
+
+---
+
+## Phase 10: Crystallize → Harden (one-word vocabulary refinement)
+
+**Why now:** The Sui verb for freezing a highway to immutable state was
+`crystallize` — a chemistry metaphor that lives in exactly one skin. `harden`
+works across all seven (ant trail hardens, synapse hardens, team norm hardens,
+mail route hardens into tradition, watercourse hardens bedrock, radio band
+hardens into license, Sui object hardens on-chain). Match the thesis — usage
+IS training — by picking the verb that describes what usage does to a path.
+
+**Scope:** Full rename across code + docs. Excludes archives + build artifacts.
+
+- [x] Phase 10: crystallize → harden
+  id: phase-10-harden
+  value: high
+  effort: medium
+  phase: final
+  persona: sonnet
+  exit: Zero `crystallize` / `crystallized` in non-archive code. Move contract fn renamed. TypeDB attribute renamed. Docs consistent. bun run verify green.
+  tags: rename, vocabulary, sui, P1
+  done: 2026-04-14. Rename mapping:
+    - Move fn `crystallize` → `harden`
+    - Struct field `crystallized_at` → `hardened_at`
+    - TypeQL attrs `crystallized-strength/at` → `hardened-strength/at`
+    - Fn `crystallized($min)` → `hardened($min)`
+    - TS `CRYSTALLIZE_INTERVAL` → `HARDEN_INTERVAL`, `lastCrystallize` → `lastHarden`
+    - Result field `crystallized` → `hardened`
+    - Event `HighwayFormed` kept (event name stays; it describes the outcome)
+    - Archive files skipped (historical snapshots)
+    - Files "X 1.md" / "X 2.md" skipped (accidental dupes)

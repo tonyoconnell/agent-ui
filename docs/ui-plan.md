@@ -289,7 +289,7 @@ World learns.
 Human watches.
 Agent builds.
 Group emerges.
-Intelligence crystallizes.
+Intelligence hardens.
 
 ONE ontology.
 Many metaphors.

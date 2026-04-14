@@ -66,7 +66,7 @@ src/schema/one.tql          The ontology schema
 docs/typedb.md              How to persist signals
 ```
 
-**Why:** Developers need to understand the data model to build on the substrate. But running TypeDB at scale with suggest_route(), highway crystallization, and cross-group federation — that's operational expertise you sell.
+**Why:** Developers need to understand the data model to build on the substrate. But running TypeDB at scale with suggest_route(), highway hardening, and cross-group federation — that's operational expertise you sell.
 
 ### Example Apps (High Virality)
 
@@ -174,7 +174,7 @@ All of it. Every doc in `docs/`. The metaphors, the biology, the architecture, t
 ### The Intelligence Layer
 
 - `suggest_route()` production implementation
-- Highway crystallization logic
+- Highway hardening logic
 - Coalition detection algorithms
 - Cross-group federation routing
 - Graph analytics and trend detection
@@ -415,7 +415,7 @@ Zero learned paths                Millions of learned paths
 Zero highways                     Thousands of proven highways
 No multi-species ecosystem        Hermes + LLMs + OpenClaw + Fetch.ai
 No user base generating signals   one.ie eight personas, daily traffic
-No on-chain proofs                Crystallized capabilities on Sui
+No on-chain proofs                Hardend capabilities on Sui
 Empty graph                       The graph IS the product
 ```
 

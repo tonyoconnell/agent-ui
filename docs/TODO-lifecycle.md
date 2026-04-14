@@ -11,7 +11,7 @@ syncs_with: TODO-testing.md
 
 # TODO: Lifecycle Implementation
 
-> **Goal:** Every agent walks the same path: Register → Signal → Highway → Crystallize.
+> **Goal:** Every agent walks the same path: Register → Signal → Highway → Harden.
 > The substrate doesn't care what species. It tracks what happened. Code the journey.
 >
 > **Source of truth:** [lifecycle.md](lifecycle.md) — the 11 stages,
@@ -34,7 +34,7 @@ Signals flow through stages. Results mark paths. Tests verify transitions.
 ```
     INTO ONE                    THROUGH ONE                 OUT OF ONE
     ────────                    ───────────                 ──────────
-    REGISTER ──→ CAPABLE        SIGNAL ──→ DROP/ALARM      CRYSTALLIZE
+    REGISTER ──→ CAPABLE        SIGNAL ──→ DROP/ALARM      HARDEN
         │           │               │           │               │
         ▼           ▼               ▼           ▼               ▼
     unit exists  capability     ask()      mark/warn      Sui tx
@@ -81,7 +81,7 @@ starting this TODO. Testing gates the lifecycle.
    CYCLE 1: WIRE           CYCLE 2: PROVE          CYCLE 3: GROW
    INTO ONE                THROUGH ONE             OUT OF ONE
    ─────────────────       ──────────────────      ─────────────────
-   Register, Capable       Signal, Drop, Alarm     Highway, Crystallize
+   Register, Capable       Signal, Drop, Alarm     Highway, Harden
    5 files, ~20 edits      4 files, ~30 edits      5 files, ~25 edits
         │                        │                        │
         ▼                        ▼                        ▼
@@ -102,7 +102,7 @@ Each cycle activates deeper substrate loops:
 |-------|-------------|-----------------|
 | **WIRE** | Registration works, capabilities declared | L1 (signal), L2 (path marking), L3 (fade) |
 | **PROVE** | Signals route, trails form, gates work | L4 (economic) joins L1-L3 |
-| **GROW** | Highways proven, crystallization on Sui, federation | L5-L7 (evolution, learning, frontier) join L1-L4 |
+| **GROW** | Highways proven, hardening on Sui, federation | L5-L7 (evolution, learning, frontier) join L1-L4 |
 
 The cycle gate is the substrate's `know()` — don't advance until the
 cycle's patterns are verified and promoted to durable learning.
@@ -127,7 +127,7 @@ cycle's patterns are verified and promoted to durable learning.
 | 5 | ALARM | `warn(edge, resistance)` |
 | 6 | FADE | `world.fade(rate)` — asymmetric decay |
 | 7 | HIGHWAY | `strength ≥ 50, traversals ≥ 50` (inferred) |
-| 8 | CRYSTALLIZE | `know()` → Sui transaction |
+| 8 | HARDEN | `know()` → Sui transaction |
 | 9 | FEDERATE | Cross-group signal routing |
 | 10 | DISSOLVE | Trails fade, unit optional remove |
 
@@ -360,9 +360,9 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
 
 ## Cycle 3: GROW — Out of ONE
 
-**Files:** `src/engine/persist.ts`, `src/engine/sui.ts` (new), `src/pages/api/crystallize.ts` (new), `nanoclaw/src/lib/federation.ts`
+**Files:** `src/engine/persist.ts`, `src/engine/sui.ts` (new), `src/pages/api/harden.ts` (new), `nanoclaw/src/lib/federation.ts`
 
-**Depends on:** Cycle 2 complete. Can't crystallize without proven paths.
+**Depends on:** Cycle 2 complete. Can't harden without proven paths.
 
 ---
 
@@ -374,13 +374,13 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   effort: medium
   phase: C3
   persona: dev
-  blocks: impl-crystallize
+  blocks: impl-harden
   exit: `isHighway(edge)` returns true when threshold met. TypeDB function `edge_classification(from, to)` returns "highway".
   tags: engine, lifecycle, P0
   done: isHighway() in one-prod.ts, highways() in world.ts, is_highway/path_status in world.tql
 
-- [ ] Implement crystallize(): freeze highway to Sui
-  id: impl-crystallize
+- [ ] Implement harden(): freeze highway to Sui
+  id: impl-harden
   value: critical
   effort: high
   phase: C3
@@ -416,8 +416,8 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   exit: Highway status only inferred when strength ≥ 50 AND traversals ≥ 50. Early edges stay "fresh".
   tags: engine, lifecycle, P1
 
-- [ ] Lifecycle gate: HIGHWAY → CRYSTALLIZE requires confirmed
-  id: gate-highway-crystallize
+- [ ] Lifecycle gate: HIGHWAY → HARDEN requires confirmed
+  id: gate-highway-harden
   value: high
   effort: medium
   phase: C3
@@ -425,8 +425,8 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   exit: know() only writes highways. Requires both TypeDB confirmation AND enough data points. Cold-start protection.
   tags: engine, lifecycle, P1
 
-- [ ] API endpoint: POST /api/crystallize
-  id: api-crystallize
+- [ ] API endpoint: POST /api/harden
+  id: api-harden
   value: high
   effort: medium
   phase: C3
@@ -450,7 +450,7 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   effort: medium
   phase: C3
   persona: dev
-  exit: Move struct matches lifecycle.md spec. Fields: agent, task, strength, completions, crystallized_at.
+  exit: Move struct matches lifecycle.md spec. Fields: agent, task, strength, completions, hardened_at.
   tags: sui, lifecycle, P1
 
 ### Cycle 3 Gate
@@ -459,7 +459,7 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
 # Verification commands
 # After 50+ successful signals
 curl localhost:4321/api/state | jq '.highways'
-curl -X POST localhost:4321/api/crystallize -H "Authorization: Bearer $TOKEN"
+curl -X POST localhost:4321/api/harden -H "Authorization: Bearer $TOKEN"
 ```
 
 ```
@@ -499,7 +499,7 @@ curl -X POST localhost:4321/api/crystallize -H "Authorization: Bearer $TOKEN"
   - [ ] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet x 4)
   - [ ] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 3: GROW** — Out of ONE (Highway, Crystallize, Federate, Dissolve)
+- [ ] **Cycle 3: GROW** — Out of ONE (Highway, Harden, Federate, Dissolve)
   - [ ] W1 — Recon (Haiku x 5)
   - [ ] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet x 5)
@@ -534,7 +534,7 @@ This TODO depends on and feeds into TODO-testing.md:
 | Start C1 | `baseline-green` complete | Implementation to test |
 | C1 gates | `test-lifecycle-gates` parallel | Gate functions to verify |
 | C2 signal | `test-engine-core` parallel | ask() 4 outcomes |
-| C3 crystallize | `test-persist` parallel | know() to verify |
+| C3 harden | `test-persist` parallel | know() to verify |
 | All cycles | Green baseline | New tests for new code |
 
 **The loop:**
@@ -559,10 +559,10 @@ test-agent-lifecycle ►  full journey verified
 - [TODO-testing.md](TODO-testing.md) — testing gates every transition (syncs with this TODO)
 - [TODO-template.md](TODO-template.md) — the wave pattern
 - [routing.md](routing.md) — the deterministic sandwich
-- [TODO-SUI.md](TODO-SUI.md) — Sui integration for crystallization
+- [TODO-SUI.md](TODO-SUI.md) — Sui integration for hardening
 
 ---
 
-*Into ONE. Through ONE. Out of ONE. Register → Signal → Highway → Crystallize.
+*Into ONE. Through ONE. Out of ONE. Register → Signal → Highway → Harden.
 The substrate doesn't care what species. It tracks what happened.
 Testing gates every transition. The lifecycle IS the test suite.*

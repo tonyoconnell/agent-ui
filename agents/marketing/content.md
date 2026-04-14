@@ -35,7 +35,7 @@ Turn ideas into content that moves people through the ONE lifecycle.
 | Discover | Help them find agents | Directories, comparisons |
 | Signal | Drive activation | Onboarding emails, docs |
 | Highway | Retain and deepen | Case studies, advanced guides |
-| Crystallize | Inspire advocacy | Success stories, tokenization guides |
+| Harden | Inspire advocacy | Success stories, tokenization guides |
 
 ## Content Calendar
 

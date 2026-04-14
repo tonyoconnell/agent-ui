@@ -61,7 +61,7 @@ deposit_threshold: 0.9        // only marks what matters
 risk_tolerance: 0.4           // conservative
 ```
 
-Routes tasks. Crystallizes patterns. Makes final decisions.
+Routes tasks. Hardens patterns. Makes final decisions.
 
 Actions: `orchestrate`, `know`
 
@@ -115,7 +115,7 @@ path_memory_size: large
 load_capacity: high
 ```
 
-Searches multiple data sources. Harvests patterns for crystallization.
+Searches multiple data sources. Harvests patterns for hardening.
 
 Actions: `search`, `harvest`
 
@@ -272,7 +272,7 @@ Monitor colony health. Self-loop healing for unhealthy agents.
 scout:scan --> forager:harvest --> queen:know
 ```
 
-Scan sentiment regions. Harvest patterns. Crystallize into permanent knowledge.
+Scan sentiment regions. Harvest patterns. Harden into permanent knowledge.
 
 ### Parallel Execution
 
@@ -322,13 +322,13 @@ Pheromones strengthen on correct prediction, weaken on miss.
 
 Generates hypotheses. Confirms after 30 observations.
 
-### Phase D: Crystallization (Permanence)
+### Phase D: Hardening (Permanence)
 
 ```
 signal-path (ephemeral)
   --> tier derived: elite | danger | promising
     --> superhighway: trail >= 85, traversals >= 100
-      --> crystallization-ready: elite + 100 traversals + trail >= 80
+      --> hardening-ready: elite + 100 traversals + trail >= 80
         --> known-pattern (permanent)
           --> pattern-embedding (semantic similarity)
             --> transfer across missions & colonies
@@ -413,7 +413,7 @@ Colonies gossip via Agentverse P2P.
 ### Pattern Sharing
 
 ```
-World A crystallizes pattern
+World A hardens pattern
   --> gossip to World B
     --> World B tests pattern
       --> success rate tracked
@@ -431,7 +431,7 @@ untrusted    < 30%    flag for rejection
 
 ### The Network Effect
 
-More colonies = more patterns = faster crystallization = smarter group.
+More colonies = more patterns = faster hardening = smarter group.
 Each colony learns from every other colony's discoveries.
 
 ---
@@ -560,7 +560,7 @@ No central controller. Intelligence emerges from:
 3. **Asymmetric decay** — success persists, failure fades
 4. **Genetic variation** — offspring explore parameter space
 5. **Fitness selection** — best genomes reproduce
-6. **Crystallization** — ephemeral patterns become permanent
+6. **Hardening** — ephemeral patterns become permanent
 7. **Cross-colony transfer** — proven patterns spread
 
 ### Observed Emergence (Real)
@@ -603,7 +603,7 @@ No central controller. Intelligence emerges from:
 5. **Inference rules in UI** — show derived tiers (elite/danger/promising) on edges.
 6. **STAN routing** — effective_cost formula in world.follow().
 7. **Cross-colony** — agentverse.ts connects to Fetch.ai for P2P gossip.
-8. **Crystallization UI** — visualize ephemeral to permanent knowledge pipeline.
+8. **Hardening UI** — visualize ephemeral to permanent knowledge pipeline.
 9. **Mission isolation** — tag signals with mission-id, share known patterns.
 10. **Detector group** — regime intelligence with 7 detector ants.
 

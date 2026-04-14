@@ -6,7 +6,7 @@
 > [dictionary.md](dictionary.md) — canonical names,
 > [rubrics.md](rubrics.md) — quality scoring,
 > [speed.md](speed.md) — the benchmarks,
-> [lifecycle.md](lifecycle.md) — crystallize stage
+> [lifecycle.md](lifecycle.md) — harden stage
 >
 > **Schema:** Tasks map to `world.tql` dimension 3b. Sui entities mirror in `sui.tql`. Execute with `/wave`. Create with `/todo`.
 
@@ -147,9 +147,9 @@ Once Steps 1-5 are done and we have real on-chain state, these open up:
 - [ ] Multi-hop payment chains
 - [ ] Multi-currency (USDC, FET)
 
-### Crystallization (Phase 4)
+### Hardening (Phase 4)
 - [ ] On-chain fade (CF Worker cron)
-- [ ] Crystallize highways (`freeze_object()`, $0.50 fee)
+- [ ] Harden highways (`freeze_object()`, $0.50 fee)
 - [ ] Read frozen highways (on-chain badge in UI)
 - [ ] Proof of delivery / consumption
 
@@ -189,7 +189,7 @@ Total: 33 done, 28 open
 - [DSL.md](DSL.md) — the signal language (always loaded)
 - [dictionary.md](dictionary.md) — everything named (always loaded)
 - [rubrics.md](rubrics.md) — quality scoring as tagged edges
-- [speed.md](speed.md) — crystallization speed: sub-second Sui finality
-- [lifecycle.md](lifecycle.md) — stage 8: CRYSTALLIZE (highway → Sui → permanent proof)
+- [speed.md](speed.md) — hardening speed: sub-second Sui finality
+- [lifecycle.md](lifecycle.md) — stage 8: HARDEN (highway → Sui → permanent proof)
 - [TODO-template.md](TODO-template.md) — the wave pattern
 - [TODO-task-management.md](TODO-task-management.md) — self-learning task system

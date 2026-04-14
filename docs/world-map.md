@@ -913,7 +913,7 @@ The sundial tells you, in one glance, **what time of day it is in the world**.
     morning       mostly L1/L2 — signals firing, trails forming
     midday        L3 fade kicks in, L4 economics steady state
     afternoon     L5 evolution rounds, agents rewriting themselves
-    evening       L6 knowledge promotion — hypotheses crystallize
+    evening       L6 knowledge promotion — hypotheses harden
     night         L7 frontier scan — what didn't we explore today?
     dawn          new tick — fresh signals, the cycle resets
 ```
@@ -1243,7 +1243,7 @@ What triggers each is a small set of rules:
     toast   path went toxic
             actor crossed at-risk threshold
             revenue spike (>3σ)
-            knowledge crystallization
+            knowledge hardening
 
     page    L5 stalled for >30 min
             L6 stalled for >2 hours

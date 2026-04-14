@@ -132,7 +132,7 @@ export async function markTaskDone(taskId: string): Promise<void> {
 
 /**
  * selfCheckoff — mark a task done, strengthen the pheromone path,
- * unblock dependents, and crystallize the phase if it's complete.
+ * unblock dependents, and harden the phase if it's complete.
  *
  * Closure pattern: composes markTaskDone + net.mark + blockedBy query + enqueue.
  *
@@ -177,7 +177,7 @@ export async function selfCheckoff(
   )
 
   // 5. Check remaining open tasks in the same phase as taskId.
-  //    If none remain → crystallize: promote highways to permanent knowledge.
+  //    If none remain → harden: promote highways to permanent knowledge.
   const phaseRows = await readParsed(`
     match $t isa task, has task-id "${esc(taskId)}", has task-phase $ph;
     select $ph;

@@ -194,7 +194,7 @@ Example agents + docs               Learned graph + highways
 The substrate lives on Sui. Move ACTS, TypeDB REASONS. Two deterministic fires.
 
 - Agent-launch-toolkit stays on BSC/Fetch chain (FET, bonding curves)
-- ONE substrate lives on Sui (paths, highways, crystallization)
+- ONE substrate lives on Sui (paths, highways, hardening)
 - one.ie lives on Sui (user paths, persona routing)
 - They connect at the application layer
 

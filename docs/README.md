@@ -162,7 +162,7 @@ L7  frontier detection from unexplored tag clusters         every hour
 /done       Mark outcome, reinforce trail
 /grow       Run one growth tick
 /highways   Proven paths and frontiers
-/know       Crystallize paths to permanent knowledge
+/know       Harden paths to permanent knowledge
 ```
 
 ---

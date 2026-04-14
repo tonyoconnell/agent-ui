@@ -680,13 +680,13 @@ rule danger-zone:
     };
 ```
 
-### Chained Rules (Crystallization)
+### Chained Rules (Hardening)
 
 ```typeql
 define
 
 # This rule depends on elite-pattern rule firing first
-rule crystallization-candidate:
+rule hardening-candidate:
     when {
         $e isa signal-edge,
             has tier "elite",         # DERIVED from elite-pattern rule
@@ -695,7 +695,7 @@ rule crystallization-candidate:
         $tc >= 100;
         $tp >= 80.0;
     } then {
-        $e has crystallization-ready true;
+        $e has hardening-ready true;
     };
 ```
 
@@ -755,8 +755,8 @@ rule superhighway-edge:
 match $e isa signal-edge, has tier "elite";
 select $e;
 
-# Find crystallization candidates (derived from chained rules)
-match $e isa signal-edge, has crystallization-ready true;
+# Find hardening candidates (derived from chained rules)
+match $e isa signal-edge, has hardening-ready true;
 select $e;
 ```
 

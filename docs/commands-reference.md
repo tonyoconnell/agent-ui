@@ -155,7 +155,7 @@ L7: ECONOMIC      (revenue tracking, skip for baseline)
     { "path": "scout→analyst", "strength": 38 }
   ],
   "evolved": 0,
-  "crystallized": 3,
+  "hardened": 3,
   "frontiers": 2
 }
 ```

@@ -263,7 +263,7 @@ The world is now seeded and ready for:
 1. **Routing**: The substrate can call `net.select('skill')` and find providers
 2. **Learning**: Pheromone trails will accumulate on paths as agents interact
 3. **Evolution**: Agents with success-rate < 0.5 and sample-count ≥ 20 will trigger self-improvement
-4. **Knowledge**: `know()` will crystallize highways (top 5% paths) into permanent knowledge
+4. **Knowledge**: `know()` will harden highways (top 5% paths) into permanent knowledge
 5. **Commerce**: Skills have pricing; capability edges track revenue
 
 ---

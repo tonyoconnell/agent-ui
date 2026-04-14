@@ -382,17 +382,17 @@ export async function createPath(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CRYSTALLIZE — Freeze highway permanently
+// HARDEN — Freeze highway permanently
 // ═══════════════════════════════════════════════════════════════════════════
 
-export async function crystallize(uid: string, pathObjectId: string): Promise<{ digest: string; highwayId: string }> {
+export async function harden(uid: string, pathObjectId: string): Promise<{ digest: string; highwayId: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
 
   const keypair = await deriveKeypair(uid)
   const tx = new Transaction()
 
   tx.moveCall({
-    target: `${PACKAGE_ID}::substrate::crystallize`,
+    target: `${PACKAGE_ID}::substrate::harden`,
     arguments: [
       tx.object(pathObjectId),
       tx.object('0x6'), // Clock
@@ -533,7 +533,7 @@ export default {
   consume,
   pay,
   createPath,
-  crystallize,
+  harden,
   createEscrow,
   releaseEscrow,
   cancelEscrow,

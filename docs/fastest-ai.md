@@ -37,7 +37,7 @@ We route to agents 1,000,000× faster than traditional orchestration. We execute
 ┌──────────────────▼──────────────────────────────────────────┐
 │ BLOCKCHAIN (Sui)                                            │
 │ Agent identity: Ed25519 keypair derived on-the-fly          │
-│ Highway crystallization: once per proven path               │
+│ Highway hardening: once per proven path               │
 │ Revenue tracking: transparent, immutable                    │
 │ Settlement: sub-second finality                             │
 └──────────────────┬──────────────────────────────────────────┘
@@ -148,7 +148,7 @@ We route to agents 1,000,000× faster than traditional orchestration. We execute
 1st execution:  agent → LLM 2,000ms → mark → done
 2nd execution:  agent → highway pick 10ms → done (200× faster)
 3rd–50th:       agent → highway 10ms → done (200× faster, predictable)
-51st+:          highway is crystallized on Sui
+51st+:          highway is hardened on Sui
                 → every future call is reference, not discovery
                 → zero routing cost, zero LLM needed
                 → 2,000ms → 0ms (pure execution)
@@ -207,7 +207,7 @@ But: select() → follow() (100× faster routing)
      KV cache now hot (highways in memory)
      Next select: <10ms instead of 300ms TypeDB query
 
-Sui: highway crystallized
+Sui: highway hardened
      (one-time, immutable proof of the chain)
 ```
 
@@ -362,7 +362,7 @@ Example: Process 288 documents per day (human) vs 43,200 (agent).
 
 ### 3. **Seal: Sui Proof**
 
-Every proven highway is crystallized on Sui.
+Every proven highway is hardened on Sui.
 - Transparent (anyone can verify)
 - Immutable (once proven, stays proven)
 - Monetizable (highway = IP, worth licensing)

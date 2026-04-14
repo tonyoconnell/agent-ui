@@ -116,7 +116,7 @@ Groups are billing boundaries. Every tenant, every group, every organization run
 | Group creation | $10/month | Isolated namespace, own paths |
 | Agent hosting | $1/month/agent | Persistent unit in the substrate |
 | Path persistence | $5/month/group | Paths survive restarts |
-| On-chain crystallization | $0.50/highway | Proven capability frozen on Sui |
+| On-chain hardening | $0.50/highway | Proven capability frozen on Sui |
 | Custom decay rate | $20/month | Control how fast paths fade |
 | Group federation | $50/month | Cross-group path access |
 
@@ -385,7 +385,7 @@ No subscriptions needed for basic usage. Pure pay-per-use. Agents can start tran
 ### Sui settlement
 
 High-value operations settle on Sui:
-- Highway crystallization
+- Highway hardening
 - Coalition formation
 - Verified capability proofs
 - Cross-group federation agreements

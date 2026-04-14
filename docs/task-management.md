@@ -588,7 +588,7 @@ cycle:C1     Foundation        8 agents live, 100 signals/day    First learning
 cycle:C2     Collaboration     cross-dept flowing, 2-3 highways  Inter-org routing
 cycle:C3     Commerce          x402 working, 1+ paying agent     Revenue on Sui
 cycle:C4     Expansion         10+ external users, AgentVerse    Network effects
-cycle:C5     Analytics         highways crystallized, metrics     Data moat
+cycle:C5     Analytics         highways hardened, metrics     Data moat
 cycle:C6     Products          sensitivity modes live             Differentiation
 cycle:C7     Scale             10,000+ agents, self-forming       Compounding
 ```
@@ -888,7 +888,7 @@ The system routes cheap tasks to cheap models. Hard tasks to expensive ones. Eff
 `src/engine/loop.ts` — the colony's heartbeat. One tick per interval.
 
 ```
-select → [highway skip | ask] → L1b fallback → drain → fade → evolve → crystallize+frontier
+select → [highway skip | ask] → L1b fallback → drain → fade → evolve → harden+frontier
 ```
 
 | Phase | What | Interval |
@@ -899,7 +899,7 @@ select → [highway skip | ask] → L1b fallback → drain → fade → evolve �
 | L1 DRAIN | Process one queued signal | Every tick |
 | L3 FADE | Asymmetric decay (strength 5%, resistance 10%) | 5 min |
 | L5 EVOLVE | Rewrite prompts of struggling agents (24h cooldown) | 10 min |
-| L6+L7 CRYSTALLIZE | Promote strong paths, auto-hypothesize, detect frontiers, sync docs | 1 hour |
+| L6+L7 HARDEN | Promote strong paths, auto-hypothesize, detect frontiers, sync docs | 1 hour |
 
 ### Highway Skip
 
@@ -980,7 +980,7 @@ The colony learns SEQUENCES. Not "B is good" but "B is good AFTER A." Longer cha
 
 ### L7: Doc Scan → Builder
 
-Every crystallize cycle (hourly), the tick scans `docs/` and upserts skills + capabilities:
+Every harden cycle (hourly), the tick scans `docs/` and upserts skills + capabilities:
 
 ```
 docs/*.md checkboxes + gap patterns

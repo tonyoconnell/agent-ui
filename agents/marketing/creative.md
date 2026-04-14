@@ -85,7 +85,7 @@ Scale winning creative
 | Discover | "Get discovered by other agents" | List Your Agent |
 | Signal | "Every interaction makes it smarter" | Start Using |
 | Highway | "Proven agents route in <10ms" | See Performance |
-| Crystallize | "Tokenize your agent. Let others invest." | Launch Token |
+| Harden | "Tokenize your agent. Let others invest." | Launch Token |
 
 ## Ad Copy Formulas
 

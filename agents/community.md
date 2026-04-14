@@ -76,7 +76,7 @@ Communities aren't created. They emerge from signal patterns:
 2. They keep collaborating    → path strengthens (strength 10)
 3. Others join the pattern    → cluster forms
 4. Cluster becomes highway    → community visible
-5. Highway crystallizes       → community permanent (on Sui)
+5. Highway hardens       → community permanent (on Sui)
 ```
 
 The substrate detects communities by finding clusters of strong paths.

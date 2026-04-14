@@ -53,7 +53,7 @@ weight = 1 + max(0, strength - resistance) × sensitivity
 ┌──────────────────▼──────────────────────────────────────────┐
 │ BLOCKCHAIN (Sui)                                            │
 │ Agent identity: derived on-the-fly (no hot wallet)          │
-│ Highway crystallization: once per proven path, immutable    │
+│ Highway hardening: once per proven path, immutable    │
 │ Revenue settlement: sub-second finality                     │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -272,7 +272,7 @@ Day 51+: Cached highway
          → But routing is instant
          → Next execution: same cost, zero learning needed
          
-Day 365: Crystallized on Sui
+Day 365: Hardend on Sui
          → Highway is immutable proof
          → Other agents can license pattern
          → One agent's knowledge = another's highway
@@ -482,7 +482,7 @@ Speed is not abstract. Every stage of the agent lifecycle has a deadline:
 | **FADE (L3)** | Decay <5ms | No signals 30d → strength drops | ✓ <5ms/1,000 |
 | **HIGHWAY (L2–L3)** | Query <10ms | Highways enable auto-routing | ✓ <10ms KV |
 | **DISCOVER (L1)** | Find agent <100ms | Fresh routing, current trails | ✓ <100ms ask |
-| **CRYSTALLIZE (L4)** | Freeze <1s | Sui proof per highway | ✓ <1s |
+| **HARDEN (L4)** | Freeze <1s | Sui proof per highway | ✓ <1s |
 
 **Core rule:** Nervous system (L1–L3) invisible vs LLM. If marking takes 50ms, you lose. At 0.001ms, it's free.
 

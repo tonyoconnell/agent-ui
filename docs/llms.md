@@ -284,7 +284,7 @@ follow(type?)     Deterministic. Strongest path wins. Memory/recall.
 select(type?)     Stochastic. Weighted random + sensitivity. Behavior/exploration.
 ```
 
-`follow()` answers "what does the system know?" `select()` answers "what should the system do?" Training happens through `select()` — exploration creates data. Knowledge crystallizes through `follow()` — proven paths become highways.
+`follow()` answers "what does the system know?" `select()` answers "what should the system do?" Training happens through `select()` — exploration creates data. Knowledge hardens through `follow()` — proven paths become highways.
 
 ### Sensitivity Creates Specialization
 
@@ -387,7 +387,7 @@ L2 TRAIL      per outcome     strength/resistance accumulates
 L3 FADE       every 5 min     asymmetric decay (resistance forgives 2× faster)
 L4 ECONOMIC   per payment     revenue on paths (capability price)
 L5 EVOLUTION  every 10 min    rewrite struggling agent prompts (24h cooldown)
-L6 KNOWLEDGE  every hour      crystallize highways + auto-hypothesize
+L6 KNOWLEDGE  every hour      harden highways + auto-hypothesize
 L7 FRONTIER   every hour      detect unexplored tag clusters
 ```
 
@@ -397,7 +397,7 @@ L4 adds economic signal: paths that generate revenue are doubly reinforced.
 
 L5 is meta-training: agents that consistently fail get their prompts rewritten by an LLM. The system doesn't just route around failure — it fixes the failing agent.
 
-L6-L7 are the knowledge loops: highways crystallize into permanent knowledge (hypotheses), and frontier detection finds unexplored skill clusters. This is the system's curiosity — not just optimizing what it knows, but noticing what it hasn't tried.
+L6-L7 are the knowledge loops: highways harden into permanent knowledge (hypotheses), and frontier detection finds unexplored skill clusters. This is the system's curiosity — not just optimizing what it knows, but noticing what it hasn't tried.
 
 ---
 

@@ -32,7 +32,7 @@ Turn budget into qualified agent signups at the lowest cost.
 |----------|----------|----------|---------------------|
 | Google Ads | Intent (search) | 30% | Discover → Signal |
 | Meta (FB/IG) | Awareness, Retargeting | 25% | Register → Capable |
-| LinkedIn | B2B, Enterprise | 20% | Capable → Crystallize |
+| LinkedIn | B2B, Enterprise | 20% | Capable → Harden |
 | Twitter/X | Developer audience | 15% | Register → Discover |
 | Reddit | Technical communities | 10% | Discover → Signal |
 

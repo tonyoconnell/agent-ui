@@ -25,7 +25,7 @@ const PRIORITY_EVOLUTION_THRESHOLD = 0.65 // relaxed threshold for priority unit
 const EVOLUTION_MIN_SAMPLES = 20
 const REVENUE_SKIP_THRESHOLD = 1.0 // revenue above which low-success agents are spared
 const REVENUE_MIN_SUCCESS = 0.3 // min success rate even for profitable agents
-const CRYSTALLIZE_INTERVAL = 3_600_000 // 1 hour between knowledge cycles
+const HARDEN_INTERVAL = 3_600_000 // 1 hour between knowledge cycles
 const SURGE_THRESHOLD = 10 // strength delta to flag as surge
 const FRONTIER_MIN_ACTIVITY = 3 // min edges involving a unit to consider it active
 
@@ -37,7 +37,7 @@ export type TickResult = {
   task?: { id: string; name: string; priority: number }
   highways: { path: string; strength: number }[]
   evolved?: number
-  crystallized?: number
+  hardened?: number
   hypotheses?: number
   frontiers?: number
   docsSynced?: number
@@ -46,7 +46,7 @@ export type TickResult = {
 let cycle = 0
 let lastDecay = 0
 let lastEvolve = 0
-let lastCrystallize = 0
+let lastHarden = 0
 let previousTarget: string | null = null
 let chainDepth = 0
 let priorityEvolve: string[] = []
@@ -322,8 +322,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     result.evolved = unitIds.length
   }
 
-  // L6+L7: CRYSTALLIZE + HYPOTHESIZE + FRONTIER — every hour
-  if (now - lastCrystallize > CRYSTALLIZE_INTERVAL) {
+  // L6+L7: HARDEN + HYPOTHESIZE + FRONTIER — every hour
+  if (now - lastHarden > HARDEN_INTERVAL) {
     // L6: know strong paths
     const insights = await net.know()
 
@@ -453,8 +453,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       /* docs scan is best-effort */
     }
 
-    lastCrystallize = now
-    result.crystallized = insights.length
+    lastHarden = now
+    result.hardened = insights.length
     result.hypotheses = hypoCount
     result.frontiers = frontierCount
     result.docsSynced = docsSynced

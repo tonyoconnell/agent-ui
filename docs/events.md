@@ -262,12 +262,12 @@ public struct Trace has key, store {
 public struct Highway has key {
     id: UID,
     trace: ID,
-    crystallized_at: u64,
+    hardened_at: u64,
 }
 // transfer::freeze_object(highway) — immutable forever
 ```
 
-`freeze_object()` IS crystallization. Not a metaphor. A Move function.
+`freeze_object()` IS hardening. Not a metaphor. A Move function.
 
 ---
 

@@ -23,7 +23,7 @@ skills:
     description: Agent self-improvement
   - name: phase-7
     tags: [tutorial, know]
-    description: Crystallize knowledge, detect frontiers
+    description: Harden knowledge, detect frontiers
   - name: status
     tags: [tutorial, progress]
     description: Report student progress across all phases
@@ -85,5 +85,5 @@ Each phase maps to colony behavior:
 - Evolution trigger: success < 50%, samples ≥ 20, 24h cooldown
 - Ghost trail floor: peak × 0.05
 - Chain depth cap: 5
-- Crystallize interval: 1 hour
+- Harden interval: 1 hour
 - Frontier detection: >70% of skills in tag cluster unexplored
