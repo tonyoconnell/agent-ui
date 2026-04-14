@@ -84,3 +84,25 @@ If baseline fails, fix it before starting the cycle. Don't build on broken groun
 - **Wave 4 max 3 loops.** If it keeps finding issues, the Wave 2 decisions were wrong. Stop and escalate.
 - **Update the TODO file** as you go. The Status section is the source of truth for progress.
 - If no `$ARGUMENTS` given, look for the most recently modified `docs/TODO-*.md` file (excluding TODO-template.md).
+
+## The Two Locked Rules (apply every wave)
+
+1. **Closed loop.** Every subagent result closes: `mark()` on success, `warn()`
+   on failure, `dissolved` on missing anchor/file. No silent returns. After
+   each wave, report: `{ marked: N, warned: N, dissolved: N }`.
+2. **Structural time only.** Report in tasks/waves/cycles. Never say "took N
+   minutes" — say "N tasks in W1, N tasks in W3, rubric delta X in W4".
+
+### Wave Instrumentation (required)
+
+After each wave completes, log as a single report line:
+
+```
+W1: tasks_parallel=N  marked=N  warned=N  dissolved=N
+W2: decisions=N       fan_out=N (specialist signals)
+W3: edits_parallel=M  marked=N  warned=N  dissolved=N  reloops=N
+W4: rubric={fit, form, truth, taste}  delta_vs_W0={...}  verify=green|red
+```
+
+These numbers ARE the pheromone. Width (tasks_parallel) and depth (rubric
+delta) are the only growth signals that compound.

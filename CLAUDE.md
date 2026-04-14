@@ -393,6 +393,31 @@ TypeDB (truth)     →    KV (snapshot)    →    globalThis (hot)
 /wave       Run the next wave of a cycle-based TODO
 ```
 
+## The Two Locked Rules
+
+These compound. Breaking either breaks the flywheel.
+
+**Rule 1 — Closed Loop.** Every signal closes its loop: `mark()` on result,
+`warn()` on failure, `dissolve` on missing unit/capability. No silent returns,
+no orphan signals, no handler that produces nothing without emitting a warn.
+Width only compounds if every parallel branch deposits pheromone on the path
+it used.
+
+**Rule 2 — Structural Time Only.** Plan in **tasks → waves → cycles**. Never
+days, hours, weeks, sprints, or any wall-clock unit. The substrate measures
+width by tasks-per-wave, depth by waves-per-cycle, learning by cycles-per-path.
+Calendar time can't be `mark()`d, so it doesn't compound. Only exception:
+genuine external deadlines (merge freezes, release cuts, legal dates).
+
+```
+task   = atomic unit of work        (one .on() handler, one file edit, one recon query)
+wave   = phase within a cycle       (W1 recon → W2 decide → W3 edit → W4 verify)
+cycle  = full W0-W4 sandwich         exits at rubric >= 0.65
+path   = what remembers across cycles (strength / resistance)
+```
+
+See `.claude/rules/engine.md` for code-level enforcement.
+
 ## TODO Rules
 
 **ALWAYS use `docs/TODO-template.md` when creating any new TODO file.** Use `/todo` to create them.

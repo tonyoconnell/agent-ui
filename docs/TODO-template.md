@@ -10,6 +10,10 @@ status: TEMPLATE
 
 # TODO: {Title}
 
+> **Time units:** plan in **tasks → waves → cycles** only. Never days, hours,
+> weeks, or sprints. Width = tasks-per-wave. Depth = waves-per-cycle. Learning
+> = cycles-per-path. (See `.claude/rules/engine.md` → The Two Locked Rules.)
+>
 > **Goal:** {One sentence. What changes when this is done.}
 >
 > **Source of truth:** [{source-doc}]({source-doc}.md) — {what it defines},

@@ -2,10 +2,10 @@
 
 > ONE Substrate — self-learning task system.
 > Tasks are signals. Waves are loops. The template is a unit.
-> 181 open, 94 done. Priority + pheromone adjusts at runtime.
+> 181 open, 100 done. Priority + pheromone adjusts at runtime.
 >
 > **Sync:** `POST /api/tasks/sync` or `/sync` — writes to KV (10ms), then TypeDB (100ms)
-> **Generated:** 2026-04-14T00:55:12
+> **Generated:** 2026-04-14T01:05:10
 
 ---
 
@@ -18,7 +18,7 @@
 | [TODO-task-management](TODO-task-management.md) | 24 | 2 | PROVE |
 | [TODO-rename](TODO-rename.md) | 23 | 0 | WIRE |
 | [TODO-lifecycle](TODO-lifecycle.md) | 16 | 12 | PROVE |
-| [TODO-testing](TODO-testing.md) | 16 | 18 | PROVE |
+| [TODO-testing](TODO-testing.md) | 16 | 24 | PROVE |
 | [TODO-typedb](TODO-typedb.md) | 16 | 3 | PROVE |
 | [TODO-ONE-strategy](TODO-ONE-strategy.md) | 11 | 3 | PROVE |
 | [TODO-autonomous-orgs](TODO-autonomous-orgs.md) | 7 | 3 | PROVE |
@@ -591,6 +591,12 @@
 - [x] **Establish green baseline: bun run verify passes** `engine, build, P0` ← [testing](TODO-testing.md)
 - [x] **Add vitest config for path aliases and coverage** `engine, build, P1` ← [testing](TODO-testing.md)
 - [x] **Wire PostToolUse hook for biome check on edit** `infra, build, P1` ← [testing](TODO-testing.md)
+- [x] **Wire PostToolUse hook for TODO doc auto-sync** `infra, build, P1` ← [testing](TODO-testing.md)
+- [x] **Synchronous dissolve on missing capability in ask()** `engine, speed, accuracy, P0` ← [testing](TODO-testing.md)
+- [x] **Kill wall-clock race in expire-tick TTL boundary test** `test, accuracy, P1` ← [testing](TODO-testing.md)
+- [x] **Index hygiene: exclude TODO-template.md from scanTodos** `engine, infra, P2` ← [testing](TODO-testing.md)
+- [x] **Normalize malformed phase values across TODO files** `docs, infra, P2` ← [testing](TODO-testing.md)
+- [x] **Remove duplicate TODO template file** `docs, infra, P3` ← [testing](TODO-testing.md)
 - [x] **Test world.ts: unit creation, signal routing, mark/warn/fade** `engine, test, P0` ← [testing](TODO-testing.md)
 - [x] **Test persist.ts: TypeDB sync, toxic check, know/recall, subscribe/tasksFor** `engine, test, P0` ← [testing](TODO-testing.md)
 - [x] **Test task-parse.ts: priority formula, TODO parsing** `engine, test, P1` ← [testing](TODO-testing.md)

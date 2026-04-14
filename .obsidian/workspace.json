@@ -199,6 +199,7 @@
   },
   "active": "fd99b50a9796efdb",
   "lastOpenFiles": [
+    "scripts/deploy-deterministic.sh",
     "dist/_routes.json",
     "dist/_worker.js/manifest_Co_fJ4va.mjs",
     "dist/_astro/utils.CPGtsWvz.js",
@@ -209,7 +210,6 @@
     "dist/_astro/ceo.BTzDIBbc.css",
     "dist/_astro/WorldPageWrapper.CgITM4bd.js",
     "dist/_astro/CEOPanel.U8OkpHL4.js",
-    "dist/_astro",
     "docs/llm-routing.md",
     "docs/PLAN-collusion-mitigation.md",
     "docs/work-loop.md",

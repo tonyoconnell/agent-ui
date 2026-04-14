@@ -4,6 +4,47 @@ Apply to `src/engine/*.ts`
 
 ---
 
+## The Two Locked Rules (non-negotiable)
+
+These two rules compound. Breaking either breaks the flywheel.
+
+### Rule 1 — Closed Loop
+
+**Every signal closes its loop.** `mark()` on result, `warn()` on failure,
+`dissolve` on missing unit/capability. No silent returns. No orphan signals.
+
+```typescript
+const { result, timeout, dissolved } = await net.ask({ receiver: next })
+if (result)        net.mark(edge, chainDepth)  // success → path strengthens
+else if (timeout)  /* neutral — not the agent's fault */
+else if (dissolved) net.warn(edge, 0.5)         // mild — path doesn't exist
+else               net.warn(edge, 1)            // failure — agent produced nothing
+```
+
+Why: pheromone is the only thing that compounds. A handler that returns
+silently leaks learning. Width (parallelism) only compounds if every
+parallel branch deposits a mark or warn on the path it used.
+
+### Rule 2 — Structural Time Only
+
+**Plan in tasks → waves → cycles.** Never days, hours, weeks, sprints,
+or any wall-clock unit.
+
+```
+task    = atomic unit of work (one .on() handler, one file edit)
+wave    = phase within a cycle (W1 recon → W2 decide → W3 edit → W4 verify)
+cycle   = full W0-W4 sandwich, exits at rubric >= 0.65
+path    = what remembers across cycles (pheromone strength / resistance)
+```
+
+Why: the substrate measures **width** by tasks-per-wave, **depth** by
+waves-per-cycle, **learning** by cycles-per-path. Calendar time can't be
+`mark()`d, so it doesn't compound. Genuine external deadlines (merge
+freezes, release cuts) are the only wall-clock exception — they come
+from outside the substrate.
+
+---
+
 ## The Substrate
 
 ```

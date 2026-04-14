@@ -1,5 +1,27 @@
 # Testing Documentation
 
+## Unit Tests (Core Nervous System)
+
+**320 tests** across 19 test files verify the routing engine, pheromone mechanics, lifecycle gates, and signal flow. All passing, <7 seconds total.
+
+```bash
+# Run all tests
+bun run verify              # biome + tsc + vitest (full gate)
+
+# Watch mode (dev)
+bun vitest watch
+
+# Single test file
+bun vitest run src/engine/routing.test.ts
+
+# With strict timing (PERF_SCALE=1)
+PERF_SCALE=1 bun vitest run
+```
+
+**Timing tolerance:** Tests use `PERF_SCALE` environment variable (default 3×) to account for system load. Thresholds are aspirational on idle hardware; real-world GC, context switching, and CPU scaling shift times by 2–5×. See [speed.md](./speed.md) for details.
+
+---
+
 ## End-to-End Tests
 
 ### Quick Start

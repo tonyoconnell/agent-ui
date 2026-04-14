@@ -16,7 +16,12 @@
     "verify": "biome check . && tsc --noEmit && vitest run",
     "bootstrap": "bash scripts/bootstrap.sh",
     "seed:tasks": "bun run scripts/seed-tasks.ts",
-    "seed:agents": "bun run scripts/seed-agents.ts"
+    "seed:agents": "bun run scripts/seed-agents.ts",
+    "deploy": "bun scripts/deploy.ts",
+    "deploy:dry-run": "bun scripts/deploy.ts --dry-run",
+    "deploy:skip-tests": "bun scripts/deploy.ts --skip-tests",
+    "deploy:strict": "bun scripts/deploy.ts --strict",
+    "deploy:preview": "bun scripts/deploy.ts --preview-only"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.66",

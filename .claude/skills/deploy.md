@@ -1,89 +1,116 @@
 ---
 name: deploy
-description: Deploy ONE substrate to Cloudflare + TypeDB. Uses Global API Key from .env. Gateway, sync, Pages.
+description: Deploy ONE substrate to Cloudflare + TypeDB. Deterministic, fast, tested. Auto on feature branches, human approval on main.
 user-invocable: true
 allowed-tools: Bash(*), Read(*), Edit(*), Write(*), Glob(*), Grep(*)
 ---
 
-# /deploy — Deploy ONE Substrate
+# /deploy — Deterministic Deploy
 
-Deploys gateway worker, sync worker, and Pages to Cloudflare using the Global API Key from `.env`.
+Deploys all 4 Cloudflare services (gateway, sync, nanoclaw, pages) with full W0 baseline, build testing, and approval gates.
 
-## What It Deploys
+## Deterministic Deploy Flow
 
-| Worker | URL | Purpose |
-|--------|-----|---------|
-| Gateway | api.one.ie | TypeDB proxy, JWT cache, CORS |
-| Sync | one-sync.oneie.workers.dev | TypeDB → KV every 5 min |
-| Pages | one-substrate.pages.dev | Astro SSR + React 19 + 30 API routes |
-
-## Deploy All
-
-Set auth from `.env` and deploy all four workers:
-
-```bash
-cd /Users/toc/Server/envelopes
-
-# Auth (Global API Key — always use this, not scoped tokens)
-export CLOUDFLARE_API_KEY=$(grep '^CLOUDFLARE_GLOBAL_API_KEY=' .env | cut -d= -f2)
-export CLOUDFLARE_EMAIL=$(grep '^CLOUDFLARE_EMAIL=' .env | cut -d= -f2)
-export CLOUDFLARE_ACCOUNT_ID=$(grep '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2)
-
-# Build
-NODE_ENV=production bun run build
-
-# Deploy all four
-cd gateway && bun wrangler deploy && cd ../workers/sync && bun wrangler deploy && cd ../../nanoclaw && bun wrangler deploy && cd ..
-bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+```
+┌─────────────────────────────────────┐
+│ 1. W0 Baseline                      │  bun run verify
+│    (biome + typecheck + vitest)     │  MUST PASS
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│ 2. Show Changes                     │  staged + uncommitted
+│    (what will deploy)               │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│ 3. Build                            │  NODE_ENV=production
+│    (production bundle)              │  Shows timing + size
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│ 4. Load Cloudflare Credentials      │  From .env
+│    (Global API Key)                 │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│ 5. Test Preview                     │  Verify dist/ + configs
+│    (dry-run checks)                 │
+└──────────────┬──────────────────────┘
+               │
+       ┌───────┴────────┐
+       │                │
+  branch=main     branch!=main
+  HUMAN            AUTO
+  APPROVAL         DEPLOY
+       │                │
+       ▼                ▼
+┌─────────────────────────────────────┐
+│ 6. Deploy                           │
+│    • Gateway (api.one.ie)           │
+│    • Sync (one-sync.oneie.workers)  │
+│    • NanoClaw (nanoclaw.oneie...)   │
+│    • Pages (one-substrate.pages.dev)│
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│ 7. Health Check                     │
+│    (verify all 4 responding)        │
+└─────────────────────────────────────┘
 ```
 
-## Deploy Single Component
+## Usage
 
+### Automatic (feature branch)
 ```bash
-# Set auth first (same export block above)
-
-# Gateway only
-cd /Users/toc/Server/envelopes/gateway && bun wrangler deploy && cd ..
-
-# Sync worker only
-cd /Users/toc/Server/envelopes/workers/sync && bun wrangler deploy && cd ../..
-
-# Pages only
-cd /Users/toc/Server/envelopes && NODE_ENV=production bun run build && bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+bun run deploy
 ```
+Runs full pipeline, deploys automatically if branch ≠ main.
 
-## Verify
-
+### Manual approval (main branch)
 ```bash
-echo "Gateway:" && curl -s https://api.one.ie/health
-echo ""
-echo "Pages:" && curl -sL https://one-substrate.pages.dev/ -o /dev/null -w 'HTTP %{http_code} in %{time_total}s'
-echo ""
-echo "Sync:" && curl -s https://one-sync.oneie.workers.dev/
-echo ""
-echo "TypeDB units:" && curl -s -X POST https://api.one.ie/typedb/query \
-  -H 'Content-Type: application/json' \
-  -d '{"query":"match $u isa unit, has uid $id; select $id;","transactionType":"read"}' \
-  | python3 -c "import sys,json; print(len(json.loads(sys.stdin.read()).get('answers',[])))"
+bun run deploy
 ```
+Runs full pipeline, **asks for confirmation** if branch = main.
 
-## Seed Agents
-
+### Skip tests (risky)
 ```bash
-cd /Users/toc/Server/envelopes
-python3 -c "
-import json, glob, os
-agents = []
-for f in sorted(glob.glob('agents/marketing/*.md')):
-    if os.path.basename(f) == 'README.md': continue
-    with open(f) as fh: agents.append({'name': os.path.basename(f).replace('.md',''), 'content': fh.read()})
-payload = {'world': 'marketing', 'description': 'Marketing team', 'agents': agents}
-with open('/tmp/sync.json', 'w') as f: json.dump(payload, f)
-print(f'{len(agents)} agents')
-" && curl -s -X POST https://one-substrate.pages.dev/api/agents/sync \
-  -H 'Content-Type: application/json' -d @/tmp/sync.json \
-  | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(f'Synced {len(d.get(\"agents\",[]))} agents')"
+bun run deploy:skip-tests
 ```
+Skips W0 baseline. Use only if you know baseline passes elsewhere.
+
+### Dry run (test without deploying)
+```bash
+bun run deploy:dry-run
+```
+Runs steps 1-5, stops before deploy.
+
+### List changes
+```bash
+bun run deploy:list
+```
+Show all files that will deploy.
+
+## Advanced
+
+### Credentials
+
+The script loads from `.env`:
+- `CLOUDFLARE_GLOBAL_API_KEY` — Global API Key (not scoped tokens)
+- `CLOUDFLARE_EMAIL` — Account email
+- `CLOUDFLARE_ACCOUNT_ID` — Account ID
+
+Always use Global API Key, not scoped tokens. See `/cloudflare` skill for credential management.
+
+### Logs
+
+Deployment logs saved to `.deploy.log`. Each worker deployment appends to the same log.
+Build logs saved to `.deploy-build.log` (separate, for W0 baseline diagnostics).
+
+### Custom Domains
+
+- Gateway: `api.one.ie` (custom domain via Cloudflare)
+- Pages: `one-substrate.pages.dev` (auto, plus custom domain via dashboard)
+- Sync & NanoClaw: `*.oneie.workers.dev` (auto)
 
 ## First-Time Setup
 

@@ -1,0 +1,5 @@
+$ biome check . && tsc --noEmit && vitest run
+Checked 306 files in 269ms. No fixes applied.
+
+ RUN  v4.1.4 /Users/toc/Server/envelopes
+

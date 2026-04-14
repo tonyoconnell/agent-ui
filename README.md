@@ -12,6 +12,15 @@ Two fields. That's all that flows. The LLM is the only probabilistic component. 
 
 ---
 
+## The Two Locked Rules
+
+1. **Closed loop** — every signal closes: `mark()` on result, `warn()` on failure, `dissolve` on missing. No silent returns. Parallel width only compounds if every branch deposits pheromone.
+2. **Structural time only** — plan in **tasks → waves → cycles**, never days/hours/weeks. Width scales by tasks-per-wave, depth by waves-per-cycle, learning by cycles-per-path. Calendar time can't be `mark()`d.
+
+These compound. Breaking either breaks the flywheel.
+
+---
+
 ## The DSL
 
 ```typescript

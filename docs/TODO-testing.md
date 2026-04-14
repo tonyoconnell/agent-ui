@@ -37,7 +37,7 @@ same pattern, different time scales:
     SIGNAL LEVEL              WAVE LEVEL               LIFECYCLE LEVEL
     (<0.001ms)                (~5s)                    (days)
     ────────────              ──────────               ────────────────
-    PRE: isToxic?             PRE: bun run verify      PRE: 43 routing tests
+    PRE: isToxic?             PRE: bun run verify      PRE: 320 core tests
     LLM: generate             LLM: W1-W3 edits         LLM: agents run
     POST: mark/warn           POST: bun run verify     POST: crystallize to Sui
 
@@ -184,10 +184,10 @@ All seven loops have a testing analog. They run in parallel:
 ## Current Baseline (2026-04-14, post-Cycle 2)
 
 ```
-VITEST:    194 tests, 194 pass, 0 failures, 9 files
-BIOME:     5 warnings (pre-existing bootstrap.ts unused vars)
+VITEST:    320 tests, 320 pass, 0 failures, 19 files
+BIOME:     0 warnings (all fixed)
 TSC:       0 errors
-COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
+COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, context, world, llm-router, task-sync)
 ```
 
 | File | Tests | Status |
@@ -286,6 +286,60 @@ COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
   persona: dev
   exit: Stop hook runs verify, reports any regressions introduced during session.
   tags: infra, build, P2
+
+- [x] Wire PostToolUse hook for TODO doc auto-sync
+  id: hook-todo-sync
+  value: high
+  effort: low
+  phase: C1
+  persona: dev
+  exit: .claude/hooks/sync-todo-docs.sh fires on Write/Edit of docs/TODO-*.md, POSTs /api/tasks/sync, regenerates TODO.md + todo.json. Non-blocking, 2s cap, dev-server-gated.
+  tags: infra, build, P1
+
+- [x] Synchronous dissolve on missing capability in ask()
+  id: ask-sync-dissolve
+  value: critical
+  effort: low
+  phase: C2
+  persona: dev
+  exit: src/engine/world.ts ask() resolves {dissolved:true} via O(1) Unit.has() lookup when receiver lacks the task handler and no default. Replaces 30s worst-case timer race. Raises L1 routing speed and test determinism simultaneously.
+  tags: engine, speed, accuracy, P0
+
+- [x] Kill wall-clock race in expire-tick TTL boundary test
+  id: test-expire-tick-single-clock
+  value: high
+  effort: low
+  phase: C2
+  persona: dev
+  exit: expire-tick.test.ts uses single-clock reference so age === CLAIM_TTL_MS exactly. No jitter between Date.now() calls. Deterministic boundary assertion.
+  tags: test, accuracy, P1
+
+- [x] Index hygiene: exclude TODO-template.md from scanTodos
+  id: scan-skip-template
+  value: medium
+  effort: low
+  phase: C1
+  persona: dev
+  exit: src/engine/task-parse.ts scanTodos() filters TODO-template*.md. Test added. Eight phantom example tasks no longer leak into the index.
+  tags: engine, infra, P2
+
+- [x] Normalize malformed phase values across TODO files
+  id: normalize-phase-values
+  value: medium
+  effort: low
+  phase: C1
+  persona: dev
+  exit: docs/TODO-rename.md: 11 occurrences of phase: P0..P9 migrated to C1..C7 per schema. Dry-run unique phases now ["C1","C2","C3","C4","C5","C6","C7"].
+  tags: docs, infra, P2
+
+- [x] Remove duplicate TODO template file
+  id: remove-template-dup
+  value: low
+  effort: low
+  phase: C1
+  persona: dev
+  exit: docs/TODO-template 1.md deleted (git rm). TODO-template.md remains canonical.
+  tags: docs, infra, P3
 
 ---
 
@@ -554,7 +608,7 @@ COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
   - [x] W1 — Recon (Haiku x 3)
   - [x] W2 — Decide (Opus)
   - [x] W3 — Edits (Sonnet x 1)
-  - [x] W4 — Verify (194 tests, 0 errors)
+  - [x] W4 — Verify (320 tests, 0 errors)
 
 ---
 
