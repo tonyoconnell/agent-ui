@@ -172,11 +172,14 @@ describe('expire-tick: tasks older than 30min are released by the tick', () => {
   })
 
   it('exactly at TTL boundary (30min) is not released', () => {
-    // At exactly 30min, age === TTL, condition is age > TTL (strict greater)
-    const claimedAt = new Date(Date.now() - CLAIM_TTL_MS)
+    // At exactly 30min, age === TTL, condition is age > TTL (strict greater).
+    // Single-clock reference: both timestamps derived from same `now` so
+    // age === CLAIM_TTL_MS exactly, without wall-clock jitter between calls.
+    const now = new Date()
+    const claimedAt = new Date(now.getTime() - CLAIM_TTL_MS)
     claimWithTimestamp(TID, OWNER, claimedAt)
 
-    const released = runExpireTick(new Date())
+    const released = runExpireTick(now)
     expect(released).toHaveLength(0)
     expect(store.getTask(TID)?.status).toBe('active')
   })

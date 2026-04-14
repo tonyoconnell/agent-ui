@@ -81,8 +81,20 @@ export const GET: APIRoute = async ({ url }) => {
   lastL1 = now
   lastL2 = now
 
-  // L3: decay every 5 min
-  if (now - lastL3 >= L3_INTERVAL) lastL3 = now
+  // L3: decay every 5 min + stale lease recovery
+  if (now - lastL3 >= L3_INTERVAL) {
+    lastL3 = now
+    // Auto-expire stale claims as part of L3 cleanup
+    const baseUrl = import.meta.env.PUBLIC_GATEWAY_URL || 'http://localhost:4321'
+    try {
+      // Release task claims >30min old
+      await fetch(`${baseUrl}/api/tasks/expire`)
+      // Release wave-locks >2h old
+      await fetch(`${baseUrl}/api/waves/expire`)
+    } catch {
+      // Silently fail if expire unavailable; next tick will retry
+    }
+  }
 
   // L4: revenue tracking per min (implicit in signal.ts)
   if (now - lastL4 >= L4_INTERVAL) lastL4 = now

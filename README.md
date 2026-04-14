@@ -315,6 +315,13 @@ agents/                        Markdown agent definitions
 | [NanoClaw](docs/nanoclaw.md) | Edge agent workers — webhooks, queue, LLM, channels |
 | [TODO](docs/TODO.md) | Roadmap, status, what's next |
 
+### Implementation
+
+| Doc | What it covers |
+|-----|----------------|
+| [Collision Avoidance](docs/PLAN-collusion-mitigation.md) | Multi-session locking, atomic claims, TTL recovery, wave-locking |
+| [TODO: Collision Avoidance](docs/TODO-collusion.md) | 3-cycle implementation (76 tests, 0 regressions, 0.89 rubric) |
+
 ### Concepts
 
 | Doc | What it covers |
