@@ -258,10 +258,14 @@ describe('Act 3: Cache — the path to a cached answer becomes a highway', () =>
         return { response: cache[hash], cached: true, ms: performance.now() - t0 }
       }
 
-      // "LLM call" — 5ms mock (real: 800ms)
-      const response = await GEMMA.call(prompt)
-      if (response) cache[hash] = response
-      return { response: response ?? '', cached: false, ms: performance.now() - t0 }
+      // "LLM call" — 5ms mock (real: 800ms); deterministic so cache always populates
+      const deterministicCall = async (_p: string) => {
+        await new Promise((r) => setTimeout(r, 5))
+        return 'mock-response'
+      }
+      const response = await deterministicCall(prompt)
+      cache[hash] = response
+      return { response, cached: false, ms: performance.now() - t0 }
     }
 
     const first = await callWithCache('What is the refund policy?')

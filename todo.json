@@ -150,7 +150,7 @@
     },
     {
       "id": "implement-istoxic-blocking-resistance-10-and-resistance-2-st",
-      "name": "Implement isToxic() blocking: resistance >= 10 AND resistance > 2\u00d7 strength",
+      "name": "Implement isToxic() blocking: resistance >= 10 AND resistance > 2× strength",
       "done": true,
       "value": "critical",
       "effort": "low",
@@ -199,7 +199,7 @@
       "blocks": [
         "agent-marketplace-live"
       ],
-      "exit": "Users write agent.md \u2192 /api/agents/sync \u2192 live on ONE + AgentVerse",
+      "exit": "Users write agent.md → /api/agents/sync → live on ONE + AgentVerse",
       "source": "ONE-strategy",
       "strength": 0,
       "resistance": 0
@@ -428,7 +428,7 @@
     },
     {
       "id": "impl-signal",
-      "name": "Implement signal lifecycle: route \u2192 execute \u2192 mark/warn",
+      "name": "Implement signal lifecycle: route → execute → mark/warn",
       "done": true,
       "value": "critical",
       "effort": "high",
@@ -457,7 +457,7 @@
     {
       "id": "base-context-always",
       "name": "Add DSL + dictionary as base context in every wave",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "low",
       "wave": "W3",
@@ -484,7 +484,7 @@
     {
       "id": "infer-docs-from-tags",
       "name": "Create inferDocsFromTags in context.ts",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "low",
       "wave": "W3",
@@ -503,7 +503,7 @@
       "blocks": [
         "wave-context-envelope"
       ],
-      "exit": "engine\u2192[dsl,routing], typedb\u2192[dsl], ui\u2192[dictionary], commerce\u2192[sdk], etc.",
+      "exit": "engine→[dsl,routing], typedb→[dsl], ui→[dictionary], commerce→[sdk], etc.",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
@@ -511,7 +511,7 @@
     {
       "id": "resolve-context",
       "name": "Build resolveContext function",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "medium",
       "wave": "W3",
@@ -538,7 +538,7 @@
     {
       "id": "enrich-task-signal",
       "name": "Enrich task signal in loop.ts with full envelope",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "medium",
       "wave": "W3",
@@ -565,7 +565,7 @@
     {
       "id": "task-wave-attr",
       "name": "Add task-wave and task-context to world.tql",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "low",
       "wave": "W3",
@@ -593,7 +593,7 @@
     {
       "id": "wave-runner-unit",
       "name": "Build wave-runner unit with .then() chains",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "high",
       "wave": "W3",
@@ -613,14 +613,14 @@
         "self-checkoff",
         "wave-mark-transitions"
       ],
-      "exit": "unit('wave-runner').on('recon',...).then('recon',\u2192decide).on('decide',...).then('decide',\u2192edit)...",
+      "exit": "unit('wave-runner').on('recon',...).then('recon',→decide).on('decide',...).then('decide',→edit)...",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
     },
     {
       "id": "fix-one-test-import",
-      "name": "Fix one.test.ts: bun:test \u2192 vitest import",
+      "name": "Fix one.test.ts: bun:test → vitest import",
       "done": true,
       "value": "critical",
       "effort": "low",
@@ -647,7 +647,7 @@
     },
     {
       "id": "triage-type-errors",
-      "name": "Triage 85 type errors \u2014 fix or suppress with intent",
+      "name": "Triage 85 type errors — fix or suppress with intent",
       "done": true,
       "value": "critical",
       "effort": "medium",
@@ -756,7 +756,7 @@
     },
     {
       "id": "gate-register-capable",
-      "name": "Lifecycle gate: REGISTER \u2192 CAPABLE requires unit_exists",
+      "name": "Lifecycle gate: REGISTER → CAPABLE requires unit_exists",
       "done": true,
       "value": "high",
       "effort": "low",
@@ -837,8 +837,8 @@
     },
     {
       "id": "wave-core-loop",
-      "name": "Map waves to core.ts sense\u2192select\u2192act\u2192mark",
-      "done": false,
+      "name": "Map waves to core.ts sense→select→act→mark",
+      "done": true,
       "value": "critical",
       "effort": "medium",
       "wave": "W3",
@@ -865,7 +865,7 @@
     {
       "id": "wave-context-envelope",
       "name": "Build context envelope that accumulates across waves",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "medium",
       "wave": "W3",
@@ -892,7 +892,7 @@
     {
       "id": "rubric-scorer",
       "name": "Create rubric scorer with tagged-edge marks",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "medium",
       "wave": "W3",
@@ -919,7 +919,7 @@
     {
       "id": "self-checkoff",
       "name": "Self-checkoff: W4 verify pass marks task done",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "medium",
       "wave": "W3",
@@ -939,7 +939,7 @@
         "learn-wave-patterns",
         "auto-unblock"
       ],
-      "exit": "selfCheckoff() \u2192 markTaskDone + update checkbox + mark path + unblock + know",
+      "exit": "selfCheckoff() → markTaskDone + update checkbox + mark path + unblock + know",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
@@ -1020,7 +1020,7 @@
       "blocks": [
         "test-wave-lifecycle"
       ],
-      "exit": "persist.ts test file. Covers: isToxic (cold-start), actor, flow, know, recall, subscribe (adds tags to unit), tasksFor (tag-filtered task matching with overlap \u00d7 priority + pheromone ranking). Mocks TypeDB.",
+      "exit": "persist.ts test file. Covers: isToxic (cold-start), actor, flow, know, recall, subscribe (adds tags to unit), tasksFor (tag-filtered task matching with overlap × priority + pheromone ranking). Mocks TypeDB.",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -1047,7 +1047,7 @@
       "blocks": [
         "test-wave-lifecycle"
       ],
-      "exit": "subscribe('scout', ['engine','build']) adds tags. tasksFor('scout') returns matching tasks ranked by overlap \u00d7 priority + pheromone. Agent with 2 tag matches beats agent with 1. Pheromone breaks ties.",
+      "exit": "subscribe('scout', ['engine','build']) adds tags. tasksFor('scout') returns matching tasks ranked by overlap × priority + pheromone. Agent with 2 tag matches beats agent with 1. Pheromone breaks ties.",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -1055,7 +1055,7 @@
     {
       "id": "wave-routing",
       "name": "Route task to model by wave",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "medium",
       "wave": "W3",
@@ -1074,7 +1074,7 @@
       "blocks": [
         "wave-builder-unit"
       ],
-      "exit": "W1\u2192haiku, W2\u2192opus, W3\u2192sonnet, W4\u2192sonnet. Model selected at signal time.",
+      "exit": "W1→haiku, W2→opus, W3→sonnet, W4→sonnet. Model selected at signal time.",
       "source": "typedb",
       "strength": 0,
       "resistance": 0
@@ -1101,7 +1101,7 @@
       "blocks": [
         "wave-mark-transitions"
       ],
-      "exit": "builder unit has recon\u2192decide\u2192edit\u2192verify handlers, each .then() carries accumulated context",
+      "exit": "builder unit has recon→decide→edit→verify handlers, each .then() carries accumulated context",
       "source": "typedb",
       "strength": 0,
       "resistance": 0
@@ -1214,7 +1214,7 @@
     },
     {
       "id": "gate-capable-discover",
-      "name": "Lifecycle gate: CAPABLE \u2192 DISCOVER requires has_capability",
+      "name": "Lifecycle gate: CAPABLE → DISCOVER requires has_capability",
       "done": true,
       "value": "high",
       "effort": "low",
@@ -1264,7 +1264,7 @@
     },
     {
       "id": "impl-highway",
-      "name": "Implement highway detection: strength \u2265 50, traversals \u2265 50",
+      "name": "Implement highway detection: strength ≥ 50, traversals ≥ 50",
       "done": true,
       "value": "critical",
       "effort": "medium",
@@ -1319,7 +1319,7 @@
     {
       "id": "recall-prior-attempts",
       "name": "Wire recall of prior attempts into context",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1343,8 +1343,8 @@
     },
     {
       "id": "blocking-context",
-      "name": "Wire blocking context \u2014 executor sees what it unblocks",
-      "done": false,
+      "name": "Wire blocking context — executor sees what it unblocks",
+      "done": true,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1388,7 +1388,7 @@
       "blocks": [
         "learn-wave-patterns"
       ],
-      "exit": "recon\u2192decide, decide\u2192edit, edit\u2192verify each get mark/warn per outcome",
+      "exit": "recon→decide, decide→edit, edit→verify each get mark/warn per outcome",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
@@ -1446,7 +1446,7 @@
     {
       "id": "hook-task-complete",
       "name": "Wire TaskCompleted hook for verify gate",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "medium",
       "wave": "W3",
@@ -1576,7 +1576,7 @@
     },
     {
       "id": "gate-signal-drop",
-      "name": "Lifecycle gate: SIGNAL \u2192 DROP requires { result }",
+      "name": "Lifecycle gate: SIGNAL → DROP requires { result }",
       "done": false,
       "value": "high",
       "effort": "low",
@@ -1601,7 +1601,7 @@
     },
     {
       "id": "gate-signal-alarm",
-      "name": "Lifecycle gate: SIGNAL \u2192 ALARM requires failure",
+      "name": "Lifecycle gate: SIGNAL → ALARM requires failure",
       "done": false,
       "value": "high",
       "effort": "low",
@@ -1651,7 +1651,7 @@
     },
     {
       "id": "cycle-1-w1",
-      "name": "Cycle 1 W1: Recon (parallel Haiku \u00d7 4)",
+      "name": "Cycle 1 W1: Recon (parallel Haiku × 4)",
       "done": false,
       "value": "critical",
       "effort": "low",
@@ -1707,7 +1707,7 @@
     },
     {
       "id": "cycle-1-w3",
-      "name": "Cycle 1 W3: Edits (parallel Sonnet \u00d7 4)",
+      "name": "Cycle 1 W3: Edits (parallel Sonnet × 4)",
       "done": false,
       "value": "critical",
       "effort": "high",
@@ -1735,7 +1735,7 @@
     },
     {
       "id": "cycle-1-w4",
-      "name": "Cycle 1 W4: Verify (Sonnet \u00d7 1)",
+      "name": "Cycle 1 W4: Verify (Sonnet × 1)",
       "done": false,
       "value": "critical",
       "effort": "medium",
@@ -1806,7 +1806,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "W1\u2192haiku, W2\u2192opus, W3\u2192sonnet, W4\u2192sonnet. EFFORT_MODEL fallback.",
+      "exit": "W1→haiku, W2→opus, W3→sonnet, W4→sonnet. EFFORT_MODEL fallback.",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
@@ -1963,7 +1963,7 @@
     },
     {
       "id": "test-tag-loop-routing",
-      "name": "Test tag-filtered loop routing: previousTarget \u2192 tag join \u2192 task selection",
+      "name": "Test tag-filtered loop routing: previousTarget → tag join → task selection",
       "done": false,
       "value": "high",
       "effort": "medium",
@@ -1988,7 +1988,7 @@
     },
     {
       "id": "test-agent-md-subscription",
-      "name": "Test subscription via agent markdown: tags in frontmatter \u2192 TypeDB \u2192 tasksFor",
+      "name": "Test subscription via agent markdown: tags in frontmatter → TypeDB → tasksFor",
       "done": false,
       "value": "high",
       "effort": "low",
@@ -2006,7 +2006,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Agent with tags: [engine, build] in markdown \u2192 syncAgent writes tags to TypeDB \u2192 tasksFor returns matching open tasks",
+      "exit": "Agent with tags: [engine, build] in markdown → syncAgent writes tags to TypeDB → tasksFor returns matching open tasks",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -2031,14 +2031,14 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Speed claims from speed.md verified in test suite. routing.test.ts already does this \u2014 extend to persist, loop",
+      "exit": "Speed claims from speed.md verified in test suite. routing.test.ts already does this — extend to persist, loop",
       "source": "testing",
       "strength": 0,
       "resistance": 0
     },
     {
       "id": "test-wave-lifecycle",
-      "name": "Test wave lifecycle: W0\u2192W1\u2192W2\u2192W3\u2192W4\u2192selfCheckoff",
+      "name": "Test wave lifecycle: W0→W1→W2→W3→W4→selfCheckoff",
       "done": true,
       "value": "critical",
       "effort": "high",
@@ -2063,7 +2063,7 @@
     },
     {
       "id": "test-agent-lifecycle",
-      "name": "Test agent lifecycle: register \u2192 signal \u2192 highway in N signals",
+      "name": "Test agent lifecycle: register → signal → highway in N signals",
       "done": true,
       "value": "critical",
       "effort": "high",
@@ -2301,7 +2301,7 @@
     },
     {
       "id": "gate-drop-highway",
-      "name": "Lifecycle gate: DROP \u2192 HIGHWAY requires threshold",
+      "name": "Lifecycle gate: DROP → HIGHWAY requires threshold",
       "done": false,
       "value": "high",
       "effort": "low",
@@ -2319,14 +2319,14 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Highway status only inferred when strength \u2265 50 AND traversals \u2265 50. Early edges stay \"fresh\".",
+      "exit": "Highway status only inferred when strength ≥ 50 AND traversals ≥ 50. Early edges stay \"fresh\".",
       "source": "lifecycle",
       "strength": 0,
       "resistance": 0
     },
     {
       "id": "gate-highway-crystallize",
-      "name": "Lifecycle gate: HIGHWAY \u2192 CRYSTALLIZE requires confirmed",
+      "name": "Lifecycle gate: HIGHWAY → CRYSTALLIZE requires confirmed",
       "done": false,
       "value": "high",
       "effort": "medium",
@@ -2369,14 +2369,14 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Endpoint triggers know() \u2192 Sui write. Returns { tx_hash, highways_frozen: N }. Auth required.",
+      "exit": "Endpoint triggers know() → Sui write. Returns { tx_hash, highways_frozen: N }. Auth required.",
       "source": "lifecycle",
       "strength": 0,
       "resistance": 0
     },
     {
       "id": "impl-sui-wallet",
-      "name": "Sui wallet derivation: UID \u2192 keypair",
+      "name": "Sui wallet derivation: UID → keypair",
       "done": true,
       "value": "high",
       "effort": "medium",
@@ -2444,7 +2444,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Task done \u2192 query blocks \u2192 enqueue signals for newly-unblocked tasks",
+      "exit": "Task done → query blocks → enqueue signals for newly-unblocked tasks",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
@@ -2469,7 +2469,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Phase complete \u2192 know() promotes wave patterns to hypotheses",
+      "exit": "Phase complete → know() promotes wave patterns to hypotheses",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
@@ -2494,7 +2494,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Hypothesis records: \"engine+P0 tasks with routing.md context \u2192 0.9 avg score\"",
+      "exit": "Hypothesis records: \"engine+P0 tasks with routing.md context → 0.9 avg score\"",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
@@ -2519,14 +2519,14 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "/done calls selfCheckoff() \u2192 marks, updates checkbox, unblocks, emits",
+      "exit": "/done calls selfCheckoff() → marks, updates checkbox, unblocks, emits",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
     },
     {
       "id": "test-doc-scan",
-      "name": "Test doc-scan.ts: item extraction, verification, gaps\u2192signals",
+      "name": "Test doc-scan.ts: item extraction, verification, gaps→signals",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -2619,7 +2619,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "nanoclaw test file. Covers: Telegram webhook parsing, persona selection order (BOT_PERSONA \u2192 group prefix \u2192 default), API key auth",
+      "exit": "nanoclaw test file. Covers: Telegram webhook parsing, persona selection order (BOT_PERSONA → group prefix → default), API key auth",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -2676,7 +2676,7 @@
     },
     {
       "id": "test-human-lifecycle",
-      "name": "Test human lifecycle: visit \u2192 observe \u2192 use \u2192 their signals join graph",
+      "name": "Test human lifecycle: visit → observe → use → their signals join graph",
       "done": false,
       "value": "high",
       "effort": "medium",
@@ -2719,7 +2719,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Test that REGISTER requires unit_exists, CAPABLE requires capability relation, HIGHWAY requires strength\u226550. Gate function returns pass/fail.",
+      "exit": "Test that REGISTER requires unit_exists, CAPABLE requires capability relation, HIGHWAY requires strength≥50. Gate function returns pass/fail.",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -2819,7 +2819,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Repeated W3 failures on same tag cluster \u2192 hypothesis. W4 retry count > 2 \u2192 hypothesis.",
+      "exit": "Repeated W3 failures on same tag cluster → hypothesis. W4 retry count > 2 → hypothesis.",
       "source": "typedb",
       "strength": 0,
       "resistance": 0
@@ -2844,7 +2844,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Task done \u2192 matching skill's capability path gets mark(). Same ID = same path.",
+      "exit": "Task done → matching skill's capability path gets mark(). Same ID = same path.",
       "source": "typedb",
       "strength": 0,
       "resistance": 0
@@ -2869,7 +2869,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "L5 reads per-dim path strength (edge:fit, edge:truth, etc). Low truth strength \u2192 evolve for accuracy. Low taste \u2192 evolve voice. The graph tells evolution WHAT to fix.",
+      "exit": "L5 reads per-dim path strength (edge:fit, edge:truth, etc). Low truth strength → evolve for accuracy. Low taste → evolve voice. The graph tells evolution WHAT to fix.",
       "source": "typedb",
       "strength": 0,
       "resistance": 0
@@ -2921,7 +2921,7 @@
       "blocks": [
         "domains-live"
       ],
-      "exit": "creator.domain \u2192 agents live, branded, routing under your control",
+      "exit": "creator.domain → agents live, branded, routing under your control",
       "source": "ONE-strategy",
       "strength": 0,
       "resistance": 0
@@ -2953,7 +2953,7 @@
     },
     {
       "id": "cycle-2-w1",
-      "name": "Cycle 2 W1: Recon (parallel Haiku \u00d7 20)",
+      "name": "Cycle 2 W1: Recon (parallel Haiku × 20)",
       "done": false,
       "value": "high",
       "effort": "medium",
@@ -3009,7 +3009,7 @@
     },
     {
       "id": "cycle-2-w3",
-      "name": "Cycle 2 W3: Edits (parallel Sonnet \u00d7 20)",
+      "name": "Cycle 2 W3: Edits (parallel Sonnet × 20)",
       "done": false,
       "value": "high",
       "effort": "high",
@@ -3037,7 +3037,7 @@
     },
     {
       "id": "cycle-2-w4",
-      "name": "Cycle 2 W4: Verify (Sonnet \u00d7 1)",
+      "name": "Cycle 2 W4: Verify (Sonnet × 1)",
       "done": false,
       "value": "high",
       "effort": "medium",
@@ -3082,7 +3082,7 @@
         "P2"
       ],
       "blocks": [],
-      "exit": "Repeated W3 fails \u2192 frontier. W4 retry > 2 \u2192 hypothesis \"this pattern struggles\"",
+      "exit": "Repeated W3 fails → frontier. W4 retry > 2 → hypothesis \"this pattern struggles\"",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
@@ -3107,7 +3107,7 @@
         "P2"
       ],
       "blocks": [],
-      "exit": "L5 reads per-dim strength. Low truth \u2192 evolve recon. Low form \u2192 evolve edit.",
+      "exit": "L5 reads per-dim strength. Low truth → evolve recon. Low form → evolve edit.",
       "source": "task-management",
       "strength": 0,
       "resistance": 0
@@ -3139,7 +3139,7 @@
     },
     {
       "id": "coverage-target",
-      "name": "Coverage target: engine/ \u2265 80%, persist/ \u2265 70%",
+      "name": "Coverage target: engine/ ≥ 80%, persist/ ≥ 70%",
       "done": false,
       "value": "medium",
       "effort": "low",
@@ -3157,7 +3157,7 @@
         "P2"
       ],
       "blocks": [],
-      "exit": "npm run test:coverage shows \u226580% line coverage for src/engine/*.ts",
+      "exit": "npm run test:coverage shows ≥80% line coverage for src/engine/*.ts",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -3264,7 +3264,7 @@
     },
     {
       "id": "phase-1-complete",
-      "name": "Phase 1: Migrate engine files (5 files \u00d7 parallel)",
+      "name": "Phase 1: Migrate engine files (5 files × parallel)",
       "done": false,
       "value": "critical",
       "effort": "high",
@@ -3291,7 +3291,7 @@
     },
     {
       "id": "phase-2-complete",
-      "name": "Phase 2: Migrate schema files (8 files \u00d7 parallel)",
+      "name": "Phase 2: Migrate schema files (8 files × parallel)",
       "done": false,
       "value": "critical",
       "effort": "high",
@@ -3318,7 +3318,7 @@
     },
     {
       "id": "phase-7-complete",
-      "name": "Phase 7: Migrate docs (59 files \u00d7 parallel Haiku)",
+      "name": "Phase 7: Migrate docs (59 files × parallel Haiku)",
       "done": false,
       "value": "high",
       "effort": "high",
@@ -3401,7 +3401,7 @@
     },
     {
       "id": "phase-3-complete",
-      "name": "Phase 3: Migrate types/lib/skins (5 files \u00d7 parallel)",
+      "name": "Phase 3: Migrate types/lib/skins (5 files × parallel)",
       "done": false,
       "value": "high",
       "effort": "high",
@@ -3428,7 +3428,7 @@
     },
     {
       "id": "phase-4-complete",
-      "name": "Phase 4: Migrate API endpoints (11 files \u00d7 parallel)",
+      "name": "Phase 4: Migrate API endpoints (11 files × parallel)",
       "done": false,
       "value": "high",
       "effort": "high",
@@ -3455,7 +3455,7 @@
     },
     {
       "id": "phase-5-complete",
-      "name": "Phase 5: Migrate components (7 files \u00d7 parallel)",
+      "name": "Phase 5: Migrate components (7 files × parallel)",
       "done": false,
       "value": "high",
       "effort": "high",
@@ -3482,7 +3482,7 @@
     },
     {
       "id": "phase-6-complete",
-      "name": "Phase 6: Migrate Claude config (9 files \u00d7 parallel)",
+      "name": "Phase 6: Migrate Claude config (9 files × parallel)",
       "done": false,
       "value": "high",
       "effort": "medium",
@@ -3509,7 +3509,7 @@
     },
     {
       "id": "cycle-3-w1",
-      "name": "Cycle 3 W1: Recon (parallel Haiku \u00d7 20)",
+      "name": "Cycle 3 W1: Recon (parallel Haiku × 20)",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -3565,7 +3565,7 @@
     },
     {
       "id": "cycle-3-w3",
-      "name": "Cycle 3 W3: Edits (parallel Sonnet \u00d7 20)",
+      "name": "Cycle 3 W3: Edits (parallel Sonnet × 20)",
       "done": false,
       "value": "medium",
       "effort": "high",
@@ -3593,7 +3593,7 @@
     },
     {
       "id": "cycle-3-w4",
-      "name": "Cycle 3 W4: Verify (Sonnet \u00d7 1)",
+      "name": "Cycle 3 W4: Verify (Sonnet × 1)",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -3707,7 +3707,7 @@
     },
     {
       "id": "phase-8-complete",
-      "name": "Phase 8: Migrate packages/scripts (12 files \u00d7 parallel)",
+      "name": "Phase 8: Migrate packages/scripts (12 files × parallel)",
       "done": false,
       "value": "medium",
       "effort": "high",
@@ -3734,7 +3734,7 @@
     },
     {
       "id": "phase-9-complete",
-      "name": "Phase 9: Migrate archive (4 files \u00d7 parallel, optional)",
+      "name": "Phase 9: Migrate archive (4 files × parallel, optional)",
       "done": false,
       "value": "low",
       "effort": "medium",
@@ -3761,7 +3761,7 @@
     },
     {
       "id": "1a-install-sui-cli-sui-1612-homebrew",
-      "name": "**1a. Install Sui CLI** \u2014 `sui 1.61.2-homebrew`",
+      "name": "**1a. Install Sui CLI** — `sui 1.61.2-homebrew`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3782,7 +3782,7 @@
     },
     {
       "id": "1b-create-keypair-0x90096b9e11cff8f0127a22be75c67f8188ee503a",
-      "name": "**1b. Create keypair** \u2014 `0x90096b9e11cff8f0127a22be75c67f8188ee503add9b4c7ff98978fd04cc765d`",
+      "name": "**1b. Create keypair** — `0x90096b9e11cff8f0127a22be75c67f8188ee503add9b4c7ff98978fd04cc765d`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3803,7 +3803,7 @@
     },
     {
       "id": "1c-fund-from-faucet-19-sui-across-26-gas-coins",
-      "name": "**1c. Fund from faucet** \u2014 ~1.9 SUI across 26 gas coins",
+      "name": "**1c. Fund from faucet** — ~1.9 SUI across 26 gas coins",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3824,7 +3824,7 @@
     },
     {
       "id": "1d-build-contract-clean-build-removed-pinned-framework-dep-a",
-      "name": "**1d. Build contract** \u2014 Clean build (removed pinned framework dep, auto-resolved)",
+      "name": "**1d. Build contract** — Clean build (removed pinned framework dep, auto-resolved)",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3845,7 +3845,7 @@
     },
     {
       "id": "1e-run-move-tests-66-pass-unit-depositwithdraw-path-markwarn",
-      "name": "**1e. Run Move tests** \u2014 6/6 pass (unit, deposit/withdraw, path, mark/warn, pay, fade, highway/toxic)",
+      "name": "**1e. Run Move tests** — 6/6 pass (unit, deposit/withdraw, path, mark/warn, pay, fade, highway/toxic)",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3866,7 +3866,7 @@
     },
     {
       "id": "1f-publish-package-0xa5e6bddae833220f58546ea4d2932a2673208af",
-      "name": "**1f. Publish** \u2014 Package `0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e`, tx `5GNhTrAyoaHP8BEd3JgnrvZRTThSwv7xu5tNsGg3a6Q6`",
+      "name": "**1f. Publish** — Package `0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e`, tx `5GNhTrAyoaHP8BEd3JgnrvZRTThSwv7xu5tNsGg3a6Q6`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3887,7 +3887,7 @@
     },
     {
       "id": "1g-set-env-vars-suipackageid-suiprotocolid-suinetworktestnet",
-      "name": "**1g. Set env vars** \u2014 `SUI_PACKAGE_ID`, `SUI_PROTOCOL_ID`, `SUI_NETWORK=testnet` in `.env`",
+      "name": "**1g. Set env vars** — `SUI_PACKAGE_ID`, `SUI_PROTOCOL_ID`, `SUI_NETWORK=testnet` in `.env`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3908,7 +3908,7 @@
     },
     {
       "id": "1h-generate-platform-seed-suiseed-in-env",
-      "name": "**1h. Generate platform seed** \u2014 `SUI_SEED` in `.env`",
+      "name": "**1h. Generate platform seed** — `SUI_SEED` in `.env`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3929,7 +3929,7 @@
     },
     {
       "id": "1i-verify-sui-client-object-suiprotocolid-shows-protocol-tre",
-      "name": "**1i. Verify** \u2014 `sui client object $SUI_PROTOCOL_ID` shows Protocol { treasury: 0, fee_bps: 50 }",
+      "name": "**1i. Verify** — `sui client object $SUI_PROTOCOL_ID` shows Protocol { treasury: 0, fee_bps: 50 }",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3950,7 +3950,7 @@
     },
     {
       "id": "2a-create-scout-on-chain-unit-0x6fd45656222db69f81dbf61c7087",
-      "name": "**2a. Create scout on-chain** \u2014 Unit `0x6fd45656222db69f81dbf61c70873fd466ebd8b157bf6694f81314e3e0c13af8`, wallet `0xb0e2d65f43a080ba09275cf3f1ce89ed35309b5fca38df6ad7e6100e616f6dba`",
+      "name": "**2a. Create scout on-chain** — Unit `0x6fd45656222db69f81dbf61c70873fd466ebd8b157bf6694f81314e3e0c13af8`, wallet `0xb0e2d65f43a080ba09275cf3f1ce89ed35309b5fca38df6ad7e6100e616f6dba`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3971,7 +3971,7 @@
     },
     {
       "id": "2b-verify-on-chain-unit-name-scout-unittype-agent-activity-0",
-      "name": "**2b. Verify on-chain** \u2014 Unit { name: \"scout\", unit_type: \"agent\", activity: 0, balance: 0 }",
+      "name": "**2b. Verify on-chain** — Unit { name: \"scout\", unit_type: \"agent\", activity: 0, balance: 0 }",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -3992,7 +3992,7 @@
     },
     {
       "id": "2c-typedb-sui-link-absorb-writes-sui-unit-id-on-unit-resolve",
-      "name": "**2c. TypeDB \u2194 Sui link** \u2014 `absorb()` writes `sui-unit-id` on unit; `resolve(uid)` reads it back",
+      "name": "**2c. TypeDB ↔ Sui link** — `absorb()` writes `sui-unit-id` on unit; `resolve(uid)` reads it back",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4013,7 +4013,7 @@
     },
     {
       "id": "2d-view-on-explorer-httpssuiscanxyztestnetobject0x6fd4565622",
-      "name": "**2d. View on explorer** \u2014 `https://suiscan.xyz/testnet/object/0x6fd45656222db69f81dbf61c70873fd466ebd8b157bf6694f81314e3e0c13af8`",
+      "name": "**2d. View on explorer** — `https://suiscan.xyz/testnet/object/0x6fd45656222db69f81dbf61c70873fd466ebd8b157bf6694f81314e3e0c13af8`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4034,7 +4034,7 @@
     },
     {
       "id": "3a-create-analyst-unit-0x952fea2b99904aa8a365939c5ebc8079014",
-      "name": "**3a. Create analyst** \u2014 Unit `0x952fea2b99904aa8a365939c5ebc8079014b7cef7ac1ab2375b5a10e4ec6c47d`, wallet `0xfab3...8104`",
+      "name": "**3a. Create analyst** — Unit `0x952fea2b99904aa8a365939c5ebc8079014b7cef7ac1ab2375b5a10e4ec6c47d`, wallet `0xfab3...8104`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4055,7 +4055,7 @@
     },
     {
       "id": "3b-send-signal-signal-0x8a17da42-payload-hello-from-scout-ta",
-      "name": "**3b. Send signal** \u2014 Signal `0x8a17...da42`, payload \"hello from scout\", task \"research\"",
+      "name": "**3b. Send signal** — Signal `0x8a17...da42`, payload \"hello from scout\", task \"research\"",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4076,7 +4076,7 @@
     },
     {
       "id": "3c-verify-signal-object-signal-owned-by-analyst-address-payl",
-      "name": "**3c. Verify Signal object** \u2014 Signal owned by analyst address, payload + sender + receiver correct",
+      "name": "**3c. Verify Signal object** — Signal owned by analyst address, payload + sender + receiver correct",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4097,7 +4097,7 @@
     },
     {
       "id": "3d-verify-path-created-path-0x956c76da-scoutanalyst-strength",
-      "name": "**3d. Verify Path created** \u2014 Path `0x956c...76da` scout\u2192analyst, strength: 1, type: \"interaction\"",
+      "name": "**3d. Verify Path created** — Path `0x956c...76da` scout→analyst, strength: 1, type: \"interaction\"",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4118,7 +4118,7 @@
     },
     {
       "id": "3e-check-events-unitcreated-signalsent-marked-events-all-emi",
-      "name": "**3e. Check events** \u2014 UnitCreated, SignalSent, Marked events all emitted",
+      "name": "**3e. Check events** — UnitCreated, SignalSent, Marked events all emitted",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4139,7 +4139,7 @@
     },
     {
       "id": "4a-deposit-sui-to-unit-100000-mist-deposited-into-scout-unit",
-      "name": "**4a. Deposit SUI to unit** \u2014 100000 MIST deposited into scout Unit balance",
+      "name": "**4a. Deposit SUI to unit** — 100000 MIST deposited into scout Unit balance",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4160,7 +4160,7 @@
     },
     {
       "id": "4b-pay-via-withdrawtransfermark-scout-withdrew-1000-mist-ana",
-      "name": "**4b. Pay via withdraw+transfer+mark** \u2014 Scout withdrew 1000 MIST \u2192 analyst address, path marked. Note: Move `pay()` needs both `&mut Unit` (co-sign required) \u2014 use withdraw+transfer+mark or escrow pattern instead",
+      "name": "**4b. Pay via withdraw+transfer+mark** — Scout withdrew 1000 MIST → analyst address, path marked. Note: Move `pay()` needs both `&mut Unit` (co-sign required) — use withdraw+transfer+mark or escrow pattern instead",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4181,7 +4181,7 @@
     },
     {
       "id": "4c-verify-balances-scout-99000-100000-1000-1000-mist-arrived",
-      "name": "**4c. Verify balances** \u2014 Scout: 99000 (100000 - 1000). 1000 MIST arrived at analyst address",
+      "name": "**4c. Verify balances** — Scout: 99000 (100000 - 1000). 1000 MIST arrived at analyst address",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4202,7 +4202,7 @@
     },
     {
       "id": "4d-protocol-fee-design-withdrawmark-bypasses-fee-by-design-e",
-      "name": "**4d. Protocol fee design** \u2014 withdraw+mark bypasses fee (by design). Escrow flow (Phase 3) collects fees atomically via `release_escrow()`",
+      "name": "**4d. Protocol fee design** — withdraw+mark bypasses fee (by design). Escrow flow (Phase 3) collects fees atomically via `release_escrow()`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4223,7 +4223,7 @@
     },
     {
       "id": "4e-verify-path-strength-path-strength-2-hits-2-signal-mark-p",
-      "name": "**4e. Verify path strength** \u2014 Path strength: 2, hits: 2 (signal mark + payment mark)",
+      "name": "**4e. Verify path strength** — Path strength: 2, hits: 2 (signal mark + payment mark)",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4244,7 +4244,7 @@
     },
     {
       "id": "5a-bridge-module-srcenginebridgets-mirror-absorb-resolve",
-      "name": "**5a. Bridge module** \u2014 `src/engine/bridge.ts`: mirror + absorb + resolve",
+      "name": "**5a. Bridge module** — `src/engine/bridge.ts`: mirror + absorb + resolve",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4265,7 +4265,7 @@
     },
     {
       "id": "5b-schema-updated-sui-unit-id-on-unit-sui-path-id-on-path",
-      "name": "**5b. Schema updated** \u2014 `sui-unit-id` on unit, `sui-path-id` on path",
+      "name": "**5b. Schema updated** — `sui-unit-id` on unit, `sui-path-id` on path",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4286,7 +4286,7 @@
     },
     {
       "id": "5c-persistts-wired-markwarnactor-auto-mirror-to-sui",
-      "name": "**5c. persist.ts wired** \u2014 mark/warn/actor auto-mirror to Sui",
+      "name": "**5c. persist.ts wired** — mark/warn/actor auto-mirror to Sui",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4307,7 +4307,7 @@
     },
     {
       "id": "5d-absorb-endpoint-post-apiabsorb-cursor-polls-sui-events-wr",
-      "name": "**5d. Absorb endpoint** \u2014 `POST /api/absorb { cursor? }` \u2192 polls Sui events \u2192 writes to TypeDB",
+      "name": "**5d. Absorb endpoint** — `POST /api/absorb { cursor? }` → polls Sui events → writes to TypeDB",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4328,7 +4328,7 @@
     },
     {
       "id": "5e-verify-events-queryable-5-events-2-unitcreated-1-signalse",
-      "name": "**5e. Verify events queryable** \u2014 5 events (2 UnitCreated, 1 SignalSent, 2 Marked) returned by `queryEvents()`",
+      "name": "**5e. Verify events queryable** — 5 events (2 UnitCreated, 1 SignalSent, 2 Marked) returned by `queryEvents()`",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -4349,7 +4349,7 @@
     },
     {
       "id": "21-keypair-derivation-deriveagentkeypairuid-seed-in-srclibsu",
-      "name": "**2.1 Keypair derivation** \u2014 `deriveAgentKeypair(uid, seed)` in `src/lib/sui.ts` + tests",
+      "name": "**2.1 Keypair derivation** — `deriveAgentKeypair(uid, seed)` in `src/lib/sui.ts` + tests",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -4370,7 +4370,7 @@
     },
     {
       "id": "22-wire-to-apiagentssync-returns-wallet-0x-on-agent-creation",
-      "name": "**2.2 Wire to /api/agents/sync** \u2014 returns `{ wallet: 0x... }` on agent creation",
+      "name": "**2.2 Wire to /api/agents/sync** — returns `{ wallet: 0x... }` on agent creation",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -4391,7 +4391,7 @@
     },
     {
       "id": "23-wallet-adapter-ui-mystendapp-kit-in-browser-for-manual-si",
-      "name": "**2.3 Wallet Adapter UI** \u2014 `@mysten/dapp-kit` in browser for manual signing",
+      "name": "**2.3 Wallet Adapter UI** — `@mysten/dapp-kit` in browser for manual signing",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -4412,7 +4412,7 @@
     },
     {
       "id": "24-read-only-discovery-follow-select-read-sui-path-weights-w",
-      "name": "**2.4 Read-only Discovery** \u2014 follow() + select() read Sui Path weights, weight pheromone by on-chain strength",
+      "name": "**2.4 Read-only Discovery** — follow() + select() read Sui Path weights, weight pheromone by on-chain strength",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -4433,7 +4433,7 @@
     },
     {
       "id": "25-transaction-history-apiagentidtransactions-sui-explorer-l",
-      "name": "**2.5 Transaction history** \u2014 `/api/agent/{id}/transactions` \u2192 Sui Explorer links",
+      "name": "**2.5 Transaction history** — `/api/agent/{id}/transactions` → Sui Explorer links",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -4454,7 +4454,7 @@
     },
     {
       "id": "26-gas-sponsorship-protocol-pays-gas-for-new-agent-creation-",
-      "name": "**2.6 Gas sponsorship** \u2014 Protocol pays gas for new agent creation (Phase 3 escrow setup)",
+      "name": "**2.6 Gas sponsorship** — Protocol pays gas for new agent creation (Phase 3 escrow setup)",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -4643,7 +4643,7 @@
     },
     {
       "id": "x402-http-flow-402-fund-execute-release",
-      "name": "x402 HTTP flow (402 \u2192 fund \u2192 execute \u2192 release)",
+      "name": "x402 HTTP flow (402 → fund → execute → release)",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -4979,7 +4979,7 @@
     },
     {
       "id": "critical-typedb-credentials-in-build-output-moved-to-runtime",
-      "name": "**Critical:** TypeDB credentials in build output \u2192 moved to runtime/secrets",
+      "name": "**Critical:** TypeDB credentials in build output → moved to runtime/secrets",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -5000,7 +5000,7 @@
     },
     {
       "id": "high-tql-injection-input-validation-escaping-added",
-      "name": "**High:** TQL injection \u2192 input validation + escaping added",
+      "name": "**High:** TQL injection → input validation + escaping added",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -5063,7 +5063,7 @@
     },
     {
       "id": "cycle-1-wire-into-one-register-capable-discover",
-      "name": "**Cycle 1: WIRE** \u2014 Into ONE (Register, Capable, Discover)",
+      "name": "**Cycle 1: WIRE** — Into ONE (Register, Capable, Discover)",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5084,7 +5084,7 @@
     },
     {
       "id": "cycle-2-prove-through-one-signal-drop-alarm-fade",
-      "name": "**Cycle 2: PROVE** \u2014 Through ONE (Signal, Drop, Alarm, Fade)",
+      "name": "**Cycle 2: PROVE** — Through ONE (Signal, Drop, Alarm, Fade)",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5105,7 +5105,7 @@
     },
     {
       "id": "cycle-3-grow-out-of-one-highway-crystallize-federate-dissolv",
-      "name": "**Cycle 3: GROW** \u2014 Out of ONE (Highway, Crystallize, Federate, Dissolve)",
+      "name": "**Cycle 3: GROW** — Out of ONE (Highway, Crystallize, Federate, Dissolve)",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5126,7 +5126,7 @@
     },
     {
       "id": "wave-1-reconnaissance-10-haiku-parallel",
-      "name": "Wave 1 \u2014 Reconnaissance (10 Haiku, parallel)",
+      "name": "Wave 1 — Reconnaissance (10 Haiku, parallel)",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -5147,7 +5147,7 @@
     },
     {
       "id": "wave-2-synthesis-opus-main-context",
-      "name": "Wave 2 \u2014 Synthesis (Opus, main context)",
+      "name": "Wave 2 — Synthesis (Opus, main context)",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -5168,7 +5168,7 @@
     },
     {
       "id": "wave-3-edits-sonnet-parallel",
-      "name": "Wave 3 \u2014 Edits (Sonnet, parallel)",
+      "name": "Wave 3 — Edits (Sonnet, parallel)",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -5189,7 +5189,7 @@
     },
     {
       "id": "wave-4-verify-sonnet-88-checks-pass-after-micro-fix-threefiv",
-      "name": "Wave 4 \u2014 Verify (Sonnet) \u2014 8/8 checks pass after micro-fix (Three\u2192Five address modes)",
+      "name": "Wave 4 — Verify (Sonnet) — 8/8 checks pass after micro-fix (Three→Five address modes)",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -5231,7 +5231,7 @@
     },
     {
       "id": "cycle-1-wire-context-into-tasks",
-      "name": "**Cycle 1: WIRE** \u2014 Context into tasks",
+      "name": "**Cycle 1: WIRE** — Context into tasks",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5252,7 +5252,7 @@
     },
     {
       "id": "cycle-2-prove-waves-as-core-loops",
-      "name": "**Cycle 2: PROVE** \u2014 Waves as core loops",
+      "name": "**Cycle 2: PROVE** — Waves as core loops",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5273,7 +5273,7 @@
     },
     {
       "id": "cycle-3-grow-self-learning",
-      "name": "**Cycle 3: GROW** \u2014 Self-learning",
+      "name": "**Cycle 3: GROW** — Self-learning",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5294,7 +5294,7 @@
     },
     {
       "id": "cycle-1-wire-scope",
-      "name": "**Cycle 1: WIRE** \u2014 {scope}",
+      "name": "**Cycle 1: WIRE** — {scope}",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5315,7 +5315,7 @@
     },
     {
       "id": "cycle-2-prove-scope",
-      "name": "**Cycle 2: PROVE** \u2014 {scope}",
+      "name": "**Cycle 2: PROVE** — {scope}",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5336,7 +5336,7 @@
     },
     {
       "id": "cycle-3-grow-scope",
-      "name": "**Cycle 3: GROW** \u2014 {scope}",
+      "name": "**Cycle 3: GROW** — {scope}",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5462,7 +5462,7 @@
     },
     {
       "id": "cycle-1-wire-green-baseline",
-      "name": "**Cycle 1: WIRE** \u2014 Green baseline",
+      "name": "**Cycle 1: WIRE** — Green baseline",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -5483,7 +5483,7 @@
     },
     {
       "id": "cycle-2-prove-test-the-substrate",
-      "name": "**Cycle 2: PROVE** \u2014 Test the substrate",
+      "name": "**Cycle 2: PROVE** — Test the substrate",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -5504,7 +5504,7 @@
     },
     {
       "id": "cycle-3-grow-test-the-lifecycle",
-      "name": "**Cycle 3: GROW** \u2014 Test the lifecycle",
+      "name": "**Cycle 3: GROW** — Test the lifecycle",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -5525,7 +5525,7 @@
     },
     {
       "id": "cycle-1-wire-context-resolution-enriched-signals",
-      "name": "**Cycle 1: WIRE** \u2014 Context resolution + enriched signals",
+      "name": "**Cycle 1: WIRE** — Context resolution + enriched signals",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5546,7 +5546,7 @@
     },
     {
       "id": "cycle-2-prove-wave-tracking-model-routing",
-      "name": "**Cycle 2: PROVE** \u2014 Wave tracking + model routing",
+      "name": "**Cycle 2: PROVE** — Wave tracking + model routing",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -5567,7 +5567,7 @@
     },
     {
       "id": "cycle-3-grow-learning-from-wave-transitions",
-      "name": "**Cycle 3: GROW** \u2014 Learning from wave transitions",
+      "name": "**Cycle 3: GROW** — Learning from wave transitions",
       "done": false,
       "value": "medium",
       "effort": "medium",

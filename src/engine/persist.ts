@@ -50,6 +50,7 @@ export interface PersistentWorld extends World {
   confidence: (type: string) => number
   know: () => Promise<Insight[]>
   recall: (match?: string) => Promise<Insight[]>
+  taskBlockers: (taskId: string) => Promise<{ id: string; name: string }[]>
   span: () => Promise<number>
   context: (keys: (DocKey | string)[]) => string
   capable: (unitId: string, skillId: string, price?: number) => void
@@ -307,6 +308,18 @@ export const world = (): PersistentWorld => {
     return merged
   }
 
+  // taskBlockers: query what tasks are blocked by the given task
+  const taskBlockers = async (taskId: string): Promise<{ id: string; name: string }[]> => {
+    const query = `
+      match $t1 isa task, has task-id "${taskId}";
+      (blocker: $t1, blocked: $t2) isa blocks;
+      $t2 has task-id $id, has name $name;
+      select $id, $name;
+    `
+    const rows = await readParsed(query).catch(() => [] as Record<string, unknown>[])
+    return rows.map((r) => ({ id: r.id as string, name: r.name as string }))
+  }
+
   // span: ingest docs to TypeDB as confirmed hypotheses
   const span = async (): Promise<number> => ingestDocs()
 
@@ -533,6 +546,7 @@ export const world = (): PersistentWorld => {
     confidence,
     know,
     recall,
+    taskBlockers,
     span,
     context,
     capable,

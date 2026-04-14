@@ -294,7 +294,7 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   exit: contextForSkill loads DSL.md + dictionary.md as baseline for all tasks
   tags: engine, build, P0
 
-- [ ] Create inferDocsFromTags in context.ts
+- [x] Create inferDocsFromTags in context.ts
   id: infer-docs-from-tags
   value: critical
   effort: low
@@ -303,8 +303,9 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   blocks: wave-context-envelope
   exit: engine→[dsl,routing], typedb→[dsl], ui→[dictionary], commerce→[sdk], etc.
   tags: engine, build, P0
+  done: src/engine/context.ts:128 - maps tags to docs, always includes DSL+dictionary (2026-04-14)
 
-- [ ] Build resolveContext function
+- [x] Build resolveContext function
   id: resolve-context
   value: critical
   effort: medium
@@ -313,6 +314,7 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   blocks: enrich-task-signal
   exit: resolveContext(task, net) returns {base, domain, learned, highways, model, exit}
   tags: engine, build, P0
+  done: src/engine/context.ts:160 - returns {docs, hypotheses, highways, exit, unblocks} (2026-04-14)
 
 - [ ] Enrich task signal in loop.ts with full envelope
   id: enrich-task-signal

@@ -199,6 +199,7 @@
   },
   "active": "fd99b50a9796efdb",
   "lastOpenFiles": [
+    "src/engine/wave-runner.ts",
     "docs/TODO-collusion.md",
     "docs/TODO.md",
     "docs/PLAN-collusion-mitigation.md",
@@ -224,7 +225,6 @@
     "docs/speed-verified.md",
     "docs/SECURE-DEPLOY.md",
     "docs/speed-hyperliquid.md",
-    "docs/routing.md",
     "src/engine/task-sync.test.ts",
     "src/pages/api/agents/register.ts",
     "src/engine/loop.test.ts",

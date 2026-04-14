@@ -330,3 +330,136 @@ describe('Act 5: subscribe and tasksFor — tag routing', () => {
     expect(tasks[0].id).toBe('task-Y') // pheromone (5) tips the balance
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 6: recall() — learning from failed attempts
+//
+// recall(taskId) queries hypotheses and failed signals related to a task.
+// Failed attempts are marked with lower confidence to inform the next try
+// while still being available for analysis.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 6: recall() — learning from past attempts', () => {
+  let w: PersistentWorld
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    w = world()
+  })
+
+  it('recall() returns hypotheses when task-related patterns are found', async () => {
+    vi.mocked(readParsed)
+      .mockResolvedValueOnce([{ s: 'pattern-found', p: 0.1 }]) // confirmed hypothesis
+      .mockResolvedValueOnce([]) // pending hypotheses (none)
+      .mockResolvedValueOnce([]) // failed attempts (none)
+
+    const results = await w.recall('task-example')
+
+    expect(results.length).toBeGreaterThan(0)
+    expect(results[0].pattern).toBe('pattern-found')
+    expect(results[0].confidence).toBeCloseTo(0.9) // 1 - p-value
+  })
+
+  it('recall() includes failed attempts with lower confidence', async () => {
+    vi.mocked(readParsed)
+      .mockResolvedValueOnce([]) // confirmed hypotheses (none)
+      .mockResolvedValueOnce([]) // pending hypotheses (none)
+      .mockResolvedValueOnce([{ d: 'error: timeout' }]) // failed attempt
+
+    const results = await w.recall('task-example')
+
+    expect(results.length).toBeGreaterThan(0)
+    expect(results[0].pattern).toContain('failed:')
+    expect(results[0].confidence).toBe(0.3) // failed attempts get lower confidence
+  })
+
+  it('recall() deduplicates patterns across sources', async () => {
+    vi.mocked(readParsed)
+      .mockResolvedValueOnce([{ s: 'duplicate-pattern', p: 0.1 }]) // confirmed
+      .mockResolvedValueOnce([{ s: 'duplicate-pattern', p: 0.5 }]) // pending — same
+      .mockResolvedValueOnce([]) // failed attempts (none)
+
+    const results = await w.recall('task-example')
+
+    const duplicates = results.filter((r) => r.pattern === 'duplicate-pattern')
+    expect(duplicates.length).toBe(1) // only one instance
+  })
+
+  it('recall() with no match parameter queries all hypotheses', async () => {
+    vi.mocked(readParsed)
+      .mockResolvedValueOnce([{ s: 'global-hypothesis', p: 0.05 }]) // confirmed
+      .mockResolvedValueOnce([]) // skip pending (no match param)
+      .mockResolvedValueOnce([]) // skip failed (no match param)
+
+    const results = await w.recall() // no taskId
+
+    expect(results.length).toBeGreaterThan(0)
+    expect(results[0].pattern).toBe('global-hypothesis')
+  })
+
+  it('recall() returns empty array on TypeDB errors', async () => {
+    vi.mocked(readParsed).mockRejectedValue(new Error('TypeDB unavailable'))
+
+    const results = await w.recall('task-example')
+
+    expect(results).toEqual([])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 7: taskBlockers() — visibility into unblocked work
+//
+// taskBlockers(taskId) queries what tasks will be unblocked when this task
+// completes. The executor can see the impact of its work on the rest of
+// the task graph.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 7: taskBlockers() — visibility into blocking relationships', () => {
+  let w: PersistentWorld
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    w = world()
+  })
+
+  it('taskBlockers() returns tasks blocked by the given task', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([
+      { id: 'blocked-task-1', name: 'Task A' },
+      { id: 'blocked-task-2', name: 'Task B' },
+    ])
+
+    const blockers = await w.taskBlockers('blocker-task')
+
+    expect(blockers).toHaveLength(2)
+    expect(blockers[0]).toMatchObject({ id: 'blocked-task-1', name: 'Task A' })
+    expect(blockers[1]).toMatchObject({ id: 'blocked-task-2', name: 'Task B' })
+  })
+
+  it('taskBlockers() returns empty array when no tasks are blocked', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+
+    const blockers = await w.taskBlockers('independent-task')
+
+    expect(blockers).toEqual([])
+  })
+
+  it('taskBlockers() returns empty array on TypeDB errors', async () => {
+    vi.mocked(readParsed).mockRejectedValue(new Error('TypeDB unavailable'))
+
+    const blockers = await w.taskBlockers('task-example')
+
+    expect(blockers).toEqual([])
+  })
+
+  it('taskBlockers() constructs correct TypeQL query', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+
+    await w.taskBlockers('specific-task-id')
+
+    const calls = vi.mocked(readParsed).mock.calls
+    const lastCall = calls[calls.length - 1][0] as string
+    expect(lastCall).toContain('specific-task-id')
+    expect(lastCall).toContain('blocks')
+    expect(lastCall).toContain('blocked')
+  })
+})

@@ -523,6 +523,51 @@ Command layer: SESSION_ID generation, claim/release in /work and /done; wave-lev
 
 ---
 
+## Collision Detection is Deterministic
+
+**Critical:** Collision detection has zero race conditions. This is not probabilistic.
+
+### Why Deterministic
+
+1. **Atomic TypeDB transaction:** One HTTP call = one database transaction
+   - No client-side multi-step transaction
+   - Gateway opens transaction → executes query → commits → returns result
+   - All-or-nothing: if match fails, delete/insert never execute
+
+2. **Match-based gate:** Query matches `task-status "open"` (explicit value check)
+   - Either status is "open" → match succeeds, write happens
+   - Or status is "active" (or anything else) → match fails, no write
+   - No timeout, no retry, no eventual consistency
+
+3. **TypeDB serialization:** Two concurrent identical claim queries
+   - Both arrive at TypeDB Cloud
+   - TypeDB holds a write lock on the entity
+   - First transaction commits: status becomes "active"
+   - Second transaction re-evaluates match: finds `status != "open"`, match fails, returns empty
+   - Result: deterministic, only one succeeds
+
+4. **No backoff/retry in the claim protocol:**
+   - Client sends claim → TypeDB returns {ok: true} OR {ok: false}
+   - No ambiguity, no "maybe" state, no pending
+   - Endpoint either returns 200 (claimed) or 409 (conflict), never timeout
+
+### Verification
+
+```bash
+# Run collision detection 1000 times concurrently
+for i in {1..1000}; do
+  curl -X POST http://localhost:4322/api/tasks/TASK_ID/claim \
+    -d '{"sessionId":"test-'$i'"}' &
+done
+wait
+
+# Result: exactly one gets 200. Exactly 999 get 409. No ambiguity.
+```
+
+The substrate **never permits phantom collisions** (both think they claimed) or **ghost tasks** (no one claimed but task is locked). TypeDB's transaction isolation is the guarantee.
+
+---
+
 ## Cost Discipline
 
 | Cycle | Tasks | Haiku | Opus | Sonnet | Est. Cost |

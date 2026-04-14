@@ -177,7 +177,7 @@ cycle's patterns are verified and promoted to durable learning.
   tags: engine, lifecycle, P0
   done: suggest_route function in world.tql, /api/discover endpoint exists
 
-- [ ] API endpoint: POST /api/agents/register
+- [x] API endpoint: POST /api/agents/register
   id: api-register
   value: high
   effort: low
@@ -186,6 +186,7 @@ cycle's patterns are verified and promoted to durable learning.
   blocks: api-discover
   exit: Endpoint accepts { uid, kind, capabilities[] }, returns { uid, status: "registered" }. Validates input. Creates unit + capabilities.
   tags: api, lifecycle, P1
+  done: src/pages/api/agents/register.ts implemented, tested, working (2026-04-14)
 
 - [ ] API endpoint: GET /api/agents/discover
   id: api-discover

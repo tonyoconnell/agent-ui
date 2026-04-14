@@ -178,6 +178,9 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       // Load hypotheses about this task path (what the graph has learned)
       const learned = await net.recall(taskId).catch(() => [])
 
+      // Load blocking context: what tasks will be unblocked when this completes
+      const blockers = await net.taskBlockers(taskId).catch(() => [])
+
       // Route as signal: enqueue for the builder unit WITH full context envelope
       const taskSignal = {
         receiver: `builder:${taskId}`,
@@ -192,6 +195,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
           contextDocs, // doc keys for reference
           context: contextText, // full merged doc content (always includes DSL + dictionary)
           learned: learned.slice(0, 5),
+          blockers, // tasks that will be unblocked when this completes
         },
       }
       const edge = `loop→builder:${taskId}`
