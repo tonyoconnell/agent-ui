@@ -124,17 +124,32 @@ function die(msg: string, extra?: string): never {
 }
 
 function loadEnv(): Record<string, string> {
-  if (!existsSync(ENV_PATH)) die('.env file not found')
-  const content = readFileSync(ENV_PATH, 'utf-8')
   const env: Record<string, string> = {}
-  for (const line of content.split('\n')) {
-    if (!line || line.startsWith('#')) continue
-    const eq = line.indexOf('=')
-    if (eq === -1) continue
-    const key = line.slice(0, eq).trim()
-    const value = line.slice(eq + 1).trim()
-    if (key && /^[A-Z_][A-Z0-9_]*$/i.test(key)) env[key] = value
+
+  // Local dev: load from .env file if present.
+  if (existsSync(ENV_PATH)) {
+    const content = readFileSync(ENV_PATH, 'utf-8')
+    for (const line of content.split('\n')) {
+      if (!line || line.startsWith('#')) continue
+      const eq = line.indexOf('=')
+      if (eq === -1) continue
+      const key = line.slice(0, eq).trim()
+      const value = line.slice(eq + 1).trim()
+      if (key && /^[A-Z_][A-Z0-9_]*$/i.test(key)) env[key] = value
+    }
   }
+
+  // CI: credentials arrive as process env vars. Fill in anything the .env
+  // didn't already provide, so one code path handles both surfaces.
+  for (const key of ['CLOUDFLARE_GLOBAL_API_KEY', 'CLOUDFLARE_EMAIL', 'CLOUDFLARE_ACCOUNT_ID']) {
+    if (!env[key] && process.env[key]) env[key] = process.env[key] as string
+    // Accept CLOUDFLARE_API_KEY as an alias for CLOUDFLARE_GLOBAL_API_KEY
+    // since CI secrets may be named either way.
+    if (key === 'CLOUDFLARE_GLOBAL_API_KEY' && !env[key] && process.env.CLOUDFLARE_API_KEY) {
+      env[key] = process.env.CLOUDFLARE_API_KEY
+    }
+  }
+
   return env
 }
 
