@@ -1,6 +1,9 @@
 ---
+import Layout from '@/layouts/Layout.astro'
+import { WorldPageWrapper } from '@/components/WorldPageWrapper'
+
 // Check if user is authenticated (from session or headers)
-const _isAuthenticated = !!Astro.locals.session?.user
+const isAuthenticated = !!Astro.locals.session?.user
 ---
 
 <Layout title="ONE World">

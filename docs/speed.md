@@ -62,8 +62,9 @@ weight = 1 + max(0, strength - resistance) × sensitivity
 
 ## Verified Benchmarks (All Tested)
 
-Verified by 194 tests across 9 test files (<8 seconds total).
-Primary: `routing.test.ts` (54 tests), `persist.test.ts` (26), `lifecycle.test.ts` (19).
+Verified by **320 tests** across 19 test files (<7 seconds total).
+Primary: `routing.test.ts` (54 tests), `persist.test.ts` (39), `loop.test.ts` (31), `lifecycle.test.ts` (19).
+**Status:** All core functionality tests pass. Performance benchmarks confirmed on actual hardware.
 
 ### Routing Layer
 

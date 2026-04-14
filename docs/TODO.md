@@ -2,10 +2,10 @@
 
 > ONE Substrate — self-learning task system.
 > Tasks are signals. Waves are loops. The template is a unit.
-> 189 open, 87 done. Priority + pheromone adjusts at runtime.
+> 181 open, 94 done. Priority + pheromone adjusts at runtime.
 >
 > **Sync:** `POST /api/tasks/sync` or `/sync` — writes to KV (10ms), then TypeDB (100ms)
-> **Generated:** 2026-04-14T00:15:10
+> **Generated:** 2026-04-14T00:55:12
 
 ---
 
@@ -13,7 +13,7 @@
 
 | TODO | Open | Done | Status |
 |------|-----:|-----:|--------|
-| [TODO-collusion](TODO-collusion.md) | 38 | 9 | PROVE |
+| [TODO-collusion](TODO-collusion.md) | 38 | 16 | PROVE |
 | [TODO-SUI](TODO-SUI.md) | 30 | 28 | PROVE |
 | [TODO-task-management](TODO-task-management.md) | 24 | 2 | PROVE |
 | [TODO-rename](TODO-rename.md) | 23 | 0 | WIRE |
@@ -21,7 +21,6 @@
 | [TODO-testing](TODO-testing.md) | 16 | 18 | PROVE |
 | [TODO-typedb](TODO-typedb.md) | 16 | 3 | PROVE |
 | [TODO-ONE-strategy](TODO-ONE-strategy.md) | 11 | 3 | PROVE |
-| [TODO-template](TODO-template.md) | 8 | 0 | WIRE |
 | [TODO-autonomous-orgs](TODO-autonomous-orgs.md) | 7 | 3 | PROVE |
 | [TODO-deploy](TODO-deploy.md) | 0 | 4 | DONE |
 | [TODO-signal](TODO-signal.md) | 0 | 5 | DONE |
@@ -123,6 +122,12 @@
 - [ ] ****4f. W0 baseline (before C1)**** — critical=30 + C1=40 + haiku=5 + blocks(1)=5 [haiku] `gate, baseline, P0` ← [collusion](TODO-collusion.md)
   exit: `bun run verify` passes; all baseline tests green
   blocks: c1-schema-task
+- [ ] **Phase 0: Execute file renames** — critical=30 + C1=40 + operator (human)=5 + blocks(1)=5 [haiku] `migration, sequential, P0` ← [rename](TODO-rename.md)
+  exit: All Phase 0 renames complete (git mv), commit, no compile errors
+  blocks: phase-1-start
+- [ ] **Phase 1: Migrate engine files (5 files × parallel)** — critical=30 + C1=40 + sonnet=5 + blocks(1)=5 [opus] `migration, engine, P0` ← [rename](TODO-rename.md)
+  exit: All 5 engine files converted. Import paths fixed. tsc passes.
+  blocks: phase-2-start
 - [ ] **Cycle 1 W1: Recon (parallel Haiku × 4)** — critical=30 + C1=40 + haiku=5 + blocks(1)=5 [haiku] `docs, wire, recon, P0` ← [rename](TODO-rename.md)
   exit: 4 reports in. Each reports dead names with line numbers, metaphor flags.
   blocks: cycle-1-w2
@@ -221,6 +226,9 @@
   exit: EFFORT_MODEL mapping from task-parse.ts used as fallback when no wave set
 - [ ] **Docs: Cross-link dictionary.md + one-ontology.md to task execution** — medium=20 + C2=35 + dev=20 [haiku] `docs, integration, P1, knowledge` ← [autonomous-orgs](TODO-autonomous-orgs.md)
   exit: docs/dictionary.md and docs/one-ontology.md link to task system
+- [ ] **Phase 2: Migrate schema files (8 files × parallel)** — critical=30 + C2=35 + sonnet=5 + blocks(1)=5 [opus] `migration, schema, P0` ← [rename](TODO-rename.md)
+  exit: All 8 schema files converted. world.tql compiles. No broken TypeQL.
+  blocks: phase-3-start
 - [ ] **Test doc-scan.ts: item extraction, verification, gaps→signals** — medium=20 + C2=35 + dev=20 [sonnet] `engine, test, P2` ← [testing](TODO-testing.md)
   exit: doc-scan.ts test file. Covers: extractItems (checkboxes, gaps), inferTags, inferPriority, verify (keyword match), gapsToSignals
 - [ ] **Test agent-md.ts: parse, toTypeDB, syncAgent** — medium=20 + C2=35 + dev=20 [sonnet] `engine, test, P2` ← [testing](TODO-testing.md)
@@ -377,6 +385,9 @@
   blocks: c3-grow-baseline
 - [ ] ****12g. W4 verify (after C3)**** — critical=30 + C3=30 + sonnet=5 [haiku] `gate, verify, P0` ← [collusion](TODO-collusion.md)
   exit: All C3 tests pass; parallel session test succeeds; rubric ≥ 0.65 all dims
+- [ ] **Phase 3: Migrate types/lib/skins (5 files × parallel)** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [opus] `migration, types, P1` ← [rename](TODO-rename.md)
+  exit: All 5 files converted. tsc --noEmit clean.
+  blocks: phase-4-start
 - [ ] ****12a. Modify .claude/commands/wave.md (add wave claim)**** — medium=20 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `command, wave-lock, P1` ← [collusion](TODO-collusion.md)
   exit: Before wave execution, POST /api/waves/{docname}/claim; abort if 409
   blocks: c3-wave-test
@@ -409,6 +420,9 @@
 - [ ] **Wire creator domains: mint branded agents on your domain** — high=25 + C4=25 + investor=15 + blocks(1)=5 [sonnet] `integration, branding, P1, expansion` ← [ONE-strategy](TODO-ONE-strategy.md)
   exit: creator.domain → agents live, branded, routing under your control
   blocks: domains-live
+- [ ] **Phase 4: Migrate API endpoints (11 files × parallel)** — high=25 + C4=25 + sonnet=5 + blocks(1)=5 [opus] `migration, api, P1` ← [rename](TODO-rename.md)
+  exit: All 11 files converted. API routes typed. tsc clean.
+  blocks: phase-5-start
 - [ ] ****2.1 Keypair derivation** — `deriveAgentKeypair(uid, seed)` in `src/lib/sui.ts` + tests** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] ****2.2 Wire to /api/agents/sync** — returns `{ wallet: 0x... }` on agent creation** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] ****2.3 Wallet Adapter UI** — `@mysten/dapp-kit` in browser for manual signing** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
@@ -445,14 +459,6 @@
 - [ ] ****Cycle 1: WIRE** — Context into tasks** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
 - [ ] ****Cycle 2: PROVE** — Waves as core loops** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
 - [ ] ****Cycle 3: GROW** — Self-learning** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
-- [ ] **All baseline tests still pass (no regressions)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
-- [ ] **New tests cover new functionality** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
-- [ ] **`biome check .` clean on touched files** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
-- [ ] **`tsc --noEmit` passes** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
-- [ ] **W4 rubric score >= 0.65 on all dimensions** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
-- [ ] ****Cycle 1: WIRE** — {scope}** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
-- [ ] ****Cycle 2: PROVE** — {scope}** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
-- [ ] ****Cycle 3: GROW** — {scope}** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [template](TODO-template.md)
 - [ ] ****Cycle 1: WIRE** — Context resolution + enriched signals** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [typedb](TODO-typedb.md)
 - [ ] ****Cycle 2: PROVE** — Wave tracking + model routing** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [typedb](TODO-typedb.md)
 - [ ] ****Cycle 3: GROW** — Learning from wave transitions** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [typedb](TODO-typedb.md)
@@ -467,6 +473,9 @@
 - [ ] **Create kids learning path: learn pheromone by playing** — medium=20 + C5=20 + kid=10 + blocks(1)=5 [sonnet] `ui, education, gamification, P2, learning` ← [ONE-strategy](TODO-ONE-strategy.md)
   exit: Kids see ant colony, set mood (explore/exploit), watch trails form
   blocks: education-live
+- [ ] **Phase 5: Migrate components (7 files × parallel)** — high=25 + C5=20 + sonnet=5 + blocks(1)=5 [opus] `migration, components, P1` ← [rename](TODO-rename.md)
+  exit: All 7 component files converted. React types clean.
+  blocks: phase-6-start
 
 ---
 
@@ -478,6 +487,26 @@
 - [ ] **Build multi-chain bridge: Sui, Ethereum, Solana native routing** — medium=20 + C6=15 + investor=15 + blocks(1)=5 [opus] `integration, blockchain, P2, scale` ← [ONE-strategy](TODO-ONE-strategy.md)
   exit: Routes work across chains. Payments settle on fastest chain. User chooses.
   blocks: multi-chain-live
+- [ ] **Phase 6: Migrate Claude config (9 files × parallel)** — high=25 + C6=15 + sonnet=5 + blocks(1)=5 [sonnet] `migration, config, P1` ← [rename](TODO-rename.md)
+  exit: All 9 config files converted. CLAUDE.md, rules, commands all updated.
+  blocks: phase-7-start
+
+---
+
+## C7: Scale
+
+- [ ] **Phase 7: Migrate docs (59 files × parallel Haiku)** — high=25 + C7=10 + haiku=5 + blocks(2)=10 [opus] `migration, docs, P1` ← [rename](TODO-rename.md)
+  exit: All 59 doc files converted. No dead names in prose (except metaphor tables).
+  blocks: phase-8-start, cycle-1-wire-start
+- [ ] **Migration complete verification** — critical=30 + C7=10 + operator=5 + blocks(1)=5 [haiku] `migration, gate, P0` ← [rename](TODO-rename.md)
+  exit: `bun run build` succeeds. Grep verification clean (no old vocab in engine/schema/types/api/components). All tests green.
+  blocks: cycle-1-wire-start
+- [ ] **Phase 8: Migrate packages/scripts (12 files × parallel)** — medium=20 + C7=10 + sonnet=5 + blocks(1)=5 [opus] `migration, packages, P2` ← [rename](TODO-rename.md)
+  exit: All 12 files converted. Build succeeds.
+  blocks: phase-9-start
+- [ ] **Phase 9: Migrate archive (4 files × parallel, optional)** — low=20 + C7=10 + sonnet=5 + blocks(1)=5 [sonnet] `migration, archive, P3` ← [rename](TODO-rename.md)
+  exit: Archive files converted (or skipped if not deploying)
+  blocks: cycle-1-wire-start
 
 ---
 
@@ -517,15 +546,22 @@
 - [x] **Schema: Add task, task-dependency, task-execution entities to world.tql** `typedb, schema, P0, foundation` ← [autonomous-orgs](TODO-autonomous-orgs.md)
 - [x] **Functions: Write 6 task selection functions (priority, critical-path, bottleneck, etc.)** `typedb, routing, P0, foundation` ← [autonomous-orgs](TODO-autonomous-orgs.md)
 - [x] **Agents: Create 8 marketing agents (markdown or HTTP)** `agent, marketing, P0, deployment` ← [autonomous-orgs](TODO-autonomous-orgs.md)
-- [x] ****W0: Baseline** — `bun run verify` passes before starting** `` ← [collusion](TODO-collusion.md)
-- [x] ****W1: Recon** (Haiku) — PLAN-collusion-mitigation analyzed** `` ← [collusion](TODO-collusion.md)
-- [x] ****W2: Decide** (Opus) — 3 ambiguities resolved; diff specs ready for W3** `` ← [collusion](TODO-collusion.md)
-- [x] ****W3: Edit** (Sonnet) — All 16 diffs applied; W3.5 type fixes applied** `` ← [collusion](TODO-collusion.md)
-- [x] ****W4: Verify** (Sonnet) — Schema ✓, endpoints ✓, integration ✓, commands ✓, rubric 0.89 ✓** `` ← [collusion](TODO-collusion.md)
-- [x] ****C1: Wire** — Schema + endpoints complete** `` ← [collusion](TODO-collusion.md)
-- [x] ****C2: Prove** — API integration complete** `` ← [collusion](TODO-collusion.md)
-- [x] ****C3: Grow** — Commands + wave-locking complete** `` ← [collusion](TODO-collusion.md)
-- [x] ****Cycle 1 COMPLETE** — All tests pass, rubric >= 0.65, cycle gate cleared** `` ← [collusion](TODO-collusion.md)
+- [x] **W0: Baseline — bun run verify passes (255 tests)** `` ← [collusion](TODO-collusion.md)
+- [x] **W1: Recon (Haiku) — PLAN-collusion-mitigation analyzed** `` ← [collusion](TODO-collusion.md)
+- [x] **W2: Decide (Opus) — 3 ambiguities resolved; 16 diff specs** `` ← [collusion](TODO-collusion.md)
+- [x] **W3: Edit (Sonnet) — All diffs applied + type fixes** `` ← [collusion](TODO-collusion.md)
+- [x] **W4: Verify (Sonnet) — Schema ✓, endpoints ✓, integration ✓, commands ✓, rubric 0.89 ✓** `` ← [collusion](TODO-collusion.md)
+- [x] **W0: Baseline (bun run verify passes)** `` ← [collusion](TODO-collusion.md)
+- [x] **W1: Recon (Haiku) — 4 integration test scenarios identified** `` ← [collusion](TODO-collusion.md)
+- [x] **W2: Decide (Opus) — 4 test specs created; rubric threshold confirmed** `` ← [collusion](TODO-collusion.md)
+- [x] **W3: Edit (Sonnet) — 27 integration tests written (filter-active, guard-sync, clear-owner, expire-tick)** `` ← [collusion](TODO-collusion.md)
+- [x] **W4: Verify (Sonnet) — All tests pass; consistency ✓; no regressions; rubric 0.89 ✓** `` ← [collusion](TODO-collusion.md)
+- [x] **W0: Baseline (bun run verify clean)** `` ← [collusion](TODO-collusion.md)
+- [x] **W1: Recon (Haiku) — 4 multi-session scenarios identified** `` ← [collusion](TODO-collusion.md)
+- [x] **W2: Decide (Opus) — 3 test specs for parallel work + wave-locking** `` ← [collusion](TODO-collusion.md)
+- [x] **W3: Edit (Sonnet) — 24 multi-session tests created (parallel-sessions 7, wave-lock 7, ownership 10)** `` ← [collusion](TODO-collusion.md)
+- [x] **W4: Verify (Sonnet) — All 51 integration tests passing; no regressions; rubric 0.89 ✓** `` ← [collusion](TODO-collusion.md)
+- [x] ****Cycle 3 COMPLETE** — Collision avoidance fully implemented and tested** `` ← [collusion](TODO-collusion.md)
 - [x] ****Critical:** TypeDB credentials in build output → moved to runtime/secrets** `` ← [deploy](TODO-deploy.md)
 - [x] ****High:** TQL injection → input validation + escaping added** `` ← [deploy](TODO-deploy.md)
 - [x] **Credentials removed from `dist/`** `` ← [deploy](TODO-deploy.md)

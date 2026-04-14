@@ -1,9 +1,9 @@
 {
-  "generated": "2026-04-14T00:15:10.259Z",
-  "total": 276,
-  "open": 189,
-  "done": 87,
-  "synced": 276,
+  "generated": "2026-04-14T00:55:12.606Z",
+  "total": 275,
+  "open": 181,
+  "done": 94,
+  "synced": 275,
   "blocks": 73,
   "errors": 0,
   "kvWritten": false,
@@ -94,7 +94,7 @@
     },
     {
       "id": "baseline-green",
-      "name": "Establish green baseline: npm run verify passes",
+      "name": "Establish green baseline: bun run verify passes",
       "done": true,
       "value": "critical",
       "effort": "low",
@@ -115,7 +115,7 @@
         "test-engine-core",
         "test-persist"
       ],
-      "exit": "npm run verify (biome + tsc + vitest) exits 0 with all 65+ tests passing",
+      "exit": "bun run verify (biome + tsc + vitest) exits 0 with all 65+ tests passing",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -640,7 +640,7 @@
       "blocks": [
         "baseline-green"
       ],
-      "exit": "one.test.ts imports from vitest, all its tests pass under npx vitest run",
+      "exit": "one.test.ts imports from vitest, all its tests pass under bun vitest run",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -1193,7 +1193,7 @@
     {
       "id": "api-discover",
       "name": "API endpoint: GET /api/agents/discover",
-      "done": true,
+      "done": false,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1243,7 +1243,7 @@
     {
       "id": "gate-capable-discover",
       "name": "Lifecycle gate: CAPABLE → DISCOVER requires has_capability",
-      "done": true,
+      "done": false,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1347,7 +1347,7 @@
     {
       "id": "recall-prior-attempts",
       "name": "Wire recall of prior attempts into context",
-      "done": true,
+      "done": false,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1372,7 +1372,7 @@
     {
       "id": "blocking-context",
       "name": "Wire blocking context — executor sees what it unblocks",
-      "done": true,
+      "done": false,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1441,7 +1441,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "vitest.config.ts has coverage reporter. npm run test:coverage shows engine/ coverage.",
+      "exit": "vitest.config.ts has coverage reporter. bun run test:coverage shows engine/ coverage.",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -1474,7 +1474,7 @@
     {
       "id": "hook-task-complete",
       "name": "Wire TaskCompleted hook for verify gate",
-      "done": true,
+      "done": false,
       "value": "high",
       "effort": "medium",
       "wave": "W3",
@@ -1491,7 +1491,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "TaskCompleted hook runs npm run verify. Blocks if tests regress. Gates the mark.",
+      "exit": "TaskCompleted hook runs bun run verify. Blocks if tests regress. Gates the mark.",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -1735,7 +1735,7 @@
       "blocks": [
         "c1-schema-task"
       ],
-      "exit": "`npm run verify` passes; all baseline tests green",
+      "exit": "`bun run verify` passes; all baseline tests green",
       "source": "collusion",
       "strength": 0,
       "resistance": 0
@@ -1837,6 +1837,60 @@
       "blocks": [],
       "exit": "Every signal creates signal entity with sender, receiver, data, success, latency, timestamp.",
       "source": "lifecycle",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "phase-0-rename",
+      "name": "Phase 0: Execute file renames",
+      "done": false,
+      "value": "critical",
+      "effort": "low",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C1",
+      "persona": "operator (human)",
+      "context": [],
+      "priority": 80,
+      "effective": 80,
+      "formula": "critical=30 + C1=40 + operator (human)=5 + blocks(1)=5",
+      "tags": [
+        "migration",
+        "sequential",
+        "P0"
+      ],
+      "blocks": [
+        "phase-1-start"
+      ],
+      "exit": "All Phase 0 renames complete (git mv), commit, no compile errors",
+      "source": "rename",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "phase-1-complete",
+      "name": "Phase 1: Migrate engine files (5 files × parallel)",
+      "done": false,
+      "value": "critical",
+      "effort": "high",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C1",
+      "persona": "sonnet",
+      "context": [],
+      "priority": 80,
+      "effective": 80,
+      "formula": "critical=30 + C1=40 + sonnet=5 + blocks(1)=5",
+      "tags": [
+        "migration",
+        "engine",
+        "P0"
+      ],
+      "blocks": [
+        "phase-2-start"
+      ],
+      "exit": "All 5 engine files converted. Import paths fixed. tsc passes.",
+      "source": "rename",
       "strength": 0,
       "resistance": 0
     },
@@ -2647,7 +2701,7 @@
         "P0"
       ],
       "blocks": [],
-      "exit": "`npm run verify` passes; claim/release/expire tests pass; rubric ≥ 0.65 all dims",
+      "exit": "`bun run verify` passes; claim/release/expire tests pass; rubric ≥ 0.65 all dims",
       "source": "collusion",
       "strength": 0,
       "resistance": 0
@@ -2799,6 +2853,33 @@
       "blocks": [],
       "exit": "Move struct matches lifecycle.md spec. Fields: agent, task, strength, completions, crystallized_at.",
       "source": "lifecycle",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "phase-2-complete",
+      "name": "Phase 2: Migrate schema files (8 files × parallel)",
+      "done": false,
+      "value": "critical",
+      "effort": "high",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C2",
+      "persona": "sonnet",
+      "context": [],
+      "priority": 75,
+      "effective": 75,
+      "formula": "critical=30 + C2=35 + sonnet=5 + blocks(1)=5",
+      "tags": [
+        "migration",
+        "schema",
+        "P0"
+      ],
+      "blocks": [
+        "phase-3-start"
+      ],
+      "exit": "All 8 schema files converted. world.tql compiles. No broken TypeQL.",
+      "source": "rename",
       "strength": 0,
       "resistance": 0
     },
@@ -3047,7 +3128,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "GitHub Action runs npm run verify on push/PR. Badge in README.",
+      "exit": "GitHub Action runs bun run verify on push/PR. Badge in README.",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -3804,7 +3885,7 @@
         "P2"
       ],
       "blocks": [],
-      "exit": "npm run test:coverage shows ≥80% line coverage for src/engine/*.ts",
+      "exit": "bun run test:coverage shows ≥80% line coverage for src/engine/*.ts",
       "source": "testing",
       "strength": 0,
       "resistance": 0
@@ -4178,137 +4259,28 @@
       "resistance": 0
     },
     {
-      "id": "phase-0-rename",
-      "name": "Phase 0: Execute file renames",
-      "done": false,
-      "value": "critical",
-      "effort": "low",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "P0",
-      "persona": "operator (human)",
-      "context": [],
-      "priority": 65,
-      "effective": 65,
-      "formula": "critical=30 + P0=25 + operator (human)=5 + blocks(1)=5",
-      "tags": [
-        "migration",
-        "sequential",
-        "P0"
-      ],
-      "blocks": [
-        "phase-1-start"
-      ],
-      "exit": "All Phase 0 renames complete (git mv), commit, no compile errors",
-      "source": "rename",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "phase-1-complete",
-      "name": "Phase 1: Migrate engine files (5 files × parallel)",
-      "done": false,
-      "value": "critical",
-      "effort": "high",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "P1",
-      "persona": "sonnet",
-      "context": [],
-      "priority": 65,
-      "effective": 65,
-      "formula": "critical=30 + P1=25 + sonnet=5 + blocks(1)=5",
-      "tags": [
-        "migration",
-        "engine",
-        "P0"
-      ],
-      "blocks": [
-        "phase-2-start"
-      ],
-      "exit": "All 5 engine files converted. Import paths fixed. tsc passes.",
-      "source": "rename",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "phase-2-complete",
-      "name": "Phase 2: Migrate schema files (8 files × parallel)",
-      "done": false,
-      "value": "critical",
-      "effort": "high",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "P2",
-      "persona": "sonnet",
-      "context": [],
-      "priority": 65,
-      "effective": 65,
-      "formula": "critical=30 + P2=25 + sonnet=5 + blocks(1)=5",
-      "tags": [
-        "migration",
-        "schema",
-        "P0"
-      ],
-      "blocks": [
-        "phase-3-start"
-      ],
-      "exit": "All 8 schema files converted. world.tql compiles. No broken TypeQL.",
-      "source": "rename",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "phase-7-complete",
-      "name": "Phase 7: Migrate docs (59 files × parallel Haiku)",
+      "id": "phase-3-complete",
+      "name": "Phase 3: Migrate types/lib/skins (5 files × parallel)",
       "done": false,
       "value": "high",
       "effort": "high",
       "wave": "W3",
       "model": "sonnet",
-      "phase": "P7",
-      "persona": "haiku",
+      "phase": "C3",
+      "persona": "sonnet",
       "context": [],
       "priority": 65,
       "effective": 65,
-      "formula": "high=25 + P7=25 + haiku=5 + blocks(2)=10",
+      "formula": "high=25 + C3=30 + sonnet=5 + blocks(1)=5",
       "tags": [
         "migration",
-        "docs",
+        "types",
         "P1"
       ],
       "blocks": [
-        "phase-8-start",
-        "cycle-1-wire-start"
+        "phase-4-start"
       ],
-      "exit": "All 59 doc files converted. No dead names in prose (except metaphor tables).",
-      "source": "rename",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "migration-gate",
-      "name": "Migration complete verification",
-      "done": false,
-      "value": "critical",
-      "effort": "low",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "P9",
-      "persona": "operator",
-      "context": [],
-      "priority": 65,
-      "effective": 65,
-      "formula": "critical=30 + P9=25 + operator=5 + blocks(1)=5",
-      "tags": [
-        "migration",
-        "gate",
-        "P0"
-      ],
-      "blocks": [
-        "cycle-1-wire-start"
-      ],
-      "exit": "`npm run build` succeeds. Grep verification clean (no old vocab in engine/schema/types/api/components). All tests green.",
+      "exit": "All 5 files converted. tsc --noEmit clean.",
       "source": "rename",
       "strength": 0,
       "resistance": 0
@@ -4423,33 +4395,6 @@
       "resistance": 0
     },
     {
-      "id": "phase-3-complete",
-      "name": "Phase 3: Migrate types/lib/skins (5 files × parallel)",
-      "done": false,
-      "value": "high",
-      "effort": "high",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "P3",
-      "persona": "sonnet",
-      "context": [],
-      "priority": 60,
-      "effective": 60,
-      "formula": "high=25 + P3=25 + sonnet=5 + blocks(1)=5",
-      "tags": [
-        "migration",
-        "types",
-        "P1"
-      ],
-      "blocks": [
-        "phase-4-start"
-      ],
-      "exit": "All 5 files converted. tsc --noEmit clean.",
-      "source": "rename",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
       "id": "phase-4-complete",
       "name": "Phase 4: Migrate API endpoints (11 files × parallel)",
       "done": false,
@@ -4457,12 +4402,12 @@
       "effort": "high",
       "wave": "W3",
       "model": "sonnet",
-      "phase": "P4",
+      "phase": "C4",
       "persona": "sonnet",
       "context": [],
       "priority": 60,
       "effective": 60,
-      "formula": "high=25 + P4=25 + sonnet=5 + blocks(1)=5",
+      "formula": "high=25 + C4=25 + sonnet=5 + blocks(1)=5",
       "tags": [
         "migration",
         "api",
@@ -4472,60 +4417,6 @@
         "phase-5-start"
       ],
       "exit": "All 11 files converted. API routes typed. tsc clean.",
-      "source": "rename",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "phase-5-complete",
-      "name": "Phase 5: Migrate components (7 files × parallel)",
-      "done": false,
-      "value": "high",
-      "effort": "high",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "P5",
-      "persona": "sonnet",
-      "context": [],
-      "priority": 60,
-      "effective": 60,
-      "formula": "high=25 + P5=25 + sonnet=5 + blocks(1)=5",
-      "tags": [
-        "migration",
-        "components",
-        "P1"
-      ],
-      "blocks": [
-        "phase-6-start"
-      ],
-      "exit": "All 7 component files converted. React types clean.",
-      "source": "rename",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "phase-6-complete",
-      "name": "Phase 6: Migrate Claude config (9 files × parallel)",
-      "done": false,
-      "value": "high",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "P6",
-      "persona": "sonnet",
-      "context": [],
-      "priority": 60,
-      "effective": 60,
-      "formula": "high=25 + P6=25 + sonnet=5 + blocks(1)=5",
-      "tags": [
-        "migration",
-        "config",
-        "P1"
-      ],
-      "blocks": [
-        "phase-7-start"
-      ],
-      "exit": "All 9 config files converted. CLAUDE.md, rules, commands all updated.",
       "source": "rename",
       "strength": 0,
       "resistance": 0
@@ -4729,55 +4620,28 @@
       "resistance": 0
     },
     {
-      "id": "phase-8-complete",
-      "name": "Phase 8: Migrate packages/scripts (12 files × parallel)",
+      "id": "phase-5-complete",
+      "name": "Phase 5: Migrate components (7 files × parallel)",
       "done": false,
-      "value": "medium",
+      "value": "high",
       "effort": "high",
       "wave": "W3",
       "model": "sonnet",
-      "phase": "P8",
+      "phase": "C5",
       "persona": "sonnet",
       "context": [],
       "priority": 55,
       "effective": 55,
-      "formula": "medium=20 + P8=25 + sonnet=5 + blocks(1)=5",
+      "formula": "high=25 + C5=20 + sonnet=5 + blocks(1)=5",
       "tags": [
         "migration",
-        "packages",
-        "P2"
+        "components",
+        "P1"
       ],
       "blocks": [
-        "phase-9-start"
+        "phase-6-start"
       ],
-      "exit": "All 12 files converted. Build succeeds.",
-      "source": "rename",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "phase-9-complete",
-      "name": "Phase 9: Migrate archive (4 files × parallel, optional)",
-      "done": false,
-      "value": "low",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "P9",
-      "persona": "sonnet",
-      "context": [],
-      "priority": 55,
-      "effective": 55,
-      "formula": "low=20 + P9=25 + sonnet=5 + blocks(1)=5",
-      "tags": [
-        "migration",
-        "archive",
-        "P3"
-      ],
-      "blocks": [
-        "cycle-1-wire-start"
-      ],
-      "exit": "Archive files converted (or skipped if not deploying)",
+      "exit": "All 7 component files converted. React types clean.",
       "source": "rename",
       "strength": 0,
       "resistance": 0
@@ -6001,8 +5865,8 @@
       "resistance": 0
     },
     {
-      "id": "w0-baseline-npm-run-verify-passes-before-starting",
-      "name": "**W0: Baseline** — `npm run verify` passes before starting",
+      "id": "w0-baseline-bun-run-verify-passes-255-tests",
+      "name": "W0: Baseline — bun run verify passes (255 tests)",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -6023,7 +5887,7 @@
     },
     {
       "id": "w1-recon-haiku-plan-collusion-mitigation-analyzed",
-      "name": "**W1: Recon** (Haiku) — PLAN-collusion-mitigation analyzed",
+      "name": "W1: Recon (Haiku) — PLAN-collusion-mitigation analyzed",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -6043,8 +5907,8 @@
       "resistance": 0
     },
     {
-      "id": "w2-decide-opus-3-ambiguities-resolved-diff-specs-ready-for-w",
-      "name": "**W2: Decide** (Opus) — 3 ambiguities resolved; diff specs ready for W3",
+      "id": "w2-decide-opus-3-ambiguities-resolved-16-diff-specs",
+      "name": "W2: Decide (Opus) — 3 ambiguities resolved; 16 diff specs",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -6064,8 +5928,8 @@
       "resistance": 0
     },
     {
-      "id": "w3-edit-sonnet-all-16-diffs-applied-w35-type-fixes-applied",
-      "name": "**W3: Edit** (Sonnet) — All 16 diffs applied; W3.5 type fixes applied",
+      "id": "w3-edit-sonnet-all-diffs-applied-type-fixes",
+      "name": "W3: Edit (Sonnet) — All diffs applied + type fixes",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -6086,7 +5950,7 @@
     },
     {
       "id": "w4-verify-sonnet-schema-endpoints-integration-commands-rubri",
-      "name": "**W4: Verify** (Sonnet) — Schema ✓, endpoints ✓, integration ✓, commands ✓, rubric 0.89 ✓",
+      "name": "W4: Verify (Sonnet) — Schema ✓, endpoints ✓, integration ✓, commands ✓, rubric 0.89 ✓",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -6106,8 +5970,8 @@
       "resistance": 0
     },
     {
-      "id": "c1-wire-schema-endpoints-complete",
-      "name": "**C1: Wire** — Schema + endpoints complete",
+      "id": "w0-baseline-bun-run-verify-passes",
+      "name": "W0: Baseline (bun run verify passes)",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -6127,8 +5991,8 @@
       "resistance": 0
     },
     {
-      "id": "c2-prove-api-integration-complete",
-      "name": "**C2: Prove** — API integration complete",
+      "id": "w1-recon-haiku-4-integration-test-scenarios-identified",
+      "name": "W1: Recon (Haiku) — 4 integration test scenarios identified",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -6148,8 +6012,8 @@
       "resistance": 0
     },
     {
-      "id": "c3-grow-commands-wave-locking-complete",
-      "name": "**C3: Grow** — Commands + wave-locking complete",
+      "id": "w2-decide-opus-4-test-specs-created-rubric-threshold-confirm",
+      "name": "W2: Decide (Opus) — 4 test specs created; rubric threshold confirmed",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -6169,8 +6033,155 @@
       "resistance": 0
     },
     {
-      "id": "cycle-1-complete-all-tests-pass-rubric-065-cycle-gate-cleare",
-      "name": "**Cycle 1 COMPLETE** — All tests pass, rubric >= 0.65, cycle gate cleared",
+      "id": "w3-edit-sonnet-27-integration-tests-written-filter-active-gu",
+      "name": "W3: Edit (Sonnet) — 27 integration tests written (filter-active, guard-sync, clear-owner, expire-tick)",
+      "done": true,
+      "value": "medium",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C4",
+      "persona": "agent",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "medium=20 + C4=25 + agent=5",
+      "tags": [],
+      "blocks": [],
+      "exit": "",
+      "source": "collusion",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "w4-verify-sonnet-all-tests-pass-consistency-no-regressions-r",
+      "name": "W4: Verify (Sonnet) — All tests pass; consistency ✓; no regressions; rubric 0.89 ✓",
+      "done": true,
+      "value": "medium",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C4",
+      "persona": "agent",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "medium=20 + C4=25 + agent=5",
+      "tags": [],
+      "blocks": [],
+      "exit": "",
+      "source": "collusion",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "w0-baseline-bun-run-verify-clean",
+      "name": "W0: Baseline (bun run verify clean)",
+      "done": true,
+      "value": "medium",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C4",
+      "persona": "agent",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "medium=20 + C4=25 + agent=5",
+      "tags": [],
+      "blocks": [],
+      "exit": "",
+      "source": "collusion",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "w1-recon-haiku-4-multi-session-scenarios-identified",
+      "name": "W1: Recon (Haiku) — 4 multi-session scenarios identified",
+      "done": true,
+      "value": "medium",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C4",
+      "persona": "agent",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "medium=20 + C4=25 + agent=5",
+      "tags": [],
+      "blocks": [],
+      "exit": "",
+      "source": "collusion",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "w2-decide-opus-3-test-specs-for-parallel-work-wave-locking",
+      "name": "W2: Decide (Opus) — 3 test specs for parallel work + wave-locking",
+      "done": true,
+      "value": "medium",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C4",
+      "persona": "agent",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "medium=20 + C4=25 + agent=5",
+      "tags": [],
+      "blocks": [],
+      "exit": "",
+      "source": "collusion",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "w3-edit-sonnet-24-multi-session-tests-created-parallel-sessi",
+      "name": "W3: Edit (Sonnet) — 24 multi-session tests created (parallel-sessions 7, wave-lock 7, ownership 10)",
+      "done": true,
+      "value": "medium",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C4",
+      "persona": "agent",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "medium=20 + C4=25 + agent=5",
+      "tags": [],
+      "blocks": [],
+      "exit": "",
+      "source": "collusion",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "w4-verify-sonnet-all-51-integration-tests-passing-no-regress",
+      "name": "W4: Verify (Sonnet) — All 51 integration tests passing; no regressions; rubric 0.89 ✓",
+      "done": true,
+      "value": "medium",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C4",
+      "persona": "agent",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "medium=20 + C4=25 + agent=5",
+      "tags": [],
+      "blocks": [],
+      "exit": "",
+      "source": "collusion",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "cycle-3-complete-collision-avoidance-fully-implemented-and-t",
+      "name": "**Cycle 3 COMPLETE** — Collision avoidance fully implemented and tested",
       "done": true,
       "value": "medium",
       "effort": "medium",
@@ -6333,6 +6344,88 @@
       "blocks": [],
       "exit": "",
       "source": "lifecycle",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "phase-6-complete",
+      "name": "Phase 6: Migrate Claude config (9 files × parallel)",
+      "done": false,
+      "value": "high",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C6",
+      "persona": "sonnet",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "high=25 + C6=15 + sonnet=5 + blocks(1)=5",
+      "tags": [
+        "migration",
+        "config",
+        "P1"
+      ],
+      "blocks": [
+        "phase-7-start"
+      ],
+      "exit": "All 9 config files converted. CLAUDE.md, rules, commands all updated.",
+      "source": "rename",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "phase-7-complete",
+      "name": "Phase 7: Migrate docs (59 files × parallel Haiku)",
+      "done": false,
+      "value": "high",
+      "effort": "high",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C7",
+      "persona": "haiku",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "high=25 + C7=10 + haiku=5 + blocks(2)=10",
+      "tags": [
+        "migration",
+        "docs",
+        "P1"
+      ],
+      "blocks": [
+        "phase-8-start",
+        "cycle-1-wire-start"
+      ],
+      "exit": "All 59 doc files converted. No dead names in prose (except metaphor tables).",
+      "source": "rename",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "migration-gate",
+      "name": "Migration complete verification",
+      "done": false,
+      "value": "critical",
+      "effort": "low",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C7",
+      "persona": "operator",
+      "context": [],
+      "priority": 50,
+      "effective": 50,
+      "formula": "critical=30 + C7=10 + operator=5 + blocks(1)=5",
+      "tags": [
+        "migration",
+        "gate",
+        "P0"
+      ],
+      "blocks": [
+        "cycle-1-wire-start"
+      ],
+      "exit": "`bun run build` succeeds. Grep verification clean (no old vocab in engine/schema/types/api/components). All tests green.",
+      "source": "rename",
       "strength": 0,
       "resistance": 0
     },
@@ -6505,174 +6598,6 @@
       "resistance": 0
     },
     {
-      "id": "all-baseline-tests-still-pass-no-regressions",
-      "name": "All baseline tests still pass (no regressions)",
-      "done": false,
-      "value": "medium",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "C4",
-      "persona": "agent",
-      "context": [],
-      "priority": 50,
-      "effective": 50,
-      "formula": "medium=20 + C4=25 + agent=5",
-      "tags": [],
-      "blocks": [],
-      "exit": "",
-      "source": "template",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "new-tests-cover-new-functionality",
-      "name": "New tests cover new functionality",
-      "done": false,
-      "value": "medium",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "C4",
-      "persona": "agent",
-      "context": [],
-      "priority": 50,
-      "effective": 50,
-      "formula": "medium=20 + C4=25 + agent=5",
-      "tags": [],
-      "blocks": [],
-      "exit": "",
-      "source": "template",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "biome-check-clean-on-touched-files",
-      "name": "`biome check .` clean on touched files",
-      "done": false,
-      "value": "medium",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "C4",
-      "persona": "agent",
-      "context": [],
-      "priority": 50,
-      "effective": 50,
-      "formula": "medium=20 + C4=25 + agent=5",
-      "tags": [],
-      "blocks": [],
-      "exit": "",
-      "source": "template",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "tsc-noemit-passes",
-      "name": "`tsc --noEmit` passes",
-      "done": false,
-      "value": "medium",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "C4",
-      "persona": "agent",
-      "context": [],
-      "priority": 50,
-      "effective": 50,
-      "formula": "medium=20 + C4=25 + agent=5",
-      "tags": [],
-      "blocks": [],
-      "exit": "",
-      "source": "template",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "w4-rubric-score-065-on-all-dimensions",
-      "name": "W4 rubric score >= 0.65 on all dimensions",
-      "done": false,
-      "value": "medium",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "C4",
-      "persona": "agent",
-      "context": [],
-      "priority": 50,
-      "effective": 50,
-      "formula": "medium=20 + C4=25 + agent=5",
-      "tags": [],
-      "blocks": [],
-      "exit": "",
-      "source": "template",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "cycle-1-wire-scope",
-      "name": "**Cycle 1: WIRE** — {scope}",
-      "done": false,
-      "value": "medium",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "C4",
-      "persona": "agent",
-      "context": [],
-      "priority": 50,
-      "effective": 50,
-      "formula": "medium=20 + C4=25 + agent=5",
-      "tags": [],
-      "blocks": [],
-      "exit": "",
-      "source": "template",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "cycle-2-prove-scope",
-      "name": "**Cycle 2: PROVE** — {scope}",
-      "done": false,
-      "value": "medium",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "C4",
-      "persona": "agent",
-      "context": [],
-      "priority": 50,
-      "effective": 50,
-      "formula": "medium=20 + C4=25 + agent=5",
-      "tags": [],
-      "blocks": [],
-      "exit": "",
-      "source": "template",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
-      "id": "cycle-3-grow-scope",
-      "name": "**Cycle 3: GROW** — {scope}",
-      "done": false,
-      "value": "medium",
-      "effort": "medium",
-      "wave": "W3",
-      "model": "sonnet",
-      "phase": "C4",
-      "persona": "agent",
-      "context": [],
-      "priority": 50,
-      "effective": 50,
-      "formula": "medium=20 + C4=25 + agent=5",
-      "tags": [],
-      "blocks": [],
-      "exit": "",
-      "source": "template",
-      "strength": 0,
-      "resistance": 0
-    },
-    {
       "id": "cycle-1-wire-green-baseline",
       "name": "**Cycle 1: WIRE** — Green baseline",
       "done": true,
@@ -6795,6 +6720,60 @@
       "blocks": [],
       "exit": "",
       "source": "typedb",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "phase-8-complete",
+      "name": "Phase 8: Migrate packages/scripts (12 files × parallel)",
+      "done": false,
+      "value": "medium",
+      "effort": "high",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C7",
+      "persona": "sonnet",
+      "context": [],
+      "priority": 40,
+      "effective": 40,
+      "formula": "medium=20 + C7=10 + sonnet=5 + blocks(1)=5",
+      "tags": [
+        "migration",
+        "packages",
+        "P2"
+      ],
+      "blocks": [
+        "phase-9-start"
+      ],
+      "exit": "All 12 files converted. Build succeeds.",
+      "source": "rename",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
+      "id": "phase-9-complete",
+      "name": "Phase 9: Migrate archive (4 files × parallel, optional)",
+      "done": false,
+      "value": "low",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "C7",
+      "persona": "sonnet",
+      "context": [],
+      "priority": 40,
+      "effective": 40,
+      "formula": "low=20 + C7=10 + sonnet=5 + blocks(1)=5",
+      "tags": [
+        "migration",
+        "archive",
+        "P3"
+      ],
+      "blocks": [
+        "cycle-1-wire-start"
+      ],
+      "exit": "Archive files converted (or skipped if not deploying)",
+      "source": "rename",
       "strength": 0,
       "resistance": 0
     }
