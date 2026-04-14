@@ -476,28 +476,41 @@ import { Card } from "@/components/ui/card"
 
 ## Deploy
 
-**One command. Deterministic. 106.9s verified.**
+**Two paths, one script. 65.0s verified. `wrangler` CLI direct + async parallel workers.**
 
+### CLI (local)
 ```bash
-bun run deploy              # full pipeline, human approval on main
+bun run deploy              # full pipeline, prompts "yes" on main
 bun run deploy:dry-run      # verify without deploying
 bun run deploy:strict       # no flaky test allowance
 bun run deploy:preview      # build + smoke only
 ```
 
-`scripts/deploy.ts` (8-step pipeline):
+### GitHub Actions (CI) — `.github/workflows/deploy.yml`
+```
+push feature/**  →  auto-deploy Pages preview after W0
+push main        →  wait for `environment: production` reviewer → parallel deploy
+```
+Required secrets: `CLOUDFLARE_GLOBAL_API_KEY`, `CLOUDFLARE_EMAIL`, `CLOUDFLARE_ACCOUNT_ID`.
+`CLOUDFLARE_API_TOKEN` explicitly blanked in both paths.
+
+### The 8-step pipeline (`scripts/deploy.ts`)
 1. W0 baseline — biome + tsc + vitest (known-flaky allowlist)
 2. Changes — git diff summary
 3. Build — NODE_ENV=production astro build
 4. Credentials — auto-enforce Global API Key, unset `CLOUDFLARE_API_TOKEN`
 5. Smoke — verify dist/ + 3 wrangler.toml
 6. Approval — `main` prompts "yes"; other branches auto
-7. Deploy — Gateway → Sync → NanoClaw → Pages (sequential)
-8. Health — parallel fetch all 4 URLs
+7. Deploy — Gateway + Sync + NanoClaw **parallel** (24s), then Pages (16s)
+8. Health — 3 retries with backoff + record to substrate via `/api/signal`
 
-**Verified speed (2026-04-14):** 106.9s total. Build 23.0s • Gateway 13.7s • Sync 8.2s • NanoClaw 9.2s • Pages 17.4s. Live health: Gateway 292ms, Sync 270ms, NanoClaw 270ms.
+**Verified speed (2026-04-14):** 65.0s total.
+Workers parallel 24.1s (vs 64.5s sequential — 2.7× speedup) • Pages 16.1s • health 4/4 in 297-658ms.
+Preview URL captured inline: `📎 https://<hash>.one-substrate.pages.dev`.
 
 **Auth is non-negotiable:** Global API Key only. `.env` stores it as `CLOUDFLARE_GLOBAL_API_KEY`, script maps to `CLOUDFLARE_API_KEY` for wrangler and blanks `CLOUDFLARE_API_TOKEN` in the spawned env. Scoped tokens are forbidden — they lack permissions for workers + custom domains. See `/cloudflare` skill.
+
+**Substrate records itself:** every deploy posts `deploy:success` or `deploy:degraded` to `/api/signal` with branch, per-service timings, health latencies. Pheromone learns which deploy patterns produce healthy production.
 
 **Live URLs:**
 

@@ -25,4 +25,15 @@ curl -s -X POST http://localhost:4321/api/tasks \
 curl -s http://localhost:4321/api/tick?interval=0 | jq '{cycle, highways: [.highways[] | .path], evolved, hardened, frontiers}'
 ```
 
-4. Summarize: what was done, what trails were reinforced, what the world learned.
+4. **Summarize with deterministic numbers (Rule 3):**
+   ```
+   Session:       <duration, tasks closed>
+   Tests:         <passed>/<total> (<ms>)
+   Commits:       <N> (<branch>, <ahead> ahead of origin)
+   Paths:         +<marked> strengthened, +<warned> weakened
+   Rubric:        avg fit/form/truth/taste across closed tasks
+   Hardened:      <N> highways promoted (L6)
+   Frontiers:     <N> new territories (L7)
+   Next:          <top-3 attractive tasks>
+   ```
+   Numbers-first. If you can't measure it, you can't route around it.

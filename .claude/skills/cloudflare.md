@@ -320,6 +320,43 @@ If 401, update `TYPEDB_PASSWORD` secret:
 cd gateway && printf 'new-password' | bun wrangler secret put TYPEDB_PASSWORD && cd ..
 ```
 
+## GitHub Actions CI Setup
+
+The repo includes `.github/workflows/deploy.yml` which auto-deploys feature branches and gates main behind a reviewer.
+
+### Required GitHub Repository Secrets
+
+Go to Settings → Secrets and variables → Actions → New repository secret:
+
+| Secret | Value |
+|--------|-------|
+| `CLOUDFLARE_GLOBAL_API_KEY` | The 40-char Global API Key from `.env` |
+| `CLOUDFLARE_EMAIL` | `tony@one.ie` |
+| `CLOUDFLARE_ACCOUNT_ID` | `627e0c7ccbe735a4a7cabf91e377bbad` |
+
+**Do NOT set `CLOUDFLARE_API_TOKEN`** — the workflow explicitly blanks it to force Global API Key auth.
+
+### Production Environment Gate (main branch)
+
+Go to Settings → Environments → New environment:
+
+1. Name: `production`
+2. Deployment branches: `main` only
+3. Required reviewers: add yourself (or team)
+4. Wait timer: optional (e.g., 1 minute)
+
+Now every push to main triggers CI → verify → build → waits for your approval → deploys.
+
+### Workflow Behavior
+
+```
+push feature/**  →  verify → auto-deploy Pages preview (no gate)
+push main        →  verify → build → 🚦 wait for reviewer → parallel deploy
+workflow_dispatch →  manual trigger from Actions tab
+```
+
+Feature branches deploy only to Pages preview (not workers) — faster iteration without touching production workers.
+
 ## Integration with /deploy
 
 The `/deploy` skill (deterministic deployment) uses these credentials and operations:

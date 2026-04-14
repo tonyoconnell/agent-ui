@@ -11,54 +11,70 @@ Deploys all 4 Cloudflare services (gateway, sync, nanoclaw, pages) with full W0 
 
 **Auth: Global API Key only.** The script explicitly unsets `CLOUDFLARE_API_TOKEN` and uses `CLOUDFLARE_API_KEY` + `CLOUDFLARE_EMAIL` + `CLOUDFLARE_ACCOUNT_ID` (loaded from `.env` as `CLOUDFLARE_GLOBAL_API_KEY`). Scoped tokens are forbidden — they lack permissions for workers + custom domains. See `/cloudflare` skill.
 
-## Deterministic Deploy Flow
+## Deterministic Deploy Flow — 65.0s verified
 
 ```
 ┌─────────────────────────────────────┐
-│ 1. W0 Baseline                      │  bun run verify
-│    (biome + typecheck + vitest)     │  MUST PASS
+│ 1. W0 Baseline                      │  bun run verify (~10s)
+│    biome + tsc + vitest (326 tests) │  MUST PASS
 └──────────────┬──────────────────────┘
                │
 ┌──────────────▼──────────────────────┐
-│ 2. Show Changes                     │  staged + uncommitted
-│    (what will deploy)               │
+│ 2. Changes                          │  git diff summary
 └──────────────┬──────────────────────┘
                │
 ┌──────────────▼──────────────────────┐
-│ 3. Build                            │  NODE_ENV=production
-│    (production bundle)              │  Shows timing + size
+│ 3. Build                            │  NODE_ENV=production (~23s)
+│    astro build → dist/ 5.7 MiB      │
 └──────────────┬──────────────────────┘
                │
 ┌──────────────▼──────────────────────┐
-│ 4. Load Cloudflare Credentials      │  From .env
-│    (Global API Key)                 │
+│ 4. Credentials                      │  Global API Key only
+│    auto-blank CLOUDFLARE_API_TOKEN  │
 └──────────────┬──────────────────────┘
                │
 ┌──────────────▼──────────────────────┐
-│ 5. Test Preview                     │  Verify dist/ + configs
-│    (dry-run checks)                 │
+│ 5. Smoke check                      │  dist/ + 3 wrangler.toml
 └──────────────┬──────────────────────┘
                │
        ┌───────┴────────┐
        │                │
   branch=main     branch!=main
-  HUMAN            AUTO
-  APPROVAL         DEPLOY
+  prompt "yes"     auto
        │                │
-       ▼                ▼
-┌─────────────────────────────────────┐
-│ 6. Deploy                           │
-│    • Gateway (api.one.ie)           │
-│    • Sync (one-sync.oneie.workers)  │
-│    • NanoClaw (nanoclaw.oneie...)   │
-│    • Pages (one-substrate.pages.dev)│
+       └───────┬────────┘
+               │
+┌──────────────▼──────────────────────┐
+│ 6. Deploy (parallel workers)        │
+│    Gateway  ┐                       │
+│    Sync     ├─ async, ~24s total    │
+│    NanoClaw ┘  (vs 64s sequential)  │
+│    Pages     — after workers, ~16s  │
+│    📎 Preview URL captured          │
 └──────────────┬──────────────────────┘
                │
 ┌──────────────▼──────────────────────┐
-│ 7. Health Check                     │
-│    (verify all 4 responding)        │
+│ 7. Health (3 retries, backoff)      │
+│    parallel fetch 4 URLs            │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│ 8. Substrate record                 │
+│    POST /api/signal                 │
+│    deploy:success | deploy:degraded │
 └─────────────────────────────────────┘
 ```
+
+## Two Deploy Paths
+
+### Path A: Local CLI
+Run from your machine. Uses `.env` credentials. Human-approved on main.
+
+### Path B: GitHub Actions (`.github/workflows/deploy.yml`)
+- Push to `feature/**` → auto-deploy Pages preview after W0
+- Push to `main` → waits for GitHub `environment: production` reviewer, then parallel deploy
+- Secrets needed: `CLOUDFLARE_GLOBAL_API_KEY`, `CLOUDFLARE_EMAIL`, `CLOUDFLARE_ACCOUNT_ID`
+- See `/cloudflare` skill for secret setup
 
 ## Usage
 

@@ -25,3 +25,14 @@ Show: tag cluster, % unexplored, expected value.
 3. If the server isn't running, read from `src/engine/loop.ts` and explain the pheromone dynamics.
 
 4. The highways ARE the world's intelligence. More highways = smarter routing. Zero highways = the world is still learning. High resistance = something broke.
+
+5. **Report with deterministic numbers (Rule 3):**
+   ```
+   Highways:    <N> paths >= 50 strength
+   Hardened:    <N> paths promoted to permanent (L6)
+   Toxic:       <N> paths with resistance > strength
+   Frontiers:   <N> tag clusters <10% explored
+   Top path:    <from> → <to>, strength <N>, traversals <M>, revenue $<X>
+   Worst path:  <from> → <to>, resistance <N>, strength <M>, reason "<hypothesis>"
+   ```
+   The numbers ARE the intelligence. Strength compounds. Resistance calibrates.
