@@ -9,6 +9,7 @@
  */
 
 import { readParsed, write, writeSilent } from '@/lib/typedb'
+import type { PersistentWorld } from './persist'
 import type { Task } from './task-parse'
 
 const UNIT_ID = 'builder'
@@ -120,6 +121,84 @@ export async function markTaskDone(taskId: string): Promise<void> {
     delete $d of $t; delete $st of $t;
     insert $t has done true, has task-status "done";
   `)
+}
+
+/**
+ * selfCheckoff — mark a task done, strengthen the pheromone path,
+ * unblock dependents, and crystallize the phase if it's complete.
+ *
+ * Closure pattern: composes markTaskDone + net.mark + blockedBy query + enqueue.
+ *
+ * Returns { marked: 1, unblocked: [task-ids] }
+ */
+export async function selfCheckoff(
+  taskId: string,
+  net: PersistentWorld,
+): Promise<{ marked: number; unblocked: string[] }> {
+  // 1. Mark task done in TypeDB (durable write)
+  await markTaskDone(taskId)
+
+  // 2. Strengthen the path — depth signal on the builder loop
+  net.mark(`loop→builder:${taskId}`, 5)
+
+  // 3. Query tasks directly blocked by this task
+  const blockedIds = await taskBlockers(taskId)
+
+  // 4. For each blocked task: check if ALL of its blockers are now done.
+  //    If yes → set status "open" and enqueue it for processing.
+  const unblocked: string[] = []
+  await Promise.all(
+    blockedIds.map(async (tid) => {
+      const stillBlocked = await readParsed(`
+        match (blocker: $b, blocked: $t) isa blocks;
+        $t isa task, has task-id "${esc(tid)}";
+        $b has done false;
+        select $b;
+      `).catch(() => [])
+
+      if (stillBlocked.length === 0) {
+        // All blockers resolved — open and enqueue
+        await writeSilent(`
+          match $t isa task, has task-id "${esc(tid)}", has task-status $s;
+          delete $s of $t;
+          insert $t has task-status "open";
+        `).catch(() => {})
+        net.enqueue({ receiver: `builder:${tid}` })
+        unblocked.push(tid)
+      }
+    }),
+  )
+
+  // 5. Check remaining open tasks in the same phase as taskId.
+  //    If none remain → crystallize: promote highways to permanent knowledge.
+  const phaseRows = await readParsed(`
+    match $t isa task, has task-id "${esc(taskId)}", has task-phase $ph;
+    select $ph;
+  `).catch(() => [])
+
+  if (phaseRows.length > 0) {
+    const phase = phaseRows[0]?.ph as string
+    const remaining = await readParsed(`
+      match $t isa task, has task-phase "${esc(phase)}", has done false;
+      select $t;
+    `).catch(() => [])
+    if (remaining.length === 0) {
+      await net.know()
+    }
+  }
+
+  return { marked: 1, unblocked }
+}
+
+/** Query what tasks are BLOCKED BY taskId (i.e. taskId blocks them) */
+export async function taskBlockers(taskId: string): Promise<string[]> {
+  const rows = await readParsed(`
+    match (blocker: $a, blocked: $b) isa blocks;
+    $a has task-id "${esc(taskId)}";
+    $b has task-id $bid;
+    select $bid;
+  `).catch(() => [])
+  return rows.map((r) => r.bid as string)
 }
 
 /** Load all tasks from TypeDB */

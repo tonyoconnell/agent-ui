@@ -81,7 +81,7 @@ If the server isn't running, start it with `bun run dev` and wait for it.
 
 Scan the task list top-to-bottom (highest priority first). **Skip any task where `blockedBy` is non-empty** — those tasks have open dependencies that must complete first.
 
-Report: `Working on: {task name} (priority: {score}, category: {category}, blocks: {n} others)`
+Report: `Working on: {task name} (priority: {score}, category: {category}, wave: {wave}, blocks: {n} others)`
 
 If all open tasks are blocked, report the deadlock and fall back to pheromone-based routing:
 ```bash
@@ -94,6 +94,25 @@ Within unblocked tasks, prefer:
 - Tags matching current context (if you just did "build", keep building)
 
 Tell the user what you picked and why.
+
+### Wave detection and model routing
+
+After selecting a task, read its `wave` field and route to the matching unit:
+
+```
+Wave → unit         → model
+W1   → builder:W1   → haiku   (recon — cheap, fast, broad)
+W2   → builder:W2   → opus    (decide — expensive, thorough)
+W3   → builder:W3   → sonnet  (edit — balanced)
+W4   → builder:W4   → sonnet  (verify — balanced)
+```
+
+```bash
+WAVE=$(echo "$TASK" | jq -r '.wave // "W3"')   # default W3 if absent
+UNIT="builder:$WAVE"
+# Use this UNIT as the signal receiver when routing work through the substrate.
+# The model selection follows automatically from modelForWave(task.wave) in the engine.
+```
 
 # CLAIM: atomic transition to active
 while true; do
@@ -155,6 +174,20 @@ curl -s -X POST http://localhost:4321/api/loop/close \
 ```
 
 This marks/warns every stage edge in the chain. Good-taste sessions reinforce their order more; failed sessions leave resistance on the last stage that produced nothing.
+
+### 5c. markDims — per-dimension pheromone (W4 tasks with rubric scores)
+
+If the completed task has rubric scores (fit/form/truth/taste), emit four tagged-edge marks so the graph learns which quality dimensions are strong or weak per skill path.
+
+```bash
+# Only when the task has rubric scores — skip if absent
+EDGE="$SESSION_ID→$TASK_ID"
+curl -s -X POST http://localhost:4321/api/loop/mark-dims \
+  -H 'Content-Type: application/json' \
+  -d "{\"edge\":\"$EDGE\",\"fit\":0.8,\"form\":0.75,\"truth\":0.9,\"taste\":0.7}"
+```
+
+This writes four separate paths — `edge:fit`, `edge:form`, `edge:truth`, `edge:taste` — rather than a single binary mark. Over many cycles the graph accumulates dimensional signal: which skills consistently hit truth but miss taste, which waves tend to slip on form. The `markDims()` threshold is 0.65 to mark and <0.5 to warn; 0.5–0.64 is neutral (no deposit either way).
 
 ### 6. GROW — Check what changed
 

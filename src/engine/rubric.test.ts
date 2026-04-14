@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_WEIGHTS, markDims as markDimsWeighted } from './rubric'
 import { compositeScore, formatRubric, markDims, scoreInterpretation, scoreWork, w4Verify } from './rubric-score'
 
 describe('Rubric Scoring — W4 Quality Gate', () => {
@@ -274,5 +275,113 @@ describe('markDims — tagged edge marks', () => {
 
     expect(marks.length).toBe(0) // all borderline
     expect(warns.length).toBe(0) // none below 0.5
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// markDims (rubric.ts) — weighted tagged edges, threshold at 0.5
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('markDims (rubric.ts) — weighted pheromone per dimension', () => {
+  function mockNet() {
+    const marks: [string, number][] = []
+    const warns: [string, number][] = []
+    return {
+      net: {
+        mark: (p: string, a?: number) => {
+          marks.push([p, a ?? 1])
+        },
+        warn: (p: string, a?: number) => {
+          warns.push([p, a ?? 1])
+        },
+      },
+      marks,
+      warns,
+    }
+  }
+
+  it('marks all 4 edges when all scores >= 0.5 (default weights)', () => {
+    const { net, marks, warns } = mockNet()
+
+    markDimsWeighted(net, 'a→b', { fit: 0.9, form: 0.8, truth: 1.0, taste: 0.7 })
+
+    expect(marks.length).toBe(4)
+    expect(warns.length).toBe(0)
+
+    // fit:  0.9 × 0.35 = 0.315
+    expect(marks[0]).toEqual(['a→b:fit', 0.9 * DEFAULT_WEIGHTS.fit])
+    // form: 0.8 × 0.20 = 0.16
+    expect(marks[1]).toEqual(['a→b:form', 0.8 * DEFAULT_WEIGHTS.form])
+    // truth: 1.0 × 0.30 = 0.30
+    expect(marks[2]).toEqual(['a→b:truth', 1.0 * DEFAULT_WEIGHTS.truth])
+    // taste: 0.7 × 0.15 = 0.105
+    expect(marks[3]).toEqual(['a→b:taste', 0.7 * DEFAULT_WEIGHTS.taste])
+  })
+
+  it('warns dimensions whose score < 0.5', () => {
+    const { net, marks, warns } = mockNet()
+
+    markDimsWeighted(net, 'entry→worker', { fit: 0.9, form: 0.3, truth: 0.4, taste: 0.8 })
+
+    expect(marks.length).toBe(2) // fit + taste
+    expect(warns.length).toBe(2) // form + truth
+
+    // form: (1 - 0.3) × 0.20 = 0.14
+    expect(warns[0]).toEqual(['entry→worker:form', (1 - 0.3) * DEFAULT_WEIGHTS.form])
+    // truth: (1 - 0.4) × 0.30 = 0.18
+    expect(warns[1]).toEqual(['entry→worker:truth', (1 - 0.4) * DEFAULT_WEIGHTS.truth])
+  })
+
+  it('boundary: score == 0.5 triggers mark, not warn', () => {
+    const { net, marks, warns } = mockNet()
+
+    markDimsWeighted(net, 'x→y', { fit: 0.5, form: 0.5, truth: 0.5, taste: 0.5 })
+
+    expect(marks.length).toBe(4)
+    expect(warns.length).toBe(0)
+  })
+
+  it('score just below 0.5 triggers warn', () => {
+    const { net, marks, warns } = mockNet()
+
+    markDimsWeighted(net, 'x→y', { fit: 0.49, form: 0.49, truth: 0.49, taste: 0.49 })
+
+    expect(marks.length).toBe(0)
+    expect(warns.length).toBe(4)
+  })
+
+  it('custom dimension weights override defaults', () => {
+    const { net, marks } = mockNet()
+
+    const custom = {
+      fit: { weight: 1.0 },
+      form: { weight: 0.0 },
+      truth: { weight: 0.5 },
+      taste: { weight: 0.5 },
+    }
+
+    markDimsWeighted(net, 'a→b', { fit: 0.8, form: 0.9, truth: 0.7, taste: 0.6 }, custom)
+
+    // fit:   0.8 × 1.0 = 0.8
+    expect(marks[0]).toEqual(['a→b:fit', 0.8])
+    // form:  0.9 × 0.0 = 0  → still marks (score >= 0.5) but amount is 0
+    expect(marks[1]).toEqual(['a→b:form', 0])
+    // truth: 0.7 × 0.5 = 0.35
+    expect(marks[2]).toEqual(['a→b:truth', 0.35])
+    // taste: 0.6 × 0.5 = 0.3
+    expect(marks[3]).toEqual(['a→b:taste', 0.3])
+  })
+
+  it('tagged edge format uses colon separator', () => {
+    const { net, marks } = mockNet()
+
+    markDimsWeighted(net, 'entry→wave-runner', { fit: 0.9, form: 0.8, truth: 1.0, taste: 0.7 })
+
+    expect(marks.map(([p]) => p)).toEqual([
+      'entry→wave-runner:fit',
+      'entry→wave-runner:form',
+      'entry→wave-runner:truth',
+      'entry→wave-runner:taste',
+    ])
   })
 })

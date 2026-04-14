@@ -208,6 +208,10 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       if (outcome.result !== undefined) {
         chainDepth++
         net.mark(edge, Math.min(chainDepth, CHAIN_CAP))
+        // Mark wave transitions
+        const wave = (taskSignal.data as { wave?: string })?.wave || 'W3'
+        const nextWave = ({ W1: 'W2', W2: 'W3', W3: 'W4', W4: 'W1' } as Record<string, string>)[wave]
+        net.mark(`wave-runner:${wave}→wave-runner:${nextWave}`, 1)
         previousTarget = 'builder'
         result.success = true
         // Mark task done in TypeDB

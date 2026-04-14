@@ -1,21 +1,18 @@
 Create a new TODO from a source doc using the wave template. Arguments: `$ARGUMENTS` (source doc path or name)
 
-## Context Loading
-
-Before creating the TODO, load these as baseline context:
-- **DSL.md** — signal grammar, handler patterns, known/emergent routing
-- **dictionary.md** — canonical names, dead names, unit/signal/path definitions
-- **rubrics.md** — quality scoring: fit/form/truth/taste as tagged edges
-- **TODO-template.md** — the wave pattern: cycles, waves, model assignment
-
-Read all four docs. They define the language the TODO speaks.
-
 ## Steps
 
-1. **Read the source doc** from `docs/$ARGUMENTS` (or `$ARGUMENTS` if full path).
-   If no arguments, ask which doc to convert.
+1. **Resolve the source doc path.**
+   - If `$ARGUMENTS` is a full path, use it directly.
+   - Otherwise try `docs/$ARGUMENTS` then `docs/$ARGUMENTS.md`.
+   - If no arguments, ask which doc to convert.
 
-2. **Read the four context docs:**
+2. **Run extract-tasks to get raw tasks (Haiku one-shot).**
+   Call the `/extract-tasks` skill with the doc path. This writes a flat
+   `docs/TODO-{docname}.md` with checkbox task blocks (one LLM call, ~$0.004).
+   Read the output file — it is the raw task list you will promote.
+
+3. **Load baseline context:**
    ```
    docs/DSL.md
    docs/dictionary.md
@@ -23,17 +20,12 @@ Read all four docs. They define the language the TODO speaks.
    docs/TODO-template.md
    ```
 
-3. **Analyze the source doc.** Identify:
-   - What changes when this is done (the goal)
-   - Which files are affected
-   - Natural cycle boundaries (Wire → Prove → Grow)
-   - How many tasks per cycle
-   - Dependencies between tasks (blocks relations)
-   - Exit conditions for each task
+4. **Promote the raw tasks into the full template.**
+   Group the extracted tasks into cycles (Wire → Prove → Grow) and waves (W1–W4).
+   Assign models: W1 Haiku recon, W2 Opus decide, W3 Sonnet edit, W4 Sonnet verify.
+   Overwrite `docs/TODO-{docname}.md` with the full structure.
 
-4. **Create the TODO file** at `docs/TODO-{docname}.md` following the template:
-
-   **Required sections:**
+   **Required sections when writing the final file:**
    - Frontmatter (title, type, version, priority, total_tasks, status)
    - Goal + source of truth (always include DSL.md, dictionary.md, rubrics.md)
    - **Routing diagram** — signal flow down, marks up, fan-out sideways
@@ -58,7 +50,7 @@ Read all four docs. They define the language the TODO speaks.
    - `exit`: verifiable condition — not "done", but "GET /api/x returns 200"
    - `tags`: domain + action + priority (engine, build, P0)
 
-5. **Verify** the TODO file:
+5. **Verify** the written TODO file:
    - Every task has all 7 metadata fields
    - Blocks references point to real task IDs within the file
    - Exit conditions are verifiable (grep, curl, type check)

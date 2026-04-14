@@ -9,6 +9,7 @@
  */
 import type { APIRoute } from 'astro'
 import { computePriority, effectivePriority, type Phase, type Value } from '@/engine/task-parse'
+import { getNet } from '@/lib/net'
 import * as store from '@/lib/tasks-store'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 
@@ -36,6 +37,8 @@ export const GET: APIRoute = async ({ url }) => {
       filtered = filtered.filter((t) => t.value === value)
     }
 
+    const net = await getNet()
+
     const result = filtered
       .filter((t) => t.status !== 'in_progress' && t.status !== 'active')
       .map((t) => {
@@ -43,6 +46,7 @@ export const GET: APIRoute = async ({ url }) => {
         const attractive = t.trailPheromone >= 50
         const exploratory = t.trailPheromone === 0 && t.alarmPheromone === 0
         const category = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
+        const taskAny = t as unknown as Record<string, unknown>
         return {
           tid: t.tid,
           name: t.name,
@@ -59,6 +63,10 @@ export const GET: APIRoute = async ({ url }) => {
           category,
           attractive,
           repelled,
+          strength: net.sense(`loop→builder:${t.tid}`) || 0,
+          resistance: net.danger(`loop→builder:${t.tid}`) || 0,
+          wave: (taskAny.wave as string | undefined) || 'W3',
+          context: (taskAny.context as string[] | undefined) || [],
         }
       })
 
@@ -181,6 +189,8 @@ export const GET: APIRoute = async ({ url }) => {
       unit: unitId,
       source: t.source as string,
       status: t.status as string,
+      wave: (t.wave as string | undefined) || 'W3',
+      context: (t.context as string[] | undefined) || [],
     }
   })
 

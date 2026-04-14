@@ -284,7 +284,7 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
 
 ### Tasks
 
-- [ ] Add DSL + dictionary as base context in every wave
+- [x] Add DSL + dictionary as base context in every wave
   id: base-context-always
   value: critical
   effort: low
@@ -293,6 +293,7 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   blocks: wave-context-envelope
   exit: contextForSkill loads DSL.md + dictionary.md as baseline for all tasks
   tags: engine, build, P0
+  done: src/engine/context.ts:156-157 - hardcoded baseline in inferDocsFromTags + contextForSkill (2026-04-14)
 
 - [x] Create inferDocsFromTags in context.ts
   id: infer-docs-from-tags
@@ -316,7 +317,7 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   tags: engine, build, P0
   done: src/engine/context.ts:160 - returns {docs, hypotheses, highways, exit, unblocks} (2026-04-14)
 
-- [ ] Enrich task signal in loop.ts with full envelope
+- [x] Enrich task signal in loop.ts with full envelope
   id: enrich-task-signal
   value: critical
   effort: medium
@@ -325,8 +326,9 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   blocks: wave-context-envelope
   exit: loop.ts L1b builds full context envelope before routing to builder
   tags: engine, build, P0
+  done: src/engine/loop.ts:184-201 - taskSignal object includes context, learned, blockers (2026-04-14)
 
-- [ ] Wire recall of prior attempts into context
+- [x] Wire recall of prior attempts into context
   id: recall-prior-attempts
   value: high
   effort: low
@@ -334,8 +336,9 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   persona: dev
   exit: net.recall(taskId) included in envelope. Failed attempts inform next try.
   tags: engine, typedb, P1
+  done: src/engine/loop.ts:179 - net.recall wired into learned, passed as signal.data.learned (2026-04-14)
 
-- [ ] Wire blocking context — executor sees what it unblocks
+- [x] Wire blocking context — executor sees what it unblocks
   id: blocking-context
   value: high
   effort: low
@@ -343,6 +346,7 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   persona: dev
   exit: task_blockers() results in signal. Builder knows its work unblocks N others.
   tags: engine, typedb, P1
+  done: src/engine/loop.ts:182-183 - blockers queried + passed as signal.data.blockers (2026-04-14)
 
 ---
 
@@ -562,21 +566,21 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — Context into tasks
-  - [ ] W1 — Recon (Haiku x 4)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 4)
-  - [ ] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 2: PROVE** — Waves as core loops
-  - [ ] W1 — Recon (Haiku x 6)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 6)
-  - [ ] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 3: GROW** — Self-learning
-  - [ ] W1 — Recon (Haiku x 5)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 5)
-  - [ ] W4 — Verify (Sonnet x 1)
+- [x] **Cycle 1: WIRE** — Context into tasks
+  - [x] W1 — Recon (Haiku x 4)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 4)
+  - [x] W4 — Verify (Sonnet x 1)
+- [x] **Cycle 2: PROVE** — Waves as core loops
+  - [x] W1 — Recon (Haiku x 6)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 6)
+  - [x] W4 — Verify (Sonnet x 1)
+- [x] **Cycle 3: GROW** — Self-learning
+  - [x] W1 — Recon (Haiku x 5)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 5)
+  - [x] W4 — Verify (Sonnet x 1)
 
 ---
 

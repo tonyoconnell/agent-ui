@@ -53,26 +53,28 @@ export const GET: APIRoute = async ({ url }) => {
       )
     }
 
-    // Fetch pheromone strength for each unit
+    // Fetch pheromone strength only for the discovered uids.
+    // A global `match $u isa unit; ... isa path` times out at scale —
+    // bound the query to the uids we already have.
+    const uids = [...new Set(rows.map((r) => r.uid as string).filter(Boolean))]
     const strengthMap: Record<string, number> = {}
-    const strengthRows = await readParsed(`
-      match
-        $u isa unit;
-        $e (source: $src, target: $u) isa path, has strength $s;
-      select $u, $s;
-    `).catch(() => [])
+    if (uids.length > 0) {
+      // Bound by uid — prevents a Cartesian scan over all paths when
+      // many units exist. TypeDB 3.x `in` takes a list literal.
+      const uidList = uids.map((u) => `"${u}"`).join(', ')
+      const strengthRows = await readParsed(`
+        match
+          $u isa unit, has uid $uid;
+          $uid in [${uidList}];
+          (source: $src, target: $u) isa path, has strength $s;
+        select $uid, $s;
+      `).catch(() => [])
 
-    for (const row of strengthRows) {
-      // Note: row.u might be an object, extract uid if needed
-      const uidKey = (row as Record<string, unknown>).u as unknown
-      let uid: string | undefined
-      if (typeof uidKey === 'string') {
-        uid = uidKey
-      } else if (uidKey && typeof uidKey === 'object' && 'uid' in uidKey) {
-        uid = String((uidKey as Record<string, unknown>).uid)
-      }
-      if (uid) {
-        strengthMap[uid] = (strengthMap[uid] || 0) + ((row.s as number) || 0)
+      for (const row of strengthRows) {
+        const uid = row.uid as string | undefined
+        if (uid) {
+          strengthMap[uid] = (strengthMap[uid] || 0) + ((row.s as number) || 0)
+        }
       }
     }
 
