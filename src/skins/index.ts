@@ -343,16 +343,343 @@ export const signal: MetaphorSkin = {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ALL SKINS
+// PERSONA SKINS — 7 user-persona vocabularies over the same substrate math
+//
+// CEO/Dev/Investor/Gamer/Kid/Freelancer/Agent each see the same strength/
+// resistance arithmetic through a different vocabulary lens.
+// mark() → commend / deposit / earn / cheer / strengthen
+// warn() → flag / alarm / lose / boo / weaken
+// fade() → forget / evaporate / depreciate / fade / cool
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// CEO — Your AI Team (commend/flag/delegate, business outcomes)
+export const ceo: MetaphorSkin = {
+  id: 'ceo',
+  name: 'CEO',
+
+  actor: 'agent',
+  group: 'team',
+  flow: 'delegation',
+  carrier: 'task',
+
+  send: 'delegate',
+  strengthen: 'commend',
+  weaken: 'flag',
+  decay: 'forget',
+
+  open: 'go-to',
+  blocked: 'fired',
+  closing: 'at-risk',
+  proven: 'star',
+  atRisk: 'struggling',
+
+  colors: {
+    primary: '#3b82f6',
+    secondary: '#2563eb',
+    success: '#60a5fa',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    muted: '#64748b',
+    background: '#0a0a14',
+    surface: '#0f1623',
+  },
+
+  icons: {
+    actor: '👤',
+    group: '🏢',
+    flow: '→',
+    entry: '📋',
+    open: '⭐',
+    blocked: '🚫',
+    proven: '🏆',
+    atRisk: '📉',
+  },
+}
+
+// Dev — Signal Routing and Weighted Graphs (mark/warn/fade, substrate-native)
+export const dev: MetaphorSkin = {
+  id: 'dev',
+  name: 'Developer',
+
+  actor: 'unit',
+  group: 'world',
+  flow: 'signal',
+  carrier: 'data',
+
+  send: 'signal',
+  strengthen: 'mark',
+  weaken: 'warn',
+  decay: 'fade',
+
+  open: 'highway',
+  blocked: 'toxic',
+  closing: 'fading',
+  proven: 'routed',
+  atRisk: 'warned',
+
+  colors: {
+    primary: '#22d3ee',
+    secondary: '#0891b2',
+    success: '#34d399',
+    warning: '#fbbf24',
+    danger: '#f87171',
+    muted: '#4b5563',
+    background: '#050d10',
+    surface: '#0d1f24',
+  },
+
+  icons: {
+    actor: '⬡',
+    group: '🌐',
+    flow: '~',
+    entry: '→',
+    open: '⚡',
+    blocked: '☠️',
+    proven: '💎',
+    atRisk: '⚠️',
+  },
+}
+
+// Investor — Revenue Paths and Compound Returns (earn/lose/depreciate, ROI framing)
+export const investor: MetaphorSkin = {
+  id: 'investor',
+  name: 'Investor',
+
+  actor: 'asset',
+  group: 'portfolio',
+  flow: 'revenue',
+  carrier: 'payment',
+
+  send: 'invest',
+  strengthen: 'earn',
+  weaken: 'lose',
+  decay: 'depreciate',
+
+  open: 'performing',
+  blocked: 'toxic-asset',
+  closing: 'declining',
+  proven: 'highway',
+  atRisk: 'at-risk',
+
+  colors: {
+    primary: '#f59e0b',
+    secondary: '#d97706',
+    success: '#fbbf24',
+    warning: '#fb923c',
+    danger: '#dc2626',
+    muted: '#78716c',
+    background: '#14100a',
+    surface: '#1f180a',
+  },
+
+  icons: {
+    actor: '💼',
+    group: '📊',
+    flow: '💸',
+    entry: '📈',
+    open: '✅',
+    blocked: '❌',
+    proven: '🏅',
+    atRisk: '📉',
+  },
+}
+
+// Gamer — Ants, Trails, and Emergent Colonies (deposit/alarm/evaporate, game metaphor)
+export const gamer: MetaphorSkin = {
+  id: 'gamer',
+  name: 'Gamer',
+
+  actor: 'ant',
+  group: 'colony',
+  flow: 'trail',
+  carrier: 'scent',
+
+  send: 'forage',
+  strengthen: 'deposit',
+  weaken: 'alarm',
+  decay: 'evaporate',
+
+  open: 'trail',
+  blocked: 'poisoned',
+  closing: 'fading',
+  proven: 'super-trail',
+  atRisk: 'alarmed',
+
+  colors: {
+    primary: '#84cc16',
+    secondary: '#65a30d',
+    success: '#a3e635',
+    warning: '#eab308',
+    danger: '#ef4444',
+    muted: '#4b5563',
+    background: '#080f05',
+    surface: '#10180a',
+  },
+
+  icons: {
+    actor: '🐜',
+    group: '🏔️',
+    flow: '~~~',
+    entry: '🌱',
+    open: '🛤️',
+    blocked: '☠️',
+    proven: '👑',
+    atRisk: '⚠️',
+  },
+}
+
+// Kid — Ants Finding Food (smell/yucky/sun, friendly language)
+export const kid: MetaphorSkin = {
+  id: 'kid',
+  name: 'Kid',
+
+  actor: 'helper',
+  group: 'friends',
+  flow: 'path',
+  carrier: 'message',
+
+  send: 'share',
+  strengthen: 'cheer',
+  weaken: 'boo',
+  decay: 'forget',
+
+  open: 'favourite',
+  blocked: 'naughty',
+  closing: 'sleepy',
+  proven: 'best-friend',
+  atRisk: 'struggling',
+
+  colors: {
+    primary: '#facc15',
+    secondary: '#eab308',
+    success: '#4ade80',
+    warning: '#fb923c',
+    danger: '#f87171',
+    muted: '#9ca3af',
+    background: '#0a0a08',
+    surface: '#1a1a14',
+  },
+
+  icons: {
+    actor: '🐜',
+    group: '🏡',
+    flow: '...',
+    entry: '🌸',
+    open: '⭐',
+    blocked: '🚫',
+    proven: '🌟',
+    atRisk: '😟',
+  },
+}
+
+// Freelancer — Offer Skills, Earn Tokens (commend/flag/fade, marketplace framing)
+export const freelancer: MetaphorSkin = {
+  id: 'freelancer',
+  name: 'Freelancer',
+
+  actor: 'worker',
+  group: 'marketplace',
+  flow: 'gig',
+  carrier: 'job',
+
+  send: 'accept',
+  strengthen: 'commend',
+  weaken: 'flag',
+  decay: 'cool-off',
+
+  open: 'top-rated',
+  blocked: 'flagged',
+  closing: 'declining',
+  proven: 'highway',
+  atRisk: 'at-risk',
+
+  colors: {
+    primary: '#a855f7',
+    secondary: '#9333ea',
+    success: '#c084fc',
+    warning: '#f59e0b',
+    danger: '#f87171',
+    muted: '#6b7280',
+    background: '#0a0814',
+    surface: '#130f1f',
+  },
+
+  icons: {
+    actor: '🧑‍💻',
+    group: '🛒',
+    flow: '📦',
+    entry: '📥',
+    open: '⭐',
+    blocked: '🚫',
+    proven: '🏆',
+    atRisk: '📉',
+  },
+}
+
+// Agent — The Primitive (emit/mark/warn/fade, raw substrate vocabulary)
+export const agent: MetaphorSkin = {
+  id: 'agent',
+  name: 'Agent',
+
+  actor: 'unit',
+  group: 'substrate',
+  flow: 'signal',
+  carrier: 'payload',
+
+  send: 'emit',
+  strengthen: 'mark',
+  weaken: 'warn',
+  decay: 'fade',
+
+  open: 'highway',
+  blocked: 'toxic',
+  closing: 'dissolving',
+  proven: 'hardened',
+  atRisk: 'warned',
+
+  colors: {
+    primary: '#f97316',
+    secondary: '#ea580c',
+    success: '#fb923c',
+    warning: '#fbbf24',
+    danger: '#ef4444',
+    muted: '#6b7280',
+    background: '#100805',
+    surface: '#1f110a',
+  },
+
+  icons: {
+    actor: '⬡',
+    group: '🌐',
+    flow: '~',
+    entry: '📡',
+    open: '⚡',
+    blocked: '☠️',
+    proven: '🔒',
+    atRisk: '⚠️',
+  },
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ALL SKINS — 6 metaphors + 7 personas = 13 total views of ONE truth
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const skins: Record<string, MetaphorSkin> = {
+  // Metaphor skins (how it works)
   ant,
   brain,
   team,
   mail,
   water,
   signal,
+  // Persona skins (who you are)
+  ceo,
+  dev,
+  investor,
+  gamer,
+  kid,
+  freelancer,
+  agent,
 }
 
 export const defaultSkin = team
@@ -360,6 +687,10 @@ export const defaultSkin = team
 // Helper to get a skin by ID
 export const getSkin = (id: string): MetaphorSkin => skins[id] || defaultSkin
 
+// Persona skin IDs for UI routing
+export const PERSONA_SKIN_IDS = ['ceo', 'dev', 'investor', 'gamer', 'kid', 'freelancer', 'agent'] as const
+export type PersonaSkinId = (typeof PERSONA_SKIN_IDS)[number]
+
 // ═══════════════════════════════════════════════════════════════════════════════
-// ~200 lines. 6 metaphors. ONE truth.
+// 13 skins. 7 personas. ONE formula. Same math, different words.
 // ═══════════════════════════════════════════════════════════════════════════════
