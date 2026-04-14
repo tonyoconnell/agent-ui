@@ -588,17 +588,17 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
 
 ```bash
 # Run the next wave
-/wave TODO-task-management.md
+/do TODO-task-management.md
 
 # Create a new TODO from a source doc
-/todo source-doc.md
+/create todo source-doc.md
 
 # Autonomous loop
-/work
+/do
 
 # Check state
-/highways
-/tasks
+/see highways
+/see tasks
 ```
 
 ---

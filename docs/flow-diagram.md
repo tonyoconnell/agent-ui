@@ -9,7 +9,7 @@
 └──────────────────────────────────────────────────────────────────┘
 
 ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│   /sync     │      │   /grow     │      │   /wave     │
+│   /sync     │      │   /sync tick│      │   /do       │
 │ (Task Load) │      │ (7 Loops)   │      │ (Phases)    │
 └──────┬──────┘      └──────┬──────┘      └──────┬──────┘
        │                    │                     │
@@ -20,8 +20,8 @@
                 │
                 ▼
         ┌───────────────┐
-        │   /work       │ ← pick unblocked task
-        │  /done        │ ← mark with rubric score
+        │   /do         │ ← pick unblocked task
+        │  /close       │ ← mark with rubric score
         └───────┬───────┘
                 │
                 ▼
@@ -70,7 +70,7 @@ RESULT
 
 ---
 
-### `/work` → `/done` — Task Execution (Core loop)
+### `/do` → `/close` — Task Execution (Core loop)
 
 ```
 SENSE
@@ -128,7 +128,7 @@ RESULT
 
 ---
 
-### `/grow` — Seven Loops (Happens automatically every 60s)
+### `/sync tick` — Seven Loops (Happens automatically every 60s)
 
 ```
 L1: SIGNAL
@@ -184,7 +184,7 @@ RESULT (TickResult)
 
 ---
 
-### `/wave TODO-rename.md` — Phase Executor (Manual, deterministic)
+### `/do TODO-rename.md` — Phase Executor (Manual, deterministic)
 
 ```
 PHASE STRUCTURE
@@ -252,18 +252,18 @@ START
   ├─ "I need to load tasks" → /sync
   │  └─ Result: task substrate populated
   │
-  ├─ "Pick one task and execute it" → /work (then /done)
-  │  ├─ /work: execute, score
-  │  └─ /done: W4 verify, mark pheromone
+  ├─ "Pick one task and execute it" → /do (then /close)
+  │  ├─ /do: execute, score
+  │  └─ /close: W4 verify, mark pheromone
   │     └─ Result: task done, dependents unblocked
   │
-  ├─ "I want pheromone to shift automatically" → /grow
+  ├─ "I want pheromone to shift automatically" → /sync tick
   │  └─ Result: 7 loops run, routing improves
   │
-  ├─ "Execute a multi-phase TODO with self-checkoff" → /wave TODO-*.md
+  ├─ "Execute a multi-phase TODO with self-checkoff" → /do TODO-*.md
   │  └─ Result: one phase W1-W4 complete, next phase unblocked
   │
-  └─ "Continuous autonomous execution" → /work loop + /grow loop
+  └─ "Continuous autonomous execution" → /do loop + /sync tick loop
      └─ Result: system runs forever, learns continuously
 ```
 
@@ -282,7 +282,7 @@ START
                      [Baseline must clean]
                             │
                       ┌─────▼──────────┐
-                      │ /sync or /work │
+                      │ /sync or /do   │
                       │ EXECUTE        │
                       └─────┬──────────┘
                             │
@@ -324,6 +324,6 @@ START
 | **Routing** | weight = 1 + max(0, S-R)×sens | docs/routing.md | ✓ Tested (43 tests) |
 | **Quality** | Fit, Form, Truth, Taste | docs/rubrics.md | ✓ Implemented |
 | **Gates** | W0 (baseline), W4 (verify) | .claude/commands/ | ✓ In place |
-| **Commands** | /sync, /work, /done, /grow, /wave | .claude/commands/ | ✓ All wired |
+| **Commands** | /see, /create, /do, /close, /sync | .claude/commands/ | ✓ All wired |
 
 **Everything is named. Everything is tested. Everything is connected.**

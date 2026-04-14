@@ -656,10 +656,10 @@ Tests revealed these gaps — documented here, tracked in other TODOs:
 
 ```bash
 # Run the next wave
-/wave TODO-testing.md
+/do TODO-testing.md
 
 # Autonomous loop
-/work
+/do
 
 # The three deterministic checks
 bun run verify                    # all three at once

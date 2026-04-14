@@ -6,7 +6,7 @@
 > [patterns.md](patterns.md) — 10 emergent patterns,
 > [routing.md](routing.md) — the deterministic sandwich
 >
-> **Schema:** Tasks map to `world.tql` dimension 3b. Execute with `/wave`. Create with `/todo`.
+> **Schema:** Tasks map to `world.tql` dimension 3b. Execute with `/do`. Create with `/create todo`.
 
 - [x] Schema: Add task, task-dependency, task-execution entities to world.tql
   value: critical

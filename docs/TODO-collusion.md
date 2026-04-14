@@ -26,7 +26,7 @@ status: ACTIVE
 Signals flow down through waves. Each cycle claims more of the substrate.
 
 ```
-    /wave TODO-collusion.md           Mark path with ownership strength
+    /do TODO-collusion.md           Mark path with ownership strength
          │
          ▼
     ┌─W1────────┐
@@ -183,27 +183,27 @@ NEW:       "import { query } from '@/lib/typedb'\n\nexport const POST = async (r
 RATIONALE: Owner-checked wave-lock release. Returns 403 if not owner.
 ```
 
-**C3.3 — .claude/commands/work.md (add SESSION_ID generation)**
+**C3.3 — .claude/commands/do.md (add SESSION_ID generation)**
 ```
-TARGET:    .claude/commands/work.md
+TARGET:    .claude/commands/do.md
 ANCHOR:    "# /work"
 ACTION:    insert after
 NEW:       "\nSESSION_ID=\"claude-$$-$(date +%s)\"\n"
 RATIONALE: Generate unique session ID at command start
 ```
 
-**C3.4 — .claude/commands/work.md (add claim step)**
+**C3.4 — .claude/commands/do.md (add claim step)**
 ```
-TARGET:    .claude/commands/work.md
+TARGET:    .claude/commands/do.md
 ANCHOR:    "# SELECT: find highest-priority open task"
 ACTION:    insert after
 NEW:       "\n# CLAIM: atomic transition to active\nwhile true; do\n  RESULT=$(curl -s -X POST http://localhost:4321/api/tasks/$TASK_ID/claim \\\n    -H 'Content-Type: application/json' \\\n    -d '{\"sessionId\":\"'$SESSION_ID'\"}')\n  if echo \"$RESULT\" | grep -q '\"ok\"'; then break; fi\n  TASK=$(curl -s http://localhost:4321/api/tasks | jq '.[] | select(.status==\"open\")' | head -1)\ndone\n"
 RATIONALE: Claim task atomically; retry with new task on 409 (already claimed)
 ```
 
-**C3.5 — .claude/commands/work.md (pass SESSION_ID to complete)**
+**C3.5 — .claude/commands/do.md (pass SESSION_ID to complete)**
 ```
-TARGET:    .claude/commands/work.md
+TARGET:    .claude/commands/do.md
 ANCHOR:    "# COMPLETE: mark done"
 ACTION:    insert after
 NEW:       "\ncurl -s -X POST http://localhost:4321/api/tasks/$TASK_ID/complete \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"from\":\"'$SESSION_ID'\"}'\n"
@@ -567,7 +567,7 @@ Command layer: SESSION_ID generation, claim/release in /work and /done; wave-lev
 
 ### Task 10: Update /work Command
 
-- [ ] **10a. Modify .claude/commands/work.md (add SESSION_ID generation)**
+- [ ] **10a. Modify .claude/commands/do.md (add SESSION_ID generation)**
   id: c3-work-session
   value: high
   effort: low
@@ -774,7 +774,7 @@ Cost in Claude credits (approximate). Haiku reads specs. Sonnet writes/tests. Op
 ## Next Action
 
 ```bash
-/wave TODO-collusion.md
+/do TODO-collusion.md
 # Starts Cycle 1, Wave 1: Haiku recon of PLAN-collusion-mitigation.md
 ```
 

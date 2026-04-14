@@ -814,7 +814,7 @@ A reusable template. The pattern — cycles with wave-based execution — applie
 to any doc-tree sweep: vocabulary migrations, link audits, schema syncs.
 
 To convert to substrate tasks: each Wave 3 job becomes a `skill` with the
-prompt as body. `/work` picks highest-pheromone skill. Same loop, live routing.
+prompt as body. `/do` picks highest-pheromone skill. Same loop, live routing.
 
 ---
 

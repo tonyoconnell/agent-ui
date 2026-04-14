@@ -21,7 +21,7 @@ syncs_with: TODO-testing.md
 > [routing.md](routing.md) — the sandwich pattern,
 > [TODO-testing.md](TODO-testing.md) — testing gates every transition
 >
-> **Schema:** Tasks map to `world.tql` dimension 3b. Execute with `/wave`. Create with `/todo`.
+> **Schema:** Tasks map to `world.tql` dimension 3b. Execute with `/do`. Create with `/create todo`.
 >
 > **Shape:** 3 cycles, four waves each. Haiku reads, Opus decides, Sonnet
 > writes, Sonnet checks. Same loop as the substrate, different receivers.
@@ -511,10 +511,10 @@ curl -X POST localhost:4321/api/harden -H "Authorization: Bearer $TOKEN"
 
 ```bash
 # Run the next wave
-/wave TODO-lifecycle.md
+/do TODO-lifecycle.md
 
 # Autonomous loop
-/work
+/do
 
 # The three deterministic checks
 bun run verify                    # all three at once

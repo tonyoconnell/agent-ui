@@ -801,16 +801,16 @@ bun run verify                               # 326/326
   - [x] W2 — Decide (Opus)
   - [x] W3 — Edits (Sonnet × 5)
   - [x] W4 — Verify (Sonnet × 1)
-- [ ] **Cycle 2: PROVE** — 12 files → 5 commands + full L1-L7 noun coverage
-  - [ ] W1 — Recon (Haiku × 5)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet × 9) — 5 file writes + CLAUDE.md + smoke + coverage + cleanup
-  - [ ] W4 — Verify (Sonnet × 1)
-- [ ] **Cycle 3: GROW** — Sweep old-command refs across all TODOs + index
-  - [ ] W1 — Recon (Haiku × 2)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet × 2)
-  - [ ] W4 — Verify (Sonnet × 1)
+- [x] **Cycle 2: PROVE** — 12 files → 5 commands + full L1-L7 noun coverage
+  - [x] W1 — Recon (Haiku × 5)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet × 6) — 5 file writes + cleanup
+  - [x] W4 — Verify (Sonnet × 1)
+- [x] **Cycle 3: GROW** — Sweep old-command refs across all TODOs + index
+  - [x] W1 — Recon (Haiku × 2)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet × 7) + W3.5 micro-edits (Sonnet × 5)
+  - [x] W4 — Verify (Sonnet × 1) — loop 1 caught 6 additional docs; W3.5 fixed them
 
 ---
 

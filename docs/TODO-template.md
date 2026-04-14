@@ -36,7 +36,7 @@ tagged weights. Each tag:weight pair points to a different next hop.
 ```
     signal DOWN                     result UP
     ──────────                      ─────────
-    /wave TODO-{name}.md            result + 4 tagged marks
+    /do TODO-{name}.md              result + 4 tagged marks
          │                               │
          ▼                               │
     ┌─────────┐                          │
@@ -411,20 +411,20 @@ Weak dims (`< 0.65`) fan out as signals to specialist coaches.
 
 ```bash
 # Run the next wave of the current cycle
-/wave TODO-{name}.md
+/do TODO-{name}.md
 
 # Or manually — autonomous sequential loop
-/work
+/do
 
 # Check state
-/highways                   # proven paths
-/tasks                      # open tasks by priority
+/see highways               # proven paths
+/see tasks                  # open tasks by priority
 ```
 
-### How `/wave` Orchestrates
+### How `/do` Orchestrates
 
 ```
-/wave TODO-rename.md
+/do TODO-rename.md
   │
   ├── reads TODO, finds current cycle + wave
   │
@@ -453,7 +453,7 @@ This template works for any doc-tree sweep:
 - API updates (propagate new endpoints)
 
 To convert to substrate tasks: each Wave 3 job becomes a `skill`
-with the edit prompt as body. `/work` picks highest-pheromone skill.
+with the edit prompt as body. `/do` picks highest-pheromone skill.
 
 ---
 

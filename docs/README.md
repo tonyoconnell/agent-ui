@@ -155,14 +155,18 @@ L7  frontier detection from unexplored tag clusters         every hour
 ## Claude Code Integration
 
 ```
-/work       Autonomous loop: sense → select → execute → mark → repeat
-/next       Pick one task and do it
-/tasks      See tasks by category + tags
-/add-task   Create tagged skill
-/done       Mark outcome, reinforce trail
-/grow       Run one growth tick
-/highways   Proven paths and frontiers
-/know       Harden paths to permanent knowledge
+/see     tasks              open work sorted by priority         L1
+/see     highways           proven paths (strength ≥ 50)         L2
+/see     frontiers          unexplored tag clusters              L7
+/create  task <name>        atomic task into TypeDB              L1
+/create  todo <doc>         TODO from template (Haiku extract)   L1
+/do      <TODO-file>        advance next wave                    L1
+/do                         autonomous loop: pick → execute → mark L1
+/do      --once             single task iteration                L1
+/close   <task-id>          mark() success, unblock dependents   L2
+/close   <task-id> --fail   warn(1) — full failure               L2
+/sync                       tick + scan docs + todos + agents    L3-L7
+/sync    tick               fire all L1-L7 loops                 L1-L7
 ```
 
 ---

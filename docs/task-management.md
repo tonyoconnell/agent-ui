@@ -16,7 +16,7 @@ No task is assigned. Every task is discovered through signals and deposits.
 ## The Full Flow
 
 ```
-docs/*.md ──→ Haiku ──→ TaskSpec[] ──→ weight() ──→ TypeDB ──→ select() ──→ /work
+docs/*.md ──→ Haiku ──→ TaskSpec[] ──→ weight() ──→ TypeDB ──→ select() ──→ /do
                 │                         │                        │
           reads prose              priority formula          pheromone adjusts
           finds implicit tasks     value × phase ×           strength - resistance
@@ -315,7 +315,7 @@ Source docs: `ONE-strategy.md`, `autonomous-orgs.md`, any `docs/*.md` with actio
 ## Initial Weighting
 
 Every task needs a starting weight before pheromone has data. The formula
-makes the first `/work` cycle as smart as the hundredth — it just gets
+makes the first `/do` cycle as smart as the hundredth — it just gets
 smarter from there.
 
 ### The Priority Formula
@@ -460,7 +460,7 @@ marketing-dept-live:     priority=110, strength=0, resistance=0  → effective=1
 engineering-framework:   priority=90,  strength=0, resistance=0  → effective=90
 ```
 
-Pure formula. The first `/work` cycle picks marketing-dept-live. Correct.
+Pure formula. The first `/do` cycle picks marketing-dept-live. Correct.
 
 ### After first executions
 
@@ -520,9 +520,9 @@ weight = 1 + max(0, strength - resistance) × sensitivity
 ### Usage
 
 ```
-/work                         → all tasks, default sensitivity
-/work tags=build,P0           → only build+P0 tasks, high sensitivity
-/work tags=ui sensitivity=0.3 → UI tasks, more exploration
+/do                         → all tasks, default sensitivity
+/do tags=build,P0           → only build+P0 tasks, high sensitivity
+/do tags=ui sensitivity=0.3 → UI tasks, more exploration
 ```
 
 ---
@@ -931,17 +931,17 @@ sort $p desc; limit 1;
 
 Three outcomes:
 - **Handler exists**: executes, marks path, sets `task.done = true` in TypeDB
-- **Dissolved** (no handler): re-enqueues for the CLI `/work` loop
+- **Dissolved** (no handler): re-enqueues for the CLI `/do` loop
 - **Failed**: warns the `loop→builder:taskId` edge
 
-This is the engine→Claude Code handoff. Dissolved tasks are how work reaches `/work`.
+This is the engine→Claude Code handoff. Dissolved tasks are how work reaches `/do`.
 
 ### The `builder` Unit
 
 `builder` is the bridge between engine ticks and Claude Code:
 
 ```
-engine tick                              Claude Code (/work)
+engine tick                              Claude Code (/do)
 ───────────                              ──────────────────
 L1b picks top priority open task
   → ask({ receiver: 'builder:taskId' })
@@ -988,7 +988,7 @@ docs/*.md checkboxes + gap patterns
     → insert skill (skill-id, name, tags, price=0)
       → insert capability (provider: builder, offered: skill)
         → visible in /api/tasks
-          → picked up by /work
+          → picked up by /do
 ```
 
 All doc-extracted tasks are linked to the `builder` unit. This means every TODO in `docs/` is automatically a task for Claude Code. The scan is idempotent — inserts ignore duplicates.
@@ -1175,17 +1175,17 @@ Tags for what it IS. Pheromone for how well it WORKS.
 Claude Code is a unit in the world. Slash commands are the interface:
 
 ```
-/work              # Autonomous loop: sense → select → execute → mark → repeat
-/next              # Pick one task and do it
-/tasks             # See what's available (filter: /tasks P0 build)
-/add-task ...      # Create a tagged skill
-/done skill-id     # Mark complete, reinforce trail
-/grow              # Run one growth tick
-/highways          # See proven paths and frontiers
-/report            # Record this session's outcomes to the substrate
+/do                # Autonomous loop: sense → select → execute → mark → repeat
+/do --once         # Pick one task and do it
+/see tasks         # See what's available (filter: /see tasks P0 build)
+/create task ...   # Create a tagged skill
+/close <id>        # Mark complete, reinforce path
+/sync tick         # Run one growth tick
+/see highways      # See proven paths and frontiers
+/close             # Record this session's outcomes to the substrate
 ```
 
-### The Autonomous Loop (`/work`)
+### The Autonomous Loop (`/do`)
 
 ```
 SENSE:   GET /api/tasks → group by category (attractive/ready/exploratory/repelled)
@@ -1199,9 +1199,9 @@ GROW:    GET /api/tick?interval=0 → run one tick, see highways/frontiers
 LOOP:    go to SENSE
 ```
 
-Marking via HTTP (`/api/tasks/:id/complete`) writes through to TypeDB. The in-memory pheromone map updates on the next tick when TypeDB is re-read. So there's a one-tick lag between `/work` marking and the engine seeing the updated strength — not a problem, just worth knowing.
+Marking via HTTP (`/api/tasks/:id/complete`) writes through to TypeDB. The in-memory pheromone map updates on the next tick when TypeDB is re-read. So there's a one-tick lag between `/do` marking and the engine seeing the updated strength — not a problem, just worth knowing.
 
-Each completion teaches the world. Each `/work` cycle makes it smarter. Multiple Claude Code instances sharing one TypeDB = shared intelligence.
+Each completion teaches the world. Each `/do` cycle makes it smarter. Multiple Claude Code instances sharing one TypeDB = shared intelligence.
 
 ---
 
@@ -1252,7 +1252,7 @@ This isn't a task board. It's a **marketplace where work finds workers through p
 - `src/engine/doc-scan.ts` -- Checkbox/gap extraction
 - `src/engine/selectors.ts` -- Selection strategies (byPriority, taskSelector)
 - `src/engine/loops.ts` -- All loops including docLoop
-- `.claude/commands/work.md` -- Autonomous work loop
+- `.claude/commands/do.md` -- Autonomous work loop
 
 ---
 

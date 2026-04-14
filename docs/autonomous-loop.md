@@ -1,6 +1,6 @@
 # The Autonomous Loop — Full Integration
 
-**Complete end-to-end: W0 baseline → /sync → /work → /done (W4 rubric check) → /grow → repeat**
+**Complete end-to-end: W0 baseline → /sync → /do → /close (W4 rubric check) → /sync tick → repeat**
 
 The deterministic sandwich ensures the system grows cleanly. Every gate is wired. Pheromone learns quality, not just success.
 
@@ -8,7 +8,7 @@ The deterministic sandwich ensures the system grows cleanly. Every gate is wired
 
 ## The Four Gates
 
-### 1. W0 — Baseline (before sync/work)
+### 1. W0 — Baseline (before sync/do)
 
 **Guard:** Ensure codebase is healthy before touching it.
 
@@ -50,7 +50,7 @@ Must pass:
 
 ---
 
-### 3. /WORK → Pick → Execute → W4 Rubric Check
+### 3. /DO → Pick → Execute → W4 Rubric Check
 
 **Step 1: SENSE**
 
@@ -109,7 +109,7 @@ if (!verify.pass) {
 
 ---
 
-### 4. /DONE — Mark & Reinforce Path
+### 4. /CLOSE — Mark & Reinforce Path
 
 **What happens:**
 1. Run W4 gate: `bun run verify` + rubric scoring
@@ -123,7 +123,7 @@ if (!verify.pass) {
 
 ---
 
-### 5. /GROW — One Tick of Seven Loops
+### 5. /SYNC TICK — One Tick of Seven Loops
 
 **Full growth cycle:**
 
@@ -146,29 +146,29 @@ L6: FRONTIER  → find unexplored tag clusters (new opportunities)
 TIME 0:00  /sync              229 tasks scanned, 49 blocks, synced to TypeDB
            W0 gate           ✓ baseline passes
 
-TIME 0:45  /work              Pick: "Build CEO control panel" (priority 100, blocks 1)
+TIME 0:45  /do                Pick: "Build CEO control panel" (priority 100, blocks 1)
            EXECUTE           Code, tests, w4 check...
            W4 rubric         fit=1.0, form=0.95, truth=1.0, taste=0.90 → golden
            RESULT            Ready to mark done
 
-TIME 1:30  /done              Mark → mark(edge, 0.943)
+TIME 1:30  /close             Mark → mark(edge, 0.943)
            PHEROMONE        "ceo:panel→ceo:visibility" gets +0.943 strength
            UNBLOCK          "ceo:visibility" now unblocked (was blocked by panel)
 
-TIME 1:35  /grow              Run one tick
+TIME 1:35  /sync tick         Run one tick
            L1-L3             Routing shifts: next pick more likely to be ceo:visibility
            L5-L6             Highways update: ceo cluster showing strength > 50
 
-TIME 2:00  /work              Pick: "Wire CEO visibility" (now unblocked, priority 100)
+TIME 2:00  /do                Pick: "Wire CEO visibility" (now unblocked, priority 100)
            EXECUTE           Code, tests, w4 check...
            W4 rubric         fit=0.95, form=0.70, truth=0.85, taste=0.80 → good (0.79)
            RESULT            Ready to mark done
 
-TIME 3:00  /done              Mark → mark(edge, 0.79)
+TIME 3:00  /close             Mark → mark(edge, 0.79)
            PHEROMONE        "router→ceo:visibility" gets +0.79 strength
            UNBLOCK          "ceo:governance" now unblocked
 
-TIME 3:05  /grow              One more tick
+TIME 3:05  /sync tick         One more tick
            HIGHWAYS          CEO cluster now has 2 proven paths, forming highway
            COMPOSITE         Two consecutive golden/good marks = system learning
            NEXT CYCLE        Ready for phase 2 (deeper governance features)
@@ -197,7 +197,7 @@ TIME 3:05  /grow              One more tick
 
 ## Blocking Relationships
 
-Tasks can block other tasks. `/work` only picks unblocked tasks.
+Tasks can block other tasks. `/do` only picks unblocked tasks.
 
 Example from TODO-rename.md:
 ```
@@ -206,8 +206,8 @@ phase-1-start (id)  → blockedBy: [phase-0-rename]
 ```
 
 **Workflow:**
-1. Phase 0 is unblocked → `/work` picks it
-2. Phase 0 completes (W4 passes) → `/done` marks it
+1. Phase 0 is unblocked → `/do` picks it
+2. Phase 0 completes (W4 passes) → `/close` marks it
 3. System notes: phase-0-rename succeeded
 4. Phase 1 dependency clears → phase-1-start becomes available
 5. Next `/sense` shows phase-1 as selectable
@@ -235,8 +235,8 @@ The deterministic sandwich prevents:
 |------|--------|
 | `src/engine/rubric-score.ts` | NEW: Rubric scoring with 4 dimensions |
 | `src/engine/rubric.test.ts` | NEW: 10 tests for golden/good/borderline/failed work |
-| `.claude/commands/done.md` | Updated: W4 gate now references rubric dimensions |
-| `.claude/commands/work.md` | Updated: W0 baseline, mentions rubrics |
+| `.claude/commands/close.md` | Updated: W4 gate now references rubric dimensions |
+| `.claude/commands/do.md` | Updated: W0 baseline, mentions rubrics |
 | `src/pages/api/tasks/sync.ts` | Existing: KV hash-gating, unchanged |
 | `docs/rubrics.md` | Existing: Complete rubric spec, referenced by loop |
 
@@ -244,9 +244,9 @@ The deterministic sandwich prevents:
 
 ## Next Steps
 
-1. **Execute phase-0-rename** — Run `/wave TODO-rename.md` to start first migration phase
-2. **Monitor highways** — Run `/grow` every minute to watch pheromone shift
-3. **Track quality** — Each `/done` shows fit/form/truth/taste scores
+1. **Execute phase-0-rename** — Run `/do TODO-rename.md` to start first migration phase
+2. **Monitor highways** — Run `/sync tick` every minute to watch pheromone shift
+3. **Track quality** — Each `/close` shows fit/form/truth/taste scores
 4. **Measure impact** — After 10 cycles, check how many tasks unblocked without regression
 
 The system grows with confidence. Broken paths are caught immediately. Good work reinforces better paths. The world learns.

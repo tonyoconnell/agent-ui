@@ -23,6 +23,9 @@ interface Env {
 // Token cache (per-isolate, 61s TTL)
 let cachedToken: { token: string; expires: number } | null = null
 
+// WebSocket client tracking (per-isolate — cross-isolate needs Durable Objects)
+const connectedClients = new Set<WebSocket>()
+
 const CORS_ORIGINS = [
   'http://localhost:4321',
   'http://localhost:3000',
@@ -36,7 +39,7 @@ function corsHeaders(origin: string | null): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Upgrade, Connection',
     'Access-Control-Max-Age': '86400',
   }
 }
@@ -79,6 +82,47 @@ export default {
     // Health check
     if (url.pathname === '/health') {
       return Response.json({ status: 'ok', version: env.VERSION, database: env.TYPEDB_DATABASE }, { headers })
+    }
+
+    // GET /ws — WebSocket upgrade for live TaskBoard updates
+    if (url.pathname === '/ws') {
+      if (request.headers.get('Upgrade') !== 'websocket') {
+        return new Response('Expected WebSocket upgrade', { status: 426, headers })
+      }
+      const pair = new WebSocketPair()
+      const [client, server] = Object.values(pair) as [WebSocket, WebSocket]
+      server.accept()
+      connectedClients.add(server)
+      server.addEventListener('message', (event: MessageEvent) => {
+        if (event.data === 'ping') server.send('pong')
+      })
+      server.addEventListener('close', () => {
+        connectedClients.delete(server)
+      })
+      server.addEventListener('error', () => {
+        connectedClients.delete(server)
+      })
+      return new Response(null, { status: 101, webSocket: client })
+    }
+
+    // POST /broadcast — relay a WsMessage to all connected WebSocket clients
+    if (url.pathname === '/broadcast' && request.method === 'POST') {
+      try {
+        const message = await request.text()
+        JSON.parse(message) // validate JSON before relaying
+        let sent = 0
+        for (const client of connectedClients) {
+          try {
+            client.send(message)
+            sent++
+          } catch {
+            connectedClients.delete(client)
+          }
+        }
+        return Response.json({ ok: true, sent }, { headers })
+      } catch {
+        return Response.json({ error: 'Invalid JSON' }, { status: 400, headers })
+      }
     }
 
     // POST /typedb/query — proxy TypeQL queries to TypeDB Cloud /v1/query

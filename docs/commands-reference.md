@@ -37,7 +37,7 @@ todo.json snapshot (for CI, dashboards)
 
 ---
 
-### 2. `/work` — Autonomous Loop (EXECUTE work)
+### 2. `/do` — Autonomous Loop (EXECUTE work)
 
 **Time scale:** Per task (5 min - 2 hours)
 **What:** Pick unblocked task → execute → score → ready to mark
@@ -60,7 +60,7 @@ EXECUTE
   score: fit/form/truth/taste dimensions against rubric
 
 READY TO MARK
-  if W4 verify passes → call /done
+  if W4 verify passes → call /close
   if W4 verify fails → iterate (fix and re-score)
 ```
 
@@ -72,7 +72,7 @@ READY TO MARK
 
 ---
 
-### 3. `/done` — Mark & Reinforce (POST-work verification)
+### 3. `/close` — Mark & Reinforce (POST-work verification)
 
 **Time scale:** After work completes (1 minute)
 **What:** W4 verify + mark pheromone + unblock dependents
@@ -96,7 +96,7 @@ MARK/WARN
 PHEROMONE UPDATE
   path "entry→task" gets strength [0-1]
   four tagged dimensions: fit, form, truth, taste
-  next /grow will weight routing by composite score
+  next /sync tick will weight routing by composite score
 ```
 
 **Result:** Path pheromone reinforced. Dependent tasks unblocked. System learns quality.
@@ -106,7 +106,7 @@ PHEROMONE UPDATE
 
 ---
 
-### 4. `/grow` — One Tick (GROWTH cycle)
+### 4. `/sync tick` — One Tick (GROWTH cycle)
 
 **Time scale:** Every 60 seconds (or manual)
 **What:** Run all 7 loops, accumulate pheromone, shift routing
@@ -162,7 +162,7 @@ L7: ECONOMIC      (revenue tracking, skip for baseline)
 
 ---
 
-### 5. `/wave` — Phase Executor (CYCLE-based work)
+### 5. `/do <TODO>` — Phase Executor (CYCLE-based work)
 
 **Time scale:** Per phase (1 hour - 1 day)
 **What:** Run one wave of a multi-phase TODO (W1-W4 with self-checkoff)
@@ -173,7 +173,7 @@ TODO-rename.md structure:
   ├─ phase-1-start (blockedBy: [phase-0-rename], blocks: [phase-2-...])
   └─ phase-2-... (and so on)
 
-/wave TODO-rename.md behavior:
+/do TODO-rename.md behavior:
 
 W1: HAIKU RECON   Quick research + extract key facts
                   generate structured TODO entries
@@ -198,9 +198,9 @@ W4: SONNET VERIFY W4 gate: bun run verify + rubric check
 TOTAL: ~60K tokens per phase (deterministic, predictable)
 ```
 
-**Difference from /work:**
-- `/work` picks ANY unblocked task (global optimization)
-- `/wave` executes PHASES in sequence (local consistency, learner-friendly)
+**Difference from /do:**
+- `/do` picks ANY unblocked task (global optimization)
+- `/do <TODO>` executes PHASES in sequence (local consistency, learner-friendly)
 
 ---
 
@@ -219,8 +219,8 @@ SLOW (minute-hour)   →  L4: EVOLVE
                        L6: FRONTIER
                        (every 10 min, 1 hour)
 
-HUMAN (hour-day)     →  /work picks task → /done marks → /grow ticks
-                       /wave executes one phase (W1-W4)
+HUMAN (hour-day)     →  /do picks task → /close marks → /sync tick runs
+                       /do <TODO> executes one phase (W1-W4)
                        /sync refreshes task graph
 ```
 
@@ -235,7 +235,7 @@ HUMAN (hour-day)     →  /work picks task → /done marks → /grow ticks
 | **Flows** | Pheromone paths | routing.ts | weight = 1 + max(0, strength - resistance) × sensitivity |
 | **Naming** | Dictionary | docs/dictionary.md | canonical, alias[skin], nickname |
 | **Quality** | Rubric dimensions | rubric-score.ts | fit, form, truth, taste |
-| **Gates** | Sandwich | /sync, /done | W0 (before), W4 (after) |
+| **Gates** | Sandwich | /sync, /close | W0 (before), W4 (after) |
 
 ---
 
@@ -245,19 +245,19 @@ HUMAN (hour-day)     →  /work picks task → /done marks → /grow ticks
 Time 0:00   /sync                229 tasks, 49 blocks loaded
             W0 gate              ✓ baseline clean
 
-Time 0:45   /work                Pick task, execute, score
+Time 0:45   /do                  Pick task, execute, score
             W4 gate              ✓ rubric pass
 
-Time 1:00   /done                Mark(0.89), unblock dependents
+Time 1:00   /close               Mark(0.89), unblock dependents
                                  path "entry→task" gets +0.89 strength
 
-Time 1:05   /grow                One tick
+Time 1:05   /sync tick           One tick
             L1-L3                SELECT → MARK/WARN → FADE
             L4-L7                EVOLVE → KNOW → FRONTIER
                                  highways shift
                                  next routing sees new weights
 
-Time 1:10   /work                Pick next (now unblocked, higher weight)
+Time 1:10   /do                  Pick next (now unblocked, higher weight)
             ... repeat
 ```
 
@@ -268,14 +268,14 @@ Time 1:10   /work                Pick next (now unblocked, higher weight)
 | Command | Purpose | Time | Gate | Output |
 |---------|---------|------|------|--------|
 | `/sync` | Load tasks | ~40s | W0 | 229 tasks, blocks graph |
-| `/work` | Execute task | 5m-2h | W4 | Code, tests, rubric score |
-| `/done` | Mark & reinforce | 1m | W4 | Pheromone +strength, unblock |
-| `/grow` | Tick loops | 1m | — | 7 loops run, highways form |
-| `/wave` | Phase executor | 1h-1d | W1-W4 | One phase complete, self-checkoff |
+| `/do` | Execute task | 5m-2h | W4 | Code, tests, rubric score |
+| `/close` | Mark & reinforce | 1m | W4 | Pheromone +strength, unblock |
+| `/sync tick` | Tick loops | 1m | — | 7 loops run, highways form |
+| `/do <TODO>` | Phase executor | 1h-1d | W1-W4 | One phase complete, self-checkoff |
 
-**In parallel:** `/sync` and `/grow` can run independently (different data)
-**Dependent:** `/work` requires `/sync` first, `/done` after `/work`
-**Authority:** `/wave` is deterministic (uses rubrics), `/grow` is probabilistic (uses routing)
+**In parallel:** `/sync` and `/sync tick` can run independently (different data)
+**Dependent:** `/do` requires `/sync` first, `/close` after `/do`
+**Authority:** `/do <TODO>` is deterministic (uses rubrics), `/sync tick` is probabilistic (uses routing)
 
 ---
 

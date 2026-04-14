@@ -445,14 +445,14 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
 
 ```bash
 # Run the next wave of the current cycle
-/wave TODO-typedb.md
+/do TODO-typedb.md
 
 # Or manually — autonomous sequential loop
-/work
+/do
 
 # Check state
-/highways                   # proven paths
-/tasks                      # open tasks by priority
+/see highways               # proven paths
+/see tasks                  # open tasks by priority
 ```
 
 ---

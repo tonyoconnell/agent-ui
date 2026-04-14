@@ -8,7 +8,7 @@
 > [speed.md](speed.md) — the benchmarks,
 > [lifecycle.md](lifecycle.md) — harden stage
 >
-> **Schema:** Tasks map to `world.tql` dimension 3b. Sui entities mirror in `sui.tql`. Execute with `/wave`. Create with `/todo`.
+> **Schema:** Tasks map to `world.tql` dimension 3b. Sui entities mirror in `sui.tql`. Execute with `/do`. Create with `/create todo`.
 
 ---
 

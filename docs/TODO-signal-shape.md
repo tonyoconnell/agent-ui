@@ -564,14 +564,14 @@ helper — not by TypeScript. Simpler, zero-risk, no call-site migration needed.
 
 ```bash
 # Start the first wave (Cycle 1, W1)
-/wave TODO-signal-shape.md
+/do TODO-signal-shape.md
 
-# After each wave completes, rerun /wave to advance
-/wave TODO-signal-shape.md
+# After each wave completes, rerun /do to advance
+/do TODO-signal-shape.md
 
 # Check state
-/highways
-/tasks P0
+/see highways
+/see tasks P0
 ```
 
 ---

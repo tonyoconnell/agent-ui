@@ -366,8 +366,8 @@ means Wave 2's diff specs were wrong and the whole thing needs human review.
 - **Not a replacement for human review.** A maintainer should eyeball the
   diff before commit. The agents apply edits; they don't merge.
 - **Not a substrate task graph.** This doc is a one-shot playbook. It does
-  not get added to TypeDB or driven by `/work`. (If you want it driven by
-  `/work`, the conversion is mechanical: each Wave-3 job becomes a `skill`
+  not get added to TypeDB or driven by `/do`. (If you want it driven by
+  `/do`, the conversion is mechanical: each Wave-3 job becomes a `skill`
   with the prompt as its body.)
 - **Not parallel across waves.** Waves are sequential. Parallelism is
   *within* each wave. Wave 2 cannot start until Wave 1's reports are in;

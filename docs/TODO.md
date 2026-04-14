@@ -189,10 +189,10 @@
   exit: task-parse.ts reads wave: and context: fields. Default W3, context from tags.
 - [ ] **Route model by wave position** — high=25 + C2=35 + dev=20 [haiku] `engine, build, P1` ← [task-management](TODO-task-management.md)
   exit: W1→haiku, W2→opus, W3→sonnet, W4→sonnet. EFFORT_MODEL fallback.
-- [ ] **Make /work wave-aware** — high=25 + C2=35 + dev=20 [sonnet] `engine, build, P1` ← [task-management](TODO-task-management.md)
-  exit: /work detects wave, spawns correct model, advances on success
-- [ ] **Make TODO template a /todo skill** — high=25 + C2=35 + dev=20 [haiku] `engine, build, P1` ← [task-management](TODO-task-management.md)
-  exit: /todo creates a TODO file from source doc with wave structure, DSL+dict context, schema link
+- [ ] **Make /do wave-aware** — high=25 + C2=35 + dev=20 [sonnet] `engine, build, P1` ← [task-management](TODO-task-management.md)
+  exit: /do detects wave, spawns correct model, advances on success
+- [ ] **Make TODO template a /create todo command** — high=25 + C2=35 + dev=20 [haiku] `engine, build, P1` ← [task-management](TODO-task-management.md)
+  exit: /create todo creates a TODO file from source doc with wave structure, DSL+dict context, schema link
 - [ ] **Test task-sync.ts: TypeDB writes, blocks relations** — high=25 + C2=35 + dev=20 [haiku] `engine, test, P1` ← [testing](TODO-testing.md)
   exit: task-sync.ts test file. Covers: insertTask, insertBlocks, markTaskDone. Mocks TypeDB.
 - [ ] **Test tag-filtered loop routing: previousTarget → tag join → task selection** — high=25 + C2=35 + dev=20 [sonnet] `engine, test, P1` ← [testing](TODO-testing.md)
@@ -293,8 +293,8 @@
   exit: Phase complete → know() promotes wave patterns to hypotheses
 - [ ] **Learn which context+tag combos lead to golden W4 scores** — high=25 + C3=30 + dev=20 [sonnet] `engine, typedb, P1` ← [task-management](TODO-task-management.md)
   exit: Hypothesis records: "engine+P0 tasks with routing.md context → 0.9 avg score"
-- [ ] **Update /done to trigger selfCheckoff** — high=25 + C3=30 + dev=20 [haiku] `engine, build, P1` ← [task-management](TODO-task-management.md)
-  exit: /done calls selfCheckoff() → marks, updates checkbox, unblocks, emits
+- [ ] **Update /close to trigger selfCheckoff** — high=25 + C3=30 + dev=20 [haiku] `engine, build, P1` ← [task-management](TODO-task-management.md)
+  exit: /close calls selfCheckoff() → marks, updates checkbox, unblocks, emits
 - [ ] **Test API endpoints: signal, tick, state, tasks** — high=25 + C3=30 + dev=20 [sonnet] `api, test, P1` ← [testing](TODO-testing.md)
   exit: API test file. Covers: POST /api/signal routes correctly, GET /api/tick returns TickResult, GET /api/state returns world snapshot
 - [ ] **Test nanoclaw router: webhook auth, persona selection, message flow** — high=25 + C3=30 + dev=20 [sonnet] `agent, test, P1` ← [testing](TODO-testing.md)
@@ -334,15 +334,15 @@
   exit: L7 frontier detection knows which waves are unexplored per tag cluster
 - [ ] **Evolve builder prompt from wave outcomes** — medium=20 + C3=30 + dev=20 [sonnet] `engine, P2` ← [typedb](TODO-typedb.md)
   exit: L5 evolution considers per-wave success rates. Builder:recon vs builder:edit evolve separately.
-- [ ] **Surface context quality in /highways output** — medium=20 + C3=30 + dev=20 [haiku] `engine, ui, P2` ← [typedb](TODO-typedb.md)
-  exit: /highways shows which doc-context patterns appear on proven paths
+- [ ] **Surface context quality in /see highways output** — medium=20 + C3=30 + dev=20 [haiku] `engine, ui, P2` ← [typedb](TODO-typedb.md)
+  exit: /see highways shows which doc-context patterns appear on proven paths
 - [ ] ****9a. Create src/pages/api/waves/[docname]/claim.ts**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `endpoint, wave-lock, P1` ← [collusion](TODO-collusion.md)
   exit: `curl POST /api/waves/TODO-rename.md/claim` returns 200; 409 if locked
   blocks: c3-wave-test
 - [ ] ****9b. Create src/pages/api/waves/[docname]/release.ts**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `endpoint, wave-lock, P1` ← [collusion](TODO-collusion.md)
   exit: `curl POST /api/waves/TODO-rename.md/release` releases lock (owner-checked)
   blocks: c3-wave-test
-- [ ] ****10a. Modify .claude/commands/work.md (add SESSION_ID generation)**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, session, P0` ← [collusion](TODO-collusion.md)
+- [ ] ****10a. Modify .claude/commands/do.md (add SESSION_ID generation)**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, session, P0` ← [collusion](TODO-collusion.md)
   exit: `SESSION_ID="claude-$$-$(date +%s)"` added at top
   blocks: c3-work-test
 - [ ] ****10b. Add claim step after SELECT**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `command, claim, P0` ← [collusion](TODO-collusion.md)
@@ -351,21 +351,21 @@
 - [ ] ****10c. Pass SESSION_ID to complete**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, integration, P0` ← [collusion](TODO-collusion.md)
   exit: POST /api/tasks/{id}/complete includes `"from": "$SESSION_ID"`
   blocks: c3-work-test
-- [ ] ****11a. Modify .claude/commands/done.md (pass SESSION_ID)**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, release, P0` ← [collusion](TODO-collusion.md)
+- [ ] ****11a. Modify .claude/commands/close.md (pass SESSION_ID)**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, release, P0` ← [collusion](TODO-collusion.md)
   exit: POST /api/tasks/{id}/complete includes `"sessionId": "$SESSION_ID"`
   blocks: c3-done-test
 - [ ] ****12c. Session ID generation test**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `test, session, P0` ← [collusion](TODO-collusion.md)
-  exit: Two `/work` invocations generate unique SESSION_IDs
+  exit: Two `/do` invocations generate unique SESSION_IDs
   blocks: c3-grow-baseline
-- [ ] ****12d. /done release test**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `test, release, P0` ← [collusion](TODO-collusion.md)
-  exit: After `/done`, task owner is cleared; task back to open
+- [ ] ****12d. /close release test**** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `test, release, P0` ← [collusion](TODO-collusion.md)
+  exit: After `/close`, task owner is cleared; task back to open
   blocks: c3-grow-baseline
 - [ ] ****12g. W4 verify (after C3)**** — critical=30 + C3=30 + sonnet=5 [haiku] `gate, verify, P0` ← [collusion](TODO-collusion.md)
   exit: All C3 tests pass; parallel session test succeeds; rubric ≥ 0.65 all dims
 - [ ] **Phase 3: Migrate types/lib/skins (5 files × parallel)** — high=25 + C3=30 + sonnet=5 + blocks(1)=5 [opus] `migration, types, P1` ← [rename](TODO-rename.md)
   exit: All 5 files converted. tsc --noEmit clean.
   blocks: phase-4-start
-- [ ] ****12a. Modify .claude/commands/wave.md (add wave claim)**** — medium=20 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `command, wave-lock, P1` ← [collusion](TODO-collusion.md)
+- [ ] ****12a. Modify .claude/commands/do.md (add wave claim)**** — medium=20 + C3=30 + sonnet=5 + blocks(1)=5 [sonnet] `command, wave-lock, P1` ← [collusion](TODO-collusion.md)
   exit: Before wave execution, POST /api/waves/{docname}/claim; abort if 409
   blocks: c3-wave-test
 - [ ] ****12b. Release wave lock after completion**** — medium=20 + C3=30 + sonnet=5 + blocks(1)=5 [haiku] `command, wave-lock, P1` ← [collusion](TODO-collusion.md)

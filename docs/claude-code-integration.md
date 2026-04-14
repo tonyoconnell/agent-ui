@@ -10,10 +10,10 @@ Claude Code IS a unit in the world. Every conversation is a signal. Every comple
 
 ```
 User: "build the signup flow"
-  → Claude Code reads /tasks to see what's proven
+  → Claude Code reads /see tasks to see what's proven
   → picks the highest-pheromone approach
   → executes
-  → /done reinforces the trail
+  → /close reinforces the path
   → next time, the colony routes faster
 ```
 
@@ -23,32 +23,32 @@ User: "build the signup flow"
 
 | Command | What it does |
 |---------|-------------|
-| `/tasks` | See all tasks grouped by category (attractive/ready/exploratory/repelled) |
-| `/tasks build P0` | Filter by tags |
-| `/add-task signup flow` | Create a new skill with auto-tagged metadata |
-| `/done signup` | Mark complete, reinforce trail (+5 strength), update success-rate |
-| `/grow` | Run one growth tick — select, signal, decay, evolve, know |
-| `/highways` | See proven paths, toxic paths, and frontiers |
+| `/see tasks` | See all tasks grouped by category (attractive/ready/exploratory/repelled) |
+| `/see tasks build P0` | Filter by tags |
+| `/create task signup flow` | Create a new skill with auto-tagged metadata |
+| `/close signup` | Mark complete, reinforce path (+5 strength), update success-rate |
+| `/sync tick` | Run one growth tick — select, signal, decay, evolve, know |
+| `/see highways` | See proven paths, toxic paths, and frontiers |
 
 ### Workflow
 
 ```
-/tasks                     # What's available?
-/tasks P0 build            # What's urgent and buildable?
+/see tasks                 # What's available?
+/see tasks P0 build        # What's urgent and buildable?
 
 # Work on something...
 # ... edit files, run tests ...
 
-/done api-endpoints        # Mark it complete
-/tasks                     # What unlocked? What's next?
-/grow                      # Run a growth cycle, see what the colony learned
-/highways                  # What paths are proven now?
+/close api-endpoints       # Mark it complete
+/see tasks                 # What unlocked? What's next?
+/sync tick                 # Run a growth cycle, see what the colony learned
+/see highways              # What paths are proven now?
 ```
 
 ### Creating Work
 
 ```
-/add-task build the signup flow with email + github auth
+/create task build the signup flow with email + github auth
 
 # Claude parses this into:
 #   id: signup-flow
@@ -63,16 +63,16 @@ Tags are extracted from context — the command figures out type, phase, priorit
 
 ## How the World Learns from Claude Code
 
-### Every `/done` teaches the colony
+### Every `/close` teaches the colony
 
 ```
-/done schema-design
+/close schema-design
   → path(previous-task→schema-design).strength += 5
   → unit(builder).success-rate recalculated
   → if this is the 10th success: trail approaches "attractive" threshold
-  → future /tasks will show schema-design as attractive
+  → future /see tasks will show schema-design as attractive
 
-/done api-endpoints (after schema-design)
+/close api-endpoints (after schema-design)
   → path(schema-design→api-endpoints).strength += 5
   → the colony now knows: "after schema, do api" is a good sequence
 ```
@@ -80,19 +80,19 @@ Tags are extracted from context — the command figures out type, phase, priorit
 ### Every failure teaches too
 
 ```
-/done deploy --failed
+/close deploy --failed
   → path(previous→deploy).resistance += 8
   → deploy becomes "repelled" if resistance > strength
-  → future /tasks won't suggest deploy until resistance decays
+  → future /see tasks won't suggest deploy until resistance decays
   → but resistance decays 2x faster than strength — forgiveness built in
 ```
 
 ### Over many sessions
 
 ```
-Session 1: /done schema → /done api → /done tests ✓
-Session 2: /done schema → /done deploy ✗ (resistance)
-Session 3: /done schema → /done api → /done tests → /done deploy ✓
+Session 1: /close schema → /close api → /close tests ✓
+Session 2: /close schema → /close deploy ✗ (resistance)
+Session 3: /close schema → /close api → /close tests → /close deploy ✓
 
 World learns: schema → api → tests → deploy is the highway.
               schema → deploy (skipping tests) is repelled.
@@ -106,9 +106,9 @@ Claude Code is one unit. But the substrate supports many:
 
 ```
 Tony (Claude Code)          David (Claude Code)
-  ├─ /done schema            ├─ /done frontend-auth
-  ├─ /done api               ├─ /done signup-ui
-  └─ /done tests             └─ /done connect-flow
+  ├─ /close schema           ├─ /close frontend-auth
+  ├─ /close api              ├─ /close signup-ui
+  └─ /close tests            └─ /close connect-flow
 
 Both write to the same TypeDB.
 Both strengthen the same paths.
@@ -133,7 +133,7 @@ When the dev server is running, the Dashboard polls `/api/tick` every 15 seconds
 7. **Hypothesizes** about strong/fading paths (self-observation)
 8. **Detects frontiers** from unexplored tag clusters
 
-Claude Code's `/done` calls feed the pheromone. The tick loop turns that pheromone into intelligence. Over time, the colony routes work to the right agent via the right sequence.
+Claude Code's `/close` calls feed the pheromone. The tick loop turns that pheromone into intelligence. Over time, the colony routes work to the right agent via the right sequence.
 
 ---
 
@@ -141,11 +141,11 @@ Claude Code's `/done` calls feed the pheromone. The tick loop turns that pheromo
 
 All commands work offline too. When the server isn't running:
 
-- `/tasks` reads from the code directly (schema, roadmap data)
-- `/add-task` writes to `import-roadmap.ts` for later seeding
-- `/done` notes the completion for later recording
-- `/grow` explains what the tick would do
-- `/highways` reads from docs
+- `/see tasks` reads from the code directly (schema, roadmap data)
+- `/create task` writes to `import-roadmap.ts` for later seeding
+- `/close` notes the completion for later recording
+- `/sync tick` explains what the tick would do
+- `/see highways` reads from docs
 
 The commands degrade gracefully. The colony catches up when the server restarts.
 
@@ -155,11 +155,11 @@ The commands degrade gracefully. The colony catches up when the server restarts.
 
 | File | Purpose |
 |------|---------|
-| `.claude/commands/tasks.md` | `/tasks` — see current task state |
-| `.claude/commands/add-task.md` | `/add-task` — create tagged skill |
-| `.claude/commands/done.md` | `/done` — mark complete, reinforce trail |
-| `.claude/commands/grow.md` | `/grow` — run growth tick |
-| `.claude/commands/highways.md` | `/highways` — see proven paths |
+| `.claude/commands/see.md` | `/see tasks` — see current task state |
+| `.claude/commands/create.md` | `/create task` — create tagged skill |
+| `.claude/commands/close.md` | `/close` — mark complete, reinforce path |
+| `.claude/commands/sync.md` | `/sync tick` — run growth tick |
+| `.claude/commands/see.md` | `/see highways` — see proven paths |
 | `src/pages/api/tasks/` | Task API (skills + pheromone + tags) |
 | `src/pages/api/tick.ts` | Growth loop endpoint |
 | `src/pages/api/state.ts` | World state for visualization |
