@@ -432,6 +432,19 @@ async function deployService(
 async function deployAll(creds: Record<string, string>): Promise<DeployResult[]> {
   const env = { ...creds, PATH: process.env.PATH ?? '' }
 
+  // Ensure each sub-package has its node_modules. Root `bun install` doesn't
+  // recurse, so CI (fresh clone) and local (new worker dir) both need this.
+  // Idempotent — fast when deps are already installed.
+  for (const dir of ['gateway', 'nanoclaw']) {
+    const pkgDir = join(ROOT, dir)
+    if (!existsSync(join(pkgDir, 'package.json'))) continue
+    if (existsSync(join(pkgDir, 'node_modules'))) continue
+    console.log(c.gray(`  → installing ${dir}/ deps...`))
+    // No lockfile in sub-packages, so run plain install.
+    const res = run('bun', ['install'], { cwd: pkgDir, silent: true })
+    if (!res.ok) die(`${dir} install failed: ${res.stderr.slice(0, 200)}`)
+  }
+
   // Workers are independent — parallelize for ~3× speedup.
   console.log(c.gray(`  → Gateway, Sync, NanoClaw (parallel)...`))
   const workerStart = Date.now()
