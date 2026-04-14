@@ -117,7 +117,9 @@ export const contextForSkill = (skill: string): string => {
     cloudflare: ['nanoclaw'],
     worker: ['nanoclaw'],
   }
-  return loadContext(skillDocs[skill] || ['dsl'])
+  // Base context: always include DSL + dictionary for any skill
+  const docs = skillDocs[skill] || ['dsl']
+  return loadContext([...new Set([...docs, 'dsl', 'dictionary'])])
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

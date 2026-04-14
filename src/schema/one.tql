@@ -46,6 +46,8 @@ entity thing,
     owns thing-type,                  # "skill", "task", "token", "service"
     owns price,                       # 0 = free, >0 = paid
     owns tag @card(0..),
+    owns task-wave,                   # "W1", "W2", "W3", "W4" (for task routing)
+    owns task-context @card(0..),     # doc keys providing context (can have multiple)
     plays capability:offered;
 
 # 4. PATHS — connections with weight
@@ -108,7 +110,9 @@ attribute generation, value integer;
 attribute observations, value integer;
 attribute success, value boolean;
 attribute ts, value datetime;
+attribute task-wave, value string;
+attribute task-context, value string;
 
 # =============================================================================
-# 6 dimensions. 3 entities. 5 relations. 22 attributes. ONE.
+# 6 dimensions. 3 entities. 5 relations. 24 attributes. ONE.
 # =============================================================================
