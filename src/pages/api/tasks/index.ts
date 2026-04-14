@@ -12,8 +12,17 @@ import { computePriority, effectivePriority, type Phase, type Value } from '@/en
 import { getNet } from '@/lib/net'
 import * as store from '@/lib/tasks-store'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
+import { updateTasksCache } from '@/lib/ws-cache'
 
 type Row = Record<string, unknown>
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+export const OPTIONS: APIRoute = async () => new Response(null, { status: 204, headers: CORS })
 
 export const GET: APIRoute = async ({ url }) => {
   const filterTags = url.searchParams.getAll('tag')
@@ -70,8 +79,11 @@ export const GET: APIRoute = async ({ url }) => {
         }
       })
 
-    return new Response(JSON.stringify({ tasks: result, source: 'local' }), {
-      headers: { 'Content-Type': 'application/json' },
+    const response = { tasks: result, source: 'local' }
+    // Update WebSocket cache so WS clients get full state
+    updateTasksCache(response)
+    return new Response(JSON.stringify(response), {
+      headers: { 'Content-Type': 'application/json', ...CORS },
     })
   }
 
@@ -198,7 +210,7 @@ export const GET: APIRoute = async ({ url }) => {
   result.sort((a, b) => b.effectivePriority - a.effectivePriority)
 
   return new Response(JSON.stringify({ tasks: result }), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...CORS },
   })
 }
 

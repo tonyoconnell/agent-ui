@@ -595,7 +595,7 @@ Only the words humans use to describe it.
 
 ## See Also
 
-- [dictionary.md](dictionary.md) -- Complete naming guide
+- [dictionary.md](dictionary.md) -- Complete naming guide; see **Command Set** for the five user-facing verbs (/see /create /do /close /sync)
 - [routing.md](routing.md) -- How signals find their way
 - [events.md](events.md) -- The universal primitive in depth
 - [primitives.md](primitives.md) -- Entities, relations, status values

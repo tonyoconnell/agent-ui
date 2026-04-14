@@ -5,8 +5,26 @@
  * Production uses D1 with TypeDB sync.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+// Detect the Cloudflare Workers runtime. Astro's cloudflare adapter
+// polyfills `process.cwd`, so that check is unreliable — but the runtime's
+// `navigator.userAgent` is always exactly 'Cloudflare-Workers'.
+const IS_EDGE =
+  typeof navigator !== 'undefined' && (navigator as { userAgent?: string }).userAgent === 'Cloudflare-Workers'
+const IS_NODE = !IS_EDGE && typeof process !== 'undefined' && typeof process.cwd === 'function'
+
+type FsMod = {
+  existsSync: (p: string) => boolean
+  readFileSync: (p: string, enc: 'utf-8') => string
+  writeFileSync: (p: string, data: string) => void
+}
+let _fs: FsMod | null = null
+let _path: { join: (...parts: string[]) => string } | null = null
+
+if (IS_NODE) {
+  // Top-level await: evaluated only when this module is loaded under Node.
+  _fs = (await import('node:fs')) as unknown as FsMod
+  _path = (await import('node:path')) as unknown as { join: (...parts: string[]) => string }
+}
 
 export interface ProjectTask {
   tid: string
@@ -29,15 +47,16 @@ export interface ProjectTask {
 let tasks: Map<string, ProjectTask> = new Map()
 let loaded = false
 
-const STORE_PATH = join(process.cwd(), '.tasks.json')
+const STORE_PATH = IS_NODE && _path ? _path.join(process.cwd(), '.tasks.json') : ''
 
 function loadFromDisk() {
   if (loaded) return
   loaded = true
+  if (!IS_NODE || !_fs) return
 
-  if (existsSync(STORE_PATH)) {
+  if (_fs.existsSync(STORE_PATH)) {
     try {
-      const data = JSON.parse(readFileSync(STORE_PATH, 'utf-8'))
+      const data = JSON.parse(_fs.readFileSync(STORE_PATH, 'utf-8'))
       tasks = new Map(Object.entries(data))
     } catch {
       tasks = new Map()
@@ -46,9 +65,10 @@ function loadFromDisk() {
 }
 
 function saveToDisk() {
+  if (!IS_NODE || !_fs) return
   try {
     const data = Object.fromEntries(tasks)
-    writeFileSync(STORE_PATH, JSON.stringify(data, null, 2))
+    _fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2))
   } catch {
     // Ignore write errors
   }

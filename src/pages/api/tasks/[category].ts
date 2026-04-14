@@ -9,6 +9,14 @@ import * as store from '@/lib/tasks-store'
 
 const CATEGORIES = new Set(['ready', 'attractive', 'repelled', 'exploratory'])
 
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+export const OPTIONS: APIRoute = async () => new Response(null, { status: 204, headers: CORS })
+
 export const GET: APIRoute = async ({ params, url }) => {
   const { category } = params
   if (!category || !CATEGORIES.has(category)) {
@@ -53,7 +61,7 @@ export const GET: APIRoute = async ({ params, url }) => {
       .filter((t) => t.category === category)
 
     return new Response(JSON.stringify({ tasks: result }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...CORS },
     })
   }
 

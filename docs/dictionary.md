@@ -300,7 +300,7 @@ translation. Same substrate, different display languages, one database.
 A signal arrives. Something happens. Six possible things:
 
 ```
-  EMIT ───── send a signal to someone else
+  SEND ───── send a signal to someone else
   MARK ───── leave a mark on the path (this worked)
   WARN ───── leave a warning on the path (this failed)
   FADE ───── let time erode everything
@@ -317,7 +317,7 @@ keeps moving; hardened paths stop decaying.
     ┌──────────────────────────────────────────────────┐
     │                 THE SIX VERBS                    │
     │                                                  │
-    │   emit()   ── signal moves ──→ next receiver     │
+    │   send()   ── signal moves ──→ next receiver     │
     │   mark()   ── path gets stronger                 │
     │   warn()   ── path gets weaker                   │
     │   fade()   ── everything slowly decays           │
@@ -331,6 +331,39 @@ Per skin, `harden` is called: imprint (ant), myelinate/consolidate (brain),
 codify/document (team), seal (mail), bedrock (water), license (radio),
 freeze_object (ledger/Sui). Across all seven skins it means the same thing:
 *usage has proven this path; make it stop decaying.*
+
+---
+
+## The Command Set
+
+Five user-facing verbs. Each maps to a substrate primitive.
+
+```
+/see     → follow()           read the world (tasks, highways, paths, frontiers, hypotheses, events)
+/create  → send()             emit new entity into substrate (task, todo, agent, signal)
+/do      → select() + tick    drive work through substrate (wave, auto, once, autonomous loop)
+/close   → mark() / warn()    close a signal loop (success, fail, dissolved, timeout)
+/sync    → tick + know()      reconcile state (tick, docs, todos, agents, fade, evolve, know, frontier, pay)
+```
+
+| Verb | Routing primitive | Loops | What it reads/writes |
+|------|------------------|-------|----------------------|
+| `/see` | `follow()` | L1-L7 | Reads strength/resistance/queue/knowledge state |
+| `/create` | `send()` | L1 | Writes new signal/entity into queue + TypeDB |
+| `/do` | `select()` + tick | L1, L2 | Drives signals through deterministic sandwich |
+| `/close` | `mark()` / `warn()` | L2 | Writes path strength or resistance |
+| `/sync` | `tick()` + `know()` | L1-L7 | Full substrate tick + markdown absorption |
+
+The Four Outcomes map directly to `/close` flags:
+
+```
+result     → /close <id>              mark()    chain strengthens
+timeout    → /close <id> --timeout    neutral   chain continues
+dissolved  → /close <id> --dissolved  warn(0.5) mild warn
+failure    → /close <id> --fail       warn(1)   full warn
+```
+
+The verb is the intent; the noun is the scope. Five verbs × 2–9 nouns = the complete substrate surface.
 
 ---
 

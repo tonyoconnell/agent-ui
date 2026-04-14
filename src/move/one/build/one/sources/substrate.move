@@ -10,7 +10,7 @@
 //   Colony   — shared object, consensus required
 //   Signal   — owned object, transferred on send, consumed on receive
 //   Path     — shared object, both endpoints modify
-//   Highway  — frozen object, crystallized knowledge (immutable)
+//   Highway  — frozen object, hardened knowledge (immutable)
 //   Escrow   — shared object, locked payment for async tasks
 //   Protocol — shared singleton, fee treasury
 //
@@ -105,16 +105,16 @@ module one::substrate {
         revenue: u64,               // total SUI flowed through this path (MIST)
     }
 
-    /// Highway — crystallized knowledge. Frozen on-chain.
+    /// Highway — hardened knowledge. Frozen on-chain.
     /// Sui: transfer::freeze_object — immutable forever.
     public struct Highway has key {
         id: UID,
         source: ID,
         target: ID,
-        strength: u64,              // strength at crystallization
+        strength: u64,              // strength at hardening
         confidence: u64,            // certainty (0-100)
-        revenue: u64,               // total revenue at crystallization
-        crystallized_at: u64,
+        revenue: u64,               // total revenue at hardening
+        hardened_at: u64,
     }
 
     /// Escrow — locked payment for async tasks.
@@ -577,10 +577,10 @@ module one::substrate {
     }
 
     // =========================================================================
-    // CRYSTALLIZE — Freeze knowledge permanently
+    // HARDEN — Freeze knowledge permanently
     // =========================================================================
 
-    public fun crystallize(
+    public fun harden(
         path: &Path,
         clock: &Clock,
         ctx: &mut TxContext,
@@ -594,7 +594,7 @@ module one::substrate {
             strength: path.strength,
             confidence: (path.hits * 100) / (path.hits + path.misses + 1),
             revenue: path.revenue,
-            crystallized_at: clock::timestamp_ms(clock),
+            hardened_at: clock::timestamp_ms(clock),
         };
         event::emit(HighwayFormed {
             highway_id: object::id(&highway),

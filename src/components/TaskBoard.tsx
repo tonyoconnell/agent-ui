@@ -9,6 +9,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+// Task source. Empty = same-origin (dev server's own /api/tasks → .tasks.json).
+// Set PUBLIC_TASKS_ORIGIN=https://one-substrate.pages.dev in .env to share
+// state with every other agent via the production substrate.
+const TASKS_ORIGIN = (import.meta.env.PUBLIC_TASKS_ORIGIN as string | undefined) ?? ''
+
 // ─── Types (from one.tql) ───────────────────────────────────────────────────
 
 interface Task {
@@ -1385,16 +1390,16 @@ export function TaskBoard() {
   const fetchTasks = useCallback(async () => {
     try {
       const [tasksRes, readyRes, attractiveRes, repelledRes] = await Promise.all([
-        fetch('/api/tasks')
+        fetch(`${TASKS_ORIGIN}/api/tasks`)
           .then((r) => r.json() as Promise<any>)
           .catch(() => ({ tasks: [] })),
-        fetch('/api/tasks/ready')
+        fetch(`${TASKS_ORIGIN}/api/tasks/ready`)
           .then((r) => r.json() as Promise<any>)
           .catch(() => ({ tasks: [] })),
-        fetch('/api/tasks/attractive')
+        fetch(`${TASKS_ORIGIN}/api/tasks/attractive`)
           .then((r) => r.json() as Promise<any>)
           .catch(() => ({ tasks: [] })),
-        fetch('/api/tasks/repelled')
+        fetch(`${TASKS_ORIGIN}/api/tasks/repelled`)
           .then((r) => r.json() as Promise<any>)
           .catch(() => ({ tasks: [] })),
       ])
@@ -1447,33 +1452,56 @@ export function TaskBoard() {
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
     const connect = () => {
-      // Use current window location to determine the correct host/port
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const wsUrl = `${wsProtocol}//${window.location.host}/api/ws`
+      // Always use the production substrate so every agent sees the same pheromone.
+      // When PUBLIC_TASKS_ORIGIN is blank, fall back to same-origin (dev only).
+      const wsOrigin = TASKS_ORIGIN.replace(/^http/, 'ws')
+      const wsUrl = wsOrigin
+        ? `${wsOrigin}/api/ws`
+        : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws`
+      console.log('[TaskBoard] Connecting to WebSocket:', wsUrl)
       ws = new WebSocket(wsUrl)
 
       ws.onopen = () => {
+        console.log('[TaskBoard] WebSocket connected')
         // Subscribe to task updates
         ws?.send(JSON.stringify({ type: 'subscribe', channel: 'tasks' }))
       }
 
       ws.onmessage = (e) => {
+        console.log('[TaskBoard] WebSocket message received')
         try {
           const msg = JSON.parse(e.data) as {
             type: string
+            data?: unknown
             taskId?: string
             strength?: number
             resistance?: number
             [key: string]: unknown
           }
 
+          // Full state snapshot from server
+          if (msg.type === 'full-state' && msg.data) {
+            const stateData = msg.data as { tasks: Task[] }
+            console.log('[TaskBoard] Received full state:', stateData.tasks.length, 'tasks')
+            setTasks(stateData.tasks)
+            setLive((prev) => ({
+              ...prev,
+              connected: true,
+              lastSync: Date.now(),
+              stats: {
+                ...prev.stats,
+                units: stateData.tasks.length,
+              },
+            }))
+          }
+
+          // Incremental update
           if (msg.type === 'task-update') {
-            // Update specific task in state
             setTasks((prev) => prev.map((t) => (t.tid === msg.taskId ? { ...t, strength: msg.strength, ...msg } : t)))
           }
 
+          // Pheromone marks
           if (msg.type === 'mark' || msg.type === 'warn') {
-            // Update pheromone for edge
             setTasks((prev) =>
               prev.map((t) =>
                 t.tid === msg.taskId
@@ -1486,16 +1514,17 @@ export function TaskBoard() {
               ),
             )
           }
-        } catch {
-          // Ignore parse errors
+        } catch (err) {
+          console.error('[TaskBoard] WebSocket message error:', err)
         }
       }
 
-      ws.onerror = () => {
-        // Silently degrade — SSE + HTTP remain functional
+      ws.onerror = (err) => {
+        console.error('[TaskBoard] WebSocket error:', err)
       }
 
       ws.onclose = () => {
+        console.log('[TaskBoard] WebSocket closed, reconnecting in 3s')
         // Reconnect after 3 seconds
         reconnectTimer = setTimeout(connect, 3000)
       }

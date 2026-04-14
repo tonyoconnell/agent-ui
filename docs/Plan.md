@@ -69,7 +69,7 @@ Move ACTS                         TypeDB REASONS
 ├─────────────────────────────────────────────────────────────┤
 │  LLM Integration           30 lines    Any model as a unit  │
 ├─────────────────────────────────────────────────────────────┤
-│  TypeDB Persistence        40 lines    Crystallized memory  │
+│  TypeDB Persistence        40 lines    Hardend memory  │
 ├─────────────────────────────────────────────────────────────┤
 │  Substrate                 70 lines    Units + Colonies     │
 ├─────────────────────────────────────────────────────────────┤
@@ -119,7 +119,7 @@ Sui's object model IS the signal pattern.
 | World | Shared object | Consensus needed. Multiple agents coordinate. |
 | Signal | Transferred object | Signal moves to receiver. Consumed on arrival. |
 | Flow | Shared object | Both endpoints strengthen/resist. Memory on edges. |
-| Highway | Frozen object | `freeze_object()` IS crystallization. Immutable. Permanent. |
+| Highway | Frozen object | `freeze_object()` IS hardening. Immutable. Permanent. |
 
 Move's type system enforces what TypeDB infers. Two fires, one truth. Sub-second finality. Parallel execution. The substrate learns at chain speed.
 

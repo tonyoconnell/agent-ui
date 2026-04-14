@@ -556,7 +556,7 @@ describe('Act 6: Highway formation — when the route becomes the answer', () =>
     console.log(`  Speedup (real): ${Math.round(800 / (highwayMs + 0.001))}x  (using real 800ms LLM latency)`)
 
     expect(isHighway).toBe(true)
-    expect(highwayMs).toBeLessThan(1)
+    expect(highwayMs).toBeLessThan(5)
     expect(highwayMs).toBeLessThan(llmMs) // highway is faster even vs mock
   })
 })

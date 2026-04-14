@@ -2,10 +2,10 @@
 
 > ONE Substrate — self-learning task system.
 > Tasks are signals. Waves are loops. The template is a unit.
-> 181 open, 100 done. Priority + pheromone adjusts at runtime.
+> 166 open, 116 done. Priority + pheromone adjusts at runtime.
 >
 > **Sync:** `POST /api/tasks/sync` or `/sync` — writes to KV (10ms), then TypeDB (100ms)
-> **Generated:** 2026-04-14T01:05:10
+> **Generated:** 2026-04-14T02:51:28
 
 ---
 
@@ -15,12 +15,12 @@
 |------|-----:|-----:|--------|
 | [TODO-collusion](TODO-collusion.md) | 38 | 16 | PROVE |
 | [TODO-SUI](TODO-SUI.md) | 30 | 28 | PROVE |
-| [TODO-task-management](TODO-task-management.md) | 24 | 2 | PROVE |
-| [TODO-rename](TODO-rename.md) | 23 | 0 | WIRE |
-| [TODO-lifecycle](TODO-lifecycle.md) | 16 | 12 | PROVE |
+| [TODO-rename](TODO-rename.md) | 23 | 1 | PROVE |
+| [TODO-task-management](TODO-task-management.md) | 17 | 9 | PROVE |
 | [TODO-testing](TODO-testing.md) | 16 | 24 | PROVE |
 | [TODO-typedb](TODO-typedb.md) | 16 | 3 | PROVE |
 | [TODO-ONE-strategy](TODO-ONE-strategy.md) | 11 | 3 | PROVE |
+| [TODO-lifecycle](TODO-lifecycle.md) | 8 | 20 | PROVE |
 | [TODO-autonomous-orgs](TODO-autonomous-orgs.md) | 7 | 3 | PROVE |
 | [TODO-deploy](TODO-deploy.md) | 0 | 4 | DONE |
 | [TODO-signal](TODO-signal.md) | 0 | 5 | DONE |
@@ -39,18 +39,12 @@
   exit: /api/tick picks highest-priority task, executes signal, marks outcome
 - [ ] **Telegram: Wire signals to @antsatworkbot channel** [sonnet] `agent, telegram, P0, integration` ← [TODO-autonomous-orgs](TODO-autonomous-orgs.md)
   exit: Agents signal @antsatworkbot, channel receives and routes back
-- [ ] **Add DSL + dictionary as base context in every wave** [haiku] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
-  exit: contextForSkill loads DSL.md + dictionary.md as baseline for all tasks
-- [ ] **Enrich task signal in loop.ts with full envelope** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
-  exit: loop.ts L1b builds full context envelope before routing to builder
 - [ ] **Add task-wave and task-context to world.tql** [haiku] `typedb, schema, P0` ← [TODO-task-management](TODO-task-management.md)
   exit: task owns task-wave (W1-W4) and task-context (doc keys). Attributes defined.
 - [ ] **Build wave-runner unit with .then() chains** [opus] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
   exit: unit('wave-runner').on('recon',...).then('recon',→decide).on('decide',...).then('decide',→edit)...
 - [ ] **Create 7-persona vocabulary layer: CEO/Dev/Investor/Gamer/Kid/Freelancer/Agent** [sonnet] `foundation, design, P1, governance` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
   exit: Every formula maps to 7 vocabulary skins. Same math, different words.
-- [ ] **Lifecycle gate: REGISTER → CAPABLE requires unit_exists** [haiku] `engine, lifecycle, P1` ← [TODO-lifecycle](TODO-lifecycle.md)
-  exit: `canDeclareCapability(uid)` returns true only if unit exists with status "active". Gate enforced before capability insert.
 - [ ] **Map waves to core.ts sense→select→act→mark** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
   exit: W1=sense, W2=select, W3=act, W4=mark. Each wave is a Loop<T> from core.ts.
 - [ ] **Build context envelope that accumulates across waves** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
@@ -59,6 +53,12 @@
   exit: markDims() emits edge:fit, edge:form, edge:truth, edge:taste. Haiku judges.
 - [ ] **Self-checkoff: W4 verify pass marks task done** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
   exit: selfCheckoff() → markTaskDone + update checkbox + mark path + unblock + know
+- [ ] **Route task to model by wave** [sonnet] `engine, build, P0` ← [TODO-typedb](TODO-typedb.md)
+  exit: W1→haiku, W2→opus, W3→sonnet, W4→sonnet. Model selected at signal time.
+- [ ] **Build wave-aware builder unit with .then() chains** [opus] `engine, build, P0` ← [TODO-typedb](TODO-typedb.md)
+  exit: builder unit has recon→decide→edit→verify handlers, each .then() carries accumulated context
+- [ ] **Create agent self-improvement loop: rewrite prompts when success-rate < 50%** [opus] `intelligence, learning, P1, foundation` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
+  exit: Agent prompt auto-rewrites every 10 min if samples >= 20 AND success < 50%
 
 ---
 
@@ -79,29 +79,12 @@
 - [ ] **Telegram: Wire signals to @antsatworkbot channel** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [sonnet] `agent, telegram, P0, integration` ← [autonomous-orgs](TODO-autonomous-orgs.md)
   exit: Agents signal @antsatworkbot, channel receives and routes back
   blocks: marketing-dept-live
-- [ ] **Add DSL + dictionary as base context in every wave** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [haiku] `engine, build, P0` ← [task-management](TODO-task-management.md)
-  exit: contextForSkill loads DSL.md + dictionary.md as baseline for all tasks
-  blocks: wave-context-envelope
-- [ ] **Enrich task signal in loop.ts with full envelope** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [sonnet] `engine, build, P0` ← [task-management](TODO-task-management.md)
-  exit: loop.ts L1b builds full context envelope before routing to builder
-  blocks: wave-context-envelope
 - [ ] **Create 7-persona vocabulary layer: CEO/Dev/Investor/Gamer/Kid/Freelancer/Agent** — high=25 + C1=40 + dev=20 + blocks(1)=5 [sonnet] `foundation, design, P1, governance` ← [ONE-strategy](TODO-ONE-strategy.md)
   exit: Every formula maps to 7 vocabulary skins. Same math, different words.
   blocks: persona-translation
-- [ ] **Lifecycle gate: REGISTER → CAPABLE requires unit_exists** — high=25 + C1=40 + dev=20 + blocks(1)=5 [haiku] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
-  exit: `canDeclareCapability(uid)` returns true only if unit exists with status "active". Gate enforced before capability insert.
-  blocks: gate-capable-discover
 - [ ] ****1a. Update world.tql**** — critical=30 + C1=40 + haiku=5 + blocks(2)=10 [haiku] `schema, foundation, P0` ← [collusion](TODO-collusion.md)
   exit: `grep "owns owner" src/schema/world.tql` returns true; wave-lock entity defined
   blocks: c1-schema-attribute, c2-filter-tasks
-- [ ] **API endpoint: GET /api/agents/discover** — high=25 + C1=40 + dev=20 [haiku] `api, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
-  exit: Endpoint accepts ?skill=X&limit=N, returns ranked units with strength scores. Uses suggest_route internally.
-- [ ] **Lifecycle gate: CAPABLE → DISCOVER requires has_capability** — high=25 + C1=40 + dev=20 [haiku] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
-  exit: `canBeDiscovered(uid)` returns true only if at least one capability relation exists. Gate enforced in suggest_route.
-- [ ] **Wire recall of prior attempts into context** — high=25 + C1=40 + dev=20 [haiku] `engine, typedb, P1` ← [task-management](TODO-task-management.md)
-  exit: net.recall(taskId) included in envelope. Failed attempts inform next try.
-- [ ] **Wire blocking context — executor sees what it unblocks** — high=25 + C1=40 + dev=20 [haiku] `engine, typedb, P1` ← [task-management](TODO-task-management.md)
-  exit: task_blockers() results in signal. Builder knows its work unblocks N others.
 - [ ] **Wire TaskCompleted hook for verify gate** — high=25 + C1=40 + dev=20 [sonnet] `infra, build, P1` ← [testing](TODO-testing.md)
   exit: TaskCompleted hook runs bun run verify. Blocks if tests regress. Gates the mark.
 - [ ] ****1b. Update world.tql attributes**** — critical=30 + C1=40 + haiku=5 + blocks(1)=5 [haiku] `schema, foundation, P0` ← [collusion](TODO-collusion.md)
@@ -202,12 +185,6 @@
 - [ ] **Wire rubric tagged edges into wave builder W4 verify step** — high=25 + C2=35 + dev=20 + blocks(1)=5 [sonnet] `engine, build, P1` ← [typedb](TODO-typedb.md)
   exit: Wave 4 scores each W3 edit. markDims(net, edge, scores, rubric) replaces binary mark(edge, 1). Four tagged paths accumulate per skill.
   blocks: wave-mark-transitions
-- [ ] **Lifecycle gate: SIGNAL → DROP requires { result }** — high=25 + C2=35 + dev=20 [haiku] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
-  exit: mark() only called when ask() returns { result: X }. timeout = neutral. dissolved = mild warn. no result = full warn.
-- [ ] **Lifecycle gate: SIGNAL → ALARM requires failure** — high=25 + C2=35 + dev=20 [haiku] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
-  exit: warn() called with appropriate strength: 0 for timeout, 0.5 for dissolved, 1.0 for failure.
-- [ ] **Signal logging to TypeDB** — high=25 + C2=35 + dev=20 [sonnet] `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
-  exit: Every signal creates signal entity with sender, receiver, data, success, latency, timestamp.
 - [ ] **Parse wave and context from TODO files** — high=25 + C2=35 + dev=20 [haiku] `engine, build, P1` ← [task-management](TODO-task-management.md)
   exit: task-parse.ts reads wave: and context: fields. Default W3, context from tags.
 - [ ] **Route model by wave position** — high=25 + C2=35 + dev=20 [haiku] `engine, build, P1` ← [task-management](TODO-task-management.md)
@@ -453,12 +430,7 @@
 - [ ] **Mainnet deployment** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] **SDK publish (`@one/sdk`)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
 - [ ] **Multi-chain bridge** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [SUI](TODO-SUI.md)
-- [ ] ****Cycle 1: WIRE** — Into ONE (Register, Capable, Discover)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [lifecycle](TODO-lifecycle.md)
-- [ ] ****Cycle 2: PROVE** — Through ONE (Signal, Drop, Alarm, Fade)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [lifecycle](TODO-lifecycle.md)
 - [ ] ****Cycle 3: GROW** — Out of ONE (Highway, Harden, Federate, Dissolve)** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [lifecycle](TODO-lifecycle.md)
-- [ ] ****Cycle 1: WIRE** — Context into tasks** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
-- [ ] ****Cycle 2: PROVE** — Waves as core loops** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
-- [ ] ****Cycle 3: GROW** — Self-learning** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [task-management](TODO-task-management.md)
 - [ ] ****Cycle 1: WIRE** — Context resolution + enriched signals** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [typedb](TODO-typedb.md)
 - [ ] ****Cycle 2: PROVE** — Wave tracking + model routing** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [typedb](TODO-typedb.md)
 - [ ] ****Cycle 3: GROW** — Learning from wave transitions** — medium=20 + C4=25 + agent=5 [sonnet] `` ← [typedb](TODO-typedb.md)
@@ -570,21 +542,37 @@
 - [x] **Implement capable(): declare unit capabilities** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Implement discover(): find units by capability** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
 - [x] **API endpoint: POST /api/agents/register** `api, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
+- [x] **API endpoint: GET /api/agents/discover** `api, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
 - [x] **TypeDB schema: unit status transitions** `schema, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
+- [x] **Lifecycle gate: REGISTER → CAPABLE requires unit_exists** `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
+- [x] **Lifecycle gate: CAPABLE → DISCOVER requires has_capability** `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Implement signal lifecycle: route → execute → mark/warn** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Implement drop(): mark on success** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Implement alarm(): warn on failure** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Implement fade(): asymmetric decay** `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
+- [x] **Lifecycle gate: SIGNAL → DROP requires { result }** `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
+- [x] **Lifecycle gate: SIGNAL → ALARM requires failure** `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
 - [x] **4 outcome types fully implemented** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
+- [x] **Signal logging to TypeDB** `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Implement highway detection: strength ≥ 50, traversals ≥ 50** `engine, lifecycle, P0` ← [lifecycle](TODO-lifecycle.md)
 - [x] **Sui wallet derivation: UID → keypair** `engine, lifecycle, P1` ← [lifecycle](TODO-lifecycle.md)
+- [x] ****Cycle 1: WIRE** — Into ONE (Register, Capable, Discover) — 8/8 tasks closed 2026-04-14** `` ← [lifecycle](TODO-lifecycle.md)
+- [x] ****Cycle 2: PROVE** — Through ONE (Signal, Drop, Alarm, Fade) — 8/8 tasks closed 2026-04-14** `` ← [lifecycle](TODO-lifecycle.md)
+- [x] **Phase 10: crystallize → harden** `rename, vocabulary, sui, P1` ← [rename](TODO-rename.md)
 - [x] **Wave 1 — Reconnaissance (10 Haiku, parallel)** `` ← [signal](TODO-signal.md)
 - [x] **Wave 2 — Synthesis (Opus, main context)** `` ← [signal](TODO-signal.md)
 - [x] **Wave 3 — Edits (Sonnet, parallel)** `` ← [signal](TODO-signal.md)
 - [x] **Wave 4 — Verify (Sonnet) — 8/8 checks pass after micro-fix (Three→Five address modes)** `` ← [signal](TODO-signal.md)
 - [x] **Mark complete** `` ← [signal](TODO-signal.md)
+- [x] **Add DSL + dictionary as base context in every wave** `engine, build, P0` ← [task-management](TODO-task-management.md)
 - [x] **Create inferDocsFromTags in context.ts** `engine, build, P0` ← [task-management](TODO-task-management.md)
 - [x] **Build resolveContext function** `engine, build, P0` ← [task-management](TODO-task-management.md)
+- [x] **Enrich task signal in loop.ts with full envelope** `engine, build, P0` ← [task-management](TODO-task-management.md)
+- [x] **Wire recall of prior attempts into context** `engine, typedb, P1` ← [task-management](TODO-task-management.md)
+- [x] **Wire blocking context — executor sees what it unblocks** `engine, typedb, P1` ← [task-management](TODO-task-management.md)
+- [x] ****Cycle 1: WIRE** — Context into tasks** `` ← [task-management](TODO-task-management.md)
+- [x] ****Cycle 2: PROVE** — Waves as core loops** `` ← [task-management](TODO-task-management.md)
+- [x] ****Cycle 3: GROW** — Self-learning** `` ← [task-management](TODO-task-management.md)
 - [x] **Fix one.test.ts: bun:test → vitest import** `engine, fix, P0` ← [testing](TODO-testing.md)
 - [x] **Triage 85 type errors — fix or suppress with intent** `engine, fix, P0` ← [testing](TODO-testing.md)
 - [x] **Fix 21 biome lint issues or configure intentional exceptions** `engine, fix, P1` ← [testing](TODO-testing.md)

@@ -4,6 +4,31 @@
 
 Live: https://nanoclaw.oneie.workers.dev/health → `{"status":"ok"}`
 
+## Local Development with Tunnels
+
+Test webhooks against localhost without deploying:
+
+```bash
+# Terminal 1: Start dev server
+bun run dev
+
+# Terminal 2: Expose via Cloudflare Tunnel
+bun run tunnel:local   # → https://local.one.ie
+
+# Register Telegram webhook to your tunnel
+curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook?url=https://local.one.ie/webhook/telegram"
+
+# Now: Telegram → local.one.ie → CF Tunnel → localhost:4321 → debug locally
+```
+
+| Tunnel | URL | Command |
+|--------|-----|---------|
+| Quick | random-slug.trycloudflare.com | `bun run tunnel` |
+| Local | local.one.ie | `bun run tunnel:local` |
+| Dev | dev.one.ie | `bun run tunnel:dev` |
+
+No ngrok. Stable URLs. Free. See [PLAN-tunnels.md](PLAN-tunnels.md).
+
 ---
 
 ## Completed
@@ -419,6 +444,7 @@ $0/month on Cloudflare free tier. Gemma 4 via OpenRouter on operator's key.
 ## See Also
 
 - [cloudflare.md](cloudflare.md) — Platform architecture, 4 workers, agent castes
+- [PLAN-tunnels.md](PLAN-tunnels.md) — Dev tunnels for webhook testing
 - [deploy.md](deploy.md) — Step 11: NanoClaw deployment
 - [routing.md](routing.md) — Substrate signal routing
 - [Original NanoClaw](https://github.com/qwibitai/nanoclaw) — Container-based inspiration

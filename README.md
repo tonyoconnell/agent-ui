@@ -198,6 +198,25 @@ bun run scripts/setup-nanoclaw.ts --name alice --persona one --token 1234:ABC...
 
 One command: generates API key → CF queue → deploy → secrets → webhook → credentials printed.
 
+### Local development with tunnels
+
+Test webhooks against your local dev server:
+
+```bash
+# Terminal 1: Start dev server
+bun run dev
+
+# Terminal 2: Expose via tunnel
+bun run tunnel:local   # → https://local.one.ie
+
+# Register webhook to your local tunnel
+curl "https://api.telegram.org/bot${TOKEN}/setWebhook?url=https://local.one.ie/webhook/telegram"
+
+# Now Telegram messages → local.one.ie → localhost:4321 → debug locally
+```
+
+No ngrok limits. Stable URLs. Free via Cloudflare Tunnel.
+
 ### Add a persona
 
 ```typescript
@@ -246,12 +265,25 @@ bun install
 bun run dev        # → localhost:4321
 ```
 
+### Tunnels (expose localhost publicly)
+
+```bash
+bun run tunnel         # Quick tunnel → random-slug.trycloudflare.com
+bun run tunnel:local   # → local.one.ie (personal dev)
+bun run tunnel:dev     # → dev.one.ie (dev branch preview)
+bun run tunnel:main    # → main.one.ie (main branch preview)
+```
+
+Tunnels let you test Telegram/Discord webhooks locally — no ngrok, no bandwidth limits, free.
+
+### Deploy
+
 Deploy (requires Cloudflare account + TypeDB Cloud):
 
 ```bash
-bun run deploy              # full pipeline — 106.9s verified end-to-end
-bun run deploy:dry-run      # verify without deploying
-bun run deploy:preview      # build + smoke, no production push
+bun run deploy                   # full pipeline — 63s verified end-to-end
+bun run deploy -- --dry-run      # verify without deploying
+bun run deploy -- --preview-only # build + smoke, no production push
 ```
 
 **Verified speed (2026-04-14):** 106.9s commit → production across 4 Cloudflare services. W0 baseline 10s • build 23s • Gateway 13.7s • Sync 8.2s • NanoClaw 9.2s • Pages 17.4s • health checks <1s. Live Gateway/Sync/NanoClaw respond in 270-292ms.
@@ -327,6 +359,7 @@ agents/                        Markdown agent definitions
 |-----|---------------|
 | [Deploy](docs/deploy.md) | Step-by-step deployment tutorial (every command proven) |
 | [Cloudflare](docs/cloudflare.md) | Platform architecture, 4 workers, agent castes, economics |
+| [Tunnels](docs/PLAN-tunnels.md) | Dev tunnels — expose localhost, test webhooks, zero trust |
 | [NanoClaw](docs/nanoclaw.md) | Edge agent workers — webhooks, queue, LLM, channels |
 | [TODO](docs/TODO.md) | Roadmap, status, what's next |
 

@@ -6,10 +6,14 @@
 
 import type { Server } from 'node:http'
 import { type WebSocket, WebSocketServer } from 'ws'
+import { getTasksCache, updateTasksCache } from './ws-cache'
 import { registerDevBroadcaster } from './ws-server'
 
 let wss: WebSocketServer | null = null
 const clients = new Set<WebSocket>()
+
+// Re-export so existing imports of `@/lib/dev-ws-server` keep working.
+export { updateTasksCache }
 
 /**
  * Attach WebSocket server to HTTP server (development only)
@@ -21,17 +25,53 @@ export function attachWebSocketServer(httpServer: Server) {
   // Register this module's broadcast function with wsManager
   registerDevBroadcaster(broadcastToDevClients)
 
-  wss = new WebSocketServer({ server: httpServer, path: '/api/ws' })
+  // WebSocketServer with noServer=true to manually handle upgrades
+  // This prevents interference with Vite's HMR WebSocket
+  wss = new WebSocketServer({ noServer: true })
+
+  // Handle WebSocket upgrades manually.
+  // IMPORTANT: only claim '/api/ws'. Ignore everything else so Vite's HMR
+  // upgrade listener (same 'upgrade' event) can handle its own socket.
+  // Calling socket.destroy() here would kill HMR and trigger full page reloads.
+  httpServer.on('upgrade', (req, socket, head) => {
+    if (req.url !== '/api/ws') return
+    wss!.handleUpgrade(req, socket, head, (ws) => {
+      wss!.emit('connection', ws, req)
+    })
+  })
 
   wss.on('connection', (ws: WebSocket) => {
     console.log('[WS] Client connected')
     clients.add(ws)
+
+    // Send full tasks state on connect
+    const snapshot = getTasksCache()
+    if (snapshot) {
+      ws.send(
+        JSON.stringify({
+          type: 'full-state',
+          data: snapshot,
+          timestamp: Date.now(),
+        }),
+      )
+    }
 
     ws.on('message', (data: Buffer) => {
       try {
         const msg = JSON.parse(data.toString())
         if (msg.type === 'subscribe') {
           console.log('[WS] Subscribed to:', msg.channel)
+          // Send current state again on explicit subscribe
+          const current = getTasksCache()
+          if (current) {
+            ws.send(
+              JSON.stringify({
+                type: 'full-state',
+                data: current,
+                timestamp: Date.now(),
+              }),
+            )
+          }
         }
       } catch {
         // Ignore invalid messages

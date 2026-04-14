@@ -169,10 +169,10 @@ unit(id, route?)
 ### Task Signature
 
 ```typescript
-(data, emit, ctx) => result
+(data, send, ctx) => result
 
 data   // the data
-emit   // (signal) => void — fan out
+send   // (signal) => void — fan out
 ctx    // { from: string, self: string }
 ```
 
@@ -253,8 +253,8 @@ net.fade(0.05)                         // decay
 ```
 signal(sig, from='entry')
   → unit(sig, from)
-    → task(data, emit, {from, self})
-      → emit(sig)  // fan out
+    → task(data, send, {from, self})
+      → send(sig)  // fan out
         → signal(sig, from=self)
           → mark(edge)  // path remembers
       → .then(task)  // continuation fires

@@ -83,30 +83,16 @@ Run from your machine. Uses `.env` credentials. Human-approved on main.
 bun run deploy
 ```
 Runs all 8 steps. Auto-deploys if branch ≠ main; asks approval if branch = main.
+Set `DEPLOY_CONFIRM=yes` in the env to skip the TTY prompt (used by CI behind the GitHub `environment: production` gate).
 
-### Dry run (test without deploying)
-```bash
-bun run deploy:dry-run
-```
-Runs steps 1-5 (baseline, build, smoke), stops before deploy. Use to verify everything is ready.
+All variants are now flags on the same script:
 
-### Strict mode (no flaky test allowance)
 ```bash
-bun run deploy:strict
+bun run deploy -- --dry-run        # steps 1-5, no deploy
+bun run deploy -- --strict         # no flaky allowance
+bun run deploy -- --skip-tests     # skip W0 (risky — only when verified elsewhere)
+bun run deploy -- --preview-only   # build + smoke, stop before push
 ```
-Any test failure blocks deploy — even known-flaky ones.
-
-### Skip tests (risky)
-```bash
-bun run deploy:skip-tests
-```
-Skips W0 baseline. Use only when baseline was verified elsewhere.
-
-### Preview only
-```bash
-bun run deploy:preview
-```
-Builds and verifies but stops before production deploy.
 
 ## Known-Flaky Test Allowlist
 

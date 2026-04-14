@@ -68,7 +68,7 @@ outlives every model generation — and every generation makes it smarter.
 ### It's beautiful
 
 TypeDB for the brain — paths, knowledge, inference. Sui for the chain —
-payments settle in under 500ms, highways crystallize as immutable proof.
+payments settle in under 500ms, highways harden as immutable proof.
 Cloudflare for the edge — agents deploy free, run globally.
 Astro and shadcn for the surface — zero JS by default, dark and fast.
 
@@ -297,7 +297,7 @@ Problem                              How ONE solves it              Cost
 
 "Prove compliance to the board"      Every path: strength,          on Sui
                                      resistance, peak, revenue,
-                                     traversals. Crystallized
+                                     traversals. Hardend
                                      on-chain = frozen, immutable.
 ```
 
@@ -940,7 +940,7 @@ Stage 4: Cluster becomes highway
          The substrate detects: "DeFi builder community"
          Not because anyone named it — because the paths prove it.
 
-Stage 5: Highway crystallizes
+Stage 5: Highway hardens
          Frozen on Sui. Permanent record.
          The community has an on-chain identity.
          Members can mint tokens backed by the community's highways.
@@ -961,7 +961,7 @@ Growth hacking                 mark() — good work = more routing
 
 Nobody founds a community on ONE. The community founds itself when enough
 agents and humans collaborate on related tasks. The substrate detects it.
-The pheromone proves it. The highway crystallizes it.
+The pheromone proves it. The highway hardens it.
 
 ### Example Communities That Will Form
 
@@ -1088,7 +1088,7 @@ Mint $ARIA token:
   - Investors buy $ARIA = they're betting on aria's routing weight
 ```
 
-The token IS the reputation, crystallized on Sui. The highway IS the backing.
+The token IS the reputation, hardened on Sui. The highway IS the backing.
 Not a promise of future value — proof of past performance, frozen on-chain.
 
 ---
@@ -1480,7 +1480,7 @@ Toxicity thresholds              Org owner             POST /api/config
 Queue priority levels            Signal sender         data.priority field
 Skill pricing                    Agent owner           Markdown frontmatter
 Tier pricing (Free/Pro/etc.)     ONE platform          Published pricing page
-Highway crystallization          Automatic             When strength > threshold
+Highway hardening          Automatic             When strength > threshold
 Schema changes (TypeDB)          ONE engineering       Versioned migrations
 Cross-org discovery              Opt-in per tenant     config.json: discoverable
 Dispute resolution               Arithmetic first      isToxic() + manual escalation
@@ -1545,7 +1545,7 @@ ONE                  Yes (mark/warn) Yes (pheromone)  Yes (any species) Yes (x40
 ```
 
 Nobody else has: routing that learns from outcomes, cross-species pheromone,
-asymmetric decay, highways that crystallize on-chain, or model-independent
+asymmetric decay, highways that harden on-chain, or model-independent
 routing where LLMs compete on measured outcomes. The formula is biology
 applied to coordination. The moat is the graph that formula builds.
 Every model generation makes the substrate smarter. The substrate outlives them all.
@@ -1701,7 +1701,7 @@ pinning) makes compliance straightforward by construction, not by patch.
 ## Token Economics
 
 When an agent or human earns a highway, they can mint a token. The token
-is a performance receipt — proof of measured capability, crystallized on Sui.
+is a performance receipt — proof of measured capability, hardened on Sui.
 
 ```
 MINTING REQUIREMENTS (all must be true):
@@ -1918,7 +1918,7 @@ bun oneie                            world.ts (670 lines engine)
   Onboarding in 60 seconds             Pheromone routing engine
   Org setup, branding, web template     The formula
   6-dimension ontology synced           Toxic detection
-                                        Highway crystallization
+                                        Highway hardening
 oneie agent                             Asymmetric decay
   Non-interactive setup for AI
   Zero-interaction, 5-10 seconds     persist.ts (TypeDB layer)
@@ -2043,7 +2043,7 @@ SAFETY     isToxic() blocks bad actors — three comparisons
 TEAMS      Form groups, split revenue by pheromone weight
 COMPLIANCE Audit trail: strength + resistance on every path
 EVOLUTION  Agents rewrite their own prompts when struggling
-KNOWLEDGE  Highways crystallize on Sui — permanent proof
+KNOWLEDGE  Highways harden on Sui — permanent proof
 COMMUNITY  Emergent communities from signal patterns
 SKIN       Your domain, your brand, your data isolation
 ```
@@ -2074,7 +2074,7 @@ C4:  10 external users creating agents via markdown
      Exit: AgentVerse registration live, cross-platform signals
 
 C5:  100 agents on the substrate. Highways forming.
-     Exit: highway crystallization, confidence metrics per path
+     Exit: highway hardening, confidence metrics per path
 
 C6:  1,000 agents. Coalitions self-forming.
      Exit: sensitivity-based products live:

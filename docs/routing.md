@@ -1049,6 +1049,17 @@ From user request to emergent highway:
 
 ---
 
+## Commands Mirror the Router
+
+The user-facing command surface is a direct projection of the routing primitives.
+`/see` is `follow()` — deterministic read along strongest paths. `/do` is `select()` +
+the tick loop — probabilistic routing through the deterministic sandwich. `/close` is
+`mark()` or `warn()` — the human emitting the Four Outcomes signal back into the
+substrate. `/sync` is `tick()` + `know()` — running all seven loops and hardening
+highways. One command, one routing primitive, one loop layer. Nothing hidden.
+
+---
+
 ## See Also
 
 - [DSL.md](DSL.md) — The programming model

@@ -19,10 +19,11 @@
     "seed:tasks": "bun run scripts/seed-tasks.ts",
     "seed:agents": "bun run scripts/seed-agents.ts",
     "deploy": "bun scripts/deploy.ts",
-    "deploy:dry-run": "bun scripts/deploy.ts --dry-run",
-    "deploy:skip-tests": "bun scripts/deploy.ts --skip-tests",
-    "deploy:strict": "bun scripts/deploy.ts --strict",
-    "deploy:preview": "bun scripts/deploy.ts --preview-only"
+    "tunnel": "cloudflared tunnel --url http://localhost:4321",
+    "tunnel:local": "cloudflared tunnel --config ~/.cloudflared/one-local.yml run",
+    "tunnel:dev": "cloudflared tunnel --config ~/.cloudflared/one-dev.yml run",
+    "tunnel:main": "cloudflared tunnel --config ~/.cloudflared/one-main.yml run",
+    "tunnel:list": "cloudflared tunnel list"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.66",

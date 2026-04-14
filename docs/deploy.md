@@ -74,6 +74,21 @@ bun run dev
 # → http://localhost:4321
 ```
 
+### Optional: Expose via Tunnel
+
+For testing webhooks (Telegram, Discord) against localhost:
+
+```bash
+# Quick tunnel (random URL)
+bun run tunnel
+
+# Named tunnel (stable URL, persists across restarts)
+bun run tunnel:local   # → https://local.one.ie
+bun run tunnel:dev     # → https://dev.one.ie
+```
+
+See [PLAN-tunnels.md](PLAN-tunnels.md) for full tunnel setup.
+
 ---
 
 ## Step 2: Cloudflare Authentication

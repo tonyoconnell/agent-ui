@@ -32,6 +32,24 @@ npm run build    # Production build
 /deploy          # Deploy all 4 workers to Cloudflare
 ```
 
+## Tunnels (Dev)
+
+```bash
+bun run tunnel         # Quick tunnel → random-slug.trycloudflare.com
+bun run tunnel:local   # Named tunnel → local.one.ie → localhost:4321
+bun run tunnel:dev     # Named tunnel → dev.one.ie → localhost:4321
+bun run tunnel:main    # Named tunnel → main.one.ie → localhost:4321
+```
+
+| URL | Purpose | Command |
+|-----|---------|---------|
+| `local.one.ie` | Personal dev, webhook testing | `bun run tunnel:local` |
+| `dev.one.ie` | Dev branch preview (was Pages, now tunnel) | `bun run tunnel:dev` |
+| `main.one.ie` | Main branch preview (until one.ie migrates) | `bun run tunnel:main` |
+
+See `docs/PLAN-tunnels.md` for setup details. Tunnels expose localhost through Cloudflare
+for webhook testing (Telegram, Discord) without ngrok.
+
 ## Architecture
 
 Two dictionaries. Arithmetic. One probabilistic step.
@@ -280,7 +298,7 @@ agents/         # Markdown agent definitions
   *.md          # Example agents (tutor, researcher, coder, writer, concierge)
 migrations/     # D1 schema (signals, messages, tasks, sync_log)
 .claude/
-  commands/     # Slash commands: /work, /tasks, /done, /grow, /highways
+  commands/     # Slash commands: /see, /create, /do, /close, /sync
   skills/       # /sui, /deploy, /typedb, /astro, /react19, /reactflow, /shadcn
   rules/        # Auto-loaded rules for engine, react, astro
 ```
@@ -380,17 +398,39 @@ TypeDB (truth)     →    KV (snapshot)    →    globalThis (hot)
 
 ## Slash Commands
 
+Five verbs. Each takes a noun that specifies what to act on.
+
 ```
-/work       Autonomous loop: sense → select → execute → mark → repeat
-/next       Pick one task and do it
-/tasks      See tasks by category + tags (/tasks P0 build)
-/add-task   Create tagged skill
-/done       Mark outcome, reinforce path
-/grow       Run one growth tick
-/highways   Proven paths, toxic paths, frontiers
-/report     Record session outcomes to substrate
-/todo       Create a TODO from a source doc (uses TODO-template.md)
-/wave       Run the next wave of a cycle-based TODO
+/see     tasks [--tag X]         open work + tag filter                L1
+/see     highways [--limit N]    proven paths (top by strength)        L2
+/see     frontiers               unexplored tag clusters                L7
+/see     toxic                   blocked paths (high resistance)        L3
+/see     hypotheses              what the substrate learned             L6
+/see     events [--since T]      signal history / Four Outcomes audit   L1
+
+/create  task <name> [--tags T]  atomic task into TypeDB               L1
+/create  todo <source-doc?>      TODO from template or extract          L1
+/create  agent <md-file>         agent.md → TypeDB unit                 L1
+/create  signal <rcvr> <data>    ad-hoc signal emission (testing)       L1
+
+/do      <TODO-file>             advance next wave                      L1
+/do      <TODO> --auto           run W1→W4 continuously until done      L1
+/do                              autonomous loop: pick + execute + mark  L1
+/do      --once                  single iteration of autonomous loop     L1
+
+/close   <task-id>               mark() success, unblock dependents     L2
+/close   <task-id> --fail        warn(1) — deterministic failure         L2
+/close   <task-id> --dissolved   warn(0.5) — missing unit/capability     L2
+/close   <task-id> --timeout     neutral — slow, not bad                 L2
+/close                           no-arg: record whole session outcomes   L2
+
+/sync                            tick + scan docs + todos + agents       L3-L7
+/sync    tick                    fire /api/tick (all L1-L7 loops)        L1-L7
+/sync    docs                    scan docs/*.md → memory → TypeDB        L6
+/sync    todos                   scan docs/TODO-*.md → tasks → TypeDB    L1
+/sync    agents                  scan agents/**/*.md → units → TypeDB    L1
+/sync    fade/evolve/know/frontier  individual loop invocations          L3-L7
+/sync    pay <receiver> <amt>    emit payment signal (L4 economic)       L4
 ```
 
 ## The Three Locked Rules
@@ -476,23 +516,25 @@ import { Card } from "@/components/ui/card"
 
 ## Deploy
 
-**Two paths, one script. 65.0s verified. `wrangler` CLI direct + async parallel workers.**
+**One script. Same code path locally and in CI. `wrangler` CLI direct + async parallel workers.**
 
-### CLI (local)
+### Deploy
 ```bash
 bun run deploy              # full pipeline, prompts "yes" on main
-bun run deploy:dry-run      # verify without deploying
-bun run deploy:strict       # no flaky test allowance
-bun run deploy:preview      # build + smoke only
+bun run deploy -- --dry-run       # verify without deploying
+bun run deploy -- --strict        # no flaky test allowance
+bun run deploy -- --preview-only  # build + smoke only
+bun run deploy -- --skip-tests    # skip W0 (risky)
+DEPLOY_CONFIRM=yes bun run deploy # non-interactive approval (CI)
 ```
 
 ### GitHub Actions (CI) — `.github/workflows/deploy.yml`
 ```
-push feature/**  →  auto-deploy Pages preview after W0
-push main        →  wait for `environment: production` reviewer → parallel deploy
+push feature/**  →  `bun run deploy` (auto-approves non-main branches)
+push main        →  `environment: production` reviewer gate → DEPLOY_CONFIRM=yes → `bun run deploy`
 ```
 Required secrets: `CLOUDFLARE_GLOBAL_API_KEY`, `CLOUDFLARE_EMAIL`, `CLOUDFLARE_ACCOUNT_ID`.
-`CLOUDFLARE_API_TOKEN` explicitly blanked in both paths.
+`CLOUDFLARE_API_TOKEN` is explicitly blanked. CI invokes the exact same `bun run deploy` you run locally — no drift.
 
 ### The 8-step pipeline (`scripts/deploy.ts`)
 1. W0 baseline — biome + tsc + vitest (known-flaky allowlist)

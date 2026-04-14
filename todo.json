@@ -1,9 +1,9 @@
 {
-  "generated": "2026-04-14T01:05:10.701Z",
-  "total": 281,
-  "open": 181,
-  "done": 100,
-  "synced": 281,
+  "generated": "2026-04-14T02:51:28.123Z",
+  "total": 282,
+  "open": 166,
+  "done": 116,
+  "synced": 282,
   "blocks": 73,
   "errors": 0,
   "kvWritten": false,
@@ -457,7 +457,7 @@
     {
       "id": "base-context-always",
       "name": "Add DSL + dictionary as base context in every wave",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "low",
       "wave": "W3",
@@ -538,7 +538,7 @@
     {
       "id": "enrich-task-signal",
       "name": "Enrich task signal in loop.ts with full envelope",
-      "done": false,
+      "done": true,
       "value": "critical",
       "effort": "medium",
       "wave": "W3",
@@ -757,7 +757,7 @@
     {
       "id": "gate-register-capable",
       "name": "Lifecycle gate: REGISTER → CAPABLE requires unit_exists",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1193,7 +1193,7 @@
     {
       "id": "api-discover",
       "name": "API endpoint: GET /api/agents/discover",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1243,7 +1243,7 @@
     {
       "id": "gate-capable-discover",
       "name": "Lifecycle gate: CAPABLE → DISCOVER requires has_capability",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1310,7 +1310,7 @@
         "P0"
       ],
       "blocks": [
-        "impl-crystallize"
+        "impl-harden"
       ],
       "exit": "`isHighway(edge)` returns true when threshold met. TypeDB function `edge_classification(from, to)` returns \"highway\".",
       "source": "lifecycle",
@@ -1318,8 +1318,8 @@
       "resistance": 0
     },
     {
-      "id": "impl-crystallize",
-      "name": "Implement crystallize(): freeze highway to Sui",
+      "id": "impl-harden",
+      "name": "Implement harden(): freeze highway to Sui",
       "done": false,
       "value": "critical",
       "effort": "high",
@@ -1347,7 +1347,7 @@
     {
       "id": "recall-prior-attempts",
       "name": "Wire recall of prior attempts into context",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1372,7 +1372,7 @@
     {
       "id": "blocking-context",
       "name": "Wire blocking context — executor sees what it unblocks",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1819,7 +1819,7 @@
     {
       "id": "gate-signal-drop",
       "name": "Lifecycle gate: SIGNAL → DROP requires { result }",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1844,7 +1844,7 @@
     {
       "id": "gate-signal-alarm",
       "name": "Lifecycle gate: SIGNAL → ALARM requires failure",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "low",
       "wave": "W3",
@@ -1869,7 +1869,7 @@
     {
       "id": "impl-signal-log",
       "name": "Signal logging to TypeDB",
-      "done": false,
+      "done": true,
       "value": "high",
       "effort": "medium",
       "wave": "W3",
@@ -2531,8 +2531,8 @@
       "resistance": 0
     },
     {
-      "id": "wire-sui-on-chain-proofs-paths-crystallized-immutable",
-      "name": "Wire Sui on-chain proofs: paths crystallized immutable",
+      "id": "wire-sui-on-chain-proofs-paths-hardened-immutable",
+      "name": "Wire Sui on-chain proofs: paths hardened immutable",
       "done": false,
       "value": "high",
       "effort": "high",
@@ -2908,8 +2908,8 @@
       "resistance": 0
     },
     {
-      "id": "gate-highway-crystallize",
-      "name": "Lifecycle gate: HIGHWAY → CRYSTALLIZE requires confirmed",
+      "id": "gate-highway-harden",
+      "name": "Lifecycle gate: HIGHWAY → HARDEN requires confirmed",
       "done": false,
       "value": "high",
       "effort": "medium",
@@ -2933,8 +2933,8 @@
       "resistance": 0
     },
     {
-      "id": "api-crystallize",
-      "name": "API endpoint: POST /api/crystallize",
+      "id": "api-harden",
+      "name": "API endpoint: POST /api/harden",
       "done": false,
       "value": "high",
       "effort": "medium",
@@ -3002,7 +3002,7 @@
         "P1"
       ],
       "blocks": [],
-      "exit": "Move struct matches lifecycle.md spec. Fields: agent, task, strength, completions, crystallized_at.",
+      "exit": "Move struct matches lifecycle.md spec. Fields: agent, task, strength, completions, hardened_at.",
       "source": "lifecycle",
       "strength": 0,
       "resistance": 0
@@ -4798,6 +4798,32 @@
       "resistance": 0
     },
     {
+      "id": "phase-10-harden",
+      "name": "Phase 10: crystallize → harden",
+      "done": true,
+      "value": "high",
+      "effort": "medium",
+      "wave": "W3",
+      "model": "sonnet",
+      "phase": "final",
+      "persona": "sonnet",
+      "context": [],
+      "priority": 55,
+      "effective": 55,
+      "formula": "high=25 + final=25 + sonnet=5",
+      "tags": [
+        "rename",
+        "vocabulary",
+        "sui",
+        "P1"
+      ],
+      "blocks": [],
+      "exit": "Zero `crystallize` / `crystallized` in non-archive code. Move contract fn renamed. TypeDB attribute renamed. Docs consistent. bun run verify green.",
+      "source": "rename",
+      "strength": 0,
+      "resistance": 0
+    },
+    {
       "id": "1a-install-sui-cli-sui-1612-homebrew",
       "name": "**1a. Install Sui CLI** — `sui 1.61.2-homebrew`",
       "done": true,
@@ -5764,8 +5790,8 @@
       "resistance": 0
     },
     {
-      "id": "crystallize-highways-freezeobject-050-fee",
-      "name": "Crystallize highways (`freeze_object()`, $0.50 fee)",
+      "id": "harden-highways-freezeobject-050-fee",
+      "name": "Harden highways (`freeze_object()`, $0.50 fee)",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -6436,9 +6462,9 @@
       "resistance": 0
     },
     {
-      "id": "cycle-1-wire-into-one-register-capable-discover",
-      "name": "**Cycle 1: WIRE** — Into ONE (Register, Capable, Discover)",
-      "done": false,
+      "id": "cycle-1-wire-into-one-register-capable-discover-88-tasks-clo",
+      "name": "**Cycle 1: WIRE** — Into ONE (Register, Capable, Discover) — 8/8 tasks closed 2026-04-14",
+      "done": true,
       "value": "medium",
       "effort": "medium",
       "wave": "W3",
@@ -6457,9 +6483,9 @@
       "resistance": 0
     },
     {
-      "id": "cycle-2-prove-through-one-signal-drop-alarm-fade",
-      "name": "**Cycle 2: PROVE** — Through ONE (Signal, Drop, Alarm, Fade)",
-      "done": false,
+      "id": "cycle-2-prove-through-one-signal-drop-alarm-fade-88-tasks-cl",
+      "name": "**Cycle 2: PROVE** — Through ONE (Signal, Drop, Alarm, Fade) — 8/8 tasks closed 2026-04-14",
+      "done": true,
       "value": "medium",
       "effort": "medium",
       "wave": "W3",
@@ -6478,8 +6504,8 @@
       "resistance": 0
     },
     {
-      "id": "cycle-3-grow-out-of-one-highway-crystallize-federate-dissolv",
-      "name": "**Cycle 3: GROW** — Out of ONE (Highway, Crystallize, Federate, Dissolve)",
+      "id": "cycle-3-grow-out-of-one-highway-harden-federate-dissolve",
+      "name": "**Cycle 3: GROW** — Out of ONE (Highway, Harden, Federate, Dissolve)",
       "done": false,
       "value": "medium",
       "effort": "medium",
@@ -6688,7 +6714,7 @@
     {
       "id": "cycle-1-wire-context-into-tasks",
       "name": "**Cycle 1: WIRE** — Context into tasks",
-      "done": false,
+      "done": true,
       "value": "medium",
       "effort": "medium",
       "wave": "W3",
@@ -6709,7 +6735,7 @@
     {
       "id": "cycle-2-prove-waves-as-core-loops",
       "name": "**Cycle 2: PROVE** — Waves as core loops",
-      "done": false,
+      "done": true,
       "value": "medium",
       "effort": "medium",
       "wave": "W3",
@@ -6730,7 +6756,7 @@
     {
       "id": "cycle-3-grow-self-learning",
       "name": "**Cycle 3: GROW** — Self-learning",
-      "done": false,
+      "done": true,
       "value": "medium",
       "effort": "medium",
       "wave": "W3",

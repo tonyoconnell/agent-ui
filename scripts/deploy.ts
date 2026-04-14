@@ -357,6 +357,14 @@ async function approve(branch: string): Promise<boolean> {
     return false
   }
 
+  // Non-interactive bypass — CI (behind GitHub `environment: production` gate)
+  // or scripted deploys set DEPLOY_CONFIRM=yes. The gate is the GH reviewer,
+  // not this prompt; keeping it also bypassed here keeps one code path.
+  if (process.env.DEPLOY_CONFIRM === 'yes') {
+    console.log(c.gray('  → DEPLOY_CONFIRM=yes in env, skipping TTY prompt'))
+    return true
+  }
+
   // Read from TTY
   process.stdout.write('  Type "yes" to deploy: ')
   const line = await new Promise<string>((resolve) => {

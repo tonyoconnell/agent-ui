@@ -9,15 +9,23 @@ TypeDB thinks. Cloudflare moves. Haiku executes. Opus architects.
 
 ---
 
-## Status (verified 2026-04-06)
+## Status (verified 2026-04-14)
 
 | Service | URL | Status |
 |---------|-----|--------|
 | Pages (frontend) | https://one-substrate.pages.dev | 200 OK, 0.4s |
 | Gateway (API) | https://api.one.ie/health | `{"status":"ok"}` |
-| Sync (cron) | https://one-sync.oneie.workers.dev | `*/5 * * * *` |
+| Sync (cron) | https://one-sync.oneie.workers.dev | `*/1 * * * *` |
 | NanoClaw | https://nanoclaw.oneie.workers.dev/health | `{"status":"ok"}` |
 | TypeDB Cloud | `flsiu1-0.cluster.typedb.com:1729` | 19 units, 18 skills, 1 group |
+
+### Dev Tunnels
+
+| Tunnel | URL | Status |
+|--------|-----|--------|
+| `one-local` | https://local.one.ie | Ready |
+| `one-dev` | https://dev.one.ie | Ready |
+| `one-main` | https://main.one.ie | Ready |
 
 ---
 
@@ -60,7 +68,7 @@ TypeDB thinks. Cloudflare moves. Haiku executes. Opus architects.
 
 ---
 
-## Four Workers
+## Four Workers + Tunnels
 
 | Worker | Name | Purpose | Cost |
 |--------|------|---------|------|
@@ -68,6 +76,26 @@ TypeDB thinks. Cloudflare moves. Haiku executes. Opus architects.
 | **Gateway** | `one-gateway` | TypeDB proxy, JWT caching, CORS | $0 |
 | **Sync** | `one-sync` | TypeDB → KV snapshots every 5 min | $0 |
 | **NanoClaw** | `nanoclaw` | Agent workers: webhooks → queue → Claude → channels | $0 |
+
+### Dev Tunnels
+
+Expose localhost through Cloudflare for webhook testing:
+
+| Tunnel | URL | Purpose | Command |
+|--------|-----|---------|---------|
+| `one-local` | `local.one.ie` | Personal dev | `bun run tunnel:local` |
+| `one-dev` | `dev.one.ie` | Dev branch preview | `bun run tunnel:dev` |
+| `one-main` | `main.one.ie` | Main branch preview | `bun run tunnel:main` |
+
+```bash
+# Quick tunnel (random URL, instant)
+bun run tunnel
+
+# Named tunnel (stable URL)
+bun run tunnel:local  # → https://local.one.ie → localhost:4321
+```
+
+See [PLAN-tunnels.md](PLAN-tunnels.md) for full setup.
 
 ---
 
@@ -392,6 +420,7 @@ bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 ## See Also
 
 - [deploy.md](deploy.md) — Step-by-step deployment tutorial
+- [PLAN-tunnels.md](PLAN-tunnels.md) — Dev tunnels: expose localhost, test webhooks
 - [TODO-deploy.md](TODO-deploy.md) — Status tracking, agent caste architecture
 - [strategy.md](strategy.md) — The play: wire substrate quietly, let adoption speak
 - [architecture.md](architecture.md) — Full system design

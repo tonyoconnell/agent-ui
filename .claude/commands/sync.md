@@ -1,106 +1,142 @@
-Run the doc-scan sync loop with full deterministic sandwich. Scans all `docs/TODO-*.md` files, writes to CF KV (hot cache), syncs to TypeDB (durable), writes `todo.json` (snapshot), regenerates `docs/TODO.md` (master index ranked by pheromone weight).
+# /sync
 
-Three-layer architecture: KV (10ms) → TypeDB (100ms) → TODO.md (regenerate).
+Reconcile substrate state — tick loops, absorb markdown, propagate knowledge.
 
-**GATED: W0 baseline must pass before sync.**
+## Nouns
 
-## W0 Gate — Baseline (non-negotiable)
+| Noun | What | Loop |
+|------|------|------|
+| *(default)* | Tick all loops + scan docs + todos + agents | L1-L7 |
+| `tick` | Fire all L1-L7 loops once (one full growth cycle) | L1-L7 |
+| `docs` | Scan `docs/*.md` → memory → TypeDB | L6 |
+| `todos` | Scan `docs/TODO-*.md` → tasks → TypeDB + KV | L1 |
+| `agents` | Scan `agents/**/*.md` → units → TypeDB | L1 |
+| `fade` | Fire L3 only — asymmetric decay | L3 |
+| `evolve` | Fire L5 only — rewrite struggling agents | L5 |
+| `know` | Fire L6 only — harden highways + hypothesize | L6 |
+| `frontier` | Fire L7 only — detect unexplored tag clusters | L7 |
+| `pay <receiver> <amt>` | Emit L4 payment signal | L4 |
+| `<path>` | Absorb any markdown file or directory into substrate | L6 |
 
-Before syncing, verify the codebase is healthy:
+## Routing
 
-```bash
-bun run verify     # biome check . && tsc --noEmit && vitest run
-```
+`/sync` maps to `tick()` + `know()` — running all seven loops and hardening highways.
+Individual noun invocations target a single loop layer; default runs all of them.
 
-**If baseline fails:** Fix it first. Do not sync on broken ground.
-
-This is the deterministic sandwich PRE check. The substrate learns from clean state only.
+| Noun | Primitive | L |
+|------|-----------|---|
+| default / tick | `tick()` all loops | L1-L7 |
+| docs / todos / agents / `<path>` | `know()` absorption | L6 |
+| fade | `fade()` | L3 |
+| evolve | agent prompt rewrite | L5 |
+| know | `know()` harden | L6 |
+| frontier | frontier detection | L7 |
+| pay | `send()` payment signal | L4 |
 
 ## Steps
 
-1. **Scan** — Parse all `docs/TODO-*.md` files via `scanTodos()` (deterministic, no LLM)
+### *(default)*
 
-2. **Sync to KV** — Write Task[] to CF KV cache (`tasks.json`):
-   - Hash Task[] array (FNV-1a)
-   - If hash changed → write to KV (skips if unchanged)
-   - Returns immediately (10ms, hot cache ready)
-
-3. **Async to TypeDB** — Background write (non-blocking):
-   - Call `POST /api/tasks/sync` (or simulate if server isn't running):
-   ```bash
-   curl -s -X POST http://localhost:4321/api/tasks/sync | jq .
+1. `bun run verify` — W0 gate (skip if already passed this session)
+2. Scan `docs/TODO-*.md` → parse checkboxes → POST `/api/tasks/sync`
+3. Scan `docs/*.md` → extract concepts → write to memory → TypeDB
+4. Scan `agents/**/*.md` → parse frontmatter → sync units + skills
+5. GET `http://localhost:4321/api/tick?interval=0` — fire all L1-L7 loops
+6. Report:
+   ```
+   Tasks:    N synced  M hash-deltas  K KV writes
+   Docs:     N scanned  M gaps found  K TypeDB writes
+   Agents:   N synced  M skills
+   Tick:     cycle=N  highways=M  evolved=K  hardened=J  hypotheses=I  frontiers=H
+   L3 fade:  N paths decayed
+   L5 evolve: N agents evaluated  M evolved
+   L6 know:  N highways hardened  M hypotheses written
+   L7 frontier: N clusters detected
    ```
 
-4. **If server not running**, do a dry run:
-   ```bash
-   curl -s http://localhost:4321/api/tasks/sync | jq .
+### tick
+
+1. GET `http://localhost:4321/api/tick?interval=0`
+2. Report full tick output:
    ```
-   Or parse locally and report without TypeDB/KV sync.
-
-4. **Report** what was synced:
-   - Total tasks (open / done)
-   - Count per TODO-*.md file
-   - Count per phase (C1-C7)
-   - Top 10 by effective priority (priority + pheromone)
-   - Any sync errors
-
-5. **Verify sync artifacts:**
-   - `docs/TODO.md` — master index with links to all TODO-*.md files
-   - `todo.json` — snapshot with all tasks + pheromone + effective priority
-   - TypeDB — task entities + skill entities + capability + blocks relations
-
-6. **Check consistency:**
-   - Every TODO-*.md task has a matching TypeDB task entity
-   - Every TypeDB task has a matching TODO-*.md checkbox
-   - `todo.json` matches both (generated timestamp shows freshness)
-   - `docs/TODO.md` links to all active TODO-*.md files
-
-7. **Suggest next actions** based on highest-ranked open items:
-   - `/wave TODO-{name}.md` for the highest-priority TODO
-   - `/next` to pick the single best task
-   - `/work` for autonomous loop
-
-8. **Report with deterministic numbers (Rule 3):**
+   Cycle:      N
+   Highways:   N (strength ≥ 50)
+   Evolved:    N agents rewrote prompts
+   Hardened:   N paths promoted to permanent
+   Hypotheses: N generated
+   Frontiers:  N unexplored clusters
+   Per-loop timings: L3 lastAtMs=N nextAtMs=M  L5 lastAtMs=N  L6 lastAtMs=N  L7 lastAtMs=N
    ```
-   Scan:        <N> TODO-*.md files, <N> total tasks (<M> done)
-   KV:          <written|skipped (hash match)>, <ms>
-   TypeDB:      <N> tasks inserted, <N> skills inserted, <N> relations, <ms>
-   todo.json:   <bytes>, <ms>
-   TODO.md:     <regenerated|unchanged>
-   Top 5:       <task-id>@<priority>, <task-id>@<priority>, ...
+
+### docs
+
+1. Scan all `docs/*.md` files via `src/engine/doc-scan.ts`
+2. Extract key concepts, verify doc-code alignment
+3. Write to memory → TypeDB
+4. Report: docs scanned, gaps found, TypeDB writes
+
+### todos
+
+1. Scan all `docs/TODO-*.md` files via `src/engine/task-parse.ts` (`scanTodos()`)
+2. POST to `http://localhost:4321/api/tasks/sync` (hash-gated: skips if data unchanged)
+3. KV update (~10ms), async TypeDB sync (~100ms)
+4. Report:
    ```
-   Emit the sync latency. Hash-gated writes should skip KV on no-op; emit the
-   skip count. This is how the substrate learns whether docs actually changed
-   or we're just pinging the pipeline.
+   Tasks:   N synced across M TODO files
+   Phases:  C1=N C2=M C3=K ...
+   Top 10:  <task> priority=N, ...
+   KV:      N writes (hash-gated)
+   ```
 
-## The Sync Chain
+### agents
 
-```
-TODO-*.md (edit here)
-    │
-    ├── task-parse.ts → Task[]              (deterministic, no LLM)
-    │
-    ├── CF KV (hot cache)
-    │   ├─ tasks.json (hash-gated write)   (10ms read)
-    │   └─ avoids re-parsing on every tick
-    │
-    ├── TypeDB (durable, async)
-    │   ├─ task-sync.ts → entities         (100ms write, non-blocking)
-    │   ├─ capability → links to skills
-    │   ├─ blocks → dependency relations
-    │   └─ pheromone → strength/resistance
-    │
-    ├── todo.json (snapshot)
-    │   └─ all tasks + effective priority   (for CI, dashboards)
-    │
-    └── TODO.md (master index)
-        └─ regenerated, ranked by pheromone
-```
+1. Scan `agents/**/*.md` files
+2. Parse frontmatter via `src/engine/agent-md.ts` → `AgentSpec[]`
+3. Sync each to TypeDB: unit + skills + capabilities + group membership
+4. Report: agents synced, skills synced, TypeDB insert count
 
-Four sources, one truth:
-- **TODO-*.md** — human-editable source
-- **CF KV** — hot cache for routing (10ms)
-- **TypeDB** — durable brain (100ms, learns)
-- **todo.json** — snapshot for verification
+### fade
 
-Edit the TODO-*.md files. Everything else regenerates from them.
+1. GET `http://localhost:4321/api/tick?loops=L3`
+2. Asymmetric decay: resistance forgives 2× faster than strength decays
+3. Report: paths decayed, net strength/resistance changes
+
+### evolve
+
+1. GET `http://localhost:4321/api/tick?loops=L5`
+2. For each unit with `success-rate < 0.50` AND `sample-count ≥ 20` AND last evolution > 24h ago:
+   - Rewrite system prompt based on failure patterns
+   - Increment `generation` counter
+3. Report: agents evaluated, agents evolved, generation numbers
+
+### know
+
+1. GET `http://localhost:4321/api/tick?loops=L6`
+2. Promote top highways (strength ≥ 50, consistent) to permanent TypeDB hypotheses
+3. Auto-hypothesize patterns from accumulated path data
+4. Report: highways hardened, hypotheses written, confidence scores
+
+### frontier
+
+1. GET `http://localhost:4321/api/tick?loops=L7`
+2. Detect tag clusters with <10% traversal rate
+3. Report: clusters detected, expected value per cluster
+
+### pay
+
+1. Parse `<receiver>` and `<amount>` from `$ARGUMENTS`
+2. POST `http://localhost:4321/api/signal` with `{ receiver, data: { type: "payment", amount } }`
+3. Revenue recorded on path
+4. Report: payment signal sent, path updated, revenue total for that path
+
+### `<path>`
+
+1. Read markdown file or directory at `<path>` from `$ARGUMENTS`
+2. If directory: scan all `*.md` files recursively
+3. Parse content → extract concepts, tasks, or agent specs as appropriate
+4. Write to memory → TypeDB
+5. Report: files processed, entities written
+
+---
+
+*`/sync` is `tick()` + `know()` — seven loops, one command.*
