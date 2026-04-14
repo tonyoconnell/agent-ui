@@ -7,7 +7,7 @@
  * Falls back to TODO.md roadmap data when TypeDB isn't connected.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useTaskWebSocket } from '@/lib/use-task-websocket'
 
 // Task source. Empty = same-origin (dev server's own /api/tasks → .tasks.json).
@@ -1309,11 +1309,17 @@ export function TaskBoard() {
     return ready || tasks[0]
   }, [tasks, selectedId])
 
-  // Build phases
+  // Debounce rapid WS updates — render derived views from deferred value
+  // to avoid excessive re-renders when many mark/warn events arrive in bursts
+  const deferredTasks = useDeferredValue(tasks)
+
+  // Build phases from deferredTasks — expensive filter/count avoids lag on
+  // rapid WS mark/warn bursts. React serves the last rendered value until
+  // this recomputes in a low-priority transition.
   const phases = useMemo<Phase[]>(
     () =>
       PHASE_ORDER.map((id) => {
-        const phaseTasks = tasks.filter((t) => t.phase === id)
+        const phaseTasks = deferredTasks.filter((t) => t.phase === id)
         return {
           id,
           name: PHASE_META[id].label,
@@ -1322,7 +1328,7 @@ export function TaskBoard() {
           total: phaseTasks.length,
         }
       }),
-    [tasks],
+    [deferredTasks],
   )
 
   const activePhase = activeTask?.phase || 'wire'

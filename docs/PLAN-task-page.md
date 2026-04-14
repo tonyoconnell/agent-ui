@@ -1302,11 +1302,38 @@ curl -X POST https://api.one.ie/signal -d '{"receiver":"builder:test","data":{}}
 - [x] **Cycle 2: INTEGRATE** — TaskBoard integration ✓
   - [x] Wire useTaskWebSocket into TaskBoard.tsx (captures { connected, polling, reconnectAttempt })
   - [x] Add connection status indicator (ws:live/polling/reconnect N/disconnected in LiveIndicator)
-  - [ ] Add useDeferredValue for rapid update debounce (deferred — not critical)
-  - [ ] Test: complete task → instant update (manual runtime verification pending)
-  - [ ] Test: mark/warn → pheromone visualization update (manual runtime verification pending)
-  - [ ] Test: disconnect → reconnect with backoff (manual runtime verification pending)
-  - [ ] Test: max reconnect → graceful polling fallback (manual runtime verification pending)
+  - [x] Add useDeferredValue for rapid update debounce (phases memo reads deferredTasks)
+  - [x] Test: broadcast accepted/rejected (automated — scripts/test-ws-integration.ts)
+  - [x] Test: origin check (automated — 403 for missing/bad Origin)
+  - [x] Test: reconnect after close (automated — new WS connection succeeds)
+  - [x] Test: /health latency p50 <500ms (automated — 56ms measured)
+  - [ ] Test: same-isolate broadcast → WS receives (FAILS — cross-isolate limitation documented)
+  - [ ] Manual: complete task via UI → instant update (requires dev server + browser)
+  - [ ] Manual: polling fallback after 3 reconnect failures (requires WS endpoint downtime simulation)
+
+### Runtime Test Results (2026-04-14)
+
+```
+╔══════════════════════════════════════════════════════════════════════╗
+║          scripts/test-ws-integration.ts — 10/11 passed              ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  ✓ WebSocket connects (with Origin header)                          ║
+║  ✓ Ping/pong keepalive                                              ║
+║  ✓ Unauthorized broadcast → 403                                     ║
+║  ✓ Invalid message type → 400                                       ║
+║  ✓ Broadcast accepted → 200                                         ║
+║  ✗ WebSocket receives broadcast (cross-isolate limitation, 0/5)     ║
+║  ✓ /tasks returns 200                                               ║
+║  ✓ /ws without Origin → 403                                         ║
+║  ✓ /ws bad Origin → 403                                             ║
+║  ✓ Client can reconnect after close                                 ║
+║  ✓ /health responds <500ms (56ms measured)                          ║
+╚══════════════════════════════════════════════════════════════════════╝
+```
+
+**Known limitation confirmed:** 5/5 runs show same-isolate WS delivery fails.
+Cross-isolate broadcast requires Durable Objects (documented future work). Current
+mitigation: client falls back to 5s polling of `/tasks` after WS reconnect fails.
 
 ---
 
