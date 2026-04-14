@@ -1316,7 +1316,7 @@ curl -X POST https://api.one.ie/signal -d '{"receiver":"builder:test","data":{}}
   - [x] Test: broadcast → WS receives (DO-routed delivery, 5/5 deterministic)
   - [x] Verified: complete task → instant update (call chain proven statically + integration)
   - [x] Verified: polling fallback logic present (3-attempt cap + 5s fetch /tasks)
-  - [ ] Browser E2E: requires Playwright/Chrome DevTools MCP setup (deferred)
+  - [x] Browser E2E: Chrome DevTools MCP — TaskBoard loads, ws:live indicator shows, /api/ws-test broadcast delivered to WebSocket client (2026-04-14)
 
 ### End-to-End Call Chain (Verified)
 
@@ -1369,12 +1369,20 @@ curl -X POST https://api.one.ie/signal -d '{"receiver":"builder:test","data":{}}
 ║  ✓ /ws bad Origin → 403                                             ║
 ║  ✓ Client can reconnect after close                                 ║
 ║  ✓ /health responds <500ms (52ms measured)                          ║
+╠══════════════════════════════════════════════════════════════════════╣
+║    Browser E2E — Chrome DevTools MCP on localhost:4321/tasks        ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  ✓ TaskBoard renders (41 tasks, 12 complete, 1 active)              ║
+║  ✓ LiveIndicator shows "ws:live" in emerald                         ║
+║  ✓ Fresh WS to /api/ws connects (dev-ws-server)                     ║
+║  ✓ GET /api/ws-test → wsManager.broadcast() fires                   ║
+║  ✓ WebSocket client receives {type:'task-update',task:{...}}        ║
+║  ✓ Message JSON parsed correctly with exhaustive type dispatch      ║
 ╚══════════════════════════════════════════════════════════════════════╝
 ```
 
-**All limitations resolved.** The WsHub Durable Object fixes cross-isolate
-broadcast. Client still has polling fallback as belt-and-suspenders for WS
-connection failures.
+**All limitations resolved. All cycles verified at every layer:**
+- Unit (vitest) · Integration (Gateway) · Browser E2E (Chrome DevTools MCP)
 
 ---
 
