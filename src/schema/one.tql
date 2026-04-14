@@ -74,6 +74,7 @@ relation signal,
     owns data,                        # JSON payload
     owns amount,                      # payment (0 = free)
     owns success,
+    owns latency,                     # ms from dispatch to outcome
     owns ts;
 
 # 6. LEARNING — what was discovered
@@ -109,10 +110,11 @@ attribute traversals, value integer;
 attribute generation, value integer;
 attribute observations, value integer;
 attribute success, value boolean;
+attribute latency, value double;
 attribute ts, value datetime;
 attribute task-wave, value string;
 attribute task-context, value string;
 
 # =============================================================================
-# 6 dimensions. 3 entities. 5 relations. 24 attributes. ONE.
+# 6 dimensions. 3 entities. 5 relations. 25 attributes. ONE.
 # =============================================================================

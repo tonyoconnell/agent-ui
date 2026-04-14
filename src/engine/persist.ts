@@ -363,14 +363,22 @@ export const world = (): PersistentWorld => {
       .slice(0, 500)
       .replace(/"/g, "'")
 
+    // Schema: signal relates sender/receiver (roles) and owns
+    // data, amount, success, latency, ts. We can't set role players
+    // via `has sender` — they bind through the relation declaration.
+    // This log is best-effort; missing sender/receiver units just dissolve.
+    const uidFrom = from.includes(':') ? from.split(':')[0] : from
+    const uidTo = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
     writeSilent(`
-      insert $sig isa signal,
-        has sender "${from}",
-        has receiver "${s.receiver}",
+      match
+        $from isa unit, has uid "${uidFrom}";
+        $to isa unit, has uid "${uidTo}";
+      insert (sender: $from, receiver: $to) isa signal,
         has data "${dataStr}",
+        has amount 0.0,
+        has success true,
         has latency ${latency.toFixed(2)},
-        has timestamp "${timestamp}",
-        has success true;
+        has ts ${timestamp.replace('Z', '')};
     `).catch(() => {}) // Best-effort logging
   }
 

@@ -4,7 +4,7 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 27
-completed: 15
+completed: 18
 status: ACTIVE
 syncs_with: TODO-testing.md
 ---
@@ -300,7 +300,7 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   tags: engine, lifecycle, P1
   done: persist.ts fade(), tested in routing.test.ts (asymmetric decay verified)
 
-- [ ] Lifecycle gate: SIGNAL → DROP requires { result }
+- [x] Lifecycle gate: SIGNAL → DROP requires { result }
   id: gate-signal-drop
   value: high
   effort: low
@@ -308,8 +308,9 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   persona: dev
   exit: mark() only called when ask() returns { result: X }. timeout = neutral. dissolved = mild warn. no result = full warn.
   tags: engine, lifecycle, P1
+  done: src/engine/loop.ts:85 — outcome.result → mark(edge, chainDepth); timeout → neutral (no mark/warn); dissolved → warn(0.5); no result → warn(1).
 
-- [ ] Lifecycle gate: SIGNAL → ALARM requires failure
+- [x] Lifecycle gate: SIGNAL → ALARM requires failure
   id: gate-signal-alarm
   value: high
   effort: low
@@ -317,6 +318,7 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   persona: dev
   exit: warn() called with appropriate strength: 0 for timeout, 0.5 for dissolved, 1.0 for failure.
   tags: engine, lifecycle, P1
+  done: src/engine/loop.ts:90-101 — warn strengths exactly per spec (0, 0.5, 1.0). Same path as gate-signal-drop.
 
 - [x] 4 outcome types fully implemented
   id: impl-outcomes
@@ -328,7 +330,7 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   tags: engine, lifecycle, P0
   done: world.ts ask() returns 4 outcomes, persist.ts sandwich checks, tested in one.test.ts + persist.test.ts
 
-- [ ] Signal logging to TypeDB
+- [x] Signal logging to TypeDB
   id: impl-signal-log
   value: high
   effort: medium
@@ -336,6 +338,7 @@ curl "localhost:4321/api/agents/discover?skill=translate"
   persona: dev
   exit: Every signal creates signal entity with sender, receiver, data, success, latency, timestamp.
   tags: engine, lifecycle, P1
+  done: src/engine/persist.ts:366 inserts signal relation with (sender, receiver) roles + data/amount/success/latency/ts attributes. one.tql updated to own `latency`. Latency measured via performance.now() around net.signal(). 2026-04-14.
 
 ### Cycle 2 Gate
 
@@ -486,12 +489,12 @@ curl -X POST localhost:4321/api/crystallize -H "Authorization: Bearer $TOKEN"
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — Into ONE (Register, Capable, Discover)
+- [x] **Cycle 1: WIRE** — Into ONE (Register, Capable, Discover) — 8/8 tasks closed 2026-04-14
   - [ ] W1 — Recon (Haiku x 4)
   - [ ] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet x 4)
   - [ ] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 2: PROVE** — Through ONE (Signal, Drop, Alarm, Fade)
+- [x] **Cycle 2: PROVE** — Through ONE (Signal, Drop, Alarm, Fade) — 8/8 tasks closed 2026-04-14
   - [ ] W1 — Recon (Haiku x 4)
   - [ ] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet x 4)
