@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTaskWebSocket } from '@/lib/use-task-websocket'
 
 // Task source. Empty = same-origin (dev server's own /api/tasks → .tasks.json).
 // Set PUBLIC_TASKS_ORIGIN=https://one-substrate.pages.dev in .env to share
@@ -1446,97 +1447,9 @@ export function TaskBoard() {
     fetchTasks()
   }, [fetchTasks])
 
-  // WebSocket for instant push updates (replaces 2s polling)
-  useEffect(() => {
-    let ws: WebSocket | null = null
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-
-    const connect = () => {
-      // Always use the production substrate so every agent sees the same pheromone.
-      // When PUBLIC_TASKS_ORIGIN is blank, fall back to same-origin (dev only).
-      const wsOrigin = TASKS_ORIGIN.replace(/^http/, 'ws')
-      const wsUrl = wsOrigin
-        ? `${wsOrigin}/api/ws`
-        : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws`
-      console.log('[TaskBoard] Connecting to WebSocket:', wsUrl)
-      ws = new WebSocket(wsUrl)
-
-      ws.onopen = () => {
-        console.log('[TaskBoard] WebSocket connected')
-        // Subscribe to task updates
-        ws?.send(JSON.stringify({ type: 'subscribe', channel: 'tasks' }))
-      }
-
-      ws.onmessage = (e) => {
-        console.log('[TaskBoard] WebSocket message received')
-        try {
-          const msg = JSON.parse(e.data) as {
-            type: string
-            data?: unknown
-            taskId?: string
-            strength?: number
-            resistance?: number
-            [key: string]: unknown
-          }
-
-          // Full state snapshot from server
-          if (msg.type === 'full-state' && msg.data) {
-            const stateData = msg.data as { tasks: Task[] }
-            console.log('[TaskBoard] Received full state:', stateData.tasks.length, 'tasks')
-            setTasks(stateData.tasks)
-            setLive((prev) => ({
-              ...prev,
-              connected: true,
-              lastSync: Date.now(),
-              stats: {
-                ...prev.stats,
-                units: stateData.tasks.length,
-              },
-            }))
-          }
-
-          // Incremental update
-          if (msg.type === 'task-update') {
-            setTasks((prev) => prev.map((t) => (t.tid === msg.taskId ? { ...t, strength: msg.strength, ...msg } : t)))
-          }
-
-          // Pheromone marks
-          if (msg.type === 'mark' || msg.type === 'warn') {
-            setTasks((prev) =>
-              prev.map((t) =>
-                t.tid === msg.taskId
-                  ? {
-                      ...t,
-                      trailPheromone: msg.strength ?? t.trailPheromone,
-                      alarmPheromone: msg.resistance ?? t.alarmPheromone,
-                    }
-                  : t,
-              ),
-            )
-          }
-        } catch (err) {
-          console.error('[TaskBoard] WebSocket message error:', err)
-        }
-      }
-
-      ws.onerror = (err) => {
-        console.error('[TaskBoard] WebSocket error:', err)
-      }
-
-      ws.onclose = () => {
-        console.log('[TaskBoard] WebSocket closed, reconnecting in 3s')
-        // Reconnect after 3 seconds
-        reconnectTimer = setTimeout(connect, 3000)
-      }
-    }
-
-    connect()
-
-    return () => {
-      ws?.close()
-      if (reconnectTimer) clearTimeout(reconnectTimer)
-    }
-  }, [])
+  // WebSocket for instant push updates — typed handler via useTaskWebSocket hook
+  // Returns { connected, polling, reconnectAttempt } for observability
+  const ws = useTaskWebSocket(setTasks)
 
   return (
     <div className="min-h-screen p-6 max-w-[1400px] mx-auto">
@@ -1546,7 +1459,7 @@ export function TaskBoard() {
           <h1 className="text-lg font-bold text-white/80 tracking-tight">ONE World</h1>
           <p className="text-xs text-white/20 mt-0.5">Signal. Drop. Follow. Fade. Highway.</p>
         </div>
-        <LiveIndicator connected={live.connected} lastSync={live.lastSync} stats={live.stats} />
+        <LiveIndicator connected={live.connected} lastSync={live.lastSync} stats={live.stats} ws={ws} />
       </div>
 
       {/* Stats */}
@@ -1649,12 +1562,24 @@ function LiveIndicator({
   connected,
   lastSync,
   stats,
+  ws,
 }: {
   connected: boolean
   lastSync: number
   stats: { units: number; highways: number; edges: number; revenue: number }
+  ws?: { connected: boolean; polling: boolean; reconnectAttempt: number }
 }) {
   const ago = lastSync ? Math.round((Date.now() - lastSync) / 1000) : 0
+
+  // WebSocket status: connected | reconnecting | polling | disconnected
+  const wsStatus = ws?.connected
+    ? 'live'
+    : ws?.polling
+      ? 'polling'
+      : ws && ws.reconnectAttempt > 0
+        ? `reconnect ${ws.reconnectAttempt}`
+        : 'disconnected'
+  const wsColor = ws?.connected ? 'text-emerald-400/70' : ws?.polling ? 'text-amber-400/70' : 'text-white/30'
 
   return (
     <div className="flex items-center gap-4">
@@ -1665,6 +1590,9 @@ function LiveIndicator({
         <span>{stats.edges} edges</span>
         {stats.revenue > 0 && <span className="text-emerald-400/60">${stats.revenue.toFixed(2)}</span>}
       </div>
+
+      {/* WebSocket status (only shown when ws prop is provided) */}
+      {ws && <span className={`text-[10px] font-mono ${wsColor}`}>ws:{wsStatus}</span>}
 
       {/* Pulse */}
       <div className="flex items-center gap-2">

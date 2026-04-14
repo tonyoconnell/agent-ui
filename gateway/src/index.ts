@@ -18,6 +18,8 @@ interface Env {
   TYPEDB_PASSWORD: string
   VERSION: string
   DB?: D1Database
+  KV?: KVNamespace
+  BROADCAST_SECRET?: string
 }
 
 // Token cache (per-isolate, 61s TTL)
@@ -25,6 +27,10 @@ let cachedToken: { token: string; expires: number } | null = null
 
 // WebSocket client tracking (per-isolate — cross-isolate needs Durable Objects)
 const connectedClients = new Set<WebSocket>()
+
+// Security: Limits and allowed message types
+const MAX_WS_CONNECTIONS = 100
+const ALLOWED_MESSAGE_TYPES = ['complete', 'unblock', 'mark', 'warn', 'task-update', 'sync']
 
 const CORS_ORIGINS = [
   'http://localhost:4321',
@@ -86,6 +92,17 @@ export default {
 
     // GET /ws — WebSocket upgrade for live TaskBoard updates
     if (url.pathname === '/ws') {
+      // Security: Check origin against allowed CORS origins
+      const wsOrigin = request.headers.get('Origin')
+      if (!wsOrigin || !CORS_ORIGINS.some((o) => wsOrigin.startsWith(o))) {
+        return new Response('Origin not allowed', { status: 403, headers })
+      }
+
+      // Security: Limit connections per isolate
+      if (connectedClients.size >= MAX_WS_CONNECTIONS) {
+        return new Response('Too many connections', { status: 503, headers })
+      }
+
       if (request.headers.get('Upgrade') !== 'websocket') {
         return new Response('Expected WebSocket upgrade', { status: 426, headers })
       }
@@ -107,9 +124,24 @@ export default {
 
     // POST /broadcast — relay a WsMessage to all connected WebSocket clients
     if (url.pathname === '/broadcast' && request.method === 'POST') {
+      // Security: Require shared secret
+      const secret = request.headers.get('X-Broadcast-Secret')
+      if (!env.BROADCAST_SECRET || secret !== env.BROADCAST_SECRET) {
+        return Response.json({ error: 'Forbidden' }, { status: 403, headers })
+      }
+
       try {
         const message = await request.text()
-        JSON.parse(message) // validate JSON before relaying
+        const parsed = JSON.parse(message)
+
+        // Security: Validate message type
+        if (!parsed.type || !ALLOWED_MESSAGE_TYPES.includes(parsed.type)) {
+          return Response.json(
+            { error: 'Invalid message type', allowed: ALLOWED_MESSAGE_TYPES },
+            { status: 400, headers },
+          )
+        }
+
         let sent = 0
         for (const client of connectedClients) {
           try {
@@ -122,6 +154,56 @@ export default {
         return Response.json({ ok: true, sent }, { headers })
       } catch {
         return Response.json({ error: 'Invalid JSON' }, { status: 400, headers })
+      }
+    }
+
+    // GET /tasks — Task list from KV cache (fallback: TypeDB)
+    if (url.pathname === '/tasks' && request.method === 'GET') {
+      try {
+        // Fast path: read from KV cache (updated by sync worker every 1 min)
+        if (env.KV) {
+          const cached = await env.KV.get('tasks.json', 'json')
+          if (cached) {
+            return Response.json(cached, {
+              headers: { ...headers, 'X-Cache': 'HIT' },
+            })
+          }
+        }
+
+        // Slow path: query TypeDB directly (only on KV miss)
+        const token = await getToken(env)
+        const query = `
+          match
+            $s isa skill, has skill-id $id, has name $name;
+          select $id, $name;
+          limit 100;
+        `
+
+        const res = await fetch(`${env.TYPEDB_URL}/v1/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            databaseName: env.TYPEDB_DATABASE,
+            transactionType: 'read',
+            query,
+          }),
+        })
+
+        if (!res.ok) {
+          const text = await res.text()
+          return Response.json({ error: 'TypeDB query failed', detail: text }, { status: 500, headers })
+        }
+
+        const data = await res.json()
+        return Response.json(data, {
+          headers: { ...headers, 'X-Cache': 'MISS' },
+        })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Unknown error'
+        return Response.json({ error: msg }, { status: 500, headers })
       }
     }
 

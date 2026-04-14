@@ -1,10 +1,43 @@
-export type WsMessage = {
-  type: 'task-update' | 'mark' | 'warn' | 'unblock' | 'complete'
-  taskId?: string
-  strength?: number
-  resistance?: number
-  status?: string
-  timestamp: number
+export type WsMessage =
+  | { type: 'complete'; taskId: string; timestamp: number }
+  | { type: 'unblock'; taskId: string; unblockedBy: string; timestamp: number }
+  | { type: 'mark'; taskId: string; strength: number; timestamp: number }
+  | { type: 'warn'; taskId: string; resistance: number; timestamp: number }
+  | { type: 'task-update'; task: { tid: string; name: string; status: string }; timestamp: number }
+  | { type: 'sync'; tasks: Array<{ tid: string; strength: number; resistance: number }>; timestamp: number }
+  | { type: 'ping' }
+  | { type: 'pong' }
+
+// Gateway URL for production relay (resolves same value as typedb.ts)
+const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie'
+
+// Broadcast secret for authenticated relay (server-side only)
+// In browser context this is undefined, which is fine — browser doesn't relay
+const BROADCAST_SECRET = typeof process !== 'undefined' ? process.env.BROADCAST_SECRET : undefined
+
+/**
+ * relayToGateway — POST a WsMessage to the Gateway's /broadcast endpoint.
+ *
+ * The Gateway holds the connectedClients Set for production WebSocket connections.
+ * wsManager.broadcast() only reaches same-process clients (dev server or CF Pages
+ * Functions with native WS). In production, the Gateway worker holds live browser
+ * connections — the relay is the only path to reach them.
+ *
+ * Requires X-Broadcast-Secret header for authentication (set in Gateway).
+ * Fire-and-forget: never throws, never blocks the caller.
+ */
+export function relayToGateway(msg: WsMessage): void {
+  // Skip relay if no secret configured (dev mode or browser context)
+  if (!BROADCAST_SECRET) return
+
+  fetch(`${GATEWAY_URL}/broadcast`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Broadcast-Secret': BROADCAST_SECRET,
+    },
+    body: JSON.stringify(msg),
+  }).catch(() => {}) // silence network errors — relay is best-effort
 }
 
 // Global dev broadcast function (set by dev-ws-server at runtime)

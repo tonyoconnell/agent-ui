@@ -140,34 +140,79 @@ status: READY
 │  TaskBoard.tsx                                                           │
 │       │                                                                  │
 │       ├── HTTP fetch ───→ api.one.ie/tasks (or localhost in dev)        │
-│       │                   (initial state load)                           │
+│       │                   (initial state load, KV cached)                │
 │       │                                                                  │
 │       └── WebSocket ────→ api.one.ie/ws (or localhost:4321/api/ws)      │
-│                           (live updates: mark, warn, complete, unblock)  │
+│           │                (live updates: mark, warn, complete, unblock) │
+│           │                                                              │
+│           ├── Reconnect with exponential backoff (1s→30s)               │
+│           ├── Heartbeat every 30s, timeout at 45s                       │
+│           └── Fallback to 5s polling after 3 failed reconnects          │
 │                                                                          │
 │  ─────────────────────────────────────────────────────────────────────  │
 │                                                                          │
-│  Gateway (api.one.ie) — production WebSocket endpoint                    │
+│  Gateway (api.one.ie) — WebSocket endpoint with security                 │
 │       │                                                                  │
-│       ├── /ws ── Durable Object or WebSocketPair                        │
-│       │          (subscribe to events, broadcast to clients)             │
+│       ├── /ws ── WebSocketPair (per-isolate Set)                        │
+│       │          ├── Origin check against CORS_ORIGINS                  │
+│       │          └── Connection limit: 100 per isolate                  │
 │       │                                                                  │
-│       ├── /tasks ── Task list with pheromone (from TypeDB)              │
+│       ├── /tasks ── Task list from KV (fallback: TypeDB)                │
 │       │                                                                  │
-│       └── POST /signal ── triggers WebSocket broadcast                  │
-│                           (mark, warn, complete, unblock)                │
+│       └── POST /broadcast ── Relay to WebSocket clients                 │
+│                   ├── X-Broadcast-Secret auth required                  │
+│                   └── Message type validation                           │
 │                                                                          │
 │  ─────────────────────────────────────────────────────────────────────  │
 │                                                                          │
 │  Event Flow (production)                                                 │
 │       │                                                                  │
-│       signal → task-sync.ts → wsManager.broadcast()                     │
-│                                    │                                     │
-│                                    ├── Gateway Durable Object            │
-│                                    │   (production, persistent)          │
-│                                    │                                     │
-│                                    └── All connected TaskBoards          │
-│                                        (instant update, no polling)      │
+│       signal → task-sync.ts → wsManager.broadcast() (dev)               │
+│                     │                                                    │
+│                     └── relayToGateway() (prod)                         │
+│                              │                                           │
+│                              ▼                                           │
+│                         POST /broadcast (with secret)                    │
+│                              │                                           │
+│                              ▼                                           │
+│                    connectedClients.forEach(send)                        │
+│                              │                                           │
+│                              ▼                                           │
+│                    TaskBoard receives update                             │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Known Limitation: Cross-Isolate Broadcast
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ⚠️  KNOWN LIMITATION: Per-Isolate WebSocket Tracking                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Cloudflare Workers run in multiple isolates across edge locations.    │
+│  The module-level `connectedClients` Set only tracks clients within    │
+│  the SAME isolate. A broadcast from Isolate A won't reach clients      │
+│  connected to Isolate B.                                                │
+│                                                                          │
+│  ┌──────────────┐      ┌──────────────┐                                 │
+│  │  Isolate A   │      │  Isolate B   │                                 │
+│  │              │      │              │                                 │
+│  │  clients: 3  │      │  clients: 2  │                                 │
+│  │  (receives)  │      │  (misses!)   │                                 │
+│  └──────────────┘      └──────────────┘                                 │
+│         ▲                                                                │
+│         │                                                                │
+│    broadcast lands here only                                            │
+│                                                                          │
+│  MITIGATIONS (implemented):                                              │
+│  1. Client reconnects trigger full sync from KV (tasks.json)           │
+│  2. Polling fallback after 3 failed reconnects                         │
+│  3. Heartbeat detects stale connections → reconnect → sync              │
+│                                                                          │
+│  FULL FIX (future, if needed):                                          │
+│  Use Durable Objects to track all WebSocket connections globally.       │
+│  Not implementing now — complexity not justified for current scale.    │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -336,135 +381,330 @@ grep -n "wsManager.broadcast" src/engine/persist.ts
 
 ---
 
-### Gateway Route Specification
+### Security, Stability, Speed Requirements
 
-The Gateway at `api.one.ie` currently has 4 routes. Add 3 more for WebSocket support:
+Before implementing, address these critical gaps:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        GATEWAY ROUTES                                    │
+│                    SECURITY / STABILITY / SPEED                         │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  CURRENT (gateway/src/index.ts)                                          │
-│  ─────────────────────────────────                                       │
-│  GET  /              → "ONE Gateway - TypeDB proxy worker"               │
-│  GET  /health        → { status: "ok" }                                  │
-│  POST /typedb/query  → proxy to TypeDB Cloud (JWT cached 61s)           │
-│  GET  /messages      → D1 query (chat history)                          │
 │                                                                          │
-│  ADD (this cycle)                                                        │
-│  ─────────────────                                                       │
-│  GET  /ws            → WebSocket upgrade (101) for live updates         │
-│  GET  /tasks         → Task list with pheromone from TypeDB             │
-│  POST /broadcast     → Relay events to all connected WS clients         │
+│  🔴 SECURITY — MUST FIX BEFORE PRODUCTION                               │
+│  ─────────────────────────────────────────                               │
+│                                                                          │
+│  1. AUTH ON /broadcast                                                   │
+│     Problem: Anyone can POST fake messages to all connected clients     │
+│     Fix: Require shared secret (BROADCAST_SECRET env var)               │
+│     │                                                                    │
+│     if (url.pathname === '/broadcast') {                                │
+│       const secret = request.headers.get('X-Broadcast-Secret')          │
+│       if (secret !== env.BROADCAST_SECRET) {                            │
+│         return Response.json({ error: 'Forbidden' }, { status: 403 })   │
+│       }                                                                  │
+│       // ... proceed with broadcast                                      │
+│     }                                                                    │
+│                                                                          │
+│  2. MESSAGE SCHEMA VALIDATION                                            │
+│     Problem: Only validates JSON.parse() — no type checking             │
+│     Fix: Validate message type field against allowed types              │
+│     │                                                                    │
+│     const ALLOWED_TYPES = ['complete','unblock','mark','warn','sync']   │
+│     const msg = JSON.parse(message)                                     │
+│     if (!msg.type || !ALLOWED_TYPES.includes(msg.type)) {               │
+│       return Response.json({ error: 'Invalid message type' }, 400)      │
+│     }                                                                    │
+│                                                                          │
+│  3. ORIGIN CHECK ON WS UPGRADE                                           │
+│     Problem: Any origin can open WebSocket connections                  │
+│     Fix: Verify Origin header matches CORS_ORIGINS                      │
+│     │                                                                    │
+│     const wsOrigin = request.headers.get('Origin')                      │
+│     if (!CORS_ORIGINS.some(o => wsOrigin?.startsWith(o))) {             │
+│       return new Response('Origin not allowed', { status: 403 })        │
+│     }                                                                    │
+│                                                                          │
+│  4. CONNECTION LIMIT                                                     │
+│     Problem: Unlimited WebSocket connections per isolate                │
+│     Fix: Cap connections per isolate (100 max)                          │
+│     │                                                                    │
+│     const MAX_CONNECTIONS = 100                                         │
+│     if (connectedClients.size >= MAX_CONNECTIONS) {                     │
+│       return new Response('Too many connections', { status: 503 })      │
+│     }                                                                    │
+│                                                                          │
+│  ─────────────────────────────────────────────────────────────────────  │
+│                                                                          │
+│  🟡 STABILITY — REQUIRED FOR PRODUCTION                                  │
+│  ──────────────────────────────────────                                  │
+│                                                                          │
+│  1. CROSS-ISOLATE LIMITATION (KNOWN)                                     │
+│     Problem: Module-level Set only works within one CF isolate          │
+│     Reality: CF routes requests to isolates semi-randomly               │
+│     Fix: Document as known limitation. Durable Objects for full fix.   │
+│     Mitigation: Broadcast also updates KV; client polls KV on reconnect │
+│                                                                          │
+│  2. CLIENT RECONNECTION WITH BACKOFF                                     │
+│     Problem: useTaskWebSocket doesn't reconnect on disconnect           │
+│     Fix: Exponential backoff (1s, 2s, 4s, 8s, max 30s)                  │
+│     │                                                                    │
+│     const reconnect = (attempt = 0) => {                                │
+│       const delay = Math.min(1000 * 2 ** attempt, 30000)                │
+│       setTimeout(() => connect(attempt + 1), delay)                     │
+│     }                                                                    │
+│     ws.onclose = () => reconnect(0)                                     │
+│                                                                          │
+│  3. HEARTBEAT WITH TIMEOUT                                               │
+│     Problem: Client pings but doesn't detect silent disconnect          │
+│     Fix: Track last pong time, reconnect if stale                       │
+│     │                                                                    │
+│     let lastPong = Date.now()                                           │
+│     setInterval(() => {                                                 │
+│       if (Date.now() - lastPong > 45000) ws.close() // force reconnect  │
+│       else ws.send('ping')                                              │
+│     }, 30000)                                                           │
+│     ws.onmessage = (e) => { if (e.data === 'pong') lastPong = Date.now()}│
+│                                                                          │
+│  4. GRACEFUL DEGRADATION TO POLLING                                      │
+│     Problem: No fallback if WebSocket fails repeatedly                  │
+│     Fix: After 3 reconnect failures, fall back to 5s polling           │
+│     │                                                                    │
+│     if (attempt > 3) {                                                  │
+│       setPolling(true) // switch to fetch('/api/tasks') every 5s       │
+│       return                                                            │
+│     }                                                                    │
+│                                                                          │
+│  ─────────────────────────────────────────────────────────────────────  │
+│                                                                          │
+│  🟠 SPEED — NICE TO HAVE                                                 │
+│  ────────────────────────                                                │
+│                                                                          │
+│  1. CACHE /tasks IN KV                                                   │
+│     Problem: TypeDB hit on every /tasks request (~100ms)                │
+│     Fix: Read from KV (tasks.json), same as sync worker pattern        │
+│     │                                                                    │
+│     const cached = await env.KV.get('tasks.json', 'json')               │
+│     if (cached) return Response.json(cached, { headers })               │
+│     // fall back to TypeDB only if KV miss                              │
+│                                                                          │
+│  2. MESSAGE BATCHING (mark/warn)                                         │
+│     Problem: Rapid mark/warn floods WebSocket                           │
+│     Fix: Server batches messages, sends every 100ms max                 │
+│     │                                                                    │
+│     let pending: WsMessage[] = []                                       │
+│     setInterval(() => {                                                 │
+│       if (pending.length) {                                             │
+│         broadcast({ type: 'batch', messages: pending })                 │
+│         pending = []                                                    │
+│       }                                                                  │
+│     }, 100)                                                             │
+│                                                                          │
+│  3. CLIENT DEBOUNCE                                                      │
+│     Problem: Rapid state updates cause excessive re-renders             │
+│     Fix: useDeferredValue or manual debounce (100ms)                    │
+│     │                                                                    │
+│     const deferredTasks = useDeferredValue(tasks)                       │
+│                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Route 1: GET /ws — WebSocket Upgrade
+---
+
+### Gateway Route Specification
+
+**STATUS:** Routes `/ws` and `/broadcast` already exist in `gateway/src/index.ts`!
+Missing: `/tasks` route (use KV cache, not direct TypeDB query).
+
+The Gateway at `api.one.ie` currently has these routes:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        GATEWAY ROUTES (current state)                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  EXISTING (gateway/src/index.ts — 207 lines)                             │
+│  ────────────────────────────────────────────                            │
+│  GET  /              → { status: "ok", service: "one-gateway" }         │
+│  GET  /health        → { status: "ok", version, database }              │
+│  GET  /ws            → WebSocket upgrade (101) ✓ EXISTS                 │
+│  POST /broadcast     → Relay to WebSocket clients ✓ EXISTS              │
+│  POST /typedb/query  → proxy to TypeDB Cloud (JWT cached 61s)           │
+│  GET  /messages      → D1 query (chat history)                          │
+│                                                                          │
+│  SECURITY FIXES NEEDED                                                   │
+│  ─────────────────────                                                   │
+│  /broadcast  → Add X-Broadcast-Secret header check                      │
+│  /broadcast  → Add message type validation                              │
+│  /ws         → Add origin check against CORS_ORIGINS                    │
+│  /ws         → Add connection limit (100 per isolate)                   │
+│                                                                          │
+│  ADD (this cycle)                                                        │
+│  ─────────────────                                                       │
+│  GET  /tasks         → Task list from KV cache (tasks.json)             │
+│                       Falls back to TypeDB only on KV miss              │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Security Fix 1: GET /ws — Add Origin Check + Connection Limit
+
+**Current code (gateway/src/index.ts:88-106)** — exists but lacks security:
 
 ```typescript
-// gateway/src/index.ts — add after /health route
-
-// WebSocket upgrade endpoint
+// CURRENT (insecure):
 if (url.pathname === '/ws') {
-  const upgradeHeader = request.headers.get('Upgrade')
-  if (upgradeHeader !== 'websocket') {
-    return new Response('Expected websocket', { status: 426 })
+  if (request.headers.get('Upgrade') !== 'websocket') {
+    return new Response('Expected WebSocket upgrade', { status: 426, headers })
   }
-
   const pair = new WebSocketPair()
-  const [client, server] = Object.values(pair)
-  
-  // Accept the WebSocket connection
-  server.accept()
-  
-  // Add to connected clients (module-level Set)
-  connectedClients.add(server)
-  
-  server.addEventListener('message', (event) => {
-    // Handle ping/pong for keepalive
-    if (event.data === 'ping') {
-      server.send('pong')
-    }
-  })
-  
-  server.addEventListener('close', () => {
-    connectedClients.delete(server)
-  })
-  
-  server.addEventListener('error', () => {
-    connectedClients.delete(server)
-  })
-
-  return new Response(null, {
-    status: 101,
-    webSocket: client,
-  })
+  // ... accepts any origin, no connection limit
 }
 ```
 
-Module-level client tracking:
+**Fixed code:**
 
 ```typescript
-// At top of gateway/src/index.ts, after imports
-const connectedClients = new Set<WebSocket>()
+// Constants at top of file
+const MAX_WS_CONNECTIONS = 100
+
+// GET /ws — WebSocket upgrade for live TaskBoard updates
+if (url.pathname === '/ws') {
+  // Security: Check origin against allowed CORS origins
+  const wsOrigin = request.headers.get('Origin')
+  if (!wsOrigin || !CORS_ORIGINS.some(o => wsOrigin.startsWith(o))) {
+    return new Response('Origin not allowed', { status: 403, headers })
+  }
+  
+  // Security: Limit connections per isolate
+  if (connectedClients.size >= MAX_WS_CONNECTIONS) {
+    return new Response('Too many connections', { status: 503, headers })
+  }
+  
+  if (request.headers.get('Upgrade') !== 'websocket') {
+    return new Response('Expected WebSocket upgrade', { status: 426, headers })
+  }
+  
+  const pair = new WebSocketPair()
+  const [client, server] = Object.values(pair) as [WebSocket, WebSocket]
+  server.accept()
+  connectedClients.add(server)
+  
+  server.addEventListener('message', (event: MessageEvent) => {
+    if (event.data === 'ping') server.send('pong')
+  })
+  server.addEventListener('close', () => connectedClients.delete(server))
+  server.addEventListener('error', () => connectedClients.delete(server))
+  
+  return new Response(null, { status: 101, webSocket: client })
+}
 ```
 
-#### Route 2: GET /tasks — Task List with Pheromone
+#### Route 2: GET /tasks — Task List from KV Cache (NEW)
+
+**This route doesn't exist yet.** Add it using KV cache (fast) with TypeDB fallback (slow).
 
 ```typescript
 // gateway/src/index.ts — add after /ws route
+// Requires KV binding in wrangler.toml
 
-// Task list with pheromone overlay
+// GET /tasks — Task list with pheromone overlay (from KV cache)
 if (url.pathname === '/tasks' && request.method === 'GET') {
-  // Query TypeDB for tasks + paths in one request
-  const query = `
-    match
-      $t isa skill, has skill-id $id, has name $name;
-      $p isa path, has source "loop", has target $id,
-        has strength $s, has resistance $r;
-    fetch $id, $name, $s, $r;
-    limit 100;
-  `
-  
   try {
+    // Fast path: read from KV cache (updated by sync worker every 1 min)
+    if (env.KV) {
+      const cached = await env.KV.get('tasks.json', 'json')
+      if (cached) {
+        return Response.json(cached, { 
+          headers: { ...headers, 'X-Cache': 'HIT' } 
+        })
+      }
+    }
+    
+    // Slow path: query TypeDB directly (only on KV miss)
     const token = await getToken(env)
-    const result = await fetch(`https://${TYPEDB_HOST}:1729/v1/query`, {
+    const query = `
+      match
+        $s isa skill, has skill-id $id, has name $name;
+      fetch $id, $name;
+      limit 100;
+    `
+    
+    const res = await fetch(`${env.TYPEDB_URL}/v1/query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        database: env.TYPEDB_DATABASE || 'one',
+        databaseName: env.TYPEDB_DATABASE,
+        transactionType: 'read',
         query,
-        options: { infer: false },
       }),
     })
     
-    if (!result.ok) {
-      return json({ error: 'TypeDB query failed' }, 500)
+    if (!res.ok) {
+      const text = await res.text()
+      return Response.json({ error: 'TypeDB query failed', detail: text }, { status: 500, headers })
     }
     
-    const data = await result.json()
-    return json(data, 200, corsHeaders)
+    const data = await res.json()
+    return Response.json(data, { 
+      headers: { ...headers, 'X-Cache': 'MISS' } 
+    })
   } catch (e) {
-    return json({ error: String(e) }, 500)
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    return Response.json({ error: msg }, { status: 500, headers })
   }
 }
 ```
 
-#### Route 3: POST /broadcast — Relay to WebSocket Clients
+**Wrangler binding required:**
+
+```toml
+# gateway/wrangler.toml — add KV binding
+[[kv_namespaces]]
+binding = "KV"
+id = "1c1dac4766e54a2c85425022a3b1e9da"  # same as sync worker
+```
+
+#### Security Fix 2: POST /broadcast — Add Auth + Message Validation
+
+**Current code (gateway/src/index.ts:109-126)** — exists but no auth:
 
 ```typescript
-// gateway/src/index.ts — add after /tasks route
-
-// Broadcast event to all connected WebSocket clients
+// CURRENT (insecure):
 if (url.pathname === '/broadcast' && request.method === 'POST') {
+  const message = await request.text()
+  JSON.parse(message)  // only validates JSON, not message type
+  // ... broadcasts to everyone, anyone can call this
+}
+```
+
+**Fixed code:**
+
+```typescript
+// Constants at top of file
+const ALLOWED_MESSAGE_TYPES = ['complete', 'unblock', 'mark', 'warn', 'task-update', 'sync']
+
+// POST /broadcast — relay a WsMessage to all connected WebSocket clients
+if (url.pathname === '/broadcast' && request.method === 'POST') {
+  // Security: Require shared secret (set via wrangler secret put BROADCAST_SECRET)
+  const secret = request.headers.get('X-Broadcast-Secret')
+  if (!env.BROADCAST_SECRET || secret !== env.BROADCAST_SECRET) {
+    return Response.json({ error: 'Forbidden' }, { status: 403, headers })
+  }
+  
   try {
     const message = await request.text()
+    const parsed = JSON.parse(message)
     
-    // Validate it's valid JSON
-    JSON.parse(message)
+    // Security: Validate message type
+    if (!parsed.type || !ALLOWED_MESSAGE_TYPES.includes(parsed.type)) {
+      return Response.json(
+        { error: 'Invalid message type', allowed: ALLOWED_MESSAGE_TYPES }, 
+        { status: 400, headers }
+      )
+    }
     
     // Broadcast to all connected clients
     let sent = 0
@@ -473,26 +713,32 @@ if (url.pathname === '/broadcast' && request.method === 'POST') {
         client.send(message)
         sent++
       } catch {
-        // Client disconnected, remove from set
         connectedClients.delete(client)
       }
     }
     
-    return json({ ok: true, sent }, 200, corsHeaders)
-  } catch (e) {
-    return json({ error: 'Invalid JSON' }, 400)
+    return Response.json({ ok: true, sent }, { headers })
+  } catch {
+    return Response.json({ error: 'Invalid JSON' }, { status: 400, headers })
   }
 }
 ```
 
-#### Updated CORS Headers
+**Secrets required:**
+
+```bash
+# Set broadcast secret (generate with: openssl rand -hex 32)
+wrangler secret put BROADCAST_SECRET
+# Also add to task-sync.ts relay function headers
+```
+
+**Env type update:**
 
 ```typescript
-// Extend corsHeaders to allow WebSocket upgrade headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Upgrade, Connection',
+interface Env {
+  // ... existing
+  BROADCAST_SECRET?: string  // Add this
+  KV?: KVNamespace           // Add this for /tasks
 }
 ```
 
@@ -601,26 +847,40 @@ task-sync.ts must also relay to the Gateway:
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### task-sync.ts Update
+#### task-sync.ts Update (with auth)
 
 ```typescript
 // src/engine/task-sync.ts — add relay function
 
 const GATEWAY_URL = process.env.GATEWAY_URL || 'https://api.one.ie'
+const BROADCAST_SECRET = process.env.BROADCAST_SECRET
 
 async function relayToGateway(msg: WsMessage): Promise<void> {
   // Skip in dev mode (wsManager handles it locally)
   if (process.env.NODE_ENV !== 'production') return
   
+  // Skip if no secret configured
+  if (!BROADCAST_SECRET) {
+    console.warn('BROADCAST_SECRET not set, skipping gateway relay')
+    return
+  }
+  
   try {
-    await fetch(`${GATEWAY_URL}/broadcast`, {
+    const res = await fetch(`${GATEWAY_URL}/broadcast`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Broadcast-Secret': BROADCAST_SECRET,  // Auth header
+      },
       body: JSON.stringify(msg),
     })
+    
+    if (!res.ok) {
+      console.warn('Gateway relay failed:', res.status)
+    }
   } catch (e) {
     // Fire-and-forget — don't block on relay failure
-    console.warn('Gateway relay failed:', e)
+    console.warn('Gateway relay error:', e)
   }
 }
 
@@ -726,7 +986,7 @@ if (url.pathname === '/tasks' && request.method === 'GET') {
 }
 ```
 
-#### TaskBoard Hook (src/lib/use-task-websocket.ts)
+#### TaskBoard Hook (src/lib/use-task-websocket.ts) — Production-Ready
 
 ```typescript
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -736,27 +996,123 @@ const WS_URL = import.meta.env.PROD
   ? 'wss://api.one.ie/ws' 
   : 'ws://localhost:4321/api/ws'
 
+const TASKS_URL = import.meta.env.PROD
+  ? 'https://api.one.ie/tasks'
+  : '/api/tasks'
+
+const MAX_RECONNECT_ATTEMPTS = 3
+const HEARTBEAT_INTERVAL = 30_000  // 30s
+const HEARTBEAT_TIMEOUT = 45_000   // 45s (allow 15s jitter)
+const POLL_INTERVAL = 5_000        // 5s fallback polling
+
 export function useTaskWebSocket(onMessage: (msg: WsMessage) => void) {
   const wsRef = useRef<WebSocket | null>(null)
+  const lastPongRef = useRef<number>(Date.now())
+  const heartbeatRef = useRef<NodeJS.Timeout | null>(null)
+  const pollRef = useRef<NodeJS.Timeout | null>(null)
+  
   const [connected, setConnected] = useState(false)
+  const [polling, setPolling] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
-  useEffect(() => {
+  const connect = useCallback((reconnectAttempt = 0) => {
+    // Graceful degradation: fall back to polling after max attempts
+    if (reconnectAttempt > MAX_RECONNECT_ATTEMPTS) {
+      console.warn('WebSocket failed, falling back to polling')
+      setPolling(true)
+      return
+    }
+    
+    setAttempt(reconnectAttempt)
     const ws = new WebSocket(WS_URL)
     wsRef.current = ws
     
-    ws.onopen = () => setConnected(true)
-    ws.onclose = () => setConnected(false)
+    ws.onopen = () => {
+      setConnected(true)
+      setAttempt(0)
+      lastPongRef.current = Date.now()
+      
+      // Start heartbeat
+      heartbeatRef.current = setInterval(() => {
+        // Check for stale connection (no pong in 45s)
+        if (Date.now() - lastPongRef.current > HEARTBEAT_TIMEOUT) {
+          console.warn('Heartbeat timeout, reconnecting')
+          ws.close()
+          return
+        }
+        ws.send('ping')
+      }, HEARTBEAT_INTERVAL)
+    }
+    
+    ws.onclose = () => {
+      setConnected(false)
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current)
+      
+      // Exponential backoff reconnect: 1s, 2s, 4s, 8s... max 30s
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempt), 30_000)
+      console.log(`WebSocket closed, reconnecting in ${delay}ms (attempt ${reconnectAttempt + 1})`)
+      setTimeout(() => connect(reconnectAttempt + 1), delay)
+    }
+    
+    ws.onerror = () => {
+      // onclose will fire after onerror, handling reconnect there
+    }
+    
     ws.onmessage = (e) => {
+      if (e.data === 'pong') {
+        lastPongRef.current = Date.now()
+        return
+      }
+      
       try {
         const msg = JSON.parse(e.data) as WsMessage
         onMessage(msg)
-      } catch { /* ignore malformed */ }
+      } catch {
+        // Ignore malformed messages
+      }
     }
-    
-    return () => ws.close()
   }, [onMessage])
 
-  return { connected, ws: wsRef.current }
+  // Polling fallback
+  useEffect(() => {
+    if (!polling) return
+    
+    const poll = async () => {
+      try {
+        const res = await fetch(TASKS_URL)
+        if (res.ok) {
+          const tasks = await res.json()
+          onMessage({ type: 'sync', tasks, timestamp: Date.now() })
+        }
+      } catch {
+        // Ignore poll errors
+      }
+    }
+    
+    poll() // immediate first poll
+    pollRef.current = setInterval(poll, POLL_INTERVAL)
+    
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [polling, onMessage])
+
+  // Initial connection
+  useEffect(() => {
+    if (!polling) connect(0)
+    
+    return () => {
+      if (wsRef.current) wsRef.current.close()
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current)
+    }
+  }, [connect, polling])
+
+  return { 
+    connected, 
+    polling,
+    reconnectAttempt: attempt,
+    ws: wsRef.current 
+  }
 }
 ```
 
@@ -922,20 +1278,35 @@ curl -X POST https://api.one.ie/signal -d '{"receiver":"builder:test","data":{}}
 
 ## Status
 
-- [ ] **Cycle 0: FIX** — Add mark/warn broadcasts to persist.ts
-  - [ ] Add wsManager import
-  - [ ] Add broadcast to mark()
-  - [ ] Add broadcast to warn()
-- [ ] **Cycle 1: WIRE** — Gateway WebSocket + TaskBoard Hook
-  - [ ] W1 — Recon (Haiku x 3)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 4)
-  - [ ] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 2: PROVE** — Live Updates Verified
-  - [ ] W1 — Recon (Haiku x 2)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 2)
-  - [ ] W4 — Verify (Sonnet x 1)
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  Revised after audit: routes exist, need security + stability fixes   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+- [x] **Cycle 0: SECURE** — Gateway security hardening (CRITICAL) ✓
+  - [x] Add `MAX_WS_CONNECTIONS` limit (100 per isolate)
+  - [x] Add origin check on /ws upgrade
+  - [x] Add `BROADCAST_SECRET` auth on /broadcast
+  - [x] Add message type validation on /broadcast
+  - [x] Add `BROADCAST_SECRET` env to Env interface
+  - [x] Run `wrangler secret put BROADCAST_SECRET`
+
+- [x] **Cycle 1: EXTEND** — Add /tasks route + client stability ✓
+  - [x] Add `/tasks` route (KV cache → TypeDB fallback)
+  - [x] Add KV binding to gateway/wrangler.toml (already existed)
+  - [x] Create `src/lib/use-task-websocket.ts` with reconnect + heartbeat + polling fallback
+  - [x] Update persist.ts mark/warn to broadcast (already existed)
+  - [x] Update ws-server.ts relayToGateway() with X-Broadcast-Secret auth header
+
+- [x] **Cycle 2: INTEGRATE** — TaskBoard integration ✓
+  - [x] Wire useTaskWebSocket into TaskBoard.tsx (captures { connected, polling, reconnectAttempt })
+  - [x] Add connection status indicator (ws:live/polling/reconnect N/disconnected in LiveIndicator)
+  - [ ] Add useDeferredValue for rapid update debounce (deferred — not critical)
+  - [ ] Test: complete task → instant update (manual runtime verification pending)
+  - [ ] Test: mark/warn → pheromone visualization update (manual runtime verification pending)
+  - [ ] Test: disconnect → reconnect with backoff (manual runtime verification pending)
+  - [ ] Test: max reconnect → graceful polling fallback (manual runtime verification pending)
 
 ---
 
