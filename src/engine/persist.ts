@@ -53,7 +53,7 @@ export interface PersistentWorld extends World {
   taskBlockers: (taskId: string) => Promise<{ id: string; name: string }[]>
   span: () => Promise<number>
   context: (keys: (DocKey | string)[]) => string
-  capable: (unitId: string, skillId: string, price?: number) => void
+  capable: (unitId: string, skillId: string, price?: number) => Promise<void>
   canDeclareCapability: (uid: string) => Promise<boolean>
   canBeDiscovered: (uid: string) => Promise<boolean>
   selfCheckoff: (taskId: string) => Promise<void>
@@ -408,7 +408,12 @@ export const world = (): PersistentWorld => {
   // ── Capability + lifecycle gates ────────────────────────────────────────
 
   // capable: declare that a unit can perform a skill (creates capability relation)
-  const capable = (unitId: string, skillId: string, price = 0) => {
+  // GATE: REGISTER → CAPABLE requires unit_exists (status "active")
+  const capable = async (unitId: string, skillId: string, price = 0) => {
+    // Pre-gate: verify unit exists with status "active" before declaring capability
+    if (!(await canDeclareCapability(unitId))) {
+      return // Dissolve: unit doesn't exist or not active, silently fail
+    }
     writeSilent(`
       match $u isa unit, has uid "${unitId}"; $s isa skill, has skill-id "${skillId}";
       not { (provider: $u, offered: $s) isa capability; };

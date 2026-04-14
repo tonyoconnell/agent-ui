@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
       for (const cap of body.capabilities) {
         // Gate: create skill if needed, then capability relation
         net.thing(cap.skill, { price: cap.price || 0 })
-        net.capable(body.uid, cap.skill, cap.price || 0)
+        await net.capable(body.uid, cap.skill, cap.price || 0)
       }
     }
 

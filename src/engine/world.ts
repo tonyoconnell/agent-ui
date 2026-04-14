@@ -217,10 +217,14 @@ export const world = (): World => {
   ): Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean; failure?: boolean }> =>
     new Promise((resolve) => {
       const unitId = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
-      if (!units[unitId]) {
+      const taskName = s.receiver.includes(':') ? s.receiver.split(':')[1] : 'default'
+      const target = units[unitId]
+      // Synchronous dissolve: unit missing, or capability missing with no default fallback.
+      // Replaces a 30s timer race with an O(1) lookup — dissolved ≠ timeout.
+      if (!target || (!target.has(taskName) && !target.has('default'))) {
         resolve({ dissolved: true })
         return
-      } // Fix 4: dissolution is visible
+      }
       // rid must NOT contain ':' — signal routing splits on ':' to get unit ID
       const rid = `ask${Date.now()}${Math.random().toString(36).slice(2, 6)}`
       const u = unit(rid, (reply) => signal(reply, rid))
