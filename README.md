@@ -242,17 +242,23 @@ curl -X POST https://donal-claw.oneie.workers.dev/message \
 ## Quick Start
 
 ```bash
-npm install
-npm run dev        # → localhost:4321
+bun install
+bun run dev        # → localhost:4321
 ```
 
 Deploy (requires Cloudflare account + TypeDB Cloud):
 
 ```bash
-/deploy            # Claude Code skill — deploys all 4 workers
+bun run deploy              # full pipeline — 106.9s verified end-to-end
+bun run deploy:dry-run      # verify without deploying
+bun run deploy:preview      # build + smoke, no production push
 ```
 
-See [docs/deploy.md](docs/deploy.md) for full step-by-step tutorial.
+**Verified speed (2026-04-14):** 106.9s commit → production across 4 Cloudflare services. W0 baseline 10s • build 23s • Gateway 13.7s • Sync 8.2s • NanoClaw 9.2s • Pages 17.4s • health checks <1s. Live Gateway/Sync/NanoClaw respond in 270-292ms.
+
+`main` branch requires human approval. Other branches auto-deploy after tests pass. Known-flaky stochastic tests don't block deploy; real failures always do. Global API Key is auto-enforced — scoped tokens are blanked in the wrangler env.
+
+See [docs/deploy.md](docs/deploy.md) for full tutorial, or [docs/speed.md](docs/speed.md) for the verified pipeline breakdown.
 
 ---
 

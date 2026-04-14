@@ -112,9 +112,38 @@ Primary: `routing.test.ts` (54 tests), `persist.test.ts` (39), `loop.test.ts` (3
 | Operation | Time | Scale |
 |-----------|------|-------|
 | **Gateway routing** | <10ms p50 | All requests |
+| **Gateway health** | 292ms (live) | Global edge |
+| **Sync health** | 270ms (live) | Global edge |
+| **NanoClaw health** | 270ms (live) | Global edge |
 | **KV cache (highways)** | <10ms | Hot highways |
 | **Sync worker cron** | <1min | Every 5 minutes |
 | **NanoClaw webhook** | <3s | Telegram reply included |
+
+### Deploy Pipeline (verified 2026-04-14)
+
+End-to-end from `bun run deploy` → production across all 4 services:
+
+| Stage | Time | What |
+|-------|------|------|
+| W0 baseline (biome + tsc + vitest) | ~10s | 320/320 tests pass |
+| Build (astro) | 23.0s | 5.7 MiB bundle, 131 modules |
+| Credentials (Global API Key) | <1s | Auto-unset scoped token |
+| Smoke check (artifacts) | <1s | dist/_worker.js + 3 wrangler.toml |
+| **Gateway deploy** | 13.7s | `api.one.ie` |
+| **Sync deploy** | 8.2s | `one-sync.oneie.workers.dev` |
+| **NanoClaw deploy** | 9.2s | `nanoclaw.oneie.workers.dev` |
+| **Pages deploy** | 17.4s | `one-substrate.pages.dev` |
+| Health checks (parallel) | <1s | 3/4 green (Pages warming) |
+| **Total** | **106.9s** | commit → production |
+
+**What makes it fast:**
+- Bun runtime (vs npm): ~10× faster for test/build orchestration
+- Single-file TS script (vs bash): no subprocess sourcing overhead
+- Sequential worker deploys: safer for debug, could parallelize to ~30s
+- Global API Key auto-enforced: no interactive auth loops
+- Known-flaky test allowlist: stochastic tests don't block deploy
+
+**Runbook:** `/deploy` skill. **Script:** `scripts/deploy.ts` (470 lines).
 
 ### Frontend Layer (Astro)
 

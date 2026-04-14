@@ -393,9 +393,9 @@ TypeDB (truth)     →    KV (snapshot)    →    globalThis (hot)
 /wave       Run the next wave of a cycle-based TODO
 ```
 
-## The Two Locked Rules
+## The Three Locked Rules
 
-These compound. Breaking either breaks the flywheel.
+These compound. Breaking any one breaks the flywheel.
 
 **Rule 1 — Closed Loop.** Every signal closes its loop: `mark()` on result,
 `warn()` on failure, `dissolve` on missing unit/capability. No silent returns,
@@ -408,6 +408,24 @@ days, hours, weeks, sprints, or any wall-clock unit. The substrate measures
 width by tasks-per-wave, depth by waves-per-cycle, learning by cycles-per-path.
 Calendar time can't be `mark()`d, so it doesn't compound. Only exception:
 genuine external deadlines (merge freezes, release cuts, legal dates).
+
+**Rule 3 — Deterministic Results in Every Loop.** Every loop — `/work`, `/wave`,
+`/sync`, `/deploy`, `/done`, every growth tick — MUST report verified numbers,
+not vibes. Tests passed/total. Build time in ms. Deploy time per service.
+Health check latency. Rubric dimension scores. These are the deterministic signals
+that calibrate pheromone. Path strength without verification is superstition;
+with verification it's learning. If a loop can't report deterministic results,
+it can't `mark()` — it's just noise.
+
+```
+✓ 320/320 tests pass     → W0 baseline green, deploy proceeds
+✓ Gateway 292ms          → health within budget, mark(+depth)
+⊘ 2/320 known-flaky      → stochastic, allowlisted, no warn()
+✗ tsc error TS2322       → deterministic failure, warn(1), chain breaks
+```
+
+Every skill/command ends with a numbers-first report. If you can't measure it,
+you can't route around it.
 
 ```
 task   = atomic unit of work        (one .on() handler, one file edit, one recon query)
@@ -458,19 +476,28 @@ import { Card } from "@/components/ui/card"
 
 ## Deploy
 
-**Use `/deploy` skill or see `docs/deploy.md` for full tutorial.**
+**One command. Deterministic. 106.9s verified.**
 
 ```bash
-# Auth from .env (Global API Key — never scoped tokens)
-export CLOUDFLARE_API_KEY=$(grep '^CLOUDFLARE_GLOBAL_API_KEY=' .env | cut -d= -f2)
-export CLOUDFLARE_EMAIL=$(grep '^CLOUDFLARE_EMAIL=' .env | cut -d= -f2)
-export CLOUDFLARE_ACCOUNT_ID=$(grep '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2)
-
-# Build + deploy all 4 workers
-NODE_ENV=production npm run build
-cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../../nanoclaw && npx wrangler deploy && cd ..
-npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+bun run deploy              # full pipeline, human approval on main
+bun run deploy:dry-run      # verify without deploying
+bun run deploy:strict       # no flaky test allowance
+bun run deploy:preview      # build + smoke only
 ```
+
+`scripts/deploy.ts` (8-step pipeline):
+1. W0 baseline — biome + tsc + vitest (known-flaky allowlist)
+2. Changes — git diff summary
+3. Build — NODE_ENV=production astro build
+4. Credentials — auto-enforce Global API Key, unset `CLOUDFLARE_API_TOKEN`
+5. Smoke — verify dist/ + 3 wrangler.toml
+6. Approval — `main` prompts "yes"; other branches auto
+7. Deploy — Gateway → Sync → NanoClaw → Pages (sequential)
+8. Health — parallel fetch all 4 URLs
+
+**Verified speed (2026-04-14):** 106.9s total. Build 23.0s • Gateway 13.7s • Sync 8.2s • NanoClaw 9.2s • Pages 17.4s. Live health: Gateway 292ms, Sync 270ms, NanoClaw 270ms.
+
+**Auth is non-negotiable:** Global API Key only. `.env` stores it as `CLOUDFLARE_GLOBAL_API_KEY`, script maps to `CLOUDFLARE_API_KEY` for wrangler and blanks `CLOUDFLARE_API_TOKEN` in the spawned env. Scoped tokens are forbidden — they lack permissions for workers + custom domains. See `/cloudflare` skill.
 
 **Live URLs:**
 

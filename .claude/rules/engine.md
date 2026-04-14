@@ -4,9 +4,9 @@ Apply to `src/engine/*.ts`
 
 ---
 
-## The Two Locked Rules (non-negotiable)
+## The Three Locked Rules (non-negotiable)
 
-These two rules compound. Breaking either breaks the flywheel.
+These three rules compound. Breaking any one breaks the flywheel.
 
 ### Rule 1 — Closed Loop
 
@@ -42,6 +42,40 @@ waves-per-cycle, **learning** by cycles-per-path. Calendar time can't be
 `mark()`d, so it doesn't compound. Genuine external deadlines (merge
 freezes, release cuts) are the only wall-clock exception — they come
 from outside the substrate.
+
+### Rule 3 — Deterministic Results in Every Loop
+
+**Every loop reports verified numbers, not vibes.** Tests passed/total.
+Build time in ms. Deploy time per service. Health check latency. Rubric
+dimension scores (fit/form/truth/taste). These are the deterministic
+signals that calibrate pheromone.
+
+```typescript
+// Every loop ends like this — not "done", but "done with receipts"
+{
+  passed: 320,
+  failed: 0,
+  buildMs: 22995,
+  deployMs: { gateway: 13705, sync: 8249, nanoclaw: 9163, pages: 17391 },
+  health: { gateway: 292, sync: 270, nanoclaw: 270 },
+  rubric: { fit: 0.92, form: 0.85, truth: 0.90, taste: 0.80 }
+}
+```
+
+Why: path strength without verification is superstition; with verification
+it's learning. A loop that can't report deterministic results can't
+`mark()` — it's just noise. This is the POST check of the deterministic
+sandwich applied to every automation skill.
+
+**Where it shows up:**
+- `/work` — reports task count, tests passed, time spent
+- `/wave` — reports dissolved/marked/warned agent counts per wave
+- `/sync` — reports tasks synced, hash-delta, KV writes
+- `/deploy` — reports W0 results, build ms, per-service deploy ms, health
+- `/done` — reports rubric score (fit + form + truth + taste)
+- growth tick — reports per-loop timings (L1-L7 lastAtMs, nextAtMs)
+
+If you can't measure it, you can't route around it.
 
 ---
 

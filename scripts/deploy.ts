@@ -262,14 +262,24 @@ function loadCredentials(): Record<string, string> {
     die(`Missing credentials: ${missing.join(', ')}`)
   }
 
+  // Warn if scoped token is in shell — wrangler prefers it over Global Key
+  if (process.env.CLOUDFLARE_API_TOKEN) {
+    console.log(c.yellow(`  ⚠ CLOUDFLARE_API_TOKEN detected in shell — will be unset`))
+    console.log(c.gray(`    (scoped tokens lack permissions; we always use Global API Key)`))
+  }
+
   const creds = {
     CLOUDFLARE_API_KEY: env.CLOUDFLARE_GLOBAL_API_KEY ?? '',
     CLOUDFLARE_EMAIL: env.CLOUDFLARE_EMAIL ?? '',
     CLOUDFLARE_ACCOUNT_ID: env.CLOUDFLARE_ACCOUNT_ID ?? '',
+    // Empty string explicitly unsets any inherited scoped token.
+    // Wrangler auth priority: CLOUDFLARE_API_TOKEN > CLOUDFLARE_API_KEY+EMAIL.
+    // Global Key has full perms; scoped tokens often don't — always force Global.
+    CLOUDFLARE_API_TOKEN: '',
   }
 
   const accountPrefix = creds.CLOUDFLARE_ACCOUNT_ID.slice(0, 10)
-  console.log(c.green(`  ✓ Credentials loaded`) + c.gray(` (account: ${accountPrefix}...)`))
+  console.log(c.green(`  ✓ Credentials loaded`) + c.gray(` (Global API Key, account: ${accountPrefix}...)`))
   return creds
 }
 

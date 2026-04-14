@@ -9,34 +9,61 @@ allowed-tools: Bash(*), Read(*), Write(*)
 
 Manage ONE's Cloudflare deployment: credentials, secrets, KV namespaces, D1 database, monitoring, logs, rollback.
 
-## Credentials
+## Credentials — GLOBAL API KEY ONLY
 
-**CRITICAL: Always use Global API Key, never scoped tokens.**
+**⚠ NON-NEGOTIABLE: Every wrangler/curl invocation in this project uses the Global API Key.**
 
+Scoped API tokens (`CLOUDFLARE_API_TOKEN`) are **forbidden** — they lack permissions for:
+- Workers deploy + custom domains
+- KV namespace management
+- D1 database creation
+- Pages project creation
+- Secrets management
+
+**The ONE wrangler auth mode:**
 ```bash
-# .env (checked into repo, in .gitignore)
+CLOUDFLARE_API_KEY=<global-api-key>      # wrangler reads this
+CLOUDFLARE_EMAIL=<account-email>         # wrangler reads this
+CLOUDFLARE_ACCOUNT_ID=<32-char-hex>      # wrangler reads this
+CLOUDFLARE_API_TOKEN=                    # MUST be unset/empty
+```
+
+**`.env` stores it as `CLOUDFLARE_GLOBAL_API_KEY`** (to avoid conflict with wrangler's env var name):
+```bash
+# .env (gitignored)
 CLOUDFLARE_GLOBAL_API_KEY=your-global-api-key
 CLOUDFLARE_EMAIL=tony@one.ie
 CLOUDFLARE_ACCOUNT_ID=627e0c7ccbe735a4a7cabf91e377bbad
 ```
 
-**Getting credentials:**
+Scripts map `CLOUDFLARE_GLOBAL_API_KEY` → `CLOUDFLARE_API_KEY` at runtime, and explicitly blank out `CLOUDFLARE_API_TOKEN` to force Global Key auth. See `scripts/deploy.ts:loadCredentials()`.
+
+**Detecting misconfiguration:**
+- Error "Authentication failed [code: 9106]" → Global Key not being used
+- Error "Invalid access token [code: 9109]" → `CLOUDFLARE_API_TOKEN` is set and invalid
+- Fix: unset `CLOUDFLARE_API_TOKEN`, reload `.env`, retry
+
+**Getting the Global API Key:**
 
 1. Go to https://dash.cloudflare.com/profile/api-tokens
-2. Under "Global API Key" → View
-3. Copy into `.env` as `CLOUDFLARE_GLOBAL_API_KEY`
+2. Under **Global API Key** → "View"
+3. Re-enter password, copy key (40 chars)
+4. Paste into `.env` as `CLOUDFLARE_GLOBAL_API_KEY=...`
 
-Email and Account ID visible on same page.
+Email and Account ID visible on same profile page.
 
-### Why Global API Key?
+### Manual auth (debugging only)
 
-Scoped tokens lack permissions for:
-- Creating/managing workers
-- Managing KV namespaces
-- Managing D1 databases
-- Setting custom domains on workers
+If running wrangler directly, you must export these three and unset the token:
 
-Wrangler requires Global API Key for full deployment access.
+```bash
+export CLOUDFLARE_API_KEY=$(grep '^CLOUDFLARE_GLOBAL_API_KEY=' .env | cut -d= -f2-)
+export CLOUDFLARE_EMAIL=$(grep '^CLOUDFLARE_EMAIL=' .env | cut -d= -f2-)
+export CLOUDFLARE_ACCOUNT_ID=$(grep '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2-)
+unset CLOUDFLARE_API_TOKEN   # MUST unset, or wrangler prefers it
+```
+
+**Always prefer `bun run deploy` over manual wrangler** — the script handles this automatically.
 
 ## Secrets
 

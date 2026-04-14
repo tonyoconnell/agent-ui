@@ -9,6 +9,8 @@ allowed-tools: Bash(*), Read(*), Edit(*), Write(*), Glob(*), Grep(*)
 
 Deploys all 4 Cloudflare services (gateway, sync, nanoclaw, pages) with full W0 baseline, build testing, and approval gates.
 
+**Auth: Global API Key only.** The script explicitly unsets `CLOUDFLARE_API_TOKEN` and uses `CLOUDFLARE_API_KEY` + `CLOUDFLARE_EMAIL` + `CLOUDFLARE_ACCOUNT_ID` (loaded from `.env` as `CLOUDFLARE_GLOBAL_API_KEY`). Scoped tokens are forbidden — they lack permissions for workers + custom domains. See `/cloudflare` skill.
+
 ## Deterministic Deploy Flow
 
 ```
