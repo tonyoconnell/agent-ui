@@ -19,10 +19,28 @@ The gateway doesn't learn — it relays. But its speed determines how fast the b
 
 ## Routes
 
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/typedb/query` | POST | Proxy TypeQL queries to TypeDB Cloud |
-| `/health` | GET | Status check |
+| Route | Method | Auth | Purpose |
+|-------|--------|------|---------|
+| `/` | GET | — | Service info |
+| `/health` | GET | — | Status check |
+| `/ws` | GET (upgrade) | Origin | WebSocket upgrade → WsHub DO |
+| `/tasks` | GET | — | Task list (KV fast path, TypeDB fallback) |
+| `/broadcast` | POST | `X-Broadcast-Secret` | Relay WsMessage to all WS clients via DO |
+| `/typedb/query` | POST | — | Proxy TypeQL queries to TypeDB Cloud |
+| `/messages` | GET | — | D1 conversation history |
+
+### Security on /ws and /broadcast
+
+- `/ws`: rejects requests without Origin ∈ CORS_ORIGINS (403); enforces 100-connection cap per DO (503).
+- `/broadcast`: requires `X-Broadcast-Secret` header matching `env.BROADCAST_SECRET` (403 otherwise); validates `message.type` against allowlist `[complete, unblock, mark, warn, task-update, sync]` (400 otherwise).
+
+### WsHub Durable Object
+
+The `/ws` and `/broadcast` routes forward to a single DO instance (named `"global"`) so every CF isolate shares the same connected-clients set. Uses hibernation API (`state.acceptWebSocket`) — DO sleeps between messages, sockets persist across evictions.
+
+- Deploy requires migration in `wrangler.toml`: `new_sqlite_classes = ["WsHub"]`
+- Binding: `env.WS_HUB: DurableObjectNamespace`
+- `connectedClients.size` check goes through `DO.fetch('/count')` to enforce global cap
 
 ## Config
 
@@ -31,6 +49,7 @@ Secrets (set via `wrangler secret put`):
 - `TYPEDB_DATABASE` — Database name ("one")
 - `TYPEDB_USERNAME` — "admin"
 - `TYPEDB_PASSWORD` — TypeDB Cloud password
+- `BROADCAST_SECRET` — Shared secret for `/broadcast` auth (also in repo `.env` for server-side relay from `ws-server.ts`)
 
 ## Auth
 
@@ -58,11 +77,24 @@ Auth is auto-handled by `scripts/deploy.ts` — Global API Key from `.env`, scop
 
 ```
 Worker:    one-gateway
-Bundle:    25.29 KiB / gzip: 6.46 KiB
-Startup:   12 ms
-Version:   25bb32f1-cd1 (deployed in parallel, 20121ms)
-Health:    200 in 337ms (live check)
+Bundle:    30.05 KiB / gzip: 7.48 KiB
+Startup:   14 ms
+Version:   bfe40a7d-195d-41bd-892b-908c394057c8
+Health:    200 in 52ms
 URLs:      https://one-gateway.oneie.workers.dev
            https://api.one.ie (custom domain)
-Bindings:  KV, D1 (one), VERSION, TYPEDB_URL, TYPEDB_DATABASE
+Bindings:  WS_HUB (Durable Object), KV, D1 (one), VERSION,
+           TYPEDB_URL, TYPEDB_DATABASE
+Secrets:   BROADCAST_SECRET, TYPEDB_USERNAME, TYPEDB_PASSWORD
 ```
+
+### Integration Test
+
+```bash
+BROADCAST_SECRET=$(grep '^BROADCAST_SECRET=' .env | cut -d= -f2) \
+  bun run scripts/test-ws-integration.ts
+```
+
+Exercises: WS connect with Origin, ping/pong keepalive, auth on `/broadcast`,
+type validation, DO-routed broadcast delivery, origin rejection, reconnect,
+latency. 11/11 pass deterministically.

@@ -283,7 +283,10 @@ src/
   schema/       # TypeDB schema (world.tql)
   lib/          # TypeDB client, auth, edge helpers, utils
 docs/           # Architecture, deploy, cloudflare, nanoclaw, strategy
-gateway/        # CF Worker: TypeDB proxy (api.one.ie)
+gateway/        # CF Worker: TypeDB proxy + WsHub DO (api.one.ie)
+                # Routes: /typedb/query, /tasks, /ws, /broadcast, /messages, /health
+                # Security: Origin check on /ws, X-Broadcast-Secret on /broadcast,
+                # message type allowlist, 100-conn cap per DO
 workers/sync/   # CF Worker: TypeDB → KV cron (every 1 min, hash-gated writes)
 nanoclaw/       # CF Worker: Edge agents (webhooks → queue → LLM → channels)
   src/
@@ -572,6 +575,26 @@ Preview URL captured inline: `📎 https://<hash>.one-substrate.pages.dev`.
 - Always use `CLOUDFLARE_GLOBAL_API_KEY`, never scoped tokens
 - Credentials in `.env` only — never hardcode in CLAUDE.md or wrangler.toml
 - `SYNC_WORKER_URL` — sync worker base URL (default: `https://one-sync.oneie.workers.dev`). Set in `.env` to trigger KV refresh from signal.ts after path changes.
+- `BROADCAST_SECRET` — Gateway `/broadcast` auth. Set in both `.env` (for `ws-server.ts relayToGateway()`) and Gateway (`wrangler secret put BROADCAST_SECRET`). Generate with `openssl rand -hex 32`.
+
+## Live Task Updates (WebSocket)
+
+TaskBoard receives mark/warn/complete events in real time via the Gateway's WsHub Durable Object:
+
+```
+Pages API (complete/persist) → wsManager.broadcast() + relayToGateway(msg, X-Broadcast-Secret)
+                                        ↓
+Gateway /broadcast → validates auth + type → DO.fetch('/send')
+                                        ↓
+WsHub DO (hibernation) → state.getWebSockets() → ws.send(message)
+                                        ↓
+Browser useTaskWebSocket hook → switch(msg.type) → setTasks(prev.map(...))
+```
+
+- Single DO named `"global"` shared across all CF isolates (fixes cross-isolate delivery)
+- Client resilience: exp backoff reconnect (1s→30s), 45s heartbeat, 5s polling fallback after 3 fails
+- `useDeferredValue` debounces rapid bursts so phase sidebar stays responsive
+- Run `bun run scripts/test-ws-integration.ts` to verify (11/11 tests)
 
 ## NanoClaw API
 

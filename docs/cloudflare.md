@@ -38,10 +38,10 @@ TypeDB thinks. Cloudflare moves. Haiku executes. Opus architects.
 │  ┌────────────┐   ┌────────────┐   ┌──────────┐   ┌────────────────┐   │
 │  │   Pages    │   │  Gateway   │   │   Sync   │   │   NanoClaw     │   │
 │  │  (Astro)   │   │  Worker    │   │  Worker  │   │   Workers      │   │
-│  │            │   │            │   │          │   │                │   │
+│  │            │   │  + WsHub   │   │          │   │                │   │
 │  │  SSR +     │   │  /typedb/  │   │  TypeDB  │   │  Webhooks →   │   │
-│  │  islands   │   │  query     │   │  → KV    │   │  Queue →      │   │
-│  │  /api/*    │   │  /health   │   │  5 min   │   │  Claude →     │   │
+│  │  islands   │   │  /tasks    │   │  → KV    │   │  Queue →      │   │
+│  │  /api/*    │   │  /ws /broad│   │  5 min   │   │  Claude →     │   │
 │  │  30+ routes│   │  JWT cache │   │          │   │  Channels     │   │
 │  └─────┬──────┘   └─────┬──────┘   └────┬─────┘   └───────┬───────┘   │
 │        │                │               │                  │           │
@@ -73,7 +73,7 @@ TypeDB thinks. Cloudflare moves. Haiku executes. Opus architects.
 | Worker | Name | Purpose | Cost |
 |--------|------|---------|------|
 | **Pages** | `one-substrate` | Astro SSR + React islands + 30 API routes | $0 |
-| **Gateway** | `one-gateway` | TypeDB proxy, JWT caching, CORS | $0 |
+| **Gateway** | `one-gateway` | TypeDB proxy, JWT caching, CORS, `/ws` + `/broadcast` via WsHub DO | $0 |
 | **Sync** | `one-sync` | TypeDB → KV snapshots every 5 min | $0 |
 | **NanoClaw** | `nanoclaw` | Agent workers: webhooks → queue → Claude → channels | $0 |
 
@@ -96,6 +96,39 @@ bun run tunnel:local  # → https://local.one.ie → localhost:4321
 ```
 
 See [PLAN-tunnels.md](PLAN-tunnels.md) for full setup.
+
+---
+
+## WebSocket Stack (Gateway)
+
+Live task/pheromone updates flow through the Gateway's `WsHub` Durable Object:
+
+```
+  Pages API           Gateway                 Durable Object
+  ─────────           ───────                 ──────────────
+  complete.ts    ┐
+  persist.ts      ├─►  POST /broadcast    ─►  WsHub#global
+  task-sync.ts   ┘      (X-Broadcast-       (state.getWebSockets
+                         Secret)              → ws.send)
+                                                   │
+  Browser                                          ▼
+  ────────                                    all connected
+  TaskBoard      ◄─  GET /ws (upgrade)   ◄─  WebSocketPair
+  useTaskWebSocket    (Origin check)         (hibernation)
+```
+
+| Property | Value |
+|----------|-------|
+| WsHub instance | single DO named `"global"` |
+| API | hibernation (`state.acceptWebSocket`) |
+| Cross-isolate | all isolates route to same DO ⇒ shared client set |
+| Connection cap | 100 per DO (503 when exceeded) |
+| Origin check | Origin ∈ `CORS_ORIGINS` or 403 |
+| Broadcast auth | `X-Broadcast-Secret` required or 403 |
+| Type allowlist | `complete, unblock, mark, warn, task-update, sync` |
+| Client resilience | exp backoff reconnect 1s→30s, 45s heartbeat, polling fallback at 5s after 3 fails |
+
+Full spec + integration tests: `docs/PLAN-task-page.md` and `scripts/test-ws-integration.ts`.
 
 ---
 
