@@ -5,7 +5,7 @@
  * Clients subscribe and receive task-update, mark, warn, unblock, complete events.
  *
  * Production: Cloudflare Workers WebSocket via upgrade event.
- * Development: Returns 501 — TaskBoard falls back to HTTP polling.
+ * Development: Node.js ws library (attached by dev-ws-server.ts).
  * Usage: const ws = new WebSocket('/api/ws')
  *        ws.addEventListener('message', e => JSON.parse(e.data))
  */
@@ -18,23 +18,23 @@ export const GET: APIRoute = async ({ request }) => {
   if (!upgradeHeader || upgradeHeader !== 'websocket') {
     return new Response(
       JSON.stringify({
-        message: 'WebSocket endpoint. In production (CF Workers), upgrade header required.',
-        fallback: 'TaskBoard falls back to HTTP polling for development.',
+        message: 'WebSocket endpoint. Upgrade required.',
+        note: 'Development uses ws library, production uses CF Workers WebSocketPair.',
       }),
-      { status: 501, headers: { 'Content-Type': 'application/json' } },
+      { status: 400, headers: { 'Content-Type': 'application/json' } },
     )
   }
 
-  // Cloudflare Workers: WebSocketPair is provided by CF runtime at request time
+  // Production (CF Workers): WebSocketPair is provided by CF runtime
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const WebSocketPair = (globalThis as any).WebSocketPair
   if (!WebSocketPair) {
-    // Development: WebSocketPair not available (local Astro dev doesn't support it)
-    // TaskBoard will fall back to HTTP polling
-    return new Response(
-      JSON.stringify({ error: 'WebSocket not available in development. Using HTTP polling fallback.' }),
-      { status: 501, headers: { 'Content-Type': 'application/json' } },
-    )
+    // Development: WebSocket is handled by dev-ws-server.ts (ws library)
+    // This route returns 500 if somehow reached (should not be in normal flow)
+    return new Response(JSON.stringify({ error: 'WebSocket upgrade failed. Check dev server logs.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   // Production (CF Workers): Create WebSocket pair

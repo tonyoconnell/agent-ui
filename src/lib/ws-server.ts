@@ -7,6 +7,13 @@ export type WsMessage = {
   timestamp: number
 }
 
+// Global dev broadcast function (set by dev-ws-server at runtime)
+let devBroadcaster: ((msg: WsMessage) => void) | null = null
+
+export function registerDevBroadcaster(fn: (msg: WsMessage) => void) {
+  devBroadcaster = fn
+}
+
 export const wsManager = {
   clients: new Set<WebSocket>(),
 
@@ -19,10 +26,16 @@ export const wsManager = {
   },
 
   broadcast(message: WsMessage) {
+    // Production (CF Workers): broadcast to CF WebSocket clients
     for (const client of this.clients) {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(message))
       }
+    }
+
+    // Development: also broadcast to dev WebSocket clients (via ws library)
+    if (devBroadcaster) {
+      devBroadcaster(message)
     }
   },
 }

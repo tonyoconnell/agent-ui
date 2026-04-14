@@ -13,11 +13,30 @@ const adapter = isDev
       platformProxy: { enabled: true },
     });
 
+// Development WebSocket server middleware for Vite
+// Uses ssrLoadModule to import TS through Vite's transform pipeline
+const devWebSocketMiddleware = isDev ? {
+  name: 'dev-websocket',
+  apply: 'serve',
+  configureServer(server) {
+    return () => {
+      setImmediate(async () => {
+        try {
+          const mod = await server.ssrLoadModule('./src/lib/dev-ws-server.ts');
+          mod.attachWebSocketServer(server.httpServer);
+        } catch (err) {
+          console.warn('[dev-ws] Skipped:', err.message);
+        }
+      });
+    };
+  },
+} : null;
+
 export default defineConfig({
   site: "https://one.ie",
   integrations: [react()],
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), ...(devWebSocketMiddleware ? [devWebSocketMiddleware] : [])],
     resolve: {
       alias: {
         "@": new URL("./src", import.meta.url).pathname,

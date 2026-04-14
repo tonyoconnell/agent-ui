@@ -1447,7 +1447,10 @@ export function TaskBoard() {
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
     const connect = () => {
-      ws = new WebSocket('ws://localhost:4322/api/ws')
+      // Use current window location to determine the correct host/port
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsUrl = `${wsProtocol}//${window.location.host}/api/ws`
+      ws = new WebSocket(wsUrl)
 
       ws.onopen = () => {
         // Subscribe to task updates
