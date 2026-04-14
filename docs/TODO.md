@@ -104,7 +104,7 @@
 - [ ] **Wire blocking context — executor sees what it unblocks** — high=25 + C1=40 + dev=20 [haiku] `engine, typedb, P1` ← [task-management](TODO-task-management.md)
   exit: task_blockers() results in signal. Builder knows its work unblocks N others.
 - [ ] **Wire TaskCompleted hook for verify gate** — high=25 + C1=40 + dev=20 [sonnet] `infra, build, P1` ← [testing](TODO-testing.md)
-  exit: TaskCompleted hook runs npm run verify. Blocks if tests regress. Gates the mark.
+  exit: TaskCompleted hook runs bun run verify. Blocks if tests regress. Gates the mark.
 - [ ] ****1b. Update world.tql attributes**** — critical=30 + C1=40 + haiku=5 + blocks(1)=5 [haiku] `schema, foundation, P0` ← [collusion](TODO-collusion.md)
   exit: `grep "attribute owner, value string" src/schema/world.tql` returns true
   blocks: c2-filter-tasks
@@ -121,7 +121,7 @@
   exit: Two concurrent claims return 200 + 409; only one gets owner
   blocks: c1-prove-baseline
 - [ ] ****4f. W0 baseline (before C1)**** — critical=30 + C1=40 + haiku=5 + blocks(1)=5 [haiku] `gate, baseline, P0` ← [collusion](TODO-collusion.md)
-  exit: `npm run verify` passes; all baseline tests green
+  exit: `bun run verify` passes; all baseline tests green
   blocks: c1-schema-task
 - [ ] **Cycle 1 W1: Recon (parallel Haiku × 4)** — critical=30 + C1=40 + haiku=5 + blocks(1)=5 [haiku] `docs, wire, recon, P0` ← [rename](TODO-rename.md)
   exit: 4 reports in. Each reports dead names with line numbers, metaphor flags.
@@ -158,7 +158,7 @@
   exit: Task with claimed-at 31 minutes ago is auto-released
   blocks: c1-prove-baseline
 - [ ] ****4g. W4 verify (after C1)**** — critical=30 + C1=40 + sonnet=5 [haiku] `gate, verify, P0` ← [collusion](TODO-collusion.md)
-  exit: `npm run verify` passes; claim/release/expire tests pass; rubric ≥ 0.65 all dims
+  exit: `bun run verify` passes; claim/release/expire tests pass; rubric ≥ 0.65 all dims
 
 ---
 
@@ -317,7 +317,7 @@
 - [ ] **Test rubric scorer: score(), markDims(), tagged edges** — high=25 + C3=30 + dev=20 [sonnet] `engine, test, P1` ← [testing](TODO-testing.md)
   exit: rubric.ts test file. Covers: score returns {fit,form,truth,taste,violations}, markDims writes 4 tagged paths, violations bypass scoring
 - [ ] **Add CI pipeline: biome + tsc + vitest on every push** — high=25 + C3=30 + dev=20 [haiku] `infra, build, P1` ← [testing](TODO-testing.md)
-  exit: GitHub Action runs npm run verify on push/PR. Badge in README.
+  exit: GitHub Action runs bun run verify on push/PR. Badge in README.
 - [ ] **Test human lifecycle: visit → observe → use → their signals join graph** — high=25 + C3=30 + dev=20 [sonnet] `api, test, P1` ← [testing](TODO-testing.md)
   exit: Integration test. Human signal enters via /api/signal, routes through agents, mark compounds, human sees highway form in /api/state response.
 - [ ] **Test lifecycle gates: each stage transition requires its test to pass** — high=25 + C3=30 + dev=20 [sonnet] `engine, test, P1` ← [testing](TODO-testing.md)
@@ -344,7 +344,7 @@
 - [ ] **Feed rubric dims into L5 for wave-runner evolution** — medium=20 + C3=30 + dev=20 [sonnet] `engine, typedb, P2` ← [task-management](TODO-task-management.md)
   exit: L5 reads per-dim strength. Low truth → evolve recon. Low form → evolve edit.
 - [ ] **Coverage target: engine/ ≥ 80%, persist/ ≥ 70%** — medium=20 + C3=30 + dev=20 [haiku] `engine, test, P2` ← [testing](TODO-testing.md)
-  exit: npm run test:coverage shows ≥80% line coverage for src/engine/*.ts
+  exit: bun run test:coverage shows ≥80% line coverage for src/engine/*.ts
 - [ ] **Detect wave-specific frontiers** — medium=20 + C3=30 + dev=20 [haiku] `engine, P2` ← [typedb](TODO-typedb.md)
   exit: L7 frontier detection knows which waves are unexplored per tag cluster
 - [ ] **Evolve builder prompt from wave outcomes** — medium=20 + C3=30 + dev=20 [sonnet] `engine, P2` ← [typedb](TODO-typedb.md)
@@ -517,7 +517,7 @@
 - [x] **Schema: Add task, task-dependency, task-execution entities to world.tql** `typedb, schema, P0, foundation` ← [autonomous-orgs](TODO-autonomous-orgs.md)
 - [x] **Functions: Write 6 task selection functions (priority, critical-path, bottleneck, etc.)** `typedb, routing, P0, foundation` ← [autonomous-orgs](TODO-autonomous-orgs.md)
 - [x] **Agents: Create 8 marketing agents (markdown or HTTP)** `agent, marketing, P0, deployment` ← [autonomous-orgs](TODO-autonomous-orgs.md)
-- [x] ****W0: Baseline** — `npm run verify` passes before starting** `` ← [collusion](TODO-collusion.md)
+- [x] ****W0: Baseline** — `bun run verify` passes before starting** `` ← [collusion](TODO-collusion.md)
 - [x] ****W1: Recon** (Haiku) — PLAN-collusion-mitigation analyzed** `` ← [collusion](TODO-collusion.md)
 - [x] ****W2: Decide** (Opus) — 3 ambiguities resolved; diff specs ready for W3** `` ← [collusion](TODO-collusion.md)
 - [x] ****W3: Edit** (Sonnet) — All 16 diffs applied; W3.5 type fixes applied** `` ← [collusion](TODO-collusion.md)
@@ -552,7 +552,7 @@
 - [x] **Fix one.test.ts: bun:test → vitest import** `engine, fix, P0` ← [testing](TODO-testing.md)
 - [x] **Triage 85 type errors — fix or suppress with intent** `engine, fix, P0` ← [testing](TODO-testing.md)
 - [x] **Fix 21 biome lint issues or configure intentional exceptions** `engine, fix, P1` ← [testing](TODO-testing.md)
-- [x] **Establish green baseline: npm run verify passes** `engine, build, P0` ← [testing](TODO-testing.md)
+- [x] **Establish green baseline: bun run verify passes** `engine, build, P0` ← [testing](TODO-testing.md)
 - [x] **Add vitest config for path aliases and coverage** `engine, build, P1` ← [testing](TODO-testing.md)
 - [x] **Wire PostToolUse hook for biome check on edit** `infra, build, P1` ← [testing](TODO-testing.md)
 - [x] **Test world.ts: unit creation, signal routing, mark/warn/fade** `engine, test, P0` ← [testing](TODO-testing.md)

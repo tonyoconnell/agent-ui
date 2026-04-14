@@ -71,7 +71,7 @@ First call:   LLM picks the agent          2,000ms    $0.01
 50th call:    Highway formed. No LLM.            0.01ms $0
 ```
 
-> 43 tests prove this. `npx vitest run src/engine/routing.test.ts`
+> 43 tests prove this. `bun vitest run src/engine/routing.test.ts`
 
 ### 2. Language
 
@@ -1178,14 +1178,14 @@ What Anne gets: 6 agents, branded domain, GDPR isolation,
 
 ---
 
-## Open Source — `npx oneie` (The Framework, Not the World)
+## Open Source — `bun oneie` (The Framework, Not the World)
 
 The world stays private. The framework is open source. Already shipping.
 **`oneie` v3.6.40 on npm.** The world is the moat. The framework is the
 adoption engine.
 
 ```bash
-npx oneie
+bun oneie
 ```
 
 That's it. One command. It asks your name, your org, your website.
@@ -1194,7 +1194,7 @@ Then it scaffolds everything:
 ```
 ┌────────────────────────────────────────────────────────────┐
 │                                                             │
-│  npx oneie                                                  │
+│  bun oneie                                                  │
 │                                                             │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                          │
 │  Welcome! Let's build your platform.                        │
@@ -1243,13 +1243,13 @@ ehc-framework/
 Then she opens Claude Code, types `/one`, and the AI agent reads
 `.onboarding.json`, understands the org, and starts building.
 
-### What `npx oneie` Ships (Free, Forever)
+### What `bun oneie` Ships (Free, Forever)
 
 ```
 OPEN SOURCE (MIT)                    PRIVATE (the world)
 ─────────────────                    ───────────────────
 
-npx oneie                            world.ts (270 lines)
+bun oneie                            world.ts (270 lines)
   Onboarding in 60 seconds             Pheromone routing engine
   Org setup, branding, web template     The formula
   6-dimension ontology synced           Toxic detection
@@ -1293,7 +1293,7 @@ Web template
 ```
 SHOPIFY MODEL                        ONE MODEL
 ─────────────                        ─────────
-Shopify CLI = open                   npx oneie = open (MIT)
+Shopify CLI = open                   bun oneie = open (MIT)
 Themes = open                        Skins = open
 Liquid templates = open              Agent markdown = open
 Shopify platform = PRIVATE           ONE world = PRIVATE
@@ -1310,7 +1310,7 @@ Only ONE can ROUTE them through the world.
 
 ```bash
 # Anne at EHC Framework
-npx oneie
+bun oneie
   → Name: Anne
   → Org: EHC Framework
   → Website: ehc.framework.com
@@ -1357,7 +1357,7 @@ one status
 ### What the Framework Gives You (Free, Forever)
 
 ```
-SCAFFOLD   npx oneie — org + ontology + web in 60 seconds
+SCAFFOLD   bun oneie — org + ontology + web in 60 seconds
 ONTOLOGY   6 dimensions, 100+ files, versioned
 AGENTS     Markdown format — describe, don't code
 AI SETUP   oneie agent — zero-interaction for Claude/Cursor
@@ -1386,7 +1386,7 @@ SKIN       Your domain, your brand, your data isolation
 The framework is the door. The world is the room.
 Everyone gets the door for free. The room is where the value lives.
 
-`npx oneie` gives you the door. one.ie gives you the world.
+`bun oneie` gives you the door. one.ie gives you the world.
 
 ---
 

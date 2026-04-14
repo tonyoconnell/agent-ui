@@ -37,7 +37,7 @@
 
 ```
 W0 GATE
-  npm run verify ✓
+  bun run verify ✓
        ↓
 PARSE
   glob docs/TODO-*.md
@@ -92,7 +92,7 @@ EXECUTE
   ┌─ read code ─────────┐
   │ write files         │ (real work happens here)
   │ write tests         │
-  │ npm run verify      │ (local check)
+  │ bun run verify      │ (local check)
   └─────────────────────┘
        ↓
 SCORE (W4 rubric)
@@ -104,7 +104,7 @@ SCORE (W4 rubric)
   composite: 0.943  (0.35·1 + 0.20·0.95 + 0.30·1.0 + 0.15·0.90)
        ↓
 W4 VERIFY
-  npm run verify ✓
+  bun run verify ✓
   rubric composite 0.943 >= 0.85? YES
   ─────────────────────
   → GOLDEN ZONE
@@ -215,13 +215,13 @@ W3: SONNET EDIT
   - write files
   - add tests
   ↓
-  npm run verify ✓
+  bun run verify ✓
   ↓
   score: fit/form/truth/taste
   (cost: variable, depends on work size)
        ↓
 W4: SONNET VERIFY
-  W4 gate: npm run verify + rubric
+  W4 gate: bun run verify + rubric
   ↓
   if pass:
     - update checkbox in TODO-rename.md

@@ -7,7 +7,7 @@
  * The story: three models compete for traffic. The substrate learns which
  * earns it. Cost falls. Quality rises. Highways form. Everything is measured.
  *
- * Run: npx vitest run src/engine/llm-router.test.ts
+ * Run: bun vitest run src/engine/llm-router.test.ts
  */
 
 import { describe, expect, it } from 'vitest'

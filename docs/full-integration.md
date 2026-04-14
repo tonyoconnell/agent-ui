@@ -92,7 +92,7 @@ POST /webhook/:channel  — Telegram, Discord, etc.
 
 **Status:** Production. Standalone CLI. Fetch.ai integration.
 
-**Purpose:** `npx agentlaunch` → Agent code → Agentverse → Bonding curve token.
+**Purpose:** `bun agentlaunch` → Agent code → Agentverse → Bonding curve token.
 
 ### 3.1 What It Does
 ```

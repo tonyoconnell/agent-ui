@@ -75,7 +75,7 @@ of the TODO lifecycle — the same sandwich that wraps every LLM call.
 ```
     PRE (before W1)                    POST (after W4)
     ───────────────                    ────────────────
-    npm run verify                     npm run verify
+    bun run verify                     bun run verify
     ├── biome check .                  ├── biome check .     (no new lint)
     ├── tsc --noEmit                   ├── tsc --noEmit      (no new type errors)
     └── vitest run                     ├── vitest run        (no regressions)
@@ -87,16 +87,16 @@ of the TODO lifecycle — the same sandwich that wraps every LLM call.
 
 ### W0 — Baseline (before every cycle)
 
-Run `npm run verify` and record the result. This is the PRE check.
+Run `bun run verify` and record the result. This is the PRE check.
 
 ```bash
 # The three deterministic checks
-npx biome check .                    # lint + format
-npx tsc --noEmit                     # type safety
-npx vitest run                       # all tests pass
+bun biome check .                    # lint + format
+bun tsc --noEmit                     # type safety
+bun vitest run                       # all tests pass
 
 # Combined (fails fast)
-npm run verify
+bun run verify
 ```
 
 If baseline fails, **fix it first**. Don't start a cycle on a broken foundation.

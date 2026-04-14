@@ -10,7 +10,7 @@ bash scripts/e2e-test.sh
 
 ### Terminal 1: Start Pages Server
 ```bash
-npm run dev
+bun run dev
 # Waits for: "ready in XXX ms"
 # Server: http://localhost:4321
 ```

@@ -28,7 +28,7 @@ weight = 1 + max(0, strength - resistance) × sensitivity
 | **Security** | Toxic paths block automatically — no rules needed |
 | **Routing** | follow() = deterministic, select() = weighted random |
 
-> **Proven.** 42 tests, 705ms. `npx vitest run src/engine/routing.test.ts`
+> **Proven.** 42 tests, 705ms. `bun vitest run src/engine/routing.test.ts`
 
 ---
 

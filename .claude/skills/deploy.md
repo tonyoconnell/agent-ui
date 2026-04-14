@@ -30,11 +30,11 @@ export CLOUDFLARE_EMAIL=$(grep '^CLOUDFLARE_EMAIL=' .env | cut -d= -f2)
 export CLOUDFLARE_ACCOUNT_ID=$(grep '^CLOUDFLARE_ACCOUNT_ID=' .env | cut -d= -f2)
 
 # Build
-NODE_ENV=production npm run build
+NODE_ENV=production bun run build
 
 # Deploy all four
-cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../../nanoclaw && npx wrangler deploy && cd ..
-npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+cd gateway && bun wrangler deploy && cd ../workers/sync && bun wrangler deploy && cd ../../nanoclaw && bun wrangler deploy && cd ..
+bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 ```
 
 ## Deploy Single Component
@@ -43,13 +43,13 @@ npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 # Set auth first (same export block above)
 
 # Gateway only
-cd /Users/toc/Server/envelopes/gateway && npx wrangler deploy && cd ..
+cd /Users/toc/Server/envelopes/gateway && bun wrangler deploy && cd ..
 
 # Sync worker only
-cd /Users/toc/Server/envelopes/workers/sync && npx wrangler deploy && cd ../..
+cd /Users/toc/Server/envelopes/workers/sync && bun wrangler deploy && cd ../..
 
 # Pages only
-cd /Users/toc/Server/envelopes && NODE_ENV=production npm run build && npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+cd /Users/toc/Server/envelopes && NODE_ENV=production bun run build && bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 ```
 
 ## Verify
@@ -91,41 +91,41 @@ Only needed once — see `docs/deploy.md` for full walkthrough:
 
 ```bash
 # Create resources
-npx wrangler d1 create one
-npx wrangler kv namespace create KV
+bun wrangler d1 create one
+bun wrangler kv namespace create KV
 # → Paste IDs into wrangler.toml + workers/sync/wrangler.toml
 
 # Run migration
-npx wrangler d1 execute one --remote --file=migrations/0001_init.sql
+bun wrangler d1 execute one --remote --file=migrations/0001_init.sql
 
 # Gateway secrets
 cd gateway
-printf 'admin' | npx wrangler secret put TYPEDB_USERNAME
-printf 'YOUR-PASSWORD' | npx wrangler secret put TYPEDB_PASSWORD
+printf 'admin' | bun wrangler secret put TYPEDB_USERNAME
+printf 'YOUR-PASSWORD' | bun wrangler secret put TYPEDB_PASSWORD
 cd ..
 
 # Pages project
-npx wrangler pages project create one-substrate --production-branch=main
+bun wrangler pages project create one-substrate --production-branch=main
 ```
 
 ## Rollback
 
 ```bash
-npx wrangler pages deployment list --project-name=one-substrate
-npx wrangler pages deployments rollback --project-name=one-substrate
+bun wrangler pages deployment list --project-name=one-substrate
+bun wrangler pages deployments rollback --project-name=one-substrate
 ```
 
 ## Monitoring
 
 ```bash
 # Live logs
-npx wrangler pages tail --project-name=one-substrate
+bun wrangler pages tail --project-name=one-substrate
 
 # Gateway logs
-cd gateway && npx wrangler tail && cd ..
+cd gateway && bun wrangler tail && cd ..
 
 # Deployment list
-npx wrangler pages deployment list --project-name=one-substrate | head -10
+bun wrangler pages deployment list --project-name=one-substrate | head -10
 ```
 
 ## Gotchas

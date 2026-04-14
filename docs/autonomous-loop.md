@@ -13,7 +13,7 @@ The deterministic sandwich ensures the system grows cleanly. Every gate is wired
 **Guard:** Ensure codebase is healthy before touching it.
 
 ```bash
-npm run verify     # biome check . && tsc --noEmit && vitest run
+bun run verify     # biome check . && tsc --noEmit && vitest run
 ```
 
 Must pass:
@@ -112,7 +112,7 @@ if (!verify.pass) {
 ### 4. /DONE — Mark & Reinforce Path
 
 **What happens:**
-1. Run W4 gate: `npm run verify` + rubric scoring
+1. Run W4 gate: `bun run verify` + rubric scoring
 2. Call POST `/api/tasks/{id}/complete`
 3. Pheromone effect:
    - **Golden (0.85+):** mark(edge, 0.85-1.0) → strengthens path significantly

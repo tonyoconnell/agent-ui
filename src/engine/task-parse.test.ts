@@ -4,7 +4,7 @@
  * Proves: priority formula arithmetic, TODO parsing with all metadata fields,
  * wave and context fields, effective priority with pheromone, tag subscription matching.
  *
- * Run: npx vitest run src/engine/task-parse.test.ts
+ * Run: bun vitest run src/engine/task-parse.test.ts
  */
 
 import { mkdtempSync, writeFileSync } from 'node:fs'

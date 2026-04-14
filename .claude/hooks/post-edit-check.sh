@@ -13,7 +13,7 @@ if [[ -z "$FILE" ]] || [[ ! "$FILE" =~ \.(ts|tsx|js|jsx)$ ]]; then
 fi
 
 # Quick biome lint on the single file (non-blocking)
-RESULT=$(cd "$CLAUDE_PROJECT_DIR" && npx biome check "$FILE" 2>&1)
+RESULT=$(cd "$CLAUDE_PROJECT_DIR" && bun biome check "$FILE" 2>&1)
 EXIT=$?
 
 if [ $EXIT -ne 0 ]; then

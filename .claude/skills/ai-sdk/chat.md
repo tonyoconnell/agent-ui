@@ -171,7 +171,7 @@ function parseWorldCommand(message): WorldCommand | null {
 ## Dependencies
 
 ```bash
-npm install ai @ai-sdk/react @ai-sdk/anthropic zod
+bun install ai @ai-sdk/react @ai-sdk/anthropic zod
 ```
 
 ---

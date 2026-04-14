@@ -189,7 +189,7 @@ interface Signal {
 
 ```bash
 # Set token
-printf 'YOUR-BOT-TOKEN' | npx wrangler secret put TELEGRAM_TOKEN
+printf 'YOUR-BOT-TOKEN' | bun wrangler secret put TELEGRAM_TOKEN
 
 # Set webhook
 curl "https://api.telegram.org/bot${TOKEN}/setWebhook?url=https://nanoclaw.oneie.workers.dev/webhook/telegram"
@@ -198,7 +198,7 @@ curl "https://api.telegram.org/bot${TOKEN}/setWebhook?url=https://nanoclaw.oneie
 ### Discord
 
 ```bash
-printf 'YOUR-BOT-TOKEN' | npx wrangler secret put DISCORD_TOKEN
+printf 'YOUR-BOT-TOKEN' | bun wrangler secret put DISCORD_TOKEN
 # Configure webhook URL in Discord Developer Portal
 ```
 
@@ -333,15 +333,15 @@ export CLOUDFLARE_EMAIL=$(grep '^CLOUDFLARE_EMAIL=' ../.env | cut -d= -f2)
 export CLOUDFLARE_ACCOUNT_ID=$(grep '^CLOUDFLARE_ACCOUNT_ID=' ../.env | cut -d= -f2)
 
 # First time
-npx wrangler queues create nanoclaw-agents
-npx wrangler d1 execute one --remote --file=migrations/0001_init.sql
+bun wrangler queues create nanoclaw-agents
+bun wrangler d1 execute one --remote --file=migrations/0001_init.sql
 
 # Deploy
-npx wrangler deploy
+bun wrangler deploy
 
 # Secrets
-printf 'sk-or-YOUR-KEY' | npx wrangler secret put OPENROUTER_API_KEY
-printf 'YOUR-BOT-TOKEN' | npx wrangler secret put TELEGRAM_TOKEN
+printf 'sk-or-YOUR-KEY' | bun wrangler secret put OPENROUTER_API_KEY
+printf 'YOUR-BOT-TOKEN' | bun wrangler secret put TELEGRAM_TOKEN
 
 # Verify
 curl -s https://nanoclaw.oneie.workers.dev/health

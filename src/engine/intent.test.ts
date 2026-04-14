@@ -7,7 +7,7 @@
  *
  * No D1. No TypeDB. No network. Pure logic, real numbers.
  *
- * Run: npx vitest run src/engine/intent.test.ts
+ * Run: bun vitest run src/engine/intent.test.ts
  */
 
 import { describe, expect, it } from 'vitest'

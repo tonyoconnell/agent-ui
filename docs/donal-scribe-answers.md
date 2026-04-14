@@ -61,7 +61,7 @@ Draft answers to the 28 questions in Donal's live scribe doc, ready for Tony to 
 
 **Why:** Already exists in Donal's stack. Concrete input and output. Hits the hottest 2026 market (AI search visibility). Low enough price to get volume. High enough insight to anchor the rubric judge during calibration.
 
-**Action for Alex:** Port `/quick-audit` FastAPI endpoint via `npx agentlaunch connect` (template Appendix B). Write Agentverse listing brief in template format, ship today.
+**Action for Alex:** Port `/quick-audit` FastAPI endpoint via `bun agentlaunch connect` (template Appendix B). Write Agentverse listing brief in template format, ship today.
 
 ---
 
@@ -69,7 +69,7 @@ Draft answers to the 28 questions in Donal's live scribe doc, ready for Tony to 
 
 **Tony draft [HIGH]:** Ship now. The template's bridge command wraps an existing HTTP endpoint as an Agentverse actor in 30 seconds without a Python rewrite. Proof of life beats perfect spec. First 3 interactions logged, Telegram kill switch wired, $10 daily cap enforced, rest iterates live.
 
-**If ship now:** Donal runs `npx agentlaunch connect` this afternoon on the Quick Audit endpoint, has an Agentverse listing before end of day.
+**If ship now:** Donal runs `bun agentlaunch connect` this afternoon on the Quick Audit endpoint, has an Agentverse listing before end of day.
 
 **If wait:** Only if the Quick Audit endpoint is not yet stable. In that case, a 1 hour pair session to shore up the endpoint first.
 
@@ -308,7 +308,7 @@ From Donal's stack:
 
 **v0.1 scope:** Input: business name + niche + geo. Output: 20 highest-authority citation targets for that niche + outreach templates per target + submission checklist. Rubric scored on accuracy of targets (truth dim) and completion rate of submissions (fit dim).
 
-**Timeline:** Weekend 1 wraps the existing Python script via `npx agentlaunch connect`. Weekend 2 calibrates the rubric judge against 10 hand-scored outputs. Ships public end of week 2.
+**Timeline:** Weekend 1 wraps the existing Python script via `bun agentlaunch connect`. Weekend 2 calibrates the rubric judge against 10 hand-scored outputs. Ships public end of week 2.
 
 ---
 

@@ -29,7 +29,7 @@ echo "SUI_NETWORK=testnet" >> ../../../.env
 
 # 5. Install TS SDK (from project root)
 cd ../../..
-npm install @mysten/sui
+bun install @mysten/sui
 
 # 6. Verify
 sui client objects               # Should show Protocol singleton

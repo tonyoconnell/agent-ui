@@ -17,7 +17,7 @@
  * the replyTo address. Simple fire-and-forget handlers don't auto-reply.
  * Tests verify signal delivery via w.sense(), not ask() result values.
  *
- * Run: npx vitest run src/engine/lifecycle.test.ts
+ * Run: bun vitest run src/engine/lifecycle.test.ts
  */
 
 import { beforeEach, describe, expect, it } from 'vitest'

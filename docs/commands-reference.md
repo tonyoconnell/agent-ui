@@ -33,7 +33,7 @@ todo.json snapshot (for CI, dashboards)
 **Result:** Task substrate populated. All 229 tasks available. Blocks graph ready.
 
 **Gates:**
-- **W0 (before):** npm run verify — baseline must be clean
+- **W0 (before):** bun run verify — baseline must be clean
 
 ---
 
@@ -67,8 +67,8 @@ READY TO MARK
 **Result:** Task execution complete. Work scored. Ready to reinforce pheromone.
 
 **Gates:**
-- **W0 (before):** npm run verify — baseline must be clean
-- **W4 (after):** rubric scoring (fit/form/truth/taste) + npm run verify
+- **W0 (before):** bun run verify — baseline must be clean
+- **W4 (after):** rubric scoring (fit/form/truth/taste) + bun run verify
 
 ---
 
@@ -79,7 +79,7 @@ READY TO MARK
 
 ```
 W4 GATE (deterministic sandwich POST check)
-  npm run verify (tsc --noEmit, vitest run)
+  bun run verify (tsc --noEmit, vitest run)
   rubric score: composite = 0.35·fit + 0.20·form + 0.30·truth + 0.15·taste
   
   if violations: warn(edge, 1.0) — path weakened
@@ -189,7 +189,7 @@ W3: SONNET EDIT   Execute: read code, write/edit files, add tests
                   score: fit/form/truth/taste
                   cost: variable (Sonnet)
 
-W4: SONNET VERIFY W4 gate: npm run verify + rubric check
+W4: SONNET VERIFY W4 gate: bun run verify + rubric check
                   self-checkoff: mark checkbox in TODO-rename.md
                   unblock: next phase in blocks chain
                   update GitHub (optional): comment with results

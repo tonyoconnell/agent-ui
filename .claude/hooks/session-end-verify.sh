@@ -13,7 +13,7 @@ echo "└───────────────────────�
 echo ""
 
 # Run only biome (fast, ~0.3s). Skip tsc/vitest to avoid blocking session exit.
-RESULT=$(npx biome check . 2>&1)
+RESULT=$(bun biome check . 2>&1)
 EXIT=$?
 
 if [ $EXIT -eq 0 ]; then
@@ -36,7 +36,7 @@ if [ "$ERRORS" -gt 0 ]; then
 fi
 
 echo ""
-echo "Next session should start with: npm run verify"
+echo "Next session should start with: bun run verify"
 echo ""
 
 # Non-blocking — always exit 0

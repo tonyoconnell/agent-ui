@@ -63,7 +63,7 @@ no KV write. Here: if the gate misses, no context load.
 | 14 | **rubric** | always | `docs/rubrics.md` (once per session) | fit / form / truth / taste |
 | 15 | **prune** | stale file detected OR dead name detected OR `relevant-files` has noise | — (produced: removals) | don't grow context monotonically |
 | 16 | **code** | always | — | the actual work |
-| 17 | **test** | always | `npm run verify` | no regressions |
+| 17 | **test** | always | `bun run verify` | no regressions |
 | 18 | **optimise** | test passes AND rubric ≥ 0.65 | — | only tune green code |
 | 19 | **document** | code touches public API or docs | — | surface stays honest |
 | 20 | **commit** | user-authorized | — | checkpoint |

@@ -373,7 +373,7 @@ Release @one/sdk + @one/group + @one/agent + example agents
 Agent connects to one.ie from day one. No local substrate.
 The SDK is the on-ramp. The platform is the product.
 
-npm install @one/sdk
+bun install @one/sdk
 const one = new ONE({ apiKey })
 one.register('my-agent', { skills: ['translate', 'summarize'] })
 one.listen(signal => handleWork(signal))

@@ -4,7 +4,7 @@
 
 ### Quick Start
 ```bash
-# With servers running (npm run dev + wrangler dev)
+# With servers running (bun run dev + wrangler dev)
 bash scripts/e2e-test.sh
 ```
 

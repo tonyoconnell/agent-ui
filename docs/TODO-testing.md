@@ -37,9 +37,9 @@ same pattern, different time scales:
     SIGNAL LEVEL              WAVE LEVEL               LIFECYCLE LEVEL
     (<0.001ms)                (~5s)                    (days)
     ────────────              ──────────               ────────────────
-    PRE: isToxic?             PRE: npm run verify      PRE: 43 routing tests
+    PRE: isToxic?             PRE: bun run verify      PRE: 43 routing tests
     LLM: generate             LLM: W1-W3 edits         LLM: agents run
-    POST: mark/warn           POST: npm run verify     POST: crystallize to Sui
+    POST: mark/warn           POST: bun run verify     POST: crystallize to Sui
 
     prevents bad              prevents bad             prevents bad
     signals                   code                     patterns
@@ -51,7 +51,7 @@ Each layer's POST check feeds the next layer's learning:
 - Highway crystallize → permanent proof → other agents learn
 
 ```
-    npm run verify
+    bun run verify
          │
          ├── biome check .     → FORM (is the code shaped right?)
          ├── tsc --noEmit      → TRUTH (is the code safe?)
@@ -157,7 +157,7 @@ TaskCompleted                       mark(edge, strength)
 
 | Event | Matcher | Action | Blocking? |
 |-------|---------|--------|-----------|
-| TaskCompleted | `*` | `npm run verify` on touched files | Yes — gate |
+| TaskCompleted | `*` | `bun run verify` on touched files | Yes — gate |
 | PreToolUse | `Bash(rm *)` | Safety check | Yes — block |
 | SubagentStop | `*` | Collect results, mark path | No |
 | Stop | `*` | Run verify, report regressions | No |
@@ -207,7 +207,7 @@ COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
 **Files:** `src/engine/*.test.ts`, `biome.json`, `vitest.config.ts`, `package.json`
 
 **Why first:** Can't sandwich anything until the sandwich itself works.
-`npm run verify` must pass before any TODO cycle can start.
+`bun run verify` must pass before any TODO cycle can start.
 
 ### Tasks
 
@@ -218,7 +218,7 @@ COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
   phase: C1
   persona: dev
   blocks: baseline-green
-  exit: one.test.ts imports from vitest, all its tests pass under npx vitest run
+  exit: one.test.ts imports from vitest, all its tests pass under bun vitest run
   tags: engine, fix, P0
 
 - [x] Triage 85 type errors — fix or suppress with intent
@@ -241,14 +241,14 @@ COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
   exit: biome check . exits 0. Comma operators in world.ts either refactored or rule-excepted.
   tags: engine, fix, P1
 
-- [x] Establish green baseline: npm run verify passes
+- [x] Establish green baseline: bun run verify passes
   id: baseline-green
   value: critical
   effort: low
   phase: C1
   persona: dev
   blocks: test-engine-core, test-persist
-  exit: npm run verify (biome + tsc + vitest) exits 0 with all 65+ tests passing
+  exit: bun run verify (biome + tsc + vitest) exits 0 with all 65+ tests passing
   tags: engine, build, P0
 
 - [x] Add vitest config for path aliases and coverage
@@ -257,7 +257,7 @@ COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
   effort: low
   phase: C1
   persona: dev
-  exit: vitest.config.ts has coverage reporter. npm run test:coverage shows engine/ coverage.
+  exit: vitest.config.ts has coverage reporter. bun run test:coverage shows engine/ coverage.
   tags: engine, build, P1
 
 - [x] Wire PostToolUse hook for biome check on edit
@@ -275,7 +275,7 @@ COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
   effort: medium
   phase: C1
   persona: dev
-  exit: TaskCompleted hook runs npm run verify. Blocks if tests regress. Gates the mark.
+  exit: TaskCompleted hook runs bun run verify. Blocks if tests regress. Gates the mark.
   tags: infra, build, P1
 
 - [ ] Wire Stop hook for session-end verify
@@ -462,7 +462,7 @@ COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
   effort: low
   phase: C3
   persona: dev
-  exit: GitHub Action runs npm run verify on push/PR. Badge in README.
+  exit: GitHub Action runs bun run verify on push/PR. Badge in README.
   tags: infra, build, P1
 
 - [x] Test self-learning: mark compounds, fade decays, know promotes
@@ -518,7 +518,7 @@ COVERAGE:  src/engine/ — 9 test files (+lifecycle.test.ts, rubric.test.ts)
   effort: low
   phase: C3
   persona: dev
-  exit: npm run test:coverage shows ≥80% line coverage for src/engine/*.ts
+  exit: bun run test:coverage shows ≥80% line coverage for src/engine/*.ts
   tags: engine, test, P2
 
 ---
@@ -571,7 +571,7 @@ Tests revealed these gaps — documented here, tracked in other TODOs:
 | `contextForSkill()` missing `inferDocsFromTags` | context.test.ts | Tags on tasks don't auto-resolve to doc keys yet | TODO-typedb |
 | No metrics instrumentation | Cycle 3 recon | Can't measure routing time decrease over sessions | TODO-testing (future) |
 | CI pipeline not wired | Cycle 3 | Tests run locally only — no push/PR gate | TODO-testing (future) |
-| Coverage not measured | Cycle 3 | No `npm run test:coverage` command yet | TODO-testing (future) |
+| Coverage not measured | Cycle 3 | No `bun run test:coverage` command yet | TODO-testing (future) |
 
 ### Verified Claims (tests prove these)
 
@@ -608,14 +608,14 @@ Tests revealed these gaps — documented here, tracked in other TODOs:
 /work
 
 # The three deterministic checks
-npm run verify                    # all three at once
-npx biome check .                # lint + format
-npx tsc --noEmit                 # type safety
-npx vitest run                   # behavior
+bun run verify                    # all three at once
+bun biome check .                # lint + format
+bun tsc --noEmit                 # type safety
+bun vitest run                   # behavior
 
 # Watch mode for development
-npx vitest watch
-npx biome check --watch .
+bun vitest watch
+bun biome check --watch .
 ```
 
 ---

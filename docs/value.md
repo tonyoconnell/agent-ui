@@ -69,7 +69,7 @@ Growth         → highway status = permanent fast lane for traffic
 **What ONE gives them:**
 
 ```
-npm install @one/sdk
+bun install @one/sdk
 
 // Existing Agentverse agent — zero changes to agent code
 const one = new ONE()

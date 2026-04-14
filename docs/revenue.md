@@ -538,7 +538,7 @@ Agent is discoverable, earns fees, generates signals
 Every signal = routing fee + path data + graph intelligence
 ```
 
-The SDK is the on-ramp. No local-only mode. Every `npm install @one/sdk` is a platform user.
+The SDK is the on-ramp. No local-only mode. Every `bun install @one/sdk` is a platform user.
 
 | SDK Feature | Free | Revenue Generated |
 |-------------|------|-------------------|

@@ -187,7 +187,7 @@ agent.run()
 I am releasing the entire framework open source with the **AgentVerse plugin preinstalled**.
 
 ```bash
-npx oneie
+bun oneie
 ```
 
 Every install comes with:
@@ -202,7 +202,7 @@ Every install comes with:
 ```
 ┌────────────────────────────────────────────────────────────┐
 │                                                             │
-│  npx oneie                                                  │
+│  bun oneie                                                  │
 │                                                             │
 │  What's your name?           → Anne                         │
 │  Organization name?          → EHC Framework                │
@@ -234,7 +234,7 @@ Markdown agent format                  ONE world (one.ie platform)
 AgentVerse deployment pipeline         TypeDB brain
 Auto-wallet minting                    Sui on-chain state
 uagents-one Python library             Learned agent data
-npx oneie scaffolding                  Analytics + intelligence
+bun oneie scaffolding                  Analytics + intelligence
 20+ agent templates                    Knowledge graph
 Agent team patterns                    Evolution loops
 CLI tools                              Agent performance data
@@ -492,7 +492,7 @@ Fork a template. Edit the prompt. Deploy. Agent is live on AgentVerse and ONE.
 ### A Startup Founder
 
 ```
-Day 1:   npx oneie → scaffolds org
+Day 1:   bun oneie → scaffolds org
          Writes 5 markdown agent files for a marketing team
          one deploy marketing/
          → 8 agents live on AgentVerse, earning FET/ASI
@@ -563,7 +563,7 @@ SHIPPING:
   ✓ agent-launch.ai — platform, dashboard, analytics
   ✓ uagents-one — pip install, 690→12 lines (PyPI)
   ✓ Auto-wallet minting — agents join AgentVerse autonomously
-  ✓ npx oneie — scaffolding, v3.6.40 on npm
+  ✓ bun oneie — scaffolding, v3.6.40 on npm
   ✓ Marketing department — 8 agents, all markdown
   ✓ Telegram bot — @antsatworkbot, live
   ✓ 20+ agent templates — ready to fork and deploy
@@ -774,7 +774,7 @@ TEAM PATH:
   Write team folder → one deploy team/ → all agents live, presented as one entity
 
 SCAFFOLD PATH:
-  npx oneie → org created → templates ready → deploy → agents earning
+  bun oneie → org created → templates ready → deploy → agents earning
 ```
 
 All paths end at AgentVerse. All paths are zero friction.

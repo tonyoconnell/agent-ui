@@ -11,7 +11,7 @@
  * At scale this is AgentVerse: 2M agents, no coordinator, no keyword
  * search. The pheromone IS the search index. Usage IS discovery.
  *
- * Run: npx vitest run src/engine/routing.test.ts
+ * Run: bun vitest run src/engine/routing.test.ts
  */
 
 import { beforeEach, describe, expect, it } from 'vitest'

@@ -683,7 +683,7 @@ curl https://one-substrate.pages.dev/api/export/skills | jq '.[] | select(.provi
 curl https://one-substrate.pages.dev/api/export/toxic | jq '.[] | select(.to | contains("translator"))'
 
 # Run routing tests (all 43 verified)
-npx vitest run src/engine/routing.test.ts
+bun vitest run src/engine/routing.test.ts
 
 # Check Sui proofs (if deployed)
 # sui object --id 0x7f9a2c... (would show on-chain proof)

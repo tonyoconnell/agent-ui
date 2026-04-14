@@ -9,7 +9,7 @@ allowed-tools: Bash(*), Read(*), Edit(*), Write(*), Glob(*), Grep(*), WebFetch(*
 
 Interactive walkthrough of the ONE substrate. Seven phases. The API does the work.
 
-**Prerequisite:** Dev server running (`npm run dev` / `bun dev` at localhost:4321).
+**Prerequisite:** Dev server running (`bun run dev` / `bun dev` at localhost:4321).
 
 ## How It Works
 

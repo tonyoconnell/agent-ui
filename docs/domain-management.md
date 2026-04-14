@@ -25,9 +25,9 @@ echo | openssl s_client -servername one.ie -connect one.ie:443 2>/dev/null | ope
 
 | Domain | Service | Config File | Deploy Command |
 |--------|---------|-------------|-----------------|
-| `one.ie` | Pages (frontend) | `wrangler.toml` | `npx wrangler pages deploy` |
-| `app.one.ie` | Pages (frontend) | `wrangler.toml` | `npx wrangler pages deploy` |
-| `api.one.ie` | Gateway Worker | `gateway/wrangler.toml` | `cd gateway && npx wrangler deploy` |
+| `one.ie` | Pages (frontend) | `wrangler.toml` | `bun wrangler pages deploy` |
+| `app.one.ie` | Pages (frontend) | `wrangler.toml` | `bun wrangler pages deploy` |
+| `api.one.ie` | Gateway Worker | `gateway/wrangler.toml` | `cd gateway && bun wrangler deploy` |
 
 ---
 
@@ -37,8 +37,8 @@ echo | openssl s_client -servername one.ie -connect one.ie:443 2>/dev/null | ope
 
 1. Deploy Pages normally:
    ```bash
-   NODE_ENV=production npm run build
-   npx wrangler pages deploy dist/ --project-name=one-substrate
+   NODE_ENV=production bun run build
+   bun wrangler pages deploy dist/ --project-name=one-substrate
    ```
 
 2. Add domain in Cloudflare Pages UI:
@@ -53,7 +53,7 @@ echo | openssl s_client -servername one.ie -connect one.ie:443 2>/dev/null | ope
 
 1. Create new worker or add to existing:
    ```bash
-   npx wrangler init my-worker
+   bun wrangler init my-worker
    ```
 
 2. Add route to `wrangler.toml`:
@@ -65,7 +65,7 @@ echo | openssl s_client -servername one.ie -connect one.ie:443 2>/dev/null | ope
 
 3. Deploy:
    ```bash
-   cd my-worker && npx wrangler deploy
+   cd my-worker && bun wrangler deploy
    ```
 
 4. Cloudflare auto-provisions DNS + SSL
@@ -155,7 +155,7 @@ cat gateway/wrangler.toml | grep -A 2 "routes"
 # ❌ pattern = "api.one.ie/admin/*"   (path-based routing)
 
 # Fix and redeploy
-cd gateway && npx wrangler deploy
+cd gateway && bun wrangler deploy
 ```
 
 ---

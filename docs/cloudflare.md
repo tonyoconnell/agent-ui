@@ -226,11 +226,11 @@ curl -X POST https://one-substrate.pages.dev/api/agents/sync \
   -d "{\"markdown\": \"$(cat agents/my-agent.md | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')\"}"
 
 # 3. Set channel secrets
-npx wrangler secret put TELEGRAM_TOKEN
-npx wrangler secret put ANTHROPIC_API_KEY
+bun wrangler secret put TELEGRAM_TOKEN
+bun wrangler secret put ANTHROPIC_API_KEY
 
 # 4. Deploy
-npx wrangler deploy
+bun wrangler deploy
 ```
 
 ### NanoClaw File Structure
@@ -370,9 +370,9 @@ envelopes/
 
 ```bash
 # All three workers
-cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../..
-NODE_ENV=production npm run build
-npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+cd gateway && bun wrangler deploy && cd ../workers/sync && bun wrangler deploy && cd ../..
+NODE_ENV=production bun run build
+bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 ```
 
 ---

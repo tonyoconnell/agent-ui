@@ -10,7 +10,7 @@
  *   1. syncWorld(donalMarketing)   → TypeDB units + skills + capabilities
  *   2. wireWorld(donalMarketing)   → live runtime handlers via complete()
  *   3. seedAlliances()             → pre-drawn pheromone paths (strength=50)
- *   4. deployToAgentverse()        → npx agentlaunch deploy per agent
+ *   4. deployToAgentverse()        → bun agentlaunch deploy per agent
  *
  * Once synced, each agent runs on BOTH surfaces from the same markdown file:
  *   - ONE substrate (Telegram, web, substrate routing)

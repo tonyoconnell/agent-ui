@@ -113,19 +113,19 @@ system units (5):
 
 ```bash
 # Gateway only
-cd gateway && npx wrangler deploy && cd ..
+cd gateway && bun wrangler deploy && cd ..
 
 # Sync worker only
-cd workers/sync && npx wrangler deploy && cd ../..
+cd workers/sync && bun wrangler deploy && cd ../..
 
 # Pages (frontend + API)
-NODE_ENV=production npm run build && npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+NODE_ENV=production bun run build && bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 
 # NanoClaw
-cd nanoclaw && npx wrangler deploy && cd ..
+cd nanoclaw && bun wrangler deploy && cd ..
 
 # Everything
-cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../.. && NODE_ENV=production npm run build && npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true && cd nanoclaw && npx wrangler deploy && cd ..
+cd gateway && bun wrangler deploy && cd ../workers/sync && bun wrangler deploy && cd ../.. && NODE_ENV=production bun run build && bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true && cd nanoclaw && bun wrangler deploy && cd ..
 ```
 
 ## Verify Checklist

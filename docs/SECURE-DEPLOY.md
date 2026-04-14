@@ -35,16 +35,16 @@ Set credentials as Worker secrets (not environment variables):
 ```bash
 # Gateway Worker
 cd gateway
-npx wrangler secret put TYPEDB_USERNAME
+bun wrangler secret put TYPEDB_USERNAME
 # Paste: admin
 
-npx wrangler secret put TYPEDB_PASSWORD
+bun wrangler secret put TYPEDB_PASSWORD
 # Paste: EEsdYvp7arsAiCJZ
 
 # Sync Worker (if needed)
 cd ../workers/sync
-npx wrangler secret put TYPEDB_USERNAME
-npx wrangler secret put TYPEDB_PASSWORD
+bun wrangler secret put TYPEDB_USERNAME
+bun wrangler secret put TYPEDB_PASSWORD
 ```
 
 ### 2. Verify .env
@@ -69,19 +69,19 @@ TYPEDB_PASSWORD=...      # OK for local dev only
 ```bash
 # Gateway
 cd gateway
-npx wrangler deploy
+bun wrangler deploy
 # Will use secrets from wrangler secret put
 
 # Sync worker
 cd ../workers/sync
-npx wrangler deploy
+bun wrangler deploy
 ```
 
 ### 4. Deploy Pages
 
 ```bash
-npm run build
-npx wrangler pages deploy dist/
+bun run build
+bun wrangler pages deploy dist/
 ```
 
 ### 5. Verify No Leakage
@@ -117,7 +117,7 @@ Add secrets section to `gateway/wrangler.toml`:
 [env.production]
 vars = { TYPEDB_URL = "https://flsiu1-0.cluster.typedb.com:1729", TYPEDB_DATABASE = "one" }
 
-# Secrets set via: npx wrangler secret put TYPEDB_USERNAME
+# Secrets set via: bun wrangler secret put TYPEDB_USERNAME
 # Never put secrets in wrangler.toml
 ```
 
@@ -137,7 +137,7 @@ vars = { TYPEDB_URL = "https://flsiu1-0.cluster.typedb.com:1729", TYPEDB_DATABAS
 
 ## Local Development
 
-For local dev with `npm run dev`:
+For local dev with `bun run dev`:
 
 1. Start gateway worker:
    ```bash
@@ -157,7 +157,7 @@ For local dev with `npm run dev`:
 
 4. Run Pages:
    ```bash
-   npm run dev
+   bun run dev
    ```
 
 Pages SSR → gateway (localhost:8787) → TypeDB Cloud
@@ -197,9 +197,9 @@ If secrets leak or are compromised:
 ```bash
 # 1. Rotate credentials in TypeDB Cloud console
 # 2. Update secrets:
-npx wrangler secret put TYPEDB_PASSWORD
+bun wrangler secret put TYPEDB_PASSWORD
 # 3. Redeploy:
-npx wrangler deploy
+bun wrangler deploy
 # 4. Verify:
 curl https://api.one.ie/health
 ```

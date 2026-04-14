@@ -779,7 +779,7 @@ grep -n "attribute alarm" src/schema/world.tql
 grep -rn "from.*substrate\|from.*'/one'" src/ --include="*.ts" --include="*.tsx"
 
 # Build
-npm run build
+bun run build
 ```
 
 ---

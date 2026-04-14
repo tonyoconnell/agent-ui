@@ -6,7 +6,7 @@ API keys enable programmatic access to the ONE substrate API with granular permi
 
 ```bash
 # Generate API key with read, write, add, edit permissions
-npx tsx scripts/generate-api-key.ts --user david --permissions read,write,add,edit
+bun tsx scripts/generate-api-key.ts --user david --permissions read,write,add,edit
 ```
 
 Output will be:

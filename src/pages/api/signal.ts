@@ -11,6 +11,8 @@
  *   5. mark() on success / warn() on failure
  */
 import type { APIRoute } from 'astro'
+import { markOutcome, type RouteChoice } from '@/engine/llm-router'
+import { getNet } from '@/lib/net'
 import { resolveUnit, send as suiSend } from '@/lib/sui'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 
@@ -125,6 +127,7 @@ export const POST: APIRoute = async ({ request }) => {
         : 'meta-llama/llama-4-maverick' // default: 1M ctx, $0.15/M tokens, leading open model
 
       if (apiKey) {
+        const tModel = Date.now()
         try {
           const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
@@ -153,6 +156,27 @@ export const POST: APIRoute = async ({ request }) => {
         } catch (err) {
           console.error('OpenRouter fetch failed:', err instanceof Error ? err.message : err)
           result = null
+        }
+
+        // Accumulate pheromone on the tag→model edge. Authorial model choice
+        // is preserved (no routing override); only the outcome is learned.
+        try {
+          const net = await getNet()
+          const tag = task || 'default'
+          const choice: RouteChoice = {
+            model: { id: orModel, costPerMToken: 0 },
+            reason: 'pheromone',
+            edge: `${tag}→${orModel}`,
+            estimatedCost: 0,
+          }
+          markOutcome(net, choice, {
+            response: result ?? undefined,
+            failure: result === null ? true : undefined,
+            quality: result ? (result.length > 40 ? 0.7 : 0.4) : 0,
+            latencyMs: Date.now() - tModel,
+          })
+        } catch {
+          // getNet() not available or write races — pheromone mark is fire-and-forget
         }
       }
     }

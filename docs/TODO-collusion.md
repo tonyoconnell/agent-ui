@@ -52,7 +52,7 @@ Signals flow down through waves. Each cycle claims more of the substrate.
     ┌─W4────────┐
     │  Sonnet   │  Verify: collision tests pass, atomicity proven
     │  verify   │  → rubric: fit/form/truth/taste
-    └───────────┘   → npm run verify, integration tests
+    └───────────┘   → bun run verify, integration tests
 
     Context accumulates down. Quality marks flow up.
 ```
@@ -228,7 +228,7 @@ Every cycle wrapped in W0 baseline → W4 verification → cycle gate.
 ### W0 — Baseline
 
 ```bash
-npm run verify
+bun run verify
 ├── biome check .     (lint)
 ├── tsc --noEmit      (type)
 └── vitest run        (tests)
@@ -237,7 +237,7 @@ npm run verify
 ### W4 — Verification + Rubric
 
 Each cycle's W4 must:
-1. `npm run verify` — no regressions
+1. `bun run verify` — no regressions
 2. New tests pass (collision tests, stale lease recovery, wave-locking)
 3. Rubric scores (fit/form/truth/taste ≥ 0.65 per dimension)
 4. Exit conditions verifiable by curl
@@ -390,7 +390,7 @@ Foundation layer: TypeDB schema, claim/release endpoints, expire recovery.
   phase: C1
   persona: haiku
   blocks: c1-schema-task
-  exit: `npm run verify` passes; all baseline tests green
+  exit: `bun run verify` passes; all baseline tests green
   tags: gate, baseline, P0
 
 - [ ] **4g. W4 verify (after C1)**
@@ -400,7 +400,7 @@ Foundation layer: TypeDB schema, claim/release endpoints, expire recovery.
   phase: C1
   persona: sonnet
   blocks:
-  exit: `npm run verify` passes; claim/release/expire tests pass; rubric ≥ 0.65 all dims
+  exit: `bun run verify` passes; claim/release/expire tests pass; rubric ≥ 0.65 all dims
   tags: gate, verify, P0
 
 ---
@@ -748,21 +748,21 @@ Cost in Claude credits (approximate). Haiku reads specs. Sonnet writes/tests. Op
 ## Status
 
 **Cycle 1: WIRE**
-- [x] W0: Baseline — npm run verify passes (255 tests)
+- [x] W0: Baseline — bun run verify passes (255 tests)
 - [x] W1: Recon (Haiku) — PLAN-collusion-mitigation analyzed
 - [x] W2: Decide (Opus) — 3 ambiguities resolved; 16 diff specs
 - [x] W3: Edit (Sonnet) — All diffs applied + type fixes
 - [x] W4: Verify (Sonnet) — Schema ✓, endpoints ✓, integration ✓, commands ✓, rubric 0.89 ✓
 
 **Cycle 2: PROVE** — API Integration Testing
-- [x] W0: Baseline (npm run verify passes)
+- [x] W0: Baseline (bun run verify passes)
 - [x] W1: Recon (Haiku) — 4 integration test scenarios identified
 - [x] W2: Decide (Opus) — 4 test specs created; rubric threshold confirmed
 - [x] W3: Edit (Sonnet) — 27 integration tests written (filter-active, guard-sync, clear-owner, expire-tick)
 - [x] W4: Verify (Sonnet) — All tests pass; consistency ✓; no regressions; rubric 0.89 ✓
 
 **Cycle 3: GROW** — Command Layer + Multi-Session Testing
-- [x] W0: Baseline (npm run verify clean)
+- [x] W0: Baseline (bun run verify clean)
 - [x] W1: Recon (Haiku) — 4 multi-session scenarios identified
 - [x] W2: Decide (Opus) — 3 test specs for parallel work + wave-locking
 - [x] W3: Edit (Sonnet) — 24 multi-session tests created (parallel-sessions 7, wave-lock 7, ownership 10)

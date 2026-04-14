@@ -31,7 +31,7 @@ weight = 1 + max(0, strength - resistance) × sensitivity
 > **Proven.** 54 tests in `routing.test.ts` + 26 in `persist.test.ts` + 19 in `lifecycle.test.ts`.
 > 194 total tests across 9 files. Every claim below was tested, timed, and measured.
 > Speed benchmarks: isToxic `<0.001ms`, mark 10k `<10ms`, select `<1ms`, fade 1k `<5ms`.
-> `npx vitest run`
+> `bun vitest run`
 
 ---
 

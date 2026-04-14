@@ -10,7 +10,7 @@
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
 # Run the full verify suite
-RESULT=$(npm run verify 2>&1)
+RESULT=$(bun run verify 2>&1)
 EXIT=$?
 
 if [ $EXIT -eq 0 ]; then

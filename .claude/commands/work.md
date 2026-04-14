@@ -56,7 +56,7 @@ Skipped stages leave no trail (zero returns). Over 100+ sessions, `/api/loop/hig
 Before picking any task, verify the codebase is healthy:
 
 ```bash
-npm run verify     # biome check . && tsc --noEmit && vitest run
+bun run verify     # biome check . && tsc --noEmit && vitest run
 ```
 
 **If baseline fails:** Fix it first. Do not build on broken ground. The deterministic sandwich PRE check ensures the substrate starts clean.
@@ -75,7 +75,7 @@ Run this loop until the user stops you or all tasks are done:
 curl -s http://localhost:4321/api/tasks | jq '.tasks | map(select(.status == "open")) | sort_by(-.priority) | map({tid, name, priority, category, blockedBy, blocks: (.blocks | length), tags})'
 ```
 
-If the server isn't running, start it with `npm run dev` and wait for it.
+If the server isn't running, start it with `bun run dev` and wait for it.
 
 ### 2. SELECT — Pick the best task
 
@@ -117,7 +117,7 @@ This is the real work. Take your time. Get it right.
 ### 4. VERIFY — Make sure it works
 
 ```bash
-npx tsc --noEmit 2>&1 | grep -v archive | grep "error TS" | head -10
+bun tsc --noEmit 2>&1 | grep -v archive | grep "error TS" | head -10
 ```
 
 If there are errors in files you touched, fix them before marking done.

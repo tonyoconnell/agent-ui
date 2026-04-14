@@ -62,7 +62,7 @@ of the lifecycle — the same sandwich that wraps every LLM call.
 ```
     PRE (before W1)                    POST (after W4)
     ───────────────                    ────────────────
-    npm run verify                     npm run verify
+    bun run verify                     bun run verify
     ├── biome check .                  ├── biome check .     (no new lint)
     ├── tsc --noEmit                   ├── tsc --noEmit      (no new type errors)
     └── vitest run                     ├── vitest run        (no regressions)
@@ -511,10 +511,10 @@ curl -X POST localhost:4321/api/crystallize -H "Authorization: Bearer $TOKEN"
 /work
 
 # The three deterministic checks
-npm run verify                    # all three at once
-npx biome check .                # lint + format
-npx tsc --noEmit                 # type safety
-npx vitest run                   # behavior
+bun run verify                    # all three at once
+bun biome check .                # lint + format
+bun tsc --noEmit                 # type safety
+bun vitest run                   # behavior
 ```
 
 ---

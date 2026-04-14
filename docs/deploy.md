@@ -53,7 +53,7 @@ Step-by-step. Every command proven. Every link verified.
 |------|---------|--------|
 | Node.js 20+ | https://nodejs.org | `node --version` |
 | npm | Comes with Node | `npm --version` |
-| Wrangler | `npm install -g wrangler` | `npx wrangler --version` |
+| Wrangler | `bun install -g wrangler` | `bun wrangler --version` |
 | Cloudflare account | https://dash.cloudflare.com/sign-up | Free |
 | TypeDB Cloud | https://cloud.typedb.com | Free trial available |
 
@@ -64,13 +64,13 @@ Step-by-step. Every command proven. Every link verified.
 ```bash
 git clone <repo-url> one-substrate
 cd one-substrate
-npm install
+bun install
 ```
 
 Verify the build works locally:
 
 ```bash
-npm run dev
+bun run dev
 # → http://localhost:4321
 ```
 
@@ -97,7 +97,7 @@ export CLOUDFLARE_ACCOUNT_ID="your-account-id"
 Test auth works:
 
 ```bash
-npx wrangler whoami
+bun wrangler whoami
 # Should show your account name and ID
 ```
 
@@ -108,7 +108,7 @@ npx wrangler whoami
 ### 3a. Create D1 Database
 
 ```bash
-npx wrangler d1 create one
+bun wrangler d1 create one
 ```
 
 Output:
@@ -130,7 +130,7 @@ database_id = "paste-your-id-here"
 ### 3b. Create KV Namespace
 
 ```bash
-npx wrangler kv namespace create KV
+bun wrangler kv namespace create KV
 ```
 
 Output:
@@ -160,10 +160,10 @@ id = "paste-your-id-here"
 
 ```bash
 # Local (for dev)
-npx wrangler d1 execute one --file=migrations/0001_init.sql
+bun wrangler d1 execute one --file=migrations/0001_init.sql
 
 # Remote (for production)
-npx wrangler d1 execute one --remote --file=migrations/0001_init.sql
+bun wrangler d1 execute one --remote --file=migrations/0001_init.sql
 ```
 
 This creates 4 tables: `signals`, `messages`, `tasks`, `sync_log`.
@@ -363,11 +363,11 @@ The gateway proxies browser requests to TypeDB Cloud with JWT caching.
 cd gateway
 
 # Set secrets
-printf 'admin' | npx wrangler secret put TYPEDB_USERNAME
-printf 'YOUR-TYPEDB-PASSWORD' | npx wrangler secret put TYPEDB_PASSWORD
+printf 'admin' | bun wrangler secret put TYPEDB_USERNAME
+printf 'YOUR-TYPEDB-PASSWORD' | bun wrangler secret put TYPEDB_PASSWORD
 
 # Deploy
-npx wrangler deploy
+bun wrangler deploy
 
 cd ..
 ```
@@ -404,7 +404,7 @@ The sync worker runs every 5 minutes, pulling TypeDB snapshots into KV for fast 
 
 ```bash
 cd workers/sync
-npx wrangler deploy
+bun wrangler deploy
 cd ../..
 ```
 
@@ -434,13 +434,13 @@ curl -s https://one-sync.oneie.workers.dev/sync
 
 ```bash
 # Production build
-NODE_ENV=production npm run build
+NODE_ENV=production bun run build
 
 # Create Pages project (first time only)
-npx wrangler pages project create one-substrate --production-branch=main
+bun wrangler pages project create one-substrate --production-branch=main
 
 # Deploy
-npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 ```
 
 Output:
@@ -464,7 +464,7 @@ Now update `workers/sync/wrangler.toml` with the real Pages URL:
 APP_URL = "https://one-substrate.pages.dev"
 ```
 
-Redeploy sync worker: `cd workers/sync && npx wrangler deploy && cd ../..`
+Redeploy sync worker: `cd workers/sync && bun wrangler deploy && cd ../..`
 
 ---
 
@@ -527,7 +527,7 @@ pattern = "api.one.ie/*"
 custom_domain = true
 ```
 
-Then `cd gateway && npx wrangler deploy`.
+Then `cd gateway && bun wrangler deploy`.
 
 ---
 
@@ -539,13 +539,13 @@ NanoClaw runs free agents on Cloudflare Workers — webhooks in, Claude processi
 cd nanoclaw
 
 # Create queue (first time only)
-npx wrangler queues create nanoclaw-agents
+bun wrangler queues create nanoclaw-agents
 
 # Run D1 migration (adds groups, sessions, tool_calls tables)
-npx wrangler d1 execute one --remote --file=migrations/0001_init.sql
+bun wrangler d1 execute one --remote --file=migrations/0001_init.sql
 
 # Deploy
-npx wrangler deploy
+bun wrangler deploy
 ```
 
 Output:
@@ -572,10 +572,10 @@ curl -s https://nanoclaw.oneie.workers.dev/health
 cd nanoclaw
 
 # Required — Claude API key for agent inference
-printf 'sk-ant-YOUR-KEY' | npx wrangler secret put ANTHROPIC_API_KEY
+printf 'sk-ant-YOUR-KEY' | bun wrangler secret put ANTHROPIC_API_KEY
 
 # Optional — Telegram bot token
-printf 'YOUR-BOT-TOKEN' | npx wrangler secret put TELEGRAM_TOKEN
+printf 'YOUR-BOT-TOKEN' | bun wrangler secret put TELEGRAM_TOKEN
 
 cd ..
 ```
@@ -687,7 +687,7 @@ OK — 19 units
 |---------|-------|-----|
 | `TypeDB signin failed: 404` | Wrong port | Use port **1729** not 80 or 443 |
 | `Authentication error [code: 10000]` | Using API Token | Use **Global API Key** with `CLOUDFLARE_API_KEY` + `CLOUDFLARE_EMAIL` |
-| `kv_namespaces[0] bindings should have a string "id"` | Empty KV id in wrangler.toml | Run `npx wrangler kv namespace create KV` and paste the id |
+| `kv_namespaces[0] bindings should have a string "id"` | Empty KV id in wrangler.toml | Run `bun wrangler kv namespace create KV` and paste the id |
 | `Overlapping rules` in Pages deploy | `routes.extend.include` in astro config | Remove the `routes` block — Astro handles it |
 | `404 page not found` from TypeDB (no port) | Port 443 is a load balancer, not TypeDB | Always use `:1729` |
 | `[REP1] variable cannot be declared as both Attribute and Value` | Function param name matches attribute | Use comparison: `has uid $u; $u == $param;` |
@@ -696,11 +696,11 @@ OK — 19 units
 | Sync API returns OK but TypeDB is empty | Pages can't read `import.meta.env` secrets at runtime | Set gateway URL as default in `typedb.ts`, or use `wrangler pages secret put` |
 | Custom domain disables workers.dev | Wrangler default behavior | Add `workers_dev = true` to wrangler.toml |
 | `routes` must be array | Single `[routes]` vs `[[routes]]` | Use `[[routes]]` (double bracket = TOML array) |
-| R2 bucket not found on Pages deploy | `pages_build_output_dir` in wrangler.toml makes Pages read all bindings | `npx wrangler r2 bucket create one-files` |
+| R2 bucket not found on Pages deploy | `pages_build_output_dir` in wrangler.toml makes Pages read all bindings | `bun wrangler r2 bucket create one-files` |
 | `fileURLToPath is not exported` | Static `import` of `node:url` in engine code | Use dynamic imports for Node APIs: `const fs = await import('node:fs')` |
 | Path export returns 500 | `has source $s` treats roles as attributes | Use relation syntax: `(source: $s, target: $t) isa path` |
-| Queue does not exist | Must create before deploy | `npx wrangler queues create nanoclaw-agents` |
-| Old wrangler version | NanoClaw had wrangler 3.x | `npm install wrangler@4 --save-dev` |
+| Queue does not exist | Must create before deploy | `bun wrangler queues create nanoclaw-agents` |
+| Old wrangler version | NanoClaw had wrangler 3.x | `bun install wrangler@4 --save-dev` |
 
 ---
 
@@ -853,7 +853,7 @@ cd ../../..
 ### 12g. Install TS SDK
 
 ```bash
-npm install @mysten/sui
+bun install @mysten/sui
 ```
 
 ### 12h. Verify
@@ -883,27 +883,27 @@ See `docs/SUI.md` for the full Move contract documentation and phased task list.
 
 ```bash
 # Gateway only
-cd gateway && npx wrangler deploy && cd ..
+cd gateway && bun wrangler deploy && cd ..
 
 # Sync worker only
-cd workers/sync && npx wrangler deploy && cd ../..
+cd workers/sync && bun wrangler deploy && cd ../..
 
 # NanoClaw only
-cd nanoclaw && npx wrangler deploy && cd ..
+cd nanoclaw && bun wrangler deploy && cd ..
 
 # Pages (frontend + API)
-NODE_ENV=production npm run build
-npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+NODE_ENV=production bun run build
+bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 
 # All four
-cd gateway && npx wrangler deploy && cd ../workers/sync && npx wrangler deploy && cd ../../nanoclaw && npx wrangler deploy && cd .. && NODE_ENV=production npm run build && npx wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
+cd gateway && bun wrangler deploy && cd ../workers/sync && bun wrangler deploy && cd ../../nanoclaw && bun wrangler deploy && cd .. && NODE_ENV=production bun run build && bun wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true
 ```
 
 ---
 
 ## Security Notes
 
-- **Secrets**: Never in `wrangler.toml` or committed files. Always `npx wrangler secret put`.
+- **Secrets**: Never in `wrangler.toml` or committed files. Always `bun wrangler secret put`.
 - **CORS**: Gateway locked to `one.ie` + `localhost` origins.
 - **JWT**: Cached 61s per isolate. Auto-refreshes.
 - **Toxicity**: Every signal checked against KV `toxic.json` (<1ms). Blocked before LLM call.

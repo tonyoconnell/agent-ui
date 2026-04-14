@@ -1192,7 +1192,7 @@ SENSE:   GET /api/tasks → group by category (attractive/ready/exploratory/repe
 SELECT:  attractive first → ready → exploratory. Never repelled.
          Within category: prefer context-matching tags, higher strength, P0 > P1 > P2
 EXECUTE: read code, edit files, run tests, fix issues
-VERIFY:  npx tsc --noEmit — fix any errors in touched files before marking
+VERIFY:  bun tsc --noEmit — fix any errors in touched files before marking
 MARK:    POST /api/tasks/:id/complete { from: "claude" }  → success
          POST /api/tasks/:id/complete { failed: true }    → failure (warn pheromone)
 GROW:    GET /api/tick?interval=0 → run one tick, see highways/frontiers

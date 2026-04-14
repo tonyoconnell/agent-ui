@@ -395,13 +395,13 @@ ONE:         Agent earns → mark(path) → Sui → seconds
 
 ```bash
 # All 43 benchmarks (<1 second total)
-npx vitest run src/engine/routing.test.ts
+bun vitest run src/engine/routing.test.ts
 
 # Watch mode
-npx vitest watch src/engine/routing.test.ts
+bun vitest watch src/engine/routing.test.ts
 
 # Specific test
-npx vitest run src/engine/routing.test.ts -t "mark"
+bun vitest run src/engine/routing.test.ts -t "mark"
 ```
 
 ### Check Live Production
@@ -429,7 +429,7 @@ curl https://one-substrate.pages.dev/api/export/skills
 ### Measure Locally
 
 ```bash
-npm run speedtest
+bun run speedtest
 # Runs all speed tests, outputs JSON with p50/p95/p99 latencies
 ```
 

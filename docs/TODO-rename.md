@@ -55,7 +55,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   exit: All 8 schema files converted. world.tql compiles. No broken TypeQL.
   tags: migration, schema, P0
 
-**Gate between 1 + 2:** `npm run build` succeeds, all import paths resolved.
+**Gate between 1 + 2:** `bun run build` succeeds, all import paths resolved.
 
 ---
 
@@ -164,7 +164,7 @@ Every phase has an explicit gate task. When complete, it unblocks the next phase
   phase: C7
   persona: operator
   blocks: cycle-1-wire-start
-  exit: `npm run build` succeeds. Grep verification clean (no old vocab in engine/schema/types/api/components). All tests green.
+  exit: `bun run build` succeeds. Grep verification clean (no old vocab in engine/schema/types/api/components). All tests green.
   tags: migration, gate, P0
 
 ---
@@ -200,7 +200,7 @@ See [migration.md](migration.md) for full file-by-file execution details.
 - **Phase 8:** Packages + scripts (12 files, parallel)
 - **Phase 9:** Archive (optional, 4 files, parallel)
 
-**Gate:** All phases complete + `npm run build` succeeds + no broken imports.
+**Gate:** All phases complete + `bun run build` succeeds + no broken imports.
 Then advance to Cycles 1-3 (doc consolidation).
 
 ---

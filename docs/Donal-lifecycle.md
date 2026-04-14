@@ -130,26 +130,26 @@ The `agent-launch-toolkit/docs/lifecycle.md` defines a complete zero-to-top-of-A
      ┌────────────────────────────────────────────────────────────────────┐
      │  DONAL'S REPOS                          AGENT-LAUNCH-TOOLKIT       │
      │  ─────────────                          ─────────────────────      │
-     │  operation-fury-plus        ───────►    npx agentlaunch auth       │
+     │  operation-fury-plus        ───────►    bun agentlaunch auth       │
      │  agency-operator                        (Phase 0.5)                │
      │  (specs + prompts + prices)                                        │
      │         │                                                          │
      │         ▼                                                          │
-     │  scripts/ingest-oo.ts                   npx agentlaunch scaffold   │
+     │  scripts/ingest-oo.ts                   bun agentlaunch scaffold   │
      │  reads gh api / local clone             (Phase 1 — skipped:        │
      │  emits agents/donal/*.md                 we already have .md)      │
      │         │                                                          │
      │         ▼                                                          │
-     │  syncWorld(donalMarketing)              npx agentlaunch deploy     │
+     │  syncWorld(donalMarketing)              bun agentlaunch deploy     │
      │  → TypeDB units + skills + paths        (Phase 2 — 30 seconds)     │
      │         │                                      │                   │
      │         │                                      ▼                   │
-     │         │                               npx agentlaunch optimize   │
+     │         │                               bun agentlaunch optimize   │
      │         │                               (Phase 3 — README, handle, │
      │         │                                avatar, 3+ interactions)  │
      │         │                                      │                   │
      │         ▼                                      ▼                   │
-     │  wireWorld(donalMarketing, net,         npx agentlaunch tokenize   │
+     │  wireWorld(donalMarketing, net,         bun agentlaunch tokenize   │
      │    complete)                            (Phase 4 — bonding curve)  │
      │  → native runtime, no bridge                   │                   │
      │         │                                      ▼                   │
@@ -178,16 +178,16 @@ The `agent-launch-toolkit/docs/lifecycle.md` defines a complete zero-to-top-of-A
 
 | Phase | Toolkit command | What we get |
 |------:|-----------------|-------------|
-| **0.5 Auth** | `npx agentlaunch auth wallet --generate` | EVM wallet + Fetch.ai address + AGENTVERSE_API_KEY saved to `.env`. One call covers all 11 agents (shared wallet). |
+| **0.5 Auth** | `bun agentlaunch auth wallet --generate` | EVM wallet + Fetch.ai address + AGENTVERSE_API_KEY saved to `.env`. One call covers all 11 agents (shared wallet). |
 | **1 Create** | *(skipped)* | `agents/donal/*.md` already exists — ingest-oo.ts built them. The toolkit's `## Skills`, `## Price`, `## Secrets` sections are already embedded. |
-| **2 Deploy** | `npx agentlaunch deploy` per file | Auto-detects `agent.md`, inlines ONE library, generates `agent.py` in-memory, uploads to Agentverse. `agent1q...` address returned. ~30s per agent × 11 = ~6 minutes for the whole pod. |
-| **3 Optimize** | `npx agentlaunch optimize agent1q... --readme ./README.md --avatar …` | README and short description auto-uploaded on deploy. We add custom avatar and @handle per agent. Then 3 interactions via ONE's nanoclaw seed the checklist. |
-| **4 Tokenize** | `npx agentlaunch tokenize --agent agent1q... --symbol AUDIT` | Creates bonding-curve token per agent. Symbols match Donal's `alliances.yaml`: $AUDIT, $CITE, $DIR, $FORUM, $SOCIAL, $PROSPECT, $QAUDIT, $FULL, $SCHEMA, $REPORT, $CMO. |
+| **2 Deploy** | `bun agentlaunch deploy` per file | Auto-detects `agent.md`, inlines ONE library, generates `agent.py` in-memory, uploads to Agentverse. `agent1q...` address returned. ~30s per agent × 11 = ~6 minutes for the whole pod. |
+| **3 Optimize** | `bun agentlaunch optimize agent1q... --readme ./README.md --avatar …` | README and short description auto-uploaded on deploy. We add custom avatar and @handle per agent. Then 3 interactions via ONE's nanoclaw seed the checklist. |
+| **4 Tokenize** | `bun agentlaunch tokenize --agent agent1q... --symbol AUDIT` | Creates bonding-curve token per agent. Symbols match Donal's `alliances.yaml`: $AUDIT, $CITE, $DIR, $FORUM, $SOCIAL, $PROSPECT, $QAUDIT, $FULL, $SCHEMA, $REPORT, $CMO. |
 | **5 Handoff** | Human signs 120 FET × 11 | ~1320 FET total to put all 11 tokens on-chain. Can be phased (flagship $AUDIT first). |
 | **6 Discover** | *(automatic)* | Appears in ASI:One search once Setup Checklist complete. README quality + interaction count + response time drive ranking. |
-| **7 Trade** | `npx agentlaunch buy 0x... --amount …` | Each agent's wallet autonomously buys 50 FET of each peer's token — realises `alliances.yaml` as actual on-chain cross-holdings. |
+| **7 Trade** | `bun agentlaunch buy 0x... --amount …` | Each agent's wallet autonomously buys 50 FET of each peer's token — realises `alliances.yaml` as actual on-chain cross-holdings. |
 | **8 Grow** | *(continuous)* | Substrate L5 evolution rewrites underperforming prompts. L6 promotes successful routes to hypotheses. New agents join via markdown PRs. |
-| **∞ Monitor** | `npx agentlaunch status 0x...` + ONE dashboard | Agentverse gives token price, holders, volume. ONE gives pheromone highways, per-skill revenue, success rates. Two data streams, one feedback loop. |
+| **∞ Monitor** | `bun agentlaunch status 0x...` + ONE dashboard | Agentverse gives token price, holders, volume. ONE gives pheromone highways, per-skill revenue, success rates. Two data streams, one feedback loop. |
 
 **Three seams of our own on top:**
 
@@ -284,7 +284,7 @@ The prize is not "get Donal onto ONE." The prize is **get Donal onto ONE and Age
      ┌──────────────────┐      ┌──────────────────────┐
      │   ONE substrate  │      │   Agentverse listing │
      │   ────────────   │      │   ────────────────   │
-     │   TypeDB unit    │      │   npx agentlaunch    │
+     │   TypeDB unit    │      │   bun agentlaunch    │
      │   runtime wire   │      │   connect            │
      │   nanoclaw       │      │   endpoint: nanoclaw │
      │   Telegram/web   │      │   fee: spot/deep FET │
@@ -432,7 +432,7 @@ Day 4         ── wireWorld(donalMarketing, net, furyHandler)
                  route via substrate, call fury endpoint, return
 
 Day 5         ── For each of 10 agents:
-                 `npx agentlaunch connect --endpoint nanoclaw/agent/{uid}`
+                 `bun agentlaunch connect --endpoint nanoclaw/agent/{uid}`
               ── Agentverse listings go live, pointing back at our nanoclaw
               ── Verify $AUDIT discoverable via ASI:One search
 

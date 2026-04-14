@@ -70,7 +70,7 @@ entity wave-lock,
 SESSION_ID="claude-$$-$(date +%s)"     # Generate unique session ID
 
 # W0 Gate: verify baseline
-npm run verify
+bun run verify
 
 # SELECT: find highest-priority open task
 TASK=$(curl /api/tasks | jq '.[] | select(.status=="open")' | head -1)
@@ -147,7 +147,7 @@ No application-level locking needed — TypeDB's transaction isolation is the mu
 
 ```bash
 # 1. Schema migration
-npm run verify  # Must pass with new schema
+bun run verify  # Must pass with new schema
 
 # 2. Two-session collision test
 SESSION_A="claude-$$-$(date +%s)"

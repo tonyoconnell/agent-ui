@@ -9,7 +9,7 @@ Three-layer architecture: KV (10ms) → TypeDB (100ms) → TODO.md (regenerate).
 Before syncing, verify the codebase is healthy:
 
 ```bash
-npm run verify     # biome check . && tsc --noEmit && vitest run
+bun run verify     # biome check . && tsc --noEmit && vitest run
 ```
 
 **If baseline fails:** Fix it first. Do not sync on broken ground.

@@ -9,7 +9,7 @@ Read the TODO file from `docs/$ARGUMENTS`. Find the current cycle and wave by sc
 If this is Wave 1 (first wave of a new cycle), run the baseline check first:
 
 ```bash
-npm run verify   # biome check . && tsc --noEmit && vitest run
+bun run verify   # biome check . && tsc --noEmit && vitest run
 ```
 
 Record the result: how many tests pass, any known failures.
@@ -57,9 +57,9 @@ If baseline fails, fix it before starting the cycle. Don't build on broken groun
 
 1. **Deterministic checks first** (before spawning the agent):
    ```bash
-   npx biome check .              # lint + format
-   npx tsc --noEmit 2>&1 | grep "error TS" | head -10    # type errors
-   npx vitest run                  # test suite
+   bun biome check .              # lint + format
+   bun tsc --noEmit 2>&1 | grep "error TS" | head -10    # type errors
+   bun vitest run                  # test suite
    ```
    If any fail on files touched in W3, route the failure back to W3 (max 3 loops).
 

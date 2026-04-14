@@ -190,7 +190,7 @@ Cloudflare    edge compute         nanoclaws deploy free, run globally
 
 Lightweight. Beautiful. Fast at every layer.
 
-> 92 tests prove this. `npx vitest run src/engine/routing.test.ts`
+> 92 tests prove this. `bun vitest run src/engine/routing.test.ts`
 
 ### 2. LLM — Model Independence
 
@@ -1339,7 +1339,7 @@ TODAY                               WITH ONE SUBSTRATE
   - Agent hosting (deploy from markdown, free on Cloudflare)
   - Website hosting (Astro site, free on CF Pages)
   - Nanoclaw deployment (edge agents, free on CF Workers)
-  - npx oneie (scaffold org + ontology + web in 60 seconds)
+  - bun oneie (scaffold org + ontology + web in 60 seconds)
   - Agent templates (20 markdown files for every persona)
   - Routing for first 5 agents
   - Chat UI, messaging, social connections
@@ -1842,7 +1842,7 @@ What Anne gets: 6 agents, branded domain, GDPR isolation,
 
 ---
 
-## Open Source — `npx oneie` (The Framework, Not the World)
+## Open Source — `bun oneie` (The Framework, Not the World)
 
 The world stays private. The framework is open source. Already shipping.
 **`oneie` v3.6.40 on npm.** Free hosting. Free agents. Free websites.
@@ -1850,7 +1850,7 @@ Free nanoclaws on Cloudflare. The world is the moat. The framework is
 the adoption engine. We remove friction so intelligence can emerge.
 
 ```bash
-npx oneie
+bun oneie
 ```
 
 That's it. One command. It asks your name, your org, your website.
@@ -1859,7 +1859,7 @@ Then it scaffolds everything:
 ```
 ┌────────────────────────────────────────────────────────────┐
 │                                                             │
-│  npx oneie                                                  │
+│  bun oneie                                                  │
 │                                                             │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                          │
 │  Welcome! Let's build your platform.                        │
@@ -1908,13 +1908,13 @@ ehc-framework/
 Then she opens Claude Code, types `/one`, and the AI agent reads
 `.onboarding.json`, understands the org, and starts building.
 
-### What `npx oneie` Ships (Free, Forever)
+### What `bun oneie` Ships (Free, Forever)
 
 ```
 OPEN SOURCE (MIT)                    PRIVATE (the world)
 ─────────────────                    ───────────────────
 
-npx oneie                            world.ts (670 lines engine)
+bun oneie                            world.ts (670 lines engine)
   Onboarding in 60 seconds             Pheromone routing engine
   Org setup, branding, web template     The formula
   6-dimension ontology synced           Toxic detection
@@ -1958,7 +1958,7 @@ Web template
 ```
 SHOPIFY MODEL                        ONE MODEL
 ─────────────                        ─────────
-Shopify CLI = open                   npx oneie = open (MIT)
+Shopify CLI = open                   bun oneie = open (MIT)
 Themes = open                        Skins = open
 Liquid templates = open              Agent markdown = open
 Shopify platform = PRIVATE           ONE world = PRIVATE
@@ -1975,7 +1975,7 @@ Only ONE can ROUTE them through the world.
 
 ```bash
 # Anne at EHC Framework
-npx oneie
+bun oneie
   → Name: Anne
   → Org: EHC Framework
   → Website: ehc.framework.com
@@ -2022,7 +2022,7 @@ one status
 ### What the Framework Gives You (Free, Forever)
 
 ```
-SCAFFOLD   npx oneie — org + ontology + web in 60 seconds
+SCAFFOLD   bun oneie — org + ontology + web in 60 seconds
 ONTOLOGY   6 dimensions, 100+ files, versioned
 AGENTS     Markdown format — describe, don't code
 AI SETUP   oneie agent — zero-interaction for Claude/Cursor
@@ -2051,7 +2051,7 @@ SKIN       Your domain, your brand, your data isolation
 The framework is the door. The world is the room.
 Everyone gets the door for free. The room is where the value lives.
 
-`npx oneie` gives you the door. one.ie gives you the world.
+`bun oneie` gives you the door. one.ie gives you the world.
 
 ---
 

@@ -39,7 +39,7 @@ Read all four docs. They define the language the TODO speaks.
    - **Routing diagram** — signal flow down, marks up, fan-out sideways
    - **Schema reference** — link tasks to world.tql task entity
    - **Dependency graph** — waves acquire context, .then() carries it forward
-   - **Testing** — W0 baseline (`npm run verify`), W4 verify + rubric, cycle gate
+   - **Testing** — W0 baseline (`bun run verify`), W4 verify + rubric, cycle gate
    - Cycles with wave pattern (W1-W4 per cycle)
    - Tasks with full metadata (id, value, effort, phase, persona, blocks, exit, tags)
    - Source of truth table

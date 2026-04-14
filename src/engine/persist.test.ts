@@ -8,7 +8,7 @@
  * ledger. isToxic() guards the sandwich. The pheromone decides who gets
  * work. TypeDB remembers what the runtime would forget after a restart.
  *
- * Run: npx vitest run src/engine/persist.test.ts
+ * Run: bun vitest run src/engine/persist.test.ts
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'

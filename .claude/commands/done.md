@@ -9,7 +9,7 @@ The user specifies which task: `$ARGUMENTS`
 Before marking a task complete, verify the work is solid across **four quality dimensions**:
 
 ```bash
-npm run verify     # biome check . && tsc --noEmit && vitest run
+bun run verify     # biome check . && tsc --noEmit && vitest run
 ```
 
 **Quality Rubric (fit/form/truth/taste):**
@@ -33,7 +33,7 @@ This is the deterministic sandwich POST check. The substrate only learns from ve
    If not, infer from the current work context — what files were just edited? What was the last task discussed?
 
 2. **Verify first** (run W4 gate above)
-   - `npm run verify` must pass
+   - `bun run verify` must pass
    - If it fails → fix the issue, then try `/done` again
    - Never mark "done" on broken code
 

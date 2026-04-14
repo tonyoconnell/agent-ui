@@ -153,10 +153,10 @@ The Astro config is **the foundation** that makes edge execution possible. Witho
 
 ```bash
 # This config enables this entire pipeline:
-npx wrangler pages deploy dist/ --project-name=one-substrate
+bun wrangler pages deploy dist/ --project-name=one-substrate
 ```
 
-Every `npm run build` creates:
+Every `bun run build` creates:
 - `dist/` (static HTML/CSS/JS)
 - `dist/_worker.js` (Cloudflare Worker)
 - Chunks (recharts, icons, react-vendor, reactflow)

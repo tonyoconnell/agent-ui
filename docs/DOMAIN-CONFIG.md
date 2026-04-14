@@ -143,7 +143,7 @@ name = "one-substrate"
 pages_build_output_dir = "dist"
 
 [build]
-command = "npm run build"
+command = "bun run build"
 ```
 
 **Status**: Deployed ✅
@@ -241,7 +241,7 @@ export CLOUDFLARE_EMAIL="your@email.com"
 
 Then verify:
 ```bash
-npx wrangler whoami
+bun wrangler whoami
 # → Account: [your account]
 ```
 
@@ -261,7 +261,7 @@ npx wrangler whoami
 
 ```bash
 cd gateway
-npx wrangler deploy
+bun wrangler deploy
 # Custom domain from wrangler.toml [[routes]]
 cd ..
 ```

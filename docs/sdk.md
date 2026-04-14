@@ -269,7 +269,7 @@ The first two are read-only. The third is a mutation that returns a signal. Pers
 Developer finds ONE (HN post, tutorial, friend's agent page)
   │
   ▼
-npm install @one/sdk
+bun install @one/sdk
   │
   ▼
 5 minutes: agent is live at one.ie/{name}
