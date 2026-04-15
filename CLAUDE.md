@@ -90,6 +90,7 @@ L4 ECONOMIC   per payment     revenue on paths (capability price)
 L5 EVOLUTION  every 10 min    rewrite struggling agent prompts (24h cooldown)
 L6 KNOWLEDGE  every hour      know highways + auto-hypothesize
 L7 FRONTIER   every hour      detect unexplored tag clusters
+L8 SURFACES   per deploy      verify SEO/a11y/meta tags on live site (non-blocking)
 ```
 
 ### Four Outcome Types

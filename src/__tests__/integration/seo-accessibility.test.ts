@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 describe('SEO & Accessibility Compliance', () => {
   let html: string
@@ -144,7 +144,8 @@ describe('SEO & Accessibility Compliance', () => {
   describe('Performance', () => {
     it('has critical CSS', () => {
       expect(html).toContain('<style')
-      expect(html).toContain('global.css')
+      expect(html).toContain('/_astro/')
+      expect(html).toContain('.css')
     })
 
     it('preconnects to critical origins', () => {

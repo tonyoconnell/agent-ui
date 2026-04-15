@@ -538,6 +538,19 @@ async function main() {
   step(8, 8, 'Health checks')
   const health = await healthCheckWithRetry()
 
+  // SEO health check — verify meta tags, structured data, accessibility on live
+  console.log()
+  console.log(`  SEO & Accessibility:`)
+  const seoHealth = await seoHealthCheck()
+  console.log(
+    `    ${seoHealth.passed ? c.green('✓') : c.red('✗')} ${seoHealth.passCount}/${seoHealth.totalTests} tests passed`,
+  )
+  if (!seoHealth.passed) {
+    console.log(
+      `    ${c.yellow('⚠ Some SEO/a11y tests failed — inspect but don\'t block deploy')}`,
+    )
+  }
+
   // Rule 3: record deploy to substrate — let the world learn from its own deploys
   await recordToSubstrate({ branch, deployResults, health, totalFailures: verify.totalFailures })
 
@@ -555,6 +568,7 @@ async function main() {
   )
   console.log(`  Services:        4/4 deployed`)
   console.log(`  Health:          ${health.filter((h) => h.ok).length}/${health.length} responding`)
+  console.log(`  SEO/A11y:        ${seoHealth.passCount}/${seoHealth.totalTests} tests pass`)
   if (preview) console.log(`  Preview:         ${preview}`)
   console.log()
   process.exit(0)
@@ -597,6 +611,34 @@ async function healthCheckWithRetry() {
     }
   }
   return results
+}
+
+// SEO & Accessibility health check — verify meta tags, structured data, a11y on live
+async function seoHealthCheck(): Promise<{ passed: boolean; passCount: number; totalTests: number }> {
+  try {
+    const response = await fetch('https://one-substrate.pages.dev')
+    if (!response.ok) return { passed: false, passCount: 0, totalTests: 1 }
+
+    const html = await response.text()
+    const checks = [
+      html.includes('name="description"'),
+      html.includes('property="og:title"'),
+      html.includes('property="og:description"'),
+      html.includes('name="twitter:card"'),
+      html.includes('application/ld+json'),
+      html.includes('<h1'),
+      html.includes('aria-label'),
+      html.includes('scope="col"'),
+      html.includes('rel="canonical"'),
+      html.includes('width=device-width'),
+    ]
+
+    const passCount = checks.filter(Boolean).length
+    const totalTests = checks.length
+    return { passed: passCount === totalTests, passCount, totalTests }
+  } catch (_err) {
+    return { passed: false, passCount: 0, totalTests: 10 }
+  }
 }
 
 // Rule 3: emit deploy event as a substrate signal so paths learn.

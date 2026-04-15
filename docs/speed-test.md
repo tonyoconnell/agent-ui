@@ -6,8 +6,8 @@
 
 |  |  |
 |---|---|
-| Generated at | 2026-04-15T20:15:31.230Z |
-| Test run at | 2026-04-15T20:15:07.838Z |
+| Generated at | 2026-04-15T20:17:46.243Z |
+| Test run at | 2026-04-15T20:17:45.726Z |
 | Benchmarks measured | 0 named ops, 0 samples |
 | Budget coverage | 0 / 45 operations |
 | Verdict | **0 pass** · **0 over** · 45 missing |
@@ -157,14 +157,14 @@ to get a verdict column.
 This is the **test harness** duration, not the production system. Kept here
 so we notice if the gate itself grows too slow to run inside the AI edit loop.
 
-**Totals:** ✗ 0/0 tests · 0ms across 1 files
+**Totals:** ✓ 30/30 tests · 5.05ms across 1 files
 
 Top 10 slowest test files:
 
 | File | Tests | Duration |
 |------|------:|---------:|
-| `seo-accessibility.test.ts` | 0 | 0ms |
+| `seo-accessibility.test.ts` | 30 | 5.05ms |
 
 ---
 
-_Report generated 2026-04-15T20:15:31.230Z._
+_Report generated 2026-04-15T20:17:46.244Z._
