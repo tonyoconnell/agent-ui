@@ -8,7 +8,7 @@
  * and enables ADL security gates on persona interactions.
  */
 
-import personas from '../personas'
+import { personas } from '../personas'
 import type { Env } from '../types'
 import { query } from './substrate'
 

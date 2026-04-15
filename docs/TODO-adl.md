@@ -4,7 +4,7 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 10
-completed: 2
+completed: 3
 status: ACTIVE
 ---
 
@@ -522,13 +522,13 @@ parallelism, wall-time collapses to ~3 cycles of ~15–20 min each.
   - [x] W3 — Edits (Sonnet × 3 + tests, parallel — `world.ts` untouched; PEP-4 in persist.ts)
   - [x] W4 — Verify rubric={fit:0.95, form:0.95, truth:1.00, taste:0.90} avg=0.95
   - [x] Cycle gate: 739/739 tests · biome clean · rubric ≥ 0.65 ✓
-- [ ] **Cycle 3: GROW** — NanoClaw inject + evolution + federation + MCP audit (MEDIUM/LOW)
-  - [ ] W0 — Baseline + Cycle-1/2 regression
-  - [ ] W1 — Recon (Haiku × 7, parallel — resolves agentverse file + MCP surface)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 5 + tests, parallel)
-  - [ ] W4 — Verify (Sonnet × 5, parallel — incl. V5 legacy regression)
-  - [ ] Cycle gate: all checkboxes + full suite green + V5 pass + rubric ≥ 0.65
+- [x] **Cycle 3: GROW** — NanoClaw inject + evolution + federation + MCP audit (MEDIUM/LOW) ✓ 2026-04-15
+  - [x] W0 — Baseline: 739/739 tests · biome clean (formatter fix in brand-cascade.test.ts)
+  - [x] W1 — Recon (Haiku × 6, parallel — agentverse.ts confirmed, MCP untracked)
+  - [x] W2 — Decide: augmentPromptWithADL shared helper · [OPERATIONAL CONSTRAINTS] delimiter · fire-and-forget federation
+  - [x] W3 — Edits (Sonnet × 5 + 4 tests — adl.ts, loop.ts, agentverse.ts, setup-nanoclaw.ts, adl-mcp.md)
+  - [x] W4 — Verify rubric={fit:0.95, form:0.92, truth:1.00, taste:0.90} avg=0.94 · V5 legacy pass · 18/18 consistency
+  - [x] Cycle gate: 758/758 tests · biome clean · V5 all 5 gates PASS · rubric ≥ 0.65 ✓
 
 ---
 

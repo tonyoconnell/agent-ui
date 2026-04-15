@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { ExtendedMessage } from '@/lib/chat/types'
 import type { ConversationMessage } from '@/lib/claude-code-events'
+import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -79,7 +80,10 @@ export function ConversationView({
       {!isAtBottom && newMessageSender && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top duration-300">
           <Button
-            onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
+            onClick={() => {
+              emitClick('ui:chat:scroll')
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+            }}
             className="shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
           >
             <span>New message from {newMessageSender}</span>
@@ -196,7 +200,15 @@ export function ConversationView({
           {messages.length > 0 && (
             <div className="flex justify-center gap-2 mt-4 mb-5">
               {isLoading && (
-                <Button variant="destructive" size="sm" onClick={onStop} className="transition-all duration-200">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    emitClick('ui:chat:stop')
+                    onStop()
+                  }}
+                  className="transition-all duration-200"
+                >
                   <Square className="h-4 w-4 mr-2 fill-current" />
                   Stop
                 </Button>
@@ -205,7 +217,10 @@ export function ConversationView({
               <Button
                 variant={conversationCopied ? 'default' : 'outline'}
                 size="sm"
-                onClick={onCopyConversation}
+                onClick={() => {
+                  emitClick('ui:chat:copy')
+                  onCopyConversation()
+                }}
                 className={cn(
                   'transition-all duration-200',
                   conversationCopied ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' : '',

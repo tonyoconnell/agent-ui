@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // Mock TypeDB — kek.ts must not hit the database in unit tests
 vi.mock('@/lib/typedb', () => ({
   readParsed: vi.fn().mockResolvedValue([]),
-  write: vi.fn().mockResolvedValue(undefined),
+  write: vi.fn().mockResolvedValue([]),
 }))
 
 // Mock MASTER_KEK env var — 32 bytes base64
@@ -20,7 +20,7 @@ describe('tenant KEK — encrypt and decrypt', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(readParsed).mockResolvedValue([]) // No existing KEK → generate new
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
   })
 
   it('encryptForGroup produces an ENC: prefixed string', async () => {
@@ -41,7 +41,7 @@ describe('tenant KEK — encrypt and decrypt', () => {
 
 describe('crypto-shred — shredGroup', () => {
   it('shredGroup calls TypeDB delete for the tenant-kek entity', async () => {
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
     await shredGroup('group-shred-test')
     expect(write).toHaveBeenCalledWith(expect.stringContaining('delete $k isa tenant-kek'))
   })

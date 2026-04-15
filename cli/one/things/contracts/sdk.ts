@@ -6,7 +6,8 @@
  */
 
 import { Effect, Context, Layer } from "effect";
-import { SuiClient, SuiTransactionBlockResponse } from "@mysten/sui/client";
+import { SuiClient } from "@mysten/sui/client";
+import type { SuiTransactionBlockResponse } from "@mysten/sui/client";
 import { Transaction } from "@mysten/sui/transactions";
 
 // ============================================================

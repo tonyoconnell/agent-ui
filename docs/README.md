@@ -154,6 +154,8 @@ L7  frontier detection from unexplored tag clusters         every hour
 
 ## Claude Code Integration
 
+**The `/do` workflow is your interface to the substrate.** See [WORKFLOW.md](WORKFLOW.md) for complete guide.
+
 ```
 /see     tasks              open work sorted by priority         L1
 /see     highways           proven paths (strength ≥ 50)         L2
@@ -161,6 +163,7 @@ L7  frontier detection from unexplored tag clusters         every hour
 /create  task <name>        atomic task into TypeDB              L1
 /create  todo <doc>         TODO from template (Haiku extract)   L1
 /do      <TODO-file>        advance next wave                    L1
+/do      <TODO> --auto      run all cycles (W1→W4 continuously) L1
 /do                         autonomous loop: pick → execute → mark L1
 /do      --once             single task iteration                L1
 /close   <task-id>          mark() success, unblock dependents   L2
@@ -169,9 +172,26 @@ L7  frontier detection from unexplored tag clusters         every hour
 /sync    tick               fire all L1-L7 loops                 L1-L7
 ```
 
+**The `/do` loop:**
+1. Plan work in TODO (W1-W4 cycles)
+2. Document decisions (W2: which docs change)
+3. Execute in parallel (W3: code + docs together)
+4. Verify & score (W4: rubric feeds pheromone)
+5. Substrate learns (L4-L7: next TODO routes smarter)
+
 ---
 
 ## Documentation
+
+### Execution (The `/do` Workflow)
+
+| Doc | What |
+|-----|------|
+| [WORKFLOW.md](WORKFLOW.md) | **Master guide.** How `/do` TODO cycles ship features + teach the substrate. W1-W4 structure, pheromone tagging, task API, docs-first integration. Start here. |
+| [TODO-template.md](TODO-template.md) | Template for all TODOs. Cycle structure, wave pattern, documentation updates section. |
+| [DOCS-FIRST-WORKFLOW.md](DOCS-FIRST-WORKFLOW.md) | Documentation integration framework. Write docs W2, edit W3, verify W4. Six core docs always in scope. |
+| [DO-LOOP-INTEGRATION.md](DO-LOOP-INTEGRATION.md) | `/api/tasks` + `/api/loop/mark-dims` contract. How W4 rubric scores mark pheromone edges. Task lifecycle + priority formula. |
+| [DO-LOOP-REFERENCE.md](DO-LOOP-REFERENCE.md) | One-page quick reference. API calls per wave, outcomes, speed contract. |
 
 ### Core
 

@@ -17,8 +17,12 @@ function bufferToBase64(buf: ArrayBuffer | Uint8Array): string {
   return btoa(String.fromCharCode(...bytes))
 }
 
-function base64ToBuffer(b64: string): Uint8Array {
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+function base64ToBuffer(b64: string): Uint8Array<ArrayBuffer> {
+  const binary = atob(b64)
+  const ab = new ArrayBuffer(binary.length)
+  const view = new Uint8Array(ab)
+  for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i)
+  return view
 }
 
 async function getMasterKEK(): Promise<CryptoKey> {

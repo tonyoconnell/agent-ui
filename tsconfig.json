@@ -24,6 +24,7 @@
     "src/pages/api/export/public/**",
     "src/pages/api/entity/**",
     "packages/**",
+    "cli/**",
     "scripts/**",
     "nanoclaw/**",
     "gateway/**",

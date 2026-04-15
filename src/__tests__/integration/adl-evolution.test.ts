@@ -42,9 +42,11 @@ vi.mock('@/engine/task-parse', () => ({
 }))
 
 // Mock augmentPromptWithADL — this is what we're verifying gets called
-const mockAugment = vi.fn().mockImplementation((_uid: string, prompt: string) =>
-  Promise.resolve(`${prompt}\n\n[OPERATIONAL CONSTRAINTS]\nData classification: internal`),
-)
+const mockAugment = vi
+  .fn()
+  .mockImplementation((_uid: string, prompt: string) =>
+    Promise.resolve(`${prompt}\n\n[OPERATIONAL CONSTRAINTS]\nData classification: internal`),
+  )
 vi.mock('@/engine/adl', () => ({
   augmentPromptWithADL: mockAugment,
   default: {},
@@ -171,7 +173,8 @@ describe('ADL Cycle 3: evolution prompt augmentation', () => {
     // writeSilent should still be called with a system-prompt update containing the evolved text
     const writeCalls = (writeSilent as ReturnType<typeof vi.fn>).mock.calls
     const systemPromptWrite = writeCalls.find(
-      ([q]: [string]) => typeof q === 'string' && q.includes('system-prompt') && q.includes('improved'),
+      (args: unknown[]) =>
+        typeof args[0] === 'string' && args[0].includes('system-prompt') && args[0].includes('improved'),
     )
     expect(systemPromptWrite).toBeDefined()
   })

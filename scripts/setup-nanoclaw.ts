@@ -73,7 +73,12 @@ if (agentId) {
     const getModel = fm.match(/^model:\s*(.+)$/m)?.[1]?.trim()
     getSensitivity = fm.match(/^sensitivity:\s*(.+)$/m)?.[1]?.trim() || 'internal'
     const getRawOrigins = fm.match(/^allowed_origins:\s*\[(.+)\]/m)?.[1]?.trim()
-    getAllowedHosts = getRawOrigins ? getRawOrigins.split(',').map((s) => s.trim().replace(/['"]/g, '')).join(', ') : '*'
+    getAllowedHosts = getRawOrigins
+      ? getRawOrigins
+          .split(',')
+          .map((s) => s.trim().replace(/['"]/g, ''))
+          .join(', ')
+      : '*'
 
     name = name || getName || agentId
     persona = persona || getName?.toLowerCase().replace(/[^a-z0-9]/g, '') || agentId
