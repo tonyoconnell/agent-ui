@@ -162,7 +162,7 @@ export function UnitProfile({ unit, capabilities, edges }: Props) {
 
         {edges.length === 0 ? (
           <div className="rounded-xl border border-[#252538] bg-[#161622] p-6 text-center text-slate-500 text-sm">
-            No connections yet
+            No paths yet
           </div>
         ) : (
           <div className="space-y-2">

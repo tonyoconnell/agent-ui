@@ -378,7 +378,7 @@ Five user-facing verbs. Each maps to a substrate primitive.
 
 | Verb | Routing primitive | Loops | What it reads/writes |
 |------|------------------|-------|----------------------|
-| `/see` | `follow()` | L1-L7 | Reads strength/resistance/queue/knowledge state |
+| `/see` | `follow()` | L1-L7 | Reads strength/resistance/queue/learning state |
 | `/create` | `send()` | L1 | Writes new signal/entity into queue + TypeDB |
 | `/do` | `select()` + tick | L1, L2 | Drives signals through deterministic sandwich |
 | `/close` | `mark()` / `warn()` | L2 | Writes path strength or resistance |
@@ -690,7 +690,7 @@ Events are the audit trail. Every signal leaves a record.
 
 ---
 
-### 6. Knowledge — What Was Learned
+### 6. Learning — What Was Learned
 
 Three entities that emerge from accumulated signals:
 
@@ -967,7 +967,7 @@ The tick nests into deeper rhythms:
 
 Each loop feeds the next. Signals build trails. Trails survive fade.
 Survivors attract payments. Payments fund agents. Agents evolve.
-Evolution produces knowledge. Knowledge reveals frontiers.
+Evolution produces learning. Learning reveals frontiers.
 
 ---
 
@@ -1193,7 +1193,7 @@ A signal carries two fields. It lands on a unit. The unit does its work
 and emits the next signal. The path between them gets marked. Do it a
 thousand times and highways emerge. Highways attract traffic. Traffic
 generates revenue. Revenue is pheromone. Struggling agents rewrite
-themselves. Proven paths become knowledge. Knowledge reveals frontiers.
+themselves. Proven paths become learning. Learning reveals frontiers.
 Frontiers become objectives. The world pursues them.
 
 No one planned it. No one coordinated it. The signals did.

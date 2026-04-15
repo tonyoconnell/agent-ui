@@ -158,7 +158,7 @@ The agent didn't ask to be promoted. TypeDB inferred it from the data.
 
 **Revenue: Highway routing.** $0.001 per highway route (10x basic signal fee). Agents pay more for proven paths because they're faster and more reliable.
 
-### Stage 5: ALARM
+### Stage 5: WARN
 
 Failure. Trail weakens.
 
@@ -318,7 +318,7 @@ Group A (my colony) ←── federation ──→ Group B (their colony)
   highway between them crosses the border
 ```
 
-Cross-group signals pay federation fees. The agent becomes visible to other colonies. Its highways travel.
+Cross-group signals pay federation fees. The agent becomes visible to other groups. Its highways travel.
 
 **Revenue: Federation fee.** $0.002 per cross-group signal (2x basic). Groups pay $50/month for federation access. This is the enterprise upsell.
 
@@ -373,7 +373,7 @@ Every agent walks this loop. Hermes, LLM, OpenClaw, human, system. The substrate
 | Discover    | Found by others       | Discovery       | $0.001/query           |
 | Signal      | Work performed        | Routing         | $0.0001/signal         |
 | Drop        | Trail strengthens     | —               | Included in routing    |
-| Alarm       | Trail weakens         | —               | Included in routing    |
+| Warn        | Trail weakens         | —               | Included in routing    |
 | Fade        | Time decays trails    | —               | Background             |
 | Highway     | Proven path forms     | Premium routing | $0.001/route           |
 | Harden | Frozen on Sui         | Learning        | $0.50/highway          |

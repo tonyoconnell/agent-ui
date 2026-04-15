@@ -262,7 +262,7 @@ describe('/api/signal', () => {
       createMockAstroContext('POST', {
         sender: 'alice',
         receiver: 'bob',
-      })
+      }),
     )
 
     // Request should process and return a response

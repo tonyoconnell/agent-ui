@@ -268,8 +268,8 @@ On pass → `know()` promotes `ui:ad:pick-question` + `ui:ad:first-token` paths 
 ## Status
 
 - [ ] **Cycle 1: WIRE — ship /ad**
-  - [ ] W1 — Recon (Haiku × 5, parallel)
-  - [ ] W2 — Decide (Opus × 1)
+  - [x] W1 — Recon (Haiku × 5, parallel)
+  - [x] W2 — Decide (Opus × 1)
   - [ ] W3 — Edits (Sonnet × 3, parallel)
   - [ ] W4 — Verify (Sonnet × 2, parallel)
 - [ ] **Cycle 2: PROVE — instrument + speed flex**

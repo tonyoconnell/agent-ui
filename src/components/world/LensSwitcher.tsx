@@ -3,7 +3,7 @@
  *
  * Five ways to see ONE:
  * - org: hierarchical tree (membership → structure)
- * - colony: force-directed graph (pheromone → emergence)
+ * - paths: force-directed graph (pheromone → emergence)
  * - skills: radial by tag (capability → specialization)
  * - money: weighted by revenue (cash flow → economics)
  *
@@ -20,31 +20,31 @@ interface LensSwitcherProps {
   onLensChange?: (lens: string) => void
 }
 
-type Lens = 'org' | 'colony' | 'skills' | 'money'
+type Lens = 'org' | 'paths' | 'skills' | 'money'
 
 const lensLabels: Record<Lens, string> = {
   org: 'Organization',
-  colony: 'Colony',
+  paths: 'Paths',
   skills: 'Skills',
   money: 'Money',
 }
 
 const lensIcons: Record<Lens, string> = {
   org: '🏢',
-  colony: '🐜',
+  paths: '🐜',
   skills: '🎯',
   money: '💰',
 }
 
 export function LensSwitcher({ className, onLensChange }: LensSwitcherProps) {
   const { skin } = useSkin()
-  const [currentLens, setCurrentLens] = useState<Lens>('colony')
+  const [currentLens, setCurrentLens] = useState<Lens>('paths')
 
   // Read lens from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const lens = (params.get('lens') as Lens) || 'colony'
-    if (['org', 'colony', 'skills', 'money'].includes(lens)) {
+    const lens = (params.get('lens') as Lens) || 'paths'
+    if (['org', 'paths', 'skills', 'money'].includes(lens)) {
       setCurrentLens(lens)
     }
   }, [])
@@ -61,7 +61,7 @@ export function LensSwitcher({ className, onLensChange }: LensSwitcherProps) {
 
   return (
     <div className={cn('flex gap-2 p-2 bg-black/30 rounded-xl', className)}>
-      {(['org', 'colony', 'skills', 'money'] as Lens[]).map((lens) => (
+      {(['org', 'paths', 'skills', 'money'] as Lens[]).map((lens) => (
         <button
           key={lens}
           onClick={() => handleLensClick(lens)}

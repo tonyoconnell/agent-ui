@@ -83,13 +83,13 @@ const FALLBACK_FRONTIERS: Frontier[] = [
   {
     fid: 'f-002',
     type: 'market',
-    description: 'Cross-colony service arbitrage',
+    description: 'Cross-group service arbitrage',
     expectedValue: 0.71,
     status: 'exploring',
   },
   {
     fid: 'f-003',
-    type: 'knowledge',
+    type: 'learning',
     description: 'Emergent task specialization patterns',
     expectedValue: 0.65,
     status: 'open',
@@ -130,7 +130,7 @@ const FALLBACK_OBJECTIVES: Objective[] = [
   },
   {
     oid: 'o-004',
-    type: 'knowledge',
+    type: 'learning',
     description: 'Confirm 5 hypotheses',
     priority: 0.6,
     progress: 0.2,

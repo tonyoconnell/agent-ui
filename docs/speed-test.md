@@ -6,8 +6,8 @@
 
 |  |  |
 |---|---|
-| Generated at | 2026-04-15T20:41:33.160Z |
-| Test run at | 2026-04-15T20:41:32.760Z |
+| Generated at | 2026-04-15T20:42:13.544Z |
+| Test run at | 2026-04-15T20:42:10.998Z |
 | Benchmarks measured | 0 named ops, 0 samples |
 | Budget coverage | 0 / 45 operations |
 | Verdict | **0 pass** · **0 over** · 45 missing |
@@ -157,14 +157,14 @@ to get a verdict column.
 This is the **test harness** duration, not the production system. Kept here
 so we notice if the gate itself grows too slow to run inside the AI edit loop.
 
-**Totals:** ✗ 30/32 tests · 24.43ms across 1 files
+**Totals:** ✓ 8/8 tests · 4.32ms across 1 files
 
 Top 10 slowest test files:
 
 | File | Tests | Duration |
 |------|------:|---------:|
-| `memory-api.test.ts` | 32 | 24.43ms |
+| `recall.test.ts` | 8 | 4.32ms |
 
 ---
 
-_Report generated 2026-04-15T20:41:33.160Z._
+_Report generated 2026-04-15T20:42:13.544Z._

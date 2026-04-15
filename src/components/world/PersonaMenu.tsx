@@ -45,7 +45,7 @@ const personas: PersonaConfig[] = [
   {
     id: 'asi',
     label: 'ASI Builder',
-    params: { group: 'asi', lens: 'colony', skin: 'ant' },
+    params: { group: 'asi', lens: 'paths', skin: 'ant' },
   },
   {
     id: 'founder',
@@ -55,12 +55,12 @@ const personas: PersonaConfig[] = [
   {
     id: 'trader',
     label: 'DeFi Trader',
-    params: { focus: 'trader', lens: 'colony', skin: 'signal' },
+    params: { focus: 'trader', lens: 'paths', skin: 'signal' },
   },
   {
     id: 'community',
     label: 'Community Builder',
-    params: { group: 'community', lens: 'colony', skin: 'ant' },
+    params: { group: 'community', lens: 'paths', skin: 'ant' },
   },
   {
     id: 'designer',
@@ -75,12 +75,12 @@ const personas: PersonaConfig[] = [
   {
     id: 'coder',
     label: 'Code Helper',
-    params: { focus: 'coder', lens: 'colony', skin: 'brain' },
+    params: { focus: 'coder', lens: 'paths', skin: 'brain' },
   },
   {
     id: 'writer',
     label: 'Content Writer',
-    params: { focus: 'writer', lens: 'colony', skin: 'team' },
+    params: { focus: 'writer', lens: 'paths', skin: 'team' },
   },
 ]
 
