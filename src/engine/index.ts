@@ -18,6 +18,7 @@ export {
 } from './agent-md'
 export type { BrandContext, BrandTokens, Mode } from './brand'
 export { brandPalette, injectBrand, invalidateBrandCache, purpleBrand, renderBrand, resolveBrand } from './brand'
+export { brandKey, emitBrandApplied } from './brand-signals'
 export { anthropic, llm, openai } from './llm'
 export { md, parse } from './md'
 export type { Insight, PersistentWorld, TaskMatch } from './persist'

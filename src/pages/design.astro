@@ -248,7 +248,8 @@ const resolved =
 	thingId || groupId ? await resolveBrand({ thingId, groupId }) : null;
 const overrideBrand =
 	resolved ?? (brandParam === "purple" ? purpleBrand : null);
-const brandStyle = renderBrand(overrideBrand, { thingId, groupId });
+const ua = Astro.request.headers.get("user-agent") ?? "";
+const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
 ---
 
 

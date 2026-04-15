@@ -1,10 +1,30 @@
 ---
+import { renderBrand, resolveBrand } from "@/engine/brand"
+
 interface Props {
 	title: string
 	brandStyle?: string
 }
 
-const { title, brandStyle = "" } = Astro.props
+const { title, brandStyle: providedBrandStyle } = Astro.props
+
+// Centralised brand resolution — any page that passes a brand Thing/Group via
+// the URL (?thing=…, ?group=…) gets a live palette swap for free, and
+// `emitBrandApplied()` fires with the request's User-Agent so the L2 learning
+// loop records a pheromone mark on brand:<key>→thing:<id>. Pages that pass
+// `brandStyle` explicitly keep full control and bypass this.
+let brandStyle = providedBrandStyle ?? ""
+if (!brandStyle) {
+	const thingId = Astro.url.searchParams.get("thing") ?? undefined
+	const groupId = Astro.url.searchParams.get("group") ?? undefined
+	if (thingId || groupId) {
+		const tokens = await resolveBrand({ thingId, groupId })
+		if (tokens) {
+			const ua = Astro.request.headers.get("user-agent") ?? ""
+			brandStyle = renderBrand(tokens, { thingId, groupId, ua })
+		}
+	}
+}
 ---
 
 <!doctype html>
