@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_WEIGHTS, markDims as markDimsWeighted } from './rubric'
+import { DEFAULT_WEIGHTS, markDims as markDimsWeighted, score as parseScore } from './rubric'
 import { compositeScore, formatRubric, markDims, scoreInterpretation, scoreWork, w4Verify } from './rubric-score'
 import { world as createWorld } from './world'
 
@@ -528,5 +528,131 @@ describe('markDims (rubric.ts) — weighted pheromone per dimension', () => {
       'entry→wave-runner:truth',
       'entry→wave-runner:taste',
     ])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// score() function — heuristic fallback when no LLM response
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('score() — heuristic fallback for LLM response parsing', () => {
+  it('extracts numeric dimension scores from verdict text', () => {
+    const verdict = 'PASS: fit: 0.9 form: 0.85 truth: 0.95 taste: 0.8'
+
+    const parsed = parseScore(verdict)
+
+    expect(parsed.fit).toBe(0.9)
+    expect(parsed.form).toBe(0.85)
+    expect(parsed.truth).toBe(0.95)
+    expect(parsed.taste).toBe(0.8)
+    expect(parsed.violations).toEqual([])
+  })
+
+  it('clamps numeric scores to [0, 1] range (for positive values)', () => {
+    const verdict = 'fit: 1.5 form: 0.3 truth: 2.0 taste: 0.5'
+    const parsed = parseScore(verdict)
+
+    expect(parsed.fit).toBe(1)
+    expect(parsed.form).toBe(0.3)
+    expect(parsed.truth).toBe(1)
+    expect(parsed.taste).toBe(0.5)
+  })
+
+  it('falls back to PASS heuristic when no numeric scores found', () => {
+    const verdict = 'PASS: Code looks great overall'
+    const parsed = parseScore(verdict)
+
+    expect(parsed.fit).toBe(0.85)
+    expect(parsed.form).toBe(0.75)
+    expect(parsed.truth).toBe(0.8)
+    expect(parsed.taste).toBe(0.75)
+    expect(parsed.violations).toEqual([])
+  })
+
+  it('falls back to FAIL heuristic when no numeric scores and verdict is not PASS', () => {
+    const verdict = 'FAIL: Tests broke, schema mismatch'
+    const parsed = parseScore(verdict)
+
+    expect(parsed.fit).toBe(0.15)
+    expect(parsed.form).toBe(0.5)
+    expect(parsed.truth).toBe(0.5)
+    expect(parsed.taste).toBe(0.5)
+    expect(parsed.violations).toEqual(['FAIL: Tests broke, schema mismatch'])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// score() → [0,1] ranges for all dimensions
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('score() return values — bounded to [0,1]', () => {
+  it('returns all dimensions in [0, 1] for PASS verdict', () => {
+    const parsed = parseScore('PASS')
+
+    expect(parsed.fit).toBeGreaterThanOrEqual(0)
+    expect(parsed.fit).toBeLessThanOrEqual(1)
+    expect(parsed.form).toBeGreaterThanOrEqual(0)
+    expect(parsed.form).toBeLessThanOrEqual(1)
+    expect(parsed.truth).toBeGreaterThanOrEqual(0)
+    expect(parsed.truth).toBeLessThanOrEqual(1)
+    expect(parsed.taste).toBeGreaterThanOrEqual(0)
+    expect(parsed.taste).toBeLessThanOrEqual(1)
+  })
+
+  it('returns all dimensions in [0, 1] for FAIL verdict', () => {
+    const parsed = parseScore('FAIL')
+
+    expect(parsed.fit).toBeGreaterThanOrEqual(0)
+    expect(parsed.fit).toBeLessThanOrEqual(1)
+    expect(parsed.form).toBeGreaterThanOrEqual(0)
+    expect(parsed.form).toBeLessThanOrEqual(1)
+    expect(parsed.truth).toBeGreaterThanOrEqual(0)
+    expect(parsed.truth).toBeLessThanOrEqual(1)
+    expect(parsed.taste).toBeGreaterThanOrEqual(0)
+    expect(parsed.taste).toBeLessThanOrEqual(1)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Gate threshold at 0.65 composite — pass/no-pass boundary
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('w4Verify gate threshold 0.65 — pass/fail boundary', () => {
+  it('composite exactly 0.65 passes', () => {
+    const result = scoreWork(
+      { name: 'Test', description: 'Test' },
+      { fit: 0.65, form: 0.65, truth: 0.65, taste: 0.65 }, // all 0.65 → composite = 0.65
+    )
+    const verify = w4Verify(result)
+
+    expect(verify.pass).toBe(true)
+    expect(verify.reason).toContain('GOOD')
+    expect(verify.strength).toBeDefined()
+  })
+
+  it('composite just below 0.65 fails (borderline)', () => {
+    // Construct scores that total just below 0.65
+    const result = scoreWork(
+      { name: 'Test', description: 'Test' },
+      { fit: 0.6, form: 0.6, truth: 0.6, taste: 0.6 }, // composite ≈ 0.60 < 0.65
+    )
+    const verify = w4Verify(result)
+
+    expect(verify.pass).toBe(false)
+    expect(verify.reason).toContain('BORDERLINE')
+    expect(verify.reason).toContain('< 0.65')
+    expect(verify.strength).toBeUndefined()
+  })
+
+  it('all dims >= 0.65 but composite < 0.85 stays GOOD, not GOLDEN', () => {
+    const result = scoreWork(
+      { name: 'Test', description: 'Test' },
+      { fit: 0.75, form: 0.7, truth: 0.72, taste: 0.7 }, // composite ≈ 0.7195 ∈ [0.65, 0.85)
+    )
+    const verify = w4Verify(result)
+
+    expect(verify.pass).toBe(true)
+    expect(verify.reason).toContain('GOOD')
+    expect(verify.reason).not.toContain('GOLDEN')
   })
 })

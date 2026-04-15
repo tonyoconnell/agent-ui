@@ -19,9 +19,9 @@ export const GET: APIRoute = async ({ url }) => {
         has data $task, has amount $amt;
       $amt > 0;
       $e (source: $from, target: $to) isa path,
-        has strength $str, has revenue $rev;
+        has strength $str, has revenue $rev, has resistance $res, has traversals $trv;
     ${typeFilter ? `$task = "${typeFilter}";` : ''}
-    select $from_id, $to_id, $task, $amt, $str, $rev;
+    select $from_id, $to_id, $task, $amt, $str, $rev, $res, $trv;
   `
 
   const rows = await readParsed(tql).catch(() => [])
@@ -36,6 +36,8 @@ export const GET: APIRoute = async ({ url }) => {
       strength: number
       revenue: number
       calls: number
+      resistance: number
+      traversals: number
     }
   >()
 
@@ -45,6 +47,8 @@ export const GET: APIRoute = async ({ url }) => {
     const amt = Number(row.amt) || 0
     const str = Number(row.str) || 0
     const rev = Number(row.rev) || 0
+    const res = Number(row.res) || 0
+    const trv = Number(row.trv) || 0
 
     if (!existing) {
       services.set(key, {
@@ -54,12 +58,16 @@ export const GET: APIRoute = async ({ url }) => {
         strength: str,
         revenue: rev,
         calls: 1,
+        resistance: res,
+        traversals: trv,
       })
     } else {
       existing.price = Math.min(existing.price, amt)
       existing.strength = Math.max(existing.strength, str)
       existing.revenue += amt
       existing.calls += 1
+      existing.resistance = Math.max(existing.resistance, res)
+      existing.traversals = Math.max(existing.traversals, trv)
     }
   }
 

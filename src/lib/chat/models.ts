@@ -1,9 +1,66 @@
 import type { Model } from './types'
 
-export const DEFAULT_MODEL = 'meta-llama/llama-4-maverick'
+export const DEFAULT_MODEL = 'groq:meta-llama/llama-4-scout-17b-16e-instruct'
 
 export const POPULAR_MODELS: Model[] = [
-  // Default model — server-configured OpenRouter key, 1M context, $0.15/M
+  // Groq LPU — fastest inference, Llama 4 Scout native
+  {
+    id: 'groq:meta-llama/llama-4-scout-17b-16e-instruct',
+    name: 'Llama 4 Scout (Groq ⚡)',
+    chef: 'Groq',
+    chefSlug: 'groq',
+    providers: ['groq'],
+    free: false,
+    context: '128K',
+  },
+  {
+    id: 'groq:llama-3.1-8b-instant',
+    name: 'Llama 3.1 8B (Groq ⚡)',
+    chef: 'Groq',
+    chefSlug: 'groq',
+    providers: ['groq'],
+    free: false,
+    context: '128K',
+  },
+  {
+    id: 'groq:llama-3.3-70b-versatile',
+    name: 'Llama 3.3 70B (Groq ⚡)',
+    chef: 'Groq',
+    chefSlug: 'groq',
+    providers: ['groq'],
+    free: false,
+    context: '128K',
+  },
+  {
+    id: 'groq:moonshotai/kimi-k2-instruct',
+    name: 'Kimi K2 (Groq ⚡)',
+    chef: 'Moonshot',
+    chefSlug: 'moonshot',
+    providers: ['groq'],
+    free: false,
+    context: '262K',
+  },
+  // Cerebras — fast fallback
+  {
+    id: 'cerebras:llama3.1-8b',
+    name: 'Llama 3.1 8B (Cerebras ⚡)',
+    chef: 'Cerebras',
+    chefSlug: 'cerebras',
+    providers: ['cerebras'],
+    free: false,
+    context: '128K',
+  },
+  // OpenRouter fallback
+  {
+    id: 'meta-llama/llama-4-scout',
+    name: 'Llama 4 Scout',
+    chef: 'Meta',
+    chefSlug: 'meta',
+    providers: ['openrouter'],
+    free: false,
+    context: '328K',
+  },
+  // Previous default
   {
     id: 'meta-llama/llama-4-maverick',
     name: 'Llama 4 Maverick',

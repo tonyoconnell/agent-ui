@@ -232,3 +232,27 @@ export const openai =
       ChatCompletion,
       (r) => r.choices[0].message.content,
     )
+
+// Cerebras — purpose-built inference silicon, ~2,100 tok/s, OpenAI-compatible API
+// Get a free key at cloud.cerebras.ai → set CEREBRAS_API_KEY in .env
+export const cerebras =
+  (apiKey: string, model = 'llama3.1-8b'): Complete =>
+  (prompt, ctx) =>
+    callLLM(
+      'cerebras',
+      'https://api.cerebras.ai/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          messages: [
+            ...(ctx?.system ? [{ role: 'system', content: ctx.system }] : []),
+            { role: 'user', content: prompt },
+          ],
+        }),
+      },
+      ChatCompletion,
+      (r) => r.choices[0].message.content,
+    )

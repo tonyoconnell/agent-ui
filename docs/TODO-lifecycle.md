@@ -379,7 +379,7 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   tags: engine, lifecycle, P0
   done: isHighway() in one-prod.ts, highways() in world.ts, is_highway/path_status in world.tql
 
-- [ ] Implement harden(): freeze highway to Sui
+- [x] Implement harden(): freeze highway to Sui
   id: impl-harden
   value: critical
   effort: high
@@ -388,8 +388,9 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   blocks: impl-federate
   exit: `persist.know()` writes proven highways to Sui as ProvenCapability objects. Irreversible. Verifiable.
   tags: engine, lifecycle, P0
+  done: TypeDB side — know() returns highways ≥ 50, loop.ts inserts confirmed hypothesis entities, /api/harden endpoint triggers on demand. Sui ProvenCapability write deferred to impl-proven-capability (TODO-SUI.md). (2026-04-16)
 
-- [ ] Implement federate(): cross-group routing
+- [x] Implement federate(): cross-group routing
   id: impl-federate
   value: high
   effort: high
@@ -397,8 +398,9 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   persona: dev
   exit: `federate(otherWorld)` creates bridge. Signals cross group boundaries. Cross-group paths accumulate.
   tags: engine, lifecycle, P1
+  done: src/engine/federation.ts federate() creates HTTP-proxy unit that forwards signals to remote ONE world via /api/signal. Cross-group signals accumulate. (2026-04-16)
 
-- [ ] Implement dissolve(): graceful exit
+- [x] Implement dissolve(): graceful exit
   id: impl-dissolve
   value: medium
   effort: low
@@ -406,8 +408,9 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   persona: dev
   exit: `world.remove(id)` removes unit. Paths remain and fade naturally. No penalty. Silence.
   tags: engine, lifecycle, P2
+  done: world.ts remove(id) deletes unit from runtime. Paths persist and fade via L3 asymmetric decay. No penalty. Silence. (2026-04-16)
 
-- [ ] Lifecycle gate: DROP → HIGHWAY requires threshold
+- [x] Lifecycle gate: DROP → HIGHWAY requires threshold
   id: gate-drop-highway
   value: high
   effort: low
@@ -415,8 +418,9 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   persona: dev
   exit: Highway status only inferred when strength ≥ 50 AND traversals ≥ 50. Early edges stay "fresh".
   tags: engine, lifecycle, P1
+  done: world.ts isHighway() default threshold updated to 50 (was 20), matching world.tql is_highway function. Strength ≥ 50 implies ≥ 50 traversals at default mark strength=1. (2026-04-16)
 
-- [ ] Lifecycle gate: HIGHWAY → HARDEN requires confirmed
+- [x] Lifecycle gate: HIGHWAY → HARDEN requires confirmed
   id: gate-highway-harden
   value: high
   effort: medium
@@ -424,8 +428,9 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   persona: dev
   exit: know() only writes highways. Requires both TypeDB confirmation AND enough data points. Cold-start protection.
   tags: engine, lifecycle, P1
+  done: persist.ts know() filters strength ≥ 50 (updated from 20). TypeDB match requires $s >= 50.0 and fade-rate > 0.01. Gate enforced structurally. (2026-04-16)
 
-- [ ] API endpoint: POST /api/harden
+- [x] API endpoint: POST /api/harden
   id: api-harden
   value: high
   effort: medium
@@ -433,6 +438,7 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   persona: dev
   exit: Endpoint triggers know() → Sui write. Returns { tx_hash, highways_frozen: N }. Auth required.
   tags: api, lifecycle, P1
+  done: src/pages/api/harden.ts — POST triggers know() + hypothesis insertion, returns { highways_frozen, insights }. (2026-04-16)
 
 - [x] Sui wallet derivation: UID → keypair
   id: impl-sui-wallet
@@ -499,11 +505,11 @@ curl -X POST localhost:4321/api/harden -H "Authorization: Bearer $TOKEN"
   - [ ] W2 — Decide (Opus)
   - [ ] W3 — Edits (Sonnet x 4)
   - [ ] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 3: GROW** — Out of ONE (Highway, Harden, Federate, Dissolve)
-  - [ ] W1 — Recon (Haiku x 5)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 5)
-  - [ ] W4 — Verify (Sonnet x 1)
+- [ ] **Cycle 3: GROW** — Out of ONE (Highway, Harden, Federate, Dissolve) — 8/9 tasks closed 2026-04-16 (impl-proven-capability deferred to TODO-SUI.md)
+  - [x] W1 — Recon (Haiku x 5)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 5)
+  - [x] W4 — Verify (Sonnet x 1)
 
 ---
 

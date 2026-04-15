@@ -383,7 +383,7 @@ export const world = (): PersistentWorld => {
   }
 
   const know = async (): Promise<Insight[]> => {
-    const strong = net.highways(100).filter((h) => h.strength >= 20)
+    const strong = net.highways(100).filter((h) => h.strength >= 50)
     writeSilent(`
       match $p isa path, has strength $s, has fade-rate $fr; $s >= 50.0; $fr > 0.01;
       delete $fr of $p; insert $p has fade-rate 0.01;

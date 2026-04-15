@@ -6,6 +6,11 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { emitClick } from '@/lib/ui-signal'
+import { MarketplaceHighways } from './marketplace/MarketplaceHighways'
+import { OfferPanel } from './marketplace/OfferPanel'
+import { ReceiptPanel } from './marketplace/ReceiptPanel'
+import { STAGES, type TradeStage, useTradeLifecycle } from './marketplace/useTradeLifecycle'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -16,6 +21,8 @@ interface Service {
   strength: number
   revenue: number
   calls: number
+  resistance?: number
+  traversals?: number
 }
 
 interface RevenueData {
@@ -57,6 +64,8 @@ export function Marketplace() {
   const [revenue, setRevenue] = useState<RevenueData>(FALLBACK_REVENUE)
   const [filter, setFilter] = useState('')
   const [loading, setLoading] = useState(true)
+  const { state: trade, go } = useTradeLifecycle()
+  const [offerTarget, setOfferTarget] = useState<Service | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
@@ -93,6 +102,11 @@ export function Marketplace() {
     if (!existing || s.price < existing.price) cheapest.set(s.task, s)
   }
 
+  const isToxic = (s: Service) => {
+    const r = s.resistance ?? 0
+    return r >= 10 && r > s.strength * 2 && r + s.strength > 5
+  }
+
   return (
     <div className="min-h-screen p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -116,7 +130,12 @@ export function Marketplace() {
       {/* Filter */}
       <div className="flex gap-2 mb-6 flex-wrap">
         <button
-          onClick={() => setFilter('')}
+          type="button"
+          onClick={() => {
+            emitClick('ui:marketplace:filter', { filter: '' })
+            setFilter('')
+            go({ type: 'DISCOVER' })
+          }}
           className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
             filter === ''
               ? 'bg-indigo-600 text-white'
@@ -128,7 +147,12 @@ export function Marketplace() {
         {taskTypes.map((t) => (
           <button
             key={t}
-            onClick={() => setFilter(t)}
+            type="button"
+            onClick={() => {
+              emitClick('ui:marketplace:filter', { filter: t })
+              setFilter(t)
+              go({ type: 'DISCOVER' })
+            }}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
               filter === t
                 ? 'bg-indigo-600 text-white'
@@ -139,6 +163,9 @@ export function Marketplace() {
           </button>
         ))}
       </div>
+
+      {/* Lifecycle Rail */}
+      <LifecycleRail stage={trade.stage} />
 
       {/* Services Grid */}
       {loading ? (
@@ -152,6 +179,16 @@ export function Marketplace() {
                 key={`${service.provider}:${service.task}`}
                 service={service}
                 isCheapest={cheapest.get(service.task)?.provider === service.provider}
+                isToxic={isToxic(service)}
+                onSelect={() => {
+                  emitClick('ui:marketplace:select', {
+                    provider: service.provider,
+                    task: service.task,
+                    price: service.price,
+                  })
+                  go({ type: 'OFFER', provider: service.provider, task: service.task, price: service.price })
+                  setOfferTarget(service)
+                }}
               />
             ))}
         </div>
@@ -177,6 +214,22 @@ export function Marketplace() {
           </div>
         </div>
       )}
+
+      <MarketplaceHighways />
+
+      <OfferPanel
+        service={offerTarget}
+        onClose={() => {
+          setOfferTarget(null)
+          go({ type: 'DISCOVER' })
+        }}
+        onOffer={(receipt) => {
+          go({ type: 'ESCROW', receiptId: receipt.id })
+          console.info('offered', receipt)
+        }}
+      />
+
+      <ReceiptPanel state={trade} onDispute={() => go({ type: 'DISPUTE' })} onClose={() => go({ type: 'FADE' })} />
     </div>
   )
 }
@@ -196,17 +249,54 @@ function StatCard({ label, value, unit, sub }: { label: string; value: string; u
   )
 }
 
-function ServiceCard({ service, isCheapest }: { service: Service; isCheapest: boolean }) {
+function LifecycleRail({ stage }: { stage: TradeStage }) {
+  const idx = STAGES.indexOf(stage)
+  return (
+    <div
+      role="group"
+      aria-label="trade lifecycle"
+      className="flex items-center gap-1 mb-6 text-[10px] font-mono tracking-widest flex-wrap"
+    >
+      {STAGES.map((s, i) => (
+        <span key={s} className={i === idx ? 'text-emerald-400' : i < idx ? 'text-slate-400' : 'text-slate-600'}>
+          {s}
+          {i < STAGES.length - 1 ? <span className="mx-1 text-slate-700">→</span> : null}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function ServiceCard({
+  service,
+  isCheapest,
+  isToxic,
+  onSelect,
+}: {
+  service: Service
+  isCheapest: boolean
+  isToxic: boolean
+  onSelect?: () => void
+}) {
   const reputationPct = Math.min(100, (service.strength / 50) * 100)
 
   return (
-    <div className="bg-[#161622] rounded-xl border border-[#252538] p-5 hover:border-indigo-500/40 transition-colors">
+    <button
+      type="button"
+      onClick={onSelect}
+      className="text-left w-full bg-[#161622] rounded-xl border border-[#252538] p-5 hover:border-indigo-500/40 transition-colors"
+    >
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="font-mono text-sm text-white">{service.provider}</div>
           <div className="text-slate-500 text-xs mt-0.5">{service.task}</div>
         </div>
         <div className="flex gap-1.5">
+          {isToxic && (
+            <span className="px-2 py-0.5 rounded-full text-xs bg-rose-500/20 text-rose-400 border border-rose-500/30">
+              toxic
+            </span>
+          )}
           {isCheapest && (
             <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               cheapest
@@ -236,6 +326,6 @@ function ServiceCard({ service, isCheapest }: { service: Service; isCheapest: bo
         <span>{service.calls} calls</span>
         <span className="text-emerald-400/70">{service.revenue.toFixed(2)} earned</span>
       </div>
-    </div>
+    </button>
   )
 }

@@ -450,9 +450,9 @@ describe('Act 7: Weight mechanics — how 2M agents self-rank', () => {
   })
 
   it('isHighway() — when a path becomes a proven route', () => {
-    w.mark('user→analyst', 25)
+    w.mark('user→analyst', 55)
     expect(w.isHighway('user→analyst')).toBe(true)
-    expect(w.isHighway('user→analyst', 30)).toBe(false) // custom threshold
+    expect(w.isHighway('user→analyst', 60)).toBe(false) // custom threshold
     // Highway = reliable. In production: skip LLM routing, go direct.
   })
 

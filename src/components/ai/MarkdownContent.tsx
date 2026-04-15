@@ -8,7 +8,6 @@
 
 import { marked } from 'marked'
 import { useMemo } from 'react'
-import type { BundledLanguage } from 'shiki'
 import { CodeBlock } from './elements/code-block'
 
 interface MarkdownContentProps {
@@ -35,7 +34,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
 
   // Extract and render code blocks with proper syntax highlighting
   const elements = useMemo(() => {
-    const parts: (string | { type: 'code'; language: BundledLanguage; code: string })[] = []
+    const parts: (string | { type: 'code'; language: string; code: string })[] = []
     let lastIndex = 0
 
     // Match <pre><code class="language-xxx">code</code></pre>
@@ -48,7 +47,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
         parts.push(html.substring(lastIndex, match.index))
       }
 
-      const language = (match[1] || 'plaintext') as BundledLanguage
+      const language = (match[1] || 'plaintext') as string
       const code = match[2]
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')

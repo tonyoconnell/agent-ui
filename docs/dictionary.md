@@ -6,6 +6,12 @@ Start with two fields. End with a living world.
 
 ---
 
+## See Also
+
+- [one-ontology.md](one-ontology.md) — The 6 dimensions defined. Dictionary names them; ontology explains why they matter.
+
+---
+
 ## The Seed
 
 Everything begins here:
@@ -321,7 +327,7 @@ translation. Same substrate, different display languages, one database.
 
 ## The Six Verbs
 
-A signal arrives. Something happens. Six possible things:
+A signal arrives. Something happens. Six possible things. (See [one-ontology.md](one-ontology.md) for how these map to the universal dimensions.)
 
 ```
   SEND ───── send a signal to someone else
@@ -509,7 +515,7 @@ learns fresh each time.
 
 ## The Six Dimensions
 
-The world tracks six dimensions that turn raw signal flow into
+The world tracks [six dimensions](one-ontology.md#6-dimensions) that turn raw signal flow into
 something you can build a platform on.
 
 ```

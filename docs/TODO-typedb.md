@@ -293,7 +293,7 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   tags: engine, build, P1
   done: wave-runner.ts — W4 handler calls score(verdict) then markDims(net, edge, dimScores). net threaded from registerBuilder through waveRunner overloads.
 
-- [ ] Make /do autonomous loop wave-aware
+- [x] Make /do autonomous loop wave-aware ✓ .claude/commands/do.md Wave-Aware Model Routing section · 2026-04-16
   id: work-wave-aware
   value: high
   effort: medium

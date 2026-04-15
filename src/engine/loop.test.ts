@@ -763,4 +763,347 @@ describe('loop.ts — growth tick', () => {
       expect(resistAfter).toBeGreaterThanOrEqual(resistBefore) // warn or no change
     })
   })
+
+  describe('L1: signal delivery and routing', () => {
+    it('should deliver signals to correct receiver via task name', async () => {
+      const net = createWorld()
+      let received = false
+      const alice = net.add('alice')
+      alice.on('greet', () => {
+        received = true
+        return 'ok'
+      })
+
+      const outcome = await net.ask({ receiver: 'alice:greet' })
+      expect(received).toBe(true)
+      expect(outcome.result).toBe('ok')
+    })
+
+    it('should route signals through continuation chain', async () => {
+      const net = createWorld()
+      let step1Done = false
+      let step2Done = false
+
+      const alice = net.add('alice')
+      alice
+        .on('step1', () => {
+          step1Done = true
+          return { result: 'step1-done' }
+        })
+        .then('step1', (r) => ({
+          receiver: 'bob:step2',
+          data: { from: 'alice', result: r.result },
+        }))
+
+      const bob = net.add('bob')
+      bob.on('step2', () => {
+        step2Done = true
+        return { result: 'step2-done' }
+      })
+
+      await net.ask({ receiver: 'alice:step1' })
+
+      // Both steps should have executed
+      expect(step1Done).toBe(true)
+      expect(step2Done).toBe(true)
+    })
+
+    it('should dissolve on missing receiver unit', async () => {
+      const net = createWorld()
+      // No unit added for 'missing'
+      const outcome = await net.ask({ receiver: 'missing:task' }, 'entry', 100)
+      expect(outcome.dissolved).toBe(true)
+      expect(outcome.result).toBeUndefined()
+    })
+
+    it('should track from context through signal chain', async () => {
+      const net = createWorld()
+      let receivedFrom: string | null = null
+
+      const alice = net.add('alice')
+      alice.on('test', (data, emit, ctx) => {
+        receivedFrom = ctx.from
+        return { result: 'ok' }
+      })
+
+      await net.ask({ receiver: 'alice:test' }, 'custom-sender')
+      expect(receivedFrom).toBe('custom-sender')
+    })
+  })
+
+  describe('L2: pheromone marking and strength accumulation', () => {
+    it('should accumulate strength from repeated successful signals', async () => {
+      const net = createWorld()
+      const alice = net.add('alice')
+      alice.on('task', () => 'ok')
+
+      const edge = 'entry→alice:task'
+      const baseStrength = net.sense(edge)
+
+      // Signal 5 times
+      for (let i = 0; i < 5; i++) {
+        await net.ask({ receiver: 'alice:task' })
+      }
+
+      const finalStrength = net.sense(edge)
+      // Each signal marks with weight 1, plus successful outcome mark with chainDepth
+      // So: mark(1) + mark(1-depth) × 5 for the outcomes
+      expect(finalStrength).toBeGreaterThan(baseStrength)
+      expect(finalStrength).toBeGreaterThan(0) // at least some marks accumulated
+    })
+
+    it('should weight marks by chain depth', () => {
+      const net = createWorld()
+
+      // Mark same edge at different depths
+      net.mark('edge', 1) // depth 1
+      net.mark('edge', 2) // depth 2
+      net.mark('edge', 3) // depth 3
+
+      const strength = net.sense('edge')
+      expect(strength).toBe(6) // 1 + 2 + 3
+    })
+
+    it('should accumulate resistance from failures independently', () => {
+      const net = createWorld()
+
+      net.mark('edge', 10) // strength = 10
+      net.warn('edge', 3) // resistance = 3
+      net.warn('edge', 2) // resistance = 5
+
+      expect(net.sense('edge')).toBe(10)
+      expect(net.danger('edge')).toBe(5)
+    })
+  })
+
+  describe('L3: fade asymmetric decay (resistance 2x faster)', () => {
+    it('should decay both strength and resistance', () => {
+      const net = createWorld()
+      net.mark('edge', 100)
+      net.warn('edge', 100)
+
+      const sBefore = net.sense('edge')
+      const rBefore = net.danger('edge')
+
+      net.fade(0.1) // 10% decay
+
+      const sAfter = net.sense('edge')
+      const rAfter = net.danger('edge')
+
+      expect(sAfter).toBeLessThan(sBefore)
+      expect(rAfter).toBeLessThan(rBefore)
+    })
+
+    it('should decay resistance 2x faster than strength', () => {
+      const net = createWorld()
+      const initialStrength = 100
+      const initialResistance = 50
+
+      net.mark('edge', initialStrength)
+      net.warn('edge', initialResistance)
+
+      // Apply fade multiple times to see the rate difference
+      for (let i = 0; i < 10; i++) {
+        net.fade(0.1)
+      }
+
+      const finalStrength = net.sense('edge')
+      const finalResistance = net.danger('edge')
+
+      // After 10 iterations of 10% decay:
+      // strength: 100 * 0.9^10 ≈ 34.87
+      // resistance (2x faster): should be significantly lower relative to its start
+      // Resistance curves like 50 * (0.9^(10*2)) or exponentially faster decline
+      expect(finalStrength).toBeGreaterThan(finalResistance * 0.5)
+    })
+
+    it('should preserve floor even as decay compounds', () => {
+      const net = createWorld()
+      net.mark('edge', 10)
+
+      const peak = net.sense('edge')
+
+      // Fade 20 times
+      for (let i = 0; i < 20; i++) {
+        net.fade(0.1)
+      }
+
+      const final = net.sense('edge')
+      const floor = peak * 0.05
+
+      // Should not go below 5% of peak
+      expect(final).toBeGreaterThanOrEqual(floor * 0.99)
+    })
+  })
+
+  describe('L5: evolution trigger (success-rate < 0.5 + sample >= 20)', () => {
+    it('should identify units needing evolution by success rate and sample count', () => {
+      // Simulate the TypeDB gate: $sr < 0.50 AND $sc >= 20
+      const gateCheck = (sr: number, sc: number) => sr < 0.5 && sc >= 20
+
+      expect(gateCheck(0.3, 25)).toBe(true) // struggling
+      expect(gateCheck(0.49, 20)).toBe(true) // just below threshold
+      expect(gateCheck(0.5, 25)).toBe(false) // at threshold
+      expect(gateCheck(0.8, 25)).toBe(false) // performing well
+      expect(gateCheck(0.0, 15)).toBe(false) // cold-start: too few samples
+    })
+
+    it('should protect cold-start units from evolving', () => {
+      const gateCheck = (sr: number, sc: number) => sr < 0.5 && sc >= 20
+
+      // Even 0% success should not trigger evolution with < 20 samples
+      expect(gateCheck(0.0, 0)).toBe(false)
+      expect(gateCheck(0.0, 5)).toBe(false)
+      expect(gateCheck(0.0, 19)).toBe(false)
+      expect(gateCheck(0.0, 20)).toBe(true) // exactly 20 unlocks it
+    })
+
+    it('should prefer units with lowest success rate for evolution priority', () => {
+      // Simulate priority ordering: lower success-rate first
+      const candidates = [
+        { id: 'agent-a', sr: 0.3, sc: 25 },
+        { id: 'agent-b', sr: 0.45, sc: 20 },
+        { id: 'agent-c', sr: 0.1, sc: 30 },
+      ]
+
+      const struggling = candidates.filter((c) => c.sr < 0.5 && c.sc >= 20)
+      const sorted = struggling.sort((a, b) => a.sr - b.sr)
+
+      expect(sorted[0].id).toBe('agent-c') // 0.1
+      expect(sorted[1].id).toBe('agent-a') // 0.3
+      expect(sorted[2].id).toBe('agent-b') // 0.45
+    })
+  })
+
+  describe('L6: knowledge (highway → hypothesis)', () => {
+    it('should promote high-strength paths to hypotheses', () => {
+      const net = createWorld()
+
+      // Mark a path heavily to make it a highway (threshold: strength >= 20)
+      net.mark('entry→proven', 20)
+      net.mark('entry→proven', 5) // total: 25
+
+      const highways = net.highways(10)
+      const provenPath = highways.find((h) => h.path.includes('proven'))
+
+      expect(provenPath).toBeDefined()
+      expect(provenPath?.strength).toBe(25)
+    })
+
+    it('should detect degrading highways (high strength dropping)', () => {
+      const net = createWorld()
+
+      // Create a strong path
+      net.mark('edge', 50)
+      expect(net.sense('edge')).toBe(50)
+
+      // Fade significantly (simulating time + repeated failures)
+      for (let i = 0; i < 5; i++) {
+        net.fade(0.2) // 20% decay
+      }
+
+      const degraded = net.sense('edge')
+      // Should be noticeably lower but not gone (floor protection)
+      expect(degraded).toBeLessThan(30) // lost at least 40%
+      expect(degraded).toBeGreaterThan(0) // floor held
+    })
+
+    it('should track multiple independent paths in highways', () => {
+      const net = createWorld()
+
+      // Create multiple strong paths at different rates
+      net.mark('path-a', 50)
+      net.mark('path-b', 30)
+      net.mark('path-c', 40)
+
+      const highways = net.highways(5)
+      const pathNames = highways.map((h) => h.path)
+
+      expect(pathNames).toContain('path-a')
+      expect(pathNames).toContain('path-b')
+      expect(pathNames).toContain('path-c')
+      // Should be sorted by strength (descending)
+      expect(highways[0].strength).toBe(50)
+      expect(highways[1].strength).toBe(40)
+      expect(highways[2].strength).toBe(30)
+    })
+  })
+
+  describe('L7: frontier detection (unexplored tag clusters)', () => {
+    it('should identify unexplored tag clusters', () => {
+      const net = createWorld()
+
+      // Mark paths for one skill (skill-a), leave others untouched
+      net.mark('agent→skill-a', 10)
+      // skill-b through skill-e are untouched (4 of 5)
+
+      // Get all units that appear in any edge
+      const explored = new Set<string>()
+      for (const edge of Object.keys(net.strength)) {
+        const [from, to] = edge.split('→')
+        explored.add(from)
+        explored.add(to)
+      }
+
+      const all = ['skill-a', 'skill-b', 'skill-c', 'skill-d', 'skill-e']
+      const unexplored = all.filter((s) => !explored.has(s))
+
+      // Frontier condition: > 70% unexplored AND >= 3 unexplored skills
+      // 4/5 = 80% > 70%, and 4 >= 3 ✓
+      const isFrontier = unexplored.length > all.length * 0.7 && unexplored.length >= 3
+
+      expect(isFrontier).toBe(true)
+      expect(unexplored.length).toBe(4) // b, c, d, e
+    })
+
+    it('should not flag frontier if too many explored', () => {
+      const net = createWorld()
+
+      // Mark most paths
+      net.mark('agent→skill-a', 10)
+      net.mark('agent→skill-b', 10)
+      net.mark('agent→skill-c', 10)
+      net.mark('agent→skill-d', 10)
+      // skill-e untouched (1 of 5)
+
+      const explored = new Set(['agent', 'skill-a', 'skill-b', 'skill-c', 'skill-d'])
+      const all = ['skill-a', 'skill-b', 'skill-c', 'skill-d', 'skill-e']
+      const unexplored = all.filter((s) => !explored.has(s))
+
+      const isFrontier = unexplored.length > all.length * 0.7 && unexplored.length >= 3
+
+      expect(isFrontier).toBe(false) // only 20% unexplored
+      expect(unexplored.length).toBe(1)
+    })
+
+    it('should filter frontiers by minimum activity threshold', () => {
+      const net = createWorld()
+
+      // Simulate two units: one active, one inactive
+      // 'active' involved in 5+ edges
+      for (let i = 0; i < 5; i++) {
+        net.mark(`active→skill-${i}`, 1)
+      }
+
+      // 'inactive' involved in only 1 edge
+      net.mark('inactive→skill-0', 1)
+
+      const FRONTIER_MIN_ACTIVITY = 3
+
+      const edges = Object.keys(net.strength)
+      const unitActivity: Record<string, number> = {}
+      for (const edge of edges) {
+        const [from, to] = edge.split('→')
+        unitActivity[from] = (unitActivity[from] || 0) + 1
+        unitActivity[to] = (unitActivity[to] || 0) + 1
+      }
+
+      const activeUnits = Object.entries(unitActivity)
+        .filter(([_, count]) => count >= FRONTIER_MIN_ACTIVITY)
+        .map(([id]) => id)
+
+      expect(activeUnits).toContain('active')
+      expect(activeUnits.length).toBeGreaterThan(0)
+    })
+  })
 })

@@ -125,6 +125,21 @@ Primary: `routing.test.ts` (54 tests), `persist.test.ts` (39), `loop.test.ts` (3
 4. Cache stale on sync → `invalidateAdlCache()` empties entry, next request refetches
 5. TypeDB read error → fail-closed (deny unless `ADL_ENFORCEMENT_MODE=audit`)
 
+### Chat Layer (pages/chat)
+
+*Verified 2026-04-16. Default: `groq:meta-llama/llama-4-scout-17b-16e-instruct` via Groq LPU.*
+
+| Model | Speed | End-to-End | Notes |
+|-------|-------|------------|-------|
+| **`groq:llama-4-scout-17b-16e-instruct`** | **87 tok/s** | **~445ms** | Default — Llama 4 on Groq LPU |
+| `groq:llama-3.1-8b-instant` | 82 tok/s | ~502ms | Cheaper fallback |
+| `groq:llama-3.3-70b-versatile` | 71 tok/s | ~620ms | Best quality |
+| `groq:kimi-k2-instruct` | 33 tok/s | ~700ms | 262K context (Moonshot AI) |
+| `cerebras:llama3.1-8b` | 154 tok/s | ~578ms | Cerebras fallback |
+| OpenRouter `llama-4-scout` | ~13 tok/s | ~2,600ms | Last resort |
+
+**6× faster than OpenRouter.** Three-tier routing: `groq:` → Groq LPU, `cerebras:` → Cerebras silicon, plain → OpenRouter. Substrate picks by prefix + key availability. Pheromone marks the `chat→model` edge on every response — cost + quality + latency compound over time into the fastest winning path.
+
 ### Edge Layer (Cloudflare)
 
 | Operation | Time | Scale |
@@ -455,6 +470,23 @@ ONE:         Agent earns → mark(path) → Sui → seconds
              ↑ immutable, provable, transparent
 ```
 
+**Verified testnet (2026-04-16):**
+
+| Operation | Result | Cost | Network |
+|-----------|--------|------|---------|
+| `set_fee_bps(200)` — fee governance | 4.25s end-to-end | 1,024,320 MIST (~0.001 SUI) | Testnet epoch 1070 |
+
+```
+Tx digest:  FzVb11X5hANsG4SLiCo6Acr1eBApEBfJf4HM7eBmriHC
+Protocol:   0xc30a7702e7c8a4b9914d8bdb4b1da20c5e2c9bc924fed1e8c947ed66ec16e379
+Before:     fee_bps = 50  (0.5%)
+After:      fee_bps = 200 (2.0%)
+Status:     Success ✓
+```
+
+Fee governance is on-chain with no admin cap — any authorized signer can call `set_fee_bps` via
+`scripts/set-fee-bps.ts`. The Protocol object version advances atomically on each change.
+
 ---
 
 ## Verification Commands
@@ -518,6 +550,7 @@ Speed is not abstract. Every stage of the agent lifecycle has a deadline:
 | **DISCOVER (L1)** | Find agent <100ms | Fresh routing, current trails | ✓ <100ms ask |
 | **BRIDGE (Sui)** | Fail-closed <1ms | Real-money safety, deny on error | ✓ <1ms audit |
 | **HARDEN (L4)** | Freeze <1s | Sui proof per highway | ✓ <1s |
+| **FEE GOV (Sui)** | Protocol update <5s | On-chain fee governance, no admin cap | ✓ 4.25s testnet |
 
 **Core rule:** Nervous system (L1–L3) invisible vs LLM. If marking takes 50ms, you lose. At 0.001ms, it's free.
 

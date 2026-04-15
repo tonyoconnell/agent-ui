@@ -400,7 +400,7 @@ export const world = (): World => {
     revenue[path] = (revenue[path] || 0) + amount
   }
 
-  const isHighway = (path: string, threshold = 20) => (strength[path] || 0) - (resistance[path] || 0) >= threshold
+  const isHighway = (path: string, threshold = 50) => (strength[path] || 0) - (resistance[path] || 0) >= threshold
 
   const has = (id: string) => id in units
   const list = () => Object.keys(units)

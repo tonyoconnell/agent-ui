@@ -30,6 +30,20 @@ mark() on result, warn() on failure, warn(0.5) on dissolved, neutral on timeout.
 | empty | `select()` | user interrupts |
 | `--once` | `select()` | one task completes |
 
+## Wave-Aware Model Routing
+
+Every task has a `task-wave` attribute (W1/W2/W3/W4) that drives model selection:
+
+| Wave | Model | Purpose |
+|------|-------|---------|
+| W1 | Haiku | Recon — fast parallel reads, pattern detection |
+| W2 | Opus | Decide — complex reasoning, tradeoffs |
+| W3 | Sonnet | Edit — precise refactors, code synthesis |
+| W4 | Sonnet | Verify — consistency checks, rubric scoring |
+
+When selecting next task, use `task.task-wave` to route the execution to the correct model.
+Fallback to `EFFORT_MODEL` (Sonnet) if `task-wave` is absent.
+
 ## Steps
 
 ### `<TODO-file>` — Wave execution

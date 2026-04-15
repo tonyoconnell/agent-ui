@@ -1,31 +1,9 @@
 ---
 export const prerender = true
 import Layout from "@/layouts/Layout.astro"
-import { ChatShell } from "@/components/ai/chat-v3"
+import { FastChat } from "@/components/ai/FastChat"
 ---
 
 <Layout title="Chat">
-  <ChatShell client:only="react" />
+  <FastChat client:only="react" />
 </Layout>
-
-<style is:global>
-  /* Voice pulse animation */
-  @keyframes voice-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-  }
-
-  .animate-voice-pulse {
-    animation: voice-pulse 1.5s ease-in-out infinite;
-  }
-
-  /* Message fade in */
-  @keyframes message-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .message-enter {
-    animation: message-in 0.2s ease-out;
-  }
-</style>

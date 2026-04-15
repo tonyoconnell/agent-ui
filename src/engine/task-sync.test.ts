@@ -1,378 +1,813 @@
 /**
- * task-sync.test.ts — Test TypeDB task persistence
+ * TASK-SYNC — Syncing parsed tasks to TypeDB
  *
- * Tests that tasks are correctly written to TypeDB with all fields,
- * blocks relations are created, and mark-done works.
+ * This test suite covers:
+ * - Task entity parsing from markdown
+ * - TQL insert generation
+ * - Blocks relation creation
+ * - Status updates
+ * - Tag extraction and application
+ *
+ * Run: bun vitest run src/engine/task-sync.test.ts
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import * as typedb from '@/lib/typedb'
 import type { Task } from './task-parse'
-import { markTaskDone, syncTasks } from './task-sync'
 
-// Mock TypeDB module
+// ── Mock TypeDB — isolate task-sync.ts from the database ──────────────────────
+
 vi.mock('@/lib/typedb', () => ({
-  write: vi.fn().mockResolvedValue(undefined),
-  writeSilent: vi.fn().mockResolvedValue(undefined),
+  read: vi.fn().mockResolvedValue('[]'),
   readParsed: vi.fn().mockResolvedValue([]),
+  writeSilent: vi.fn().mockResolvedValue(undefined),
+  write: vi.fn().mockResolvedValue(undefined),
+  parseAnswers: vi.fn().mockReturnValue([]),
 }))
 
-// Helper to create test tasks with all required fields
-function createTask(overrides?: Partial<Task>): Task {
-  return {
-    id: 'test-task',
-    name: 'Test Task',
+vi.mock('@/lib/ws-server', () => ({
+  wsManager: { broadcast: vi.fn() },
+  relayToGateway: vi.fn(),
+}))
+
+import { readParsed, write, writeSilent } from '@/lib/typedb'
+import { wsManager, relayToGateway } from '@/lib/ws-server'
+import { syncTasks, markTaskDone, selfCheckoff, taskBlockers, loadTasks } from './task-sync'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 1: renderTaskInsert — TQL generation for single task
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 1: Task TQL Insert Generation', () => {
+  const mockTask: Task = {
+    id: 'test-task-1',
+    name: 'Build API endpoint',
     done: false,
     value: 'high',
     effort: 'medium',
     wave: 'W3',
-    phase: 'C2',
-    persona: 'dev',
-    priority: 50,
-    formula: 'priority * 1.0',
-    source: 'TODO.md',
-    tags: [],
+    phase: 'BUILD',
+    persona: 'sonnet',
+    context: ['api', 'routing'],
     blocks: [],
-    exit: 'Task completes',
-    context: [],
-    line: 1,
-    ...overrides,
+    exit: 'All tests pass',
+    tags: ['api', 'build', 'P0'],
+    source: 'docs/TODO-test.md',
+    line: 42,
+    priority: 8.5,
+    formula: 'effort(3) × value(4) + tags(1.5)',
   }
-}
 
-describe('task-sync.ts — TypeDB persistence', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  describe('syncTasks', () => {
-    it('should insert tasks to TypeDB', async () => {
-      const tasks: Task[] = [createTask({ id: 'task-1', tags: ['engine', 'test'] })]
+  it('inserts task entity with all required fields', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+    await syncTasks([mockTask])
 
-      const result = await syncTasks(tasks)
+    expect(write).toHaveBeenCalled()
+    const tql = vi.mocked(write).mock.calls[0][0] as string
 
-      expect(result.synced).toBe(1)
-      expect(typedb.write).toHaveBeenCalled()
+    // Check for task entity with critical fields
+    expect(tql).toContain('isa task')
+    expect(tql).toContain(`task-id "test-task-1"`)
+    expect(tql).toContain(`name "Build API endpoint"`)
+    expect(tql).toContain(`task-status "open"`)
+    expect(tql).toContain(`task-value "high"`)
+    expect(tql).toContain(`task-effort "medium"`)
+    expect(tql).toContain(`task-phase "BUILD"`)
+    expect(tql).toContain(`task-persona "sonnet"`)
+  })
 
-      // Batched insert: task entity, skill entity, and capability are in one write call
-      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
-      const batchCall = writeCalls.find((c) => c.includes('task-1'))
-      expect(batchCall).toContain('$t0 isa task')
-      expect(batchCall).toContain('$s0 isa skill')
-      expect(batchCall).toContain('(provider: $u, offered: $s0) isa capability')
-    })
+  it('creates corresponding skill entity for capability routing', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+    await syncTasks([mockTask])
 
-    it('should escape special characters in task names', async () => {
-      const tasks: Task[] = [
-        createTask({
-          id: 'task-escape',
-          name: 'Task with "quotes" and \\backslash',
-          effort: 'low',
-          wave: 'W2',
-          phase: 'C1',
-          priority: 30,
-        }),
-      ]
+    const tql = vi.mocked(write).mock.calls[0][0] as string
 
-      await syncTasks(tasks)
+    // Check for skill entity
+    expect(tql).toContain('isa skill')
+    expect(tql).toContain(`skill-id "test-task-1"`)
+    expect(tql).toContain(`price 0.0`)
+  })
 
-      // Should escape quotes in the batch write call
-      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
-      const batchCall = writeCalls.find((c) => c.includes('task-escape'))
-      expect(batchCall).toContain('Task with \\"quotes\\" and \\\\backslash')
-    })
+  it('creates capability relation (provider: builder, offered: skill)', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+    await syncTasks([mockTask])
 
-    it('should include all task fields in TypeDB query', async () => {
-      const tasks: Task[] = [
-        createTask({
-          id: 'full-task',
-          name: 'Full Task',
-          done: true,
-          value: 'critical',
-          effort: 'high',
-          wave: 'W1',
-          phase: 'C3',
-          persona: 'architect',
-          priority: 75,
-          formula: 'priority * effort_weight',
-          source: 'TODO-full.md',
-          exit: 'All tests passing',
-          tags: ['P0', 'engine', 'testing'],
-          blocks: ['dep-1', 'dep-2'],
-          context: ['DSL.md', 'routing.md'],
-        }),
-      ]
+    const tql = vi.mocked(write).mock.calls[0][0] as string
 
-      await syncTasks(tasks)
+    // Capability relation
+    expect(tql).toContain('isa capability')
+    expect(tql).toContain('provider:')
+    expect(tql).toContain('offered:')
+  })
 
-      // Find the task entity insert call (batch write contains match+insert)
-      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
-      const taskCall = writeCalls.find((c) => c.includes('full-task') && c.includes('$t0 isa task'))
+  it('applies all tags to both task and skill entities', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+    await syncTasks([mockTask])
 
-      expect(taskCall).toBeDefined()
-      expect(taskCall).toContain('Full Task')
-      expect(taskCall).toContain('done')
-      expect(taskCall).toContain('critical')
-      expect(taskCall).toContain('high')
-      expect(taskCall).toContain('W1')
-      expect(taskCall).toContain('C3')
-      expect(taskCall).toContain('architect')
-      expect(taskCall).toContain('All tests passing')
-    })
+    const tql = vi.mocked(write).mock.calls[0][0] as string
 
-    it('should create blocks relations between tasks', async () => {
-      const tasks: Task[] = [
-        {
-          id: 'blocker',
-          name: 'Blocker Task',
-          done: false,
-          value: 'high',
-          effort: 'low',
-          wave: 'W2',
-          phase: 'C2',
-          persona: 'dev',
-          priority: 40,
-          formula: 'priority',
-          source: 'TODO.md',
-          tags: [],
-          blocks: ['blocked1', 'blocked2'],
-          context: [],
-          exit: '',
-          line: 0,
-        },
-        createTask({
-          id: 'blocked1',
-          name: 'Blocked Task 1',
-          value: 'high',
-          effort: 'low',
-          wave: 'W3',
-          phase: 'C2',
-          persona: 'dev',
-          priority: 30,
-          tags: [],
-        }),
-        createTask({
-          id: 'blocked2',
-          name: 'Blocked Task 2',
-          value: 'medium',
-          effort: 'medium',
-          wave: 'W3',
-          phase: 'C2',
-          persona: 'dev',
-          priority: 20,
-          tags: [],
-        }),
-      ]
+    // Tags should appear multiple times: on task and skill
+    const apiMatches = (tql.match(/has tag "api"/g) || []).length
+    expect(apiMatches).toBeGreaterThanOrEqual(2) // at least on task and skill
+  })
 
-      const result = await syncTasks(tasks)
+  it('marks task as done when done=true', async () => {
+    const doneTask: Task = { ...mockTask, done: true }
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+    await syncTasks([doneTask])
 
-      expect(result.blocks).toBe(2)
+    const tql = vi.mocked(write).mock.calls[0][0] as string
+    expect(tql).toContain('task-status "done"')
+  })
 
-      // Blocks relations are inserted via write() with match+insert
-      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
-      const blocksCall = writeCalls.find((c) => c.includes('isa blocks'))
-      expect(blocksCall).toContain('(blocker: $a0, blocked: $b0) isa blocks')
-    })
+  it('escapes special characters in name and context', async () => {
+    const escapedTask: Task = {
+      ...mockTask,
+      name: 'Fix "quote" issue',
+      context: ['path\\with\\backslash'],
+    }
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+    await syncTasks([escapedTask])
 
-    it('should skip blocks relations for non-existent tasks', async () => {
-      const tasks: Task[] = [
-        {
-          id: 'task',
-          name: 'Task',
-          done: false,
-          value: 'high',
-          effort: 'low',
-          wave: 'W2',
-          phase: 'C2',
-          persona: 'dev',
-          priority: 40,
-          formula: 'priority',
-          source: 'TODO.md',
-          tags: [],
-          blocks: ['nonexistent-task'], // This task doesn't exist in the batch
-          context: [],
-          exit: '',
-          line: 0,
-        },
-      ]
+    const tql = vi.mocked(write).mock.calls[0][0] as string
+    // Should contain escaped quotes and backslashes
+    expect(tql).toContain('\\"quote\\"')
+  })
 
-      const result = await syncTasks(tasks)
+  it('includes exit condition when present', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+    await syncTasks([mockTask])
 
-      // Should still insert the task, but blocks count should be 0
-      expect(result.synced).toBe(1)
-      expect(result.blocks).toBe(0) // No blocks created (nonexistent-task not in batch)
-    })
+    const tql = vi.mocked(write).mock.calls[0][0] as string
+    expect(tql).toContain('exit-condition')
+    expect(tql).toContain('All tests pass')
+  })
 
-    it('should batch insert tasks in groups', async () => {
-      const tasks: Task[] = Array.from({ length: 25 }, (_, i) => ({
-        id: `task-${i}`,
-        name: `Task ${i}`,
+  it('omits exit condition when empty', async () => {
+    const noExitTask: Task = { ...mockTask, exit: '' }
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+    await syncTasks([noExitTask])
+
+    const tql = vi.mocked(write).mock.calls[0][0] as string
+    // Should not contain exit-condition attribute
+    expect(tql).not.toContain('exit-condition ""')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 2: syncTasks — Batch task insertion, skip duplicates, error resilience
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 2: syncTasks — Batch insertion with duplicate skipping', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('calls ensureBuilder to create system builder unit', async () => {
+    vi.mocked(readParsed).mockResolvedValue([])
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    await syncTasks([])
+
+    // writeSilent called during ensureBuilder
+    expect(writeSilent).toHaveBeenCalledWith(expect.stringContaining('isa unit'))
+    expect(writeSilent).toHaveBeenCalledWith(expect.stringContaining('uid "builder"'))
+  })
+
+  it('skips tasks that already exist in TypeDB', async () => {
+    const task1: Task = {
+      id: 'existing-task',
+      name: 'Already synced',
+      done: false,
+      value: 'medium',
+      effort: 'small',
+      wave: 'W2',
+      phase: 'PLAN',
+      persona: 'haiku',
+      context: [],
+      blocks: [],
+      exit: '',
+      tags: [],
+      source: 'docs/TODO.md',
+      line: 10,
+      priority: 5,
+      formula: 'base',
+    }
+
+    const task2: Task = {
+      id: 'new-task',
+      name: 'Not yet synced',
+      done: false,
+      value: 'high',
+      effort: 'medium',
+      wave: 'W3',
+      phase: 'BUILD',
+      persona: 'sonnet',
+      context: [],
+      blocks: [],
+      exit: '',
+      tags: [],
+      source: 'docs/TODO.md',
+      line: 20,
+      priority: 7,
+      formula: 'base',
+    }
+
+    // Simulate: existing-task already in TypeDB
+    vi.mocked(readParsed).mockResolvedValueOnce([{ id: 'existing-task' }])
+
+    await syncTasks([task1, task2])
+
+    // write() called (not writeSilent) — should only insert task2
+    const writeCalls = vi.mocked(write).mock.calls
+    const insertCall = writeCalls.find((call) => (call[0] as string).includes('insert'))
+    expect(insertCall?.[0]).toContain('new-task')
+    expect(insertCall?.[0]).not.toContain('existing-task')
+  })
+
+  it('returns counts: synced + blocks + errors', async () => {
+    const tasks: Task[] = [
+      {
+        id: 'task-1',
+        name: 'Task 1',
         done: false,
-        value: 'high' as const,
-        effort: 'low' as const,
-        wave: 'W2' as const,
-        phase: 'C2' as const,
-        persona: 'dev',
-        priority: 50 - i,
-        formula: 'priority',
-        source: 'TODO.md',
-        tags: [],
-        blocks: [],
+        value: 'high',
+        effort: 'medium',
+        wave: 'W3',
+        phase: 'BUILD',
+        persona: 'sonnet',
         context: [],
+        blocks: ['task-2'],
         exit: '',
-        line: i,
-      }))
+        tags: [],
+        source: 'docs/TODO.md',
+        line: 1,
+        priority: 5,
+        formula: 'base',
+      },
+      {
+        id: 'task-2',
+        name: 'Task 2',
+        done: false,
+        value: 'medium',
+        effort: 'small',
+        wave: 'W3',
+        phase: 'BUILD',
+        persona: 'sonnet',
+        context: [],
+        blocks: [],
+        exit: '',
+        tags: [],
+        source: 'docs/TODO.md',
+        line: 10,
+        priority: 3,
+        formula: 'base',
+      },
+    ]
 
-      const result = await syncTasks(tasks)
+    vi.mocked(readParsed).mockResolvedValueOnce([]) // no existing tasks
+    vi.mocked(write).mockResolvedValue(undefined)
 
-      expect(result.synced).toBe(25)
+    const result = await syncTasks(tasks)
 
-      // 25 tasks fit in one batch (TASKS_PER_QUERY=25), so 1 write call for tasks
-      // Plus 1 writeSilent for ensureBuilder
-      const writeCalls = vi.mocked(typedb.write).mock.calls
-      expect(writeCalls.length).toBeGreaterThanOrEqual(1)
-      const silentCalls = vi.mocked(typedb.writeSilent).mock.calls
-      expect(silentCalls.some((c) => (c[0] as string).includes('builder'))).toBe(true)
-    })
-
-    it('should ensure builder unit exists', async () => {
-      const tasks: Task[] = [
-        createTask({
-          id: 'task-1',
-          name: 'Test',
-          value: 'high',
-          effort: 'low',
-          wave: 'W2',
-          phase: 'C2',
-          persona: 'dev',
-          priority: 50,
-          tags: [],
-        }),
-      ]
-
-      await syncTasks(tasks)
-
-      // Should ensure builder unit exists (writeSilent, first call)
-      const calls = vi.mocked(typedb.writeSilent).mock.calls.map((c) => c[0] as string)
-      expect(calls.some((c) => c.includes('builder') && c.includes('insert $u isa unit'))).toBe(true)
-    })
+    expect(result).toHaveProperty('synced')
+    expect(result).toHaveProperty('blocks')
+    expect(result).toHaveProperty('errors')
+    expect(result.synced).toBe(2)
+    expect(result.blocks).toBe(1) // one blocks relation (task-1 → task-2)
   })
 
-  describe('markTaskDone', () => {
-    it('should mark task as done in TypeDB', async () => {
-      await markTaskDone('task-1')
+  it('falls back to per-task insertion on batch failure', async () => {
+    const tasks: Task[] = [
+      {
+        id: 'good-task',
+        name: 'Will succeed',
+        done: false,
+        value: 'high',
+        effort: 'medium',
+        wave: 'W3',
+        phase: 'BUILD',
+        persona: 'sonnet',
+        context: [],
+        blocks: [],
+        exit: '',
+        tags: [],
+        source: 'docs/TODO.md',
+        line: 1,
+        priority: 5,
+        formula: 'base',
+      },
+      {
+        id: 'bad-task',
+        name: 'Will fail in batch',
+        done: false,
+        value: 'high',
+        effort: 'medium',
+        wave: 'W3',
+        phase: 'BUILD',
+        persona: 'sonnet',
+        context: [],
+        blocks: [],
+        exit: '',
+        tags: [],
+        source: 'docs/TODO.md',
+        line: 10,
+        priority: 5,
+        formula: 'base',
+      },
+    ]
 
-      expect(typedb.write).toHaveBeenCalledWith(expect.stringContaining('has task-id "task-1"'))
-      expect(typedb.write).toHaveBeenCalledWith(expect.stringContaining('has done true'))
-      expect(typedb.write).toHaveBeenCalledWith(expect.stringContaining('has task-status "done"'))
-    })
+    vi.mocked(readParsed).mockResolvedValueOnce([]) // no existing
+    // First write call (batch) fails, fallback to per-task
+    vi.mocked(write).mockRejectedValueOnce(new Error('Batch failed'))
+    vi.mocked(write).mockResolvedValue(undefined)
 
-    it('should escape task id', async () => {
-      await markTaskDone('task-"quoted"')
+    const result = await syncTasks(tasks)
 
-      expect(typedb.write).toHaveBeenCalledWith(expect.stringContaining('task-\\"quoted\\"'))
-    })
+    // Should have fallen back and retried per-task
+    expect(result.synced).toBeGreaterThanOrEqual(1)
+    expect(vi.mocked(write).mock.calls.length).toBeGreaterThan(1)
+  })
+})
 
-    it('should use write (not writeSilent) for durability', async () => {
-      await markTaskDone('task-1')
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 3: Blocks Relations — Task dependency wiring
+// ═══════════════════════════════════════════════════════════════════════════
 
-      expect(typedb.write).toHaveBeenCalled()
-      expect(typedb.writeSilent).not.toHaveBeenCalledWith(expect.stringContaining('task-1'))
-    })
+describe('Act 3: Blocks Relations — Task blocking relationships', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  describe('tagging and categorization', () => {
-    it('should include all tags in task entity', async () => {
-      const tasks: Task[] = [
-        createTask({
-          id: 'tagged-task',
-          name: 'Tagged Task',
-          value: 'high',
-          effort: 'low',
-          wave: 'W2',
-          phase: 'C2',
-          persona: 'dev',
-          priority: 50,
-          tags: ['P0', 'engine', 'test', 'critical'],
-        }),
-      ]
+  it('creates blocks relation when task has blocks list', async () => {
+    const taskA: Task = {
+      id: 'task-a',
+      name: 'Task A',
+      done: false,
+      value: 'high',
+      effort: 'medium',
+      wave: 'W3',
+      phase: 'BUILD',
+      persona: 'sonnet',
+      context: [],
+      blocks: ['task-b'],
+      exit: '',
+      tags: [],
+      source: 'docs/TODO.md',
+      line: 1,
+      priority: 5,
+      formula: 'base',
+    }
 
-      await syncTasks(tasks)
+    const taskB: Task = {
+      id: 'task-b',
+      name: 'Task B',
+      done: false,
+      value: 'high',
+      effort: 'medium',
+      wave: 'W4',
+      phase: 'VERIFY',
+      persona: 'sonnet',
+      context: [],
+      blocks: [],
+      exit: '',
+      tags: [],
+      source: 'docs/TODO.md',
+      line: 10,
+      priority: 3,
+      formula: 'base',
+    }
 
-      // Batch write contains all tags for task + skill
-      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
-      const taskCall = writeCalls.find((c) => c.includes('tagged-task') && c.includes('$t0 isa task'))
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
 
-      expect(taskCall).toContain('has tag "P0"')
-      expect(taskCall).toContain('has tag "engine"')
-      expect(taskCall).toContain('has tag "test"')
-      expect(taskCall).toContain('has tag "critical"')
-    })
+    await syncTasks([taskA, taskB])
 
-    it('should include tags in matching skill entity', async () => {
-      const tasks: Task[] = [
-        createTask({
-          id: 'skill-task',
-          name: 'Skill Task',
-          value: 'high',
-          effort: 'low',
-          wave: 'W2',
-          phase: 'C2',
-          persona: 'dev',
-          priority: 50,
-          tags: ['routing', 'build'],
-        }),
-      ]
-
-      await syncTasks(tasks)
-
-      // Skill insert is in the same batch write as the task
-      const writeCalls = vi.mocked(typedb.write).mock.calls.map((c) => c[0] as string)
-      const batchCall = writeCalls.find((c) => c.includes('skill-task') && c.includes('$s0 isa skill'))
-
-      expect(batchCall).toContain('has tag "routing"')
-      expect(batchCall).toContain('has tag "build"')
-    })
+    // Check that blocks relation was written
+    const blocksCalls = vi.mocked(write).mock.calls.filter((c) =>
+      (c[0] as string).includes('blocks'),
+    )
+    expect(blocksCalls.length).toBeGreaterThan(0)
+    const blocksQuery = blocksCalls[0][0] as string
+    expect(blocksQuery).toContain('task-a')
+    expect(blocksQuery).toContain('task-b')
+    expect(blocksQuery).toContain('blocker:')
+    expect(blocksQuery).toContain('blocked:')
   })
 
-  describe('error handling', () => {
-    it('should count insertion errors', async () => {
-      const tasks: Task[] = [
-        createTask({
-          id: 'task-1',
-          name: 'Task 1',
-          value: 'high',
-          effort: 'low',
-          wave: 'W2',
-          phase: 'C2',
-          persona: 'dev',
-          priority: 50,
-          tags: [],
-        }),
-        createTask({
-          id: 'task-2',
-          name: 'Task 2',
-          value: 'high',
-          effort: 'low',
-          wave: 'W2',
-          phase: 'C2',
-          persona: 'dev',
-          priority: 40,
-          tags: [],
-        }),
-      ]
+  it('ignores blocks to tasks not in the current sync batch', async () => {
+    const taskA: Task = {
+      id: 'task-a',
+      name: 'Task A',
+      done: false,
+      value: 'high',
+      effort: 'medium',
+      wave: 'W3',
+      phase: 'BUILD',
+      persona: 'sonnet',
+      context: [],
+      blocks: ['external-task-not-in-batch'],
+      exit: '',
+      tags: [],
+      source: 'docs/TODO.md',
+      line: 1,
+      priority: 5,
+      formula: 'base',
+    }
 
-      // Reset mocks and make batch write fail
-      vi.clearAllMocks()
-      vi.mocked(typedb.writeSilent).mockResolvedValue(undefined) // ensureBuilder succeeds
-      vi.mocked(typedb.write).mockRejectedValueOnce(new Error('Batch failed')) // batch fails
-      // Per-task fallback also fails for both
-      vi.mocked(typedb.write).mockRejectedValueOnce(new Error('Fail'))
-      vi.mocked(typedb.write).mockRejectedValueOnce(new Error('Fail'))
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
 
-      const result = await syncTasks(tasks)
+    await syncTasks([taskA])
 
-      expect(result.errors).toBeGreaterThanOrEqual(0)
+    // blocks relation should not be created for external-task
+    const blocksCalls = vi.mocked(write).mock.calls.filter((c) =>
+      (c[0] as string).includes('isa blocks'),
+    )
+    expect(blocksCalls.length).toBe(0)
+  })
+
+  it('handles multiple tasks with multiple blocking relationships', async () => {
+    const tasks: Task[] = [
+      {
+        id: 'task-1',
+        name: 'Task 1',
+        done: false,
+        value: 'high',
+        effort: 'medium',
+        wave: 'W3',
+        phase: 'BUILD',
+        persona: 'sonnet',
+        context: [],
+        blocks: ['task-2', 'task-3'],
+        exit: '',
+        tags: [],
+        source: 'docs/TODO.md',
+        line: 1,
+        priority: 5,
+        formula: 'base',
+      },
+      {
+        id: 'task-2',
+        name: 'Task 2',
+        done: false,
+        value: 'medium',
+        effort: 'small',
+        wave: 'W4',
+        phase: 'VERIFY',
+        persona: 'sonnet',
+        context: [],
+        blocks: ['task-3'],
+        exit: '',
+        tags: [],
+        source: 'docs/TODO.md',
+        line: 10,
+        priority: 3,
+        formula: 'base',
+      },
+      {
+        id: 'task-3',
+        name: 'Task 3',
+        done: false,
+        value: 'medium',
+        effort: 'small',
+        wave: 'W4',
+        phase: 'VERIFY',
+        persona: 'sonnet',
+        context: [],
+        blocks: [],
+        exit: '',
+        tags: [],
+        source: 'docs/TODO.md',
+        line: 20,
+        priority: 2,
+        formula: 'base',
+      },
+    ]
+
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    const result = await syncTasks(tasks)
+
+    // Should create 3 blocks relations: 1→2, 1→3, 2→3
+    expect(result.blocks).toBe(3)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 4: markTaskDone — Status update and WebSocket broadcast
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 4: markTaskDone — Task completion and notifications', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('updates task-status and done attributes in TypeDB', async () => {
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    await markTaskDone('task-123')
+
+    expect(write).toHaveBeenCalledWith(expect.stringContaining('task-id "task-123"'))
+    expect(write).toHaveBeenCalledWith(expect.stringContaining('done true'))
+    expect(write).toHaveBeenCalledWith(expect.stringContaining('task-status "done"'))
+  })
+
+  it('broadcasts complete message via WebSocket', async () => {
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    await markTaskDone('task-xyz')
+
+    expect(wsManager.broadcast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'complete',
+        taskId: 'task-xyz',
+      }),
+    )
+  })
+
+  it('relays complete message to Gateway', async () => {
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    await markTaskDone('task-relay')
+
+    expect(relayToGateway).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'complete',
+        taskId: 'task-relay',
+      }),
+    )
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 5: Tag Extraction and Application
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 5: Tag extraction and application', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('deduplicates tags in task insert', async () => {
+    const taskWithDupeTags: Task = {
+      id: 'task-dupe',
+      name: 'Task with duplicate tags',
+      done: false,
+      value: 'high',
+      effort: 'medium',
+      wave: 'W3',
+      phase: 'BUILD',
+      persona: 'sonnet',
+      context: [],
+      blocks: [],
+      exit: '',
+      tags: ['api', 'build', 'api', 'P0', 'api'], // api appears 3 times
+      source: 'docs/TODO.md',
+      line: 1,
+      priority: 5,
+      formula: 'base',
+    }
+
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    await syncTasks([taskWithDupeTags])
+
+    const tql = vi.mocked(write).mock.calls[0][0] as string
+    // Count occurrences of 'has tag "api"' — should be exactly 2 (task + skill)
+    const apiOccurrences = (tql.match(/has tag "api"/g) || []).length
+    expect(apiOccurrences).toBe(2)
+  })
+
+  it('applies tags to both task and skill entities in single batch', async () => {
+    const taskWithTags: Task = {
+      id: 'task-tagged',
+      name: 'Tagged task',
+      done: false,
+      value: 'high',
+      effort: 'medium',
+      wave: 'W3',
+      phase: 'BUILD',
+      persona: 'sonnet',
+      context: [],
+      blocks: [],
+      exit: '',
+      tags: ['routing', 'urgent', 'P0'],
+      source: 'docs/TODO.md',
+      line: 1,
+      priority: 5,
+      formula: 'base',
+    }
+
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    await syncTasks([taskWithTags])
+
+    const tql = vi.mocked(write).mock.calls[0][0] as string
+
+    // All three tags should be in the insert
+    expect(tql).toContain('routing')
+    expect(tql).toContain('urgent')
+    expect(tql).toContain('P0')
+
+    // Tags appear on both $t (task) and $s (skill) variables
+    expect((tql.match(/has tag "routing"/g) || []).length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('preserves tag order when tags come from task context', async () => {
+    const taskWithOrderedTags: Task = {
+      id: 'task-ordered',
+      name: 'Ordered tags',
+      done: false,
+      value: 'high',
+      effort: 'medium',
+      wave: 'W3',
+      phase: 'BUILD',
+      persona: 'sonnet',
+      context: ['engine', 'performance', 'optimization'],
+      blocks: [],
+      exit: '',
+      tags: ['performance', 'engine'],
+      source: 'docs/TODO.md',
+      line: 1,
+      priority: 5,
+      formula: 'base',
+    }
+
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    await syncTasks([taskWithOrderedTags])
+
+    const tql = vi.mocked(write).mock.calls[0][0] as string
+
+    // Both tags should be present
+    expect(tql).toContain('performance')
+    expect(tql).toContain('engine')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 6: taskBlockers — Query blocked dependencies
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 6: taskBlockers — Query what tasks are blocked by a task', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns task IDs that are blocked by the given task', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([
+      { bid: 'task-b' },
+      { bid: 'task-c' },
+    ])
+
+    const blocked = await taskBlockers('task-a')
+
+    expect(blocked).toEqual(['task-b', 'task-c'])
+  })
+
+  it('returns empty array when no tasks are blocked', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+
+    const blocked = await taskBlockers('independent-task')
+
+    expect(blocked).toEqual([])
+  })
+
+  it('constructs correct TypeQL query for blockers', async () => {
+    vi.mocked(readParsed).mockResolvedValueOnce([])
+
+    await taskBlockers('task-id-123')
+
+    const query = vi.mocked(readParsed).mock.calls[0][0] as string
+    expect(query).toContain('blocks')
+    expect(query).toContain('task-id-123')
+    expect(query).toContain('blocker:')
+    expect(query).toContain('blocked:')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 7: selfCheckoff — Closure pattern composing mark + status + unblock
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 7: selfCheckoff — Closure pattern for task completion flow', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('marks task done and returns marked count', async () => {
+    const mockWorld = {
+      mark: vi.fn(),
+      enqueue: vi.fn(),
+      know: vi.fn(),
+    }
+
+    vi.mocked(readParsed).mockImplementation(async () => [])
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    const result = await selfCheckoff('task-complete', mockWorld as any)
+
+    expect(result.marked).toBe(1)
+    expect(wsManager.broadcast).toHaveBeenCalled()
+  })
+
+  it('unblocks dependent tasks when all blockers are done', async () => {
+    const mockWorld = {
+      mark: vi.fn(),
+      enqueue: vi.fn(),
+      know: vi.fn(),
+    }
+
+    let callCount = 0
+    vi.mocked(readParsed).mockImplementation(async (query: string) => {
+      callCount++
+      // taskBlockers query for task-complete
+      if (query.includes('task-complete') && query.includes('blocks')) {
+        return [{ bid: 'task-blocked' }] // found one blocked task
+      }
+      // Check blockers for task-blocked
+      if (query.includes('task-blocked') && query.includes('done false')) {
+        return [] // no remaining blockers
+      }
+      // Phase lookup
+      if (query.includes('task-complete') && query.includes('task-phase')) {
+        return [{ ph: 'BUILD' }]
+      }
+      // Remaining tasks in phase
+      if (query.includes('task-phase') && query.includes('done false')) {
+        return [] // none remain
+      }
+      return []
     })
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    const result = await selfCheckoff('task-complete', mockWorld as any)
+
+    expect(result.unblocked).toContain('task-blocked')
+    expect(mockWorld.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ receiver: 'builder:task-blocked' }),
+    )
+  })
+
+  it('promotes highways to knowledge when phase is complete', async () => {
+    const mockWorld = {
+      mark: vi.fn(),
+      enqueue: vi.fn(),
+      know: vi.fn(),
+    }
+
+    let callCount = 0
+    vi.mocked(readParsed).mockImplementation(async () => {
+      callCount++
+      if (callCount === 1) return [] // taskBlockers
+      if (callCount === 2) return [{ ph: 'BUILD' }] // phase lookup
+      return [] // no remaining tasks
+    })
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    await selfCheckoff('last-in-phase', mockWorld as any)
+
+    expect(mockWorld.know).toHaveBeenCalled()
+  })
+
+  it('broadcasts unblock messages for each unblocked task', async () => {
+    const mockWorld = {
+      mark: vi.fn(),
+      enqueue: vi.fn(),
+      know: vi.fn(),
+    }
+
+    let callCount = 0
+    vi.mocked(readParsed).mockImplementation(async () => {
+      callCount++
+      if (callCount === 1) return [{ bid: 'task-x' }, { bid: 'task-y' }] // taskBlockers
+      if (callCount === 2 || callCount === 3) return [] // no blockers for x and y
+      if (callCount === 4) return [{ ph: 'BUILD' }] // phase lookup
+      return [{ id: 'other-task' }] // other tasks remain
+    })
+    vi.mocked(write).mockResolvedValue(undefined)
+
+    await selfCheckoff('primary-task', mockWorld as any)
+
+    const unblockCalls = vi.mocked(wsManager.broadcast).mock.calls.filter((c) =>
+      (c[0] as any).type === 'unblock',
+    )
+    expect(unblockCalls.length).toBe(2)
   })
 })

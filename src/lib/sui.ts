@@ -497,6 +497,37 @@ export async function cancelEscrow(
   return signAndExecute(tx, keypair)
 }
 
+// ─── Read-only escrow view (no signing) ────────────────────────────────────
+
+export interface EscrowView {
+  locked: boolean
+  amount: number
+  claimant: string | null
+  deadline: number
+}
+
+/**
+ * Read an Escrow Move object by id. Does not sign — works without SUI_SEED.
+ * Returns null if the object is missing, malformed, or not an Escrow.
+ */
+export async function viewEscrow(escrowObjectId: string): Promise<EscrowView | null> {
+  try {
+    const res = await getClient().getObject({ id: escrowObjectId, options: { showContent: true } })
+    const content = res?.data?.content
+    if (!content || content.dataType !== 'moveObject') return null
+    const fields = (content as { fields?: Record<string, unknown> }).fields
+    if (!fields) return null
+    return {
+      locked: Boolean(fields.locked ?? true),
+      amount: Number(fields.amount ?? 0),
+      claimant: typeof fields.claimant === 'string' ? fields.claimant : null,
+      deadline: Number(fields.deadline ?? 0),
+    }
+  } catch {
+    return null
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LOOKUP — Resolve UIDs to Sui object IDs via TypeDB
 // ═══════════════════════════════════════════════════════════════════════════
@@ -537,6 +568,7 @@ export default {
   createEscrow,
   releaseEscrow,
   cancelEscrow,
+  viewEscrow,
   getObject,
   getOwnedUnits,
   resolveUnit,

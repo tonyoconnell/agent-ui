@@ -351,7 +351,7 @@ Foundation layer: TypeDB schema, claim/release endpoints, expire recovery.
 
 ### Testing Cycle 1
 
-- [ ] **4c. Claim collision test**
+- [x] **4c. Claim collision test** ✓ src/__tests__/integration/claim-collision.test.ts · 9 tests · 2026-04-16
   id: c1-claim-test
   value: critical
   effort: medium
@@ -361,7 +361,7 @@ Foundation layer: TypeDB schema, claim/release endpoints, expire recovery.
   exit: Two concurrent claims return 200 + 409; only one gets owner
   tags: test, atomicity, P0
 
-- [ ] **4d. Release safety test**
+- [x] **4d. Release safety test** ✓ src/__tests__/integration/release-safety.test.ts · 5 tests · 2026-04-16
   id: c1-release-test
   value: high
   effort: low
@@ -371,7 +371,7 @@ Foundation layer: TypeDB schema, claim/release endpoints, expire recovery.
   exit: Wrong owner gets 403; correct owner gets 200
   tags: test, safety, P0
 
-- [ ] **4e. Expire recovery test**
+- [x] **4e. Expire recovery test** ✓ src/__tests__/integration/expire-recovery.test.ts · 3 tests · 2026-04-16
   id: c1-expire-test
   value: high
   effort: medium
@@ -482,7 +482,7 @@ Integration layer: filter tasks, guard sync, clear owner on completion.
 
 ### Testing Cycle 2
 
-- [ ] **8b. Filter exclusion test**
+- [x] **8b. Filter exclusion test** ✓ src/__tests__/integration/filter-exclusion.test.ts · 7 tests · 2026-04-16
   id: c2-filter-test
   value: high
   effort: medium
@@ -492,7 +492,7 @@ Integration layer: filter tasks, guard sync, clear owner on completion.
   exit: Claim a task, GET /api/tasks → task not in list
   tags: test, filtering, P0
 
-- [ ] **8c. Sync guard test**
+- [x] **8c. Sync guard test** ✓ src/__tests__/integration/sync-guard.test.ts · 4 tests · 2026-04-16
   id: c2-sync-test
   value: high
   effort: medium
@@ -502,7 +502,7 @@ Integration layer: filter tasks, guard sync, clear owner on completion.
   exit: Sync with active task in TypeDB → active task unchanged
   tags: test, sync, P0
 
-- [ ] **8d. Owner cleanup test**
+- [x] **8d. Owner cleanup test** ✓ src/__tests__/integration/owner-cleanup.test.ts · 3 tests · 2026-04-16
   id: c2-complete-test
   value: high
   effort: low
@@ -512,7 +512,7 @@ Integration layer: filter tasks, guard sync, clear owner on completion.
   exit: After complete, re-read task → owner field is empty
   tags: test, cleanup, P0
 
-- [ ] **8e. Tick integration test**
+- [x] **8e. Tick integration test** ✓ src/__tests__/integration/tick-integration.test.ts · 10 tests · 2026-04-16
   id: c2-tick-test
   value: medium
   effort: medium
@@ -653,7 +653,7 @@ Command layer: SESSION_ID generation, claim/release in /work and /done; wave-lev
   exit: After `/done`, task owner is cleared; task back to open
   tags: test, release, P0
 
-- [ ] **12e. Wave-lock exclusivity test**
+- [x] **12e. Wave-lock exclusivity test** ✓ src/__tests__/integration/wave-lock.test.ts · 7 tests · 2026-04-16
   id: c3-wave-test
   value: medium
   effort: medium

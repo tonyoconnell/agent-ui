@@ -371,7 +371,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: persist.ts test file. Covers: isToxic (cold-start), actor, flow, know, recall, subscribe (adds tags to unit), tasksFor (tag-filtered task matching with overlap × priority + pheromone ranking). Mocks TypeDB.
   tags: engine, test, P0
 
-- [ ] Test loop.ts: tick cycle, all 7 loops, chain depth
+- [x] Test loop.ts: tick cycle, all 7 loops, chain depth ✓ loop.test.ts extended · 66 tests (+19) · 2026-04-16
   id: test-loop
   value: high
   effort: high
@@ -390,7 +390,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: task-parse.ts test file. Covers: computePriority arithmetic, parseTodoFile checkboxes + metadata, slugify, effectivePriority with pheromone
   tags: engine, test, P1
 
-- [ ] Test task-sync.ts: TypeDB writes, blocks relations
+- [x] Test task-sync.ts: TypeDB writes, blocks relations ✓ task-sync.test.ts · 28 tests · 2026-04-16
   id: test-task-sync
   value: high
   effort: low
@@ -417,7 +417,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: doc-scan.ts test file. Covers: extractItems (checkboxes, gaps), inferTags, inferPriority, verify (keyword match), gapsToSignals
   tags: engine, test, P2
 
-- [ ] Test agent-md.ts: parse, toTypeDB, syncAgent
+- [x] Test agent-md.ts: parse, toTypeDB, syncAgent ✓ agent-md.test.ts · 35 tests · 2026-04-16
   id: test-agent-md
   value: medium
   effort: medium
@@ -501,7 +501,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   tags: engine, test, P0
   done: lifecycle.test.ts Act 3 — 5 tests: 4-step chain, edge marking, highway formation, warn+recovery, context envelope
 
-- [ ] Test rubric scorer: score(), markDims(), tagged edges
+- [x] Test rubric scorer: score(), markDims(), tagged edges ✓ rubric.test.ts · 33 tests (+7) · 2026-04-16
   id: test-rubric
   value: high
   effort: medium

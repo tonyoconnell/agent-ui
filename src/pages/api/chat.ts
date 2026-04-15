@@ -7,17 +7,21 @@ import { getNet } from '@/lib/net'
 export const prerender = false
 
 // Candidate models for the 'chat' tag. Substrate learns which earns the traffic.
+// groq:/cerebras: prefix = direct API. Plain = OpenRouter fallback.
 const CHAT_MODELS: ModelSpec[] = [
-  { id: 'meta-llama/llama-4-maverick', costPerMToken: 0.15 },
+  { id: 'groq:meta-llama/llama-4-scout-17b-16e-instruct', costPerMToken: 0.11 }, // 87 tok/s, 459ms
+  { id: 'groq:llama-3.1-8b-instant', costPerMToken: 0.05 },                      // 82 tok/s, 502ms
+  { id: 'groq:llama-3.3-70b-versatile', costPerMToken: 0.59 },                   // best quality
+  { id: 'cerebras:llama3.1-8b', costPerMToken: 0.10 },                           // cerebras fallback
+  { id: 'meta-llama/llama-4-scout', costPerMToken: 0.08 },                       // openrouter fallback
   { id: 'anthropic/claude-haiku-4-5', costPerMToken: 1.0 },
-  { id: 'google/gemma-4-26b-a4b-it', costPerMToken: 0.15 },
   { id: 'anthropic/claude-sonnet-4-5', costPerMToken: 3.0 },
 ]
 
 /**
  * Simple Chat API Endpoint
  *
- * Uses OpenRouter for streaming chat responses.
+ * Routes to Cerebras (direct, ~445ms) if CEREBRAS_API_KEY is set, else OpenRouter.
  * Model is picked by the substrate (tag='chat') unless client specifies one.
  * On stream finish, outcome marks the tag→model edge so pheromone accumulates.
  */
@@ -32,9 +36,11 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    const apiKey = import.meta.env.OPENROUTER_API_KEY
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'OPENROUTER_API_KEY not configured' }), {
+    const groqKey = import.meta.env.GROQ_API_KEY
+    const cerebrasKey = import.meta.env.CEREBRAS_API_KEY
+    const openrouterKey = import.meta.env.OPENROUTER_API_KEY
+    if (!groqKey && !cerebrasKey && !openrouterKey) {
+      return new Response(JSON.stringify({ error: 'No LLM API key configured' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -52,17 +58,26 @@ export const POST: APIRoute = async ({ request }) => {
           estimatedTokens: Math.ceil(lastUser.length / 4) + 500,
           sensitivity: 0.7,
         })
-    const selectedModel = clientModel ?? choice?.model.id ?? 'meta-llama/llama-4-maverick'
+    const defaultModel = groqKey
+      ? 'groq:meta-llama/llama-4-scout-17b-16e-instruct'
+      : cerebrasKey ? 'cerebras:llama3.1-8b' : 'meta-llama/llama-4-scout'
+    const selectedModel = clientModel ?? choice?.model.id ?? defaultModel
 
-    const openrouter = createOpenAICompatible({
-      name: 'openrouter',
-      baseURL: 'https://openrouter.ai/api/v1',
-      headers: {
-        'HTTP-Referer': 'https://one.ie',
-        'X-Title': 'ONE Substrate',
-      },
-      apiKey,
-    })
+    // Route by prefix: groq: → Groq LPU, cerebras: → Cerebras silicon, plain → OpenRouter
+    const isGroq = selectedModel.startsWith('groq:') && !!groqKey
+    const isCerebras = selectedModel.startsWith('cerebras:') && !!cerebrasKey
+    const modelId = isGroq ? selectedModel.slice(5) : isCerebras ? selectedModel.slice(9) : selectedModel
+
+    const provider = isGroq
+      ? createOpenAICompatible({ name: 'groq', baseURL: 'https://api.groq.com/openai/v1', apiKey: groqKey! })
+      : isCerebras
+        ? createOpenAICompatible({ name: 'cerebras', baseURL: 'https://api.cerebras.ai/v1', apiKey: cerebrasKey! })
+        : createOpenAICompatible({
+            name: 'openrouter',
+            baseURL: 'https://openrouter.ai/api/v1',
+            headers: { 'HTTP-Referer': 'https://one.ie', 'X-Title': 'ONE Substrate' },
+            apiKey: openrouterKey!,
+          })
 
     const systemPrompt = `You are a helpful assistant for the ONE world interface.
 You help users control a network of agents and signals.
@@ -79,7 +94,7 @@ Available commands (users can speak these naturally):
 Respond helpfully and suggest commands when appropriate.`
 
     const result = streamText({
-      model: openrouter(selectedModel),
+      model: provider(modelId),
       system: systemPrompt,
       messages,
       onFinish: ({ text, finishReason }) => {

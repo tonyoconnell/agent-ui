@@ -2,6 +2,8 @@
 
 6 dimensions. Grounded in biology. Stable forever.
 
+**See Also:** [dictionary.md](dictionary.md) — Canonical names for all signals, units, paths, and verbs. Terms defined here are named there.
+
 > ONE is a world. A world contains groups.
 > Groups contain: actors, things, paths, events, learning.
 
@@ -14,7 +16,7 @@
 | 1 | **Groups**    | Containers — scope, isolation, nesting  | Colony structure   |
 | 2 | **Actors**    | Who acts — humans, agents, animals, worlds | Individual ants |
 | 3 | **Things**    | What exists — skills, tasks, tokens     | Environment        |
-| 4 | **Paths**     | Connections with weight — learned routes | Pheromone trails  |
+| 4 | **Paths**     | [Connections with weight](dictionary.md#the-path) — learned routes | Pheromone trails  |
 | 5 | **Events**    | What happened — signals, payments       | Foraging activity  |
 | 6 | **Learning**  | What was discovered — hypotheses, patterns | Colony memory   |
 

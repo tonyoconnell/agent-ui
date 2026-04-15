@@ -1,15 +1,16 @@
-// @ts-nocheck
 'use client'
 
 import { CheckIcon, CopyIcon } from 'lucide-react'
-import { type ComponentProps, createContext, type HTMLAttributes, useContext, useEffect, useRef, useState } from 'react'
-import { type BundledLanguage, codeToHtml, type ShikiTransformer } from 'shiki'
+import { type ComponentProps, createContext, type HTMLAttributes, useContext, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+// Shiki removed — chat uses lightweight <pre><code> blocks.
+// No grammar bundles shipped. Copy button preserved.
+
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string
-  language: BundledLanguage
+  language?: string
   showLineNumbers?: boolean
 }
 
@@ -17,112 +18,21 @@ type CodeBlockContextType = {
   code: string
 }
 
-const CodeBlockContext = createContext<CodeBlockContextType>({
-  code: '',
-})
+const CodeBlockContext = createContext<CodeBlockContextType>({ code: '' })
 
-const lineNumberTransformer: ShikiTransformer = {
-  name: 'line-numbers',
-  line(node, line) {
-    node.children.unshift({
-      type: 'element',
-      tagName: 'span',
-      properties: {
-        className: ['inline-block', 'min-w-10', 'mr-4', 'text-right', 'select-none', 'text-muted-foreground'],
-      },
-      children: [{ type: 'text', value: String(line) }],
-    })
-  },
-}
-
-export async function highlightCode(code: string, language: BundledLanguage, showLineNumbers = false) {
-  // Handle tool-call blocks specially - treat as JSON
-  const actualLanguage = language === 'tool-call' || language === 'tool' ? 'json' : language
-
-  const transformers: ShikiTransformer[] = showLineNumbers ? [lineNumberTransformer] : []
-
-  try {
-    return await Promise.all([
-      codeToHtml(code, {
-        lang: actualLanguage as BundledLanguage,
-        theme: 'one-light',
-        transformers,
-      }),
-      codeToHtml(code, {
-        lang: actualLanguage as BundledLanguage,
-        theme: 'one-dark-pro',
-        transformers,
-      }),
-    ])
-  } catch (_error) {
-    // Fallback to plain text if language not supported
-    return await Promise.all([
-      codeToHtml(code, {
-        lang: 'text' as BundledLanguage,
-        theme: 'one-light',
-        transformers,
-      }),
-      codeToHtml(code, {
-        lang: 'text' as BundledLanguage,
-        theme: 'one-dark-pro',
-        transformers,
-      }),
-    ])
-  }
-}
-
-export const CodeBlock = ({
-  code,
-  language,
-  showLineNumbers = false,
-  className,
-  children,
-  ...props
-}: CodeBlockProps) => {
-  const [html, setHtml] = useState<string>('')
-  const [darkHtml, setDarkHtml] = useState<string>('')
-  const mounted = useRef(false)
-
-  useEffect(() => {
-    highlightCode(code, language, showLineNumbers).then(([light, dark]) => {
-      if (!mounted.current) {
-        setHtml(light)
-        setDarkHtml(dark)
-        mounted.current = true
-      }
-    })
-
-    return () => {
-      mounted.current = false
-    }
-  }, [code, language, showLineNumbers])
-
-  return (
-    <CodeBlockContext.Provider value={{ code }}>
-      <div
-        className={cn(
-          'group relative w-full overflow-hidden rounded-md border bg-background text-foreground',
-          className,
-        )}
-        {...props}
-      >
-        <div className="relative">
-          <div
-            className="overflow-hidden dark:hidden [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-          <div
-            className="hidden overflow-hidden dark:block [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
-            dangerouslySetInnerHTML={{ __html: darkHtml }}
-          />
-          {children && <div className="absolute top-2 right-2 flex items-center gap-2">{children}</div>}
-        </div>
-      </div>
-    </CodeBlockContext.Provider>
-  )
-}
+export const CodeBlock = ({ code, language: _language, showLineNumbers: _ln, className, children, ...props }: CodeBlockProps) => (
+  <CodeBlockContext.Provider value={{ code }}>
+    <div
+      className={cn('group relative w-full overflow-hidden rounded-md border bg-muted text-foreground', className)}
+      {...props}
+    >
+      <pre className="m-0 overflow-x-auto p-4 text-sm font-mono leading-relaxed">
+        <code>{code}</code>
+      </pre>
+      {children && <div className="absolute top-2 right-2 flex items-center gap-2">{children}</div>}
+    </div>
+  </CodeBlockContext.Provider>
+)
 
 export type CodeBlockCopyButtonProps = ComponentProps<typeof Button> & {
   onCopy?: () => void
@@ -130,14 +40,7 @@ export type CodeBlockCopyButtonProps = ComponentProps<typeof Button> & {
   timeout?: number
 }
 
-export const CodeBlockCopyButton = ({
-  onCopy,
-  onError,
-  timeout = 2000,
-  children,
-  className,
-  ...props
-}: CodeBlockCopyButtonProps) => {
+export const CodeBlockCopyButton = ({ onCopy, onError, timeout = 2000, children, className, ...props }: CodeBlockCopyButtonProps) => {
   const [isCopied, setIsCopied] = useState(false)
   const { code } = useContext(CodeBlockContext)
 
@@ -146,7 +49,6 @@ export const CodeBlockCopyButton = ({
       onError?.(new Error('Clipboard API not available'))
       return
     }
-
     try {
       await navigator.clipboard.writeText(code)
       setIsCopied(true)
@@ -158,7 +60,6 @@ export const CodeBlockCopyButton = ({
   }
 
   const Icon = isCopied ? CheckIcon : CopyIcon
-
   return (
     <Button className={cn('shrink-0', className)} onClick={copyToClipboard} size="icon" variant="ghost" {...props}>
       {children ?? <Icon size={14} />}

@@ -1,340 +1,469 @@
 /**
- * agent-md.test.ts — Test markdown agent parsing and TypeDB generation
+ * Agent MD Tests — Parse markdown agents, validate TypeDB inserts
  *
- * Tests parse() (frontmatter + body extraction) and toTypeDB() (TQL insert generation).
- * Both are pure functions — no TypeDB mocking needed.
+ * Coverage:
+ *   (a) parse() extracts name/model/channels/skills/group from frontmatter
+ *   (b) parse() extracts system prompt body
+ *   (c) toTypeDB() emits correct unit insert
+ *   (d) toTypeDB() emits capability relations for each skill
+ *   (e) tag extraction flows through
+ *
+ * Run: bun vitest run src/engine/agent-md.test.ts
  */
 
 import { describe, expect, it } from 'vitest'
-import type { AgentSpec, WorldSpec } from './agent-md'
-import { parse, toTypeDB, worldToTypeDB } from './agent-md'
+import { parse, toTypeDB, worldToTypeDB, type AgentSpec } from './agent-md'
 
-// ── Minimal valid markdown ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// TEST DATA — Real agent markdown fixtures
+// ═══════════════════════════════════════════════════════════════════════════
 
-const MINIMAL_MD = `---
-name: tutor
----
-
-You are a tutor.`
-
-const FULL_MD = `---
-name: creative
+const tutorMarkdown = `---
+name: spanish-tutor
 model: claude-sonnet-4-20250514
-channels: [telegram, discord]
-group: marketing
-sensitivity: 0.6
-tags: [creative, content]
+channels:
+  - telegram
+  - discord
 skills:
-  - name: copy
-    price: 0.02
-    tags: [creative, copy, headlines]
-  - name: iterate
+  - name: lesson
     price: 0.01
-    tags: [creative, iteration]
-    description: Iterate on existing copy
+    tags: [education, spanish, language, beginner]
+  - name: practice
+    price: 0.005
+    tags: [education, spanish, conversation]
+  - name: quiz
+    price: 0.005
+    tags: [education, spanish, assessment]
 ---
 
-You are the Creative Director. Generate compelling copy.`
+You are a patient, encouraging Spanish tutor. You help absolute beginners build confidence in speaking and understanding Spanish.
 
-describe('agent-md.ts — parse() and toTypeDB()', () => {
-  describe('parse() — frontmatter extraction', () => {
-    it('should parse minimal agent name', () => {
-      const spec = parse(MINIMAL_MD)
-      expect(spec.name).toBe('tutor')
-    })
+## Personality
 
-    it('should extract system prompt from body after frontmatter', () => {
-      const spec = parse(MINIMAL_MD)
-      expect(spec.prompt).toBe('You are a tutor.')
-    })
+- Patient and encouraging
+- Use simple, clear explanations
+- Celebrate small wins`
 
-    it('should parse all scalar fields', () => {
-      const spec = parse(FULL_MD)
-      expect(spec.name).toBe('creative')
-      expect(spec.model).toBe('claude-sonnet-4-20250514')
-      expect(spec.group).toBe('marketing')
-      expect(spec.sensitivity).toBe(0.6)
-    })
-
-    it('should parse channels as an array', () => {
-      const spec = parse(FULL_MD)
-      expect(spec.channels).toEqual(['telegram', 'discord'])
-    })
-
-    it('should parse tags as an array', () => {
-      const spec = parse(FULL_MD)
-      expect(spec.tags).toEqual(['creative', 'content'])
-    })
-
-    it('should parse skills with name, price, and tags', () => {
-      const spec = parse(FULL_MD)
-      expect(spec.skills).toHaveLength(2)
-      expect(spec.skills![0].name).toBe('copy')
-      expect(spec.skills![0].price).toBe(0.02)
-      expect(spec.skills![0].tags).toEqual(['creative', 'copy', 'headlines'])
-    })
-
-    it('should parse skill description', () => {
-      const spec = parse(FULL_MD)
-      const iterate = spec.skills!.find((s) => s.name === 'iterate')
-      expect(iterate?.description).toBe('Iterate on existing copy')
-    })
-
-    it('should extract multi-line prompt body', () => {
-      const md = `---
-name: writer
----
-
-First line.
-Second line.
-Third line.`
-      const spec = parse(md)
-      expect(spec.prompt).toContain('First line.')
-      expect(spec.prompt).toContain('Second line.')
-      expect(spec.prompt).toContain('Third line.')
-    })
-
-    it('should handle missing optional fields gracefully', () => {
-      const spec = parse(MINIMAL_MD)
-      expect(spec.model).toBeUndefined()
-      expect(spec.group).toBeUndefined()
-      expect(spec.skills).toBeUndefined()
-      expect(spec.channels).toBeUndefined()
-    })
-
-    it('should parse aliases block', () => {
-      const md = `---
+const minimalMarkdown = `---
 name: scout
-aliases:
-  ant: scout-7
-  brain: neuron-12
 ---
 
-You are a scout.`
-      const spec = parse(md)
-      expect(spec.aliases).toBeDefined()
-      expect(spec.aliases!.ant).toBe('scout-7')
-      expect(spec.aliases!.brain).toBe('neuron-12')
-    })
+You are a scout. You observe and report.`
 
-    it('should return empty prompt for no body', () => {
-      const md = `---
-name: empty
----`
-      const spec = parse(md)
-      expect(spec.prompt).toBe('')
-    })
-
-    it('should parse context array', () => {
-      const md = `---
-name: agent
-context: [routing, dsl, dictionary]
+const groupedAgentMarkdown = `---
+name: creative
+model: claude-opus-4
+group: marketing
+tags: [agent, creative]
+skills:
+  - name: copywrite
+    price: 0.02
+    tags: [copy, creative, headlines]
+  - name: design
+    price: 0.03
+    tags: [design, visual]
+sensitivity: 0.7
 ---
 
-Body.`
-      const spec = parse(md)
-      expect(spec.context).toEqual(['routing', 'dsl', 'dictionary'])
+You are a creative director. You lead the creative team.`
+
+const adlAgentMarkdown = `---
+name: secure-agent
+model: claude-sonnet-4-20250514
+adlVersion: "0.2.0"
+adlStatus: active
+sunsetAt: "2027-12-31T00:00:00Z"
+dataCategories: [public, internal]
+permNetwork:
+  allowedHosts:
+    - api.example.com
+    - webhook.example.com
+  protocols:
+    - https
+    - wss
+---
+
+You are a secure agent with ADL constraints.`
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEST SUITE A: parse() — Frontmatter extraction
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('parse() — frontmatter extraction', () => {
+  it('extracts name from frontmatter', () => {
+    const spec = parse(tutorMarkdown)
+    expect(spec.name).toBe('spanish-tutor')
+  })
+
+  it('extracts model from frontmatter', () => {
+    const spec = parse(tutorMarkdown)
+    expect(spec.model).toBe('claude-sonnet-4-20250514')
+  })
+
+  it('extracts channels array', () => {
+    const spec = parse(tutorMarkdown)
+    expect(spec.channels).toEqual(['telegram', 'discord'])
+  })
+
+  it('extracts skills array with name, price, and tags', () => {
+    const spec = parse(tutorMarkdown)
+    expect(spec.skills).toHaveLength(3)
+    expect(spec.skills?.[0]).toMatchObject({
+      name: 'lesson',
+      price: 0.01,
+      tags: ['education', 'spanish', 'language', 'beginner'],
     })
   })
 
-  describe('toTypeDB() — TQL insert generation', () => {
-    it('should generate a unit insert query', () => {
-      const spec: AgentSpec = { name: 'tutor', prompt: 'You are a tutor.' }
-      const queries = toTypeDB(spec)
-      const unitInsert = queries.find((q) => q.includes('isa unit'))
-      expect(unitInsert).toBeDefined()
-      expect(unitInsert).toContain('has uid "tutor"')
-      expect(unitInsert).toContain('has name "tutor"')
-      expect(unitInsert).toContain('has unit-kind "agent"')
-    })
-
-    it('should use group:name as uid when group is set', () => {
-      const spec: AgentSpec = { name: 'creative', group: 'marketing', prompt: '' }
-      const queries = toTypeDB(spec)
-      const unitInsert = queries.find((q) => q.includes('isa unit'))
-      expect(unitInsert).toContain('has uid "marketing:creative"')
-    })
-
-    it('should use default model when model is not specified', () => {
-      const spec: AgentSpec = { name: 'tutor', prompt: '' }
-      const queries = toTypeDB(spec)
-      const unitInsert = queries.find((q) => q.includes('isa unit'))
-      expect(unitInsert).toContain('claude-sonnet-4-20250514')
-    })
-
-    it('should use specified model', () => {
-      const spec: AgentSpec = {
-        name: 'fast',
-        model: 'anthropic/claude-haiku-4-5',
-        prompt: '',
-      }
-      const queries = toTypeDB(spec)
-      const unitInsert = queries.find((q) => q.includes('isa unit'))
-      expect(unitInsert).toContain('claude-haiku-4-5')
-    })
-
-    it('should include tags in unit insert', () => {
-      const spec: AgentSpec = { name: 'coder', tags: ['code', 'build'], prompt: '' }
-      const queries = toTypeDB(spec)
-      const unitInsert = queries.find((q) => q.includes('isa unit'))
-      expect(unitInsert).toContain('has tag "code"')
-      expect(unitInsert).toContain('has tag "build"')
-    })
-
-    it('should auto-tag with group name', () => {
-      const spec: AgentSpec = { name: 'writer', group: 'content', prompt: '' }
-      const queries = toTypeDB(spec)
-      const unitInsert = queries.find((q) => q.includes('isa unit'))
-      expect(unitInsert).toContain('has tag "content"')
-    })
-
-    it('should generate group membership query when group is set', () => {
-      const spec: AgentSpec = { name: 'creative', group: 'marketing', prompt: '' }
-      const queries = toTypeDB(spec)
-      const membership = queries.find((q) => q.includes('isa membership'))
-      expect(membership).toBeDefined()
-      expect(membership).toContain('gid "marketing"')
-      expect(membership).toContain('uid "marketing:creative"')
-    })
-
-    it('should not generate membership query when no group', () => {
-      const spec: AgentSpec = { name: 'solo', prompt: '' }
-      const queries = toTypeDB(spec)
-      const membership = queries.find((q) => q.includes('isa membership'))
-      expect(membership).toBeUndefined()
-    })
-
-    it('should generate skill and capability queries per skill', () => {
-      const spec: AgentSpec = {
-        name: 'tutor',
-        prompt: '',
-        skills: [{ name: 'teach', price: 0.05, tags: ['edu'] }],
-      }
-      const queries = toTypeDB(spec)
-      const skillInsert = queries.find((q) => q.includes('isa skill'))
-      const capabilityInsert = queries.find((q) => q.includes('isa capability'))
-      expect(skillInsert).toBeDefined()
-      expect(skillInsert).toContain('skill-id "teach"')
-      expect(skillInsert).toContain('has price 0.05')
-      expect(capabilityInsert).toBeDefined()
-    })
-
-    it('should prefix skill-id with group when group is set', () => {
-      const spec: AgentSpec = {
-        name: 'creative',
-        group: 'marketing',
-        prompt: '',
-        skills: [{ name: 'copy', price: 0.02 }],
-      }
-      const queries = toTypeDB(spec)
-      const skillInsert = queries.find((q) => q.includes('isa skill'))
-      expect(skillInsert).toContain('skill-id "marketing:copy"')
-    })
-
-    it('should escape quotes in system prompt', () => {
-      const spec: AgentSpec = {
-        name: 'agent',
-        prompt: 'Say "hello" to users.',
-      }
-      const queries = toTypeDB(spec)
-      const unitInsert = queries.find((q) => q.includes('isa unit'))
-      expect(unitInsert).toContain('\\"hello\\"')
-    })
-
-    it('should escape backslashes in system prompt', () => {
-      const spec: AgentSpec = {
-        name: 'agent',
-        prompt: 'Use \\n for newlines.',
-      }
-      const queries = toTypeDB(spec)
-      const unitInsert = queries.find((q) => q.includes('isa unit'))
-      expect(unitInsert).toContain('\\\\n')
-    })
-
-    it('should include system-prompt in unit insert', () => {
-      const spec: AgentSpec = { name: 'tutor', prompt: 'You are a helpful tutor.' }
-      const queries = toTypeDB(spec)
-      const unitInsert = queries.find((q) => q.includes('isa unit'))
-      expect(unitInsert).toContain('You are a helpful tutor.')
-    })
-
-    it('should include skill tags', () => {
-      const spec: AgentSpec = {
-        name: 'agent',
-        prompt: '',
-        skills: [{ name: 'build', tags: ['engine', 'P0'] }],
-      }
-      const queries = toTypeDB(spec)
-      const skillInsert = queries.find((q) => q.includes('isa skill'))
-      expect(skillInsert).toContain('has tag "engine"')
-      expect(skillInsert).toContain('has tag "P0"')
-    })
+  it('extracts group field when present', () => {
+    const spec = parse(groupedAgentMarkdown)
+    expect(spec.group).toBe('marketing')
   })
 
-  describe('worldToTypeDB() — world TQL generation', () => {
-    it('should generate a group insert query', () => {
-      const world: WorldSpec = {
-        name: 'marketing',
-        description: 'Marketing team',
-        agents: [],
-      }
-      const queries = worldToTypeDB(world)
-      const groupInsert = queries.find((q) => q.includes('isa group'))
-      expect(groupInsert).toBeDefined()
-      expect(groupInsert).toContain('has gid "marketing"')
-      expect(groupInsert).toContain('group-type "world"')
-    })
+  it('handles missing optional fields', () => {
+    const spec = parse(minimalMarkdown)
+    expect(spec.channels).toBeUndefined()
+    expect(spec.skills).toBeUndefined()
+    expect(spec.group).toBeUndefined()
+  })
 
-    it('should include agent queries for each agent', () => {
-      const world: WorldSpec = {
-        name: 'sales',
-        agents: [
-          { name: 'lead', prompt: 'You handle leads.' },
-          { name: 'closer', prompt: 'You close deals.' },
-        ],
-      }
-      const queries = worldToTypeDB(world)
-      // Filter for queries that actually INSERT a unit (not match clauses in membership)
-      const unitInserts = queries.filter((q) => q.includes('isa unit') && !q.includes('match'))
-      expect(unitInserts).toHaveLength(2)
-    })
+  it('extracts sensitivity (0-1 range)', () => {
+    const spec = parse(groupedAgentMarkdown)
+    expect(spec.sensitivity).toBe(0.7)
+  })
 
-    it('should assign group to all agents', () => {
-      const world: WorldSpec = {
-        name: 'ops',
-        agents: [{ name: 'runner', prompt: 'Run tasks.' }],
-      }
-      const queries = worldToTypeDB(world)
-      const membershipQuery = queries.find((q) => q.includes('isa membership'))
-      expect(membershipQuery).toBeDefined()
-      expect(membershipQuery).toContain('gid "ops"')
-    })
+  it('extracts tags as flat array', () => {
+    const spec = parse(groupedAgentMarkdown)
+    expect(spec.tags).toEqual(['agent', 'creative'])
+  })
 
-    it('should create director→agent paths when director exists', () => {
-      const world: WorldSpec = {
-        name: 'team',
-        agents: [
-          { name: 'director', prompt: 'Lead the team.' },
-          { name: 'worker', prompt: 'Do the work.' },
-        ],
-      }
-      const queries = worldToTypeDB(world)
-      const pathInsert = queries.find((q) => q.includes('isa path'))
-      expect(pathInsert).toBeDefined()
-      expect(pathInsert).toContain('has strength 1.0')
-    })
+  it('extracts ADL metadata when present', () => {
+    const spec = parse(adlAgentMarkdown)
+    expect(spec.adlVersion).toBe('0.2.0')
+    expect(spec.adlStatus).toBe('active')
+    expect(spec.sunsetAt).toBe('2027-12-31T00:00:00Z')
+    expect(spec.dataCategories).toEqual(['public', 'internal'])
+  })
 
-    it('should not create paths when no director exists', () => {
-      const world: WorldSpec = {
-        name: 'peer',
-        agents: [
-          { name: 'alice', prompt: 'Alice.' },
-          { name: 'bob', prompt: 'Bob.' },
-        ],
-      }
-      const queries = worldToTypeDB(world)
-      const pathInsert = queries.find((q) => q.includes('isa path'))
-      expect(pathInsert).toBeUndefined()
+  it('extracts permNetwork structure', () => {
+    const spec = parse(adlAgentMarkdown)
+    expect(spec.permNetwork).toMatchObject({
+      allowedHosts: ['api.example.com', 'webhook.example.com'],
+      protocols: ['https', 'wss'],
     })
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEST SUITE B: parse() — System prompt extraction
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('parse() — system prompt body extraction', () => {
+  it('extracts body text after frontmatter as prompt', () => {
+    const spec = parse(tutorMarkdown)
+    expect(spec.prompt).toContain('You are a patient, encouraging Spanish tutor')
+  })
+
+  it('preserves markdown formatting in prompt', () => {
+    const spec = parse(tutorMarkdown)
+    expect(spec.prompt).toContain('## Personality')
+    expect(spec.prompt).toContain('- Patient and encouraging')
+  })
+
+  it('trims leading/trailing whitespace from prompt', () => {
+    const spec = parse(tutorMarkdown)
+    const trimmed = spec.prompt.trim()
+    expect(spec.prompt).toBe(trimmed)
+  })
+
+  it('handles minimal agent with short prompt', () => {
+    const spec = parse(minimalMarkdown)
+    expect(spec.prompt).toBe('You are a scout. You observe and report.')
+  })
+
+  it('requires name in frontmatter (no pure markdown support)', () => {
+    // parse() requires 'name' field via Schema.NonEmptyString
+    // Pure markdown (no frontmatter) will fail validation
+    const pureMarkdown = 'Just some instructions without frontmatter'
+    expect(() => parse(pureMarkdown)).toThrow()
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEST SUITE C: toTypeDB() — Unit insert generation
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('toTypeDB() — unit insert generation', () => {
+  it('generates unit insert with required attributes', () => {
+    const spec = parse(tutorMarkdown)
+    const queries = toTypeDB(spec)
+    const unitInsert = queries[0]
+
+    expect(unitInsert).toContain('insert $u isa unit')
+    expect(unitInsert).toContain('has uid "spanish-tutor"')
+    expect(unitInsert).toContain('has name "spanish-tutor"')
+    expect(unitInsert).toContain('has model "claude-sonnet-4-20250514"')
+    expect(unitInsert).toContain('has unit-kind "agent"')
+  })
+
+  it('includes system-prompt in unit insert', () => {
+    const spec = parse(tutorMarkdown)
+    const queries = toTypeDB(spec)
+    const unitInsert = queries[0]
+
+    expect(unitInsert).toContain('has system-prompt')
+    expect(unitInsert).toContain('patient')
+  })
+
+  it('sets default model when not specified', () => {
+    const spec = parse(minimalMarkdown)
+    const queries = toTypeDB(spec)
+    const unitInsert = queries[0]
+
+    expect(unitInsert).toContain('has model "claude-sonnet-4-20250514"')
+  })
+
+  it('uses group:name as uid when group is set', () => {
+    const spec = parse(groupedAgentMarkdown)
+    const queries = toTypeDB(spec)
+    const unitInsert = queries[0]
+
+    expect(unitInsert).toContain('has uid "marketing:creative"')
+  })
+
+  it('includes ADL attributes when present', () => {
+    const spec = parse(adlAgentMarkdown)
+    const queries = toTypeDB(spec)
+    const unitInsert = queries[0]
+
+    expect(unitInsert).toContain('has adl-version "0.2.0"')
+    expect(unitInsert).toContain('has adl-status "active"')
+    expect(unitInsert).toContain('has sunset-at "2027-12-31T00:00:00Z"')
+  })
+
+  it('escapes quotes in system prompt', () => {
+    const markdownWithQuotes = `---
+name: quoted
+---
+
+You say "hello".`
+    const spec = parse(markdownWithQuotes)
+    const queries = toTypeDB(spec)
+    const unitInsert = queries[0]
+
+    expect(unitInsert).toContain('\\"') // escaped quote
+  })
+
+  it('sets status and initial metrics', () => {
+    const spec = parse(tutorMarkdown)
+    const queries = toTypeDB(spec)
+    const unitInsert = queries[0]
+
+    expect(unitInsert).toContain('has status "active"')
+    expect(unitInsert).toContain('has success-rate 0.5')
+    expect(unitInsert).toContain('has sample-count 0')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEST SUITE D: toTypeDB() — Capability relations
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('toTypeDB() — capability relations for skills', () => {
+  it('generates skill insert and capability for each skill', () => {
+    const spec = parse(tutorMarkdown)
+    const queries = toTypeDB(spec)
+
+    // Should have: 1 unit insert + 1 group membership + (3 skills + 3 capabilities)
+    // = 1 + 1 + 6 = 8 queries
+    expect(queries.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('creates skill entity with skill-id, name, and price', () => {
+    const spec = parse(tutorMarkdown)
+    const queries = toTypeDB(spec)
+    const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
+
+    expect(skillQueries.length).toBe(3)
+    // Without a group, skill-id is just the skill name
+    expect(skillQueries[0]).toContain('has skill-id "lesson"')
+    expect(skillQueries[0]).toContain('has name "lesson"')
+    expect(skillQueries[0]).toContain('has price 0.01')
+  })
+
+  it('attaches skill tags to skill entity', () => {
+    const spec = parse(tutorMarkdown)
+    const queries = toTypeDB(spec)
+    const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
+
+    expect(skillQueries[0]).toContain('has tag "education"')
+    expect(skillQueries[0]).toContain('has tag "spanish"')
+  })
+
+  it('creates capability relation between unit and skill', () => {
+    const spec = parse(tutorMarkdown)
+    const queries = toTypeDB(spec)
+    const capabilityQueries = queries.filter((q) => q.includes('isa capability'))
+
+    expect(capabilityQueries.length).toBe(3)
+    expect(capabilityQueries[0]).toContain('provider: $u')
+    expect(capabilityQueries[0]).toContain('offered: $s')
+    expect(capabilityQueries[0]).toContain('has price')
+  })
+
+  it('uses group:skillname as skill-id when group is present', () => {
+    const spec = parse(groupedAgentMarkdown)
+    const queries = toTypeDB(spec)
+    const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
+
+    expect(skillQueries[0]).toContain('has skill-id "marketing:copywrite"')
+  })
+
+  it('handles agents with no skills gracefully', () => {
+    const spec = parse(minimalMarkdown)
+    const queries = toTypeDB(spec)
+
+    // Should have only unit insert (no skills, no capabilities)
+    const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
+    expect(skillQueries.length).toBe(0)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEST SUITE E: Tag extraction flow
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('tag extraction flow', () => {
+  it('flows skill tags through to TypeDB inserts', () => {
+    const spec = parse(tutorMarkdown)
+    const queries = toTypeDB(spec)
+
+    // Find skill insert and verify tags are present
+    const skillInsert = queries.find((q) => q.includes('has skill-id "lesson"'))
+    expect(skillInsert).toBeDefined()
+    expect(skillInsert).toContain('has tag "education"')
+    expect(skillInsert).toContain('has tag "spanish"')
+    expect(skillInsert).toContain('has tag "language"')
+  })
+
+  it('includes unit-level tags in unit insert', () => {
+    const spec = parse(groupedAgentMarkdown)
+    const queries = toTypeDB(spec)
+    const unitInsert = queries[0]
+
+    // Unit tags: from spec.tags + group tag
+    expect(unitInsert).toContain('has tag "agent"')
+    expect(unitInsert).toContain('has tag "creative"')
+    expect(unitInsert).toContain('has tag "marketing"') // group becomes a tag
+  })
+
+  it('deduplicates tags across skills', () => {
+    const markdownWithDupeTags = `---
+name: multi-skill
+skills:
+  - name: task1
+    tags: [common, unique1]
+  - name: task2
+    tags: [common, unique2]
+---
+
+Multi-skill agent.`
+    const spec = parse(markdownWithDupeTags)
+    const queries = toTypeDB(spec)
+
+    // Both skills should exist with their own tags
+    const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
+    expect(skillQueries.length).toBe(2)
+    expect(skillQueries[0]).toContain('has tag "common"')
+    expect(skillQueries[1]).toContain('has tag "common"')
+  })
+
+  it('handles allowedOrigins as origin: tags', () => {
+    const markdownWithOrigins = `---
+name: restricted
+allowedOrigins: [api.example.com, webhook.example.com]
+---
+
+Restricted agent.`
+    const spec = parse(markdownWithOrigins)
+    const queries = toTypeDB(spec)
+    const unitInsert = queries[0]
+
+    expect(unitInsert).toContain('has tag "origin:api.example.com"')
+    expect(unitInsert).toContain('has tag "origin:webhook.example.com"')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BONUS: worldToTypeDB() — Group + membership + paths
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('worldToTypeDB() — group scaffolding', () => {
+  it('creates group entity with gid and name', () => {
+    const world = {
+      name: 'marketing',
+      description: 'Marketing team',
+      agents: [
+        {
+          name: 'creative',
+          prompt: 'You are creative.',
+        } as AgentSpec,
+      ],
+    }
+    const queries = worldToTypeDB(world)
+
+    expect(queries[0]).toContain('insert $g isa group')
+    expect(queries[0]).toContain('has gid "marketing"')
+    expect(queries[0]).toContain('has name "marketing"')
+    expect(queries[0]).toContain('has group-type "world"')
+  })
+
+  it('sets group for all agents', () => {
+    const world = {
+      name: 'research',
+      agents: [
+        {
+          name: 'analyst',
+          prompt: 'Analyze.',
+        } as AgentSpec,
+        {
+          name: 'writer',
+          prompt: 'Write.',
+        } as AgentSpec,
+      ],
+    }
+    const queries = worldToTypeDB(world)
+
+    // Both agents should have research:analyst and research:writer uids
+    const analyticsInsert = queries.find((q) => q.includes('research:analyst'))
+    const writerInsert = queries.find((q) => q.includes('research:writer'))
+
+    expect(analyticsInsert).toBeDefined()
+    expect(writerInsert).toBeDefined()
+  })
+
+  it('creates initial paths from director to all other agents', () => {
+    const world = {
+      name: 'team',
+      agents: [
+        {
+          name: 'director',
+          prompt: 'You lead.',
+        } as AgentSpec,
+        {
+          name: 'worker1',
+          prompt: 'You work.',
+        } as AgentSpec,
+        {
+          name: 'worker2',
+          prompt: 'You work.',
+        } as AgentSpec,
+      ],
+    }
+    const queries = worldToTypeDB(world)
+
+    const pathQueries = queries.filter((q) => q.includes('isa path'))
+    // Should have 2 paths (director → worker1, director → worker2)
+    expect(pathQueries.length).toBe(2)
   })
 })

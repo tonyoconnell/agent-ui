@@ -5,8 +5,8 @@
 
 ```mermaid
 pie title ONE Substrate — 570 Tasks
-    "Done (286)" : 286
-    "Open (284)" : 284
+    "Done (299)" : 299
+    "Open (271)" : 271
 ```
 
 ---
@@ -113,7 +113,7 @@ timeline
 
 | TODO | Progress | Status |
 |------|----------|--------|
-| [collusion](TODO-collusion.md) | 16 / 54 done | C2 — filtering + sync guards |
+| [collusion](TODO-collusion.md) | 24 / 54 done | C3 — wave-lock + session tests landed |
 | [commands](TODO-commands.md) | 3 / 37 done | C2 — write 5 command files |
 | [SUI](TODO-SUI.md) | 28 / 58 done | GROW — Phase 2 identity + escrow |
 | [adl](TODO-adl.md) | 21 / 29 done | GROW — Cycles 1–3 gates closed; W4 rubrics remain |
@@ -122,7 +122,7 @@ timeline
 | [marketplace](TODO-marketplace.md) | 6 / 23 done | GROW — Cycle 1 list/grid live; bounty E2E + fee + bundle shipped |
 | [task-management](TODO-task-management.md) | 9 / 26 done | PROVE — wave-runner + self-checkoff |
 | [ui-signals](TODO-ui-signals.md) | 0 / 16 done | WIRE — UI clicks as substrate signals |
-| [testing](TODO-testing.md) | 24 / 40 done | PROVE — loop.ts, agent-md, nanoclaw router |
+| [testing](TODO-testing.md) | 28 / 40 done | PROVE — loop/rubric/agent-md/task-sync covered |
 | [ONE-strategy](TODO-ONE-strategy.md) | 3 / 14 done | GROW — CEO panel, 7 personas, marketplace |
 | [template](TODO-template.md) | 0 / 8 done | WIRE — template as /todo skill |
 | [lifecycle](TODO-lifecycle.md) | 20 / 28 done | GROW — harden(), federate(), dissolve() |
