@@ -6,8 +6,8 @@
 
 |  |  |
 |---|---|
-| Generated at | 2026-04-15T20:37:49.372Z |
-| Test run at | 2026-04-15T20:37:34.204Z |
+| Generated at | 2026-04-15T20:38:43.772Z |
+| Test run at | 2026-04-15T20:38:41.655Z |
 | Benchmarks measured | 0 named ops, 0 samples |
 | Budget coverage | 0 / 45 operations |
 | Verdict | **0 pass** · **0 over** · 45 missing |
@@ -157,14 +157,14 @@ to get a verdict column.
 This is the **test harness** duration, not the production system. Kept here
 so we notice if the gate itself grows too slow to run inside the AI edit loop.
 
-**Totals:** ✓ 20/20 tests · 41.72ms across 1 files
+**Totals:** ✓ 17/17 tests · 10.27ms across 1 files
 
 Top 10 slowest test files:
 
 | File | Tests | Duration |
 |------|------:|---------:|
-| `learning-acceleration.test.ts` | 20 | 41.72ms |
+| `lifecycle-gates.test.ts` | 17 | 10.27ms |
 
 ---
 
-_Report generated 2026-04-15T20:37:49.388Z._
+_Report generated 2026-04-15T20:38:43.776Z._

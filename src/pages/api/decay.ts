@@ -2,7 +2,7 @@
  * POST /api/decay — Run asymmetric decay cycle
  *
  * Body: { trailRate?: number, resistanceRate?: number }
- * Defaults: trail 5% (slow), resistance 20% (fast)
+ * Defaults: strength 5% (slow), resistance 20% (fast)
  *
  * From ant biology: success persists, failure forgives.
  */

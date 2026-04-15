@@ -377,7 +377,7 @@ async function phase6(): Promise<{ actions: string[]; state: Record<string, unkn
 async function phase7(): Promise<{ actions: string[]; state: Record<string, unknown> }> {
   const actions: string[] = []
 
-  // Query hypotheses (the substrate's knowledge)
+  // Query hypotheses (the substrate's learning)
   const hypotheses = await readParsed(`
     match $h isa hypothesis, has hid $hid, has statement $stmt, has hypothesis-status $hs;
     select $hid, $stmt, $hs;
@@ -412,7 +412,7 @@ async function phase7(): Promise<{ actions: string[]; state: Record<string, unkn
       frontiers: frontiers.map((f) => ({ id: f.fid, type: f.ft, description: f.fd, status: f.fs })),
       highways: highways.map((h) => ({ from: h.fid, to: h.tid, strength: h.s })),
       explanation:
-        'L6 Harden: highways → confirmed hypotheses (permanent knowledge). Fading paths → testing hypotheses (watch these). L7 Frontier: tag gaps + unit gaps → unexplored territory. Knowledge couples back to evolution: strong patterns trigger priority evolution.',
+        'L6 Harden: highways → confirmed hypotheses (permanent hypotheses). Fading paths → testing hypotheses (watch these). L7 Frontier: tag gaps + unit gaps → unexplored territory. Hypotheses couple back to evolution: strong patterns trigger priority evolution.',
     },
   }
 }

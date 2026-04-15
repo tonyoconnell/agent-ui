@@ -106,7 +106,7 @@ interface SignalRecord {
 interface WorldState {
   agents: AgentData[]
   strength: Record<string, number>
-  scent?: Record<string, number> // legacy alias for strength
+  strength?: Record<string, number>
   positions: Record<string, { x: number; y: number }>
 }
 
@@ -1365,7 +1365,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
     (edgeId: string, strength: number) => {
       const [source, target] = edgeId.split('→')
 
-      // Find and update all matching scent entries
+      // Find and update all matching strength entries
       Object.keys(world.strength).forEach((key) => {
         const sp = splitPath(key)
         if (!sp) return
@@ -1487,9 +1487,9 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
         try {
           const state = JSON.parse(e.target?.result as string) as ColonyState
 
-          // Restore scent
+          // Restore strength
           Object.keys(world.strength).forEach((key) => delete world.strength[key])
-          Object.entries(state.strength || state.scent || {}).forEach(([key, value]) => {
+          Object.entries(state.strength || {}).forEach(([key, value]) => {
             world.strength[key] = value as number
           })
 

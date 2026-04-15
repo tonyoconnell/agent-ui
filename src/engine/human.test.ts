@@ -378,15 +378,13 @@ describe('Act 5: human outcomes — result/timeout/dissolved/failure', () => {
 
     vi.mocked(durableAsk).mockResolvedValueOnce({ result: 'yes' })
 
-    const outcome = await w.ask(
+    await w.ask(
       { receiver: 'respondent:approve', data: { draft: 'Test' } },
       'requester'
     )
 
-    if (outcome.result) {
-      w.mark(edge, 1)
-      expect(w.sense(edge)).toBe(1)
-    }
+    w.mark(edge, 1)
+    expect(w.sense(edge)).toBe(1)
   })
 
   it('timeout: human slow to respond → neutral (no mark/warn)', async () => {
@@ -400,17 +398,16 @@ describe('Act 5: human outcomes — result/timeout/dissolved/failure', () => {
     w.add('slowpoke', h)
 
     const edge = 'system→slowpoke:approve'
-    const initialStrength = w.sense(edge)
 
     vi.mocked(durableAsk).mockResolvedValueOnce({ timeout: true })
 
-    const outcome = await w.ask(
+    await w.ask(
       { receiver: 'slowpoke:approve', data: { draft: 'Urgent' } },
       'system'
     )
 
-    // No mark, no warn — neutral
-    expect(w.sense(edge)).toBe(initialStrength)
+    // No mark, no warn — neutral (stays at 0)
+    expect(w.sense(edge)).toBe(0)
   })
 
   it('dissolved: human capability missing → warn(0.5)', async () => {
@@ -444,7 +441,7 @@ describe('Act 5: human outcomes — result/timeout/dissolved/failure', () => {
     // Simulate complete failure (no result, no timeout)
     vi.mocked(durableAsk).mockResolvedValueOnce({})
 
-    const outcome = await w.ask(
+    await w.ask(
       { receiver: 'unresponsive:approve', data: { draft: 'Test' } },
       'system'
     )
@@ -469,15 +466,13 @@ describe('Act 5: human outcomes — result/timeout/dissolved/failure', () => {
     // Simulate chain depth = 3 (three hops deep)
     const chainDepth = 3
 
-    const outcome = await w.ask(
+    await w.ask(
       { receiver: 'fast:approve', data: { draft: 'Test' } },
       'upstream'
     )
 
-    if (outcome.result) {
-      w.mark(edge, chainDepth) // mark scaled by depth
-      expect(w.sense(edge)).toBe(chainDepth)
-    }
+    w.mark(edge, chainDepth) // mark scaled by depth
+    expect(w.sense(edge)).toBe(chainDepth)
   })
 })
 

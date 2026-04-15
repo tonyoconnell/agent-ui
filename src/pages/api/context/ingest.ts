@@ -1,5 +1,5 @@
 /**
- * POST /api/context/ingest — Ingest all docs to TypeDB as knowledge
+ * POST /api/context/ingest — Ingest all docs to TypeDB as hypotheses
  *
  * Docs become confirmed hypotheses. The substrate recalls them.
  */

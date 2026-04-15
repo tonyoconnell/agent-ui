@@ -59,7 +59,7 @@ function colorForType(type: string): string {
   const colors: Record<string, string> = {
     persona: '#6366f1', // indigo
     team: '#3b82f6', // blue
-    colony: '#8b5cf6', // purple
+    pod: '#8b5cf6', // purple
     dao: '#ec4899', // pink
   }
   return colors[type] || '#6b7280' // gray fallback

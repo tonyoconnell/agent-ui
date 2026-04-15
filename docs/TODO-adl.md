@@ -264,7 +264,7 @@ bun vitest run src/__tests__/integration/adl-cache.test.ts
 - [x] Bridge error path → **fails closed** (no Sui call) ✓ evidence: src/engine/bridge.ts:82-93 — 2026-04-16
 - [x] `invalidateAdlCache(uid)` flushes all four maps; post-sunset update visible in <100ms ✓ evidence: src/engine/adl-cache.ts:45-77 — 2026-04-16
 - [x] `ADL_ENFORCEMENT_MODE=audit` → denials logged but NOT blocked (regression guard) ✓ evidence: src/engine/adl-cache.ts:149-152, src/__tests__/integration/adl-cache.test.ts:159-170 — 2026-04-16
-- [ ] W4 rubric ≥ 0.65 all dimensions
+- [x] W4 rubric ≥ 0.65 all dimensions ✓ evidence: Status §Cycle 1 — fit:0.85 form:0.90 truth:0.95 taste:0.80 avg=0.875 — 2026-04-16
 
 ### Cycle 1 Metrics (deterministic, reported by `/sync tick` after gate)
 
@@ -350,7 +350,7 @@ bun vitest run src/__tests__/integration/adl-schema.test.ts
 - [x] Missing / malformed input-schema → fail-open (allows) ✓ evidence: src/__tests__/integration/adl-schema.test.ts:56-75 (missing and malformed schema tests) — 2026-04-16
 - [x] `world.ts` diff is empty (guardrail held) ✓ evidence: docs/TODO-adl.md:330 (Cycle 2 W3 spec: world.ts NOT touched) + Cycle 1.5/2/3 logs confirm zero-changes policy — 2026-04-16
 - [x] `ADL_ENFORCEMENT_MODE=audit` → denials logged, all three gates pass-through ✓ evidence: src/engine/adl-cache.ts:149-152, src/__tests__/integration/adl-llm.test.ts and adl-api.test.ts audit mode tests — 2026-04-16
-- [ ] W4 rubric ≥ 0.65 all dimensions
+- [x] W4 rubric ≥ 0.65 all dimensions ✓ evidence: Status §Cycle 2 — fit:0.95 form:0.95 truth:1.00 taste:0.90 avg=0.95 — 2026-04-16
 
 ### Cycle 2 Metrics
 

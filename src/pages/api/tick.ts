@@ -13,11 +13,11 @@ let lastTick = 0
 
 // Named interval constants (ms)
 const L1_INTERVAL = 100 // signal routing per message
-const L2_INTERVAL = 1000 // trail accumulation per outcome
+const L2_INTERVAL = 1000 // path-strength accumulation per outcome
 const L3_INTERVAL = 300_000 // fade every 5 min
 const L4_INTERVAL = 60_000 // economic payment tracking per min
 const L5_INTERVAL = 600_000 // evolution every 10 min (24h cooldown per unit)
-const L6_INTERVAL = 3_600_000 // knowledge/highway hardening every hour
+const L6_INTERVAL = 3_600_000 // hypothesis/highway hardening every hour
 const L7_INTERVAL = 3_600_000 // frontier detection every hour
 
 let lastL1 = 0
@@ -102,7 +102,7 @@ export const GET: APIRoute = async ({ url }) => {
   // L5: evolution every 10 min
   if (now - lastL5 >= L5_INTERVAL) lastL5 = now
 
-  // L6: knowledge hardening every hour
+  // L6: hypothesis hardening every hour
   if (now - lastL6 >= L6_INTERVAL) lastL6 = now
 
   // L7: frontier detection every hour
