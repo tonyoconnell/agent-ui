@@ -34,8 +34,8 @@ vi.mock('@/lib/ws-server', () => ({
   relayToGateway: vi.fn(),
 }))
 
-import { readParsed, write, writeSilent } from '@/lib/typedb'
 import { syncTasks } from '@/engine/task-sync'
+import { readParsed, write } from '@/lib/typedb'
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ACT 1: Sync Guard — Preserve Owner on Claimed Task
@@ -91,9 +91,9 @@ describe('sync-guard: preserve owner on claimed task', () => {
 
     // Verify: write() was never called to insert this task
     // (writeSilent is called for builder, but write() is NOT)
-    const writeCallsForInsert = vi.mocked(write).mock.calls.filter(
-      (c) => c[0]?.includes('insert') && c[0]?.includes('t-sync-guard-1'),
-    )
+    const writeCallsForInsert = vi
+      .mocked(write)
+      .mock.calls.filter((c) => c[0]?.includes('insert') && c[0]?.includes('t-sync-guard-1'))
     expect(writeCallsForInsert).toHaveLength(0)
   })
 
@@ -128,18 +128,16 @@ describe('sync-guard: preserve owner on claimed task', () => {
     expect(result.errors).toBe(0)
 
     // Verify: write() was called with insert statement containing task-id
-    const insertCalls = vi.mocked(write).mock.calls.filter(
-      (c) => c[0]?.includes('insert') && c[0]?.includes('t-sync-guard-2-new'),
-    )
+    const insertCalls = vi
+      .mocked(write)
+      .mock.calls.filter((c) => c[0]?.includes('insert') && c[0]?.includes('t-sync-guard-2-new'))
     expect(insertCalls.length).toBeGreaterThan(0)
   })
 
   it('(c) sync respects claimed-at timestamp — does not overwrite if status="active"', async () => {
     // Setup: T3 claimed at specific timestamp, status='active'
     // Simulate TypeDB returning the task ID (indicating it's already there)
-    vi.mocked(readParsed).mockResolvedValueOnce([
-      { id: 't-sync-guard-3-claimed' },
-    ])
+    vi.mocked(readParsed).mockResolvedValueOnce([{ id: 't-sync-guard-3-claimed' }])
 
     const task: Task = {
       id: 't-sync-guard-3-claimed',
@@ -168,9 +166,9 @@ describe('sync-guard: preserve owner on claimed task', () => {
     expect(result.errors).toBe(0)
 
     // Verify: write() for insert was NOT called
-    const insertCalls = vi.mocked(write).mock.calls.filter(
-      (c) => c[0]?.includes('insert') && c[0]?.includes('t-sync-guard-3-claimed'),
-    )
+    const insertCalls = vi
+      .mocked(write)
+      .mock.calls.filter((c) => c[0]?.includes('insert') && c[0]?.includes('t-sync-guard-3-claimed'))
     expect(insertCalls).toHaveLength(0)
 
     // The existing task in TypeDB keeps its status='active' and claimed-at intact
@@ -251,9 +249,9 @@ describe('sync-guard: preserve owner on claimed task', () => {
     expect(insertCalls.length).toBeGreaterThan(0)
 
     // Check that claimed task was NOT inserted
-    const claimedInserts = vi.mocked(write).mock.calls.filter(
-      (c) => c[0]?.includes('insert') && c[0]?.includes('t-sync-guard-claimed'),
-    )
+    const claimedInserts = vi
+      .mocked(write)
+      .mock.calls.filter((c) => c[0]?.includes('insert') && c[0]?.includes('t-sync-guard-claimed'))
     expect(claimedInserts).toHaveLength(0)
   })
 })

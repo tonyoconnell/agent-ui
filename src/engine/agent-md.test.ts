@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { parse, toTypeDB, worldToTypeDB, type AgentSpec } from './agent-md'
+import { type AgentSpec, parse, toTypeDB, worldToTypeDB } from './agent-md'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TEST DATA — Real agent markdown fixtures

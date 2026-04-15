@@ -23,7 +23,7 @@ export function FastChat() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [])
 
   const send = useCallback(async () => {
     const text = input.trim()
@@ -58,14 +58,10 @@ export function FastChat() {
         const { done, value } = await reader.read()
         if (done) break
         full += dec.decode(value, { stream: true })
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, content: full } : m)),
-        )
+        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: full } : m)))
       }
 
-      setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)),
-      )
+      setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)))
     } catch (err) {
       setMessages((prev) =>
         prev.map((m) =>
@@ -101,9 +97,7 @@ export function FastChat() {
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
               className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                m.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground'
+                m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
               }`}
             >
               {m.content}
@@ -134,11 +128,7 @@ export function FastChat() {
               t.style.height = `${Math.min(t.scrollHeight, 160)}px`
             }}
           />
-          <Button
-            onClick={send}
-            disabled={loading || !input.trim()}
-            className="h-12 px-5 rounded-xl"
-          >
+          <Button onClick={send} disabled={loading || !input.trim()} className="h-12 px-5 rounded-xl">
             {loading ? '...' : '⚡ Send'}
           </Button>
         </div>

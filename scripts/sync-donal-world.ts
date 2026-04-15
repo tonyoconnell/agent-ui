@@ -17,7 +17,7 @@ const AGENTS_DIR = join(import.meta.dir, '../agents/donal')
 const DRY_RUN = process.argv.includes('--dry-run')
 
 // TQL for the OO Agency world group (idempotent: match-or-insert)
-const TQL_OO_GROUP = `
+const _TQL_OO_GROUP = `
 match $g isa group, has gid "world:oo-agency";
 insert $g isa group;
 `.trim()

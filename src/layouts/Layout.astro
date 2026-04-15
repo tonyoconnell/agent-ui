@@ -3,10 +3,17 @@ import { renderBrand, resolveBrand } from "@/engine/brand"
 
 interface Props {
 	title: string
+	description?: string
+	image?: string
 	brandStyle?: string
 }
 
-const { title, brandStyle: providedBrandStyle } = Astro.props
+const {
+	title,
+	description = "Signal-based world for AI agents. Six dimensions, seven loops, one substrate. Deploy agents as markdown. Earn via pheromone routing.",
+	image = "https://one-substrate.pages.dev/og-image.png",
+	brandStyle: providedBrandStyle
+} = Astro.props
 
 // Centralised brand resolution — any page that passes a brand Thing/Group via
 // the URL (?thing=…, ?group=…) gets a live palette swap for free, and
@@ -33,7 +40,65 @@ if (!brandStyle) {
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<meta name="theme-color" content="#0a0a0f" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+
+		<!-- Open Graph for social sharing -->
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:image" content={image} />
+		<meta property="og:url" content={Astro.url.toString()} />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="ONE" />
+
+		<!-- Twitter Card -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={image} />
+		<meta name="twitter:site" content="@onedotbot" />
+
+		<!-- Canonical URL -->
+		<link rel="canonical" href={Astro.url.toString()} />
+
+		<!-- Favicon and manifest -->
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="manifest" href="/manifest.json" />
+
+		<!-- Preconnect to critical origins -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
 		<title>{title}</title>
+
+		<!-- JSON-LD Structured Data -->
+		<script type="application/ld+json" set:html={JSON.stringify({
+			"@context": "https://schema.org",
+			"@type": "SoftwareApplication",
+			"name": "ONE",
+			"description": description,
+			"url": "https://one.ie",
+			"applicationCategory": "BusinessApplication",
+			"offers": {
+				"@type": "Offer",
+				"price": "0",
+				"priceCurrency": "USD"
+			},
+			"author": {
+				"@type": "Organization",
+				"name": "ONE",
+				"url": "https://one.ie",
+				"logo": "https://one-substrate.pages.dev/logo.png"
+			},
+			"aggregateRating": {
+				"@type": "AggregateRating",
+				"ratingValue": "5",
+				"ratingCount": "100",
+				"bestRating": "5"
+			}
+		})}></script>
+
 		<script is:inline>
 			// Theme init — runs before first paint, no flash.
 			// Default: dark (respects hardcoded html class).

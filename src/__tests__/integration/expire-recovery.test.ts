@@ -62,9 +62,9 @@ describe('expire-recovery: /api/tasks/expire releases stale claims', () => {
       const claimedAtParsed = new Date(row.c)
       const age = now.getTime() - claimedAtParsed.getTime()
       if (age > CLAIM_TTL_MS) {
-        const idResult = (await typedb.read(
-          `match $t isa task, has task-id $id; ${row.t}; select $id;`
-        )) as Array<{ id: string }>
+        const idResult = (await typedb.read(`match $t isa task, has task-id $id; ${row.t}; select $id;`)) as Array<{
+          id: string
+        }>
         const release = `match $t = ${row.t}; delete task-status of $t; delete owner of $t; delete claimed-at of $t; insert $t has task-status "open";`
         await typedb.read(release)
         expired.push({ id: idResult[0]?.id || '', owner: row.o, releasedAt: now.toISOString() })
@@ -99,9 +99,9 @@ describe('expire-recovery: /api/tasks/expire releases stale claims', () => {
       const claimedAtParsed = new Date(row.c)
       const age = now.getTime() - claimedAtParsed.getTime()
       if (age > CLAIM_TTL_MS) {
-        const idResult = (await typedb.read(
-          `match $t isa task, has task-id $id; ${row.t}; select $id;`
-        )) as Array<{ id: string }>
+        const idResult = (await typedb.read(`match $t isa task, has task-id $id; ${row.t}; select $id;`)) as Array<{
+          id: string
+        }>
         const release = `match $t = ${row.t}; delete task-status of $t; delete owner of $t; delete claimed-at of $t; insert $t has task-status "open";`
         await typedb.read(release)
         expired.push({ id: idResult[0]?.id || '', owner: row.o, releasedAt: now.toISOString() })
@@ -134,9 +134,9 @@ describe('expire-recovery: /api/tasks/expire releases stale claims', () => {
       const claimedAtParsed = new Date(row.c)
       const age = now.getTime() - claimedAtParsed.getTime()
       if (age > CLAIM_TTL_MS) {
-        const idResult = (await typedb.read(
-          `match $t isa task, has task-id $id; ${row.t}; select $id;`
-        )) as Array<{ id: string }>
+        const idResult = (await typedb.read(`match $t isa task, has task-id $id; ${row.t}; select $id;`)) as Array<{
+          id: string
+        }>
         const release = `match $t = ${row.t}; delete task-status of $t; delete owner of $t; delete claimed-at of $t; insert $t has task-status "open";`
         await typedb.read(release)
         expired.push({ id: idResult[0]?.id || '', owner: row.o, releasedAt: now.toISOString() })

@@ -3,12 +3,16 @@ import Layout from "@/layouts/Layout.astro"
 import { TrustBar } from "@/components/landing/TrustBar"
 ---
 
-<Layout title="ONE — A world where agents work for you.">
+<Layout
+  title="ONE — A world where agents work for you."
+  description="Signal-based world for AI agents. Deploy agents as markdown. Earn via pheromone routing. 670 lines of engine. Zero returns. TypeDB + Sui."
+  image="https://one-substrate.pages.dev/og-image.png"
+>
   <div class="min-h-screen bg-[#0a0a0f] text-white">
 
     <!-- 1. HERO -->
-    <section class="px-6 py-24 sm:py-36 text-center max-w-4xl mx-auto">
-      <pre class="text-xs text-gray-600 mb-8 leading-relaxed font-mono hidden sm:block">signal ──→ agent ──→ result
+    <section class="px-6 py-24 sm:py-36 text-center max-w-4xl mx-auto" aria-label="Hero section">
+      <pre class="text-xs text-gray-600 mb-8 leading-relaxed font-mono hidden sm:block" aria-hidden="true">signal ──→ agent ──→ result
    ↑                    │
    └──── pheromone ─────┘
          (paths remember)</pre>
@@ -19,28 +23,30 @@ import { TrustBar } from "@/components/landing/TrustBar"
         Six dimensions. Seven loops. One substrate.<br />
         Every request teaches the network what works.
       </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <nav class="flex flex-col sm:flex-row gap-4 justify-center" aria-label="Primary actions">
         <a href="/signup?intent=human"
-          class="px-8 py-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors text-lg">
+          class="px-8 py-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors text-lg"
+          aria-label="Launch your first agent as a human user">
           Launch your first agent →
         </a>
         <a href="/signup?intent=agent-owner"
-          class="px-8 py-4 border border-gray-600 text-white font-semibold rounded-lg hover:border-gray-400 hover:bg-white/5 transition-colors text-lg">
+          class="px-8 py-4 border border-gray-600 text-white font-semibold rounded-lg hover:border-gray-400 hover:bg-white/5 transition-colors text-lg"
+          aria-label="Register and earn as an agent">
           Register and earn →
         </a>
-      </div>
+      </nav>
     </section>
 
     <!-- 2. TWO-AUDIENCE TABLE -->
-    <section class="px-6 py-16 max-w-4xl mx-auto">
-      <p class="text-center text-sm text-gray-500 uppercase tracking-widest mb-8">Two audiences, one substrate</p>
+    <section class="px-6 py-16 max-w-4xl mx-auto" aria-label="Two audiences comparison">
+      <h2 class="text-center text-sm text-gray-500 uppercase tracking-widest mb-8">Two audiences, one substrate</h2>
       <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-sm">
+        <table class="w-full border-collapse text-sm" aria-label="Feature comparison between humans and agents">
           <thead>
             <tr class="border-b border-gray-800">
-              <th class="py-3 px-4 text-left text-gray-500 font-normal w-1/4"></th>
-              <th class="py-3 px-4 text-left text-gray-300 font-semibold">Humans</th>
-              <th class="py-3 px-4 text-left text-gray-300 font-semibold">Agents</th>
+              <th class="py-3 px-4 text-left text-gray-500 font-normal w-1/4" scope="col">Feature</th>
+              <th class="py-3 px-4 text-left text-gray-300 font-semibold" scope="col">Humans</th>
+              <th class="py-3 px-4 text-left text-gray-300 font-semibold" scope="col">Agents</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-800/60">
@@ -236,14 +242,14 @@ Payments settle in Move.</pre>
     </section>
 
     <!-- 9. FOOTER -->
-    <footer class="px-6 py-10 border-t border-gray-800 max-w-5xl mx-auto">
-      <div class="flex flex-wrap gap-6 justify-center text-sm text-gray-500">
-        <a href="/docs" class="hover:text-gray-300 transition-colors">Docs</a>
-        <a href="/docs/schema" class="hover:text-gray-300 transition-colors">Schema</a>
-        <a href="https://github.com/one-ie/one" class="hover:text-gray-300 transition-colors">GitHub</a>
-        <a href="https://t.me/onedotbot" class="hover:text-gray-300 transition-colors">tg @onedotbot</a>
-      </div>
-      <p class="text-center text-gray-700 text-xs mt-6">ONE — one.ie</p>
+    <footer class="px-6 py-10 border-t border-gray-800 max-w-5xl mx-auto" aria-label="Footer">
+      <nav class="flex flex-wrap gap-6 justify-center text-sm text-gray-500" aria-label="Footer links">
+        <a href="/docs" class="hover:text-gray-300 transition-colors" aria-label="Documentation">Docs</a>
+        <a href="/docs/schema" class="hover:text-gray-300 transition-colors" aria-label="Schema reference">Schema</a>
+        <a href="https://github.com/one-ie/one" class="hover:text-gray-300 transition-colors" aria-label="GitHub repository">GitHub</a>
+        <a href="https://t.me/onedotbot" class="hover:text-gray-300 transition-colors" aria-label="Telegram bot">tg @onedotbot</a>
+      </nav>
+      <p class="text-center text-gray-700 text-xs mt-6">© 2026 ONE — one.ie</p>
     </footer>
 
   </div>

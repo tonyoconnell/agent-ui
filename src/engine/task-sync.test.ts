@@ -30,8 +30,8 @@ vi.mock('@/lib/ws-server', () => ({
 }))
 
 import { readParsed, write, writeSilent } from '@/lib/typedb'
-import { wsManager, relayToGateway } from '@/lib/ws-server'
-import { syncTasks, markTaskDone, selfCheckoff, taskBlockers, loadTasks } from './task-sync'
+import { relayToGateway, wsManager } from '@/lib/ws-server'
+import { markTaskDone, selfCheckoff, syncTasks, taskBlockers } from './task-sync'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 1: renderTaskInsert — TQL generation for single task
@@ -395,9 +395,7 @@ describe('Act 3: Blocks Relations — Task blocking relationships', () => {
     await syncTasks([taskA, taskB])
 
     // Check that blocks relation was written
-    const blocksCalls = vi.mocked(write).mock.calls.filter((c) =>
-      (c[0] as string).includes('blocks'),
-    )
+    const blocksCalls = vi.mocked(write).mock.calls.filter((c) => (c[0] as string).includes('blocks'))
     expect(blocksCalls.length).toBeGreaterThan(0)
     const blocksQuery = blocksCalls[0][0] as string
     expect(blocksQuery).toContain('task-a')
@@ -432,9 +430,7 @@ describe('Act 3: Blocks Relations — Task blocking relationships', () => {
     await syncTasks([taskA])
 
     // blocks relation should not be created for external-task
-    const blocksCalls = vi.mocked(write).mock.calls.filter((c) =>
-      (c[0] as string).includes('isa blocks'),
-    )
+    const blocksCalls = vi.mocked(write).mock.calls.filter((c) => (c[0] as string).includes('isa blocks'))
     expect(blocksCalls.length).toBe(0)
   })
 
@@ -671,10 +667,7 @@ describe('Act 6: taskBlockers — Query what tasks are blocked by a task', () =>
   })
 
   it('returns task IDs that are blocked by the given task', async () => {
-    vi.mocked(readParsed).mockResolvedValueOnce([
-      { bid: 'task-b' },
-      { bid: 'task-c' },
-    ])
+    vi.mocked(readParsed).mockResolvedValueOnce([{ bid: 'task-b' }, { bid: 'task-c' }])
 
     const blocked = await taskBlockers('task-a')
 
@@ -734,9 +727,9 @@ describe('Act 7: selfCheckoff — Closure pattern for task completion flow', () 
       know: vi.fn(),
     }
 
-    let callCount = 0
+    let _callCount = 0
     vi.mocked(readParsed).mockImplementation(async (query: string) => {
-      callCount++
+      _callCount++
       // taskBlockers query for task-complete
       if (query.includes('task-complete') && query.includes('blocks')) {
         return [{ bid: 'task-blocked' }] // found one blocked task
@@ -760,9 +753,7 @@ describe('Act 7: selfCheckoff — Closure pattern for task completion flow', () 
     const result = await selfCheckoff('task-complete', mockWorld as any)
 
     expect(result.unblocked).toContain('task-blocked')
-    expect(mockWorld.enqueue).toHaveBeenCalledWith(
-      expect.objectContaining({ receiver: 'builder:task-blocked' }),
-    )
+    expect(mockWorld.enqueue).toHaveBeenCalledWith(expect.objectContaining({ receiver: 'builder:task-blocked' }))
   })
 
   it('promotes highways to knowledge when phase is complete', async () => {
@@ -805,9 +796,7 @@ describe('Act 7: selfCheckoff — Closure pattern for task completion flow', () 
 
     await selfCheckoff('primary-task', mockWorld as any)
 
-    const unblockCalls = vi.mocked(wsManager.broadcast).mock.calls.filter((c) =>
-      (c[0] as any).type === 'unblock',
-    )
+    const unblockCalls = vi.mocked(wsManager.broadcast).mock.calls.filter((c) => (c[0] as any).type === 'unblock')
     expect(unblockCalls.length).toBe(2)
   })
 })

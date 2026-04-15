@@ -10,10 +10,10 @@ export const prerender = false
 // groq:/cerebras: prefix = direct API. Plain = OpenRouter fallback.
 const CHAT_MODELS: ModelSpec[] = [
   { id: 'groq:meta-llama/llama-4-scout-17b-16e-instruct', costPerMToken: 0.11 }, // 87 tok/s, 459ms
-  { id: 'groq:llama-3.1-8b-instant', costPerMToken: 0.05 },                      // 82 tok/s, 502ms
-  { id: 'groq:llama-3.3-70b-versatile', costPerMToken: 0.59 },                   // best quality
-  { id: 'cerebras:llama3.1-8b', costPerMToken: 0.10 },                           // cerebras fallback
-  { id: 'meta-llama/llama-4-scout', costPerMToken: 0.08 },                       // openrouter fallback
+  { id: 'groq:llama-3.1-8b-instant', costPerMToken: 0.05 }, // 82 tok/s, 502ms
+  { id: 'groq:llama-3.3-70b-versatile', costPerMToken: 0.59 }, // best quality
+  { id: 'cerebras:llama3.1-8b', costPerMToken: 0.1 }, // cerebras fallback
+  { id: 'meta-llama/llama-4-scout', costPerMToken: 0.08 }, // openrouter fallback
   { id: 'anthropic/claude-haiku-4-5', costPerMToken: 1.0 },
   { id: 'anthropic/claude-sonnet-4-5', costPerMToken: 3.0 },
 ]
@@ -60,7 +60,9 @@ export const POST: APIRoute = async ({ request }) => {
         })
     const defaultModel = groqKey
       ? 'groq:meta-llama/llama-4-scout-17b-16e-instruct'
-      : cerebrasKey ? 'cerebras:llama3.1-8b' : 'meta-llama/llama-4-scout'
+      : cerebrasKey
+        ? 'cerebras:llama3.1-8b'
+        : 'meta-llama/llama-4-scout'
     const selectedModel = clientModel ?? choice?.model.id ?? defaultModel
 
     // Route by prefix: groq: → Groq LPU, cerebras: → Cerebras silicon, plain → OpenRouter

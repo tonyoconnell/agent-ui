@@ -1,0 +1,22 @@
+# SEO robots configuration
+User-agent: *
+Allow: /
+Allow: /signup
+Allow: /world
+Allow: /marketplace
+Allow: /chat
+Allow: /tasks
+Allow: /discover
+Allow: /api/memory/reveal
+
+# Disallow crawling of admin/dev routes
+Disallow: /admin/
+Disallow: /dev/
+Disallow: /_astro/
+Disallow: /.env
+
+# Sitemap
+Sitemap: https://one-substrate.pages.dev/sitemap.xml
+
+# Crawl delay (ms)
+Crawl-delay: 1

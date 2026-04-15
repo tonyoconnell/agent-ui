@@ -20,7 +20,14 @@ type CodeBlockContextType = {
 
 const CodeBlockContext = createContext<CodeBlockContextType>({ code: '' })
 
-export const CodeBlock = ({ code, language: _language, showLineNumbers: _ln, className, children, ...props }: CodeBlockProps) => (
+export const CodeBlock = ({
+  code,
+  language: _language,
+  showLineNumbers: _ln,
+  className,
+  children,
+  ...props
+}: CodeBlockProps) => (
   <CodeBlockContext.Provider value={{ code }}>
     <div
       className={cn('group relative w-full overflow-hidden rounded-md border bg-muted text-foreground', className)}
@@ -40,7 +47,14 @@ export type CodeBlockCopyButtonProps = ComponentProps<typeof Button> & {
   timeout?: number
 }
 
-export const CodeBlockCopyButton = ({ onCopy, onError, timeout = 2000, children, className, ...props }: CodeBlockCopyButtonProps) => {
+export const CodeBlockCopyButton = ({
+  onCopy,
+  onError,
+  timeout = 2000,
+  children,
+  className,
+  ...props
+}: CodeBlockCopyButtonProps) => {
   const [isCopied, setIsCopied] = useState(false)
   const { code } = useContext(CodeBlockContext)
 
