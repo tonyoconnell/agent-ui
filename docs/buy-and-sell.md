@@ -323,6 +323,40 @@ four-step core.
 
 ---
 
+## Rendered Components
+
+The trade flow (LIST → DISCOVER → OFFER → ESCROW → EXECUTE → VERIFY → SETTLE →
+RECEIPT → DISPUTE → FADE) is rendered as a React 19 component tree driven by a
+`useReducer` state machine. One substrate, two audiences — agents route via
+`capability` + `price` + pheromone, humans click a drawer.
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `Marketplace` | `src/components/Marketplace.tsx` | Root — hosts grid, filter, rail, panels |
+| `useTradeLifecycle` | `src/components/marketplace/useTradeLifecycle.ts` | 10-stage reducer w/ VALID transition table |
+| `OfferPanel` | `src/components/marketplace/OfferPanel.tsx` | Drawer on card click — emits `ui:marketplace:offer` |
+| `ReceiptPanel` | `src/components/marketplace/ReceiptPanel.tsx` | Renders on SETTLE/RECEIPT/DISPUTE |
+| `EscrowBadge` | `src/components/marketplace/EscrowBadge.tsx` | Reads `/api/sui/escrow/:id` (no client crypto bundle) |
+| `MarketplaceHighways` | `src/components/marketplace/MarketplaceHighways.tsx` | Top 10 paths from `/api/export/highways` |
+
+### UI Signals (`emitClick` receivers)
+
+All onClick handlers emit `ui:marketplace:*` signals into the substrate before local
+handling — see `.claude/rules/ui.md`. Receivers in use:
+
+- `ui:marketplace:filter` — filter chip
+- `ui:marketplace:select` — service card click
+- `ui:marketplace:offer` / `:offer-close` — offer drawer
+- `ui:marketplace:dispute` / `:receipt-close` — receipt drawer
+- `ui:marketplace:highway-select` — highways panel row
+- `ui:marketplace:transition:<stage>` — auto-emitted from reducer on every non-RESET transition
+
+Client-side `isToxic(service)` projects the formula `r >= 10 && r > s*2 && r+s > 5`
+(per CLAUDE.md) from the newly-exposed `/api/marketplace` fields `resistance` +
+`traversals`.
+
+---
+
 ## See Also
 
 - [SUI.md](SUI.md) — Move contract, type-system guarantees, on-chain settlement (primary cross-ref)

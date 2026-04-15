@@ -5,8 +5,8 @@
 
 ```mermaid
 pie title ONE Substrate — 570 Tasks
-    "Done (309)" : 309
-    "Open (261)" : 261
+    "Done (314)" : 314
+    "Open (256)" : 256
 ```
 
 ---
@@ -125,9 +125,9 @@ timeline
 | [testing](TODO-testing.md) | 33 / 40 done | GROW — router, human, lifecycle-gates, learning, subscribe landed |
 | [ONE-strategy](TODO-ONE-strategy.md) | 3 / 14 done | GROW — CEO panel, 7 personas, marketplace |
 | [template](TODO-template.md) | 0 / 8 done | WIRE — template as /todo skill |
-| [lifecycle](TODO-lifecycle.md) | 20 / 28 done | GROW — harden(), federate(), dissolve() |
+| [lifecycle](TODO-lifecycle.md) | 22 / 28 done | GROW — harden() + ProvenCapability shipped, federate/dissolve next |
 | [client-ui](TODO-client-ui.md) | 1 / 9 done | WIRE — UI component work |
-| [autonomous-orgs](TODO-autonomous-orgs.md) | 4 / 10 done | GROW — tick orchestration + dashboard |
+| [autonomous-orgs](TODO-autonomous-orgs.md) | 6 / 10 done | GROW — seed + tick L1b orchestration landed |
 | [security](TODO-security.md) | 0 / 5 done | WIRE — security hardening |
 | [rich-messages](TODO-rich-messages.md) | 23 / 28 done | GROW — payment flow, read receipts |
 | [design-system-hardening](TODO-design-system-hardening.md) | 1 / 6 done | PROVE — hardening brand system |
@@ -146,6 +146,7 @@ timeline
 
 | TODO | Tasks | What closed |
 |------|------:|------------|
+| [marketplace-experience](TODO-marketplace-experience.md) | — | 3 cycles complete, deployed to one-substrate.pages.dev/marketplace: 10-stage trade rail, reducer hook, toxic badge, Sui EscrowBadge (via /api/sui/escrow/:id), Highways panel. 8 emitClick receivers, +14 reducer tests. Rubric 0.83-0.87. ✓ 2026-04-16 |
 | [signal-shape](TODO-signal-shape.md) | 23 | Three-slot data, subscribe verb, ws filter |
 | [chat-memory](TODO-chat-memory.md) | 17 | TypeDB recall, temporal queries |
 | [memory](TODO-memory.md) | 12 | Memory API — reveal / forget / frontier |
@@ -228,8 +229,8 @@ timeline
 
 - [ ] **Implement harden(): freeze highway to Sui** [opus] `engine, lifecycle, P0` ← [TODO-lifecycle](TODO-lifecycle.md)
   exit: `persist.know()` writes proven highways to Sui as ProvenCapability objects. Irreversible. Verifiable.
-- [ ] **`curl /api/market/list` returns ≥ 5 capabilities with price + strength** [sonnet] `marketplace, api, P0` ← [TODO-marketplace](TODO-marketplace.md)
-  exit: Marketplace listing live. Agents' priced skills queryable with pheromone weight shown.
+- [ ] **Wire real bounty flow: /api/signal → escrow → release** [sonnet] `marketplace, api, P0` ← [TODO-marketplace](TODO-marketplace.md)
+  exit: Marketplace UI stubs receipts; real signal → escrow creation → settlement release wired end-to-end. Replaces stub callbacks in trade reducer.
 
 ---
 

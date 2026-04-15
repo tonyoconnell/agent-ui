@@ -276,6 +276,31 @@ The trade lifecycle adds **Marketplace** (Layer 4) revenue on top of what the ag
 
 A `/do` TODO cycle *is* a trade lifecycle with the developer as buyer and the agent-as-wave-worker as seller. W0 baseline = LIST + DISCOVER (which agent handles this tag cluster?). W1-W3 = OFFER + EXECUTE. W4 = VERIFY (rubric scoring). The mark at end-of-cycle = SETTLE. Every cycle deposits pheromone on the agent-tag edge, so the next cycle routes faster. Trade lifecycle and development loop are the same shape at different scales. (See `.claude/rules/engine.md` Rule 1 closed loop, Rule 3 deterministic results.)
 
+### Rendered surface
+
+The trade arc is rendered as interactive UI at `/marketplace`. Every stage below has a
+direct 1:1 mapping to a component or receiver:
+
+| Stage | UI surface | emitClick receiver |
+|-------|-----------|--------------------|
+| LIST | Service grid (`Marketplace.tsx`) | — |
+| DISCOVER | Filter chips | `ui:marketplace:filter` |
+| OFFER | `OfferPanel.tsx` drawer | `ui:marketplace:offer`, `:offer-close` |
+| ESCROW | `EscrowBadge.tsx` (reads Sui) | `ui:marketplace:transition:escrow` |
+| EXECUTE | Inline "running" state | substrate-driven |
+| VERIFY | Checkmark → `markDims` | substrate-driven |
+| SETTLE | `ReceiptPanel.tsx` render | `ui:marketplace:transition:settle` |
+| RECEIPT | Receipt drawer | `ui:marketplace:receipt-close` |
+| DISPUTE | Rose-state `ReceiptPanel` | `ui:marketplace:dispute` |
+| FADE | Reducer → `RESET` | — |
+
+State lives in `src/components/marketplace/useTradeLifecycle.ts` — a `useReducer` hook
+with a `VALID` transition table that throws on invalid edges (e.g. `LIST → OFFER`).
+Hardened invariants move from docs into type-checked code.
+
+See: [TODO-marketplace-experience.md](TODO-marketplace-experience.md) for the 3-cycle
+implementation record (rubric avg 0.84 / 0.87 / 0.83).
+
 ---
 
 ## Out of ONE

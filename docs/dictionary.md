@@ -910,6 +910,49 @@ Every `mark()`, `warn()`, and `fade()` writes to TypeDB in the background.
 On startup, `load()` hydrates the world from the database.
 The in-memory world and TypeDB stay in sync.
 
+### Marketplace Experience
+
+Four additions that implement the `/marketplace` trade flow end-to-end.
+
+**`useTradeLifecycle`** — React reducer hook enforcing the 10-stage trade lifecycle
+(`IDLE → BROWSING → SELECTED → NEGOTIATING → ESCROWED → LOCKED → CLAIMED →
+VERIFIED → SETTLED → COMPLETE`, plus `FAILED` and `RESET`). Invalid transitions
+throw at call-site; valid ones emit `ui:marketplace:transition:<stage>` via
+`emitClick`. Location: `src/components/marketplace/useTradeLifecycle.ts`.
+
+**`viewEscrow`** — Read-only Sui helper. No signing required; works without
+`SUI_SEED`. Signature:
+
+```typescript
+viewEscrow(escrowObjectId: string): Promise<EscrowView | null>
+// EscrowView = { locked: boolean, amount: bigint, claimant: string, deadline: number }
+```
+
+Returns `null` when the object doesn't exist or has been consumed. Location:
+`src/lib/sui.ts`.
+
+**`/api/sui/escrow/:id`** — SSR proxy endpoint that calls `viewEscrow()` server-side.
+Keeps `@mysten/sui` out of the client bundle (per the LOCKED CF Pages bundle rules
+in CLAUDE.md). Location: `src/pages/api/sui/escrow/[id].ts`.
+
+**`ui:marketplace:*`** — Namespace of UI-signal receivers emitted from `/marketplace`.
+Eight receivers covering the full trade lifecycle:
+
+| Receiver | Emitted when |
+|----------|-------------|
+| `ui:marketplace:browse` | User opens the marketplace listing |
+| `ui:marketplace:select` | User selects a bundle/offer |
+| `ui:marketplace:negotiate` | User adjusts price or terms |
+| `ui:marketplace:escrow` | User initiates escrow deposit |
+| `ui:marketplace:lock` | Escrow locks; both parties committed |
+| `ui:marketplace:claim` | Buyer claims delivery |
+| `ui:marketplace:settle` | Payment settles on-chain |
+| `ui:marketplace:transition:<stage>` | Any `useTradeLifecycle` stage change (non-RESET) |
+
+All receivers carry `sensitivity=public`, `lifecycle=active`. See
+[buy-and-sell.md](buy-and-sell.md) for the full trade flow and `.claude/rules/ui.md`
+for the `emitClick` contract.
+
 ---
 
 ## The Tick
@@ -1153,6 +1196,8 @@ Only the words humans use to describe it.
 | Boot | `src/engine/boot.ts` | 41 | Hydrate from TypeDB |
 | LLM | `src/engine/llm.ts` | 40 | AI as unit |
 | Schema | `src/schema/world.tql` | 463 | TypeDB truth |
+| Escrow proxy | `src/pages/api/sui/escrow/[id].ts` | — | SSR `viewEscrow()` — keeps `@mysten/sui` out of client bundle |
+| Trade lifecycle | `src/components/marketplace/useTradeLifecycle.ts` | — | 10-stage reducer hook, emits `ui:marketplace:transition:*` |
 
 ---
 

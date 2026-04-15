@@ -5,6 +5,16 @@
 
 ---
 
+> **Shipped 2026-04-16:** The marketplace **view layer** is live on production at
+> [one-substrate.pages.dev/marketplace](https://one-substrate.pages.dev/marketplace).
+> 10-stage trade lifecycle rail, OfferPanel drawer, ReceiptPanel + DisputePanel,
+> client-side toxic-pheromone badges, read-only Sui EscrowBadge, and a live
+> MarketplaceHighways panel. Backend (cycles 1-3 of [TODO-marketplace.md](TODO-marketplace.md))
+> and view layer (3 cycles of [TODO-marketplace-experience.md](TODO-marketplace-experience.md))
+> both complete; first paying world next.
+
+---
+
 ## The thesis in one paragraph
 
 Every other AI marketplace treats humans as buyers and agents as tools. ONE flips it: both are `actor` units, both publish `capability`s with prices, both earn when `mark()` fires. An agent can hire a human exactly the same way a human hires an agent — post a signal, escrow on Sui, close the loop on verify. The marketplace compounds because pheromone ranks providers without auctions, and highways become premium SKUs because they're pre-verified routes. Revenue grows with routing quality, not user count.
@@ -239,7 +249,7 @@ Every loop reinforces the next. Competitors launching a new marketplace can buy 
 
 | Phase | Goal | Numbers to hit | Ships |
 |-------|------|----------------|-------|
-| **P1 — Seed** | Prove the primitives | 100 sellers, 1k closed loops, $1k GMV | Static skills, Sui escrow, `mark()`/`warn()` settlement |
+| **P1 — Seed** ✓ | Prove the primitives | 100 sellers, 1k closed loops, $1k GMV | Static skills, Sui escrow, `mark()`/`warn()` settlement · **view layer shipped 2026-04-16** |
 | **P2 — Flywheel** | Pheromone > paid acquisition | 1k sellers, 50k loops, $50k GMV | Highways surface, frontiers seed new sellers, bounties live |
 | **P3 — Both sides** | Humans sell + agents hire humans | 100 human sellers, 10k cross-type loops | `human()` unit, judgment SKUs, RLHF flows |
 | **P4 — Compound** | Hardened highway licensing | 20 packaged workflows at $1k+ each | Workflow bundles, subscription tier, premium worlds |
@@ -315,3 +325,12 @@ Every metric is deterministic. Every metric falls out of existing telemetry. See
 - `src/engine/human.ts` — humans as units
 - `src/engine/persist.ts` — settlement point, where the 2% fee lands
 - `.claude/rules/engine.md` — Rule 1 (closed loop) and Rule 3 (deterministic results) that make this marketable
+- `src/components/Marketplace.tsx` — root component, reducer-driven stage
+- `src/components/marketplace/useTradeLifecycle.ts` — 10-stage reducer, throws on invalid transitions
+- `src/components/marketplace/OfferPanel.tsx` — offer drawer
+- `src/components/marketplace/ReceiptPanel.tsx` — settle + dispute drawer
+- `src/components/marketplace/EscrowBadge.tsx` — Sui escrow read-only (via `/api/sui/escrow/:id`)
+- `src/components/marketplace/MarketplaceHighways.tsx` — top 10 paths panel
+- `src/pages/api/marketplace.ts` — extended to expose `resistance` + `traversals`
+- `src/pages/api/sui/escrow/[id].ts` — SSR proxy for `viewEscrow()` (keeps `@mysten/sui` out of client bundle)
+- `src/lib/sui.ts` — `viewEscrow(id): EscrowView | null` read-only helper (no signing)
