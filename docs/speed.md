@@ -107,6 +107,24 @@ Primary: `routing.test.ts` (54 tests), `persist.test.ts` (39), `loop.test.ts` (3
 | **Query (top 50 paths)** | 300ms p50 | Batch highways |
 | **Insert (agent)** | 200ms p50 | Sync agent spec |
 
+### ADL Layer (Agent Definition Language)
+
+*Cycle 1.5 addition: Security gates as cache, not lookups.*
+
+| Operation | Time | Scale | Replaces |
+|-----------|------|-------|----------|
+| **ADL gate (cache hit)** | **<1ms** | 90% of signals | TypeDB round-trip (~100ms) |
+| **ADL gate (TypeDB miss)** | **~100ms** | First request only | One-time permission fetch |
+| **Cache invalidation** | **<1ms** | On every sync | Synchronous, fail-safe |
+| **Fail-closed (audit)** | **<1ms** | Real-money safety | Deny on TypeDB error unless audit mode |
+
+**How it works:**
+1. Signal arrives → check local ADL cache (lifecycle, network, sensitivity gates)
+2. Cache hit → gate decision in <1ms (99% of time)
+3. Cache miss → fetch from TypeDB (~100ms), cache 5 minutes
+4. Cache stale on sync → `invalidateAdlCache()` empties entry, next request refetches
+5. TypeDB read error → fail-closed (deny unless `ADL_ENFORCEMENT_MODE=audit`)
+
 ### Edge Layer (Cloudflare)
 
 | Operation | Time | Scale |
@@ -118,6 +136,17 @@ Primary: `routing.test.ts` (54 tests), `persist.test.ts` (39), `loop.test.ts` (3
 | **KV cache (highways)** | <10ms | Hot highways |
 | **Sync worker cron** | <1min | Every 5 minutes |
 | **NanoClaw webhook** | <3s | Telegram reply included |
+
+### UI Signal Emission
+
+*Cycle 1.5 addition: Browser clicks → substrate routing in <1ms.*
+
+| Operation | Time | Context |
+|-----------|------|---------|
+| **emitClick()** | **<0.1ms** | Capture, emit, continue | 
+| **ui:* signal routing** | **<1ms** | In-process delivery |
+| **Payment metadata** | **<0.1ms** | Attach RichMessage data |
+| **Prefetch on load** | **<50ms** | ui-prefetch.ts async |
 
 ### Deploy Pipeline (verified 2026-04-14)
 
@@ -157,23 +186,26 @@ End-to-end from `bun run deploy` → production across all 4 services:
 
 ## The Deterministic Sandwich
 
-Every signal passes through three layers. Each layer can stop it. All layers combined are still faster than a single LLM call.
+Every signal passes through four layers. Each layer can stop it. All layers combined are still faster than a single LLM call.
 
 ```
-PRE:   isToxic(edge)?     → dissolve (3 comparisons, <0.001ms)
-PRE:   capability exists? → TypeDB lookup → dissolve if missing (<1ms)
-LLM:   unit executes task (1,000–2,000ms — the slow part)
-POST:  result?            → mark(). Chain continues. depth++
-POST:  timeout?           → neutral. Chain continues. (agent blameless)
-POST:  dissolved?         → warn(0.5). Chain breaks. depth=0
-POST:  no result?         → warn(1). Chain breaks. depth=0
+PRE:   ADL gates            → lifecycle/network/sensitivity (cached <1ms)
+PRE:   isToxic(edge)?       → dissolve (3 comparisons, <0.001ms)
+PRE:   capability exists?   → TypeDB lookup → dissolve if missing (<1ms)
+LLM:   unit executes task   (1,000–2,000ms — the slow part)
+POST:  result?              → mark(). Chain continues. depth++
+POST:  timeout?             → neutral. Chain continues. (agent blameless)
+POST:  dissolved?           → warn(0.5). Chain breaks. depth=0
+POST:  no result?           → warn(1). Chain breaks. depth=0
 ```
 
 **Why this matters:**
+- ADL gates block retired/unauthorized agents before touching LLM (5-min cache hits <1ms)
 - isToxic blocks scam agents before they touch LLM ($0 cost)
 - Capability check blocks missing agents before they touch LLM ($0 cost)
 - Only ~10% of signals hit the LLM on day 1
 - By day 50, highways cache the result, skipping LLM entirely on obvious trades
+- **New (Cycle 1.5):** Real-money safety via fail-closed bridge (TypeDB errors deny by default)
 
 ---
 
@@ -387,7 +419,8 @@ ONE:         Decision → read map → next decision
 ```
 Traditional: All decisions hit LLM (2,000ms each)
 
-ONE:         isToxic? (dissolve <0.001ms)
+ONE:         ADL gate? (cache <1ms, or ~100ms first time)
+             isToxic? (dissolve <0.001ms)
              Capable? (check <1ms)
              Only 10% hit LLM
              Total: 200ms avg (vs 2,000ms traditional)
@@ -476,12 +509,14 @@ Speed is not abstract. Every stage of the agent lifecycle has a deadline:
 
 | Stage | Constraint | Why | Verified |
 |-------|-----------|-----|----------|
-| **SIGNAL (L1)** | Route <1ms | Signals complete before next fires | ✓ <0.005ms |
-| **DROP (L2)** | Mark <1ms | Success recorded instantly | ✓ <0.001ms |
-| **ALARM (L2)** | Warn <1ms | Failure recorded instantly | ✓ <0.001ms |
+| **ADL (L1)** | Gate <1ms | Permission check, 5-min cache | ✓ <1ms cached |
+| **SIGNAL (L1)** | Route <0.005ms | Signals complete before next fires | ✓ <0.005ms |
+| **DROP (L2)** | Mark <0.001ms | Success recorded instantly | ✓ <0.001ms |
+| **ALARM (L2)** | Warn <0.001ms | Failure recorded instantly | ✓ <0.001ms |
 | **FADE (L3)** | Decay <5ms | No signals 30d → strength drops | ✓ <5ms/1,000 |
 | **HIGHWAY (L2–L3)** | Query <10ms | Highways enable auto-routing | ✓ <10ms KV |
 | **DISCOVER (L1)** | Find agent <100ms | Fresh routing, current trails | ✓ <100ms ask |
+| **BRIDGE (Sui)** | Fail-closed <1ms | Real-money safety, deny on error | ✓ <1ms audit |
 | **HARDEN (L4)** | Freeze <1s | Sui proof per highway | ✓ <1s |
 
 **Core rule:** Nervous system (L1–L3) invisible vs LLM. If marking takes 50ms, you lose. At 0.001ms, it's free.
