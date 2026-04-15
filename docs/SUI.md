@@ -611,6 +611,7 @@ TypeDB is the brain. Move is the body. The substrate needs both.
 
 ## See Also
 
+- [buy-and-sell.md](buy-and-sell.md) — **Commerce mechanics: list/discover/execute/settle, two ledgers, escrow, market dynamics**
 - [plan.md](plan.md) — Why Sui, the five forces
 - [the-stack.md](the-stack.md) — Two fires, one ontology
 - [lifecycle.md](lifecycle.md) — Register through know

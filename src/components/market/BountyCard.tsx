@@ -1,3 +1,6 @@
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { emitClick } from '@/lib/ui-signal'
 import type { Bounty } from '@/pages/api/market/bounty'
 
 interface Props {
@@ -22,9 +25,9 @@ export function BountyCard({ bounty, onRelease }: Props) {
           <p className="text-sm font-medium text-slate-100 truncate">{bounty.skillId}</p>
           <p className="text-xs text-slate-500 font-mono mt-0.5">{bounty.edge}</p>
         </div>
-        <span className={`shrink-0 rounded border px-2 py-0.5 text-[10px] ${STATUS_STYLE[bounty.status]}`}>
+        <Badge variant="outline" className={`shrink-0 text-[10px] ${STATUS_STYLE[bounty.status]}`}>
           {bounty.status}
-        </span>
+        </Badge>
       </div>
 
       <div className="flex items-center gap-4 text-xs text-slate-500">
@@ -52,13 +55,19 @@ export function BountyCard({ bounty, onRelease }: Props) {
       )}
 
       {bounty.status === 'delivered' && onRelease && (
-        <button
-          type="button"
-          onClick={() => onRelease(bounty.id)}
-          className="w-full rounded bg-emerald-700 hover:bg-emerald-600 py-1.5 text-xs text-white transition-colors"
+        <Button
+          size="sm"
+          className="w-full bg-emerald-700 hover:bg-emerald-600 text-xs"
+          onClick={() => {
+            emitClick('ui:market:bounty-release', {
+              type: 'payment',
+              payment: { receiver: bounty.sellerUid, amount: bounty.price, action: 'release' },
+            })
+            onRelease(bounty.id)
+          }}
         >
           Release escrow
-        </button>
+        </Button>
       )}
     </div>
   )

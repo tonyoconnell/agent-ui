@@ -22,6 +22,7 @@ function readCookie(name: string): string | null {
 }
 
 function writeCookie(name: string, value: string, maxAgeSecs = 365 * 24 * 3600): void {
+  // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API lacks broad SSR/Safari support; identity cookie is non-sensitive visitor UID
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSecs}; samesite=lax`
 }
 

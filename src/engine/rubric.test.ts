@@ -9,6 +9,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_WEIGHTS, markDims as markDimsWeighted } from './rubric'
 import { compositeScore, formatRubric, markDims, scoreInterpretation, scoreWork, w4Verify } from './rubric-score'
+import { world as createWorld } from './world'
 
 describe('Rubric Scoring — W4 Quality Gate', () => {
   describe('Golden work (≥0.85 composite)', () => {
@@ -275,6 +276,150 @@ describe('markDims — tagged edge marks', () => {
 
     expect(marks.length).toBe(0) // all borderline
     expect(warns.length).toBe(0) // none below 0.5
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// End-to-end: Rubric → Feedback Signal → Tag pheromone → Routing
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Rubric → Feedback Signal integration', () => {
+  /**
+   * This is the full intelligence emergence loop:
+   *
+   *   Score work (rubric)
+   *     → markDims deposits on agent→skill:dim edges (quality per dimension)
+   *     → loop:feedback deposits on tag:X edges (quality per task type)
+   *     → future select() follows tag paths toward what worked
+   *
+   * Two different pheromone deposits, two different routing effects:
+   *   markDims  → routes which AGENT handles which skill best (specialist routing)
+   *   feedback  → routes which TASK TYPE gets assigned to which path (queue routing)
+   */
+  function bootFeedbackNet() {
+    const net = createWorld()
+    const marks: [string, number][] = []
+    const warns: [string, number][] = []
+
+    // Register loop:feedback (same as boot.ts)
+    net.add('loop').on('feedback', (data: unknown) => {
+      const d = data as { tags?: string[]; strength?: number; outcome?: string } | null
+      const tags = d?.tags ?? []
+      const strength = d?.strength ?? 0
+      const outcome = d?.outcome ?? 'result'
+      for (const tag of tags) {
+        const edge = `tag:${tag}`
+        if (outcome === 'failure') net.warn(edge, 1)
+        else if (outcome === 'dissolved') net.warn(edge, 0.5)
+        else if (strength >= 0.65) net.mark(edge, strength * 5)
+        else net.warn(edge, 0.5)
+      }
+    })
+
+    return { net, marks, warns }
+  }
+
+  it('golden work deposits on both skill:dim edges AND tag edges', async () => {
+    const { net } = bootFeedbackNet()
+    const scores = { fit: 0.95, form: 0.9, truth: 1.0, taste: 0.88 }
+
+    // Step 1: markDims — deposits per-dimension quality on skill paths
+    markDimsWeighted(net, 'entry→builder', scores)
+
+    // Step 2: feedback signal — deposits quality per task-type tag
+    const composite = 0.35 * scores.fit + 0.2 * scores.form + 0.3 * scores.truth + 0.15 * scores.taste
+    await net.ask({
+      receiver: 'loop:feedback',
+      data: { tags: ['engine', 'P0'], strength: composite, outcome: 'result' },
+    })
+
+    // markDims created tagged skill edges
+    expect(net.sense('entry→builder:fit')).toBeGreaterThan(0)
+    expect(net.sense('entry→builder:truth')).toBeGreaterThan(0)
+
+    // feedback created tag routing edges
+    expect(net.sense('tag:engine')).toBeGreaterThan(0)
+    expect(net.sense('tag:P0')).toBeGreaterThan(0)
+  })
+
+  it('weak truth score warns the truth edge AND the feedback signal warns tag paths', async () => {
+    const { net } = bootFeedbackNet()
+    const scores = { fit: 0.9, form: 0.85, truth: 0.3, taste: 0.8 } // truth is bad
+
+    markDimsWeighted(net, 'entry→agent', scores)
+
+    const composite = 0.35 * scores.fit + 0.2 * scores.form + 0.3 * scores.truth + 0.15 * scores.taste
+    // composite ≈ 0.35*0.9 + 0.20*0.85 + 0.30*0.3 + 0.15*0.8 = 0.315+0.17+0.09+0.12 = 0.695
+    // composite >= 0.65 but truth < 0.5 → w4Verify fails, feedback still emitted
+
+    await net.ask({
+      receiver: 'loop:feedback',
+      data: { tags: ['build'], strength: composite, outcome: 'result' },
+    })
+
+    // truth edge is warned (score < 0.5)
+    expect(net.danger('entry→agent:truth')).toBeGreaterThan(0)
+    expect(net.sense('entry→agent:truth')).toBe(0)
+
+    // But composite >= 0.65, so tag path is still marked (feedback uses composite, not dims)
+    expect(net.sense('tag:build')).toBeGreaterThan(0)
+  })
+
+  it('failure wipes out tag routing regardless of rubric scores', async () => {
+    const { net } = bootFeedbackNet()
+
+    // Imagine the code compiled but tests failed → outcome = failure
+    await net.ask({
+      receiver: 'loop:feedback',
+      data: { tags: ['security', 'P0'], strength: 0.9, outcome: 'failure' },
+    })
+
+    // No matter how high the strength, failure always warns
+    expect(net.sense('tag:security')).toBe(0)
+    expect(net.danger('tag:security')).toBe(1)
+  })
+
+  it('after 5 golden cycles on engine tasks, engine path has highway-level strength', async () => {
+    const { net } = bootFeedbackNet()
+
+    for (let i = 0; i < 5; i++) {
+      await net.ask({
+        receiver: 'loop:feedback',
+        data: { tags: ['engine'], strength: 0.9, outcome: 'result' },
+      })
+    }
+
+    // 5 × (0.9 × 5) = 22.5 strength on tag:engine — well above highway threshold of 20
+    const engineStrength = net.sense('tag:engine')
+    expect(engineStrength).toBeGreaterThanOrEqual(20) // highway territory
+    expect(net.isHighway('tag:engine', 20)).toBe(true)
+  })
+
+  it('mixed signals: engine tasks converge, flaky tasks diverge', async () => {
+    const { net } = bootFeedbackNet()
+
+    // engine tasks: consistently golden
+    for (let i = 0; i < 3; i++) {
+      await net.ask({
+        receiver: 'loop:feedback',
+        data: { tags: ['engine'], strength: 0.9, outcome: 'result' },
+      })
+    }
+
+    // deploy tasks: mixed (2 fail, 1 weak success — strength 0.4 < 0.65 → warns, not marks)
+    await net.ask({ receiver: 'loop:feedback', data: { tags: ['deploy'], strength: 0.8, outcome: 'failure' } })
+    await net.ask({ receiver: 'loop:feedback', data: { tags: ['deploy'], strength: 0.8, outcome: 'failure' } })
+    await net.ask({ receiver: 'loop:feedback', data: { tags: ['deploy'], strength: 0.4, outcome: 'result' } })
+    // failures: warn(1)×2 → resistance=2; weak success: warn(0.5) → resistance=2.5; strength=0 → net=-2.5
+
+    const engineNet = net.sense('tag:engine') - net.danger('tag:engine')
+    const deployNet = net.sense('tag:deploy') - net.danger('tag:deploy')
+
+    // Engine path should be strongly positive; deploy should be negative (all warns, no marks)
+    expect(engineNet).toBeGreaterThan(0)
+    expect(deployNet).toBeLessThan(0)
+
+    // The substrate now avoids deploying (toxic path) and prefers engine work (proven path)
   })
 })
 

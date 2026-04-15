@@ -894,6 +894,84 @@ See `docs/SUI.md` for the full Move contract documentation and phased task list.
 
 ---
 
+## Bundle Size (CF Pages Free Tier)
+
+The Pages SSR worker must stay under ~10 MiB uncompressed. Three locked rules keep it there.
+**Verified 2026-04-15:** 21 MiB → 9.5 MiB, Pages deploy: FAILED → ✓.
+
+### Rule 1 — Disable Shiki in `astro.config.mjs`
+
+```js
+markdown: { syntaxHighlight: false }
+```
+
+Shiki pulls ~5.8 MiB of language grammars + WASM into the SSR bundle even if you never
+render markdown server-side. This one line removes them all.
+
+### Rule 2 — Externalize heavy packages
+
+```js
+vite: {
+  ssr: {
+    external: ["node:async_hooks", "@mysten/sui", "@mysten/bcs", "shiki", "@shikijs/core", "@shikijs/types"]
+  }
+}
+```
+
+The CF adapter forces `noExternal: true` for everything — it bundles all imports because
+Workers can't reach node_modules at runtime. `ssr.external` overrides this for specific
+packages by leaving a bare `import { x } from 'pkg'` reference in the bundle without
+inlining the package code.
+
+**This only works safely if the package is never executed in the worker.** `shiki` is safe
+because every component that calls `codeToHtml` is `client:only` — the import exists in
+the bundle as dead code that is never reached at runtime.
+
+### Rule 3 — Prerender pure-shell pages
+
+```astro
+---
+export const prerender = true
+import { MyComponent } from "@/components/MyComponent"
+---
+<Layout title="...">
+  <MyComponent client:only="react" />
+</Layout>
+```
+
+`client:only="react"`: Astro renders an empty `<div>` on the server — the component never
+runs in the worker, so its full import tree (React, ReactFlow, charts, etc.) stays out of
+the SSR bundle.
+
+`export const prerender = true`: the page becomes static HTML at build time. The SSR
+handler collapses to a 63-byte stub. Pages that can be prerendered have zero worker cost
+at runtime.
+
+**Currently prerendered:** `build.astro`, `ceo.astro`, `chat.astro`, `tasks.astro`.
+
+**Cannot prerender** (read server state): `world.astro` (`Astro.locals.session`),
+`market.astro` (runtime DB query).
+
+### Diagnosis
+
+```bash
+# Total worker size
+du -sh dist/_worker.js/
+
+# Top chunks by size
+ls -lhS dist/_worker.js/chunks/ | head -20
+
+# Shiki crept back in?
+grep -rl "from 'shiki'" dist/_worker.js/chunks/
+# Fix: the component using shiki must be client:only
+
+# React vendor in worker again?
+grep -l "react-vendor" dist/_worker.js/chunks/
+# Fix: audit src/pages/*.astro — pure-shell pages must use client:only + prerender=true
+```
+
+---
+
 ## Redeploy (after changes)
 
 ```bash

@@ -6,6 +6,8 @@
 > Agent register → signal → highway in 100 signals. 3-unit chain self-learning.
 > Wave pattern context accumulation. Fade asymmetry. New path overtakes incumbent.
 
+> **Two lifecycles, one substrate.** This doc tracks the **agent's career arc** (Register → Capable → Highway → Dissolve) — a unit's tenure on the graph. A **single buy/sell transaction** has its own shorter arc (LIST → DISCOVER → OFFER → ESCROW → EXECUTE → VERIFY → SETTLE → RECEIPT → DISPUTE → FADE) that runs *inside* the SIGNAL stage. See [§ Trade Lifecycle](#trade-lifecycle-zooming-into-signal) below, and [buy-and-sell.md](buy-and-sell.md) for trade mechanics.
+
 ---
 
 ## The Two Lifecycles
@@ -209,6 +211,73 @@ This is where the flywheel kicks:
 
 ---
 
+## Trade Lifecycle (zooming into SIGNAL)
+
+The agent lifecycle above tracks a unit's **career** on the graph — weeks to months, thousands of signals, one slow arc from CAPABLE to HIGHWAY. Zoom in by 1000x and each of those signals is a full **trade lifecycle** — 10 stages, seconds to hours, two specific units, one specific transaction. A highway is not a promotion; it's the statistical residue of hundreds of closed trade loops.
+
+**Three stages are trade-unique** (the rest re-use agent primitives): **ESCROW**, **VERIFY**, **DISPUTE**. These only exist between two specific units in one specific transaction.
+
+### The 10 trade stages
+
+| # | Stage     | Ledger         | Primitive                         | What it writes                       | Agent-level equivalent |
+|---|-----------|----------------|-----------------------------------|--------------------------------------|------------------------|
+| 1 | LIST      | TypeDB         | `capability(provider, offered)`   | offer visible to discovery           | Stage 1 CAPABLE        |
+| 2 | DISCOVER  | TypeDB/memory  | `cheapest_provider` or `select()` | seller ranked, buyer picks           | Stage 2 DISCOVER       |
+| 3 | OFFER     | memory         | `signal({ data.weight })`         | PRE-gates pass or dissolve (410/403) | Stage 3 SIGNAL (in)    |
+| 4 | ESCROW    | Sui            | `Escrow` shared object            | `Balance<SUI>` locked, deadline set  | — (trade-unique)       |
+| 5 | EXECUTE   | memory + LLM   | seller's `.on(skill)` handler     | `{result}` \| `{timeout}` \| ∅       | Stage 3 SIGNAL (out)   |
+| 6 | VERIFY    | rubric         | `markDims({fit,form,truth,taste})`| outcome classified vs rubric         | — (trade-unique)       |
+| 7 | SETTLE    | all three      | `mark(edge, weight)` atomic       | strength++, revenue++, coin moves    | Stage 4 MARK           |
+| 8 | RECEIPT   | Sui            | tx digest returned                | both sides see proof                 | — (implicit in MARK)   |
+| 9 | DISPUTE   | Sui + TypeDB   | escrow timeout \| `warn(1)`       | refund + path weakens                | Stage 5 ALARM          |
+| 10| FADE      | memory + TypeDB| `world.fade(0.05)` L3 tick        | this edge decays with all others     | Stage 6 FADE (shared)  |
+
+### Nesting diagram
+
+```
+Agent's SIGNAL stage (weeks of activity, hundreds-thousands of signals)
+│
+├── trade #1:   LIST → DISC → OFFER → ESCR → EXEC → VER → SETTLE → RECPT    mark(+1)
+├── trade #2:   .........................................................    mark(+1)
+├── trade #3:   ............................. VER fail → DISPUTE ........    warn(+1)
+├── trade #N:   .........................................................    mark(+1)
+│   ...
+│   (after ~50 successful closed trade loops on the same edge)
+▼
+Agent's HIGHWAY stage (inferred by TypeDB: path.strength >= 50, success >= 0.75)
+```
+
+The agent doesn't graduate from SIGNAL to HIGHWAY as a ceremony. It's what TypeDB infers once enough trade lifecycles have deposited enough pheromone on a specific edge. Every trade is a vote; the highway is the election result.
+
+### The two optional stages
+
+**ESCROW** fires when the buyer-seller path has no pheromone history (first trade) or the bounty exceeds a trust threshold. Sui's `Escrow` shared object locks real tokens with a deadline. After ~5 successful escrowed trades, the path hardens and subsequent trades skip escrow — flowing as fast owned-object transfers instead. **Trust is purchased once, then compounds.**
+
+**VERIFY** is only explicit for outcome-priced trades (bounties) where the rubric gates payment release. For commodity skill calls, VERIFY collapses into EXECUTE — if the seller returned `{result}`, success is assumed and SETTLE fires immediately. The rubric is `{fit, form, truth, taste}` (see `.claude/rules/engine.md` Rule 3).
+
+### Trade-level × agent-level × revenue
+
+| Trade stage | Fires this agent-level event  | Fee booked to layer           |
+|-------------|-------------------------------|-------------------------------|
+| LIST        | Stage 1 CAPABLE (one-time)    | — (free)                      |
+| DISCOVER    | Stage 2 DISCOVER              | Layer 2 Discovery ($0.001/query) |
+| OFFER       | Stage 3 SIGNAL                | Layer 1 Routing ($0.0001/signal) |
+| ESCROW      | — (between unit-pair)         | Protocol fee on release (2%)  |
+| EXECUTE     | Stage 3 SIGNAL (handler)      | — (already counted)           |
+| VERIFY      | — (rubric application)        | — (free)                      |
+| SETTLE      | Stage 4 MARK (+revenue write) | Layer 4 Marketplace (take on settlement) |
+| RECEIPT     | — (digest emitted)            | — (free)                      |
+| DISPUTE     | Stage 5 ALARM                 | — (no extra fee; refund net-zero) |
+| FADE        | Stage 6 FADE (shared L3 tick) | — (background)                |
+
+The trade lifecycle adds **Marketplace** (Layer 4) revenue on top of what the agent lifecycle already books. The 2% take on Sui settlement (`marketplace.md § Revenue model`) comes from this stage — not the agent's career, but every single closed trade inside it.
+
+### Why this matters for /do and rubric routing
+
+A `/do` TODO cycle *is* a trade lifecycle with the developer as buyer and the agent-as-wave-worker as seller. W0 baseline = LIST + DISCOVER (which agent handles this tag cluster?). W1-W3 = OFFER + EXECUTE. W4 = VERIFY (rubric scoring). The mark at end-of-cycle = SETTLE. Every cycle deposits pheromone on the agent-tag edge, so the next cycle routes faster. Trade lifecycle and development loop are the same shape at different scales. (See `.claude/rules/engine.md` Rule 1 closed loop, Rule 3 deterministic results.)
+
+---
+
 ## Out of ONE
 
 ### Stage 8: Learn
@@ -368,6 +437,9 @@ Same loop. Same trails. Same revenue. Different entry point.
 
 ## See Also
 
+- [buy-and-sell.md](buy-and-sell.md) — **Trade mechanics: four-step flow, two-ledger parity, escrow primitive, code pointers. Companion for the trade-lifecycle section above.**
+- [marketplace.md](marketplace.md) — SKUs, pricing modes, revenue streams, strategy phases — the business layer on top of the trade lifecycle
+- [SUI.md](SUI.md) — Why Move gives ESCROW and SETTLE their guarantees (linear signals, atomic pay, frozen highways)
 - [revenue.md](revenue.md) — Five revenue layers mapped to lifecycle stages
 - [hermes-agent.md](hermes-agent.md) — Multi-species agent architecture
 - [strategy.md](strategy.md) — Three fronts, first steps

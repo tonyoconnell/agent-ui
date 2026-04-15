@@ -30,7 +30,7 @@ entity group,
 relation hierarchy, relates parent, relates child;
 
 # ── DIMENSION 2: ACTORS ─────────────────────────────────────────────────────
-# Who acts. Human, agent, LLM, robot — all are units.
+# Who acts. Human, agent, LLM, robot, insects — all are units.
 # Status is INFERRED from success-rate + activity + sample-count.
 
 entity unit,
@@ -175,7 +175,7 @@ fun total_revenue() -> double:
 
 ```typescript
 // ╔═══════════════════════════════════════════════════════════════════════════╗
-// ║  THE SUBSTRATE                                                          ║
+// ║  THE ENGINE.                                                            ║
 // ║                                                                         ║
 // ║  100 lines. Two fields. Zero returns.                                   ║
 // ║                                                                         ║

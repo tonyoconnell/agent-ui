@@ -111,7 +111,17 @@ export interface PersistentWorld extends World {
   load: () => Promise<void>
   settle: (
     edge: string,
-    opts: { escrowObjectId: string; claimantUid: string; posterUid: string; success?: boolean },
+    opts: {
+      escrowObjectId: string
+      claimantUid: string
+      posterUid: string
+      /** Rubric scores — if provided, gate release on all dims ≥ threshold (default 0.65) */
+      rubric?: { fit: number; form: number; truth: number; taste: number }
+      /** Per-dimension threshold; defaults to 0.65 per rubrics.md */
+      threshold?: number
+      /** Override: skip rubric gate, pass true/false directly (legacy path) */
+      success?: boolean
+    },
   ) => void
 }
 
@@ -168,14 +178,30 @@ export const world = (): PersistentWorld => {
 
   const settle = (
     edge: string,
-    opts: { escrowObjectId: string; claimantUid: string; posterUid: string; success?: boolean },
+    opts: {
+      escrowObjectId: string
+      claimantUid: string
+      posterUid: string
+      rubric?: { fit: number; form: number; truth: number; taste: number }
+      threshold?: number
+      success?: boolean
+    },
   ) => {
-    if (opts.success !== false) {
+    // Rubric-gated release: all dims must meet threshold (default 0.65 per rubrics.md).
+    // If rubric is provided it takes precedence over the bare `success` boolean.
+    const gate = opts.threshold ?? 0.65
+    const passed =
+      opts.rubric !== undefined
+        ? opts.rubric.fit >= gate && opts.rubric.form >= gate && opts.rubric.truth >= gate && opts.rubric.taste >= gate
+        : opts.success !== false
+
+    if (passed) {
       mark(edge)
     } else {
       warn(edge)
     }
-    settleEscrow(opts.escrowObjectId, opts.claimantUid, opts.posterUid, opts.success !== false)
+    // Fire-and-forget — Sui settle on-chain
+    settleEscrow(opts.escrowObjectId, opts.claimantUid, opts.posterUid, passed)
   }
 
   const fade = (rate = 0.1) => {

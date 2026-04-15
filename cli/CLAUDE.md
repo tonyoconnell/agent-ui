@@ -1,321 +1,130 @@
-# CLAUDE.md
+# CLI
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Substrate orchestrator CLI. Distributed as `oneie` on npm. Runs substrate verbs against a live ONE instance.
 
-## ⚠️ CRITICAL RULES - NEVER BREAK THESE
+**Context:** [DSL.md](../docs/DSL.md) — signal grammar the CLI emits. [dictionary.md](../docs/dictionary.md) — canonical verb names: signal/mark/warn/fade/follow/harden. [routing.md](../docs/routing.md) — L1-L7 loops the CLI triggers. [lifecycle.md](../docs/lifecycle.md) — register→signal→highway→harden; CLI commands map to each stage. [rubrics.md](../docs/rubrics.md) — fit/form/truth/taste; `/api/loop/mark-dims` is the CLI quality gate. [buy-and-sell.md](../docs/buy-and-sell.md) — EXECUTE and SETTLE verbs available via `signal` and `mark`. [revenue.md](../docs/revenue.md) — Layer 1 routing fees fire on every `signal` command. [speed.md](../docs/speed.md) — routing `<0.005ms`, mark `<0.001ms`; CLI calls add HTTP overhead. [patterns.md](../docs/patterns.md) — closed loop and zero-returns apply to every CLI command's outcome handling.
 
-**THESE RULES ARE NON-NEGOTIABLE:**
+## Files
 
-1. **NEVER run `git rebase`** - ever, under any circumstances
-2. **NEVER run `git push --force`** - always ask first
-3. **NEVER run commands that delete files** - always ask first
-4. **ALWAYS ask before any potentially destructive operation** - staged deletion, force push, rewriting history, etc.
+| File | Purpose |
+|------|---------|
+| `src/index.ts` | Entry point — routes argv to command or admin subcommand |
+| `src/banner.ts` | ASCII banner + version display |
+| `src/commands/signal.ts` | `signal` — POST signal to receiver (L1) |
+| `src/commands/ask.ts` | `ask` — signal + wait for result (L1, blocking) |
+| `src/commands/mark.ts` | `mark` — strengthen a path edge (L2) |
+| `src/commands/warn.ts` | `warn` — weaken a path edge (L2) |
+| `src/commands/fade.ts` | `fade` — decay all paths asymmetrically (L3) |
+| `src/commands/highways.ts` | `highways` — list top weighted paths (L2/L6) |
+| `src/commands/know.ts` | `know` — promote highways to permanent hypotheses (L6) |
+| `src/commands/recall.ts` | `recall` — query hypotheses from TypeDB (L6) |
+| `src/commands/reveal.ts` | `reveal` — full MemoryCard for a uid (L6) |
+| `src/commands/forget.ts` | `forget` — GDPR erasure: delete all records for uid |
+| `src/commands/frontier.ts` | `frontier` — unexplored tag clusters for a uid (L7) |
+| `src/commands/select.ts` | `select` — probabilistic next unit from pheromone |
+| `src/commands/sync.ts` | `sync` — fire full tick (all L1-L7 loops) |
+| `src/commands/deploy.ts` | `deploy` — wraps `bun run deploy` pipeline |
+| `src/commands/agent.ts` | `agent` — parse + sync agent markdown to TypeDB |
+| `src/commands/claw.ts` | `claw` — generate NanoClaw config for an agent |
+| `src/commands/launch.ts` | `launch` — launch agent on AgentVerse / substrate |
+| `src/commands/init.ts` | `init` — scaffold a new ONE project |
+| `src/lib/http.ts` | `apiRequest()` — base HTTP client for all commands |
+| `src/lib/args.ts` | `parseArgs()`, `requireArg()` — argv helpers |
+| `src/lib/config.ts` | Load `.env` / `one.config.json` — base URL, API key |
+| `src/lib/detect.ts` | Auto-detect ONE instance (local vs remote) |
+| `src/lib/agent-detection.ts` | Detect agent markdown files in project |
+| `src/admin/index.ts` | `admin` subcommand router |
+| `src/admin/sync.ts` | `admin sync` — copy monorepo files → `cli/` per manifest |
+| `src/admin/build.ts` | `admin build` — tsc → `dist/` for npm publish |
+| `src/admin/release.ts` | `admin release [patch\|minor\|major]` — bump + sync + publish |
+| `src/admin/manifest.ts` | File manifest: which monorepo paths sync to `cli/` |
+| `src/admin/monorepo.ts` | Monorepo path resolution helpers |
+| `src/admin/list.ts` | `admin list` — show manifest entries |
+| `src/admin/validate.ts` | Validate manifest entries exist before sync |
+| `src/sync-agents.ts` | Batch sync all `agents/**/*.md` to TypeDB |
+| `src/sync-ontology.ts` | Sync `src/schema/one.tql` snapshot to TypeDB |
+| `src/clone-docs.ts` | Clone `docs/` into a new project scaffold |
+| `src/clone-web.ts` | Clone `src/` (Astro app) into a new project scaffold |
+| `src/copy-claude-config.ts` | Copy `.claude/` config into a new project |
+| `src/create-org-profile.ts` | Create org actor + group in TypeDB |
+| `src/create-user-profile.ts` | Create user actor in TypeDB |
+| `src/utils/file-resolver.ts` | Resolve file paths relative to project root |
+| `src/utils/installation-setup.ts` | Post-install setup wizard |
+| `src/utils/launch-claude.ts` | Spawn `claude` CLI with project context |
+| `src/utils/validation.ts` | Input validation helpers (uid, edge, receiver format) |
 
-If you are about to run a command that could lose work, destroy commits, or overwrite history, STOP and ask the user for explicit approval first.
+## Substrate Verbs
 
----
+Commands map directly to the Six Verbs from `dictionary.md`:
 
-## Cascading Context System
+| CLI command | Verb | Loop | API endpoint |
+|-------------|------|------|-------------|
+| `signal` | send | L1 | `POST /api/signal` *(stub — Cycle 2)* |
+| `ask` | send + wait | L1 | `POST /api/signal` (blocking) *(stub — Cycle 2)* |
+| `mark` | mark | L2 | `POST /api/loop/mark-dims` |
+| `warn` | warn | L2 | `POST /api/loop/mark-dims` (negative strength) |
+| `fade` | fade | L3 | `POST /api/decay-cycle` |
+| `highways` | follow | L2/L6 | `GET /api/loop/highways` |
+| `know` | harden | L6 | `POST /api/tick` (know step) |
+| `recall` | — | L6 | `GET /api/hypotheses` |
+| `reveal` | — | L6 | `GET /api/memory/reveal/:uid` |
+| `forget` | — | — | `DELETE /api/memory/forget/:uid` |
+| `frontier` | — | L7 | `GET /api/frontiers` |
+| `select` | select | L1 | `GET /api/loop/stage` *(stage-marking, not path selection — verify wiring)* |
+| `sync` | — | L1-L7 | `POST /api/tick` |
+| `deploy` | — | — | wraps `bun run deploy` |
 
-**You are reading the ROOT context file.** As you navigate deeper into the codebase, read directory-specific CLAUDE.md files:
+## Admin Commands
 
-```
-/CLAUDE.md (this file - global orchestration)
-  ↓ Navigate to subdirectory
-/web/CLAUDE.md (frontend-specific, higher precedence in web/)
-  ↓ Navigate deeper
-/web/src/components/CLAUDE.md (component-specific, highest precedence)
-  ↓ Or navigate to backend
-/backend/CLAUDE.md (backend-specific, higher precedence in backend/)
-  ↓ Navigate deeper
-/backend/convex/CLAUDE.md (database-specific, highest precedence in backend/)
-```
+| Command | Purpose |
+|---------|---------|
+| `admin sync` | Sync monorepo files → `cli/` directory per manifest |
+| `admin build` | Build TypeScript → `dist/` for npm |
+| `admin release [patch\|minor\|major]` | Bump version, sync, publish to npm as `oneie` |
+| `admin list` | Show manifest entries |
+| `admin validate` | Check all manifest source paths exist |
 
-**Precedence rule:** Closer to the file you're editing = higher precedence.
+## Loop Participation
 
-**Parallel Agent Execution:** When tasks can be done independently, spawn agents in PARALLEL (not sequentially). Send a SINGLE message with multiple Task tool calls to execute agents concurrently for 2-5x faster execution.
+The CLI is a thin HTTP client — it triggers loops on the substrate:
 
----
+| CLI command | L1 | L2 | L3 | L4 | L5 | L6 | L7 |
+|-------------|----|----|----|----|----|----|-----|
+| `signal` / `ask` | ✓ | | | | | | |
+| `mark` / `warn` | | ✓ | | | | | |
+| `fade` | | | ✓ | | | | |
+| `sync` (tick) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `know` | | | | | | ✓ | |
+| `frontier` | | | | | | | ✓ |
 
-## Architecture Overview
+## Key Patterns
 
-**ONE Platform** is a multi-tenant AI-native platform built on a **6-dimension ontology** that models reality itself.
+Every command calls `apiRequest()` from `src/lib/http.ts`. Base URL from `ONE_API_URL` env var (default: `http://localhost:4321`). All commands print JSON to stdout. Errors surface as `{ error: message }` — never as stack traces.
 
-```
-Web (Astro + React) → Backend (Convex) → 6-Dimension Ontology
-```
+```typescript
+import { apiRequest } from "../lib/http.js";
+import { parseArgs, requireArg } from "../lib/args.js";
 
-**Key Repositories:**
-- `/web` - Frontend (Astro 5, React 19, Tailwind v4) - see `web/CLAUDE.md`
-- `/backend` - Backend (Convex, Effect.ts, Better Auth) - see `backend/CLAUDE.md`
-- `/one` - Documentation (41 files, 8 layers organized by 6 dimensions)
-- `/.claude` - Agent definitions & commands
-- `/apps` - Example applications
-
-**Read full architecture:** `/one/knowledge/architecture.md`
-
----
-
-## The 6-Dimension Ontology
-
-**Read canonical specification:** `/one/knowledge/ontology.md` (Version 1.0.0)
-
-**Quick Reference:**
-1. **GROUPS** → Multi-tenant containers (groupId scoping, infinite nesting)
-2. **PEOPLE** → Authorization & roles (4 roles: platform_owner, org_owner, org_user, customer)
-3. **THINGS** → All entities (66+ types: users, agents, content, tokens, courses)
-4. **CONNECTIONS** → All relationships (25+ types: owns, follows, purchased, holds_tokens)
-5. **EVENTS** → Complete audit trail (67+ types: created, updated, purchased, completed)
-6. **KNOWLEDGE** → Labels + vectors (RAG, search, categorization)
-
-**Golden Rule:** If you can't map a feature to these 6 dimensions, you're thinking about it wrong.
-
-**Implementation:** 5 database tables (groups, things, connections, events, knowledge) implement the 6 dimensions. People are represented as things with `type: 'creator'`.
-
----
-
-## Cycle-Based Planning
-
-**We plan in cycles (1-100), not days.** Each cycle = concrete step, < 3k tokens.
-
-**Commands:**
-- `/now` - Display current cycle
-- `/next` - Advance to next cycle
-- `/todo` - View 100-cycle sequence
-- `/done` - Mark complete and advance
-- `/build` - Build features with AI specialists
-- `/design` - Create wireframes & UI components
-- `/deploy` - Ship to production
-
-**Benefits:** 98% context reduction (150k → 3k tokens), 5x faster execution, flawless execution through "do the next thing, perfectly."
-
-**Read full system:** `/one/knowledge/todo.md`
-
----
-
-## Development Workflow (6-Phase Process)
-
-**Before implementing ANY feature, follow this workflow:**
-
-1. **UNDERSTAND** → Read `/one/knowledge/ontology.md`, `/one/knowledge/rules.md`, identify category
-2. **MAP TO ONTOLOGY** → Identify groups, people, things, connections, events, knowledge
-3. **DESIGN SERVICES** → Design Effect.ts services (pure business logic)
-4. **IMPLEMENT BACKEND** → Create Convex mutations/queries (thin wrappers)
-5. **BUILD FRONTEND** → Create React components (render the 6 dimensions)
-6. **TEST & DOCUMENT** → Write tests, update documentation
-
-**Read full workflow:** `/one/connections/workflow.md`
-
----
-
-## Template-First Development
-
-**CRITICAL PRINCIPLE:** Always reuse existing templates and components. NEVER build from scratch when a template exists.
-
-### Template Discovery Process
-1. **User requests feature** → Parse intent and identify feature type
-2. **Search existing templates** → Check pages/components for similar patterns
-3. **Propose template** → Show user the template being used
-4. **Copy and customize** → Modify template for specific needs
-5. **Offer enhancements** → Suggest Stripe, features, etc.
-
-### Template Registry
-- **Product landing pages:** `/web/src/pages/shop/product-landing.astro` (includes Stripe)
-- **Template guide:** `/web/src/pages/shop/TEMPLATE-README.md`
-- **Components library:** `/web/src/components/` (50+ shadcn/ui components)
-- **Page patterns:** Search `/web/src/pages/**/*.astro` for similar routes
-
-### Development Speed
-- Template-driven: **Minutes**
-- From-scratch: **Hours**
-
-**Golden Rule:** If someone wants to sell a product → use product-landing template. If someone wants any feature → search first, build second.
-
----
-
-## Technology Stack
-
-**Frontend:** Astro 5, React 19, Tailwind v4, shadcn/ui (50+ components), Better Auth
-**Backend:** Convex (real-time database), Effect.ts (business logic), Better Auth + Convex Adapter
-**Deployment:** Cloudflare Pages (frontend), Convex Cloud (backend at `shocking-falcon-870.convex.cloud`)
-
-**Read full stack details:** `/one/knowledge/architecture.md#technology-stack`
-
----
-
-## Root Directory File Policy
-
-**CRITICAL:** Only these markdown files belong in the root directory:
-- **README.md** - Platform overview and quick start
-- **LICENSE.md** - Legal terms and conditions
-- **SECURITY.md** - Security policy and vulnerability reporting
-- **CLAUDE.md** - Claude Code instructions (this file)
-- **AGENTS.md** - AI agent coordination and rules
-
-All other documentation belongs in `/one/` following the 6-dimension ontology:
-- **one/events/** - Deployment plans, release notes, test results, agent summaries
-- **one/knowledge/** - Architecture, patterns, rules, guides
-- **one/connections/** - Protocols, workflows, integrations
-- **one/things/** - Specifications, plans, agent definitions
-- **one/people/** - Roles, governance, organization
-
----
-
-## File Structure
-
-```
-ONE/
-├── web/                    # Frontend (see web/CLAUDE.md)
-│   ├── src/
-│   │   ├── pages/         # File-based routing (see web/src/pages/CLAUDE.md)
-│   │   ├── components/    # React components (see web/src/components/CLAUDE.md)
-│   │   ├── layouts/       # Page layouts
-│   │   ├── content/       # Content collections
-│   │   └── lib/           # Utilities
-│   └── test/              # Test suites
-├── backend/                # Backend (see backend/CLAUDE.md)
-│   └── convex/            # Convex schema and functions (see backend/convex/CLAUDE.md)
-│       ├── schema.ts      # 6-dimension ontology (5 tables)
-│       ├── queries/       # Read operations
-│       └── mutations/     # Write operations
-├── one/                    # Platform documentation (41 files, 8 layers)
-│   ├── connections/       # Ontology, protocols, patterns
-│   ├── things/            # Architecture, specifications
-│   ├── events/            # Event specs, deployment history
-│   ├── knowledge/         # RAG, AI, implementation guides
-│   └── people/            # Roles, governance, organization
-├── .claude/                # Claude Code configuration
-│   ├── agents/            # AI agent definitions
-│   └── commands/          # Slash commands (/deploy, /commit, etc.)
-└── apps/                   # Example applications
+export const name = "mark";
+export async function run(argv: string[]): Promise<void> {
+  const args = parseArgs(argv);
+  const edge = requireArg(args, 0, "edge (from->to)");
+  const res = await apiRequest("/api/loop/mark-dims", {
+    method: "POST",
+    body: { edge, source: "cli" },
+  }).catch((err: Error) => ({ error: err.message }));
+  console.log(JSON.stringify(res, null, 2));
+}
 ```
 
----
+## See Also
 
-## Critical Reading Before Coding
-
-**For ANY feature implementation:**
-1. `/one/knowledge/ontology.md` - 6-dimension model (Version 1.0.0)
-2. `/one/connections/workflow.md` - 6-phase development process
-3. `/one/knowledge/rules.md` - Golden rules for AI development
-4. Subdirectory CLAUDE.md (web/, backend/, etc.) - Layer-specific patterns
-
-**For specific feature types:**
-- **Protocol integration:** `/one/connections/protocols.md` + specific protocol doc
-- **External integration:** `/one/connections/communications.md`
-- **Blockchain features:** `/one/connections/cryptonetworks.md`
-- **Agent features:** `/one/things/agentkit.md`, `/one/things/copilotkit.md`
-- **Frontend patterns:** `/one/knowledge/patterns/frontend/`
-- **Backend patterns:** `/one/knowledge/patterns/backend/`
-
----
-
-## Installation Folders
-
-Each ONE installation can have a top-level folder for organization-specific customization:
-
-```
-/<installation-name>/       # Customer-specific overrides
-├── knowledge/
-│   ├── brand-guide.md     # Custom branding
-│   ├── features.md        # Organization features
-│   └── rules.md           # Org-specific rules
-└── groups/                # Hierarchical group docs
-```
-
-**Key Principle:** Data isolation happens via `groupId` in the database, NOT via schema customization. The 6-dimension ontology is universal.
-
-**Read full guide:** `/one/knowledge/installation-folders.md`
-
----
-
-## Deployment
-
-### Automated Release (v3.0.0+)
-
-Use `/release` command for complete deployment:
-
-```bash
-/release patch   # Bug fixes
-/release minor   # New features
-/release major   # Breaking changes
-/release sync    # Sync files without version bump
-```
-
-**The release process automatically:**
-1. Bumps version in `cli/package.json`
-2. Syncs 518+ files to `cli/` and `apps/one/`
-3. Commits and pushes to GitHub repositories
-4. Publishes to npm: `oneie@<version>`
-5. Builds and deploys web to Cloudflare Pages
-
-**Live URLs:**
-- npm: https://www.npmjs.com/package/oneie
-- Web: https://web.one.ie
-
-**Read release process:** `.claude/commands/release.md`, `.claude/agents/agent-ops.md`
-
-### Manual Deployment
-
-**Frontend:**
-```bash
-cd web/ && bun run build && wrangler pages deploy dist
-```
-
-**Backend:**
-```bash
-cd backend/ && npx convex deploy
-```
-
----
-
-## Development Commands
-
-**Frontend:**
-```bash
-cd web/
-bun run dev      # Development server (localhost:4321)
-bun run build    # Build for production
-bunx astro check # Type checking
-```
-
-**Backend:**
-```bash
-cd backend/
-npx convex dev   # Start Convex dev server
-npx convex deploy # Deploy to production
-```
-
-**Testing:**
-```bash
-cd web/
-bun test         # Run all tests
-bun test --watch # Watch mode
-```
-
-**Read full commands:** `/one/knowledge/development-commands.md`
-
----
-
-## Getting Help
-
-**Documentation:**
-- 6-Dimension Ontology: `/one/knowledge/ontology.md`
-- Architecture: `/one/knowledge/architecture.md`
-- Workflows: `/one/connections/workflow.md`
-- Patterns: `/one/connections/patterns.md`
-- Rules: `/one/knowledge/rules.md`
-- Troubleshooting: `/one/knowledge/troubleshooting.md`
-
-**Agent Coordination:**
-- Director: `/.claude/agents/agent-director.md`
-- Builder Squad: `/.claude/agents/agent-builder.md`, `agent-frontend.md`, `agent-backend.md`
-- Quality Loop: `/.claude/agents/agent-quality.md`, `agent-clean.md`, `agent-problem-solver.md`
-- Integration: `/.claude/agents/agent-integrator.md`
-
-**Claude Code Documentation:**
-For questions about Claude Code itself, read: https://docs.claude.com/en/docs/claude-code/
-
----
-
-**Built with clarity, simplicity, and infinite scale in mind.**
+- [DSL.md](../docs/DSL.md) — signal grammar
+- [dictionary.md](../docs/dictionary.md) — Six Verbs, canonical names
+- [routing.md](../docs/routing.md) — L1-L7 loops the CLI triggers
+- [lifecycle.md](../docs/lifecycle.md) — which stage each command belongs to
+- [rubrics.md](../docs/rubrics.md) — quality scoring the CLI can post via mark-dims
+- [buy-and-sell.md](../docs/buy-and-sell.md) — commerce verbs available in CLI
+- [revenue.md](../docs/revenue.md) — Layer 1 fees on every signal command
+- [speed.md](../docs/speed.md) — performance benchmarks the CLI observes
+- [patterns.md](../docs/patterns.md) — closed loop: every CLI command should close its loop

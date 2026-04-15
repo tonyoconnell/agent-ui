@@ -10,6 +10,7 @@ Reconcile substrate state — tick loops, absorb markdown, propagate knowledge.
 | `tick` | Fire all L1-L7 loops once (one full growth cycle) | L1-L7 |
 | `docs` | Scan `docs/*.md` → memory → TypeDB | L6 |
 | `todos` | Scan `docs/TODO-*.md` → tasks → TypeDB + KV | L1 |
+| `tasks [dir]` | Import reusable task templates from `tasks/` (or `[dir]`) → world-scoped tasks + skills + capabilities | L1 |
 | `agents` | Scan `agents/**/*.md` → units → TypeDB | L1 |
 | `fade` | Fire L3 only — asymmetric decay | L3 |
 | `evolve` | Fire L5 only — rewrite struggling agents | L5 |
@@ -26,7 +27,7 @@ Individual noun invocations target a single loop layer; default runs all of them
 | Noun | Primitive | L |
 |------|-----------|---|
 | default / tick | `tick()` all loops | L1-L7 |
-| docs / todos / agents / `<path>` | `know()` absorption | L6 |
+| docs / todos / agents / tasks / `<path>` | `know()` absorption | L6 |
 | fade | `fade()` | L3 |
 | evolve | agent prompt rewrite | L5 |
 | know | `know()` harden | L6 |
@@ -87,6 +88,46 @@ Individual noun invocations target a single loop layer; default runs all of them
    Top 10:  <task> priority=N, ...
    KV:      N writes (hash-gated)
    ```
+
+### tasks
+
+Import a reusable task catalog (markdown templates with frontmatter) into the
+current world. Scopes every `template.id` to `{worldId}:{template.id}` so
+multiple worlds can share a catalog without collisions. Idempotent — re-running
+skips tasks that already exist.
+
+1. Resolve catalog directory from `$ARGUMENTS` or default to `tasks/` at repo root
+2. Load templates via `loadTemplates(dir)` (`src/engine/reusable-tasks.ts`)
+3. Instantiate via `instantiateTemplates(templates, { worldId, providerUid })`
+4. Hand off to `syncTasks()` for core TypeDB insert (task + skill + capability)
+5. Layer on extension attributes — rubric weights, price, currency, template-source
+6. Report:
+   ```
+   Templates: N loaded from <dir>
+   Scoped:    {worldId}:<id> × N
+   Inserted:  N tasks, N skills, N capabilities
+   Skipped:   M (already exist — idempotent re-sync)
+   Errors:    K (malformed frontmatter or missing required fields)
+   Rubric:    N templates carried rubric weights
+   Pricing:   N templates carried price + currency
+   ```
+
+**Template format:** see `tasks/README.md`. Required fields: `id`, `name`.
+Optional: `description`, `tags`, `wave`, `value`, `effort`, `phase`, `persona`,
+`rubric: { fit, form, truth, taste }`, `price`, `currency`, `blocks`.
+
+**Example:**
+
+```bash
+/sync tasks                         # Import ./tasks into current world
+/sync tasks ./my-catalog            # Import from a custom directory
+/sync tasks ../shared/task-library  # Cross-repo catalog
+```
+
+**Why this noun exists:** Stage 1 (LIST) of the trade lifecycle needs inventory.
+A new seller world with zero listings is a dead market. Reusable task templates
+are pre-packaged LIST entries — import the catalog, your world has a starter
+set of listings ready to receive offers. See `docs/TODO-trade-lifecycle.md § Cycle 6`.
 
 ### agents
 

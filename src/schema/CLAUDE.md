@@ -21,16 +21,21 @@ signal          → what happened (event log with latency, success)
 
 **Speed contract:** TypeDB is the slow layer (~100ms writes, ~300ms queries). The nervous system (`src/engine/`) runs in-memory at `<0.001ms`. TypeDB catches up on a schedule. But the schema defines WHAT is learned — the engine defines HOW FAST.
 
-**Context:** [DSL.md](../../docs/DSL.md) — signal grammar. [dictionary.md](../../docs/dictionary.md) — canonical names. [routing.md](../../docs/routing.md) — the sandwich. [rubrics.md](../../docs/rubrics.md) — quality as tagged edges. [patterns.md](../../docs/patterns.md) — 10 emergent patterns from this schema. [lifecycle.md](../../docs/lifecycle.md) — into/through/out. [speed.md](../../docs/speed.md) — why in-memory matters.
+**Context:** [DSL.md](../../docs/DSL.md) — signal grammar. [dictionary.md](../../docs/dictionary.md) — canonical names. [routing.md](../../docs/routing.md) — schema is routing's persistent memory: `path.strength` is what `mark()` accumulates, `path.resistance` is what `warn()` accumulates, `path.revenue` is what L4 settles. `suggest_route()` and `optimal_route()` are `follow()` expressed in TQL. `path_status()` labels the formula's output: highway/fresh/fading/toxic. [rubrics.md](../../docs/rubrics.md) — quality as tagged edges. [patterns.md](../../docs/patterns.md) — 10 emergent patterns from this schema. [lifecycle.md](../../docs/lifecycle.md) — into/through/out. [speed.md](../../docs/speed.md) — why in-memory matters. [buy-and-sell.md](../../docs/buy-and-sell.md) — `capability(provider, offered)` is the listing; `cheapest_provider()` is discovery; `path.revenue` is settlement. [revenue.md](../../docs/revenue.md) — Layer 1 routing + Layer 4 marketplace are the schema's two revenue surfaces.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `world.tql` | Main schema: 6 dimensions, functions, classification (~230 lines) |
+| `one.tql` | **Master ontology (~125 lines):** single source of truth — 6 dimensions, 6 verbs, stable forever |
+| `world.tql` | Full schema: 6 dimensions, functions, classification (~230 lines) |
 | `skins.tql` | Metaphor layer: actor/group/connection patterns for any domain |
 | `sui.tql` | On-chain mirror: Move structs as TQL entities |
 | `agents.tql` | Legacy envelope system |
+| `skins/engineering.tql` | Engineering skin: maps unit/path/signal to sprint/PR/review |
+| `seeds/marketing-team.tql` | Seed data: marketing team units + capabilities |
+| `seeds/engineering-team.tql` | Seed data: engineering team units + capabilities |
+| `patterns/` | Reference patterns (L1–L6); REFERENCE ONLY — not loadable alongside one.tql |
 | `archive/` | Old versions |
 
 ## The Collapse
@@ -84,7 +89,7 @@ Functions auto-classify based on thresholds:
 
 ## What Was Removed
 
-Task entity (now `.on()` handlers), trail relation (now scent map),
+Task entity (now `.on()` handlers), trail relation (now strength map),
 dependency relation (now `.then()` continuations), assignment relation
 (implicit from signal routing), and all task lifecycle functions
 (is_attractive, is_repelled, ready_tasks, exploratory_tasks, trail_status).
@@ -95,9 +100,9 @@ dependency relation (now `.then()` continuations), assignment relation
 |--------|---------|
 | unit | `unit(id)` / `world().actor(id)` |
 | path.strength | `mark(path)` increments |
-| path.alarm | `warn(path)` increments |
+| path.resistance | `warn(path)` increments |
 | signal | `emit({ receiver, data })` |
 | capability | unit `.on()` handler + TypeDB skill entity |
-| highways() | `colony.highways(n)` |
+| highways() | `net.highways(n)` |
 | suggest_route() | routing decision from TypeDB |
 | needs_evolution() | trigger for agent self-improvement |

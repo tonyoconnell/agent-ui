@@ -26,17 +26,17 @@ is a projection of `src/schema/one.tql`. Zero marginal cost by default.
 
 ## 2. Platform — Why Cloudflare
 
-| Need | Choice | Why |
-|------|--------|-----|
-| Static + SSR | Cloudflare Pages | Free, global edge, already deployed |
-| Auth / session | Better Auth + TypeDB adapter | Already in `src/lib/auth.ts` |
-| User data | TypeDB Cloud (brain) + D1 (tx) | TypeDB holds the ontology, D1 holds boring tx rows |
-| Secrets (API keys) | D1 ciphertext + per-user AES-GCM | Works on workers, no KMS dependency |
-| Realtime | Gateway WsHub DO (global) | Already live at `api.one.ie`, cross-isolate delivery solved |
-| Agent workers | NanoClaw pattern (per persona) | Already operational |
-| Queues | CF Queues | Async signal processing, 1M msg/mo free |
-| Files | R2 | Zero egress, 10GB/mo free |
-| LLM | OpenRouter (user keys) | Single API, all models, user pays |
+| Need               | Choice                           | Why                                                         |
+| ------------------ | -------------------------------- | ----------------------------------------------------------- |
+| Static + SSR       | Cloudflare Pages                 | Free, global edge, already deployed                         |
+| Auth / session     | Better Auth + TypeDB adapter     | Already in `src/lib/auth.ts`                                |
+| User data          | TypeDB Cloud (brain) + D1 (tx)   | TypeDB holds the ontology, D1 holds boring tx rows          |
+| Secrets (API keys) | D1 ciphertext + per-user AES-GCM | Works on workers, no KMS dependency                         |
+| Realtime           | Gateway WsHub DO (global)        | Already live at `api.one.ie`, cross-isolate delivery solved |
+| Agent workers      | NanoClaw pattern (per persona)   | Already operational                                         |
+| Queues             | CF Queues                        | Async signal processing, 1M msg/mo free                     |
+| Files              | R2                               | Zero egress, 10GB/mo free                                   |
+| LLM                | OpenRouter (user keys)           | Single API, all models, user pays                           |
 
 Verdict: CF is the right substrate. The one non-CF cost is TypeDB Cloud,
 which we already pay for the brain. Everything else composes to $0 for

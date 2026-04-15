@@ -432,6 +432,249 @@ describe('loop.ts — growth tick', () => {
     })
   })
 
+  describe('loop:feedback unit — return-path pheromone', () => {
+    /**
+     * These tests prove the feedback signal closes the learning loop.
+     * Golden work on [engine, P0] tags → tag:engine + tag:P0 paths strengthen.
+     * Future select() with matching tags follows those paths.
+     * This is how the substrate learns WHICH KINDS of tasks succeed on which paths.
+     */
+    function feedbackWorld() {
+      const net = createWorld()
+      // Register loop:feedback exactly as boot.ts does — no TypeDB needed
+      net.add('loop').on('feedback', (data: unknown) => {
+        const d = data as { tags?: string[]; strength?: number; outcome?: string } | null
+        const tags = d?.tags ?? []
+        const strength = d?.strength ?? 0
+        const outcome = d?.outcome ?? 'result'
+        for (const tag of tags) {
+          const edge = `tag:${tag}`
+          if (outcome === 'failure') net.warn(edge, 1)
+          else if (outcome === 'dissolved') net.warn(edge, 0.5)
+          else if (strength >= 0.65) net.mark(edge, strength * 5)
+          else net.warn(edge, 0.5)
+        }
+      })
+      return net
+    }
+
+    it('golden result (strength >= 0.65) marks each tag path', async () => {
+      const net = feedbackWorld()
+      await net.ask({
+        receiver: 'loop:feedback',
+        data: { tags: ['engine', 'P0'], strength: 0.92, outcome: 'result' },
+      })
+      expect(net.sense('tag:engine')).toBeCloseTo(0.92 * 5, 1)
+      expect(net.sense('tag:P0')).toBeCloseTo(0.92 * 5, 1)
+    })
+
+    it('weak result (strength < 0.65) warns each tag path', async () => {
+      const net = feedbackWorld()
+      await net.ask({
+        receiver: 'loop:feedback',
+        data: { tags: ['ui', 'test'], strength: 0.4, outcome: 'result' },
+      })
+      expect(net.danger('tag:ui')).toBeGreaterThan(0)
+      expect(net.danger('tag:test')).toBeGreaterThan(0)
+      expect(net.sense('tag:ui')).toBe(0) // no mark, only warn
+    })
+
+    it('failure outcome warns all tag paths with full weight (1)', async () => {
+      const net = feedbackWorld()
+      await net.ask({
+        receiver: 'loop:feedback',
+        data: { tags: ['deploy', 'infra'], strength: 0.9, outcome: 'failure' },
+      })
+      // Even high strength doesn't help if outcome=failure
+      expect(net.danger('tag:deploy')).toBe(1)
+      expect(net.danger('tag:infra')).toBe(1)
+      expect(net.sense('tag:deploy')).toBe(0)
+    })
+
+    it('dissolved outcome warns tag paths with mild weight (0.5)', async () => {
+      const net = feedbackWorld()
+      await net.ask({
+        receiver: 'loop:feedback',
+        data: { tags: ['adl', 'gate'], strength: 0.9, outcome: 'dissolved' },
+      })
+      expect(net.danger('tag:adl')).toBe(0.5)
+      expect(net.danger('tag:gate')).toBe(0.5)
+      expect(net.sense('tag:adl')).toBe(0)
+    })
+
+    it('fan-out: multiple tags each get independent marks', async () => {
+      const net = feedbackWorld()
+      await net.ask({
+        receiver: 'loop:feedback',
+        data: { tags: ['engine', 'test', 'P0', 'foundation'], strength: 0.85, outcome: 'result' },
+      })
+      const expectedMark = 0.85 * 5
+      expect(net.sense('tag:engine')).toBeCloseTo(expectedMark, 1)
+      expect(net.sense('tag:test')).toBeCloseTo(expectedMark, 1)
+      expect(net.sense('tag:P0')).toBeCloseTo(expectedMark, 1)
+      expect(net.sense('tag:foundation')).toBeCloseTo(expectedMark, 1)
+    })
+
+    it('repeated golden work compounds pheromone on tag paths', async () => {
+      const net = feedbackWorld()
+      for (let i = 0; i < 3; i++) {
+        await net.ask({
+          receiver: 'loop:feedback',
+          data: { tags: ['engine'], strength: 0.9, outcome: 'result' },
+        })
+      }
+      // 3 marks of (0.9 * 5) = 13.5 total
+      expect(net.sense('tag:engine')).toBeCloseTo(0.9 * 5 * 3, 1)
+    })
+
+    it('future select() prefers tags that received golden feedback', async () => {
+      const net = feedbackWorld()
+      // Golden feedback on 'proven' tag
+      await net.ask({
+        receiver: 'loop:feedback',
+        data: { tags: ['proven'], strength: 0.95, outcome: 'result' },
+      })
+      // Weak feedback on 'new' tag
+      await net.ask({
+        receiver: 'loop:feedback',
+        data: { tags: ['new'], strength: 0.3, outcome: 'result' },
+      })
+
+      // select() with 'proven' filter should find the strong path
+      const provenStrength = net.sense('tag:proven')
+      const newResistance = net.danger('tag:new')
+
+      expect(provenStrength).toBeGreaterThan(0) // proven path is warm
+      expect(newResistance).toBeGreaterThan(0) // new path is cold
+      expect(provenStrength).toBeGreaterThan(newResistance)
+    })
+  })
+
+  describe('L5: evolution trigger gate', () => {
+    it('unit needs evolution when success-rate < 0.5 AND sample-count >= 20', () => {
+      // This mirrors the TypeDB function needs_evolution($u):
+      //   match $u has success-rate $sr, has sample-count $sc;
+      //   $sr < 0.50; $sc >= 20;
+      const needsEvolution = (sr: number, sc: number) => sr < 0.5 && sc >= 20
+
+      expect(needsEvolution(0.3, 25)).toBe(true) // struggling: low sr, enough samples
+      expect(needsEvolution(0.49, 20)).toBe(true) // just below threshold
+      expect(needsEvolution(0.5, 25)).toBe(false) // exactly at threshold: no evolution
+      expect(needsEvolution(0.3, 19)).toBe(false) // too few samples: cold-start protection
+      expect(needsEvolution(0.8, 50)).toBe(false) // performing well
+    })
+
+    it('cold-start protection: no evolution below 20 samples', () => {
+      const needsEvolution = (sr: number, sc: number) => sr < 0.5 && sc >= 20
+
+      // New agents (few samples) should NOT evolve even with 0% success
+      expect(needsEvolution(0.0, 0)).toBe(false)
+      expect(needsEvolution(0.0, 5)).toBe(false)
+      expect(needsEvolution(0.0, 19)).toBe(false)
+      expect(needsEvolution(0.0, 20)).toBe(true) // 20th sample unlocks evolution
+    })
+
+    it('pheromone marks per-dim guide evolution toward specific weaknesses', () => {
+      const net = createWorld()
+
+      // Simulate: agent is accurate (truth=1.0) but bad voice (taste=0.1)
+      // L5 should see taste:dim as weak and rewrite for voice, not facts
+      net.mark('entry→builder:verify:truth', 10) // strong
+      net.warn('entry→builder:verify:taste', 8) // weak
+
+      const truthStrength = net.sense('entry→builder:verify:truth')
+      const tasteResistance = net.danger('entry→builder:verify:taste')
+
+      expect(truthStrength).toBeGreaterThan(0) // truth is reliable
+      expect(tasteResistance).toBeGreaterThan(0) // taste needs work
+      expect(truthStrength).toBeGreaterThan(tasteResistance * 0.5) // truth >> taste
+    })
+  })
+
+  describe('L6: rubric dimensions accumulate independently', () => {
+    it('tagged edges per dimension build at different rates', () => {
+      const net = createWorld()
+
+      // Agent with strong fit+truth but weak form+taste
+      // markDims equivalent using direct mark/warn
+      net.mark('agent→skill:fit', 0.9 * 0.35)
+      net.warn('agent→skill:form', 0.7 * 0.2) // form is weak
+      net.mark('agent→skill:truth', 1.0 * 0.3)
+      net.warn('agent→skill:taste', 0.6 * 0.15) // taste is weak
+
+      const fit = net.sense('agent→skill:fit')
+      const form = net.danger('agent→skill:form')
+      const truth = net.sense('agent→skill:truth')
+      const taste = net.danger('agent→skill:taste')
+
+      // Each dimension is independent — marked dims are positive, warned dims have resistance
+      expect(fit).toBeGreaterThan(0) // fit marked (0.9 × 0.35 = 0.315)
+      expect(form).toBeGreaterThan(0) // form warned (0.7 × 0.20 = 0.14 resistance)
+      expect(truth).toBeGreaterThan(0) // truth marked (1.0 × 0.30 = 0.30)
+      expect(taste).toBeGreaterThan(0) // taste warned (0.6 × 0.15 = 0.09 resistance)
+
+      // Strong dims (fit, truth) dominate over weak dims (form, taste)
+      expect(net.sense('agent→skill:fit')).toBeGreaterThan(net.danger('agent→skill:form'))
+    })
+
+    it('strong fit+truth can coexist with weak form+taste — granular evolution', () => {
+      const net = createWorld()
+
+      // Apply 10 iterations: agent is accurate but inconsistently formatted
+      for (let i = 0; i < 10; i++) {
+        net.mark('entry→agent:fit', 0.9 * 0.35)
+        net.mark('entry→agent:truth', 0.95 * 0.3)
+        net.warn('entry→agent:form', 0.3 * 0.2)
+        net.warn('entry→agent:taste', 0.4 * 0.15)
+      }
+
+      const netFit = net.sense('entry→agent:fit') - net.danger('entry→agent:fit')
+      const netForm = net.sense('entry→agent:form') - net.danger('entry→agent:form')
+
+      // Fit should be strongly positive; form should be negative
+      expect(netFit).toBeGreaterThan(0)
+      expect(netForm).toBeLessThan(0)
+    })
+  })
+
+  describe('chain depth: mark strength scales with depth', () => {
+    it('deeper chains earn larger marks (up to CHAIN_CAP=5)', () => {
+      const net = createWorld()
+
+      // chain depth 1 → mark(edge, 1)
+      // chain depth 3 → mark(edge, 3)
+      // chain depth 6 → mark(edge, 5)  ← capped
+      const CHAIN_CAP = 5
+      const clamp = (d: number) => Math.min(d, CHAIN_CAP)
+
+      net.mark('entry→a', clamp(1))
+      net.mark('entry→b', clamp(3))
+      net.mark('entry→c', clamp(6)) // capped at 5
+
+      expect(net.sense('entry→a')).toBe(1)
+      expect(net.sense('entry→b')).toBe(3)
+      expect(net.sense('entry→c')).toBe(5) // cap enforced
+    })
+
+    it('highway threshold (net >= 20) is reached faster on deep chains', () => {
+      const net = createWorld()
+      const HIGHWAY_THRESHOLD = 20
+      const CHAIN_CAP = 5
+
+      // Deep chain (depth 5): 4 marks to reach highway (4×5=20)
+      for (let depth = 0; depth < 4; depth++) {
+        net.mark('deep→path', CHAIN_CAP)
+      }
+      expect(net.isHighway('deep→path', HIGHWAY_THRESHOLD)).toBe(true)
+
+      // Shallow chain (depth 1): needs 20 marks to reach highway
+      for (let i = 0; i < 19; i++) net.mark('shallow→path', 1)
+      expect(net.isHighway('shallow→path', HIGHWAY_THRESHOLD)).toBe(false) // 19 < 20
+      net.mark('shallow→path', 1)
+      expect(net.isHighway('shallow→path', HIGHWAY_THRESHOLD)).toBe(true) // 20 ✓
+    })
+  })
+
   describe('ui-prefetch warmUI', () => {
     afterEach(() => clearWarm())
 

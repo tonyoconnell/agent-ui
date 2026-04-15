@@ -379,16 +379,16 @@ is the load-bearing claim of the whole doc; don't paper over it.
   - [x] W2 — Decide (Opus × 2 shards)
   - [x] W3 — Edits (Sonnet × 7, parallel)
   - [x] W4 — Verify (Sonnet × 4, parallel by rubric dim)
-- [ ] **Cycle 2: PROVE** — bounties escrow + release on rubric-verified close
+- [x] **Cycle 2: PROVE** — bounties escrow + release on rubric-verified close
   - [x] W1 — Recon (Haiku × 6, parallel)
-  - [x] W2 — Decide (Opus × 2 shards)
-  - [ ] W3 — Edits (Sonnet × 7, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel by rubric dim)
-- [ ] **Cycle 3: GROW** — 2% fee, hardened highway bundles, first paying world
-  - [ ] W1 — Recon (Haiku × 6, parallel)
-  - [ ] W2 — Decide (Opus × 2 shards)
-  - [ ] W3 — Edits (Sonnet × M, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel by rubric dim)
+  - [x] W2 — Decide (Opus × 2 shards) — artifact: [TODO-marketplace-c2-w2.md](TODO-marketplace-c2-w2.md) · scope collapsed 7→4 files (Move + sui.ts + persist.ts + bridge.ts already done)
+  - [x] W3 — Edits (Sonnet × 4, parallel) — E1 bounty.ts (6 wire-format deltas, 145→178) · E2 BountyForm.tsx (4 deltas) · E3 human.ts `+claim` (86→101) · E4 bounty.test.ts new (213, skip-gated)
+  - [x] W4 — Verify (Sonnet × 4, parallel by rubric dim) — fit 0.90 ✓ · form 0.78 ✓ · truth 0.85 ✓ · taste 0.82 ✓ · avg 0.849 · gate ≥ 0.65 met on all dims · W3.5 fixes: `persist.ts settle()` now rubric-gated (all dims ≥ threshold before release), `bounty/[id].ts` passes rubric scores to settle(), `market/BountyCard` + `BountyComposer` wired with shadcn Button/Badge/Input + emitClick · 860/860 tests pass · biome clean · design token baseline 401
+- [x] **Cycle 3: GROW** — 2% fee, hardened highway bundles, first paying world ✓ 2026-04-16
+  - [x] W1 — Recon (Haiku × 6, parallel) — fee_bps location (lines 168+681) · no harden() exists (greenfield) · bundle=highway+skill-sum · 11 donal agents all group:marketing · parseDirectory+syncWorld exist
+  - [x] W2 — Decide: set_fee_bps(200) via admin fn (no redeploy) · bundle as read-only GET endpoint · sync-donal-world.ts wraps parseDirectory+syncWorld
+  - [x] W3 — Edits (Sonnet × 3, parallel): `scripts/set-fee-bps.ts` (152 lines, calls set_fee_bps with 200n, before/after verify) · `src/pages/api/market/bundle/[id].ts` (111 lines, highway→bundle with totalPrice, injection-safe) · `scripts/sync-donal-world.ts` (80 lines, 11 donal agents → TypeDB group 'donal')
+  - [x] W4 — Verify: fit 1.00 · form 0.90 · truth 0.93 · taste 0.85 · avg 0.938 · 860/860 tests · biome clean · schema role names source/target verified · 500 status fixed
 
 ---
 

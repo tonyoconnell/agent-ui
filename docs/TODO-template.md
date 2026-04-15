@@ -29,7 +29,9 @@ status: TEMPLATE
 > **Source of truth:** [{source-doc}]({source-doc}.md) — {what it defines},
 > [DSL.md](DSL.md) — the signal language,
 > [dictionary.md](dictionary.md) — everything named,
-> [rubrics.md](rubrics.md) — quality scoring (fit/form/truth/taste → mark)
+> [rubrics.md](rubrics.md) — quality scoring (fit/form/truth/taste → mark),
+> [buy-and-sell.md](buy-and-sell.md) — trade mechanics: capability/listing/settlement *(commerce tasks only)*,
+> [revenue.md](revenue.md) — five revenue layers: routing/discovery/infra/marketplace/intelligence *(pricing/marketplace tasks only)*
 >
 > **Shape:** {N} cycles, four waves each. Haiku reads, Opus decides, Sonnet
 > writes, Sonnet checks. Same loop as the substrate, different receivers.

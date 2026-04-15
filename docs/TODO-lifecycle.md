@@ -552,6 +552,7 @@ test-agent-lifecycle ►  full journey verified
 
 ## See Also
 
+- [TODO-trade-lifecycle.md](TODO-trade-lifecycle.md) — **companion TODO**: the per-trade 10-stage lifecycle (LIST → FADE) with multi-currency settlement. Agent-career here; trade arc there.
 - [lifecycle.md](lifecycle.md) — source of truth (the 11 stages)
 - [DSL.md](DSL.md) — signal grammar (always loaded in W2)
 - [dictionary.md](dictionary.md) — canonical names (always loaded in W2)

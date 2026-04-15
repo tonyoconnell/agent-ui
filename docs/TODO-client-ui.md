@@ -1,10 +1,10 @@
 ---
 title: TODO Client UI
 type: roadmap
-version: 1.0.0
+version: 3.0.0
 priority: Wire → Prove → Grow
 total_tasks: 12
-completed: 1
+completed: 12
 status: ACTIVE
 source: docs/client-ui.md
 ---
@@ -12,7 +12,8 @@ source: docs/client-ui.md
 # TODO: Client UI (multi-tenant web client on Cloudflare)
 
 > **Time units:** plan in **tasks → waves → cycles** only. Never days, hours,
-> weeks, or sprints. (See `.claude/rules/engine.md` → The Three Locked Rules.)
+> weeks, or sprints. Width = tasks-per-wave. Depth = waves-per-cycle. Learning
+> = cycles-per-path. (See `.claude/rules/engine.md` → The Three Locked Rules.)
 >
 > **Parallelism directive:** **Maximize agents per wave.** Single message, many
 > tool calls. W1 ≥ 4 Haiku (one per read target), W2 ≥ 2 Opus shards when
@@ -35,6 +36,42 @@ source: docs/client-ui.md
 > **Schema:** No `one.tql` changes required. UI projects existing entities:
 > `group`, `actor`, `thing`, `path`, `signal`, `hypothesis`. Brand is a
 > `thing` with `thing-type="brand"` (see `src/engine/brand.ts`).
+>
+> **Ontology is navigation.** The URL structure IS the six dimensions —
+> there is no parallel IA. Tabs map to dims 2–6 (`actors`, `things`, `paths`,
+> `events`, `learning`) + `chat` (dim 5 live). Verb routes are path-typed
+> projections of dim 4: **`/buy`** = inbound path offers (capabilities I can
+> hire), **`/sell`** = outbound path offers (capabilities I publish),
+> **`/dashboard`** = rollup of dims 5+6 (signals + hypotheses → KPIs). No
+> route exists that isn't a projection of `one.tql`. No hidden menu, no
+> "marketplace" that lives outside the graph — `/buy` and `/sell` are the
+> graph, filtered by the `capability` relation's direction.
+
+## Deliverables
+
+Every TODO emits two tiers. **Wave deliverables** are universal (same four
+artifacts ship at the end of every wave). **Cycle deliverables** are the
+concrete UI surfaces this TODO exists to ship. Both carry a rubric weight
+vector (fit / form / truth / taste, sums to 1.0) that tilts W4 scoring.
+
+### Wave Deliverables (universal — every cycle emits these four)
+
+| Wave | Deliverable | Goal | Rubric (fit/form/truth/taste) | Exit |
+|------|-------------|------|-------------------------------|------|
+| **W1** | Recon reports (N parallel) | Inventory reusable code + anchors with line numbers | 0.15 / 0.10 / **0.65** / 0.10 | ≥ (N-1)/N agents returned `result`; every finding cites file:line |
+| **W2** | Diff spec set + component map | Decide route shape, component split, layout strategy per finding | **0.40** / 0.15 / **0.35** / 0.10 | Every W1 finding has a spec OR explicit "keep" rationale |
+| **W3** | Applied edits (M parallel) | Land edits per spec without collateral drift | 0.30 / 0.25 / **0.35** / 0.10 | All anchors matched; zero files modified outside spec set |
+| **W4** | Verification report | Prove rubric ≥ 0.65, tests green, perf budgets met | 0.25 / 0.15 / **0.45** / 0.15 | 4 rubric dims ≥ 0.65 AND `bun run verify` green AND perf budgets met |
+
+**Truth dominates early waves** (recon must match disk). **Fit dominates W2**
+(right route shape / component split). **W4 balances** because it judges all
+four dimensions at cycle close.
+
+### Cycle Deliverables
+
+Each cycle below lists its concrete artifacts (files, endpoints, embeds). Every
+cycle deliverable owns a `skill` on its unit — future `select()` routes toward
+the path that shipped the strongest version.
 
 ## Routing
 
@@ -176,6 +213,16 @@ skill, shadcn components.
 **Why first:** No UI without the shell. Every later cycle adds behind existing
 panes. Ship the 6-tab projection of `one.tql` and the system becomes visible.
 
+### Cycle 1 Deliverables
+
+| # | Deliverable | Goal | Rubric (fit/form/truth/taste) | Exit | Skill |
+|---|-------------|------|-------------------------------|------|-------|
+| 1 | 3-pane shell | `/app/:gid` renders groups / tabs / inspector | 0.30/0.25/0.30/0.15 | `curl /app/demo` TTI p50 < 200ms (Lighthouse) | `client-ui:shell` |
+| 2 | Six tabs from TypeDB | Chat + Actors + Things + Paths + Events + Learning project dim 2–6 | **0.40**/0.15/**0.35**/0.10 | no mock data: `grep -r "mock\|fixture" src/components/app/` returns 0 | `client-ui:tabs` |
+| 3 | ChatStream live | keystroke → WS → DO → UI round-trip p50 < 300ms | 0.25/0.15/**0.45**/0.15 | `bun run scripts/test-ws-integration.ts` 11/11 | `client-ui:chat-stream` |
+| 4 | PathsGraph (dagre, 100 edges) | paint < 16ms for 100-path graph | 0.20/0.25/0.35/**0.20** | perf-trace paint < 16ms on 100-edge fixture | `client-ui:paths-graph` |
+| 5 | Learning panel | `reveal/forget/frontier/recall` surfaced per actor | 0.30/0.20/0.35/0.15 | `curl /api/memory/reveal/:uid` renders in panel | `client-ui:learning` |
+
 ---
 
 ### Wave 1 — Recon (parallel Haiku ≥ 4)
@@ -194,6 +241,12 @@ Spawn all in ONE message, one target per agent. Report verbatim, ≤ 300 words e
 **Outcome model:** `result` = report in. `timeout` = re-spawn once. `dissolved` =
 target missing, drop. Advance when 5/6 reports are in.
 
+**W1 self-score** (truth-heavy, deterministic): fit=scope matched target?
+form=under 300 words? truth=% findings citing `file:line`? taste=findings
+ordered by relevance? Emit `loop:feedback` per agent with `tags:
+[...task.tags, 'wave:1', 'model:haiku']`. `mark('wave:1:{path}', s × 5)` on
+pass; `warn(1)` + one re-spawn on fail.
+
 ---
 
 ### Wave 2 — Decide (Opus, shard if findings > 20)
@@ -211,6 +264,13 @@ Decide:
 
 **Output:** M edit prompts — one per file touched. Each names anchor, action,
 new text, rationale.
+
+**W2 self-score** (fit-heavy, semi-deterministic): fit=% W1 findings with a
+spec or "keep"? form=% specs with all 5 fields (TARGET/ANCHOR/ACTION/NEW/RATIONALE)?
+truth=anchors are exact substrings (grep-verifiable)? taste=rationales one
+sentence, no hedging? Emit `loop:feedback` per Opus shard with `tags:
+[...task.tags, 'wave:2', 'model:opus']`. On fail re-shard once; second
+failure halts.
 
 ---
 
@@ -233,6 +293,13 @@ Dissolved if anchor doesn't match.
 | E10 | `src/components/app/LearningPanel.tsx` | new (wrap reveal/recall) |
 | ... | data-loader modules, test files | ~10 more |
 
+**W3 self-score** (truth + form, fully deterministic): fit=every spec
+attempted? form=edits via `Edit` tool (no full rewrites)? truth=% anchors
+matched first try? taste=zero lines touched outside spec (git diff word
+count)? Emit `loop:feedback` per Sonnet editor with `tags:
+[...task.tags, 'wave:3', 'model:sonnet', 'file:{path}']`. Anchor miss →
+`warn(0.5)` + one re-spawn with fresher anchor.
+
 ---
 
 ### Wave 4 — Verify (parallel Sonnet ≥ 4 by check type)
@@ -247,8 +314,17 @@ Dissolved if anchor doesn't match.
 **If inconsistencies:** spawn micro-edits in parallel (Wave 3.5), re-verify.
 Max 3 loops.
 
+**W4 per-shard self-score** (meta — verifiers are scored on defect-catch rate):
+fit=shard stayed in its lane? form=report uses rubric vocabulary from
+`rubrics.md`? truth=% defects flagged that a re-edit confirmed real? taste=zero
+noise-flags? Emit `loop:feedback` per verifier shard with `tags:
+[...task.tags, 'wave:4', 'shard:{consistency|xref|perf|rubric}']`. Verifiers
+that consistently catch real defects accumulate pheromone and win
+`select('wave:4')` in future cycles. **The verifier learns to be useful.**
+
 **Self-checkoff:** On clean verify → `markTaskDone('client-ui:cycle-1')` →
-tick box below → `mark('loop→client-ui:cycle-1', 5)` → unblock Cycle 2.
+tick box below → `mark('loop→client-ui:cycle-1', 5)` → unblock Cycle 2 →
+**emit cycle feedback signal** (see Feedback Signal Contract at end of doc).
 
 ### Cycle 1 Gate
 
@@ -280,6 +356,17 @@ configure keys, invite members, or launch claws from within a group view.
 `src/pages/app/[groupId]/settings.astro`, `src/pages/api/invites/*`,
 `src/components/app/AddClawWizard.tsx`, `src/pages/api/claw.ts` (wrap
 existing), migration for user DEK + ciphertext keys.
+
+### Cycle 2 Deliverables
+
+| # | Deliverable | Goal | Rubric (fit/form/truth/taste) | Exit | Skill |
+|---|-------------|------|-------------------------------|------|-------|
+| 1 | BYO keys settings page | AES-GCM DEK per user, zero plaintext at rest | 0.25/0.15/**0.50**/0.10 | `bun run scripts/grep-for-plaintext-keys.ts` → 0 hits | `client-ui:keys` |
+| 2 | Group + invite flow | Create group → stateless HMAC invite → accept → membership persists | **0.35**/0.20/0.35/0.10 | `curl POST /api/invites/create` + `/accept` → membership in TypeDB | `client-ui:invites` |
+| 3 | AddClawWizard | New user deploys working Telegram claw in < 5 min | **0.40**/0.20/0.30/0.10 | manual smoke: fresh user → /webhook/telegram replies | `client-ui:claw-wizard` |
+| 4 | Skill price UI | Set price + pricing mode + visibility on a capability (marketplace prereq) | **0.40**/0.15/0.35/0.10 | `PATCH /api/skills/:sid/price` updates `capability.price` | `client-ui:skill-price` |
+| 5 | Public landing `/` | Hero + two-audience + trust bar + dual CTA, 100/100/100/100 Lighthouse | 0.30/0.20/0.30/**0.20** | `scripts/lighthouse.ts /` = 100/100/100/100; first-paint JS = 0KB except `client:visible` trust bar | `client-ui:landing` |
+| 6 | Dual-CTA onboarding | `?intent=human` → template picker; `?intent=agent-owner` → editor + wallet | 0.35/0.20/0.30/0.15 | both routes land on intent-correct view in one click | `client-ui:signup` |
 
 ### Wave 1 — Recon (Haiku ≥ 6)
 
@@ -354,12 +441,19 @@ bun run scripts/grep-for-plaintext-keys.ts    # must find zero hits
 
 ---
 
-## Cycle 3: GROW — Brand, per-group API, agency, universal chat, marketplace
+## Cycle 3: GROW — Brand, per-group API, agency, universal chat, /buy, /sell, /dashboard
 
-**Bundles source cycles 8–12 + marketplace** (Brand + Visitor View,
+**Bundles source cycles 8–12 + marketplace + KPI rollup** (Brand + Visitor View,
 Per-Group API + MCP, Agency Template + Dashboard, ChatShell Refactor,
-Universal Chat, **Skill Marketplace** per `docs/marketplace.md` and
-`client-ui.md` §25).
+Universal Chat, **Skill Marketplace projected as `/buy` + `/sell`** per
+`docs/marketplace.md` and `client-ui.md` §25, **KPI Dashboard** as `/dashboard`
+rolling up dims 5+6).
+
+**Navigation is the ontology.** `/buy` and `/sell` are not a parallel
+marketplace — they are dim-4 projections (`capability` relation, filtered by
+direction). `/dashboard` is not a separate surface — it is dim-5 + dim-6
+rolled up into KPI cards. Every route resolves to a TypeDB query over
+`one.tql`; no hidden data store.
 
 **Depends on:** Cycle 2 complete. Can't white-label without auth + groups;
 can't expose per-group API without keys; can't ship universal embed without
@@ -372,6 +466,22 @@ UI shipped in Cycle 2.
 `src/components/chat/ChatShell.tsx` + 4 frames, `src/pages/market/*`
 (marketplace listing + bounty flow), `src/engine/human.ts` (extend for
 human-receiver bounty delivery).
+
+### Cycle 3 Deliverables
+
+| # | Deliverable | Goal | Rubric (fit/form/truth/taste) | Exit | Skill |
+|---|-------------|------|-------------------------------|------|-------|
+| 1 | Brand cascade | Visitor view on `/:gid` paints from nearest `thing(thing-type="brand")` up the hierarchy | 0.30/**0.30**/0.25/0.15 | two nested groups resolve different brands; fallback to parent works | `client-ui:brand` |
+| 2 | Per-group API `/api/g/:gid/*` | Every group exposes signal + export + MCP under its own namespace | **0.35**/0.20/0.35/0.10 | `curl /api/g/demo/signal` with bearer → mark() observed in TypeDB | `client-ui:group-api` |
+| 3 | Agency dashboard (two clients) | Sub-groups isolated, zero data leakage between clients | **0.40**/0.15/**0.35**/0.10 | cross-client query from client-A context returns 0 rows for client-B | `client-ui:agency` |
+| 4 | ChatShell refactor | `ChatClientV2` → `<ChatShell>` < 300 lines, 4 frames reuse one component | 0.25/**0.30**/0.30/0.15 | `wc -l src/components/chat/ChatShell.tsx` < 300; FCP < 200ms; TTI < 500ms | `client-ui:chat-shell` |
+| 5 | Universal chat embed (`chat.js`) | Shadow-DOM widget on non-ONE domain round-trips signal → reply | 0.30/0.20/**0.35**/0.15 | `scripts/test-embed-on-external-domain.ts` passes; `bundle-size.ts` < 30KB gz | `client-ui:embed` |
+| 6 | `/buy` — inbound path offers | Projection of `capability` relation where `current-actor` is buyer-side; 4 discovery lenses (Highways / Frontier / Toxic / Tags) | **0.40**/0.15/0.30/0.15 | `lighthouse.ts /buy` TTI < 200ms; filters query `capability` + joins provider stats; no separate market store | `client-ui:buy` |
+| 7 | `/sell` — outbound path offers | Author + publish my `capability`s (price, rubric thresholds, visibility); edits flow into same TypeDB capability rows as §25 | **0.40**/0.15/0.30/0.15 | `POST /api/capabilities` lands in TypeDB; listing appears on `/buy` for other actors within 1 signal tick | `client-ui:sell` |
+| 8 | `/dashboard` — KPI rollup | Projection of dim 5 (signals) + dim 6 (hypotheses) into closed-loop rate, median settlement, take-rate, highways count, frontier coverage, toxic-path trend | 0.30/**0.30**/**0.30**/0.10 | 7 KPI cards render from `/api/export/*` only; all numbers tie back to deterministic signals (no vibes); refresh < 500ms p50 | `client-ui:dashboard` |
+| 9 | Bounty flow (escrow on Sui) | Post on `/buy` → route → deliver → rubric → Sui release (or refund on warn) | **0.35**/0.15/**0.40**/0.10 | `scripts/test-bounty-e2e.ts` green; Sui tx hash returned on post | `client-ui:bounty` |
+| 10 | Human-receiver bounty ack | Telegram/Discord accept signal closes the loop, delivery triggers rubric scorer | 0.30/0.20/**0.40**/0.10 | integration test: bounty → Telegram ack → delivery → rubric → mark() | `client-ui:human-bounty` |
+| 11 | Anti-goals enforced | No 5-star rating component, no platform-token balance UI, Export-markdown on every listing | 0.25/0.20/0.30/**0.25** | `grep -r "rating\|stars\|balance" src/components/buy src/components/sell` = 0 non-test hits; every row has export button | `client-ui:anti-goals` |
 
 ### Wave 1 — Recon (Haiku ≥ 8)
 
@@ -435,16 +545,22 @@ Representative jobs:
 | E19 | `src/components/chat/InlineFrame.tsx` (new) |
 | E20 | `public/chat.js` (new — SDK loader, shadow DOM) |
 | E21 | `gateway/src/index.ts` (edit — widen origin allowlist for embeds) |
-| E22 | `src/pages/market/index.astro` (new — listing page with 4 discovery tabs: Highways / Frontier / Toxic / Tags) |
-| E23 | `src/pages/market/[sid].astro` (new — skill detail + Hire / Post bounty buttons) |
-| E24 | `src/components/market/MarketRow.tsx` (new — one seller row: kind-pill, SKU-class chip, ↑↓ marks, price, Export-markdown button) |
-| E25 | `src/components/market/BountyComposer.tsx` (new — price + rubric sliders + deadline + tags) |
-| E26 | `src/components/market/BountyCard.tsx` (new — live status chip: posted → accepted → delivered → scoring → paid/refunded) |
-| E27 | `src/pages/api/market/list.ts` (new — world-scope query on public capabilities, joined with provider stats) |
-| E28 | `src/pages/api/market/hire.ts` (new — opens chat + creates `membership(role="guest")` scoped to one signal) |
-| E29 | `src/pages/api/market/bounty.ts` (new — escrowed signal via `one.move`; return bounty id + Sui tx hash) |
-| E30 | `src/engine/human.ts` (edit — accept `{bountyId, accept}` signal from Telegram/Discord; wire delivery back to rubric scorer) |
-| E31 | `src/move/one/sources/one.move` (edit — verify rubric-gated release path exists; extend if needed) |
+| E22 | `src/pages/buy/index.astro` (new — inbound capability listings, 4 discovery lenses; replaces `/market`) |
+| E23 | `src/pages/buy/[sid].astro` (new — capability detail + Hire / Post bounty buttons) |
+| E24 | `src/pages/sell/index.astro` (new — my published `capability`s: add / edit / set price / rubric threshold / visibility) |
+| E25 | `src/pages/sell/new.astro` (new — publish flow: pick skill → set price → set rubric gates → submit) |
+| E26 | `src/pages/dashboard/index.astro` (new — KPI rollup of dims 5+6: closed-loop rate, median settlement, take-rate, highways, frontier coverage, toxic-path trend, revenue/hour) |
+| E27 | `src/components/paths/PathOfferRow.tsx` (new — shared by `/buy` and `/sell`: kind-pill, SKU-class chip, ↑↓ marks, price, Export-markdown) |
+| E28 | `src/components/buy/BountyComposer.tsx` (new — price + rubric sliders + deadline + tags) |
+| E29 | `src/components/buy/BountyCard.tsx` (new — live status chip: posted → accepted → delivered → scoring → paid/refunded) |
+| E30 | `src/components/dashboard/KpiCard.tsx` (new — one metric, one sparkline, one delta vs. last cycle; 7 instances render the dashboard) |
+| E31 | `src/pages/api/capabilities/list.ts` (new — query by direction: `?as=buyer` → offers I can hire, `?as=seller` → offers I publish) |
+| E32 | `src/pages/api/capabilities/publish.ts` (new — `/sell` writes `capability` + `skill` in one call) |
+| E33 | `src/pages/api/dashboard/kpis.ts` (new — aggregates `/api/export/*` into 7 KPI shapes; cached 30s) |
+| E34 | `src/pages/api/buy/hire.ts` (new — opens chat + creates `membership(role="guest")` scoped to one signal) |
+| E35 | `src/pages/api/buy/bounty.ts` (new — escrowed signal via `one.move`; return bounty id + Sui tx hash) |
+| E36 | `src/engine/human.ts` (edit — accept `{bountyId, accept}` signal from Telegram/Discord; wire delivery back to rubric scorer) |
+| E37 | `src/move/one/sources/one.move` (edit — verify rubric-gated release path exists; extend if needed) |
 
 ### Wave 4 — Verify (parallel Sonnet ≥ 6)
 
@@ -452,10 +568,11 @@ Representative jobs:
 |-------|------|
 | V1 | Consistency + naming across new routes/components |
 | V2 | Cross-refs (`chat.js` → Gateway → DO → UI path unbroken) |
-| V3 | Performance budgets (ChatClientV2 → ChatShell < 300 lines; FCP < 200ms; TTI < 500ms; embed gz < 30KB; widget FCP < 200ms; visitor RT < 500ms; `/claim` < 10s; `/market` listing TTI < 200ms; bounty post → Sui lock < 2s) |
-| V4 | Isolation (two-client agency: zero data leaks between clients; marketplace world-scope query never reads tenant pheromone) |
-| V5 | Marketplace end-to-end (post bounty → route to human via Telegram → deliverable → rubric score → `mark()` → Sui release; also `warn()` → refund; anti-goals hold: no 5-star UI, no platform-token balance, Export-markdown works) |
-| V6 | Rubric scoring (fit/form/truth/taste per `rubrics.md`) |
+| V3 | Performance budgets (ChatClientV2 → ChatShell < 300 lines; FCP < 200ms; TTI < 500ms; embed gz < 30KB; widget FCP < 200ms; visitor RT < 500ms; `/claim` < 10s; `/buy` + `/sell` TTI < 200ms; `/dashboard` TTI < 300ms; bounty post → Sui lock < 2s) |
+| V4 | Isolation (two-client agency: zero data leaks between clients; `/buy` world-scope query never reads tenant pheromone; `/sell` writes scoped to current actor) |
+| V5 | Ontology-as-navigation (every route resolves to a one.tql query; no separate market store; `/dashboard` KPIs trace to deterministic signals in dim 5/6) |
+| V6 | Marketplace end-to-end (post bounty on `/buy` → route to human via Telegram → deliverable → rubric score → `mark()` → Sui release; also `warn()` → refund; anti-goals hold: no 5-star UI, no platform-token balance, Export-markdown works) |
+| V7 | Rubric scoring (fit/form/truth/taste per `rubrics.md`) |
 
 ### Cycle 3 Gate
 
@@ -465,7 +582,9 @@ bun run build
 bun run scripts/bundle-size.ts public/chat.js          # < 30KB gz
 bun run scripts/test-embed-on-external-domain.ts       # RT signal + reply
 bun run scripts/lighthouse.ts /:demo-group             # visitor view perf
-bun run scripts/lighthouse.ts /market                  # marketplace TTI < 200ms
+bun run scripts/lighthouse.ts /buy                     # /buy TTI < 200ms
+bun run scripts/lighthouse.ts /sell                    # /sell TTI < 200ms
+bun run scripts/lighthouse.ts /dashboard               # KPI dashboard TTI < 300ms
 bun run scripts/test-bounty-e2e.ts                     # bounty → human → mark → Sui release
 ```
 
@@ -476,11 +595,13 @@ bun run scripts/test-bounty-e2e.ts                     # bounty → human → ma
   [ ] ChatClientV2 < 300 lines, FCP < 200ms, TTI < 500ms
   [ ] Every chat turn emits chat:outcome signal with {outcome, ms, tokens, model}
   [ ] chat.js embed on non-ONE domain signals + reply roundtrip works
-  [ ] /market lists world-scope public capabilities with 4 discovery tabs
+  [ ] /buy lists inbound `capability` offers (world + current group) with 4 discovery lenses
+  [ ] /sell publishes a new `capability` and it appears on another actor's /buy within one signal tick
+  [ ] /dashboard renders 7 KPI cards from /api/export/* only; every number ties to a deterministic signal
+  [ ] Ontology-as-navigation holds: every route is a query over one.tql (no hidden data store)
   [ ] Bounty end-to-end: post → route → deliver → rubric → Sui release (or refund on warn)
   [ ] Human receiver accepts bounty via Telegram, delivery closes the loop
   [ ] Anti-goals hold: no 5-star component anywhere, no platform-token balance UI, Export-markdown works on every row
-  [ ] Success metrics queryable (closed-loop rate, median settlement, take-rate) in agency dashboard
 ```
 
 ---
@@ -498,13 +619,56 @@ bun run scripts/test-bounty-e2e.ts                     # bounty → human → ma
 | 2 | W3 | ~18 Sonnet | Sonnet | ~15% |
 | 2 | W4 | 5 Sonnet | Sonnet | ~6% |
 | 3 | W1 | 8 Haiku | Haiku | ~5% |
-| 3 | W2 | 3 Opus shards | Opus | ~22% (biggest decide — brand/API/agency + chat + marketplace) |
-| 3 | W3 | ~31 Sonnet | Sonnet | ~24% |
-| 3 | W4 | 6 Sonnet | Sonnet | ~10% |
+| 3 | W2 | 3 Opus shards | Opus | ~22% (biggest decide — brand/API/agency + chat + /buy+/sell+/dashboard) |
+| 3 | W3 | ~37 Sonnet | Sonnet | ~26% |
+| 3 | W4 | 7 Sonnet | Sonnet | ~11% |
 
 **Hard stop:** if any Wave 4 loops more than 3 times, halt and escalate.
 **Parallelism is cheap, serial is expensive** — per-token billing means 25
 Sonnet in parallel costs the same as one Sonnet sequential, at 1/25 wall-time.
+
+---
+
+## Feedback Signal Contract
+
+Every wave and every cycle close MUST emit one `loop:feedback` signal. This
+is the return-path pheromone — without it, paths never strengthen and future
+`select()` calls have no memory of what worked on UI work.
+
+```typescript
+// POST /api/signal — the ant lays pheromone on the way home
+{
+  receiver: 'loop:feedback',
+  data: {
+    tags: [...task.tags, 'ui', `cycle:${cycle}`, `wave:${N}`],
+    strength: rubricAvg,        // avg of fit/form/truth/taste (0–1)
+    content: {
+      task_id: 'client-ui:cycle-N',
+      cycle,
+      wave: N,
+      rubric: { fit, form, truth, taste },
+      path: `${from}→${to}`,
+      outcome: 'result'         // result | timeout | dissolved | failure
+    }
+  }
+}
+```
+
+The `loop:feedback` unit (registered in `boot.ts`) deposits `mark(tag_edge, strength)`
+for each tag in `task.tags`. Future `select()` with matching tags follows this trail.
+Feedback signals are `scope: private` — never surface in group queries or `know()`
+unless L6 explicitly promotes them.
+
+| Outcome | Strength | Effect on tag paths |
+|---------|---------:|---------------------|
+| `result` + rubric ≥ 0.65 | `rubricAvg × 5` | `mark()` on each tag — trail strengthens |
+| `result` + rubric 0.50–0.64 | `rubricAvg × 2` | mild `mark()` — fan out to specialist for next wave |
+| `result` + rubric < 0.50 | — | `warn(1)` on each tag — chain breaks, L5 evolution eligible |
+| `timeout` | — | neutral — not the agent's fault |
+| `dissolved` | — | `warn(0.5)` — path doesn't exist yet |
+| `failure` | — | `warn(1)` — chain breaks |
+
+**Always emit. Even on timeout. Even on dissolved. Every loop closes.**
 
 ---
 
@@ -515,16 +679,16 @@ Sonnet in parallel costs the same as one Sonnet sequential, at 1/25 wall-time.
   - [x] W2 — Decide (Opus × 1)
   - [x] W3 — Edits (Sonnet × ~20, parallel)
   - [x] W4 — Verify (Sonnet × 4, parallel by check type)
-- [ ] **Cycle 2: PROVE** — BYO keys + groups + invites + claws + skill price UI + public landing
-  - [ ] W1 — Recon (Haiku × 6, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × ~18, parallel)
-  - [ ] W4 — Verify (Sonnet × 5, parallel by check type)
-- [ ] **Cycle 3: GROW** — brand + per-group API + agency + universal chat + marketplace
-  - [ ] W1 — Recon (Haiku × 8, parallel)
-  - [ ] W2 — Decide (Opus × 3 shards)
-  - [ ] W3 — Edits (Sonnet × ~31, parallel)
-  - [ ] W4 — Verify (Sonnet × 6, parallel by check type)
+- [x] **Cycle 2: PROVE** — BYO keys + groups + invites + claws + skill price UI + public landing
+  - [x] W1 — Recon (Haiku × 6, parallel)
+  - [x] W2 — Decide (Opus × 1) — W1 found prior cycles shipped E1–E15; W2 collapsed to verify-only
+  - [x] W3 — Edits (Sonnet × 1, grep-for-plaintext-keys.ts script)
+  - [x] W4 — Verify (Sonnet × 4, parallel by check type) — rubric fit=0.79 form=0.83 truth=0.83 taste=0.79, all ≥ 0.65
+- [x] **Cycle 3: GROW** — brand + per-group API + agency + universal chat + /buy + /sell + /dashboard
+  - [x] W1 — Recon (Haiku × 8, parallel) — found Cycle 3 ~65% pre-built (brand, /api/g, /buy, dashboard, ChatShell existed)
+  - [x] W2 — Decide (Opus × 3 shards, main context) — narrowed edits to 12 new + 2 edits (gap set)
+  - [x] W3 — Edits (Sonnet × 12, parallel) + W3.5 fix-loop (Sonnet × 3, schema+contract alignment)
+  - [x] W4 — Verify (Sonnet × 4, parallel by check type) — rubric fit=0.83 form=0.87 truth=0.86 taste=0.81, all ≥ 0.65
 
 ---
 

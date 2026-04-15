@@ -6,10 +6,14 @@
  *   POST /v1/query      → TypeQL read/write proxy
  *   GET  /messages      → Query conversation from D1
  *   GET  /health        → Status check
+ *   GET  /proxy/sse     → SSE stream proxy (origin-checked)
  *
  * All TypeDB access goes through here. Browser → Worker → TypeDB Cloud.
  * CORS configured for localhost (dev) + one.ie (prod).
  */
+
+import { getAllowedOrigins, isOriginAllowed } from './origin-allow'
+import { sseProxy } from './sse-proxy'
 
 interface Env {
   TYPEDB_URL: string
@@ -200,9 +204,14 @@ export default {
     // GET /ws — WebSocket upgrade for live TaskBoard updates
     // Routes to the WsHub Durable Object so all isolates see the same clients.
     if (url.pathname === '/ws') {
-      // Security: Check origin against allowed CORS origins
+      // Security: Check origin against CORS_ORIGINS + per-agent KV allowlist
       const wsOrigin = request.headers.get('Origin')
-      if (!wsOrigin || !CORS_ORIGINS.some((o) => wsOrigin.startsWith(o))) {
+      if (!wsOrigin) {
+        return new Response('Origin not allowed', { status: 403, headers })
+      }
+      const target = url.searchParams.get('target') ?? ''
+      const agentAllowed = target && env.KV ? await getAllowedOrigins(target, env.KV) : []
+      if (!isOriginAllowed(wsOrigin, agentAllowed, CORS_ORIGINS)) {
         return new Response('Origin not allowed', { status: 403, headers })
       }
 
@@ -357,6 +366,25 @@ export default {
         const msg = e instanceof Error ? e.message : 'Unknown error'
         return Response.json({ error: msg }, { status: 500, headers })
       }
+    }
+
+    // GET /proxy/sse?upstream=<encoded-url> — stream SSE from an upstream URL
+    // Origin check mirrors /ws: CORS_ORIGINS + per-agent KV allowlist via ?target=
+    if (url.pathname === '/proxy/sse' && request.method === 'GET') {
+      const upstream = url.searchParams.get('upstream')
+      if (!upstream) {
+        return Response.json({ error: 'upstream parameter required' }, { status: 400, headers })
+      }
+      const sseOrigin = request.headers.get('Origin')
+      if (!sseOrigin) {
+        return new Response('Origin not allowed', { status: 403, headers })
+      }
+      const target = url.searchParams.get('target') ?? ''
+      const agentAllowed = target && env.KV ? await getAllowedOrigins(target, env.KV) : []
+      if (!isOriginAllowed(sseOrigin, agentAllowed, CORS_ORIGINS)) {
+        return new Response('Origin not allowed', { status: 403, headers })
+      }
+      return sseProxy(decodeURIComponent(upstream), request, sseOrigin)
     }
 
     // Index — useful for health checks on root

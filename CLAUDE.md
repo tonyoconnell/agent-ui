@@ -4,7 +4,7 @@ Signal-based world for AI agents. 670 lines of engine. Zero returns.
 The LLM is the only probabilistic component. Everything else is math.
 
 **Ontology:** `src/schema/one.tql` — 100 lines, 6 dimensions, stable forever.
-**Naming:** `docs/naming.md` — canonical names, retired names, never rename again.
+**Naming:** `docs/dictionary.md` — canonical names, retired names, never rename again.
 
 **Live:** api.one.ie + one-substrate.pages.dev + nanoclaw.oneie.workers.dev
 **Brain:** TypeDB Cloud (19 units, 18 skills, 19 functions)
@@ -27,8 +27,8 @@ The LLM is the only probabilistic component. Everything else is math.
 ## Quick Start
 
 ```bash
-npm run dev      # Start dev server (localhost:4321)
-npm run build    # Production build
+bun run dev      # Start dev server (localhost:4321)
+bun run build    # Production build
 /deploy          # Deploy all 4 workers to Cloudflare
 ```
 
@@ -599,9 +599,16 @@ Required secrets: `CLOUDFLARE_GLOBAL_API_KEY`, `CLOUDFLARE_EMAIL`, `CLOUDFLARE_A
 7. Deploy — Gateway + Sync + NanoClaw **parallel** (24s), then Pages (16s)
 8. Health — 3 retries with backoff + record to substrate via `/api/signal`
 
-**Verified speed (2026-04-14):** 65.0s total.
-Workers parallel 24.1s (vs 64.5s sequential — 2.7× speedup) • Pages 16.1s • health 4/4 in 297-658ms.
+**Verified speed (2026-04-15):** 74.9s total.
+Workers parallel 16.7s (vs ~42s sequential — 2.5× speedup) • Pages 29.6s • health 4/4 in 287-666ms.
 Preview URL captured inline: `📎 https://<hash>.one-substrate.pages.dev`.
+
+**CF Pages bundle size — LOCKED rules (do not revert):**
+Three rules keep the SSR worker under the CF free-tier limit (~10 MiB uncompressed):
+1. `markdown: { syntaxHighlight: false }` — kills ~5.8 MiB of Shiki grammars from worker
+2. `ssr.external: ["shiki", "@mysten/sui", "@mysten/bcs", "node:async_hooks"]` — bare import references without inlining; safe only when the package is never called server-side (`shiki` callers are all `client:only`)
+3. Pure-shell pages use `export const prerender = true` + `client:only="react"` — component tree stays out of worker, page handler collapses to 63-byte stub
+Verified 2026-04-15: 21 MiB → 9.5 MiB. Pages: FAILED → ✓. Full diagnosis: `docs/deploy.md` § Bundle Size.
 
 **Auth is non-negotiable:** Global API Key only. `.env` stores it as `CLOUDFLARE_GLOBAL_API_KEY`, script maps to `CLOUDFLARE_API_KEY` for wrangler and blanks `CLOUDFLARE_API_TOKEN` in the spawned env. Scoped tokens are forbidden — they lack permissions for workers + custom domains. See `/cloudflare` skill.
 
@@ -748,7 +755,7 @@ curl -X POST https://donal-claw.oneie.workers.dev/message \
 | Skill | Trigger | What it provides |
 |-------|---------|-----------------|
 | `/sui` | Move contracts, wallets, Sui integration | Build Move contracts, agent wallets, mirror/absorb bridge, escrow patterns, TypeDB ↔ Sui sync |
-| `/deploy` | Deploy to Cloudflare | Gateway + sync + Pages. Uses CLOUDFLARE_GLOBAL_API_KEY |
+| `/deploy` | Deploy to Cloudflare | Full 8-step pipeline. Bundle rules in `.claude/commands/deploy.md`. Uses CLOUDFLARE_GLOBAL_API_KEY |
 | `/typedb` | Any TQL, schema, query work | TypeDB 3.0 syntax, functions (NOT rules) |
 | `/reactflow` | Graph visualization | Custom nodes, dark theme |
 | `/react19` | React components, hooks | React 19 patterns, use(), transitions |
@@ -767,13 +774,18 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 | Doc | What it defines | Syncs with |
 |-----|----------------|------------|
 | `src/schema/one.tql` | **THE ONTOLOGY** — 100 lines, 6 dimensions, stable forever | Everything |
-| `docs/naming.md` | **THE NAMES** — canonical names, dead names, dimension→runtime map | All docs, schemas, APIs |
-| `docs/one-ontology.md` | **THE SPEC** — 6 dimensions explained, actor/group/thing types, universal mapping | `one.tql`, `naming.md` |
-| `docs/AUTONOMOUS_ORG.md` | **THE BLUEPRINT** — ONE-strategy as executable task graph with pheromone routing, 7 personas, revenue forecast | `world.tql`, `tick.ts`, revenue loops |
+| `docs/dictionary.md` | **THE NAMES** — canonical names, dead names, 6 verbs (signal/mark/warn/fade/follow/harden), dimension→runtime map | All docs, schemas, APIs |
+| `docs/one-ontology.md` | **THE SPEC** — 6 dimensions explained, actor/group/thing types, universal mapping | `one.tql`, `dictionary.md` |
+| `docs/autonomous-orgs.md` | **THE BLUEPRINT** — ONE-strategy as executable task graph with pheromone routing, 7 personas, revenue forecast | `world.tql`, `tick.ts`, revenue loops |
 | `docs/metaphors.md` | **THE ROSETTA STONE** — 7 skins (ant/brain/team/mail/water/radio/ledger) + framework mappings (Langchain, AgentVerse, Hermes, Human). Merged from metaphors-extended.md on 2026-04-14. | `src/skins/index.ts`, `skins.tql`, all framework integrations |
-| `docs/dictionary.md` | Concept reference — 6 verbs (signal/mark/warn/fade/follow/harden) + dimensions | `naming.md` (naming.md is authoritative) |
 | `docs/DSL.md` | The programming model — signal, emit, mark, warn, fade, follow, select, harden | `world.ts`, `persist.ts` |
-| `docs/routing.md` | How signals find their way — formula, layers, tick, outcomes | `loop.ts`, `persist.ts` |
+| `docs/routing.md` | Formula (`weight = 1 + max(0, s-r) × sensitivity`), two modes (`follow` deterministic / `select` stochastic), deterministic sandwich (toxic→capable→execute), four outcomes (result/timeout/dissolved/failure), tick loop (select→ask→mark/warn→fade), chain depth, toxicity threshold | `loop.ts`, `persist.ts`, `world.ts` |
+| `docs/rubrics.md` | Quality scoring — fit/form/truth/taste dims, gate threshold 0.65 | `loop.ts`, `/api/loop/mark-dims`, `markDims()` |
+| `docs/lifecycle.md` | Agent journey — register→signal→highway→harden | `persist.ts`, `boot.ts`, all CLAUDE.md context blocks |
+| `docs/buy-and-sell.md` | Commerce mechanics — LIST→DISCOVER→EXECUTE→SETTLE, capability price | `bridge.ts`, `/api/agents/:id/capabilities`, `/marketplace` |
+| `docs/revenue.md` | Five revenue layers — routing/discovery/infra/marketplace/intelligence | `loop.ts` L4, `/api/revenue`, `/api/stats` |
+| `docs/speed.md` | Performance benchmarks — routing `<0.005ms`, gateway `<10ms`, TTFB `<200ms` | `gateway/`, `src/lib/edge.ts`, all API routes |
+| `docs/patterns.md` | Reusable patterns — closed loop, deterministic sandwich, zero returns, toxicity | `world.ts`, `persist.ts`, `.claude/rules/engine.md` |
 | `docs/sdk.md` | SDK contract — register, discover, hire, earn | Public API surface |
 | `docs/world-map-page.md` | BUILD SPEC — /world page design, direct manipulation, personas, visitor mode, 12-component limit | `src/pages/world.astro`, `src/components/WorldMap/*` |
 

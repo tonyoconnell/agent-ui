@@ -23,7 +23,7 @@
  */
 
 import { type DurableAskEnv, durableAsk } from './durable-ask'
-import { type Unit, unit } from './world'
+import { type Signal, type Unit, unit } from './world'
 
 export interface HumanOpts {
   env: DurableAskEnv
@@ -83,4 +83,57 @@ export const human = (id: string, opts: HumanOpts): Unit => {
       await notify(msg, askId)
       return wait(askId, { receiver: id, data })
     })
+    .on('claim', async (data) => {
+      const { bountyId, accept, deliverable, bounty_id, content, deadline, question, replyTo } = data as {
+        bountyId?: string
+        accept?: boolean
+        deliverable?: string
+        bounty_id?: string
+        content?: string
+        deadline?: string
+        question?: string
+        replyTo?: string
+      }
+
+      // Structured bounty claim signal — short-circuit: no prompt/wait needed
+      if (bountyId !== undefined && accept !== undefined) {
+        if (!bountyId) return { status: 'dissolved' }
+        if (!accept) return { bountyId, status: 'declined' }
+        if (deliverable) return { bountyId, status: 'delivered', deliverable }
+        return { bountyId, status: 'accepted' }
+      }
+
+      // Legacy prompt-and-wait flow (bounty_id / content / deadline)
+      const brief =
+        typeof content === 'object' && content !== null
+          ? ((content as Record<string, unknown>).brief as string | undefined)
+          : undefined
+      const body = brief ?? (typeof content === 'string' ? content : null) ?? '(no brief provided)'
+      const deadlineStr = deadline ? `\n\n_Deadline: ${deadline}_` : ''
+      const msg =
+        question ??
+        `Bounty claim available${bounty_id ? ` (${bounty_id})` : ''}:\n\n${body}${deadlineStr}\n\nReply with your deliverable (audit report, doc link, or file), or *decline* to pass.`
+      const askId = replyTo ?? `ask:${crypto.randomUUID()}`
+      await notify(msg, askId)
+      return wait(askId, { receiver: id, data })
+    })
 }
+
+/**
+ * Build a structured bounty claim signal for the given persona unit.
+ * Receiver is `<persona>:claim`.
+ *
+ * @param persona  The human unit id (e.g. "anthony")
+ * @param bountyId The bounty being claimed/declined
+ * @param accept   true = accept, false = decline
+ * @param deliverable  Optional work product — triggers 'delivered' status
+ */
+export const bountyClaimSignal = (
+  persona: string,
+  bountyId: string,
+  accept: boolean,
+  deliverable?: string,
+): Signal => ({
+  receiver: `${persona}:claim`,
+  data: { bountyId, accept, ...(deliverable !== undefined ? { deliverable } : {}) },
+})

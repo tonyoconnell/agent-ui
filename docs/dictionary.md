@@ -49,7 +49,7 @@ data = { tags, weight, content }
 | Field | Type | Default | Meaning |
 |-------|------|---------|---------|
 | `tags` | `string[]` | `[]` | Classification + routing key. `world:review+P0` addressing reads these. |
-| `weight` | `number` | `1` | Pheromone deposit on delivery. Positive = `mark()`. Negative = `warn()`. |
+| `weight` | `number` | `1` | Pheromone deposit on delivery. Positive = `mark()`. Negative = `warn()`. **Also the payment amount** — `mark(edge, weight)` settles the trade and deposits pheromone in one atomic call. `weight > 0` means the sender is paying. See [buy-and-sell.md](buy-and-sell.md). |
 | `content` | anything | `undefined` | The actual payload — rubric scores, task bodies, API responses, markdown. |
 
 All three are optional. A signal with only `content` is a plain delivery (weight 1).

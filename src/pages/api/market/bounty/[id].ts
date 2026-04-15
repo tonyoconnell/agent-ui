@@ -17,6 +17,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     const row = await db.prepare('SELECT * FROM bounties WHERE id = ?').bind(params.id).first()
     if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
 
+    const data = JSON.parse((row.data_json as string) || '{}')
     return Response.json({
       id: row.id,
       edge: row.edge,
@@ -24,10 +25,10 @@ export const GET: APIRoute = async ({ params, locals }) => {
       sellerUid: row.seller_uid,
       posterUid: row.poster_uid,
       price: row.price,
-      rubric: JSON.parse((row.rubric_json as string) || '{}'),
-      deadline: row.deadline,
-      escrowObjectId: row.escrow_object_id ?? undefined,
-      status: row.status,
+      rubric: data.rubric,
+      deadline: data.deadline,
+      escrowObjectId: (row.escrow_id as string | null) ?? undefined,
+      status: data.escrow_state,
       createdAt: row.created_at,
     })
   } catch {
@@ -43,15 +44,16 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
     const row = await db.prepare('SELECT * FROM bounties WHERE id = ?').bind(params.id).first()
     if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
-    if (row.status !== 'locked' && row.status !== 'delivered') {
-      return Response.json({ error: `Already settled: ${row.status}` }, { status: 409 })
+    const data = JSON.parse((row.data_json as string) || '{}')
+    if (data.escrow_state !== 'locked' && data.escrow_state !== 'delivered') {
+      return Response.json({ error: `Already settled: ${data.escrow_state}` }, { status: 409 })
     }
 
     const body = (await request.json()) as {
       rubric?: { fit?: number; form?: number; truth?: number; taste?: number }
     }
     const submitted = body.rubric ?? {}
-    const required = JSON.parse((row.rubric_json as string) || '{}') as {
+    const required = (data.rubric ?? {}) as {
       fit?: number
       form?: number
       truth?: number
@@ -71,22 +73,35 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
     const net = await getNet()
     const edge = row.edge as string
-    const escrowObjectId = (row.escrow_object_id as string | null) ?? ''
+    const escrowObjectId = (row.escrow_id as string | null) ?? ''
     const claimantUid = row.seller_uid as string
     const posterUid = row.poster_uid as string
 
+    // Per-dimension thresholds from the bounty's stored rubric requirements
+    const threshold = Math.min(...dims.map((d) => (required[d] ?? 0.65) as number))
+
     if (escrowObjectId) {
-      net.settle(edge, { escrowObjectId, claimantUid, posterUid, success: pass })
+      // Rubric-gated settle: passes scores so persist.ts can gate release on all dims >= threshold
+      net.settle(edge, {
+        escrowObjectId,
+        claimantUid,
+        posterUid,
+        rubric: { fit: scores.fit ?? 0, form: scores.form ?? 0, truth: scores.truth ?? 0, taste: scores.taste ?? 0 },
+        threshold,
+      })
     } else {
       // No escrow (Sui unavailable at creation) — just pheromone
       if (pass) net.mark(edge)
       else net.warn(edge)
     }
+    const txHash: string | null = null
 
-    const newStatus = pass ? 'released' : 'refunded'
-    await db.prepare('UPDATE bounties SET status = ? WHERE id = ?').bind(newStatus, params.id).run()
+    const newState = pass ? 'released' : 'refunded'
+    data.escrow_state = newState
+    if (txHash) data.tx_hash = txHash
+    await db.prepare('UPDATE bounties SET data_json = ? WHERE id = ?').bind(JSON.stringify(data), params.id).run()
 
-    return Response.json({ id: params.id, status: newStatus, rubric: scores, settled: true })
+    return Response.json({ id: params.id, status: newState, rubric: scores, settled: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
     return Response.json({ error: msg }, { status: 500 })

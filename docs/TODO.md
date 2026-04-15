@@ -168,18 +168,24 @@ timeline
 
 ### Track A — Atomicity (security · no collusion)
 
-- [ ] ****1a. Update world.tql**** [haiku] `schema, foundation, P0` ← [TODO-collusion](TODO-collusion.md)
+- [x] ****1a. Update world.tql**** [haiku] `schema, foundation, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: `grep "owns owner" src/schema/world.tql` returns true; wave-lock entity defined
-- [ ] ****1b. Update world.tql attributes**** [haiku] `schema, foundation, P0` ← [TODO-collusion](TODO-collusion.md)
+  ✓ owner + claimed-at + wave-lock all present — pre-existing
+- [x] ****1b. Update world.tql attributes**** [haiku] `schema, foundation, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: `attribute owner, value string` defined; claimed-at timestamp attribute added
-- [ ] ****2a. Create src/pages/api/tasks/[id]/claim.ts**** [sonnet] `endpoint, atomicity, P0` ← [TODO-collusion](TODO-collusion.md)
+  ✓ pre-existing in schema
+- [x] ****2a. Create src/pages/api/tasks/[id]/claim.ts**** [sonnet] `endpoint, atomicity, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: `curl POST /api/tasks/{id}/claim` returns 200 with owner; 409 if already claimed
-- [ ] ****2b. Write atomic TypeQL query for claim**** [haiku] `typedb, atomicity, P0` ← [TODO-collusion](TODO-collusion.md)
+  ✓ atomic TypeQL claim — pre-existing
+- [x] ****2b. Write atomic TypeQL query for claim**** [haiku] `typedb, atomicity, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: Query has match `has task-status $s; $s = "open"` → delete + insert active + owner
-- [ ] ****3a. Create src/pages/api/tasks/[id]/release.ts**** [sonnet] `endpoint, ownership, P0` ← [TODO-collusion](TODO-collusion.md)
+  ✓ pre-existing in claim.ts
+- [x] ****3a. Create src/pages/api/tasks/[id]/release.ts**** [sonnet] `endpoint, ownership, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: `curl POST /api/tasks/{id}/release {sessionId}` returns 200; 403 if wrong owner
-- [ ] ****4a. Create src/pages/api/tasks/expire.ts**** [sonnet] `endpoint, recovery, P0` ← [TODO-collusion](TODO-collusion.md)
+  ✓ owner-check + 403 guard — pre-existing
+- [x] ****4a. Create src/pages/api/tasks/expire.ts**** [sonnet] `endpoint, recovery, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: `curl GET /api/tasks/expire` returns `{ expired: [...], count: N }`
+  ✓ 30-min TTL, bulk release — pre-existing
 - [ ] ****4c. Claim collision test**** [sonnet] `test, atomicity, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: Two concurrent claims return 200 + 409; only one gets owner
 - [ ] **ADL Lifecycle gate: Retired unit → warn(edge, 0.5), no execution** [haiku] `adl, lifecycle, security, P0` ← [TODO-adl](TODO-adl.md)
@@ -191,8 +197,9 @@ timeline
 
 > Commands `see/create/do/close/sync` already written ✓. Track B is now: cleanup + rename.
 
-- [ ] ****2o. Cleanup — delete 11 old command files**** [haiku] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
+- [x] ****2o. Cleanup — delete 11 old command files**** [haiku] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
   exit: 11 files deleted (tasks, highways, todo, add-task, extract-tasks, wave, work, next, done, report, grow); 5 remain
+  ✓ only see/create/do/close/sync/claw present — already clean
 - [ ] **Cycle 1 W1: Recon (parallel Haiku × 4)** [haiku] `docs, wire, recon, P0` ← [TODO-rename](TODO-rename.md)
   exit: 4 reports in. Each reports dead names with line numbers, metaphor flags.
 - [ ] **Cycle 1 W2: Decide (Opus)** [sonnet] `docs, wire, decide, P0` ← [TODO-rename](TODO-rename.md)
@@ -200,8 +207,9 @@ timeline
 
 ### New: Feedback Signal + Outcome Audit (speed · the return path)
 
-- [ ] **Wire loop:feedback unit — tags + strength → mark tag paths** [sonnet] `engine, signal, feedback, P0`
+- [x] **Wire loop:feedback unit — tags + strength → mark tag paths** [sonnet] `engine, signal, feedback, P0`
   exit: `unit('loop:feedback').on('*', ({tags, strength}) => tags.forEach(t => net.mark(\`tag:${t}\`, strength * 5)))`. Registered in boot.ts.
+  ✓ wired in boot.ts — outcome-aware: failure→warn(1), dissolved→warn(0.5), strength≥0.65→mark, else→warn(0.5) — 2026-04-15
   blocks: feedback-routing-live
 - [ ] **Outcome audit view: /see events buckets by outcome type** [haiku] `ui, analytics, feedback, P1` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
   exit: `/see events --since 24h` reports `result=N timeout=M dissolved=K failure=J` per agent. Surfaces which agents need L5 evolution.

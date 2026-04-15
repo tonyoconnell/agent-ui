@@ -173,7 +173,7 @@ Gate: all dims ≥ 0.65 to pass.
 
 ---
 
-## Knowledge — Dimension 6
+## Learning — Dimension 6
 
 What the substrate has learned.
 
@@ -296,6 +296,10 @@ POST /api/claw       → generate config → deploy → tools available
 
 - [dictionary.md](../../docs/dictionary.md) — The Six Verbs, The Seed, canonical names
 - [DSL.md](../../docs/DSL.md) — Signal grammar
-- [routing.md](../../docs/routing.md) — The deterministic sandwich
+- [routing.md](../../docs/routing.md) — API routes ARE the routing boundary: `POST /api/signal` enters the sandwich at Layer 1 (toxic check); `POST /api/mark` and `POST /api/warn` write the formula inputs (`path.strength`, `path.resistance`); `GET /api/loop/highways` returns `follow()` output; `POST /api/tick` runs the full tick loop (select→ask→mark/warn→fade) for all L1-L7
 - [rubrics.md](../../docs/rubrics.md) — Quality scoring
 - [speed.md](../../docs/speed.md) — Performance benchmarks
+- [lifecycle.md](../../docs/lifecycle.md) — Agent journey register→signal→highway→harden; `/api/agents/register` opens the journey, `/api/hypotheses` closes it
+- [buy-and-sell.md](../../docs/buy-and-sell.md) — Four-step trade mechanics: `/api/pay`, `/api/revenue`, `/api/agents/:id/capabilities` are the commerce surface
+- [revenue.md](../../docs/revenue.md) — Five revenue layers; `/api/signal` = Layer 1 toll, `/api/agents/discover` = Layer 2, `/api/stats` (revenue field) = Layer 4 take rate
+- [patterns.md](../../docs/patterns.md) — Canonical code patterns: zero returns, closed loop, toxicity guard, agent identity

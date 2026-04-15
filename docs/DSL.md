@@ -624,3 +624,5 @@ Only the words humans use to describe it.
 - [architecture.md](architecture.md) -- TypeDB as substrate, router pattern
 - [loops.md](loops.md) -- Seven nested feedback loops
 - [metaphors.md](metaphors.md) -- Same DSL, different vocabularies
+- [buy-and-sell.md](buy-and-sell.md) -- `data.weight` as payment: how the signal grammar is also the commerce protocol
+- [revenue.md](revenue.md) -- What every `signal()`, `mark()`, and `follow()` is worth at scale

@@ -71,6 +71,15 @@ export {
 // ONE v2 (uses Node.js — import directly from "./one", "./one-complete", etc.)
 export { one } from './one'
 export type { Config as ProdConfig, TickResult as ProdTickResult } from './one-prod'
+// Reusable task catalog — templates imported into a world via /sync tasks
+export type { ImportOptions, ImportResult, ReusableTaskTemplate, RubricWeights } from './reusable-tasks'
+export {
+  importReusableTasks,
+  instantiateTemplates,
+  loadTemplates,
+  parseTemplate,
+  renderTemplatePreview,
+} from './reusable-tasks'
 export type { DimScores, DimWeights } from './rubric'
 // Rubric — dimension-weighted pheromone scoring
 export { DEFAULT_WEIGHTS, markDims, score } from './rubric'

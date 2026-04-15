@@ -1,0 +1,142 @@
+---
+import Layout from "@/layouts/Layout.astro"
+
+export const prerender = false
+---
+
+<Layout title="Publish a skill">
+  <main class="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+
+      <div class="mb-8">
+        <h1 class="text-xl font-semibold mb-2">Publish a skill</h1>
+        <p class="text-sm text-zinc-400">
+          Buyers discover via <code class="text-zinc-300">/buy</code>. Pheromone decides who gets the work.
+        </p>
+      </div>
+
+      <div class="border border-zinc-800 rounded-xl p-8 bg-zinc-900/30">
+        <form id="publish-form" class="flex flex-col gap-4">
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-zinc-400 font-medium">Skill ID <span class="text-zinc-600">(e.g. copy-editing)</span></label>
+            <input name="skillId" type="text" required placeholder="copy-editing"
+              class="bg-[#0a0a0f] border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors" />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-zinc-400 font-medium">Display name</label>
+            <input name="name" type="text" required placeholder="Copy Editing"
+              class="bg-[#0a0a0f] border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors" />
+          </div>
+
+          <div class="flex gap-3">
+            <div class="flex flex-col gap-1 flex-1">
+              <label class="text-xs text-zinc-400 font-medium">Price (SUI)</label>
+              <input name="price" type="number" required min="0" step="0.01" placeholder="0.02"
+                class="bg-[#0a0a0f] border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors" />
+            </div>
+            <div class="flex flex-col gap-1 flex-1">
+              <label class="text-xs text-zinc-400 font-medium">Mode</label>
+              <select name="mode"
+                class="bg-[#0a0a0f] border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors">
+                <option value="static">static</option>
+                <option value="pheromone" selected>pheromone</option>
+                <option value="auction">auction</option>
+                <option value="bounty">bounty</option>
+                <option value="bonding">bonding</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-zinc-400 font-medium">Visibility</label>
+            <select name="visibility"
+              class="bg-[#0a0a0f] border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors">
+              <option value="public" selected>public</option>
+              <option value="group">group</option>
+              <option value="private">private</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-zinc-400 font-medium">Tags <span class="text-zinc-600">(comma-separated)</span></label>
+            <input name="tags" type="text" placeholder="editing, copy, headlines"
+              class="bg-[#0a0a0f] border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors" />
+          </div>
+
+          <div class="flex flex-col gap-3 pt-1">
+            <p class="text-xs text-zinc-400 font-medium">Rubric thresholds</p>
+            {["fit", "form", "truth", "taste"].map(dim => (
+              <div class="flex items-center gap-3">
+                <label class="text-xs text-zinc-500 w-10">{dim}</label>
+                <input name={`rubric_${dim}`} type="range" min="0.5" max="0.95" step="0.05" value="0.7" class="flex-1 accent-white" />
+                <output class="text-xs text-zinc-400 w-8 text-right rubric-val">0.7</output>
+              </div>
+            ))}
+          </div>
+          <button type="submit" id="submit-btn"
+            class="mt-2 bg-white text-black text-sm font-medium py-2.5 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50">
+            Publish skill
+          </button>
+
+          <p id="form-msg" class="text-xs text-center text-zinc-500 hidden"></p>
+        </form>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  // Live slider value display
+  document.querySelectorAll('input[type="range"]').forEach(slider => {
+    const out = slider.nextElementSibling as HTMLOutputElement
+    slider.addEventListener("input", () => { out.textContent = slider.value })
+  })
+
+  // Submit as JSON
+  const form = document.getElementById("publish-form") as HTMLFormElement
+  const btn = document.getElementById("submit-btn") as HTMLButtonElement
+  const msg = document.getElementById("form-msg") as HTMLParagraphElement
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault()
+    btn.disabled = true
+    msg.className = "text-xs text-center text-zinc-500"
+    msg.textContent = "Publishing…"
+    msg.classList.remove("hidden")
+
+    const fd = new FormData(form)
+    const body: Record<string, unknown> = {}
+    for (const [k, v] of fd.entries()) body[k] = v
+
+    // Parse tags into array
+    body.tags = String(body.tags || "").split(",").map((t: string) => t.trim()).filter(Boolean)
+
+    // Collect rubric dims
+    body.rubricThresholds = { fit: body.rubric_fit, form: body.rubric_form, truth: body.rubric_truth, taste: body.rubric_taste }
+    for (const d of ["rubric_fit", "rubric_form", "rubric_truth", "rubric_taste"]) delete body[d]
+
+    try {
+      const res = await fetch("/api/capabilities/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        msg.className = "text-xs text-center text-emerald-400"
+        msg.textContent = "Skill published. Pheromone routing active."
+        form.reset()
+      } else {
+        const err = await res.json().catch(() => ({ error: res.statusText }))
+        msg.className = "text-xs text-center text-red-400"
+        msg.textContent = err.error ?? "Publish failed."
+      }
+    } catch {
+      msg.className = "text-xs text-center text-red-400"
+      msg.textContent = "Network error."
+    } finally {
+      btn.disabled = false
+    }
+  })
+</script>

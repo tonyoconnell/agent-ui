@@ -7,12 +7,13 @@
 Docs are the training data. Every doc participates in the learning loop:
 
 ```
-DSL.md + dictionary.md    → loaded as BASE CONTEXT in every Wave 2 decision
-routing.md + patterns.md  → loaded as DOMAIN CONTEXT per task tags
-rubrics.md                → defines quality scoring (fit/form/truth/taste as tagged edges)
-speed.md                  → defines the benchmarks that make the learning rate possible
-lifecycle.md              → defines the journey: register → signal → highway → harden
-TODO-*.md                 → queues of signals, executed by /wave, self-checkoff on verify
+DSL.md + dictionary.md         → loaded as BASE CONTEXT in every Wave 2 decision
+routing.md + patterns.md       → loaded as DOMAIN CONTEXT per task tags
+rubrics.md                     → defines quality scoring (fit/form/truth/taste as tagged edges)
+speed.md                       → defines the benchmarks that make the learning rate possible
+lifecycle.md                   → defines the journey: register → signal → highway → harden
+buy-and-sell.md + revenue.md   → loaded as COMMERCE CONTEXT for capability/pricing/marketplace tasks
+TODO-*.md                      → queues of signals, executed by /wave, self-checkoff on verify
 ```
 
 **DSL.md and dictionary.md are non-negotiable.** Every TODO, every wave, every task decision loads them. They define the vocabulary the system speaks. If a doc uses a dead name, the learning diverges.
@@ -29,9 +30,9 @@ Apply to `docs/*.md`
 |----------|-------|---------|
 | Core | dictionary.md, DSL.md, events.md, primitives.md | The names and primitives |
 | Ontology | one-ontology.md, metaphors.md, ontology.md | The 6 dimensions |
-| Implementation | tutorial.md, the-stack.md, people.md, groups.md | How to build |
+| Implementation | tutorial.md, the-stack.md, groups.md | How to build |
 | Strategy | strategy.md, one-protocol.md, integration.md | The play |
-| Commerce | agent-launch.md, asi-world.md | The business |
+| Commerce | agent-launch.md, buy-and-sell.md, revenue.md | The business — buy-and-sell.md is mechanics, revenue.md is pricing |
 | Execution | TODO-*.md (template, task-management, SUI, rename, etc.) | Wave-based tasks, executed by /wave, self-verifying |
 
 README.md is the index. Link everything back to it.
@@ -83,6 +84,8 @@ trail    synapse   workflow  route     channel   frequency
 | routing.md | src/engine/loop.ts, src/engine/persist.ts |
 | metaphors.md | src/skins/index.ts, src/schema/skins.tql |
 | sdk.md | Public API surface contract |
+| buy-and-sell.md | src/engine/persist.ts `capable()`, src/engine/loop.ts L4, src/lib/sui.ts `pay/send/consume` |
+| revenue.md | src/pages/api/revenue.ts, src/pages/api/pay.ts, src/pages/api/stats.ts |
 
 Docs describe. Code implements. Keep them in sync.
 

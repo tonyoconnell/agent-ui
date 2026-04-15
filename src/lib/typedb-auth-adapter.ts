@@ -12,6 +12,15 @@ export interface TypeDBAdapterConfig {
   database: string
   username: string
   password: string
+  /**
+   * Optional: route queries through the ONE gateway instead of signing in
+   * directly. When set, the adapter never calls `/v1/signin` — the gateway
+   * owns the single TypeDB session. This eliminates session-replacement
+   * collisions between Better Auth and substrate code.
+   *
+   * Example: `gatewayUrl: 'https://api.one.ie'`
+   */
+  gatewayUrl?: string
 }
 
 // Model → TypeDB entity mapping
@@ -86,13 +95,36 @@ async function getToken(config: TypeDBAdapterConfig, forceFresh = false): Promis
 }
 
 /**
- * Query TypeDB with 401-retry.
+ * Query TypeDB, preferring the gateway when configured.
  *
- * TypeDB Cloud may invalidate a JWT when the same `admin` user signs in
- * from another process (the CF gateway). If we get a 401 we null the
- * cached token, re-signin once, and retry. A second 401 surfaces as an error.
+ * Two paths:
+ *   - gatewayUrl set → POST to `${gatewayUrl}/typedb/query`. No direct signin.
+ *     The gateway owns the single TypeDB session + 401-retry.
+ *   - gatewayUrl absent → legacy direct mode with local 401-retry.
+ *
+ * Routing through the gateway is strongly preferred: one session, zero
+ * collisions with substrate code that also uses the gateway.
  */
 async function query(config: TypeDBAdapterConfig, tql: string, write: boolean): Promise<any[]> {
+  if (config.gatewayUrl) {
+    const res = await fetch(`${config.gatewayUrl.replace(/\/$/, '')}/typedb/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: tql,
+        transactionType: write ? 'write' : 'read',
+        commit: true,
+      }),
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`Gateway query failed: ${res.status} - ${text}`)
+    }
+    const data = (await res.json()) as any
+    return data.answers || []
+  }
+
+  // Legacy direct mode (no gateway): keep 401-retry so old configs still self-heal.
   for (let attempt = 0; attempt < 2; attempt++) {
     const token = await getToken(config, attempt === 1)
     const res = await fetch(`${config.url}/v1/query`, {

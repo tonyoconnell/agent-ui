@@ -1,4 +1,8 @@
 import { useState, useTransition } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { emitClick } from '@/lib/ui-signal'
 import type { CapabilityListing } from '@/pages/api/market/list'
 
 interface Props {
@@ -46,27 +50,27 @@ export function BountyComposer({ listing, posterUid, onCreated, onClose }: Props
       <h3 className="text-sm font-semibold text-slate-100">Post bounty — {listing.name}</h3>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-slate-400">Price (FET)</label>
-        <input
+        <Label className="text-xs text-slate-400">Price (FET)</Label>
+        <Input
           type="number"
           step="0.01"
           min="0"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          className="bg-[#0a0a0f] border border-[#252538] rounded px-3 py-2 text-sm text-slate-100"
+          className="bg-white/5 border-white/10 text-slate-100"
           required
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-slate-400">
+        <Label className="text-xs text-slate-400">
           Deadline <span className="text-slate-600">(optional)</span>
-        </label>
-        <input
+        </Label>
+        <Input
           type="date"
           value={deadline}
           onChange={(e) => setDeadline(e.target.value)}
-          className="bg-[#0a0a0f] border border-[#252538] rounded px-3 py-2 text-sm text-slate-100"
+          className="bg-white/5 border-white/10 text-slate-100"
         />
       </div>
 
@@ -94,20 +98,23 @@ export function BountyComposer({ listing, posterUid, onCreated, onClose }: Props
       )}
 
       <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-100 rounded"
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={onClose} className="text-slate-400">
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
+          size="sm"
           disabled={isPending}
-          className="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-sm text-white disabled:opacity-50"
+          className="bg-indigo-600 hover:bg-indigo-500"
+          onClick={() =>
+            emitClick('ui:market:bounty-submit', {
+              type: 'payment',
+              payment: { receiver: listing.sellerUid, amount: Number(price), action: 'bounty' },
+            })
+          }
         >
           {isPending ? 'Locking escrow…' : 'Post bounty'}
-        </button>
+        </Button>
       </div>
     </form>
   )

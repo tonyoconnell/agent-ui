@@ -15,7 +15,7 @@ rubric dims         → per-skill radar chart      (fit/form/truth/taste)
 
 **Speed contract:** Components read from in-memory state via API (`/api/state`, `/api/export/highways`). KV cache delivers `<10ms`. The UI shows the learning AS IT HAPPENS — highways forming, paths fading, toxic edges blocking.
 
-**Context:** [DSL.md](../../docs/DSL.md) — signal grammar the UI represents. [dictionary.md](../../docs/dictionary.md) — canonical names for display. [routing.md](../../docs/routing.md) — what highways/toxic/fading mean. [rubrics.md](../../docs/rubrics.md) — quality dims to visualize. [speed.md](../../docs/speed.md) — why real-time visualization is possible.
+**Context:** [DSL.md](../../docs/DSL.md) — signal grammar the UI represents. [dictionary.md](../../docs/dictionary.md) — canonical names for display. [routing.md](../../docs/routing.md) — what highways/toxic/fading mean. [rubrics.md](../../docs/rubrics.md) — quality dims to visualize. [speed.md](../../docs/speed.md) — why real-time visualization is possible. [buy-and-sell.md](../../docs/buy-and-sell.md) — `/marketplace` and `/discover` components expose the LIST/DISCOVER steps; capability cards show price from `capability.price`. [revenue.md](../../docs/revenue.md) — Layer 2 discovery and Layer 4 marketplace are the commerce-facing pages. [lifecycle.md](../../docs/lifecycle.md) — agent journey visible in components: `AgentBuilder` = register stage, `DiscoverGrid` = discover stage, `HighwayPanel` = highway stage. [patterns.md](../../docs/patterns.md) — closed loop and zero-returns patterns apply to every component that emits signals.
 
 ## Organization
 
@@ -73,12 +73,17 @@ const highways = net.highways(30)
 // Highways = proven paths
 const proven = net.highways(20)
 
-// Blocked = alarm dominates
-const blocked = Object.entries(net.alarm)
-  .filter(([e, a]) => a > (net.scent[e] || 0))
+// Blocked = resistance dominates strength (toxicity threshold)
+const blocked = Object.entries(net).filter(([e]) => {
+  const s = net.strength?.[e] ?? 0
+  const r = net.resistance?.[e] ?? 0
+  return r >= 10 && r > s * 2
+})
 
-// Unexplored = handlers with no scent history
-const explored = new Set(Object.keys(net.scent).flatMap(e => e.split('→')))
+// Unexplored = handlers with no strength history
+const explored = new Set(
+  Object.keys(net.strength ?? {}).flatMap(e => e.split('→'))
+)
 ```
 
 ### ReactFlow Graphs
@@ -93,8 +98,15 @@ const explored = new Set(Object.keys(net.scent).flatMap(e => e.split('→')))
 |-----------|---------|
 | `AgentWorkspace` | Agent management, world state |
 | `WorldWorkspace` | ONE world with switchable metaphor skins |
+| `WorldPageWrapper` | Wrapper for world page with auth/state |
 | `Dashboard` | Overview with highways, stats |
 | `TaskBoard` | Pheromone visualization (reads from substrate) |
 | `ColonyGraph` | Read-only ReactFlow visualization of highways |
+| `PheromoneGraph` | Pheromone-aware ReactFlow visualization |
 | `WorldEditor` | Interactive graph editing, signal injection |
 | `HighwayPanel` | Weighted paths with strength bars |
+| `KnowledgePanel` | Hypothesis and frontier display |
+| `CEOPanel` | Governance view — toxic paths, proven paths |
+| `SpeedtestDashboard` | Live performance benchmark display |
+| `TeamBuilder` | Onboarding — build agent team from markdown |
+| `UnitProfile` | Public unit profile card |

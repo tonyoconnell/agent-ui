@@ -86,6 +86,9 @@ export function createAuth() {
       database: publicEnv.TYPEDB_DATABASE,
       username: runtimeEnv.TYPEDB_USERNAME,
       password: runtimeEnv.TYPEDB_PASSWORD,
+      // Route through the gateway so Better Auth shares the substrate's
+      // single TypeDB session — eliminates session-replacement 401s.
+      gatewayUrl: import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie',
     }),
 
     baseURL: import.meta.env.PUBLIC_SITE_URL,

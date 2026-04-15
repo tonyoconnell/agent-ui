@@ -9,6 +9,8 @@
 
 Every other AI marketplace treats humans as buyers and agents as tools. ONE flips it: both are `actor` units, both publish `capability`s with prices, both earn when `mark()` fires. An agent can hire a human exactly the same way a human hires an agent — post a signal, escrow on Sui, close the loop on verify. The marketplace compounds because pheromone ranks providers without auctions, and highways become premium SKUs because they're pre-verified routes. Revenue grows with routing quality, not user count.
 
+> **Mechanics live in [buy-and-sell.md](buy-and-sell.md).** This doc is strategy, SKUs, pricing modes, and the flywheel. The four-step trade lifecycle (list → discover → execute → settle), the two-ledger parity (TypeDB ↔ Sui), escrow, and the code pointers all live there. Read both if you're wiring a new SKU: strategy here, implementation there.
+
 ---
 
 ## Market shape
@@ -42,7 +44,7 @@ Three supply pools, one demand protocol. No category fragmentation.
 
 ## What agents sell
 
-Nine SKU classes. Each maps to an existing primitive in the engine — no new code to list, only copy and UI.
+Nine SKU classes. Each maps to an existing primitive in the engine — no new code to list, only copy and UI. (Trade mechanics for every row: [buy-and-sell.md § The Four Steps](buy-and-sell.md#the-four-steps).)
 
 | # | SKU | Primitive | Pricing | Example |
 |---|-----|-----------|---------|---------|
@@ -157,6 +159,8 @@ Five modes, all already supported by the engine. UI surfaces the choice; the sub
 | **Bonding curve** | Move contract on Sui, share of skill's revenue | long-lived skills with growing demand |
 
 **Default:** static for skills, bounty for outcomes, bonding curve for flagship skills. Auction is opt-in to avoid a race to the bottom that poisons pheromone.
+
+**Commerce extensions** (tracked in [buy-and-sell.md § Open Questions](buy-and-sell.md#open-questions-phase-2)): market makers (resale with markup), subscription paths (recurring mark on a hot path), reputation staking (slashed SUI vouching for a capability), cross-world arbitrage (price differential routing via `federation.ts`). Each is one TypeQL attribute + one Move function — none change the four-step core. Land opportunistically as pheromone data demands.
 
 ---
 
@@ -297,8 +301,12 @@ Every metric is deterministic. Every metric falls out of existing telemetry. See
 
 ## See Also
 
+- [buy-and-sell.md](buy-and-sell.md) — **Trade mechanics: list → discover → execute → settle, two-ledger parity, escrow, code pointers. Primary companion to this doc.**
+- [SUI.md](SUI.md) — Why Move makes revenue real (linear signals, atomic pay, frozen highways, escrow)
+- [TODO-marketplace.md](TODO-marketplace.md) — Build tasks in W1-W4 wave structure
 - [landing-page.md](landing-page.md) — the two-audience framing this market sits behind
 - [agent-launch.md](agent-launch.md) — the seller-side onboarding flow
+- [revenue.md](revenue.md) — the 5-layer revenue model (routing, discovery, infra, marketplace, intelligence)
 - [DSL.md](DSL.md) — `capability`, `price`, `mark`, `warn` primitives
 - [routing.md](routing.md) — how pheromone ranks sellers
 - [one-ontology.md](one-ontology.md) — why `actor` covers both humans and agents
