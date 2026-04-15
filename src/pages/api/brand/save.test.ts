@@ -153,20 +153,53 @@ describe('POST /api/brand/save', () => {
     expect(mockInvalidate).toHaveBeenCalledOnce()
   })
 
-  // ── 5. thing scope — session required, no ownership check yet ────────────
-  // Schema doesn't yet have `thing has owner`. Ownership check for things is
-  // deferred — see TODO-design-system-hardening.md. Only auth is enforced.
-  it('scope=thing: calls writeSilent twice + invalidateBrandCache (session required, no ownership check)', async () => {
+  // ── 5a. thing scope, no prior owner → first-save stamps owner + writes brand ──
+  // Schema: `thing owns owner`. First save stamps `has owner "${userId}"` before
+  // the brand write. Subsequent saves must match.
+  it('scope=thing, no prior owner: stamps owner + writes brand + invalidates cache', async () => {
     mockGetSession.mockResolvedValue(fakeSession as never)
+    // owner-check returns empty → first save
+    mockReadParsed.mockResolvedValueOnce([])
     const { request, cookies } = makeCtx({ scope: 'thing', id: 'thing-42', brand: fakeBrand })
 
     const res = await POST({ request, cookies } as never)
 
     expect(res.status).toBe(200)
-    expect(mockWriteSilent).toHaveBeenCalledTimes(2)
-    // readParsed not called — no membership check for things
-    expect(mockReadParsed).not.toHaveBeenCalled()
+    // readParsed called once for the owner probe
+    expect(mockReadParsed).toHaveBeenCalledTimes(1)
+    expect(mockReadParsed.mock.calls[0]?.[0]).toContain('has owner $o')
+    // writeSilent: stamp owner + delete brand + insert brand = 3
+    expect(mockWriteSilent).toHaveBeenCalledTimes(3)
+    const stampCall = mockWriteSilent.mock.calls[0]?.[0] ?? ''
+    expect(stampCall).toContain('insert $e has owner')
+    expect(stampCall).toContain('user-123')
     expect(mockInvalidate).toHaveBeenCalledOnce()
+  })
+
+  // ── 5b. thing scope, existing owner matches session user → proceeds ──────
+  it('scope=thing, owner matches session: writes brand normally', async () => {
+    mockGetSession.mockResolvedValue(fakeSession as never)
+    mockReadParsed.mockResolvedValueOnce([{ o: 'user-123' }])
+    const { request, cookies } = makeCtx({ scope: 'thing', id: 'thing-42', brand: fakeBrand })
+
+    const res = await POST({ request, cookies } as never)
+
+    expect(res.status).toBe(200)
+    expect(mockWriteSilent).toHaveBeenCalledTimes(2) // only brand delete + insert; no stamp
+    expect(mockInvalidate).toHaveBeenCalledOnce()
+  })
+
+  // ── 5c. thing scope, existing owner mismatch → 403 ───────────────────────
+  it('scope=thing, owner mismatch: returns 403, no writes', async () => {
+    mockGetSession.mockResolvedValue(fakeSession as never)
+    mockReadParsed.mockResolvedValueOnce([{ o: 'someone-else' }])
+    const { request, cookies } = makeCtx({ scope: 'thing', id: 'thing-42', brand: fakeBrand })
+
+    const res = await POST({ request, cookies } as never)
+
+    expect(res.status).toBe(403)
+    expect(mockWriteSilent).not.toHaveBeenCalled()
+    expect(mockInvalidate).not.toHaveBeenCalled()
   })
 
   // ── 6. Missing brand body → 400 ──────────────────────────────────────────

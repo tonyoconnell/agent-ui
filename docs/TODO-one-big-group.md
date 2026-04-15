@@ -1,13 +1,31 @@
 ---
-title: TODO One Big Group — recursive containment as universal scope
+title: TODO One Big Group — deferred; scope-A shipped instead
 type: roadmap
-version: 1.0.0
-priority: Schema change → migration → engine → API → tests
+version: 1.1.0
+priority: SUPERSEDED — see Run Log 2026-04-15
 total_tasks: 8
-completed: 0
-status: ACTIVE
-last_run: pending
+completed: 3
+status: SCOPE-A-SHIPPED (full containment model deferred pending real use case)
+last_run: 2026-04-15 — scope A (thing-owner attribute) shipped; nested-group recursion deferred
 ---
+
+> **Decision (2026-04-15):** after W1 recon exposed a 30-file rename surface
+> and no existing recursive-TypeDB precedent in this codebase, shipped the
+> minimal "scope A" fix: `thing owns owner` attribute + first-save-establishes
+> ownership in `brand/save.ts`. The full "one big group" recursive-containment
+> vision stays valid as an ontology statement — just doesn't need to be the
+> enforcement mechanism until a real use case proves attribute-compare isn't
+> enough.
+>
+> **What shipped:** `src/schema/one.tql` (+`owns owner` on thing, +attribute
+> declaration), `src/pages/api/brand/save.ts` (thing-scope ownership guard:
+> first-save stamps, later saves must match), `src/pages/api/brand/save.test.ts`
+> (+3 thing-scope tests: first-save / match / mismatch→403). 11/11 save tests
+> pass, audit held, tsc clean on this subtree.
+>
+> **Future cycle (deferred, not scheduled):** nested `contains` recursion +
+> membership→contains rename. Revisit when a use case needs transitive team
+> permissions or multi-group shared assets.
 
 # TODO: One Big Group
 

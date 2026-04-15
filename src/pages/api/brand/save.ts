@@ -67,23 +67,35 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   // ── Ownership guard ───────────────────────────────────────────────────────
-  // Schema supports `membership(group, member)` for groups; `id` is validated
-  // above (alphanumeric entity id from request body — no raw user input reaches TQL).
-  // `thing` has no owner attribute yet; ownership check for thing-scope is deferred
-  // until schema adds `thing has owner` — see TODO-design-system-hardening.md.
+  // `group`: verified via `membership(group, member)` relation.
+  // `thing`: verified via `has owner` attribute — first-save sets, later saves must match.
+  // `id` is escaped before interpolation; `userId` is escaped before comparison.
+  const userId = session.user?.id
+  if (!userId) return Response.json({ error: 'unauthorized' }, { status: 401 })
+  const safeUserId = escapeStr(userId)
+  const safeIdForCheck = escapeStr(id as string)
+
   if (typedScope === 'group') {
-    const userId = session.user?.id
-    if (!userId) return Response.json({ error: 'unauthorized' }, { status: 401 })
-    const safeUserId = escapeStr(userId)
     const rows = await readParsed(
-      `match $g isa group, has gid "${escapeStr(id as string)}"; (group: $g, member: $m) isa membership; $m has aid "${safeUserId}"; select $m;`,
+      `match $g isa group, has gid "${safeIdForCheck}"; (group: $g, member: $m) isa membership; $m has aid "${safeUserId}"; select $m;`,
     ).catch(() => [] as Record<string, unknown>[])
     if (rows.length === 0) {
       return Response.json({ error: 'forbidden' }, { status: 403 })
     }
+  } else if (typedScope === 'thing') {
+    const rows = await readParsed(`match $e isa thing, has tid "${safeIdForCheck}"; $e has owner $o; select $o;`).catch(
+      () => [] as Record<string, unknown>[],
+    )
+    if (rows.length === 0) {
+      // First save — stamp ownership atomically before the brand write.
+      writeSilent(`match $e isa thing, has tid "${safeIdForCheck}"; insert $e has owner "${safeUserId}";`)
+    } else {
+      const existing = rows[0]?.o
+      if (typeof existing !== 'string' || existing !== userId) {
+        return Response.json({ error: 'forbidden' }, { status: 403 })
+      }
+    }
   }
-  // scope === 'thing': session-required (already enforced above). Ownership
-  // check deferred until schema adds `thing has owner` — see hardening TODO.
 
   // ── Write to TypeDB ───────────────────────────────────────────────────────
   const safeId = escapeStr(id as string)
