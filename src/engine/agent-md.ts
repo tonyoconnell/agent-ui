@@ -20,6 +20,8 @@
  * Markdown → AgentSpec → Runtime unit
  */
 
+import { JSONSchema, Schema } from 'effect'
+import { parse as parseYaml } from 'yaml'
 import { addressFor, createUnit as createUnitOnChain, registerTask as registerTaskOnChain } from '@/lib/sui'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 import { loadContext } from './context'
@@ -27,238 +29,87 @@ import type { PersistentWorld } from './persist'
 import type { World } from './world'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TYPES
+// SCHEMAS — Single source of truth for types, parsing, validation, JSON Schema
 // ═══════════════════════════════════════════════════════════════════════════
 
-export interface SkillSpec {
+export const SkillSpecSchema = Schema.Struct({
+  name: Schema.NonEmptyString,
+  price: Schema.optional(Schema.Number),
+  tags: Schema.optional(Schema.Array(Schema.String)),
+  description: Schema.optional(Schema.String),
+})
+
+export const AgentSpecSchema = Schema.Struct({
+  name: Schema.NonEmptyString,
+  model: Schema.optional(Schema.String),
+  channels: Schema.optional(Schema.Array(Schema.String)),
+  skills: Schema.optional(Schema.Array(SkillSpecSchema)),
+  sensitivity: Schema.optional(Schema.Number.pipe(Schema.between(0, 1))),
+  group: Schema.optional(Schema.String),
+  tags: Schema.optional(Schema.Array(Schema.String)),
+  context: Schema.optional(Schema.Array(Schema.String)),
+  aliases: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.String })),
+  prompt: Schema.String,
+  // Sui identity — derived on sync, not from markdown
+  wallet: Schema.optional(Schema.String),
+  suiObjectId: Schema.optional(Schema.String),
+})
+
+export const WorldSpecSchema = Schema.Struct({
+  name: Schema.NonEmptyString,
+  description: Schema.optional(Schema.String),
+  agents: Schema.Array(AgentSpecSchema),
+})
+
+// Mutable shapes (AgentSpec is written to by syncAgentWithIdentity, etc.)
+export type SkillSpec = {
   name: string
   price?: number
-  tags?: string[]
+  tags?: readonly string[]
   description?: string
 }
 
-export interface AgentSpec {
+export type AgentSpec = {
   name: string
   model?: string
-  channels?: string[]
-  skills?: SkillSpec[]
+  channels?: readonly string[]
+  skills?: readonly SkillSpec[]
   sensitivity?: number
   group?: string
-  tags?: string[]
-  context?: string[] // docs to load as knowledge: ['routing', 'dsl']
-  aliases?: Record<string, string> // skin → alias mapping: {ant: "scout-7", brain: "neuron-α12", ...}
+  tags?: readonly string[]
+  context?: readonly string[]
+  aliases?: Record<string, string>
   prompt: string
-  // Sui identity (derived on sync, not from markdown)
-  wallet?: string // Sui address
-  suiObjectId?: string // on-chain Unit object ID
+  wallet?: string
+  suiObjectId?: string
 }
 
-export interface WorldSpec {
+export type WorldSpec = {
   name: string
   description?: string
   agents: AgentSpec[]
 }
 
+const decodeAgent = Schema.decodeUnknownSync(AgentSpecSchema)
+
+/**
+ * JSON Schema for AgentSpec — feed to LLM structured output (OpenRouter's
+ * `response_format: { type: "json_schema", json_schema: { schema: agentSpecJsonSchema } }`)
+ * to let an LLM generate new agents that are guaranteed-valid by construction.
+ */
+export const agentSpecJsonSchema = JSONSchema.make(AgentSpecSchema)
+
 // ═══════════════════════════════════════════════════════════════════════════
-// PARSE — Frontmatter YAML + Markdown body
+// PARSE — YAML frontmatter + markdown body → Schema-validated AgentSpec
 // ═══════════════════════════════════════════════════════════════════════════
 
-const parseYamlValue = (value: string): unknown => {
-  value = value.trim()
-  if (value === 'true') return true
-  if (value === 'false') return false
-  if (!Number.isNaN(Number(value))) return Number(value)
-  if (value.startsWith('[') && value.endsWith(']')) {
-    return value
-      .slice(1, -1)
-      .split(',')
-      .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
-  }
-  return value.replace(/^['"]|['"]$/g, '')
-}
-
-const parseSkills = (lines: string[]): SkillSpec[] => {
-  const skills: SkillSpec[] = []
-  let current: SkillSpec | null = null
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (trimmed.startsWith('- name:')) {
-      if (current) skills.push(current)
-      current = { name: trimmed.slice(7).trim() }
-    } else if (current && trimmed.startsWith('price:')) {
-      current.price = Number(trimmed.slice(6).trim())
-    } else if (current && trimmed.startsWith('tags:')) {
-      current.tags = parseYamlValue(trimmed.slice(5)) as string[]
-    } else if (current && trimmed.startsWith('description:')) {
-      current.description = trimmed.slice(12).trim()
-    }
-  }
-  if (current) skills.push(current)
-  return skills
-}
-
-const _parseAliases = (lines: string[]): Record<string, string> | undefined => {
-  const aliases: Record<string, string> = {}
-  let inAliases = false
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (trimmed.startsWith('aliases:')) {
-      inAliases = true
-      continue
-    }
-
-    if (inAliases) {
-      // Stop when we hit a non-indented key at the root level
-      if (line.match(/^\s/) || trimmed.startsWith('-')) {
-        const colonIdx = trimmed.indexOf(':')
-        if (colonIdx > 0) {
-          const key = trimmed.slice(0, colonIdx).trim()
-          const value = trimmed
-            .slice(colonIdx + 1)
-            .trim()
-            .replace(/^['"]|['"]$/g, '')
-          aliases[key] = value
-        }
-      } else if (trimmed && !trimmed.startsWith('#')) {
-        // Stop at next root-level key
-        break
-      }
-    }
-  }
-
-  return Object.keys(aliases).length ? aliases : undefined
-}
+const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
 
 export const parse = (md: string): AgentSpec => {
-  const lines = md.split('\n')
-  const spec: AgentSpec = { name: '', prompt: '' }
-
-  // Find frontmatter boundaries
-  let inFrontmatter = false
-  let frontmatterEnd = 0
-  let inSkills = false
-  let inAliases = false
-  const skillLines: string[] = []
-  const aliasLines: string[] = []
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const trimmed = line.trim()
-
-    if (trimmed === '---') {
-      if (!inFrontmatter) {
-        inFrontmatter = true
-        continue
-      } else {
-        frontmatterEnd = i
-        break
-      }
-    }
-
-    if (inFrontmatter) {
-      if (trimmed.startsWith('skills:')) {
-        inSkills = true
-        inAliases = false
-        continue
-      }
-
-      if (trimmed.startsWith('aliases:')) {
-        inAliases = true
-        inSkills = false
-        continue
-      }
-
-      if (inSkills) {
-        // Collect all indented lines (- name: or key: value pairs under skills)
-        if (line.match(/^\s/) || trimmed.startsWith('- ')) {
-          skillLines.push(line)
-          continue
-        } else if (trimmed && !trimmed.startsWith('#')) {
-          // Stop skills section only when we hit a non-indented key
-          inSkills = false
-        }
-      }
-
-      if (inAliases) {
-        // Collect all indented lines under aliases
-        if (line.match(/^\s/) && trimmed && !trimmed.startsWith('#')) {
-          aliasLines.push(line)
-          continue
-        } else if (trimmed && !trimmed.startsWith('#')) {
-          // Stop aliases section at next root-level key
-          inAliases = false
-        }
-      }
-
-      if (!inSkills && !inAliases && trimmed && !trimmed.startsWith('#')) {
-        const colonIdx = trimmed.indexOf(':')
-        if (colonIdx > 0) {
-          const key = trimmed.slice(0, colonIdx).trim()
-          const value = trimmed.slice(colonIdx + 1).trim()
-          switch (key) {
-            case 'name':
-              spec.name = value
-              break
-            case 'model':
-              spec.model = value
-              break
-            case 'sensitivity':
-              spec.sensitivity = Number(value)
-              break
-            case 'group':
-              spec.group = value
-              break
-            case 'channels':
-              spec.channels = parseYamlValue(value) as string[]
-              break
-            case 'tags':
-              spec.tags = parseYamlValue(value) as string[]
-              break
-            case 'context':
-              spec.context = parseYamlValue(value) as string[]
-              break
-          }
-        }
-      }
-    }
-  }
-
-  // Parse skills
-  if (skillLines.length) {
-    spec.skills = parseSkills(skillLines)
-  }
-
-  // Parse aliases
-  if (aliasLines.length) {
-    const aliases: Record<string, string> = {}
-    for (const line of aliasLines) {
-      const trimmed = line.trim()
-      if (trimmed && !trimmed.startsWith('#')) {
-        const colonIdx = trimmed.indexOf(':')
-        if (colonIdx > 0) {
-          const key = trimmed.slice(0, colonIdx).trim()
-          const value = trimmed
-            .slice(colonIdx + 1)
-            .trim()
-            .replace(/^['"]|['"]$/g, '')
-          aliases[key] = value
-        }
-      }
-    }
-    if (Object.keys(aliases).length) {
-      spec.aliases = aliases
-    }
-  }
-
-  // Rest is prompt
-  spec.prompt = lines
-    .slice(frontmatterEnd + 1)
-    .join('\n')
-    .trim()
-
-  return spec
+  const match = md.match(FRONTMATTER)
+  const frontmatter = match ? (parseYaml(match[1]) ?? {}) : {}
+  const prompt = (match ? match[2] : md).trim()
+  return decodeAgent({ ...frontmatter, prompt }) as AgentSpec
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -519,7 +370,7 @@ export const wireAgent = (
   const unit = net.add(uid)
 
   // Load context from docs if specified
-  const contextDocs = spec.context?.length ? loadContext(spec.context) : ''
+  const contextDocs = spec.context?.length ? loadContext([...spec.context]) : ''
   const fullPrompt = contextDocs
     ? `# Knowledge\n\n${contextDocs}\n\n---\n\n# Instructions\n\n${spec.prompt}`
     : spec.prompt
