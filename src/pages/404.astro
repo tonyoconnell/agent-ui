@@ -1,0 +1,38 @@
+---
+/**
+ * 404 — canonical not-found page
+ *
+ * Must exist as a static file to break the `[groupId]` catch-all redirect
+ * loop: without this, unknown groups redirect to `/404`, which re-enters
+ * `[groupId]/index.astro`, which redirects to `/404` again → ERR_TOO_MANY_REDIRECTS.
+ *
+ * Astro serves this for any unmatched route when `prerender = true` ships
+ * a static 404.html alongside the SSR worker.
+ */
+import Layout from '@/layouts/Layout.astro'
+
+export const prerender = true
+---
+
+<Layout title="Not found — ONE">
+  <div class="min-h-screen bg-[#0a0a0f] text-slate-100 flex items-center justify-center px-6">
+    <div class="max-w-md text-center">
+      <p class="text-xs uppercase tracking-widest text-slate-500 mb-4">404</p>
+      <h1 class="text-3xl font-semibold mb-3">No path here.</h1>
+      <p class="text-sm text-slate-400 mb-8">
+        The group, actor, or capability you asked for doesn't exist yet — or the pheromone faded. Follow a highway instead.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/" class="rounded border border-indigo-500/40 bg-indigo-500/10 px-5 py-2 text-sm text-indigo-200 hover:bg-indigo-500/20 transition-colors">
+          Home
+        </a>
+        <a href="/buy" class="rounded border border-[#252538] bg-[#151522] px-5 py-2 text-sm text-slate-200 hover:border-slate-600 transition-colors">
+          Marketplace
+        </a>
+        <a href="/world" class="rounded border border-[#252538] bg-[#151522] px-5 py-2 text-sm text-slate-200 hover:border-slate-600 transition-colors">
+          World map
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>

@@ -52,6 +52,7 @@ try {
 }
 
 if (!groupInfo) {
+  if (groupId === '404') return new Response('Not found', { status: 404 })
   return Astro.redirect('/404')
 }
 ---
