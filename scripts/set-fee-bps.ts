@@ -10,20 +10,21 @@
  *
  * Required env vars:
  *   SUI_PACKAGE_ID          — deployed package on testnet
- *   SUI_PROTOCOL_OBJECT_ID  — shared Protocol object ID
+ *   SUI_PROTOCOL_ID         — shared Protocol object ID
  *   SUI_SEED                — platform seed (base64, 32 bytes)
  */
 
 import { Transaction } from '@mysten/sui/transactions'
-import { deriveKeypair, getClient, signAndExecute } from '@/lib/sui'
+import { getClient, platformKeypair, signAndExecute } from '@/lib/sui'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════════════════════
 
-const NEW_FEE_BPS = 200n // 2.00%
-
 const DRY_RUN = process.argv.includes('--dry-run')
+
+const bpsArgIdx = process.argv.indexOf('--bps')
+const NEW_FEE_BPS = bpsArgIdx !== -1 ? BigInt(process.argv[bpsArgIdx + 1] ?? '200') : 200n
 
 function requireEnv(name: string): string {
   const val = process.env[name]
@@ -76,7 +77,7 @@ function buildTx(packageId: string, protocolId: string, feeBps: bigint): Transac
 
 async function main() {
   const packageId = requireEnv('SUI_PACKAGE_ID')
-  const protocolId = requireEnv('SUI_PROTOCOL_OBJECT_ID')
+  const protocolId = requireEnv('SUI_PROTOCOL_ID')
 
   // SUI_SEED existence is validated inside deriveKeypair; call requireEnv
   // here to surface a clear error before any async work.
@@ -114,7 +115,7 @@ async function main() {
 
   // ── Execute ──────────────────────────────────────────────────────────────
   console.log('Deriving admin keypair from SUI_SEED...')
-  const keypair = await deriveKeypair('__platform__')
+  const keypair = await platformKeypair()
   const address = keypair.getPublicKey().toSuiAddress()
   console.log(`  signer: ${address}`)
   console.log()

@@ -275,6 +275,18 @@ proven persona × tag combos.
 
 ---
 
+## Status
+
+- [ ] **Cycle 1: WIRE** — shell + lifecycle skeleton
+  - [x] W1 — Recon (Haiku × 5, parallel) — 2026-04-16 · all 5 returned `result` · Marketplace.tsx:55 exports named + ServiceCard:199 · **zero emitClick found** (per ui.md rule, this is the gap) · `/api/marketplace` returns `{services:[{provider,task,price,strength,revenue,calls}]}` · `/api/revenue` returns `{gdp,total_revenue,total_transactions,top_earners,edges}` · no time-windowing, strength/traversals fetched but discarded · lifecycle.md:214 trade arc confirmed 10 stages · sibling pages use `client:only="react"` not `client:load` (marketplace.astro:7 is inconsistent) · no shadcn imports in siblings, custom cards are the local idiom · dark tokens: `bg-[#161622]`, `border-[#252538]`, `bg-[#0a0a0f]`
+  - [ ] W2 — Decide (Opus × 2 shards)
+  - [ ] W3 — Edits (Sonnet × M)
+  - [ ] W4 — Verify (Sonnet × 4, rubric)
+- [ ] **Cycle 2: PROVE** — trade lifecycle state machine + pheromone surfacing
+- [ ] **Cycle 3: GROW** — Sui escrow read + live highways panel
+
+---
+
 ## See Also
 
 - [lifecycle.md](lifecycle.md) — the arc this page renders

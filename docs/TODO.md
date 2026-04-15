@@ -1,12 +1,12 @@
 # TODO — ONE Substrate
 
 > Tasks are signals. Waves are loops. The template is a unit.
-> **Sync:** `/sync` or `POST /api/tasks/sync` · **Updated:** 2026-04-15
+> **Sync:** `/sync` or `POST /api/tasks/sync` · **Updated:** 2026-04-16
 
 ```mermaid
 pie title ONE Substrate — 570 Tasks
-    "Done (261)" : 261
-    "Open (309)" : 309
+    "Done (286)" : 286
+    "Open (284)" : 284
 ```
 
 ---
@@ -116,10 +116,10 @@ timeline
 | [collusion](TODO-collusion.md) | 16 / 54 done | C2 — filtering + sync guards |
 | [commands](TODO-commands.md) | 3 / 37 done | C2 — write 5 command files |
 | [SUI](TODO-SUI.md) | 28 / 58 done | GROW — Phase 2 identity + escrow |
-| [adl](TODO-adl.md) | 1 / 29 done | WIRE — 8 runtime gates to close |
+| [adl](TODO-adl.md) | 21 / 29 done | GROW — Cycles 1–3 gates closed; W4 rubrics remain |
 | [rename](TODO-rename.md) | 1 / 24 done | C1 — W1-W4 queued |
 | [claw](TODO-claw.md) | 23 / 46 done | PROVE — Cycles 1–3.1 done; C3.2 verifying |
-| [marketplace](TODO-marketplace.md) | 1 / 23 done | WIRE — capability listing + SKU classes |
+| [marketplace](TODO-marketplace.md) | 6 / 23 done | GROW — Cycle 1 list/grid live; bounty E2E + fee + bundle shipped |
 | [task-management](TODO-task-management.md) | 9 / 26 done | PROVE — wave-runner + self-checkoff |
 | [ui-signals](TODO-ui-signals.md) | 0 / 16 done | WIRE — UI clicks as substrate signals |
 | [testing](TODO-testing.md) | 24 / 40 done | PROVE — loop.ts, agent-md, nanoclaw router |

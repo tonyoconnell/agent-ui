@@ -26,21 +26,34 @@ export const GET: APIRoute = async ({ url }) => {
   try {
     const results = await readParsed(`
       match
-        (source: $s, target: $t) isa path, has strength $str, has resistance $r;
+        $p (source: $s, target: $t) isa path, has strength $str, has resistance $r;
+        $p has traversals $tv;
+        $p has revenue $rev;
         $s has uid $sid;
         $t has uid $tid;
         $str >= 20.0;
       sort $str desc;
       limit ${limit};
-      select $sid, $tid, $str, $r;
+      select $sid, $tid, $str, $r, $tv, $rev;
     `)
 
-    const highways: HighwayExport[] = results.map((r) => ({
-      from: r.sid as string,
-      to: r.tid as string,
-      strength: r.str as number,
-      resistance: r.r as number,
-    }))
+    const highways: HighwayExport[] = results.map((r) => {
+      const str = r.str as number
+      const res = r.r as number
+      // traversals + revenue come from TypeDB; successRate derived (no hits/misses attr on path)
+      const traversals = r.tv as number
+      const revenue = r.rev as number
+      const successRate = str / (str + res + 1)
+      return {
+        from: r.sid as string,
+        to: r.tid as string,
+        strength: str,
+        resistance: res,
+        traversals,
+        revenue,
+        successRate,
+      }
+    })
 
     if (withContext) {
       // Batch-query docs:*→taskId:success hypotheses — 1 query, join in memory

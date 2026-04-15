@@ -299,9 +299,12 @@ describe('adl-cache: ring buffer backpressure', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════
-// Cycle 1.5 retrofit: prove enforcementMode is wired into the newly
-// threaded gates (llm.ts perm-env, api.ts perm-network). The persist.ts
-// lifecycle gate is covered by signal.test.ts.
+// Cycle 1.5 retrofit (upgraded): prove enforcementMode is wired into the
+// llm.ts perm-env gate and api.ts perm-network gate AND that denials
+// deposit pheromone on the sender→receiver edge via the boot hook.
+// Signals flow through world().signal() so the full substrate path —
+// routing + gate + audit + warn() — is exercised end-to-end.
+// The persist.ts lifecycle gate is covered by signal.test.ts.
 // ═══════════════════════════════════════════════════════════════════════
 // Helper: wait for a microtask queue flush so the async handler runs
 const flush = () => new Promise((r) => setTimeout(r, 20))
@@ -312,13 +315,20 @@ describe('retrofit: enforcementMode wired into llm.ts perm-env gate', () => {
     vi.mocked(readParsed).mockResolvedValue([{ pe: JSON.stringify({ access: ['SOME_OTHER_KEY'] }) }])
 
     const { llm } = await import('@/engine/llm')
+    const { world: createWorld } = await import('@/engine/world')
+    const { setAuditPheromone, pheromoneWeight } = await import('@/engine/adl-cache')
     const complete = vi.fn().mockResolvedValue('ok')
-    const u = llm('llm-1', complete)
+    const w = createWorld()
+    w.units['llm-1'] = llm('llm-1', complete)
+    setAuditPheromone((rec) => {
+      const weight = pheromoneWeight(rec.decision)
+      if (weight > 0) w.warn(`${rec.sender}→${rec.receiver}`, weight)
+    })
 
     process.env.ADL_ENFORCEMENT_MODE = 'audit'
     const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    u({ receiver: 'llm-1:complete', data: { prompt: 'hi' } }, 'restricted')
+    w.signal({ receiver: 'llm-1:complete', data: { prompt: 'hi' } }, 'restricted')
     await flush()
 
     expect(complete).toHaveBeenCalledWith('hi', expect.any(Object))
@@ -327,20 +337,34 @@ describe('retrofit: enforcementMode wired into llm.ts perm-env gate', () => {
     expect(auditCalls[0]).toContain('"receiver":"llm"')
     expect(auditCalls[0]).toContain('"decision":"allow-audit"')
     spy.mockRestore()
+    setAuditPheromone(null)
   })
 
-  it('enforce mode: denied perm-env means complete() NOT called', async () => {
+  it('enforce mode: denied perm-env → complete() NOT called AND edge resistance rises', async () => {
     const { readParsed } = await import('@/lib/typedb')
     vi.mocked(readParsed).mockResolvedValue([{ pe: JSON.stringify({ access: ['SOME_OTHER_KEY'] }) }])
 
     const { llm } = await import('@/engine/llm')
+    const { world: createWorld } = await import('@/engine/world')
+    const { setAuditPheromone, pheromoneWeight } = await import('@/engine/adl-cache')
     const complete = vi.fn().mockResolvedValue('ok')
-    const u = llm('llm-2', complete)
+    const w = createWorld()
+    w.units['llm-2'] = llm('llm-2', complete)
+    setAuditPheromone((rec) => {
+      const weight = pheromoneWeight(rec.decision)
+      if (weight > 0) w.warn(`${rec.sender}→${rec.receiver}`, weight)
+    })
 
     process.env.ADL_ENFORCEMENT_MODE = 'enforce'
-    u({ receiver: 'llm-2:complete', data: { prompt: 'hi' } }, 'restricted')
+    w.signal({ receiver: 'llm-2:complete', data: { prompt: 'hi' } }, 'restricted')
     await flush()
+
     expect(complete).not.toHaveBeenCalled()
+    // Closed loop: deny → boot hook → w.warn(sender→receiver). Resistance
+    // deposited against the LLM callee (not the raw receiver string) because
+    // the audit record reports gate context (receiver='llm').
+    expect(w.danger('restricted→llm')).toBeGreaterThan(0)
+    setAuditPheromone(null)
   })
 })
 
@@ -353,12 +377,19 @@ describe('retrofit: enforcementMode wired into api.ts perm-network gate', () => 
       .mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }))
 
     const { apiUnit } = await import('@/engine/api')
-    const u = apiUnit('api-1', { base: 'https://blocked.com' })
+    const { world: createWorld } = await import('@/engine/world')
+    const { setAuditPheromone, pheromoneWeight } = await import('@/engine/adl-cache')
+    const w = createWorld()
+    w.units['api-1'] = apiUnit('api-1', { base: 'https://blocked.com' })
+    setAuditPheromone((rec) => {
+      const weight = pheromoneWeight(rec.decision)
+      if (weight > 0) w.warn(`${rec.sender}→${rec.receiver}`, weight)
+    })
 
     process.env.ADL_ENFORCEMENT_MODE = 'audit'
     const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    u({ receiver: 'api-1:get', data: { path: '/x' } }, 'restricted')
+    w.signal({ receiver: 'api-1:get', data: { path: '/x' } }, 'restricted')
     await flush()
 
     expect(fetchSpy).toHaveBeenCalled()
@@ -368,21 +399,34 @@ describe('retrofit: enforcementMode wired into api.ts perm-network gate', () => 
     expect(auditCalls[0]).toContain('"decision":"allow-audit"')
     spy.mockRestore()
     fetchSpy.mockRestore()
+    setAuditPheromone(null)
   })
 
-  it('enforce mode: disallowed host means fetch NOT called', async () => {
+  it('enforce mode: disallowed host → fetch NOT called AND edge resistance rises', async () => {
     const { readParsed } = await import('@/lib/typedb')
     vi.mocked(readParsed).mockResolvedValue([{ pn: JSON.stringify({ allowed_hosts: ['other.com'] }) }])
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'))
 
     const { apiUnit } = await import('@/engine/api')
-    const u = apiUnit('api-2', { base: 'https://blocked.com' })
+    const { world: createWorld } = await import('@/engine/world')
+    const { setAuditPheromone, pheromoneWeight } = await import('@/engine/adl-cache')
+    const w = createWorld()
+    w.units['api-2'] = apiUnit('api-2', { base: 'https://blocked.com' })
+    setAuditPheromone((rec) => {
+      const weight = pheromoneWeight(rec.decision)
+      if (weight > 0) w.warn(`${rec.sender}→${rec.receiver}`, weight)
+    })
 
     process.env.ADL_ENFORCEMENT_MODE = 'enforce'
-    u({ receiver: 'api-2:get', data: { path: '/x' } }, 'restricted')
+    w.signal({ receiver: 'api-2:get', data: { path: '/x' } }, 'restricted')
     await flush()
+
     expect(fetchSpy).not.toHaveBeenCalled()
+    // Closed loop: deny → boot hook → w.warn(sender→host). The network gate
+    // records receiver=host (blocked.com), so resistance accumulates there.
+    expect(w.danger('restricted→blocked.com')).toBeGreaterThan(0)
     fetchSpy.mockRestore()
+    setAuditPheromone(null)
   })
 })
 

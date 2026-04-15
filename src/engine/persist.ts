@@ -121,6 +121,8 @@ export interface PersistentWorld extends World {
       threshold?: number
       /** Override: skip rubric gate, pass true/false directly (legacy path) */
       success?: boolean
+      /** Escrow amount in base units; used to compute the 2% fee audit signal */
+      escrowAmount?: number
     },
   ) => void
 }
@@ -185,6 +187,7 @@ export const world = (): PersistentWorld => {
       rubric?: { fit: number; form: number; truth: number; taste: number }
       threshold?: number
       success?: boolean
+      escrowAmount?: number
     },
   ) => {
     // Rubric-gated release: all dims must meet threshold (default 0.65 per rubrics.md).
@@ -202,6 +205,21 @@ export const world = (): PersistentWorld => {
     }
     // Fire-and-forget — Sui settle on-chain
     settleEscrow(opts.escrowObjectId, opts.claimantUid, opts.posterUid, passed)
+    // Fee audit trail: emit to treasury:one on successful release only.
+    // On-chain skim happens in Move; this is the off-chain TypeDB-queryable record
+    // per marketplace-schema.md. No-op when escrowAmount is not provided.
+    if (passed) {
+      const feeAmount = opts.escrowAmount ? Math.floor(opts.escrowAmount * 0.02) : undefined
+      if (feeAmount && feeAmount > 0) {
+        net.signal(
+          {
+            receiver: 'treasury:one',
+            data: { kind: 'fee', amount: feeAmount, edge, tx_hash: opts.escrowObjectId },
+          },
+          opts.claimantUid,
+        )
+      }
+    }
   }
 
   const fade = (rate = 0.1) => {
