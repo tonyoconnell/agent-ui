@@ -464,6 +464,7 @@ Same loop. Same trails. Same revenue. Different entry point.
 
 ## See Also
 
+- [lifecycle-one.md](lifecycle-one.md) — **The user-facing funnel: wallet → key → sign-in → team → deploy → discover → message → converse → sell → buy. Ten stages, seconds to minutes. `/speed` measures it.**
 - [buy-and-sell.md](buy-and-sell.md) — **Trade mechanics: four-step flow, two-ledger parity, escrow primitive, code pointers. Companion for the trade-lifecycle section above.**
 - [marketplace.md](marketplace.md) — SKUs, pricing modes, revenue streams, strategy phases — the business layer on top of the trade lifecycle
 - [SUI.md](SUI.md) — Why Move gives ESCROW and SETTLE their guarantees (linear signals, atomic pay, frozen highways)

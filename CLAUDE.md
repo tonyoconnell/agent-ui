@@ -782,6 +782,7 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 | `docs/routing.md` | Formula (`weight = 1 + max(0, s-r) × sensitivity`), two modes (`follow` deterministic / `select` stochastic), deterministic sandwich (toxic→capable→execute), four outcomes (result/timeout/dissolved/failure), tick loop (select→ask→mark/warn→fade), chain depth, toxicity threshold | `loop.ts`, `persist.ts`, `world.ts` |
 | `docs/rubrics.md` | Quality scoring — fit/form/truth/taste dims, gate threshold 0.65 | `loop.ts`, `/api/loop/mark-dims`, `markDims()` |
 | `docs/lifecycle.md` | Agent journey — register→signal→highway→harden | `persist.ts`, `boot.ts`, all CLAUDE.md context blocks |
+| `docs/lifecycle-one.md` | **User-facing funnel** — wallet→key→sign-in→team→deploy→discover→message→converse→sell→buy. 10 stages, measured by `/speed` | `src/pages/speed.astro`, `src/components/speed/LifecycleSpeedrun.tsx` |
 | `docs/buy-and-sell.md` | Commerce mechanics — LIST→DISCOVER→EXECUTE→SETTLE, capability price | `bridge.ts`, `/api/agents/:id/capabilities`, `/marketplace` |
 | `docs/revenue.md` | Five revenue layers — routing/discovery/infra/marketplace/intelligence | `loop.ts` L4, `/api/revenue`, `/api/stats` |
 | `docs/speed.md` | Performance benchmarks — routing `<0.005ms`, gateway `<10ms`, TTFB `<200ms` | `gateway/`, `src/lib/edge.ts`, all API routes |

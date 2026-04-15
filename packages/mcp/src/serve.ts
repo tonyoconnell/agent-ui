@@ -1,3 +1,9 @@
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  ListToolsRequestSchema,
+  CallToolRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 import { readEnv } from "./env.js";
 
 export interface McpTool {
@@ -27,4 +33,38 @@ export function createRouter(): McpRouter {
       return tool.handler(args ?? {}, env);
     },
   };
+}
+
+/** Start an MCP stdio server backed by the given router. */
+export async function serve(router: McpRouter, opts?: { name?: string; version?: string }): Promise<void> {
+  const server = new Server(
+    { name: opts?.name ?? "oneie", version: opts?.version ?? "0.1.0" },
+    { capabilities: { tools: {} } },
+  );
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: Array.from(router.tools.values()).map((t) => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: t.inputSchema,
+    })),
+  }));
+
+  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+    const { name, arguments: args } = req.params;
+    try {
+      const result = await router.call(name, (args as Record<string, unknown>) ?? {});
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (err) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: String(err) }) }],
+        isError: true,
+      };
+    }
+  });
+
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
 }

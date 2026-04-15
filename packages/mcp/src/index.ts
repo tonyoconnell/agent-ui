@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { createRouter } from "./serve.js";
+import { createRouter, serve } from "./serve.js";
 import { substrateTools } from "./tools/substrate.js";
 import { discoveryTools } from "./tools/discovery.js";
 
-export { createRouter } from "./serve.js";
+export { createRouter, serve } from "./serve.js";
 export { readEnv } from "./env.js";
 export type { McpTool, McpRouter } from "./serve.js";
 export { substrateTools } from "./tools/substrate.js";
@@ -25,10 +25,8 @@ export function createOneRouter() {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const router = createOneRouter();
-  const manifest = {
-    version: MCP_VERSION,
-    tools: MCP_TOOLS,
-    registered: Array.from(router.tools.keys()).sort(),
-  };
-  process.stdout.write(`${JSON.stringify(manifest, null, 2)}\n`);
+  serve(router, { name: "oneie", version: MCP_VERSION }).catch((err) => {
+    process.stderr.write(`oneie-mcp: ${err}\n`);
+    process.exit(1);
+  });
 }

@@ -120,7 +120,7 @@ export function AdChat() {
         send(input)
       }}
     >
-      <div className={cn('flex gap-2 items-end w-full', hasMessages && 'max-w-3xl mx-auto')}>
+      <div className={cn('flex gap-2 items-end w-full', hasMessages && 'max-w-2xl mx-auto')}>
         <textarea
           ref={taRef}
           value={input}
@@ -140,18 +140,34 @@ export function AdChat() {
               send(input)
             }
           }}
-          placeholder="Ask anything..."
+          placeholder="Ask anything…"
           rows={1}
           className={cn(
-            'flex-1 resize-none rounded-2xl border bg-background px-4 py-3 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary',
-            hasMessages && 'bg-muted text-sm rounded-xl focus:ring-1 min-h-[48px] max-h-[160px] overflow-y-auto',
+            'flex-1 resize-none rounded-2xl border bg-background px-4 py-3 text-base leading-7 focus:outline-none focus:ring-2 focus:ring-primary',
+            hasMessages && 'min-h-[52px] max-h-[160px] overflow-y-auto',
           )}
         />
-        <Button type="submit" disabled={!input.trim() || loading} className={hasMessages ? 'h-12 px-5 rounded-xl' : ''}>
-          {loading ? '…' : hasMessages ? '⚡ Send' : '⏎'}
+        <Button type="submit" disabled={!input.trim() || loading} className="h-[52px] px-5 rounded-2xl text-base">
+          {loading ? '…' : '⏎'}
         </Button>
       </div>
     </form>
+  )
+
+  const metaLine = (
+    <div className="text-center text-xs uppercase tracking-[0.12em] text-muted-foreground">
+      {firstTokenMs !== null ? (
+        <>
+          {firstTokenMs}ms · {modelMeta.name}
+          {modelMeta.provider ? ` · ${modelMeta.provider}` : ''}
+        </>
+      ) : (
+        <>
+          {modelMeta.name}
+          {modelMeta.provider ? ` · ${modelMeta.provider}` : ''}
+        </>
+      )}
+    </div>
   )
 
   /* ── Pre-send: centered intro ── */
@@ -159,12 +175,14 @@ export function AdChat() {
     return (
       <div className="grid w-full min-h-[100svh] place-items-center px-4">
         <div className="max-w-2xl mx-auto w-full flex flex-col gap-6">
-          <h1 className="text-center text-sm font-light text-muted-foreground tracking-wide">ONE — ask anything</h1>
+          <h1 className="text-center text-2xl font-light tracking-tight text-foreground">one — enter our world</h1>
 
           {inputDock}
 
-          <div className="flex flex-col gap-3" onMouseLeave={() => setActiveCategory('')}>
-            <div className="flex justify-center gap-6">
+          {metaLine}
+
+          <div className="flex flex-col gap-4" onMouseLeave={() => setActiveCategory('')}>
+            <div className="flex justify-center gap-2">
               {dropdownGroups.map((g) => (
                 <button
                   key={g.label}
@@ -172,8 +190,10 @@ export function AdChat() {
                   onMouseEnter={() => onOpenDropdown(g.label)}
                   onClick={() => onOpenDropdown(g.label)}
                   className={cn(
-                    'px-4 py-1.5 rounded-full text-sm transition-all',
-                    activeCategory === g.label ? 'bg-accent scale-105' : 'bg-muted hover:bg-accent/50',
+                    'px-4 py-1.5 rounded-full text-xs uppercase tracking-[0.12em] transition-all',
+                    activeCategory === g.label
+                      ? 'bg-accent text-foreground scale-105'
+                      : 'bg-muted text-muted-foreground hover:bg-accent/50 hover:text-foreground',
                   )}
                 >
                   {g.label}
@@ -190,7 +210,7 @@ export function AdChat() {
                       type="button"
                       onClick={() => onPick(activeGroup.label, item, index)}
                       style={{ animationDelay: `${index * 40}ms` }}
-                      className="text-left text-sm leading-relaxed px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors animate-in fade-in"
+                      className="text-center text-base leading-7 px-4 py-2 rounded-lg hover:bg-accent/50 transition-colors animate-in fade-in"
                     >
                       {item.text}
                     </button>
@@ -209,12 +229,12 @@ export function AdChat() {
     <div className="flex flex-col h-screen bg-background text-foreground">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-3xl mx-auto w-full space-y-4">
+        <div className="max-w-2xl mx-auto w-full space-y-4">
           {messages.map((m) => (
             <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
                 className={cn(
-                  'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
+                  'max-w-[80%] rounded-2xl px-4 py-3 text-base leading-7 whitespace-pre-wrap',
                   m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
                 )}
               >
@@ -223,8 +243,8 @@ export function AdChat() {
                   <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
                 )}
                 {m.role === 'assistant' && m.id === firstAssistantId && firstTokenMs !== null && !m.streaming && (
-                  <div className="mt-2 text-xs opacity-60">
-                    ⚡ {firstTokenMs}ms · {modelMeta.name}
+                  <div className="mt-2 text-xs uppercase tracking-[0.12em] opacity-60">
+                    {firstTokenMs}ms · {modelMeta.name}
                     {modelMeta.provider ? ` · ${modelMeta.provider}` : ''}
                   </div>
                 )}

@@ -10,6 +10,7 @@
 | `world.astro` | `/world` | `WorldWorkspace` | `client:load` |
 | `tasks.astro` | `/tasks` | `TaskBoard` | `client:load` |
 | `chat.astro` | `/chat` | `Chat` | `client:load` |
+| `chat-ad-buy.astro` | `/chat-ad-buy` | `AdBuyChat` | `client:load` |
 | `dashboard.astro` | `/dashboard` | `Dashboard` | `client:load` |
 | `discover.astro` | `/discover` | `DiscoverGrid` | `client:load` |
 | `marketplace.astro` | `/marketplace` | `Marketplace` | `client:load` |
@@ -20,6 +21,7 @@
 | `market.astro` | `/market` | `MarketView` | `client:load` |
 | `market/[sid].astro` | `/market/[sid]` | `MarketSignal` | `client:load` |
 | `signup.astro` | `/signup` | `SignupForm` | `client:load` |
+| `speed.astro` | `/speed` | `LifecycleSpeedrun` | `client:load` |
 | `speedtest.astro` | `/speedtest` | `SpeedTest` | `client:load` |
 | `team.astro` | `/team` | `TeamView` | `client:load` |
 | `u/[name].astro` | `/u/[name]` | `UserProfile` | `client:load` |

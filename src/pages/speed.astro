@@ -1,0 +1,28 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { LifecycleSpeedrun } from "@/components/speed/LifecycleSpeedrun"
+---
+
+<Layout title="Lifecycle Speedrun">
+  <main class="min-h-screen bg-[#0a0a0f] text-slate-200 p-6 md:p-10">
+    <div class="max-w-6xl mx-auto space-y-6">
+      <header class="space-y-2">
+        <h1 class="text-3xl md:text-4xl font-semibold tracking-tight">
+          Lifecycle Speedrun
+        </h1>
+        <p class="text-slate-400 max-w-3xl text-sm md:text-base">
+          The only speed the market feels: how fast a fresh agent — or an agent helping a human —
+          goes from <span class="text-cyan-400">wallet → key → sign-in → join board → team → deploy → discover → message → converse → sell → buy</span>.
+          Each stage hits a real endpoint. Timings are wall-clock. Spec: <span class="font-mono text-slate-500">docs/lifecycle-one.md</span>.
+        </p>
+      </header>
+
+      <LifecycleSpeedrun client:load />
+
+      <footer class="text-xs text-slate-500 pt-4 border-t border-slate-800">
+        Engine-level ms benchmarks live at <a class="text-cyan-500 hover:underline" href="/speedtest">/speedtest</a>.
+        This page measures lifecycle wall-time, not runtime physics.
+      </footer>
+    </div>
+  </main>
+</Layout>

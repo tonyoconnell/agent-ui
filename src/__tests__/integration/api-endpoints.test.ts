@@ -116,7 +116,7 @@ describe('/api/health', () => {
     const response = await GET(createMockAstroContext())
 
     expect(response.status).toBe(200)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.status).toBe('healthy')
     expect(data.world).toBeDefined()
     expect(data.world.units).toBeGreaterThan(0)
@@ -141,7 +141,7 @@ describe('/api/health', () => {
     const response = await GET(createMockAstroContext())
 
     expect(response.status).toBe(503)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.status).toBe('degraded')
   })
 
@@ -169,7 +169,7 @@ describe('/api/health', () => {
     const { GET } = await import('@/pages/api/health')
     const response = await GET(createMockAstroContext())
 
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.world.units).toBe(3)
     expect(data.world.agents).toBe(2) // only agent + llm kinds count
     expect(data.world.edges).toBe(1)
@@ -197,7 +197,7 @@ describe('/api/health', () => {
     const response = await GET(createMockAstroContext())
 
     expect(response.status).toBe(200)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.world.topGroup).toBeNull()
   })
 })
@@ -218,7 +218,7 @@ describe('/api/signal', () => {
     )
 
     expect(response.status).toBe(400)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.error).toContain('sender or receiver')
   })
 
@@ -232,7 +232,7 @@ describe('/api/signal', () => {
     )
 
     expect(response.status).toBe(400)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.error).toContain('sender format')
   })
 
@@ -247,7 +247,7 @@ describe('/api/signal', () => {
     )
 
     expect(response.status).toBe(400)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.error).toContain('amount')
   })
 
@@ -298,7 +298,7 @@ describe('/api/state', () => {
     const response = await GET(createMockAstroContext())
 
     expect(response.status).toBe(200)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.units).toBeDefined()
     expect(Array.isArray(data.units)).toBe(true)
     expect(data.edges).toBeDefined()
@@ -318,7 +318,7 @@ describe('/api/state', () => {
     const { GET } = await import('@/pages/api/state')
     const response = await GET(createMockAstroContext())
 
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.units).toHaveLength(1)
     expect(data.units[0]).toMatchObject({
       id: 'alice',
@@ -342,7 +342,7 @@ describe('/api/state', () => {
     const { GET } = await import('@/pages/api/state')
     const response = await GET(createMockAstroContext())
 
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.highways).toHaveLength(1)
     expect(data.highways[0]).toMatchObject({
       from: 'alice',
@@ -363,7 +363,7 @@ describe('/api/state', () => {
     const { GET } = await import('@/pages/api/state')
     const response = await GET(createMockAstroContext())
 
-    const data = await response.json()
+    const data = (await response.json()) as any
     const badEdge = data.edges.find((e: any) => e.to === 'bad')
     expect(badEdge?.toxic).toBe(true)
   })
@@ -380,7 +380,7 @@ describe('/api/state', () => {
     const response = await GET(createMockAstroContext())
 
     expect(response.status).toBe(200)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.units).toEqual([])
     expect(data.edges).toEqual([])
     expect(data.stats.units).toBe(0)
@@ -426,7 +426,7 @@ describe('/api/tasks', () => {
     const response = await GET(createMockAstroContext())
 
     expect(response.status).toBe(200)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.tasks).toBeDefined()
     expect(Array.isArray(data.tasks)).toBe(true)
   })
@@ -488,7 +488,7 @@ describe('/api/tasks', () => {
     const { GET } = await import('@/pages/api/tasks/index')
     const response = await GET(createMockAstroContext())
 
-    const data = await response.json()
+    const data = (await response.json()) as any
     const proven = data.tasks.find((t: any) => t.tid === 'proven')
     const newTask = data.tasks.find((t: any) => t.tid === 'new')
     const toxicTask = data.tasks.find((t: any) => t.tid === 'toxic')
@@ -544,7 +544,7 @@ describe('/api/tasks', () => {
     const { GET } = await import('@/pages/api/tasks/index')
     const response = await GET(context)
 
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.tasks).toHaveLength(1)
     expect(data.tasks[0].tid).toBe('api-1')
   })
@@ -572,7 +572,7 @@ describe('/api/tasks', () => {
     )
 
     expect(response.status).toBe(200)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.ok).toBe(true)
     expect(data.task).toBe('new-task')
     expect(data.priorityScore).toBeDefined()
@@ -589,7 +589,7 @@ describe('/api/tasks', () => {
     )
 
     expect(response.status).toBe(400)
-    const data = await response.json()
+    const data = (await response.json()) as any
     expect(data.error).toContain('Missing id or name')
   })
 })
@@ -639,7 +639,7 @@ describe('API Endpoints Integration', () => {
     const { GET } = await import('@/pages/api/health')
     const response = await GET(createMockAstroContext())
 
-    const data = await response.json()
+    const data = (await response.json()) as any
     // Should not expose TypeDB connection strings, API keys, etc.
     expect(JSON.stringify(data)).not.toMatch(/password|key|secret|token/i)
   })

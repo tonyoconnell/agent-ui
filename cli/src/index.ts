@@ -17,23 +17,49 @@ import {
   showAgentModeMessage,
 } from "./lib/agent-detection.js";
 
+// Substrate verb commands — map directly to src/commands/*.ts
+const SUBSTRATE_COMMANDS = [
+  "signal", "ask", "mark", "warn", "fade",
+  "highways", "know", "recall", "reveal", "forget",
+  "frontier", "select", "sync", "claw", "launch",
+] as const;
+
+type SubstrateCommand = (typeof SUBSTRATE_COMMANDS)[number];
+
 async function main() {
   // Check for command line arguments
   const args = process.argv.slice(2);
 
-  // Handle passthrough commands (dev, build, deploy, etc.)
+  // Admin subcommands (monorepo-only)
+  if (args[0] === "admin") {
+    const { runAdmin } = await import("./admin/index.js");
+    await runAdmin(args.slice(1));
+    return;
+  }
+
+  // Substrate verb commands
+  if (SUBSTRATE_COMMANDS.includes(args[0] as SubstrateCommand)) {
+    const { run } = await import(`./commands/${args[0]}.js`);
+    await run(args.slice(1));
+    return;
+  }
+
+  // Handle passthrough commands (dev, build, deploy)
   if (args[0] === "dev" || args[0] === "build" || args[0] === "deploy") {
+    if (args[0] === "deploy") {
+      const { run } = await import("./commands/deploy.js");
+      await run(args.slice(1));
+      return;
+    }
     const { execSync } = await import("child_process");
     const command = args[0];
     const commandArgs = args.slice(1).join(" ");
-
     try {
-      // Pass through to bun run <command>
       execSync(`cd web && bun run ${command} ${commandArgs}`, {
         stdio: "inherit",
         cwd: process.cwd(),
       });
-    } catch (error) {
+    } catch {
       process.exit(1);
     }
     return;
@@ -41,7 +67,6 @@ async function main() {
 
   // Handle commands
   if (args[0] === "agent") {
-    // Agent command (non-interactive)
     const options = {
       quiet: args.includes("--quiet"),
       verbose: args.includes("--verbose"),
@@ -52,9 +77,18 @@ async function main() {
     return;
   }
 
+  if (args[0] === "init") {
+    await runInit();
+    return;
+  }
+
   if (args[0] === "setup") {
-    // Legacy "setup" command (full ontology sync)
     await runFullSetup();
+    return;
+  }
+
+  if (args[0] === "help" || args[0] === "--help" || args[0] === "-h") {
+    showHelp();
     return;
   }
 
@@ -68,8 +102,49 @@ async function main() {
   }
 
   // Default: run onboarding (init)
-  // This makes `npx oneie` and `npx oneie init` both work
   await runInit();
+}
+
+function showHelp(): void {
+  console.log(`
+oneie — ONE substrate CLI
+
+SUBSTRATE VERBS
+  signal <receiver> [data]    Emit a signal (L1)
+  ask <receiver> [data]       Signal + wait for outcome (L1, blocking)
+  mark <edge> [strength]      Strengthen a path (L2)
+  warn <edge> [strength]      Raise resistance on a path (L2)
+  fade [rate]                 Asymmetric path decay (L3)
+  highways [--limit N]        Top weighted paths (L2/L6)
+  know                        Promote highways → hypotheses (L6)
+  recall [subject]            Query hypotheses (L6)
+  reveal <uid>                Full memory card (L6)
+  forget <uid>                GDPR erasure (all loops)
+  frontier <uid>              Unexplored tag clusters (L7)
+  select [type]               Probabilistic next unit (L1)
+  sync                        Fire full tick — all L1-L7 loops
+
+AGENTS
+  agent [--dry-run]           Parse + sync agent markdown → TypeDB
+  claw <agent-id>             Generate NanoClaw config for agent
+  launch <agent-id>           Launch agent on substrate
+
+PROJECT
+  init                        Scaffold a new ONE project
+  dev                         Start dev server (bun run dev)
+  build                       Production build (bun run build)
+  deploy                      Full 8-step deploy pipeline
+
+ADMIN (monorepo only)
+  admin build [package]       Build package(s) to dist/
+  admin release [patch|minor|major]  Bump version + publish
+  admin sync                  Sync monorepo files → cli/
+  admin validate              Validate manifest paths exist
+
+ENV
+  ONEIE_API_URL    Substrate API base URL (default: https://api.one.ie)
+  ONEIE_API_KEY    Bearer token for authenticated endpoints
+`);
 }
 
 async function runFullSetup() {
