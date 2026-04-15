@@ -15,14 +15,18 @@ export type Mode = 'light' | 'dark'
 
 const cache = new Map<string, BrandTokens | null>()
 
+// Public scope vocabulary stays `thing | group | actor`. Live schema
+// (world.tql) uses `skill` (skill-id), `group` (gid), `unit` (uid).
 async function readBrand(
   entity: 'thing' | 'group' | 'actor',
-  idAttr: 'tid' | 'gid' | 'aid',
+  _idAttr: 'tid' | 'gid' | 'aid',
   id: string,
 ): Promise<string | null> {
-  const rows = await readParsed(`match $e isa ${entity}, has ${idAttr} "${id}"; $e has brand $b; select $b;`).catch(
-    () => [] as Record<string, unknown>[],
-  )
+  const liveEntity = entity === 'thing' ? 'skill' : entity === 'actor' ? 'unit' : 'group'
+  const liveIdAttr = entity === 'thing' ? 'skill-id' : entity === 'actor' ? 'uid' : 'gid'
+  const rows = await readParsed(
+    `match $e isa ${liveEntity}, has ${liveIdAttr} "${id}"; $e has brand $b; select $b;`,
+  ).catch(() => [] as Record<string, unknown>[])
   return rows.length > 0 ? (rows[0].b as string) : null
 }
 

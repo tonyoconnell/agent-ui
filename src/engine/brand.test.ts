@@ -49,7 +49,7 @@ describe('brand', () => {
     it('prefers thing over group over user', async () => {
       invalidateBrandCache()
       mockRead.mockImplementation(async (tql: string) => {
-        if (tql.includes('isa thing')) return [{ b: 'purple' }]
+        if (tql.includes('isa skill')) return [{ b: 'purple' }]
         if (tql.includes('isa group')) return [{ b: 'other' }]
         return []
       })

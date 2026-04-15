@@ -11,8 +11,10 @@ function escapeStr(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
+// Public scope names stay `thing | group | user`. Live schema (world.tql) uses
+// `skill` (key: skill-id) for things and `unit` (key: uid) for actors.
 function entityFor(scope: 'thing' | 'group'): { entity: string; idAttr: string } {
-  return scope === 'thing' ? { entity: 'thing', idAttr: 'tid' } : { entity: 'group', idAttr: 'gid' }
+  return scope === 'thing' ? { entity: 'skill', idAttr: 'skill-id' } : { entity: 'group', idAttr: 'gid' }
 }
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -77,18 +79,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   if (typedScope === 'group') {
     const rows = await readParsed(
-      `match $g isa group, has gid "${safeIdForCheck}"; (group: $g, member: $m) isa membership; $m has aid "${safeUserId}"; select $m;`,
+      `match $g isa group, has gid "${safeIdForCheck}"; (group: $g, member: $m) isa membership; $m has uid "${safeUserId}"; select $m;`,
     ).catch(() => [] as Record<string, unknown>[])
     if (rows.length === 0) {
       return Response.json({ error: 'forbidden' }, { status: 403 })
     }
   } else if (typedScope === 'thing') {
-    const rows = await readParsed(`match $e isa thing, has tid "${safeIdForCheck}"; $e has owner $o; select $o;`).catch(
-      () => [] as Record<string, unknown>[],
-    )
+    const rows = await readParsed(
+      `match $e isa skill, has skill-id "${safeIdForCheck}"; $e has owner $o; select $o;`,
+    ).catch(() => [] as Record<string, unknown>[])
     if (rows.length === 0) {
       // First save — stamp ownership atomically before the brand write.
-      writeSilent(`match $e isa thing, has tid "${safeIdForCheck}"; insert $e has owner "${safeUserId}";`)
+      writeSilent(
+        `match $e isa skill, has skill-id "${safeIdForCheck}"; insert $e has owner "${safeUserId}";`,
+      )
     } else {
       const existing = rows[0]?.o
       if (typeof existing !== 'string' || existing !== userId) {
