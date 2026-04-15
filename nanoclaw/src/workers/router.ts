@@ -12,6 +12,7 @@
 
 import { Hono } from 'hono'
 import { normalize, send } from '../channels'
+import { issueClaim, linkIdentity } from '../lib/identity'
 import { ensureRegistered, highways, isToxic, mark, warn } from '../lib/substrate'
 import { executeTool, tools } from '../lib/tools'
 import { personas } from '../personas'
@@ -200,6 +201,18 @@ app.post('/webhook/:channel', async (c) => {
     const signal = normalize(channel, payload)
     if (!signal) return c.json({ ok: false, error: 'Invalid payload' }, 400)
 
+    // Handle /link <nonce> command — cross-channel identity claim
+    if (signal.content.startsWith('/link ') && channel.startsWith('telegram')) {
+      const nonce = signal.content.slice(6).trim()
+      const linked = await linkIdentity(nonce, channel, signal.sender, c.env)
+      if (linked) {
+        await send(c.env, signal.group, `Linked! Web session now shares your Telegram memory.`)
+      } else {
+        await send(c.env, signal.group, 'Nonce expired or invalid. Try /claim again in the web chat.')
+      }
+      return c.json({ ok: true, id: signal.id, group: signal.group })
+    }
+
     // Ensure group is registered as a unit (skip errors in local dev)
     try {
       await ensureRegistered(c.env, signal.group)
@@ -294,6 +307,18 @@ app.post('/webhook/:channel', async (c) => {
     return c.json({ ok: true, id: signal.id, group: signal.group })
   } catch (e) {
     console.error('Webhook error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
+})
+
+// Cross-channel identity claim — issue a nonce for /link flow
+app.post('/claim', async (c) => {
+  try {
+    const { sessionId } = (await c.req.json()) as { sessionId: string }
+    if (!sessionId) return c.json({ ok: false, error: 'sessionId required' }, 400)
+    const nonce = await issueClaim(sessionId, c.env)
+    return c.json({ ok: true, nonce, expiresIn: 300 })
+  } catch (e) {
     return c.json({ ok: false, error: String(e) }, 500)
   }
 })

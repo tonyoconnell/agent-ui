@@ -146,11 +146,19 @@ persist()
   .ask(s, from?)            // pre-checked: toxic + capability → dissolve
   .open(n?)                 // top paths as {from, to, strength}
   .blocked()                // toxic paths
-  .know()                   // promote highways to permanent learning
-  .recall(match?)           // query hypotheses from TypeDB
+  .know()                   // promote highways to permanent learning (source="observed")
+  .recall(match?)           // query hypotheses (string or {subject?,at?} bi-temporal)
+  .reveal(uid)              // full MemoryCard: actor+hypotheses+highways+signals+groups+capabilities+frontier
+  .forget(uid)              // GDPR erasure: delete all TypeDB records + cascade + fade cleanup
+  .frontier(uid)            // unexplored tag clusters: world tags minus actor-touched tags
   .load()                   // hydrate pheromone + queue from TypeDB
   .sync()                   // write all state to TypeDB
 ```
+
+**Memory API routes:** `GET /api/memory/reveal/:uid` · `DELETE /api/memory/forget/:uid` · `GET /api/memory/frontier/:uid`
+
+**Signal scope:** `private | group | public` — private signals never surface in group queries or `know()`.
+**Hypothesis source:** `observed | asserted | verified` — asserted confidence capped at 0.30 until corroborated.
 
 ### Tags
 Flat labels on skills and units. No hierarchy. Filter with `?tag=build&tag=P0`.

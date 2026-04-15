@@ -1,4 +1,10 @@
-import type { Message } from './Chatbot'
+export interface Message {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: number
+  metadata?: unknown
+}
 
 export interface MessageListProps {
   messages: Message[]

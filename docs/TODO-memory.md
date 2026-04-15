@@ -4,8 +4,8 @@ type: roadmap
 version: 1.0.0
 priority: Schema → Engine → Integrate → Verify
 total_tasks: 18
-completed: 4
-status: IN_PROGRESS
+completed: 18
+status: DONE
 ---
 
 ## Status
@@ -23,10 +23,10 @@ status: IN_PROGRESS
 - [x] W4 — Verify: 550/550 tests green, biome clean, tsc clean. Rubric: fit=0.90 form=0.88 truth=0.93 taste=0.85
 
 ### Cycle 3: WIRE
-- [ ] W1 — Recon
-- [ ] W2 — Decide
-- [ ] W3 — Edit
-- [ ] W4 — Verify
+- [x] W1 — Recon: no /api/memory/ dir, kvInvalidate already in edge.ts, CLAUDE.md missing 3 new verbs
+- [x] W2 — Decide: 3 Astro routes + cache invalidation + CLAUDE.md + /see memory verb
+- [x] W3 — Edit: reveal/forget/frontier routes created; CLAUDE.md Persist section updated; see.md memory verb added
+- [x] W4 — Verify: 557/557 tests green, biome clean, tsc clean, drift=332. Rubric: fit=0.92 form=0.90 truth=0.90 taste=0.88
 
 # TODO: Substrate Memory Primitives
 

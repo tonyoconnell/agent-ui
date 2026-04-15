@@ -15,6 +15,7 @@ Read the world — query substrate state without emitting signals.
 | `evolved` | Agents that rewrote their system prompts | L5 |
 | `revenue` | Per-path earnings from L4 economic loop | L4 |
 | `events [--since T]` | Signal history and Four Outcomes audit | L1 |
+| `memory <uid>` | Full memory card for an actor (reveal) | L6 |
 
 ## Routing
 
@@ -32,6 +33,7 @@ No mark(), no warn(), no side effects. Every noun is read-only.
 | evolved | TypeDB read | units where generation > 1 |
 | revenue | TypeDB read | paths with revenue attribute |
 | events | TypeDB read | signal history |
+| memory | `reveal(uid)` | `/api/memory/reveal/:uid` |
 
 ## Steps
 
@@ -130,6 +132,26 @@ No mark(), no warn(), no side effects. Every noun is read-only.
    ```
    Events:   N signals
    Outcomes: result=A  timeout=B  dissolved=C  failure=D
+   ```
+
+### memory
+
+1. Extract `<uid>` from `$ARGUMENTS` (e.g. `/see memory person:a7f3`)
+2. GET `http://localhost:4321/api/memory/reveal/<uid>`
+3. Display the full MemoryCard:
+   - **Actor**: uid, kind, firstSeen
+   - **Hypotheses**: pattern + confidence (asserted capped at 0.30)
+   - **Highways**: top paths by strength
+   - **Signals**: last 200 episodes
+   - **Groups**: memberships
+   - **Capabilities**: offered skills + prices
+   - **Frontier**: unexplored tag clusters
+4. Report:
+   ```
+   Memory: <uid>
+   Hypotheses: N  (observed=X  asserted=Y)
+   Highways: N paths
+   Frontier: [tag1, tag2, ...]  — N unexplored tags
    ```
 
 ---

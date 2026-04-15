@@ -187,3 +187,56 @@ export const highways = async (env: Env, limit = 10): Promise<{ from: string; to
     return { from: row.fid, to: row.tid, strength: row.s }
   })
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACTOR HIGHWAYS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const actorHighways = async (
+  env: Env,
+  actorUid: string,
+  limit = 10,
+): Promise<{ to: string; strength: number }[]> => {
+  const safe = actorUid.replace(/"/g, '')
+  const rows = await query(
+    env,
+    `
+    match
+      $from isa unit, has uid "${safe}";
+      $e (source: $from, target: $to) isa path, has strength $s;
+      $to has uid $tid;
+    sort $s desc; limit ${limit};
+    select $tid, $s;
+  `,
+  )
+
+  return rows.map((r: unknown) => {
+    const row = r as { tid: string; s: number }
+    return { to: row.tid, strength: row.s }
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECALL HYPOTHESES
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const recallHypotheses = async (
+  env: Env,
+  actorUid: string,
+): Promise<Array<{ predicate: string; object: string; confidence: number }>> => {
+  const safe = actorUid.replace(/"/g, '')
+  const rows = await query(
+    env,
+    `
+    match
+      $h isa hypothesis, has subject "${safe}", has predicate $p, has object $o, has confidence $c;
+    sort $c desc; limit 20;
+    select $p, $o, $c;
+  `,
+  )
+
+  return rows.map((r: unknown) => {
+    const row = r as { p: string; o: string; c: number }
+    return { predicate: row.p, object: row.o, confidence: row.c }
+  })
+}

@@ -5,7 +5,8 @@ version: 1.0.0
 priority: Identity → Perception → Pack → Outcome → UX
 total_tasks: 22
 completed: 0
-status: PLANNING
+status: IN_PROGRESS
+completed: 1
 ---
 
 # TODO: Chat Memory Integration
