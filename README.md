@@ -156,7 +156,9 @@ The executor can see **what failed before**, **what you'll unblock**, and **what
 
 ---
 
-## Agent = Markdown
+## Agent = Markdown + ADL
+
+**Markdown agents** (legacy, backward-compatible):
 
 ```markdown
 ---
@@ -173,7 +175,23 @@ skills:
 You are the Creative Director...
 ```
 
-That's your entire agent. Parse → TypeDB → Cloudflare Worker → Live on Telegram.
+Parse → TypeDB → Cloudflare Worker → Live on Telegram.
+
+**ADL agents** (new, spec-compliant):
+
+ADL (Agent Definition Language, [v0.2.0](https://www.adl-spec.org/spec)) is a JSON passport for agents: identity (uid), capabilities (tools with schemas), permissions (deny-by-default), data classification, and lifecycle. Imported via `POST /api/agents/adl`, discovered at `GET /.well-known/agents.json`.
+
+```bash
+# Import ADL agent
+curl -X POST /api/agents/adl -d '{"json": {"id": "...", "name": "...", ...}}'
+
+# Discover all active agents
+curl /.well-known/agents.json
+```
+
+Markdown agents auto-convert to ADL. Permission gates run on every signal (lifecycle, network, sensitivity). Backward compatible — legacy agents work unchanged.
+
+See [docs/ADL-integration.md](docs/ADL-integration.md) for full spec.
 
 ---
 
@@ -348,17 +366,19 @@ Routes implement the Six Verbs from [dictionary.md](docs/dictionary.md): `send`,
 
 | Route | Method | Verb | Purpose |
 |-------|--------|------|---------|
-| `/api/signal` | POST | send | Emit signal `{receiver, data: {tags, weight, content}}` |
+| `/api/signal` | POST | send | Emit signal `{receiver, data: {tags, weight, content}}` (runs 3 ADL gates: lifecycle, network, sensitivity) |
 | `/api/mark` | POST | mark | Strengthen a path |
 | `/api/tick` | GET | tick | Run growth cycle (L1-L7 loops) |
 | `/api/decay` | POST | fade | Asymmetric decay |
 | `/api/subscribe` | POST | follow | Subscribe unit to tags |
 | `/api/claw` | POST | — | Generate NanoClaw config for any agent |
-| `/api/tasks` | GET/POST | — | List/create tasks with pheromone categories |
-| `/api/tasks/:id/complete` | POST | mark/warn | Close loop with outcome |
 | `/api/agents/sync` | POST | — | Sync agent markdown to TypeDB |
+| `/api/agents/adl` | POST/GET | — | Sync ADL JSON agents, dry-run queries |
+| `/.well-known/agents.json` | GET | — | ADL discovery endpoint (all active agents) |
 | `/api/agents/:id/commend` | POST | mark | Boost success-rate +0.1 |
 | `/api/agents/:id/flag` | POST | warn | Lower success-rate −0.15 |
+| `/api/tasks` | GET/POST | — | List/create tasks with pheromone categories |
+| `/api/tasks/:id/complete` | POST | mark/warn | Close loop with outcome |
 | `/api/state` | GET | — | Full world state (units, edges, highways) |
 | `/api/export/highways` | GET | follow | Proven paths |
 | `/api/export/toxic` | GET | — | Blocked paths |
@@ -381,9 +401,16 @@ src/engine/                    The substrate (~670 lines)
 ├── boot.ts                    Hydrate from TypeDB, start tick
 ├── llm.ts                     LLM as unit
 ├── agent-md.ts                Parse markdown → TypeDB → runtime
+├── adl.ts                     Parse ADL JSON → TypeDB (v0.2.0 spec)
+├── adl.test.ts                26 tests: parse, validate, toTypeDB, sensitivity
 └── index.ts                   Exports
 
-src/schema/world.tql           TypeDB schema (6 dimensions, 19 functions)
+src/schema/world.tql           TypeDB schema (6 dimensions, 19 functions, +16 ADL attributes)
+
+src/pages/api/agents/adl.ts    POST/GET ADL import + dry-run endpoint
+src/pages/.well-known/agents.json.ts  ADL discovery endpoint
+src/pages/api/signal.ts        Permission gates: lifecycle, network, sensitivity (with cache)
+src/pages/api/signal.test.ts   25 tests: all permission gate scenarios
 
 gateway/src/index.ts           TypeDB proxy worker (128 lines)
 workers/sync/index.ts          TypeDB → KV sync worker
@@ -424,6 +451,7 @@ agents/                        Markdown agent definitions
 | [Dictionary](docs/dictionary.md) | Every name, every concept, the full vocabulary |
 | [Routing](docs/routing.md) | How signals find their way — formula, layers, tick, outcomes |
 | [Architecture](docs/architecture.md) | System design, two layers, seven loops |
+| [ADL Integration](docs/ADL-integration.md) | Agent Definition Language v0.2.0 — identity, permissions, lifecycle, discovery |
 
 ### Deploy
 

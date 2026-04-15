@@ -1,9 +1,12 @@
 {
-  "count": 333,
+  "count": 358,
   "files": [
     "src/components/EdgeInfo.tsx",
     "src/components/design/DesignSystemShowcase.tsx",
+    "src/components/landing/TrustBar.tsx",
     "src/components/AgentWorkspace.tsx",
+    "src/components/app/AddClawWizard.tsx",
+    "src/components/app/SkillInspector.tsx",
     "src/components/app/PathsGraph.tsx",
     "src/components/Dashboard.tsx",
     "src/components/panels/HighwayPanel.tsx",
@@ -24,10 +27,12 @@
     "src/components/generative-ui/DynamicChart.tsx",
     "src/components/EnvelopeFlowCanvas.tsx",
     "src/components/KnowledgePanel.tsx",
+    "src/pages/settings/keys.astro",
     "src/pages/index.astro",
     "src/pages/chat.astro",
     "src/pages/speedtest.astro",
     "src/pages/api/export/groups.ts",
-    "src/pages/api/export/groups.json.ts"
+    "src/pages/api/export/groups.json.ts",
+    "src/pages/signup.astro"
   ]
 }

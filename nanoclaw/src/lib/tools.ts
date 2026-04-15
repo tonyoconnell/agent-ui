@@ -3,6 +3,7 @@
  */
 
 import type { Env } from '../types'
+import { browser } from './browser'
 import { highways, mark, query, suggestRoute, warn } from './substrate'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -90,6 +91,17 @@ export const tools = [
       required: ['target'],
     },
   },
+  {
+    name: 'browse',
+    description: 'Fetch a URL and extract title, summary, and key facts. Cached for 5 minutes.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'Full URL to fetch (http or https)' },
+      },
+      required: ['url'],
+    },
+  },
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -158,6 +170,11 @@ export const executeTool = async (
     case 'warn':
       await warn(env, selfId, input.target as string, (input.strength as number) || 1)
       return { warned: input.target }
+
+    case 'browse': {
+      const result = await browser.fetch(input.url as string, env.KV)
+      return result
+    }
 
     default:
       return { error: `Unknown tool: ${tool}` }
