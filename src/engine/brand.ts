@@ -1,5 +1,6 @@
-import { type BrandTokens, deriveShadcn } from '../../../ONE/web/src/styles/derive'
+import { type BrandTokens, deriveShadcn } from '@/styles/derive'
 import { readParsed } from '../lib/typedb'
+import { emitBrandApplied } from './brand-signals'
 
 export type { BrandTokens }
 
@@ -70,7 +71,10 @@ export function injectBrand(brand: BrandTokens | null | undefined, mode: Mode): 
   return `<style data-brand-override>:root { ${vars} }</style>`
 }
 
-export function renderBrand(brand: BrandTokens | null | undefined): string {
+export function renderBrand(
+  brand: BrandTokens | null | undefined,
+  ctx?: { thingId?: string; groupId?: string },
+): string {
   if (!brand) return ''
   const light = Object.entries(deriveShadcn(brand, 'light'))
     .map(([k, v]) => `--color-${k}: ${v} !important;`)
@@ -78,6 +82,7 @@ export function renderBrand(brand: BrandTokens | null | undefined): string {
   const dark = Object.entries(deriveShadcn(brand, 'dark'))
     .map(([k, v]) => `--color-${k}: ${v} !important;`)
     .join(' ')
+  if (ctx && (ctx.thingId ?? ctx.groupId)) emitBrandApplied(brand, ctx)
   return `<style data-brand-override>:root { ${light} } .dark { ${dark} }</style>`
 }
 

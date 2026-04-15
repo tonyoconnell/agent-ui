@@ -2,40 +2,48 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
-import { defaultBrand, deriveShadcn } from '../../../ONE/web/src/styles/derive'
+import { defaultBrand, deriveShadcn } from './derive'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const ONE_CSS = readFileSync(resolve(__dirname, '../../../ONE/web/src/styles/global.css'), 'utf8')
 const ENV_CSS = readFileSync(resolve(__dirname, './global.css'), 'utf8')
 
 describe('deriveShadcn contract', () => {
-  test('light mode regenerates every --color-* in ONE @theme block', () => {
+  test('light mode regenerates every --color-* in @theme block', () => {
     const light = deriveShadcn(defaultBrand, 'light')
     for (const [key, value] of Object.entries(light)) {
-      expect(ONE_CSS, `--color-${key}: ${value}; not found in ONE global.css`).toContain(`--color-${key}: ${value};`)
+      expect(ENV_CSS, `--color-${key}: ${value}; not found in global.css`).toContain(`--color-${key}: ${value};`)
     }
   })
 
-  test('dark mode regenerates every --color-* in ONE .dark block', () => {
+  test('dark mode regenerates every --color-* in .dark block', () => {
     const dark = deriveShadcn(defaultBrand, 'dark')
-    // Extract the .dark { ... } block and assert presence within it
-    const darkBlock = ONE_CSS.match(/\.dark\s*\{[\s\S]*?\n\}/)?.[0] ?? ''
+    const darkBlock = ENV_CSS.match(/\.dark\s*\{[\s\S]*?\n\}/)?.[0] ?? ''
     expect(darkBlock.length).toBeGreaterThan(0)
     for (const [key, value] of Object.entries(dark)) {
       // gold/urgency-* have no dark overrides — they live in @theme only.
-      // Skip them for the .dark block check (they fall through via CSS cascade).
       if (key === 'gold' || key === 'gold-foreground' || key.startsWith('urgency-')) continue
-      expect(darkBlock, `--color-${key}: ${value}; not found in ONE .dark block`).toContain(`--color-${key}: ${value};`)
+      expect(darkBlock, `--color-${key}: ${value}; not found in .dark block`).toContain(`--color-${key}: ${value};`)
     }
   })
 
-  test('envelopes @theme block matches ONE @theme block byte-for-byte', () => {
-    const extractTheme = (css: string) => css.match(/@theme\s*\{[\s\S]*?\n\}/)?.[0] ?? ''
-    expect(extractTheme(ENV_CSS)).toBe(extractTheme(ONE_CSS))
-  })
-
-  test('envelopes .dark block matches ONE .dark block byte-for-byte', () => {
-    const extractDark = (css: string) => css.match(/\.dark\s*\{[\s\S]*?\n\}/)?.[0] ?? ''
-    expect(extractDark(ENV_CSS)).toBe(extractDark(ONE_CSS))
+  test('deriveShadcn produces all expected keys in both modes', () => {
+    const expectedKeys = [
+      'background', 'foreground', 'font', 'card', 'card-foreground',
+      'popover', 'popover-foreground', 'primary', 'primary-foreground',
+      'secondary', 'secondary-foreground', 'tertiary', 'tertiary-foreground',
+      'muted', 'muted-foreground', 'accent', 'accent-foreground',
+      'destructive', 'destructive-foreground', 'border', 'input', 'ring',
+      'overlay', 'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5',
+      'sidebar-background', 'sidebar-foreground', 'sidebar-primary',
+      'sidebar-primary-foreground', 'sidebar-accent', 'sidebar-accent-foreground',
+      'sidebar-border', 'sidebar-ring', 'gold', 'gold-foreground',
+      'urgency-stock', 'urgency-offer', 'urgency-timer',
+    ]
+    for (const mode of ['light', 'dark'] as const) {
+      const result = deriveShadcn(defaultBrand, mode)
+      for (const key of expectedKeys) {
+        expect(result, `missing key '${key}' in ${mode} mode`).toHaveProperty(key)
+      }
+    }
   })
 })
