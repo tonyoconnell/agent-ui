@@ -81,6 +81,21 @@ describe('brand', () => {
       expect(tokens).toBeNull()
     })
 
+    it('round-trips JSON-stored BrandTokens from Cycle 3 save', async () => {
+      invalidateBrandCache()
+      const stored = JSON.stringify(purpleBrand)
+      mockRead.mockResolvedValue([{ b: stored }])
+      const tokens = await resolveBrand({ thingId: 't-json' })
+      expect(tokens).toEqual(purpleBrand)
+    })
+
+    it('returns null for malformed JSON', async () => {
+      invalidateBrandCache()
+      mockRead.mockResolvedValue([{ b: '{not-json' }])
+      const tokens = await resolveBrand({ thingId: 't-bad' })
+      expect(tokens).toBeNull()
+    })
+
     it('caches resolved result', async () => {
       invalidateBrandCache()
       mockRead.mockResolvedValue([{ b: 'purple' }])

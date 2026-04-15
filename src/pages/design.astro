@@ -33,7 +33,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import Layout from "../layouts/Layout.astro";
-import { injectBrand, purpleBrand } from "@/engine/brand";
+import { purpleBrand, renderBrand, resolveBrand } from "@/engine/brand";
 
 const spacingScale = [
 	{ token: "2", px: "8px", rem: "0.5rem", usage: "Dense clusters" },
@@ -241,14 +241,14 @@ const colorModes = {
 	],
 };
 
-// Cycle 3 — Thing brand override demo. ?brand=purple triggers a synthetic
-// palette swap. No component edits — just :root CSS var re-injection.
-// We emit BOTH light + dark overrides so the brand applies regardless of mode.
 const brandParam = Astro.url.searchParams.get("brand");
-const overrideBrand = brandParam === "purple" ? purpleBrand : null;
-const brandStyle = overrideBrand
-	? injectBrand(overrideBrand, "light") + injectBrand(overrideBrand, "dark").replace(":root", ".dark")
-	: "";
+const thingId = Astro.url.searchParams.get("thing") ?? undefined;
+const groupId = Astro.url.searchParams.get("group") ?? undefined;
+const resolved =
+	thingId || groupId ? await resolveBrand({ thingId, groupId }) : null;
+const overrideBrand =
+	resolved ?? (brandParam === "purple" ? purpleBrand : null);
+const brandStyle = renderBrand(overrideBrand, { thingId, groupId });
 ---
 
 

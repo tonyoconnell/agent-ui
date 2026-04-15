@@ -1,0 +1,13 @@
+---
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import { BrandEditor } from "@/components/design/BrandEditor";
+
+const thingId = Astro.url.searchParams.get("thing") ?? undefined;
+const groupId = Astro.url.searchParams.get("group") ?? undefined;
+---
+
+<Layout title="Edit Brand">
+  <BrandEditor client:load thingId={thingId} groupId={groupId} />
+</Layout>

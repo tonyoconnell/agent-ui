@@ -41,7 +41,15 @@ export const purpleBrand = registry.purple
 
 function labelToTokens(label: string | null): BrandTokens | null {
   if (!label) return null
-  return registry[label] ?? null
+  if (registry[label]) return registry[label]
+  if (label.startsWith('{')) {
+    try {
+      return JSON.parse(label) as BrandTokens
+    } catch {
+      return null
+    }
+  }
+  return null
 }
 
 export async function resolveBrand(ctx: BrandContext): Promise<BrandTokens | null> {
