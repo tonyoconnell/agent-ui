@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { type DropdownGroup, type DropdownItem, dropdownGroups } from '@/lib/chat/ad-dropdowns'
 import { DEFAULT_MODEL, POPULAR_MODELS } from '@/lib/chat/models'
@@ -10,40 +10,49 @@ type Message = { id: string; role: 'user' | 'assistant'; content: string; stream
 export function AdChat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
   const [activeCategory, setActiveCategory] = useState<DropdownGroup['label'] | ''>('')
-  const [sent, setSent] = useState(false)
   const [firstTokenMs, setFirstTokenMs] = useState<number | null>(null)
   const [firstAssistantId, setFirstAssistantId] = useState<string | null>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
   const hasTypedRef = useRef(false)
+
+  const hasMessages = messages.length > 0
 
   const modelMeta = useMemo(() => {
     const m = POPULAR_MODELS.find((x) => x.id === DEFAULT_MODEL)
-    const providers = m?.providers?.[0] ?? ''
-    return { name: m?.name ?? DEFAULT_MODEL, provider: providers }
+    return { name: m?.name ?? DEFAULT_MODEL, provider: m?.providers?.[0] ?? '' }
   }, [])
+
+  useEffect(() => {
+    if (hasMessages) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [hasMessages])
 
   const send = useCallback(
     async (text: string) => {
-      if (!text.trim()) return
+      if (!text.trim() || loading) return
       const userId = crypto.randomUUID()
       const assistantId = crypto.randomUUID()
       const history = messages.map((m) => ({ role: m.role, content: m.content }))
+
       setMessages((prev) => [
         ...prev,
         { id: userId, role: 'user', content: text },
         { id: assistantId, role: 'assistant', content: '', streaming: true },
       ])
       setInput('')
-      setSent(true)
+      setLoading(true)
       setFirstAssistantId((prev) => prev ?? assistantId)
-      if (taRef.current) taRef.current.style.height = 'auto'
+      if (taRef.current) {
+        taRef.current.style.height = 'auto'
+        taRef.current.focus()
+      }
 
       const t0 = performance.now()
-      emitClick('ui:ad:send', {
-        type: 'text',
-        content: text,
-      })
+      emitClick('ui:ad:send', { type: 'text', content: text })
 
       try {
         const res = await fetch('/api/chat', {
@@ -69,10 +78,7 @@ export function AdChat() {
             gotFirst = true
             const latencyMs = Math.round(performance.now() - t0)
             setFirstTokenMs((prev) => prev ?? latencyMs)
-            emitClick('ui:ad:first-token', {
-              type: 'text',
-              content: String(latencyMs),
-            })
+            emitClick('ui:ad:first-token', { type: 'text', content: String(latencyMs) })
           }
           full += dec.decode(value, { stream: true })
           setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: full } : m)))
@@ -85,16 +91,15 @@ export function AdChat() {
             m.id === assistantId ? { ...m, content: `Error: ${(err as Error).message}`, streaming: false } : m,
           ),
         )
+      } finally {
+        setLoading(false)
       }
     },
-    [messages],
+    [messages, loading],
   )
 
   const onPick = (label: DropdownGroup['label'], item: DropdownItem, index: number) => {
-    emitClick('ui:ad:pick-question', {
-      type: 'text',
-      content: `${label}:${index}:${item.text}`,
-    })
+    emitClick('ui:ad:pick-question', { type: 'text', content: `${label}:${index}:${item.text}` })
     setActiveCategory('')
     send(item.text)
   }
@@ -102,62 +107,62 @@ export function AdChat() {
   const onOpenDropdown = (label: DropdownGroup['label']) => {
     if (activeCategory === label) return
     setActiveCategory(label)
-    emitClick('ui:ad:open-dropdown', {
-      type: 'text',
-      content: label,
-    })
+    emitClick('ui:ad:open-dropdown', { type: 'text', content: label })
   }
 
   const activeGroup = dropdownGroups.find((g) => g.label === activeCategory)
 
-  return (
-    <div
-      className={cn(
-        'grid w-full min-h-[100svh] px-4 transition-all duration-500',
-        sent ? 'place-items-start pt-[12vh]' : 'place-items-center',
-      )}
+  const inputDock = (
+    <form
+      className={cn('flex gap-2 items-end w-full', hasMessages && 'border-t bg-background px-4 py-4')}
+      onSubmit={(e) => {
+        e.preventDefault()
+        send(input)
+      }}
     >
-      <div className="max-w-2xl mx-auto w-full flex flex-col gap-6">
-        {!sent && (
-          <h1 className="text-center text-sm font-light text-muted-foreground tracking-wide">ONE — ask anything</h1>
-        )}
-
-        <form
-          className="flex gap-2 items-end"
-          onSubmit={(e) => {
-            e.preventDefault()
-            send(input)
+      <div className={cn('flex gap-2 items-end w-full', hasMessages && 'max-w-3xl mx-auto')}>
+        <textarea
+          ref={taRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onInput={(e) => {
+            const t = e.currentTarget
+            t.style.height = 'auto'
+            t.style.height = `${Math.min(t.scrollHeight, 160)}px`
+            if (!hasTypedRef.current && t.value.length > 0) {
+              hasTypedRef.current = true
+              emitClick('ui:ad:type', { type: 'text', content: '' })
+            }
           }}
-        >
-          <textarea
-            ref={taRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onInput={(e) => {
-              const t = e.currentTarget
-              t.style.height = 'auto'
-              t.style.height = `${Math.min(t.scrollHeight, 160)}px`
-              if (!hasTypedRef.current && t.value.length > 0) {
-                hasTypedRef.current = true
-                emitClick('ui:ad:type', { type: 'text', content: '' })
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                send(input)
-              }
-            }}
-            placeholder="Ask anything..."
-            rows={1}
-            className="flex-1 resize-none rounded-2xl border bg-background px-4 py-3 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          <Button type="submit" disabled={!input.trim()}>
-            ⏎
-          </Button>
-        </form>
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              send(input)
+            }
+          }}
+          placeholder="Ask anything..."
+          rows={1}
+          className={cn(
+            'flex-1 resize-none rounded-2xl border bg-background px-4 py-3 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary',
+            hasMessages && 'bg-muted text-sm rounded-xl focus:ring-1 min-h-[48px] max-h-[160px] overflow-y-auto',
+          )}
+        />
+        <Button type="submit" disabled={!input.trim() || loading} className={hasMessages ? 'h-12 px-5 rounded-xl' : ''}>
+          {loading ? '…' : hasMessages ? '⚡ Send' : '⏎'}
+        </Button>
+      </div>
+    </form>
+  )
 
-        {!sent && (
+  /* ── Pre-send: centered intro ── */
+  if (!hasMessages) {
+    return (
+      <div className="grid w-full min-h-[100svh] place-items-center px-4">
+        <div className="max-w-2xl mx-auto w-full flex flex-col gap-6">
+          <h1 className="text-center text-sm font-light text-muted-foreground tracking-wide">ONE — ask anything</h1>
+
+          {inputDock}
+
           <div className="flex flex-col gap-3" onMouseLeave={() => setActiveCategory('')}>
             <div className="flex justify-center gap-6">
               {dropdownGroups.map((g) => (
@@ -194,34 +199,44 @@ export function AdChat() {
               )}
             </div>
           </div>
-        )}
-
-        {sent && (
-          <div className="flex flex-col gap-3">
-            {messages.map((m) => (
-              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={cn(
-                    'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
-                    m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
-                  )}
-                >
-                  {m.content}
-                  {m.streaming && (
-                    <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
-                  )}
-                  {m.role === 'assistant' && m.id === firstAssistantId && firstTokenMs !== null && !m.streaming && (
-                    <div className="mt-2 text-xs opacity-60">
-                      ⚡ {firstTokenMs}ms · {modelMeta.name}
-                      {modelMeta.provider ? ` · ${modelMeta.provider}` : ''}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        </div>
       </div>
+    )
+  }
+
+  /* ── Post-send: full chat layout ── */
+  return (
+    <div className="flex flex-col h-screen bg-background text-foreground">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-3xl mx-auto w-full space-y-4">
+          {messages.map((m) => (
+            <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={cn(
+                  'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
+                  m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
+                )}
+              >
+                {m.content}
+                {m.streaming && (
+                  <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
+                )}
+                {m.role === 'assistant' && m.id === firstAssistantId && firstTokenMs !== null && !m.streaming && (
+                  <div className="mt-2 text-xs opacity-60">
+                    ⚡ {firstTokenMs}ms · {modelMeta.name}
+                    {modelMeta.provider ? ` · ${modelMeta.provider}` : ''}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+      </div>
+
+      {/* Input dock */}
+      {inputDock}
     </div>
   )
 }
