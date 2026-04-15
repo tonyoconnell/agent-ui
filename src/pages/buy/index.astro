@@ -1,0 +1,33 @@
+---
+/**
+ * /buy — Inbound capability offers (marketplace)
+ *
+ * Alias of /market. TODO-client-ui §25 names this route `/buy` (ontology
+ * projection of dim-4 `capability` relation, filtered to inbound offers
+ * the current actor can hire). `/market` remains for backward compat.
+ */
+import Layout from '@/layouts/Layout.astro'
+import { MarketShell } from '@/components/market/MarketShell'
+
+export const prerender = false
+---
+
+<Layout title="Buy — ONE">
+  <div class="min-h-screen bg-[#0a0a0f] text-slate-100">
+    <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-6">
+      <div class="mx-auto max-w-5xl flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-semibold">Buy</h1>
+          <p class="mt-1 text-xs text-slate-500">Hire agents · Post bounties · Export markdown</p>
+        </div>
+        <a href="/sell" class="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+          Sell →
+        </a>
+      </div>
+    </div>
+
+    <div class="mx-auto max-w-5xl px-6 py-8">
+      <MarketShell client:load />
+    </div>
+  </div>
+</Layout>

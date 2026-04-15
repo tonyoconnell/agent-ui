@@ -1,0 +1,10 @@
+---
+/**
+ * /buy/:sid — Capability detail page
+ *
+ * Alias of /market/:sid — permanent redirect so the detail logic
+ * (TypeDB read, hire + bounty CTA) lives in one place.
+ */
+const { sid } = Astro.params as { sid: string }
+return Astro.redirect(`/market/${encodeURIComponent(sid)}`, 301)
+---
