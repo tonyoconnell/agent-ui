@@ -191,7 +191,8 @@ relation signal,
     owns amount,                  # x402 payment (0 = free)
     owns success,
     owns latency,                 # ms
-    owns ts;
+    owns ts,
+    owns scope;                   # "private" | "group" | "public"
 
 
 # =============================================================================
@@ -204,7 +205,11 @@ entity hypothesis,
     owns hypothesis-status,       # "pending" | "testing" | "confirmed" | "rejected"
     owns observations-count,
     owns p-value,
-    owns action-ready;            # INFERRED
+    owns action-ready,            # INFERRED
+    owns source,                  # "observed" | "asserted" | "verified"
+    owns observed-at,             # when the substrate learned it
+    owns valid-from,              # when the fact became true
+    owns valid-until;             # when it stopped being true (optional)
 
 entity frontier,
     owns fid @key,
@@ -259,6 +264,62 @@ relation api-authorization,
 
 
 # =============================================================================
+# DIMENSION 7b: BETTER AUTH — Human session entities
+# =============================================================================
+# These are consumed by typedb-auth-adapter.ts via the BetterAuth session layer.
+# Separate from substrate units — humans link to the substrate via /api/auth/agent.
+
+entity auth-user,
+    owns auth-id @key,
+    owns auth-name,
+    owns auth-email,
+    owns auth-email-verified,
+    owns auth-image,
+    owns auth-password,
+    owns auth-created-at,
+    owns auth-updated-at;
+
+entity auth-session,
+    owns auth-id @key,
+    owns auth-user-id,
+    owns auth-token,
+    owns auth-expires-at,
+    owns auth-ip-address,
+    owns auth-user-agent,
+    owns auth-created-at,
+    owns auth-updated-at;
+
+entity auth-account,
+    owns auth-id @key,
+    owns auth-account-id,
+    owns auth-provider-id,
+    owns auth-user-id,
+    owns auth-access-token,
+    owns auth-refresh-token,
+    owns auth-id-token,
+    owns auth-access-token-expires-at,
+    owns auth-refresh-token-expires-at,
+    owns auth-scope,
+    owns auth-password,
+    owns auth-created-at,
+    owns auth-updated-at;
+
+entity auth-verification,
+    owns auth-id @key,
+    owns auth-identifier,
+    owns auth-value,
+    owns auth-expires-at,
+    owns auth-created-at,
+    owns auth-updated-at;
+
+entity auth-rate-limit,
+    owns auth-id @key,
+    owns auth-rate-limit-key,
+    owns auth-count,
+    owns auth-last-request;
+
+
+# =============================================================================
 # ATTRIBUTES
 # =============================================================================
 
@@ -277,6 +338,35 @@ attribute user-id, value string;
 attribute permissions, value string;
 attribute key-status, value string;
 
+# BetterAuth attributes
+attribute auth-id, value string;
+attribute auth-name, value string;
+attribute auth-email, value string;
+attribute auth-email-verified, value boolean;
+attribute auth-image, value string;
+attribute auth-password, value string;
+attribute auth-user-id, value string;
+attribute auth-token, value string;
+attribute auth-ip-address, value string;
+attribute auth-user-agent, value string;
+attribute auth-account-id, value string;
+attribute auth-provider-id, value string;
+attribute auth-access-token, value string;
+attribute auth-refresh-token, value string;
+attribute auth-id-token, value string;
+attribute auth-scope, value string;
+attribute auth-identifier, value string;
+attribute auth-value, value string;
+attribute auth-rate-limit-key, value string;
+# Temporal (epoch millis stored as integer — BetterAuth serializes Date as getTime())
+attribute auth-created-at, value integer;
+attribute auth-updated-at, value integer;
+attribute auth-expires-at, value integer;
+attribute auth-access-token-expires-at, value integer;
+attribute auth-refresh-token-expires-at, value integer;
+attribute auth-last-request, value integer;
+attribute auth-count, value integer;
+
 # Descriptive
 attribute name, value string;
 attribute description, value string;
@@ -291,6 +381,8 @@ attribute tag, value string;
 attribute contribution-type, value string;
 attribute frontier-type, value string;
 attribute objective-type, value string;
+attribute source, value string;           # hypothesis: "observed" | "asserted" | "verified"
+attribute scope, value string;            # signal: "private" | "group" | "public"
 attribute wallet, value string;
 attribute sui-unit-id, value string;
 attribute sui-path-id, value string;
@@ -360,9 +452,13 @@ attribute done, value boolean;
 # Temporal
 attribute created, value datetime;
 attribute last-used, value datetime;
+attribute expires-at, value datetime;
 attribute joined-at, value datetime;
 attribute ts, value datetime;
 attribute last-evolved, value datetime;
+attribute observed-at, value datetime;
+attribute valid-from, value datetime;
+attribute valid-until, value datetime;
 
 
 # =============================================================================

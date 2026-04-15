@@ -10,10 +10,10 @@ const ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
  */
 export function generateApiKey(): string {
   const timestamp = Date.now().toString(36)
+  const bytes = crypto.getRandomValues(new Uint8Array(32))
   let randomPart = ''
-  for (let i = 0; i < 32; i++) {
-    const idx = Math.floor(Math.random() * ALPHABET.length)
-    randomPart += ALPHABET[idx]
+  for (const byte of bytes) {
+    randomPart += ALPHABET[byte % ALPHABET.length]
   }
   return `api_${timestamp}_${randomPart}`
 }

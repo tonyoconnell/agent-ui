@@ -12,7 +12,7 @@
  */
 
 import type { APIRoute } from 'astro'
-import { validateApiKey } from '@/lib/api-auth'
+import { hasPermission, validateApiKey } from '@/lib/api-auth'
 import { generateApiKey, hashKey } from '@/lib/api-key'
 import { write } from '@/lib/typedb'
 
@@ -24,6 +24,12 @@ export const POST: APIRoute = async ({ request }) => {
     if (!auth.isValid) {
       return new Response(JSON.stringify({ error: 'Unauthorized. Provide Authorization: Bearer <api_key>' }), {
         status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (!hasPermission(auth, 'write')) {
+      return new Response(JSON.stringify({ error: 'Forbidden. Key requires write permission to generate new keys.' }), {
+        status: 403,
         headers: { 'Content-Type': 'application/json' },
       })
     }
@@ -82,6 +88,12 @@ export const DELETE: APIRoute = async ({ request }) => {
     if (!auth.isValid) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (!hasPermission(auth, 'write')) {
+      return new Response(JSON.stringify({ error: 'Forbidden. Key requires write permission to revoke keys.' }), {
+        status: 403,
         headers: { 'Content-Type': 'application/json' },
       })
     }

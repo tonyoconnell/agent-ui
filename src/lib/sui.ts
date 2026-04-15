@@ -176,7 +176,7 @@ export async function registerTask(uid: string, unitObjectId: string, taskName: 
 // FUND — Testnet faucet
 // ══════���════════════════════════════════════════════════════════════════════
 
-async function ensureFunded(address: string): Promise<void> {
+export async function ensureFunded(address: string): Promise<void> {
   const client = getClient()
   const balance = await client.getBalance({ owner: address })
   // If less than 0.1 SUI, request from faucet

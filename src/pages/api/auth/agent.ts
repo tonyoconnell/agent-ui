@@ -23,7 +23,7 @@
 
 import type { APIRoute } from 'astro'
 import { generateApiKey, hashKey } from '@/lib/api-key'
-import { addressFor } from '@/lib/sui'
+import { addressFor, ensureFunded } from '@/lib/sui'
 import { readParsed, write } from '@/lib/typedb'
 
 export const prerender = false
@@ -143,6 +143,12 @@ export const POST: APIRoute = async ({ request }) => {
     let wallet = ''
     try {
       wallet = await addressFor(uid)
+      // Testnet: auto-fund new wallets so they can transact immediately
+      if (!returning && wallet) {
+        ensureFunded(wallet).catch(() => {
+          /* faucet may rate-limit — not fatal */
+        })
+      }
     } catch {
       /* SUI_SEED not set */
     }
