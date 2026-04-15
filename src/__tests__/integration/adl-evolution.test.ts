@@ -17,6 +17,8 @@ vi.mock('@/lib/typedb', () => ({
   readParsed: vi.fn(),
   // writeSilent is called with .catch() chained on it — must return a Promise
   writeSilent: vi.fn().mockResolvedValue(undefined),
+  // writeTracked returns boolean; default to true so loop success paths run
+  writeTracked: vi.fn().mockResolvedValue(true),
   parseAnswers: vi.fn(() => []),
   read: vi.fn(() => []),
 }))
@@ -52,7 +54,7 @@ vi.mock('@/engine/adl', () => ({
   default: {},
 }))
 
-import { readParsed, writeSilent } from '@/lib/typedb'
+import { readParsed, writeSilent, writeTracked } from '@/lib/typedb'
 
 // A unit whose success-rate (sr) is below EVOLUTION_THRESHOLD (0.5)
 // and sample-count (sc) is above EVOLUTION_MIN_SAMPLES (20).
@@ -170,12 +172,96 @@ describe('ADL Cycle 3: evolution prompt augmentation', () => {
     // tick must not throw even when augmentPromptWithADL rejects
     await expect(tick(mockNet, mockComplete)).resolves.toBeDefined()
 
-    // writeSilent should still be called with a system-prompt update containing the evolved text
-    const writeCalls = (writeSilent as ReturnType<typeof vi.fn>).mock.calls
-    const systemPromptWrite = writeCalls.find(
-      (args: unknown[]) =>
-        typeof args[0] === 'string' && args[0].includes('system-prompt') && args[0].includes('improved'),
-    )
+    // The system-prompt update is now issued via writeTracked (Cycle 5 —
+    // deterministic write accounting). Check both mocks to stay resilient.
+    const trackedCalls = (writeTracked as ReturnType<typeof vi.fn>).mock.calls
+    const silentCalls = (writeSilent as ReturnType<typeof vi.fn>).mock.calls
+    const matches = (args: unknown[]) =>
+      typeof args[0] === 'string' && args[0].includes('system-prompt') && args[0].includes('improved')
+    const systemPromptWrite = trackedCalls.find(matches) ?? silentCalls.find(matches)
     expect(systemPromptWrite).toBeDefined()
+  })
+})
+
+describe('Cycle 5: tick meta-loop — the tick observes itself', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.resetModules()
+  })
+
+  it('writeHealth = 1 when nothing was attempted (quiet cycle is healthy)', async () => {
+    ;(readParsed as ReturnType<typeof vi.fn>).mockResolvedValue([])
+    const { tick } = await import('@/engine/loop')
+    const mockNet = makeMockNet()
+    const result = await tick(mockNet, undefined)
+    expect(result.writeHealth).toBe(1)
+    expect(mockNet.warn).not.toHaveBeenCalledWith('tick→typedb', expect.any(Number))
+  })
+
+  it('warns tick→typedb when writeTracked mostly fails', async () => {
+    // Struggling unit + evolve path → writes attempted
+    ;(readParsed as ReturnType<typeof vi.fn>).mockImplementation((q: string) => {
+      if (q.includes('success-rate') && q.includes('sample-count')) {
+        return Promise.resolve([STRUGGLING_UNIT])
+      }
+      return Promise.resolve([])
+    })
+    // Flip writeTracked to always fail — simulates TypeDB outage
+    ;(writeTracked as ReturnType<typeof vi.fn>).mockResolvedValue(false)
+
+    const { tick } = await import('@/engine/loop')
+    const mockNet = makeMockNet()
+    const mockComplete = vi.fn().mockResolvedValue('You are improved.')
+
+    const result = await tick(mockNet, mockComplete)
+
+    expect(result.writeHealth).toBeLessThan(0.5)
+    // Meta-loop: the tick warned its own edge
+    const warnCalls = (mockNet.warn as ReturnType<typeof vi.fn>).mock.calls
+    const metaWarn = warnCalls.find((c: unknown[]) => c[0] === 'tick→typedb')
+    expect(metaWarn).toBeDefined()
+    // Weight scales with severity: full fail → warn close to 1
+    expect(metaWarn![1]).toBeGreaterThan(0.5)
+  })
+
+  it('marks tick→typedb when all writes succeed (healthy cycle reinforces)', async () => {
+    ;(readParsed as ReturnType<typeof vi.fn>).mockImplementation((q: string) => {
+      if (q.includes('success-rate') && q.includes('sample-count')) {
+        return Promise.resolve([STRUGGLING_UNIT])
+      }
+      return Promise.resolve([])
+    })
+    ;(writeTracked as ReturnType<typeof vi.fn>).mockResolvedValue(true)
+
+    const { tick } = await import('@/engine/loop')
+    const mockNet = makeMockNet()
+    const mockComplete = vi.fn().mockResolvedValue('You are improved.')
+
+    const result = await tick(mockNet, mockComplete)
+
+    expect(result.writeHealth).toBeGreaterThanOrEqual(0.9)
+    const markCalls = (mockNet.mark as ReturnType<typeof vi.fn>).mock.calls
+    const metaMark = markCalls.find((c: unknown[]) => c[0] === 'tick→typedb')
+    expect(metaMark).toBeDefined()
+  })
+
+  it('evolveOk reflects actual writes, not iterations', async () => {
+    ;(readParsed as ReturnType<typeof vi.fn>).mockImplementation((q: string) => {
+      if (q.includes('success-rate') && q.includes('sample-count')) {
+        return Promise.resolve([STRUGGLING_UNIT])
+      }
+      return Promise.resolve([])
+    })
+    ;(writeTracked as ReturnType<typeof vi.fn>).mockResolvedValue(false)
+
+    const { tick } = await import('@/engine/loop')
+    const mockNet = makeMockNet()
+    const mockComplete = vi.fn().mockResolvedValue('You are improved.')
+
+    const result = await tick(mockNet, mockComplete)
+
+    // Attempted the evolve, but the TypeDB write lied → evolved = 0 (truth)
+    expect(result.writes?.evolveAttempted).toBeGreaterThan(0)
+    expect(result.evolved).toBe(0)
   })
 })

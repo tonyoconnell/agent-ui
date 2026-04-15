@@ -38,10 +38,24 @@ function escapeTqlString(str: string): string {
 
 // Cycle 1.5: centralized in `src/engine/adl-cache.ts` so `syncAdl`
 // can invalidate without reverse-importing from Astro pages.
-import { audit, type CacheEntry, enforcementMode, getCached, invalidatePermCache, setCached } from '@/engine/adl-cache'
+import {
+  audit,
+  type CacheEntry,
+  enforcementMode,
+  flushAuditBuffer,
+  getCached,
+  invalidatePermCache,
+  setCached,
+} from '@/engine/adl-cache'
 import { isWarm } from '@/lib/ui-prefetch'
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  // Cycle 3: drain the in-engine audit ring buffer into D1. Fire-and-forget —
+  // callers never wait on observability. Prior requests' audits (from bridge,
+  // llm, api, persist gates) become durable here since those modules can't
+  // bind D1 themselves.
+  const db = locals?.runtime?.env?.DB
+  if (db) void flushAuditBuffer(db).catch(() => 0)
   const {
     sender,
     receiver,

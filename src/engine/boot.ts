@@ -5,6 +5,7 @@
  */
 
 import { readParsed } from '@/lib/typedb'
+import { pheromoneWeight, setAuditPheromone } from './adl-cache'
 import { registerBuilder } from './builder'
 import { tick } from './loop'
 import { world } from './persist' // formerly one.ts
@@ -15,6 +16,16 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
 
   // Hydrate pheromone + queue from TypeDB
   await w.load()
+
+  // Cycle 4: close the last loop. Every ADL gate denial becomes a warn()
+  // on the sender→receiver edge, so the substrate routes away from paths
+  // that keep tripping gates. Security and learning share the same
+  // mechanism — warn() is simultaneously a firewall response and a lesson.
+  setAuditPheromone((rec) => {
+    const weight = pheromoneWeight(rec.decision)
+    if (weight <= 0) return
+    w.warn(`${rec.sender}→${rec.receiver}`, weight)
+  })
 
   // Spawn units from TypeDB
   const units = await readParsed(`match $u isa unit, has uid $id, has unit-kind $kind; select $id, $kind;`).catch(
@@ -29,7 +40,7 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
   // strength >= 0.65 → mark (trail strengthens)
   // strength < 0.65  → warn(0.5) (specialist needed, not a failure)
   // Scope is in-memory only — never surfaces in group queries or know().
-  w.add('loop:feedback').on('feedback', (data: unknown) => {
+  w.add('loop').on('feedback', (data: unknown) => {
     const d = data as { tags?: string[]; strength?: number; outcome?: string } | null
     const tags = d?.tags ?? []
     const strength = d?.strength ?? 0
@@ -50,12 +61,26 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
     registerBuilder(w, (prompt, _model) => complete(prompt).catch(() => null))
   }
 
-  // Breathe
+  // Breathe.
+  //
+  // Consecutive-failure backoff: if tick() rejects (usually TypeDB outage),
+  // exponentially extend the sleep up to 8× interval so we don't hammer a
+  // down dependency. One success resets the counter. Silent .catch() was
+  // the old behavior — it hid outages behind advancing timers.
   let alive = true
+  let failures = 0
+  const MAX_FAILURES_FOR_BACKOFF = 3
   const loop = (async () => {
     while (alive) {
-      await tick(w, complete).catch(() => {})
-      await new Promise((r) => setTimeout(r, interval))
+      try {
+        await tick(w, complete)
+        failures = 0
+      } catch (err) {
+        failures++
+        console.warn(`[boot] tick failed (consecutive=${failures}):`, err instanceof Error ? err.message : err)
+      }
+      const backoff = Math.min(2 ** Math.max(0, failures - MAX_FAILURES_FOR_BACKOFF), 8)
+      await new Promise((r) => setTimeout(r, interval * backoff))
     }
   })()
 

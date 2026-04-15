@@ -5,9 +5,10 @@
  * Every tick makes the colony smarter. No external feedback needed.
  */
 
-import { readParsed, writeSilent } from '@/lib/typedb'
+import { readParsed, writeSilent, writeTracked } from '@/lib/typedb'
 import { warmUI } from '@/lib/ui-prefetch'
 import { augmentPromptWithADL } from './adl'
+import { invalidateAdlCache } from './adl-cache'
 import { inferDocsFromTags, loadContext } from './context'
 import type { PersistentWorld } from './persist'
 import { EFFORT_MODEL, WAVE_MODEL } from './task-parse'
@@ -45,6 +46,26 @@ export type TickResult = {
   frontiers?: number
   docsSynced?: number
   prefetchMs?: number
+  /**
+   * Per-loop attempted-vs-succeeded accounting (Rule 3). When TypeDB is
+   * down, writes silently fail — these counters separate "we tried" from
+   * "it persisted" so operators see truth, not optimism.
+   */
+  writes?: {
+    evolveAttempted: number
+    evolveOk: number
+    hypoAttempted: number
+    hypoOk: number
+    frontierAttempted: number
+    frontierOk: number
+  }
+  /**
+   * Tick-level health ratio: successful writes / attempted writes this
+   * cycle. 1.0 when no writes were attempted. When < 0.5 the tick warns
+   * the `tick→typedb` edge; >= 0.9 marks it. This closes the tick's own
+   * loop on itself (meta-loop).
+   */
+  writeHealth?: number
 }
 
 let cycle = 0
@@ -61,7 +82,20 @@ const tagFailures = new Map<string, number>() // failure count per tag-cluster f
 export const tick = async (net: PersistentWorld, complete?: Complete): Promise<TickResult> => {
   const now = Date.now()
   cycle++
-  const result: TickResult = { cycle, selected: null, success: null, highways: [] }
+  const result: TickResult = {
+    cycle,
+    selected: null,
+    success: null,
+    highways: [],
+    writes: {
+      evolveAttempted: 0,
+      evolveOk: 0,
+      hypoAttempted: 0,
+      hypoOk: 0,
+      frontierAttempted: 0,
+      frontierOk: 0,
+    },
+  }
 
   // L1+L2: SELECT → ASK → MARK/WARN (closed feedback loop)
   // Prefer deterministic routing (follow) when paths are proven.
@@ -417,30 +451,52 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
           ? ` Weakest wave: ${weakWave.name} (${(weakWave.rate * 100).toFixed(0)}% success) — ${waveGuideMap[weakWave.name]}.`
           : ''
 
+      result.writes!.evolveAttempted++
       const prompt = await complete(
         `Agent "${uid}" has ${((u.sr as number) * 100).toFixed(0)}% success over ${u.sc} tasks (gen ${u.g}). Skills: ${skillInfo}. Known patterns: ${insights || 'none'}.${dimGuidance}${waveGuidance} Rewrite its prompt to improve:\n\n${u.sp}`,
       ).catch(() => null)
-      if (!prompt) continue
+      if (!prompt) {
+        // Closed-loop contract: LLM fail is not silence. Mark the agent's
+        // self-evolve edge with a mild warn so repeat failures accumulate
+        // resistance — the substrate will deprioritize evolving this agent
+        // until a task cycle calibrates it differently.
+        net.warn(`${uid}→${uid}:evolve`, 0.3)
+        continue
+      }
 
       // ADL Cycle 3: augment evolved prompt with operational constraints (fail-open)
       const finalPrompt = await augmentPromptWithADL(uid, prompt).catch(() => prompt)
 
       // Save old prompt as hypothesis (evolution history for rollback)
-      writeSilent(`
+      const historyOk = await writeTracked(`
         insert $h isa hypothesis, has hid "evolve-${uid}-gen${u.g}",
           has statement "gen ${u.g} prompt for ${uid}: ${((u.sp as string) || '').slice(0, 200).replace(/"/g, "'")}",
           has hypothesis-status "testing", has observations-count 0, has p-value 1.0;
-      `).catch(() => {})
-      writeSilent(`
+      `)
+      const promptOk = await writeTracked(`
         match $u isa unit, has uid "${uid}", has system-prompt $sp, has generation $g;
         delete $sp of $u; delete $g of $u;
         insert $u has system-prompt "${finalPrompt.replace(/"/g, '\\"')}", has generation (${u.g} + 1),
                has last-evolved ${new Date(now).toISOString().slice(0, 19)};
       `)
+      if (promptOk) {
+        result.writes!.evolveOk++
+        // Cycle 1.6: evolved prompt changes downstream ADL state perception —
+        // flush caches so the next signal reads the new generation, not the
+        // stale sensitivity/perm snapshot from before the rewrite.
+        invalidateAdlCache(uid)
+      } else {
+        // TypeDB write failed — same closed-loop treatment as LLM fail.
+        net.warn(`${uid}→${uid}:evolve`, 0.3)
+      }
+      // `historyOk` counted under hypoAttempted since it inserts into hypothesis
+      result.writes!.hypoAttempted++
+      if (historyOk) result.writes!.hypoOk++
     }
     lastEvolve = now
     priorityEvolve = []
-    result.evolved = unitIds.length
+    // Report what actually persisted, not what we iterated over.
+    result.evolved = result.writes!.evolveOk
   }
 
   // L6+L7: HARDEN + HYPOTHESIZE + FRONTIER — every hour
@@ -452,13 +508,17 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     const nowIso = new Date().toISOString().replace('Z', '')
     let hypoCount = 0
     for (const i of insights.filter((i) => i.confidence >= 0.8)) {
-      writeSilent(`
+      result.writes!.hypoAttempted++
+      const ok = await writeTracked(`
         insert $h isa hypothesis, has hid "path-${i.pattern.replace(/[→:]/g, '-')}-${cycle}",
           has statement "path ${i.pattern} is proven (confidence ${i.confidence.toFixed(2)})",
           has hypothesis-status "confirmed", has observations-count ${cycle}, has p-value 0.01,
           has source "observed", has observed-at ${nowIso};
-      `).catch(() => {})
-      hypoCount++
+      `)
+      if (ok) {
+        result.writes!.hypoOk++
+        hypoCount++
+      }
     }
     // E8: contradiction → warn() cascade — path was confirmed but is now degrading
     const degradingPaths = new Set(
@@ -472,13 +532,17 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       if (degradingPaths.has(pathName)) net.warn(pathName, 0.5)
     }
     for (const f of net.highways(50).filter((h) => h.strength >= 10 && h.strength < 20)) {
-      writeSilent(`
+      result.writes!.hypoAttempted++
+      const ok = await writeTracked(`
         insert $h isa hypothesis, has hid "fade-${f.path.replace(/[→:]/g, '-')}-${cycle}",
           has statement "path ${f.path} is degrading (strength ${f.strength.toFixed(1)})",
           has hypothesis-status "testing", has observations-count 0, has p-value 0.5,
           has source "observed", has observed-at ${nowIso};
-      `).catch(() => {})
-      hypoCount++
+      `)
+      if (ok) {
+        result.writes!.hypoOk++
+        hypoCount++
+      }
     }
 
     // KL-1: Detect rapid strength surges
@@ -486,13 +550,17 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       const prev = lastStrengths[h.path] || 0
       const delta = h.strength - prev
       if (delta > SURGE_THRESHOLD) {
-        writeSilent(`
+        result.writes!.hypoAttempted++
+        const ok = await writeTracked(`
           insert $h isa hypothesis, has hid "surge-${h.path.replace(/[→:]/g, '-')}-${cycle}",
             has statement "path ${h.path} surged by ${delta.toFixed(1)} (${prev.toFixed(1)} → ${h.strength.toFixed(1)})",
             has hypothesis-status "testing", has observations-count 0, has p-value 0.3,
             has source "observed", has observed-at ${nowIso};
-        `).catch(() => {})
-        hypoCount++
+        `)
+        if (ok) {
+          result.writes!.hypoOk++
+          hypoCount++
+        }
       }
     }
     lastStrengths = Object.fromEntries(net.highways(100).map((h) => [h.path, h.strength]))
@@ -509,13 +577,17 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     for (const i of insights) {
       if (/token-launched/.test(i.pattern)) {
         const agentUid = i.pattern.split(/[→:]/)[0] || 'unknown'
-        writeSilent(`
+        result.writes!.hypoAttempted++
+        const ok = await writeTracked(`
           insert $h isa hypothesis, has hid "launch-${agentUid}-${cycle}",
             has statement "agent ${agentUid} launched a token (agent-launch handoff)",
             has hypothesis-status "confirmed", has observations-count ${cycle}, has p-value 0.05,
             has source "observed", has observed-at ${nowIso};
-        `).catch(() => {})
-        hypoCount++
+        `)
+        if (ok) {
+          result.writes!.hypoOk++
+          hypoCount++
+        }
       }
     }
 
@@ -531,14 +603,18 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     for (const [tag, skills] of Object.entries(byTag)) {
       const unexplored = skills.filter((s) => !explored.has(s))
       if (unexplored.length > skills.length * 0.7 && unexplored.length >= 3) {
-        writeSilent(`
+        result.writes!.frontierAttempted++
+        const ok = await writeTracked(`
           insert $f isa frontier, has fid "tag-${tag}-${cycle}",
             has frontier-type "${tag}",
             has frontier-description "${unexplored.length} of ${skills.length} '${tag}' skills unexplored",
             has expected-value ${(unexplored.length / skills.length).toFixed(2)},
             has frontier-status "unexplored";
-        `).catch(() => {})
-        frontierCount++
+        `)
+        if (ok) {
+          result.writes!.frontierOk++
+          frontierCount++
+        }
       }
     }
 
@@ -558,14 +634,18 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       for (const [tag, covered] of Object.entries(byTagWaves)) {
         const missing = allWaves.filter((w) => !covered.has(w))
         if (missing.length > 0) {
-          writeSilent(`
+          result.writes!.frontierAttempted++
+          const ok = await writeTracked(`
             insert $f isa frontier, has fid "wave-${tag.replace(/[^a-z0-9]/gi, '-')}-${cycle}",
               has frontier-type "wave-gap",
               has frontier-description "tag '${tag}': waves ${missing.join(',')} never executed (covered: ${[...covered].join(',')})",
               has expected-value ${(missing.length / 4).toFixed(2)},
               has frontier-status "unexplored";
-          `).catch(() => {})
-          frontierCount++
+          `)
+          if (ok) {
+            result.writes!.frontierOk++
+            frontierCount++
+          }
         }
       }
     }
@@ -581,13 +661,17 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
           const actI = Object.keys(net.strength).filter((e) => e.includes(allUnits[i])).length
           const actJ = Object.keys(net.strength).filter((e) => e.includes(allUnits[j])).length
           if (actI >= FRONTIER_MIN_ACTIVITY && actJ >= FRONTIER_MIN_ACTIVITY) {
-            writeSilent(`
+            result.writes!.frontierAttempted++
+            const ok = await writeTracked(`
               insert $f isa frontier, has fid "gap-${allUnits[i]}-${allUnits[j]}-${cycle}",
                 has frontier-type "unit-gap",
                 has frontier-description "active units ${allUnits[i]} and ${allUnits[j]} never connected",
                 has expected-value 0.5, has frontier-status "unexplored";
-            `).catch(() => {})
-            frontierCount++
+            `)
+            if (ok) {
+              result.writes!.frontierOk++
+              frontierCount++
+            }
           }
         }
       }
@@ -642,5 +726,23 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
 
   result.highways = net.highways(10)
   result.prefetchMs = prefetchMs
+
+  // Meta-loop: the tick observes itself. Aggregate all this cycle's write
+  // attempts into a single health ratio and close the tick's own loop —
+  // when the brain (TypeDB) misbehaves, the tick→typedb edge accumulates
+  // resistance, and upstream callers (boot backoff, operators) can see
+  // the trend without a separate health endpoint.
+  const w = result.writes!
+  const attempted = w.evolveAttempted + w.hypoAttempted + w.frontierAttempted
+  const succeeded = w.evolveOk + w.hypoOk + w.frontierOk
+  result.writeHealth = attempted === 0 ? 1 : succeeded / attempted
+  if (attempted > 0 && result.writeHealth < 0.5) {
+    // Same 4-outcome algebra: missing dep (TypeDB) is a dissolved-style warn.
+    net.warn('tick→typedb', Math.min(1, 1 - result.writeHealth))
+  } else if (attempted > 0 && result.writeHealth >= 0.9) {
+    // Healthy cycle strengthens the inverse — mark what's working.
+    net.mark('tick→typedb', 0.1)
+  }
+
   return result
 }

@@ -66,6 +66,18 @@ export async function readParsed(tql: string): Promise<Record<string, unknown>[]
 /** Convenience: write, swallow errors (fire-and-forget) */
 export const writeSilent = (tql: string) => write(tql).catch(() => {})
 
+/**
+ * Write that reports success without throwing. Returns true if TypeDB
+ * accepted the query, false otherwise. Use in loops that must increment
+ * `attempted` vs `succeeded` counters so deterministic results don't lie
+ * when TypeDB is down (Rule 3).
+ */
+export const writeTracked = (tql: string): Promise<boolean> =>
+  write(tql).then(
+    () => true,
+    () => false,
+  )
+
 /** Execute multiple write queries in sequence */
 export async function writeBatch(queries: string[]): Promise<void> {
   for (const tql of queries) {
