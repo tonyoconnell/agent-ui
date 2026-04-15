@@ -38,6 +38,113 @@ status: TEMPLATE
 > `task-wave` (W1-W4), `task-context` (doc keys), `blocks` relation.
 > Each task creates a matching `skill` for capability routing.
 
+## Deliverables
+
+Every TODO emits two tiers of deliverables. **Wave deliverables** are universal —
+the same four artifacts ship at the end of each wave in every cycle. **Cycle
+deliverables** are scope-specific — the concrete artifacts this TODO exists to
+produce. Both carry a **goal** (what it achieves) and a **rubric weight vector**
+(fit / form / truth / taste, sums to 1.0) that tilts W4 scoring toward what
+matters for that artifact.
+
+> **Why deliverables matter:** without a named artifact, rubric scoring floats.
+> Fit/form/truth/taste need a subject. Each deliverable also becomes a `skill`
+> on its owning unit (TypeDB dim 3b), so future `select()` routes toward the
+> path that produced the strongest version.
+
+### Wave Deliverables (universal — every cycle emits these four)
+
+| Wave | Deliverable | Goal | Rubric weights (fit/form/truth/taste) | Exit condition |
+|------|-------------|------|--------------------------------------|----------------|
+| **W1** | Recon report (N parallel) | Inventory the truth on disk — findings with line numbers, verbatim | 0.15 / 0.10 / **0.65** / 0.10 | ≥ (N-1)/N agents returned `result`; every finding cites file:line |
+| **W2** | Diff spec set | Decide every finding → `{anchor, action, new, rationale}`; resolve shard conflicts | **0.40** / 0.15 / **0.35** / 0.10 | Every W1 finding has a spec OR an explicit "keep" rationale |
+| **W3** | Applied edits (M parallel) | Transform diff specs into real file changes without collateral drift | 0.30 / 0.25 / **0.35** / 0.10 | All anchors matched; zero files modified outside the spec set |
+| **W4** | Verification report | Prove cycle is clean: rubric ≥ 0.65, tests green, lint clean, types clean | 0.25 / 0.15 / **0.45** / 0.15 | All 4 rubric dims ≥ 0.65 AND `bun run verify` green |
+
+**Truth dominates early waves** (recon must match disk; specs must match recon).
+**Fit dominates W2** (right decision matters more than elegant prose).
+**W4 balances** because it must judge all four dimensions of downstream work.
+
+### Self-Learning Per Wave
+
+**Every wave closes its own loop.** Not just W4. Each wave scores its
+deliverable against its own rubric weights, emits a tagged feedback signal,
+and the substrate learns **per-wave routing** — which Haiku-path wins recon,
+which Opus-shard wins synthesis, which Sonnet-path wins edits, which verifier
+catches the most defects. Waste nothing: every wave is a training sample.
+
+```
+  Wave N produces deliverable
+        │
+        ▼
+  Score against wave rubric weights  (inline, cheap — NOT a full W4 pass)
+        │
+        ├─► ≥ 0.65 → mark(`wave:N:path`, score × 5) + advance
+        ├─► 0.50–0.64 → mark weaker, fan-out signal to specialist for next wave
+        ├─► < 0.50 → warn(`wave:N:path`, 0.5) + re-spawn wave once
+        └─► dissolved/timeout → warn(0.5) + escalate
+        │
+        ▼
+  Emit feedback signal (scope: private)
+    receiver: 'loop:feedback'
+    data: { tags: [...task.tags, `wave:${N}`, `model:${model}`],
+            strength, content: { wave, cycle, rubric, path, outcome } }
+        │
+        ▼
+  Next wave's select() picks the path with strongest `wave:N+1` pheromone
+```
+
+| Wave | Who scores | Rubric focus | Signal on pass | Signal on fail |
+|------|-----------|--------------|----------------|----------------|
+| **W1** | main ctx scores returned reports | truth-heavy (did the report match disk?) | `mark('wave:1:{haikuPath}', s × 5)` | `warn('wave:1:{haikuPath}', 1)` — re-spawn against fresh target |
+| **W2** | main ctx scores Opus diff specs against W1 recon | fit-heavy (right decision per finding?) | `mark('wave:2:{opusShard}', s × 5)` | `warn()` + re-shard, one more pass only |
+| **W3** | main ctx scores applied edits (anchor match + no drift) | truth + form (edit landed cleanly) | `mark('wave:3:{sonnetPath}', s × 5)` | `warn('wave:3:{sonnetPath}', 1)` — re-spawn with edit as new anchor |
+| **W4** | verifier shards score all deliverables | balanced (final gate) | cycle-level `mark()` + `know()` eligibility | `warn(1)` — chain breaks, L5 evolution triggered |
+
+**Cross-wave memory:** per-wave signals carry the tag `wave:N` AND the task's
+semantic tags (`rename`, `schema`, `docs`…). `select('wave:3', tags=['schema'])`
+returns the Sonnet path that has historically shipped the strongest schema
+edits. New cycles start with this memory pre-warmed — no cold-start.
+
+**Cross-cycle memory:** when a deliverable ships (strength ≥ 0.65) its owning
+skill gets promoted. Future `/do` runs prefer skills with highest path strength
+for the matching tag set. The TODO file is the training curriculum; the
+substrate is the student that remembers.
+
+**Why per-wave scoring is cheap:** W1 scoring = "did each report cite file:line?"
+(regex). W2 scoring = "does every finding have a spec?" (count). W3 scoring =
+"did every anchor match?" (Edit result). W4 is the only wave that pays for a
+full rubric pass. Per-wave scoring is deterministic where possible — pheromone
+stays grounded in verifiable signals, not LLM vibes.
+
+**Outcome mapping per wave** (mirrors the four-outcome algebra):
+
+| Wave outcome | Runtime equivalent | Feedback strength | Effect |
+|--------------|-------------------|-------------------|--------|
+| Agent returned + scored ≥ 0.65 | `{ result }` | score × 5 | path strengthens |
+| Agent returned + scored 0.50–0.64 | `{ result }` (weak) | score × 2 | mild mark, fan-out to specialist |
+| Agent returned + scored < 0.50 | `(no result)` | `warn(1)` | path weakens, re-spawn |
+| Agent timed out | `{ timeout }` | 0 | neutral — not the agent's fault |
+| Agent anchor missed / file gone | `{ dissolved }` | `warn(0.5)` | mild warn, drop target |
+
+Every wave closes. Every signal deposits. Every cycle compounds.
+
+### Cycle Deliverables (scope-specific — fill per cycle below)
+
+Each cycle lists the artifacts it ships downstream. A deliverable is anything
+another agent, user, or system can consume: a file, an endpoint, a schema, a
+migration, a doc, a dashboard, a test suite. Template per entry:
+
+```
+DELIVERABLE: {name}
+PATH:        {file-or-endpoint}
+GOAL:        {one sentence — what changes when this ships}
+CONSUMERS:   {who/what uses this next}
+RUBRIC:      fit={w} form={w} truth={w} taste={w}   (weights sum to 1.0)
+EXIT:        {verifiable condition — grep / curl / test}
+SKILL:       {unit:skill-id that owns this deliverable}
+```
+
 ## Routing
 
 Signals flow down through waves. Results flow up, marking paths with
@@ -294,6 +401,19 @@ cycle's patterns are verified and promoted to durable learning.
 
 **Why first:** {These are the source. Fix here, downstream becomes mechanical.}
 
+### Cycle 1 Deliverables
+
+| # | Deliverable | Goal | Rubric (fit/form/truth/taste) | Exit | Skill |
+|---|-------------|------|-------------------------------|------|-------|
+| 1 | {name} | {one sentence} | {w}/{w}/{w}/{w} | {grep/curl/test} | `{unit:skill}` |
+| 2 | {name} | {one sentence} | {w}/{w}/{w}/{w} | {grep/curl/test} | `{unit:skill}` |
+
+**Wave-level deliverables this cycle:**
+- W1 recon report covers `{scope}` files only
+- W2 diff specs must reference `{source-doc}` per finding
+- W3 touches exactly the files in the table above
+- W4 verification includes `{cycle-specific check}`
+
 ---
 
 ### Wave 1 — Recon (parallel Haiku x N, N ≥ 4)
@@ -313,6 +433,15 @@ serializes work that should be concurrent.
 
 **Outcome model:** `result` = report in. `timeout` = re-spawn once.
 `dissolved` = file missing, drop. Advance when N-1/N reports are in.
+
+**W1 self-score (truth-heavy, deterministic):**
+- fit: report scope matches the assigned file? (0 or 1)
+- form: report under 300 words, uses the required structure? (0 or 1)
+- truth: every finding cites `file:line`? (% of findings)
+- taste: findings ordered by relevance, not file order? (0 or 1)
+
+Emit `loop:feedback` per agent with `tags: [...task.tags, 'wave:1', 'model:haiku']`.
+`mark('wave:1:{agentPath}', score × 5)` on pass, `warn(1)` on fail + re-spawn once.
 
 ---
 
@@ -346,6 +475,16 @@ RATIONALE: "<one sentence>"
 1. {judgment call}
 2. {judgment call}
 
+**W2 self-score (fit-heavy, semi-deterministic):**
+- fit: every W1 finding has a spec OR an explicit "keep"? (% coverage)
+- form: every spec has the 5 fields (TARGET/ANCHOR/ACTION/NEW/RATIONALE)? (% compliant)
+- truth: anchors are exact substrings of the target file? (grep-verifiable)
+- taste: rationales one sentence, no hedging? (manual skim)
+
+Emit `loop:feedback` per Opus shard with `tags: [...task.tags, 'wave:2', 'model:opus']`.
+`mark('wave:2:{shard}', score × 5)` on pass. On fail, re-shard differently and
+re-run W2 ONCE. Second failure → halt, escalate to human.
+
 ---
 
 ### Wave 3 — Edits (parallel Sonnet x M, M = files touched)
@@ -363,6 +502,15 @@ races). File = unit of parallelism.
 |-----|------|-----------|
 | E1 | `{file}` | ~{N} |
 | E2 | `{file}` | ~{N} |
+
+**W3 self-score (truth + form, fully deterministic):**
+- fit: every spec was attempted? (count sent vs count with outcome)
+- form: edits landed via `Edit` tool (no full-file rewrites)? (0 or 1 per file)
+- truth: all anchors matched on first try? (% dissolved)
+- taste: zero lines touched outside the spec? (git diff word count vs expected)
+
+Emit `loop:feedback` per Sonnet editor with `tags: [...task.tags, 'wave:3', 'model:sonnet', 'file:{path}']`.
+`mark('wave:3:{editorPath}', score × 5)` on pass. Anchor miss → `warn(0.5)` + one re-spawn with fresher anchor from post-W2 state.
 
 ---
 
@@ -393,6 +541,17 @@ Weak dims (`< 0.65`) fan out as signals to specialist coaches.
 
 **If inconsistencies:** spawn micro-edits **in parallel** (Wave 3.5, one
 agent per affected file), re-verify with the same K shards. Max 3 loops.
+
+**W4 per-shard self-score (meta — verifiers are scored on defect-catch rate):**
+- fit: shard stayed in its lane (consistency shard didn't grade voice)? (0 or 1)
+- form: report uses the rubric vocabulary from `rubrics.md`? (0 or 1)
+- truth: defects flagged were real (verified by re-edit round)? (% true positives)
+- taste: zero noise-flags, no pedantic nits? (manual skim)
+
+Emit `loop:feedback` per verifier shard with `tags: [...task.tags, 'wave:4', 'shard:{consistency|xref|voice|rubric}']`.
+Verifier shards that consistently catch real defects accumulate strength —
+`select('wave:4', tags=[...])` in future cycles picks the verifiers with
+strongest defect-catch pheromone. **The verifier learns to be more useful.**
 
 **Self-checkoff:** If all edits verify clean and exit conditions pass:
 1. Mark task done in TypeDB (`markTaskDone(task.id)`)
@@ -451,6 +610,13 @@ agent per affected file), re-verify with the same K shards. Max 3 loops.
 
 **Depends on:** Cycle 1 complete. {Why this ordering matters.}
 
+### Cycle 2 Deliverables
+
+| # | Deliverable | Goal | Rubric (fit/form/truth/taste) | Exit | Skill |
+|---|-------------|------|-------------------------------|------|-------|
+| 1 | {name} | {one sentence} | {w}/{w}/{w}/{w} | {grep/curl/test} | `{unit:skill}` |
+| 2 | {name} | {one sentence} | {w}/{w}/{w}/{w} | {grep/curl/test} | `{unit:skill}` |
+
 ---
 
 ## Cycle 3: GROW — {scope}
@@ -458,6 +624,13 @@ agent per affected file), re-verify with the same K shards. Max 3 loops.
 {Same wave structure. Copy the four waves, fill in different files.}
 
 **Depends on:** Cycle 2 complete. {Why this ordering matters.}
+
+### Cycle 3 Deliverables
+
+| # | Deliverable | Goal | Rubric (fit/form/truth/taste) | Exit | Skill |
+|---|-------------|------|-------------------------------|------|-------|
+| 1 | {name} | {one sentence} | {w}/{w}/{w}/{w} | {grep/curl/test} | `{unit:skill}` |
+| 2 | {name} | {one sentence} | {w}/{w}/{w}/{w} | {grep/curl/test} | `{unit:skill}` |
 
 ---
 
@@ -565,6 +738,23 @@ with the edit prompt as body. `/do` picks highest-pheromone skill.
 - [TODO-typedb.md](TODO-typedb.md) — context flows along the graph
 - [TODO-signal.md](TODO-signal.md) — first wave-pattern TODO (reference)
 - [TODO-rename.md](TODO-rename.md) — first use of this template
+
+### Feedback Signal Reference
+
+The `loop:feedback` unit (registered in `boot.ts`) is the return-path primitive.
+Every `/close <id>` and every W4 self-checkoff MUST emit one.
+
+| Outcome | Signal strength | Effect on tag paths |
+|---------|----------------|---------------------|
+| `result` (rubric ≥ 0.65) | rubricAvg | `mark(tag_path, rubricAvg × 5)` |
+| `result` (rubric < 0.65) | rubricAvg | `warn(tag_path, 0.5)` — specialist needed |
+| `timeout` | 0 | neutral — no mark, no warn |
+| `dissolved` | 0 | `warn(tag_path, 0.5)` — path missing |
+| `failure` | 0 | `warn(tag_path, 1)` — L5 evolution triggered |
+
+Signals are `scope: private`. They accumulate in the substrate's pheromone map,
+not in TypeDB's group queries. Only L6 `know()` promotes them to permanent hypotheses.
+This is what makes the substrate learn **which kinds of tasks succeed on which paths**.
 
 ---
 

@@ -4,6 +4,41 @@
 
 ---
 
+## The Meta-Layer: `/do` Workflow
+
+**Every feature ships with pheromone marks. The system learns from what succeeds.**
+
+The `/do` workflow is how humans and the substrate collaborate:
+
+```
+Human:      /do TODO-feature --auto
+              ├─ W0: Baseline (verify)
+              ├─ W1: Recon (parallel Haiku read code)
+              ├─ W2: Decide (Opus plan changes)
+              ├─ W3: Edit (parallel Sonnet write code + docs)
+              └─ W4: Verify (Sonnet test + rubric score)
+                      │
+                      ├─ POST /api/loop/mark-dims {fit, form, truth, taste}
+                      │   → marks 4 pheromone edges per dimension
+                      │
+                      └─ POST /api/loop/close {outcome, rubric}
+                          → propagates marks, unblocks next cycle
+
+Substrate:  L4-L7 loops run automatically
+              ├─ L5: Detect weak dimensions, route agents to improve
+              ├─ L6: Promote highways to permanent knowledge
+              └─ L7: Detect unexplored tag clusters
+
+Result:     Every feature teaches what succeeds.
+            Next feature starts with learned pheromone.
+```
+
+**See [WORKFLOW.md](WORKFLOW.md) for complete guide.**
+
+---
+
+## Lifecycle: The Ten Stages
+
 ```
 REGISTER → CAPABLE → DISCOVER → SIGNAL → DROP/ALARM → FADE → HIGHWAY → HARDEN → FEDERATE → DISSOLVE
     0          1          2         3         4/5          6        7           8            9          10
@@ -305,6 +340,15 @@ Published to Sui testnet 2026-04-06. 8 proof transactions.
 ---
 
 ## Core Features (Shipped)
+
+### The `/do` Workflow (New: Closed-Loop Learning)
+
+- **Documentation-first** — Plan docs in W2 (decide phase), edit alongside code in W3, verify consistency in W4
+- **Task API integration** — Every `/do` cycle creates tasks in `/api/tasks`, tracks priority via pheromone
+- **Rubric → Pheromone** — W4 quality scores (fit/form/truth/taste) mark tagged edges (loop→w4:*)
+- **Learning loop** — Cycle 1 W4 marks teach substrate routing for Cycle 2 W1
+- **Six core docs** — Dictionary.md, DSL.md, one-ontology.md, routing.md, lifecycle.md, rubrics.md always in scope
+- **Pheromone routing** — Next TODO starts with learned edge weights, substrate.select() improves
 
 ### Nervous System (Runtime)
 

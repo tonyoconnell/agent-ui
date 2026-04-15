@@ -31,13 +31,15 @@ export function emitClick(id: string, payload?: RichMessage): void {
   const derived = segments.length > 1 ? segments.slice(1) : []
   const tags = ['ui', 'click', ...derived]
 
+  // signal.ts expects data as a string (TQL string attribute).
+  // Stringify the convention object so escapeTqlString() receives a string.
+  const dataObj: Record<string, unknown> = { tags }
+  if (payload !== undefined) dataObj.rich = payload
+
   const body: Record<string, unknown> = {
     sender: 'ui',
     receiver: id,
-    data: {
-      tags,
-      ...(payload !== undefined && { rich: payload }),
-    },
+    data: JSON.stringify(dataObj),
   }
 
   fetch('/api/signal', {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { suggestionGroups } from '@/lib/chat/demos'
-import { cn } from '@/lib/utils'
 import { emitClick } from '@/lib/ui-signal'
+import { cn } from '@/lib/utils'
 
 interface Props {
   onSelectDemo: (prompt: string) => void

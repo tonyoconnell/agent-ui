@@ -7,8 +7,8 @@
  */
 
 import { afterEach, describe, expect, it } from 'vitest'
-import { world as createWorld } from './world'
 import { clearWarm, isWarm, warmUI } from '@/lib/ui-prefetch'
+import { world as createWorld } from './world'
 
 describe('loop.ts — growth tick', () => {
   describe('L1+L2: signal selection and pheromone marking', () => {

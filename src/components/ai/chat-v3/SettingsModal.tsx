@@ -24,7 +24,14 @@ export function SettingsModal({ apiKey, setApiKey, selectedModel, setSelectedMod
       <Card className="w-96">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Unlock Premium Features</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => { emitClick('ui:settings:close'); onClose() }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              emitClick('ui:settings:close')
+              onClose()
+            }}
+          >
             ✕
           </Button>
         </CardHeader>
@@ -95,11 +102,24 @@ export function SettingsModal({ apiKey, setApiKey, selectedModel, setSelectedMod
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button onClick={() => { emitClick('ui:settings:save'); onSave() }} className="flex-1">
+            <Button
+              onClick={() => {
+                emitClick('ui:settings:save')
+                onSave()
+              }}
+              className="flex-1"
+            >
               Unlock Features
             </Button>
             {apiKey && (
-              <Button variant="destructive" size="sm" onClick={() => { emitClick('ui:settings:clear'); onClear() }}>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  emitClick('ui:settings:clear')
+                  onClear()
+                }}
+              >
                 Clear
               </Button>
             )}

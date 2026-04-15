@@ -2,8 +2,8 @@ import { Check, Copy, Link, Loader2, X } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import { emitClick } from '@/lib/ui-signal'
+import { cn } from '@/lib/utils'
 
 interface Props {
   nonce: string
@@ -40,7 +40,15 @@ export function ClaimDialog({ nonce, isClaiming, isClaimed, onCancel }: Props) {
                 <p className="text-xs text-muted-foreground mt-0.5">Share your memory across web + Telegram</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => { emitClick('ui:claim:cancel'); onCancel() }}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={() => {
+                emitClick('ui:claim:cancel')
+                onCancel()
+              }}
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -70,7 +78,10 @@ export function ClaimDialog({ nonce, isClaiming, isClaimed, onCancel }: Props) {
               {/* Nonce copy block */}
               <button
                 type="button"
-                onClick={() => { emitClick('ui:claim:copy'); handleCopy() }}
+                onClick={() => {
+                  emitClick('ui:claim:copy')
+                  handleCopy()
+                }}
                 className={cn(
                   'w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg',
                   'font-mono text-sm border transition-colors cursor-pointer',

@@ -6,11 +6,11 @@
  */
 
 import { readParsed, writeSilent } from '@/lib/typedb'
+import { warmUI } from '@/lib/ui-prefetch'
 import { augmentPromptWithADL } from './adl'
 import { inferDocsFromTags, loadContext } from './context'
 import type { PersistentWorld } from './persist'
 import { EFFORT_MODEL, WAVE_MODEL } from './task-parse'
-import { warmUI } from '@/lib/ui-prefetch'
 
 // doc-scan and node:path imported dynamically to avoid Cloudflare bundling issues
 
@@ -299,7 +299,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
 
   // L1.5 prefetch: warm ui:* receivers found in current highways
   const _prefetchStart = Date.now()
-  const _uiReceivers = net.highways(20)
+  const _uiReceivers = net
+    .highways(20)
     .filter((e: { to: string }) => e.to?.startsWith('ui:'))
     .slice(0, 5)
     .map((e: { to: string }) => e.to)

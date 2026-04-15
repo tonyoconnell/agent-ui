@@ -59,8 +59,8 @@ const ATTR_TO_FIELD: Record<string, string> = Object.fromEntries(Object.entries(
 // HTTP client with token caching
 let cachedToken: { token: string; expires: number } | null = null
 
-async function getToken(config: TypeDBAdapterConfig): Promise<string> {
-  if (cachedToken && cachedToken.expires > Date.now() + 60000) {
+async function getToken(config: TypeDBAdapterConfig, forceFresh = false): Promise<string> {
+  if (!forceFresh && cachedToken && cachedToken.expires > Date.now() + 60000) {
     return cachedToken.token
   }
 
@@ -85,30 +85,42 @@ async function getToken(config: TypeDBAdapterConfig): Promise<string> {
   return cachedToken.token
 }
 
+/**
+ * Query TypeDB with 401-retry.
+ *
+ * TypeDB Cloud may invalidate a JWT when the same `admin` user signs in
+ * from another process (the CF gateway). If we get a 401 we null the
+ * cached token, re-signin once, and retry. A second 401 surfaces as an error.
+ */
 async function query(config: TypeDBAdapterConfig, tql: string, write: boolean): Promise<any[]> {
-  const token = await getToken(config)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const token = await getToken(config, attempt === 1)
+    const res = await fetch(`${config.url}/v1/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        databaseName: config.database,
+        transactionType: write ? 'write' : 'read',
+        query: tql,
+        commit: true,
+      }),
+    })
 
-  const res = await fetch(`${config.url}/v1/query`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      databaseName: config.database,
-      transactionType: write ? 'write' : 'read',
-      query: tql,
-      commit: true,
-    }),
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`TypeDB query failed: ${res.status} - ${text}`)
+    if (res.status === 401 && attempt === 0) {
+      cachedToken = null
+      continue
+    }
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`TypeDB query failed: ${res.status} - ${text}`)
+    }
+    const data = (await res.json()) as any
+    return data.answers || []
   }
-
-  const data = (await res.json()) as any
-  return data.answers || []
+  throw new Error('TypeDB query: exhausted retries')
 }
 
 function generateId(): string {

@@ -22,6 +22,27 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
   )
   for (const u of units) w.actor(u.id as string, u.kind as string)
 
+  // Register loop:feedback — the return-path signal.
+  // After every W4 verify pass (or /close success), agents emit:
+  //   { receiver: 'loop:feedback', data: { tags: [...], strength: rubricAvg, content: {...} } }
+  // This unit marks each tag path proportionally to the rubric score.
+  // strength >= 0.65 → mark (trail strengthens)
+  // strength < 0.65  → warn(0.5) (specialist needed, not a failure)
+  // Scope is in-memory only — never surfaces in group queries or know().
+  w.add('loop:feedback').on('feedback', (data: unknown) => {
+    const d = data as { tags?: string[]; strength?: number; outcome?: string } | null
+    const tags = d?.tags ?? []
+    const strength = d?.strength ?? 0
+    const outcome = d?.outcome ?? 'result'
+    for (const tag of tags) {
+      const edge = `tag:${tag}`
+      if (outcome === 'failure') w.warn(edge, 1)
+      else if (outcome === 'dissolved') w.warn(edge, 0.5)
+      else if (strength >= 0.65) w.mark(edge, strength * 5)
+      else w.warn(edge, 0.5)
+    }
+  })
+
   // Register builder unit with wave chain (W1→W4)
   // The simple complete adapter ignores model — callers needing model-aware routing
   // should call registerBuilder() directly with a model-aware complete function.

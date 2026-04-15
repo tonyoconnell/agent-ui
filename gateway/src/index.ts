@@ -128,8 +128,8 @@ function corsHeaders(origin: string | null): Record<string, string> {
   }
 }
 
-async function getToken(env: Env): Promise<string> {
-  if (cachedToken && cachedToken.expires > Date.now() + 60_000) {
+async function getToken(env: Env, forceFresh = false): Promise<string> {
+  if (!forceFresh && cachedToken && cachedToken.expires > Date.now() + 60_000) {
     return cachedToken.token
   }
 
@@ -150,6 +150,35 @@ async function getToken(env: Env): Promise<string> {
   const payload = JSON.parse(atob(data.token.split('.')[1]))
   cachedToken = { token: data.token, expires: payload.exp * 1000 }
   return cachedToken.token
+}
+
+/**
+ * Query TypeDB with 401-retry.
+ *
+ * TypeDB Cloud may invalidate a JWT when the same user signs in from
+ * another process (gateway vs Better Auth adapter both use `admin`).
+ * On a 401 response we null the cached token, re-signin once, and retry.
+ * Second 401 surfaces as a real error.
+ */
+async function typedbQuery(env: Env, body: object): Promise<Response> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const token = await getToken(env, attempt === 1)
+    const res = await fetch(`${env.TYPEDB_URL}/v1/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    })
+    if (res.status === 401 && attempt === 0) {
+      cachedToken = null
+      continue
+    }
+    return res
+  }
+  // Unreachable — the loop returns or continues.
+  throw new Error('typedbQuery: exhausted retries')
 }
 
 export default {
@@ -242,7 +271,6 @@ export default {
         }
 
         // Slow path: query TypeDB directly (only on KV miss)
-        const token = await getToken(env)
         const query = `
           match
             $s isa skill, has skill-id $id, has name $name;
@@ -250,17 +278,10 @@ export default {
           limit 100;
         `
 
-        const res = await fetch(`${env.TYPEDB_URL}/v1/query`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            databaseName: env.TYPEDB_DATABASE,
-            transactionType: 'read',
-            query,
-          }),
+        const res = await typedbQuery(env, {
+          databaseName: env.TYPEDB_DATABASE,
+          transactionType: 'read',
+          query,
         })
 
         if (!res.ok) {
@@ -281,25 +302,17 @@ export default {
     // POST /typedb/query — proxy TypeQL queries to TypeDB Cloud /v1/query
     if (url.pathname === '/typedb/query' && request.method === 'POST') {
       try {
-        const token = await getToken(env)
         const body = (await request.json()) as {
           query: string
           transactionType?: 'read' | 'write'
           commit?: boolean
         }
 
-        const res = await fetch(`${env.TYPEDB_URL}/v1/query`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            databaseName: env.TYPEDB_DATABASE,
-            transactionType: body.transactionType || 'read',
-            query: body.query,
-            commit: body.commit ?? body.transactionType === 'write',
-          }),
+        const res = await typedbQuery(env, {
+          databaseName: env.TYPEDB_DATABASE,
+          transactionType: body.transactionType || 'read',
+          query: body.query,
+          commit: body.commit ?? body.transactionType === 'write',
         })
 
         if (!res.ok) {

@@ -28,8 +28,8 @@ import { Button } from '@/components/ui/button'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { POPULAR_MODELS } from '@/lib/chat/models'
-import { cn } from '@/lib/utils'
 import { emitClick } from '@/lib/ui-signal'
+import { cn } from '@/lib/utils'
 
 interface Props {
   hasMessages: boolean
@@ -111,7 +111,13 @@ export function PromptDock({
               className="flex items-center gap-1 bg-zinc-700/50 rounded-lg px-2 py-1 text-xs text-zinc-300"
             >
               <span>{file.name}</span>
-              <button onClick={() => { emitClick('ui:prompt:remove-attachment'); onRemoveAttachment(index) }} className="text-zinc-400 hover:text-zinc-200">
+              <button
+                onClick={() => {
+                  emitClick('ui:prompt:remove-attachment')
+                  onRemoveAttachment(index)
+                }}
+                className="text-zinc-400 hover:text-zinc-200"
+              >
                 ✕
               </button>
             </div>
@@ -142,7 +148,10 @@ export function PromptDock({
                 variant="ghost"
                 size="icon"
                 className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted transition-all"
-                onClick={() => { emitClick('ui:prompt:attach-file'); document.getElementById('file-input-dock')?.click() }}
+                onClick={() => {
+                  emitClick('ui:prompt:attach-file')
+                  document.getElementById('file-input-dock')?.click()
+                }}
                 title="Attach files"
               >
                 <Plus className="h-8 w-8 stroke-[3]" />
@@ -152,28 +161,40 @@ export function PromptDock({
               <div className="space-y-1">
                 <button
                   className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
-                  onClick={() => { emitClick('ui:prompt:attach-file'); document.getElementById('file-input-dock')?.click() }}
+                  onClick={() => {
+                    emitClick('ui:prompt:attach-file')
+                    document.getElementById('file-input-dock')?.click()
+                  }}
                 >
                   <Image className="h-4 w-4" />
                   <span>Add pictures</span>
                 </button>
                 <button
                   className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
-                  onClick={() => { emitClick('ui:prompt:attach-file'); document.getElementById('file-input-dock')?.click() }}
+                  onClick={() => {
+                    emitClick('ui:prompt:attach-file')
+                    document.getElementById('file-input-dock')?.click()
+                  }}
                 >
                   <Paperclip className="h-4 w-4" />
                   <span>Add files</span>
                 </button>
                 <button
                   className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
-                  onClick={() => { emitClick('ui:prompt:camera'); onOpenCamera() }}
+                  onClick={() => {
+                    emitClick('ui:prompt:camera')
+                    onOpenCamera()
+                  }}
                 >
                   <Camera className="h-4 w-4" />
                   <span>Add camera</span>
                 </button>
                 <button
                   className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
-                  onClick={() => { emitClick('ui:prompt:settings'); onOpenSettings() }}
+                  onClick={() => {
+                    emitClick('ui:prompt:settings')
+                    onOpenSettings()
+                  }}
                 >
                   <SettingsIcon className="h-4 w-4" />
                   <span>Add tools</span>
@@ -241,7 +262,14 @@ export function PromptDock({
                       }}
                       className="flex-1 px-3 py-1.5 text-sm rounded-md border bg-background"
                     />
-                    <Button size="sm" onClick={() => { emitClick('ui:prompt:add-model'); onQuickAddModel() }} disabled={!quickAddInput.trim()}>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        emitClick('ui:prompt:add-model')
+                        onQuickAddModel()
+                      }}
+                      disabled={!quickAddInput.trim()}
+                    >
                       Add
                     </Button>
                   </div>

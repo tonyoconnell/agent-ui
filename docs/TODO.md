@@ -56,6 +56,38 @@ flowchart LR
     SAFE --> LAUNCH["SDK · ADL v0.2\nAV bridge · Launch"]
 ```
 
+### Parallel Track Architecture
+
+**A and B are fully independent.** No shared files, no schema dependencies. Run them simultaneously.
+
+```
+GATE (sequential)           TRACK A (TypeDB/API)          TRACK B (docs/CLI)
+────────────────            ────────────────────          ──────────────────
+W0: bun run verify    ──►  C1: world.tql schema      ║   C1: commands recon × 5
+                           C1: claim.ts endpoint      ║   C1: write see.md ✓
+                           C1: release.ts endpoint    ║   C1: write create.md ✓
+                           C1: expire.ts endpoint     ║   C1: write do.md ✓
+                           C1: claim collision test   ║   C1: write close.md ✓
+                           C1: release safety test    ║   C1: write sync.md ✓
+                           C1: expire recovery test   ║   C1: cleanup 11 old files
+                                │                          │
+                           C2: filter active tasks    ║   C2: rename W1 recon × 4
+                           C2: sync guard             ║   C2: rename W2 decide
+                           C2: tick integration       ║   C2: rename W3 edits × 4
+                                │                          │
+                           C3: harden() → Sui         ║   C3: ADL gates × 8
+                           C3: marketplace listing    ║
+                                │
+                           C4: wave-runner unit
+                           C4: loop.ts tests
+                           C4: CEO visibility
+```
+
+**Security → Stability → Speed** is the order within each track:
+- Security: no collusion (C1 atomicity) + ADL gates (C3)
+- Stability: tests gate every cycle (W0 + W4)
+- Speed: parallel execution within tracks, feedback signals accumulate pheromone
+
 ### Roadmap
 
 ```mermaid
@@ -123,36 +155,71 @@ timeline
 
 ---
 
-## Top 15 by Effective Priority
+## Sequence — Security · Stability · Speed
 
-- [ ] ****4f. W0 baseline (before C1)**** [haiku] `gate, baseline, P0` ← [TODO-collusion](TODO-collusion.md)
+> **Parallel tracks.** Gate is sequential. Everything else fans out.
+> Track A (TypeDB/API) and Track B (docs/CLI) share no files — run simultaneously.
+
+### Gate (sequential — do first, both tracks blocked until green)
+
+- [x] ****4f. W0 baseline (before C1)**** [haiku] `gate, baseline, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: `bun run verify` passes; all baseline tests green — gate before any C1 schema edits
+  ✓ 780/780 tests, 6.92s, exit 0 — 2026-04-15
+
+### Track A — Atomicity (security · no collusion)
+
 - [ ] ****1a. Update world.tql**** [haiku] `schema, foundation, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: `grep "owns owner" src/schema/world.tql` returns true; wave-lock entity defined
+- [ ] ****1b. Update world.tql attributes**** [haiku] `schema, foundation, P0` ← [TODO-collusion](TODO-collusion.md)
+  exit: `attribute owner, value string` defined; claimed-at timestamp attribute added
 - [ ] ****2a. Create src/pages/api/tasks/[id]/claim.ts**** [sonnet] `endpoint, atomicity, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: `curl POST /api/tasks/{id}/claim` returns 200 with owner; 409 if already claimed
-- [ ] ****1a. Recon dictionary.md for emit/commands/tick**** [haiku] `docs, recon, P0` ← [TODO-commands](TODO-commands.md)
-  exit: Report lists every mention of `emit`, command names, The Tick section, with line numbers
-- [ ] ****2g. Write .claude/commands/see.md — full noun surface incl. L4-L6 views**** [sonnet] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
-  exit: /see handles tasks/highways/frontiers/toxic/paths + hypotheses/evolved/revenue/events nouns
-- [ ] ****2h. Write .claude/commands/create.md**** [sonnet] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
-  exit: /create handles task/todo/agent/signal nouns; all emit via send()
-- [ ] ****2i. Write .claude/commands/do.md — wave / auto / once / autonomous**** [sonnet] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
-  exit: /do handles {TODO}/{TODO} --auto/{TODO} --wave N/(empty)/--once modes
-- [ ] ****2j. Write .claude/commands/close.md — Four Outcomes**** [sonnet] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
-  exit: /close handles {id}/(empty)/--fail/--dissolved/--timeout; Rule 1 fully covered
-- [ ] **ADL Lifecycle gate: Retired unit → warn(edge, 0.5), no execution** [haiku] `adl, lifecycle, P0` ← [TODO-adl](TODO-adl.md)
+- [ ] ****2b. Write atomic TypeQL query for claim**** [haiku] `typedb, atomicity, P0` ← [TODO-collusion](TODO-collusion.md)
+  exit: Query has match `has task-status $s; $s = "open"` → delete + insert active + owner
+- [ ] ****3a. Create src/pages/api/tasks/[id]/release.ts**** [sonnet] `endpoint, ownership, P0` ← [TODO-collusion](TODO-collusion.md)
+  exit: `curl POST /api/tasks/{id}/release {sessionId}` returns 200; 403 if wrong owner
+- [ ] ****4a. Create src/pages/api/tasks/expire.ts**** [sonnet] `endpoint, recovery, P0` ← [TODO-collusion](TODO-collusion.md)
+  exit: `curl GET /api/tasks/expire` returns `{ expired: [...], count: N }`
+- [ ] ****4c. Claim collision test**** [sonnet] `test, atomicity, P0` ← [TODO-collusion](TODO-collusion.md)
+  exit: Two concurrent claims return 200 + 409; only one gets owner
+- [ ] **ADL Lifecycle gate: Retired unit → warn(edge, 0.5), no execution** [haiku] `adl, lifecycle, security, P0` ← [TODO-adl](TODO-adl.md)
   exit: Retired/past-sunset unit signal → warn path, return dissolved; active → normal ask
-- [ ] **ADL Bridge: allowed sender → suiMark fires; blocked sender → no Sui call** [haiku] `adl, bridge, P0` ← [TODO-adl](TODO-adl.md)
+- [ ] **ADL Bridge: allowed sender → suiMark fires; blocked sender → no Sui call** [haiku] `adl, bridge, security, P0` ← [TODO-adl](TODO-adl.md)
   exit: Bridge reads ADL network permissions; blocked senders fail closed (no Sui call)
+
+### Track B — Vocabulary (stability · commands are the CLI)
+
+> Commands `see/create/do/close/sync` already written ✓. Track B is now: cleanup + rename.
+
+- [ ] ****2o. Cleanup — delete 11 old command files**** [haiku] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
+  exit: 11 files deleted (tasks, highways, todo, add-task, extract-tasks, wave, work, next, done, report, grow); 5 remain
+- [ ] **Cycle 1 W1: Recon (parallel Haiku × 4)** [haiku] `docs, wire, recon, P0` ← [TODO-rename](TODO-rename.md)
+  exit: 4 reports in. Each reports dead names with line numbers, metaphor flags.
+- [ ] **Cycle 1 W2: Decide (Opus)** [sonnet] `docs, wire, decide, P0` ← [TODO-rename](TODO-rename.md)
+  exit: Edit specs produced. Replace/Keep/Judgment for each dead name.
+
+### New: Feedback Signal + Outcome Audit (speed · the return path)
+
+- [ ] **Wire loop:feedback unit — tags + strength → mark tag paths** [sonnet] `engine, signal, feedback, P0`
+  exit: `unit('loop:feedback').on('*', ({tags, strength}) => tags.forEach(t => net.mark(\`tag:${t}\`, strength * 5)))`. Registered in boot.ts.
+  blocks: feedback-routing-live
+- [ ] **Outcome audit view: /see events buckets by outcome type** [haiku] `ui, analytics, feedback, P1` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
+  exit: `/see events --since 24h` reports `result=N timeout=M dissolved=K failure=J` per agent. Surfaces which agents need L5 evolution.
+  blocks: ceo-outcome-visibility
+
+### Intelligence (after C1 atomicity + C2 vocabulary land)
+
 - [ ] **Build wave-runner unit with .then() chains** [opus] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
   exit: unit('wave-runner').on('recon',...).then('recon',→decide).on('decide',...).then('decide',→edit)...
 - [ ] **Test loop.ts: tick cycle, all 7 loops, chain depth** [opus] `engine, test, P0` ← [TODO-testing](TODO-testing.md)
   exit: loop.ts test file. Covers: L1 signal, L2 mark/warn, L3 fade interval, L5 evolution trigger, L6 know, L7 frontier detection
-- [ ] **Implement harden(): freeze highway to Sui** [opus] `engine, lifecycle, P0` ← [TODO-lifecycle](TODO-lifecycle.md)
-  exit: `persist.know()` writes proven highways to Sui as ProvenCapability objects. Irreversible. Verifiable.
 - [ ] **Wire CEO visibility: highways (top 10 performers)** [sonnet] `ui, analytics, P0, ceo` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
   exit: CEO sees top 10 by net strength (reputation = mark - warn). Arithmetic only.
+
+### Commerce (C3 — after intelligence layer stable)
+
+- [ ] **Implement harden(): freeze highway to Sui** [opus] `engine, lifecycle, P0` ← [TODO-lifecycle](TODO-lifecycle.md)
+  exit: `persist.know()` writes proven highways to Sui as ProvenCapability objects. Irreversible. Verifiable.
 - [ ] **`curl /api/market/list` returns ≥ 5 capabilities with price + strength** [sonnet] `marketplace, api, P0` ← [TODO-marketplace](TODO-marketplace.md)
   exit: Marketplace listing live. Agents' priced skills queryable with pheromone weight shown.
 
@@ -160,6 +227,12 @@ timeline
 
 ## C1: Foundation
 
+- [ ] **Wire loop:feedback unit** — critical=30 + C1=40 + dev=20 + blocks(1)=5 [sonnet] `engine, signal, feedback, P0`
+  exit: unit('loop:feedback') registered in boot.ts; marks tag paths on result, warns on failure; scope=private
+  blocks: feedback-routing-live
+- [ ] **Outcome audit: /see events buckets by outcome type** — high=25 + C1=40 + dev=20 [haiku] `ui, analytics, feedback, P1`
+  exit: result/timeout/dissolved/failure counts per-agent for last 24h. Surfaces L5 evolution candidates.
+  blocks: ceo-outcome-visibility
 - [ ] **Build CEO control panel: hire/fire/commend/flag agents** — critical=30 + C1=40 + ceo=25 + blocks(1)=5 [sonnet] `ui, governance, P0, ceo` ← [ONE-strategy](TODO-ONE-strategy.md)
   exit: CEO can manage AI agents: delegate tasks, view top performers, flag bad actors
   blocks: ceo-control-live

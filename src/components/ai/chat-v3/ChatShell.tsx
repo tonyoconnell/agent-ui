@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { useChat } from '@/hooks/ai/useChat'
 import { useToast } from '@/hooks/use-toast'
 import { DEFAULT_MODEL, POPULAR_MODELS } from '@/lib/chat/models'
+import { emitClick } from '@/lib/ui-signal'
 import { ConversationView } from './ConversationView'
 import { DemoSuggestions } from './DemoSuggestions'
 import { FullPageFrame } from './frames/FullPageFrame'
@@ -15,7 +16,6 @@ import { InlineFrame } from './frames/InlineFrame'
 import { SplitPaneFrame } from './frames/SplitPaneFrame'
 import { WidgetFrame } from './frames/WidgetFrame'
 import { handleCommand } from './MemoryCommands'
-import { emitClick } from '@/lib/ui-signal'
 import { PromptDock } from './PromptDock'
 import { SettingsModal } from './SettingsModal'
 
@@ -234,7 +234,10 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
             <Button
               size="sm"
               variant={useDirector ? 'default' : 'outline'}
-              onClick={() => { emitClick('ui:chat:toggle-director'); setUseDirector(!useDirector) }}
+              onClick={() => {
+                emitClick('ui:chat:toggle-director')
+                setUseDirector(!useDirector)
+              }}
               className={
                 useDirector
                   ? 'bg-purple-600 hover:bg-purple-700 text-white transition-all'
@@ -296,7 +299,10 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
               variant="ghost"
               size="sm"
               className="absolute top-4 right-4 z-10"
-              onClick={() => { emitClick('ui:chat:camera-close'); setShowCamera(false) }}
+              onClick={() => {
+                emitClick('ui:chat:camera-close')
+                setShowCamera(false)
+              }}
             >
               ✕
             </Button>
@@ -381,7 +387,15 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
                       in Settings.
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => { emitClick('ui:chat:settings'); setShowSettings(true) }} className="gap-2 mt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      emitClick('ui:chat:settings')
+                      setShowSettings(true)
+                    }}
+                    className="gap-2 mt-2"
+                  >
                     <Settings className="h-4 w-4" /> Add API Key for More Models
                   </Button>
                 </div>
@@ -422,7 +436,10 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
             <span className="text-xs text-slate-500">Command result</span>
             <button
               type="button"
-              onClick={() => { emitClick('ui:chat:dismiss-result'); setCommandResult(null) }}
+              onClick={() => {
+                emitClick('ui:chat:dismiss-result')
+                setCommandResult(null)
+              }}
               className="text-slate-500 hover:text-slate-300"
             >
               ✕

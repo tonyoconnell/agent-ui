@@ -41,8 +41,9 @@ describe('emitClick', () => {
     const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>
     const [, init] = fetchMock.mock.calls[0]
     const body = JSON.parse(init.body as string)
+    const data = JSON.parse(body.data as string)
 
-    expect(body.data.tags).toEqual(['ui', 'click', 'chat', 'copy'])
+    expect(data.tags).toEqual(['ui', 'click', 'chat', 'copy'])
   })
 
   test('emitClick is fire-and-forget, does not throw on fetch failure', async () => {
@@ -69,8 +70,9 @@ describe('emitClick', () => {
     const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>
     const [, init] = fetchMock.mock.calls[0]
     const body = JSON.parse(init.body as string)
+    const data = JSON.parse(body.data as string)
 
-    expect(body.data.rich).toEqual(payload)
+    expect(data.rich).toEqual(payload)
   })
 
   test('emitClick without payload omits data.rich', async () => {
@@ -80,7 +82,8 @@ describe('emitClick', () => {
     const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>
     const [, init] = fetchMock.mock.calls[0]
     const body = JSON.parse(init.body as string)
+    const data = JSON.parse(body.data as string)
 
-    expect(body.data).not.toHaveProperty('rich')
+    expect(data).not.toHaveProperty('rich')
   })
 })
