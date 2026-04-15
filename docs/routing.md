@@ -352,10 +352,89 @@ Every 10 seconds, the world breathes:
     │   ┌─────────┐                                           │
     │   │  KNOW   │ ← every hour: harden highways        │
     │   │         │   hypothesize, detect frontiers            │
+    │   └────┬────┘                                           │
+    │        │                                                │
+    │        ▼                                                │
+    │   ┌─────────┐                                           │
+    │   │  SELF   │ ← meta-loop: writeHealth summarizes        │
+    │   │         │   this cycle's TypeDB writes; deposit      │
+    │   │         │   pheromone on tick→typedb                 │
     │   └─────────┘                                           │
     │                                                         │
     └─────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## The Meta-Loop — The Tick Observes Itself
+
+Every other edge in the substrate gets `mark()`d or `warn()`d based on
+outcomes. The tick itself is also a loop: it tries writes to TypeDB.
+Therefore the tick itself must close its own loop.
+
+```
+    writes attempted = evolveAttempted + hypoAttempted + frontierAttempted
+    writes succeeded = evolveOk + hypoOk + frontierOk
+    writeHealth      = succeeded / attempted        (1.0 if nothing tried)
+
+    writeHealth < 0.5  →  net.warn('tick→typedb', 1 − writeHealth)
+    writeHealth ≥ 0.9  →  net.mark('tick→typedb', 0.1)
+    anything between   →  neutral (ambiguous cycle, no deposit)
+```
+
+`tick→typedb` is a regular edge. `/api/export/highways` shows it in the
+table. `/see highways` reports it. The pheromone math IS the health system —
+no separate observability plane, no metrics endpoint.
+
+Asymmetry is deliberate: failure deposits up to `1.0` (loud), success
+deposits `0.1` (gentle). Failures are rare and deserve signal; successes
+are common and should accumulate without saturating the edge.
+
+### writeTracked — The Primitive That Makes It Honest
+
+```typescript
+writeSilent(tql)   // fire-and-forget, never reports outcome
+writeTracked(tql)  // fire-and-forget, returns Promise<boolean>
+```
+
+Same zero-throw semantics, but `writeTracked` reports success. Every
+accounting-critical loop (L5, L6, L7) uses it so `result.evolved`,
+`result.hypotheses`, `result.frontiers` reflect what actually persisted —
+not what the loop *attempted* during a TypeDB outage.
+
+---
+
+## The ADL Feedback Loop — Security IS Learning
+
+Every ADL gate denial (lifecycle, network, sensitivity, schema,
+bridge-network, bridge-error) goes through `audit()` in `adl-cache.ts`.
+`audit()` writes to three sinks:
+
+```
+   audit(rec) ──┬──► console.warn([adl-audit] ...)       (CF worker log)
+                ├──► AUDIT_BUFFER (ring, cap 1000)       (→ D1 adl_audit via flushAuditBuffer)
+                └──► AUDIT_PHEROMONE_HOOK(rec)            (→ net.warn sender→receiver)
+```
+
+The pheromone hook closes the loop. Weight mapping stays inside the
+4-outcome algebra:
+
+```
+    deny         → warn(sender→receiver, 1.0)     full failure
+    fail-closed  → warn(sender→receiver, 1.0)     infra forced denial
+    allow-audit  → warn(sender→receiver, 0.3)     mild — enforcement off
+    observe      → (no deposit)                    neutral observation
+```
+
+The substrate now routes away from paths that keep tripping ADL gates
+without any explicit firewall logic — `select()` probabilistic routing
+deprioritizes them through `strength − resistance`. A denial is a
+routing signal. A routing decision is a gate probe. They're the same
+thing seen from two sides.
+
+See `docs/ADL-integration.md` for the full ADL contract, and
+`src/engine/adl-cache.ts` for the `setAuditPheromone` hook registered
+at boot.
 
 ---
 
