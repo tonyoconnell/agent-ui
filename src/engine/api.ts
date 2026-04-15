@@ -17,11 +17,11 @@
  */
 
 import { readParsed } from '@/lib/typedb'
+import { API_PERM_CACHE, API_PERM_TTL, audit, enforcementMode } from './adl-cache'
 import { type Unit, unit } from './world'
 
-// ADL: perm-network gate — cache API host permission lookups (5-min TTL)
-const API_PERM_CACHE = new Map<string, { allowedHosts: string[]; expires: number }>()
-const API_PERM_TTL = 5 * 60 * 1000
+// ADL: perm-network gate — shared cache from adl-cache.ts (Cycle 1.6 consolidation).
+// Invalidated by `invalidateAdlCache(uid)` on every ADL write path.
 
 function apiHostsAllow(hostname: string, allowedHosts: string[]): boolean {
   if (!allowedHosts.length) return true
@@ -38,7 +38,22 @@ async function canCallAPI(callerId: string, targetBase: string): Promise<boolean
   }
   const key = `${callerId}:${hostname}`
   const cached = API_PERM_CACHE.get(key)
-  if (cached && cached.expires > Date.now()) return apiHostsAllow(hostname, cached.allowedHosts)
+  if (cached && cached.expires > Date.now()) {
+    const allowed = apiHostsAllow(hostname, cached.allowedHosts)
+    if (!allowed) {
+      const mode = enforcementMode()
+      audit({
+        sender: callerId,
+        receiver: hostname,
+        gate: 'network',
+        decision: mode === 'audit' ? 'allow-audit' : 'deny',
+        mode,
+        reason: `host ${hostname} not in allowedHosts=${JSON.stringify(cached.allowedHosts)}`,
+      })
+      if (mode === 'audit') return true
+    }
+    return allowed
+  }
   const rows = await readParsed(
     `match $u isa unit, has uid "${callerId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", has perm-network $pn; select $pn;`,
   ).catch(() => [])
@@ -53,7 +68,20 @@ async function canCallAPI(callerId: string, targetBase: string): Promise<boolean
     }
   }
   API_PERM_CACHE.set(key, { allowedHosts, expires: Date.now() + API_PERM_TTL })
-  return apiHostsAllow(hostname, allowedHosts)
+  const allowed = apiHostsAllow(hostname, allowedHosts)
+  if (!allowed) {
+    const mode = enforcementMode()
+    audit({
+      sender: callerId,
+      receiver: hostname,
+      gate: 'network',
+      decision: mode === 'audit' ? 'allow-audit' : 'deny',
+      mode,
+      reason: `host ${hostname} not in allowedHosts=${JSON.stringify(allowedHosts)}`,
+    })
+    if (mode === 'audit') return true
+  }
+  return allowed
 }
 
 export interface ApiOpts {

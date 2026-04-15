@@ -244,6 +244,47 @@ const CACHE_TTL = 300000 // 5 minutes
 
 Cache invalidates after signal success (permissions may have changed).
 
+### Additional Gates (Cycle 1.5+ retrofit)
+
+The three signal-path stages above cover `/api/signal`. Other choke points need
+their own gates because signals bypass the HTTP route (substrate internals,
+LLM calls, outbound HTTP, Sui bridge). Cycle 1.5 added these:
+
+| Gate | File | Attribute read | Denial behavior |
+|------|------|----------------|-----------------|
+| PEP-3.5 lifecycle | `src/engine/persist.ts` | `adl-status`, `sunset-at` | `{ dissolved: true }` + `warn(edge, 0.5)` |
+| perm-env (LLM) | `src/engine/llm.ts` | `perm-env.access[]` | `{ dissolved: true }` — `complete()` never called |
+| perm-network (API) | `src/engine/api.ts` | `perm-network.allowed_hosts[]` | `{ dissolved: true }` — `fetch()` never called |
+| canCallSui (bridge) | `src/engine/bridge.ts` | `perm-network.allowed_hosts[]` | Sui tx skipped (fail-closed on TypeDB read error) |
+
+All four gates (plus the three signal-path stages) share the same
+`audit()` sink and `enforcementMode()` kill-switch from `src/engine/adl-cache.ts`.
+All five caches (`PERM_CACHE`, `BRIDGE_PERM_CACHE`, `LLM_ENV_CACHE`, `API_PERM_CACHE`, `SKILL_SCHEMA_CACHE`) flush atomically via `invalidateAdlCache(uid)`.
+
+### Enforcement Mode Kill-Switch
+
+```bash
+ADL_ENFORCEMENT_MODE=enforce   # default — denials block
+ADL_ENFORCEMENT_MODE=audit     # denials pass through + log [adl-audit]
+```
+
+Audit mode is the rollout safety net: every would-be block emits a record to
+the audit sink but the request proceeds. Flip to `enforce` once the audit
+stream shows only the denials you expect. Sui bridge is the one exception:
+TypeDB read errors always fail closed (real-money path) unless audit mode is
+explicitly set.
+
+### D1 Audit Trail
+
+`audit()` has two sinks: `console.warn` (CF worker logs) and an in-process ring
+buffer (1000 records max). Engine modules cannot bind D1 directly, so Astro
+routes drain the buffer at request boundaries:
+
+- **`POST /api/signal`** — flushes on every request (fire-and-forget, never awaited)
+- **`GET /api/adl/denials`** — flushes before reading so queries see fresh records
+
+Schema: `migrations/0011_adl_audit.sql` (columns: `ts, sender, receiver, gate, decision, mode, reason`). Query with `?gate=...&decision=...&receiver=...&since=ISO&limit=100`.
+
 ### Persona TypeDB Backing (W5)
 
 **File:** `nanoclaw/src/lib/sync-personas.ts` (new)

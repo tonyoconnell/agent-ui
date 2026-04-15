@@ -9,19 +9,36 @@
 
 import { Duration, Effect, Schedule, Schema } from 'effect'
 import { readParsed } from '@/lib/typedb'
+import { audit, enforcementMode, LLM_ENV_CACHE, LLM_ENV_TTL } from './adl-cache'
 import { type Unit, unit } from './world'
 
-// ADL: perm-env gate — cache LLM permission lookups (5-min TTL)
-const LLM_ENV_CACHE = new Map<string, { access: string[]; expires: number }>()
-const LLM_ENV_TTL = 5 * 60 * 1000
+// ADL: perm-env gate — shared cache from adl-cache.ts (Cycle 1.6 consolidation).
+// Invalidated by `invalidateAdlCache(uid)` on every ADL write path.
+
+const llmAccessAllows = (access: string[]): boolean => {
+  if (!access.length) return true
+  return access.includes('*') || access.some((k) => k.includes('API_KEY') || k.includes('OPENROUTER'))
+}
 
 /** Check if a caller has permission to use LLM providers. Fail-open if no perm-env set. */
 async function canCallLLM(callerId: string): Promise<boolean> {
   const key = `${callerId}:env`
   const cached = LLM_ENV_CACHE.get(key)
   if (cached && cached.expires > Date.now()) {
-    if (!cached.access.length) return true // no restrictions
-    return cached.access.includes('*') || cached.access.some((k) => k.includes('API_KEY') || k.includes('OPENROUTER'))
+    const allowed = llmAccessAllows(cached.access)
+    if (!allowed) {
+      const mode = enforcementMode()
+      audit({
+        sender: callerId,
+        receiver: 'llm',
+        gate: 'network',
+        decision: mode === 'audit' ? 'allow-audit' : 'deny',
+        mode,
+        reason: `perm-env access=${JSON.stringify(cached.access)} does not grant LLM key`,
+      })
+      if (mode === 'audit') return true
+    }
+    return allowed
   }
   const rows = await readParsed(
     `match $u isa unit, has uid "${callerId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", has perm-env $pe; select $pe;`,
@@ -37,8 +54,20 @@ async function canCallLLM(callerId: string): Promise<boolean> {
     }
   }
   LLM_ENV_CACHE.set(key, { access, expires: Date.now() + LLM_ENV_TTL })
-  if (!access.length) return true // no restrictions
-  return access.includes('*') || access.some((k) => k.includes('API_KEY') || k.includes('OPENROUTER'))
+  const allowed = llmAccessAllows(access)
+  if (!allowed) {
+    const mode = enforcementMode()
+    audit({
+      sender: callerId,
+      receiver: 'llm',
+      gate: 'network',
+      decision: mode === 'audit' ? 'allow-audit' : 'deny',
+      mode,
+      reason: `perm-env access=${JSON.stringify(access)} does not grant LLM key`,
+    })
+    if (mode === 'audit') return true
+  }
+  return allowed
 }
 
 type Complete = (prompt: string, ctx?: Record<string, unknown>) => Promise<string>

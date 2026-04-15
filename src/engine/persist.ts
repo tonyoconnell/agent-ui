@@ -2,6 +2,7 @@ import { encryptForGroup } from '@/lib/kek'
 import { emitSecurityEvent } from '@/lib/security-signals'
 import { parseAnswers, read, readParsed, writeSilent } from '@/lib/typedb'
 import { relayToGateway, wsManager } from '@/lib/ws-server'
+import { audit, enforcementMode, SKILL_SCHEMA_CACHE, SKILL_SCHEMA_TTL } from './adl-cache'
 import { mirrorActor, mirrorMark, mirrorWarn, settleEscrow } from './bridge'
 import { type DocKey, ingestDocs, loadContext } from './context'
 import { world as createWorld, type Signal, type World } from './world'
@@ -53,9 +54,8 @@ function checkNonce(nonce: string): 'ok' | 'replay' {
 const LIFECYCLE_TTL_MS = 5 * 60 * 1000
 const LIFECYCLE_CACHE = new Map<string, { status?: string; sunsetAt?: number; expires: number }>()
 
-// ADL schema cache (PEP-4): cache skill input-schema per uid:skill (5-min TTL)
-const SCHEMA_TTL_MS = 5 * 60 * 1000
-const SKILL_SCHEMA_CACHE = new Map<string, { schema: Record<string, unknown> | null; expires: number }>()
+// ADL schema cache (PEP-4): shared from adl-cache.ts (Cycle 1.6 consolidation).
+// Invalidated by `invalidateAdlCache(uid)` on every ADL write path.
 
 /** Minimal inline JSON Schema validator — no external deps. Handles type + required only. */
 function validateJsonSchema(data: unknown, schema: Record<string, unknown>): boolean {
@@ -657,14 +657,36 @@ export const world = (): PersistentWorld => {
       LIFECYCLE_CACHE.set(uid, { status: lcStatus, sunsetAt: lcSunsetAt, expires: lcNow + LIFECYCLE_TTL_MS })
     }
     if (lcStatus === 'retired' || lcStatus === 'deprecated') {
-      emitSecurityEvent({ kind: 'auth-fail', caller: from, reason: 'lifecycle-blocked' })
-      net.warn(edge, 0.5)
-      return { dissolved: true }
+      const mode = enforcementMode()
+      audit({
+        sender: from,
+        receiver: uid,
+        gate: 'lifecycle',
+        decision: mode === 'audit' ? 'allow-audit' : 'deny',
+        mode,
+        reason: `adl-status=${lcStatus}`,
+      })
+      if (mode === 'enforce') {
+        emitSecurityEvent({ kind: 'auth-fail', caller: from, reason: 'lifecycle-blocked' })
+        net.warn(edge, 0.5)
+        return { dissolved: true }
+      }
     }
     if (lcSunsetAt && Date.now() > lcSunsetAt) {
-      emitSecurityEvent({ kind: 'auth-fail', caller: from, reason: 'lifecycle-blocked' })
-      net.warn(edge, 0.5)
-      return { dissolved: true }
+      const mode = enforcementMode()
+      audit({
+        sender: from,
+        receiver: uid,
+        gate: 'lifecycle',
+        decision: mode === 'audit' ? 'allow-audit' : 'deny',
+        mode,
+        reason: `sunset-at ${new Date(lcSunsetAt).toISOString()} passed`,
+      })
+      if (mode === 'enforce') {
+        emitSecurityEvent({ kind: 'auth-fail', caller: from, reason: 'lifecycle-blocked' })
+        net.warn(edge, 0.5)
+        return { dissolved: true }
+      }
     }
 
     // PEP-4: skill schema validation — validate data against input-schema if declared (fail-open)
@@ -686,10 +708,19 @@ export const world = (): PersistentWorld => {
         } catch {
           inputSchema = null // malformed → fail open
         }
-        SKILL_SCHEMA_CACHE.set(schemaKey, { schema: inputSchema, expires: schemaTs + SCHEMA_TTL_MS })
+        SKILL_SCHEMA_CACHE.set(schemaKey, { schema: inputSchema, expires: schemaTs + SKILL_SCHEMA_TTL })
       }
       if (inputSchema && !validateJsonSchema(s.data, inputSchema)) {
-        return { dissolved: true }
+        const mode = enforcementMode()
+        audit({
+          sender: from,
+          receiver: s.receiver,
+          gate: 'schema',
+          decision: mode === 'audit' ? 'allow-audit' : 'deny',
+          mode,
+          reason: `skill ${skill} input-schema validation failed`,
+        })
+        if (mode === 'enforce') return { dissolved: true }
       }
     }
     // PEP-5: budget + rate-limit stubs (pass-through)

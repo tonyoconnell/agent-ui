@@ -505,10 +505,10 @@ parallelism, wall-time collapses to ~3 cycles of ~15–20 min each.
   - [x] W3 — Edits (Sonnet × 3 + tests, parallel)
   - [x] W4 — Verify rubric={fit:0.85, form:0.90, truth:0.95, taste:0.80} avg=0.875
   - [x] Cycle gate: 737/737 tests · biome clean · rubric ≥ 0.65 ✓
-  - [ ] ⚠️ **RETROFIT (Cycle 1.5):** task #9 `adl-cache-invalidate` + the 5
-    deferred decisions were not in scope when Cycle 1 closed. Land before
-    Cycle 2 W1 or include as Cycle 2 W0 prerequisite. Otherwise the
-    5-min staleness window described in `ADL-integration.md` is still open.
+  - [x] ⚠️ **RETROFIT (Cycle 1.5):** closed 2026-04-15 — see Cycle 1.5 below.
+    `ADL_ENFORCEMENT_MODE` now threaded through all 4 gates (lifecycle in
+    persist.ts, perm-env in llm.ts, perm-network in api.ts, bridge canCallSui).
+    91/91 tests pass on the affected files.
 - [x] **Cycle 1.5: RETROFIT** — cache invalidation + deferred decisions ✓ 2026-04-15
   - [x] Task #9 `adl-cache-invalidate` shipped (new `src/engine/adl-cache.ts`; `syncAdl` auto-invalidates; <100ms staleness close verified by test)
   - [x] 5 deferred decisions resolved: D1 `adl_audit` table (migration `0011_adl_audit.sql`) + Sui fails **closed** on TypeDB error + `private` scope does NOT bypass network gate + single `ADL_ENFORCEMENT_MODE` flag + uid-scoped invalidation (paths untouched)
