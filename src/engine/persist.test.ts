@@ -519,3 +519,103 @@ describe('Act 8: canBeDiscovered() — discovery lifecycle gate', () => {
     expect(lastCall).toContain('capability')
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 9: dissolve() — graceful exit (lifecycle Stage 10)
+//
+// dissolve(uid) is NOT forget(). It drains pending signals, marks the unit
+// "dissolved" in TypeDB with a timestamp, and emits a final dissolve signal
+// on all paths touching the unit so downstream units can learn.
+//
+// It does NOT remove from memory (L3 fade handles trail decay) and does NOT
+// delete TypeDB records (forget() does that — GDPR erasure is separate).
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Act 9: dissolve() — graceful exit, not erasure', () => {
+  let w: PersistentWorld
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    w = world()
+  })
+
+  it('dissolve() returns the uid, a dissolvedAt timestamp, drainedSignals, and pathsTouched', async () => {
+    w.actor('fading-agent')
+
+    const result = await w.dissolve('fading-agent')
+
+    expect(result.uid).toBe('fading-agent')
+    expect(typeof result.dissolvedAt).toBe('string')
+    expect(result.dissolvedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    expect(typeof result.drainedSignals).toBe('number')
+    expect(typeof result.pathsTouched).toBe('number')
+  })
+
+  it('dissolve() marks the unit status "dissolved" in TypeDB via writeSilent', async () => {
+    w.actor('retiring')
+
+    await w.dissolve('retiring')
+
+    const calls = vi.mocked(writeSilent).mock.calls.map((c) => c[0] as string)
+    const dissolveCall = calls.find((q) => q.includes('"dissolved"') && q.includes('"retiring"'))
+    expect(dissolveCall).toBeDefined()
+    expect(dissolveCall).toContain('dissolved-at')
+  })
+
+  it('dissolve() drains pending queue signals addressed to the unit', async () => {
+    w.actor('drainable')
+    // Enqueue signals for 'drainable' and an unrelated unit
+    w.enqueue({ receiver: 'drainable:task', data: { x: 1 } })
+    w.enqueue({ receiver: 'drainable', data: { x: 2 } })
+    w.enqueue({ receiver: 'other-unit', data: { x: 3 } })
+
+    expect(w.pending()).toBe(3)
+
+    const result = await w.dissolve('drainable')
+
+    expect(result.drainedSignals).toBe(2)
+    expect(w.pending()).toBe(1) // only 'other-unit' signal remains
+  })
+
+  it('dissolve() emits final dissolve signal on paths touching the unit', async () => {
+    w.actor('dissolving')
+    w.actor('neighbor')
+    // Lay a path from dissolving → neighbor so neighbor can receive the final signal
+    w.mark('dissolving→neighbor', 5)
+
+    const received: unknown[] = []
+    w.get('neighbor')?.on('default', (data) => {
+      received.push(data)
+      return data
+    })
+
+    const result = await w.dissolve('dissolving')
+
+    expect(result.pathsTouched).toBeGreaterThan(0)
+    // neighbor should have received the dissolve signal
+    expect(received.length).toBeGreaterThan(0)
+    expect((received[0] as Record<string, unknown>).kind).toBe('dissolve')
+    expect((received[0] as Record<string, unknown>).uid).toBe('dissolving')
+  })
+
+  it('dissolve() does NOT remove the unit from memory (forget() does that)', async () => {
+    w.actor('lingering')
+
+    await w.dissolve('lingering')
+
+    // Unit is still present in-memory — L3 fade handles trail decay
+    expect(w.has('lingering')).toBe(true)
+  })
+
+  it('dissolve() does NOT delete the unit entity from TypeDB (no "delete $u isa unit")', async () => {
+    w.actor('non-erased')
+
+    await w.dissolve('non-erased')
+
+    // dissolve may use delete-attribute syntax (match/delete attr/insert attr) for updates,
+    // but must NOT issue an entity delete ("delete $u isa unit") — that is forget()'s job.
+    const calls = vi.mocked(writeSilent).mock.calls.map((c) => c[0] as string)
+    const entityDeleteCalls = calls.filter((q) => q.includes('non-erased') && /delete\s+\$\w+\s+isa\s+unit/.test(q))
+    expect(entityDeleteCalls.length).toBe(0)
+  })
+})

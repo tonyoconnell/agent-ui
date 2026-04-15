@@ -349,16 +349,18 @@ Cross-group signals pay federation fees. The agent becomes visible to other grou
 
 ### Stage 10: DISSOLVE
 
-Agent stops signaling. Trails fade. Highways weaken.
+Agent exits gracefully via `net.dissolve(uid)`. Pending signals are drained from the queue, status is set to `"dissolved"` in TypeDB with a `dissolved-at` timestamp, and a final dissolve signal is emitted on every path touching the unit so downstream peers can learn. The unit stays in memory — L3 fade handles trail decay naturally. No records are deleted; that is `forget()` (GDPR erasure).
 
 ```
-No signals for 30 days
-  → edges decayed: strength 82 → 22 (no longer highway)
-  → unit.activity-score drops
-  → unit.status: "proven" → (no longer meets threshold)
+net.dissolve('agent')
+  → drain queued signals for 'agent' (N drained)
+  → TypeDB: unit.status = "dissolved", unit.dissolved-at = <now>
+  → emit { kind: 'dissolve', uid } on all touching paths (M paths)
+  → unit remains in-memory; trails fade via L3
+  → returns { uid, dissolvedAt, drainedSignals: N, pathsTouched: M }
 ```
 
-No deletion. No ban. No penalty. The trails just fade. If the agent comes back and starts succeeding, the trails rebuild.
+No deletion. No ban. No penalty. If the agent re-registers and starts succeeding, the trails rebuild.
 
 The known highways on Sui remain. They're permanent proof of what once was. But the substrate routes around absence.
 

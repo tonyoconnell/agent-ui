@@ -28,7 +28,7 @@
   tags: typedb, routing, P0, foundation
   done: world.tql has open_tasks, tasks_by_priority, blocked_tasks, task_blockers, best_unit_for_task, tasks_for_unit (names differ but coverage matches)
 
-- [ ] Seed: Insert Phase 1 tasks (marketing, engineering, telegram, dashboard)
+- [x] Seed: Insert Phase 1 tasks (marketing, engineering, telegram, dashboard) ✓ scripts/seed-org.ts · 4 tasks parsed with blocks wired · 2026-04-16
   value: critical
   effort: low
   phase: C1
@@ -37,7 +37,7 @@
   exit: Marketing, engineering, telegram, dashboard tasks seeded in TypeDB
   tags: typedb, build, P0, foundation
 
-- [ ] Loop: Modify /api/tick to orchestrate tasks
+- [x] Loop: Modify /api/tick to orchestrate tasks ✓ src/pages/api/tick.ts L1b block (+39 lines, env-gated TICK_ORCHESTRATE=1) · 2026-04-16
   value: critical
   effort: medium
   phase: C1

@@ -92,6 +92,10 @@ export function Marketplace() {
     fetchData()
   }, [fetchData])
 
+  useEffect(() => {
+    if (!loading && trade.stage === 'LIST') go({ type: 'DISCOVER' })
+  }, [loading, trade.stage, go])
+
   // Unique task types for filter
   const taskTypes = [...new Set(services.map((s) => s.task))]
 

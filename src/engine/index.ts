@@ -50,6 +50,7 @@ export {
 export type { Actor, Loop, LoopResult, Marker, Outcome, Selector, Source } from './core'
 // Loop system — the one loop
 export { compose, loop, schedule } from './core'
+export { federate, federateSignal } from './federation'
 export type { Caller, ModelSpec, RouteChoice, RouteOutcome, RouteRequest } from './llm-router'
 // LLM router — tags × pheromone × rubrics
 export { chooseModel, markOutcome, openAiCaller, route, seedModels } from './llm-router'

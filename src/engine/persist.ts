@@ -107,6 +107,10 @@ export interface PersistentWorld extends World {
   selfCheckoff: (taskId: string) => Promise<void>
   subscribe: (unitId: string, tags: string[]) => void
   tasksFor: (unitId: string) => Promise<TaskMatch[]>
+  dissolve: (
+    uid: string,
+    opts?: { reason?: string },
+  ) => Promise<{ uid: string; dissolvedAt: string; drainedSignals: number; pathsTouched: number }>
   sync: () => Promise<void>
   load: () => Promise<void>
   settle: (
@@ -910,6 +914,69 @@ export const world = (): PersistentWorld => {
       .sort((a, b) => b.overlap * b.priority + b.strength - (a.overlap * a.priority + a.strength))
   }
 
+  // dissolve: graceful exit — drains pending signals, marks status "dissolved" in TypeDB,
+  // emits final dissolve signal on all paths touching this unit, does NOT delete records.
+  // L3 fade handles trail decay naturally. Use forget() for GDPR erasure.
+  const dissolve = async (
+    uid: string,
+    opts?: { reason?: string },
+  ): Promise<{ uid: string; dissolvedAt: string; drainedSignals: number; pathsTouched: number }> => {
+    const dissolvedAt = new Date().toISOString()
+    const safeUid = escapeStr(uid)
+
+    // 1. Drain any pending signals addressed to this unit from the queue
+    let drainedSignals = 0
+    let i = net.queue.length
+    while (i--) {
+      const qUid = net.queue[i].receiver.includes(':') ? net.queue[i].receiver.split(':')[0] : net.queue[i].receiver
+      if (qUid === uid) {
+        net.queue.splice(i, 1)
+        drainedSignals++
+      }
+    }
+
+    // 2. Mark status "dissolved" + dissolved-at timestamp in TypeDB
+    const ts = dissolvedAt.replace('Z', '')
+    writeSilent(`
+      match $u isa unit, has uid "${safeUid}", has status $s;
+      delete $s of $u;
+      insert $u has status "dissolved", has dissolved-at ${ts};
+    `).catch(() => {})
+    // Handle units that may not yet have a status attribute
+    writeSilent(`
+      match $u isa unit, has uid "${safeUid}";
+      not { $u has status $s; };
+      insert $u has status "dissolved", has dissolved-at ${ts};
+    `).catch(() => {})
+
+    // 3. Find all paths touching this unit and emit a final dissolve signal on each
+    const touchingEdges = Object.keys({ ...net.strength, ...net.resistance }).filter((e) => {
+      const [from, to] = e.split('→')
+      const fromId = from?.split(':')[0]
+      const toId = to?.split(':')[0]
+      return fromId === uid || toId === uid
+    })
+    for (const edge of touchingEdges) {
+      const [from, to] = edge.split('→')
+      const peer = from?.split(':')[0] === uid ? to?.split(':')[0] : from?.split(':')[0]
+      if (peer && net.has(peer)) {
+        net.signal(
+          {
+            receiver: peer,
+            data: { kind: 'dissolve', uid, reason: opts?.reason ?? 'graceful-exit', marks: false },
+          },
+          uid,
+        )
+      }
+    }
+    const pathsTouched = touchingEdges.length
+
+    // 4. Do NOT remove from in-memory world — L3 fade handles trail decay naturally
+    // 5. Do NOT delete TypeDB records — forget() does that
+
+    return { uid, dissolvedAt, drainedSignals, pathsTouched }
+  }
+
   return {
     ...net,
     mark,
@@ -944,6 +1011,7 @@ export const world = (): PersistentWorld => {
     selfCheckoff,
     subscribe,
     tasksFor,
+    dissolve,
     sync,
     load,
   }

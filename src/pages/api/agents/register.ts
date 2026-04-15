@@ -14,6 +14,7 @@
 
 import type { APIRoute } from 'astro'
 import { world } from '@/engine/persist'
+import { addressFor } from '@/lib/sui'
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -42,11 +43,13 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
+    const wallet = await addressFor(body.uid).catch(() => null)
     return Response.json({
       ok: true,
       uid: body.uid,
       status: 'registered',
       kind,
+      wallet,
       capabilities: body.capabilities?.length || 0,
     })
   } catch (e) {

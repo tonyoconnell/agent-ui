@@ -1,5 +1,5 @@
 {
-  "count": 415,
+  "count": 419,
   "files": [
     "src/components/EdgeInfo.tsx",
     "src/components/design/DesignSystemShowcase.tsx",
@@ -23,6 +23,7 @@
     "src/components/onboard/DiscoverGrid.tsx",
     "src/components/onboard/TeamBuilder.tsx",
     "src/components/onboard/SignupForm.tsx",
+    "src/components/AgentAd/AgentAd.tsx",
     "src/components/dashboard/KpiCard.tsx",
     "src/components/Marketplace.tsx",
     "src/components/ai/Suggestions.tsx",

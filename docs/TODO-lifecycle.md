@@ -450,7 +450,7 @@ curl localhost:4321/api/state | jq '.paths["entry→test-agent"]'
   tags: engine, lifecycle, P1
   done: deriveKeypair(uid) in src/lib/sui.ts, HKDF-SHA256(seed||uid) → Ed25519
 
-- [ ] ProvenCapability on-chain structure
+- [x] ProvenCapability on-chain structure ✓ Highway struct in src/move/one/sources/one.move:583-607 (freeze_object immutable) + sui-highway-id attr in world.tql · 2026-04-16
   id: impl-proven-capability
   value: high
   effort: medium

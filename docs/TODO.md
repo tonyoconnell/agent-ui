@@ -5,8 +5,8 @@
 
 ```mermaid
 pie title ONE Substrate — 570 Tasks
-    "Done (314)" : 314
-    "Open (256)" : 256
+    "Done (316)" : 316
+    "Open (254)" : 254
 ```
 
 ---
@@ -125,7 +125,7 @@ timeline
 | [testing](TODO-testing.md) | 33 / 40 done | GROW — router, human, lifecycle-gates, learning, subscribe landed |
 | [ONE-strategy](TODO-ONE-strategy.md) | 3 / 14 done | GROW — CEO panel, 7 personas, marketplace |
 | [template](TODO-template.md) | 0 / 8 done | WIRE — template as /todo skill |
-| [lifecycle](TODO-lifecycle.md) | 22 / 28 done | GROW — harden() + ProvenCapability shipped, federate/dissolve next |
+| [lifecycle](TODO-lifecycle.md) | 24 / 28 done | GROW — harden + federate + dissolve all shipped, DROP→HIGHWAY gate next |
 | [client-ui](TODO-client-ui.md) | 1 / 9 done | WIRE — UI component work |
 | [autonomous-orgs](TODO-autonomous-orgs.md) | 6 / 10 done | GROW — seed + tick L1b orchestration landed |
 | [security](TODO-security.md) | 0 / 5 done | WIRE — security hardening |

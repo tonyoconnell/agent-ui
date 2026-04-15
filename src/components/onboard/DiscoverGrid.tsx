@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useState, useTransition } from 'react'
+import { AgentAd } from '@/components/AgentAd/AgentAd'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 
@@ -28,6 +29,7 @@ export function DiscoverGrid() {
   const [activeFilter, setActiveFilter] = useState('')
   const [isPending, startTransition] = useTransition()
   const [loaded, setLoaded] = useState(false)
+  const [activeRun, setActiveRun] = useState<string | null>(null)
 
   const fetchAgents = useCallback((task?: string) => {
     startTransition(async () => {
@@ -145,43 +147,58 @@ export function DiscoverGrid() {
               {grouped[taskName]
                 .sort((a, b) => b.strength - a.strength)
                 .map((agent, i) => (
-                  <a
-                    key={`${agent.uid}-${i}`}
-                    href={`/u/${agent.name}`}
-                    className="group rounded-xl border border-[#252538] bg-[#161622] p-5 transition-all hover:border-violet-500/40 hover:bg-[#1a1a2a]"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-semibold text-white group-hover:text-violet-300 transition-colors">
-                            {agent.name}
+                  <div key={`${agent.uid}-${i}`} className="flex flex-col gap-2">
+                    <div className="rounded-xl border border-[#252538] bg-[#161622] p-5 transition-all hover:border-violet-500/40">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={`/u/${agent.name}`}
+                              className="font-mono font-semibold text-white hover:text-violet-300 transition-colors"
+                            >
+                              {agent.name}
+                            </a>
+                            <Badge variant="outline" className="text-[10px] border-[#353548] text-slate-500">
+                              {agent.unitKind}
+                            </Badge>
+                          </div>
+                          <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-500">
+                            <span>rep: {(agent.reputation || 0).toFixed(1)}</span>
+                            <span>success: {((agent.successRate || 0) * 100).toFixed(0)}%</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-mono text-sm text-emerald-400">
+                            {agent.price} {agent.currency || 'SUI'}
                           </span>
-                          <Badge variant="outline" className="text-[10px] border-[#353548] text-slate-500">
-                            {agent.unitKind}
-                          </Badge>
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-500">
-                          <span>rep: {(agent.reputation || 0).toFixed(1)}</span>
-                          <span>success: {((agent.successRate || 0) * 100).toFixed(0)}%</span>
+                          <div className="mt-1">
+                            <Badge variant="secondary" className="bg-[#252538] text-slate-400 text-[10px]">
+                              {agent.taskType}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="font-mono text-sm text-emerald-400">
-                          {agent.price} {agent.currency || 'SUI'}
-                        </span>
-                        <div className="mt-1">
-                          <Badge variant="secondary" className="bg-[#252538] text-slate-400 text-[10px]">
-                            {agent.taskType}
-                          </Badge>
-                        </div>
+                      <div className="mt-3">{strengthBar(agent.strength)}</div>
+                      <div className="mt-1.5 flex items-end justify-between text-[10px] text-slate-600">
+                        <span>edge strength · {(agent.strength || 0).toFixed(1)}</span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveRun(activeRun === agent.uid ? null : agent.uid)}
+                          className="text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+                        >
+                          {activeRun === agent.uid ? 'collapse ↑' : 'Run →'}
+                        </button>
                       </div>
                     </div>
-                    <div className="mt-3">{strengthBar(agent.strength)}</div>
-                    <div className="mt-1.5 flex justify-between text-[10px] text-slate-600">
-                      <span>edge strength</span>
-                      <span>{(agent.strength || 0).toFixed(1)}</span>
-                    </div>
-                  </a>
+                    {activeRun === agent.uid && (
+                      <AgentAd
+                        agentId={agent.uid}
+                        skill={agent.taskType || 'default'}
+                        price={agent.price}
+                        headline={`${agent.name} — ${agent.taskName}`}
+                      />
+                    )}
+                  </div>
                 ))}
             </div>
           </div>

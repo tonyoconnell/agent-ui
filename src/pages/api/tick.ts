@@ -7,7 +7,9 @@
 import type { APIRoute } from 'astro'
 import { openrouter } from '@/engine/llm'
 import { tick } from '@/engine/loop'
+import { selfCheckoff } from '@/engine/task-sync'
 import { getNet, reloadMeta } from '@/lib/net'
+import { readParsed } from '@/lib/typedb'
 
 let lastTick = 0
 
@@ -115,10 +117,49 @@ export const GET: APIRoute = async ({ url }) => {
   const complete = openrouter(apiKey)
   const result = await tick(net, complete)
 
+  // L1b: Task orchestration (feature-gated — opt-in via TICK_ORCHESTRATE=1)
+  let taskOrchestration: { selected: string | null; agent: string | null; outcome: string } | null = null
+  if (import.meta.env.TICK_ORCHESTRATE === '1') {
+    try {
+      const rows = await readParsed(`
+        match $t isa task, has done false, has status "open";
+        not { (blocker: $b, blocked: $t) isa blocks; $b has done false; };
+        $t has priority-score $p;
+        select $t, $p;
+        sort $p desc; limit 1;
+      `)
+      if (rows.length > 0) {
+        const taskRow = rows[0]
+        const taskId = (taskRow.t as Record<string, unknown>)?.['task-id'] as string | undefined
+        const tags = (taskRow.t as Record<string, unknown>)?.tag as string[] | string | undefined
+        const tagList = Array.isArray(tags) ? tags : tags ? [tags] : []
+        const bestAgent = tagList.length > 0 ? net.select(tagList[0]) : net.select()
+        if (taskId && bestAgent) {
+          const { result: taskResult, dissolved } = await net.ask({ receiver: bestAgent, data: taskRow.t })
+          if (taskResult) {
+            await selfCheckoff(taskId, net)
+            taskOrchestration = { selected: taskId, agent: bestAgent, outcome: 'result' }
+          } else if (dissolved) {
+            net.warn(`loop→${bestAgent}`, 0.5)
+            taskOrchestration = { selected: taskId, agent: bestAgent, outcome: 'dissolved' }
+          } else {
+            net.warn(`loop→${bestAgent}`, 1)
+            taskOrchestration = { selected: taskId, agent: bestAgent, outcome: 'failure' }
+          }
+        } else {
+          taskOrchestration = { selected: taskId ?? null, agent: null, outcome: 'no-agent' }
+        }
+      }
+    } catch {
+      // Silently skip orchestration errors; main tick result is unaffected
+    }
+  }
+
   return new Response(
     JSON.stringify({
       ticked: true,
       result,
+      ...(taskOrchestration !== undefined ? { taskOrchestration } : {}),
       lastRun: new Date(now).toISOString(),
       nextRun: new Date(now + interval).toISOString(),
       loopTimings: {

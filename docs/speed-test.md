@@ -6,8 +6,8 @@
 
 |  |  |
 |---|---|
-| Generated at | 2026-04-15T20:46:06.683Z |
-| Test run at | 2026-04-15T20:45:59.747Z |
+| Generated at | 2026-04-15T21:20:03.097Z |
+| Test run at | 2026-04-15T21:19:56.108Z |
 | Benchmarks measured | 88 named ops, 101 samples |
 | Budget coverage | 45 / 45 operations |
 | Verdict | **45 pass** · **0 over** · 0 missing |
@@ -33,169 +33,169 @@ to get a verdict column.
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `routing:select:100` | 0.005ms | 0.009 | 0.009 | 0.009 | 1 | ◐ pass (within 3× scale) | LLM routing (~300ms) |
-| `routing:select:1000` | 1.00ms | 0.108 | 0.108 | 0.108 | 1 | ✓ pass | search API + rank |
-| `routing:follow` | 0.050ms | 0.007 | 0.007 | 0.007 | 1 | ✓ pass | keyword search |
-| `routing:follow:batch-10k` | 0.005ms | 0.007 | 0.007 | 0.007 | 1 | ◐ pass (within 3× scale) |  |
+| `routing:select:100` | 0.005ms | 0.008 | 0.008 | 0.008 | 1 | ◐ pass (within 3× scale) | LLM routing (~300ms) |
+| `routing:select:1000` | 1.00ms | 0.112 | 0.112 | 0.112 | 1 | ✓ pass | search API + rank |
+| `routing:follow` | 0.050ms | 0.006 | 0.006 | 0.006 | 1 | ✓ pass | keyword search |
+| `routing:follow:batch-10k` | 0.005ms | 0.006 | 0.006 | 0.006 | 1 | ◐ pass (within 3× scale) |  |
 
 ### Pheromone Layer
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `pheromone:mark` | 0.001ms | 3.95e-4 | 3.95e-4 | 3.95e-4 | 1 | ✓ pass | DB write (~10ms) |
-| `pheromone:warn` | 0.001ms | 2.96e-4 | 2.96e-4 | 2.96e-4 | 1 | ✓ pass |  |
-| `pheromone:sense` | 0.001ms | 5.87e-5 | 5.87e-5 | 5.87e-5 | 1 | ✓ pass |  |
-| `pheromone:fade:1000` | 5.00ms | 0.195 | 0.195 | 0.195 | 1 | ✓ pass |  |
+| `pheromone:mark` | 0.001ms | 3.18e-4 | 3.18e-4 | 3.18e-4 | 1 | ✓ pass | DB write (~10ms) |
+| `pheromone:warn` | 0.001ms | 1.59e-4 | 1.59e-4 | 1.59e-4 | 1 | ✓ pass |  |
+| `pheromone:sense` | 0.001ms | 1.04e-4 | 1.04e-4 | 1.04e-4 | 1 | ✓ pass |  |
+| `pheromone:fade:1000` | 5.00ms | 0.186 | 0.186 | 0.186 | 1 | ✓ pass |  |
 | `pheromone:highways:top10` | 5.00ms | 0.002 | 0.002 | 0.002 | 1 | ✓ pass |  |
 
 ### Signal Layer
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `signal:dispatch` | 1.00ms | 8.19e-4 | 8.19e-4 | 8.19e-4 | 1 | ✓ pass | HTTP call (~50ms) |
-| `signal:dispatch:dissolved` | 1.00ms | 1.73e-4 | 1.73e-4 | 1.73e-4 | 1 | ✓ pass |  |
+| `signal:dispatch` | 1.00ms | 0.001 | 0.001 | 0.001 | 1 | ✓ pass | HTTP call (~50ms) |
+| `signal:dispatch:dissolved` | 1.00ms | 1.41e-4 | 1.41e-4 | 1.41e-4 | 1 | ✓ pass |  |
 | `signal:queue:roundtrip` | 1.00ms | 0.002 | 0.002 | 0.002 | 1 | ✓ pass |  |
-| `signal:ask:chain-3` | 100ms | 0.023 | 0.023 | 0.023 | 1 | ✓ pass | 3 sequential LLM (~6s) |
+| `signal:ask:chain-3` | 100ms | 0.024 | 0.024 | 0.024 | 1 | ✓ pass | 3 sequential LLM (~6s) |
 
 ### Identity Layer
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `identity:sui:address` | 5.00ms | 3.30 | 3.30 | 3.30 | 1 | ✓ pass |  |
+| `identity:sui:address` | 5.00ms | 2.19 | 2.19 | 2.19 | 1 | ✓ pass |  |
 
 ### Edge Cache Layer
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `edge:cache:hit` | 0.010ms | 4.21e-4 | 4.21e-4 | 4.21e-4 | 1 | ✓ pass | TypeDB round-trip (~100ms) |
+| `edge:cache:hit` | 0.010ms | 2.81e-4 | 2.81e-4 | 2.81e-4 | 1 | ✓ pass | TypeDB round-trip (~100ms) |
 
 ### Sui Layer
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `sui:keypair:derive` | 5.00ms | 3.65 | 3.65 | 3.65 | 1 | ✓ pass | HSM round-trip |
-| `sui:keypair:platform` | 0.001ms | 1.97e-4 | 1.97e-4 | 1.97e-4 | 1 | ✓ pass |  |
+| `sui:keypair:derive` | 5.00ms | 3.11 | 3.11 | 3.11 | 1 | ✓ pass | HSM round-trip |
+| `sui:keypair:platform` | 0.001ms | 1.61e-4 | 1.61e-4 | 1.61e-4 | 1 | ✓ pass |  |
 | `sui:tx:build` | 0.010ms | 0.001 | 0.001 | 0.001 | 1 | ✓ pass |  |
-| `sui:tx:build:movecall` | 0.100ms | 0.032 | 0.032 | 0.032 | 1 | ✓ pass |  |
-| `sui:sign` | 5.00ms | 0.456 | 0.456 | 0.456 | 1 | ✓ pass |  |
+| `sui:tx:build:movecall` | 0.100ms | 0.026 | 0.026 | 0.026 | 1 | ✓ pass |  |
+| `sui:sign` | 5.00ms | 0.510 | 0.510 | 0.510 | 1 | ✓ pass |  |
 
 ### Bridge (TypeDB ↔ Sui)
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `bridge:mirror:unit` | 10.00ms | 0.005 | 0.005 | 0.005 | 1 | ✓ pass | manual on-chain deploy |
-| `bridge:mirror:mark` | 5.00ms | 0.008 | 0.008 | 0.008 | 1 | ✓ pass |  |
+| `bridge:mirror:unit` | 10.00ms | 0.006 | 0.006 | 0.006 | 1 | ✓ pass | manual on-chain deploy |
+| `bridge:mirror:mark` | 5.00ms | 0.007 | 0.007 | 0.007 | 1 | ✓ pass |  |
 
 ### Lifecycle Stages
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `lifecycle:register` | 10.00ms | 6.22 | 6.22 | 6.22 | 1 | ✓ pass | agent onboarding flow |
-| `lifecycle:capable:build` | 0.100ms | 3.88e-4 | 3.88e-4 | 3.88e-4 | 1 | ✓ pass |  |
-| `lifecycle:discover` | 1.00ms | 0.003 | 0.003 | 0.003 | 1 | ✓ pass | search + rank API |
-| `lifecycle:signal+mark` | 5.00ms | 0.012 | 0.012 | 0.012 | 1 | ✓ pass |  |
-| `lifecycle:highway:select` | 0.010ms | 0.004 | 0.004 | 0.004 | 1 | ✓ pass | LLM decision |
-| `lifecycle:federate:hop` | 1.00ms | 5.06e-4 | 5.06e-4 | 5.06e-4 | 1 | ✓ pass |  |
-| `lifecycle:e2e` | 50.00ms | 3.16 | 3.16 | 3.16 | 1 | ✓ pass |  |
+| `lifecycle:register` | 10.00ms | 6.13 | 6.13 | 6.13 | 1 | ✓ pass | agent onboarding flow |
+| `lifecycle:capable:build` | 0.100ms | 2.90e-4 | 2.90e-4 | 2.90e-4 | 1 | ✓ pass |  |
+| `lifecycle:discover` | 1.00ms | 0.002 | 0.002 | 0.002 | 1 | ✓ pass | search + rank API |
+| `lifecycle:signal+mark` | 5.00ms | 0.009 | 0.009 | 0.009 | 1 | ✓ pass |  |
+| `lifecycle:highway:select` | 0.010ms | 0.003 | 0.003 | 0.003 | 1 | ✓ pass | LLM decision |
+| `lifecycle:federate:hop` | 1.00ms | 2.13e-4 | 2.13e-4 | 2.13e-4 | 1 | ✓ pass |  |
+| `lifecycle:e2e` | 50.00ms | 2.66 | 2.66 | 2.66 | 1 | ✓ pass |  |
 
 ### Intent Cache
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `intent:resolve:label` | 0.050ms | 8.62e-4 | 8.62e-4 | 8.62e-4 | 1 | ✓ pass | LLM classify (~500ms) |
+| `intent:resolve:label` | 0.050ms | 5.99e-4 | 5.99e-4 | 5.99e-4 | 1 | ✓ pass | LLM classify (~500ms) |
 | `intent:resolve:keyword` | 0.100ms | 0.002 | 0.002 | 0.002 | 1 | ✓ pass |  |
-| `intent:resolve:miss` | 0.050ms | 0.001 | 0.001 | 0.001 | 1 | ✓ pass |  |
+| `intent:resolve:miss` | 0.050ms | 8.10e-4 | 8.10e-4 | 8.10e-4 | 1 | ✓ pass |  |
 
 ### WebSocket Broadcast
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `ws:broadcast:roundtrip` | 1.00ms | 7.43e-4 | 7.43e-4 | 7.43e-4 | 1 | ✓ pass | polling loop (~5s) |
+| `ws:broadcast:roundtrip` | 1.00ms | 3.73e-4 | 3.73e-4 | 3.73e-4 | 1 | ✓ pass | polling loop (~5s) |
 
 ### Durable Ask
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `ask:durable:overhead` | 30.00ms | 0.004 | 0.004 | 0.004 | 1 | ✓ pass |  |
+| `ask:durable:overhead` | 30.00ms | 0.005 | 0.005 | 0.005 | 1 | ✓ pass |  |
 
 ### Channels
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `channels:telegram:normalize` | 0.050ms | 1.29e-4 | 1.29e-4 | 1.29e-4 | 1 | ✓ pass |  |
-| `channels:web:message` | 0.010ms | 1.01e-4 | 1.01e-4 | 1.01e-4 | 1 | ✓ pass |  |
+| `channels:telegram:normalize` | 0.050ms | 6.14e-4 | 6.14e-4 | 6.14e-4 | 1 | ✓ pass |  |
+| `channels:web:message` | 0.010ms | 1.12e-4 | 1.12e-4 | 1.12e-4 | 1 | ✓ pass |  |
 
 ### Slow Loops (L3–L7)
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `loop:L3:fade:1000` | 5.00ms | 0.234 | 0.234 | 0.234 | 1 | ✓ pass |  |
-| `loop:L4:economic` | 10.00ms | 0.022 | 0.022 | 0.022 | 1 | ✓ pass |  |
-| `loop:L5:evolution:detect` | 5.00ms | 0.010 | 0.010 | 0.010 | 1 | ✓ pass |  |
+| `loop:L3:fade:1000` | 5.00ms | 0.141 | 0.141 | 0.141 | 1 | ✓ pass |  |
+| `loop:L4:economic` | 10.00ms | 0.023 | 0.023 | 0.023 | 1 | ✓ pass |  |
+| `loop:L5:evolution:detect` | 5.00ms | 0.009 | 0.009 | 0.009 | 1 | ✓ pass |  |
 | `loop:L6:know:scan` | 1.00ms | 0.002 | 0.002 | 0.002 | 1 | ✓ pass |  |
-| `loop:L7:frontier:scan` | 5.00ms | 0.008 | 0.008 | 0.008 | 1 | ✓ pass |  |
+| `loop:L7:frontier:scan` | 5.00ms | 0.015 | 0.015 | 0.015 | 1 | ✓ pass |  |
 
 ### Page SSR
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `page:ssr:world` | 1.00ms | 0.004 | 0.004 | 0.004 | 1 | ✓ pass | client fetch waterfall (~500ms) |
-| `page:ssr:chat:config` | 0.010ms | 8.95e-5 | 8.95e-5 | 8.95e-5 | 1 | ✓ pass |  |
+| `page:ssr:world` | 1.00ms | 0.002 | 0.002 | 0.002 | 1 | ✓ pass | client fetch waterfall (~500ms) |
+| `page:ssr:chat:config` | 0.010ms | 1.03e-4 | 1.03e-4 | 1.03e-4 | 1 | ✓ pass |  |
 
 ### TypeDB Read Path
 
 | Operation | Budget | p50 | p95 | max | n | Verdict | Replaces |
 |-----------|-------:|----:|----:|----:|--:|:--------|----------|
-| `typedb:read:parse` | 1.00ms | 0.134 | 0.134 | 0.134 | 1 | ✓ pass |  |
-| `typedb:read:boot` | 10.00ms | 0.143 | 0.143 | 0.143 | 1 | ✓ pass |  |
+| `typedb:read:parse` | 1.00ms | 0.092 | 0.092 | 0.092 | 1 | ✓ pass |  |
+| `typedb:read:boot` | 10.00ms | 0.101 | 0.101 | 0.101 | 1 | ✓ pass |  |
 
 ### Ad-hoc samples (no budget)
 
 | Name | n | p50 | p95 | max |
 |------|--:|----:|----:|----:|
-| `sui:address:derive` | 1 | 2.93 | 2.93 | 2.93 |
-| `agents:parse:analyst.md` | 2 | 0.466 | 0.466 | 0.466 |
-| `agents:parse:asi-builder.md` | 1 | 0.350 | 0.350 | 0.350 |
-| `agents:parse:coder.md` | 1 | 0.739 | 0.739 | 0.739 |
-| `agents:parse:community.md` | 1 | 0.751 | 0.751 | 0.751 |
-| `agents:parse:concierge.md` | 1 | 0.467 | 0.467 | 0.467 |
-| `agents:parse:classify.md` | 1 | 0.114 | 0.114 | 0.114 |
-| `agents:parse:valence.md` | 1 | 0.107 | 0.107 | 0.107 |
-| `agents:parse:ai-ranking.md` | 2 | 0.540 | 0.540 | 0.540 |
-| `agents:parse:citation.md` | 2 | 0.329 | 0.329 | 0.329 |
-| `agents:parse:cmo.md` | 2 | 0.373 | 0.373 | 0.373 |
-| `agents:parse:forum.md` | 2 | 0.211 | 0.211 | 0.211 |
-| `agents:parse:full.md` | 2 | 0.208 | 0.208 | 0.208 |
-| `agents:parse:monthly.md` | 2 | 0.205 | 0.205 | 0.205 |
-| `agents:parse:niche-dir.md` | 2 | 0.586 | 0.586 | 0.586 |
-| `agents:parse:outreach.md` | 2 | 0.808 | 0.808 | 0.808 |
-| `agents:parse:quick.md` | 2 | 0.526 | 0.526 | 0.526 |
-| `agents:parse:schema.md` | 2 | 0.399 | 0.399 | 0.399 |
-| `agents:parse:social.md` | 3 | 0.209 | 0.281 | 0.281 |
-| `agents:parse:designer.md` | 1 | 0.345 | 0.345 | 0.345 |
-| `agents:parse:ehc-officer.md` | 1 | 0.274 | 0.274 | 0.274 |
-| `agents:parse:eth-dev.md` | 1 | 0.299 | 0.299 | 0.299 |
-| `agents:parse:founder.md` | 1 | 0.251 | 0.251 | 0.251 |
-| `agents:parse:guard.md` | 1 | 0.173 | 0.173 | 0.173 |
-| `agents:parse:harvester.md` | 1 | 0.155 | 0.155 | 0.155 |
-| `agents:parse:ads.md` | 1 | 0.233 | 0.233 | 0.233 |
-| `agents:parse:content.md` | 1 | 0.396 | 0.396 | 0.396 |
-| `agents:parse:creative.md` | 1 | 0.236 | 0.236 | 0.236 |
-| `agents:parse:director.md` | 1 | 0.196 | 0.196 | 0.196 |
-| `agents:parse:media-buyer.md` | 1 | 0.234 | 0.234 | 0.234 |
-| `agents:parse:seo.md` | 1 | 0.234 | 0.234 | 0.234 |
-| `agents:parse:nanoclaw.md` | 1 | 0.247 | 0.247 | 0.247 |
-| `agents:parse:ops.md` | 1 | 0.268 | 0.268 | 0.268 |
-| `agents:parse:researcher.md` | 1 | 0.355 | 0.355 | 0.355 |
-| `agents:parse:router.md` | 1 | 0.447 | 0.447 | 0.447 |
-| `agents:parse:scout.md` | 1 | 0.165 | 0.165 | 0.165 |
-| `agents:parse:teacher.md` | 1 | 0.416 | 0.416 | 0.416 |
-| `agents:parse:trader.md` | 1 | 0.239 | 0.239 | 0.239 |
-| `agents:parse:tutor.md` | 1 | 0.182 | 0.182 | 0.182 |
-| `agents:parse:writer.md` | 1 | 0.175 | 0.175 | 0.175 |
-| `naming:scan-src` | 1 | 49.72 | 49.72 | 49.72 |
-| `signalSender:mark` | 1 | 0.038 | 0.038 | 0.038 |
-| `edge:cache:hit:sync-path` | 1 | 5.33e-5 | 5.33e-5 | 5.33e-5 |
+| `sui:address:derive` | 1 | 3.45 | 3.45 | 3.45 |
+| `naming:scan-src` | 1 | 114 | 114 | 114 |
+| `agents:parse:analyst.md` | 2 | 0.187 | 0.187 | 0.187 |
+| `agents:parse:asi-builder.md` | 1 | 0.278 | 0.278 | 0.278 |
+| `agents:parse:coder.md` | 1 | 0.415 | 0.415 | 0.415 |
+| `agents:parse:community.md` | 1 | 0.223 | 0.223 | 0.223 |
+| `agents:parse:concierge.md` | 1 | 0.167 | 0.167 | 0.167 |
+| `agents:parse:classify.md` | 1 | 0.282 | 0.282 | 0.282 |
+| `agents:parse:valence.md` | 1 | 0.086 | 0.086 | 0.086 |
+| `agents:parse:ai-ranking.md` | 2 | 0.213 | 0.213 | 0.213 |
+| `agents:parse:citation.md` | 2 | 0.161 | 0.161 | 0.161 |
+| `agents:parse:cmo.md` | 2 | 0.250 | 0.250 | 0.250 |
+| `agents:parse:forum.md` | 2 | 0.161 | 0.161 | 0.161 |
+| `agents:parse:full.md` | 2 | 0.375 | 0.375 | 0.375 |
+| `agents:parse:monthly.md` | 2 | 0.833 | 0.833 | 0.833 |
+| `agents:parse:niche-dir.md` | 2 | 0.310 | 0.310 | 0.310 |
+| `agents:parse:outreach.md` | 2 | 0.166 | 0.166 | 0.166 |
+| `agents:parse:quick.md` | 2 | 0.626 | 0.626 | 0.626 |
+| `agents:parse:schema.md` | 2 | 0.151 | 0.151 | 0.151 |
+| `agents:parse:social.md` | 3 | 0.183 | 0.326 | 0.326 |
+| `agents:parse:designer.md` | 1 | 0.206 | 0.206 | 0.206 |
+| `agents:parse:ehc-officer.md` | 1 | 0.208 | 0.208 | 0.208 |
+| `agents:parse:eth-dev.md` | 1 | 0.583 | 0.583 | 0.583 |
+| `agents:parse:founder.md` | 1 | 0.233 | 0.233 | 0.233 |
+| `agents:parse:guard.md` | 1 | 0.399 | 0.399 | 0.399 |
+| `agents:parse:harvester.md` | 1 | 0.433 | 0.433 | 0.433 |
+| `agents:parse:ads.md` | 1 | 0.205 | 0.205 | 0.205 |
+| `agents:parse:content.md` | 1 | 0.183 | 0.183 | 0.183 |
+| `agents:parse:creative.md` | 1 | 0.187 | 0.187 | 0.187 |
+| `agents:parse:director.md` | 1 | 0.160 | 0.160 | 0.160 |
+| `agents:parse:media-buyer.md` | 1 | 0.186 | 0.186 | 0.186 |
+| `agents:parse:seo.md` | 1 | 0.187 | 0.187 | 0.187 |
+| `agents:parse:nanoclaw.md` | 1 | 0.628 | 0.628 | 0.628 |
+| `agents:parse:ops.md` | 1 | 0.198 | 0.198 | 0.198 |
+| `agents:parse:researcher.md` | 1 | 0.146 | 0.146 | 0.146 |
+| `agents:parse:router.md` | 1 | 0.150 | 0.150 | 0.150 |
+| `agents:parse:scout.md` | 1 | 0.127 | 0.127 | 0.127 |
+| `agents:parse:teacher.md` | 1 | 0.323 | 0.323 | 0.323 |
+| `agents:parse:trader.md` | 1 | 0.186 | 0.186 | 0.186 |
+| `agents:parse:tutor.md` | 1 | 0.144 | 0.144 | 0.144 |
+| `agents:parse:writer.md` | 1 | 0.140 | 0.140 | 0.140 |
+| `signalSender:mark` | 1 | 0.047 | 0.047 | 0.047 |
+| `edge:cache:hit:sync-path` | 1 | 4.31e-5 | 4.31e-5 | 4.31e-5 |
 
 
 ---
@@ -205,23 +205,23 @@ to get a verdict column.
 This is the **test harness** duration, not the production system. Kept here
 so we notice if the gate itself grows too slow to run inside the AI edit loop.
 
-**Totals:** ✓ 1147/1156 tests · 19583ms across 90 files
+**Totals:** ✓ 1232/1241 tests · 20163ms across 94 files
 
 Top 10 slowest test files:
 
 | File | Tests | Duration |
 |------|------:|---------:|
-| `llm.test.ts` | 14 | 6095ms |
-| `llm-router.test.ts` | 12 | 3737ms |
-| `adl-evolution.test.ts` | 7 | 1637ms |
-| `system-speed.test.ts` | 15 | 1497ms |
-| `sui-speed.test.ts` | 7 | 777ms |
-| `sui.test.ts` | 6 | 709ms |
-| `adl-llm.test.ts` | 5 | 567ms |
-| `learning-acceleration.test.ts` | 20 | 522ms |
-| `adl-cache.test.ts` | 38 | 449ms |
-| `api-key.test.ts` | 13 | 360ms |
+| `llm.test.ts` | 14 | 6157ms |
+| `llm-router.test.ts` | 12 | 4023ms |
+| `adl-evolution.test.ts` | 7 | 1634ms |
+| `system-speed.test.ts` | 15 | 1256ms |
+| `sui-speed.test.ts` | 7 | 770ms |
+| `adl-llm.test.ts` | 5 | 644ms |
+| `sui.test.ts` | 6 | 607ms |
+| `learning-acceleration.test.ts` | 20 | 604ms |
+| `adl-cache.test.ts` | 38 | 453ms |
+| `api-endpoints.test.ts` | 21 | 275ms |
 
 ---
 
-_Report generated 2026-04-15T20:46:06.687Z._
+_Report generated 2026-04-15T21:20:03.101Z._

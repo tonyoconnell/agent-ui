@@ -53,6 +53,26 @@ entity thing,
     owns owner,                       # creator's user-id; first-save sets, later saves must match
     plays capability:offered;
 
+# 3b. TASKS — atomic work units (extends thing with task-specific metadata)
+entity task,
+    owns task-id @key,
+    owns task-name,
+    owns status,                      # "open", "in-progress", "done", "blocked"
+    owns done,                        # boolean: completed?
+    owns value,                       # value score (0..1)
+    owns effort,                      # effort score (0..1)
+    owns phase,                       # "W0", "W1", "W2", "W3", "W4"
+    owns persona,                     # assigned persona
+    owns priority-score,              # computed: (value - effort) / time
+    owns exit-condition,              # acceptance criteria
+    owns tag @card(0..),              # flat labels for routing
+    plays blocks:blocker,
+    plays blocks:blocked;
+
+relation blocks,
+    relates blocker,
+    relates blocked;
+
 # 4. PATHS — connections with weight
 relation path,
     relates source,
@@ -95,7 +115,9 @@ attribute gid, value string;
 attribute aid, value string;
 attribute tid, value string;
 attribute hid, value string;
+attribute task-id, value string;
 attribute name, value string;
+attribute task-name, value string;
 attribute group-type, value string;
 attribute actor-type, value string;
 attribute thing-type, value string;
@@ -119,7 +141,15 @@ attribute task-wave, value string;
 attribute task-context, value string;
 attribute brand, value string;
 attribute owner, value string;
+attribute status, value string;
+attribute done, value boolean;
+attribute value, value double;
+attribute effort, value double;
+attribute phase, value string;
+attribute persona, value string;
+attribute priority-score, value double;
+attribute exit-condition, value string;
 
 # =============================================================================
-# 6 dimensions. 3 entities. 5 relations. 26 attributes. ONE.
+# 6 dimensions. 4 entities. 6 relations. 36 attributes. ONE.
 # =============================================================================

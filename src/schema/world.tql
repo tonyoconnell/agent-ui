@@ -100,6 +100,7 @@ entity unit,
     owns perm-memory-mb,
     owns perm-cpu-percent,
     owns perm-duration-s,
+    owns dissolved-at,             # datetime: when graceful dissolve was called
     plays path:source,
     plays path:target,
     plays capability:provider,
@@ -184,6 +185,8 @@ relation path,
     owns last-used,
     owns fade-rate,               # per-path decay
     owns sui-path-id,             # Sui Path object ID (0x...)
+    owns sui-highway-id,          # Sui Highway object ID (0x...) — frozen after harden()
+    owns hardened-at,             # datetime when harden() was called
     owns peak-strength,           # highest strength ever reached
     owns path-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
 
@@ -406,6 +409,7 @@ attribute scope, value string;            # signal: "private" | "group" | "publi
 attribute wallet, value string;
 attribute sui-unit-id, value string;
 attribute sui-path-id, value string;
+attribute sui-highway-id, value string;
 attribute currency, value string;
 attribute model, value string;
 attribute system-prompt, value string;
@@ -476,6 +480,7 @@ attribute expires-at, value datetime;
 attribute joined-at, value datetime;
 attribute ts, value datetime;
 attribute last-evolved, value datetime;
+attribute hardened-at, value datetime;
 attribute observed-at, value datetime;
 attribute valid-from, value datetime;
 attribute valid-until, value datetime;
@@ -488,6 +493,7 @@ attribute adl-uid, value string;             # HTTPS URI / DID / URN — canonic
 attribute adl-name, value string;            # display name from ADL (may differ from name)
 attribute adl-status, value string;          # "draft" | "active" | "deprecated" | "retired"
 attribute sunset-at, value datetime;         # when unit retires
+attribute dissolved-at, value datetime;      # when graceful dissolve was called
 attribute data-sensitivity, value string;    # "public" | "internal" | "confidential" | "restricted"
 attribute data-categories, value string;     # JSON array: ["pii","phi","financial","credentials","ip"]
 attribute data-retention-days, value integer;# retention policy (days)

@@ -1,9 +1,19 @@
 ---
-export const prerender = true
 import Layout from "@/layouts/Layout.astro"
-import { AdChat } from "@/components/ai/AdChat"
+import { AgentAdDemo } from "@/components/AgentAd/AgentAdDemo"
 ---
 
-<Layout title="ONE — ask anything">
-  <AdChat client:only="react" />
+<Layout title="Agent Demo — ONE">
+  <main class="min-h-screen bg-[#0a0a0f] px-4 py-16 sm:py-24">
+    <div class="mx-auto max-w-4xl">
+      <div class="mb-12 text-center">
+        <div class="text-[10px] font-mono tracking-widest text-slate-500 uppercase mb-3">ONE Substrate</div>
+        <h1 class="text-4xl font-bold tracking-tight text-white">Agent Marketplace</h1>
+        <p class="mt-3 text-lg text-slate-400">
+          Click Run to walk the full lifecycle — wallet → register → discover → signal → receipt
+        </p>
+      </div>
+      <AgentAdDemo client:load />
+    </div>
+  </main>
 </Layout>

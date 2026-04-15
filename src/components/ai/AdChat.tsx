@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { type DropdownGroup, dropdownGroups } from '@/lib/chat/ad-dropdowns'
-import { DEFAULT_MODEL } from '@/lib/chat/models'
+import { type DropdownGroup, type DropdownItem, dropdownGroups } from '@/lib/chat/ad-dropdowns'
+import { DEFAULT_MODEL, POPULAR_MODELS } from '@/lib/chat/models'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 
@@ -13,7 +13,15 @@ export function AdChat() {
   const [activeCategory, setActiveCategory] = useState<DropdownGroup['label'] | ''>('')
   const [sent, setSent] = useState(false)
   const [firstTokenMs, setFirstTokenMs] = useState<number | null>(null)
+  const [firstAssistantId, setFirstAssistantId] = useState<string | null>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
+  const hasTypedRef = useRef(false)
+
+  const modelMeta = useMemo(() => {
+    const m = POPULAR_MODELS.find((x) => x.id === DEFAULT_MODEL)
+    const providers = m?.providers?.[0] ?? ''
+    return { name: m?.name ?? DEFAULT_MODEL, provider: providers }
+  }, [])
 
   const send = useCallback(
     async (text: string) => {
@@ -28,6 +36,7 @@ export function AdChat() {
       ])
       setInput('')
       setSent(true)
+      setFirstAssistantId((prev) => prev ?? assistantId)
       if (taRef.current) taRef.current.style.height = 'auto'
 
       const t0 = performance.now()
@@ -58,7 +67,12 @@ export function AdChat() {
           if (done) break
           if (!gotFirst) {
             gotFirst = true
-            setFirstTokenMs((prev) => prev ?? Math.round(performance.now() - t0))
+            const latencyMs = Math.round(performance.now() - t0)
+            setFirstTokenMs((prev) => prev ?? latencyMs)
+            emitClick('ui:ad:first-token', {
+              type: 'text',
+              content: String(latencyMs),
+            })
           }
           full += dec.decode(value, { stream: true })
           setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: full } : m)))
@@ -76,9 +90,22 @@ export function AdChat() {
     [messages],
   )
 
-  const onPick = (label: DropdownGroup['label'], text: string) => {
+  const onPick = (label: DropdownGroup['label'], item: DropdownItem, index: number) => {
+    emitClick('ui:ad:pick-question', {
+      type: 'text',
+      content: `${label}:${index}:${item.text}`,
+    })
     setActiveCategory('')
-    send(text)
+    send(item.text)
+  }
+
+  const onOpenDropdown = (label: DropdownGroup['label']) => {
+    if (activeCategory === label) return
+    setActiveCategory(label)
+    emitClick('ui:ad:open-dropdown', {
+      type: 'text',
+      content: label,
+    })
   }
 
   const activeGroup = dropdownGroups.find((g) => g.label === activeCategory)
@@ -110,6 +137,10 @@ export function AdChat() {
               const t = e.currentTarget
               t.style.height = 'auto'
               t.style.height = `${Math.min(t.scrollHeight, 160)}px`
+              if (!hasTypedRef.current && t.value.length > 0) {
+                hasTypedRef.current = true
+                emitClick('ui:ad:type', { type: 'text', content: '' })
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -133,8 +164,8 @@ export function AdChat() {
                 <button
                   key={g.label}
                   type="button"
-                  onMouseEnter={() => setActiveCategory(g.label)}
-                  onClick={() => setActiveCategory(g.label)}
+                  onMouseEnter={() => onOpenDropdown(g.label)}
+                  onClick={() => onOpenDropdown(g.label)}
                   className={cn(
                     'px-4 py-1.5 rounded-full text-sm transition-all',
                     activeCategory === g.label ? 'bg-accent scale-105' : 'bg-muted hover:bg-accent/50',
@@ -150,13 +181,13 @@ export function AdChat() {
                 <div className="flex flex-col gap-1 animate-in slide-in-from-top-4 fade-in duration-300">
                   {activeGroup.items.map((item, index) => (
                     <button
-                      key={item}
+                      key={item.text}
                       type="button"
-                      onClick={() => onPick(activeGroup.label, item)}
+                      onClick={() => onPick(activeGroup.label, item, index)}
                       style={{ animationDelay: `${index * 40}ms` }}
                       className="text-left text-sm leading-relaxed px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors animate-in fade-in"
                     >
-                      {item}
+                      {item.text}
                     </button>
                   ))}
                 </div>
@@ -167,7 +198,7 @@ export function AdChat() {
 
         {sent && (
           <div className="flex flex-col gap-3">
-            {messages.map((m, i) => (
+            {messages.map((m) => (
               <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={cn(
@@ -179,8 +210,11 @@ export function AdChat() {
                   {m.streaming && (
                     <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
                   )}
-                  {m.role === 'assistant' && i === 1 && firstTokenMs !== null && !m.streaming && (
-                    <div className="mt-2 text-xs opacity-60">⚡ {firstTokenMs}ms · Llama 4 Scout · Groq LPU</div>
+                  {m.role === 'assistant' && m.id === firstAssistantId && firstTokenMs !== null && !m.streaming && (
+                    <div className="mt-2 text-xs opacity-60">
+                      ⚡ {firstTokenMs}ms · {modelMeta.name}
+                      {modelMeta.provider ? ` · ${modelMeta.provider}` : ''}
+                    </div>
                   )}
                 </div>
               </div>
