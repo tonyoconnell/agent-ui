@@ -23,7 +23,7 @@
  * The bridge is 3 functions. Everything else is plumbing.
  */
 
-import { createPath, createUnit, getClient, mark as suiMark, warn as suiWarn } from '@/lib/sui'
+import { cancelEscrow, createPath, createUnit, getClient, mark as suiMark, releaseEscrow, warn as suiWarn } from '@/lib/sui'
 import { readParsed, writeSilent } from '@/lib/typedb'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -219,4 +219,42 @@ async function absorbPayment(d: Record<string, unknown>) {
     delete $r of $e;
     insert $e has revenue ($r + ${amount / 1e9});
   `)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETTLE — Resolve bounty escrow after rubric verification
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * settleEscrow — release or refund a bounty escrow after rubric verification.
+ * Called by persist.ts settle() — fire-and-forget, never throws.
+ */
+export const settleEscrow = (
+  escrowObjectId: string,
+  claimantUid: string,
+  posterUid: string,
+  success: boolean,
+): void => {
+  if (success) {
+    resolve(claimantUid)
+      .then(ids => {
+        if (!ids?.unitId) return
+        // Path from poster→claimant; resolve for pathObjectId
+        return resolvePath(posterUid, claimantUid).then(pathId => {
+          if (!pathId) return
+          releaseEscrow(claimantUid, escrowObjectId, ids.unitId, pathId).catch(() => {})
+        })
+      })
+      .catch(() => {})
+  } else {
+    resolve(posterUid)
+      .then(ids => {
+        if (!ids?.unitId) return
+        return resolvePath(posterUid, claimantUid).then(pathId => {
+          if (!pathId) return
+          cancelEscrow(posterUid, escrowObjectId, ids.unitId, pathId).catch(() => {})
+        })
+      })
+      .catch(() => {})
+  }
 }

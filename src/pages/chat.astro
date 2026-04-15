@@ -1,10 +1,10 @@
 ---
 import Layout from "@/layouts/Layout.astro"
-import { ChatClientV2 } from "@/components/ai/ChatClientV2"
+import { ChatShell } from "@/components/ai/chat-v3"
 ---
 
 <Layout title="Chat">
-  <ChatClientV2 client:only="react" hideHeader={true} sidebarInitialCollapsed={true} />
+  <ChatShell client:load />
 </Layout>
 
 <style is:global>

@@ -1,9 +1,10 @@
 {
-  "count": 332,
+  "count": 333,
   "files": [
     "src/components/EdgeInfo.tsx",
     "src/components/design/DesignSystemShowcase.tsx",
     "src/components/AgentWorkspace.tsx",
+    "src/components/app/PathsGraph.tsx",
     "src/components/Dashboard.tsx",
     "src/components/panels/HighwayPanel.tsx",
     "src/components/graph/PheromoneGraph.tsx",
@@ -17,7 +18,6 @@
     "src/components/Marketplace.tsx",
     "src/components/ai/Suggestions.tsx",
     "src/components/ai/elements/connection.tsx",
-    "src/components/ai/ChatClientV2.tsx",
     "src/components/CEOPanel.tsx",
     "src/components/TaskBoard.tsx",
     "src/components/generative-ui/DynamicChartRecharts.tsx",

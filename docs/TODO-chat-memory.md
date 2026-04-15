@@ -4,9 +4,8 @@ type: roadmap
 version: 1.0.0
 priority: Identity → Perception → Pack → Outcome → UX
 total_tasks: 22
-completed: 0
-status: IN_PROGRESS
-completed: 1
+completed: 22
+status: DONE
 ---
 
 # TODO: Chat Memory Integration
@@ -31,6 +30,35 @@ completed: 1
 > `signal`, `path`, `hypothesis` (dimensions already defined in `one.tql`).
 > Depends on [TODO-memory.md](TODO-memory.md) for `scope`, `source`,
 > `reveal`, `forget`, `frontier` primitives.
+
+---
+
+## Status
+
+**Cycle 1: IDENTITY** — rubric {fit:0.90, form:0.85, truth:0.90, taste:0.85}
+- [x] W0 Baseline — 332/332 tokens, biome+tsc+vitest green
+- [x] W1 Recon — router.ts, sui.ts, channels/index.ts, persist.ts actor()
+- [x] W2 Decide — nonce claim ceremony, D1 identity_links, no Sui deps in nanoclaw
+- [x] W3 Edit — `identity.ts`, `0006_identity_links.sql`, `/claim` + `/link` routes in router.ts, `identity.test.ts`
+- [x] W4 Verify — 7/7 identity tests pass, biome clean
+
+**Cycle 2: PERCEPTION** — rubric {fit:0.90, form:0.85, truth:0.85, taste:0.90}
+- [x] W1 Recon — agent-md.ts, agents/**/*.md shapes, personas.ts, no agents/core/ yet
+- [x] W2 Decide — classify + valence as Gemma 4 markdown agents, keyword fallback in classify-fallback.ts
+- [x] W3 Edit — `agents/core/classify.md`, `agents/core/valence.md`, `classify-fallback.ts`, `classify-fallback.test.ts`
+- [x] W4 Verify — 12/12 fallback tests pass, biome clean
+
+**Cycle 3: PACK + TURN LOOP** — rubric {fit:0.88, form:0.85, truth:0.88, taste:0.88}
+- [x] W1 Recon — chat-memory.md spec, persist.ts (open() only n, recall({subject}) ✓), edge.ts (no cached open/recall), llm.ts (Effect — not CF-safe)
+- [x] W2 Decide — 3-parallel D1+TypeDB, outcome at turn-start, ContextPack, substrate HTTP boundary
+- [x] W3 Edit — `units/types.ts`, `units/ingest.ts`, `units/recall.ts`, `units/respond.ts`, `units/outcome.ts`, `lib/prompt.ts`, `lib/substrate.ts` (+actorHighways +recallHypotheses), `0007_turn_meta.sql`, router.ts wired
+- [x] W4 Verify — 577/577 tests pass (recall.test.ts + prompt.test.ts), biome clean
+
+**Cycle 4: UX + SLASH COMMANDS** — rubric {fit:0.90, form:0.85, truth:0.90, taste:0.90}
+- [x] W1 Recon — no commands/ dir; /link pattern; memory API exists on Pages (not callable from nanoclaw); reveal/forget/frontier in persist.ts
+- [x] W2 Decide — commands use substrate.ts TypeDB queries directly; /forget two-step KV gate; /explore frontier tags; verbalize 0.85 threshold
+- [x] W3 Edit — `commands/memory.ts`, `commands/forget.ts`, `commands/explore.ts`, prompt.ts verbalize update, router.ts command dispatch wired
+- [x] W4 Verify — 585/585 tests pass (8 new V8/V9 command tests), biome clean
 
 ---
 

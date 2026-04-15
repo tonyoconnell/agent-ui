@@ -12,6 +12,11 @@
  */
 
 import type { BrandTokens } from '@/engine/brand'
+import { purpleBrand } from '@/engine/brand'
+
+// ── bot filter ───────────────────────────────────────────────────────────────
+
+const BOT_UA = /bot|crawl|spider|preview|monitor|fetch|headless|phantom/i
 
 // ── djb2 hash ───────────────────────────────────────────────────────────────
 
@@ -24,17 +29,33 @@ function djb2(s: string): number {
   return h
 }
 
+// ── registry deep-equal ──────────────────────────────────────────────────────
+
+function deepEquals(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+// Lazy accessor — brand.ts imports brand-signals.ts (for emitBrandApplied),
+// so at module-eval time purpleBrand may still be undefined under some loaders
+// (vitest's module graph differs from bun's). Reading it at call-time sidesteps
+// the circular-init hazard.
+const knownBrands = (): Array<[string, BrandTokens]> => [['purple', purpleBrand]]
+
 // ── brandKey ────────────────────────────────────────────────────────────────
 
 /**
  * Stable short identifier for a brand.
  *
  * - string  → lower-cased, spaces→hyphens  e.g. "Purple Haze" → "purple-haze"
- * - object  → djb2 hash over JSON.stringify → "custom-<6 hex chars>"
+ * - object  → matched against registry first; if found returns label ("purple").
+ *             If no match, djb2 hash over JSON.stringify → "custom-<6 hex chars>"
  */
 export function brandKey(brand: BrandTokens | string): string {
   if (typeof brand === 'string') {
     return brand.trim().toLowerCase().replace(/\s+/g, '-')
+  }
+  for (const [label, tokens] of knownBrands()) {
+    if (deepEquals(brand, tokens)) return label
   }
   const hash = djb2(JSON.stringify(brand))
   return `custom-${hash.toString(16).slice(0, 6).padStart(6, '0')}`
@@ -46,10 +67,18 @@ export function brandKey(brand: BrandTokens | string): string {
  * Fire-and-forget pheromone mark on brand→thing or brand→group edge.
  *
  * No-ops when neither thingId nor groupId is supplied.
+ * No-ops when ctx.ua is an empty string or matches a known bot pattern.
+ * When ctx.ua is undefined the caller opted out of UA filtering — proceed normally.
  * Swallows all errors — this is telemetry only.
  */
-export function emitBrandApplied(brand: BrandTokens | string, ctx?: { thingId?: string; groupId?: string }): void {
+export function emitBrandApplied(
+  brand: BrandTokens | string,
+  ctx?: { thingId?: string; groupId?: string; ua?: string },
+): void {
   if (!ctx?.thingId && !ctx?.groupId) return
+
+  // Bot filter — zero-cost fast path when ua is undefined (not provided)
+  if (ctx.ua !== undefined && (ctx.ua === '' || BOT_UA.test(ctx.ua))) return
 
   const target = ctx.thingId ? `thing:${ctx.thingId}` : `group:${ctx.groupId}`
   const source = `brand:${brandKey(brand)}`

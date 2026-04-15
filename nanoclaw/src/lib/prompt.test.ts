@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { systemPromptWithPack } from './prompt'
 import type { ContextPack } from '../units/types'
+import { systemPromptWithPack } from './prompt'
 
 const emptyPack = (): ContextPack => ({
   profile: { uid: 'telegram:42', handle: '@alice', messageCount: 0 },

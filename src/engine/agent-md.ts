@@ -49,10 +49,30 @@ export const AgentSpecSchema = Schema.Struct({
   tags: Schema.optional(Schema.Array(Schema.String)),
   context: Schema.optional(Schema.Array(Schema.String)),
   aliases: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.String })),
+  allowedOrigins: Schema.optional(Schema.Array(Schema.String)),
   prompt: Schema.String,
   // Sui identity — derived on sync, not from markdown
   wallet: Schema.optional(Schema.String),
   suiObjectId: Schema.optional(Schema.String),
+  // ADL (Agent Definition Language) optional fields
+  adlVersion: Schema.optional(Schema.String),
+  adlUid: Schema.optional(Schema.String),
+  adlStatus: Schema.optional(
+    Schema.Union(
+      Schema.Literal('draft'),
+      Schema.Literal('active'),
+      Schema.Literal('deprecated'),
+      Schema.Literal('retired'),
+    ),
+  ),
+  sunsetAt: Schema.optional(Schema.String),
+  dataCategories: Schema.optional(Schema.Array(Schema.String)),
+  permNetwork: Schema.optional(
+    Schema.Struct({
+      allowedHosts: Schema.optional(Schema.Array(Schema.String)),
+      protocols: Schema.optional(Schema.Array(Schema.String)),
+    }),
+  ),
 })
 
 export const WorldSpecSchema = Schema.Struct({
@@ -79,9 +99,17 @@ export type AgentSpec = {
   tags?: readonly string[]
   context?: readonly string[]
   aliases?: Record<string, string>
+  allowedOrigins?: readonly string[]
   prompt: string
   wallet?: string
   suiObjectId?: string
+  // ADL optional fields
+  adlVersion?: string
+  adlUid?: string
+  adlStatus?: 'draft' | 'active' | 'deprecated' | 'retired'
+  sunsetAt?: string
+  dataCategories?: readonly string[]
+  permNetwork?: { allowedHosts?: readonly string[]; protocols?: readonly string[] }
 }
 
 export type WorldSpec = {
@@ -120,7 +148,7 @@ const escapeString = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"'
 
 export const toTypeDB = (spec: AgentSpec): string[] => {
   const queries: string[] = []
-  const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
+  const uid = spec.adlUid || (spec.group ? `${spec.group}:${spec.name}` : spec.name)
 
   // Unit insert
   const tags = [...(spec.tags || []), ...(spec.group ? [spec.group] : [])]
@@ -131,20 +159,68 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
         .join(', ')
     : ''
 
+  // ADL attributes
+  const sensitivityEnum = (() => {
+    if (!spec.sensitivity) return 'internal'
+    if (spec.sensitivity < 0.4) return 'public'
+    if (spec.sensitivity < 0.6) return 'internal'
+    if (spec.sensitivity < 0.8) return 'confidential'
+    return 'restricted'
+  })()
+
+  // Build clause array for cleaner concatenation
+  const clauseArray = [
+    `has uid "${uid}"`,
+    `has name "${spec.name}"`,
+    `has unit-kind "agent"`,
+    `has model "${spec.model || 'claude-sonnet-4-20250514'}"`,
+    `has system-prompt "${escapeString(spec.prompt.slice(0, 10000))}"`,
+    `has status "active"`,
+    `has success-rate 0.5`,
+    `has activity-score 0.0`,
+    `has sample-count 0`,
+    `has reputation 0.0`,
+    `has balance 0.0`,
+    `has generation 0`,
+    `has data-sensitivity "${sensitivityEnum}"`,
+  ]
+
+  if (spec.adlVersion) {
+    clauseArray.push(`has adl-version "${spec.adlVersion}"`)
+    clauseArray.push(`has adl-uid "${uid}"`)
+    clauseArray.push(`has adl-status "${spec.adlStatus || 'active'}"`)
+  }
+
+  if (spec.sunsetAt) clauseArray.push(`has sunset-at "${spec.sunsetAt}"`)
+
+  if (spec.permNetwork) {
+    clauseArray.push(
+      `has perm-network "${escapeString(JSON.stringify({ allowed_hosts: spec.permNetwork.allowedHosts || [], protocols: spec.permNetwork.protocols || [] }))}"`,
+    )
+  }
+
+  if (spec.dataCategories) {
+    clauseArray.push(`has data-categories "${escapeString(JSON.stringify(spec.dataCategories))}"`)
+  }
+
+  if (spec.wallet) clauseArray.push(`has wallet "${spec.wallet}"`)
+
+  // Add tags
+  if (tagStr) clauseArray.push(tagStr)
+
+  // Add aliases
+  if (aliasStr) clauseArray.push(aliasStr)
+
+  // Add allowed origins as tags
+  if (spec.allowedOrigins) {
+    spec.allowedOrigins.forEach((o) => {
+      clauseArray.push(`has tag "origin:${o}"`)
+    })
+  }
+
   queries.push(`
     insert $u isa unit,
-      has uid "${uid}",
-      has name "${spec.name}",
-      has unit-kind "agent",
-      has model "${spec.model || 'claude-sonnet-4-20250514'}",
-      has system-prompt "${escapeString(spec.prompt.slice(0, 10000))}",
-      has status "active",
-      has success-rate 0.5,
-      has activity-score 0.0,
-      has sample-count 0,
-      has reputation 0.0,
-      has balance 0.0,
-      has generation 0${spec.wallet ? `, has wallet "${spec.wallet}"` : ''}${tagStr ? `, ${tagStr}` : ''}${aliasStr ? `, ${aliasStr}` : ''};
+      ${clauseArray.join(',\n      ')};
   `)
 
   // Group membership

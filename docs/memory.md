@@ -709,7 +709,7 @@ around a missing substrate.
 | Forgetting | Often absent or symmetric | Asymmetric fade (resistance 2× faster) |
 | Temporal model | Zep has bi-temporal; most don't | Every signal is an event, every path a decaying weight |
 | Inference | Graph traversal | TypeDB typed inference + polymorphic roles |
-| Retrieval API | ~20+ methods across memory types | 8 verbs: `signal`, `mark`, `warn`, `fade`, `know`, `recall`, `open`, `highways` |
+| Retrieval API | ~20+ methods across memory types | 12 verbs: `signal`, `mark`, `warn`, `fade`, `know`, `recall`, `open`, `highways`, `reveal`, `forget`, `frontier`, `sense` |
 | Unit of learning | A fact | A *path that earned its weight* |
 
 ### The elegance claim, in numbers
@@ -719,7 +719,7 @@ around a missing substrate.
 ─────────────────────────────────────────────────
 Stores to keep in sync       2 – 3           1 + snapshot
 Extraction LLM passes        1 per message   0 (emitted typed)
-Memory API surface           ~20+            8 verbs
+Memory API surface           ~20+            12 verbs
 Consolidation service        scheduled job   L6 loop, same runtime
 Forgetting model             heuristic       asymmetric fade, math
 Importance scoring           LLM-rated       outcome-measured

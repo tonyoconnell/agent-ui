@@ -7,7 +7,7 @@
 
 import { parseAnswers, read, readParsed, writeSilent } from '@/lib/typedb'
 import { relayToGateway, wsManager } from '@/lib/ws-server'
-import { mirrorActor, mirrorMark, mirrorWarn } from './bridge'
+import { mirrorActor, mirrorMark, mirrorWarn, settleEscrow } from './bridge'
 import { type DocKey, ingestDocs, loadContext } from './context'
 import { world as createWorld, type Signal, type World } from './world'
 
@@ -126,6 +126,18 @@ export const world = (): PersistentWorld => {
     `)
     // Mirror to Sui (fire-and-forget)
     mirrorWarn(from.trim(), to.trim(), strength).catch(() => {})
+  }
+
+  const settle = (
+    edge: string,
+    opts: { escrowObjectId: string; claimantUid: string; posterUid: string; success?: boolean },
+  ) => {
+    if (opts.success !== false) {
+      mark(edge)
+    } else {
+      warn(edge)
+    }
+    settleEscrow(opts.escrowObjectId, opts.claimantUid, opts.posterUid, opts.success !== false)
   }
 
   const fade = (rate = 0.1) => {
@@ -680,6 +692,7 @@ export const world = (): PersistentWorld => {
     ...net,
     mark,
     warn,
+    settle,
     fade,
     enqueue,
     signal,

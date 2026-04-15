@@ -320,7 +320,7 @@ migrations/     # D1 schema (signals, messages, tasks, sync_log)
 | File | Lines | Purpose |
 |------|------:|---------|
 | `world.ts` | 225 | Unit + World + strength/resistance + queue + ask (4 outcomes) |
-| `persist.ts` | 258 | PersistentWorld = World + TypeDB sync + sandwich + know/recall |
+| `persist.ts` | 715 | PersistentWorld = World + TypeDB sync + sandwich + know/recall/reveal/forget/frontier |
 | `loop.ts` | 164 | Growth tick: all 7 loops, chain depth, outcome handling |
 | `boot.ts` | 40 | Hydrate from TypeDB, add units, start tick |
 | `llm.ts` | 50 | LLM as unit: openrouter adapter (+ legacy anthropic/openai) |

@@ -1,0 +1,11 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { TabShell } from "@/components/app/TabShell"
+
+export const prerender = false
+
+const { groupId } = Astro.params
+---
+<Layout title={`${groupId ?? 'App'} — ONE`}>
+  <TabShell client:load groupId={groupId ?? ''} />
+</Layout>

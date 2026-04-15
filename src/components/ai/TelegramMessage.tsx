@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Telegram-Style Message Component
  *

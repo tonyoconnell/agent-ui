@@ -139,12 +139,20 @@ const learned = await net.recall('task-id')
 //   ...
 // ]
 
-// See what tasks you're unblocking by completing this one
-const blockers = await net.taskBlockers('task-id')
-// Returns: [{ id: 'task-2', name: 'Next task' }, ...]
+// Full memory card for any actor (GDPR Article 20 — portability)
+const card = await net.reveal('person:a7f3')
+// Returns: { actor, hypotheses, highways, signals, groups, capabilities, frontier }
+
+// What the substrate hasn't learned about this actor yet
+const gaps = await net.frontier('person:a7f3')
+// Returns: ['design', 'marketing', ...] — unexplored tag clusters
+
+// Structural erasure (GDPR Article 17 — right to be forgotten)
+await net.forget('person:a7f3')
+// Deletes all signals, paths, memberships, capabilities, unit entity
 ```
 
-The executor can see **what failed before** and **what you'll unblock**. Knowledge informs action.
+The executor can see **what failed before**, **what you'll unblock**, and **what gaps remain**. Knowledge informs action.
 
 ---
 
@@ -355,6 +363,9 @@ Routes implement the Six Verbs from [dictionary.md](docs/dictionary.md): `send`,
 | `/api/export/highways` | GET | follow | Proven paths |
 | `/api/export/toxic` | GET | — | Blocked paths |
 | `/api/hypotheses` | GET | harden | Confirmed learnings |
+| `/api/memory/reveal/:uid` | GET | — | Full memory card (GDPR portability) |
+| `/api/memory/forget/:uid` | DELETE | — | Structural erasure (GDPR Article 17) |
+| `/api/memory/frontier/:uid` | GET | — | Unexplored tag clusters for actor |
 
 Full API docs: [src/pages/api/CLAUDE.md](src/pages/api/CLAUDE.md)
 
@@ -421,13 +432,14 @@ agents/                        Markdown agent definitions
 | [Deploy](docs/deploy.md) | Step-by-step deployment tutorial (every command proven) |
 | [Cloudflare](docs/cloudflare.md) | Platform architecture, 4 workers, agent castes, economics |
 | [Tunnels](docs/PLAN-tunnels.md) | Dev tunnels — expose localhost, test webhooks, zero trust |
-| [NanoClaw](docs/nanoclaw.md) | Edge agent workers — webhooks, queue, LLM, channels |
+| [Claw](docs/claw.md) | Autonomous edge agent — smart routing, web browsing, rich messaging |
 | [TODO](docs/TODO.md) | Roadmap, status, what's next |
 
 ### Implementation
 
 | Doc | What it covers |
 |-----|----------------|
+| [NanoClaw TODO](docs/TODO-claw.md) | 3-cycle completion: consolidate respond() unit, add missing endpoints, ship 3 persona workers (24 tasks) |
 | [Collision Avoidance](docs/PLAN-collusion-mitigation.md) | Multi-session locking, atomic claims, TTL recovery, wave-locking |
 | [TODO: Collision Avoidance](docs/TODO-collusion.md) | 3-cycle implementation (76 tests, 0 regressions, 0.89 rubric) |
 

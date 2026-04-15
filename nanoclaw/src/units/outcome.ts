@@ -31,9 +31,7 @@ export async function measureOutcome(
   if (!lastBot) return // no prior bot reply → nothing to measure
 
   // Look up tags stored for the last user turn in this group
-  const lastTags = await env.DB.prepare(
-    `SELECT tags FROM turn_meta WHERE group_id = ? ORDER BY ts DESC LIMIT 1`,
-  )
+  const lastTags = await env.DB.prepare(`SELECT tags FROM turn_meta WHERE group_id = ? ORDER BY ts DESC LIMIT 1`)
     .bind(groupId)
     .first()
     .catch(() => null)

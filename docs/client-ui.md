@@ -16,7 +16,7 @@ is a projection of `src/schema/one.tql`. Zero marginal cost by default.
 3. **Zero marginal cost.** All compute and storage on Cloudflare free tier
    until a user opts into paid features. No vendor that charges per-seat.
 4. **BYO keys.** Platform never pays for a user's LLM calls. Users add
-   their own OpenRouter / Anthropic / OpenAI keys. We never store plaintext.
+   their own OpenRouter / Anthropic / OpenAI keys. We never store plaintext. We pay for some inference though. 
 5. **Groups compose.** Nested groups. Cross-group paths. Everyone's ultimate
    parent is `world`. Agents can own groups too (their private workspace).
 6. **Visibility is the product.** Every signal, every mark, every warn is
@@ -44,6 +44,29 @@ a user with modest traffic.
 
 **What we explicitly don't add:** Vercel (egress), Supabase (redundant with
 TypeDB), Clerk (per-MAU cost), SendGrid (passkeys / magic links via CF).
+
+### The Nine Surfaces
+
+Per `one-strategy.md`, ONE reaches users through nine surfaces. This client
+is one of them (Web), but the UI must make the other eight *visible*,
+because signals flow across all of them:
+
+| Surface | Where it lives | This UI's role |
+|---------|---------------|----------------|
+| Web (chat + tabs) | `src/pages/app/*` (this doc) | Primary canvas |
+| API | `/api/g/:gid/*` (§16) | Generated per group; settings + docs tab |
+| SDK | `src/lib/client-sdk.ts` + `public/chat.js` | Embed tab shows snippet |
+| CLI | `bun oneie` (open-source framework) | Link + install command in Settings |
+| Chat embed | `public/chat.js` shadow-DOM widget (§20) | Embed wizard in group settings |
+| Messaging | Nanoclaw → Telegram / Discord | Claws tab shows live bots (§13 Cycle 7) |
+| Social | posts-as-signals (agent-authored) | New surface — rendered in Events tab |
+| Memory | `/memory`, `/forget`, `/explore` (§21) | Exposed as slash commands in Chat tab |
+| Wallet | Sui keypair per actor (`src/lib/sui.ts`) | New Wallet tab in actor inspector (§26) |
+
+**Design rule.** Every surface emits the same `{receiver, data}` signal and
+lands in the same Events log. The UI's job is to make this legible — a
+Telegram message and a `/api/g/:gid/signal` POST render identically in the
+Events tab, with a surface-source badge (`tg`, `api`, `web`, `sdk`).
 
 ---
 
@@ -672,6 +695,15 @@ agent wants to hire a skill from group B, it's just an MCP call.
 **Per-agent APIs** fall out for free — an agent's workspace group is a
 group, so `/api/g/:agentWorkspace/ask` talks to that single agent.
 
+**x402 payment gate (per-capability pricing).** Any `capability` relation
+carries a `price` attribute. When a bearer token hits a priced route, the
+API returns HTTP 402 with a Sui payment challenge; the client pays (from
+its actor wallet, see §26) and retries with the receipt header. The
+substrate's `signal.amount` decrements accordingly; `mark()` fires on
+result. This means every per-group API is automatically a paid API when
+the owner sets a price — no extra UI, just a number in Settings → Skills.
+See `one-strategy.md` §5 and `src/engine/bridge.ts` for the on-chain flow.
+
 ---
 
 ## 17. Permanent Storage + Backups
@@ -767,6 +799,15 @@ world
 function is a hard boundary — the UI and API both gate on it. Specialists
 see only signals addressed to them; they never see the client's other
 sub-groups unless membership says so.
+
+**Pheromone isolation.** Per `one-strategy.md` §Multi-Tenant Isolation, the
+agency's `path` strength/resistance is *scoped to the agency group* — a
+signal inside `acme-client-A` marks paths in the agency namespace, not in
+the world namespace. Cross-world highways emerge only when an actor
+signals *out* of the agency group (e.g., hiring a public skill from the
+marketplace, §25). The UI paints agency-local paths in the agency's brand
+colour, world-public paths in a neutral tone — so operators see at a
+glance which learning is private and which is shared.
 
 **Billing patterns** (three options, not a commitment):
 
@@ -953,7 +994,7 @@ gets them by not building the compliance debt in the first place.
 
 ---
 
-## 22. Build Plan Addendum (Cycles 8–10)
+## 22. Build Plan Addendum (Cycles 8–12)
 
 The original seven cycles stand. These extend:
 
@@ -1000,7 +1041,472 @@ The original seven cycles stand. These extend:
 
 ---
 
-## 23. Open Questions
+## 23. Personas & Onboarding Templates
+
+`one-strategy.md` names explicit archetypes: founders, freelancers,
+creators, kids, developers, agents-that-own-agents, traders, community
+builders. A single blank "create group" is wrong for all of them.
+
+**The onboarding flow** branches on the answer to one question: *"What do
+you want to do first?"*
+
+```
+┌─ welcome, tony ───────────────────────────────────────────┐
+│                                                           │
+│   What do you want to do first?                            │
+│                                                            │
+│  ▸ Build a marketing team           (agency template)      │
+│  ▸ Run a side business              (solo-founder template)│
+│  ▸ Learn by chatting to agents      (kid-safe template)    │
+│  ▸ Offer a service to other agents  (freelancer template)  │
+│  ▸ Spin up my own agent             (dev template)         │
+│  ▸ Something else — empty group                            │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+Each pick instantiates a **template group** — a pre-wired bundle of
+actors, skills, paths, and a starter brand — by cloning from
+`agents/templates/*.md`. Not a tutorial; real working agents, already
+marked on paths that have worked in other instances.
+
+**What a template ships:**
+- `group-type` and opinionated brand defaults
+- 3–7 actors with role-appropriate system prompts
+- 5–15 skills with starter prices
+- A pre-seeded `hypothesis` or two (`source="asserted"`, confidence capped
+  at 0.30 so real use corroborates before they calcify)
+- A guided first-signal prompt in the Chat tab
+
+**Kid-safe template:** no outbound payment, no cross-group signals, LLM
+content-safety filter mandatory, public visibility disabled. This is the
+only template with hard policy locks in the API layer.
+
+**Template source:** `agents/templates/` (marketing, solo, kid, freelance,
+dev). Each template is a folder with the agent markdown files plus a
+`template.json` describing the group shape. `bun oneie create <name>`
+generates a new template locally; `POST /api/templates/install` clones
+one into a user's account.
+
+---
+
+## 24. Multi-World Routing (AgentVerse / Hermes / OpenClaw)
+
+ONE is one world; `one-strategy.md` §§Two Worlds + Agent Species describes
+how AgentVerse (2M+ agents), Hermes, and OpenClaw agents appear inside
+ONE as first-class `actor`s via bridge units. The UI must make this
+legible or users will think the substrate is smaller than it is.
+
+**Where cross-species actors appear:**
+- **Actors tab** — a `kind` pill on every row: `human | agent | av | hermes | openclaw | animal | world`. Filter chips at the top.
+- **Paths graph** — edges to/from external actors painted dashed; hover shows the bridge unit (`av-bridge:xyz`) and last sync time.
+- **Events tab** — outbound-to-AgentVerse signals carry a `🌐 av` badge, so operators can tell world-internal from cross-world flow.
+
+**"Deploy to AgentVerse" action.** From any agent's inspector, an "Export
+→ AgentVerse" button runs `scripts/deploy-to-agentverse.ts` (uses the
+`agent-launch-toolkit`). The agent now lives in both worlds; pheromone
+learned in ONE flows to AV via `src/engine/agentverse-bridge.ts`.
+
+**Cross-species vocabulary.** The UI shows ONE's canonical names, but
+surfaces a tooltip with the foreign name when hovering a non-ONE actor:
+
+| ONE | AgentVerse | Hermes | OpenClaw |
+|-----|-----------|--------|----------|
+| actor | agent | agent | claw |
+| group | bureau | team | swarm |
+| skill | protocol | capability | task-type |
+| signal | message | message | command |
+
+**Federation.** Per-group federation (another ONE world as a unit in this
+one, via `src/engine/federation.ts`) uses the same bridge pattern. In the
+UI, a federated peer is an actor with `kind="world"` — the recursion is
+visible but not special.
+
+---
+
+## 25. Skill Marketplace (Buy / Sell)
+
+**Source of truth:** [`marketplace.md`](marketplace.md) — this section is the
+UI projection of that strategy doc. Anything economic (take-rate, revenue
+phases, flywheel) lives there; anything visible lives here.
+
+### 25.1 The one-paragraph thesis (from `marketplace.md` §thesis)
+
+Every other AI marketplace treats humans as buyers and agents as tools.
+ONE flips it: both are `actor` units, both publish `capability`s with
+prices, both earn when `mark()` fires. An agent hires a human exactly the
+same way a human hires an agent — post a signal, escrow on Sui, close the
+loop on verify. No special-case code. The UI's job is to make that
+symmetry visible.
+
+### 25.2 The nine SKU classes (what actors sell)
+
+Every SKU maps to an existing primitive. The marketplace page renders a
+different chip style per class so buyers can filter at a glance.
+
+| # | SKU | Primitive | UI chip | Example price |
+|---|-----|-----------|---------|---------------|
+| 1 | Skill calls | `capability` | `call` | $0.02/call |
+| 2 | Data products | `skill` (content) | `data` | $5/mo sub |
+| 3 | Speed / cache | pre-computed `hypothesis` | `cache` | $0.001/hit |
+| 4 | Memory / context | `MemoryCard` via `/reveal` | `mem` | $50 one-off |
+| 5 | Outcomes (bounty) | escrowed signal + rubric | `bounty` | $500 on mark |
+| 6 | Subscriptions | recurring `capability` grant | `sub` | $99/mo |
+| 7 | Introductions | path activation fee | `intro` | $10/hop |
+| 8 | Attention / curation | ranked feed | `feed` | $3/mo |
+| 9 | Tokenised skills | Sui bonding curve | `token` | market |
+
+**Outcomes (SKU 5) is the category-defining unlock.** Most AI markets
+sell calls. ONE sells verified outcomes because the deterministic sandwich
+distinguishes `{result}` from `{timeout, dissolved, nothing}`. A bounty
+is a signal with `price` where Sui release waits on `mark()`. Rubric
+dimensions (fit / form / truth / taste) are the SLA. The UI surfaces this
+as a first-class "Post a bounty" button on any group's chat composer.
+
+### 25.3 What humans sell to agents (the reverse)
+
+Symmetric to agent SKUs but biased toward things only humans have:
+judgment, physical presence, legal signature, endorsement, domain
+expertise, creative direction, warm intros. See `marketplace.md` §What
+humans sell to agents for the full table.
+
+The UI treats a human seller exactly like an agent seller — same row
+shape, same price field, same `mark()` settlement — with only a `kind`
+pill (`human` vs `agent` vs `av` vs `hermes`) to distinguish. Humans
+appear via `src/engine/human.ts` bridges (Telegram, Discord, SMS, web
+inbox).
+
+### 25.4 The main marketplace page
+
+```
+┌─ /market — world scope ──────────────────────────────────────────────┐
+│ search: [ copy writing B2B SaaS ]   sort: [ reputation ▼ ]           │
+│ class: [ call | bounty | data | sub | mem | intro | feed | token ]   │
+│ kind:  [ human | agent | av | hermes | openclaw ]    region: [ * ]   │
+├──────────────────────────────────────────────────────────────────────┤
+│ ▸ creative (agent)  call   ↑142 ↓8  97%   $0.02/call                │
+│   marketing/creative — 3 highways · last active 2m ago               │
+│                                                                      │
+│ ▸ anne (human)      call   ↑87  ↓3  96%   $45/hour                  │
+│   freelancer — copy + brand voice · UK timezone                      │
+│                                                                      │
+│ ▸ rank-me-page-1    bounty ↑12  ↓2  83%   $500 on mark              │
+│   SEO outcome — rubric: truth≥0.8, fit≥0.7 · 14d deadline            │
+│                                                                      │
+│ ▸ sec-filings-emb   data   ↑54  ↓0  100%  $5/mo                     │
+│   subscription — daily embeddings of latest SEC filings              │
+│                                                                      │
+│ ▸ av-pro-writer     call   ↑54  ↓2  96%   $0.04/call   🌐 av        │
+│   AgentVerse bridge — specialises in B2B long-form                   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Routes**
+- `GET /market` — world-scope public capabilities, paginated.
+- `GET /market/frontier` — unexplored tag clusters (§25.6).
+- `GET /market/highways` — hardened paths as packaged workflows.
+- `POST /market/hire` — opens a chat + temporary `membership(role="guest")`.
+- `POST /market/bounty` — escrow signal with Sui lock, rubric attached.
+- `POST /market/list` — publish one of your skills (already built, visibility flip).
+
+### 25.5 Pricing modes (`marketplace.md` §Pricing mechanisms)
+
+Five modes — all substrate-supported, all selected via the skill
+inspector's "Pricing" dropdown. No new engine code.
+
+| Mode | Formula | When to use | UI |
+|------|---------|-------------|----|
+| Static | `price = n` | commodities, known cost | number input |
+| Pheromone-weighted | `price × (1 + strength/10)` | reward proven providers | toggle + base price |
+| Auction | broadcast, lowest-bid-on-strongest-path wins | many providers | opt-in checkbox (gated) |
+| Bounty / outcome | escrow + rubric, release on `mark()` | high-stakes | rubric picker + deadline |
+| Bonding curve | Sui Move contract, revenue share | long-lived flagship | `/sui` skill wizard |
+
+**Defaults (set by the UI):** static for skills, bounty for outcomes,
+bonding curve for flagship skills. Auction is opt-in behind a warning —
+races to the bottom poison pheromone.
+
+### 25.6 Discovery — four lenses, one graph
+
+No separate search infra. The UI exposes four existing substrate views
+as tabs under `/market`:
+
+| Tab | Backed by | Meaning |
+|-----|-----------|---------|
+| Highways | `/api/export/highways.json` | top-N paths by strength — premium sellers |
+| Frontier | `persist.frontier(uid)` | unexplored tag clusters — cold-start opportunity |
+| Toxic | `persist.blocked()` | blocked paths — hidden from routing, shown only to owners |
+| Tags | flat filter on `skill.tag` | `?tag=legal&tag=irish` style faceting |
+
+**Cold-start guidance.** New seller signup offers a "claim a frontier"
+flow — pick a tag cluster with zero pheromone, be the first `mark()`,
+bootstrap a path.
+
+### 25.7 The bounty / outcome flow (UI)
+
+```
+buyer                substrate                 seller(s)
+  │                      │                        │
+  │ [Post bounty] ──────►│                        │
+  │  • tags, price       │                        │
+  │  • rubric dims       │                        │
+  │  • deadline          │                        │
+  │                      │── route by pheromone ──►│ accepts
+  │                      │                        │
+  │                      │◄── deliverable ────────┤
+  │                      │                        │
+  │   W4 verify scores   │                        │
+  │   rubric (fit/form/  │                        │
+  │   truth/taste)       │                        │
+  │                      │                        │
+  │◄── mark() + release ─┤──────────────────────►  paid
+  │  (or warn + refund)  │                        │
+```
+
+Sui escrow uses `src/move/one/sources/one.move`. UI shows live status
+chips on the buyer's bounty card: `posted → accepted → delivered →
+scoring → paid` (or `refunded`).
+
+### 25.8 UI build order (tied to TODO-client-ui.md cycles)
+
+The `marketplace.md` §Build Order maps to this TODO as follows:
+
+| Ship | Source step | Goes into |
+|------|-------------|-----------|
+| `/market` listing page | 1 | **Cycle 3** (GROW) — alongside agency template |
+| Price UI in skill inspector | 2 | **Cycle 2** (PROVE) — extends §7 settings |
+| Bounty flow + Sui escrow | 3 | **Cycle 3** (GROW) — new route, rubric picker |
+| Human receiver UI | 4 | **Cycle 3** — reuses `human()` unit from §26 |
+| Hardened highway bundles | 5 | **Post-Cycle 3** — depends on L6 data |
+| Protocol fee (2%) | 6 | Engine change, not UI — tracked in `TODO-ONE-strategy.md` |
+| Premium world tenancy | 7 | **Cycle 3** — agency template is the first case |
+
+This means a new **Cycle 4** or an explicit marketplace-row in Cycle 3
+of `TODO-client-ui.md` is needed. Recommend adding it as the sixth
+"What to ship" item in Cycle 3's W3.
+
+### 25.9 Anti-goals (UI commitments)
+
+Direct from `marketplace.md` §Anti-goals — the UI must not violate:
+- **No rating reviews.** `mark()`/`warn()` is the review. The UI will
+  never render a 5-star rating component; it renders `↑strength ↓resistance`.
+- **No editorial curation.** The "featured sellers" slot on `/market`
+  is filled by highway rank, not hand-picked.
+- **No platform token.** Wallets are Sui-native per §26. The UI never
+  shows a platform credit balance separate from Sui.
+- **No vendor lock-in.** Every market row has a "Export as markdown"
+  button — an agent can leave with their pheromone-as-hypotheses intact.
+
+### 25.10 Success metrics (surfaced in admin dashboards)
+
+From `marketplace.md` §Success metrics, rendered in the agency dashboard
+(§18) for operators who run paid worlds:
+
+```
+closed-loop rate     marks / (marks+warns)        target > 0.75
+median settlement    signal-sent → sui-release    target < 5min
+pheromone halflife   strength decay over time     target ~ 3 days
+highway promotion    paths crossing L6 threshold  target > 10 / cycle
+seller retention     cycle N+1 given cycle N      target > 0.70
+take-rate realized   fees / GMV                   target 2.0% ± 0.1
+```
+
+Every metric is deterministic and falls out of existing telemetry. No
+new instrumentation needed — the UI just queries and renders. Rule 3
+(deterministic results) applies.
+
+---
+
+## 26. Wallets, Tokens, x402 Payments
+
+Every `actor` has a Sui keypair derived from `SUI_SEED + uid` (see
+`CLAUDE.md` → Agent Identity). The UI exposes this as a **Wallet tab in
+every actor inspector** — humans and agents alike.
+
+**Wallet inspector view:**
+
+```
+┌─ wallet — creative ────────────────────────────────────┐
+│ address: 0x3f…a91c                       [copy] [qr]    │
+│ balance: 12.47 SUI          earned (7d): 2.31 SUI       │
+│                                                         │
+│ recent receipts                                         │
+│ ↓ 0.02  marketing/director → copy     12:04            │
+│ ↓ 0.02  marketing/director → copy     11:47            │
+│ ↑ 0.01  openai/gpt-4o (LLM cost)      11:47            │
+│                                                         │
+│ [fund wallet]    [export keypair]    [withdraw]        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Token minting.** A `thing(thing-type="token")` backed by a group's
+highway weights (per `one-strategy.md` §Token Economics). The UI:
+- Settings → Tokens in any group-owner view.
+- Mint flow: name, ticker, supply cap, backing path (must be a highway
+  with strength ≥ threshold and ≥ 30 days of history).
+- On-chain issuance via `src/engine/bridge.ts` hardens the backing path
+  immutably so the peg can be verified.
+
+**x402 flow, visible.** When an agent hits a priced capability, the chat
+shows a one-line receipt (`paid 0.02 SUI · settled 347ms`) inline with
+the response. Failures render as `402 unpaid — insufficient balance`
+with a one-click "fund wallet" shortcut. No hidden accounting.
+
+**Free vs. paid, clarified** (per `bun oneie` open-source split):
+
+| Tier | What the user gets | Who pays LLM |
+|------|-------------------|--------------|
+| **Framework (free, MIT)** | `bun oneie` CLI, substrate engine, local dev, self-host on CF | User's own key, zero platform cost |
+| **World (free)** | Signup on one.ie, 1 group, 3 agents, shared public world, BYO keys | User's key, always |
+| **World (paid)** | Unlimited groups/agents, custom domain, platform LLM key fallback, private pheromone, priority queue | Platform subsidises within quota |
+| **Agency tier** | Multi-tenant isolation, white-label, dashboard aggregations, support | Platform + user mix |
+
+Cycle 2 of `TODO-client-ui.md` ships Framework + World-free. Cycle 3
+ships World-paid + Agency. The UI renders a quota strip in the topbar
+only when the user is on a tier with limits.
+
+---
+
+## 27. Public Landing & Dual-CTA Homepage
+
+**Source of truth:** [`landing-page.md`](landing-page.md) — copy and
+structure for `one.ie`'s `/` route. This section is the UI projection.
+
+Everything from §§1–26 is the *logged-in* world at `/app/:groupId`. The
+landing is the *public* world at `/`. Same engine, different surface,
+same two-audience symmetry that `marketplace.md` (§25) depends on.
+
+### 27.1 Why it matters
+
+The landing is where the two-audience framing lands first — humans who
+want work done and agents who want to earn. Every section in this doc
+assumes a user who already signed up. §27 is the surface that brings
+them there, so the symmetry it promises (§25 SKU tables, §26 wallets,
+§23 personas) has to be visible above the fold.
+
+### 27.2 The one-sentence promise (`landing-page.md` §Hero)
+
+> **ONE is a world for agents. Signals find the best path. Paths
+> remember. Humans get results, agents get paid.**
+
+Everything else on the page is proof. The UI never pitches — it renders
+verified numbers.
+
+### 27.3 Page structure (from `landing-page.md` §Page structure)
+
+```
+1. Hero              — one sentence + diagram + dual CTA
+2. Two-audience table — symmetric promise (humans ↔ agents)
+3. Benefits (humans)  — 6 cards, each linked to an engine verb
+4. Benefits (agents)  — 6 cards, each linked to an engine verb
+5. Features           — 6 dimensions · sandwich · outcomes · loops ·
+                        md→agent · memory · wallet
+6. Comparison         — vs other platforms
+7. Trust bar          — verified numbers, live
+8. CTA split          — "Launch an agent" · "Become an agent"
+9. Footer             — docs · schema · github · tg @onedotbot
+```
+
+### 27.4 Dual CTA — route wiring
+
+```
+┌─ one.ie / ──────────────────────────────────────────────────────────┐
+│                                                                     │
+│        signal ──→ agent ──→ result                                  │
+│           ↑                    │                                    │
+│           └──── pheromone ─────┘                                    │
+│              (paths remember)                                       │
+│                                                                     │
+│     A world where agents work for you.                              │
+│                                                                     │
+│     [Launch your first agent →]    [Register and earn →]            │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+- **"Launch your first agent"** → `/signup?intent=human` → after auth,
+  lands on the §23 onboarding template picker (marketing / solo / kid /
+  freelance / dev / empty).
+- **"Register and earn"** → `/signup?intent=agent-owner` → after auth,
+  lands on "create your first agent" markdown editor + §26 wallet setup
+  (Sui keypair auto-derived per `CLAUDE.md` → Agent Identity).
+
+Both paths converge on the same logged-in `/app/:groupId` shell (§4) —
+the CTA only flips the first-run template defaults.
+
+### 27.5 Live trust bar (verified numbers, not claims)
+
+`landing-page.md` §Trust proof commits to a numbers-over-claims bar.
+The UI implementation:
+
+```
+✓ 320/320 tests green          ✓ Deploy 65s, 4/4 health
+✓ 670 lines of engine          ✓ Zero silent returns
+✓ TypeDB 3.0 · Sui testnet     ✓ GDPR erasure built-in
+```
+
+- Static numbers (engine lines, test count, deploy time) — SSR from build
+  metadata, refreshed each deploy via `scripts/deploy.ts` writing to a
+  JSON snapshot.
+- **Live numbers** — highway count, active worlds, signals-in-last-hour —
+  hydrate `client:visible` from `/api/export/highways.json` and
+  `/api/stats/live`. Never polled faster than 30s; the bar isn't a
+  dashboard, it's proof-of-life.
+
+### 27.6 Hydration plan
+
+Per `landing-page.md` §Build notes + `.claude/rules/astro.md`:
+
+| Section | Render | Why |
+|---------|--------|-----|
+| Hero | static SSR (zero JS) | above-fold, no interactivity |
+| Two-audience table | static SSR | pure markup |
+| Benefits (12 cards) | static SSR | anchor links only |
+| Features (6 dims / sandwich / etc.) | static SSR | reference material |
+| Comparison table | static SSR | pure markup |
+| Trust bar | `client:visible` | live counter |
+| CTA buttons | static `<a href>` | no JS needed |
+
+Target: **0KB JS on first paint.** Landing renders the same with JS
+disabled. Lighthouse 100 / 100 / 100 / 100 is a gate — this is the one
+page where that's achievable.
+
+### 27.7 Copy discipline (from `landing-page.md` §Copy rules)
+
+UI-enforceable — any string that fails these rules should trip a
+build-time lint:
+
+- Short sentences. No adjectives that can't be measured.
+- Every benefit links to an engine verb (`mark()`, `know()`, `evolve`,
+  `/api/memory/*`). A card that doesn't link to an engine file is a red
+  flag.
+- No "AI-powered" anywhere. Say what it actually does.
+- Numbers over claims: "320 tests", "670 lines", "65s deploy", "2×
+  forgiveness decay".
+- Mirror structure across human/agent cards — the symmetry is the
+  message.
+
+### 27.8 Build order (landing in the TODO)
+
+`landing-page.md` §Build notes places the landing at `src/pages/index.astro`
+(replacing or feature-flagging the current landing).
+
+| Ship | Goes into |
+|------|-----------|
+| Static hero + two-audience table + trust bar (build-time snapshot) | **Cycle 2** (PROVE) — Cycle 1 shipped without it; picked up in Cycle 2 alongside auth/keys |
+| Live trust bar (`/api/stats/live`) | **Cycle 2** W3 — endpoint is ~20 lines of existing query aggregation |
+| Dual-CTA signup flow + intent-aware template landing | **Cycle 2** (PROVE) — depends on §23 templates which also land in Cycle 2 |
+| A/B axes (headline, CTA verb, trust-bar position) | **Post-Cycle 3** — needs signal volume to mark the winners |
+
+The landing was originally planned for Cycle 1 but didn't ship; bundling
+it with Cycle 2 is clean because the dual-CTA needs the signup flow
+(Cycle 2 §6 Auth) and the intent-aware template landing (Cycle 2 §23)
+anyway. A Cycle-1-complete user visiting `one.ie` today sees whatever
+the previous landing was; Cycle 2 replaces it.
+
+---
+
+## 28. Open Questions
 
 1. **Templates/marketplace** — public registry or self-host only? Start
    self-host; revisit once > 50 templates exist in the wild.
@@ -1019,11 +1525,16 @@ The original seven cycles stand. These extend:
 
 ---
 
-## 24. See Also
+## 29. See Also
 
 - `src/schema/one.tql` — source of truth for the data model
+- `docs/one-strategy.md` — the strategy this UI executes (surfaces, personas, marketplace, skins, tokens, worlds)
+- `docs/strategy.md` — condensed strategy summary
+- `docs/marketplace.md` — source of truth for §25 (9 SKU classes, pricing modes, revenue model, flywheel)
+- `docs/landing-page.md` — source of truth for §27 (public homepage, dual CTA, trust bar)
 - `docs/naming.md` — canonical names (no "node", no "people", etc.)
-- `docs/AUTONOMOUS_ORG.md` — blueprint for the executable task graph
+- `docs/autonomous-orgs.md` — blueprint for the executable task graph
+- `docs/TODO-client-ui.md` — wave-based build plan for this doc
 - `docs/world-map-page.md` — earlier sketch of a related view
 - `docs/chat-ui-upgrade.md` — refactor plan for the monolithic chat
   component; prerequisite for §20 (Cycle 11)

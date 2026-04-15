@@ -84,6 +84,22 @@ entity unit,
     owns tag @card(0..),          # flat tags: "scout", "harvester", "team-alpha", etc.
     owns cost-per-signal,         # model economics
     owns created,
+    # ADL attributes
+    owns adl-version,
+    owns adl-uid,
+    owns adl-name,
+    owns adl-status,
+    owns sunset-at,
+    owns data-sensitivity,
+    owns data-categories,
+    owns data-retention-days,
+    owns perm-network,
+    owns perm-filesystem,
+    owns perm-env,
+    owns perm-process,
+    owns perm-memory-mb,
+    owns perm-cpu-percent,
+    owns perm-duration-s,
     plays path:source,
     plays path:target,
     plays capability:provider,
@@ -107,6 +123,9 @@ entity skill,
     owns tag @card(0..),          # flat tags: "build", "wire", "P0", "frontend", etc.
     owns price,                   # x402 price (0 = free, >0 = paid service)
     owns currency,                # "SUI", "USDC", "FET"
+    # ADL tool schemas
+    owns input-schema,
+    owns output-schema,
     plays capability:offered;
 
 
@@ -460,6 +479,27 @@ attribute last-evolved, value datetime;
 attribute observed-at, value datetime;
 attribute valid-from, value datetime;
 attribute valid-until, value datetime;
+
+# ADL (Agent Definition Language) — Identity & Security Layer
+# These attributes enable typed identity, deny-by-default permissions,
+# tool schemas, data classification, and sunset lifecycle.
+attribute adl-version, value string;         # semver: "0.2.0"
+attribute adl-uid, value string;             # HTTPS URI / DID / URN — canonical ADL identifier
+attribute adl-name, value string;            # display name from ADL (may differ from name)
+attribute adl-status, value string;          # "draft" | "active" | "deprecated" | "retired"
+attribute sunset-at, value datetime;         # when unit retires
+attribute data-sensitivity, value string;    # "public" | "internal" | "confidential" | "restricted"
+attribute data-categories, value string;     # JSON array: ["pii","phi","financial","credentials","ip"]
+attribute data-retention-days, value integer;# retention policy (days)
+attribute perm-network, value string;        # JSON: {allowed_hosts[], protocols[]}
+attribute perm-filesystem, value string;     # JSON: {allowed_paths[], read, write}
+attribute perm-env, value string;            # JSON: {access: string[]}
+attribute perm-process, value boolean;       # process execution allowed?
+attribute perm-memory-mb, value integer;     # resource limit (MB)
+attribute perm-cpu-percent, value double;    # resource limit (%)
+attribute perm-duration-s, value integer;    # max signal duration (seconds)
+attribute input-schema, value string;        # JSON Schema for tool input (skill attribute)
+attribute output-schema, value string;       # JSON Schema for tool output (skill attribute)
 
 
 # =============================================================================

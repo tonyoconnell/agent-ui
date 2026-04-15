@@ -17,12 +17,21 @@ function renderMemoryBlock(pack: ContextPack): string {
   // Profile
   lines.push(`User: ${pack.profile.handle} (${pack.profile.messageCount} messages in history)`)
 
-  // Hypotheses (only confident ones)
-  const confident = pack.hypotheses.filter((h) => h.confidence >= 0.5)
-  if (confident.length > 0) {
-    lines.push('\nWhat the substrate learned about this user:')
-    for (const h of confident) {
-      lines.push(`  - ${h.predicate}: ${h.object} (confidence: ${Math.round(h.confidence * 100)}%)`)
+  // High-confidence hypotheses — directly quotable (verbalize threshold: 0.85)
+  const facts = pack.hypotheses.filter((h) => h.confidence >= 0.85)
+  if (facts.length > 0) {
+    lines.push('\nEstablished facts about this user:')
+    for (const h of facts) {
+      lines.push(`  [fact] ${h.predicate}: ${h.object} (${Math.round(h.confidence * 100)}%)`)
+    }
+  }
+
+  // Mid-confidence hints — shape generation silently, do not quote verbatim
+  const hints = pack.hypotheses.filter((h) => h.confidence >= 0.5 && h.confidence < 0.85)
+  if (hints.length > 0) {
+    lines.push('\nSubtle hints (do not quote these directly):')
+    for (const h of hints) {
+      lines.push(`  [hint] possibly ${h.predicate}: ${h.object}`)
     }
   }
 
@@ -49,9 +58,7 @@ function renderMemoryBlock(pack: ContextPack): string {
  */
 export function systemPromptWithPack(basePrompt: string, pack: ContextPack): string {
   // Skip memory block if there's nothing useful in the pack
-  const hasMemory =
-    pack.hypotheses.some((h) => h.confidence >= 0.5) ||
-    pack.highways.length > 0
+  const hasMemory = pack.hypotheses.some((h) => h.confidence >= 0.5) || pack.highways.length > 0
 
   if (!hasMemory) return basePrompt
 

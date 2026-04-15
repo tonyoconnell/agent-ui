@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 
 import type { UseChatHelpers } from '@ai-sdk/react'

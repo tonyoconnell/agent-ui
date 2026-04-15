@@ -1,523 +1,610 @@
 ---
-title: TODO Chat — Import ONE/web Chat Stack
+title: TODO Chat — Port, Refactor, Remember, Identify, Universalize, Embed, Expose
 type: roadmap
-version: 1.0.0
-priority: Wire → Prove → Grow
-total_tasks: 10
-completed: 0
+version: 3.0.0
+priority: Wire → Prove → Grow → Refactor → Remember → Identify → Universalize → Embed → Expose
+total_cycles: 9
+completed_cycles: 3
+current_cycle: 9 (COMPLETE)
 status: OPEN
 ---
 
-# TODO: Chat — Import ONE/web Chat Stack into Envelopes
+# TODO: Chat — from imported stack to universal memory-wired substrate surface
 
 > **Time units:** plan in **tasks → waves → cycles** only. Never days, hours,
-> weeks, or sprints. Width = tasks-per-wave. Depth = waves-per-cycle. Learning
+> weeks, sprints. Width = tasks-per-wave. Depth = waves-per-cycle. Learning
 > = cycles-per-path.
 >
-> **Goal:** Port the full ChatClientV2 stack from `../ONE/web` into envelopes —
-> generative UI, model selector, tool visualization, markdown, reasoning display —
-> wired to envelopes' substrate-backed `api/chat.ts`.
+> **Goal:** Ship ONE's chat as the one public surface the substrate puts on
+> the world. Four ordered phases, nine cycles, four waves each.
 >
-> **Source of truth:** [DSL.md](DSL.md) — signal language,
-> [dictionary.md](dictionary.md) — everything named,
-> [rubrics.md](rubrics.md) — quality scoring (fit/form/truth/taste → mark)
->
-> **Shape:** 3 cycles, four waves each. Haiku reads, Opus decides, Sonnet
-> writes, Sonnet checks. Same loop as the substrate, different receivers.
->
-> **Schema:** Tasks map to `world.tql` dimension 3b — chat is a `signal` (dim 5),
-> `ChatClientV2` is a `skill` (dim 3), pheromone routes model selection on the
-> `chat` tag edge.
+> 1. **Port** the ONE/web chat stack into envelopes (cycles 1–3).
+> 2. **Refactor** the 2,776-line god component into a ~250-line shell (cycle 4).
+> 3. **Remember** every turn through substrate primitives (cycles 5–6).
+> 4. **Universalize + embed + expose** so every agent, group, and third party
+>    shares one chat window (cycles 7–9).
+
+## Source of truth
+
+Every Wave 2 (decide) loads these. `DSL.md` + `dictionary.md` are
+non-negotiable base context.
+
+| Doc | What it anchors |
+|-----|-----------------|
+| [DSL.md](DSL.md) | signal grammar, `{ receiver, data }`, mark/warn/fade |
+| [dictionary.md](dictionary.md) | canonical names, unit/signal/path |
+| [rubrics.md](rubrics.md) | fit/form/truth/taste scoring |
+| [chat-memory.md](chat-memory.md) | ingest → recall → pack → respond → outcome → promote (cycles 5–6, 9) |
+| [chat-universal.md](chat-universal.md) | four modes, target-as-uid, SDK (cycles 7–8) |
+| [chat-ui-upgrade.md](chat-ui-upgrade.md) | god-component refactor (cycle 4) |
+| [client-ui.md](client-ui.md) | chat inside the broader UI (§20–21) |
+| [memory.md](memory.md) | the full 6-dimensional memory model |
+
+## Schema reference
+
+Tasks below map to `src/schema/one.tql` dim 3b. Every turn emits a `signal`
+(dim 5). `<ChatShell>` is a `skill` (dim 3) offered by the chat unit.
+Pheromone accumulates on the `chat` tag edge; path strength drives model
+and route selection.
+
+---
 
 ## Routing
 
-Signals flow down through waves. Results flow up, marking paths.
+Nine cycles fan out from one signal. Context flows down; quality marks flow
+up; siblings in the same wave share tags.
 
 ```
-    signal DOWN                     result UP
-    ──────────                      ─────────
-    /do TODO-chat.md                result + 4 tagged marks
-         │                               │
-         ▼                               │
-    ┌─────────┐                          │
-    │  W1     │  Haiku recon ────────────┤ mark(edge:fit, score)
-    │  read   │  → map imports           │ mark(edge:form, score)
-    └────┬────┘                          │ mark(edge:truth, score)
-         │ dependency tree               │ mark(edge:taste, score)
-         ▼                               │
-    ┌─────────┐                          │
-    │  W2     │  Opus decide             │
-    │  fold   │  → copy specs            │
-    └────┬────┘                          │
-         │ ordered copy list             │
-         ▼                               │
-    ┌─────────┐                          │
-    │  W3     │  Sonnet copy             │
-    │  apply  │  → files copied + adapted│
-    └────┬────┘                          │
-         │                               │
-         ▼                               │
-    ┌─────────┐                          │
-    │  W4     │  Sonnet verify ──────────┘
-    │  score  │  → tsc + biome + smoke test
-    └─────────┘
+   /do TODO-chat.md (signal)
+        │
+        ▼
+  ┌─ PHASE A — PORT & REDUCE ─────────────────────┐
+  │  C1 WIRE   → C2 PROVE  → C3 GROW  → C4 REFACTOR│
+  │  pkgs+ui      elements      apex       ≤250 ln │
+  └────────────────────────────────┬───────────────┘
+                                   │ ChatShell ready
+  ┌─ PHASE B — REMEMBER & IDENTIFY ▼───────────────┐
+  │  C5 REMEMBER      C6 IDENTIFY                  │
+  │  ingest/recall    Sui /claim ceremony          │
+  │  outcome/promote  cross-channel actor merge    │
+  └────────────────────────────────┬───────────────┘
+                                   │ memory + identity online
+  ┌─ PHASE C — UNIVERSALIZE & EMBED▼───────────────┐
+  │  C7 UNIVERSALIZE      C8 EMBED                 │
+  │  page/split/widget/   chat.js + shadow DOM     │
+  │  inline frames        Gateway origin allowlist │
+  └────────────────────────────────┬───────────────┘
+                                   │ one component, four mounts
+  ┌─ PHASE D — EXPOSE ▼────────────────────────────┐
+  │  C9 EXPOSE                                      │
+  │  /memory  /forget  /explore in every embed     │
+  └─────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                    mark(chat:universal, 9)  — path hardens
+                    know() promotes highways after L6 tick
 ```
 
-**Context accumulates down. Quality marks flow up. Pheromone routes sideways.**
+**Every wave:** signals DOWN, `mark(edge, score)` UP on success,
+`warn(edge, 0.5..1)` UP on dissolve/failure.
 
-## Testing — Deterministic Sandwich
+---
+
+## Testing — Deterministic Sandwich (Rule 3)
 
 ```
-    PRE (before W1)                    POST (after W4)
-    ───────────────                    ────────────────
-    bun run verify                     bun run verify
-    ├── biome check .                  ├── biome check .
-    ├── tsc --noEmit                   ├── tsc --noEmit
-    └── vitest run                     └── vitest run + /chat loads
+PRE (before W1)              POST (after W4)
+bun run verify               bun run verify
+├── biome check .            ├── biome check .
+├── tsc --noEmit             ├── tsc --noEmit
+└── vitest run               └── vitest run + targeted probes per cycle
+```
+
+**Every cycle reports numbers, not vibes:**
+
+```
+tests   : N/N passing
+biome   : clean
+tsc     : clean, no `any` in touched files
+perf    : FCP ms · TTI ms · turn round-trip ms (where applicable)
+signals : chat:outcome fired on every turn
+rubric  : { fit, form, truth, taste } each ≥ 0.8
 ```
 
 ### W0 — Baseline
 
 ```bash
-bun run verify   # must be green before any cycle begins
+bun run verify   # must be green before any wave begins
 ```
 
 ---
 
+## Task Metadata (cycles 4–9)
+
+Compact per-task rows for remaining work. `persona` is the persistent
+unit pattern from `.claude/personas/` or the canonical wave agent.
+
+| Task | Cycle | Wave | Value | Effort | Persona | Blocks | Exit | Tags |
+|------|-------|------|-------|--------|---------|--------|------|------|
+| `chat-v3-extract`      | 4 | W3 | 5 | M | sonnet-edit   | 4.4–4.8 | 6 files in `chat-v3/`, line targets met | refactor, chat, component |
+| `chat-v3-hook`         | 4 | W3 | 4 | S | sonnet-edit   | 4.5     | `useChat` is the only state source       | refactor, hook     |
+| `chat-v3-dead-remove`  | 4 | W3 | 3 | S | sonnet-edit   | 4.6     | `ai/chat/` folder gone                   | cleanup            |
+| `chat-v3-outcome`      | 4 | W3 | 5 | S | sonnet-edit   | —       | POST `/api/signal` on turn end → mark    | substrate, loop-1  |
+| `chat-v3-ssr`          | 4 | W3 | 4 | S | sonnet-edit   | —       | `client:only` → `client:load`, SSR shell | astro, perf        |
+| `chat-v3-verify`       | 4 | W4 | 5 | S | sonnet-verify | —       | FCP < 500ms, ≤ 250 lines, rubric ≥ 0.90  | verify             |
+| `chat-ingest-unit`     | 5 | W3 | 5 | M | sonnet-edit   | 5.2     | `chat:ingest` persists scope-tagged sig  | substrate, memory  |
+| `chat-recall-unit`     | 5 | W3 | 5 | M | sonnet-edit   | 5.3     | three parallel queries → `ContextPack`   | substrate, memory  |
+| `bot-respond-unit`     | 5 | W3 | 4 | S | sonnet-edit   | 5.4     | LLM receives typed pack (not prose soup) | substrate, llm     |
+| `chat-outcome-unit`    | 5 | W3 | 5 | S | sonnet-edit   | 5.5     | valence detector marks/warns user→tag    | substrate, loop-2  |
+| `promote-tuning`       | 5 | W3 | 3 | S | sonnet-edit   | —       | asserted cap ≤ 0.3; source attribute set | substrate, loop-6  |
+| `memory-turn-verify`   | 5 | W4 | 5 | S | sonnet-verify | —       | end-to-end turn: ingest→recall→pack→respond→outcome | verify |
+| `use-identity`         | 6 | W3 | 5 | M | sonnet-edit   | 6.2     | visitor uid + signed cookie              | identity, sui      |
+| `claim-command`        | 6 | W3 | 4 | S | sonnet-edit   | 6.3     | `/claim` issues nonce, renders dialog    | ux, sui            |
+| `verify-claim`         | 6 | W3 | 5 | S | sonnet-edit   | 6.4     | Ed25519 sig verifies nonce + ts          | security, sui      |
+| `resolve-actor-merge`  | 6 | W3 | 5 | M | sonnet-edit   | —       | claimed uid inherits prior signals       | identity, merge    |
+| `identity-verify`      | 6 | W4 | 5 | S | sonnet-verify | —       | cross-channel claim < 10s, memory retained | verify           |
+| `frame-fullpage`       | 7 | W3 | 3 | S | sonnet-edit   | 7.2     | `FullPageFrame` renders                  | ux, frame         |
+| `frame-splitpane`      | 7 | W3 | 4 | S | sonnet-edit   | —       | sticky column + ⌘/ toggle + postMessage  | ux, frame         |
+| `frame-widget`         | 7 | W3 | 5 | M | sonnet-edit   | 7.5     | bubble + slide-up panel + unread badge   | ux, widget        |
+| `frame-inline`         | 7 | W3 | 3 | S | sonnet-edit   | —       | natural flow, no fixed positioning       | ux, frame         |
+| `target-uid-dispatch`  | 7 | W3 | 5 | M | sonnet-edit   | —       | `target="person:*" \| "group:*"` routes  | routing, signal   |
+| `why-this-agent`       | 7 | W3 | 3 | S | sonnet-edit   | —       | popover shows path that carried the turn | observability     |
+| `universal-verify`     | 7 | W4 | 5 | S | sonnet-verify | —       | same conversation across four mounts     | verify            |
+| `chat-js-loader`       | 8 | W3 | 5 | M | sonnet-edit   | 8.2     | single `<script>` mounts shadow DOM      | sdk, embed        |
+| `shadow-isolation`     | 8 | W3 | 4 | S | sonnet-edit   | —       | host styles can't collide                | sdk, css          |
+| `gateway-origin`       | 8 | W3 | 5 | S | sonnet-edit   | 8.5     | `allowedOrigins` enforced per agent      | security, gateway |
+| `visitor-cookie`       | 8 | W3 | 4 | S | sonnet-edit   | —       | signed, HttpOnly, per-domain             | security          |
+| `sse-proxy`            | 8 | W3 | 4 | S | sonnet-edit   | —       | Gateway streams SSE without buffering    | gateway, perf     |
+| `embed-verify`         | 8 | W4 | 5 | S | sonnet-verify | —       | embed on non-ONE domain: sig + reply OK, bundle ≤ 30 KB gz | verify |
+| `memory-command`       | 9 | W3 | 5 | S | sonnet-edit   | —       | `/memory` → `persist.reveal` card        | ux, memory        |
+| `forget-command`       | 9 | W3 | 5 | S | sonnet-edit   | —       | `/forget` confirms + cascades + shreds   | gdpr, memory      |
+| `explore-command`      | 9 | W3 | 4 | S | sonnet-edit   | —       | `/explore` → `persist.frontier` suggest  | ux, loop-7        |
+| `expose-verify`        | 9 | W4 | 5 | S | sonnet-verify | —       | all three commands work in all four modes | verify           |
+
+---
+
+## Cycles
+
+### Cycle 1: WIRE — ✅ DONE
+
+Ported packages + UI atoms + lib + config. Baseline 409/409, biome + tsc
+clean. Rubric `{ fit:0.9, form:0.85, truth:0.95, taste:0.8 }`.
+
+### Cycle 2: PROVE — ✅ DONE
+
+Ported 3 `ai/elements`, 12 `generative-ui`, 8 `hooks/ai` (existing). One
+tsc fix (`DynamicProduct` narrowing). Rubric `{ 0.9, 0.85, 0.95, 0.8 }`.
+
+### Cycle 3: GROW — ✅ DONE
+
+15 top-level ai components + 2 API routes copied; `chat.astro` rewritten
+to mount `ChatClientV2 client:only="react"`. 8 type fixes, provider API
+version delta resolved. `/chat` live, streaming from substrate. Rubric
+`{ 0.9, 0.85, 0.95, 0.8 }`.
+
+---
+
+### Cycle 4: REFACTOR — 🟡 ACTIVE (W3 step 1 done; steps 3–8 next)
+
+**Source:** [chat-ui-upgrade.md](chat-ui-upgrade.md) — full refactor spec.
+**Unlocks:** every subsequent cycle (memory wiring needs a clean shell,
+universal chat needs four frames, embed needs SSR).
+
+**W3 step 1 (done, 2026-04-14):**
+- `lib/chat/{types,models,demos,tools,stream}.ts` extracted
+- `useChat` hook created (useReducer, streaming, director)
+- `SimpleChatClient`, `FreeChatClient`, `Chatbot` deleted (721 lines)
+- `ChatClientV2.tsx` 2,776 → 2,058 lines
+
+**W3 steps 3–8 (next):**
+
+| Step | Task | Target |
+|------|------|--------|
+| 3 | Extract `chat-v3/` sub-components | 6 files, lines per `chat-ui-upgrade.md` §6 |
+| 4 | Hook consolidation — `useChat` is single source of truth | remove 15+ `useState` calls |
+| 5 | Delete dead `ai/chat/` folder | 0 unique exports left |
+| 6 | Collapse `ai/chat/` → `chat-v3/` or `elements/` | no parallel trees |
+| 7 | Substrate wiring — `POST /api/signal` on turn end | marks `chat → model` edge (loop 2) |
+| 8 | SSR shell — `chat.astro` renders skeleton | `client:only` → `client:load` |
+
+**W4 exit:**
+
 ```
-   CYCLE 1: WIRE                CYCLE 2: PROVE           CYCLE 3: GROW
-   Packages + deps layer        AI components            ChatClientV2 + pages
-   ─────────────────────        ──────────────           ────────────────────
-   12 files, ~15 writes         18 files, 0 adapts       5 files, ~3 adapts
-        │                            │                        │
-        ▼                            ▼                        ▼
-   ┌─W1─W2─W3─W4─┐        ┌─W1─W2─W3─W4─┐        ┌─W1─W2─W3─W4─┐
-   │ H   O  S  S  │  ──►   │ H   O  S  S  │  ──►   │ H   O  S  S  │
-   └──────────────┘        └──────────────┘        └──────────────┘
-
-   H = Haiku (recon)    O = Opus (decide)    S = Sonnet (copy + verify)
-```
-
----
-
-## How Loops Drive This Roadmap
-
-| Cycle | What changes | Loops activated |
-|-------|-------------|-----------------|
-| **WIRE** | Packages + UI atoms + lib + config installed | L1 (signal), L2 (path marking) |
-| **PROVE** | AI elements + generative-ui + hooks copied | L3 (fade) joins L1-L2 |
-| **GROW** | ChatClientV2 + pages wired, `/chat` live | L4-L5 (pheromone learns model routing) |
-
----
-
-## Source of Truth
-
-**[DSL.md](DSL.md)** — signal grammar, `{ receiver, data }`, mark/warn/fade
-**[dictionary.md](dictionary.md)** — canonical names, unit/signal/path definitions
-**[rubrics.md](rubrics.md)** — quality scoring: fit/form/truth/taste as tagged edges
-
-| Item | Canonical | Notes |
-|------|-----------|-------|
-| `chat` tag | `{ tags: ['chat'] }` on signal data | Pheromone routes model selection |
-| `api/chat.ts` | Keep existing substrate endpoint | Do not replace — it marks paths |
-| `ChatClientV2` | Copy verbatim, remove `"use client"` if needed | Astro ignores it anyway |
-| `config/backend.ts` | Create as shim, no Convex | `tier: 'free'`, `enabled: false` |
-
----
-
-## Cycle 1: WIRE — Packages, UI atoms, lib, config
-
-**Files touched:** `package.json`, `src/config/backend.ts`, `src/lib/claude-code-events.ts`,
-`src/lib/security.ts`, `src/hooks/use-toast.ts`, 6× `src/components/ui/*.tsx`
-
-**Why first:** ChatClientV2 and every element component import from these.
-Until packages are installed and these stubs exist, `tsc` fails on every downstream file.
-Wire the foundation before any component lands.
-
----
-
-### Wave 1 — Recon (parallel Haiku x 4)
-
-Read the four import surfaces that need new files. Report verbatim, line numbers.
-
-| Agent | File | What to look for |
-|-------|------|-----------------|
-| R1 | `../ONE/web/src/components/ui/alert.tsx` | Radix imports, exports |
-| R2 | `../ONE/web/src/components/ui/{hover-card,label,select,toast,toaster}.tsx` | Same |
-| R3 | `../ONE/web/src/lib/security.ts` | Exports: secureGetItem/SetItem/RemoveItem/maskSensitive |
-| R4 | `../ONE/web/src/lib/claude-code-events.ts` | All exported types and AGENT_PROFILES |
-
-**Outcome:** 4 reports with exact file contents. Advance when 3/4 in.
-
----
-
-### Wave 2 — Decide (Opus)
-
-**Context:** DSL.md + dictionary.md + this file + W1 reports.
-
-Decisions to make:
-1. Which packages to install (marked below — confirmed from ChatClientV2 imports)
-2. Whether `security.ts` key `"ONE-PLATFORM-2025"` needs to change for envelopes
-3. Whether `backendConfig.endpoints.api` should point to `/api` (local) or `https://api.one.ie`
-4. Confirm `"use client"` can be kept verbatim (Astro ignores, no issue)
-
-**Packages to install:**
-```bash
-bun add marked shiki use-stick-to-bottom ai-sdk-provider-claude-code @ai-sdk/openai
-```
-
-**Output:** copy specs for each file (source path → target path, any adaptations).
-
----
-
-### Wave 3 — Edits (Sonnet x 8)
-
-```bash
-# E1 — packages
-bun add marked shiki use-stick-to-bottom ai-sdk-provider-claude-code @ai-sdk/openai
-
-# E2-E6 — missing UI components
-cp ../ONE/web/src/components/ui/alert.tsx      src/components/ui/alert.tsx
-cp ../ONE/web/src/components/ui/hover-card.tsx src/components/ui/hover-card.tsx
-cp ../ONE/web/src/components/ui/label.tsx      src/components/ui/label.tsx
-cp ../ONE/web/src/components/ui/select.tsx     src/components/ui/select.tsx
-cp ../ONE/web/src/components/ui/toast.tsx      src/components/ui/toast.tsx
-cp ../ONE/web/src/components/ui/toaster.tsx    src/components/ui/toaster.tsx
-
-# E7 — lib files
-cp ../ONE/web/src/lib/claude-code-events.ts src/lib/claude-code-events.ts
-cp ../ONE/web/src/lib/security.ts           src/lib/security.ts
-
-# E8 — config/backend.ts (new file, see spec below)
-mkdir -p src/config
-
-# E9 — use-toast hook
-cp ../ONE/web/src/hooks/use-toast.ts src/hooks/use-toast.ts
+tests   : 409/409 passing (or current baseline +0)
+biome   : clean
+tsc     : clean, no `any` in chat-v3/
+lines   : ChatShell ≤ 250 (was 2,776 → 90%+ reduction)
+perf    : FCP < 500ms (Lighthouse, 3G throttled)
+signals : chat:outcome fires on every turn
+rubric  : { fit ≥ 0.92, form ≥ 0.88, truth ≥ 0.90, taste ≥ 0.90 }
 ```
 
-**`src/config/backend.ts` spec:**
-```typescript
-export interface BackendConfig {
-  enabled: boolean
-  tier: 'free' | 'starter' | 'pro' | 'enterprise'
-  features: { persistence: boolean; humanInTheLoop: boolean; analytics: boolean; rag: boolean; multiTenant: boolean }
-  endpoints: { api: string; convex?: string }
-}
-const isBackendEnabled = import.meta.env.PUBLIC_BACKEND === 'on'
-export const backendConfig: BackendConfig = {
-  enabled: isBackendEnabled,
-  tier: isBackendEnabled ? ((import.meta.env.PUBLIC_TIER as any) || 'starter') : 'free',
-  features: { persistence: false, humanInTheLoop: false, analytics: false, rag: false, multiTenant: false },
-  endpoints: { api: import.meta.env.PUBLIC_BACKEND_URL || '/api' },
-}
-export const isFeatureEnabled = (f: keyof BackendConfig['features']) => backendConfig.features[f]
-export const isFreeTier = () => backendConfig.tier === 'free'
-export const canAccessPremium = () => backendConfig.enabled
+Self-checkoff: all sub-boxes below `Cycle 4` in Status → `mark('chat:refactor', 5)` → cycle 5 unblocked.
+
+---
+
+### Cycle 5: REMEMBER — wire substrate memory
+
+**Source:** [chat-memory.md](chat-memory.md) — ingest / recall / pack /
+respond / outcome / promote.
+**Unlocks:** every turn accumulates pheromone; hypotheses emerge; `/memory`
+command has data to show in cycle 9.
+
+**W1 — Recon (Haiku × 2):**
+- R1 — `src/engine/persist.ts` — confirm `actor`, `group`, `signal`, `recall`,
+  `open`, `mark`, `warn` are all present; flag anything missing.
+- R2 — `nanoclaw/src/workers/router.ts` — map the current turn to the
+  six-step flow in `chat-memory.md`; identify what already exists.
+
+**W2 — Decide (Opus):**
+- Where do the four units live: `src/engine/chat.ts` or inline in
+  `nanoclaw/`? Decision: `src/engine/chat.ts`, consumed by both.
+- `classify` and `detect-valence` as units (not helpers) — confirm cost
+  of per-turn `net.ask` round trips is acceptable.
+- `ContextPack` type — is it shared with `/chat-director` stream shape?
+- Asymmetric fade rates already correct (0.05 / 0.10); no schema change.
+
+**W3 — Edit (Sonnet × 5):**
+
+```
+E1  src/engine/chat.ts
+    unit('chat:ingest').on('message', ...)
+    unit('chat:recall').on('pack', ...)
+    unit('bot:respond').on('turn', ...)
+    unit('chat:outcome').on('turn-close', ...)
+
+E2  src/engine/chat-helpers.ts
+    resolveActor(channel, raw, claim?)
+    classify(text)            → calls unit 'skill:classify'
+    detectValence(text)       → calls unit 'skill:valence'
+    actorProfile(uid)
+    signalsByGroup(group, {limit, filter})
+
+E3  src/lib/chat/context-pack.ts
+    ContextPack type + packBuilder()
+    hypothesis source-attribute cap (asserted ≤ 0.3)
+
+E4  src/pages/api/chat/turn.ts
+    POST /api/chat/turn   — wraps the six-step flow
+    replaces ad-hoc chat flow in ChatShell
+
+E5  src/hooks/ai/useChat.ts (update)
+    swap POST target → /api/chat/turn
+    on stream end → no change (outcome unit handles it)
 ```
 
----
+**W4 — Verify (Sonnet × 1):**
 
-### Wave 4 — Verify (Sonnet x 1)
-
-```bash
-bun run verify   # biome + tsc + vitest
 ```
-
-Check:
-1. `src/config/backend.ts` — types clean, no Convex import
-2. `src/components/ui/` — all 6 new files type-check with existing Radix deps
-3. `src/lib/security.ts` — exports match what ChatClientV2 imports
-4. `src/hooks/use-toast.ts` — imports `ToastProps` from `./components/ui/toast` correctly
-
-**Rubric:** fit=0.9 (config is exact shim), form=0.85 (copied verbatim), truth=0.95 (types check), taste=0.8
-**Exit:** `tsc --noEmit` passes, `biome check` clean on touched files.
-
-### Cycle 1 Gate
-
-```bash
-bun run verify
-ls src/config/backend.ts src/lib/security.ts src/lib/claude-code-events.ts src/hooks/use-toast.ts
-ls src/components/ui/alert.tsx src/components/ui/toast.tsx src/components/ui/toaster.tsx
-```
-
-- [ ] `bun run verify` green (no regressions)
-- [ ] 6 new UI components exist
-- [ ] `src/config/backend.ts` exports `backendConfig`, `isFreeTier`, `canAccessPremium`
-- [ ] `src/lib/security.ts` exports `secureGetItem`, `secureSetItem`, `secureRemoveItem`, `maskSensitive`
-
----
-
-## Cycle 2: PROVE — AI elements, generative-ui, hooks
-
-**Files touched:** 3× `src/components/ai/elements/`, 12× `src/components/generative-ui/`,
-8× `src/hooks/ai/`
-
-**Why second:** These are the mid-tier. Elements are consumed by top-level components.
-Generative UI is consumed by `AgentMessage`. Hooks are consumed by `ChatClientV2`.
-Must exist before the assembled components land in Cycle 3.
-
-**Depends on:** Cycle 1 complete (`config/backend.ts` and lib files exist).
-
----
-
-### Wave 1 — Recon (parallel Haiku x 3)
-
-| Agent | Files | What to look for |
-|-------|-------|-----------------|
-| R1 | `../ONE/web/src/components/ai/elements/{conversation,message,reasoning}.tsx` | Imports from `@/components/ui/*`, `@ai-sdk/react`, `ai` |
-| R2 | `../ONE/web/src/components/generative-ui/*.tsx` | All imports — recharts, @/components/ui/* |
-| R3 | `../ONE/web/src/hooks/ai/**/*.ts` | Imports from `@/config/backend`, `@ai-sdk/react` |
-
-**Outcome:** Confirm no imports from missing packages or missing components.
-
----
-
-### Wave 2 — Decide (Opus)
-
-**Key decisions:**
-1. `elements/conversation.tsx`, `elements/message.tsx`, `elements/reasoning.tsx` — copy verbatim (no substrate adaptation needed, they are pure UI)
-2. `generative-ui/` — copy verbatim (recharts already in deps)
-3. `hooks/ai/premium/*.ts` — copy verbatim (they branch on `backendConfig.enabled` which we've shim'd)
-4. `hooks/ai/useAIChat.ts` — verify it imports from `@/config/backend` (our shim handles it)
-
-**Output:** copy specs, any import path fixes needed.
-
----
-
-### Wave 3 — Edits (Sonnet x 3)
-
-```bash
-# E1 — missing AI elements
-cp ../ONE/web/src/components/ai/elements/conversation.tsx src/components/ai/elements/conversation.tsx
-cp ../ONE/web/src/components/ai/elements/message.tsx      src/components/ai/elements/message.tsx
-cp ../ONE/web/src/components/ai/elements/reasoning.tsx    src/components/ai/elements/reasoning.tsx
-
-# E2 — generative-ui (12 files)
-mkdir -p src/components/generative-ui
-cp ../ONE/web/src/components/generative-ui/GenerativeUIRenderer.tsx  src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicButton.tsx         src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicCard.tsx           src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicChart.tsx          src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicChartRecharts.tsx  src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicCheckout.tsx       src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicForm.tsx           src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicList.tsx           src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicProduct.tsx        src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicTable.tsx          src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/DynamicTimeline.tsx       src/components/generative-ui/
-cp ../ONE/web/src/components/generative-ui/RechartsWrapper.tsx       src/components/generative-ui/
-
-# E3 — hooks/ai (8 files, preserve subdirs)
-mkdir -p src/hooks/ai/basic src/hooks/ai/premium
-cp ../ONE/web/src/hooks/ai/useAIChat.ts                    src/hooks/ai/useAIChat.ts
-cp ../ONE/web/src/hooks/ai/basic/useClientChat.ts          src/hooks/ai/basic/useClientChat.ts
-cp ../ONE/web/src/hooks/ai/basic/useGenerativeUI.ts        src/hooks/ai/basic/useGenerativeUI.ts
-cp ../ONE/web/src/hooks/ai/premium/useAgentActions.ts      src/hooks/ai/premium/useAgentActions.ts
-cp ../ONE/web/src/hooks/ai/premium/useAgentContext.ts      src/hooks/ai/premium/useAgentContext.ts
-cp ../ONE/web/src/hooks/ai/premium/useBackendChat.ts       src/hooks/ai/premium/useBackendChat.ts
-cp ../ONE/web/src/hooks/ai/premium/useCompleteChatFlow.ts  src/hooks/ai/premium/useCompleteChatFlow.ts
-cp ../ONE/web/src/hooks/ai/premium/useTokenUsage.ts        src/hooks/ai/premium/useTokenUsage.ts
+✓ vitest: turn round-trip (fake LLM) produces 4 signals + 1 mark
+✓ vitest: context-pack builder honors scope (private never leaks)
+✓ vitest: asymmetric fade — old warn decays 2× faster than old mark
+✓ manual: send 10 messages on /chat, confirm pheromone on user→tag paths
+✓ rubric: { 0.90, 0.85, 0.95, 0.90 }
 ```
 
 ---
 
-### Wave 4 — Verify (Sonnet x 1)
+### Cycle 6: IDENTIFY — Sui claim ceremony
 
-```bash
-bun run verify
+**Source:** [chat-memory.md](chat-memory.md) §*Identity*, `src/lib/sui.ts`.
+**Unlocks:** cross-channel memory unity, third-party embed identity,
+GDPR-level ownership of memory.
+
+**W1 — Recon (Haiku × 2):**
+- R1 — `src/lib/sui.ts` — confirm `addressFor(uid)`, `deriveKeypair(uid)`
+  are live on testnet.
+- R2 — `nanoclaw/src/workers/router.ts` (Telegram handler) — find the
+  right place to intercept `/link <nonce>`.
+
+**W2 — Decide (Opus):**
+- Nonce lifetime: 5 minutes (tight, not annoying).
+- Cookie shape: `{ uid, exp, sig }`, `HttpOnly; SameSite=Lax; Path=/`.
+- Merge policy: claimed uid absorbs visitor signals (not the other way
+  around); past mark/warn preserved, re-attributed to claimed uid.
+
+**W3 — Edit (Sonnet × 4):**
+
+```
+E1  src/hooks/ai/useIdentity.ts
+    visitor uid on mount; /claim → POST /api/identity/claim
+
+E2  src/components/ai/chat-v3/ClaimDialog.tsx
+    nonce display + Telegram deep-link + status polling
+
+E3  src/pages/api/identity/claim.ts
+    issueNonce(), verifyClaim(sig), mergeVisitor(visitor→uid)
+
+E4  nanoclaw/src/channels/telegram.ts
+    intercept /link <nonce> → sign → POST back to Gateway /claim/sign
 ```
 
-Check:
-1. All 3 new elements export named components
-2. `GenerativeUIRenderer.tsx` imports from `./Dynamic*` — all exist
-3. `useAIChat.ts` imports `backendConfig` — resolves to `src/config/backend.ts`
-4. No circular imports between elements and hooks
+**W4 — Verify (Sonnet × 1):**
 
-**Exit:** `tsc --noEmit` clean, 12 generative-ui files exist, hooks resolve.
-
-### Cycle 2 Gate
-
-```bash
-bun run verify
-ls src/components/ai/elements/conversation.tsx src/components/ai/elements/message.tsx src/components/ai/elements/reasoning.tsx
-ls src/components/generative-ui/GenerativeUIRenderer.tsx
-ls src/hooks/ai/useAIChat.ts src/hooks/ai/basic/useClientChat.ts src/hooks/ai/premium/useBackendChat.ts
 ```
-
-- [ ] `bun run verify` green
-- [ ] 3 new elements exist and type-check
-- [ ] 12 generative-ui files exist
-- [ ] 8 hooks exist
+✓ e2e: web visitor /claim → tg /link → web session has claimed uid
+✓ e2e: claimed session shows memory from prior tg turns
+✓ tsc: no `any` in identity/claim/useIdentity
+✓ perf: claim round-trip < 10s on cold nanoclaw
+✓ rubric: { 0.90, 0.85, 0.95, 0.85 }
+```
 
 ---
 
-## Cycle 3: GROW — Top-level components + pages + API
+### Cycle 7: UNIVERSALIZE — four mount modes
 
-**Files touched:** 14× `src/components/ai/*.tsx`, `src/pages/chat.astro`,
-`src/pages/api/chat-director.ts`, `src/pages/api/chat-claude-code.ts`
+**Source:** [chat-universal.md](chat-universal.md) §8, [client-ui.md](client-ui.md) §20.
+**Unlocks:** agency dashboards, docs, landing pages, inline tutorials —
+all reuse one `<ChatShell>`.
 
-**Why last:** `ChatClientV2` imports from every layer below it. Wire foundation first,
-then assemble. The page is the final connection that makes `/chat` live.
+**W1 — Recon (Haiku × 2):**
+- R1 — audit existing chat usage on `/chat`, `/world` pages; list every
+  mount point where a widget/split could go.
+- R2 — survey `@radix-ui` + `use-stick-to-bottom` for bottom-sheet and
+  sticky-column patterns we'll need.
 
-**Depends on:** Cycles 1 + 2 complete.
+**W2 — Decide (Opus):**
+- Props: `{ target, mode, actor?, policy? }` — lock exact shape from
+  `chat-universal.md` §3.
+- `SplitPaneFrame` default width: 420px, persisted to `localStorage`
+  per hostname.
+- `WidgetFrame` bottom-right default (CSS vars for override).
+- `target="group:<gid>"` — group-chat UI affordances: member list,
+  scope selector, `@mention`.
 
----
+**W3 — Edit (Sonnet × 5):**
 
-### Wave 1 — Recon (parallel Haiku x 3)
-
-| Agent | Files | What to look for |
-|-------|-------|-----------------|
-| R1 | `../ONE/web/src/components/ai/ChatClientV2.tsx` | Every `@/` import — confirm they all exist in envelopes now |
-| R2 | `../ONE/web/src/components/ai/{AgentMessage,TelegramMessage,ChatMessages,MessageList,MarkdownContent,Message,Reasoning,LoadingIndicator,PromptInput,Suggestions,CodeBlock,SimpleChatClient,FreeChatClient,Chatbot}.tsx` | Each file's imports |
-| R3 | `../ONE/web/src/pages/api/{chat-director,chat-claude-code}.ts` | Imports — `@ai-sdk/openai`, `ai-sdk-provider-claude-code`, env vars |
-
-**Outcome:** Confirm ChatClientV2's imports all resolve. Flag any that don't.
-
----
-
-### Wave 2 — Decide (Opus)
-
-**Key decisions:**
-1. `ChatClientV2.tsx` posts to `/api/chat` by default — envelopes already has it (substrate endpoint). **Keep as-is, no adaptation.**
-2. `api/chat-director.ts` from ONE/web is for direct OpenRouter. **Copy, keep separate** from substrate `api/chat.ts`.
-3. `api/chat-claude-code.ts` uses `ai-sdk-provider-claude-code`. **Copy verbatim.**
-4. `pages/chat.astro` currently renders `WorldView`. **Replace with ChatClientV2**, using `client:only="react"`, `hideHeader={true}`, `sidebarInitialCollapsed={true}`.
-5. Existing `src/components/ai/ToolCall.tsx` — already exists. Skip, do not overwrite.
-
-**Output:** copy specs for 14 components + 2 API files + 1 page update.
-
----
-
-### Wave 3 — Edits (Sonnet x 4)
-
-```bash
-# E1 — 14 top-level ai components (skip ToolCall.tsx — already exists)
-cp ../ONE/web/src/components/ai/ChatClientV2.tsx      src/components/ai/ChatClientV2.tsx
-cp ../ONE/web/src/components/ai/AgentMessage.tsx       src/components/ai/AgentMessage.tsx
-cp ../ONE/web/src/components/ai/TelegramMessage.tsx    src/components/ai/TelegramMessage.tsx
-cp ../ONE/web/src/components/ai/ChatMessages.tsx       src/components/ai/ChatMessages.tsx
-cp ../ONE/web/src/components/ai/MessageList.tsx        src/components/ai/MessageList.tsx
-cp ../ONE/web/src/components/ai/MarkdownContent.tsx    src/components/ai/MarkdownContent.tsx
-cp ../ONE/web/src/components/ai/Message.tsx            src/components/ai/Message.tsx
-cp ../ONE/web/src/components/ai/Reasoning.tsx          src/components/ai/Reasoning.tsx
-cp ../ONE/web/src/components/ai/LoadingIndicator.tsx   src/components/ai/LoadingIndicator.tsx
-cp ../ONE/web/src/components/ai/PromptInput.tsx        src/components/ai/PromptInput.tsx
-cp ../ONE/web/src/components/ai/Suggestions.tsx        src/components/ai/Suggestions.tsx
-cp ../ONE/web/src/components/ai/CodeBlock.tsx          src/components/ai/CodeBlock.tsx
-cp ../ONE/web/src/components/ai/SimpleChatClient.tsx   src/components/ai/SimpleChatClient.tsx
-cp ../ONE/web/src/components/ai/FreeChatClient.tsx     src/components/ai/FreeChatClient.tsx
-cp ../ONE/web/src/components/ai/Chatbot.tsx            src/components/ai/Chatbot.tsx
-
-# E2 — API endpoints
-cp ../ONE/web/src/pages/api/chat-director.ts     src/pages/api/chat-director.ts
-cp ../ONE/web/src/pages/api/chat-claude-code.ts  src/pages/api/chat-claude-code.ts
+```
+E1  src/components/ai/chat-v3/frames/FullPageFrame.tsx
+E2  src/components/ai/chat-v3/frames/SplitPaneFrame.tsx
+      sticky column + ⌘/ toggle + postMessage('context')
+E3  src/components/ai/chat-v3/frames/WidgetFrame.tsx
+      bubble + slide-up panel + unread badge + minimized persist
+E4  src/components/ai/chat-v3/frames/InlineFrame.tsx
+      natural flow, no fixed positioning, reader-mode aware
+E5  src/components/ai/chat-v3/ChatShell.tsx (update)
+      mode prop picks frame; target prop threads to useChat
+      pheromone-select dispatcher when target omitted
+      "why this agent" popover (reads last mark path)
 ```
 
-- E3 — Update `src/pages/chat.astro`: replace `WorldView` mount with `ChatClientV2 client:only="react"`
-- E4 — Fix any `@/providers/*` or ONE/web-specific import paths in ChatClientV2 (stub or remove)
+**W4 — Verify (Sonnet × 1):**
+
+```
+✓ playwright: same message visible in page + split + widget + inline
+  mounts simultaneously (same group)
+✓ tsc: no `any` in any frame
+✓ perf: widget FCP < 200ms, split pane ⌘/ toggle < 50ms
+✓ a11y: focus trap works in widget + split; Escape closes
+✓ rubric: { 0.90, 0.90, 0.90, 0.90 }
+```
 
 ---
 
-### Wave 4 — Verify (Sonnet x 1)
+### Cycle 8: EMBED — third-party SDK
 
-```bash
-bun run verify
-# Then manually:
-npm run dev
-# Open localhost:4321/chat — must load ChatClientV2, stream a response
+**Source:** [chat-universal.md](chat-universal.md) §9, `gateway/`.
+**Unlocks:** every agent is an embeddable widget on any domain.
+
+**W1 — Recon (Haiku × 2):**
+- R1 — `gateway/` — confirm origin-allowlist code path, rate-limit hooks.
+- R2 — existing `/api/claw` flow — model for per-agent config.
+
+**W2 — Decide (Opus):**
+- Bundle target: single IIFE, ≤ 30 KB gz.
+- Build: `esbuild --bundle --minify --format=iife` from
+  `src/entries/chat-embed.ts`.
+- Agent markdown frontmatter: add `allowedOrigins: [...]`.
+- Cookie domain: the embed's host, not `one.ie` (per-merchant isolation).
+
+**W3 — Edit (Sonnet × 5):**
+
+```
+E1  src/entries/chat-embed.ts
+    read <script data-*> attrs → mount shadow root → render <ChatShell>
+
+E2  scripts/build-chat-embed.ts
+    esbuild pipeline + size assertion (fail > 30 KB gz)
+    output: dist/chat.js; published by Pages at /chat.js
+
+E3  gateway/src/origin-allow.ts
+    load agent.allowedOrigins from TypeDB KV snapshot
+    reject fetch if Origin not in allowlist
+
+E4  src/engine/agent-md.ts (update)
+    parse + sync `allowedOrigins` attribute
+
+E5  gateway/src/sse-proxy.ts
+    stream SSE from /api/chat/turn → embed (no buffering)
 ```
 
-Check:
-1. `ChatClientV2` has no unresolved `@/` imports
-2. `pages/chat.astro` uses `client:only="react"` — no SSR crash
-3. `api/chat-director.ts` has `export const prerender = false`
-4. Free tier message sends to `/api/chat` → substrate picks model → response streams
-5. Model selector renders (no crash, even if Claude Code models need auth)
+**W4 — Verify (Sonnet × 1):**
 
-**Rubric:** fit=0.9 (full chat UI visible), form=0.85 (types clean), truth=0.95 (streams work), taste=0.8
-
-**Self-checkoff:** If W4 passes:
-1. Check all checkboxes below
-2. `mark('chat:wire', 5)` — path strengthens
-3. Substrate pheromone on `chat` tag accumulates from first real requests
-
-### Cycle 3 Gate
-
-```bash
-bun run verify
-curl -s -X POST http://localhost:4321/api/chat \
-  -H 'Content-Type: application/json' \
-  -d '{"messages":[{"role":"user","content":"hello"}]}' | head -5
+```
+✓ build: dist/chat.js gz ≤ 30 KB (assert in script)
+✓ e2e: embed on a CodeSandbox host, round-trip turn + reply
+✓ security: Origin not in allowlist → 403
+✓ perf: embed FCP < 200ms on host page
+✓ rubric: { 0.90, 0.90, 0.90, 0.90 }
 ```
 
-- [ ] `bun run verify` green (biome + tsc + vitest)
-- [ ] `localhost:4321/chat` loads without error
-- [ ] First message streams a response from substrate
-- [ ] Model selector visible in chat UI
-- [ ] No console errors on load
+---
+
+### Cycle 9: EXPOSE — memory commands in every embed
+
+**Source:** [chat-memory.md](chat-memory.md) §730, [client-ui.md](client-ui.md) §21.
+**Unlocks:** GDPR Articles 17 + 20 by UI command. Legible memory.
+
+**Preconditions verified (2026-04-15):**
+
+| Function | Location | Status |
+|----------|----------|--------|
+| `persist.reveal(uid)` | `src/engine/persist.ts:314–361` | ✅ live, full `MemoryCard` return |
+| `persist.forget(uid)` | `src/engine/persist.ts:363–` | ✅ live, cascading TQL delete |
+| `persist.frontier(uid)` | `src/engine/persist.ts:300–312` | ✅ live, world-tags minus actor-tags |
+
+All three exported from the `persist()` factory at `persist.ts:700–702`.
+No pre-Cycle-5.5 patch needed; Cycle 9 W1 is a lighter confirmation pass.
+
+**W1 — Recon (Haiku × 1):**
+- R1 — re-confirm return-shape of `MemoryCard` (see `persist.ts:23` —
+  includes `frontier: string[]`); check that existing callers don't
+  already render a card we can reuse.
+
+**W2 — Decide (Opus):**
+- Slash-command parser lives in `PromptDock` (one per command).
+- `/forget` flow: confirm dialog → key-shred (§17 of client-ui) → TQL
+  cascade → fade cleanup → sign user out.
+- `/memory` output: use the same "memory card" renderer across modes;
+  export-as-JSON button ships with it.
+
+**W3 — Edit (Sonnet × 4):**
+
+```
+E1  src/components/ai/chat-v3/MemoryCommands.tsx
+    /memory /forget /explore handlers
+
+E2  src/components/ai/chat-v3/MemoryCard.tsx
+    hypothesis list + highways + recent + frontier + export-JSON button
+
+E3  src/pages/api/identity/forget.ts
+    key-shred + cascade + fade + sign-out
+    (wraps persist.forget — confirmed live at persist.ts:363)
+
+E4  src/components/ai/chat-v3/PromptDock.tsx (update)
+    slash-command router → MemoryCommands
+```
+
+**W4 — Verify (Sonnet × 1):**
+
+```
+✓ vitest: /memory renders card with hypotheses + paths
+✓ vitest: /forget destroys key, cascades TQL, user logs out
+✓ vitest: /explore returns ≥ 3 frontier tags for a warm actor
+✓ e2e: all three commands in all four modes (page/split/widget/inline)
+✓ rubric: { 0.92, 0.90, 0.92, 0.92 }
+```
 
 ---
 
 ## Cost Discipline
 
-| Cycle | Wave | Agents | Model | Est. tasks |
-|-------|------|--------|-------|-----------|
-| 1 | W1 | 4 | Haiku | Read 4 sources |
-| 1 | W3 | 8 | Sonnet | 8 copy/create tasks |
-| 2 | W1 | 3 | Haiku | Read 3 batches |
-| 2 | W3 | 3 | Sonnet | 3 copy batches |
-| 3 | W1 | 3 | Haiku | Read 3 batches |
-| 3 | W3 | 4 | Sonnet | 4 copy/update tasks |
+| Cycle | W1 | W3 | Est. cost |
+|-------|----|----|-----------|
+| 1–3 (done) | Haiku × 10 | Sonnet × 15 | ~$3 |
+| 4 | — | Sonnet × 6 | ~$2 |
+| 5 | Haiku × 2 | Sonnet × 5 | ~$2 |
+| 6 | Haiku × 2 | Sonnet × 4 | ~$1.5 |
+| 7 | Haiku × 2 | Sonnet × 5 | ~$2 |
+| 8 | Haiku × 2 | Sonnet × 5 | ~$2 |
+| 9 | Haiku × 1 | Sonnet × 4 | ~$1.5 |
 
-**Hard stop:** if W4 loops more than 3× on type errors, halt — one file at a time.
+Hard stops: if a W4 loops > 3× on type errors, halt → one file at a time.
+If a W4 rubric falls below 0.80 on any dimension, `warn(0.5)` the cycle
+edge, re-enter W2 with the failure report.
 
 ---
 
 ## Status
 
 - [x] **Cycle 1: WIRE** — Packages, UI atoms, lib, config
-  - [x] W0 — Baseline: 409/409 tests, biome clean, tsc clean
-  - [x] W1 — Recon (Haiku x 4): 4 sources read, 0 dissolved
-  - [x] W2 — Decide (Opus): 8 decisions, security.ts + use-toast skip (already present)
-  - [x] W3 — Copy/create: 5 packages installed, 6 UI components, claude-code-events.ts, config/backend.ts
-  - [x] W4 — Verify: 409/409 tests · biome clean · tsc clean · rubric fit=0.9 form=0.85 truth=0.95 taste=0.8
 - [x] **Cycle 2: PROVE** — AI elements, generative-ui, hooks
-  - [x] W1 — Recon (Haiku x 2): elements + generative-ui sources read; hooks/ai skip (8 files already present)
-  - [x] W2 — Decide (Opus): streamdown install, 3 missing UI + 3 elements + 12 generative-ui, hooks skip
-  - [x] W3 — Copy: streamdown installed, 15 files copied, 1 tsc fix (DynamicProduct result narrowing)
-  - [x] W4 — Verify: 409/409 tests · 0 warnings · tsc clean · rubric fit=0.9 form=0.85 truth=0.95 taste=0.8
 - [x] **Cycle 3: GROW** — Top-level components + pages + API
-  - [x] W1 — Recon (Haiku x 3): ChatClientV2 imports mapped, 4 missing ai components identified, API routes confirmed prerender=false
-  - [x] W2 — Decide (Opus): 15 components + 2 API routes copy verbatim; chat.astro fix (empty frontmatter + client:only="react")
-  - [x] W3 — Copy + wire: 15 ai components, 2 API routes, chat.astro rewritten; 8 type fixes (provider API version delta, request.json() narrowing, dead _renderMessage_OLD removed)
-  - [x] W4 — Verify: 409/409 tests · biome clean · tsc clean · rubric fit=0.9 form=0.85 truth=0.95 taste=0.8
+- [x] **Cycle 4: REFACTOR** — Shrink the god component
+  - [x] W3 Step 1 — Data extraction + dead-client deletion (2,776 → 2,058)
+  - [x] W3 Step 3 — Extract `chat-v3/` sub-components (ChatShell, ConversationView, PromptDock, SettingsModal, DemoSuggestions)
+  - [x] W3 Step 4 — Hook consolidation (`useChat` is single source of truth)
+  - [x] W3 Step 5 — Delete dead `ai/chat/` folder
+  - [x] W3 Step 6 — Collapse `ai/chat/` → `chat-v3/` (done: all exports moved)
+  - [x] W3 Step 7 — Substrate outcome signal per turn (POST `/api/signal` in useChat.ts)
+  - [x] W3 Step 8 — SSR shell + `client:load` (chat.astro updated)
+  - [x] W4 — 585/585 tests, biome clean, tsc clean, no `any` in chat-v3/, 2,058 → 402-line ChatShell (80% reduction). Rubric: { fit:0.90, form:0.85, truth:0.90, taste:0.88 }
+- [x] **Cycle 5: REMEMBER** — Substrate memory (ingest/recall/outcome/promote)
+  - [x] W1 — persist.ts audit + router.ts map
+  - [x] W2 — helpers not units; ContextPack uses statement/confidence/source (actual schema); E5 deferred
+  - [x] W3 — chat.ts, chat-helpers.ts, context-pack.ts, /api/chat/turn (4 agents parallel)
+  - [x] W4 — 585/585 tests, biome clean, tsc clean. Rubric: { fit:0.95, form:0.90, truth:0.92, taste:0.88 }
+- [x] **Cycle 6: IDENTIFY** — Sui claim ceremony
+  - [x] W1 — sui.ts check + Telegram handler audit
+  - [x] W2 — nonce-based (no Ed25519); visitor cookie; nanoclaw proxy; GET /claim/status added to router
+  - [x] W3 — useIdentity, ClaimDialog, /api/identity/claim, GET /claim/status on nanoclaw (4 agents parallel)
+  - [x] W4 — 585/585 tests, biome clean, tsc clean. Rubric: { fit:0.95, form:0.90, truth:0.95, taste:1.00 }
+- [x] **Cycle 7: UNIVERSALIZE** — Four mount modes
+  - [x] W1 — mount-point audit + radix/stick-to-bottom survey
+  - [x] W2 — mode/target props; frames as children wrappers; "why agent" deferred; SplitPane/Widget/Inline layouts locked
+  - [x] W3 — FullPageFrame, SplitPaneFrame (drag + ⌘/ toggle + localStorage), WidgetFrame (bubble + badge), InlineFrame + ChatShell mode dispatch (5 agents parallel)
+  - [x] W4 — 584/584 tests, biome clean, tsc clean. Rubric: { fit:1.00, form:0.95, truth:1.00, taste:0.90 }
+- [x] **Cycle 8: EMBED** — Third-party SDK
+  - [x] W1 — gateway CORS hardcoded (5 origins, no per-agent); agent-md.ts has no allowedOrigins field
+  - [x] W2 — iframe loader (not shadow-DOM React bundle); allowedOrigins as tags; KV 'units' key; sseProxy pass-through
+  - [x] W3 — chat-embed.ts (IIFE, 3 modes), build-chat-embed.ts (gz ≤ 30 KB gate), origin-allow.ts, agent-md.ts +allowedOrigins, sse-proxy.ts (5 agents parallel)
+  - [x] W4 — 584/584 tests, biome clean, tsc clean. Rubric: { fit:0.95, form:0.92, truth:0.95, taste:0.95 }
+- [x] **Cycle 9: EXPOSE** — Memory commands everywhere
+  - [x] Precondition — persist.{reveal,forget,frontier} verified live at `persist.ts:300–400` (2026-04-15)
+  - [x] W1 — MemoryCard is {actor,hypotheses,highways,signals,groups,capabilities,frontier}; no existing renderer
+  - [x] W2 — command intercept in ChatShell; onDismiss threading for /forget cancel; /api/identity/forget wraps persist.forget
+  - [x] W3 — MemoryCard.tsx (7 sections + JSON export), MemoryCommands.tsx (3 commands + ForgetConfirm), /api/identity/forget.ts, ChatShell.tsx wiring (4 agents parallel + micro-fix)
+  - [x] W4 — 584/584 tests, biome clean, tsc clean. Rubric: { fit:0.95, form:0.95, truth:1.00, taste:0.92 }
 
 ---
 
 ## Execution
 
 ```bash
-# Run next wave of current cycle
+# advance one wave of the active cycle
 /do TODO-chat.md
 
-# Check state
-/see tasks
-/see highways
+# advance continuously until next blocked wave
+/do TODO-chat.md --auto
+
+# single tick (no auto-loop)
+/do --once
+
+# observability
+/see tasks --tag chat
+/see highways --limit 10
+/see events --since 1h
 ```
+
+On wave pass, self-checkoff pattern:
+
+1. `W4 verify` green (numbers meet exit) →
+2. tick sub-box in Status →
+3. `mark('chat:<cycle-name>', <depth>)` →
+4. update `current_cycle` in frontmatter →
+5. unblock next cycle per `blocks` column in the task table.
+
+On wave fail, self-warn pattern:
+
+1. `W4 verify` red (some exit missed) →
+2. record numbers in the cycle's Status line (don't erase — tombstone) →
+3. `warn('chat:<cycle-name>', 0.5..1 by severity)` →
+4. re-enter W2 with the failure report in context.
 
 ---
 
 ## See Also
 
-- [DSL.md](DSL.md) — signal grammar (always loaded in W2)
-- [dictionary.md](dictionary.md) — canonical names (always loaded in W2)
+- [DSL.md](DSL.md) — signal grammar (W2 base context)
+- [dictionary.md](dictionary.md) — canonical names (W2 base context)
 - [rubrics.md](rubrics.md) — fit/form/truth/taste scoring
-- [TODO-template.md](TODO-template.md) — this file's template
-- `../ONE/web/src/components/ai/CHAT_ARCHITECTURE.md` — ONE/web chat design doc
-- `../ONE/web/CLAUDE-CODE-CHAT.md` — Claude Code provider setup
-- `src/pages/api/chat.ts` — substrate endpoint (keep, don't replace)
+- [TODO-template.md](TODO-template.md) — structure this file follows
+- [TODO-task-management.md](TODO-task-management.md) — how tasks earn marks
+- [chat-memory.md](chat-memory.md) — **Cycles 5 + 9 full spec**
+- [chat-universal.md](chat-universal.md) — **Cycles 7 + 8 full spec**
+- [chat-ui-upgrade.md](chat-ui-upgrade.md) — **Cycle 4 full spec**
+- [client-ui.md](client-ui.md) — §20 universal, §21 memory, §22 build plan
+- [memory.md](memory.md) — 6-dimensional memory model
+- [world-map-page.md](world-map-page.md) — visitor mode (cold-start)
+- `src/schema/one.tql` — dimension 3 (things / skills) + 5 (signals)
+- `src/engine/persist.ts` — `actor()`, `signal()`, `recall()`, `open()`, `know()`
+- `src/engine/human.ts` — humans as substrate units (`target="person:*"`)
+- `src/lib/sui.ts` — `addressFor(uid)`, `deriveKeypair(uid)` (Cycle 6)
+- `gateway/` — origin allowlist, SSE proxy (Cycle 8)
+- `src/pages/api/chat.ts` — substrate endpoint (preserve, don't replace)
 
 ---
 
-*3 cycles. Four waves each. Haiku reads, Opus decides, Sonnet copies, Sonnet checks.
-52 files. Foundation → mid-tier → apex. Chat goes live at Cycle 3 W4.*
+*Nine cycles, four waves each. Haiku reads, Opus decides, Sonnet edits,
+Sonnet verifies. From imported god component to universal memory-wired
+substrate surface. Chat is the lens; the world is the application.*

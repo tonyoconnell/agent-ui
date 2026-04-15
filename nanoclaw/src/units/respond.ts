@@ -7,8 +7,8 @@
  */
 
 import { systemPromptWithPack } from '../lib/prompt'
-import type { ContextPack } from './types'
 import type { Env } from '../types'
+import type { ContextPack } from './types'
 
 export async function respond(
   env: Env,

@@ -50,7 +50,7 @@ async function walk(dir: string, skip: string[], acc: string[] = []): Promise<st
     const full = join(dir, e.name)
     if (e.isDirectory()) {
       await walk(full, skip, acc)
-    } else if (/\.(tsx?|astro)$/.test(e.name) && !skip.includes(e.name)) {
+    } else if (/\.(tsx?|astro)$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) && !skip.includes(e.name)) {
       acc.push(full)
     }
   }

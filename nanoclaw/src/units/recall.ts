@@ -9,45 +9,40 @@
  */
 
 import { actorHighways, recallHypotheses } from '../lib/substrate'
-import type { ContextPack } from './types'
 import type { Env } from '../types'
+import type { ContextPack } from './types'
 
-export async function recall(
-  env: Env,
-  groupId: string,
-  actorUid: string,
-  handle: string,
-): Promise<ContextPack> {
-  // Three parallel queries — no LLM call
+export async function recall(env: Env, groupId: string, actorUid: string, handle: string): Promise<ContextPack> {
+  // Three parallel queries — no LLM call. Wrap each in Promise.resolve() so
+  // synchronous throws from DB.prepare() are caught by .catch() correctly.
+  const episodic = (): Promise<{ role: string; content: string }[]> =>
+    Promise.resolve()
+      .then(() =>
+        env.DB.prepare(`SELECT role, content FROM messages WHERE group_id = ? ORDER BY ts DESC LIMIT 20`)
+          .bind(groupId)
+          .all(),
+      )
+      .then((r) =>
+        (r.results || []).reverse().map((row) => ({ role: row.role as string, content: row.content as string })),
+      )
+      .catch(() => [])
+
   const [recentRows, highways, hypotheses] = await Promise.all([
     // 1. Episodic: last 20 messages in this conversation group
-    env.DB.prepare(
-      `SELECT role, content FROM messages WHERE group_id = ? ORDER BY ts DESC LIMIT 20`,
-    )
-      .bind(groupId)
-      .all()
-      .then((r) =>
-        (r.results || [])
-          .reverse()
-          .map((row) => ({ role: row.role as string, content: row.content as string })),
-      )
-      .catch(() => [] as { role: string; content: string }[]),
+    episodic(),
 
     // 2. Associative: top paths from this actor
     actorHighways(env, actorUid, 10).catch(() => [] as { to: string; strength: number }[]),
 
     // 3. Semantic: hypotheses about this actor
-    recallHypotheses(env, actorUid).catch(
-      () => [] as { predicate: string; object: string; confidence: number }[],
-    ),
+    recallHypotheses(env, actorUid).catch(() => [] as { predicate: string; object: string; confidence: number }[]),
   ])
 
   // Count messages in this group for the profile
-  const countRow = await env.DB.prepare(`SELECT COUNT(*) as cnt FROM messages WHERE group_id = ?`)
-    .bind(groupId)
-    .first()
-    .catch(() => null)
-  const messageCount = (countRow?.cnt as number) || 0
+  const messageCount = await Promise.resolve()
+    .then(() => env.DB.prepare(`SELECT COUNT(*) as cnt FROM messages WHERE group_id = ?`).bind(groupId).first())
+    .then((r) => (r?.cnt as number) || 0)
+    .catch(() => 0)
 
   return {
     profile: { uid: actorUid, handle, messageCount },

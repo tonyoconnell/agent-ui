@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { type BrandTokens, invalidateBrandCache } from '@/engine/brand'
 import { auth } from '@/lib/auth'
-import { writeSilent } from '@/lib/typedb'
+import { readParsed, writeSilent } from '@/lib/typedb'
 
 type Scope = 'thing' | 'group' | 'user'
 
@@ -66,8 +66,24 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // TODO(v1): ownership check — currently any authenticated user can write
-  // brand tokens to any thing/group. Add ownership/membership check in v2.
+  // ── Ownership guard ───────────────────────────────────────────────────────
+  // Schema supports `membership(group, member)` for groups; `id` is validated
+  // above (alphanumeric entity id from request body — no raw user input reaches TQL).
+  // `thing` has no owner attribute yet; ownership check for thing-scope is deferred
+  // until schema adds `thing has owner` — see TODO-design-system-hardening.md.
+  if (typedScope === 'group') {
+    const userId = session.user?.id
+    if (!userId) return Response.json({ error: 'unauthorized' }, { status: 401 })
+    const safeUserId = escapeStr(userId)
+    const rows = await readParsed(
+      `match $g isa group, has gid "${escapeStr(id as string)}"; (group: $g, member: $m) isa membership; $m has aid "${safeUserId}"; select $m;`,
+    ).catch(() => [] as Record<string, unknown>[])
+    if (rows.length === 0) {
+      return Response.json({ error: 'forbidden' }, { status: 403 })
+    }
+  }
+  // scope === 'thing': session-required (already enforced above). Ownership
+  // check deferred until schema adds `thing has owner` — see hardening TODO.
 
   // ── Write to TypeDB ───────────────────────────────────────────────────────
   const safeId = escapeStr(id as string)

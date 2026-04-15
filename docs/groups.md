@@ -1,597 +1,483 @@
-# Agent, Group, Coordination
+# Groups
 
-Three levels. Same primitives. ONE ontology.
+**Scope. Security. Multi-tenancy. All from one entity.**
 
----
-
-## The Primitive
-
-```typescript
-type Signal = {
-  receiver: string
-  data?: unknown
-}
-```
-
-## Biological Grounding
-
-From Deborah Gordon's research on ant colonies:
-
-- **No ant sends messages** — they DROP signals (pheromones)
-- **Others FOLLOW the weighted paths** — sensing, not receiving
-- **Return rate activates** — more foraging (positive feedback)
-- **Absence of signal IS a signal** — paths fade without reinforcement
-- **Intelligence lives in paths, not nodes** — the network learns
+A group is a container. Actors live in groups. Signals route inside groups. Pheromone marks edges inside groups. Permissions check groups. Tenants are groups. That's it.
 
 ---
 
-## The ONE Foundation
+## The One Rule
 
-Group is `world()` with multiple actors. The 6 dimensions apply:
+> An actor can only act where it is a member.
+
+Every signal carries an implicit **scope** — the group it was sent within.
+The router checks membership before routing. No membership, no delivery.
+Dissolve.
 
 ```
-GROUP = world()
-│
-├── Groups    → Group hierarchy (group of groups)
-├── Actors    → Agents (units with tasks)
-├── Things    → Resources, tasks, outputs
-├── Paths     → Strength trails (weighted paths)
-├── Events    → Signal history
-└── Knowledge → Known patterns (highways)
+alice (member of: acme)  →  signal → bob (member of: acme)     ✓ same group
+alice (member of: acme)  →  signal → carol (member of: other)  ✗ dissolve
+alice (member of: acme, one)  →  signal → carol (member of: one)  ✓ shared group
 ```
+
+That rule, applied at the router, gives you tenancy, privacy, inter-group
+security, and capability scoping — for free.
 
 ---
 
-## Agent
+## Ontology Recap (dimension 1)
 
-A unit with tasks:
+From `src/schema/one.tql`:
 
-```typescript
-const agent = unit('translator')
-  .on('translate', async ({ text, to }, emit, ctx) => {
-    const result = await model.translate(text, to)
-    emit({ receiver: ctx.from, data: { result } })
-  })
-  .on('detect', async ({ text }, emit, ctx) => {
-    const lang = await model.detect(text)
-    emit({ receiver: ctx.from, data: { lang } })
-  })
+```tql
+entity group,
+    owns gid @key,
+    owns name,
+    owns group-type,          # "world" | "team" | "org" | "community" | "dao" | "friends"
+    owns brand,               # white-label tag (e.g. "acme", "one", "donal")
+    plays hierarchy:parent,
+    plays hierarchy:child,
+    plays membership:group;
+
+relation hierarchy, relates parent, relates child;
+relation membership, relates group, relates member;
 ```
 
-**Agent = Unit + Capabilities**
+Actors play `membership:member`. One actor can be in many groups.
 
-```
-┌─────────────────────────────────────┐
-│            AGENT                     │
-│                                      │
-│   id: "translator"                   │
-│                                      │
-│   tasks:                             │
-│     translate(text, to) → result     │
-│     detect(text) → lang              │
-│                                      │
-│   receives: Signal                   │
-│   emits: Signal                      │
-│                                      │
-└─────────────────────────────────────┘
-```
+### Proposed additions (for this doc to be live)
 
-## Group
+```tql
+# Visibility — determines who can discover / join / receive
+attribute visibility, value string;   # "public" | "private" | "unlisted"
+group owns visibility;
 
-A `world()` of agents working together. Groups organize. Paths connect. Actors act.
+# Signal scope — carried on every signal event
+attribute scope, value string;        # "public" | "group" | "private"
+signal owns scope;
 
-```typescript
-import { world } from '@/engine/one'
+# Role tag on membership — enables RBAC layer (see below)
+attribute role, value string;         # "owner" | "admin" | "member" | "guest" | custom
+membership owns role;
 
-const group = world()
-
-// Groups organize the group
-group.group('research', 'team')
-group.group('execution', 'team')
-
-// Actors are agents
-const scout = group.actor('scout', 'explorer', { group: 'research' })
-  .on('explore', async ({ url }, emit) => {
-    const data = await fetch(url).then(r => r.json())
-    emit({ receiver: 'analyst', data: { data } })
-  })
-
-const analyst = group.actor('analyst', 'analyzer', { group: 'research' })
-  .on('default', async ({ data }, emit) => {
-    const insight = analyze(data)
-    emit({ receiver: 'writer', data: { insight } })
-  })
-
-const writer = group.actor('writer', 'reporter', { group: 'execution' })
-  .on('default', async ({ insight }, emit, ctx) => {
-    const report = format(insight)
-    emit({ receiver: ctx.from, data: { report } })
-  })
-
-// Kick off - signal traverses through the world
-group.signal({ receiver: 'scout:explore', data: { url } }, 'user')
+# Cross-group bridge indicator on path
+attribute bridge-kind, value string;  # "federation" | "export" | "escrow"
+path owns bridge-kind;
 ```
 
-**Group = world() with Actors**
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      GROUP (world)                               │
-│                                                                  │
-│   GROUPS:                                                        │
-│   ├── research                     ├── execution                │
-│   │                                │                            │
-│   │   ┌─────────┐  ┌──────────┐   │   ┌────────┐               │
-│   │   │  SCOUT  │→→│ ANALYST  │───┼──→│ WRITER │               │
-│   │   │         │  │          │   │   │        │               │
-│   │   │ explore │  │ analyze  │   │   │ format │               │
-│   │   └─────────┘  └──────────┘   │   └────────┘               │
-│   │                               │                             │
-│   └───────────────────────────────┴─────────────────────────────│
-│                                                                  │
-│   PATHS (weighted):                                              │
-│     scout→analyst: 12.5   (open path - proven)                  │
-│     analyst→writer: 8.3   (strengthening)                       │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Group Naming
-
-Groups have a canonical `name` (e.g., `"marketing"`) that can be edited. Per-skin type-suffixes, hull-colors, and rendering change by metaphor, but the group id never changes and routing always uses it. The name serves humans; the id serves signals.
-
-**Ant Skin:**
-```
-group id: "marketing"
-group name: "Marketing Colony"
-type: "colony"
-hull-color: #FFB347  (orange)
-```
-
-**Team Skin:**
-```
-group id: "marketing"
-group name: "Marketing Team"
-type: "team"
-hull-color: #4A90E2  (blue)
-```
-
-Signal flow: same `"marketing"` id. Visual rendering: different "colony" vs "team" labels, different colors. Name editable by owner. Id immutable. That's the contract.
+Four attributes. Everything else is a query pattern over what's already
+there.
 
 ---
 
-## Coordination
+## The Four Group Shapes
 
-Paths emerge from outcomes. This is the Paths dimension in action:
+| Shape | `group-type` | Visibility | Who can join | Example |
+|-------|--------------|-----------|--------------|---------|
+| **World** | `world` | `public` | Anyone | `one`, `fetch` |
+| **Tenant org** | `org` | `private` | Invite only | `acme`, `donal` |
+| **Team / pod** | `team` | `private` | Org members | `marketing`, `engineering` |
+| **Community** | `community` | `public` | Anyone | `developers`, `builders` |
+| **DAO** | `dao` | `public` | Token holders | `one-dao` |
+| **Friends** | `friends` | `private` | Mutual invite | `alice-and-bob` |
 
-```typescript
-// Success: mark weight on the path (leave strength)
-group.path('scout', 'analyst').mark(1)
-
-// Failure: resist the path
-group.path('scout', 'analyst').warn(1)
-
-// Time passes: fade all paths (strength evaporates)
-group.fade(0.1)
-
-// Follow the strongest paths (proven routes)
-group.open(10)  // → strongest paths
-
-// Sense blocked paths (routes to avoid)
-group.blocked() // → paths with high resistance
-```
-
-**Coordination = Emergent Paths**
-
-```
-                    BEFORE (random routing)
-                    
-    ┌─────────┐     ┌─────────┐     ┌─────────┐
-    │ Scout A │     │Analyst 1│     │Writer X │
-    └────┬────┘     └────┬────┘     └────┬────┘
-         │               │               │
-    ┌────┴────┐     ┌────┴────┐     ┌────┴────┐
-    │ Scout B │     │Analyst 2│     │Writer Y │
-    └─────────┘     └─────────┘     └─────────┘
-    
-         ?───────────────?───────────────?
-
-
-                    AFTER (open paths emerge)
-                    
-    ┌─────────┐     ┌─────────┐     ┌─────────┐
-    │ Scout A │═════│Analyst 1│═════│Writer X │  ← OPEN PATH
-    └────┬────┘     └────┬────┘     └────┬────┘
-         │               │               │
-    ┌────┴────┐     ┌────┴────┐     ┌────┴────┐
-    │ Scout B │─ ─ ─│Analyst 2│     │Writer Y │  ← fading
-    └─────────┘     └─────────┘     └─────────┘
-    
-    ═══  open (proven path, high weight)
-    ─ ─  fading (unused, decaying)
-    ░░░  blocked (high resistance)
-```
-
-## The Three Levels (ONE Mapping)
-
-```
-AGENT (actor)
-│
-│  .on(task, handler)     Define capability
-│  .then(task, template)  Define continuation
-│  emit(signal)           Emit signal
-│
-│  ONE: Actor dimension - who can act
-│
-├──────────────────────────────────────────────
-│
-SWARM (world)
-│
-│  .group(id, type)       Create hierarchy
-│  .actor(id, type)       Create agent
-│  .thing(id, type)       Create resource
-│  .path(from, to)        Define path
-│  .signal(signal)        Signal through the colony
-│  .mark(path, weight)    Leave weight on path
-│  .follow(n)             Follow strongest paths
-│  .sense(path)           Perceive path weight
-│  .fade(rate)            Decay all paths
-│  .open(n)               Get proven paths
-│  .blocked()             Get resisted paths
-│
-│  ONE: World = Groups + Actors + Things + Paths
-│
-├──────────────────────────────────────────────
-│
-COORDINATION (emergent)
-│
-│  open paths form        From repeated success (mark)
-│  blocked paths clear    From repeated failure
-│  specialization emerges Actors cluster by task
-│  resilience emerges     Alternatives ready
-│
-│  ONE: Events → Knowledge hardening
-```
-
-## Coordination Patterns as Path Patterns
-
-The 6 coordination patterns map to path patterns in the ONE ontology:
-
-| Pattern | Path Signature | Biological Analog | Verb |
-|---------|----------------|-------------------|------|
-| Broadcast | 1 → N (fan-out) | Alarm pheromone | signal |
-| Gather | N → 1 (fan-in) | Food collection | mark |
-| Pipeline | A → B → C (chain) | Foraging trail | follow |
-| Compete | N → ? (race) | Recruitment | sense |
-| Consensus | N → tally (vote) | Quorum sensing | sense |
-| Stigmergy | A → env ← B (indirect) | Trail laying | mark + sense |
+A `world` is typically the tenancy root. Everything else nests under it
+via `hierarchy(parent, child)`.
 
 ---
 
-### 1. Broadcast (one to many) — Fan-out Path
+## Multi-Tenancy via Hierarchy
 
-```typescript
-agent.on('broadcast', ({ message }, emit) => {
-  swarm.list().forEach(id => 
-    emit({ receiver: id, data: { message } })
-  )
-})
-```
+Tenancy is a tree. The root `world` is the tenant. All descendants share
+membership, routing, and pheromone with each other — and nothing with
+siblings of another tenant root.
 
 ```
-         ┌─────────┐
-         │ Sender  │
-         └────┬────┘
-              │
-    ┌─────────┼─────────┐
-    ▼         ▼         ▼
-┌───────┐ ┌───────┐ ┌───────┐
-│Agent A│ │Agent B│ │Agent C│
-└───────┘ └───────┘ └───────┘
+              one (world, public)              ← the platform
+              ├── one-core (team, private)
+              ├── developers (community, public)
+              └── builders (community, public)
+
+              acme (world, private)            ← tenant A
+              ├── acme-marketing (team)
+              ├── acme-engineering (team)
+              └── acme-customers (community, public)
+
+              donal (world, private)           ← tenant B
+              ├── full (team)
+              ├── creative (team)
+              └── citation (team)
 ```
 
-### 2. Gather (many to one) — Fan-in Path
-
-```typescript
-const collector = group.add('collector')
-  .on('default', ({ data, from }, emit, ctx) => {
-    results[from] = data
-    if (Object.keys(results).length === expected) {
-      emit({ receiver: ctx.from, data: { results } })
-    }
-  })
-```
-
-```
-┌───────┐ ┌───────┐ ┌───────┐
-│Agent A│ │Agent B│ │Agent C│
-└───┬───┘ └───┬───┘ └───┬───┘
-    │         │         │
-    └─────────┼─────────┘
-              ▼
-        ┌───────────┐
-        │ Collector │
-        └───────────┘
-```
-
-### 3. Pipeline (chain) — Sequential Path
-
-```typescript
-scout
-  .on('explore', handler)
-  .then('explore', r => ({ receiver: 'analyst', data: r }))
-
-analyst
-  .on('default', handler)
-  .then('default', r => ({ receiver: 'writer', data: r }))
-```
-
-```
-┌───────┐    ┌──────────┐    ┌────────┐
-│ Scout │ ─→ │ Analyst  │ ─→ │ Writer │
-└───────┘    └──────────┘    └────────┘
-```
-
-### 4. Compete (race) — Racing Path
-
-```typescript
-agent.on('race', async ({ task }, emit, ctx) => {
-  const candidates = group.highways(3)
-    .map(h => h.edge.split('→')[1])
-  
-  // Signal to all, first response wins
-  candidates.forEach(id =>
-    emit({ receiver: id, data: { task, replyTo: ctx.self } })
-  )
-})
-
-agent.on('result', ({ data, from }, emit, ctx) => {
-  if (!winner) {
-    winner = from
-    group.mark(`race→${from}`, 1)  // Winner path gets weight
-    emit({ receiver: ctx.from, data: { data } })
-  }
-})
-```
-
-```
-              ┌───────┐
-         ┌───→│Agent A│───┐
-         │    └───────┘   │
-┌───────┐│    ┌───────┐   │┌───────┐
-│ Race  │├───→│Agent B│───┼│ First │
-└───────┘│    └───────┘   │└───────┘
-         │    ┌───────┐   │
-         └───→│Agent C│───┘
-              └───────┘
-              (compete)
-```
-
-### 5. Consensus (vote) — Weighted Path
-
-```typescript
-agent.on('vote', async ({ question }, emit) => {
-  const voters = group.highways(5).map(h => h.edge.split('→')[1])
-  
-  voters.forEach(id =>
-    emit({ receiver: id, data: { question, replyTo: 'tally' } })
-  )
-})
-
-tally.on('default', ({ answer, from }) => {
-  votes[answer] = (votes[answer] || 0) + group.sense(`vote→${from}`)
-  // Weighted by path weight
-})
-```
-
-```
-              ┌───────┐
-         ┌───→│Agent A│───┐
-         │    └───────┘   │
-┌───────┐│    ┌───────┐   │┌───────┐
-│ Vote  │├───→│Agent B│───┼│ Tally │
-└───────┘│    └───────┘   │└───────┘
-         │    ┌───────┐   │
-         └───→│Agent C│───┘
-              └───────┘
-          (weighted votes)
-```
-
-### 6. Stigmergy (indirect coordination) — Environmental Path
-
-```typescript
-// No direct communication
-// Agents just modify the environment (paths)
-
-scout.on('found', ({ resource }, emit) => {
-  // Don't signal anyone directly
-  // Just mark weight on the path (leave strength)
-  group.mark(`resource:${resource.type}→${resource.location}`, resource.quality)
-})
-
-harvester.on('seek', ({ type }, emit) => {
-  // Sense and follow the strongest path
-  const path = group.highways(10)
-    .find(h => h.edge.startsWith(`resource:${type}→`))
-  
-  if (path) {
-    const location = path.edge.split('→')[1]
-    emit({ receiver: 'self:harvest', data: { location } })
-  }
-})
-```
-
-```
-┌───────┐                          ┌───────────┐
-│ Scout │─── mark on path ────────→│           │
-└───────┘                          │   PATHS   │
-                                   │(strength) │
-┌───────────┐                      │           │
-│ Harvester │←── follow path ──────│           │
-└───────────┘                      └───────────┘
-
-No signals between Scout and Harvester.
-Coordination through environment.
-DROP to leave weight. FOLLOW to traverse. SENSE to perceive.
-```
-
-## Group of Groups (Hierarchy)
-
-Groups create hierarchy. Groups nest inside groups. This is the Groups dimension.
-
-```typescript
-import { world } from '@/engine/one'
-
-const verse = world()
-
-// Top-level groups (groups of groups)
-verse.group('research', 'group')
-verse.group('execution', 'group')
-
-// Nested groups (sub-groups)
-verse.group('scholars', 'team', { parent: 'research' })
-verse.group('critics', 'team', { parent: 'research' })
-verse.group('planners', 'team', { parent: 'execution' })
-verse.group('builders', 'team', { parent: 'execution' })
-
-// Actors in nested groups
-verse.actor('scholar-1', 'agent', { group: 'scholars' })
-  .on('read', async ({ paper }, emit) => { ... })
-verse.actor('critic-1', 'agent', { group: 'critics' })
-  .on('review', async ({ draft }, emit) => { ... })
-verse.actor('planner-1', 'agent', { group: 'planners' })
-  .on('plan', async ({ spec }, emit) => { ... })
-verse.actor('builder-1', 'agent', { group: 'builders' })
-  .on('build', async ({ plan }, emit) => { ... })
-
-// Paths cross group boundaries
-verse.path('scholar-1', 'critic-1').mark(1)   // Within research
-verse.path('critic-1', 'planner-1').mark(1)   // Research → Execution
-
-// Query paths scoped to a group
-verse.open(10, { group: 'research' })  // Only research paths
-verse.proven({ group: 'execution' })   // Only execution actors
-```
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                        WORLD (verse)                            │
-│                                                                 │
-│   GROUP: research                GROUP: execution               │
-│   ┌─────────────────────┐       ┌─────────────────────┐        │
-│   │                     │       │                     │        │
-│   │  GROUP: scholars    │       │  GROUP: planners    │        │
-│   │  ┌───────────┐      │       │  ┌───────────┐      │        │
-│   │  │ scholar-1 │──┐   │       │  │ planner-1 │──┐   │        │
-│   │  └───────────┘  │   │       │  └───────────┘  │   │        │
-│   │                 │   │       │                 │   │        │
-│   │  GROUP: critics │   │       │  GROUP: builders│   │        │
-│   │  ┌───────────┐  │   │       │  ┌───────────┐  │   │        │
-│   │  │ critic-1  │←─┘   │══════▶│  │ builder-1 │←─┘   │        │
-│   │  └───────────┘      │       │  └───────────┘      │        │
-│   │                     │       │                     │        │
-│   └─────────────────────┘       └─────────────────────┘        │
-│                                                                 │
-│   PATHS:                                                        │
-│     research:scholar-1→critic-1: 12.5                          │
-│     critic-1→planner-1: 34.5  (cross-group highway)            │
-│     execution:planner-1→builder-1: 8.3                         │
-│                                                                 │
-└────────────────────────────────────────────────────────────────┘
-```
-
-## The Biological Truth (ONE Mapping)
-
-The ant colony maps directly to the 6 dimensions:
-
-```
-ANT COLONY                          GROUP (world)              ONE DIMENSION
-───────────────────────────────────────────────────────────────────────────────
-
-Colony structure                    Groups                     GROUPS
-  - nest chambers                     - group hierarchy
-  - satellite nests                   - nested groups
-  
-Individual ant                      Actor                      ACTORS
-  - simple behaviors                  - simple handlers
-  - no global knowledge               - no global state
-  
-Food, nest material                 Things                     THINGS
-  - resources found                   - tasks, tokens
-  - artifacts created                 - outputs produced
-
-Strength trails                     Paths                      PATHS
-  - deposited on success              - mark() on success
-  - evaporate over time               - fade() over time
-  - others follow them                - follow() to traverse
-  - sensed by nearby ants             - sense() to perceive
-  
-Foraging activity                   Signal history             EVENTS
-  - who went where                    - what flowed when
-  - what succeeded                    - success/failure log
-  
-Colony memory                       Known patterns             KNOWLEDGE
-  - proven trails                     - open flows
-  - seasonal patterns                 - highways
-```
-
-### The Emergence
-
-```
-ANT COLONY                          GROUP                      QUERY
-
-Best foragers emerge                Best agents emerge          best('agent')
-  - scouts find fastest               - actors with open flows
-  - harvesters most efficient         - proven() returns them
-
-Blocked paths avoided               Blocked flows avoided       blocked()
-  - dead ends marked                  - high resistance
-  - predator warnings                 - failures accumulate
-
-Colony intelligence                 Group intelligence          know()
-  - no ant knows the plan             - no actor knows the goal
-  - but highways form                 - but patterns emerge
-```
-
-> "No ant knows the colony's goal. No actor knows the group's objective. But open flows form. The world learns."
+- `acme` cannot see `donal` — different roots.
+- `acme-marketing` can see `acme-engineering` via shared parent.
+- `one` is visible to both as a federation target (public world).
 
 ---
 
-## The ONE Truth
+## Visibility
 
 ```
-GROUP is world() with multiple actors.
+public     Discoverable. Anyone can list it. Join may still require approval.
+private    Invisible from outside. Membership required to even see the name.
+unlisted   Visible only if you know the gid. Not in discovery feeds.
+```
 
-Groups organize the hierarchy (colonies, teams, groups).
-Actors act (agents with simple handlers).
-Things exist (tasks, tokens, resources).
-Paths connect (strength trails with strength/resistance).
-Events accumulate (signal history).
-Knowledge is known (proven patterns).
+Private groups are filtered at the resolver — a non-member session never
+receives the entity.
 
-THE VERBS:
-  signal — move through the world
-  mark — leave weight on a path
-  follow — traverse weighted path
-  sense — perceive environment
-  fade — decay over time
+---
 
-Same 6 dimensions.
-Whether ants or agents.
-The ontology is ONE.
+## Signal Scope
+
+Every signal gets a `scope` attribute when recorded:
+
+```
+scope: "private"   # 1:1 — only sender and receiver see it
+scope: "group"     # visible to all members of the receiver's group
+scope: "public"    # broadcast — any member of any ancestor world sees it
+```
+
+Routing rules:
+
+```
+1.  Resolve S.groups and R.groups
+2.  intersect = S.groups ∩ R.groups (including hierarchy ancestors)
+3.  intersect empty AND no bridge path → dissolve
+4.  otherwise deliver, record scope
+5.  scope="private" signals never surface in know() / group queries
+```
+
+Five lines. No ACL tables, no role matrix.
+
+---
+
+## Inter-Group Communication
+
+Three mechanisms, all already in the ontology.
+
+### 1. Shared membership (the common case)
+
+An actor in two groups is the natural bridge. No schema change.
+
+```
+acme ─── alice (member of both) ─── one
+```
+
+### 2. Hierarchy inheritance
+
+A child group inherits read-visibility of its parent's highways. Write
+still requires explicit membership.
+
+```
+acme (parent)
+  └── acme-engineering (child) — can read acme highways, can't signal acme-marketing directly
+```
+
+### 3. Bridge paths (explicit, cross-root)
+
+Two tenants want to cooperate? Create a typed `path` between specific actors.
+
+```tql
+insert
+  (source: $a, target: $b) isa path,
+    has strength 0.0,
+    has resistance 0.0,
+    has bridge-kind "federation";
+```
+
+Bridges are audited. `mark()` on a bridge is a commercial event — x402
+pricing, Sui escrow, and payment attach there. See `src/engine/federation.ts`.
+
+---
+
+## Security Model — RBAC + ABAC, Both Supported
+
+**Yes, ONE supports both patterns — and ReBAC on top.** You don't choose
+one. They compose: RBAC gives coarse roles, ABAC gives fine-grained policy,
+ReBAC gives the emergent trust layer from pheromone.
+
+### RBAC — Role-Based Access Control
+
+Roles live on the **membership** relation as a `role` attribute. A single
+actor can hold different roles in different groups.
+
+```tql
+insert
+  (group: $g, member: $u) isa membership,
+    has role "admin";
+```
+
+| Role | Can do |
+|------|--------|
+| `owner` | Everything + transfer/delete group |
+| `admin` | Invite, remove, change visibility, create bridges |
+| `member` | Signal, mark/warn, hire capabilities, read highways |
+| `guest` | Read-only — state, public signals, no write |
+| custom | Any string — policy engine resolves meaning |
+
+**Check:**
+
+```tql
+match
+  (group: $g, member: $u) isa membership, has role $r;
+  $u has aid "alice"; $g has gid "acme";
+select $r;
+```
+
+Classic RBAC. Predictable. Auditable. What every enterprise compliance
+checklist asks for.
+
+### ABAC — Attribute-Based Access Control
+
+Every entity in the 6-dimension ontology carries attributes. Policies are
+queries over those attributes.
+
+Example attributes already available:
+- `group.visibility`, `group.brand`, `group.group-type`
+- `actor.actor-type`, `actor.tag`, `actor.generation`
+- `thing.price`, `thing.tag`, `thing.brand`
+- `path.strength`, `path.resistance`, `path.bridge-kind`
+- `signal.scope`, `signal.ts`, `signal.success`
+- `api-key.permissions`, `api-key.expires-at`
+
+**Example policy** — "LLM agents under generation 3 can only hire skills
+priced below $0.05, tagged 'safe', within their own tenant":
+
+```tql
+match
+  $caller isa actor, has actor-type "llm", has generation $gen;
+  $gen < 3;
+  (group: $g, member: $caller) isa membership;
+  (parent: $root, child: $g) isa hierarchy;
+  $root has gid "acme";
+  $skill isa thing, has thing-type "skill", has price $p, has tag "safe";
+  $p < 0.05;
+  (provider: $provider, offered: $skill) isa capability;
+  (group: $g, member: $provider) isa membership;
+select $skill, $provider;
+```
+
+Any attribute, any combination, any depth — that's ABAC. The policy is a
+TQL query, not a rule engine.
+
+### ReBAC — Relationship-Based (the emergent layer)
+
+Native to the substrate. Access is modulated by the **path** between caller
+and resource:
+
+- `strength > threshold` → trusted counterparty (allow)
+- `resistance > 2× strength` → toxic (auto-deny)
+- no path at all → unknown (require explicit authorization)
+
+This is the layer RBAC/ABAC can't give you: trust that emerges from
+behavior. An actor with `admin` role but a toxic path history gets
+blocked at the pheromone check before the role check even runs. Compliance
+on top, reality underneath.
+
+### How they compose
+
+```
+Request arrives
+  │
+  ├── ABAC pre-check       ──── policy fails?  → 403 (deterministic deny)
+  │    (attributes)
+  │
+  ├── RBAC role check      ──── role insufficient? → 403
+  │    (membership.role)
+  │
+  ├── ReBAC pheromone      ──── isToxic(caller → target)? → dissolve
+  │    (path state)
+  │
+  ├── Capability + budget  ──── no capability / no funds? → 402 / dissolve
+  │
+  ▼
+  LLM / handler executes (the one probabilistic step)
+  │
+  POST: outcome → mark() or warn() → path updates → next decision learns
+```
+
+All four layers are TQL queries. No policy decision point sidecar, no OPA
+bundle, no separate IAM service. The ontology *is* the policy store.
+
+### Mapping to enterprise compliance vocabulary
+
+| Compliance ask | ONE mechanism |
+|----------------|---------------|
+| "Users must have defined roles" | `membership.role` |
+| "Fine-grained attribute policies" | TQL match over attributes |
+| "Least privilege" | `api-key.permissions` = `read` by default |
+| "Separation of duties" | Role + capability combined in policy query |
+| "Audit trail" | `signal` is the audit log (ts, sender, receiver, success) |
+| "Revocation" | `membership` delete or `api-key.key-status = "revoked"` |
+| "Data isolation" | Hierarchy closure query scoped to tenant root |
+| "Zero trust" | Every call re-checks membership, capability, and path state |
+
+---
+
+## Onboarding into Groups
+
+From `auth.md`, `/api/auth/agent` creates the actor. A follow-up places
+it in groups.
+
+```bash
+# 1. Mint agent
+curl -X POST /api/auth/agent -d '{"name": "Alice", "kind": "human"}'
+# → { uid: "alice", apiKey: "api_..." }
+
+# 2. Join public group
+curl -X POST /api/groups/join \
+  -H "Authorization: Bearer api_..." \
+  -d '{"gid": "developers"}'
+
+# 3. Invite to private group (inviter needs role >= admin)
+curl -X POST /api/groups/invite \
+  -H "Authorization: Bearer api_inviter..." \
+  -d '{"gid": "acme-marketing", "uid": "alice", "role": "member"}'
+
+# 4. Create a new group (creator becomes owner)
+curl -X POST /api/groups \
+  -H "Authorization: Bearer api_..." \
+  -d '{"gid": "my-team", "name": "My Team", "group-type": "team",
+       "visibility": "private", "parent": "acme"}'
 ```
 
 ---
 
-*Actors signal. Paths connect. Groups learn.*
+## Security Invariants
+
+| Invariant | Enforced where |
+|-----------|----------------|
+| No routing without shared group OR bridge path | `persist().signal()` pre-check |
+| Private groups hidden from non-members | API handler filter |
+| `scope: "private"` signals excluded from `know()` | `persist().know()` query filter |
+| `forget(uid)` cascades membership + private signals | `persist().forget()` |
+| Bridge paths require opt-in on both sides | `/api/paths/bridge` handshake |
+| Tenant isolation: hierarchy-closure query mandatory | Every `/api/state` + `/api/highways` handler |
+| Role elevation requires existing admin | `/api/groups/invite` role check |
+| API key revoked within one cache TTL | `invalidateKeyCache()` |
+| Rate limit per bridge (default 100 msg/min) | Gateway middleware on `bridge-kind` paths |
+
+Every invariant is a query or middleware check — not a permission system
+bolted on top.
+
+---
+
+## Query Patterns
+
+### All groups I can see
+
+```tql
+match
+  { (group: $g, member: $me) isa membership; $me has aid "alice"; }
+  or
+  { $g isa group, has visibility "public"; };
+select $g;
+```
+
+### Who can I signal directly
+
+```tql
+match
+  (group: $g, member: $me) isa membership; $me has aid "alice";
+  (group: $g, member: $them) isa membership;
+  not { $them is $me; };
+select $them;
+```
+
+### Highways inside a tenant
+
+```tql
+match
+  $root isa group, has gid "acme";
+  { (parent: $root, child: $g) isa hierarchy; } or { $g is $root; };
+  (group: $g, member: $s) isa membership;
+  (group: $g, member: $t) isa membership;
+  (source: $s, target: $t) isa path, has strength $w;
+  $w > 5.0;
+select $s, $t, $w;
+sort $w desc; limit 20;
+```
+
+### My effective roles (RBAC audit)
+
+```tql
+match
+  (group: $g, member: $me) isa membership, has role $r;
+  $me has aid "alice";
+select $g, $r;
+```
+
+---
+
+## API Surface (proposed)
+
+| Endpoint | Method | Auth | Purpose |
+|----------|--------|------|---------|
+| `/api/groups` | POST | API key | Create group (becomes owner) |
+| `/api/groups` | GET | Optional | List public + your private groups |
+| `/api/groups/:gid` | GET | Scoped | Group details (403 if private + non-member) |
+| `/api/groups/:gid` | PATCH | Owner/admin | Update name/visibility/brand |
+| `/api/groups/:gid` | DELETE | Owner | Cascade delete group + members + signals |
+| `/api/groups/join` | POST | API key | Join public group |
+| `/api/groups/invite` | POST | Admin | Invite uid with role |
+| `/api/groups/leave` | POST | API key | Leave group (owner must transfer first) |
+| `/api/groups/:gid/members` | GET | Member | List members + roles |
+| `/api/groups/:gid/role` | PATCH | Owner/admin | Change a member's role |
+| `/api/groups/:gid/highways` | GET | Member | Proven paths within group |
+| `/api/paths/bridge` | POST | Both sides | Create federation edge |
+| `/api/paths/bridge/:id` | DELETE | Either side | Dissolve bridge |
+
+---
+
+## Multi-Tenancy Checklist
+
+Deploying ONE for a new tenant:
+
+1. **Create the world.** `POST /api/groups { gid: "acme", group-type: "world", visibility: "private" }`
+2. **Onboard admins.** `/api/auth/agent` for each human, join `acme` with role `admin`.
+3. **Brand it.** Set `brand: "acme"` on the group.
+4. **Sub-groups.** Teams/pods as children of `acme` via `hierarchy`.
+5. **Federation (optional).** Bridge path `acme/admin ↔ one/concierge` for ONE-platform discoverability.
+6. **Isolate data.** All `/api/memory/*`, `/api/signal`, `/api/state` calls filter by `hierarchy-root = acme`.
+7. **Per-tenant limits.** Rate limits, key caps, LLM budgets set on the root group (optional `plan` attribute).
+
+Delete the root → cascade everything. No cross-tenant references possible.
+
+---
+
+## Ontology Mapping (full picture)
+
+| Concern | Dimension | Entity / Relation |
+|---------|-----------|-------------------|
+| Tenant | 1 Groups | `group` with `group-type: "world"` |
+| Org / team / pod | 1 Groups | `group` with `group-type: "org"` / `"team"` |
+| Nesting | 1 Groups | `hierarchy(parent, child)` |
+| Membership | 1 Groups | `membership(group, member)` |
+| Visibility | 1 Groups | `group.visibility` |
+| Role (RBAC) | 1 Groups | `membership.role` |
+| Identity | 2 Actors | `actor` |
+| Credentials | 3 Things | `api-key` + `api-authorization` |
+| Capability | 4 Paths | `capability(provider, offered)` |
+| Trust (ReBAC) | 4 Paths | `path.strength` / `path.resistance` |
+| Federation bridge | 4 Paths | `path.bridge-kind` |
+| Communication | 5 Events | `signal.scope` |
+| Emergent trust | 6 Learning | `hypothesis` scoped by group |
+
+All six dimensions participate. Groups are dimension 1 — not an add-on.
 
 ---
 
 ## See Also
 
-- [flows.md](flows.md) — Flow patterns: fan-out, fan-in, pipeline, compete, stigmergy
-- [people.md](docs/agents.md) — Individual unit anatomy
-- [ants.md](ants.md) — Biological colony mechanisms
-- [knowledge.md](knowledge.md) — Five forces driving group intelligence
-- [one-ontology.md](one-ontology.md) — Six dimensions governing all scales
-- [PLAN-emerge.md](PLAN-emerge.md) — Implementation status
+- [auth.md](auth.md) — Identity, API keys, wallet derivation
+- [one-ontology.md](one-ontology.md) — The 6 dimensions
+- [naming.md](naming.md) — Canonical names
+- [DSL.md](DSL.md) — Signal grammar
+- [routing.md](routing.md) — Deterministic sandwich and bridge behavior
+- [strategy.md](strategy.md) — Federation and inter-world economics
+- `src/schema/one.tql` — The ontology source
+
+---
+
+*One entity. One rule. RBAC, ABAC, ReBAC — all emerge from it.*

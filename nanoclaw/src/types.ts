@@ -30,7 +30,7 @@ export interface Signal {
 }
 
 export interface QueueMessage {
-  type: 'message' | 'substrate' | 'scheduled'
+  type: 'message' | 'substrate' | 'scheduled' | 'complex'
   signal?: Signal
   group?: string
   sender?: string
@@ -38,6 +38,9 @@ export interface QueueMessage {
   data?: unknown
   prompt?: string
   taskId?: string
+  tags?: string[]
+  context?: { uid?: string; pack?: unknown; reply?: string; confidence?: number }
+  ts?: number
 }
 
 export interface GroupContext {

@@ -137,12 +137,22 @@ export function useChat({ selectedModel, apiKey, serverHasKey, useDirector = tru
         return { ok: true }
       }
 
+      const startMs = Date.now()
       try {
         if (useDirector) {
           await runDirector(text, state.messages, state.activeAgents, abortRef.current, dispatch, streamingIdRef)
         } else {
           await runChat(text, state.messages, selectedModel, apiKey, abortRef.current, dispatch)
         }
+        // Rule 1 — Closed Loop: mark chat→model edge on every successful turn
+        void fetch('/api/signal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiver: 'chat:outcome',
+            data: { outcome: 'result', ms: Date.now() - startMs, model: selectedModel, tags: ['chat', 'outcome'] },
+          }),
+        }).catch(() => {})
         return { ok: true }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return { cancelled: true }

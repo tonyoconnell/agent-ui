@@ -118,7 +118,7 @@ describe('contextForSkill', () => {
 
   it('"deploy" → loads nanoclaw', () => {
     const result = contextForSkill('deploy')
-    expect(result).toContain('nanoclaw.md')
+    expect(result).toContain('claw.md')
   })
 
   it('"metaphor" → loads metaphors + dictionary', () => {

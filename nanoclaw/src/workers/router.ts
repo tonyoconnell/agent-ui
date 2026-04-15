@@ -12,13 +12,48 @@
 
 import { Hono } from 'hono'
 import { normalize, send } from '../channels'
+import { handleExploreCommand } from '../commands/explore'
+import { handleForgetCommand } from '../commands/forget'
+import { handleMemoryCommand } from '../commands/memory'
+import { detectValence } from '../lib/classify-fallback'
 import { issueClaim, linkIdentity } from '../lib/identity'
+import { systemPromptWithPack } from '../lib/prompt'
 import { ensureRegistered, highways, isToxic, mark, warn } from '../lib/substrate'
+import { syncPersonas } from '../lib/sync-personas'
 import { executeTool, tools } from '../lib/tools'
 import { personas } from '../personas'
 import type { Env, GroupContext, QueueMessage } from '../types'
+import { ingest } from '../units/ingest'
+import { measureOutcome } from '../units/outcome'
+import { recall } from '../units/recall'
+
+// Detect if response is confident enough to handle locally (score 0-1)
+function detectConfidence(response: string, valence: number, highways: { to: string; strength: number }[]): number {
+  let score = 0.5 // baseline
+  if (Math.abs(valence) > 0.3) score += 0.2 // clear outcome signal
+  if (highways.length > 0) score += 0.2 // semantic highways found
+  if (response && !response.match(/\b(maybe|possibly|uncertain|not sure|i think|unclear)\b/i)) {
+    score += 0.1 // response has no hedging language
+  }
+  return Math.min(score, 1.0)
+}
 
 const app = new Hono<{ Bindings: Env }>()
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BOOT-TIME PERSONA SYNC (one-time guard)
+// ═══════════════════════════════════════════════════════════════════════════
+
+let personasSynced = false
+
+app.use('*', async (c, next) => {
+  if (!personasSynced) {
+    personasSynced = true
+    // Fire and forget — don't block the request
+    syncPersonas(c.env).catch((e) => console.warn('Persona sync failed on boot:', e))
+  }
+  return next()
+})
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTH MIDDLEWARE
@@ -201,6 +236,28 @@ app.post('/webhook/:channel', async (c) => {
     const signal = normalize(channel, payload)
     if (!signal) return c.json({ ok: false, error: 'Invalid payload' }, 400)
 
+    // Handle memory slash commands — /memory, /forget, /explore
+    if (
+      (signal.content === '/memory' || signal.content.startsWith('/forget') || signal.content === '/explore') &&
+      (channel.startsWith('telegram') || channel === 'discord')
+    ) {
+      const { uid } = await ingest(channel, signal.sender, signal.content, 'nanoclaw', c.env)
+      let reply = ''
+
+      if (signal.content === '/memory') {
+        reply = await handleMemoryCommand(uid, signal.sender, signal.group, c.env)
+      } else if (signal.content === '/forget confirm') {
+        reply = await handleForgetCommand(uid, signal.sender, true, c.env)
+      } else if (signal.content === '/forget') {
+        reply = await handleForgetCommand(uid, signal.sender, false, c.env)
+      } else if (signal.content === '/explore') {
+        reply = await handleExploreCommand(uid, c.env)
+      }
+
+      if (reply) await send(c.env, signal.group, reply)
+      return c.json({ ok: true, id: signal.id, group: signal.group })
+    }
+
     // Handle /link <nonce> command — cross-channel identity claim
     if (signal.content.startsWith('/link ') && channel.startsWith('telegram')) {
       const nonce = signal.content.slice(6).trim()
@@ -238,7 +295,23 @@ app.post('/webhook/:channel', async (c) => {
 
     // Process synchronously for Telegram/Discord — eliminates queue latency (~30s → ~3s)
     if (channel.startsWith('telegram') || channel === 'discord') {
+      // Memory-enhanced turn: outcome → ingest → recall → pack → respond
+      // 1. Measure outcome of previous turn (deposit pheromone before new turn starts)
+      await measureOutcome(c.env, signal.sender, signal.group, signal.content).catch(() => {})
+
+      // 2. Resolve stable actor uid + classify tags
+      const { uid, tags } = await ingest(channel, signal.sender, signal.content, 'nanoclaw', c.env)
+
+      // 3. Persist tags for next turn's outcome measurement
+      await c.env.DB.prepare('INSERT OR REPLACE INTO turn_meta (group_id, tags, ts) VALUES (?, ?, ?)')
+        .bind(signal.group, tags.join(','), Date.now())
+        .run()
+        .catch(() => {})
+
+      // 4. Assemble ContextPack (three-parallel: episodic + associative + semantic)
       const context = await loadContext(c.env, signal.group)
+      const pack = await recall(c.env, signal.group, uid, signal.sender)
+      const enhancedSystemPrompt = systemPromptWithPack(context.systemPrompt, pack)
       const messages = await buildMessages(c.env, signal.group)
 
       const openaiTools = tools.map((t) => ({
@@ -257,7 +330,7 @@ app.post('/webhook/:channel', async (c) => {
         body: JSON.stringify({
           model: context.model,
           max_tokens: 1024,
-          messages: [{ role: 'system', content: context.systemPrompt }, ...messages],
+          messages: [{ role: 'system', content: enhancedSystemPrompt }, ...messages],
           tools: openaiTools,
         }),
       })
@@ -274,15 +347,39 @@ app.post('/webhook/:channel', async (c) => {
         }
 
         if (reply) {
-          await c.env.DB.prepare(`
-            INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
-            VALUES (?, ?, ?, 'assistant', ?, 'assistant', ?)
-          `)
-            .bind(`resp-${Date.now()}`, signal.group, channel, reply, Date.now())
-            .run()
+          // Compute confidence: sentiment signal (from incoming msg) + highways + response clarity
+          const valence = detectValence(signal.content)
+          const confidence = detectConfidence(reply, valence, pack.highways)
 
-          await send(c.env, signal.group, reply)
-          await mark(c.env, 'entry', `nanoclaw:${signal.group}`)
+          // Simple path: >0.7 confidence → mark locally, send in 3s
+          if (confidence > 0.7) {
+            await c.env.DB.prepare(`
+              INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
+              VALUES (?, ?, ?, 'assistant', ?, 'assistant', ?)
+            `)
+              .bind(`resp-${Date.now()}`, signal.group, channel, reply, Date.now())
+              .run()
+
+            await send(c.env, signal.group, reply)
+            await mark(c.env, 'entry', `nanoclaw:${signal.group}`, 1)
+          }
+          // Complex path: ≤0.7 confidence → queue to substrate, fallback with warn(0.5)
+          else {
+            try {
+              await c.env.AGENT_QUEUE.send({
+                type: 'complex',
+                sender: signal.sender,
+                group: signal.group,
+                tags,
+                context: { uid, pack, reply, confidence },
+                ts: Date.now(),
+              })
+            } catch {
+              // Queue error → fallback to local reply + warn
+            }
+            await send(c.env, signal.group, reply)
+            await warn(c.env, 'entry', `nanoclaw:${signal.group}`, 0.5)
+          }
         }
       } else {
         await warn(c.env, 'entry', `nanoclaw:${signal.group}`, 0.5)
@@ -320,6 +417,26 @@ app.post('/claim', async (c) => {
     return c.json({ ok: true, nonce, expiresIn: 300 })
   } catch (e) {
     return c.json({ ok: false, error: String(e) }, 500)
+  }
+})
+
+// Poll claim status — called by Pages app after initiating /claim
+app.get('/claim/status', async (c) => {
+  try {
+    const sessionId = c.req.query('sessionId')
+    if (!sessionId) return c.json({ linked: false, error: 'sessionId required' }, 400)
+
+    const row = await c.env.DB.prepare('SELECT canonical_uid FROM identity_links WHERE channel = ? AND sender_id = ?')
+      .bind('web', sessionId)
+      .first()
+      .catch(() => null)
+
+    if (row?.canonical_uid) {
+      return c.json({ linked: true, canonicalUid: row.canonical_uid as string })
+    }
+    return c.json({ linked: false })
+  } catch (e) {
+    return c.json({ linked: false, error: String(e) }, 500)
   }
 })
 

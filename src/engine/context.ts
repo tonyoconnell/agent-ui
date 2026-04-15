@@ -56,7 +56,7 @@ export const CANONICAL = {
   dictionary: 'dictionary.md',
   metaphors: 'metaphors.md',
   sdk: 'sdk.md',
-  nanoclaw: 'nanoclaw.md',
+  nanoclaw: 'claw.md',
   loops: 'loops.md',
   patterns: 'patterns.md',
 } as const
