@@ -1,8 +1,9 @@
 ---
+export const prerender = true
 import Layout from '@/layouts/Layout.astro'
 import { CEOPanel } from '@/components/CEOPanel'
 ---
 
 <Layout title="CEO Panel — ONE">
-  <CEOPanel client:load />
+  <CEOPanel client:only="react" />
 </Layout>

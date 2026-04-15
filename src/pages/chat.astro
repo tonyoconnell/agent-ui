@@ -1,10 +1,11 @@
 ---
+export const prerender = true
 import Layout from "@/layouts/Layout.astro"
 import { ChatShell } from "@/components/ai/chat-v3"
 ---
 
 <Layout title="Chat">
-  <ChatShell client:load />
+  <ChatShell client:only="react" />
 </Layout>
 
 <style is:global>

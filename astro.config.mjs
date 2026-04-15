@@ -52,6 +52,17 @@ export default defineConfig({
         "recharts",
         "lucide-react",
       ],
+      // Keep heavy packages out of the SSR worker bundle.
+      // shiki: code-block.tsx imports codeToHtml directly — all consumers
+      //   are client:only so shiki never runs in the worker
+      external: [
+        "node:async_hooks",
+        "@mysten/sui",
+        "@mysten/bcs",
+        "shiki",
+        "@shikijs/core",
+        "@shikijs/types",
+      ],
     },
     build: {
       target: "esnext",
@@ -66,6 +77,11 @@ export default defineConfig({
         },
       },
     },
+  },
+  markdown: {
+    // Disable Shiki syntax highlighting — saves ~5.8 MiB of grammar/WASM
+    // from the SSR worker bundle. Pages content is rendered client-side anyway.
+    syntaxHighlight: false,
   },
   output: "server",
   adapter,
