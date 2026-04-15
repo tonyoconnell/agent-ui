@@ -8,7 +8,6 @@ import { Toaster } from '@/components/ui/toaster'
 import { useChat } from '@/hooks/ai/useChat'
 import { useToast } from '@/hooks/use-toast'
 import { DEFAULT_MODEL, POPULAR_MODELS } from '@/lib/chat/models'
-import { secureGetItem, secureRemoveItem, secureSetItem } from '@/lib/security'
 import { ConversationView } from './ConversationView'
 import { DemoSuggestions } from './DemoSuggestions'
 import { FullPageFrame } from './frames/FullPageFrame'
@@ -63,7 +62,7 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
   // Load persisted state + check server key on mount
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const savedKey = secureGetItem(STORAGE_KEY)
+    const savedKey = typeof window !== 'undefined' ? sessionStorage.getItem(STORAGE_KEY) : null
     const savedModel = localStorage.getItem(MODEL_KEY)
     const savedCustom = localStorage.getItem('custom-models')
     if (savedKey) setApiKey(savedKey)
@@ -90,14 +89,14 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
 
   const handleSaveApiKey = () => {
     if (!apiKey) return
-    secureSetItem(STORAGE_KEY, apiKey)
+    if (typeof window !== 'undefined') sessionStorage.setItem(STORAGE_KEY, apiKey)
     localStorage.setItem(MODEL_KEY, selectedModel)
     toast({ title: 'API Key Saved', description: 'All premium features are now unlocked!' })
     setShowSettings(false)
   }
 
   const handleClearKey = () => {
-    secureRemoveItem(STORAGE_KEY)
+    if (typeof window !== 'undefined') sessionStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(MODEL_KEY)
     setApiKey('')
     clear()

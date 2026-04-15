@@ -49,9 +49,7 @@ export function BountyForm({ capability, posterUid, onSuccess }: Props) {
       <Card className="bg-slate-900 border border-green-500/30">
         <CardContent className="p-4 space-y-2">
           <p className="text-sm text-green-400">Bounty posted. Escrow locked.</p>
-          {bountyId && (
-            <p className="text-xs text-slate-500 font-mono">{bountyId}</p>
-          )}
+          {bountyId && <p className="text-xs text-slate-500 font-mono">{bountyId}</p>}
         </CardContent>
       </Card>
     )
@@ -114,7 +112,7 @@ export function BountyForm({ capability, posterUid, onSuccess }: Props) {
               min={1}
               max={30}
               value={days}
-              onChange={(e) => setDays(parseInt(e.target.value) || 7)}
+              onChange={(e) => setDays(parseInt(e.target.value, 10) || 7)}
               className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
             />
           </div>
@@ -127,9 +125,7 @@ export function BountyForm({ capability, posterUid, onSuccess }: Props) {
             {status === 'submitting' ? 'Locking escrow…' : `Post bounty · ${price} SUI`}
           </Button>
 
-          {status === 'error' && (
-            <p className="text-xs text-red-400">Failed to post bounty. Check console.</p>
-          )}
+          {status === 'error' && <p className="text-xs text-red-400">Failed to post bounty. Check console.</p>}
         </form>
       </CardContent>
     </Card>

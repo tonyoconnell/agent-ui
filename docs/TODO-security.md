@@ -469,8 +469,8 @@ ship yellow.
 ## Status
 
 - [ ] **Cycle 1: WIRE-DELETE** — remove XOR helpers, relocate utilities, fix ChatShell
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 1)
+  - [x] W1 — Recon (Haiku × 4)
+  - [x] W2 — Decide (Opus × 1)
   - [ ] W3 — Edits (Sonnet × 4, parallel)
   - [ ] W4 — Verify (Sonnet × 4, parallel by check type)
 - [ ] **Cycle 2: SCOPE-KEYS** — scope-group, scope-skill, default read, 24h TTL

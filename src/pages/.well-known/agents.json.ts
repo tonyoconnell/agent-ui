@@ -9,7 +9,7 @@
  */
 
 import type { APIRoute } from 'astro'
-import { type AdlDoc, adlFromUnit } from '@/engine/adl'
+import { adlFromUnit } from '@/engine/adl'
 import { readParsed } from '@/lib/typedb'
 
 export const GET: APIRoute = async () => {

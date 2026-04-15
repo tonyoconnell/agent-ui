@@ -556,6 +556,8 @@ async function processMessage(env: Env, msg: QueueMessage): Promise<void> {
     },
   }))
 
+  // User-provided key hook: POST /api/claw sets OPENROUTER_API_KEY as worker secret.
+  // Per-user key override: extend here to read from D1 user_secrets table if needed.
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {

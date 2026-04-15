@@ -127,6 +127,42 @@ export const mark = async (env: Env, source: string, target: string, strength = 
 
   // Invalidate toxic cache
   await env.KV.delete(`toxic:${source}→${target}`)
+
+  // Local write to D1 (claw_paths table) — preserve both strength and resistance
+  try {
+    // Insert on cold start, ignoring if exists
+    await env.DB?.prepare(`
+      INSERT OR IGNORE INTO claw_paths (source, target, strength, resistance, traversals, ts)
+      VALUES (?, ?, ?, 0, 1, ?)
+    `)
+      .bind(source, target, strength || 0.5, Date.now())
+      .run()
+    // Update strength + traversals on warm start
+    await env.DB?.prepare(`
+      UPDATE claw_paths SET strength = ?, traversals = traversals + 1, ts = ?
+      WHERE source = ? AND target = ?
+    `)
+      .bind(strength || 0.5, Date.now(), source, target)
+      .run()
+  } catch {}
+
+  // Global queue signal
+  try {
+    await env.AGENT_QUEUE?.send({
+      type: 'mark',
+      source,
+      target,
+      strength: strength || 1,
+      source_origin: 'claw',
+      ts: Date.now(),
+    })
+  } catch {}
+
+  // Invalidate highway cache
+  try {
+    const group = target.split(':')[1]
+    await env.KV?.delete(`highways:${group}`)
+  } catch {}
 }
 
 export const warn = async (env: Env, source: string, target: string, strength = 1): Promise<void> => {
@@ -144,7 +180,43 @@ export const warn = async (env: Env, source: string, target: string, strength = 
   ).catch(() => {})
 
   // Invalidate toxic cache
-  await env.KV.delete(`toxic:${source}→${target}`)
+  await env.KV?.delete(`toxic:${source}→${target}`)
+
+  // Local write to D1 (claw_paths table) — preserve both strength and resistance
+  try {
+    // Insert on cold start, ignoring if exists
+    await env.DB?.prepare(`
+      INSERT OR IGNORE INTO claw_paths (source, target, strength, resistance, traversals, ts)
+      VALUES (?, 0, ?, 1, ?)
+    `)
+      .bind(source, target, strength || 0.5, Date.now())
+      .run()
+    // Update resistance + traversals on warm start
+    await env.DB?.prepare(`
+      UPDATE claw_paths SET resistance = ?, traversals = traversals + 1, ts = ?
+      WHERE source = ? AND target = ?
+    `)
+      .bind(strength || 0.5, Date.now(), source, target)
+      .run()
+  } catch {}
+
+  // Global queue signal
+  try {
+    await env.AGENT_QUEUE?.send({
+      type: 'warn',
+      source,
+      target,
+      strength: strength || 1,
+      source_origin: 'claw',
+      ts: Date.now(),
+    })
+  } catch {}
+
+  // Invalidate highway cache
+  try {
+    const group = target.split(':')[1]
+    await env.KV?.delete(`highways:${group}`)
+  } catch {}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

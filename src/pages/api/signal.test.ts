@@ -99,7 +99,7 @@ describe('Signal Permission Gates', () => {
       ])
 
       const permNetworkRows = await readParsed('...')
-      const permNet = JSON.parse(permNetworkRows[0].pn)
+      const permNet = JSON.parse(permNetworkRows[0].pn as string)
       const allowedHosts = permNet.allowed_hosts || []
 
       const sender = 'untrusted-agent'
@@ -127,7 +127,7 @@ describe('Signal Permission Gates', () => {
       ])
 
       const permNetworkRows = await readParsed('...')
-      const permNet = JSON.parse(permNetworkRows[0].pn)
+      const permNet = JSON.parse(permNetworkRows[0].pn as string)
       const allowedHosts = permNet.allowed_hosts || []
 
       const sender = 'trusted-agent'
@@ -148,7 +148,7 @@ describe('Signal Permission Gates', () => {
       ])
 
       const permNetworkRows = await readParsed('...')
-      const permNet = JSON.parse(permNetworkRows[0].pn)
+      const permNet = JSON.parse(permNetworkRows[0].pn as string)
       const allowedHosts = permNet.allowed_hosts || []
 
       const sender = 'any-agent'
@@ -178,7 +178,7 @@ describe('Signal Permission Gates', () => {
       ])
 
       const permNetworkRows = await readParsed('...')
-      const permNet = JSON.parse(permNetworkRows[0].pn)
+      const permNet = JSON.parse(permNetworkRows[0].pn as string)
       const allowedHosts = permNet.allowed_hosts || []
 
       // Empty array should not trigger block
@@ -196,7 +196,7 @@ describe('Signal Permission Gates', () => {
       // Should not crash on JSON parse error
       expect(() => {
         try {
-          JSON.parse(permNetworkRows[0].pn)
+          JSON.parse(permNetworkRows[0].pn as string)
         } catch {
           // Ignore — gate continues
         }
@@ -278,7 +278,7 @@ describe('Permission Cache', () => {
       adlStatus?: string
       timestamp: number
     }
-    const CACHE_TTL = 300000 // 5 minutes
+    const _CACHE_TTL = 300000 // 5 minutes
 
     const cache = new Map<string, CacheEntry>()
 

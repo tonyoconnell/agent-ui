@@ -15,7 +15,7 @@
  */
 
 import type { APIRoute } from 'astro'
-import { type AdlDoc, parse, syncAdl, toTypeDB, validate } from '@/engine/adl'
+import { parse, syncAdl, toTypeDB, validate } from '@/engine/adl'
 import { validateApiKey } from '@/lib/api-auth'
 
 export const POST: APIRoute = async ({ request }) => {

@@ -299,14 +299,51 @@ Learning syncs: edge improves from center, center improves from edge.
 
 ### Wave 2 — Decide (Opus, unsharded)
 
-**Decision:** Every Claw mark/warn does BOTH:
-1. **Local** (in D1, KV): `entry → group` path strength (fast)
-2. **Global** (queued to substrate): signal substrate to mark `entry → claw_unit` (deferred, 5 min batch)
+**DECIDED** — 2026-04-15
+
+**Decision 1: Dual-Layer Architecture**
+
+Every Claw mark/warn does BOTH:
+1. **Local** (D1): write to new `claw_paths` table immediately (strength/resistance)
+2. **Global** (Queue): emit mark/warn signal to AGENT_QUEUE for substrate to consume (async)
+
+**D1 Schema (claw_paths table):**
+```sql
+CREATE TABLE IF NOT EXISTS claw_paths (
+  source TEXT,
+  target TEXT,
+  strength REAL DEFAULT 0.5,
+  resistance REAL DEFAULT 0,
+  traversals INTEGER DEFAULT 0,
+  ts INTEGER,
+  PRIMARY KEY (source, target)
+);
+```
+
+**Decision 2: Queue Signal Format**
+
+When mark/warn completes on D1, emit to AGENT_QUEUE:
+```typescript
+await env.AGENT_QUEUE.send({
+  type: 'mark' | 'warn',
+  source, target, strength,    // mark payload
+  source: 'claw',              // attribution
+  ts: Date.now(),
+})
+```
+
+Substrate's tick loop (L1-L2) processes these like any other agent signal.
+
+**Decision 3: Highway Cache Refresh**
+
+- Invalidate KV `highways:{groupId}` on every mark/warn
+- Refresh every 1 min (cron task) OR on demand before recall()
+- Claw's next recall sees fresh global learning
 
 **Effect:**
-- Claw learns fast locally (next message uses fresh strength)
-- Substrate learns slow globally (every agent benefits after 5 min)
-- Pheromone is bidirectional
+- ✓ Claw learns fast locally (next message updates D1, affects next recall)
+- ✓ Substrate learns slow globally (L1-L2 loops consume queue marks)
+- ✓ Bidirectional: Claw benefits from substrate evolution via highways
 
 ---
 

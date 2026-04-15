@@ -107,7 +107,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   // Stage 1 — Lifecycle gate: reject if receiver is retired or deprecated
   const statusCacheKey = `${receiver}:status`
-  let cachedStatusEntry = getCached(statusCacheKey) as CacheEntry | undefined
+  const cachedStatusEntry = getCached(statusCacheKey) as CacheEntry | undefined
   let adlStatus: string | undefined
 
   if (cachedStatusEntry?.adlStatus) {
@@ -132,7 +132,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   // Stage 2 — Network permission gate: if receiver has perm-network.allowedHosts, verify sender is in list
   const networkCacheKey = `${receiver}:network`
-  let cachedNetworkEntry = getCached(networkCacheKey) as CacheEntry | undefined
+  const cachedNetworkEntry = getCached(networkCacheKey) as CacheEntry | undefined
   let allowedHosts: string[] = []
 
   if (cachedNetworkEntry?.permNetwork?.allowedHosts) {

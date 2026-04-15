@@ -23,7 +23,15 @@
  * The bridge is 3 functions. Everything else is plumbing.
  */
 
-import { cancelEscrow, createPath, createUnit, getClient, mark as suiMark, releaseEscrow, warn as suiWarn } from '@/lib/sui'
+import {
+  cancelEscrow,
+  createPath,
+  createUnit,
+  getClient,
+  releaseEscrow,
+  mark as suiMark,
+  warn as suiWarn,
+} from '@/lib/sui'
 import { readParsed, writeSilent } from '@/lib/typedb'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -237,10 +245,10 @@ export const settleEscrow = (
 ): void => {
   if (success) {
     resolve(claimantUid)
-      .then(ids => {
+      .then((ids) => {
         if (!ids?.unitId) return
         // Path from poster→claimant; resolve for pathObjectId
-        return resolvePath(posterUid, claimantUid).then(pathId => {
+        return resolvePath(posterUid, claimantUid).then((pathId) => {
           if (!pathId) return
           releaseEscrow(claimantUid, escrowObjectId, ids.unitId, pathId).catch(() => {})
         })
@@ -248,9 +256,9 @@ export const settleEscrow = (
       .catch(() => {})
   } else {
     resolve(posterUid)
-      .then(ids => {
+      .then((ids) => {
         if (!ids?.unitId) return
-        return resolvePath(posterUid, claimantUid).then(pathId => {
+        return resolvePath(posterUid, claimantUid).then((pathId) => {
           if (!pathId) return
           cancelEscrow(posterUid, escrowObjectId, ids.unitId, pathId).catch(() => {})
         })

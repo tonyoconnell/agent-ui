@@ -17,11 +17,7 @@ export const POST: APIRoute = async ({ request }) => {
     return Response.json({ ok: false, error: 'name is required' }, { status: 400 })
   }
 
-  const args = [
-    'bun', 'run', 'scripts/setup-nanoclaw.ts',
-    '--name', body.name,
-    '--persona', body.persona ?? 'one',
-  ]
+  const args = ['bun', 'run', 'scripts/setup-nanoclaw.ts', '--name', body.name, '--persona', body.persona ?? 'one']
 
   if (body.telegramToken) {
     args.push('--token', body.telegramToken)
@@ -33,7 +29,16 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    const proc = Bun.spawn(args, {
+    const g = globalThis as Record<string, unknown>
+    const proc = (
+      g.Bun as {
+        spawn: (...a: unknown[]) => {
+          stdout: ReadableStream<Uint8Array>
+          stderr: ReadableStream<Uint8Array>
+          exited: Promise<number>
+        }
+      }
+    ).spawn(args, {
       cwd: process.cwd(),
       env,
       stdout: 'pipe',

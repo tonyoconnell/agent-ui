@@ -75,6 +75,10 @@ export interface PersistentWorld extends World {
   tasksFor: (unitId: string) => Promise<TaskMatch[]>
   sync: () => Promise<void>
   load: () => Promise<void>
+  settle: (
+    edge: string,
+    opts: { escrowObjectId: string; claimantUid: string; posterUid: string; success?: boolean },
+  ) => void
 }
 
 export const world = (): PersistentWorld => {

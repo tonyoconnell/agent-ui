@@ -348,7 +348,7 @@ bash scripts/smoke-tests/test-launch-handoff.mjs --auto 5  # 5 agents auto-launc
 ## Status
 
 - [ ] **Cycle 1: WIRE** — clone `../ONE/cli` + scaffold `@oneie/*` packages
-  - [ ] W1 — Recon (Haiku × 4)
+  - [x] W1 — Recon (Haiku × 4)
   - [ ] W2 — Decide (Opus × 1)
   - [ ] W3 — Edits (Sonnet × 13)
   - [ ] W4 — Verify (Sonnet × 4)

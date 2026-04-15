@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { sanitizeUrl } from '@/lib/security'
-import { cn } from '@/lib/utils'
+import { cn, sanitizeUrl } from '@/lib/utils'
 
 export type WebPreviewContextValue = {
   url: string

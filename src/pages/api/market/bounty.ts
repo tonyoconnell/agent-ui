@@ -27,7 +27,7 @@ export type Bounty = {
 
 export const GET: APIRoute = async ({ url, locals }) => {
   try {
-    const env = (locals as Record<string, unknown>).runtime?.env as Record<string, unknown> | undefined
+    const env = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env
     const db = env?.DB as D1Database | undefined
     if (!db) return Response.json({ bounties: [] })
 
@@ -36,11 +36,19 @@ export const GET: APIRoute = async ({ url, locals }) => {
 
     let query = 'SELECT * FROM bounties'
     const bindings: string[] = []
-    if (sellerUid) { query += ' WHERE seller_uid = ?'; bindings.push(sellerUid) }
-    else if (posterUid) { query += ' WHERE poster_uid = ?'; bindings.push(posterUid) }
+    if (sellerUid) {
+      query += ' WHERE seller_uid = ?'
+      bindings.push(sellerUid)
+    } else if (posterUid) {
+      query += ' WHERE poster_uid = ?'
+      bindings.push(posterUid)
+    }
     query += ' ORDER BY created_at DESC LIMIT 50'
 
-    const rows = await db.prepare(query).bind(...bindings).all()
+    const rows = await db
+      .prepare(query)
+      .bind(...bindings)
+      .all()
     const bounties = rows.results.map((r) => ({
       id: r.id,
       edge: r.edge,
@@ -63,7 +71,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const env = (locals as Record<string, unknown>).runtime?.env as Record<string, unknown> | undefined
+    const env = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env
     const db = env?.DB as D1Database | undefined
 
     const body = (await request.json()) as {
@@ -114,7 +122,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
           `INSERT INTO bounties (id, edge, skill_id, seller_uid, poster_uid, price, rubric_json, deadline, escrow_id, status, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'locked', ?)`,
         )
-        .bind(id, edge, body.skillId, body.sellerUid, body.posterUid, body.price, JSON.stringify(rubric), deadline, escrowId ?? null, now)
+        .bind(
+          id,
+          edge,
+          body.skillId,
+          body.sellerUid,
+          body.posterUid,
+          body.price,
+          JSON.stringify(rubric),
+          deadline,
+          escrowId ?? null,
+          now,
+        )
         .run()
     }
 
