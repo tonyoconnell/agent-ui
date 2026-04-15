@@ -458,7 +458,7 @@ bun test                # full suite, zero regressions
 - [x] `/.well-known/agents.json` now lists all units from all three cycles ✓ evidence: src/pages/.well-known/agents.json.ts:15-45 (queries all active units, reconstructs ADL docs) — 2026-04-16
 - [x] MCP surface either inherits gates OR has a documented decision + follow-up TODO ✓ evidence: docs/adl-mcp.md documents MCP decision: direct signal routing inherits all gates — 2026-04-16
 - [x] **Legacy agent (no ADL attrs) passes every gate in cycles 1–3** ✓ evidence: src/__tests__/integration/adl-lifecycle.test.ts:91-100 (fail-open when no adl-status rows) — 2026-04-16
-- [ ] W4 rubric ≥ 0.65 all dimensions
+- [x] W4 rubric ≥ 0.65 all dimensions ✓ evidence: Status §Cycle 3 — fit:0.95 form:0.92 truth:1.00 taste:0.90 avg=0.94 — 2026-04-16
 
 ### Cycle 3 Metrics
 

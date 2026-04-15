@@ -53,9 +53,7 @@ describe('subscribe — add tags to unit for task routing', () => {
     w.subscribe('scout', ['engine', 'P0'])
 
     // Each tag should trigger a writeSilent call
-    expect(writeSilent).toHaveBeenCalledWith(
-      expect.stringContaining('match $u isa unit, has uid "scout"')
-    )
+    expect(writeSilent).toHaveBeenCalledWith(expect.stringContaining('match $u isa unit, has uid "scout"'))
 
     // Check that both tags were attempted
     const calls = (writeSilent as any).mock.calls as unknown[][]
@@ -65,9 +63,7 @@ describe('subscribe — add tags to unit for task routing', () => {
 
   it('(b) agent markdown with tags: [build, P0] flows to subscribe via syncAgent', async () => {
     // Mock readParsed to return an empty unit result
-    ;(readParsed as any).mockResolvedValueOnce([
-      { uid: 'marketing:creative' }
-    ])
+    ;(readParsed as any).mockResolvedValueOnce([{ uid: 'marketing:creative' }])
 
     // Simulate syncing an agent with tags in markdown frontmatter
     w.actor('marketing:creative', 'agent', { group: 'marketing' })
@@ -95,13 +91,13 @@ describe('subscribe — add tags to unit for task routing', () => {
       .mockResolvedValueOnce([
         // Unit tags response
         { tag: 'engine' },
-        { tag: 'P0' }
+        { tag: 'P0' },
       ])
       .mockResolvedValueOnce([
         // Matching open tasks
         { id: 'task-1', name: 'Build API', p: 5, tag: 'engine' },
         { id: 'task-1', name: 'Build API', p: 5, tag: 'P0' },
-        { id: 'task-2', name: 'Deploy', p: 3, tag: 'engine' }
+        { id: 'task-2', name: 'Deploy', p: 3, tag: 'engine' },
       ])
 
     const tasks = await w.tasksFor('scout')
@@ -118,17 +114,12 @@ describe('subscribe — add tags to unit for task routing', () => {
 
   it('(c) tasksFor ranks by overlap × priority × pheromone strength', async () => {
     // Unit has two tags
-    ;(readParsed as any)
-      .mockResolvedValueOnce([
-        { tag: 'engine' },
-        { tag: 'P0' }
-      ])
-      .mockResolvedValueOnce([
-        // Two tasks with same priority but different overlaps
-        { id: 'high-overlap', name: 'Main Task', p: 2, tag: 'engine' },
-        { id: 'high-overlap', name: 'Main Task', p: 2, tag: 'P0' },
-        { id: 'low-overlap', name: 'Secondary', p: 10, tag: 'engine' }
-      ])
+    ;(readParsed as any).mockResolvedValueOnce([{ tag: 'engine' }, { tag: 'P0' }]).mockResolvedValueOnce([
+      // Two tasks with same priority but different overlaps
+      { id: 'high-overlap', name: 'Main Task', p: 2, tag: 'engine' },
+      { id: 'high-overlap', name: 'Main Task', p: 2, tag: 'P0' },
+      { id: 'low-overlap', name: 'Secondary', p: 10, tag: 'engine' },
+    ])
 
     // Pre-seed pheromone strength in the world
     w.mark('scout→builder:high-overlap', 5)
@@ -154,9 +145,7 @@ describe('subscribe — add tags to unit for task routing', () => {
   })
 
   it('tasksFor returns empty array when unit has tags but no matching open tasks', async () => {
-    ;(readParsed as any)
-      .mockResolvedValueOnce([{ tag: 'rare-tag' }])
-      .mockResolvedValueOnce([]) // no matching open tasks
+    ;(readParsed as any).mockResolvedValueOnce([{ tag: 'rare-tag' }]).mockResolvedValueOnce([]) // no matching open tasks
 
     const tasks = await w.tasksFor('scout')
 
@@ -180,12 +169,10 @@ describe('subscribe — add tags to unit for task routing', () => {
   })
 
   it('tasksFor filters tasks by done=false and task-status="open"', async () => {
-    ;(readParsed as any)
-      .mockResolvedValueOnce([{ tag: 'engine' }])
-      .mockResolvedValueOnce([
-        { id: 'open-1', name: 'Open Task', p: 5, tag: 'engine' }
-        // Completed tasks are filtered out by the TQL query
-      ])
+    ;(readParsed as any).mockResolvedValueOnce([{ tag: 'engine' }]).mockResolvedValueOnce([
+      { id: 'open-1', name: 'Open Task', p: 5, tag: 'engine' },
+      // Completed tasks are filtered out by the TQL query
+    ])
 
     const tasks = await w.tasksFor('scout')
 
@@ -206,9 +193,7 @@ describe('subscribe — add tags to unit for task routing', () => {
   it('tasksFor includes tag list in TaskMatch result', async () => {
     ;(readParsed as any)
       .mockResolvedValueOnce([{ tag: 'engine' }])
-      .mockResolvedValueOnce([
-        { id: 'task-1', name: 'API Task', p: 5, tag: 'engine' }
-      ])
+      .mockResolvedValueOnce([{ id: 'task-1', name: 'API Task', p: 5, tag: 'engine' }])
 
     const tasks = await w.tasksFor('scout')
 

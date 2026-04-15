@@ -36,8 +36,8 @@ vi.mock('./context', () => ({
   loadContext: vi.fn().mockReturnValue(''),
 }))
 
-import { readParsed, writeSilent } from '@/lib/typedb'
 import { world } from '@/engine/persist'
+import { readParsed, writeSilent } from '@/lib/typedb'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LIFECYCLE GATE 1: CAPABLE requires unit to exist

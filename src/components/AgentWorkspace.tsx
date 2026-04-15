@@ -117,8 +117,8 @@ function Tabs({
   onClose,
 }: {
   tabs: AgentData[]
-  active: string | 'colony' | null
-  onSelect: (id: string | 'colony' | null) => void
+  active: string | 'group' | null
+  onSelect: (id: string | 'group' | null) => void
   onClose: (id: string) => void
 }) {
   return (
@@ -149,10 +149,10 @@ function Tabs({
       <div className="w-px h-6 bg-slate-700 mr-4" />
 
       <button
-        onClick={() => onSelect('colony')}
+        onClick={() => onSelect('group')}
         className={cn(
           'px-5 py-2 text-base font-semibold rounded-lg mr-2 transition-all',
-          active === 'colony'
+          active === 'group'
             ? 'text-white bg-blue-500/20 border border-blue-500/50'
             : 'text-slate-400 hover:text-white hover:bg-slate-800',
         )}
@@ -300,7 +300,7 @@ function Flow({ agent, highways }: { agent: AgentData; highways: Edge[] }) {
 export default function AgentWorkspace() {
   const [state, setState] = useState<{ world: World; agents: AgentData[]; highways: Edge[] } | null>(null)
   const [open, setOpen] = useState<string[]>([])
-  const [active, setActive] = useState<string | 'colony' | null>('colony')
+  const [active, setActive] = useState<string | 'group' | null>('group')
 
   useEffect(() => {
     load().then(setState)
@@ -342,7 +342,7 @@ export default function AgentWorkspace() {
     if (active === id) setActive(next.at(-1) || null)
   }
 
-  const activeAgent = active && active !== 'colony' ? state.agents.find((a) => a.id === active) : null
+  const activeAgent = active && active !== 'group' ? state.agents.find((a) => a.id === active) : null
   const openTabs = open.map((id) => state.agents.find((a) => a.id === id)!).filter(Boolean)
 
   return (
@@ -350,7 +350,7 @@ export default function AgentWorkspace() {
       <Tabs tabs={openTabs} active={active} onSelect={setActive} onClose={closeTab} />
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 h-full">
-          {active === 'colony' ? (
+          {active === 'group' ? (
             <WorldEditor
               world={state.world}
               agents={state.agents}

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { personas } from '../personas'
 
 // Mock the Hono request/response
@@ -52,12 +52,15 @@ interface MockQueue {
 // Helper to create mock context
 function createMockContext(overrides: Partial<MockContext> = {}): MockContext {
   const mockDb: MockDB = {
-    prepare: () => ({
-      bind: vi.fn(function () { return this }),
-      all: vi.fn(() => Promise.resolve({ results: [] })),
-      first: vi.fn(() => Promise.resolve(null)),
-      run: vi.fn(() => Promise.resolve()),
-    } as unknown as MockStatement),
+    prepare: () =>
+      ({
+        bind: vi.fn(function () {
+          return this
+        }),
+        all: vi.fn(() => Promise.resolve({ results: [] })),
+        first: vi.fn(() => Promise.resolve(null)),
+        run: vi.fn(() => Promise.resolve()),
+      }) as unknown as MockStatement,
   }
 
   const mockKv: MockKV = {
@@ -65,7 +68,7 @@ function createMockContext(overrides: Partial<MockContext> = {}): MockContext {
     put: vi.fn(() => Promise.resolve()),
   }
 
-  const mockQueue: MockQueue = {
+  const _mockQueue: MockQueue = {
     send: vi.fn(() => Promise.resolve()),
   }
 
@@ -415,7 +418,7 @@ describe('NanoClaw Router', () => {
     })
 
     it('each persona should have required fields', () => {
-      for (const [key, persona] of Object.entries(personas)) {
+      for (const [_key, persona] of Object.entries(personas)) {
         expect(persona.name).toBeDefined()
         expect(typeof persona.name).toBe('string')
         expect(persona.model).toBeDefined()

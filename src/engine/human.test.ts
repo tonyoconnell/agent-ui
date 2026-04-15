@@ -14,7 +14,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { durableAsk } from './durable-ask'
-import { human, bountyClaimSignal } from './human'
+import { bountyClaimSignal, human } from './human'
 import { world } from './world'
 
 // ── Mock durable-ask — isolate human.ts from D1 ────────────────────────────
@@ -184,10 +184,7 @@ describe('Act 3: pheromone accumulation — human→agent paths strengthen', () 
 
     w.add('mentor', h)
 
-    await w.ask(
-      { receiver: 'mentor:approve', data: { draft: 'Proposal' } },
-      'student'
-    )
+    await w.ask({ receiver: 'mentor:approve', data: { draft: 'Proposal' } }, 'student')
 
     // Mark should fire on successful result
     const edge = 'student→mentor:approve'
@@ -206,10 +203,7 @@ describe('Act 3: pheromone accumulation — human→agent paths strengthen', () 
     // Simulate successful response (durableAsk returns result)
     vi.mocked(durableAsk).mockResolvedValueOnce({ result: 'Approved' })
 
-    await w.ask(
-      { receiver: 'expert:approve', data: { draft: 'Plan' } },
-      'planner'
-    )
+    await w.ask({ receiver: 'expert:approve', data: { draft: 'Plan' } }, 'planner')
 
     // Path strengthens with mark()
     const edge = 'planner→expert:approve'
@@ -378,10 +372,7 @@ describe('Act 5: human outcomes — result/timeout/dissolved/failure', () => {
 
     vi.mocked(durableAsk).mockResolvedValueOnce({ result: 'yes' })
 
-    await w.ask(
-      { receiver: 'respondent:approve', data: { draft: 'Test' } },
-      'requester'
-    )
+    await w.ask({ receiver: 'respondent:approve', data: { draft: 'Test' } }, 'requester')
 
     w.mark(edge, 1)
     expect(w.sense(edge)).toBe(1)
@@ -401,10 +392,7 @@ describe('Act 5: human outcomes — result/timeout/dissolved/failure', () => {
 
     vi.mocked(durableAsk).mockResolvedValueOnce({ timeout: true })
 
-    await w.ask(
-      { receiver: 'slowpoke:approve', data: { draft: 'Urgent' } },
-      'system'
-    )
+    await w.ask({ receiver: 'slowpoke:approve', data: { draft: 'Urgent' } }, 'system')
 
     // No mark, no warn — neutral (stays at 0)
     expect(w.sense(edge)).toBe(0)
@@ -441,10 +429,7 @@ describe('Act 5: human outcomes — result/timeout/dissolved/failure', () => {
     // Simulate complete failure (no result, no timeout)
     vi.mocked(durableAsk).mockResolvedValueOnce({})
 
-    await w.ask(
-      { receiver: 'unresponsive:approve', data: { draft: 'Test' } },
-      'system'
-    )
+    await w.ask({ receiver: 'unresponsive:approve', data: { draft: 'Test' } }, 'system')
 
     w.warn(edge, 1.0)
     expect(w.danger(edge)).toBe(1.0)
@@ -466,10 +451,7 @@ describe('Act 5: human outcomes — result/timeout/dissolved/failure', () => {
     // Simulate chain depth = 3 (three hops deep)
     const chainDepth = 3
 
-    await w.ask(
-      { receiver: 'fast:approve', data: { draft: 'Test' } },
-      'upstream'
-    )
+    await w.ask({ receiver: 'fast:approve', data: { draft: 'Test' } }, 'upstream')
 
     w.mark(edge, chainDepth) // mark scaled by depth
     expect(w.sense(edge)).toBe(chainDepth)
