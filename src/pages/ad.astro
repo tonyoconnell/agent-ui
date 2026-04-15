@@ -1,0 +1,9 @@
+---
+export const prerender = true
+import Layout from "@/layouts/Layout.astro"
+import { AdChat } from "@/components/ai/AdChat"
+---
+
+<Layout title="ONE — ask anything">
+  <AdChat client:only="react" />
+</Layout>

@@ -151,7 +151,7 @@ describe('recall() — Query hypotheses from TypeDB', () => {
     const withSrc = [{ s: 'duplicate pattern', p: 0.1, src: 'observed' }]
     const noSrc = [{ s: 'duplicate pattern', p: 0.2 }] // ignored, already in withSrc
     const pending = [{ s: 'duplicate pattern', p: 0.5 }] // ignored
-    const failed = [] // none
+    const _failed = [] // none
 
     let callCount = 0
     ;(readParsed as any).mockImplementation(async () => {

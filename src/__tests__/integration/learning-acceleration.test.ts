@@ -17,7 +17,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest'
-import { type World, world } from '@/engine/world'
+import { type World, world } from '@/engine'
 
 const PERF = process.env.PERF_SCALE ? Number(process.env.PERF_SCALE) : Number.POSITIVE_INFINITY
 

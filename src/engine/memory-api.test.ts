@@ -491,7 +491,7 @@ describe('Act 5: forget() Cascading Effects', () => {
     // If hypotheses reference "researcher", they should be deleted
     // (This is encoded in the TypeQL via hypothesis-has-statement with contains filter)
     const calls = vi.mocked(writeSilent).mock.calls
-    const hasHypothesisLogic = calls.some(
+    const _hasHypothesisLogic = calls.some(
       (c) =>
         (c[0] as string).includes('hypothesis') &&
         ((c[0] as string).includes('researcher') || (c[0] as string).includes('delete')),
