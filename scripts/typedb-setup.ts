@@ -144,7 +144,7 @@ async function testConnection(): Promise<boolean> {
 async function loadSchema(): Promise<boolean> {
   console.log('\n--- Loading schema ---')
 
-  const schemaPath = path.join(__dirname, '..', 'src', 'schema', 'one.tql')
+  const schemaPath = path.join(__dirname, '..', 'src', 'schema', 'world.tql')
   if (!fs.existsSync(schemaPath)) {
     console.error(`Schema not found: ${schemaPath}`)
     return false

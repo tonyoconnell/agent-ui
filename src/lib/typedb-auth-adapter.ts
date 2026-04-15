@@ -64,7 +64,7 @@ async function getToken(config: TypeDBAdapterConfig): Promise<string> {
     return cachedToken.token
   }
 
-  const res = await fetch(`${config.url}/typedb/signin`, {
+  const res = await fetch(`${config.url}/v1/signin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -88,7 +88,7 @@ async function getToken(config: TypeDBAdapterConfig): Promise<string> {
 async function query(config: TypeDBAdapterConfig, tql: string, write: boolean): Promise<any[]> {
   const token = await getToken(config)
 
-  const res = await fetch(`${config.url}/typedb/query`, {
+  const res = await fetch(`${config.url}/v1/query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -90,7 +90,8 @@ entity unit,
     plays membership:member,
     plays signal:sender,
     plays signal:receiver,
-    plays contribution-event:contributor-unit;
+    plays contribution-event:contributor-unit,
+    plays api-authorization:authorized-unit;
 
 
 # =============================================================================
