@@ -445,7 +445,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: Loop L1b tries tag-filtered query first when previousTarget set. Falls back to global priority. Tag match prefers relevant tasks over highest-priority unrelated ones.
   tags: engine, test, P1
 
-- [ ] Test subscription via agent markdown: tags in frontmatter → TypeDB → tasksFor
+- [x] Test subscription via agent markdown: tags in frontmatter → TypeDB → tasksFor ✓ src/engine/subscribe.test.ts · 12 tests · 2026-04-16
   id: test-agent-md-subscription
   value: high
   effort: low
@@ -482,7 +482,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: API test file. Covers: POST /api/signal routes correctly, GET /api/tick returns TickResult, GET /api/state returns world snapshot
   tags: api, test, P1
 
-- [ ] Test nanoclaw router: webhook auth, persona selection, message flow
+- [x] Test nanoclaw router: webhook auth, persona selection, message flow ✓ nanoclaw/src/workers/router.test.ts · 22 tests · 2026-04-16
   id: test-nanoclaw
   value: high
   effort: medium
@@ -539,7 +539,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   tags: engine, test, P0
   done: lifecycle.test.ts Act 1 — 9 tests: register, capable, dissolve, signal, pheromone, warn, fade asymmetry, highway threshold, 100-signal journey
 
-- [ ] Test human lifecycle: visit → observe → use → their signals join graph
+- [x] Test human lifecycle: visit → observe → use → their signals join graph ✓ src/engine/human.test.ts · 27 tests · 2026-04-16
   id: test-human-lifecycle
   value: high
   effort: medium
@@ -548,7 +548,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: Integration test. Human signal enters via /api/signal, routes through agents, mark compounds, human sees highway form in /api/state response.
   tags: api, test, P1
 
-- [ ] Test lifecycle gates: each stage transition requires its test to pass
+- [x] Test lifecycle gates: each stage transition requires its test to pass ✓ src/__tests__/integration/lifecycle-gates.test.ts · 17 tests · 2026-04-16
   id: test-lifecycle-gates
   value: high
   effort: medium
@@ -557,7 +557,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: Test that REGISTER requires unit_exists, CAPABLE requires capability relation, HIGHWAY requires strength≥50. Gate function returns pass/fail.
   tags: engine, test, P1
 
-- [ ] Test learning acceleration: system gets faster over time
+- [x] Test learning acceleration: system gets faster over time ✓ src/__tests__/integration/learning-acceleration.test.ts · 20 tests · 2026-04-16
   id: test-learning-speed
   value: high
   effort: medium

@@ -87,7 +87,7 @@ export function AdChat() {
     <div
       className={cn(
         'grid w-full min-h-[100svh] px-4 transition-all duration-500',
-        sent ? 'place-items-start pt-[10vh]' : 'place-items-center',
+        sent ? 'place-items-start pt-[12vh]' : 'place-items-center',
       )}
     >
       <div className="max-w-2xl mx-auto w-full flex flex-col gap-6">

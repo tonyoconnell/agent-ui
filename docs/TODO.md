@@ -5,8 +5,8 @@
 
 ```mermaid
 pie title ONE Substrate — 570 Tasks
-    "Done (299)" : 299
-    "Open (271)" : 271
+    "Done (309)" : 309
+    "Open (261)" : 261
 ```
 
 ---
@@ -120,9 +120,9 @@ timeline
 | [rename](TODO-rename.md) | 1 / 24 done | C1 — W1-W4 queued |
 | [claw](TODO-claw.md) | 23 / 46 done | PROVE — Cycles 1–3.1 done; C3.2 verifying |
 | [marketplace](TODO-marketplace.md) | 6 / 23 done | GROW — Cycle 1 list/grid live; bounty E2E + fee + bundle shipped |
-| [task-management](TODO-task-management.md) | 9 / 26 done | PROVE — wave-runner + self-checkoff |
-| [ui-signals](TODO-ui-signals.md) | 0 / 16 done | WIRE — UI clicks as substrate signals |
-| [testing](TODO-testing.md) | 28 / 40 done | PROVE — loop/rubric/agent-md/task-sync covered |
+| [task-management](TODO-task-management.md) | 10 / 26 done | GROW — wave-runner built, self-checkoff next |
+| [ui-signals](TODO-ui-signals.md) | 4 / 16 done | PROVE — ConversationView 100% covered, gate items met |
+| [testing](TODO-testing.md) | 33 / 40 done | GROW — router, human, lifecycle-gates, learning, subscribe landed |
 | [ONE-strategy](TODO-ONE-strategy.md) | 3 / 14 done | GROW — CEO panel, 7 personas, marketplace |
 | [template](TODO-template.md) | 0 / 8 done | WIRE — template as /todo skill |
 | [lifecycle](TODO-lifecycle.md) | 20 / 28 done | GROW — harden(), federate(), dissolve() |

@@ -387,7 +387,7 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   exit: W1=sense, W2=select, W3=act, W4=mark. Each wave is a Loop<T> from core.ts.
   tags: engine, build, P0
 
-- [ ] Build wave-runner unit with .then() chains
+- [x] Build wave-runner unit with .then() chains ✓ evidence: src/engine/wave-runner.ts (365 lines, W1→W4 chain wired via registerBuilder) + loop.ts L1b routes tasks · 2026-04-16
   id: wave-runner-unit
   value: critical
   effort: high

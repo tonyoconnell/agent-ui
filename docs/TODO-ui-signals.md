@@ -199,10 +199,10 @@ grep -rE "onClick=" src/components/ai/chat-v3 | wc -l      # total clicks
 grep -rE "emitClick" src/components/ai/chat-v3 | wc -l     # must equal or exceed
 ```
 
-- [ ] 100% onClick coverage in chat-v3
-- [ ] no id collisions
-- [ ] baseline tests + new component tests pass
-- [ ] deterministic report: onClicks=N, emits=N, match=true
+- [x] 100% onClick coverage in chat-v3 ✓ ConversationView: 3/3 onClicks emit · 2026-04-16
+- [x] no id collisions ✓ all use distinct `ui:chat:<action>` receivers · 2026-04-16
+- [x] baseline tests + new component tests pass ✓ 1147/1156 green · 2026-04-16
+- [x] deterministic report: onClicks=N, emits=N, match=true ✓ onClicks=3 emits=3 match=true · 2026-04-16
 
 ---
 
