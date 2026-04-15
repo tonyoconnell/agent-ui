@@ -16,7 +16,45 @@
  *   }, 'scout')
  */
 
+import { readParsed } from '@/lib/typedb'
 import { type Unit, unit } from './world'
+
+// ADL: perm-network gate — cache API host permission lookups (5-min TTL)
+const API_PERM_CACHE = new Map<string, { allowedHosts: string[]; expires: number }>()
+const API_PERM_TTL = 5 * 60 * 1000
+
+function apiHostsAllow(hostname: string, allowedHosts: string[]): boolean {
+  if (!allowedHosts.length) return true
+  if (allowedHosts.includes('*')) return true
+  return allowedHosts.includes(hostname)
+}
+
+async function canCallAPI(callerId: string, targetBase: string): Promise<boolean> {
+  let hostname: string
+  try {
+    hostname = new URL(targetBase).hostname
+  } catch {
+    return true // unparseable base → fail open
+  }
+  const key = `${callerId}:${hostname}`
+  const cached = API_PERM_CACHE.get(key)
+  if (cached && cached.expires > Date.now()) return apiHostsAllow(hostname, cached.allowedHosts)
+  const rows = await readParsed(
+    `match $u isa unit, has uid "${callerId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", has perm-network $pn; select $pn;`,
+  ).catch(() => [])
+  const allowedHosts: string[] = []
+  if (rows.length) {
+    try {
+      const perms = JSON.parse(rows[0].pn as string) as Record<string, unknown>
+      const raw = perms.allowed_hosts ?? perms.allowedHosts
+      if (Array.isArray(raw)) allowedHosts.push(...(raw as string[]))
+    } catch {
+      /* malformed → fail open */
+    }
+  }
+  API_PERM_CACHE.set(key, { allowedHosts, expires: Date.now() + API_PERM_TTL })
+  return apiHostsAllow(hostname, allowedHosts)
+}
 
 export interface ApiOpts {
   base: string
@@ -43,14 +81,16 @@ export const apiUnit = (id: string, opts: ApiOpts): Unit => {
   const timeout = opts.timeout ?? 10_000
 
   return unit(id)
-    .on('get', async (data) => {
+    .on('get', async (data, _emit, ctx) => {
+      if (!(await canCallAPI(ctx.from, opts.base))) return { dissolved: true }
       const { path, params } = data as { path: string; params?: Record<string, string> }
       const url = new URL(base + path)
       if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
       const res = await fetch(url.toString(), { headers: h, signal: ctrl(timeout).signal }).catch(() => null)
       return res?.ok ? await res.json() : null
     })
-    .on('post', async (data) => {
+    .on('post', async (data, _emit, ctx) => {
+      if (!(await canCallAPI(ctx.from, opts.base))) return { dissolved: true }
       const { path, body } = data as { path: string; body: unknown }
       const res = await fetch(base + path, {
         method: 'POST',
@@ -60,7 +100,8 @@ export const apiUnit = (id: string, opts: ApiOpts): Unit => {
       }).catch(() => null)
       return res?.ok ? await res.json() : null
     })
-    .on('put', async (data) => {
+    .on('put', async (data, _emit, ctx) => {
+      if (!(await canCallAPI(ctx.from, opts.base))) return { dissolved: true }
       const { path, body } = data as { path: string; body: unknown }
       const res = await fetch(base + path, {
         method: 'PUT',
@@ -70,7 +111,8 @@ export const apiUnit = (id: string, opts: ApiOpts): Unit => {
       }).catch(() => null)
       return res?.ok ? await res.json() : null
     })
-    .on('del', async (data) => {
+    .on('del', async (data, _emit, ctx) => {
+      if (!(await canCallAPI(ctx.from, opts.base))) return { dissolved: true }
       const { path } = data as { path: string }
       const res = await fetch(base + path, {
         method: 'DELETE',

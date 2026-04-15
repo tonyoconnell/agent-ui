@@ -1,0 +1,63 @@
+version: 2.0.0
+feature: core
+extends: null
+status: Core ontology always present in every ONE installation
+description: Core entities and operations for all ONE installations
+
+things:
+  types:
+    core_entities:
+      - name: page
+        description: Static or dynamic page
+        properties:
+          title: string
+          slug: string
+          content: string
+      - name: user
+        description: User account (now mapped to people dimension in canonical)
+        properties:
+          email: string
+          displayName: string
+      - name: file
+        description: File or media asset
+        properties:
+          url: string
+          mimeType: string
+          size: number
+      - name: link
+        description: URL reference
+        properties:
+          url: string
+          title: string
+      - name: note
+        description: Text note
+        properties:
+          content: string
+
+connections:
+  types:
+    core_relationships:
+      - name: created_by # Maps to canonical 'created_by'
+        description: Entity created by person
+        metadata_variants: null
+      - name: updated_by
+        description: Entity updated by person (use consolidated event instead)
+        metadata_variants: null
+      - name: viewed_by
+        description: Entity viewed by person (use event type instead)
+        metadata_variants: null
+      - name: favorited_by
+        description: Entity favorited by person (use label in knowledge)
+        metadata_variants: null
+
+events:
+  types:
+    core_operations:
+      - name: entity_created # Aligns with canonical 'entity_created'
+        description: Any entity created
+      - name: entity_updated # Aligns with canonical 'entity_updated'
+        description: Any entity updated
+      - name: entity_deleted # Aligns with canonical 'entity_deleted'
+        description: Any entity deleted
+      - name: entity_viewed # Use content_event with action: viewed
+        description: Any entity viewed (legacy - use content_event)

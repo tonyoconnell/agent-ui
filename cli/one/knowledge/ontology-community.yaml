@@ -1,0 +1,65 @@
+version: 2.0.0
+feature: community
+extends: core
+status: Forums, discussions, and direct messaging feature
+description: Community spaces, conversations, and messaging
+
+things:
+  types:
+    community:
+      - name: forum_topic
+        description: Forum discussion thread (canonical 'conversation' type)
+        properties:
+          title: string
+          slug: string
+          content: string
+          isPinned: boolean?
+          isLocked: boolean?
+          viewCount: number? # Track via events
+          replyCount: number? # Track via events
+      - name: forum_reply
+        description: Reply to forum topic (canonical 'message' type)
+        properties:
+          content: string
+          topicId: string? # Use connection instead
+          replyToId: string? # Use connection instead
+      - name: direct_message
+        description: Direct message between users (canonical 'message' type)
+        properties:
+          content: string
+          recipientId: string? # Use connection instead
+          readAt: number?
+
+connections:
+  types:
+    community_relationships:
+      - name: follows # Canonical type
+        description: User follows another user
+        fromType: user
+        toType: user
+        canonical_alignment: following
+      - name: member_of # Canonical type
+        description: User is member of group
+        fromType: user
+        toType: group
+        canonical_alignment: member_of
+
+events:
+  types:
+    community_events:
+      - name: topic_created # Maps to canonical 'entity_created'
+        description: Forum topic created
+        canonical_alignment: entity_created
+        metadata_structure: { entityType: forum_topic }
+      - name: topic_replied # Maps to canonical 'content_event'
+        description: Reply added to topic
+        canonical_alignment: content_event
+        metadata_structure: { action: replied, contentType: forum_reply }
+      - name: message_sent # Maps to canonical 'communication_event'
+        description: Direct message sent
+        canonical_alignment: communication_event
+        metadata_structure: { recipientId: string, messageType: direct }
+      - name: user_followed # Maps to canonical 'entity_updated'
+        description: User followed another user
+        canonical_alignment: entity_updated
+        metadata_structure: { relationship: following, action: created }

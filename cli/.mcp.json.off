@@ -1,0 +1,114 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ],
+      "disabled": true,
+      "notes": "Component registry - disabled in main agent, enabled for agent-frontend on-demand"
+    },
+    "cloudflare-builds": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://builds.mcp.cloudflare.com/mcp"
+      ],
+      "env": {
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}",
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_GLOBAL_API_KEY}",
+        "CLOUDFLARE_EMAIL": "${CLOUDFLARE_EMAIL}"
+      },
+      "disabled": true,
+      "notes": "Cloudflare Workers builds - disabled in main agent, enabled for agent-ops on-demand"
+    },
+    "cloudflare-observability": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://observability.mcp.cloudflare.com/mcp"
+      ],
+      "env": {
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}",
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_GLOBAL_API_KEY}",
+        "CLOUDFLARE_EMAIL": "${CLOUDFLARE_EMAIL}"
+      },
+      "disabled": true,
+      "notes": "Analytics & observability - disabled in main agent, enabled for agent-ops on-demand"
+    },
+    "cloudflare-docs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://docs.mcp.cloudflare.com/mcp"
+      ],
+      "env": {
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}",
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_GLOBAL_API_KEY}",
+        "CLOUDFLARE_EMAIL": "${CLOUDFLARE_EMAIL}"
+      },
+      "disabled": true,
+      "notes": "Documentation search - disabled in main agent, enabled for agent-ops on-demand"
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ],
+      "disabled": true,
+      "notes": "Browser debugging - disabled in main agent, enabled for agent-frontend on-demand"
+    },
+    "framelink-figma": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "figma-developer-mcp"
+      ],
+      "env": {
+        "FIGMA_ACCESS_TOKEN": "${FIGMA_ACCESS_TOKEN}"
+      },
+      "disabled": true,
+      "notes": "Figma design integration - disabled in main agent, enabled for agent-designer on-demand"
+    },
+    "astro-docs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.docs.astro.build/mcp"
+      ],
+      "disabled": true,
+      "notes": "Astro documentation - disabled in main agent, enabled for agent-frontend on-demand"
+    },
+    "stripe": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.stripe.com/"
+      ],
+      "env": {
+        "STRIPE_API_KEY": "${STRIPE_API_KEY}"
+      },
+      "disabled": true,
+      "notes": "Stripe API - disabled in main agent, enabled for agent-sales on-demand"
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "disabled": true,
+      "notes": "GitHub API - disabled in main agent, enabled for GitHub operations on-demand"
+    }
+  }
+}

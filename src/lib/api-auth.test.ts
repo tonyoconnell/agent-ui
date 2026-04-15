@@ -19,6 +19,19 @@ vi.mock('@/lib/typedb', () => ({
   writeSilent: vi.fn(),
 }))
 
+// ── Mock net — prevent warnAuthBoundary from reaching bridge/Sui ───────────
+vi.mock('@/lib/net', () => ({
+  getNet: vi.fn().mockResolvedValue({
+    warn: vi.fn().mockResolvedValue(undefined),
+    mark: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
+
+// ── Mock security-signals — prevent TypeDB writes in unit tests ────────────
+vi.mock('@/lib/security-signals', () => ({
+  emitSecurityEvent: vi.fn(),
+}))
+
 // ── Mock api-key verifyKey — control pass/fail without PBKDF2 cost ─────────
 vi.mock('./api-key', () => ({
   generateApiKey: vi.fn().mockReturnValue('api_test_32characterrandomstringhere'),
@@ -73,7 +86,7 @@ describe('Act 1: missing or malformed header', () => {
 
 describe('Act 2: valid key — lookup and verification', () => {
   beforeEach(() => {
-    invalidateKeyCache(VALID_KEY)
+    invalidateKeyCache(VALID_ROW.id) // evict by keyId (new API)
     vi.mocked(readParsed).mockResolvedValue([VALID_ROW])
     vi.mocked(verifyKey).mockResolvedValue(false) // default reject
   })
@@ -105,7 +118,7 @@ describe('Act 2: valid key — lookup and verification', () => {
   })
 
   it('handles TypeDB read failure gracefully', async () => {
-    invalidateKeyCache(VALID_KEY)
+    invalidateKeyCache(VALID_ROW.id) // evict by keyId (new API)
     vi.mocked(readParsed).mockRejectedValue(new Error('TypeDB timeout'))
     const result = await validateApiKey(makeRequest(`Bearer ${VALID_KEY}`))
     expect(result.isValid).toBe(false)
@@ -123,7 +136,7 @@ describe('Act 3: in-process cache — accuracy and speed', () => {
   const CACHED_KEY = 'api_cache_test_AAAAAAAAAAAAAAAAAAAAA'
 
   beforeEach(() => {
-    invalidateKeyCache(CACHED_KEY)
+    invalidateKeyCache('key-cache-001') // evict by keyId (new API)
     vi.mocked(readParsed).mockResolvedValue([{ ...VALID_ROW, id: 'key-cache-001' }])
     vi.mocked(verifyKey).mockResolvedValue(true)
   })
@@ -148,8 +161,8 @@ describe('Act 3: in-process cache — accuracy and speed', () => {
   it('re-verifies after invalidateKeyCache()', async () => {
     // Warm cache
     await validateApiKey(makeRequest(`Bearer ${CACHED_KEY}`))
-    // Invalidate
-    invalidateKeyCache(CACHED_KEY)
+    // Invalidate by keyId (new API)
+    invalidateKeyCache('key-cache-001')
     vi.mocked(readParsed).mockClear()
     // Next call must go to TypeDB
     await validateApiKey(makeRequest(`Bearer ${CACHED_KEY}`))

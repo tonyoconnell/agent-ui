@@ -1,66 +1,160 @@
-# TODO
+# TODO — ONE Substrate
 
-> ONE Substrate — self-learning task system.
 > Tasks are signals. Waves are loops. The template is a unit.
-> 176 open, 159 done. Priority + pheromone adjusts at runtime.
->
-> **Sync:** `POST /api/tasks/sync` or `/sync` — writes to KV (10ms), then TypeDB (100ms)
-> **Generated:** 2026-04-14T05:30:22
+> **Sync:** `/sync` or `POST /api/tasks/sync` · **Updated:** 2026-04-15
+
+```mermaid
+pie title ONE Substrate — 570 Tasks
+    "Done (261)" : 261
+    "Open (309)" : 309
+```
+
+---
+
+## What We've Built
+
+```mermaid
+xychart-beta
+    title "Tasks Completed by Area"
+    x-axis ["TypeDB", "Sui", "Testing", "Signal", "NanoClaw", "Rich msg", "Lifecycle", "Chat mem", "Chat", "Task mgmt"]
+    y-axis "tasks done" 0 --> 30
+    bar [27, 28, 24, 23, 23, 23, 20, 17, 9, 9]
+```
+
+| Area | Done | What shipped |
+|------|:----:|-------------|
+| **TypeDB brain** | 27 | Context resolution, wave routing, rubric scorer, L5 evolution per-dimension, frontier detection |
+| **Sui testnet** | 28 | Phase 1–5: contract deployed, units on-chain, signals, payments, bridge (mirror/absorb/resolve) |
+| **Testing** | 24 | persist, api-auth, world-boundary, kek, security-signals, ADL integration suites |
+| **Signal shape** | 23 | Three-slot data convention, subscribe verb, tag-filtered WebSocket broadcast |
+| **NanoClaw** | 23 | Cycles 1–3.1 GROW — confidence routing, dual-path learning, web browsing tool |
+| **Rich messages** | 23 | Thread/reply, payment metadata, D1 columns, image + audio types |
+| **Lifecycle** | 20 | register/capable/discover/signal/drop/alarm/fade — 4 outcome types, Sui wallet derivation |
+| **Chat memory** | 17 | TypeDB recall, temporal queries, conversation context |
+| **Chat** | 9 | Conversation history, group isolation |
+| **Task management** | 9 | Context envelope, wave-aware builder, DSL + dict as base context |
+| **Deploy pipeline** | 4 | Credentials secured, parallel workers 2.7×, 65 s total |
+| **Signal primitives** | 5 | Zero-returns, frozen type, four outcomes |
+
+**Platform:** 670-line deterministic engine · TypeDB brain with 18 skills · Sui testnet live · NanoClaw edge agents deployed · ADL agent passport parser shipped
+
+---
+
+## Where We're Going
+
+### Active Fronts
+
+```mermaid
+flowchart LR
+    A["**Atomicity**\ncollusion · 38 open\nclaim / release / expire"]
+    B["**Vocabulary**\ncommands · 34 open\nrename · 23 open"]
+    C["**New Surfaces**\nadl · 28  market · 22\nui-signals · 16"]
+
+    A --> SAFE["Safe parallel\nwork at scale"]
+    B --> SAFE
+    C --> SAFE
+    SAFE --> LAUNCH["SDK · ADL v0.2\nAV bridge · Launch"]
+```
+
+### Roadmap
+
+```mermaid
+timeline
+    title ONE Substrate — Cycle Roadmap
+    C1 Foundation   : Atomic task claiming (no collusion)
+                    : 5-verb command set — see / create / do / close / sync
+    C2 Collaboration : Wave-runner with .then() chains
+                     : Self-checkoff on W4 verify
+                     : ADL runtime gates (8 enforcement points)
+    C3 Commerce     : harden() — freeze highways to Sui
+                    : x402 HTTP payment routing · escrow settlement
+    C4 Expansion    : AgentVerse bridge — 2M agents
+                    : Creator domain branding · Marketplace
+    C5–C7 Scale     : Token minting · Multi-chain · Mainnet · SDK publish
+```
 
 ---
 
 ## Active TODOs
 
-| TODO | Open | Done | Status |
-|------|-----:|-----:|--------|
-| [TODO-collusion](TODO-collusion.md) | 38 | 16 | PROVE |
-| [TODO-SUI](TODO-SUI.md) | 30 | 28 | PROVE |
-| [TODO-commands](TODO-commands.md) | 27 | 3 | PROVE |
-| [TODO-rename](TODO-rename.md) | 23 | 1 | PROVE |
-| [TODO-testing](TODO-testing.md) | 16 | 24 | PROVE |
-| [TODO-task-management](TODO-task-management.md) | 13 | 4 | PROVE |
-| [TODO-ONE-strategy](TODO-ONE-strategy.md) | 11 | 3 | PROVE |
-| [TODO-lifecycle](TODO-lifecycle.md) | 8 | 20 | PROVE |
-| [TODO-autonomous-orgs](TODO-autonomous-orgs.md) | 6 | 4 | PROVE |
-| [TODO-typedb](TODO-typedb.md) | 4 | 24 | PROVE |
-| [TODO-signal](TODO-signal.md) | 0 | 5 | DONE |
-| [TODO-deploy](TODO-deploy.md) | 0 | 4 | DONE |
-| [TODO-signal-shape](TODO-signal-shape.md) | 0 | 23 | DONE |
+### In Progress
+
+| TODO | Progress | Status |
+|------|----------|--------|
+| [collusion](TODO-collusion.md) | 16 / 54 done | C2 — filtering + sync guards |
+| [commands](TODO-commands.md) | 3 / 37 done | C2 — write 5 command files |
+| [SUI](TODO-SUI.md) | 28 / 58 done | GROW — Phase 2 identity + escrow |
+| [adl](TODO-adl.md) | 1 / 29 done | WIRE — 8 runtime gates to close |
+| [rename](TODO-rename.md) | 1 / 24 done | C1 — W1-W4 queued |
+| [claw](TODO-claw.md) | 23 / 46 done | PROVE — Cycles 1–3.1 done; C3.2 verifying |
+| [marketplace](TODO-marketplace.md) | 1 / 23 done | WIRE — capability listing + SKU classes |
+| [task-management](TODO-task-management.md) | 9 / 26 done | PROVE — wave-runner + self-checkoff |
+| [ui-signals](TODO-ui-signals.md) | 0 / 16 done | WIRE — UI clicks as substrate signals |
+| [testing](TODO-testing.md) | 24 / 40 done | PROVE — loop.ts, agent-md, nanoclaw router |
+| [ONE-strategy](TODO-ONE-strategy.md) | 3 / 14 done | GROW — CEO panel, 7 personas, marketplace |
+| [template](TODO-template.md) | 0 / 8 done | WIRE — template as /todo skill |
+| [lifecycle](TODO-lifecycle.md) | 20 / 28 done | GROW — harden(), federate(), dissolve() |
+| [client-ui](TODO-client-ui.md) | 1 / 9 done | WIRE — UI component work |
+| [autonomous-orgs](TODO-autonomous-orgs.md) | 4 / 10 done | GROW — tick orchestration + dashboard |
+| [security](TODO-security.md) | 0 / 5 done | WIRE — security hardening |
+| [rich-messages](TODO-rich-messages.md) | 23 / 28 done | GROW — payment flow, read receipts |
+| [design-system-hardening](TODO-design-system-hardening.md) | 1 / 6 done | PROVE — hardening brand system |
+| [design-system](TODO-design-system.md) | 3 / 7 done | PROVE — design system refinements |
+| [typedb](TODO-typedb.md) | 27 / 28 done | GROW — rubric calibration remaining |
+| [one-big-group](TODO-one-big-group.md) | 0 / 1 done | WIRE — group architecture |
+
+### Ready to Start
+
+| TODO | Tasks | Notes |
+|------|------:|-------|
+| [copy-toolkit](TODO-copy-toolkit.md) | 36 | ONE CLI + toolkit DX merge into envelopes |
+| [world-page](TODO-world-page.md) | spec | World map page design — build spec ready |
+
+### Done
+
+| TODO | Tasks | What closed |
+|------|------:|------------|
+| [signal-shape](TODO-signal-shape.md) | 23 | Three-slot data, subscribe verb, ws filter |
+| [chat-memory](TODO-chat-memory.md) | 17 | TypeDB recall, temporal queries |
+| [memory](TODO-memory.md) | 12 | Memory API — reveal / forget / frontier |
+| [chat](TODO-chat.md) | 9 | Conversation history, group isolation |
+| [signal](TODO-signal.md) | 5 | Zero-returns, frozen type, four outcomes |
+| [deploy](TODO-deploy.md) | 4 | Credentials secured, dist/ clean |
 
 ---
 
 ## Top 15 by Effective Priority
 
-- [ ] **Build CEO control panel: hire/fire/commend/flag agents** [sonnet] `ui, governance, P0, ceo` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
-  exit: CEO can manage AI agents: delegate tasks, view top performers, flag bad actors
-- [ ] **Wire CEO visibility: highways (top 10 performers)** [sonnet] `ui, analytics, P0, ceo` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
-  exit: CEO sees top 10 by net strength (reputation = mark - warn). Arithmetic only.
-- [ ] **Build wave-runner unit with .then() chains** [opus] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
-  exit: unit('wave-runner').on('recon',...).then('recon',→decide).on('decide',...).then('decide',→edit)...
-- [ ] **Seed: Insert Phase 1 tasks (marketing, engineering, telegram, dashboard)** [haiku] `typedb, build, P0, foundation` ← [TODO-autonomous-orgs](TODO-autonomous-orgs.md)
-  exit: Marketing, engineering, telegram, dashboard tasks seeded in TypeDB
-- [ ] **Loop: Modify /api/tick to orchestrate tasks** [sonnet] `api, routing, P0, foundation` ← [TODO-autonomous-orgs](TODO-autonomous-orgs.md)
-  exit: /api/tick picks highest-priority task, executes signal, marks outcome
-- [ ] **Map waves to core.ts sense→select→act→mark** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
-  exit: W1=sense, W2=select, W3=act, W4=mark. Each wave is a Loop<T> from core.ts.
-- [ ] **Build context envelope that accumulates across waves** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
-  exit: Each .then() carries previous output + new context. W4 has full history of all waves.
-- [ ] **Self-checkoff: W4 verify pass marks task done** [sonnet] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
-  exit: selfCheckoff() → markTaskDone + update checkbox + mark path + unblock + know
-- [ ] **Create 7-persona vocabulary layer: CEO/Dev/Investor/Gamer/Kid/Freelancer/Agent** [sonnet] `foundation, design, P1, governance` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
-  exit: Every formula maps to 7 vocabulary skins. Same math, different words.
-- [ ] **Implement harden(): freeze highway to Sui** [opus] `engine, lifecycle, P0` ← [TODO-lifecycle](TODO-lifecycle.md)
-  exit: `persist.know()` writes proven highways to Sui as ProvenCapability objects. Irreversible. Verifiable.
+- [ ] ****4f. W0 baseline (before C1)**** [haiku] `gate, baseline, P0` ← [TODO-collusion](TODO-collusion.md)
+  exit: `bun run verify` passes; all baseline tests green — gate before any C1 schema edits
 - [ ] ****1a. Update world.tql**** [haiku] `schema, foundation, P0` ← [TODO-collusion](TODO-collusion.md)
   exit: `grep "owns owner" src/schema/world.tql` returns true; wave-lock entity defined
-- [ ] **Wire TaskCompleted hook for verify gate** [sonnet] `infra, build, P1` ← [TODO-testing](TODO-testing.md)
-  exit: TaskCompleted hook runs bun run verify. Blocks if tests regress. Gates the mark.
+- [ ] ****2a. Create src/pages/api/tasks/[id]/claim.ts**** [sonnet] `endpoint, atomicity, P0` ← [TODO-collusion](TODO-collusion.md)
+  exit: `curl POST /api/tasks/{id}/claim` returns 200 with owner; 409 if already claimed
+- [ ] ****1a. Recon dictionary.md for emit/commands/tick**** [haiku] `docs, recon, P0` ← [TODO-commands](TODO-commands.md)
+  exit: Report lists every mention of `emit`, command names, The Tick section, with line numbers
+- [ ] ****2g. Write .claude/commands/see.md — full noun surface incl. L4-L6 views**** [sonnet] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
+  exit: /see handles tasks/highways/frontiers/toxic/paths + hypotheses/evolved/revenue/events nouns
+- [ ] ****2h. Write .claude/commands/create.md**** [sonnet] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
+  exit: /create handles task/todo/agent/signal nouns; all emit via send()
+- [ ] ****2i. Write .claude/commands/do.md — wave / auto / once / autonomous**** [sonnet] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
+  exit: /do handles {TODO}/{TODO} --auto/{TODO} --wave N/(empty)/--once modes
+- [ ] ****2j. Write .claude/commands/close.md — Four Outcomes**** [sonnet] `commands, edit, P0` ← [TODO-commands](TODO-commands.md)
+  exit: /close handles {id}/(empty)/--fail/--dissolved/--timeout; Rule 1 fully covered
+- [ ] **ADL Lifecycle gate: Retired unit → warn(edge, 0.5), no execution** [haiku] `adl, lifecycle, P0` ← [TODO-adl](TODO-adl.md)
+  exit: Retired/past-sunset unit signal → warn path, return dissolved; active → normal ask
+- [ ] **ADL Bridge: allowed sender → suiMark fires; blocked sender → no Sui call** [haiku] `adl, bridge, P0` ← [TODO-adl](TODO-adl.md)
+  exit: Bridge reads ADL network permissions; blocked senders fail closed (no Sui call)
+- [ ] **Build wave-runner unit with .then() chains** [opus] `engine, build, P0` ← [TODO-task-management](TODO-task-management.md)
+  exit: unit('wave-runner').on('recon',...).then('recon',→decide).on('decide',...).then('decide',→edit)...
 - [ ] **Test loop.ts: tick cycle, all 7 loops, chain depth** [opus] `engine, test, P0` ← [TODO-testing](TODO-testing.md)
   exit: loop.ts test file. Covers: L1 signal, L2 mark/warn, L3 fade interval, L5 evolution trigger, L6 know, L7 frontier detection
-- [ ] **Create agent self-improvement loop: rewrite prompts when success-rate < 50%** [opus] `intelligence, learning, P1, foundation` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
-  exit: Agent prompt auto-rewrites every 10 min if samples >= 20 AND success < 50%
-- [ ] **Dashboard: Show task graph + pheromone in real-time** [opus] `ui, reactflow, P1, visualization` ← [TODO-autonomous-orgs](TODO-autonomous-orgs.md)
-  exit: ReactFlow visualization showing tasks, dependencies, pheromone trails
+- [ ] **Implement harden(): freeze highway to Sui** [opus] `engine, lifecycle, P0` ← [TODO-lifecycle](TODO-lifecycle.md)
+  exit: `persist.know()` writes proven highways to Sui as ProvenCapability objects. Irreversible. Verifiable.
+- [ ] **Wire CEO visibility: highways (top 10 performers)** [sonnet] `ui, analytics, P0, ceo` ← [TODO-ONE-strategy](TODO-ONE-strategy.md)
+  exit: CEO sees top 10 by net strength (reputation = mark - warn). Arithmetic only.
+- [ ] **`curl /api/market/list` returns ≥ 5 capabilities with price + strength** [sonnet] `marketplace, api, P0` ← [TODO-marketplace](TODO-marketplace.md)
+  exit: Marketplace listing live. Agents' priced skills queryable with pheromone weight shown.
 
 ---
 

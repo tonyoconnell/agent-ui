@@ -1,0 +1,82 @@
+{
+  "name": "oneie",
+  "version": "3.6.40",
+  "type": "module",
+  "description": "Build apps, websites, and AI agents in English. Zero-interaction setup for AI agents (Claude Code, Cursor, Windsurf). Download to your computer, run in the cloud, deploy to the edge. Open source and free forever.",
+  "bin": {
+    "oneie": "./dist/index.js",
+    "one": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "one",
+    "ontology",
+    "cli",
+    "bootstrap",
+    "6-dimension",
+    "ai-agents",
+    "cascade",
+    "astro",
+    "react",
+    "convex",
+    "website-builder",
+    "no-code",
+    "low-code",
+    "claude",
+    "ai"
+  ],
+  "author": "Anthony O'Connell <anthony@one.ie>",
+  "license": "SEE LICENSE IN https://one.ie/free-license",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/one-ie/one.git",
+    "directory": "cli"
+  },
+  "homepage": "https://one.ie",
+  "bugs": {
+    "url": "https://github.com/one-ie/one/issues"
+  },
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "fs-extra": "^11.2.0",
+    "glob": "^10.3.10",
+    "ora": "^8.0.1",
+    "prompts": "^2.4.2",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.11.0",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md",
+    "SECURITY.md",
+    "TESTING-ONBOARDING.md",
+    "CREATE-WEBSITE.md",
+    "llms.txt",
+    "folders.yaml",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "one/knowledge",
+    "one/connections",
+    "one/things",
+    "one/people",
+    "one/groups",
+    "one/README.md",
+    ".claude/agents",
+    ".claude/commands",
+    ".claude/hooks",
+    ".claude/skills"
+  ]
+}

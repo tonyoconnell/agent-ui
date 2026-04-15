@@ -1,0 +1,35 @@
+# ONE Platform - Blog Package
+# Build with: npx oneie admin build blog
+
+name: "@oneie/blog"
+description: "Blog with MDX, RSS, and content collections"
+version: "1.0.0"
+type: feature
+price: free
+
+github:
+  app: one-ie/blog
+  package: one-ie/package-blog
+
+npm:
+  access: public
+
+# Files to include (relative to monorepo root)
+include:
+  # ========== PAGES ==========
+  - web/src/pages/blog/**
+
+  # ========== COMPONENTS ==========
+  - web/src/components/blog/**
+
+  # ========== CONTENT ==========
+  - web/src/content/blog/**
+  - web/src/content/config.ts
+
+# Dependencies to install (on top of web foundation)
+dependencies:
+  "@astrojs/mdx": "^4.0.0"
+  "@astrojs/rss": "^4.0.0"
+
+env:
+  optional: []

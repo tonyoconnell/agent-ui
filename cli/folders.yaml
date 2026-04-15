@@ -1,0 +1,92 @@
+# ONE CLI - Folder Copy Configuration
+# Defines what gets packaged into the npm "oneie" package
+# Deployed to: one-ie/one (GitHub) and oneie (npm)
+
+# ============================================================
+# DIRECTORIES TO PACKAGE
+# ============================================================
+
+# Claude Code Integration (AI agent configs, commands, hooks)
+claude_folders:
+  - .claude/agents
+  - .claude/commands
+  - .claude/hooks
+
+# ONE Ontology (complete 6-dimension documentation)
+# The CLI will automatically discover and copy all subdirectories
+one_folders:
+  - one/**/*
+
+# Web Starter (Astro 5 + React 19 + Tailwind v4)
+web_folders:
+  - web/
+
+# Sample Data (optional data files and migrations)
+data_folders:
+  - data/
+
+# ============================================================
+# ROOT DOCUMENTATION FILES
+# ============================================================
+
+root_files:
+  - CLAUDE.md      # AI agent instructions
+  - AGENTS.md      # Convex patterns quick reference
+  - README.md      # Package documentation
+  - LICENSE.md     # License information
+
+# ============================================================
+# FILE EXTENSIONS TO INCLUDE
+# ============================================================
+
+allowed_extensions:
+  - .md           # Markdown documentation
+  - .yaml         # YAML config files
+  - .yml          # YAML config files
+  - .sh           # Shell scripts
+  - .astro        # Astro components
+  - .ts           # TypeScript files
+  - .tsx          # TypeScript React files
+  - .js           # JavaScript files
+  - .jsx          # JavaScript React files
+  - .json         # JSON data/config
+  - .css          # CSS stylesheets
+  - .svg          # SVG images
+  - .png          # PNG images
+  - .jpg          # JPEG images
+  - .jpeg         # JPEG images
+  - .webp         # WebP images
+
+# ============================================================
+# EXCLUSION PATTERNS (NEVER COPY)
+# ============================================================
+
+exclude_patterns:
+  - "*/node_modules/*"      # Dependencies
+  - "*/.git/*"              # Git internals
+  - "*/dist/*"              # Build output
+  - "*/build/*"             # Build output
+  - "*/.astro/*"            # Astro cache
+  - "*/.DS_Store"           # macOS metadata
+  - "*/package-lock.json"   # Lock files
+  - "*/bun.lockb"           # Bun lock files
+  - "*/yarn.lock"           # Yarn lock files
+  - "*/pnpm-lock.yaml"      # pnpm lock files
+  - "*/.env*"               # Environment variables
+  - "*/.vscode/*"           # Editor config
+  - "*/.idea/*"             # Editor config
+  - "*/coverage/*"          # Test coverage
+  - "*/.turbo/*"            # Turbo cache
+  - "*/.next/*"             # Next.js cache
+  - "*/convex/_generated/*" # Generated Convex types
+
+# ============================================================
+# DEPLOYMENT CONFIG
+# ============================================================
+
+deployment:
+  github_repo: one-ie/one
+  npm_package: oneie
+  version: 3.6.13
+  homepage: https://one.ie
+  license_url: https://one.ie/free-license

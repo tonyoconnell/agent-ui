@@ -1,0 +1,148 @@
+version: 2.0.0
+feature: shop
+extends: core
+status: E-commerce and online store functionality feature
+description: E-commerce products, orders, and payments
+
+things:
+  types:
+    products:
+      - name: product
+        description: Physical or digital product (canonical 'digital_product' type)
+        properties:
+          name: string
+          slug: string
+          description: string
+          price: number
+          compareAtPrice: number?
+          images: string[]?
+          inventory: number?
+          sku: string?
+          status: string # active|draft|published|archived
+      - name: product_variant
+        description: Product variant
+        properties:
+          name: string
+          sku: string
+          price: number
+          inventory: number?
+          options: object?
+
+    business:
+      - name: shopping_cart
+        description: Shopping cart session
+        properties:
+          items: object[]?
+          subtotal: number?
+          tax: number?
+          shipping: number?
+          total: number?
+          sessionId: string? # Use session thing instead
+      - name: order
+        description: Purchase order (canonical 'payment' type scope)
+        properties:
+          orderNumber: string
+          items: object[]?
+          subtotal: number?
+          tax: number?
+          shipping: number?
+          total: number?
+          status: string # pending|completed|failed|refunded
+          shippingAddress: object?
+          billingAddress: object?
+          paymentId: string? # Use connection instead
+      - name: discount_code
+        description: Discount/coupon code
+        properties:
+          code: string
+          discountType: string?
+          discountValue: number
+          minPurchase: number?
+          maxUses: number?
+          usedCount: number?
+          validFrom: number?
+          validTo: number?
+      - name: payment
+        description: Payment transaction (canonical 'payment' type)
+        properties:
+          amount: number
+          currency: string?
+          paymentMethod: string?
+          stripePaymentIntentId: string? # Use metadata instead
+          status: string # pending|processing|completed|failed|refunded
+          processedAt: number?
+
+connections:
+  types:
+    product_relationships:
+      - name: purchased # Canonical type
+        description: User purchased product
+        fromType: user
+        toType: product
+        canonical_alignment: purchased
+      - name: in_cart
+        description: Product in user cart (use shopping_cart thing instead)
+        fromType: user
+        toType: product
+      - name: variant_of
+        description: Variant of product
+        fromType: product_variant
+        toType: product
+
+    business_relationships:
+      - name: ordered
+        description: Order relates to user (use member_of or owns)
+        fromType: user
+        toType: order
+      - name: paid_for
+        description: Payment pays for order (use connection metadata)
+        fromType: payment
+        toType: order
+
+events:
+  types:
+    commerce_events:
+      - name: product_added_to_cart # Maps to canonical 'commerce_event'
+        description: Product added to cart
+        canonical_alignment: commerce_event
+        metadata_structure: { action: cart_item_added, productId: string, quantity: number }
+      - name: cart_updated # Maps to canonical 'commerce_event'
+        description: Cart contents updated
+        canonical_alignment: commerce_event
+        metadata_structure: { action: cart_updated, total: number }
+      - name: cart_abandoned # Maps to canonical 'commerce_event'
+        description: Shopping cart abandoned
+        canonical_alignment: commerce_event
+        metadata_structure: { action: abandoned, cartValue: number }
+      - name: order_placed # Maps to canonical 'commerce_event'
+        description: Order placed
+        canonical_alignment: commerce_event
+        metadata_structure: { action: order_created, orderId: string, total: number }
+      - name: order_fulfilled # Maps to canonical 'commerce_event'
+        description: Order fulfilled
+        canonical_alignment: commerce_event
+        metadata_structure: { action: order_fulfilled, orderId: string }
+      - name: order_shipped # Maps to canonical 'commerce_event'
+        description: Order shipped
+        canonical_alignment: commerce_event
+        metadata_structure: { action: order_shipped, trackingNumber: string? }
+      - name: order_delivered # Maps to canonical 'commerce_event'
+        description: Order delivered
+        canonical_alignment: commerce_event
+        metadata_structure: { action: order_delivered }
+      - name: payment_processed # Canonical 'payment_event' type
+        description: Payment successfully processed
+        canonical_alignment: payment_event
+        metadata_structure: { status: processed, transactionId: string, amount: number }
+      - name: payment_failed # Canonical 'payment_event' type
+        description: Payment processing failed
+        canonical_alignment: payment_event
+        metadata_structure: { status: failed, reason: string }
+      - name: product_viewed # Maps to canonical 'content_event'
+        description: Product viewed
+        canonical_alignment: content_event
+        metadata_structure: { action: viewed, contentType: product }
+      - name: discount_applied # Maps to canonical 'commerce_event'
+        description: Discount applied
+        canonical_alignment: commerce_event
+        metadata_structure: { discountCode: string, discountAmount: number }

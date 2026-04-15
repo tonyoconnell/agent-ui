@@ -1,0 +1,12 @@
+[package]
+name = "one_protocol"
+edition = "2024"
+version = "1.0.0"
+authors = ["ONE Platform <contracts@one.ie>"]
+license = "MIT"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet" }
+
+[addresses]
+one_protocol = "0x0"

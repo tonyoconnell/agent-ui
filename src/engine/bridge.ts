@@ -35,6 +35,42 @@ import {
 import { readParsed, writeSilent } from '@/lib/typedb'
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ADL: perm-network gate — cache + helper
+// ═══════════════════════════════════════════════════════════════════════════
+
+const BRIDGE_PERM_CACHE = new Map<string, { allowedHosts: string[]; expires: number }>()
+const BRIDGE_CACHE_TTL = 5 * 60 * 1000
+
+function esc(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+function hostsAllow(sender: string, allowedHosts: string[]): boolean {
+  if (allowedHosts.length === 0) return true
+  if (allowedHosts.includes('*')) return true
+  return allowedHosts.includes(sender)
+}
+async function canCallSui(sender: string, receiver: string): Promise<boolean> {
+  const key = `${receiver}:network`
+  const cached = BRIDGE_PERM_CACHE.get(key)
+  if (cached && cached.expires > Date.now()) return hostsAllow(sender, cached.allowedHosts)
+  const rows = await readParsed(
+    `match $u isa unit, has uid "${esc(receiver)}", has perm-network $pn; select $pn;`,
+  ).catch(() => [])
+  const allowedHosts: string[] = []
+  if (rows.length > 0) {
+    try {
+      const perms = JSON.parse(rows[0].pn as string) as Record<string, unknown>
+      const raw = perms.allowed_hosts ?? perms.allowedHosts
+      if (Array.isArray(raw)) allowedHosts.push(...(raw as string[]))
+    } catch {
+      /* malformed → fail open */
+    }
+  }
+  BRIDGE_PERM_CACHE.set(key, { allowedHosts, expires: Date.now() + BRIDGE_CACHE_TTL })
+  return hostsAllow(sender, allowedHosts)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // RESOLVE — Find Sui object IDs from TypeDB
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -73,6 +109,11 @@ export async function resolvePath(from: string, to: string): Promise<string | nu
  * If no Sui path exists yet, creates one.
  */
 export async function mirrorMark(from: string, to: string, amount = 1): Promise<void> {
+  if (!(await canCallSui(from, to))) {
+    console.warn(`[Bridge] ${from} not permitted to mark ${to} on Sui — perm-network blocked`)
+    return
+  }
+
   const [fIds, tIds] = await Promise.all([resolve(from), resolve(to)])
   if (!fIds?.unitId || !tIds?.unitId) return
 
@@ -96,6 +137,11 @@ export async function mirrorMark(from: string, to: string, amount = 1): Promise<
 
 /** Mirror a warn() to Sui. Fire-and-forget. */
 export async function mirrorWarn(from: string, to: string, amount = 1): Promise<void> {
+  if (!(await canCallSui(from, to))) {
+    console.warn(`[Bridge] ${from} not permitted to warn ${to} on Sui — perm-network blocked`)
+    return
+  }
+
   const pathId = await resolvePath(from, to)
   if (!pathId) return
   await suiWarn(from, pathId, amount).catch(() => {})

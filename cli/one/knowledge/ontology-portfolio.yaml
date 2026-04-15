@@ -1,0 +1,45 @@
+version: 2.0.0
+feature: portfolio
+extends: core
+status: Portfolio and project showcase feature
+description: Project portfolios and case studies
+
+things:
+  types:
+    content:
+      - name: project
+        description: Project portfolio item
+        properties:
+          title: string
+          slug: string
+          description: string
+          images: string[]?
+          client: string?
+          completedAt: number?
+          technologies: string[]? # Use knowledge labels instead
+          url: string?
+      - name: case_study
+        description: Case study documentation
+        properties:
+          title: string
+          problem: string
+          solution: string
+          results: string
+          metrics: object?
+
+connections:
+  types:
+    content_relationships:
+      - name: belongs_to_portfolio
+        description: Project belongs to portfolio (user owns project)
+        fromType: project
+        toType: user
+        canonical_alignment: owns
+
+events:
+  types:
+    content_events:
+      - name: project_viewed # Maps to canonical 'content_event' with action: viewed
+        description: Project viewed
+        canonical_alignment: content_event
+        metadata_structure: { action: viewed, contentType: project }

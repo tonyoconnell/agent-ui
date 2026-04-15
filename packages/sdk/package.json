@@ -1,0 +1,32 @@
+{
+  "name": "@oneie/sdk",
+  "version": "0.1.0",
+  "description": "ONE substrate SDK — signals, units, persist, launch handoff.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./urls": "./dist/urls.js",
+    "./storage": "./dist/storage.js",
+    "./handoff": "./dist/handoff.js",
+    "./launch": "./dist/launch.js"
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
+  "license": "SEE LICENSE IN https://one.ie/free-license",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/one-ie/envelopes.git",
+    "directory": "packages/sdk"
+  }
+}

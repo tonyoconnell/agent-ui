@@ -1,0 +1,721 @@
+# ONE Platform Complete File Inventory
+# Ultra-organized reference for every file in the system
+# Last updated: 2025-10-30
+
+root: /Users/toc/Server/ONE
+
+# ==========================================
+# ROOT LEVEL: Platform Control & Strategy
+# ==========================================
+root_files:
+  governance:
+    - path: "CLAUDE.md"
+      size: "28.6 KB"
+      type: "Markdown"
+      purpose: "Claude Code platform instructions + architecture guide"
+      audience: "AI agents, developers"
+      updated: "2025-10-27"
+
+    - path: "AGENTS.md"
+      size: "4.0 KB"
+      type: "Markdown"
+      purpose: "AI agent specifications and Convex patterns reference"
+      audience: "AI agents, backend developers"
+      updated: "2025-10-27"
+
+    - path: ".env"
+      size: "3.7 KB"
+      type: "Configuration"
+      purpose: "Environment secrets (database URLs, API keys)"
+      sensitive: true
+      ignored: true
+
+    - path: ".onboarding.json"
+      size: "1.1 KB"
+      type: "JSON"
+      purpose: "User context for CLI installation"
+
+  licenses:
+    - path: "LICENSE.md"
+      size: "2.5 KB"
+      type: "Markdown"
+      purpose: "License terms and conditions"
+
+    - path: "SECURITY.md"
+      size: "1.4 KB"
+      type: "Markdown"
+      purpose: "Security policy and vulnerability reporting"
+
+  documentation:
+    - path: "README.md"
+      size: "15.8 KB"
+      type: "Markdown"
+      purpose: "Platform overview and quick start guide"
+
+  package_management:
+    - path: "package.json"
+      size: "3.5 KB"
+      type: "JSON"
+      purpose: "Root monorepo workspace configuration"
+      workspaces:
+        - "web"
+        - "backend"
+        - "cli"
+
+    - path: "bun.lock"
+      size: "379.5 KB"
+      type: "Lock file"
+      purpose: "Bun package manager lock file"
+
+# ============================================
+# .CLAUDE: Claude Code Agent Configuration
+# ============================================
+claude_config:
+  description: "Control panel for Claude Code AI agents"
+  path: ".claude/"
+
+  agents:
+    - path: ".claude/agents/"
+      description: "AI agent specifications"
+      files:
+        - "agent-director.md": "Orchestrator agent (manages tasks, delegates work)"
+        - "agent-clone.md": "Code generation agent (implements features)"
+        - "agent-designer.md": "Design agent (UI/UX components)"
+        - "agent-backend.md": "Backend specialist (Convex, services)"
+        - "agent-frontend.md": "Frontend specialist (Astro, React)"
+
+  hooks:
+    - path: ".claude/hooks/"
+      description: "Event handlers for Claude Code workflow"
+      purpose: "Automate repetitive tasks"
+      examples:
+        - "pre-commit": "Validate code before commit"
+        - "post-merge": "Run type checks after merge"
+        - "submit-prompt": "Process user input"
+
+  commands:
+    - path: ".claude/commands/"
+      description: "Slash commands (/release, /deploy, /see)"
+      purpose: "Developer experience shortcuts"
+
+  skills:
+    - path: ".claude/skills/"
+      description: "Specialized task executors"
+
+  state:
+    - path: ".claude/state/"
+      description: "Agent state and context"
+      files:
+        - "todo.json": "Current todo list state"
+        - "agent-context.json": "Agent memory and preferences"
+
+# ===================================
+# ONE: Universal Ontology & Knowledge
+# ===================================
+ontology:
+  description: "6-dimension ontology and development knowledge"
+  path: "one/"
+
+  knowledge:
+    path: "one/knowledge/"
+    files:
+      - "ontology.md":
+          size: "80 KB"
+          purpose: "Core 6-dimension model (groups, things, connections, events, people, knowledge)"
+          critical: true
+
+      - "ontology-files.yaml":
+          size: "45 KB"
+          purpose: "Master reference for file organization and relationships"
+          critical: true
+
+      - "architecture.md":
+          size: "30 KB"
+          purpose: "System architecture (Effect.ts, Convex, Astro, Hono)"
+
+      - "rules.md":
+          size: "15 KB"
+          purpose: "Golden rules for AI code generation"
+
+      - "installation-folders.md":
+          size: "10 KB"
+          purpose: "Guide for organization-specific customization"
+
+  things:
+    path: "one/things/"
+    files:
+      - "structure.md":
+          purpose: "How the codebase is organized (this file explains it)"
+
+      - "todo.md":
+          size: "150 KB"
+          purpose: "100-cycle release plan (P0, P1, P2 tasks)"
+          critical: true
+
+      - "strategy.md":
+          size: "35 KB"
+          purpose: "8 core platform features, revenue model, vision"
+
+      - "files.yaml":
+          size: "50 KB"
+          purpose: "This file - complete file inventory"
+
+      - "frontend.md":
+          purpose: "Frontend architecture (Astro, React, shadcn/ui)"
+
+      - "cli.md":
+          purpose: "CLI design and implementation guide"
+
+      - "agents/":
+          description: "Agent specifications"
+          files:
+            - "director.md": "Director agent (orchestrator)"
+            - "clone.md": "Clone agent (code generation)"
+
+      - "plans/":
+          description: "Future planning documents"
+          files:
+            - "ontology-6-dimensions.md": "Migration from 4-table to 6-dimension"
+            - "separate.md": "Splitting frontend/backend/ontology"
+
+  connections:
+    path: "one/connections/"
+    purpose: "Protocols, patterns, workflows"
+    files:
+      - "protocols.md":
+          purpose: "A2A, ACP, AP2, X402, AG-UI protocol specs"
+
+      - "patterns.md":
+          purpose: "Proven code patterns (CRUD, services, components)"
+
+      - "workflow.md":
+          purpose: "6-phase development workflow"
+
+      - "documentation.md":
+          purpose: "How to use the documentation system"
+
+      - "implementation.md":
+          purpose: "12-week implementation roadmap"
+
+      - "modes.md":
+          purpose: "Standalone vs API mode operation"
+
+      - "development.md":
+          purpose: "Using npx oneie with Claude Code"
+
+      - "communications.md":
+          purpose: "External service integrations"
+
+      - "middleware.md":
+          purpose: "Convex hooks, middleware patterns"
+
+      - "dashboard.md":
+          purpose: "Multi-tenant UI architecture"
+
+      - "cycle.md":
+          purpose: "Cycle-based planning system"
+
+  events:
+    path: "one/events/"
+    purpose: "Deployment history, release notes, event logs"
+    files:
+      - "deployments/": "Release history"
+      - "logs/": "Event logs and audit trails"
+
+  people:
+    path: "one/people/"
+    purpose: "Roles, governance, organization"
+    files:
+      - "roles.md": "Role definitions and permissions"
+      - "governance.md": "Organization structure"
+
+# ===========================================
+# ONE-INC: Installation Customization Layer
+# ===========================================
+installation:
+  description: "Organization-specific overrides (brand, features, rules)"
+  path: "one-inc/"
+
+  knowledge:
+    path: "one-inc/knowledge/"
+    files:
+      - "ontology.md": "Custom ontology (overrides one/knowledge/)"
+      - "brand-guide.md": "Brand identity, colors, fonts, tone"
+      - "features.md": "Organization features and capabilities"
+      - "rules.md": "Org-specific development rules"
+
+  groups:
+    path: "one-inc/groups/"
+    description: "Group-specific documentation"
+    example: "groups/engineering/practices.md"
+
+  things:
+    path: "one-inc/things/"
+    files:
+      - "features.md": "Custom entity types"
+      - "strategy.md": "Organization strategy"
+
+  groups_folder:
+    path: "one-inc/groups/"
+    subfolders:
+      - "vision.md": "Group vision"
+      - "strategy.md": "Group strategy"
+      - "features.md": "Group features"
+      - "revenue.md": "Revenue model"
+      - "one.md": "Organization overview"
+      - "groups.md": "Sub-groups documentation"
+
+# ================================
+# WEB: Frontend Application
+# ================================
+web:
+  description: "Astro 5 + React 19 frontend"
+  path: "web/"
+
+  root_files:
+    - "package.json": "Frontend dependencies"
+    - "tsconfig.json": "TypeScript configuration"
+    - "astro.config.mjs": "Astro build configuration"
+    - "README.md": "Frontend documentation"
+
+  directories:
+    src:
+      path: "web/src/"
+      subdirs:
+        pages:
+          path: "web/src/pages/"
+          purpose: "File-based routing (Astro)"
+          files: "*.astro files"
+          examples:
+            - "index.astro": "Home page"
+            - "account/": "Authentication pages"
+
+        components:
+          path: "web/src/components/"
+          purpose: "React components + shadcn/ui"
+          subdirs:
+            - "ui/": "shadcn/ui components (button, card, dialog, etc)"
+            - "features/": "Feature-specific components"
+            - "layout/": "Layout components"
+            - "icons/": "Icon definitions"
+
+        layouts:
+          path: "web/src/layouts/"
+          purpose: "Page layout templates"
+          files:
+            - "Layout.astro": "Default layout"
+            - "AuthLayout.astro": "Auth pages layout"
+            - "BlogLayout.astro": "Blog post layout"
+
+        content:
+          path: "web/src/content/"
+          purpose: "Content collections (Markdown)"
+          subdirs:
+            - "blog/": "Blog posts"
+            - "docs/": "Documentation pages"
+
+        styles:
+          path: "web/src/styles/"
+          files:
+            - "global.css": "Tailwind v4 configuration"
+            - "design-system.css": "Design tokens"
+
+        lib:
+          path: "web/src/lib/"
+          purpose: "Utility functions and helpers"
+
+        middleware:
+          path: "web/src/middleware.ts"
+          purpose: "Request/response middleware"
+
+    public:
+      path: "web/public/"
+      purpose: "Static assets"
+
+    dist:
+      path: "web/dist/"
+      purpose: "Production build (generated)"
+      generated: true
+
+    .astro:
+      path: "web/.astro/"
+      purpose: "Astro-generated types and config"
+      generated: true
+
+# ==================================
+# BACKEND: Convex Database & API
+# ==================================
+backend:
+  description: "Convex headless backend (Effect.ts + Convex)"
+  path: "backend/"
+
+  root_files:
+    - "package.json": "Backend dependencies"
+    - "tsconfig.json": "TypeScript configuration"
+    - "convex.json": "Convex project configuration"
+    - "README.md": "Backend documentation"
+
+  directories:
+    convex:
+      path: "backend/convex/"
+      description: "Database schema and functions"
+
+      schema:
+        path: "backend/convex/schema.ts"
+        purpose: "6-dimension ontology schema (5 tables: groups, things, connections, events, knowledge)"
+        critical: true
+        tables:
+          - "groups": "Hierarchical containers (multi-tenancy)"
+          - "things": "All entities (users, agents, courses, tokens)"
+          - "connections": "Relationships between things"
+          - "events": "Audit trail of all actions"
+          - "knowledge": "Embeddings for RAG"
+
+      auth:
+        path: "backend/convex/auth.ts"
+        purpose: "Better Auth configuration (OAuth, magic links, 2FA)"
+
+      queries:
+        path: "backend/convex/queries/"
+        purpose: "Read operations"
+        examples:
+          - "entities.ts": "List/get entities"
+          - "connections.ts": "Query relationships"
+          - "search.ts": "Full-text search"
+
+      mutations:
+        path: "backend/convex/mutations/"
+        purpose: "Write operations (thin wrappers around services)"
+        examples:
+          - "entities.ts": "Create/update/delete entities"
+          - "connections.ts": "Form/delete relationships"
+          - "events.ts": "Log events"
+
+      services:
+        path: "backend/convex/services/"
+        purpose: "Business logic (Effect.ts)"
+        subdirs:
+          - "database/": "Database operations service"
+          - "auth/": "Authentication service"
+          - "agents/": "Agent orchestration"
+          - "tokens/": "Token management"
+          - "content/": "Content management"
+          - "courses/": "Course management"
+
+      http:
+        path: "backend/convex/http.ts"
+        purpose: "HTTP endpoints (Hono routes)"
+
+    examples:
+      path: "backend/examples/"
+      purpose: "Example implementations"
+
+    lib:
+      path: "backend/lib/"
+      purpose: "Shared utilities"
+
+    scripts:
+      path: "backend/scripts/"
+      purpose: "Development and deployment scripts"
+
+    test:
+      path: "backend/test/"
+      purpose: "Unit and integration tests"
+
+# ==============================
+# CLI: NPM Package & Bootstrap
+# ==============================
+cli:
+  description: "npx oneie CLI for bootstrapping new installs"
+  path: "cli/"
+
+  root_files:
+    - "package.json": "CLI metadata and dependencies"
+    - "tsconfig.json": "TypeScript configuration"
+    - "README.md": "CLI documentation"
+
+  directories:
+    bin:
+      path: "cli/bin/"
+      files:
+        - "oneie.js": "CLI entry point"
+
+    src:
+      path: "cli/src/"
+      purpose: "CLI implementation (TypeScript)"
+      subdirs:
+        - "commands/": "CLI commands (init, add, deploy)"
+        - "utils/": "Helper functions"
+        - "templates/": "Code generation templates"
+
+    dist:
+      path: "cli/dist/"
+      purpose: "Compiled CLI (generated)"
+      generated: true
+
+    test:
+      path: "cli/test/"
+      purpose: "CLI tests"
+
+# ====================================
+# APPS: Example Applications
+# ====================================
+apps:
+  description: "Example applications and integrations"
+  path: "apps/"
+
+  subdirs:
+    - "one/": "Main website (web.one.ie) - assembly of web/ + documentation"
+    - "oneie/": "Generated oneie.com site from web/"
+    - "eliza/": "ElizaOS integration"
+    - "stack/": "Stack Auth example"
+    - "hono/": "Hono API example"
+    - "bullfm/": "Legacy Bull FM integration"
+    - "LLM-studio/": "LLM development environment"
+    - "prompt-kit/": "Prompt engineering toolkit"
+
+# ====================================
+# DOCS: Third-Party Documentation
+# ====================================
+docs:
+  description: "Third-party framework documentation (reference)"
+  path: "docs/"
+
+  subdirs:
+    - "astro/": "Astro framework docs"
+    - "convex/": "Convex documentation"
+    - "effectts/": "Effect.ts documentation"
+    - "ai-sdk/": "AI SDK documentation"
+    - "claude-code/": "Claude Code documentation"
+
+# ==========================
+# .GITHUB: CI/CD Workflows
+# ==========================
+github:
+  description: "GitHub Actions CI/CD pipelines"
+  path: ".github/workflows/"
+
+  files:
+    - "*.yml": "Automated testing, building, deployment"
+
+# ==========================
+# CONFIGURATION FILES
+# ==========================
+config_files:
+  root:
+    - ".gitignore": "Git ignore rules"
+    - ".nvmrc": "Node.js version"
+    - ".mcp.json.backup": "MCP server configuration backup"
+    - ".mcp.json.off": "MCP server configuration (disabled)"
+    - ".vscode/": "VS Code settings"
+
+# ==========================
+# BUILD & GENERATED
+# ==========================
+generated:
+  note: "These files are auto-generated and should NOT be edited"
+  paths:
+    - "web/dist/": "Production frontend build"
+    - "web/.astro/": "Astro generated types and config"
+    - "backend/.convex/": "Convex generated types"
+    - "backend/node_modules/": "Backend dependencies"
+    - "cli/dist/": "Compiled CLI"
+    - "cli/node_modules/": "CLI dependencies"
+    - "node_modules/": "Root dependencies"
+
+# ================================
+# ENVIRONMENT CONFIGURATION
+# ================================
+environment:
+  root:
+    - ".env": "Root environment (secrets, deployment config)"
+    - ".env.local": "Local overrides (git-ignored)"
+
+  web:
+    - "web/.env.local": "Frontend env vars"
+    - "web/.env.production": "Production-specific vars"
+
+  backend:
+    - "backend/.env.local": "Backend env vars"
+    - "backend/.env.production": "Production-specific vars"
+
+# ====================================
+# MEDIA & ASSETS
+# ====================================
+media:
+  path: "media/"
+  description: "Brand assets, images, media files"
+  subdirs:
+    - "logos/": "Logo files (SVG, PNG)"
+    - "icons/": "Icon assets"
+    - "screenshots/": "Product screenshots"
+
+# ====================================
+# GIT CONFIGURATION
+# ====================================
+git:
+  path: ".git/"
+  description: "Git version control metadata"
+  note: "Managed by git - do NOT edit manually"
+
+# ====================================
+# UTILITIES & MISC
+# ====================================
+utilities:
+  - path: "import/": "Data migration utilities"
+    purpose: "Migrate data from legacy systems"
+
+  - path: ".obsidian/": "Obsidian vault configuration"
+    purpose: "Local documentation editor setup"
+
+  - path: "add/": "Add feature templates"
+
+  - path: "nine-padel/": "Legacy project reference"
+
+  - path: ".onboarding.json.example": "Template for onboarding"
+
+# ==================================
+# FILE STATISTICS
+# ==================================
+statistics:
+  total_directories: "50+"
+  total_files: "800+ (including node_modules)"
+  code_files: "~300 (excluding node_modules)"
+  documentation_files: "90+"
+
+  breakdown:
+    markdown: "90+ files"
+    typescript: "~150 files"
+    javascript: "~50 files"
+    json: "~30 files"
+    yaml: "~10 files"
+    css: "~20 files"
+    other: "~50 files"
+
+  sizes:
+    source_code: "~10 MB"
+    documentation: "~5 MB"
+    dependencies: "~800 MB (node_modules)"
+    total: "~1 GB"
+
+# ==================================
+# QUICK FILE FINDERS
+# ==================================
+find_by_purpose:
+  "I want to understand the vision":
+    - one/things/strategy.md
+    - one-inc/groups/strategy.md
+
+  "I want to modify brand colors":
+    - one-inc/knowledge/brand-guide.md
+    - web/src/styles/global.css
+
+  "I want to add a new feature":
+    - one/connections/workflow.md
+    - one/connections/patterns.md
+    - backend/convex/schema.ts
+
+  "I want to understand the ontology":
+    - one/knowledge/ontology.md
+    - one/knowledge/ontology-files.yaml
+
+  "I want to check deployment status":
+    - one/events/deployments/
+
+  "I want to see the release plan":
+    - one/things/todo.md
+
+  "I want to manage tasks":
+    - .claude/state/todo.json
+    - one/things/todo.md
+
+  "I want to understand file organization":
+    - one/things/structure.md
+    - one/knowledge/ontology-files.yaml
+    - one/things/files.yaml (this file)
+
+# ==================================
+# MAINTENANCE NOTES
+# ==================================
+maintenance:
+  - "Update one/things/files.yaml when adding new files"
+  - "Keep one/knowledge/ontology-files.yaml in sync with actual architecture"
+  - "Ensure one-inc/ follows global one/ structure"
+  - "Document all new files in this inventory"
+  - "Run 'bunx astro check' after schema changes"
+  - "Verify deployments via GitHub Actions"
+
+# ==================================
+# AUTOMATION RULES
+# ==================================
+automation:
+  hooks:
+    pre_commit: "Validate files match this inventory"
+    post_file_create: "Auto-update this file"
+    pre_deploy: "Verify all files are accounted for"
+
+  scripts:
+    update_inventory: "bash scripts/generate-files-inventory.sh"
+    validate_structure: "bash scripts/validate-file-structure.sh"
+
+---
+
+## VISUALIZATION: File Organization
+
+```
+ROOT
+├── GOVERNANCE (CLAUDE.md, AGENTS.md, .env, README.md, LICENSE.md)
+│
+├── .CLAUDE/ (agents/, hooks/, commands/, state/)
+│
+├── ONE/ (universal ontology, 90+ files)
+│   ├── knowledge/: ontology.md, architecture.md, rules.md
+│   ├── things/: todo.md, structure.md, strategy.md
+│   ├── connections/: patterns.md, protocols.md, workflow.md
+│   ├── events/: deployment logs
+│   └── people/: roles, governance
+│
+├── ONE-INC/ (custom org overrides)
+│   ├── knowledge/: brand-guide.md, features.md
+│   ├── things/: features.md, strategy.md
+│   └── groups/: group-specific docs
+│
+├── WEB/ (Astro 5 + React 19 frontend)
+│   ├── src/pages/: routing
+│   ├── src/components/: React components
+│   ├── src/layouts/: templates
+│   ├── src/content/: Markdown content
+│   ├── src/styles/: Tailwind CSS
+│   └── package.json
+│
+├── BACKEND/ (Convex + Effect.ts)
+│   ├── convex/schema.ts: 6-dimension database
+│   ├── convex/mutations/: write ops
+│   ├── convex/queries/: read ops
+│   ├── convex/services/: business logic
+│   └── package.json
+│
+├── CLI/ (npx oneie package)
+│   ├── bin/oneie.js: entry point
+│   ├── src/: implementation
+│   └── package.json
+│
+├── APPS/ (examples, integrations)
+│   ├── one/: main website
+│   ├── oneie/: generated site
+│   ├── eliza/: ElizaOS
+│   └── stack/: Stack Auth
+│
+├── DOCS/ (third-party docs)
+│   ├── astro/, convex/, effectts/
+│   └── (reference documentation)
+│
+├── .GITHUB/ (CI/CD workflows)
+│
+└── node_modules/ (dependencies)
+```
+
+---
+
+EOF: Complete file inventory for ONE Platform. Use this to navigate the codebase quickly.
+Last updated: 2025-10-30 by Claude Code

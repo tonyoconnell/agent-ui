@@ -38,6 +38,8 @@ const get = (flag: string) => {
 let name = get('--name')
 let persona = get('--persona')
 const agentId = get('--agent')
+let getSensitivity = 'internal'
+let getAllowedHosts = '*'
 const telegramToken = get('--token')
 
 // If --agent is provided, read from agent markdown file
@@ -69,6 +71,9 @@ if (agentId) {
     const fm = frontmatterMatch[1]
     const getName = fm.match(/^name:\s*(.+)$/m)?.[1]?.trim()
     const getModel = fm.match(/^model:\s*(.+)$/m)?.[1]?.trim()
+    getSensitivity = fm.match(/^sensitivity:\s*(.+)$/m)?.[1]?.trim() || 'internal'
+    const getRawOrigins = fm.match(/^allowed_origins:\s*\[(.+)\]/m)?.[1]?.trim()
+    getAllowedHosts = getRawOrigins ? getRawOrigins.split(',').map((s) => s.trim().replace(/['"]/g, '')).join(', ') : '*'
 
     name = name || getName || agentId
     persona = persona || getName?.toLowerCase().replace(/[^a-z0-9]/g, '') || agentId
@@ -77,12 +82,16 @@ if (agentId) {
     const { personas } = await import('../nanoclaw/src/personas.ts')
     if (!personas[persona]) {
       console.log(`\n📝 Agent "${agentId}" not in personas.ts — adding dynamically...`)
+      const adlConstraints =
+        getSensitivity !== 'public' || getAllowedHosts !== '*'
+          ? `\n\n[OPERATIONAL CONSTRAINTS]\nData classification: ${getSensitivity}\nAllowed hosts: ${getAllowedHosts}`
+          : ''
       const personaEntry = `
   ${persona}: {
     name: '${getName || agentId}',
     description: 'Agent from ${agentId}.md',
     model: '${getModel || 'anthropic/claude-haiku-4-5'}',
-    systemPrompt: \`${body.replace(/`/g, '\\`').slice(0, 2000)}\`,
+    systemPrompt: \`${body.replace(/`/g, '\\`').slice(0, 2000)}${adlConstraints.replace(/`/g, '\\`')}\`,
   },`
 
       const personasPath = resolve(ROOT, 'nanoclaw/src/personas.ts')
@@ -220,6 +229,8 @@ compatibility_flags = ["nodejs_compat"]
 VERSION = "1.0.0"
 GATEWAY_URL = "https://one-gateway.oneie.workers.dev"
 BOT_PERSONA = "${persona}"
+ADL_DATA_SENSITIVITY = "${getSensitivity || 'internal'}"
+ADL_ALLOWED_HOSTS = "${getAllowedHosts || '*'}"
 
 [[d1_databases]]
 binding = "DB"

@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.bak
+
+# Private business files (backed up in /one-group/)
+# Following 6-dimension ontology: sensitive group data hidden from public repo
+# Public docs: groups.md, one.md (visible in git)
+# Private docs: revenue.md, strategy.md, vision.md (hidden from git)
+groups/revenue.md
+groups/strategy.md
+groups/vision.md

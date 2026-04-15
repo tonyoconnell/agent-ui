@@ -8,18 +8,51 @@
  */
 
 import { Duration, Effect, Schedule, Schema } from 'effect'
+import { readParsed } from '@/lib/typedb'
 import { type Unit, unit } from './world'
+
+// ADL: perm-env gate — cache LLM permission lookups (5-min TTL)
+const LLM_ENV_CACHE = new Map<string, { access: string[]; expires: number }>()
+const LLM_ENV_TTL = 5 * 60 * 1000
+
+/** Check if a caller has permission to use LLM providers. Fail-open if no perm-env set. */
+async function canCallLLM(callerId: string): Promise<boolean> {
+  const key = `${callerId}:env`
+  const cached = LLM_ENV_CACHE.get(key)
+  if (cached && cached.expires > Date.now()) {
+    if (!cached.access.length) return true // no restrictions
+    return cached.access.includes('*') || cached.access.some((k) => k.includes('API_KEY') || k.includes('OPENROUTER'))
+  }
+  const rows = await readParsed(
+    `match $u isa unit, has uid "${callerId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", has perm-env $pe; select $pe;`,
+  ).catch(() => [])
+  const access: string[] = []
+  if (rows.length) {
+    try {
+      const perms = JSON.parse(rows[0].pe as string) as Record<string, unknown>
+      const raw = perms.access ?? []
+      if (Array.isArray(raw)) access.push(...(raw as string[]))
+    } catch {
+      /* malformed → fail open */
+    }
+  }
+  LLM_ENV_CACHE.set(key, { access, expires: Date.now() + LLM_ENV_TTL })
+  if (!access.length) return true // no restrictions
+  return access.includes('*') || access.some((k) => k.includes('API_KEY') || k.includes('OPENROUTER'))
+}
 
 type Complete = (prompt: string, ctx?: Record<string, unknown>) => Promise<string>
 
 export const llm = (id: string, complete: Complete): Unit => {
   return unit(id)
     .on('complete', async (d, emit, ctx) => {
+      if (!(await canCallLLM(ctx.from))) return { dissolved: true }
       const { prompt, system, history } = d as { prompt: string; system?: string; history?: unknown }
       const response = await complete(prompt, { system, history })
       emit({ receiver: ctx.from, data: { response } })
     })
     .on('stream', async (d, emit, ctx) => {
+      if (!(await canCallLLM(ctx.from))) return { dissolved: true }
       const { prompt, system, onChunk } = d as { prompt: string; system?: string; onChunk?: (t: string) => void }
       let full = ''
       await complete(`${prompt}\n[STREAM]`, {

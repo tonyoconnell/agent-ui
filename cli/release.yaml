@@ -1,0 +1,323 @@
+# Release Manifest for ONE Platform v3.0.0+
+# This file lists all files to be synced to apps/one and /cli
+# Delete any lines for files you don't want to release
+
+# ============================================================================
+# CLAUDE CODE AGENTS & COMMANDS & SKILLS
+# ============================================================================
+
+claude:
+  agents:
+    - .claude/agents/agent-builder.md
+    - .claude/agents/agent-claude.md
+    - .claude/agents/agent-clean.md
+    - .claude/agents/agent-clone.md
+    - .claude/agents/agent-designer.md
+    - .claude/agents/agent-director.md
+    - .claude/agents/agent-documenter.md
+    - .claude/agents/agent-frontend.md
+    - .claude/agents/agent-integrator.md
+    - .claude/agents/agent-lawyer.md
+    - .claude/agents/agent-news.md
+    - .claude/agents/agent-onboard.md
+    - .claude/agents/agent-ontology.md
+    - .claude/agents/agent-ops.md
+    - .claude/agents/agent-problem-solver.md
+    - .claude/agents/agent-quality.md
+    - .claude/agents/agent-sales.md
+    - .claude/agents/agent-writer.md
+
+  commands:
+    - .claude/commands/cascade.md
+    - .claude/commands/chat.md
+    - .claude/commands/commit.md
+    - .claude/commands/create.md
+    - .claude/commands/deploy.md
+    - .claude/commands/fast.md
+    - .claude/commands/mcp-on.md
+    - .claude/commands/news.md
+    - .claude/commands/onboard.md
+    - .claude/commands/one.md
+    - .claude/commands/optimize.md
+    - .claude/commands/plan.md
+    - .claude/commands/push.md
+    - .claude/commands/review.md
+    - .claude/commands/server.md
+    - .claude/commands/start.md
+    - .claude/commands/test.md
+    - .claude/commands/validate.md
+
+  skills:
+    - .claude/skills/agent-designer-create-wireframe.md
+    - .claude/skills/agent-frontend-create-page.md
+    - .claude/skills/agents/README.md
+    - .claude/skills/astro/add-content-collection.md
+    - .claude/skills/astro/check-build.md
+    - .claude/skills/astro/create-component.md
+    - .claude/skills/astro/create-page.md
+    - .claude/skills/astro/optimize-performance.md
+    - .claude/skills/deployment/check-deployment-health.md
+    - .claude/skills/deployment/create-release.md
+    - .claude/skills/deployment/sync-repositories.md
+    - .claude/skills/design/check-accessibility.md
+    - .claude/skills/design/create-component-spec.md
+    - .claude/skills/design/generate-design-tokens.md
+    - .claude/skills/design/generate-wireframe.md
+    - .claude/skills/documentation/create-migration-guide.md
+    - .claude/skills/documentation/generate-api-docs.md
+    - .claude/skills/documentation/generate-readme.md
+    - .claude/skills/documentation/update-knowledge.md
+    - .claude/skills/integration/connect-external-system.md
+    - .claude/skills/integration/implement-a2a.md
+    - .claude/skills/integration/implement-acp.md
+    - .claude/skills/integration/verify-integration.md
+    - .claude/skills/ontology/check-dimension.md
+    - .claude/skills/ontology/generate-entity-type.md
+    - .claude/skills/ontology/README.md
+    - .claude/skills/ontology/validate-schema.md
+    - .claude/skills/ontology/verify-relationships.md
+    - .claude/skills/problem-solving/analyze-test-failure.md
+    - .claude/skills/problem-solving/identify-root-cause.md
+    - .claude/skills/problem-solving/propose-solution.md
+    - .claude/skills/problem-solving/verify-fix.md
+    - .claude/skills/sales/generate-demo-script.md
+    - .claude/skills/sales/qualify-lead.md
+    - .claude/skills/sales/track-trial.md
+    - .claude/skills/sales/verify-kyc.md
+    - .claude/skills/testing/analyze-coverage.md
+    - .claude/skills/testing/generate-tests.md
+    - .claude/skills/testing/run-tests.md
+    - .claude/skills/testing/validate-e2e.md
+
+# ============================================================================
+# ONE PLATFORM DOCUMENTATION - GROUPS
+# ============================================================================
+
+one:
+  groups:
+    - one/groups/features.md
+    - one/groups/groups.md
+    - one/groups/one.md
+    - one/groups/revenue.md
+    - one/groups/strategy.md
+    - one/groups/vision.md
+
+# ============================================================================
+# ONE PLATFORM DOCUMENTATION - PEOPLE
+# ============================================================================
+
+  people:
+    - one/people/anthony-o-connell.md
+    - one/people/people.md
+
+# ============================================================================
+# ONE PLATFORM DOCUMENTATION - THINGS
+# ============================================================================
+
+  things:
+    # Agent definitions
+    - one/things/agents/agent-backend.md
+    - one/things/agents/agent-builder.md
+    - one/things/agents/agent-clean.md
+    - one/things/agents/agent-clone.md
+    - one/things/agents/agent-deploy.md
+    - one/things/agents/agent-designer.md
+    - one/things/agents/agent-director.md
+    - one/things/agents/agent-documenter.md
+    - one/things/agents/agent-frontend.md
+    - one/things/agents/agent-integrator.md
+    - one/things/agents/agent-lawyer.md
+    - one/things/agents/agent-problem-solver.md
+    - one/things/agents/agent-quality.md
+    - one/things/agents/agent-sales.md
+
+    # Components
+    - one/things/components.md
+    - one/things/design-system.md
+
+    # Features
+    - one/things/features/1-1-agent-prompts.md
+    - one/things/features/1-2-yaml-orchestrator.md
+    - one/things/features/1-3-event-coordination.md
+    - one/things/features/1-4-knowledge-management.md
+    - one/things/features/1-5-quality-loops.md
+    - one/things/features/1-6-numbering-structure.md
+    - one/things/features/2-1-dataprovider-interface.md
+    - one/things/features/2-2-config-system.md
+    - one/things/features/2-3-effectts-services.md
+    - one/things/features/2-4-react-hooks.md
+    - one/things/features/2-5-auth-migration.md
+    - one/things/features/2-6-dashboard-migration.md
+    - one/things/features/2-7-alternative-providers.md
+    - one/things/features/2-cli.md
+
+    # Main files
+    - one/things/ONE.md
+    - one/things/components.md
+    - one/things/design-system.md
+
+# ============================================================================
+# ONE PLATFORM DOCUMENTATION - CONNECTIONS
+# ============================================================================
+
+  connections:
+    - one/connections/a2a.md
+    - one/connections/acp.md
+    - one/connections/acps.md
+    - one/connections/agentkit.md
+    - one/connections/agui.md
+    - one/connections/api.md
+    - one/connections/api-docs.md
+    - one/connections/api-reference.md
+    - one/connections/communications.md
+    - one/connections/connections.md
+    - one/connections/copilotkit.md
+    - one/connections/cryptonetworks.md
+    - one/connections/documentation.md
+    - one/connections/effect.md
+    - one/connections/elizaos.md
+    - one/connections/integration-examples.md
+    - one/connections/integration-guide.md
+    - one/connections/kyc.md
+    - one/connections/mcp.md
+    - one/connections/membership.md
+    - one/connections/multitenant.md
+    - one/connections/n8n.md
+    - one/connections/patterns.md
+    - one/connections/protocols.md
+    - one/connections/relationships.md
+    - one/connections/schema.md
+    - one/connections/service-layer.md
+    - one/connections/vectors.md
+    - one/connections/workflow.md
+    - one/connections/workflow-examples.md
+    - one/connections/x402.md
+
+# ============================================================================
+# ONE PLATFORM DOCUMENTATION - EVENTS (DEPLOYMENT & RELEASE NOTES)
+# ============================================================================
+
+  events:
+    - one/events/0-changes.md
+    - one/events/events.md
+    - one/events/release.md
+    - one/events/DEPLOYMENT.md
+    - one/events/CRITICAL-FIXES-COMPLETE.md
+
+# ============================================================================
+# ONE PLATFORM DOCUMENTATION - KNOWLEDGE
+# ============================================================================
+
+  knowledge:
+    - one/knowledge/ontology.md
+    - one/knowledge/architecture.md
+    - one/knowledge/rules.md
+    - one/knowledge/development-commands.md
+    - one/knowledge/installation-folders.md
+    - one/knowledge/patterns/backend/convex-mutation-pattern.md
+    - one/knowledge/patterns/backend/convex-query-pattern.md
+    - one/knowledge/patterns/backend/mutation-template.md
+    - one/knowledge/patterns/backend/query-template.md
+    - one/knowledge/patterns/backend/service-template.md
+    - one/knowledge/patterns/frontend/component-template.md
+    - one/knowledge/patterns/frontend/form-template.md
+    - one/knowledge/patterns/frontend/page-template.md
+    - one/knowledge/patterns/frontend/react-component-pattern.md
+    - one/knowledge/patterns/design/component-architecture.md
+    - one/knowledge/patterns/design/wireframe-template.md
+    - one/knowledge/patterns/test/acceptance-criteria-template.md
+    - one/knowledge/patterns/test/technical-test-template.md
+    - one/knowledge/patterns/test/test-driven-pattern.md
+    - one/knowledge/ontology-cheatsheet.md
+    - one/knowledge/guidelines.md
+    - one/knowledge/provider-agnostic-content.md
+    - one/knowledge/lessons-learned.md
+    - one/knowledge/troubleshooting.md
+
+# ============================================================================
+# WEB FRONTEND - PAGES (simplify as needed)
+# ============================================================================
+
+web:
+  pages:
+    # Core pages
+    - web/src/pages/index.astro
+    - web/src/pages/start.astro
+
+    # Shop / E-commerce
+    - web/src/pages/shop/index.astro
+    - web/src/pages/shop/[slug].astro
+    - web/src/pages/shop/cart.astro
+    - web/src/pages/shop/checkout.astro
+
+    # Featured category
+    - web/src/pages/shop/electronics/index.astro
+
+    # Docs
+    - web/src/pages/docs/[...slug].astro
+
+    # Blog
+    - web/src/pages/blog/index.astro
+    - web/src/pages/blog/[slug].astro
+
+    # API routes
+    - web/src/pages/api/auth/[...auth].ts
+    - web/src/pages/api/stripe/webhook.ts
+
+# ============================================================================
+# WEB FRONTEND - CORE COMPONENTS
+# ============================================================================
+
+  components:
+    # UI Library (shadcn/ui)
+    - web/src/components/ui/
+
+    # Auth components
+    - web/src/components/auth/SignInPage.tsx
+    - web/src/components/auth/SignUpPage.tsx
+    - web/src/components/auth/MagicLinkAuth.tsx
+
+    # Shop/E-commerce
+    - web/src/components/shop/
+    - web/src/components/ecommerce/
+
+    # Chat/AI
+    - web/src/components/ai/ChatClientV2.tsx
+    - web/src/components/ai/ChatMessages.tsx
+    - web/src/components/ai/PromptInput.tsx
+
+    # Navigation & Layout
+    - web/src/components/app/Navigation.tsx
+    - web/src/components/app/AppLayout.tsx
+    - web/src/components/landing/Hero.tsx
+    - web/src/components/landing/Features.tsx
+    - web/src/components/landing/Footer.tsx
+
+    # Docs
+    - web/src/components/docs/
+
+# ============================================================================
+# WEB FRONTEND - CONTENT COLLECTIONS
+# ============================================================================
+
+  content:
+    # Core collections
+    - web/src/content/config.ts
+    - web/src/content/docs/
+    - web/src/content/blog/
+    - web/src/content/products/
+    - web/src/content/categories/
+    - web/src/content/collections/
+    - web/src/content/features/
+    - web/src/content/news/
+
+# ============================================================================
+# ROOT CONFIG FILES
+# ============================================================================
+
+root:
+  - CLAUDE.md
+  - README.md
+  - LICENSE.md
+  - SECURITY.md
+  - AGENTS.md

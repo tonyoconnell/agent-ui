@@ -1,0 +1,1653 @@
+# ONE Platform - Ontology Specification (YAML)
+
+version: 2.0.0
+status: Complete - Groups-Based Reality Model
+principle: This ontology models reality in six dimensions. All protocols map TO this ontology via metadata.
+
+# ======================================================================
+# AI PATTERN RECOGNITION METADATA
+# ======================================================================
+
+ai_learning:
+  accuracy_target: 98%
+  learning_progression:
+    generation_1_5: "85% - Learning ontology structure"
+    generation_6_20: "90% - Recognizing patterns"
+    generation_21_50: "93% - Composing services"
+    generation_51_100: "96% - Mastering structure"
+    generation_100_plus: "98% - Generalizing patterns"
+
+  universal_patterns:
+    create_entity: "provider.things.create({ type, name, properties })"
+    create_connection: "provider.connections.create({ fromThingId, toThingId, relationshipType, metadata })"
+    log_event: "provider.events.log({ type, actorId, targetId, metadata, timestamp })"
+    query_by_type: "db.query('things').withIndex('by_type', (q) => q.eq('type', TYPE))"
+    query_relationships: "db.query('connections').withIndex('from_type', (q) => q.eq('fromThingId', ID))"
+
+  decision_tree:
+    is_it_a_container: "→ groups (friend_circle, business, community, dao, government, organization)"
+    is_it_an_actor: "→ people (platform_owner, group_owner, group_user, customer)"
+    can_you_point_at_it: "→ things (66 types: user, product, course, agent, token...)"
+    does_it_relate_x_to_y: "→ connections (25 types: owns, purchased, enrolled_in...)"
+    did_it_happen_at_time: "→ events (67 types: created, updated, viewed...)"
+    is_it_semantic_data: "→ knowledge (labels, chunks, embeddings)"
+
+  context_efficiency:
+    root_ontology: "200 tokens - Just dimension names and type counts"
+    with_patterns: "1500 tokens - Add universal patterns and decision tree"
+    full_specification: "3000 tokens - Complete type enums and examples"
+    vs_traditional: "50000+ tokens - Agents must learn 100+ divergent patterns"
+
+# ======================================================================
+# THE 6-DIMENSION REALITY MODEL
+# ======================================================================
+
+dimensions:
+  - name: groups
+    description: Multi-tenant isolation boundary with hierarchical nesting - who owns what at group level
+    purpose: Partition the system with perfect isolation, supporting nested groups (groups within groups)
+    pattern_recognition_hint: "Container that owns all other dimensions. Everything is scoped to groupId."
+
+  - name: people
+    description: Authorization & governance - platform owner, group owners
+    purpose: Define who can do what. People direct groups, customize AI agents, and govern access
+    pattern_recognition_hint: "Actor for all events. Every action has actorId pointing to people."
+
+  - name: things
+    description: Every "thing" - users, agents, content, tokens, courses
+    purpose: All addressable objects in the system
+    pattern_recognition_hint: "Nouns. If you can say 'this is a ___', it's a thing. Use type field to categorize."
+
+  - name: connections
+    description: Every relationship - owns, follows, taught_by, powers
+    purpose: All relationships between things
+    pattern_recognition_hint: "Verbs. If X relates to Y, create connection. Use relationshipType to categorize."
+
+  - name: events
+    description: Every action - purchased, created, viewed, completed
+    purpose: All time-stamped occurrences
+    pattern_recognition_hint: "History. If it happened at a specific time, log event. Complete audit trail."
+
+  - name: knowledge
+    description: Labels + chunks + vectors powering RAG & search
+    purpose: Taxonomy (labels) and retrieval-augmented generation (RAG)
+    pattern_recognition_hint: "Understanding. Labels categorize (skill:*, industry:*), chunks enable semantic search."
+
+golden_rule: "If you can't map your feature to these 6 dimensions, you're thinking about it wrong."
+
+simplicity: "ONE is six dimensions — groups partition, people authorize, things exist, connections relate, events record, and knowledge understands. Everything composes from these building blocks."
+
+# ======================================================================
+# GROUPS: The Isolation Boundary with Nesting
+# ======================================================================
+
+groups:
+  structure:
+    _id: Id<'groups'>
+    slug: string # REQUIRED: URL identifier (/group/slug)
+    name: string # REQUIRED: Display name
+    type:
+      - friend_circle # 2-10 people (friends, family)
+      - business # 10-1000 people (small business to medium company)
+      - community # 100-100k people (online community, forum)
+      - dao # 100-1M people (decentralized autonomous organization)
+      - government # 1M+ people (city, state, country)
+      - organization # Legacy type for backward compatibility
+    parentGroupId: Id<'groups'>? # OPTIONAL: Parent group for nesting
+    description: string? # OPTIONAL: About text
+    metadata: Record<string, any>
+    settings:
+      visibility:
+        - public # Anyone can discover
+        - private # Invitation only
+      joinPolicy:
+        - open # Anyone can join
+        - invite_only # Requires invitation
+        - approval_required # Requires admin approval
+      plan:
+        - starter # Free or basic tier
+        - pro # Paid professional tier
+        - enterprise # Custom enterprise tier
+      limits:
+        users: number # Max users allowed
+        storage: number # GB of storage
+        apiCalls: number # API calls per month
+    status:
+      - active # Group is operational
+      - archived # Group is archived (soft delete)
+    createdAt: number
+    updatedAt: number
+
+  common_fields:
+    identity: [slug, name]
+    web: [slug, name, description]
+    operations: [status, type, settings, parentGroupId]
+
+  why_matters:
+    - Multi-Tenant Isolation: Each group's data is completely separate
+    - Hierarchical Nesting: Groups can contain sub-groups for complex organizations
+    - Flexible Types: From friend circles to DAOs to governments
+    - Resource Quotas: Control costs and usage per group
+    - Privacy Control: Groups can be public or private with controlled access
+
+  ai_pattern:
+    scope_all_queries: "ALWAYS filter by groupId for multi-tenant isolation"
+    example: "db.query('things').filter((q) => q.eq(q.field('groupId'), currentGroupId))"
+
+# ======================================================================
+# PEOPLE: Authorization & Governance
+# ======================================================================
+
+people:
+  structure:
+    _id: Id<'people'>
+    email: string # REQUIRED: Auth identifier
+    username: string # REQUIRED: URL identifier (/username)
+    displayName: string # REQUIRED: Display name
+    role:
+      - platform_owner # Owns the platform (Anthony). 100% platform revenue.
+      - group_owner # Owns/manages groups. Revenue sharing with platform.
+      - group_user # Works within group. Limited permissions.
+      - customer # External user. Purchases tokens, enrolls in courses.
+    groupId: Id<'groups'>? # Current/default group
+    permissions: string[]? # Additional permissions
+    bio: string? # OPTIONAL: About text
+    avatar: string? # OPTIONAL: Profile image
+    groups: Id<'groups'>[] # All groups this person belongs to
+    createdAt: number
+    updatedAt: number
+
+  common_fields:
+    identity: [email, username, displayName]
+    auth: [email, username, role, permissions]
+    web: [username, displayName, avatar, bio]
+    governance: [role, groupId, groups, permissions]
+
+  roles:
+    platform_owner:
+      description: Owns the ONE Platform
+      revenue: 100% from platform-level services
+      access: Can access all groups (support/debugging)
+      capabilities: Creates new groups
+
+    group_owner:
+      description: Owns/manages one or more groups
+      control: Users, permissions, billing within group
+      customization: AI agents and frontend
+      revenue: Revenue sharing with platform
+
+    group_user:
+      description: Works within a group
+      permissions: Limited permissions (defined by group owner)
+      capabilities: Can create content, run agents (within quotas)
+
+    customer:
+      description: External user consuming content
+      access: Purchases tokens, enrolls in courses
+      admin: No admin access
+
+  why_matters:
+    - Authorization: Every action must have an actor (person)
+    - Governance: Group owners control who can do what
+    - Audit Trail: Events log who did what when
+    - Customization: People teach AI agents their preferences
+
+  ai_pattern:
+    every_event_has_actor: "events.actorId ALWAYS references people._id"
+    check_permissions: "Query person.role and person.permissions before mutations"
+    example: "const person = await db.get(actorId); if (person.role !== 'group_owner') throw Error()"
+
+# ======================================================================
+# KNOWLEDGE: Labels, Chunks, and Vectors (RAG)
+# ======================================================================
+
+knowledge:
+  purpose: Unify taxonomy ("tags") and retrieval-augmented generation (RAG) under one table
+
+  principles:
+    - Protocol-agnostic: store protocol details in metadata
+    - Many-to-many: link knowledge ⇄ things via thingKnowledge with optional context metadata
+    - Scalable: consolidated types minimize index fan-out; embeddings enable semantic search
+
+  types:
+    - label: # replaces legacy "tag"; lightweight categorical marker
+        description: "Categorization (skill:python, industry:fitness, topic:ai)"
+    - document: # wrapper for a source text/blob (pre-chunking)
+        description: "Full document before chunking (blog post, transcript)"
+    - chunk: # atomic chunk of text with embedding
+        description: "800-token chunk with vector embedding for semantic search"
+    - vector_only: # embedding without stored text (e.g., privacy)
+        description: "Privacy-preserving vector (no text stored)"
+
+  structure:
+    _id: Id<'knowledge'>
+    knowledgeType: KnowledgeType
+    text: string? # optional for label/vector_only
+    embedding: number[]? # Float32 vector; model-dependent dimension
+    embeddingModel: string? # e.g., "text-embedding-3-large"
+    embeddingDim: number?
+    sourceThingId: Id<'things'>? # Primary source entity
+    sourceField: string? # e.g., 'content', 'transcript', 'title'
+    chunk:
+      index: number
+      start: number?
+      end: number?
+      tokenCount: number?
+      overlap: number?
+    labels: string[]? # Replaces per-thing tags; applied to knowledge
+    metadata: Record<string, any>? # protocol, language, mime, hash, version
+    createdAt: number
+    updatedAt: number
+    deletedAt: number?
+
+  junction_thingKnowledge:
+    _id: Id<'thingKnowledge'>
+    thingId: Id<'things'>
+    knowledgeId: Id<'knowledge'>
+    role:
+      - label # This knowledge labels the thing
+      - summary # This knowledge summarizes the thing
+      - chunk_of # This knowledge is a chunk from the thing
+      - caption # This knowledge captions the thing (image, video)
+      - keyword # This knowledge is a keyword for the thing
+    metadata: Record<string, any>?
+    createdAt: number
+
+  indexes:
+    - knowledge.by_type (knowledgeType)
+    - knowledge.by_source (sourceThingId)
+    - knowledge.by_created (createdAt)
+    - thingKnowledge.by_thing (thingId)
+    - thingKnowledge.by_knowledge (knowledgeId)
+    - knowledge.by_embedding (vector index for ANN search)
+
+  governance:
+    policy: Default is free-form, user-extensible knowledge labels for maximum flexibility
+    curated_prefixes:
+      - skill:* # e.g., skill:python, skill:design, skill:marketing
+      - industry:* # e.g., industry:fitness, industry:finance, industry:healthcare
+      - topic:* # e.g., topic:ai, topic:blockchain, topic:climate
+      - format:* # e.g., format:video, format:blog, format:podcast
+      - goal:* # e.g., goal:learn, goal:build, goal:grow
+      - audience:* # e.g., audience:beginners, audience:enterprise, audience:developers
+      - technology:* # e.g., technology:react, technology:python, technology:aws
+      - status:* # e.g., status:draft, status:published, status:archived
+      - capability:* # e.g., capability:analyze, capability:generate, capability:predict
+      - protocol:* # e.g., protocol:a2a, protocol:acp, protocol:x402
+      - payment_method:* # e.g., payment_method:stripe, payment_method:crypto
+      - network:* # e.g., network:base, network:ethereum, network:polygon
+      # Domain-specific prefixes (curated by domain experts)
+      - subject:* # Education: subject:mathematics, subject:science, subject:history
+      - grade:* # Education: grade:k-5, grade:9-12, grade:undergraduate
+      - difficulty:* # Education: difficulty:beginner, difficulty:advanced
+      - learning_style:* # Education: learning_style:visual, learning_style:kinesthetic
+      - course_level:* # Education: course_level:introductory, course_level:advanced
+      - product_type:* # E-commerce: product_type:apparel, product_type:electronics
+      - price_tier:* # E-commerce: price_tier:budget, price_tier:premium
+      - category:* # E-commerce: category:clothing, category:books
+      - revenue_stream:* # Creator: revenue_stream:sponsorship, revenue_stream:membership
+      - content_type:* # Creator: content_type:youtube, content_type:podcast
+      - platform:* # Creator: platform:youtube, platform:tiktok, platform:twitter
+      - monetization:* # Creator: monetization:ads, monetization:patreon
+      - token_category:* # Crypto: token_category:compute, token_category:governance
+      - blockchain:* # Crypto: blockchain:ethereum, blockchain:base, blockchain:polygon
+      - defi_type:* # Crypto: defi_type:lending, defi_type:dex, defi_type:yield
+      - market_segment:* # Crypto: market_segment:ai_tokens, market_segment:layer2
+    validation: Enforce label hygiene (no duplicates within scope)
+    ownership: Platform/organization owners may curate official labels
+
+  ai_pattern:
+    add_labels: "Create knowledge items with knowledgeType: 'label', link via thingKnowledge"
+    semantic_search: "Vector search on knowledge.embedding filtered by groupId"
+    example: |
+      // Add label
+      const labelId = await db.insert('knowledge', { knowledgeType: 'label', labels: ['skill:python'] });
+      await db.insert('thingKnowledge', { thingId, knowledgeId: labelId, role: 'label' });
+
+      // Semantic search
+      const results = await db.vectorSearch('knowledge', {
+        vectorField: 'embedding',
+        query: queryEmbedding,
+        filter: { groupId: currentGroupId, knowledgeType: 'chunk' },
+        k: 10
+      });
+
+# ======================================================================
+# THINGS: All The "Things" (66 Types)
+# ======================================================================
+
+things:
+  test: "If you can point at it and say 'this is a ___', it's a thing"
+
+  structure:
+    _id: Id<"things">
+    type: ThingType
+    name: string
+    properties: Record<string, any> # Type-specific properties (JSON)
+    status:
+      - active # Entity is operational
+      - inactive # Entity is disabled
+      - draft # Entity is being created
+      - published # Entity is public
+      - archived # Entity is archived (soft delete)
+    createdAt: number
+    updatedAt: number
+    deletedAt: number?
+
+  types:
+    core:
+      - creator # Human creator (role: platform_owner, group_owner, group_user, customer)
+        # Examples: user, instructor, entrepreneur, content creator, founder
+      - ai_clone # Digital twin of creator
+        # Examples: voice clone, appearance clone, AI agent trained on creator
+      - audience_member # Fan/user (role: customer)
+        # Examples: student, customer, subscriber, community member
+      - organization # DEPRECATED: Legacy - Use type='organization' group instead
+        # Use groups table instead for hierarchical organization structures
+
+    business_agents:
+      - strategy_agent # Vision, planning, OKRs
+      - research_agent # Market, trends, competitors
+      - marketing_agent # Content strategy, SEO, distribution
+      - sales_agent # Funnels, conversion, follow-up
+      - service_agent # Support, onboarding, success
+      - design_agent # Brand, UI/UX, assets
+      - engineering_agent # Tech, integration, automation
+      - finance_agent # Revenue, costs, forecasting
+      - legal_agent # Compliance, contracts, IP
+      - intelligence_agent # Analytics, insights, predictions
+
+    content:
+      - blog_post # Written content
+        # Examples: article, tutorial, guide, how-to, case study
+      - video # Video content
+        # Examples: YouTube video, Vimeo, livestream, short-form (TikTok, Shorts)
+      - podcast # Audio content
+        # Examples: episode, audio lesson, interview, audio tutorial
+      - social_post # Social media post
+        # Examples: Tweet, Instagram post, LinkedIn article, TikTok video
+      - email # Email content
+        # Examples: newsletter, email campaign, transactional email
+      - course # Educational course
+        # Examples: online course, bootcamp, certification program, cohort-based class
+      - lesson # Individual lesson
+        # Examples: course module, lecture, tutorial video, exercise
+
+    products:
+      - digital_product # Templates, tools, assets
+        # Examples: ebook, template, software tool, design asset, code library
+      - membership # Tiered membership
+        # Examples: Patreon tier, Substack premium, Discord membership, club membership
+      - consultation # 1-on-1 session
+        # Examples: coaching call, expert call, mentoring session, consulting engagement
+      - nft # NFT collectible
+        # Examples: art NFT, utility NFT, gaming asset, collectible
+
+    community:
+      - community # Community space
+      - conversation # Thread/discussion
+      - message # Individual message
+
+    token:
+      - token # Actual token instance
+      - token_contract # Smart contract
+
+    knowledge_types:
+      - knowledge_item # Piece of creator knowledge
+      - embedding # Vector embedding
+
+    platform:
+      - website # Auto-generated creator site
+      - landing_page # Custom landing pages
+      - template # Design templates
+      - livestream # Live broadcast
+      - recording # Saved livestream content
+      - media_asset # Images, videos, files
+
+    business:
+      - payment # Payment transaction
+        # Examples: Stripe payment, X402 micropayment, crypto transaction, invoice payment
+        # Metadata: protocol (stripe|x402|crypto), amount, currency, status
+      - subscription # Recurring subscription
+        # Examples: SaaS subscription, Patreon subscription, membership renewal, course enrollment
+        # Metadata: recurring amount, interval (monthly|yearly), status (active|cancelled)
+      - invoice # Invoice record
+        # Examples: client invoice, service invoice, product invoice, subscription invoice
+        # Metadata: items, total, dueDate, paymentTerms
+      - metric # Tracked metric
+        # Examples: revenue, users, engagement rate, conversion rate, retention
+        # Metadata: value, unit, period, trend
+      - insight # AI-generated insight
+        # Examples: market trend, customer behavior pattern, performance analysis
+        # Metadata: confidence, sourceData, recommendedAction
+      - prediction # AI prediction
+        # Examples: revenue forecast, churn prediction, demand forecast
+        # Metadata: confidence, timeframe, factors
+      - report # Analytics report
+        # Examples: monthly report, quarterly results, performance analysis
+        # Metadata: period, metrics, trends
+
+    auth_session:
+      - session # User session (Better Auth)
+      - oauth_account # OAuth connection (GitHub, Google)
+      - verification_token # Email/2FA verification token
+      - password_reset_token # Password reset token
+
+    ui_preferences:
+      - ui_preferences # User UI settings (theme, layout, etc.)
+
+    marketing:
+      - notification # System notification
+      - email_campaign # Email marketing campaign
+      - announcement # Platform announcement
+      - referral # Referral record
+      - campaign # Marketing campaign
+      - lead # Potential customer/lead
+
+    external:
+      - external_agent # External AI agent (ElizaOS, etc.)
+      - external_workflow # External workflow (n8n, Zapier, Make)
+      - external_connection # Connection config to external service
+
+    protocol:
+      - mandate # Intent or cart mandate (AP2)
+        # Examples: payment intent, shopping cart mandate, order mandate
+        # Maps to: Thing with metadata.protocol=ap2, properties.mandateType
+      - product # Sellable product (ACP/marketplace)
+        # Examples: digital product, course, service, physical product
+        # Maps to: digital_product, course, consultation thing types
+
+  # ========================================================================
+  # DOMAIN-SPECIFIC THING TYPE MAPPINGS (NOT NEW TYPES)
+  # ========================================================================
+  # These are domain-specific uses of canonical thing types:
+  # They clarify how to use existing types in different domains
+
+  domain_mappings:
+    ecommerce:
+      # Products & Catalog (map to digital_product or nft)
+      product: "digital_product or nft thing with product properties"
+      product_variant: "separate digital_product thing, linked via connection"
+      category: "knowledge label with label type"
+      brand: "creator thing (manufacturer/label)"
+      collection: "knowledge label grouping products"
+      inventory_item: "metric thing tracking stock level"
+
+      # Commerce & Orders (map to payment, subscription, digital_product)
+      order: "bundle of connections: customer→purchase→product"
+      shopping_cart: "mandate thing with type=shopping_cart via metadata"
+      discount_code: "knowledge label or digital_product thing"
+      subscription: "subscription thing with recurring metadata"
+
+      # Content & Engagement (map to blog_post, video, social_post)
+      guide: "blog_post thing"
+      customer_review: "social_post thing with review metadata"
+      faq: "blog_post thing or knowledge chunk"
+      landing_page: "landing_page thing"
+
+      # Marketing & Analytics (map to campaign, insight, metric)
+      customer_segment: "knowledge label with segment metadata"
+      ad_campaign: "campaign thing"
+
+    education:
+      # Academic Structure (map to community, knowledge labels)
+      department: "community thing (org group)"
+      program: "knowledge label prefix:program or collection"
+      curriculum: "knowledge label or collection of courses"
+      semester: "knowledge label with calendar metadata"
+      classroom: "community thing or metadata on course"
+
+      # Courses & Content (map to course, lesson, blog_post)
+      course_section: "course thing with section in properties"
+      module: "lesson thing or knowledge chunk"
+      lecture_notes: "blog_post or knowledge document"
+      video_lecture: "video thing"
+      lab: "lesson thing with lab properties"
+      tutorial: "lesson or blog_post thing"
+
+      # Assessments (map to metric, insight)
+      assignment: "metric thing or knowledge label"
+      quiz: "metric thing with assessment metadata"
+      exam: "metric thing with exam metadata"
+      project: "metric thing or digital_product"
+      presentation: "video or social_post thing"
+
+      # Submissions & Grading (map to message, payment/transaction)
+      submission: "social_post or message thing"
+      grade: "metric thing with grading metadata"
+      rubric: "knowledge document"
+      feedback: "message thing or knowledge chunk"
+      peer_review: "connection with review metadata"
+
+      # Achievements (map to nft, knowledge label)
+      certificate: "nft thing"
+      degree: "nft thing"
+      diploma: "nft thing"
+      badge: "knowledge label"
+      transcript: "report thing"
+      credit: "metric thing"
+      attendance_record: "metric thing"
+
+      # Resources (map to blog_post, knowledge)
+      textbook: "blog_post or knowledge document"
+      syllabus: "blog_post or knowledge document"
+      calendar: "knowledge label or metric"
+      schedule: "knowledge label or metric"
+      office_hours: "conversation thing"
+
+    creator:
+      # Content (map to blog_post, video, podcast, social_post, email, course)
+      youtube_video: "video thing with youtube properties"
+      tiktok_video: "video thing with social_post properties"
+      livestream: "livestream thing"
+      newsletter_issue: "email thing"
+      thread: "social_post thing"
+
+      # Education (map to course, lesson, blog_post)
+      course_module: "lesson thing"
+      course_lesson: "lesson thing"
+      workshop: "course thing"
+      webinar: "livestream thing"
+      masterclass: "course thing"
+      template: "digital_product thing"
+      resource_pack: "digital_product thing"
+
+      # Community (map to community, conversation, message)
+      discord_server: "community thing"
+      community_post: "social_post thing"
+      discussion_thread: "conversation thing"
+      poll: "social_post thing with poll metadata"
+      qa_session: "conversation thing"
+      exclusive_content: "social_post thing or digital_product"
+
+      # Monetization (map to membership, subscription, digital_product, nft)
+      membership_tier: "membership thing with tier properties"
+      sponsorship: "subscription thing with sponsor metadata"
+      brand_partnership: "subscription thing with partnership metadata"
+      affiliate_link: "social_post thing with affiliate metadata"
+      merch_item: "digital_product or nft thing"
+
+      # Finance (map to payment, subscription, invoice, metric)
+      revenue_stream: "metric thing with revenue properties"
+      payout: "payment thing"
+      expense: "payment thing with negative amount"
+      tax_document: "blog_post or knowledge document"
+
+      # Events (map to livestream, community, conversation)
+      event: "livestream or community thing"
+      meetup: "community thing with meetup properties"
+      conference: "community thing with event properties"
+      tour: "livestream thing"
+
+    crypto:
+      # Tokens (map to nft, token thing)
+      fungible_token: "token thing with ERC20 standard"
+      governance_token: "token thing with governance properties"
+      utility_token: "token thing with utility properties"
+      stablecoin: "token thing with stablecoin properties"
+      ai_compute_token: "token thing with compute properties"
+      ai_agent_token: "token thing with agent economy properties"
+
+      # NFTs (map to nft thing)
+      nft_collection: "nft thing with collection metadata"
+      ai_model_nft: "nft thing with model properties"
+      compute_node_nft: "nft thing with node properties"
+
+      # Smart Contracts & Finance (map to digital_product, metric, payment)
+      smart_contract: "digital_product thing with contract properties"
+      liquidity_pool: "metric thing with pool properties"
+      yield_strategy: "metric thing or knowledge label"
+      defi_protocol: "community thing representing protocol"
+
+      # Governance & Organization (map to community, creator groups)
+      dao: "community thing (via groups table)"
+      protocol_governance: "knowledge label or metric"
+      investment_fund: "creator thing or group"
+
+  properties_by_type:
+    creator:
+      email: string
+      username: string
+      displayName: string
+      bio: string?
+      avatar: string?
+      niche: string[]
+      expertise: string[]
+      targetAudience: string
+      brandColors:
+        primary: string
+        secondary: string
+        accent: string
+      totalFollowers: number
+      totalContent: number
+      totalRevenue: number
+      role:
+        - platform_owner
+        - group_owner
+        - group_user
+        - customer
+      groupId: Id<"groups">?
+      permissions: string[]?
+
+    organization: # DEPRECATED: Legacy type for backward compatibility
+      name: string
+      slug: string
+      domain: string?
+      logo: string?
+      description: string?
+      status:
+        - active
+        - suspended
+        - trial
+        - cancelled
+      plan:
+        - starter
+        - pro
+        - enterprise
+      limits:
+        users: number
+        storage: number
+        apiCalls: number
+      usage:
+        users: number
+        storage: number
+        apiCalls: number
+      billing:
+        customerId: string?
+        subscriptionId: string?
+        currentPeriodEnd: number?
+      settings:
+        allowSignups: boolean
+        requireEmailVerification: boolean
+        enableTwoFactor: boolean
+        allowedDomains: string[]?
+      createdAt: number
+      trialEndsAt: number?
+
+    ai_clone:
+      voiceId: string?
+      voiceProvider:
+        - elevenlabs
+        - azure
+        - custom
+      appearanceId: string?
+      appearanceProvider:
+        - d-id
+        - heygen
+        - custom
+      systemPrompt: string
+      temperature: number
+      knowledgeBaseSize: number
+      lastTrainingDate: number
+      totalInteractions: number
+      satisfactionScore: number
+
+    token:
+      contractAddress: string
+      blockchain:
+        - base
+        - ethereum
+        - polygon
+      standard:
+        - ERC20
+        - ERC721
+        - ERC1155
+      totalSupply: number
+      circulatingSupply: number
+      price: number
+      marketCap: number
+      utility: string[]
+      burnRate: number
+      holders: number
+      transactions24h: number
+      volume24h: number
+
+    course:
+      title: string
+      description: string
+      thumbnail: string?
+      modules: number
+      lessons: number
+      totalDuration: number
+      price: number
+      currency: string
+      tokenPrice: number?
+      enrollments: number
+      completions: number
+      averageRating: number
+      generatedBy:
+        - ai
+        - human
+        - hybrid
+      personalizationLevel:
+        - none
+        - basic
+        - advanced
+
+  ai_pattern:
+    always_use_provider: "provider.things.create({ type, name, properties })"
+    never_hardcode_types: "Use type field to categorize, properties for type-specific data"
+    example: |
+      // CORRECT: Universal pattern
+      const userId = await provider.things.create({
+        type: 'creator',
+        name: email,
+        properties: { email, username, role: 'customer' }
+      });
+
+      // WRONG: Custom function per type
+      const userId = await createUser(email, username);
+
+# ======================================================================
+# CONNECTIONS: All The Relationships (25 Types)
+# ======================================================================
+
+connections:
+  test: "If you're describing how thing X relates to thing Y, it's a connection"
+
+  principle: Consolidated types with metadata for variants. Protocol identity stored in metadata.protocol
+
+  structure:
+    _id: Id<"connections">
+    fromThingId: Id<"things">
+    toThingId: Id<"things">
+    relationshipType: ConnectionType
+    metadata: Record<string, any>? # relationship data
+    strength: number? # 0-1
+    validFrom: number?
+    validTo: number?
+    createdAt: number
+    updatedAt: number?
+
+  types:
+    ownership:
+      - owns # Thing A owns thing B
+      - created_by # Thing A was created by thing B
+
+    ai_relationships:
+      - clone_of # AI clone is clone of creator
+      - trained_on # AI trained on knowledge
+      - powers # Agent powers AI clone
+
+    content_relationships:
+      - authored # Creator authored content
+      - generated_by # Content generated by agent
+      - published_to # Content published to platform
+      - part_of # Lesson part of course
+      - references # Content references other content
+
+    community_relationships:
+      - member_of # Person member of group
+      - following # Person following other person
+      - moderates # Person moderates community
+      - participated_in # Person participated in event
+
+    business_relationships:
+      - manages # Person manages thing
+      - reports_to # Person reports to person
+      - collaborates_with # Person collaborates with person
+
+    token_relationships:
+      - holds_tokens # Person holds tokens
+      - staked_in # Tokens staked in pool
+      - earned_from # Tokens earned from action
+
+    product_relationships:
+      - purchased # Person purchased product
+      - enrolled_in # Person enrolled in course
+      - completed # Person completed course
+      - teaching # Creator teaching course
+
+    consolidated:
+      transacted: # Payment/subscription/invoice (metadata.transactionType + protocol)
+        description: "Financial transaction. Use metadata.transactionType: payment|subscription|invoice"
+        # E-commerce: customer→product purchase (payment), customer→course (subscription)
+        # Education: student→course (enrollment fee), instructor→institution (salary)
+        # Creator: fan→creator (Patreon payment), agency→brand (sponsorship payment)
+        # Crypto: holder→pool (staking), trader→protocol (swap fee)
+      notified: # Notifications (metadata.channel + notificationType)
+        description: "Notification sent. Use metadata.channel: email|sms|push|in_app"
+        # E-commerce: order→customer (order status), product→customer (restock alert)
+        # Education: course→student (assignment due), instructor→class (announcement)
+        # Creator: post→subscriber (new content), community→member (event reminder)
+      referred: # Referrals (metadata.referralType)
+        description: "Referral relationship. Use metadata.referralType: direct|conversion|campaign"
+        # E-commerce: customer A→customer B (referral reward), affiliate→customer
+        # Creator: fan→creator (referral commission)
+        # Crypto: early_user→new_user (referral incentive)
+      communicated: # Agent/protocol communication (metadata.protocol + messageType)
+        description: "Cross-agent communication. Use metadata.protocol: a2a|acp|ag-ui"
+        # Agent coordination via A2A, ACP, or AG-UI protocols
+      delegated: # Task/workflow delegation (metadata.protocol + taskType)
+        description: "Task delegation. Use metadata.protocol: a2a|custom"
+        # Agent→Agent (task assignment), Creator→ContentAgent (generate post)
+      approved: # Approvals (metadata.approvalType + protocol)
+        description: "Approval relationship. Use metadata.approvalType: transaction|content|purchase"
+        # Education: teacher→submission (grade approval), admin→course (publish approval)
+        # E-commerce: customer→cart (checkout confirmation)
+      fulfilled: # Fulfillment (metadata.fulfillmentType + protocol)
+        description: "Fulfillment relationship. Use metadata.fulfillmentType: intent|cart|order"
+        # E-commerce: order→shipment (fulfilled), digital_product→customer (delivered)
+        # Education: course→student (enrollment fulfilled)
+
+  patterns:
+    ownership:
+      description: Creator owns AI clone
+      example:
+        fromThingId: creatorId
+        toThingId: cloneId
+        relationshipType: owns
+
+    revenue_split:
+      description: Collaborator owns 30% of course
+      example:
+        fromThingId: collaboratorId
+        toThingId: courseId
+        relationshipType: owns
+        metadata:
+          revenueShare: 0.3
+
+    token_holding:
+      description: User holds 1000 tokens
+      example:
+        fromThingId: userId
+        toThingId: tokenId
+        relationshipType: holds_tokens
+        metadata:
+          balance: 1000
+          acquiredAt: timestamp
+
+    group_membership:
+      description: User is member of group with role
+      example:
+        fromThingId: userId
+        toThingId: groupId
+        relationshipType: member_of
+        metadata:
+          role: group_owner # or group_user
+          permissions: [read, write, admin]
+          invitedBy: userId?
+          joinedAt: timestamp
+
+  ai_pattern:
+    always_use_provider: "provider.connections.create({ fromThingId, toThingId, relationshipType, metadata })"
+    metadata_for_variants: "Use metadata.protocol for protocol-specific variants"
+    example: |
+      // Create connection with protocol metadata
+      await provider.connections.create({
+        fromThingId: userId,
+        toThingId: productId,
+        relationshipType: 'transacted',
+        metadata: {
+          protocol: 'x402',
+          transactionType: 'payment',
+          amount: 99.00,
+          currency: 'USD',
+          txHash: '0x...'
+        }
+      });
+
+# ======================================================================
+# EVENTS: All The Actions (67 Types)
+# ======================================================================
+
+events:
+  test: "If you're describing something that HAPPENED at a specific TIME, it's an event"
+
+  principle: Consolidated types with metadata for variants. Protocol identity stored in metadata.protocol
+
+  structure:
+    _id: Id<"events">
+    type: EventType
+    actorId: Id<"things"> # Who/what caused this
+    targetId: Id<"things">? # Optional target thing
+    timestamp: number
+    metadata: any # Event-specific data
+
+  metadata_structure:
+    protocol_agnostic:
+      action: string
+      contentType: string
+
+    protocol_specific:
+      protocol:
+        - a2a # Agent-to-Agent
+        - acp # Agentic Commerce Protocol
+        - ap2 # Agent Payments Protocol
+        - x402 # HTTP Micropayments
+        - ag-ui # Generative UI
+      # protocol-specific fields
+
+  types:
+    entity_lifecycle:
+      - entity_created # Any entity created
+      - entity_updated # Any entity updated
+      - entity_deleted # Any entity deleted
+      - entity_archived # Any entity archived
+
+    user_events:
+      - user_registered # New user signed up
+      - user_verified # User verified email
+      - user_login # User logged in
+      - user_logout # User logged out
+      - profile_updated # User updated profile
+
+    authentication_events:
+      - password_reset_requested # Password reset email sent
+      - password_reset_completed # Password was reset
+      - email_verification_sent # Verification email sent
+      - email_verified # Email was verified
+      - two_factor_enabled # 2FA was enabled
+      - two_factor_disabled # 2FA was disabled
+
+    group_events:
+      - group_created # New group created
+      - group_updated # Group settings updated
+      - user_invited_to_group # User invited to join group
+      - user_joined_group # User joined group
+      - user_removed_from_group # User removed from group
+
+    dashboard_ui_events:
+      - dashboard_viewed # Dashboard page viewed
+      - settings_updated # Settings changed
+      - theme_changed # UI theme changed
+      - preferences_updated # User preferences updated
+
+    ai_clone_events:
+      - clone_created # AI clone created
+      - clone_updated # AI clone updated
+      - voice_cloned # Voice clone ready
+      - appearance_cloned # Appearance clone ready
+
+    agent_events:
+      - agent_created # Agent created
+      - agent_executed # Agent started execution
+      - agent_completed # Agent finished execution
+      - agent_failed # Agent execution failed
+
+    token_events:
+      - token_created # Token entity created
+      - token_minted # Token minted on-chain
+      - token_burned # Token burned
+      - tokens_purchased # Tokens purchased by user
+      - tokens_staked # Tokens staked
+      - tokens_unstaked # Tokens unstaked
+      - tokens_transferred # Tokens transferred
+
+    course_events:
+      - course_created # Course created
+      - course_enrolled # User enrolled in course
+      - lesson_completed # User completed lesson
+      - course_completed # User completed course
+      - certificate_earned # User earned certificate
+
+    analytics_events:
+      - metric_calculated # Metric calculated
+      - insight_generated # AI insight generated
+      - prediction_made # AI prediction made
+      - optimization_applied # Optimization applied
+      - report_generated # Report generated
+
+    cycle_events:
+      - cycle_request # User requests AI cycle
+      - cycle_completed # Cycle result delivered
+      - cycle_failed # Cycle failed
+      - cycle_quota_exceeded # Monthly limit hit
+      - cycle_revenue_collected # Daily revenue sweep
+      - org_revenue_generated # Group generates platform revenue
+      - revenue_share_distributed # Revenue share paid out
+
+    blockchain_events:
+      - nft_minted # NFT created on-chain
+      - nft_transferred # NFT ownership changed
+      - tokens_bridged # Cross-chain bridge
+      - contract_deployed # Smart contract deployed
+      - treasury_withdrawal # Platform owner withdraws revenue
+
+    consolidated_events:
+      content_event: # metadata.action: created|updated|deleted|viewed|shared|liked
+        description: "Content action. Use metadata.action to specify which."
+        # E-commerce: guide_viewed, product_viewed, review_posted
+        # Education: lesson_viewed, assignment_submitted, comment_posted
+        # Creator: video_uploaded, post_published, comment_received
+      payment_event: # metadata.status: requested|verified|processed + protocol
+        description: "Payment action. Use metadata.status + metadata.protocol."
+        # E-commerce: order payment processed, cart payment failed
+        # Education: tuition payment submitted, refund processed
+        # Creator: sponsorship payment received, payout transferred
+        # Crypto: swap executed, stake transaction confirmed
+      subscription_event: # metadata.action: started|renewed|cancelled
+        description: "Subscription action. Use metadata.action to specify which."
+        # E-commerce: subscription started, auto-renewal activated, subscription cancelled
+        # Education: semester enrollment started, course subscription renewed
+        # Creator: membership tier activated, monthly payment charged
+      commerce_event: # metadata.eventType + protocol (ACP, AP2)
+        description: "Commerce action. Use metadata.eventType + metadata.protocol."
+        # E-commerce: checkout_started, checkout_completed, order_confirmed
+        # Creator: sale_completed, product_purchased
+      livestream_event: # metadata.status: started|ended + metadata.action: joined|left|chat|donation
+        description: "Livestream action. Use metadata.status or metadata.action."
+        # Creator: stream_started, viewer_joined, donation_received, stream_ended
+        # Education: class_session_started, student_joined, question_asked
+      notification_event: # metadata.channel: email|sms|push|in_app + deliveryStatus
+        description: "Notification sent. Use metadata.channel + metadata.deliveryStatus."
+        # E-commerce: order_status_email_sent, restock_alert_delivered
+        # Education: assignment_due_notification, grade_posted_alert
+        # Creator: new_subscriber_notification, mention_alert
+      referral_event: # metadata.action: created|completed|rewarded
+        description: "Referral action. Use metadata.action to specify which."
+        # E-commerce: referral_link_created, referred_customer_signup, referral_reward_issued
+        # Creator: affiliate_link_clicked, commission_earned
+      communication_event: # metadata.protocol (A2A, ACP, AG-UI) + messageType
+        description: "Agent communication. Use metadata.protocol + metadata.messageType."
+        # Agent coordination via A2A, ACP, or AG-UI protocols
+      task_event: # metadata.action: delegated|completed|failed + protocol
+        description: "Task action. Use metadata.action + metadata.protocol."
+        # Agent coordination: task_assigned, task_completed, task_failed
+        # E-commerce: fulfillment_task_assigned, shipping_task_completed
+      mandate_event: # metadata.mandateType: intent|cart + protocol (AP2)
+        description: "Mandate action. Use metadata.mandateType + metadata.protocol."
+        # E-commerce: cart_mandate_created, intent_to_purchase_approved
+      price_event: # metadata.action: checked|changed
+        description: "Price action. Use metadata.action to specify which."
+        # E-commerce: product_price_changed, dynamic_pricing_applied
+        # Crypto: token_price_updated, market_price_feed_received
+
+  retention_archival:
+    purpose: Keep queries fast and costs predictable at scale
+    windows:
+      hot: Last 30-90 days in primary events table, fully indexed
+      warm: 90-365 days; restrict heavy scans
+      cold: +365 days exported to warehouse/storage
+    patterns:
+      - Use type_time and actor_time for filters
+      - Precompute aggregates into metric entities
+      - Scheduled rollups to move old events to archive
+
+  ai_pattern:
+    always_log_events: "provider.events.log({ type, actorId, targetId, metadata, timestamp })"
+    use_consolidated_types: "Use consolidated types with metadata.action for variants"
+    example: |
+      // Log content created event (consolidated)
+      await provider.events.log({
+        type: 'content_event',
+        actorId: creatorId,
+        targetId: contentId,
+        metadata: { action: 'created', contentType: 'blog_post' },
+        timestamp: Date.now()
+      });
+
+# ======================================================================
+# PROTOCOL INTEGRATION
+# ======================================================================
+
+protocols:
+  principle: Ontology is protocol-agnostic. Protocols identify themselves via metadata.protocol
+
+  a2a_agent_to_agent:
+    description: Agent-to-Agent communication
+    event_example:
+      type: task_delegated
+      actorId: oneAgentId
+      targetId: externalAgentId
+      metadata:
+        protocol: a2a
+        task: research_market_trends
+        parameters:
+          industry: fitness
+
+  acp_agentic_commerce:
+    description: Agentic Commerce Protocol
+    event_example:
+      type: commerce_event
+      actorId: agentId
+      targetId: transactionId
+      metadata:
+        protocol: acp
+        eventType: purchase_initiated
+        agentPlatform: chatgpt
+        productId: productId
+        amount: 99.00
+
+  ap2_agent_payments:
+    description: Agent Payments Protocol
+    event_example:
+      type: mandate_created
+      actorId: userId
+      targetId: mandateId
+      metadata:
+        protocol: ap2
+        mandateType: intent
+        autoExecute: true
+        maxBudget: 1500
+
+  x402_http_micropayments:
+    description: HTTP Micropayments Protocol
+    event_example:
+      type: payment_requested
+      actorId: apiServiceId
+      targetId: resourceId
+      metadata:
+        protocol: x402
+        scheme: permit
+        network: base
+        amount: "0.01"
+        resource: /api/agent/analyze
+
+  ag_ui_generative_ui:
+    description: CopilotKit Generative UI
+    event_example:
+      type: message_sent
+      actorId: agentId
+      targetId: conversationId
+      metadata:
+        protocol: ag-ui
+        messageType: ui
+        component: chart
+        data:
+          chartType: line
+
+# ======================================================================
+# DOMAIN-SPECIFIC METADATA PATTERNS
+# ======================================================================
+
+domain_metadata_patterns:
+  ecommerce:
+    payment_metadata:
+      protocol: "stripe|paypal|crypto|x402"
+      transactionType: "payment|subscription|refund"
+      amount: number
+      currency: "USD|EUR|GBP"
+      status: "pending|processed|failed|refunded"
+
+    product_metadata:
+      sku: string
+      category: string
+      supplier: string
+      cost: number
+      margin: number
+      inventory: number
+
+    order_metadata:
+      orderId: string
+      items: array
+      shippingAddress: object
+      trackingNumber?: string
+      estimatedDelivery?: number
+
+  education:
+    course_metadata:
+      code: string # "CS 101"
+      credits: number
+      level: "k12|undergraduate|graduate"
+      capacity: number
+      enrolled: number
+      gradeDistribution: object
+
+    assignment_metadata:
+      dueDate: number
+      points: number
+      rubric: object
+      submissionType: "text|file|url|quiz|code"
+      autoGrade: boolean
+
+    grade_metadata:
+      letterGrade: string
+      pointsEarned: number
+      pointsPossible: number
+      percentage: number
+      feedback: string
+      submittedAt: number
+      gradedAt: number
+
+  creator:
+    content_metadata:
+      platform: "youtube|tiktok|instagram|twitter|substack"
+      platformId: string
+      views: number
+      engagement: number
+      engagementRate: number
+      revenue: number
+      monetized: boolean
+
+    membership_metadata:
+      tier: string
+      price: number
+      billingCycle: "monthly|yearly"
+      benefits: array
+      memberCount: number
+      churnRate: number
+
+    analytics_metadata:
+      period: "daily|weekly|monthly"
+      metric: string
+      value: number
+      trend: "up|down|flat"
+      comparison: object
+
+  crypto:
+    token_metadata:
+      contractAddress: string
+      blockchain: "ethereum|base|polygon|solana"
+      standard: "ERC20|ERC721|ERC1155"
+      totalSupply: string
+      marketCap: number
+      price: number
+      volume24h: number
+      holders: number
+
+    defi_metadata:
+      protocol: string
+      tvl: string
+      apy: number
+      risk: "low|medium|high"
+      audited: boolean
+      tvlChange24h: number
+
+    transaction_metadata:
+      txHash: string
+      blockNumber: number
+      timestamp: number
+      gasUsed: string
+      gasPrice: number
+      status: "pending|confirmed|failed"
+
+# ======================================================================
+# QUERIES & INDEXES
+# ======================================================================
+
+queries:
+  get_thing_by_id:
+    description: Get thing by ID
+    example: db.get(thingId)
+
+  get_things_by_type:
+    description: Get all things of type
+    index: by_type
+    example: |
+      db.query('things')
+        .withIndex('by_type', (q) => q.eq('type', 'creator'))
+        .collect()
+
+  get_thing_relationships:
+    description: Get all entities this entity owns
+    index: from_type
+    example: |
+      db.query('connections')
+        .withIndex('from_type', (q) =>
+          q.eq('fromThingId', thingId).eq('relationshipType', 'owns'))
+        .collect()
+
+  get_thing_history:
+    description: Get all events for this entity
+    index: thing_type_time
+    example: |
+      db.query('events')
+        .withIndex('thing_type_time', (q) => q.eq('thingId', thingId))
+        .order('desc')
+        .collect()
+
+  get_thing_knowledge:
+    description: Get knowledge items linked to thing
+    example: |
+      db.query('thingKnowledge')
+        .withIndex('by_thing', (q) => q.eq('thingId', thingId))
+        .collect()
+
+indexes:
+  things:
+    - by_type(type)
+    - by_status(status)
+    - by_created(createdAt)
+    - search_things(name, type, status)
+
+  connections:
+    - from_type(fromThingId, relationshipType)
+    - to_type(toThingId, relationshipType)
+    - bidirectional(fromThingId, toThingId)
+
+  events:
+    - thing_type_time(thingId, eventType, timestamp)
+    - type_time(eventType, timestamp)
+    - session(sessionId, timestamp)
+    - actor_time(actorId, timestamp)
+
+  knowledge:
+    - by_type(knowledgeType)
+    - by_source(sourceThingId)
+    - by_created(createdAt)
+    - by_embedding(embedding vector)
+
+# ======================================================================
+# VALIDATION RULES
+# ======================================================================
+
+validation:
+  thing:
+    - type must be valid ThingType
+    - name cannot be empty
+    - properties structure must match type
+    - status must be valid
+    - createdAt and updatedAt required
+
+  connection:
+    - fromThingId must exist
+    - toThingId must exist
+    - relationshipType must be valid
+    - Cannot connect a thing to itself (usually)
+    - Relationship must make semantic sense
+
+  event:
+    - thingId must exist
+    - eventType must be valid
+    - timestamp required
+    - actorId must exist if provided
+    - metadata structure must match event type
+
+# ======================================================================
+# SUMMARY STATISTICS
+# ======================================================================
+
+statistics:
+  dimensions: 6
+  thing_types: 66
+  connection_types: 25
+  event_types: 67
+
+  thing_breakdown:
+    core: 4
+    business_agents: 10
+    content: 7
+    products: 4
+    community: 3
+    token: 2
+    knowledge: 2
+    platform: 6
+    business: 7
+    auth_session: 5
+    marketing: 6
+    external: 3
+    protocol: 2
+
+  connection_breakdown:
+    specific_semantic: 18
+    consolidated_with_metadata: 7
+
+  event_breakdown:
+    entity_lifecycle: 4
+    user: 5
+    authentication: 6
+    group: 5
+    dashboard_ui: 4
+    ai_clone: 4
+    agent: 4
+    token: 7
+    course: 5
+    analytics: 5
+    cycle: 7
+    blockchain: 5
+    consolidated: 11
+
+# ======================================================================
+# DESIGN BENEFITS
+# ======================================================================
+
+benefits:
+  - Six-dimension reality model
+  - Multi-tenant by design
+  - Clear ownership & governance
+  - Protocol-agnostic core
+  - Infinite protocol extensibility
+  - Cross-protocol analytics
+  - Type-safe
+  - Future-proof
+  - Scales from children to enterprise
+  - 98% AI code generation accuracy
+
+# ======================================================================
+# PHILOSOPHY
+# ======================================================================
+
+philosophy:
+  quote: "Simplicity is the ultimate sophistication."
+
+  proof: |
+    This ontology proves that you don't need hundreds of tables or complex schemas
+    to build a complete AI-native platform.
+
+  why_this_works:
+    other_systems:
+      - Create new tables for every feature
+      - Add protocol-specific columns
+      - Pollute schema with temporary concepts
+      - End up with 50+ tables, 200+ columns
+      - Become unmaintainable nightmares
+
+    one_approach:
+      - Map every feature to 6 dimensions
+      - Groups partition the space
+      - People authorize and govern
+      - Things, connections, events flow from there
+      - Knowledge understands it all
+      - Scale infinitely without schema changes
+      - Stay simple, clean, beautiful
+
+  result:
+    - Scales from lemonade stands to global enterprises
+    - Children can understand it
+    - Enterprises can rely on it
+    - AI agents can reason about it
+    - Never needs breaking changes
+    - Grows more powerful as it grows larger
+
+# ======================================================================
+# EXTENSIBILITY
+# ======================================================================
+
+extensibility:
+  principle: Users can add to any type without breaking the ontology
+
+  guidelines:
+    - Use properties for schema-free details
+    - Use knowledge labels to categorize, filter, and group
+    - Use metadata on connections and events for protocol/workflow-specific context
+    - Keep type stable, add properties.kind and labels for subtypes
+    - Custom automations integrate via external_agent, external_workflow, external_connection
+
+# ======================================================================
+# UNIVERSAL FIELDS (Auth + Web Generation)
+# ======================================================================
+
+universal_fields:
+  description: "Fields that EVERY person/group has for auth and web generation"
+
+  groups_require:
+    identity: [slug, name] # Who they are + URL
+    web: [slug, name, description?]
+    operations: [status, type, settings, parentGroupId?]
+
+  people_require:
+    identity: [email, username, displayName] # Who they are + URL
+    auth: [email, username, role] # Authentication
+    web: [username, displayName, avatar?, bio?]
+    governance: [role, groupId?, groups]
+
+  things_require:
+    identity: [type, name] # What it is
+    properties: {} # Type-specific data (username, slug, image, etc.)
+    status: enum # Visibility/state
+
+  web_generation_pattern: |
+    Every person/group can be a website:
+    - Groups: /group/{slug} → generated from group data
+    - People: /{username} → generated from person data
+    - Things: Rendered in context of their owner (group or person)
+
+    Required for ANY web page:
+    1. URL identifier (slug/username in properties)
+    2. Display name (name field)
+    3. Visual identity (description in properties)
+    4. Description (bio/description in properties)
+    5. Visibility (status field)
+
+  auth_pattern: |
+    Better Auth integration:
+    - People table has email (links to auth.users)
+    - Auth sessions → session thing (type: session)
+    - OAuth accounts → oauth_account thing
+    - Email verification → verification_token thing
+
+    Minimal auth fields in people:
+    - email (REQUIRED for linking to auth.users)
+    - username (OPTIONAL for username-based login)
+    - role (REQUIRED for authorization)
+
+# ======================================================================
+# WORKFLOW (Agent-Based Development)
+# ======================================================================
+
+workflow:
+  description: "Agent-orchestrated development using ontology as source of truth"
+  philosophy: "The ontology IS the workflow. Agents collaborate. Everything else is noise."
+
+  stages:
+    1_ideas: # Director validates against ontology
+    2_plans: # Director creates feature collections
+    3_features: # Specialists write specifications
+    4_tests: # Quality defines user flows & acceptance criteria
+    5_design: # Design creates UI that enables tests to pass
+    6_implementation: # Specialists code → Quality validates → Complete
+
+  agents:
+    director: # Validates ideas, creates plans, assigns work
+      role: engineering_agent
+      responsibilities:
+        [validate_ideas, create_plans, assign_specialists, mark_complete]
+      context_tokens: 200 # Just ontology type names
+
+    specialists: # Write features, execute tasks, fix problems
+      roles: [engineering_agent, design_agent, marketing_agent]
+      types: [backend, frontend, integration]
+      context_tokens: 1500 # Ontology types + patterns
+
+    quality: # Defines tests, validates results
+      role: intelligence_agent
+      responsibilities:
+        [check_ontology, create_user_flows, define_tests, validate]
+      context_tokens: 2000 # Ontology + feature + UX patterns
+
+    design: # Creates wireframes & components
+      role: design_agent
+      responsibilities: [create_wireframes, define_components, set_tokens]
+      context_tokens: 2000 # Feature + tests + design patterns
+
+    problem_solver: # Analyzes failures (ultrathink mode)
+      role: intelligence_agent
+      responsibilities: [analyze_failures, propose_solutions, delegate_fixes]
+      context_tokens: 2500 # Failed tests + implementation + ontology
+
+    documenter: # Writes docs after completion
+      role: intelligence_agent
+      responsibilities: [write_docs, update_knowledge]
+      context_tokens: 1000 # Feature + tests
+
+  workflow_things:
+    idea: "User's initial concept → validated by director"
+    plan: "Collection of features → orchestrated by director (e.g., 2-course-platform)"
+    feature: "Specification of what to build → written by specialists (e.g., 2-1-course-crud)"
+    test: "User flows + acceptance criteria → defined by quality agent"
+    design: "Wireframes + components → created by design agent"
+    task: "Individual work item → executed by specialists (e.g., 2-1-task-1)"
+    lesson: "Lessons learned → captured in knowledge after fixes"
+
+  workflow_connections:
+    part_of: "feature → plan, task → feature"
+    assigned_to: "feature → agent, task → agent"
+    depends_on: "task → task (optional ordering)"
+    tested_by: "feature → test"
+    designed_by: "feature → design"
+    implements: "task → design"
+
+  numbering:
+    plan: "2-plan-name" # e.g., 2-course-platform
+    feature: "2-1-feature-name" # e.g., 2-1-course-crud
+    tasks: "2-1-feature-name-tasks" # e.g., 2-1-course-crud-tasks
+    task: "2-1-task-1" # e.g., 2-1-task-1
+
+  workflow_events:
+    planning: [plan_started, feature_assigned, tasks_created]
+    execution:
+      [feature_started, implementation_complete, task_started, task_completed]
+    quality:
+      [
+        quality_check_started,
+        quality_check_complete,
+        test_started,
+        test_passed,
+        test_failed,
+      ]
+    problem_solving:
+      [problem_analysis_started, solution_proposed, fix_started, fix_complete]
+    documentation:
+      [documentation_started, documentation_complete, lesson_learned_added]
+    completion: [feature_complete, plan_complete]
+
+  quality_loop: |
+    Specialist writes → Quality validates → Tests run
+    → PASS: Documenter writes docs
+    → FAIL: Problem Solver analyzes → Proposes solution → Specialist fixes → Add to lessons learned → Re-test
+
+  coordination:
+    pattern: "Event-driven via events table"
+    no_handoffs: "Agents watch events, act autonomously"
+    parallel: "Tasks execute concurrently"
+    audit_trail: "Complete history in events table"
+
+  benefits:
+    - 300 lines of orchestration vs 15,000+ lines of YAML
+    - 98% context reduction (200-2,500 tokens vs 50k-150k)
+    - 5x faster execution (20s vs 115s per feature)
+    - Event-driven coordination (no handoff protocols)
+    - Quality loops with continuous learning
+    - Parallel execution by default
+
+# ======================================================================
+# FOR IMPLEMENTERS
+# ======================================================================
+
+implementer_checklist:
+  when_implementing_feature:
+    1: What entities are involved?
+    2: What connections link them?
+    3: What events need to be logged?
+    4: What knowledge labels categorize them?
+    5: What protocol is this for? (add to metadata)
+    6: What knowledge (labels + chunks) should be linked?
+    7: What workflow stage? (idea/plan/feature/test/design/implementation)
+
+  for_ai_agents: |
+    You now have a complete, unambiguous data model. Generate consistent
+    database operations because you understand the underlying structure.
+
+    Use the workflow agents to orchestrate development:
+    - Director validates ideas and creates plans
+    - Specialists write features and execute tasks
+    - Quality defines tests and validates results
+    - Design creates UI that enables tests to pass
+    - Problem Solver analyzes failures and proposes solutions
+    - Documenter captures knowledge after completion
+
+  for_developers: |
+    You have a schema that will never need major refactoring. Just add new
+    thing types as needed, use existing event types with metadata, and enjoy
+    the simplicity.
+
+    The workflow system uses the same 6-dimension ontology:
+    - Ideas, plans, features, tests, designs, tasks are all "things"
+    - Agent assignments are "connections"
+    - All progress tracked via "events"
+    - Lessons learned stored in "knowledge"
+
+# ======================================================================
+# END OF ONTOLOGY SPECIFICATION
+# ======================================================================

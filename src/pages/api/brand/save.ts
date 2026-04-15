@@ -90,9 +90,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     ).catch(() => [] as Record<string, unknown>[])
     if (rows.length === 0) {
       // First save — stamp ownership atomically before the brand write.
-      writeSilent(
-        `match $e isa skill, has skill-id "${safeIdForCheck}"; insert $e has owner "${safeUserId}";`,
-      )
+      writeSilent(`match $e isa skill, has skill-id "${safeIdForCheck}"; insert $e has owner "${safeUserId}";`)
     } else {
       const existing = rows[0]?.o
       if (typeof existing !== 'string' || existing !== userId) {

@@ -1,0 +1,34 @@
+# ONE Platform - Dashboard Package
+# Build with: npx oneie admin build dashboard
+
+name: "@oneie/dashboard"
+description: "Analytics dashboard and admin tools"
+version: "1.0.0"
+type: feature
+price: "$39"
+
+github:
+  app: one-ie/dashboard
+  package: one-ie/package-dashboard
+
+npm:
+  access: restricted
+
+# Files to include (relative to monorepo root)
+include:
+  # ========== PAGES ==========
+  - web/src/pages/dashboard/**
+  - web/src/pages/admin/**
+
+  # ========== COMPONENTS ==========
+  - web/src/components/dashboard/**
+  - web/src/components/charts/**
+
+# Dependencies to install (on top of web foundation)
+dependencies:
+  recharts: "^2.15.0"
+  date-fns: "^4.0.0"
+  "@tanstack/react-table": "^8.0.0"
+
+env:
+  optional: []

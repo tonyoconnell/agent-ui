@@ -1,0 +1,56 @@
+# ONE Platform - E-commerce Shop Package
+# Build with: npx oneie admin build shop
+
+name: "@oneie/shop"
+description: "E-commerce with Stripe payments, cart, and checkout"
+version: "1.0.0"
+type: feature
+price: "$49"
+
+requires:
+  - mail  # For order confirmations
+
+github:
+  app: one-ie/shop
+  package: one-ie/package-shop
+
+npm:
+  access: restricted
+
+# Files to include (relative to monorepo root)
+include:
+  # ========== PAGES ==========
+  - web/src/pages/shop/**
+  - web/src/pages/checkout/**
+
+  # ========== API ROUTES ==========
+  - web/src/pages/api/stripe/**
+
+  # ========== COMPONENTS ==========
+  - web/src/components/shop/**
+  - web/src/components/ecommerce/**
+
+  # ========== CONTENT ==========
+  - web/src/content/products/**
+  - web/src/content/categories/**
+
+  # ========== LIB ==========
+  - web/src/lib/stripe.ts
+  - web/src/lib/stripe-client.ts
+  - web/src/lib/cart.ts
+
+  # ========== STORES ==========
+  - web/src/stores/cart.ts
+
+# Dependencies to install (on top of web foundation)
+dependencies:
+  stripe: "^19.0.0"
+  "@stripe/stripe-js": "^8.0.0"
+  "@stripe/react-stripe-js": "^5.0.0"
+
+env:
+  required:
+    - STRIPE_SECRET_KEY
+    - STRIPE_PUBLISHABLE_KEY
+  optional:
+    - STRIPE_WEBHOOK_SECRET

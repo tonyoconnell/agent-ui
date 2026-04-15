@@ -1,0 +1,491 @@
+# ONE Platform Package Manifest v3.0
+# Single source of truth for all packages, features, and releases
+# Used by: npx oneie admin build|release|validate|sync
+
+version: "3.0.0"
+
+# ============================================================================
+# MONOREPO DETECTION
+# Admin commands only work when these files exist in cwd
+# ============================================================================
+
+monorepo_markers:
+  - CLAUDE.md
+  - cli/release.yaml
+  - .claude/agents
+
+# ============================================================================
+# GLOBAL EXCLUSIONS
+# Always excluded from all packages
+# ============================================================================
+
+global_exclude:
+  - "**/.DS_Store"
+  - "**/node_modules/**"
+  - "**/.env"
+  - "**/.env.local"
+  - "**/dist/**"
+  - "**/.astro/**"
+  - "**/.wrangler/**"
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/TEMPLATE-*.md"
+
+# ============================================================================
+# SHARED FILES
+# Included in ALL packages automatically
+# ============================================================================
+
+shared:
+  claude:
+    - .claude/agents/**
+    - .claude/commands/**
+    - .claude/hooks/**
+    - .claude/skills/**
+
+  ontology:
+    - one/knowledge/ontology.md
+    - one/knowledge/architecture.md
+    - one/knowledge/rules.md
+    - one/connections/workflow.md
+
+  config:
+    - CLAUDE.md
+    - AGENTS.md
+    - LICENSE.md
+    - SECURITY.md
+
+  # NOTE: web_core removed - web package defines its own files
+  # NOTE: Backend is separate - not included in frontend packages
+  # Backend lives in /backend and is deployed independently to Convex
+
+# ============================================================================
+# PACKAGES
+# ============================================================================
+
+packages:
+  # --------------------------------------------------------------------------
+  # FOUNDATION - Base template (npx oneie init)
+  # Destination: apps/web/
+  # --------------------------------------------------------------------------
+  web:
+    name: "@oneie/web"
+    description: "ONE Platform foundation - Astro + React + Tailwind starter"
+    version: "1.0.0"
+    type: foundation
+    price: free
+
+    github:
+      app: one-ie/web
+
+    npm:
+      access: public
+
+    include:
+      # ========== ROOT FILES ==========
+      - web/astro.config.mjs
+      - web/tsconfig.json
+      - web/package.json
+      - web/wrangler.toml
+      - web/.gitignore
+      - web/.npmrc
+      - web/.env.example
+      - web/README.md
+      - web/LICENSE.md
+      - web/CLAUDE.md
+
+      # ========== PAGES (Core) ==========
+      - web/src/pages/index.astro
+      - web/src/pages/404.astro
+      - web/src/pages/CLAUDE.md
+
+      # ========== LAYOUTS ==========
+      - web/src/layouts/Layout.astro
+      - web/src/layouts/LandingLayout.astro
+      - web/src/layouts/AppLayout.astro
+      - web/src/layouts/TextLayout.astro
+
+      # ========== COMPONENTS - UI (shadcn) ==========
+      - web/src/components/ui/**
+
+      # ========== COMPONENTS - Landing ==========
+      - web/src/components/landing/**
+
+      # ========== COMPONENTS - Core ==========
+      - web/src/components/Sidebar.tsx
+      - web/src/components/ModeToggle.tsx
+      - web/src/components/FaqAccordion.tsx
+      - web/src/components/Chart.tsx
+      - web/src/components/CopyButton.tsx
+      - web/src/components/ErrorBoundary.tsx
+      - web/src/components/CLAUDE.md
+
+      # ========== COMPONENTS - Charts ==========
+      - web/src/components/charts/**
+
+      # ========== COMPONENTS - Ontology UI ==========
+      - web/src/components/ontology-ui/**
+
+      # ========== LIB - Utilities ==========
+      - web/src/lib/utils.ts
+      - web/src/lib/date.ts
+      - web/src/lib/CLAUDE.md
+
+      # ========== STYLES ==========
+      - web/src/styles/global.css
+      - web/src/styles/transitions.css
+      - web/src/styles/landing-theme.css
+
+      # ========== CONFIG ==========
+      - web/src/config/site.ts
+      - web/src/config/providers.ts
+      - web/src/config/backend.ts
+      - web/src/config/validation.ts
+
+      # ========== HOOKS (Core) ==========
+      - web/src/hooks/index.ts
+      - web/src/hooks/types.ts
+      - web/src/hooks/use-mobile.tsx
+      - web/src/hooks/use-mobile.ts
+      - web/src/hooks/use-media-query.ts
+      - web/src/hooks/use-toast.ts
+
+      # ========== STORES ==========
+      - web/src/stores/**
+
+      # ========== TYPES ==========
+      - web/src/types/**
+
+      # ========== PUBLIC ASSETS ==========
+      - web/public/favicon.svg
+      - web/public/logo.svg
+      - web/public/og.jpg
+      - web/public/robots.txt
+
+      # ========== ENV & TYPES ==========
+      - web/src/env.d.ts
+
+    exclude:
+      # Feature packages (separate)
+      - web/src/pages/shop/**
+      - web/src/pages/blog/**
+      - web/src/pages/docs/**
+      - web/src/pages/dashboard/**
+      - web/src/pages/chat/**
+      - web/src/pages/account/**
+      - web/src/pages/api/**
+      - web/src/pages/checkout/**
+      # One-off marketing pages
+      - web/src/pages/ai.astro
+      - web/src/pages/deploy.astro
+      - web/src/pages/design.astro
+      - web/src/pages/creators.astro
+      - web/src/pages/cli.astro
+      # Feature-specific components
+      - web/src/components/ai/**
+      - web/src/components/auth/**
+      - web/src/components/course/**
+      - web/src/components/dashboard/**
+      - web/src/components/ecommerce/**
+      - web/src/components/docs/**
+
+    dependencies:
+      astro: "^5.0.0"
+      "@astrojs/cloudflare": "^12.0.0"
+      "@astrojs/react": "^4.0.0"
+      react: "^19.0.0"
+      react-dom: "^19.0.0"
+      "@types/react": "^19.0.0"
+      "@types/react-dom": "^19.0.0"
+      tailwindcss: "^4.0.0"
+      "@tailwindcss/vite": "^4.0.0"
+      nanostores: "^1.0.0"
+      "@nanostores/react": "^1.0.0"
+      class-variance-authority: "^0.7.0"
+      clsx: "^2.1.0"
+      tailwind-merge: "^3.0.0"
+      lucide-react: "^0.500.0"
+
+    env:
+      optional:
+        - PUBLIC_CONVEX_URL
+        - CONVEX_DEPLOYMENT
+
+  # --------------------------------------------------------------------------
+  # FREE PACKAGES
+  # --------------------------------------------------------------------------
+  blog:
+    name: "@oneie/blog"
+    description: "Blog with MDX, RSS, and content collections"
+    version: "1.0.0"
+    type: feature
+    price: free
+
+    github:
+      app: one-ie/blog
+      package: one-ie/package-blog
+
+    npm:
+      access: public
+
+    include:
+      - web/src/pages/blog/**
+      - web/src/components/blog/**
+      - web/src/content/blog/**
+      - web/src/content/config.ts
+
+    dependencies:
+      "@astrojs/mdx": "^3.0.0"
+      "@astrojs/rss": "^4.0.0"
+
+  docs:
+    name: "@oneie/docs"
+    description: "Documentation site with search and versioning"
+    version: "1.0.0"
+    type: feature
+    price: free
+
+    github:
+      app: one-ie/docs
+      package: one-ie/package-docs
+
+    npm:
+      access: public
+
+    include:
+      - web/src/pages/docs/**
+      - web/src/components/docs/**
+      - web/src/content/docs/**
+
+    dependencies:
+      "@astrojs/mdx": "^3.0.0"
+
+  # --------------------------------------------------------------------------
+  # PAID PACKAGES
+  # --------------------------------------------------------------------------
+  shop:
+    name: "@oneie/shop"
+    description: "E-commerce with Stripe payments, cart, and checkout"
+    version: "1.0.0"
+    type: feature
+    price: "$49"
+
+    requires:
+      - mail  # For order confirmations
+
+    github:
+      app: one-ie/shop
+      package: one-ie/package-shop
+
+    npm:
+      access: restricted
+
+    include:
+      - web/src/pages/shop/**
+      - web/src/pages/api/stripe/**
+      - web/src/components/shop/**
+      - web/src/components/ecommerce/**
+      - web/src/content/products/**
+      - web/src/content/categories/**
+      - web/src/lib/stripe.ts
+      - web/src/lib/stripe-client.ts
+      - web/src/lib/cart.ts
+
+    dependencies:
+      stripe: "^14.0.0"
+      "@stripe/stripe-js": "^2.0.0"
+
+    env:
+      required:
+        - STRIPE_SECRET_KEY
+        - STRIPE_PUBLISHABLE_KEY
+      optional:
+        - STRIPE_WEBHOOK_SECRET
+
+  mail:
+    name: "@oneie/mail"
+    description: "Email system with Resend and templates"
+    version: "1.0.0"
+    type: feature
+    price: "$29"
+
+    github:
+      app: one-ie/mail
+      package: one-ie/package-mail
+
+    npm:
+      access: restricted
+
+    include:
+      - web/src/pages/mail/**
+      - web/src/components/mail/**
+      - web/src/lib/resend.ts
+
+    dependencies:
+      resend: "^2.0.0"
+      "@react-email/components": "^0.0.15"
+      react-email: "^2.0.0"
+
+    env:
+      required:
+        - RESEND_API_KEY
+
+  chat:
+    name: "@oneie/chat"
+    description: "Real-time chat with AI integration"
+    version: "1.0.0"
+    type: feature
+    price: "$59"
+
+    github:
+      app: one-ie/chat
+      package: one-ie/package-chat
+
+    npm:
+      access: restricted
+
+    include:
+      - web/src/pages/chat/**
+      - web/src/components/ai/**
+      - web/src/components/chat/**
+      - web/src/lib/ai.ts
+
+    dependencies:
+      ai: "^3.0.0"
+      "@ai-sdk/anthropic": "^0.0.30"
+
+    env:
+      required:
+        - ANTHROPIC_API_KEY
+
+  dashboard:
+    name: "@oneie/dashboard"
+    description: "Analytics dashboard and admin tools"
+    version: "1.0.0"
+    type: feature
+    price: "$39"
+
+    github:
+      app: one-ie/dashboard
+      package: one-ie/package-dashboard
+
+    npm:
+      access: restricted
+
+    include:
+      - web/src/pages/dashboard/**
+      - web/src/components/dashboard/**
+      - web/src/components/charts/**
+
+    dependencies:
+      recharts: "^2.10.0"
+      date-fns: "^3.0.0"
+
+  creator:
+    name: "@oneie/creator"
+    description: "Creator platform with courses, memberships, and digital products"
+    version: "1.0.0"
+    type: feature
+    price: "$99"
+
+    requires:
+      - shop
+      - blog
+      - mail
+
+    github:
+      app: one-ie/creator
+      package: one-ie/package-creator
+
+    npm:
+      access: restricted
+
+    include:
+      - web/src/pages/creator/**
+      - web/src/pages/courses/**
+      - web/src/pages/members/**
+      - web/src/components/creator/**
+      - web/src/components/courses/**
+      - web/src/content/courses/**
+
+    dependencies:
+      "@mux/mux-player-react": "^2.0.0"
+
+    env:
+      optional:
+        - MUX_TOKEN_ID
+        - MUX_TOKEN_SECRET
+
+# ============================================================================
+# BUNDLES
+# ============================================================================
+
+bundles:
+  starter:
+    name: "Starter Bundle"
+    description: "Free features to get started"
+    price: free
+    includes:
+      - blog
+      - docs
+
+  business:
+    name: "Business Bundle"
+    description: "Everything you need to sell online"
+    price: "$69"
+    savings: "$9"
+    includes:
+      - shop
+      - mail
+
+  pro:
+    name: "Pro Bundle"
+    description: "All features unlocked"
+    price: "$249"
+    savings: "$66"
+    includes:
+      - shop
+      - mail
+      - chat
+      - dashboard
+      - creator
+
+# ============================================================================
+# RELEASE CONFIGURATION
+# Files to sync to cli/ and apps/one/ for npm publishing
+# ============================================================================
+
+release:
+  # CLI package destination
+  cli_path: cli/
+
+  # Demo app destination
+  app_path: apps/one/
+
+  # Version source
+  version_file: cli/package.json
+
+  # npm package name
+  npm_name: oneie
+
+  # Files to sync (from monorepo root)
+  sync:
+    # Claude Code tooling
+    - source: .claude/
+      dest: .claude/
+
+    # ONE ontology docs
+    - source: one/
+      dest: one/
+
+    # Root docs
+    - source: CLAUDE.md
+      dest: CLAUDE.md
+    - source: AGENTS.md
+      dest: AGENTS.md
+    - source: README.md
+      dest: README.md
+    - source: LICENSE.md
+      dest: LICENSE.md
+    - source: SECURITY.md
+      dest: SECURITY.md

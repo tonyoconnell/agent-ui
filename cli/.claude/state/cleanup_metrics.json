@@ -1,0 +1,38 @@
+{
+  "last_cleanup": "2025-11-03T21:34:46.453758",
+  "ontology_aligned": false,
+  "violations": [
+    "POLICY VIOLATION: bun.lock must be moved to /one/<dimension>/",
+    "POLICY VIOLATION: package-lock.json must be moved to /one/<dimension>/",
+    "POLICY VIOLATION: package.json must be moved to /one/<dimension>/",
+    "Root directory contains 3 unapproved file(s). Only README.md, LICENSE.md, SECURITY.md, CLAUDE.md, AGENTS.md are allowed."
+  ],
+  "warnings": [],
+  "files_removed": 211,
+  "files_organized": 0,
+  "files_tagged": 8,
+  "space_freed": 2498583,
+  "actions": [
+    "Phase 1: Validating 6-dimension ontology structure...",
+    "Phase 2: Removing temporary artifacts...",
+    "Removed 211 temporary files",
+    "  \u2022 apps/oneie/web/src/pages/group/_[slug].astro.bak",
+    "  \u2022 apps/oneie/web/src/pages/groups/_index.astro.bak",
+    "  \u2022 apps/one/web/src/pages/group/_[slug].astro.bak",
+    "  \u2022 apps/one/web/src/pages/groups/_index.astro.bak",
+    "  \u2022 apps/oneieold/src/content/book/14.Nurture.md.bak",
+    "  ... and 206 more",
+    "Cleaned: node_modules/.cache (158.0 B)",
+    "Phase 3: Organizing files into ontology dimensions...",
+    "Phase 4: Updating metadata with ontology context...",
+    "Tagged: one/things/ALIGNMENT_AUDIT_QUALITY_AGENT.md",
+    "Tagged: one/things/IMPLEMENTATION_STATUS.md",
+    "Tagged: one/things/AUDIT_AGENT_INTEGRATOR_ALIGNMENT.md",
+    "Tagged: one/things/AUDIT_REPORT_AGENT_CLEAN.md",
+    "Tagged: one/events/ALIGNMENT_SUMMARY.md",
+    "Tagged: one/events/ALIGNMENT_REPORT_PROBLEM_SOLVER.md",
+    "Tagged: one/events/root-cleanup-alignment-report.md",
+    "Tagged: one/things/plans/SIMPLIFICATION-EXAMPLES.md",
+    "Phase 5: Archiving old versions..."
+  ]
+}

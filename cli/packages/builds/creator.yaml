@@ -1,0 +1,43 @@
+# ONE Platform - Creator Package
+# Build with: npx oneie admin build creator
+
+name: "@oneie/creator"
+description: "Creator platform with courses, memberships, and digital products"
+version: "1.0.0"
+type: feature
+price: "$99"
+
+requires:
+  - shop
+  - blog
+  - mail
+
+github:
+  app: one-ie/creator
+  package: one-ie/package-creator
+
+npm:
+  access: restricted
+
+# Files to include (relative to monorepo root)
+include:
+  # ========== PAGES ==========
+  - web/src/pages/creator/**
+  - web/src/pages/courses/**
+  - web/src/pages/members/**
+
+  # ========== COMPONENTS ==========
+  - web/src/components/creator/**
+  - web/src/components/course/**
+
+  # ========== CONTENT ==========
+  - web/src/content/courses/**
+
+# Dependencies to install (on top of web foundation)
+dependencies:
+  "@mux/mux-player-react": "^3.0.0"
+
+env:
+  optional:
+    - MUX_TOKEN_ID
+    - MUX_TOKEN_SECRET

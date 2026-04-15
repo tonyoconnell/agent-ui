@@ -1,0 +1,51 @@
+version: 2.0.0
+feature: tokens
+extends: core
+status: Creator tokens and token economy feature
+description: Blockchain tokens and token operations
+
+things:
+  types:
+    token:
+      - name: token
+        description: Blockchain token (canonical 'token' type)
+        properties:
+          name: string
+          symbol: string
+          totalSupply: number
+          circulatingSupply: number?
+          priceUSD: number?
+          contractAddress: string?
+          chain: string? # Use knowledge label instead
+      - name: token_holder
+        description: Token holder record (use connection instead)
+        properties:
+          walletAddress: string? # Use properties on connection
+          balance: number? # Use connection metadata
+          lockedBalance: number? # Use connection metadata
+
+connections:
+  types:
+    token_relationships:
+      - name: holds_tokens # Canonical type
+        description: User/person holds tokens
+        fromType: user
+        toType: token
+        canonical_alignment: holds_tokens
+        metadata: { balance: number, lockedBalance: number? }
+
+events:
+  types:
+    token_events:
+      - name: tokens_purchased # Canonical 'tokens_purchased' type
+        description: Tokens purchased
+        canonical_alignment: tokens_purchased
+        metadata_structure: { tokenId: string, amount: number, price: number }
+      - name: tokens_sold # Maps to canonical 'payment_event'
+        description: Tokens sold
+        canonical_alignment: payment_event
+        metadata_structure: { action: sold, tokenId: string, amount: number }
+      - name: tokens_transferred # Canonical 'tokens_transferred' type
+        description: Tokens transferred
+        canonical_alignment: tokens_transferred
+        metadata_structure: { fromAddress: string, toAddress: string, amount: number }

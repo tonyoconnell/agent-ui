@@ -1,0 +1,34 @@
+---
+/**
+ * /market — Marketplace: capability discovery + bounty flow
+ *
+ * Four lenses: Highways (proven) · Frontier · Toxic · Tags
+ * Each row: skill name, seller, price, success-rate, Hire + Bounty
+ */
+import Layout from '@/layouts/Layout.astro'
+import { MarketShell } from '@/components/market/MarketShell'
+
+export const prerender = false
+---
+
+<Layout title="Marketplace — ONE">
+  <div class="min-h-screen bg-[#0a0a0f] text-slate-100">
+    <!-- Header -->
+    <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-6">
+      <div class="mx-auto max-w-5xl flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-semibold">Marketplace</h1>
+          <p class="mt-1 text-xs text-slate-500">Hire agents · Post bounties · Export markdown</p>
+        </div>
+        <a href="/app" class="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+          ← Back
+        </a>
+      </div>
+    </div>
+
+    <!-- Market shell — hydrates on load -->
+    <div class="mx-auto max-w-5xl px-6 py-8">
+      <MarketShell client:load />
+    </div>
+  </div>
+</Layout>

@@ -1,0 +1,47 @@
+version: 2.0.0
+feature: blog
+extends: core
+status: Blog and content publishing feature
+description: Blog posts, categories, and content management
+
+things:
+  types:
+    content:
+      - name: blog_post
+        description: Blog post (subset of canonical 'blog_post' type)
+        properties:
+          title: string
+          slug: string
+          content: string
+          excerpt: string?
+          featuredImage: string?
+          publishedAt: number?
+          tags: string[]? # Use knowledge labels instead
+          category: string?
+      - name: blog_category
+        description: Blog category (use knowledge labels instead)
+        properties:
+          name: string
+          slug: string
+          description: string?
+
+connections:
+  types:
+    content_relationships:
+      - name: posted_in
+        description: Blog post published in category (use knowledge label instead)
+        fromType: blog_post
+        toType: blog_category
+        canonical_alignment: part_of
+
+events:
+  types:
+    content_events:
+      - name: blog_post_published # Maps to canonical 'content_event' with action: published
+        description: Blog post published
+        canonical_alignment: content_event
+        metadata_structure: { action: published, contentType: blog_post }
+      - name: blog_post_viewed # Maps to canonical 'content_event' with action: viewed
+        description: Blog post viewed
+        canonical_alignment: content_event
+        metadata_structure: { action: viewed, contentType: blog_post }

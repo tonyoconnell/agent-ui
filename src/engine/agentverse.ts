@@ -4,6 +4,7 @@
  * 70 lines. Registry + routing + discovery.
  */
 
+import { type AdlDoc, syncAdl } from './adl'
 import { type Unit, type World, world } from './world'
 
 type AgentMeta = {
@@ -28,6 +29,16 @@ export const agentverse = (fetch: Fetch): Agentverse => {
   // Register agent in world
   const register = (m: AgentMeta): Unit => {
     meta[m.address] = m
+
+    // ADL Cycle 3: fire-and-forget ADL sync from peer endpoint (fail-open)
+    if (m.endpoint) {
+      void globalThis
+        .fetch(`${m.endpoint}/.well-known/agents.json`)
+        .then((r) => (r.ok ? (r.json() as Promise<AdlDoc>) : null))
+        .then((doc) => (doc ? syncAdl(doc) : undefined))
+        .catch(() => {}) // fail-open: peer has no ADL, continue
+    }
+
     const u = net.add(m.address)
 
     // Default handler: forward to real agent endpoint

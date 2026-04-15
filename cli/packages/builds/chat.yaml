@@ -1,0 +1,43 @@
+# ONE Platform - AI Chat Package
+# Build with: npx oneie admin build chat
+
+name: "@oneie/chat"
+description: "Real-time chat with AI integration"
+version: "1.0.0"
+type: feature
+price: "$59"
+
+github:
+  app: one-ie/chat
+  package: one-ie/package-chat
+
+npm:
+  access: restricted
+
+# Files to include (relative to monorepo root)
+include:
+  # ========== PAGES ==========
+  - web/src/pages/chat/**
+
+  # ========== COMPONENTS ==========
+  - web/src/components/ai/**
+  - web/src/components/chat/**
+
+  # ========== LIB ==========
+  - web/src/lib/ai.ts
+
+  # ========== API ROUTES ==========
+  - web/src/pages/api/chat/**
+  - web/src/pages/api/ai/**
+
+# Dependencies to install (on top of web foundation)
+dependencies:
+  ai: "^5.0.0"
+  "@ai-sdk/openai": "^2.0.0"
+  "@ai-sdk/react": "^2.0.0"
+
+env:
+  required:
+    - OPENAI_API_KEY
+  optional:
+    - ANTHROPIC_API_KEY

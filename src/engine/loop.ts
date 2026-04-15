@@ -6,6 +6,7 @@
  */
 
 import { readParsed, writeSilent } from '@/lib/typedb'
+import { augmentPromptWithADL } from './adl'
 import { inferDocsFromTags, loadContext } from './context'
 import type { PersistentWorld } from './persist'
 import { EFFORT_MODEL, WAVE_MODEL } from './task-parse'
@@ -409,6 +410,9 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       ).catch(() => null)
       if (!prompt) continue
 
+      // ADL Cycle 3: augment evolved prompt with operational constraints (fail-open)
+      const finalPrompt = await augmentPromptWithADL(uid, prompt).catch(() => prompt)
+
       // Save old prompt as hypothesis (evolution history for rollback)
       writeSilent(`
         insert $h isa hypothesis, has hid "evolve-${uid}-gen${u.g}",
@@ -418,7 +422,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       writeSilent(`
         match $u isa unit, has uid "${uid}", has system-prompt $sp, has generation $g;
         delete $sp of $u; delete $g of $u;
-        insert $u has system-prompt "${prompt.replace(/"/g, '\\"')}", has generation (${u.g} + 1),
+        insert $u has system-prompt "${finalPrompt.replace(/"/g, '\\"')}", has generation (${u.g} + 1),
                has last-evolved ${new Date(now).toISOString().slice(0, 19)};
       `)
     }
@@ -485,6 +489,22 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     for (const i of insights.filter((i) => i.confidence >= 0.8)) {
       const units = i.pattern.split('→').map((s) => s.split(':')[0])
       priorityEvolve.push(...units)
+    }
+
+    // L6-LAUNCH: agents that cross the agent-launch handoff become hypotheses.
+    // Insights carrying "token-launched" in their pattern are promoted so pheromone
+    // can route future scaffolds toward launch-ready personas.
+    for (const i of insights) {
+      if (/token-launched/.test(i.pattern)) {
+        const agentUid = i.pattern.split(/[→:]/)[0] || 'unknown'
+        writeSilent(`
+          insert $h isa hypothesis, has hid "launch-${agentUid}-${cycle}",
+            has statement "agent ${agentUid} launched a token (agent-launch handoff)",
+            has hypothesis-status "confirmed", has observations-count ${cycle}, has p-value 0.05,
+            has source "observed", has observed-at ${nowIso};
+        `).catch(() => {})
+        hypoCount++
+      }
     }
 
     // L7: detect frontiers from unexplored tag clusters

@@ -1,5 +1,9 @@
 # /do
 
+> **Before anything else:** Read `docs/TODO.md`.
+> It is the mission briefing — active fronts, top priority, what's built, where we're going.
+> Load it once per session. Let it orient the work.
+
 Drive work through the substrate — select and execute.
 
 ## Modes
@@ -140,6 +144,11 @@ Useful for re-running a failed wave or skipping ahead.
 
 ```
 W0: bun run verify (once per session, skip if already passed)
+
+ORIENT: Read docs/TODO.md
+        → note the active front (Atomicity / Vocabulary / New Surfaces)
+        → note the Top 15 priority list
+        → let this shape which task you pick
 
 loop:
   SENSE:    GET http://localhost:4321/api/tasks

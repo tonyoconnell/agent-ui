@@ -1,0 +1,79 @@
+# Development files
+node_modules/
+.git/
+.DS_Store
+*.log
+
+# Environment files (security)
+.env
+.env.*
+!.env.example
+
+# User workspace (should be created fresh by installer)
+one/playbooks/
+one/archive/
+one/docs/
+one/guides/
+one/tests/
+one/research/
+one/assets/
+one/brand/
+
+# Large content files not needed for package
+.one/playbooks/
+.one/data/
+one/engineering/
+one/historical-map.yaml
+mission-*.md
+
+# Development tools
+.claude/state/
+.claude/settings.local.json
+**/__pycache__/
+story-*.js
+migration-*.sh
+
+# Large generated content
+**/*.pdf
+**/*.epub
+**/*.docx
+**/*.mp3
+**/*.wav
+**/*.html
+**/*.rtf
+**/*.txt
+
+# Test files
+**/*test*
+**/*spec*
+coverage/
+vitest.config.js
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Package build artifacts
+dist/
+packages/
+
+# Large directories
+one/playbooks/clients/
+one/playbooks/industries/
+
+# Screenshots and images
+screenshot*.png
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+
+# Additional exclusions to reduce package size
+apps/
+.husky/
+semantic-release.config.js
+CHANGELOG.md
+.github/

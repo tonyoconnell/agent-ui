@@ -1,0 +1,35 @@
+# ONE Platform - Documentation Package
+# Build with: npx oneie admin build docs
+
+name: "@oneie/docs"
+description: "Documentation site with search and versioning"
+version: "1.0.0"
+type: feature
+price: free
+
+github:
+  app: one-ie/docs
+  package: one-ie/package-docs
+
+npm:
+  access: public
+
+# Files to include (relative to monorepo root)
+include:
+  # ========== PAGES ==========
+  - web/src/pages/docs/**
+
+  # ========== COMPONENTS ==========
+  - web/src/components/docs/**
+
+  # ========== CONTENT ==========
+  - web/src/content/docs/**
+  - web/src/content/config.ts
+
+# Dependencies to install (on top of web foundation)
+dependencies:
+  "@astrojs/mdx": "^4.0.0"
+  shiki: "^3.0.0"
+
+env:
+  optional: []

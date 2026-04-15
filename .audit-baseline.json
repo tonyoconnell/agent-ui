@@ -1,5 +1,5 @@
 {
-  "count": 358,
+  "count": 391,
   "files": [
     "src/components/EdgeInfo.tsx",
     "src/components/design/DesignSystemShowcase.tsx",
@@ -9,6 +9,7 @@
     "src/components/app/SkillInspector.tsx",
     "src/components/app/PathsGraph.tsx",
     "src/components/Dashboard.tsx",
+    "src/components/agency/Dashboard.tsx",
     "src/components/panels/HighwayPanel.tsx",
     "src/components/graph/PheromoneGraph.tsx",
     "src/components/graph/WorldEditor.tsx",
@@ -22,6 +23,10 @@
     "src/components/ai/Suggestions.tsx",
     "src/components/ai/elements/connection.tsx",
     "src/components/CEOPanel.tsx",
+    "src/components/market/BountyCard.tsx",
+    "src/components/market/MarketRow.tsx",
+    "src/components/market/MarketShell.tsx",
+    "src/components/market/BountyComposer.tsx",
     "src/components/TaskBoard.tsx",
     "src/components/generative-ui/DynamicChartRecharts.tsx",
     "src/components/generative-ui/DynamicChart.tsx",
@@ -31,8 +36,11 @@
     "src/pages/index.astro",
     "src/pages/chat.astro",
     "src/pages/speedtest.astro",
+    "src/pages/[groupId]/index.astro",
     "src/pages/api/export/groups.ts",
     "src/pages/api/export/groups.json.ts",
+    "src/pages/market/[sid].astro",
+    "src/pages/market/index.astro",
     "src/pages/signup.astro"
   ]
 }

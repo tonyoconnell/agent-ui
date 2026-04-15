@@ -1,0 +1,36 @@
+# ONE Platform - Email Package
+# Build with: npx oneie admin build mail
+
+name: "@oneie/mail"
+description: "Email system with Resend and templates"
+version: "1.0.0"
+type: feature
+price: "$29"
+
+github:
+  app: one-ie/mail
+  package: one-ie/package-mail
+
+npm:
+  access: restricted
+
+# Files to include (relative to monorepo root)
+include:
+  # ========== PAGES ==========
+  - web/src/pages/mail/**
+
+  # ========== COMPONENTS ==========
+  - web/src/components/mail/**
+
+  # ========== LIB ==========
+  - web/src/lib/resend.ts
+
+# Dependencies to install (on top of web foundation)
+dependencies:
+  resend: "^6.0.0"
+  "@react-email/components": "^0.0.30"
+  react-email: "^3.0.0"
+
+env:
+  required:
+    - RESEND_API_KEY

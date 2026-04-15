@@ -1,0 +1,1078 @@
+{
+  "version": "1.0.0",
+  "createdAt": "2025-10-30T00:00:00Z",
+  "currentCycle": 88,
+  "completedCycles": 87,
+  "masterPlan": {
+    "title": "ONE Platform: Master Coordination Plan",
+    "subtitle": "Unified execution of 3 critical plans across 100+ cycles",
+    "scope": "Complete 6-dimension ontology implementation with backend-agnostic architecture",
+    "timeline": "11 weeks (77 business days)",
+    "totalCycles": 100,
+    "estimatedCost": "$1000-$5000",
+    "complexity": "High",
+    "riskLevel": "Medium",
+    "keyBenefit": "Complete, flexible platform with zero vendor lock-in"
+  },
+  "executiveSummary": {
+    "threePlans": [
+      {
+        "name": "Agent Director 100-Cycle Plans",
+        "status": "Specification Complete",
+        "cycles": "1-10",
+        "criticality": "High",
+        "blocks": ["Unified Implementation Plan", "Big Plan"],
+        "summary": "Foundation for intelligent plan generation and execution coordination"
+      },
+      {
+        "name": "Unified Implementation Plan",
+        "status": "Phases 1-2 Complete (36%)",
+        "cycles": "11-90",
+        "criticality": "Critical",
+        "blocks": ["Agent Director", "Big Plan"],
+        "summary": "Backend-agnostic architecture + complete 66-type ontology implementation"
+      },
+      {
+        "name": "Big Plan",
+        "status": "Outline Complete",
+        "cycles": "31-80",
+        "criticality": "High",
+        "blocks": ["None (parallel)"],
+        "summary": "UI/UX design, content layer, agent framework, knowledge system"
+      }
+    ],
+    "criticalPath": "Agent Director → DataProvider → Services → Backend CRUD → Frontend UI → RAG → Multi-Backend",
+    "parallelGroups": 4,
+    "estimatedParallelSpeedup": "40-50%",
+    "nextCycle": 89
+  },
+  "cycleMappingStrategy": {
+    "description": "Maps all work to 100-cycle sequence for precise execution tracking",
+    "foundationPhases": {
+      "infer1to10": {
+        "phase": "Agent Director Foundation",
+        "name": "Plan Generation & Execution Framework",
+        "cycles": "1-10",
+        "status": "Specification Complete, Implementation Pending",
+        "specialist": "agent-director",
+        "duration": "2-3 days",
+        "effort": "16 hours",
+        "dependencies": [],
+        "tasks": [
+          "Implement feature library (20+ features)",
+          "Implement dependency resolution algorithm",
+          "Implement cycle mapping (features → ranges)",
+          "Implement estimate calculation",
+          "Create execution plan generator",
+          "Write to .onboarding.json with progress tracking"
+        ],
+        "blockers": [],
+        "successCriteria": [
+          "Feature library with 20+ features metadata",
+          "Plan generation resolves dependencies correctly",
+          "Estimates accurate (±10% margin)",
+          "Real-time progress tracking works",
+          "Parallel execution detection functional"
+        ],
+        "ontology": {
+          "things": ["plan", "feature", "execution_plan"],
+          "connections": ["depends_on", "assigned_to", "part_of"],
+          "events": ["plan_generated", "execution_started", "phase_complete"],
+          "knowledge": ["plan_patterns", "feature_library"]
+        }
+      },
+      "infer11to20": {
+        "phase": "Unified: DataProvider Architecture",
+        "name": "Backend-Agnostic Interface Design",
+        "cycles": "11-20",
+        "status": "Complete (from Unified Plan Phase 1)",
+        "specialist": "agent-backend",
+        "duration": "0 days (already done)",
+        "effort": "16 hours (completed)",
+        "dependencies": ["infer1to10"],
+        "tasks": [
+          "DataProvider interface (already in place)",
+          "ConvexProvider implementation (already done)",
+          "Verify typed errors working",
+          "Confirm backend swapping with one line change"
+        ],
+        "blockers": [],
+        "successCriteria": [
+          "DataProvider interface complete",
+          "ConvexProvider implements all methods",
+          "Auth tests pass unchanged",
+          "Can swap backends with ONE line"
+        ],
+        "ontology": {
+          "things": ["data_provider", "convex_provider"],
+          "connections": ["implements", "enables"],
+          "events": ["provider_created", "provider_tested"],
+          "knowledge": ["backend_agnostic_patterns"]
+        }
+      },
+      "infer21to30": {
+        "phase": "Unified: Effect.ts Service Layer",
+        "name": "Business Logic & Dependency Injection",
+        "cycles": "21-30",
+        "status": "Complete (from Unified Plan Phase 2)",
+        "specialist": "agent-backend",
+        "duration": "0 days (already done)",
+        "effort": "32 hours (completed)",
+        "dependencies": ["infer11to20"],
+        "tasks": [
+          "ThingService (all 66 types) - in place",
+          "ConnectionService (all 25 types) - in place",
+          "EventService (all 67 events) - in place",
+          "KnowledgeService (RAG foundation) - in place",
+          "GroupService (hierarchical) - in place",
+          "useEffectRunner hook - in place"
+        ],
+        "blockers": [],
+        "successCriteria": [
+          "All services use DataProvider (no direct backend)",
+          "Services work with any backend",
+          "Typed errors throughout",
+          "90% test coverage with mocked providers"
+        ],
+        "ontology": {
+          "things": ["service", "thing_service", "connection_service", "event_service"],
+          "connections": ["provides", "uses", "depends_on"],
+          "events": ["service_created", "service_tested"],
+          "knowledge": ["effect_ts_patterns", "service_composition"]
+        }
+      }
+    },
+    "implementationPhases": {
+      "infer31to40": {
+        "phase": "Backend Implementation Phase 1",
+        "name": "Core Entity CRUD (Creators, AI Clones, Audiences, Organizations)",
+        "cycles": "31-40",
+        "status": "Not Started",
+        "specialist": "agent-backend",
+        "duration": "3-4 days",
+        "effort": "30 hours",
+        "dependencies": ["infer21to30"],
+        "parallel": ["infer41to50", "infer61to70"],
+        "tasks": [
+          "Create mutations for creator type",
+          "Create mutations for ai_clone type",
+          "Create mutations for audience_member type",
+          "Create mutations for organization type",
+          "Add event logging to all mutations",
+          "Enforce group scoping",
+          "Add rate limiting",
+          "Write unit tests",
+          "Verify with ThingService"
+        ],
+        "priority": "Critical",
+        "blockers": [],
+        "successCriteria": [
+          "All 4 entity types have CRUD operations",
+          "All mutations use ThingService (not direct DB)",
+          "All operations log events",
+          "Group scoping enforced",
+          "Tests passing"
+        ],
+        "ontology": {
+          "things": ["creator", "ai_clone", "audience_member", "organization"],
+          "connections": ["owns", "belongs_to", "manages"],
+          "events": ["entity_created", "entity_updated", "entity_deleted"],
+          "knowledge": ["entity_patterns"]
+        }
+      },
+      "infer41to50": {
+        "phase": "Backend Implementation Phase 2",
+        "name": "Content & Products (Blog, Courses, Products, Memberships)",
+        "cycles": "41-50",
+        "status": "Not Started",
+        "specialist": "agent-backend",
+        "duration": "3-4 days",
+        "effort": "30 hours",
+        "dependencies": ["infer21to30"],
+        "parallel": ["infer31to40", "infer61to70"],
+        "tasks": [
+          "Create mutations for blog_post type",
+          "Create mutations for course type",
+          "Create mutations for lesson type",
+          "Create mutations for product type",
+          "Create mutations for membership type",
+          "Implement content lifecycle (draft → published → archived)",
+          "Add pricing/tier handling",
+          "Write integration tests",
+          "Test with ConnectionService"
+        ],
+        "priority": "High",
+        "blockers": [],
+        "successCriteria": [
+          "All 5 content types CRUD complete",
+          "Lifecycle states working",
+          "Pricing integration functional",
+          "Connections working (authored, part_of, etc)",
+          "Tests passing"
+        ],
+        "ontology": {
+          "things": ["blog_post", "course", "lesson", "product", "membership"],
+          "connections": ["authored_by", "part_of", "belongs_to"],
+          "events": ["content_created", "content_published", "content_archived"],
+          "knowledge": ["content_patterns", "pricing_patterns"]
+        }
+      },
+      "infer51to60": {
+        "phase": "Backend Implementation Phase 3",
+        "name": "Tokens, Agents & Advanced (Tokens, 10 Agents, Workflows)",
+        "cycles": "51-60",
+        "status": "Not Started",
+        "specialist": "agent-backend",
+        "duration": "3-4 days",
+        "effort": "35 hours",
+        "dependencies": ["infer21to30"],
+        "parallel": ["infer31to40", "infer41to50", "infer71to80"],
+        "tasks": [
+          "Create mutations for token type",
+          "Create mutations for token_contract type",
+          "Create mutations for 10 business agent types",
+          "Create mutations for workflow type",
+          "Implement token economics (minting, transfer, burn)",
+          "Implement agent configuration (prompts, tools, knowledge)",
+          "Add blockchain event logging",
+          "Write E2E tests",
+          "Verify with EventService"
+        ],
+        "priority": "High",
+        "blockers": [],
+        "successCriteria": [
+          "All token types CRUD complete",
+          "Agent configuration working",
+          "Workflow execution foundation",
+          "Blockchain events logged",
+          "Tests passing"
+        ],
+        "ontology": {
+          "things": ["token", "token_contract", "business_agent", "workflow"],
+          "connections": ["controlled_by", "executes", "emits"],
+          "events": ["token_created", "agent_configured", "workflow_executed"],
+          "knowledge": ["token_patterns", "agent_patterns", "workflow_patterns"]
+        }
+      },
+      "infer61to70": {
+        "phase": "Frontend Implementation Phase 1",
+        "name": "Multi-Tenant Dashboard & Entity Management UI",
+        "cycles": "61-70",
+        "status": "Not Started",
+        "specialist": "agent-frontend",
+        "duration": "4-5 days",
+        "effort": "40 hours",
+        "dependencies": ["infer21to30", "infer31to40"],
+        "parallel": ["infer31to40", "infer41to50", "infer51to60"],
+        "tasks": [
+          "Create multi-tenant group selector with hierarchy",
+          "Create entity management forms for core types",
+          "Create entity list/grid views",
+          "Implement real-time updates via subscriptions",
+          "Create connection visualization (graph view)",
+          "Create event timeline with filtering",
+          "Add real-time stats dashboard",
+          "Implement role-based access control UI",
+          "Write component tests"
+        ],
+        "priority": "High",
+        "blockers": ["infer31to40"],
+        "successCriteria": [
+          "Group hierarchy navigation working",
+          "Entity forms for all core types",
+          "Real-time updates functional",
+          "Connection graph displays correctly",
+          "Role-based UI hiding working"
+        ],
+        "ontology": {
+          "things": ["ui_component", "dashboard", "form"],
+          "connections": ["displays", "manages", "controls"],
+          "events": ["ui_rendered", "form_submitted", "data_updated"],
+          "knowledge": ["ui_patterns", "ux_guidelines"]
+        }
+      },
+      "infer71to80": {
+        "phase": "Backend Implementation Phase 4 + RAG",
+        "name": "Advanced Features, RAG, Knowledge System",
+        "cycles": "71-80",
+        "status": "Not Started",
+        "specialist": "agent-backend",
+        "duration": "4-5 days",
+        "effort": "45 hours",
+        "dependencies": ["infer51to60", "infer61to70"],
+        "parallel": ["infer51to60", "infer61to70"],
+        "tasks": [
+          "Implement chunking service (800 tokens, 200 overlap)",
+          "Integrate OpenAI embedding service",
+          "Build RAG ingestion pipeline",
+          "Implement vector search",
+          "Create knowledge labels system",
+          "Build semantic search",
+          "Implement remaining 30+ entity types",
+          "Add knowledge linking to entities",
+          "Write RAG tests"
+        ],
+        "priority": "High",
+        "blockers": [],
+        "successCriteria": [
+          "Chunking handles all 66 types",
+          "Embeddings work via OpenAI",
+          "Vector search returns relevant results",
+          "Knowledge labels for categorization",
+          "Semantic search functional"
+        ],
+        "ontology": {
+          "things": ["knowledge", "chunk", "embedding", "label"],
+          "connections": ["embedded_from", "similar_to", "labeled_with"],
+          "events": ["embedding_created", "knowledge_queried", "search_executed"],
+          "knowledge": ["rag_patterns", "semantic_search", "embeddings"]
+        }
+      },
+      "infer81to90": {
+        "phase": "Testing, Multi-Backend, Performance",
+        "name": "Comprehensive Testing & Alternative Backends",
+        "cycles": "81-90",
+        "status": "Not Started",
+        "specialist": "agent-quality",
+        "duration": "4-5 days",
+        "effort": "50 hours",
+        "dependencies": ["infer71to80", "infer61to70"],
+        "tasks": [
+          "Achieve 90% backend service coverage",
+          "Test all 66 thing types",
+          "Test all 25 connection types",
+          "Test all 67 event types",
+          "Implement mock providers for testing",
+          "Test provider swapping",
+          "Implement WordPressProvider",
+          "Implement SupabaseProvider",
+          "Build CompositeProvider (multi-backend)",
+          "Performance optimization & monitoring"
+        ],
+        "priority": "High",
+        "blockers": [],
+        "successCriteria": [
+          "90% backend coverage achieved",
+          "All entity type tests passing",
+          "Multi-backend tests green",
+          "Provider swapping working",
+          "2+ alternative providers functional"
+        ],
+        "ontology": {
+          "things": ["test", "provider", "test_case"],
+          "connections": ["covers", "implements", "tests"],
+          "events": ["test_executed", "test_passed", "test_failed"],
+          "knowledge": ["test_patterns", "provider_patterns", "performance_baselines"]
+        }
+      }
+    },
+    "deploymentPhase": {
+      "infer91to100": {
+        "phase": "Deployment & Documentation",
+        "name": "Production Deployment & Complete Documentation",
+        "cycles": "91-100",
+        "status": "Not Started",
+        "specialist": "agent-ops",
+        "duration": "3-4 days",
+        "effort": "30 hours",
+        "dependencies": ["infer81to90"],
+        "tasks": [
+          "Finalize production environment",
+          "Set up monitoring & alerting",
+          "Deploy to Cloudflare Pages",
+          "Deploy backend to Convex",
+          "Configure custom domains",
+          "Write API documentation",
+          "Create user guides",
+          "Create deployment runbooks",
+          "Document incident response",
+          "Final verification & sign-off"
+        ],
+        "priority": "Critical",
+        "blockers": [],
+        "successCriteria": [
+          "Frontend deployed to production",
+          "Backend deployed to production",
+          "Monitoring & alerting active",
+          "Documentation complete",
+          "Zero-downtime deployments tested"
+        ],
+        "ontology": {
+          "things": ["deployment", "documentation", "runbook"],
+          "connections": ["deployed_to", "documents", "enables"],
+          "events": ["deployment_complete", "documentation_published"],
+          "knowledge": ["deployment_patterns", "troubleshooting_guides"]
+        }
+      }
+    }
+  },
+  "parallelExecutionStrategy": {
+    "description": "Groups of work that can execute simultaneously to achieve 40-50% speedup",
+    "groups": [
+      {
+        "groupName": "Group A: Foundation (Sequential)",
+        "phases": ["infer1to10", "infer11to20", "infer21to30"],
+        "cycles": "1-30",
+        "duration": "2 weeks",
+        "specialists": ["agent-director", "agent-backend"],
+        "canRunParallel": false,
+        "reason": "Each phase depends on previous (architecture must be in place first)",
+        "constraint": "infer11to20 already complete, infer21to30 already complete",
+        "speedup": "0% (already complete)"
+      },
+      {
+        "groupName": "Group B: Backend CRUD Implementation (Parallel)",
+        "phases": ["infer31to40", "infer41to50", "infer51to60"],
+        "cycles": "31-60",
+        "duration": "2 weeks (instead of 3-4 weeks sequential)",
+        "specialists": ["agent-backend", "agent-backend", "agent-backend"],
+        "canRunParallel": true,
+        "reason": "Each phase implements different entity types, no shared dependencies",
+        "constraint": "All depend on infer21to30 (service layer complete)",
+        "speedup": "40% (3 weeks → 2 weeks)",
+        "executionPattern": {
+          "week1": {
+            "specialist1": "infer31to40 (core entities)",
+            "specialist2": "infer41to50 (content)",
+            "specialist3": "infer51to60 (tokens/agents)"
+          },
+          "coordination": "Share event logging patterns, use common utilities"
+        }
+      },
+      {
+        "groupName": "Group C: Frontend & Design (Parallel with Backend)",
+        "phases": ["infer61to70"],
+        "cycles": "61-70",
+        "duration": "2 weeks (parallel with Group B)",
+        "specialists": ["agent-frontend", "agent-designer"],
+        "canRunParallel": true,
+        "reason": "Backend CRUD complete by end of week 2, Frontend development can proceed simultaneously",
+        "constraint": "Needs final backend CRUD implementation ready",
+        "speedup": "50% (reduces total project time)",
+        "executionPattern": {
+          "weeks_1_2": "Frontend builds mockups, tests with mock providers",
+          "weeks_3_4": "Frontend integrates real backend as it completes each phase",
+          "coordination": "Backend and Frontend sync interfaces via DataProvider"
+        }
+      },
+      {
+        "groupName": "Group D: Advanced Features & Testing (Sequential)",
+        "phases": ["infer71to80", "infer81to90"],
+        "cycles": "71-90",
+        "duration": "3 weeks",
+        "specialists": ["agent-backend", "agent-quality"],
+        "canRunParallel": false,
+        "reason": "Testing depends on complete backend implementation",
+        "constraint": "Cannot start testing until infer71to80 complete",
+        "speedup": "0% (sequential requirement)"
+      },
+      {
+        "groupName": "Group E: Deployment Preparation (Parallel with Testing)",
+        "phases": ["infer91to100"],
+        "cycles": "91-100",
+        "duration": "1 week (parallel with final testing)",
+        "specialists": ["agent-ops"],
+        "canRunParallel": true,
+        "reason": "Can set up infrastructure while testing completes",
+        "constraint": "Needs testing approval before actual production deployment",
+        "speedup": "25% (reduces final week delay)"
+      }
+    ],
+    "timeline": {
+      "week1": {
+        "groupA": "infer1to10 (Planning framework)",
+        "parallel": "infer11to20 & infer21to30 already complete"
+      },
+      "week2": {
+        "parallel_B": "infer31to40 (Core entities)",
+        "parallel_B2": "infer41to50 (Content)",
+        "parallel_B3": "infer51to60 (Tokens)",
+        "parallel_C": "infer61to70 prep (UI design)"
+      },
+      "week3": {
+        "parallel_B_continues": "CRUD optimization & testing",
+        "parallel_C_starts": "infer61to70 (Frontend implementation)",
+        "speedup": "40% by parallelizing backend CRUD"
+      },
+      "week4": {
+        "parallel_C_continues": "Frontend integration",
+        "parallel_D_starts": "infer71to80 (RAG & advanced)"
+      },
+      "week5": {
+        "parallel_D_continues": "RAG pipeline complete",
+        "parallel_C_finishes": "Frontend tests passing"
+      },
+      "week6": {
+        "parallel_D_continues": "Remaining 30+ entities",
+        "parallel_E_prep": "Infrastructure setup"
+      },
+      "week7": {
+        "parallel_D_continues": "Advanced features complete",
+        "parallel_testing_starts": "infer81to90"
+      },
+      "week8": {
+        "parallel_testing": "Multi-backend testing",
+        "parallel_E_continues": "Monitoring/alerting setup"
+      },
+      "week9": {
+        "parallel_testing_continues": "Performance optimization",
+        "final_approvals": "Quality gate"
+      },
+      "week10": {
+        "parallel_E_starts": "infer91to100 (Production deployment)",
+        "final_testing": "Smoke tests"
+      },
+      "week11": {
+        "deployment": "Go-live",
+        "documentation": "Final polishing"
+      }
+    },
+    "parallelismGains": {
+      "theoreticalSavings": "3-4 weeks",
+      "practicalSavings": "2-3 weeks",
+      "totalTimeline": "11 weeks instead of 14-15 weeks",
+      "speedupPercentage": "30-40%",
+      "assumptions": [
+        "Specialists can work independently with clear interfaces",
+        "DataProvider abstraction eliminates blocking dependencies",
+        "Mock providers enable frontend development before complete backend",
+        "Clear communication prevents rework and conflicts"
+      ]
+    }
+  },
+  "specialistAssignments": {
+    "description": "Mapping of all work to appropriate specialist agents",
+    "assignments": {
+      "agent-director": {
+        "role": "Orchestration & Planning",
+        "expertise": ["plan_generation", "execution_coordination", "progress_tracking", "dependency_resolution"],
+        "workAssigned": [
+          {
+            "phase": "infer1to10",
+            "task": "Implement 100-cycle plan generation framework",
+            "effort": "16 hours",
+            "timeline": "Week 1"
+          }
+        ],
+        "responsibilities": [
+          "Generate execution plans from feature selections",
+          "Monitor all specialist progress",
+          "Detect and resolve blockers",
+          "Emit coordination events",
+          "Track cycle progress",
+          "Manage parallel execution groups"
+        ]
+      },
+      "agent-backend": {
+        "role": "Backend Architecture & CRUD Implementation",
+        "expertise": ["convex", "effect.ts", "schema", "services", "error_handling", "testing"],
+        "workAssigned": [
+          {
+            "phase": "infer31to40",
+            "task": "Core entity CRUD (creators, ai_clones, audiences, organizations)",
+            "effort": "30 hours",
+            "timeline": "Week 2-3",
+            "parallel": true
+          },
+          {
+            "phase": "infer41to50",
+            "task": "Content & products CRUD (blog, courses, lessons, products, memberships)",
+            "effort": "30 hours",
+            "timeline": "Week 2-3",
+            "parallel": true
+          },
+          {
+            "phase": "infer51to60",
+            "task": "Tokens, agents, workflows CRUD",
+            "effort": "35 hours",
+            "timeline": "Week 2-4",
+            "parallel": true
+          },
+          {
+            "phase": "infer71to80",
+            "task": "RAG, knowledge system, remaining 30+ entity types",
+            "effort": "45 hours",
+            "timeline": "Week 5-6"
+          }
+        ],
+        "responsibilities": [
+          "Implement all CRUD mutations using services",
+          "Add event logging to all operations",
+          "Enforce group scoping",
+          "Implement RAG pipeline",
+          "Build knowledge system",
+          "Write backend tests",
+          "Optimize database queries"
+        ]
+      },
+      "agent-frontend": {
+        "role": "UI/UX Implementation",
+        "expertise": ["astro", "react", "tailwind", "components", "forms", "real_time_updates"],
+        "workAssigned": [
+          {
+            "phase": "infer61to70",
+            "task": "Multi-tenant dashboard & entity management UI",
+            "effort": "40 hours",
+            "timeline": "Week 3-5",
+            "parallel": true
+          }
+        ],
+        "responsibilities": [
+          "Build multi-tenant UI with group hierarchy",
+          "Create entity forms for all types",
+          "Implement real-time updates",
+          "Build connection visualization",
+          "Create event timeline",
+          "Add role-based access control",
+          "Optimize frontend performance",
+          "Write component tests"
+        ]
+      },
+      "agent-designer": {
+        "role": "Design & UX Strategy",
+        "expertise": ["wireframes", "design_systems", "accessibility", "ux_research", "brand"],
+        "workAssigned": [
+          {
+            "phase": "infer61to70",
+            "task": "Design system & wireframes for multi-tenant dashboard",
+            "effort": "20 hours",
+            "timeline": "Week 1-3",
+            "parallel": true
+          }
+        ],
+        "responsibilities": [
+          "Create wireframes for all major views",
+          "Define design system & tokens",
+          "Ensure accessibility compliance",
+          "Design responsive layouts",
+          "Create interaction patterns",
+          "Test UX with stakeholders"
+        ]
+      },
+      "agent-quality": {
+        "role": "Testing & Quality Assurance",
+        "expertise": ["unit_testing", "integration_testing", "e2e_testing", "performance", "coverage"],
+        "workAssigned": [
+          {
+            "phase": "infer81to90",
+            "task": "Comprehensive testing suite (90% coverage, multi-backend)",
+            "effort": "50 hours",
+            "timeline": "Week 7-9"
+          }
+        ],
+        "responsibilities": [
+          "Achieve 90% backend service coverage",
+          "Test all 66 entity types",
+          "Test all 25 connection types",
+          "Test all 67 event types",
+          "Implement mock providers",
+          "Test multi-backend switching",
+          "Performance testing & optimization",
+          "Create test documentation"
+        ]
+      },
+      "agent-ops": {
+        "role": "Deployment & Infrastructure",
+        "expertise": ["cloudflare_pages", "convex_deployment", "monitoring", "ci_cd", "release_management"],
+        "workAssigned": [
+          {
+            "phase": "infer91to100",
+            "task": "Production deployment & documentation",
+            "effort": "30 hours",
+            "timeline": "Week 10-11"
+          }
+        ],
+        "responsibilities": [
+          "Set up production environment",
+          "Deploy frontend to Cloudflare",
+          "Deploy backend to Convex",
+          "Configure monitoring & alerting",
+          "Set up CI/CD pipeline",
+          "Create deployment runbooks",
+          "Document incident response",
+          "Execute go-live"
+        ]
+      },
+      "agent-problem-solver": {
+        "role": "Blocker Resolution",
+        "expertise": ["debugging", "root_cause_analysis", "refactoring", "optimization"],
+        "workAssigned": [],
+        "responsibilities": [
+          "Resolve blockers detected by director",
+          "Debug failed tests",
+          "Analyze performance bottlenecks",
+          "Suggest optimizations",
+          "Propose architectural fixes",
+          "Document solutions for future reference"
+        ]
+      },
+      "agent-documenter": {
+        "role": "Documentation & Knowledge",
+        "expertise": ["technical_writing", "knowledge_management", "rag_indexing", "user_guides"],
+        "workAssigned": [
+          {
+            "phase": "infer91to100",
+            "task": "Complete documentation suite",
+            "effort": "20 hours",
+            "timeline": "Week 10-11"
+          }
+        ],
+        "responsibilities": [
+          "Write API documentation",
+          "Create user guides",
+          "Document architecture decisions",
+          "Create deployment guides",
+          "Index documentation for RAG",
+          "Maintain knowledge base"
+        ]
+      }
+    }
+  },
+  "riskAssessment": {
+    "overallRisk": "Medium",
+    "keyRisks": [
+      {
+        "risk": "Agent Director plan not implemented by end of week 1",
+        "probability": "20%",
+        "impact": "High",
+        "mitigation": "Pre-allocate resources, start immediately on week 1",
+        "contingency": "Use manual planning approach as fallback"
+      },
+      {
+        "risk": "Parallel backend CRUD implementations diverge in patterns",
+        "probability": "30%",
+        "impact": "Medium",
+        "mitigation": "Clear coding standards, regular sync meetings, shared utilities",
+        "contingency": "Code review checkpoints every 2 days"
+      },
+      {
+        "risk": "Frontend waits for backend completion",
+        "probability": "15%",
+        "impact": "High",
+        "mitigation": "Use mock providers, develop UI in parallel with design",
+        "contingency": "Frontend can proceed with 60% of backend complete"
+      },
+      {
+        "risk": "RAG integration more complex than estimated",
+        "probability": "40%",
+        "impact": "Medium",
+        "mitigation": "Start with simple vector search, iterate complexity",
+        "contingency": "Can ship without RAG in week 11, add in phase 2"
+      },
+      {
+        "risk": "Multi-backend testing reveals compatibility issues",
+        "probability": "35%",
+        "impact": "Medium",
+        "mitigation": "Test providers in parallel as backend completes",
+        "contingency": "Defer provider 2 & 3 to follow-up release"
+      },
+      {
+        "risk": "Production deployment reveals unforeseen issues",
+        "probability": "25%",
+        "impact": "Medium",
+        "mitigation": "Staging environment, canary deployment, rollback plan",
+        "contingency": "Quick hotfix process, automated rollback"
+      }
+    ],
+    "mitigationStrategy": {
+      "communication": "Daily standup with all specialists (15 min sync)",
+      "checkpoints": "Weekly review of progress vs plan, adjust parallelism",
+      "buffers": "2-3 days buffer built into each week for unknowns",
+      "escalation": "Problem solver called in immediately for blockers"
+    }
+  },
+  "successMetrics": {
+    "technical": [
+      {
+        "metric": "Cycles tracked correctly",
+        "target": "100% (all 100 cycles mapped, tracked, completed)",
+        "measurement": "Verify cycle.json updates with each phase"
+      },
+      {
+        "metric": "Ontology completeness",
+        "target": "100% (all 66 things, 25 connections, 67 events)",
+        "measurement": "Count implemented types vs specification"
+      },
+      {
+        "metric": "Backend flexibility",
+        "target": "3+ working backend providers (Convex, WordPress, Supabase)",
+        "measurement": "Successfully swap backends with one line"
+      },
+      {
+        "metric": "Test coverage",
+        "target": "90% backend, 70% frontend",
+        "measurement": "Run coverage reports, verify metrics"
+      },
+      {
+        "metric": "Performance",
+        "target": "First contentful paint <2s, API response <100ms",
+        "measurement": "Lighthouse scores, monitoring dashboards"
+      }
+    ],
+    "business": [
+      {
+        "metric": "Time to market",
+        "target": "11 weeks instead of 14-15 weeks",
+        "measurement": "Track actual vs planned timeline"
+      },
+      {
+        "metric": "Cost efficiency",
+        "target": "40-50% speedup from parallelization",
+        "measurement": "Calculate effort hours vs calendar time"
+      },
+      {
+        "metric": "Quality",
+        "target": "Zero critical bugs in production (first 2 weeks)",
+        "measurement": "Production incident tracking"
+      },
+      {
+        "metric": "Feature completeness",
+        "target": "All 66 entity types shipped and documented",
+        "measurement": "Feature checklist vs implementation"
+      }
+    ]
+  },
+  "coordinationMechanism": {
+    "eventDrivenWorkflow": {
+      "description": "All coordination happens through events table, not manual handoffs",
+      "keyEvents": [
+        {
+          "event": "phase_started",
+          "emittedBy": "agent-director",
+          "listenedBy": ["assigned_specialist"],
+          "purpose": "Signal that a phase is beginning"
+        },
+        {
+          "event": "implementation_complete",
+          "emittedBy": "specialist_agent",
+          "listenedBy": ["agent-director", "next_specialist"],
+          "purpose": "Signal that implementation is done, ready for testing"
+        },
+        {
+          "event": "quality_check_complete",
+          "emittedBy": "agent-quality",
+          "listenedBy": ["agent-director", "agent-ops"],
+          "purpose": "Quality approval (approved) or rejection (needs_fix)"
+        },
+        {
+          "event": "blocker_detected",
+          "emittedBy": "any_specialist",
+          "listenedBy": ["agent-director", "agent-problem-solver"],
+          "purpose": "Signal stuck work requiring intervention"
+        },
+        {
+          "event": "blocker_resolved",
+          "emittedBy": "agent-problem-solver",
+          "listenedBy": ["agent-director", "blocked_specialist"],
+          "purpose": "Signal blocker is fixed, resume work"
+        },
+        {
+          "event": "progress_update",
+          "emittedBy": "any_specialist",
+          "listenedBy": ["agent-director"],
+          "purpose": "Real-time progress reporting (hourly)"
+        },
+        {
+          "event": "schema_ready",
+          "emittedBy": "agent-backend",
+          "listenedBy": ["agent-quality", "agent-frontend"],
+          "purpose": "Backend schema complete, ready for testing & frontend integration"
+        },
+        {
+          "event": "deployment_approved",
+          "emittedBy": "agent-ops",
+          "listenedBy": ["agent-director"],
+          "purpose": "Infrastructure ready for deployment"
+        }
+      ]
+    },
+    "dailyCoordination": {
+      "standup": {
+        "time": "Start of day",
+        "duration": "15 minutes",
+        "attendees": ["agent-director", "all_specialists"],
+        "agenda": [
+          "Review previous day's completions",
+          "Identify any blockers",
+          "Confirm today's assignments",
+          "Adjust parallelism if needed"
+        ]
+      },
+      "progressTracking": {
+        "frequency": "Hourly from specialists",
+        "format": "Event emitted with current cycle, tasks completed, blockers",
+        "dashboard": ".claude/state/cycle.json (real-time updates)"
+      },
+      "weeklyReview": {
+        "time": "End of week",
+        "duration": "30 minutes",
+        "attendees": ["agent-director", "all_specialists"],
+        "agenda": [
+          "Review progress vs plan",
+          "Analyze velocity & adjust estimates",
+          "Celebrate wins",
+          "Plan next week's parallelization",
+          "Document lessons learned"
+        ]
+      }
+    }
+  },
+  "nextSteps": {
+    "immediate": [
+      {
+        "step": 1,
+        "action": "Approve master coordination plan",
+        "owner": "agent-director",
+        "timeline": "Now"
+      },
+      {
+        "step": 2,
+        "action": "Implement Agent Director plan generation framework (infer1to10)",
+        "owner": "agent-director",
+        "timeline": "Next 2-3 days",
+        "blocking": ["infer31to60"]
+      },
+      {
+        "step": 3,
+        "action": "Begin parallel backend CRUD implementation (infer31to60)",
+        "owner": "agent-backend",
+        "timeline": "Week 2 (once infer1to10 done)",
+        "parallel": true,
+        "tasks": [
+          "Three backend specialists divide infer31to40, infer41to50, infer51to60",
+          "Each implements 10-15 entity types",
+          "Share patterns via daily sync"
+        ]
+      },
+      {
+        "step": 4,
+        "action": "Begin frontend design & mockups (infer61to70 prep)",
+        "owner": "agent-designer",
+        "timeline": "Week 1-3",
+        "parallel": true,
+        "tasks": [
+          "Create wireframes for multi-tenant dashboard",
+          "Define design system",
+          "Design entity forms for core types"
+        ]
+      },
+      {
+        "step": 5,
+        "action": "Frontend development begins (infer61to70)",
+        "owner": "agent-frontend",
+        "timeline": "Week 3 (with mock providers)",
+        "parallel": true,
+        "tasks": [
+          "Build UI components",
+          "Integrate with backend as it completes phases"
+        ]
+      }
+    ],
+    "critical": [
+      {
+        "action": "Complete infer1to10 (Agent Director framework)",
+        "blockedPhases": ["All backend CRUD implementation"],
+        "deadline": "End of week 1"
+      },
+      {
+        "action": "Begin parallelization (infer31to60 split 3 ways)",
+        "savesTime": "2-3 weeks",
+        "deadline": "Week 2"
+      },
+      {
+        "action": "Frontend & backend sync on DataProvider interface",
+        "prevents": "Integration rework",
+        "deadline": "Weekly"
+      },
+      {
+        "action": "Complete RAG pipeline (infer71to80)",
+        "blockedPhases": ["Testing", "Multi-backend"],
+        "deadline": "Week 6"
+      },
+      {
+        "action": "Deploy to production (infer91to100)",
+        "deadline": "Week 11"
+      }
+    ]
+  },
+  "documentationReferences": {
+    "plans": {
+      "agent_director_100_cycle_plans": "/one/things/plans/agent-director-100-cycle-plans.md",
+      "unified_implementation_plan": "/one/things/plans/unified-implementation-plan.md",
+      "big_plan": "/one/things/plans/big-plan.md"
+    },
+    "architecture": {
+      "ontology": "/one/knowledge/ontology.md",
+      "claude_md": "/CLAUDE.md",
+      "agents_guide": "/web/AGENTS.md"
+    },
+    "coordination": {
+      "workflow": "/one/connections/workflow.md",
+      "cycle_tracking": "/.claude/state/cycle.json"
+    }
+  },
+  "conclusionAndRecommendations": {
+    "summary": "This master coordination plan unifies three independent plans into a single cohesive execution strategy that leverages parallelization to deliver a complete, flexible ONE Platform 30-40% faster than sequential execution.",
+    "keyInsights": [
+      "Agent Director (infer1to10) is critical foundation - must complete before all other work proceeds",
+      "Unified Implementation already 36% complete with DataProvider & Services in place",
+      "Backend CRUD implementation (infer31to60) can be parallelized across 3 specialists, saving 2-3 weeks",
+      "Frontend development can proceed in parallel with backend CRUD using mock providers",
+      "RAG & knowledge system (infer71to80) should start as backend CRUD stabilizes",
+      "Testing & multi-backend (infer81to90) is sequential after implementation complete",
+      "Deployment (infer91to100) can prepare infrastructure while testing occurs"
+    ],
+    "recommendations": [
+      {
+        "priority": "Critical",
+        "recommendation": "Allocate 3 backend specialists to work in parallel on infer31to60 (core, content, tokens phases). This single decision saves 2-3 weeks.",
+        "action": "Assign agent-backend resources immediately upon infer1to10 completion"
+      },
+      {
+        "priority": "Critical",
+        "recommendation": "Use mock providers in frontend development (week 3-4) rather than waiting for complete backend. Merge real backend integration incrementally.",
+        "action": "agent-frontend creates mock DataProvider implementations in parallel with agent-backend"
+      },
+      {
+        "priority": "High",
+        "recommendation": "Establish daily 15-minute standups with all specialists. This prevents rework and catches blockers early.",
+        "action": "Start standups during week 1 with agent-director leading"
+      },
+      {
+        "priority": "High",
+        "recommendation": "Schedule weekly review meetings to assess velocity, adjust estimates, and optimize parallelism.",
+        "action": "Thursday EOD of each week, 30-minute reviews"
+      },
+      {
+        "priority": "Medium",
+        "recommendation": "Build 2-3 day buffers into each week for unknowns. This prevents plan slippage.",
+        "action": "Track actual vs planned progress weekly, adjust future estimates"
+      },
+      {
+        "priority": "Medium",
+        "recommendation": "Defer provider 2 & 3 (WordPress, Supabase) implementation to follow-up release if time constraints emerge. Core functionality can ship with Convex only.",
+        "action": "Treat infer81to90 multi-backend as optional but highly desirable"
+      }
+    ],
+    "goLiveStrategy": {
+      "phase1": "Staging deployment (week 9-10) with canary approach - 10% traffic first day",
+      "phase2": "Monitoring dashboard active throughout deployment",
+      "phase3": "Automated rollback procedure tested and ready",
+      "phase4": "Customer success team on standby for first 24 hours",
+      "phase5": "Post-mortems on any incidents, document lessons learned"
+    },
+    "successLooks": [
+      "All 100 cycles tracked, completed, documented in cycle.json",
+      "Agent Director framework enables intelligent plan generation",
+      "All 66 entity types implemented with CRUD operations",
+      "Complete 6-dimension ontology implemented",
+      "Multi-tenant UI fully functional with real-time updates",
+      "RAG pipeline ingesting and searching across all entities",
+      "3+ backend providers working interchangeably",
+      "90% test coverage across backend, 70% frontend",
+      "Zero critical bugs in first 2 weeks of production",
+      "Platform deployed to web.one.ie, npm, and GitHub",
+      "Complete documentation available to users and developers"
+    ]
+  }
+}

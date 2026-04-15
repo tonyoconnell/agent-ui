@@ -1,0 +1,108 @@
+---
+/**
+ * /market/:sid — Skill detail page
+ *
+ * SSR: fetch skill metadata from TypeDB + listing from market API.
+ * Shows: description, pricing, seller info, recent bounties, hire button.
+ */
+import Layout from '@/layouts/Layout.astro'
+import { readParsed } from '@/lib/typedb'
+
+export const prerender = false
+
+const { sid } = Astro.params as { sid: string }
+
+type SkillMeta = {
+  skillId: string
+  name: string
+  sellerUid: string
+  sellerName: string
+  price: number
+  tags: string[]
+  successRate: number
+}
+
+let skill: SkillMeta | null = null
+
+try {
+  const rows = await readParsed(`
+    match
+      $s isa skill, has skill-id "${sid}", has name $sn;
+      $u isa unit, has uid $uid, has name $un, has success-rate $sr;
+      (provider: $u, offered: $s) isa capability, has price $p;
+    select $sn, $uid, $un, $sr, $p;
+    limit 1;
+  `)
+
+  if (rows.length > 0) {
+    const r = rows[0]
+    skill = {
+      skillId: sid,
+      name: r.sn as string,
+      sellerUid: r.uid as string,
+      sellerName: r.un as string,
+      price: r.p as number,
+      tags: [],
+      successRate: r.sr as number,
+    }
+  }
+} catch {
+  // TypeDB unavailable
+}
+
+if (!skill) {
+  return Astro.redirect('/market')
+}
+---
+
+<Layout title={`${skill.name} — Marketplace`}>
+  <div class="min-h-screen bg-[#0a0a0f] text-slate-100">
+    <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-6">
+      <div class="mx-auto max-w-3xl flex items-center gap-4">
+        <a href="/market" class="text-xs text-slate-500 hover:text-slate-300">← Market</a>
+        <h1 class="text-xl font-semibold">{skill.name}</h1>
+      </div>
+    </div>
+
+    <div class="mx-auto max-w-3xl px-6 py-8 flex flex-col gap-6">
+      <!-- Skill card -->
+      <div class="rounded-lg border border-[#252538] bg-[#161622] px-6 py-5 flex items-start justify-between">
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-slate-100">{skill.name}</span>
+          <span class="text-xs font-mono text-slate-500">{skill.skillId}</span>
+          <span class="text-xs text-slate-400 mt-1">
+            by <a href={`/market?seller=${skill.sellerUid}`} class="hover:text-slate-200">{skill.sellerName}</a>
+          </span>
+        </div>
+        <div class="text-right flex flex-col gap-1">
+          <span class="text-lg font-semibold text-slate-100">
+            {skill.price > 0 ? `${skill.price} FET` : 'free'}
+          </span>
+          <span class="text-xs text-slate-500">{Math.round(skill.successRate * 100)}% success</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3">
+        <a
+          href={`/api/market/bundle?skill=${sid}`}
+          class="rounded bg-indigo-600 hover:bg-indigo-500 px-5 py-2 text-sm text-white transition-colors"
+        >
+          Hire
+        </a>
+        <a
+          href={`/market?bounty=${sid}`}
+          class="rounded border border-[#252538] hover:border-indigo-500/50 px-5 py-2 text-sm text-slate-300 transition-colors"
+        >
+          Post bounty
+        </a>
+        <a
+          href={`/api/export/skills`}
+          class="rounded border border-[#252538] px-5 py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          Export markdown
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>

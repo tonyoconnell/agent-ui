@@ -1,0 +1,35 @@
+# ONE Platform - Shared Configuration
+# Files included in ALL packages automatically
+
+# Global exclusions (always excluded from all packages)
+global_exclude:
+  - "**/.DS_Store"
+  - "**/node_modules/**"
+  - "**/.env"
+  - "**/.env.local"
+  - "**/dist/**"
+  - "**/.astro/**"
+  - "**/.wrangler/**"
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/TEMPLATE-*.md"
+
+# Shared files included in ALL packages
+shared:
+  claude:
+    - .claude/agents/**
+    - .claude/commands/**
+    - .claude/hooks/**
+    - .claude/skills/**
+
+  ontology:
+    - one/knowledge/ontology.md
+    - one/knowledge/architecture.md
+    - one/knowledge/rules.md
+    - one/connections/workflow.md
+
+  config:
+    - CLAUDE.md
+    - AGENTS.md
+    - LICENSE.md
+    - SECURITY.md

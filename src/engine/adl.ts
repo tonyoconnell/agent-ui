@@ -389,6 +389,42 @@ export const adlFromAgentSpec = (spec: AgentSpec): AdlDoc => {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PROMPT AUGMENTATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+export async function augmentPromptWithADL(uid: string, basePrompt: string): Promise<string> {
+  let adl: Awaited<ReturnType<typeof adlFromUnit>>
+  try {
+    adl = await adlFromUnit(uid)
+  } catch {
+    return basePrompt
+  }
+  if (!adl) return basePrompt
+
+  const lines: string[] = []
+
+  if (adl.data?.sensitivity && adl.data.sensitivity !== 'public') {
+    lines.push(`Data classification: ${adl.data.sensitivity}`)
+  }
+
+  if (adl.permissions?.network?.allowedHosts?.length) {
+    lines.push(`Allowed network hosts: ${adl.permissions.network.allowedHosts.join(', ')}`)
+  }
+
+  if (adl.permissions?.env?.access?.length) {
+    lines.push(`Env access keys required: ${adl.permissions.env.access.join(', ')}`)
+  }
+
+  if (adl.status === 'deprecated') {
+    lines.push(`Status: deprecated — avoid new capabilities, focus on stability`)
+  }
+
+  if (lines.length === 0) return basePrompt
+
+  return `${basePrompt}\n\n[OPERATIONAL CONSTRAINTS]\n${lines.join('\n')}`
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 

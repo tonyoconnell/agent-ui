@@ -1,0 +1,76 @@
+version: 2.0.0
+feature: courses
+extends: core
+status: E-learning and course management feature
+description: Educational courses, lessons, and certification
+
+things:
+  types:
+    content:
+      - name: course
+        description: Educational course (canonical 'course' type)
+        properties:
+          title: string
+          slug: string
+          description: string
+          price: number?
+          duration: string?
+          level: string? # Use knowledge label instead
+          thumbnail: string?
+          status: string # active|draft|published|archived
+      - name: lesson
+        description: Individual lesson (canonical 'lesson' type)
+        properties:
+          title: string
+          slug: string
+          content: string
+          videoUrl: string?
+          duration: number?
+          order: number?
+      - name: quiz
+        description: Quiz assessment
+        properties:
+          title: string
+          questions: object[]
+          passingScore: number?
+      - name: certificate
+        description: Certificate of completion
+        properties:
+          studentId: string? # Use connection instead
+          courseId: string? # Use connection instead
+          issuedAt: number?
+          certificateUrl: string?
+
+connections:
+  types:
+    product_relationships:
+      - name: enrolled_in # Canonical type
+        description: User enrolled in course
+        fromType: user
+        toType: course
+        canonical_alignment: enrolled_in
+      - name: part_of # Canonical type
+        description: Lesson is part of course
+        fromType: lesson
+        toType: course
+        canonical_alignment: part_of
+
+events:
+  types:
+    course_events:
+      - name: enrolled_in_course # Maps to canonical 'course_enrolled'
+        description: User enrolled in course
+        canonical_alignment: course_enrolled
+        metadata_structure: { courseId: string, enrollmentDate: number }
+      - name: lesson_completed # Canonical 'lesson_completed' type
+        description: User completed lesson
+        canonical_alignment: lesson_completed
+        metadata_structure: { courseId: string, lessonId: string }
+      - name: quiz_submitted # Maps to canonical 'content_event'
+        description: User submitted quiz
+        canonical_alignment: content_event
+        metadata_structure: { action: submitted, contentType: quiz, score: number }
+      - name: certificate_earned # Canonical 'certificate_earned' type
+        description: User earned certificate
+        canonical_alignment: certificate_earned
+        metadata_structure: { courseId: string, certificateId: string }

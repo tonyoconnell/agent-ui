@@ -1,0 +1,88 @@
+---
+/**
+ * /:groupId — Public group visitor page
+ *
+ * SSR page: resolves brand cascade (thing → group → user),
+ * injects CSS vars into <head>, renders group info and public agents.
+ * No auth required — public facing.
+ */
+import Layout from '@/layouts/Layout.astro'
+import { resolveBrand, renderBrand } from '@/engine/brand'
+import { readParsed } from '@/lib/typedb'
+
+export const prerender = false
+
+const { groupId } = Astro.params as { groupId: string }
+
+// Brand cascade: group-level brand
+const brand = await resolveBrand({ groupId }).catch(() => null)
+const brandStyle = renderBrand(brand, { groupId })
+
+// Fetch group info + public members
+type GroupInfo = { name: string; description: string }
+type PublicUnit = { uid: string; name: string; model: string; tags: string[] }
+
+let groupInfo: GroupInfo | null = null
+let units: PublicUnit[] = []
+
+try {
+  const groupRows = await readParsed(`
+    match $g isa group, has group-id "${groupId}", has name $n;
+    select $n;
+  `)
+  if (groupRows.length > 0) {
+    groupInfo = { name: groupRows[0].n as string, description: '' }
+  }
+
+  const unitRows = await readParsed(`
+    match
+      $g isa group, has group-id "${groupId}";
+      $u isa unit, has uid $id, has name $n;
+      (member: $u, group: $g) isa membership;
+    select $id, $n;
+  `)
+  units = unitRows.map((r) => ({
+    uid: r.id as string,
+    name: r.n as string,
+    model: '',
+    tags: [],
+  }))
+} catch {
+  // TypeDB unavailable — graceful degradation
+}
+
+if (!groupInfo) {
+  return Astro.redirect('/404')
+}
+---
+
+<Layout title={groupInfo.name} brandStyle={brandStyle}>
+  <div class="min-h-screen bg-background text-foreground">
+    <!-- Group header -->
+    <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-8">
+      <h1 class="text-2xl font-semibold text-slate-100">{groupInfo.name}</h1>
+      {groupInfo.description && (
+        <p class="mt-2 text-sm text-slate-400">{groupInfo.description}</p>
+      )}
+    </div>
+
+    <!-- Public agent grid -->
+    <div class="mx-auto max-w-4xl px-6 py-10">
+      {units.length === 0 ? (
+        <p class="text-sm text-slate-500">No public agents in this group.</p>
+      ) : (
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {units.map((u) => (
+            <a
+              href={`/market?seller=${u.uid}`}
+              class="flex flex-col gap-2 rounded-lg border border-[#252538] bg-[#161622] px-4 py-3 hover:border-indigo-500/50 transition-colors"
+            >
+              <span class="text-sm font-medium text-slate-100">{u.name}</span>
+              <span class="text-xs text-slate-500 font-mono">{u.uid}</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</Layout>

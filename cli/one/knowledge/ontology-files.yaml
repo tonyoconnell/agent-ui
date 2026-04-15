@@ -1,0 +1,525 @@
+# ONE Platform File Ontology v1.0.0
+# This is the master reference for understanding how all files work together
+# Maps the 6-dimension ontology to physical files and their relationships
+
+version: 1.0.0
+title: ONE Platform File Ontology
+description: Complete mapping of ONE Platform architecture to file system
+last_updated: 2025-10-30
+
+# ===========================
+# STRUCTURE: How It All Works
+# ===========================
+structure:
+  root: /Users/toc/Server/ONE/
+
+  layers:
+    1_governance:
+      description: "Platform governance and strategy (People dimension)"
+      directories:
+        - ".claude/": Agent configurations, hooks, commands, state
+        - "one-inc/": Installation-specific overrides (brand, features, groups)
+      files:
+        - ".env": Secrets and deployment configuration
+        - ".onboarding.json": User onboarding context
+        - "AGENTS.md": AI agent specifications and patterns
+        - "CLAUDE.md": Claude Code instructions
+
+    2_ontology:
+      description: "6-dimension ontology definitions (Knowledge dimension)"
+      directories:
+        - "one/knowledge/": Universal specifications (6 dimensions, rules, architecture)
+        - "one/things/": Entity types, services, specifications
+        - "one/connections/": Relationship types, protocols, workflows
+        - "one/events/": Event types, logs, deployment history
+        - "one/people/": Roles, governance, organization
+      files:
+        - "one/knowledge/ontology.md": Core 6-dimension model
+        - "one/knowledge/ontology-files.yaml": This file
+        - "one/knowledge/rules.md": Golden rules for development
+        - "one/knowledge/architecture.md": System architecture
+        - "one/things/todo.md": 100-cycle release plan
+        - "one/things/structure.md": Codebase organization guide
+
+    3_application_layer:
+      description: "Runnable applications (Things & Connections dimensions)"
+      directories:
+        - "web/": Frontend (Astro 5 + React 19)
+        - "backend/": Convex backend (headless API)
+        - "cli/": NPM package for onboarding
+      key_files:
+        web:
+          - "web/package.json": Frontend dependencies
+          - "web/astro.config.mjs": Build configuration
+          - "web/src/pages/": File-based routing
+          - "web/src/components/": React components
+          - "web/src/layouts/": Page layouts
+          - "web/src/content/": Content collections (markdown)
+        backend:
+          - "backend/package.json": Backend dependencies
+          - "backend/convex/schema.ts": Database schema (5 tables)
+          - "backend/convex/auth.ts": Authentication configuration
+          - "backend/convex/queries/": Read operations
+          - "backend/convex/mutations/": Write operations
+        cli:
+          - "cli/package.json": CLI dependencies
+          - "cli/bin/oneie.js": CLI entry point
+          - "cli/src/": CLI source code
+
+    4_generated:
+      description: "Generated artifacts and build outputs"
+      directories:
+        - "web/dist/": Production build
+        - "web/.astro/": Astro generated types
+        - "backend/.convex/": Convex generated types
+        - "cli/dist/": Compiled CLI
+        - "node_modules/": Dependencies
+
+    5_examples:
+      description: "Example applications and integrations"
+      directories:
+        - "apps/one/": Main website assembly
+        - "apps/oneie/": Generated oneie.com site
+        - "apps/eliza/": ElizaOS integration
+        - "apps/stack/": Stack Auth example
+        - "apps/hono/": Hono API example
+        - "docs/": Third-party documentation
+
+    6_utilities:
+      description: "Helper scripts and imports"
+      directories:
+        - ".claude/": Hooks, commands, agents, state
+        - ".github/workflows/": CI/CD pipelines
+        - "import/": Data migration utilities
+        - "media/": Assets and media files
+
+# =============================
+# DIMENSIONS: How Data Flows
+# =============================
+dimensions:
+  things:
+    description: "All entities in the system (users, agents, content, tokens, courses)"
+    storage: "backend/convex/schema.ts - 'things' table"
+    count: "66+ entity types"
+    location: "one/knowledge/ontology.md - 'Things' dimension"
+    examples:
+      - creator: User account
+      - agent: AI agent (director, clone, specialist)
+      - course: Course entity
+      - token: Digital token
+      - ai_clone: AI representation of creator
+
+  connections:
+    description: "Relationships between entities"
+    storage: "backend/convex/schema.ts - 'connections' table"
+    count: "25+ connection types"
+    location: "one/knowledge/ontology.md - 'Connections' dimension"
+    examples:
+      - owns: Creator owns course
+      - authored: Agent authored content
+      - holds_tokens: User holds tokens
+      - enrolled_in: User enrolled in course
+      - delegates: Agent delegates to agent
+
+  events:
+    description: "All actions and state changes (audit trail)"
+    storage: "backend/convex/schema.ts - 'events' table"
+    count: "67+ event types"
+    location: "one/knowledge/ontology.md - 'Events' dimension"
+    examples:
+      - entity_created: New entity created
+      - connection_formed: Relationship established
+      - course_completed: User finished course
+      - token_minted: New tokens created
+      - cycle_executed: AI decision made
+
+  knowledge:
+    description: "Labels, embeddings, semantic search (RAG)"
+    storage: "backend/convex/schema.ts - 'knowledge' table + 'thingKnowledge' junction"
+    count: "Unlimited vectors"
+    location: "one/knowledge/ontology.md - 'Knowledge' dimension"
+    features:
+      - embeddings: Vector representations
+      - labels: Taxonomies and categories
+      - chunks: Content fragments for RAG
+      - search: Semantic similarity queries
+
+  people:
+    description: "Authorization and governance"
+    storage: "backend/convex/schema.ts - represented in 'things' table with role metadata"
+    count: "4 role types"
+    location: "one/knowledge/ontology.md - 'People' dimension"
+    roles:
+      - platform_owner: Owns the entire platform
+      - group_owner: Owns/manages groups (replaces org_owner)
+      - group_user: Member of a group (replaces org_user)
+      - customer: End user/consumer
+
+  groups:
+    description: "Hierarchical containers for multi-tenancy"
+    storage: "backend/convex/schema.ts - 'groups' table"
+    count: "Unlimited groups (hierarchical)"
+    location: "one/knowledge/ontology.md - 'Groups' dimension"
+    types:
+      - friend_circle: Personal group (2-10 people)
+      - business: Company (10-1000 people)
+      - community: Open community (1K+ people)
+      - dao: Decentralized org (1K+ people)
+      - government: Government (1M+ people)
+      - organization: Generic org (any size)
+
+# ================================
+# PROTOCOLS: How Systems Interact
+# ================================
+protocols:
+  a2a:
+    name: "Agent-to-Agent Protocol"
+    location: "one/connections/protocols.md"
+    purpose: "Agents communicate and delegate work"
+    implementation: "backend/convex/services/agents/"
+
+  acp:
+    name: "Agentic Commerce Protocol"
+    location: "one/connections/protocols.md"
+    purpose: "Token transactions and payments"
+    implementation: "backend/convex/services/tokens/"
+
+  ap2:
+    name: "Agent Payments Protocol"
+    location: "one/connections/protocols.md"
+    purpose: "Agent compensation and rewards"
+    implementation: "backend/convex/services/tokens/"
+
+  x402:
+    name: "HTTP Micropayments Protocol"
+    location: "one/connections/protocols.md"
+    purpose: "Pay-per-use API access"
+    implementation: "backend/convex/routes/ (Hono)"
+
+  ag_ui:
+    name: "Agentic UI Protocol"
+    location: "one/connections/protocols.md"
+    purpose: "Generative UI rendering"
+    implementation: "web/src/components/ai/"
+
+# ================================
+# SERVICES: How Work Gets Done
+# ================================
+services:
+  backend:
+    architecture: "Effect.ts for business logic, Convex for persistence"
+    location: "backend/convex/"
+    pattern: "one/connections/patterns.md - Services pattern"
+    layers:
+      1_mutations:
+        path: "backend/convex/mutations/"
+        purpose: "Write operations (thin wrappers)"
+        examples: ["createEntity", "updateConnection", "logEvent"]
+
+      2_queries:
+        path: "backend/convex/queries/"
+        purpose: "Read operations (thin wrappers)"
+        examples: ["getEntity", "listConnections", "searchKnowledge"]
+
+      3_services:
+        path: "backend/convex/services/"
+        purpose: "Business logic in Effect.ts"
+        examples: ["ConvexDatabase", "AuthService", "TokenService"]
+
+      4_http:
+        path: "backend/convex/http.ts"
+        purpose: "HTTP endpoints (Hono)"
+        examples: ["POST /api/infer", "GET /api/status"]
+
+  frontend:
+    architecture: "Astro + React 19 with islands"
+    location: "web/"
+    pattern: "one/connections/patterns.md - React pattern"
+    layers:
+      1_pages:
+        path: "web/src/pages/"
+        purpose: "File-based routing"
+        examples: ["index.astro", "/account/login.astro"]
+
+      2_components:
+        path: "web/src/components/"
+        purpose: "React islands + shadcn/ui"
+        examples: ["EntityForm.tsx", "SearchInput.tsx"]
+
+      3_layouts:
+        path: "web/src/layouts/"
+        purpose: "Page templates"
+        examples: ["Layout.astro", "AuthLayout.astro"]
+
+      4_content:
+        path: "web/src/content/"
+        purpose: "Content collections (Markdown)"
+        examples: ["blog/", "docs/"]
+
+# ====================================
+# INSTALLATION CUSTOMIZATION LAYER
+# ====================================
+installation_folders:
+  path: "one-inc/"
+  purpose: "Organization-specific customization"
+  structure:
+    knowledge:
+      - "brand-guide.md": Custom branding (overrides defaults)
+      - "features.md": Organization features
+      - "rules.md": Org-specific development rules
+
+    groups:
+      description: "Group-specific documentation"
+      example: "groups/engineering/practices.md"
+
+    things:
+      - "features.md": Custom entity types
+
+  inheritance:
+    global: "one/ (shared by all)"
+    installation: "one-inc/ (this org only)"
+    precedence: "Installation overrides global"
+
+# =================================
+# CRITICAL FILES FOR EACH ROLE
+# =================================
+critical_files:
+  platform_owner:
+    strategy:
+      - "one/things/strategy.md": 8 core features, revenue model
+      - "one-inc/groups/strategy.md": Organization strategy
+      - "one/things/todo.md": 100-cycle release plan
+
+    monitoring:
+      - "one/events/": Deployment logs and event history
+      - "one-inc/groups/revenue.md": Revenue tracking
+
+    decisions:
+      - "CLAUDE.md": AI development instructions
+      - ".claude/agents/": Agent definitions
+
+  developer:
+    patterns:
+      - "one/connections/patterns.md": Proven code patterns
+      - "one/connections/workflow.md": 6-phase development
+      - "AGENTS.md": Convex quick reference
+
+    ontology:
+      - "one/knowledge/ontology.md": 6-dimension model
+      - "one/knowledge/rules.md": Golden rules
+      - "one/things/structure.md": File organization
+
+    implementation:
+      - "backend/convex/schema.ts": Database design
+      - "web/src/components/": UI examples
+      - "one/connections/implementations/": Reference implementations
+
+  ai_agent:
+    instructions:
+      - "CLAUDE.md": Overall platform instructions
+      - ".claude/agents/": Agent specifications
+      - "one/knowledge/rules.md": Golden rules
+
+    patterns:
+      - "one/connections/patterns.md": Code generation templates
+      - "backend/convex/": Service examples
+      - "web/src/components/": Component examples
+
+    state:
+      - ".claude/state/": Agent state and context
+      - "one/things/todo.md": Task list
+      - "one/events/": Event history
+
+  agent_director:
+    responsibilities:
+      - "one/things/todo.md": Manage this file daily
+      - "one/events/": Log all decisions as events
+      - ".claude/state/": Update agent state
+
+    delegation:
+      - "one/connections/protocols.md": Use A2A protocol
+      - "one/knowledge/rules.md": Enforce patterns
+      - "AGENTS.md": Use specialist agents
+
+# ==============================
+# FILE SIZE & METRICS
+# ==============================
+metrics:
+  documentation:
+    count: "90+ markdown files"
+    total_lines: "73,000+ lines"
+    location: "one/"
+    breakdown:
+      - "one/knowledge/: 20 files (core specs)"
+      - "one/connections/: 15 files (protocols & patterns)"
+      - "one/things/: 25 files (entity specs & plans)"
+      - "one/events/: 10 files (deployment & history)"
+      - "one/people/: 20 files (roles & governance)"
+
+  source_code:
+    frontend:
+      - "web/src/: ~3,000 lines (Astro + React)"
+      - "web/package.json: 50+ dependencies"
+
+    backend:
+      - "backend/convex/schema.ts: ~200 lines (5 tables)"
+      - "backend/convex/: ~2,000 lines (queries + mutations)"
+
+    cli:
+      - "cli/src/: ~1,500 lines (TypeScript)"
+
+  dependencies:
+    total_packages: "800+ in node_modules"
+    key_frameworks:
+      - astro: "5.14+"
+      - react: "19"
+      - convex: "latest"
+      - effect: "3.x"
+      - tailwindcss: "v4"
+
+# ===============================
+# DEPLOYMENT TARGETS
+# ===============================
+deployments:
+  web:
+    target: "Cloudflare Pages"
+    url: "https://web.one.ie"
+    source: "web/"
+    build: "bun run build"
+    repository: "github.com/one-ie/web"
+
+  backend:
+    target: "Convex Cloud"
+    url: "https://shocking-falcon-870.convex.cloud"
+    source: "backend/"
+    deploy: "npx convex deploy"
+    repository: "github.com/one-ie/backend"
+
+  cli:
+    target: "npm Registry"
+    package: "oneie"
+    url: "https://npmjs.com/package/oneie"
+    source: "cli/"
+    repository: "github.com/one-ie/cli"
+
+  docs:
+    target: "GitHub Pages / Web"
+    source: "/docs/"
+    repository: "github.com/one-ie/docs"
+
+# ===============================
+# FILE RELATIONSHIPS (DAG)
+# ===============================
+relationships:
+  - from: ".claude/"
+    to: "CLAUDE.md"
+    type: "implements_instructions"
+
+  - from: "one/knowledge/ontology.md"
+    to: ["backend/convex/schema.ts", "one/things/", "one/connections/", "one/events/"]
+    type: "defines_specification_for"
+
+  - from: "one/connections/patterns.md"
+    to: ["backend/convex/services/", "web/src/components/", "cli/src/"]
+    type: "provides_patterns_for"
+
+  - from: "one/things/todo.md"
+    to: [".claude/state/", "one/events/", "one-inc/"]
+    type: "orchestrates_work_for"
+
+  - from: "one-inc/"
+    to: ["web/", "backend/", "cli/"]
+    type: "customizes_behavior_of"
+
+  - from: "one/knowledge/ontology-files.yaml"
+    to: ["one/", "web/", "backend/", "cli/", "apps/"]
+    type: "maps_all_files_to_architecture"
+
+# ===============================
+# QUICK REFERENCE PATHS
+# ===============================
+quick_paths:
+  platform_vision: "one/things/strategy.md"
+  development_rules: "one/knowledge/rules.md"
+  code_patterns: "one/connections/patterns.md"
+  workflow: "one/connections/workflow.md"
+  architecture: "one/knowledge/architecture.md"
+  ontology: "one/knowledge/ontology.md"
+  database_schema: "backend/convex/schema.ts"
+  frontend_components: "web/src/components/"
+  release_plan: "one/things/todo.md"
+  claude_instructions: "CLAUDE.md"
+  ai_agents: ".claude/agents/"
+  hooks: ".claude/hooks/"
+  commands: ".claude/commands/"
+
+# ===============================
+# NOTES FOR CLAUDE CODE
+# ===============================
+notes:
+  - "This file is the master reference for understanding the entire ONE Platform"
+  - "Every feature maps to one or more files in this ontology"
+  - "The 6-dimension ontology (things, connections, events, knowledge, people, groups) is implemented in backend/convex/schema.ts"
+  - "Installation customization happens via one-inc/ folder - overrides global defaults"
+  - "All AI agents should read this file to understand the system structure"
+  - "Use 'Quick Reference Paths' section to navigate quickly"
+  - "File relationships show dependencies - useful for impact analysis"
+  - "Metrics show current state - used for planning capacity"
+  - "Deployment targets show where code actually runs"
+
+---
+
+# VISUALIZATION: How Everything Connects
+
+```
+ROOT /Users/toc/Server/ONE/
+│
+├─ GOVERNANCE LAYER (.claude, AGENTS.md, CLAUDE.md)
+│  ├─ .claude/agents/ → AI agent definitions
+│  ├─ .claude/hooks/ → Event handlers
+│  ├─ .claude/commands/ → Slash commands
+│  └─ .claude/state/ → Agent state
+│
+├─ ONTOLOGY LAYER (one/)
+│  ├─ one/knowledge/ → 6-dim specs (things, connections, events, knowledge, people, groups)
+│  ├─ one/things/ → Entity types, services, plans
+│  ├─ one/connections/ → Protocols, patterns, workflows
+│  ├─ one/events/ → Deployment history, logs
+│  └─ one/people/ → Roles, governance
+│
+├─ CUSTOMIZATION LAYER (one-inc/)
+│  ├─ one-inc/knowledge/ → Brand, features, rules (org override)
+│  ├─ one-inc/groups/ → Group documentation
+│  └─ one-inc/things/ → Custom entity types
+│
+├─ APPLICATION LAYER (web, backend, cli)
+│  ├─ web/ → Frontend (Astro 5 + React 19)
+│  │  ├─ src/pages/ → File-based routes
+│  │  ├─ src/components/ → React islands
+│  │  └─ src/layouts/ → Page templates
+│  │
+│  ├─ backend/ → Convex (Effect.ts + Queries/Mutations)
+│  │  ├─ convex/schema.ts → 6-dimension database
+│  │  ├─ convex/mutations/ → Write ops
+│  │  ├─ convex/queries/ → Read ops
+│  │  └─ convex/services/ → Business logic
+│  │
+│  └─ cli/ → NPM package (bootstrap new installs)
+│     ├─ bin/oneie.js → Entry point
+│     └─ src/ → CLI logic
+│
+├─ GENERATED LAYER
+│  ├─ web/dist/ → Production build
+│  ├─ web/.astro/ → Generated types
+│  ├─ backend/.convex/ → Generated types
+│  └─ node_modules/ → Dependencies
+│
+└─ EXAMPLES LAYER (apps/)
+   ├─ apps/one/ → Main website (web.one.ie)
+   ├─ apps/oneie/ → Generated oneie.com
+   ├─ apps/eliza/ → ElizaOS integration
+   └─ apps/hono/ → Hono API example
+```
+
+EOF: This file is the master reference for ONE Platform file organization.
+Last human edit: 2025-10-30 by Claude Code

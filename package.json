@@ -2,7 +2,14 @@
   "name": "envelope-system",
   "type": "module",
   "version": "1.0.0",
+  "workspaces": [
+    "cli",
+    "packages/sdk",
+    "packages/mcp",
+    "packages/templates"
+  ],
   "scripts": {
+    "build:pkgs": "cd packages/sdk && bun run build && cd ../mcp && bun run build && cd ../templates && bun run build && cd ../../cli && bun run build",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
@@ -14,9 +21,9 @@
     "check:fix": "biome check --fix .",
     "format": "biome format --write .",
     "lint": "biome lint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bash scripts/typecheck.sh",
     "audit:design": "bun run scripts/audit-design-tokens.ts",
-    "verify": "biome check . && tsc --noEmit && vitest run && bun run scripts/audit-design-tokens.ts",
+    "verify": "biome check . && bash scripts/typecheck.sh && vitest run && bun run scripts/audit-design-tokens.ts",
     "bootstrap": "bash scripts/bootstrap.sh",
     "seed:tasks": "bun run scripts/seed-tasks.ts",
     "seed:agents": "bun run scripts/seed-agents.ts",

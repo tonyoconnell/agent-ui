@@ -1,0 +1,31 @@
+{
+  "name": "@oneie/templates",
+  "version": "0.1.0",
+  "description": "ONE agent presets and template generator.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./presets": "./dist/presets.js",
+    "./registry": "./dist/registry.js",
+    "./generator": "./dist/generator.js"
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
+  "license": "SEE LICENSE IN https://one.ie/free-license",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/one-ie/envelopes.git",
+    "directory": "packages/templates"
+  }
+}

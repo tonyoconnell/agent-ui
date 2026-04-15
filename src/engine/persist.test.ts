@@ -257,12 +257,16 @@ describe('Act 4: ask() capability sandwich — no capability = dissolved', () =>
   })
 
   it('ask to bare unit (no skill) is not capability-checked', async () => {
-    // A unit:skill pattern triggers the check; a plain unit bypasses it.
-    // Here the unit doesn't exist, so world.ask() dissolves for a different
-    // reason (no handler) — but the capability check is NOT invoked.
+    // A unit:skill pattern triggers the capability check; a plain unit bypasses it.
+    // PEP-3.5 (lifecycle gate) fires once for any unit ask.
+    // PEP-3 (capability gate) does NOT fire for bare unit asks.
     const callsBefore = vi.mocked(readParsed).mock.calls.length
     await w.ask({ receiver: 'ghost' })
-    expect(vi.mocked(readParsed).mock.calls.length).toBe(callsBefore) // no extra read
+    // +1 readParsed call expected: lifecycle check (PEP-3.5), NOT capability (PEP-3)
+    expect(vi.mocked(readParsed).mock.calls.length).toBe(callsBefore + 1)
+    const lastCall = vi.mocked(readParsed).mock.calls.at(-1)?.[0] as string
+    expect(lastCall).toContain('adl-status') // lifecycle check, not capability
+    expect(lastCall).not.toContain('capability') // capability NOT invoked
   })
 })
 

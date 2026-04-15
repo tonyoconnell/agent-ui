@@ -1,10 +1,5 @@
-/**
- * ONE — The world
- *
- * Colony + TypeDB persistence + knowledge.
- * One layer. No wrapping.
- */
-
+import { encryptForGroup } from '@/lib/kek'
+import { emitSecurityEvent } from '@/lib/security-signals'
 import { parseAnswers, read, readParsed, writeSilent } from '@/lib/typedb'
 import { relayToGateway, wsManager } from '@/lib/ws-server'
 import { mirrorActor, mirrorMark, mirrorWarn, settleEscrow } from './bridge'
@@ -36,6 +31,45 @@ export const isToxic = (
   const s = strength[edge] || 0
   const r = resistance[edge] || 0
   return r >= 10 && r > s * 2 && r + s > 5
+}
+
+// ── PEP support: nonce dedup + lifecycle cache ───────────────────────────────
+
+// Nonce dedup (PEP-2): 5-min TTL window. Kills replay in O(1) — no TypeDB read.
+const NONCE_TTL_MS = 5 * 60 * 1000
+const NONCE_SEEN = new Map<string, number>() // nonce → expiresMs
+
+function checkNonce(nonce: string): 'ok' | 'replay' {
+  const now = Date.now()
+  for (const [n, exp] of NONCE_SEEN) {
+    if (exp < now) NONCE_SEEN.delete(n) // prune stale entries
+  }
+  if (NONCE_SEEN.has(nonce)) return 'replay'
+  NONCE_SEEN.set(nonce, now + NONCE_TTL_MS)
+  return 'ok'
+}
+
+// ADL lifecycle cache (PEP-3.5): avoid TypeDB read on every ask()
+const LIFECYCLE_TTL_MS = 5 * 60 * 1000
+const LIFECYCLE_CACHE = new Map<string, { status?: string; sunsetAt?: number; expires: number }>()
+
+// ADL schema cache (PEP-4): cache skill input-schema per uid:skill (5-min TTL)
+const SCHEMA_TTL_MS = 5 * 60 * 1000
+const SKILL_SCHEMA_CACHE = new Map<string, { schema: Record<string, unknown> | null; expires: number }>()
+
+/** Minimal inline JSON Schema validator — no external deps. Handles type + required only. */
+function validateJsonSchema(data: unknown, schema: Record<string, unknown>): boolean {
+  if (schema.type === 'object' && (typeof data !== 'object' || data === null || Array.isArray(data))) return false
+  if (schema.type === 'string' && typeof data !== 'string') return false
+  if (schema.type === 'number' && typeof data !== 'number') return false
+  if (schema.type === 'array' && !Array.isArray(data)) return false
+  if (schema.type === 'boolean' && typeof data !== 'boolean') return false
+  if (schema.required && Array.isArray(schema.required) && typeof data === 'object' && data !== null) {
+    for (const field of schema.required as string[]) {
+      if (!(field in (data as Record<string, unknown>))) return false
+    }
+  }
+  return true
 }
 
 export type TaskMatch = {
@@ -485,15 +519,37 @@ export const world = (): PersistentWorld => {
   // Delegates to the exported standalone isToxic for O(1) in-memory check.
   const checkToxic = (edge: string) => isToxic(edge, net.strength, net.resistance)
 
-  const signal = (s: Signal, from = 'entry') => {
+  /**
+   * PEP for fire-and-forget signals.
+   *
+   * PEP-1  toxic → dissolve + emitSecurityEvent + net.warn(caller→auth-boundary, 0.3)
+   * PEP-2  nonce → replay dissolve + emitSecurityEvent + net.warn
+   * PEP-4/5 budget + rate-limit stubs (pass-through, enforced in future cycle)
+   * PEP-6  deliver + log (encrypt private-scope data before TypeDB write)
+   */
+  const signal = async (s: Signal, from = 'entry') => {
     const t0 = performance.now()
     const edge = `${from}→${s.receiver}`
 
+    // PEP-1: toxic check — dissolve + audit hypothesis + pheromone warn
     if (checkToxic(edge)) {
+      emitSecurityEvent({ kind: 'toxic', edge })
+      net.warn(`${from}→auth-boundary`, 0.3)
       console.log(`[TOXIC] blocked: ${edge}`)
       return
     }
 
+    // PEP-2: nonce dedup — kills replay in O(1), no TypeDB read
+    const nonce = (s.data as Record<string, unknown>)?.nonce as string | undefined
+    if (nonce && checkNonce(nonce) === 'replay') {
+      emitSecurityEvent({ kind: 'replay', edge, nonce })
+      net.warn(`${from}→auth-boundary`, 0.3)
+      return
+    }
+
+    // PEP-4/5: budget + rate-limit stubs (pass-through — enforced in future cycle)
+
+    // PEP-6: deliver
     const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
     if (net.has(uid)) {
       writeSilent(`
@@ -507,42 +563,67 @@ export const world = (): PersistentWorld => {
       `)
     }
 
-    // Execute signal and log to TypeDB
     net.signal(s, from)
 
-    // Log signal for observability: sender, receiver, data, success, latency, timestamp
+    // Log to TypeDB — encrypt private-scope data before write
     const latency = performance.now() - t0
     const timestamp = new Date().toISOString()
-    const dataStr = JSON.stringify(s.data || {})
-      .slice(0, 500)
-      .replace(/"/g, "'")
-
-    // Schema: signal relates sender/receiver (roles) and owns
-    // data, amount, success, latency, ts. We can't set role players
-    // via `has sender` — they bind through the relation declaration.
-    // This log is best-effort; missing sender/receiver units just dissolve.
     const uidFrom = from.includes(':') ? from.split(':')[0] : from
-    const uidTo = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
+    const scope = (s.data as Record<string, unknown>)?.scope as string | undefined
+    let dataStr: string
+    if (scope === 'private') {
+      const gid = (s.data as Record<string, unknown>)?.group as string | undefined
+      const plain = JSON.stringify(s.data || {}).slice(0, 500)
+      const enc = gid ? await encryptForGroup(gid, plain).catch(() => null) : null
+      dataStr = enc ? `[enc:${enc.slice(0, 60)}]` : plain.replace(/"/g, "'")
+    } else {
+      dataStr = JSON.stringify(s.data || {})
+        .slice(0, 500)
+        .replace(/"/g, "'")
+    }
     writeSilent(`
       match
         $from isa unit, has uid "${uidFrom}";
-        $to isa unit, has uid "${uidTo}";
+        $to isa unit, has uid "${uid}";
       insert (sender: $from, receiver: $to) isa signal,
         has data "${dataStr}",
         has amount 0.0,
         has success true,
         has latency ${latency.toFixed(2)},
         has ts ${timestamp.replace('Z', '')};
-    `).catch(() => {}) // Best-effort logging
+    `).catch(() => {})
   }
 
+  /**
+   * PEP for ask() — signal + wait. Full 6-step check before LLM fires.
+   *
+   * PEP-1  toxic → dissolve + emitSecurityEvent + net.warn(caller→auth-boundary, 0.3)
+   * PEP-2  nonce → replay dissolve + emitSecurityEvent + net.warn
+   * PEP-3  capability exists? → emitSecurityEvent(capability-missing) → dissolve
+   * PEP-3.5 ADL lifecycle gate → retired/deprecated/sunset → dissolve (5-min cache)
+   * PEP-4/5 budget + rate-limit stubs (pass-through)
+   * PEP-6  deliver
+   */
   const ask = async (s: Signal, from = 'entry', timeout?: number) => {
     const edge = `${from}→${s.receiver}`
+
+    // PEP-1: toxic check
     if (checkToxic(edge)) {
+      emitSecurityEvent({ kind: 'toxic', edge })
+      net.warn(`${from}→auth-boundary`, 0.3)
       console.log(`[TOXIC] blocked: ${edge}`)
       return { dissolved: true }
     }
-    // Pre-check: capability exists? (TypeDB)
+
+    // PEP-2: nonce dedup
+    const nonce = (s.data as Record<string, unknown>)?.nonce as string | undefined
+    if (nonce && checkNonce(nonce) === 'replay') {
+      emitSecurityEvent({ kind: 'replay', edge, nonce })
+      net.warn(`${from}→auth-boundary`, 0.3)
+      return { dissolved: true }
+    }
+
+    // PEP-3: capability check
     const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
     const skill = s.receiver.includes(':') ? s.receiver.split(':')[1] : null
     if (skill) {
@@ -550,8 +631,70 @@ export const world = (): PersistentWorld => {
         `match $u isa unit, has uid "${uid}"; $sk isa skill, has skill-id "${skill}";
          (provider: $u, offered: $sk) isa capability; select $u;`,
       ).catch(() => [])
-      if (!ok.length) return { dissolved: true }
+      if (!ok.length) {
+        emitSecurityEvent({ kind: 'capability-missing', receiver: uid })
+        return { dissolved: true }
+      }
     }
+
+    // PEP-3.5: lifecycle gate — skip retired/deprecated/past-sunset units (5-min cache)
+    const lcCached = LIFECYCLE_CACHE.get(uid)
+    const lcNow = Date.now()
+    let lcStatus: string | undefined
+    let lcSunsetAt: number | undefined
+    if (lcCached && lcCached.expires > lcNow) {
+      lcStatus = lcCached.status
+      lcSunsetAt = lcCached.sunsetAt
+    } else {
+      const lcRows = await readParsed(`
+        match $u isa unit, has uid "${escapeStr(uid)}";
+        optional { $u has adl-status $st; }
+        optional { $u has sunset-at $sun; }
+        select $st, $sun;
+      `).catch(() => [])
+      lcStatus = lcRows[0]?.st as string | undefined
+      lcSunsetAt = lcRows[0]?.sun ? new Date(lcRows[0].sun as string).getTime() : undefined
+      LIFECYCLE_CACHE.set(uid, { status: lcStatus, sunsetAt: lcSunsetAt, expires: lcNow + LIFECYCLE_TTL_MS })
+    }
+    if (lcStatus === 'retired' || lcStatus === 'deprecated') {
+      emitSecurityEvent({ kind: 'auth-fail', caller: from, reason: 'lifecycle-blocked' })
+      net.warn(edge, 0.5)
+      return { dissolved: true }
+    }
+    if (lcSunsetAt && Date.now() > lcSunsetAt) {
+      emitSecurityEvent({ kind: 'auth-fail', caller: from, reason: 'lifecycle-blocked' })
+      net.warn(edge, 0.5)
+      return { dissolved: true }
+    }
+
+    // PEP-4: skill schema validation — validate data against input-schema if declared (fail-open)
+    if (skill) {
+      const schemaKey = `${uid}:${skill}`
+      const schemaCached = SKILL_SCHEMA_CACHE.get(schemaKey)
+      const schemaTs = Date.now()
+      let inputSchema: Record<string, unknown> | null = null
+      if (schemaCached && schemaCached.expires > schemaTs) {
+        inputSchema = schemaCached.schema
+      } else {
+        const schemaRows = await readParsed(`
+          match $u isa unit, has uid "${escapeStr(uid)}"; $sk isa skill, has skill-id "${escapeStr(skill)}";
+          (provider: $u, offered: $sk) isa capability; $sk has input-schema $is;
+          select $is;
+        `).catch(() => [])
+        try {
+          inputSchema = schemaRows.length ? (JSON.parse(schemaRows[0].is as string) as Record<string, unknown>) : null
+        } catch {
+          inputSchema = null // malformed → fail open
+        }
+        SKILL_SCHEMA_CACHE.set(schemaKey, { schema: inputSchema, expires: schemaTs + SCHEMA_TTL_MS })
+      }
+      if (inputSchema && !validateJsonSchema(s.data, inputSchema)) {
+        return { dissolved: true }
+      }
+    }
+    // PEP-5: budget + rate-limit stubs (pass-through)
+
+    // PEP-6: deliver
     const outcome = await net.ask(s, from, timeout)
     if (!outcome.dissolved) {
       writeSilent(`

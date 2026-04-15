@@ -1,0 +1,219 @@
+{
+  "current_inference": 1,
+  "completed_inferences": [],
+  "feature_name": "CLI Release",
+  "organization": "Default Org",
+  "person_role": "platform_owner",
+  "lessons_learned": [
+    {
+      "inference": 1,
+      "lesson": "Completed Cycle 1",
+      "timestamp": 1762363178
+    },
+    {
+      "inference": 2,
+      "lesson": "Completed Cycle 2",
+      "timestamp": 1762363182
+    },
+    {
+      "inference": 3,
+      "lesson": "Completed Infer 3",
+      "timestamp": 1762363258
+    },
+    {
+      "inference": 4,
+      "lesson": "Completed Infer 4",
+      "timestamp": 1762363346
+    },
+    {
+      "inference": 5,
+      "lesson": "Completed Infer 5",
+      "timestamp": 1762363501
+    },
+    {
+      "inference": 6,
+      "lesson": "Completed Infer 6",
+      "timestamp": 1762363842
+    },
+    {
+      "inference": 7,
+      "lesson": "Completed Infer 7",
+      "timestamp": 1762364045
+    },
+    {
+      "inference": 8,
+      "lesson": "Completed Infer 8",
+      "timestamp": 1762364208
+    },
+    {
+      "inference": 9,
+      "lesson": "Completed Infer 9",
+      "timestamp": 1762364271
+    },
+    {
+      "inference": 10,
+      "lesson": "Completed Infer 10",
+      "timestamp": 1762364351
+    },
+    {
+      "inference": 11,
+      "lesson": "Completed Infer 11",
+      "timestamp": 1762364431
+    },
+    {
+      "inference": 12,
+      "lesson": "Completed Infer 12",
+      "timestamp": 1762364450
+    },
+    {
+      "inference": 13,
+      "lesson": "Completed Infer 13",
+      "timestamp": 1762364456
+    },
+    {
+      "inference": 14,
+      "lesson": "Completed Infer 14",
+      "timestamp": 1762364469
+    },
+    {
+      "inference": 15,
+      "lesson": "Completed Infer 15",
+      "timestamp": 1762364593
+    },
+    {
+      "inference": 16,
+      "lesson": "Completed Infer 16",
+      "timestamp": 1762364601
+    },
+    {
+      "inference": 17,
+      "lesson": "Completed Infer 17",
+      "timestamp": 1762364642
+    },
+    {
+      "inference": 18,
+      "lesson": "Completed Infer 18",
+      "timestamp": 1762364730
+    },
+    {
+      "inference": 19,
+      "lesson": "Completed Infer 19",
+      "timestamp": 1762364840
+    },
+    {
+      "inference": 20,
+      "lesson": "Completed Infer 20",
+      "timestamp": 1762364941
+    },
+    {
+      "inference": 21,
+      "lesson": "Completed Infer 21",
+      "timestamp": 1762365560
+    },
+    {
+      "inference": 22,
+      "lesson": "Completed Infer 22",
+      "timestamp": 1762365637
+    },
+    {
+      "inference": 23,
+      "lesson": "Completed Infer 23",
+      "timestamp": 1762365775
+    },
+    {
+      "inference": 24,
+      "lesson": "Completed Infer 24",
+      "timestamp": 1762365874
+    },
+    {
+      "inference": 25,
+      "lesson": "Completed Infer 25",
+      "timestamp": 1762366010
+    },
+    {
+      "inference": 26,
+      "lesson": "Completed Infer 26",
+      "timestamp": 1762366226
+    },
+    {
+      "inference": 27,
+      "lesson": "Completed Infer 27",
+      "timestamp": 1762366317
+    },
+    {
+      "inference": 28,
+      "lesson": "Completed Infer 28",
+      "timestamp": 1762368549
+    },
+    {
+      "inference": 29,
+      "lesson": "Completed Infer 29",
+      "timestamp": 1762368739
+    },
+    {
+      "inference": 30,
+      "lesson": "Completed Infer 30",
+      "timestamp": 1762369086
+    },
+    {
+      "inference": 31,
+      "lesson": "Completed Infer 31",
+      "timestamp": 1762369807
+    },
+    {
+      "inference": 32,
+      "lesson": "Completed Infer 32",
+      "timestamp": 1762370169
+    },
+    {
+      "inference": 33,
+      "lesson": "Completed Infer 33",
+      "timestamp": 1762370182
+    },
+    {
+      "inference": 34,
+      "lesson": "Completed Infer 34",
+      "timestamp": 1762372271
+    },
+    {
+      "inference": 35,
+      "lesson": "Completed Infer 35",
+      "timestamp": 1762372523
+    },
+    {
+      "inference": 36,
+      "lesson": "Completed Infer 36",
+      "timestamp": 1762375435
+    },
+    {
+      "inference": 37,
+      "lesson": "Completed Infer 37",
+      "timestamp": 1762375539
+    },
+    {
+      "inference": 38,
+      "lesson": "Completed Infer 38",
+      "timestamp": 1762375738
+    },
+    {
+      "inference": 39,
+      "lesson": "Completed Infer 39",
+      "timestamp": 1762376173
+    },
+    {
+      "inference": 40,
+      "lesson": "Completed Infer 40",
+      "timestamp": 1762376185
+    },
+    {
+      "inference": 41,
+      "lesson": "Completed Infer 41",
+      "timestamp": 1762376421
+    },
+    {
+      "inference": 42,
+      "lesson": "Completed Infer 42",
+      "timestamp": 1762376426
+    }
+  ]
+}

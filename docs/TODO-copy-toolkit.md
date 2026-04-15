@@ -347,21 +347,21 @@ bash scripts/smoke-tests/test-launch-handoff.mjs --auto 5  # 5 agents auto-launc
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — clone `../ONE/cli` + scaffold `@oneie/*` packages
-  - [x] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 13)
-  - [ ] W4 — Verify (Sonnet × 4)
-- [ ] **Cycle 2: PROVE** — substrate verbs + launch handoff
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 20)
-  - [ ] W4 — Verify (Sonnet × 5)
-- [ ] **Cycle 3: GROW** — docs + MCP HTTP + self-improvement
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 12)
-  - [ ] W4 — Verify (Sonnet × 4)
+- [x] **Cycle 1: WIRE** — clone `../ONE/cli` + scaffold `@oneie/*` packages
+  - [x] W1 — Recon (Haiku × 4) — `docs/copy-reports/wave-1-recon.md`
+  - [x] W2 — Decide (Opus × 1) — 8 decisions locked in `/do` session
+  - [x] W3 — Edits (direct Write × 22) — cli cloned, 3 pkgs scaffolded, 13 cmd stubs
+  - [x] W4 — Verify — tests · 3 pkgs build · 2 smoke tests green · 0 mint hits
+- [x] **Cycle 2: PROVE** — substrate verbs + launch handoff
+  - [x] W1 — Recon (Haiku × 4) — engine map, slash wrap plan, signal shape, MCP router
+  - [x] W2 — Decide — 7 decisions (new `/api/ask`, external launch, MCP-SDK deferred to C3)
+  - [x] W3 — Edits (direct Write × 18) — 13 substrate cmds + launch + deploy/claw/sync + MCP tools + 3 smokes
+  - [x] W4 — Verify — 727 tests · 3 pkgs build · 4 smoke tests green · 0 mint hits · rubric=0.82
+- [x] **Cycle 3: GROW** — docs + MCP HTTP + self-improvement
+  - [x] W1 — Recon (Haiku × 4) — toolkit docs, envelopes overlap, MCP HTTP gap, loop.ts hookpoints
+  - [x] W2 — Decide — 6 decisions (skip 3 high-risk merges, 4 new docs, surgical L6 hook)
+  - [x] W3 — Edits (direct Write × 8) — 4 docs, MCP HTTP adapter, oneie skill, L6-LAUNCH hook
+  - [x] W4 — Verify — 737 tests · tsc clean · 5 smoke tests green · rubric=0.78
 
 ---
 
