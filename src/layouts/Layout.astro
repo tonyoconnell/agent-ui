@@ -1,30 +1,42 @@
 ---
 interface Props {
-  title: string
+	title: string
+	brandStyle?: string
 }
 
-const { title } = Astro.props
+const { title, brandStyle = "" } = Astro.props
 ---
 
 <!doctype html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="generator" content={Astro.generator} />
-    <title>{title}</title>
-  </head>
-  <body class="min-h-screen bg-[#0f0f17] text-white antialiased">
-    <slot />
-  </body>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<script is:inline>
+			// Theme init — runs before first paint, no flash.
+			// Default: dark (respects hardcoded html class).
+			// Opt-out: localStorage.theme === "light".
+			try {
+				if (localStorage.getItem("theme") === "light") {
+					document.documentElement.classList.remove("dark")
+				}
+			} catch (_) {}
+		</script>
+		<Fragment set:html={brandStyle} />
+	</head>
+	<body class="min-h-screen bg-background text-foreground antialiased">
+		<slot />
+	</body>
 </html>
 
 <style is:global>
-  @import "../styles/global.css";
+	@import "../styles/global.css";
 
-  html, body {
-    background-color: #0f0f17 !important;
-    min-height: 100vh;
-    min-height: 100dvh;
-  }
+	html,
+	body {
+		min-height: 100vh;
+		min-height: 100dvh;
+	}
 </style>

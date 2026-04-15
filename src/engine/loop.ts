@@ -433,20 +433,34 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     const insights = await net.know()
 
     // L6: auto-hypothesize from state changes
+    const nowIso = new Date().toISOString().replace('Z', '')
     let hypoCount = 0
     for (const i of insights.filter((i) => i.confidence >= 0.8)) {
       writeSilent(`
         insert $h isa hypothesis, has hid "path-${i.pattern.replace(/[→:]/g, '-')}-${cycle}",
           has statement "path ${i.pattern} is proven (confidence ${i.confidence.toFixed(2)})",
-          has hypothesis-status "confirmed", has observations-count ${cycle}, has p-value 0.01;
+          has hypothesis-status "confirmed", has observations-count ${cycle}, has p-value 0.01,
+          has source "observed", has observed-at ${nowIso};
       `).catch(() => {})
       hypoCount++
+    }
+    // E8: contradiction → warn() cascade — path was confirmed but is now degrading
+    const degradingPaths = new Set(
+      net
+        .highways(50)
+        .filter((h) => h.strength >= 10 && h.strength < 20)
+        .map((h) => h.path),
+    )
+    for (const i of insights.filter((i) => i.confidence >= 0.9)) {
+      const pathName = i.pattern.replace(/^path /, '').replace(/ is proven.*/, '')
+      if (degradingPaths.has(pathName)) net.warn(pathName, 0.5)
     }
     for (const f of net.highways(50).filter((h) => h.strength >= 10 && h.strength < 20)) {
       writeSilent(`
         insert $h isa hypothesis, has hid "fade-${f.path.replace(/[→:]/g, '-')}-${cycle}",
           has statement "path ${f.path} is degrading (strength ${f.strength.toFixed(1)})",
-          has hypothesis-status "testing", has observations-count 0, has p-value 0.5;
+          has hypothesis-status "testing", has observations-count 0, has p-value 0.5,
+          has source "observed", has observed-at ${nowIso};
       `).catch(() => {})
       hypoCount++
     }
@@ -459,7 +473,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         writeSilent(`
           insert $h isa hypothesis, has hid "surge-${h.path.replace(/[→:]/g, '-')}-${cycle}",
             has statement "path ${h.path} surged by ${delta.toFixed(1)} (${prev.toFixed(1)} → ${h.strength.toFixed(1)})",
-            has hypothesis-status "testing", has observations-count 0, has p-value 0.3;
+            has hypothesis-status "testing", has observations-count 0, has p-value 0.3,
+            has source "observed", has observed-at ${nowIso};
         `).catch(() => {})
         hypoCount++
       }

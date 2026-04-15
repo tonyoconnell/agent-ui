@@ -13,6 +13,16 @@ import { world as createWorld, type Signal, type World } from './world'
 
 export type Insight = { pattern: string; confidence: number }
 
+export type MemoryCard = {
+  actor: { uid: string; kind: string; firstSeen: number }
+  hypotheses: Insight[]
+  highways: { from: string; to: string; strength: number }[]
+  signals: { data: string; success: boolean }[]
+  groups: string[]
+  capabilities: { skillId: string; name: string; price: number }[]
+  frontier: string[]
+}
+
 const escapeStr = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 
 // Standalone export so state.ts and other callers can use it without a world instance.
@@ -50,7 +60,10 @@ export interface PersistentWorld extends World {
   proven: () => { id: string; strength: number }[]
   confidence: (type: string) => number
   know: () => Promise<Insight[]>
-  recall: (match?: string) => Promise<Insight[]>
+  recall: (match?: string | { subject?: string; at?: string }) => Promise<Insight[]>
+  reveal: (uid: string) => Promise<MemoryCard>
+  forget: (uid: string) => Promise<void>
+  frontier: (uid: string) => Promise<string[]>
   taskBlockers: (taskId: string) => Promise<{ id: string; name: string }[]>
   span: () => Promise<number>
   context: (keys: (DocKey | string)[]) => string
@@ -284,48 +297,153 @@ export const world = (): PersistentWorld => {
     return strong.map((h) => ({ pattern: h.path, confidence: Math.min(1, h.strength / 50) }))
   }
 
-  const recall = async (match?: string): Promise<Insight[]> => {
-    // Query confirmed/testing hypotheses (engine-generated knowledge)
-    const confirmedQ = match
-      ? `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status $st; $s contains "${match}"; { $st = "confirmed"; } or { $st = "testing"; }; select $s, $p;`
-      : `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status $st; { $st = "confirmed"; } or { $st = "testing"; }; select $s, $p;`
+  // E7: frontier — world tags minus tags the actor has touched via paths
+  const frontier = async (uid: string): Promise<string[]> => {
+    const safeUid = escapeStr(uid)
+    const [worldTagRows, actorTagRows] = await Promise.all([
+      readParsed(`match $sk isa skill, has tag $t; select $t;`).catch(() => [] as Record<string, unknown>[]),
+      readParsed(
+        `match $u isa unit, has uid "${safeUid}"; (source: $u, target: $to) isa path; $to has tag $t; select $t;`,
+      ).catch(() => [] as Record<string, unknown>[]),
+    ])
+    const worldTags = new Set(worldTagRows.map((r) => r.t as string))
+    const actorTags = new Set(actorTagRows.map((r) => r.t as string))
+    return [...worldTags].filter((t) => !actorTags.has(t))
+  }
 
-    // Also query pending hypotheses (promoted domain knowledge from JSONL corpus)
-    const pendingQ = match
-      ? `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status "pending"; $s contains "${match}"; select $s, $p;`
-      : `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status "pending"; select $s, $p;`
+  // E5: reveal — full memory card for a uid across all 6 dimensions
+  const reveal = async (uid: string): Promise<MemoryCard> => {
+    const safeUid = escapeStr(uid)
+    const [unitRows, hypoRows, signalRows, pathRows, groupRows, capRows, frontierTags] = await Promise.all([
+      readParsed(`match $u isa unit, has uid "${safeUid}", has unit-kind $k; select $k;`).catch(
+        () => [] as Record<string, unknown>[],
+      ),
+      readParsed(
+        `match $h isa hypothesis, has statement $s, has observations-count $n, has hypothesis-status $st;
+         $s contains "${safeUid}"; { $st = "confirmed"; } or { $st = "testing"; }; select $s, $n, $st;`,
+      ).catch(() => [] as Record<string, unknown>[]),
+      readParsed(
+        `match $u isa unit, has uid "${safeUid}";
+         (sender: $u) isa signal, has data $d, has success $ok; select $d, $ok; limit 200;`,
+      ).catch(() => [] as Record<string, unknown>[]),
+      readParsed(
+        `match $u isa unit, has uid "${safeUid}";
+         (source: $u, target: $to) isa path, has strength $s; $to has uid $tid;
+         select $tid, $s; sort $s desc; limit 20;`,
+      ).catch(() => [] as Record<string, unknown>[]),
+      readParsed(
+        `match $u isa unit, has uid "${safeUid}";
+         (member: $u, group: $g) isa membership; $g has name $gn; select $gn;`,
+      ).catch(() => [] as Record<string, unknown>[]),
+      readParsed(
+        `match $u isa unit, has uid "${safeUid}";
+         (provider: $u, offered: $sk) isa capability, has price $p;
+         $sk has skill-id $sid, has name $sn; select $sid, $sn, $p;`,
+      ).catch(() => [] as Record<string, unknown>[]),
+      frontier(uid),
+    ])
+    return {
+      actor: { uid, kind: (unitRows[0]?.k as string) ?? 'unknown', firstSeen: 0 },
+      hypotheses: hypoRows.map((r) => ({
+        pattern: r.s as string,
+        confidence: r.st === 'confirmed' ? 0.9 : 0.5,
+      })),
+      highways: pathRows.map((r) => ({ from: uid, to: r.tid as string, strength: r.s as number })),
+      signals: signalRows.map((r) => ({ data: r.d as string, success: r.ok as boolean })),
+      groups: groupRows.map((r) => r.gn as string),
+      capabilities: capRows.map((r) => ({
+        skillId: r.sid as string,
+        name: r.sn as string,
+        price: r.p as number,
+      })),
+      frontier: frontierTags,
+    }
+  }
 
-    // Query failed attempts on tasks (signals with success=false related to taskId)
-    const failedAttemptsQ = match
-      ? `match $sig isa signal, has data $d, has success false; $d contains "${match}"; select $d;`
+  // E6: forget — GDPR erasure: delete all TypeDB records for uid, remove from runtime
+  const forget = async (uid: string): Promise<void> => {
+    const safeUid = escapeStr(uid)
+    // Delete relations first (TypeDB requires entity role-players to be removed before entity delete)
+    await Promise.allSettled([
+      writeSilent(`match $u isa unit, has uid "${safeUid}"; $sig (sender: $u) isa signal; delete $sig isa signal;`),
+      writeSilent(`match $u isa unit, has uid "${safeUid}"; $p (source: $u) isa path; delete $p isa path;`),
+      writeSilent(`match $u isa unit, has uid "${safeUid}"; $p (target: $u) isa path; delete $p isa path;`),
+      writeSilent(`match $u isa unit, has uid "${safeUid}"; $m (member: $u) isa membership; delete $m isa membership;`),
+      writeSilent(
+        `match $u isa unit, has uid "${safeUid}"; $cap (provider: $u) isa capability; delete $cap isa capability;`,
+      ),
+    ])
+    await writeSilent(`match $u isa unit, has uid "${safeUid}"; delete $u isa unit;`).catch(() => {})
+    // In-memory: remove unit from runtime (orphaned paths decay via L3 fade)
+    if (net.has(uid)) net.remove(uid)
+  }
+
+  const recall = async (match?: string | { subject?: string; at?: string }): Promise<Insight[]> => {
+    // Parse match argument — supports legacy string or new { subject?, at? } object
+    const matchStr = typeof match === 'string' ? match : match?.subject
+    const atDate = typeof match === 'object' ? match?.at : undefined
+    const safeMatch = matchStr ? escapeStr(matchStr) : undefined
+
+    // E9: bi-temporal filter — only hypotheses valid at the given point in time
+    const temporalClause = atDate
+      ? `$h has valid-from $vf, has valid-until $vu; $vf <= ${atDate}T00:00:00; $vu > ${atDate}T00:00:00;`
       : ''
+    const containsClause = safeMatch ? `$s contains "${safeMatch}";` : ''
 
-    const [confirmedRows, pendingRows, failedRows] = await Promise.all([
-      readParsed(confirmedQ).catch(() => [] as Record<string, unknown>[]),
-      match
-        ? readParsed(pendingQ).catch(() => [] as Record<string, unknown>[])
-        : Promise.resolve([] as Record<string, unknown>[]),
-      failedAttemptsQ
-        ? readParsed(failedAttemptsQ).catch(() => [] as Record<string, unknown>[])
-        : Promise.resolve([] as Record<string, unknown>[]),
+    // E10: query with source (new records) and without (legacy) — apply asserted confidence cap
+    const confirmedWithSrc = readParsed(
+      `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status $st, has source $src;
+       ${containsClause} { $st = "confirmed"; } or { $st = "testing"; }; ${temporalClause} select $s, $p, $src;`,
+    ).catch(() => [] as Record<string, unknown>[])
+
+    const confirmedNoSrc = readParsed(
+      `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status $st;
+       not { $h has source $anySrc; }; ${containsClause} { $st = "confirmed"; } or { $st = "testing"; };
+       ${temporalClause} select $s, $p;`,
+    ).catch(() => [] as Record<string, unknown>[])
+
+    const pendingQ = safeMatch
+      ? readParsed(
+          `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status "pending";
+           $s contains "${safeMatch}"; ${temporalClause} select $s, $p;`,
+        ).catch(() => [] as Record<string, unknown>[])
+      : Promise.resolve([] as Record<string, unknown>[])
+
+    // E11: scope filter — exclude private signals from failed-attempts surfacing
+    const failedQ = safeMatch
+      ? readParsed(
+          `match $sig isa signal, has data $d, has success false;
+           $d contains "${safeMatch}"; not { $sig has scope "private"; }; select $d;`,
+        ).catch(() => [] as Record<string, unknown>[])
+      : Promise.resolve([] as Record<string, unknown>[])
+
+    const [withSrcRows, noSrcRows, pendingRows, failedRows] = await Promise.all([
+      confirmedWithSrc,
+      confirmedNoSrc,
+      pendingQ,
+      failedQ,
     ])
 
-    // Confirmed/testing get full confidence boost; pending start at 0.5 (p-value 0.5 → confidence 0.5)
-    const confirmed = confirmedRows.map((r) => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
+    // E10: asserted hypotheses capped at 0.30 confidence; withSrc takes priority over noSrc (deduped by pattern)
+    const confirmedMap = new Map<string, Insight>()
+    for (const r of withSrcRows) {
+      const raw = 1 - (r.p as number)
+      const cap = r.src === 'asserted' ? 0.3 : 1
+      confirmedMap.set(r.s as string, { pattern: r.s as string, confidence: Math.min(raw, cap) })
+    }
+    for (const r of noSrcRows) {
+      const pattern = r.s as string
+      if (!confirmedMap.has(pattern)) confirmedMap.set(pattern, { pattern, confidence: 1 - (r.p as number) })
+    }
+    const confirmed = [...confirmedMap.values()]
     const pending = pendingRows.map((r) => ({ pattern: r.s as string, confidence: 1 - (r.p as number) }))
     const failed = failedRows.map((r) => ({
       pattern: `failed: ${typeof r.d === 'string' ? r.d : JSON.stringify(r.d)}`,
-      confidence: 0.3, // Lower confidence for past failures
+      confidence: 0.3,
     }))
 
-    // Merge: confirmed first, then pending, then failed (deduped by pattern)
     const seen = new Set(confirmed.map((i) => i.pattern))
-    const merged = [
-      ...confirmed,
-      ...pending.filter((i) => !seen.has(i.pattern)),
-      ...failed.filter((i) => !seen.has(i.pattern)),
-    ]
-    return merged
+    return [...confirmed, ...pending.filter((i) => !seen.has(i.pattern)), ...failed.filter((i) => !seen.has(i.pattern))]
   }
 
   // taskBlockers: query what tasks are blocked by the given task
@@ -579,6 +697,9 @@ export const world = (): PersistentWorld => {
     confidence,
     know,
     recall,
+    reveal,
+    forget,
+    frontier,
     taskBlockers,
     span,
     context,

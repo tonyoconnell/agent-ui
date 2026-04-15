@@ -15,6 +15,7 @@ entity group,
     owns gid @key,
     owns name,
     owns group-type,                  # "world", "friends", "team", "community", "org", "dao"
+    owns brand,                       # brand label (e.g. "acme", "one", "donal")
     plays hierarchy:parent,
     plays hierarchy:child,
     plays membership:group;
@@ -48,6 +49,7 @@ entity thing,
     owns tag @card(0..),
     owns task-wave,                   # "W1", "W2", "W3", "W4" (for task routing)
     owns task-context @card(0..),     # doc keys providing context (can have multiple)
+    owns brand,                       # brand label (e.g. "acme", "one", "donal")
     plays capability:offered;
 
 # 4. PATHS — connections with weight
@@ -114,7 +116,8 @@ attribute latency, value double;
 attribute ts, value datetime;
 attribute task-wave, value string;
 attribute task-context, value string;
+attribute brand, value string;
 
 # =============================================================================
-# 6 dimensions. 3 entities. 5 relations. 25 attributes. ONE.
+# 6 dimensions. 3 entities. 5 relations. 26 attributes. ONE.
 # =============================================================================

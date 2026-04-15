@@ -78,9 +78,9 @@ describe('Act 2: hashKey + verifyKey — round-trip and rejection', () => {
   })
 
   it('rejects a subtly modified key (one char swapped)', async () => {
-    const key = 'api_test_' + 'A'.repeat(32)
+    const key = `api_test_${'A'.repeat(32)}`
     const hash = await hashKey(key)
-    const tampered = 'api_test_' + 'B' + 'A'.repeat(31)
+    const tampered = `api_test_B${'A'.repeat(31)}`
     expect(await verifyKey(tampered, hash)).toBe(false)
   })
 

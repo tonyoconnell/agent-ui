@@ -362,9 +362,10 @@ describe('Act 6: recall() — learning from past attempts', () => {
 
   it('recall() includes failed attempts with lower confidence', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([]) // confirmed hypotheses (none)
-      .mockResolvedValueOnce([]) // pending hypotheses (none)
-      .mockResolvedValueOnce([{ d: 'error: timeout' }]) // failed attempt
+      .mockResolvedValueOnce([]) // confirmed with source (none)
+      .mockResolvedValueOnce([]) // confirmed without source (none)
+      .mockResolvedValueOnce([]) // pending (none)
+      .mockResolvedValueOnce([{ d: 'error: timeout' }]) // failed attempt (scope-filtered)
 
     const results = await w.recall('task-example')
 

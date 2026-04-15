@@ -1,0 +1,33 @@
+{
+  "count": 332,
+  "files": [
+    "src/components/EdgeInfo.tsx",
+    "src/components/design/DesignSystemShowcase.tsx",
+    "src/components/AgentWorkspace.tsx",
+    "src/components/Dashboard.tsx",
+    "src/components/panels/HighwayPanel.tsx",
+    "src/components/graph/PheromoneGraph.tsx",
+    "src/components/graph/WorldEditor.tsx",
+    "src/components/world/WorldChat.tsx",
+    "src/components/onboard/AgentBuilder.tsx",
+    "src/components/onboard/UnitProfile.tsx",
+    "src/components/onboard/DiscoverGrid.tsx",
+    "src/components/onboard/TeamBuilder.tsx",
+    "src/components/onboard/SignupForm.tsx",
+    "src/components/Marketplace.tsx",
+    "src/components/ai/Suggestions.tsx",
+    "src/components/ai/elements/connection.tsx",
+    "src/components/ai/ChatClientV2.tsx",
+    "src/components/CEOPanel.tsx",
+    "src/components/TaskBoard.tsx",
+    "src/components/generative-ui/DynamicChartRecharts.tsx",
+    "src/components/generative-ui/DynamicChart.tsx",
+    "src/components/EnvelopeFlowCanvas.tsx",
+    "src/components/KnowledgePanel.tsx",
+    "src/pages/index.astro",
+    "src/pages/chat.astro",
+    "src/pages/speedtest.astro",
+    "src/pages/api/export/groups.ts",
+    "src/pages/api/export/groups.json.ts"
+  ]
+}

@@ -1,0 +1,1419 @@
+---
+// SSR so ?brand=* query param drives the Thing Brand Override demo (Cycle 3).
+// Trade-off: slightly slower TTFB vs static build; acceptable for a showcase page.
+export const prerender = false;
+
+import {
+	AlertCircle,
+	Check,
+	Circle,
+	Download,
+	Eye,
+	Grid3x3,
+	Hand,
+	Info,
+	Layers,
+	MousePointer2,
+	Palette,
+	Target,
+	Type,
+	Waves,
+	Zap,
+} from "lucide-react";
+import { InteractionDemo } from "@/components/design/InteractionDemo";
+import { MotionDemo } from "@/components/design/MotionDemo";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import Layout from "../layouts/Layout.astro";
+import { injectBrand, purpleBrand } from "@/engine/brand";
+
+const spacingScale = [
+	{ token: "2", px: "8px", rem: "0.5rem", usage: "Dense clusters" },
+	{ token: "3", px: "12px", rem: "0.75rem", usage: "Component gaps" },
+	{ token: "4", px: "16px", rem: "1rem", usage: "Default padding" },
+	{ token: "6", px: "24px", rem: "1.5rem", usage: "Card gutters" },
+	{ token: "8", px: "32px", rem: "2rem", usage: "Section rhythm" },
+	{ token: "12", px: "48px", rem: "3rem", usage: "Hero whitespace" },
+];
+
+const typographyScale = [
+	{
+		name: "Display",
+		size: "56px / 3.5rem",
+		lineHeight: "1.1",
+		tailwind: "text-5xl md:text-6xl",
+		usage: "Hero statements",
+	},
+	{
+		name: "Headline",
+		size: "40px / 2.5rem",
+		lineHeight: "1.2",
+		tailwind: "text-4xl",
+		usage: "Section titles",
+	},
+	{
+		name: "Title",
+		size: "28px / 1.75rem",
+		lineHeight: "1.3",
+		tailwind: "text-2xl",
+		usage: "Card titles",
+	},
+	{
+		name: "Subtitle",
+		size: "20px / 1.25rem",
+		lineHeight: "1.5",
+		tailwind: "text-xl",
+		usage: "Supporting copy",
+	},
+	{
+		name: "Body",
+		size: "16px / 1rem",
+		lineHeight: "1.7",
+		tailwind: "text-base leading-7",
+		usage: "Paragraphs",
+	},
+	{
+		name: "Caption",
+		size: "14px / 0.875rem",
+		lineHeight: "1.6",
+		tailwind: "text-sm",
+		usage: "Metadata & labels",
+	},
+];
+
+const containerRules = [
+	{
+		label: "Content",
+		value: "max-w-3xl · 48px section padding",
+		usage: "Articles, docs, knowledge",
+	},
+	{
+		label: "Application",
+		value: "max-w-5xl · 64px section padding",
+		usage: "Dashboards & workflows",
+	},
+	{
+		label: "Wide",
+		value: "max-w-6xl · responsive gutters",
+		usage: "Data dense screens",
+	},
+	{
+		label: "Fluid",
+		value: "full width · clamp(24px, 5vw, 80px)",
+		usage: "Marketing & storytelling",
+	},
+];
+
+const componentPrinciples = [
+	{
+		title: "Atomic → Pattern → Experience",
+		description:
+			"Compose experiences from documented atoms. Never duplicate markup when a primitive exists.",
+		icon: Layers,
+	},
+	{
+		title: "Statefulness Baked In",
+		description:
+			"Every component ships with hover, focus, active, loading, and disabled states out of the box.",
+		icon: Target,
+	},
+	{
+		title: "Content-Aware Layouts",
+		description:
+			"Components adapt to variable content through flexible spacing, min/max widths, and responsive typography.",
+		icon: Type,
+	},
+];
+
+const interactionGuidelines = [
+	{
+		title: "Visible Focus",
+		description:
+			"Focus states use a 2px outline with primary color and 2px offset. Never remove focus for aesthetics.",
+		icon: Target,
+	},
+	{
+		title: "Purposeful Motion",
+		description:
+			"Pair animations with motion tokens and respect `prefers-reduced-motion`. Motion should communicate spatial change.",
+		icon: Waves,
+	},
+	{
+		title: "Immediate Feedback",
+		description:
+			"Hover within 80ms, active within 40ms, and show result states or loaders within 200ms.",
+		icon: Zap,
+	},
+];
+
+const accessibilityChecklist = [
+	{
+		title: "Contrast AA+",
+		description:
+			"Maintain 4.5:1 contrast for body text and 3:1 for large headings. Validate all token combinations.",
+	},
+	{
+		title: "Readable Typography",
+		description:
+			"Limit line length to 60–70 characters, set body copy to leading-7, and avoid center-aligned paragraphs over 3 lines.",
+	},
+	{
+		title: "Motion Preferences",
+		description:
+			"Wrap transitions in `motion-safe` classes and provide alternatives like color or elevation for motion-reduced users.",
+	},
+];
+
+const implementationSteps = [
+	{
+		title: "Tokens as Source of Truth",
+		description:
+			"Update Tailwind config and CSS variables first. UI code must consume tokens—not hard coded values.",
+	},
+	{
+		title: "Composable Primitives",
+		description:
+			"Extend components via props and slots. If structure diverges, create a new primitive and document it here.",
+	},
+	{
+		title: "Design QA Loop",
+		description:
+			"Pair every UI change with screenshots, contrast checks, and accessibility notes before merging.",
+	},
+];
+
+const colorModes = {
+	light: [
+		{
+			name: "background",
+			value: "0 0% 93%",
+			description: "Card surface · Sidebar",
+		},
+		{
+			name: "foreground",
+			value: "0 0% 100%",
+			description: "Content area inside card",
+		},
+		{ name: "font", value: "0 0% 13%", description: "Text color · Readable" },
+		{
+			name: "primary",
+			value: "216 55% 25%",
+			description: "Main CTA · Buttons",
+		},
+		{
+			name: "secondary",
+			value: "219 14% 28%",
+			description: "Supporting actions",
+		},
+		{ name: "tertiary", value: "105 22% 25%", description: "Accent actions" },
+	],
+	dark: [
+		{
+			name: "background",
+			value: "0 0% 10%",
+			description: "Card surface · Sidebar",
+		},
+		{
+			name: "foreground",
+			value: "0 0% 13%",
+			description: "Content area inside card",
+		},
+		{ name: "font", value: "0 0% 100%", description: "Text color · Readable" },
+		{
+			name: "primary",
+			value: "216 55% 25%",
+			description: "Main CTA · Buttons",
+		},
+		{
+			name: "secondary",
+			value: "219 14% 28%",
+			description: "Supporting actions",
+		},
+		{ name: "tertiary", value: "105 22% 25%", description: "Accent actions" },
+	],
+};
+
+// Cycle 3 — Thing brand override demo. ?brand=purple triggers a synthetic
+// palette swap. No component edits — just :root CSS var re-injection.
+// We emit BOTH light + dark overrides so the brand applies regardless of mode.
+const brandParam = Astro.url.searchParams.get("brand");
+const overrideBrand = brandParam === "purple" ? purpleBrand : null;
+const brandStyle = overrideBrand
+	? injectBrand(overrideBrand, "light") + injectBrand(overrideBrand, "dark").replace(":root", ".dark")
+	: "";
+---
+
+
+
+
+<Layout title="ONE Design System" brandStyle={brandStyle}>
+  <!-- Reference to comprehensive design documentation -->
+  <!-- For complete design system specification, token definitions, patterns, and guidelines: -->
+  <!-- See: one/things/design-system.md -->
+
+  <!-- Above-the-Fold: Complete Design System Showcase -->
+  <section class="relative min-h-screen overflow-hidden border-b px-6 py-12 md:px-8">
+    <div class="absolute inset-0 -z-10 bg-gradient-to-br from-[hsl(var(--color-background))] via-background to-transparent"></div>
+    <div class="absolute -right-32 top-24 hidden h-[520px] w-[520px] rounded-full bg-primary/10 blur-3xl md:block"></div>
+    <div class="absolute -left-32 bottom-24 hidden h-[420px] w-[420px] rounded-full bg-accent/5 blur-3xl md:block"></div>
+
+    <div class="mx-auto max-w-[1600px] space-y-8">
+      <!-- Compact Header -->
+      <div class="space-y-4 text-center">
+        <h1 class="mx-auto max-w-4xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl md:text-6xl">
+          ONE Design System
+        </h1>
+
+        <p class="mx-auto max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
+          6 colors. Extract from any site. Apply to every Thing. Built on shadcn/ui. Simplified to 6 extractable tokens. Things override their own brand.
+        </p>
+
+        <!-- Theme Toggle -->
+        <div class="flex justify-center">
+          <ThemeToggle variant="inline" size="lg" client:load />
+        </div>
+      </div>
+
+      <!-- Complete System: Colors + Cards + Buttons in One View -->
+      <div class="grid gap-6 lg:grid-cols-2">
+        <!-- LEFT: The 6 Core Colors -->
+        <div class="space-y-4">
+          <div>
+            <h2 class="text-xl font-bold tracking-tight">The 6 Extractable Colors</h2>
+            <p class="text-sm text-muted-foreground">Extract from any website. Map to these 6 tokens. Apply everywhere.</p>
+          </div>
+
+          <!-- Compact Color Tokens -->
+          <div class="space-y-2">
+            <!-- Background -->
+            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
+              <div class="flex gap-1">
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(0 0% 93.3%)" title="Light mode"></div>
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(0 0% 10%)" title="Dark mode"></div>
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">background</p>
+                <p class="text-xs text-muted-foreground">Card surface · Sidebar color</p>
+              </div>
+              <div class="text-right">
+                <code class="block text-xs text-muted-foreground">Light: 0 0% 93%</code>
+                <code class="block text-xs text-muted-foreground">Dark: 0 0% 10%</code>
+              </div>
+            </div>
+
+            <!-- Foreground -->
+            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
+              <div class="flex gap-1">
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(0 0% 100%)" title="Light mode"></div>
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(0 0% 13%)" title="Dark mode"></div>
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">foreground</p>
+                <p class="text-xs text-muted-foreground">Content area inside card</p>
+              </div>
+              <div class="text-right">
+                <code class="block text-xs text-muted-foreground">Light: 0 0% 100%</code>
+                <code class="block text-xs text-muted-foreground">Dark: 0 0% 13%</code>
+              </div>
+            </div>
+
+            <!-- Font -->
+            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
+              <div class="flex gap-1">
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border flex items-center justify-center" style="background-color: hsl(0 0% 100%); color: hsl(0 0% 13%)" title="Light mode">
+                  <span class="text-xs font-bold">Aa</span>
+                </div>
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border flex items-center justify-center" style="background-color: hsl(0 0% 13%); color: hsl(0 0% 100%)" title="Dark mode">
+                  <span class="text-xs font-bold">Aa</span>
+                </div>
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">font</p>
+                <p class="text-xs text-muted-foreground">Text color · Readable in both modes</p>
+              </div>
+              <div class="text-right">
+                <code class="block text-xs text-muted-foreground">Light: 0 0% 13%</code>
+                <code class="block text-xs text-muted-foreground">Dark: 0 0% 100%</code>
+              </div>
+            </div>
+
+            <!-- Primary -->
+            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
+              <div class="h-10 w-10 rounded-md bg-[hsl(216_55%_25%)] shadow-inner"></div>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">primary</p>
+                <p class="text-xs text-muted-foreground">Main CTA · Buttons</p>
+              </div>
+              <code class="text-xs text-muted-foreground">216 55% 25%</code>
+            </div>
+
+            <!-- Secondary -->
+            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
+              <div class="h-10 w-10 rounded-md bg-[hsl(219_14%_28%)] shadow-inner"></div>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">secondary</p>
+                <p class="text-xs text-muted-foreground">Supporting actions</p>
+              </div>
+              <code class="text-xs text-muted-foreground">219 14% 28%</code>
+            </div>
+
+            <!-- Tertiary (was accent) -->
+            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
+              <div class="h-10 w-10 rounded-md bg-[hsl(105_22%_25%)] shadow-inner"></div>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">tertiary</p>
+                <p class="text-xs text-muted-foreground">Accent · Was "accent"</p>
+              </div>
+              <code class="text-xs text-muted-foreground">105 22% 25%</code>
+            </div>
+          </div>
+
+          <!-- Variants Auto-Generated -->
+          <div class="rounded-lg border bg-primary/5 p-3">
+            <p class="text-xs font-semibold text-primary">✨ Auto-Generated Variants</p>
+            <p class="mt-1 text-xs text-muted-foreground">
+              System creates: primary-light, primary-dark, secondary-light, etc. Ring = primary-dark.
+            </p>
+          </div>
+        </div>
+
+        <!-- RIGHT: Live Demo -->
+        <div class="space-y-4">
+          <div>
+            <h2 class="text-xl font-bold tracking-tight">Cards + Buttons (shadcn)</h2>
+            <p class="text-sm text-muted-foreground">
+              Cards use background/foreground. Buttons use primary/secondary/tertiary.
+            </p>
+          </div>
+
+          <!-- Example Card with Buttons -->
+          <Card className="border-primary/20">
+            <CardHeader>
+              <div class="flex items-center justify-between">
+                <CardTitle className="text-lg">Product Thing</CardTitle>
+                <Badge variant="outline" className="text-xs">product</Badge>
+              </div>
+              <CardDescription className="text-sm">
+                Card uses <code class="text-xs">background</code> (gray) with <code class="text-xs">foreground</code> (white) content area
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <!-- Foreground Content Area -->
+              <div class="rounded-lg bg-background p-3 ring-1 ring-border">
+                <p class="text-xs font-medium">Content Area</p>
+                <p class="text-xs text-muted-foreground">This uses foreground color (white)</p>
+              </div>
+
+              <!-- Price -->
+              <div class="text-2xl font-bold">$299</div>
+
+              <!-- Buttons Demo -->
+              <div class="space-y-3">
+                <Button className="w-full rounded-md bg-[hsl(216_55%_25%)] text-white shadow-lg hover:bg-[hsl(216_55%_20%)] hover:shadow-xl active:shadow-md transition-all cursor-pointer font-semibold py-6">
+                  Primary Button
+                </Button>
+                <Button className="w-full rounded-md bg-[hsl(219_14%_28%)] text-white shadow-lg hover:bg-[hsl(219_14%_23%)] hover:shadow-xl active:shadow-md transition-all cursor-pointer font-semibold py-6">
+                  Secondary Button
+                </Button>
+                <Button className="w-full rounded-md bg-[hsl(105_22%_25%)] text-white shadow-lg hover:bg-[hsl(105_22%_20%)] hover:shadow-xl active:shadow-md transition-all cursor-pointer font-semibold py-6">
+                  Tertiary Button
+                </Button>
+                <Button variant="outline" className="w-full rounded-md shadow-md hover:shadow-lg transition-all cursor-pointer font-medium py-6">
+                  Outline Button
+                </Button>
+                <Button variant="ghost" className="w-full rounded-md shadow-sm hover:shadow-md transition-all cursor-pointer font-medium py-6">
+                  Ghost Button
+                </Button>
+              </div>
+              <p class="text-xs text-muted-foreground mt-3">
+                ✨ Primary/Secondary/Tertiary use brand colors · Outline/Ghost are neutral variants
+              </p>
+            </CardContent>
+          </Card>
+
+          <!-- Thing Override Preview -->
+          <div class="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4">
+            <p class="text-xs font-semibold text-primary">💎 Thing-Level Override</p>
+            <p class="mt-1 text-xs text-muted-foreground">
+              Each Thing (product, course, token) can define its own 6 colors. Same card structure, different brand.
+            </p>
+            <pre class="mt-2 rounded bg-card/80 p-2 text-xs"><code>{`thing.colors = {
+  background: "270 50% 92%",  // Card surface (gray)
+  foreground: "270 50% 98%",  // Content area (white)
+  font: "270 50% 15%",        // Text color
+  primary: "280 100% 60%",    // Purple button
+  secondary: "200 100% 50%",  // Blue button
+  tertiary: "150 80% 40%"     // Green button
+}`}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Extraction Workflow (Compact) -->
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-lg border bg-card p-4">
+          <div class="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <Download className="h-5 w-5 text-primary" />
+          </div>
+          <h3 class="text-sm font-semibold">1. Extract</h3>
+          <p class="mt-1 text-xs text-muted-foreground">
+            AI scans any website and extracts the 6 core colors
+          </p>
+        </div>
+
+        <div class="rounded-lg border bg-card p-4">
+          <div class="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <Palette className="h-5 w-5 text-primary" />
+          </div>
+          <h3 class="text-sm font-semibold">2. Map</h3>
+          <p class="mt-1 text-xs text-muted-foreground">
+            Maps to background, foreground, font, primary, secondary, tertiary
+          </p>
+        </div>
+
+        <div class="rounded-lg border bg-card p-4">
+          <div class="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <Layers className="h-5 w-5 text-primary" />
+          </div>
+          <h3 class="text-sm font-semibold">3. Apply</h3>
+          <p class="mt-1 text-xs text-muted-foreground">
+            Generates CSS vars. All shadcn components adapt instantly.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- Design Properties: States + Elevation + Radius + Motion (ONE ROW) -->
+  <section class="border-y bg-muted/50 px-6 py-24 md:px-8 md:py-32">
+    <div class="mx-auto max-w-7xl space-y-12">
+      <div class="space-y-4 text-center">
+        <h2 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          Design Properties
+        </h2>
+        <p class="mx-auto max-w-2xl text-lg text-muted-foreground">
+          States, Elevation, Radius, and Motion work together to create cohesive, interactive experiences. Every card and button inherits these properties.
+        </p>
+      </div>
+
+      <!-- UNIFIED ROW: 4 Cards Side-by-Side -->
+      <div class="grid gap-6 lg:grid-cols-4">
+        <!-- 1. Button States -->
+        <Card>
+          <CardHeader className="space-y-3">
+            <div class="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MousePointer2 className="h-5 w-5 text-primary" />
+                Button States
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs leading-relaxed">
+              Hover, active, focus, disabled. Opacity + scale transitions create tactile feedback.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <!-- Default -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium">Default</p>
+                <span class="text-xs font-mono text-muted-foreground">shadow-lg</span>
+              </div>
+              <p class="text-xs text-muted-foreground">Base state with strong elevation (shadow-lg)</p>
+              <button class="w-full rounded-md bg-[hsl(216_55%_25%)] px-4 py-2 text-sm text-white shadow-lg transition-all">
+                Click Me
+              </button>
+            </div>
+
+            <!-- Hover -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium">Hover</p>
+                <span class="text-xs font-mono text-muted-foreground">shadow-xl</span>
+              </div>
+              <p class="text-xs text-muted-foreground">Darken 5% + elevate to shadow-xl</p>
+              <button class="w-full rounded-md bg-[hsl(216_55%_20%)] px-4 py-2 text-sm text-white shadow-xl transition-all">
+                Hover State
+              </button>
+            </div>
+
+            <!-- Focus -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium">Focus</p>
+                <span class="text-xs font-mono text-muted-foreground">ring-2</span>
+              </div>
+              <p class="text-xs text-muted-foreground">2px primary ring with 2px offset</p>
+              <button class="w-full rounded-md bg-[hsl(216_55%_25%)] px-4 py-2 text-sm text-white shadow-lg ring-2 ring-primary ring-offset-2 transition-all">
+                Focused
+              </button>
+            </div>
+
+            <!-- Active -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium">Active</p>
+                <span class="text-xs font-mono text-muted-foreground">shadow-md</span>
+              </div>
+              <p class="text-xs text-muted-foreground">Darken 7% + reduce to shadow-md</p>
+              <button class="w-full rounded-md bg-[hsl(216_55%_18%)] px-4 py-2 text-sm text-white shadow-md transition-all">
+                Clicking
+              </button>
+            </div>
+
+            <!-- Disabled -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium">Disabled</p>
+                <span class="text-xs font-mono text-muted-foreground">opacity-55</span>
+              </div>
+              <p class="text-xs text-muted-foreground">55% opacity + cursor not-allowed</p>
+              <button class="w-full rounded-md bg-[hsl(216_55%_25%)] px-4 py-2 text-sm text-white opacity-55 cursor-not-allowed shadow-lg transition-all" disabled>
+                Disabled
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- 2. Elevation -->
+        <Card>
+          <CardHeader className="space-y-3">
+            <div class="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Layers className="h-5 w-5 text-primary" />
+                Elevation
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs leading-relaxed">
+              Shadow layers create depth hierarchy. Cards use shadow-sm, buttons use shadow-lg.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <!-- shadow-none -->
+            <div class="space-y-2 rounded-md border bg-background p-3 shadow-none">
+              <p class="text-sm font-medium">shadow-none</p>
+              <p class="text-xs text-muted-foreground">Flat surfaces, nested cards</p>
+              <div class="rounded-md bg-primary/10 p-3 shadow-none">
+                <p class="text-xs">No shadow</p>
+              </div>
+            </div>
+
+            <!-- shadow-sm -->
+            <div class="space-y-2 rounded-md border bg-background p-3 shadow-sm">
+              <p class="text-sm font-medium">shadow-sm</p>
+              <p class="text-xs text-muted-foreground">Cards, inputs, subtle depth</p>
+              <div class="rounded-md bg-primary/10 p-3 shadow-sm">
+                <p class="text-xs">Subtle elevation</p>
+              </div>
+            </div>
+
+            <!-- shadow-md -->
+            <div class="space-y-2 rounded-md border bg-background p-3 shadow-md">
+              <p class="text-sm font-medium">shadow-md</p>
+              <p class="text-xs text-muted-foreground">Dropdowns, active states</p>
+              <div class="rounded-md bg-primary/10 p-3 shadow-md">
+                <p class="text-xs">Medium depth</p>
+              </div>
+            </div>
+
+            <!-- shadow-lg -->
+            <div class="space-y-2 rounded-md border bg-background p-3 shadow-lg">
+              <p class="text-sm font-medium">shadow-lg</p>
+              <p class="text-xs text-muted-foreground">Buttons, important cards</p>
+              <div class="rounded-md bg-primary/10 p-3 shadow-lg">
+                <p class="text-xs">Strong depth</p>
+              </div>
+            </div>
+
+            <!-- shadow-xl -->
+            <div class="space-y-2 rounded-md border bg-background p-3 shadow-xl">
+              <p class="text-sm font-medium">shadow-xl</p>
+              <p class="text-xs text-muted-foreground">Hover states, modals</p>
+              <div class="rounded-md bg-primary/10 p-3 shadow-xl">
+                <p class="text-xs">Maximum depth</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- 3. Radius -->
+        <Card>
+          <CardHeader className="space-y-3">
+            <div class="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Circle className="h-5 w-5 text-primary" />
+                Radius
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs leading-relaxed">
+              Border radius creates soft, modern edges. Default is 8px (rounded-md).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <!-- rounded-sm (6px) -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <p class="text-sm font-medium">rounded-sm (6px)</p>
+              <p class="text-xs text-muted-foreground">Pills, badges, tight components</p>
+              <div class="rounded-sm bg-primary/10 p-3">
+                <p class="text-xs">Small radius</p>
+              </div>
+            </div>
+
+            <!-- rounded-md (8px) -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <p class="text-sm font-medium">rounded-md (8px)</p>
+              <p class="text-xs text-muted-foreground">Cards, buttons - DEFAULT</p>
+              <div class="rounded-md bg-primary/10 p-3">
+                <p class="text-xs">Default radius</p>
+              </div>
+            </div>
+
+            <!-- rounded-lg (12px) -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <p class="text-sm font-medium">rounded-lg (12px)</p>
+              <p class="text-xs text-muted-foreground">Large cards, containers</p>
+              <div class="rounded-lg bg-primary/10 p-3">
+                <p class="text-xs">Large radius</p>
+              </div>
+            </div>
+
+            <!-- rounded-xl (16px) -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <p class="text-sm font-medium">rounded-xl (16px)</p>
+              <p class="text-xs text-muted-foreground">Modals, hero surfaces</p>
+              <div class="rounded-xl bg-primary/10 p-3">
+                <p class="text-xs">XL radius</p>
+              </div>
+            </div>
+
+            <!-- rounded-full (9999px) -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <p class="text-sm font-medium">rounded-full (pill)</p>
+              <p class="text-xs text-muted-foreground">Avatars, circular icons</p>
+              <div class="rounded-full bg-primary/10 p-3 text-center">
+                <p class="text-xs">Full radius</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- 4. Motion -->
+        <Card>
+          <CardHeader className="space-y-3">
+            <div class="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Waves className="h-5 w-5 text-primary" />
+                Motion
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs leading-relaxed">
+              Animation timing creates smooth, natural interactions. Never jarring.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <!-- instant (0ms) -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <p class="text-sm font-medium">instant (0ms)</p>
+              <p class="text-xs text-muted-foreground">No animation, immediate</p>
+              <button class="w-full rounded-md bg-primary/10 px-4 py-2 text-xs hover:bg-primary/20 transition-none">
+                Hover Me (instant)
+              </button>
+            </div>
+
+            <!-- fast (150ms) -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <p class="text-sm font-medium">fast (150ms)</p>
+              <p class="text-xs text-muted-foreground">Hovers, quick feedback</p>
+              <button class="w-full rounded-md bg-primary/10 px-4 py-2 text-xs hover:bg-primary/20 transition-all duration-150">
+                Hover Me (fast)
+              </button>
+            </div>
+
+            <!-- normal (300ms) -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <p class="text-sm font-medium">normal (300ms)</p>
+              <p class="text-xs text-muted-foreground">Default, component transitions</p>
+              <button class="w-full rounded-md bg-primary/10 px-4 py-2 text-xs hover:bg-primary/20 transition-all duration-300">
+                Hover Me (normal)
+              </button>
+            </div>
+
+            <!-- slow (500ms) -->
+            <div class="space-y-2 rounded-md border bg-background p-3">
+              <p class="text-sm font-medium">slow (500ms)</p>
+              <p class="text-xs text-muted-foreground">Page transitions, modals</p>
+              <button class="w-full rounded-md bg-primary/10 px-4 py-2 text-xs hover:bg-primary/20 transition-all duration-500">
+                Hover Me (slow)
+              </button>
+            </div>
+
+            <!-- Animated Motion Demo -->
+            <MotionDemo client:load />
+          </CardContent>
+        </Card>
+      </div>
+
+      <!-- How Properties Affect Components -->
+      <div class="space-y-6">
+        <div class="text-center">
+          <h3 class="text-2xl font-bold tracking-tight">How Properties Affect Cards & Buttons</h3>
+          <p class="mt-2 text-base text-muted-foreground">
+            See how States, Elevation, Radius, and Motion work together in real components
+          </p>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+          <!-- Card Example -->
+          <Card className="border-primary/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="h-5 w-5 text-primary" />
+                Card Anatomy
+              </CardTitle>
+              <CardDescription>
+                Cards use shadow-sm elevation + rounded-md radius
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div class="rounded-md bg-muted p-3 text-sm">
+                <p class="font-medium">Default Card (shadow-sm + rounded-md)</p>
+                <p class="text-xs text-muted-foreground mt-1">Subtle elevation, 8px corners</p>
+              </div>
+
+              <div class="rounded-md bg-muted p-3 shadow-md text-sm">
+                <p class="font-medium">Elevated Card (shadow-md + rounded-md)</p>
+                <p class="text-xs text-muted-foreground mt-1">Medium depth, same corners</p>
+              </div>
+
+              <div class="rounded-lg bg-muted p-3 shadow-lg text-sm">
+                <p class="font-medium">Featured Card (shadow-lg + rounded-lg)</p>
+                <p class="text-xs text-muted-foreground mt-1">Strong depth, 12px corners</p>
+              </div>
+
+              <div class="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
+                <p class="text-xs font-semibold text-primary">✨ Card Formula</p>
+                <p class="text-xs text-muted-foreground mt-1">
+                  Card = background/foreground colors + elevation (shadow-sm/md/lg) + radius (rounded-md/lg)
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Button Example -->
+          <Card className="border-primary/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MousePointer2 className="h-5 w-5 text-primary" />
+                Button Anatomy
+              </CardTitle>
+              <CardDescription>
+                Buttons use shadow-lg + hover:shadow-xl + active:shadow-md
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div class="space-y-2">
+                <p class="text-sm font-medium">Try Interactive Button</p>
+                <button class="w-full rounded-md bg-[hsl(216_55%_25%)] px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-[hsl(216_55%_20%)] hover:shadow-xl hover:scale-[1.02] active:shadow-md active:scale-[0.98] focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all duration-150 cursor-pointer">
+                  Hover, Click, Focus Me
+                </button>
+                <p class="text-xs text-muted-foreground">
+                  <MousePointer2 className="inline h-3 w-3" /> Hover: darken + shadow-xl + scale(1.02)<br />
+                  <Hand className="inline h-3 w-3" /> Active: darken more + shadow-md + scale(0.98)<br />
+                  <Eye className="inline h-3 w-3" /> Focus: 2px primary ring
+                </p>
+              </div>
+
+              <div class="space-y-2">
+                <p class="text-sm font-medium">Outline Variant</p>
+                <button class="w-full rounded-md border-2 border-[hsl(216_55%_25%)] bg-transparent px-4 py-3 text-sm font-semibold text-[hsl(216_55%_25%)] shadow-md hover:bg-[hsl(216_55%_25%/0.1)] hover:shadow-lg hover:scale-[1.02] active:shadow-sm active:scale-[0.98] transition-all duration-150 cursor-pointer">
+                  Outline Button
+                </button>
+                <p class="text-xs text-muted-foreground">
+                  Same states, different visual style
+                </p>
+              </div>
+
+              <div class="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
+                <p class="text-xs font-semibold text-primary">✨ Button Formula</p>
+                <p class="text-xs text-muted-foreground mt-1">
+                  Button = brand color + elevation (shadow-lg → xl → md) + radius (rounded-md) + motion (150ms ease-in-out)
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Color Modes Section -->
+  <section class="px-6 py-24 md:px-8 md:py-32">
+    <div class="mx-auto max-w-6xl space-y-12">
+      <div class="space-y-4 text-center">
+        <h2 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          Color Modes
+        </h2>
+        <p class="mx-auto max-w-2xl text-lg text-muted-foreground">
+          3 colors adapt (background, foreground, font) · 3 stay constant (primary, secondary, tertiary)
+        </p>
+      </div>
+
+      <!-- Adaptive Colors (Background, Foreground, Font) -->
+      <div>
+        <h3 class="text-2xl font-bold text-center mb-6">Adaptive Colors</h3>
+        <div class="grid gap-4 md:grid-cols-3">
+          <!-- Background -->
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Palette className="h-4 w-4 text-primary" />
+                background
+              </CardTitle>
+              <CardDescription className="text-xs">Card surface · Sidebar</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div class="space-y-2">
+                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(0 0% 93%)"></div>
+                <p class="text-xs font-semibold">Light Mode</p>
+                <code class="text-xs text-muted-foreground">0 0% 93%</code>
+              </div>
+              <div class="space-y-2">
+                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(0 0% 10%)"></div>
+                <p class="text-xs font-semibold">Dark Mode</p>
+                <code class="text-xs text-muted-foreground">0 0% 10%</code>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Foreground -->
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Palette className="h-4 w-4 text-primary" />
+                foreground
+              </CardTitle>
+              <CardDescription className="text-xs">Content area inside card</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div class="space-y-2">
+                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(0 0% 100%)"></div>
+                <p class="text-xs font-semibold">Light Mode</p>
+                <code class="text-xs text-muted-foreground">0 0% 100%</code>
+              </div>
+              <div class="space-y-2">
+                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(0 0% 13%)"></div>
+                <p class="text-xs font-semibold">Dark Mode</p>
+                <code class="text-xs text-muted-foreground">0 0% 13%</code>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Font -->
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Palette className="h-4 w-4 text-primary" />
+                font
+              </CardTitle>
+              <CardDescription className="text-xs">Text color · Inverts for readability</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div class="space-y-2">
+                <div class="h-16 rounded-lg border-2 shadow-sm bg-white flex items-center justify-center" style="color: hsl(0 0% 13%)">
+                  <span class="font-bold text-2xl">Aa</span>
+                </div>
+                <p class="text-xs font-semibold">Light Mode</p>
+                <code class="text-xs text-muted-foreground">0 0% 13%</code>
+              </div>
+              <div class="space-y-2">
+                <div class="h-16 rounded-lg border-2 shadow-sm bg-black flex items-center justify-center" style="color: hsl(0 0% 100%)">
+                  <span class="font-bold text-2xl">Aa</span>
+                </div>
+                <p class="text-xs font-semibold">Dark Mode</p>
+                <code class="text-xs text-muted-foreground">0 0% 100%</code>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <!-- Constant Colors (Primary, Secondary, Tertiary) -->
+      <div>
+        <h3 class="text-2xl font-bold text-center mb-6">Constant Colors</h3>
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle>Action Colors</CardTitle>
+            <CardDescription>Primary, Secondary, and Tertiary stay the same in light and dark modes</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-3">
+            <!-- Primary -->
+            <div class="space-y-3">
+              <div class="h-20 rounded-lg shadow-md" style="background-color: hsl(216 55% 25%)"></div>
+              <div>
+                <p class="font-semibold">primary</p>
+                <code class="text-xs text-muted-foreground">216 55% 25%</code>
+                <p class="text-xs text-muted-foreground mt-1">Main CTA buttons</p>
+              </div>
+            </div>
+
+            <!-- Secondary -->
+            <div class="space-y-3">
+              <div class="h-20 rounded-lg shadow-md" style="background-color: hsl(219 14% 28%)"></div>
+              <div>
+                <p class="font-semibold">secondary</p>
+                <code class="text-xs text-muted-foreground">219 14% 28%</code>
+                <p class="text-xs text-muted-foreground mt-1">Supporting actions</p>
+              </div>
+            </div>
+
+            <!-- Tertiary -->
+            <div class="space-y-3">
+              <div class="h-20 rounded-lg shadow-md" style="background-color: hsl(105 22% 25%)"></div>
+              <div>
+                <p class="font-semibold">tertiary</p>
+                <code class="text-xs text-muted-foreground">105 22% 25%</code>
+                <p class="text-xs text-muted-foreground mt-1">Accent actions</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <!-- Typography -->
+  <section class="border-y bg-gradient-to-b from-primary/5 via-background to-background px-6 py-24 md:px-8 md:py-32">
+    <div class="mx-auto max-w-6xl space-y-12">
+      <div class="space-y-4 text-center">
+        <h2 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          Typography Architecture
+        </h2>
+        <p class="mx-auto max-w-2xl text-lg text-muted-foreground">
+          A typographic system rooted in humanist forms and consistent rhythm. Use the documented scale—never improvise.
+        </p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Type scale</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Each tier pairs size, line-height, tracking, and usage. Apply the token that matches the message weight.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {typographyScale.map((item) => (
+              <div class="rounded-lg border bg-background p-4 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <span class="text-lg font-semibold">{item.name}</span>
+                  <span class="text-sm text-muted-foreground">{item.tailwind}</span>
+                </div>
+                <p class="mt-2 text-sm text-muted-foreground">
+                  {item.size} · line-height {item.lineHeight} · {item.usage}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle>Best practices</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Typography communicates voice. These guardrails keep it legible, deliberate, and premium.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
+            <p>
+              Use `max-w-prose` for copy blocks. Avoid center-aligned paragraphs longer than two lines.
+            </p>
+            <p>
+              Headlines use tight leading (`leading-tight`). Body copy uses `leading-7`. Increase letter-spacing for uppercase.
+            </p>
+            <p>
+              Mix weight sparingly: bold for emphasis, medium for actionable labels, regular for long-form reading.
+            </p>
+            <p class="flex items-center gap-2 rounded-lg border bg-card/60 p-3 text-xs uppercase tracking-wide text-primary">
+              <Info className="h-4 w-4" />
+              Always include smart quotes, en/em dashes, and proper apostrophes in editorial content.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layout & Spacing -->
+  <section class="px-6 py-24 md:px-8 md:py-32">
+    <div class="mx-auto max-w-6xl space-y-12">
+      <div class="space-y-4 text-center">
+        <h2 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          Layout & Spacing
+        </h2>
+        <p class="mx-auto max-w-2xl text-lg text-muted-foreground">
+          Grid systems, gutters, and container rules keep experiences aligned and effortless to scan.
+        </p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Spacing rhythm</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Combine spacing tokens deliberately: inside components use 2–6; between sections use 8–12.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div class="space-y-3 rounded-2xl border bg-card/70 p-6 shadow-inner">
+              {spacingScale.map((item) => (
+                <div class="flex items-center gap-4">
+                  <span class="w-20 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {`space-${item.token}`}
+                  </span>
+                  <div class="flex-1 rounded-full bg-primary/15">
+                    <div class="h-2 rounded-full bg-primary" style={`width: ${item.px}`}></div>
+                  </div>
+                  <span class="w-40 text-xs text-muted-foreground">
+                    {item.px} · {item.rem}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Container rules</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Choose the container that matches the story density. Always align to the 12-column grid.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {containerRules.map((rule) => (
+              <div class="rounded-lg border bg-background p-4 shadow-sm">
+                <p class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{rule.label}</p>
+                <p class="mt-1 text-base font-medium">{rule.value}</p>
+                <p class="mt-1 text-sm text-muted-foreground">{rule.usage}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div class="overflow-hidden rounded-2xl border bg-card/70 p-6 shadow-inner">
+        <p class="text-sm font-semibold uppercase tracking-wide text-primary">Grid Example</p>
+        <p class="mt-2 text-sm text-muted-foreground">
+          Each column aligns to 72px at desktop with 24px gutters. Collapse to two columns on tablet, one on mobile.
+        </p>
+        <div class="mt-6 grid grid-cols-12 gap-4 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
+          <div class="col-span-3 h-24 rounded-lg bg-primary/20"></div>
+          <div class="col-span-3 h-24 rounded-lg bg-primary/20"></div>
+          <div class="col-span-3 h-24 rounded-lg bg-primary/20"></div>
+          <div class="col-span-3 h-24 rounded-lg bg-primary/20"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Component Language -->
+  <section class="border-y bg-muted/50 px-6 py-24 md:px-8 md:py-32">
+    <div class="mx-auto max-w-6xl space-y-12">
+      <div class="space-y-4 text-center">
+        <h2 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          Component Language
+        </h2>
+        <p class="mx-auto max-w-2xl text-lg text-muted-foreground">
+          Components combine tokens, layout, and interaction rules. Build new experiences by composing, not reinventing.
+        </p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Design principles</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Consistent experiences emerge when every component honors the same playbook.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {componentPrinciples.map((principle) => (
+              <div class="flex gap-4 rounded-lg border bg-background p-4 shadow-sm">
+                <div class="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <principle.icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p class="text-base font-medium">{principle.title}</p>
+                  <p class="mt-1 text-sm text-muted-foreground">{principle.description}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Living examples</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Ship with defaults: size, density, icon placement, and states. Extend via props, not overrides.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div class="space-y-3">
+              <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Button Variants</p>
+              <div class="flex flex-wrap items-center gap-3">
+                <button class="rounded-md bg-[hsl(216_55%_25%)] px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-[hsl(216_55%_20%)] hover:shadow-xl active:shadow-md transition-all duration-150">
+                  Primary
+                </button>
+                <button class="rounded-md bg-[hsl(219_14%_28%)] px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-[hsl(219_14%_23%)] hover:shadow-xl active:shadow-md transition-all duration-150">
+                  Secondary
+                </button>
+                <button class="rounded-md bg-[hsl(105_22%_25%)] px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-[hsl(105_22%_20%)] hover:shadow-xl active:shadow-md transition-all duration-150">
+                  Tertiary
+                </button>
+                <Button variant="outline" size="default">Outline</Button>
+                <Button variant="ghost" size="default">Ghost</Button>
+              </div>
+              <p class="text-xs text-muted-foreground">
+                Primary (blue), Secondary (gray-blue), Tertiary (green) use brand colors · Outline/Ghost are neutral
+              </p>
+            </div>
+
+            <div class="space-y-3">
+              <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Card anatomy</p>
+              <Card className="border-dashed">
+                <CardHeader>
+                  <CardTitle>Status Overview</CardTitle>
+                  <CardDescription>Snapshot of platform health, updated in real-time.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-2 text-sm text-muted-foreground">
+                  <div class="flex items-center justify-between rounded-md border bg-card/70 px-3 py-2">
+                    <span>Active creators</span>
+                    <span class="font-medium text-foreground">128</span>
+                  </div>
+                  <div class="flex items-center justify-between rounded-md border bg-card/70 px-3 py-2">
+                    <span>Pending mandates</span>
+                    <span class="font-medium text-foreground">12</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interaction & Accessibility -->
+  <section class="px-6 py-24 md:px-8 md:py-32">
+    <div class="mx-auto max-w-6xl space-y-12">
+      <div class="space-y-4 text-center">
+        <h2 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          Interaction & Accessibility
+        </h2>
+        <p class="mx-auto max-w-2xl text-lg text-muted-foreground">
+          Every interaction respects purpose, speed, and inclusivity. Design emotionally confident interfaces that everyone can use.
+        </p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Interaction rules</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Micro-interactions reinforce trust. Try these interactive demos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InteractionDemo client:load />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Accessibility checklist</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Ship quality by making inclusion non-negotiable. Validate every screen before release.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {accessibilityChecklist.map((item) => (
+              <div class="rounded-lg border bg-background p-4 shadow-sm">
+                <p class="flex items-center gap-2 text-base font-medium">
+                  <Check className="h-4 w-4 text-primary" />
+                  {item.title}
+                </p>
+                <p class="mt-1 text-sm text-muted-foreground">{item.description}</p>
+              </div>
+            ))}
+            <div class="rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm text-primary">
+              <AlertCircle className="mr-3 inline h-4 w-4" />
+              Document contrast and focus results in PR descriptions. Accessibility is a release-blocker.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workflow -->
+  <section class="border-y bg-muted/50 px-6 py-24 md:px-8 md:py-32">
+    <div class="mx-auto max-w-6xl space-y-12">
+      <div class="space-y-4 text-center">
+        <h2 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          Workflow
+        </h2>
+        <p class="mx-auto max-w-2xl text-lg text-muted-foreground">
+          Design and engineering stay in lockstep through shared tooling, documentation, and QA rituals.
+        </p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Workflow</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Keep tokens and components in sync across codebases, packages, and design files.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {implementationSteps.map((step, index) => (
+              <div class="rounded-lg border bg-background p-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Step {index + 1}
+                </p>
+                <p class="mt-2 text-base font-medium">{step.title}</p>
+                <p class="mt-1 text-sm text-muted-foreground">{step.description}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle>Token snippet</CardTitle>
+            <CardDescription className="leading-relaxed">
+              Reference implementation in `src/styles/tokens.css`. Update here and regenerate types.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="rounded-xl border bg-background/80 p-4 shadow-inner">
+            <pre class="overflow-x-auto rounded-lg bg-card/80 p-4 text-sm">
+<code>{`:root {
+  --color-primary: 216 55% 25%;
+  --color-primary-foreground: 36 8% 96%;
+  --color-surface: 36 8% 88%;
+  --color-accent: 105 22% 25%;
+  --space-2: 0.5rem;
+  --space-4: 1rem;
+  --radius-md: 12px;
+  --shadow-md: 0 14px 32px -18px hsl(216 55% 25% / 0.32);
+  --ease-snappy: cubic-bezier(0.4, 0, 0.2, 1);
+}`}</code>
+            </pre>
+            <p class="mt-3 text-xs text-muted-foreground">
+              Tokens sync to Tailwind via `theme.extend`. Run `pnpm lint && pnpm test` before release.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="px-6 py-24 md:px-8 md:py-32">
+    <div class="mx-auto max-w-4xl space-y-8 text-center">
+      <h2 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+        Design governs ONE experience.
+      </h2>
+      <p class="text-lg text-muted-foreground">
+        Ship with intention. Every commit should strengthen clarity, trust, and velocity. When in doubt, return to the tokens,
+        principles, and checklists above—or propose updates so the system evolves together.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <Button size="lg">View Component Library</Button>
+        <Button variant="outline" size="lg">
+          Read Implementation Guide
+        </Button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cycle 3: Thing Brand Override — swap the 6 brand tokens, cascade everywhere -->
+  <section class="container mx-auto px-6 py-16 border-t border-border">
+    <div class="max-w-4xl mx-auto space-y-8">
+      <div class="space-y-2">
+        <Badge variant="outline">Cycle 3 · GROW</Badge>
+        <h2 class="text-3xl font-bold">Thing Brand Override</h2>
+        <p class="text-muted-foreground">
+          Every Thing may carry its own <code>brand</code> attribute — 6 HSL triples.
+          Toggling the brand swaps <code>:root</code> CSS vars. No component edits.
+          Because every primitive reads <code>hsl(var(--color-*))</code>, the whole
+          surface reskins at once.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 text-sm">
+        <span class="text-muted-foreground">Current brand:</span>
+        <span class="font-semibold">{overrideBrand ? "purple" : "default"}</span>
+        <div class="flex gap-2 ml-auto">
+          <a
+            href="/design"
+            class="px-3 py-1.5 rounded-md border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+          >Default</a>
+          <a
+            href="/design?brand=purple"
+            class="px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+          >Override → purple</a>
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle class="text-base">Primary</CardTitle>
+            <CardDescription>Action emphasis</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button class="w-full">Primary button</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle class="text-base">Secondary</CardTitle>
+            <CardDescription>Supporting</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="secondary" class="w-full">Secondary</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle class="text-base">Tertiary</CardTitle>
+            <CardDescription>Accent</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div class="w-full h-10 rounded-md bg-tertiary flex items-center justify-center text-white text-sm font-medium">
+              Accent surface
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <Badge>Default badge</Badge>
+        <Badge variant="secondary">Secondary</Badge>
+        <Badge variant="outline">Outline</Badge>
+        <Badge variant="destructive">Destructive</Badge>
+      </div>
+    </div>
+  </section>
+</Layout>

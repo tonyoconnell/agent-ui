@@ -28,3 +28,6 @@ dist/
 Thumbs.db
 node_modules
 .obsidian/workspace.json
+
+# Vitest artifacts — per-test timing + named speed samples
+.vitest/

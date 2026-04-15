@@ -218,6 +218,16 @@ const POPULAR_MODELS = [
 		isClaudeCode: true,
 	},
 		*/
+  // Default model — server-configured OpenRouter key, 1M context, $0.15/M
+  {
+    id: 'meta-llama/llama-4-maverick',
+    name: 'Llama 4 Maverick',
+    chef: 'Meta',
+    chefSlug: 'meta',
+    providers: ['openrouter'],
+    free: false,
+    context: '1M',
+  },
   // Free models
   {
     id: 'google/gemini-2.5-flash-lite',
@@ -761,8 +771,9 @@ function formatToolResult(toolName: string, result: any): string {
 
 export function ChatClientV2() {
   const [apiKey, setApiKey] = useState('')
-  // Default to Claude Code Sonnet (free, no API key needed)
-  const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash-lite')
+  const [serverHasKey, setServerHasKey] = useState(false)
+  // Default to Llama 4 Maverick via OpenRouter (server-configured key)
+  const [selectedModel, setSelectedModel] = useState('meta-llama/llama-4-maverick')
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
   const [customModels, setCustomModels] = useState<typeof POPULAR_MODELS>([])
   const [quickAddInput, setQuickAddInput] = useState('')
@@ -792,7 +803,7 @@ export function ChatClientV2() {
   // Combine popular models with custom models
   const allModels = [...POPULAR_MODELS, ...customModels]
   const selectedModelData = allModels.find((m) => m.id === selectedModel)
-  const hasApiKey = !!apiKey
+  const hasApiKey = !!apiKey || serverHasKey
 
   // Quick add model from OpenRouter
   const handleQuickAddModel = () => {
@@ -840,6 +851,7 @@ export function ChatClientV2() {
   }, [])
 
   // Load API key, model, and custom models from storage on mount
+  // Also check if server has OpenRouter key configured
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedKey = secureGetItem(STORAGE_KEY)
@@ -859,6 +871,14 @@ export function ChatClientV2() {
           console.error('Failed to load custom models:', e)
         }
       }
+
+      // Check if server has OpenRouter key — if so, skip the API key gate in UI
+      fetch('/api/chat-config')
+        .then((r) => r.json())
+        .then((cfg: { hasKey: boolean }) => {
+          if (cfg.hasKey) setServerHasKey(true)
+        })
+        .catch(() => {}) // Non-fatal
     }
   }, [])
 
