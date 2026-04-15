@@ -267,6 +267,38 @@ describe('adl-cache: audit() is truly silent on failure', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════
+// Ring buffer backpressure — dropped records must be counted and warned
+// ═══════════════════════════════════════════════════════════════════════
+describe('adl-cache: ring buffer backpressure', () => {
+  it('emitting past AUDIT_BUFFER_MAX increments AUDIT_DROPPED', async () => {
+    const { AUDIT_BUFFER, AUDIT_BUFFER_MAX, auditStats, resetAuditStats } = await import('@/engine/adl-cache')
+    AUDIT_BUFFER.length = 0
+    resetAuditStats()
+    for (let i = 0; i < AUDIT_BUFFER_MAX + 5; i++) {
+      audit({ sender: `s${i}`, receiver: 'r', gate: 'lifecycle', decision: 'deny', mode: 'enforce' })
+    }
+    const stats = auditStats()
+    expect(stats.bufferSize).toBe(AUDIT_BUFFER_MAX)
+    expect(stats.dropped).toBe(5)
+  })
+
+  it('emits a BACKPRESSURE warning on overflow (rate-limited to one per window)', async () => {
+    const { AUDIT_BUFFER, AUDIT_BUFFER_MAX, resetAuditStats } = await import('@/engine/adl-cache')
+    AUDIT_BUFFER.length = 0
+    resetAuditStats()
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    for (let i = 0; i < AUDIT_BUFFER_MAX + 100; i++) {
+      audit({ sender: `s${i}`, receiver: 'r', gate: 'lifecycle', decision: 'deny', mode: 'enforce' })
+    }
+    const backpressureCalls = spy.mock.calls.map((c) => c[0] as string).filter((s) => s.includes('BACKPRESSURE'))
+    // Rate-limited: exactly one BACKPRESSURE line even though 100 records dropped
+    expect(backpressureCalls.length).toBe(1)
+    expect(backpressureCalls[0]).toContain('ring buffer full')
+    spy.mockRestore()
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
 // Cycle 1.5 retrofit: prove enforcementMode is wired into the newly
 // threaded gates (llm.ts perm-env, api.ts perm-network). The persist.ts
 // lifecycle gate is covered by signal.test.ts.

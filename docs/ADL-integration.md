@@ -219,7 +219,7 @@ const sensitivityRank = { public: 0, internal: 1, confidential: 2, restricted: 3
 
 ### Permission Cache (Performance)
 
-All three gates use an in-process cache to reduce TypeDB reads:
+All three signal-path stages (lifecycle, network, sensitivity) use an in-process cache to reduce TypeDB reads. The Cycle 1.5+ gates (perm-env, perm-network, bridge) each have their own caches in the same file — see "Additional Gates" below:
 
 ```typescript
 interface CacheEntry {
@@ -284,6 +284,23 @@ routes drain the buffer at request boundaries:
 - **`GET /api/adl/denials`** — flushes before reading so queries see fresh records
 
 Schema: `migrations/0011_adl_audit.sql` (columns: `ts, sender, receiver, gate, decision, mode, reason`). Query with `?gate=...&decision=...&receiver=...&since=ISO&limit=100`.
+
+#### Backpressure & policy caveats
+
+- **Ring buffer is 1000 records.** When D1 is unavailable or `/api/signal` isn't
+  draining, oldest records evict. The `AUDIT_DROPPED` counter increments and a
+  rate-limited `BACKPRESSURE` warning is emitted to `console.warn`. Read the
+  counter via `auditStats()` — also exposed under `stats` in the
+  `/api/adl/denials` response.
+- **Empty perm list = fail-open.** A unit without a `perm-env` or
+  `perm-network` attribute, or with an empty allow list, passes its gate
+  unconditionally. This preserves backward compatibility for pre-ADL units.
+  Production deployments of security-sensitive units MUST set an explicit
+  non-empty allow list; there is no ambient deny-by-default.
+- **Sui bridge is the only fail-closed path.** TypeDB read errors on the
+  bridge gate deny the Sui transaction (real-money asymmetry). All other
+  gates fail open on TypeDB errors, since blocking a user request on an
+  infrastructure hiccup is worse than logging the call and moving on.
 
 ### Persona TypeDB Backing (W5)
 
@@ -459,7 +476,7 @@ await syncAdl(adl)
 
 | Operation | Before | After | Improvement |
 |-----------|--------|-------|-------------|
-| Signal with 3 gates | ~300ms (3 TypeDB reads) | ~0ms (cache hit) | 300ms savings |
+| Signal with 3 signal-path stages | ~300ms (3 TypeDB reads) | ~0ms (cache hit) | 300ms savings |
 | Discovery endpoint | N/A | ~50ms for 50 agents | — |
 | ADL import (single) | N/A | ~200ms | — |
 | ADL validation | N/A | ~1ms | — |
