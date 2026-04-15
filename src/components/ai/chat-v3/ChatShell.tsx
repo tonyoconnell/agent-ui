@@ -15,6 +15,7 @@ import { InlineFrame } from './frames/InlineFrame'
 import { SplitPaneFrame } from './frames/SplitPaneFrame'
 import { WidgetFrame } from './frames/WidgetFrame'
 import { handleCommand } from './MemoryCommands'
+import { emitClick } from '@/lib/ui-signal'
 import { PromptDock } from './PromptDock'
 import { SettingsModal } from './SettingsModal'
 
@@ -219,6 +220,7 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
           size="sm"
           variant="default"
           onClick={() => {
+            emitClick('ui:chat:clear')
             clear()
             if (textareaRef.current) textareaRef.current.value = ''
             setAttachments([])
@@ -232,7 +234,7 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
             <Button
               size="sm"
               variant={useDirector ? 'default' : 'outline'}
-              onClick={() => setUseDirector(!useDirector)}
+              onClick={() => { emitClick('ui:chat:toggle-director'); setUseDirector(!useDirector) }}
               className={
                 useDirector
                   ? 'bg-purple-600 hover:bg-purple-700 text-white transition-all'
@@ -294,7 +296,7 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
               variant="ghost"
               size="sm"
               className="absolute top-4 right-4 z-10"
-              onClick={() => setShowCamera(false)}
+              onClick={() => { emitClick('ui:chat:camera-close'); setShowCamera(false) }}
             >
               ✕
             </Button>
@@ -319,6 +321,7 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
             <div className="mt-4 flex justify-center">
               <Button
                 onClick={() => {
+                  emitClick('ui:chat:capture-photo')
                   const v = document.getElementById('camera-preview') as HTMLVideoElement
                   if (!v) return
                   const c = document.createElement('canvas')
@@ -378,7 +381,7 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
                       in Settings.
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="gap-2 mt-2">
+                  <Button variant="outline" size="sm" onClick={() => { emitClick('ui:chat:settings'); setShowSettings(true) }} className="gap-2 mt-2">
                     <Settings className="h-4 w-4" /> Add API Key for More Models
                   </Button>
                 </div>
@@ -387,6 +390,7 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
                   size="icon"
                   className="h-6 w-6 flex-shrink-0"
                   onClick={() => {
+                    emitClick('ui:chat:dismiss-banner')
                     localStorage.setItem('hideLoginBanner', 'true')
                     window.location.reload()
                   }}
@@ -418,7 +422,7 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
             <span className="text-xs text-slate-500">Command result</span>
             <button
               type="button"
-              onClick={() => setCommandResult(null)}
+              onClick={() => { emitClick('ui:chat:dismiss-result'); setCommandResult(null) }}
               className="text-slate-500 hover:text-slate-300"
             >
               ✕

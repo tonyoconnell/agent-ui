@@ -42,36 +42,40 @@ status: TEMPLATE
 
 Signals flow down through waves. Results flow up, marking paths with
 tagged weights. Each tag:weight pair points to a different next hop.
+After W4 passes, a **feedback signal** flows back up the return path —
+depositing tagged pheromone so future agents route toward what worked.
 
 ```
-    signal DOWN                     result UP
-    ──────────                      ─────────
-    /do TODO-{name}.md              result + 4 tagged marks
-         │                               │
-         ▼                               │
-    ┌─────────┐                          │
-    │  W1     │  Haiku recon ────────────┤ mark(edge:fit, score)
-    │  read   │  → report verbatim       │ mark(edge:form, score)
-    └────┬────┘                          │ mark(edge:truth, score)
-         │ context grows                 │ mark(edge:taste, score)
-         ▼                               │
-    ┌─────────┐                          │
-    │  W2     │  Opus decide             │ weak dim?
-    │  fold   │  → diff specs            │   → signal to specialist
-    └────┬────┘                          │   → mark specialist path
-         │ context grows                 │
-         ▼                               │
-    ┌─────────┐                          │
-    │  W3     │  Sonnet edit             │
-    │  apply  │  → code changes          │
-    └────┬────┘                          │
-         │                               │
-         ▼                               │
-    ┌─────────┐                          │
-    │  W4     │  Sonnet verify ──────────┘
-    │  score  │  → rubric: fit/form/truth/taste
-    └─────────┘    each dim marks a tagged edge
-                   weak dims fan out to coaches
+    signal DOWN                     result UP            feedback UP
+    ──────────                      ─────────            ───────────
+    /do TODO-{name}.md              result + 4 tagged    tagged strength
+         │                          marks                signal → substrate
+         ▼                               │                    ▲
+    ┌─────────┐                          │                    │
+    │  W1     │  Haiku recon ────────────┤ mark(edge:fit)     │
+    │  read   │  → report verbatim       │ mark(edge:form)    │
+    └────┬────┘                          │ mark(edge:truth)   │
+         │ context grows                 │ mark(edge:taste)   │
+         ▼                               │ weak dim?          │
+    ┌─────────┐                          │   → specialist     │
+    │  W2     │  Opus decide             │   signal           │
+    │  fold   │  → diff specs            │                    │
+    └────┬────┘                          │                    │
+         │ context grows                 │                    │
+         ▼                               │                    │
+    ┌─────────┐                          │                    │
+    │  W3     │  Sonnet edit             │                    │
+    │  apply  │  → code changes          │                    │
+    └────┬────┘                          │                    │
+         │                               │                    │
+         ▼                               │                    │
+    ┌─────────┐                          │                    │
+    │  W4     │  Sonnet verify ──────────┘                    │
+    │  score  │  → rubric: fit/form/truth/taste               │
+    │         │  → feedback signal ─────────────────────────►─┘
+    └─────────┘    { tags: task.tags, strength: rubricAvg }
+                   loop:feedback receiver deposits pheromone
+                   on paths tagged by this kind of work
 ```
 
 **The signal is the routing.** Each wave's output becomes the next wave's
@@ -80,6 +84,7 @@ Weak dimensions (`< 0.65`) emit fan-out signals to specialists.
 The graph learns what kind of work succeeds on which paths, by dimension.
 
 **Context accumulates down. Quality marks flow up. Weights route sideways.**
+**Feedback signals travel the return path — making the trail visible to the next agent.**
 
 **Fan-out is the default.** Every wave spawns all its agents in a single
 message with multiple tool calls — never a loop of sequential `Agent` calls.
@@ -395,6 +400,36 @@ agent per affected file), re-verify with the same K shards. Max 3 loops.
 3. Strengthen the path (`mark('loop→builder:taskId', 5)`)
 4. Unblock dependents (query `blocks` relation → enqueue signals)
 5. If all tasks in phase complete → `know()` (promote to learning)
+6. **Emit feedback signal** — POST `/api/signal` with the return-path payload:
+   ```typescript
+   // The ant lays pheromone on the way home, not just on the way there.
+   // This is the signal that makes the trail visible to the next agent.
+   {
+     receiver: 'loop:feedback',
+     data: {
+       tags: task.tags,           // what kind of work this was
+       strength: rubricAvg,       // how well it went (0–1, avg of 4 dims)
+       content: {
+         task_id: task.id,
+         cycle,
+         rubric: { fit, form, truth, taste },
+         path: `${from}→${to}`,
+         outcome: 'result'        // result | timeout | dissolved | failure
+       }
+     }
+   }
+   ```
+   The `loop:feedback` unit deposits `mark(tag_edge, strength)` for each tag
+   in `task.tags`. Future `select()` calls with matching tags follow this trail.
+   **Security note:** feedback signals are `scope: private` — they never surface
+   in group queries or `know()` unless explicitly promoted by L6.
+
+**Feedback Signal Contract:**
+- `strength >= 0.65` → `mark()` on each tag path (trail strengthens)
+- `strength < 0.65` → `warn(0.5)` on each tag path (mild — not a failure, try specialist)
+- `outcome = dissolved` → `warn(0.5)` regardless of rubric (path doesn't exist yet)
+- `outcome = failure` → `warn(1)` on all tag paths (chain breaks, L5 evolution triggered)
+- Always emit. Even timeout. Even dissolved. Every loop closes.
 
 ### Cycle 1 Gate
 

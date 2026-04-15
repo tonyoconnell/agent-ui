@@ -171,6 +171,20 @@ loop:
             Dims < 0.5 → warn on that dimension path
             Dims ≥ 0.5 → mark on that dimension path
 
+  FEEDBACK: POST http://localhost:4321/api/signal {
+              receiver: 'loop:feedback',
+              data: {
+                tags: task.tags,         // what kind of work this was
+                strength: rubricAvg,     // how well it went (avg of 4 dims)
+                content: { task_id, rubric, outcome: 'result' }
+              }
+            }
+            // The return-path signal — lays pheromone on the trail home.
+            // Future select() with matching tags follows this trail.
+            // strength >= 0.65 → mark each tag path
+            // strength < 0.65 → warn(0.5) each tag path (try specialist)
+            // Always emit — even timeout, even dissolved. Every loop closes.
+
   GROW:     GET http://localhost:4321/api/highways → report learned paths
 
   → repeat

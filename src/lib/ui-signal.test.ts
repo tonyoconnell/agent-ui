@@ -63,7 +63,7 @@ describe('emitClick', () => {
 
   test('emitClick with payload puts it in data.rich', async () => {
     const { emitClick } = await import('./ui-signal')
-    const payload = { type: 'text', content: 'hello' }
+    const payload = { type: 'text' as const, content: 'hello' }
     await emitClick('ui:chat:copy', payload)
 
     const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>
@@ -71,5 +71,16 @@ describe('emitClick', () => {
     const body = JSON.parse(init.body as string)
 
     expect(body.data.rich).toEqual(payload)
+  })
+
+  test('emitClick without payload omits data.rich', async () => {
+    const { emitClick } = await import('./ui-signal')
+    await emitClick('ui:chat:scroll')
+
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>
+    const [, init] = fetchMock.mock.calls[0]
+    const body = JSON.parse(init.body as string)
+
+    expect(body.data).not.toHaveProperty('rich')
   })
 })

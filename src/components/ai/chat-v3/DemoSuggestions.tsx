@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { suggestionGroups } from '@/lib/chat/demos'
 import { cn } from '@/lib/utils'
+import { emitClick } from '@/lib/ui-signal'
 
 interface Props {
   onSelectDemo: (prompt: string) => void
@@ -40,6 +41,7 @@ export function DemoSuggestions({ onSelectDemo }: Props) {
                     <button
                       key={index}
                       onClick={() => {
+                        emitClick('ui:demo:select')
                         onSelectDemo(item)
                         setActiveCategory('')
                       }}

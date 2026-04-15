@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { MemoryCard as MemoryCardData } from '@/engine/persist'
+import { emitClick } from '@/lib/ui-signal'
 
 interface Props {
   data: MemoryCardData
@@ -43,7 +44,7 @@ export function MemoryCard({ data, onClose }: Props) {
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0 text-slate-400 hover:text-slate-100"
-            onClick={onClose}
+            onClick={() => { emitClick('ui:memory:close'); onClose() }}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -154,7 +155,7 @@ export function MemoryCard({ data, onClose }: Props) {
           variant="outline"
           size="sm"
           className="text-xs text-slate-400 border-slate-700 hover:text-slate-100 hover:border-slate-500"
-          onClick={handleExport}
+          onClick={() => { emitClick('ui:memory:export'); handleExport() }}
         >
           Export memory.json
         </Button>

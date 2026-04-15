@@ -10,6 +10,7 @@ import { augmentPromptWithADL } from './adl'
 import { inferDocsFromTags, loadContext } from './context'
 import type { PersistentWorld } from './persist'
 import { EFFORT_MODEL, WAVE_MODEL } from './task-parse'
+import { warmUI } from '@/lib/ui-prefetch'
 
 // doc-scan and node:path imported dynamically to avoid Cloudflare bundling issues
 
@@ -43,6 +44,7 @@ export type TickResult = {
   hypotheses?: number
   frontiers?: number
   docsSynced?: number
+  prefetchMs?: number
 }
 
 let cycle = 0
@@ -294,6 +296,15 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
 
   // L1: DRAIN — process highest-priority queued signal
   net.drain()
+
+  // L1.5 prefetch: warm ui:* receivers found in current highways
+  const _prefetchStart = Date.now()
+  const _uiReceivers = net.highways(20)
+    .filter((e: { to: string }) => e.to?.startsWith('ui:'))
+    .slice(0, 5)
+    .map((e: { to: string }) => e.to)
+  if (_uiReceivers.length > 0) warmUI(_uiReceivers)
+  const prefetchMs = Date.now() - _prefetchStart
 
   // L3: FADE — every 5 minutes (asymmetric: resistance decays 2x)
   if (now - lastDecay > FADE_INTERVAL) {
@@ -629,5 +640,6 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
   }
 
   result.highways = net.highways(10)
+  result.prefetchMs = prefetchMs
   return result
 }

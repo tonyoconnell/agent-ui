@@ -16,6 +16,7 @@
 
 import { Schema } from 'effect'
 import { readParsed, write } from '@/lib/typedb'
+import { invalidateAdlCache } from './adl-cache'
 import type { AgentSpec } from './agent-md'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -289,6 +290,9 @@ export const syncAdl = async (doc: AdlDoc): Promise<void> => {
   for (const q of queries) {
     await write(q).catch((e) => console.warn('ADL sync error:', e instanceof Error ? e.message : e))
   }
+  // Cycle 1.5: close the 5-min staleness window — every gate's cache of this
+  // uid is now stale. Flush synchronously so the very next signal reads fresh.
+  invalidateAdlCache(doc.id)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

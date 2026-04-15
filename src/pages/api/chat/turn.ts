@@ -3,6 +3,7 @@ import { type ModelMessage, streamText } from 'ai'
 import type { APIRoute } from 'astro'
 import { ingestMessage, measureOutcome } from '@/engine/chat'
 import { buildPack, systemPromptWithPack } from '@/lib/chat/context-pack'
+import { warmUI } from '@/lib/ui-prefetch'
 
 export const prerender = false
 
@@ -62,6 +63,11 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Step 2: measure outcome of previous turn (fire-and-forget)
     void measureOutcome(uid, lastTags, lastUserMessage).catch(() => {})
+    // Pre-warm UI permission bypass so next click skips TypeDB gate queries
+    warmUI(['ui:chat:copy', 'ui:chat:stop', 'ui:chat:scroll', 'ui:chat:clear',
+            'ui:chat:toggle-director', 'ui:chat:settings', 'ui:chat:dismiss-banner',
+            'ui:prompt:submit', 'ui:prompt:stop', 'ui:prompt:attach-file',
+            'ui:prompt:camera', 'ui:prompt:settings', 'ui:prompt:add-model'])
 
     // Step 3: assemble memory pack from TypeDB
     const pack = await buildPack(uid).catch(() => ({

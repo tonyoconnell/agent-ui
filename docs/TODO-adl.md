@@ -509,12 +509,11 @@ parallelism, wall-time collapses to ~3 cycles of ~15–20 min each.
     deferred decisions were not in scope when Cycle 1 closed. Land before
     Cycle 2 W1 or include as Cycle 2 W0 prerequisite. Otherwise the
     5-min staleness window described in `ADL-integration.md` is still open.
-- [ ] **Cycle 1.5: RETROFIT** — cache invalidation + deferred decisions
-  - [ ] Task #9 `adl-cache-invalidate` shipped
-  - [ ] 5 deferred decisions (audit sink, Sui fail-closed, scope×sensitivity
-    matrix, enforcement-mode flag shape, invalidation granularity) resolved
-    and stored as hypotheses
-  - [ ] `ADL_ENFORCEMENT_MODE` threaded through Cycle 1 gates
+- [x] **Cycle 1.5: RETROFIT** — cache invalidation + deferred decisions ✓ 2026-04-15
+  - [x] Task #9 `adl-cache-invalidate` shipped (new `src/engine/adl-cache.ts`; `syncAdl` auto-invalidates; <100ms staleness close verified by test)
+  - [x] 5 deferred decisions resolved: D1 `adl_audit` table (migration `0011_adl_audit.sql`) + Sui fails **closed** on TypeDB error + `private` scope does NOT bypass network gate + single `ADL_ENFORCEMENT_MODE` flag + uid-scoped invalidation (paths untouched)
+  - [x] `ADL_ENFORCEMENT_MODE=audit|enforce` threaded through all 4 gates (signal lifecycle / network / sensitivity + bridge canCallSui)
+  - [x] Cycle gate: 69 files / 778 tests pass · biome clean · drift 391→391 · rubric={fit:0.95, form:0.90, truth:0.95, taste:0.85} avg=0.925
 - [x] **Cycle 2: PROVE** — LLM / API / schema enforcement (MEDIUM) ✓ 2026-04-15
   - [x] W0 — Baseline: 739/739 tests · biome clean · design tokens held
   - [x] W1 — Recon (Haiku × 5, parallel)

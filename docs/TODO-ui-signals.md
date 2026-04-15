@@ -279,21 +279,21 @@ curl -s localhost:4321/api/metrics | jq '.ui.click.p50Ms'       # < baseline
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — helper + rule + ConversationView
-  - [ ] W1 — Recon (Haiku × 5, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 3, parallel)
-  - [ ] W4 — Verify (Sonnet × 3, parallel)
-- [ ] **Cycle 2: PROVE** — retrofit 8 remaining components
-  - [ ] W1 — Recon (Haiku × 8, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 8, parallel)
-  - [ ] W4 — Verify (Sonnet × 2, parallel)
-- [ ] **Cycle 3: GROW** — prefetch loop, speed compounds
-  - [ ] W1 — Recon (Haiku × 4, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 4, parallel)
-  - [ ] W4 — Verify (Sonnet × 2, parallel)
+- [x] **Cycle 1: WIRE** — helper + rule + ConversationView
+  - [x] W1 — Recon (Haiku × 5, parallel)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 3, parallel)
+  - [x] W4 — Verify (Sonnet × 3, parallel)
+- [x] **Cycle 2: PROVE** — retrofit 8 remaining components
+  - [x] W1 — Recon (Haiku × 8, parallel)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 8, parallel)
+  - [x] W4 — Verify (Sonnet × 2, parallel)
+- [x] **Cycle 3: GROW** — prefetch loop, speed compounds
+  - [x] W1 — Recon (Haiku × 4, parallel)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 4, parallel)
+  - [x] W4 — Verify (Sonnet × 2, parallel)
 
 ---
 

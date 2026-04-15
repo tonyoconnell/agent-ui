@@ -1,8 +1,20 @@
-/** Minimal shape for rich UI payloads attached to click signals. */
+/** Structured sub-types for rich payloads (mirrors rich-messages.md). */
+export interface PaymentMetadata {
+  receiver: string
+  amount: number
+  action: string
+  currency?: 'SUI' | 'USD'
+  transactionDigest?: string
+}
+
+/** Rich payload shape — matches the RichMessage contract in rich-messages.md. */
 export interface RichMessage {
-  type?: string
-  content?: unknown
-  [key: string]: unknown
+  type: 'text' | 'embed' | 'thread' | 'reaction' | 'payment'
+  content: string
+  payment?: PaymentMetadata
+  reactions?: string[]
+  embed?: Record<string, unknown>
+  thread?: Record<string, unknown>
 }
 
 /**

@@ -36,35 +36,10 @@ function escapeTqlString(str: string): string {
 // Reduces TypeDB reads on every signal from 3 to 0 on cache hits
 // ═══════════════════════════════════════════════════════════════════════════
 
-interface CacheEntry {
-  adlStatus?: string
-  permNetwork?: { allowed_hosts?: string[]; allowedHosts?: string[] }
-  senderSensitivity?: string
-  receiverSensitivity?: string
-  timestamp: number
-}
-
-const PERM_CACHE = new Map<string, CacheEntry>()
-const CACHE_TTL = 300000 // 5 minutes in milliseconds
-
-function invalidatePermCache(receiver: string): void {
-  PERM_CACHE.delete(`${receiver}:status`)
-  PERM_CACHE.delete(`${receiver}:network`)
-}
-
-function getCached(key: string): unknown | undefined {
-  const entry = PERM_CACHE.get(key)
-  if (!entry) return undefined
-  if (Date.now() - entry.timestamp > CACHE_TTL) {
-    PERM_CACHE.delete(key)
-    return undefined
-  }
-  return entry
-}
-
-function setCached(key: string, value: unknown): void {
-  PERM_CACHE.set(key, { ...(value as object), timestamp: Date.now() })
-}
+// Cycle 1.5: centralized in `src/engine/adl-cache.ts` so `syncAdl`
+// can invalidate without reverse-importing from Astro pages.
+import { audit, type CacheEntry, enforcementMode, getCached, invalidatePermCache, setCached } from '@/engine/adl-cache'
+import { isWarm } from '@/lib/ui-prefetch'
 
 export const POST: APIRoute = async ({ request }) => {
   const {
@@ -112,7 +87,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (cachedStatusEntry?.adlStatus) {
     adlStatus = cachedStatusEntry.adlStatus
-  } else {
+  } else if (!isWarm(receiver)) {
     const receiverStatusRows = await readParsed(`
       match $u isa unit, has uid "${receiver}", has adl-status $st;
       select $st;
@@ -125,9 +100,22 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   if (adlStatus && (adlStatus === 'retired' || adlStatus === 'deprecated')) {
-    return new Response(JSON.stringify({ error: 'Unit is retired or deprecated', code: 'UNIT_INACTIVE', adlStatus }), {
-      status: 410,
+    const mode = enforcementMode()
+    audit({
+      sender,
+      receiver,
+      gate: 'lifecycle',
+      decision: mode === 'audit' ? 'allow-audit' : 'deny',
+      mode,
+      reason: `receiver adl-status=${adlStatus}`,
     })
+    if (mode === 'enforce') {
+      return new Response(
+        JSON.stringify({ error: 'Unit is retired or deprecated', code: 'UNIT_INACTIVE', adlStatus }),
+        { status: 410 },
+      )
+    }
+    // audit mode: fall through
   }
 
   // Stage 2 — Network permission gate: if receiver has perm-network.allowedHosts, verify sender is in list
@@ -137,7 +125,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (cachedNetworkEntry?.permNetwork?.allowedHosts) {
     allowedHosts = cachedNetworkEntry.permNetwork.allowedHosts
-  } else if (!cachedNetworkEntry) {
+  } else if (!cachedNetworkEntry && !isWarm(receiver)) {
     const permNetworkRows = await readParsed(`
       match $u isa unit, has uid "${receiver}", has perm-network $pn;
       select $pn;
@@ -157,14 +145,26 @@ export const POST: APIRoute = async ({ request }) => {
   if (Array.isArray(allowedHosts) && allowedHosts.length > 0) {
     const senderAllowed = allowedHosts.includes(sender) || allowedHosts.includes('*')
     if (!senderAllowed) {
-      return new Response(
-        JSON.stringify({
-          error: 'Sender not in receiver allowedHosts',
-          code: 'PERMISSION_DENIED',
-          sender,
-        }),
-        { status: 403 },
-      )
+      const mode = enforcementMode()
+      audit({
+        sender,
+        receiver,
+        gate: 'network',
+        decision: mode === 'audit' ? 'allow-audit' : 'deny',
+        mode,
+        reason: `sender not in allowedHosts=${JSON.stringify(allowedHosts)}`,
+      })
+      if (mode === 'enforce') {
+        return new Response(
+          JSON.stringify({
+            error: 'Sender not in receiver allowedHosts',
+            code: 'PERMISSION_DENIED',
+            sender,
+          }),
+          { status: 403 },
+        )
+      }
+      // audit mode: fall through
     }
   }
 
@@ -212,8 +212,15 @@ export const POST: APIRoute = async ({ request }) => {
     sensitivityRank[senderSensitivity as keyof typeof sensitivityRank] >
     sensitivityRank[receiverSensitivity as keyof typeof sensitivityRank]
   ) {
-    // Sender is more sensitive than receiver — tag for audit
-    // (non-blocking, continues below)
+    // Sender is more sensitive than receiver — audit-only, never blocks.
+    audit({
+      sender,
+      receiver,
+      gate: 'sensitivity',
+      decision: 'observe',
+      mode: enforcementMode(),
+      reason: `sender=${senderSensitivity} > receiver=${receiverSensitivity}`,
+    })
   }
 
   const dataStr = data ? escapeTqlString(data).slice(0, 10000) : ''

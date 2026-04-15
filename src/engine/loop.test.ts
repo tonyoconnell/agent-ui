@@ -6,8 +6,9 @@
  * the substrate smarter.
  */
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { world as createWorld } from './world'
+import { clearWarm, isWarm, warmUI } from '@/lib/ui-prefetch'
 
 describe('loop.ts — growth tick', () => {
   describe('L1+L2: signal selection and pheromone marking', () => {
@@ -428,6 +429,22 @@ describe('loop.ts — growth tick', () => {
       net.fade(0.1)
       const after = net.sense('entry→alice:task1')
       expect(after).toBeLessThan(before)
+    })
+  })
+
+  describe('ui-prefetch warmUI', () => {
+    afterEach(() => clearWarm())
+
+    it('isWarm returns false before warmUI is called', () => {
+      clearWarm()
+      expect(isWarm('ui:chat:copy')).toBe(false)
+    })
+
+    it('isWarm returns true after warmUI', () => {
+      warmUI(['ui:chat:copy', 'ui:prompt:submit'])
+      expect(isWarm('ui:chat:copy')).toBe(true)
+      expect(isWarm('ui:prompt:submit')).toBe(true)
+      expect(isWarm('ui:other:unknown')).toBe(false)
     })
   })
 

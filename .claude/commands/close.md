@@ -46,11 +46,29 @@ This is Rule 1 enforced at the human boundary.
    - Dim ≥ 0.5 → mark() on that dimension path (strength++)
    - Dim < 0.5 → warn() on that dimension path (resistance++)
 4. Self-checkoff: update task checkbox in the TODO file `[ ]` → `[x]`
-5. Report unlocked tasks (tasks where this was in their `blocks` list)
-6. Report:
+5. **Emit feedback signal** — POST `http://localhost:4321/api/signal`:
+   ```json
+   {
+     "receiver": "loop:feedback",
+     "data": {
+       "tags": ["<task-tags>"],
+       "strength": "<rubric-avg 0–1>",
+       "content": {
+         "task_id": "<id>",
+         "rubric": { "fit": X, "form": Y, "truth": Z, "taste": W },
+         "outcome": "result"
+       }
+     }
+   }
+   ```
+   This is the return-path pheromone. Future agents with matching tags follow this trail.
+   `strength >= 0.65` → mark each tag path. `strength < 0.65` → warn(0.5) each tag path.
+6. Report unlocked tasks (tasks where this was in their `blocks` list)
+7. Report:
    ```
    mark(+5) on <from>→<to>
    Rubric: fit=X  form=Y  truth=Z  taste=W
+   Feedback: signal emitted → loop:feedback  tags=[<tags>]  strength=X
    Unlocked: N tasks
    ```
 

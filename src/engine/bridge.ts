@@ -38,8 +38,7 @@ import { readParsed, writeSilent } from '@/lib/typedb'
 // ADL: perm-network gate — cache + helper
 // ═══════════════════════════════════════════════════════════════════════════
 
-const BRIDGE_PERM_CACHE = new Map<string, { allowedHosts: string[]; expires: number }>()
-const BRIDGE_CACHE_TTL = 5 * 60 * 1000
+import { audit, BRIDGE_CACHE_TTL, BRIDGE_PERM_CACHE, enforcementMode } from './adl-cache'
 
 function esc(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
@@ -49,13 +48,50 @@ function hostsAllow(sender: string, allowedHosts: string[]): boolean {
   if (allowedHosts.includes('*')) return true
   return allowedHosts.includes(sender)
 }
+
+/**
+ * Cycle 1.5: bridge fails CLOSED on TypeDB errors (real-money asymmetry).
+ * `ADL_ENFORCEMENT_MODE=audit` logs denials but lets the call through.
+ */
 async function canCallSui(sender: string, receiver: string): Promise<boolean> {
   const key = `${receiver}:network`
   const cached = BRIDGE_PERM_CACHE.get(key)
-  if (cached && cached.expires > Date.now()) return hostsAllow(sender, cached.allowedHosts)
+  if (cached && cached.expires > Date.now()) {
+    const allowed = hostsAllow(sender, cached.allowedHosts)
+    if (!allowed) {
+      const mode = enforcementMode()
+      audit({
+        sender,
+        receiver,
+        gate: 'bridge-network',
+        decision: mode === 'audit' ? 'allow-audit' : 'deny',
+        mode,
+        reason: `sender not in allowedHosts=${JSON.stringify(cached.allowedHosts)}`,
+      })
+      if (mode === 'audit') return true
+    }
+    return allowed
+  }
+  let readFailed = false
   const rows = await readParsed(
     `match $u isa unit, has uid "${esc(receiver)}", has perm-network $pn; select $pn;`,
-  ).catch(() => [])
+  ).catch(() => {
+    readFailed = true
+    return []
+  })
+  if (readFailed) {
+    const mode = enforcementMode()
+    audit({
+      sender,
+      receiver,
+      gate: 'bridge-error',
+      decision: mode === 'audit' ? 'allow-audit' : 'fail-closed',
+      mode,
+      reason: 'typedb read failed — fail-closed (Sui asymmetry)',
+    })
+    // Real-money path: on TypeDB read error, deny (unless audit mode).
+    return mode === 'audit'
+  }
   const allowedHosts: string[] = []
   if (rows.length > 0) {
     try {
@@ -63,11 +99,24 @@ async function canCallSui(sender: string, receiver: string): Promise<boolean> {
       const raw = perms.allowed_hosts ?? perms.allowedHosts
       if (Array.isArray(raw)) allowedHosts.push(...(raw as string[]))
     } catch {
-      /* malformed → fail open */
+      /* malformed → fail open (policy: parse errors not the caller's fault) */
     }
   }
   BRIDGE_PERM_CACHE.set(key, { allowedHosts, expires: Date.now() + BRIDGE_CACHE_TTL })
-  return hostsAllow(sender, allowedHosts)
+  const allowed = hostsAllow(sender, allowedHosts)
+  if (!allowed) {
+    const mode = enforcementMode()
+    audit({
+      sender,
+      receiver,
+      gate: 'bridge-network',
+      decision: mode === 'audit' ? 'allow-audit' : 'deny',
+      mode,
+      reason: `sender not in allowedHosts=${JSON.stringify(allowedHosts)}`,
+    })
+    if (mode === 'audit') return true
+  }
+  return allowed
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

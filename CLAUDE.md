@@ -791,3 +791,4 @@ See `.claude/rules/` for framework-specific patterns:
 - `engine.md` — Substrate patterns, zero returns, signal flow
 - `react.md` — React 19 patterns, typed props, hooks
 - `astro.md` — Astro 5 islands, hydration, SSR
+- `ui.md` — UI signals: every onClick emits to substrate via `emitClick`

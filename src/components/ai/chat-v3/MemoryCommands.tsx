@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { MemoryCard as MemoryCardType } from '@/engine/persist'
 import { MemoryCard } from './MemoryCard'
+import { emitClick } from '@/lib/ui-signal'
 
 function ForgetConfirm({ uid, onCancel }: { uid: string; onCancel?: () => void }): ReactNode {
   const [confirmed, setConfirmed] = useState(false)
@@ -19,10 +20,10 @@ function ForgetConfirm({ uid, onCancel }: { uid: string; onCancel?: () => void }
     <div className="flex flex-col gap-2">
       <p className="text-yellow-400">This will permanently erase all memory for {uid}. Are you sure?</p>
       <div className="flex gap-2">
-        <Button variant="destructive" onClick={() => setConfirmed(true)}>
+        <Button variant="destructive" onClick={() => { emitClick('ui:memory:confirm'); setConfirmed(true) }}>
           Erase memory
         </Button>
-        <Button variant="ghost" onClick={onCancel}>
+        <Button variant="ghost" onClick={() => { emitClick('ui:memory:cancel'); onCancel?.() }}>
           Cancel
         </Button>
       </div>
