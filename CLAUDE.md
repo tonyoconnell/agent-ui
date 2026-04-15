@@ -37,15 +37,14 @@ bun run build    # Production build
 ```bash
 bun run tunnel         # Quick tunnel → random-slug.trycloudflare.com
 bun run tunnel:local   # Named tunnel → local.one.ie → localhost:4321
-bun run tunnel:dev     # Named tunnel → dev.one.ie → localhost:4321
 bun run tunnel:main    # Named tunnel → main.one.ie → localhost:4321
 ```
 
 | URL | Purpose | Command |
 |-----|---------|---------|
 | `local.one.ie` | Personal dev, webhook testing | `bun run tunnel:local` |
-| `dev.one.ie` | Dev branch preview (was Pages, now tunnel) | `bun run tunnel:dev` |
 | `main.one.ie` | Main branch preview (until one.ie migrates) | `bun run tunnel:main` |
+| `dev.one.ie` | **CF Pages custom domain** → `one-substrate.pages.dev` (every `main` deploy) | — |
 
 See `docs/PLAN-tunnels.md` for setup details. Tunnels expose localhost through Cloudflare
 for webhook testing (Telegram, Discord) without ngrok.

@@ -30,7 +30,6 @@
     "deploy": "bun scripts/deploy.ts",
     "tunnel": "cloudflared tunnel --url http://localhost:4321",
     "tunnel:local": "cloudflared tunnel --config ~/.cloudflared/one-local.yml run",
-    "tunnel:dev": "cloudflared tunnel --config ~/.cloudflared/one-dev.yml run",
     "tunnel:main": "cloudflared tunnel --config ~/.cloudflared/one-main.yml run",
     "tunnel:list": "cloudflared tunnel list"
   },
