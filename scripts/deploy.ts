@@ -546,9 +546,7 @@ async function main() {
     `    ${seoHealth.passed ? c.green('✓') : c.red('✗')} ${seoHealth.passCount}/${seoHealth.totalTests} tests passed`,
   )
   if (!seoHealth.passed) {
-    console.log(
-      `    ${c.yellow('⚠ Some SEO/a11y tests failed — inspect but don\'t block deploy')}`,
-    )
+    console.log(`    ${c.yellow("⚠ Some SEO/a11y tests failed — inspect but don't block deploy")}`)
   }
 
   // Rule 3: record deploy to substrate — let the world learn from its own deploys

@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
-import { type EscrowView, viewEscrow } from '@/lib/sui'
+
+interface EscrowView {
+  locked: boolean
+  amount: number
+  claimant: string | null
+  deadline: number
+}
 
 interface Props {
   escrowObjectId: string | null
@@ -13,9 +19,13 @@ export function EscrowBadge({ escrowObjectId }: Props) {
     if (!escrowObjectId) return
     let cancelled = false
     setLoading(true)
-    viewEscrow(escrowObjectId)
-      .then((v) => {
+    fetch(`/api/sui/escrow/${encodeURIComponent(escrowObjectId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((v: EscrowView | null) => {
         if (!cancelled) setView(v)
+      })
+      .catch(() => {
+        if (!cancelled) setView(null)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
