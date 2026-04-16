@@ -201,7 +201,7 @@ export function ChatAuth() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [lines, phase, messageResponse])
+  }, [])
 
   /* ── Line helpers ──────────────────────────────────────────────────────── */
 

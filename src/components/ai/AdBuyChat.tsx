@@ -159,7 +159,7 @@ export function AdBuyChat() {
 
   useEffect(() => {
     if (hasCards) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [cards])
+  }, [hasCards])
 
   const transition = useCallback((s: Stage, meta?: Record<string, unknown>) => {
     setStage(s)

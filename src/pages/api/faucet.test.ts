@@ -58,7 +58,7 @@ describe('POST /api/faucet', () => {
     mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(faucetResponse), { status: 200 }))
 
     const { POST } = await import('./faucet')
-    const address = '0x' + 'a'.repeat(64)
+    const address = `0x${'a'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -79,7 +79,7 @@ describe('POST /api/faucet', () => {
     mockFetch.mockResolvedValueOnce(new Response('rate limited', { status: 429 }))
 
     const { POST } = await import('./faucet')
-    const address = '0x' + 'b'.repeat(64)
+    const address = `0x${'b'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -92,7 +92,7 @@ describe('POST /api/faucet', () => {
     mockFetch.mockResolvedValueOnce(new Response('rate limit exceeded', { status: 400 }))
 
     const { POST } = await import('./faucet')
-    const address = '0x' + 'c'.repeat(64)
+    const address = `0x${'c'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     const data = await res.json()
     expect(data.ok).toBe(true)
@@ -103,7 +103,7 @@ describe('POST /api/faucet', () => {
     mockFetch.mockResolvedValueOnce(new Response('internal error', { status: 500 }))
 
     const { POST } = await import('./faucet')
-    const address = '0x' + 'd'.repeat(64)
+    const address = `0x${'d'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(502)
     const data = await res.json()
@@ -114,7 +114,7 @@ describe('POST /api/faucet', () => {
     mockFetch.mockRejectedValueOnce(new DOMException('signal is aborted', 'AbortError'))
 
     const { POST } = await import('./faucet')
-    const address = '0x' + 'e'.repeat(64)
+    const address = `0x${'e'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -127,7 +127,7 @@ describe('POST /api/faucet', () => {
     mockFetch.mockRejectedValueOnce(new Error('fetch failed'))
 
     const { POST } = await import('./faucet')
-    const address = '0x' + 'f'.repeat(64)
+    const address = `0x${'f'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(500)
     const data = await res.json()

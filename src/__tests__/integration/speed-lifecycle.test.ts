@@ -31,7 +31,7 @@ vi.mock('@/lib/net', () => ({
 }))
 
 vi.mock('@/lib/sui', () => ({
-  addressFor: vi.fn().mockResolvedValue('0x' + 'a'.repeat(64)),
+  addressFor: vi.fn().mockResolvedValue(`0x${'a'.repeat(64)}`),
   resolveUnit: vi.fn().mockResolvedValue(null),
   send: vi.fn().mockResolvedValue({ digest: null }),
 }))
@@ -86,7 +86,9 @@ describe('Stage 0: Wallet — POST /api/agents/register', () => {
 
   it('should register an agent and return wallet address', async () => {
     const { POST } = await import('@/pages/api/agents/register')
-    const res = await POST(ctx('POST', { uid: 'seller-test', kind: 'agent', capabilities: [{ skill: 'copy', price: 0.02 }] }))
+    const res = await POST(
+      ctx('POST', { uid: 'seller-test', kind: 'agent', capabilities: [{ skill: 'copy', price: 0.02 }] }),
+    )
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.ok).toBe(true)
@@ -123,7 +125,7 @@ describe('Stage 1: Fund — POST /api/faucet', () => {
   })
 
   it('should accept valid Sui address', async () => {
-    const address = '0x' + 'a'.repeat(64)
+    const address = `0x${'a'.repeat(64)}`
     globalThis.fetch = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
     const { POST } = await import('@/pages/api/faucet')
     const res = await POST(ctx('POST', { address }))
@@ -168,7 +170,7 @@ describe('Stage 5: Sell — POST /api/pay', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('should accept valid payment', async () => {
-    const { readParsed, write } = await import('@/lib/typedb')
+    const { write } = await import('@/lib/typedb')
     ;(write as any).mockResolvedValue(undefined)
 
     const { POST } = await import('@/pages/api/pay')
@@ -232,7 +234,9 @@ describe('Sell-First Full Flow', () => {
 
     // Stage 0: Wallet
     const { POST: registerPost } = await import('@/pages/api/agents/register')
-    const r0a = await registerPost(ctx('POST', { uid: sellerUid, kind: 'agent', capabilities: [{ skill, price: 0.02 }] }))
+    const r0a = await registerPost(
+      ctx('POST', { uid: sellerUid, kind: 'agent', capabilities: [{ skill, price: 0.02 }] }),
+    )
     expect(r0a.status).toBe(200)
     const seller = await r0a.json()
     expect(seller.wallet).toBeTruthy()
