@@ -19,8 +19,18 @@ type Stage =
   | 'DONE'
 
 const STAGE_ORDER: Stage[] = [
-  'INTRO', 'WALLET', 'KEY', 'SIGNIN', 'TEAM', 'DEPLOY',
-  'DISCOVER', 'MESSAGE', 'CONVERSE', 'SELL', 'BUY', 'DONE',
+  'INTRO',
+  'WALLET',
+  'KEY',
+  'SIGNIN',
+  'TEAM',
+  'DEPLOY',
+  'DISCOVER',
+  'MESSAGE',
+  'CONVERSE',
+  'SELL',
+  'BUY',
+  'DONE',
 ]
 
 type ConvMsg = { role: 'user' | 'assistant'; content: string; streaming?: boolean }
@@ -41,11 +51,43 @@ type Card =
   | { id: string; stage: 'DONE'; uid: string; address: string; apiKey: string; agentMd: string }
 
 const SEED_WORDS = [
-  'signal', 'path', 'mark', 'warn', 'fade', 'follow', 'strength', 'resistance',
-  'actor', 'group', 'thing', 'event', 'learning', 'skill', 'unit', 'colony',
-  'trail', 'highway', 'toxic', 'hypothesis', 'frontier', 'evolve', 'know',
-  'recall', 'reveal', 'capable', 'provider', 'offered', 'capability', 'price',
-  'revenue', 'weight', 'escrow', 'settle', 'verify', 'discover', 'substrate',
+  'signal',
+  'path',
+  'mark',
+  'warn',
+  'fade',
+  'follow',
+  'strength',
+  'resistance',
+  'actor',
+  'group',
+  'thing',
+  'event',
+  'learning',
+  'skill',
+  'unit',
+  'colony',
+  'trail',
+  'highway',
+  'toxic',
+  'hypothesis',
+  'frontier',
+  'evolve',
+  'know',
+  'recall',
+  'reveal',
+  'capable',
+  'provider',
+  'offered',
+  'capability',
+  'price',
+  'revenue',
+  'weight',
+  'escrow',
+  'settle',
+  'verify',
+  'discover',
+  'substrate',
 ]
 
 const SWARM_AGENTS: SwarmAgent[] = [
@@ -55,7 +97,9 @@ const SWARM_AGENTS: SwarmAgent[] = [
 ]
 
 function hex(bytes: Uint8Array): string {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 function b64(bytes: Uint8Array): string {
@@ -88,11 +132,19 @@ async function makeWallet() {
 }
 
 function buildAgentMd(entry: string): string {
-  const slug = entry.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 20).replace(/-+$/, '') || 'my-agent'
-  const tag = entry.toLowerCase().includes('research') ? 'research'
-    : entry.toLowerCase().includes('write') || entry.toLowerCase().includes('copy') ? 'copy'
-    : entry.toLowerCase().includes('design') ? 'design'
-    : 'general'
+  const slug =
+    entry
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .slice(0, 20)
+      .replace(/-+$/, '') || 'my-agent'
+  const tag = entry.toLowerCase().includes('research')
+    ? 'research'
+    : entry.toLowerCase().includes('write') || entry.toLowerCase().includes('copy')
+      ? 'copy'
+      : entry.toLowerCase().includes('design')
+        ? 'design'
+        : 'general'
   return `---
 name: ${slug}
 model: meta-llama/llama-4-maverick
@@ -146,7 +198,10 @@ export function ChatAuth() {
   }, [])
 
   const waitForUser = useCallback(
-    () => new Promise<void>((resolve, reject) => { pauseRef.current = { resolve, reject } }),
+    () =>
+      new Promise<void>((resolve, reject) => {
+        pauseRef.current = { resolve, reject }
+      }),
     [],
   )
 
@@ -168,7 +223,12 @@ export function ChatAuth() {
         // Real: POST /api/auth/agent {} → {uid, wallet, apiKey}
         transition('WALLET')
         const t0 = performance.now()
-        let agentUid = `my-world:${entry.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 16) || 'agent'}`
+        let agentUid = `my-world:${
+          entry
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .slice(0, 16) || 'agent'
+        }`
         let walletAddress = ''
         let apiKey = ''
 
@@ -179,12 +239,14 @@ export function ChatAuth() {
             body: JSON.stringify({}),
           })
           if (res.ok) {
-            const data = await res.json() as { uid?: string; wallet?: string; apiKey?: string }
+            const data = (await res.json()) as { uid?: string; wallet?: string; apiKey?: string }
             agentUid = data.uid ?? agentUid
             walletAddress = data.wallet ?? ''
             apiKey = data.apiKey ?? ''
           }
-        } catch { /* offline — fall through to client-side */ }
+        } catch {
+          /* offline — fall through to client-side */
+        }
 
         if (!walletAddress) {
           const wlt = await makeWallet()
@@ -196,24 +258,33 @@ export function ChatAuth() {
         agentUidRef.current = agentUid
         agentAddressRef.current = walletAddress
 
-        setCards((c) => [...c, {
-          id: uid(), stage: 'WALLET',
-          uid: agentUid, address: walletAddress,
-          latencyMs: Math.round(performance.now() - t0),
-        }])
+        setCards((c) => [
+          ...c,
+          {
+            id: uid(),
+            stage: 'WALLET',
+            uid: agentUid,
+            address: walletAddress,
+            latencyMs: Math.round(performance.now() - t0),
+          },
+        ])
         await sleep(800)
 
         // ── 2 KEY ─────────────────────────────────────────────
         // Show the real apiKey — this is what the user saves
         transition('KEY')
         const keyId = uid()
-        setCards((c) => [...c, {
-          id: keyId, stage: 'KEY',
-          apiKey,
-          address: walletAddress,
-          copied: false,
-          decided: 'pending',
-        }])
+        setCards((c) => [
+          ...c,
+          {
+            id: keyId,
+            stage: 'KEY',
+            apiKey,
+            address: walletAddress,
+            copied: false,
+            decided: 'pending',
+          },
+        ])
         await waitForUser() // pause: user must copy the key
 
         // ── 3 SIGN IN ─────────────────────────────────────────
@@ -221,11 +292,15 @@ export function ChatAuth() {
         transition('SIGNIN')
         const t1 = performance.now()
         await sleep(300)
-        setCards((c) => [...c, {
-          id: uid(), stage: 'SIGNIN',
-          sessionId: agentUid.slice(0, 12),
-          latencyMs: Math.round(performance.now() - t1),
-        }])
+        setCards((c) => [
+          ...c,
+          {
+            id: uid(),
+            stage: 'SIGNIN',
+            sessionId: agentUid.slice(0, 12),
+            latencyMs: Math.round(performance.now() - t1),
+          },
+        ])
         await sleep(500)
 
         // ── 4 TEAM ────────────────────────────────────────────
@@ -259,24 +334,30 @@ export function ChatAuth() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`,
+              Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify({ markdown: finalMd }),
           })
           if (res.ok) {
-            const data = await res.json() as { uid?: string; skills?: string[] }
+            const data = (await res.json()) as { uid?: string; skills?: string[] }
             deployedUnitId = data.uid ?? agentUid
             if (data.skills?.length) deployedSkills = data.skills
           }
-        } catch { /* TypeDB offline — show local result */ }
+        } catch {
+          /* TypeDB offline — show local result */
+        }
 
-        setCards((c) => [...c, {
-          id: uid(), stage: 'DEPLOY',
-          agentName,
-          unitId: deployedUnitId,
-          skills: deployedSkills,
-          latencyMs: Math.round(performance.now() - t2),
-        }])
+        setCards((c) => [
+          ...c,
+          {
+            id: uid(),
+            stage: 'DEPLOY',
+            agentName,
+            unitId: deployedUnitId,
+            skills: deployedSkills,
+            latencyMs: Math.round(performance.now() - t2),
+          },
+        ])
         await sleep(700)
 
         // ── 6 DISCOVER ────────────────────────────────────────
@@ -288,7 +369,7 @@ export function ChatAuth() {
         try {
           const res = await fetch(`/api/agents/discover?tag=${encodeURIComponent(discoverTag)}`)
           if (res.ok) {
-            const data = await res.json() as { agents?: unknown[] }
+            const data = (await res.json()) as { agents?: unknown[] }
             if (Array.isArray(data.agents) && data.agents.length > 0) {
               discoveredAgents = data.agents.slice(0, 4).map((a) => {
                 const agent = a as Record<string, unknown>
@@ -301,7 +382,9 @@ export function ChatAuth() {
               })
             }
           }
-        } catch { /* use mock swarm */ }
+        } catch {
+          /* use mock swarm */
+        }
 
         setCards((c) => [...c, { id: uid(), stage: 'DISCOVER', tag: discoverTag, agents: discoveredAgents }])
         await sleep(800)
@@ -311,7 +394,10 @@ export function ChatAuth() {
         transition('MESSAGE')
         const msgId = uid()
         const t3 = performance.now()
-        setCards((c) => [...c, { id: msgId, stage: 'MESSAGE', prompt: entry, response: '', streaming: true, latencyMs: null }])
+        setCards((c) => [
+          ...c,
+          { id: msgId, stage: 'MESSAGE', prompt: entry, response: '', streaming: true, latencyMs: null },
+        ])
 
         let signalHandled = false
         try {
@@ -320,7 +406,7 @@ export function ChatAuth() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`,
+              Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
               sender: deployedUnitId,
@@ -329,18 +415,22 @@ export function ChatAuth() {
             }),
           })
           if (res.ok) {
-            const data = await res.json() as { result?: string; latency?: number }
+            const data = (await res.json()) as { result?: string; latency?: number }
             if (data.result) {
               const latencyMs = data.latency ?? Math.round(performance.now() - t3)
-              setCards((prev) => prev.map((c) =>
-                c.id === msgId && c.stage === 'MESSAGE'
-                  ? { ...c, response: data.result!, streaming: false, latencyMs }
-                  : c,
-              ))
+              setCards((prev) =>
+                prev.map((c) =>
+                  c.id === msgId && c.stage === 'MESSAGE'
+                    ? { ...c, response: data.result!, streaming: false, latencyMs }
+                    : c,
+                ),
+              )
               signalHandled = true
             }
           }
-        } catch { /* fall through to /api/chat */ }
+        } catch {
+          /* fall through to /api/chat */
+        }
 
         if (!signalHandled) {
           await streamIntoMessage(msgId, entry, setCards, t3)
@@ -356,13 +446,17 @@ export function ChatAuth() {
         // ── 9 SELL ────────────────────────────────────────────
         transition('SELL')
         await sleep(600)
-        setCards((c) => [...c, {
-          id: uid(), stage: 'SELL',
-          skill: deployedSkills[0] ?? 'answer',
-          price: 0.005,
-          firstBuyer: 'world:explorer',
-          strength: 1,
-        }])
+        setCards((c) => [
+          ...c,
+          {
+            id: uid(),
+            stage: 'SELL',
+            skill: deployedSkills[0] ?? 'answer',
+            price: 0.005,
+            firstBuyer: 'world:explorer',
+            strength: 1,
+          },
+        ])
         await sleep(700)
 
         // ── 10 BUY ────────────────────────────────────────────
@@ -370,26 +464,36 @@ export function ChatAuth() {
         await sleep(600)
         const txBytes = new Uint8Array(16)
         crypto.getRandomValues(txBytes)
-        const bestProvider = discoveredAgents.find((a) => a.strength === Math.max(...discoveredAgents.map((x) => x.strength)))
-        setCards((c) => [...c, {
-          id: uid(), stage: 'BUY',
-          provider: bestProvider?.uid ?? 'world:scout',
-          paid: bestProvider?.price ?? 0.01,
-          txHash: `0x${hex(txBytes)}`,
-          before: bestProvider?.strength ?? 14,
-          after: (bestProvider?.strength ?? 14) + 1,
-        }])
+        const bestProvider = discoveredAgents.find(
+          (a) => a.strength === Math.max(...discoveredAgents.map((x) => x.strength)),
+        )
+        setCards((c) => [
+          ...c,
+          {
+            id: uid(),
+            stage: 'BUY',
+            provider: bestProvider?.uid ?? 'world:scout',
+            paid: bestProvider?.price ?? 0.01,
+            txHash: `0x${hex(txBytes)}`,
+            before: bestProvider?.strength ?? 14,
+            after: (bestProvider?.strength ?? 14) + 1,
+          },
+        ])
         await sleep(700)
 
         // ── DONE ──────────────────────────────────────────────
         transition('DONE')
-        setCards((c) => [...c, {
-          id: uid(), stage: 'DONE',
-          uid: deployedUnitId,
-          address: walletAddress,
-          apiKey,
-          agentMd: finalMd,
-        }])
+        setCards((c) => [
+          ...c,
+          {
+            id: uid(),
+            stage: 'DONE',
+            uid: deployedUnitId,
+            address: walletAddress,
+            apiKey,
+            agentMd: finalMd,
+          },
+        ])
       } catch {
         // cancelled — silence is valid
       } finally {
@@ -402,23 +506,23 @@ export function ChatAuth() {
 
   // KEY stage: user copied, mark done
   const markKeyCopied = (id: string) => {
-    setCards((prev) => prev.map((c) => c.id === id && c.stage === 'KEY' ? { ...c, copied: true } : c))
+    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'KEY' ? { ...c, copied: true } : c)))
     emitClick('ui:chat-auth:key-copy', { type: 'text', content: apiKeyRef.current.slice(0, 8) })
   }
 
   const continueFromKey = (id: string) => {
-    setCards((prev) => prev.map((c) => c.id === id && c.stage === 'KEY' ? { ...c, decided: 'continue' } : c))
+    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'KEY' ? { ...c, decided: 'continue' } : c)))
     emitClick('ui:chat-auth:key-continue', { type: 'text', content: '' })
     pauseRef.current?.resolve()
   }
 
   // TEAM stage: user edited + deploys
   const updateTeamMarkdown = (id: string, markdown: string) => {
-    setCards((prev) => prev.map((c) => c.id === id && c.stage === 'TEAM' ? { ...c, markdown } : c))
+    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'TEAM' ? { ...c, markdown } : c)))
   }
 
   const deployTeam = (id: string) => {
-    setCards((prev) => prev.map((c) => c.id === id && c.stage === 'TEAM' ? { ...c, decided: 'deploy' } : c))
+    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'TEAM' ? { ...c, decided: 'deploy' } : c)))
     emitClick('ui:chat-auth:team-deploy', { type: 'text', content: '' })
     pauseRef.current?.resolve()
   }
@@ -481,9 +585,7 @@ export function ChatAuth() {
             if (c.id !== cardId || c.stage !== 'CONVERSE') return c
             return {
               ...c,
-              messages: c.messages.map((m, i) =>
-                i === assistantIdx ? { ...m, content: full } : m,
-              ),
+              messages: c.messages.map((m, i) => (i === assistantIdx ? { ...m, content: full } : m)),
             }
           }),
         )
@@ -494,9 +596,7 @@ export function ChatAuth() {
           return {
             ...c,
             streaming: false,
-            messages: c.messages.map((m, i) =>
-              i === assistantIdx ? { ...m, streaming: false } : m,
-            ),
+            messages: c.messages.map((m, i) => (i === assistantIdx ? { ...m, streaming: false } : m)),
           }
         }),
       )
@@ -517,7 +617,7 @@ export function ChatAuth() {
   }, [])
 
   const continueFromConverse = (id: string) => {
-    setCards((prev) => prev.map((c) => c.id === id && c.stage === 'CONVERSE' ? { ...c, decided: 'continue' } : c))
+    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'CONVERSE' ? { ...c, decided: 'continue' } : c)))
     emitClick('ui:chat-auth:converse-continue', { type: 'text', content: '' })
     pauseRef.current?.resolve()
   }
@@ -532,14 +632,22 @@ export function ChatAuth() {
   const inputDock = (
     <form
       className={cn('flex gap-2 items-end w-full', hasCards && 'border-t bg-background px-4 py-4')}
-      onSubmit={(e) => { e.preventDefault(); if (!hasCards) run(input) }}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!hasCards) run(input)
+      }}
     >
       <div className={cn('flex gap-2 items-end w-full', hasCards && 'max-w-2xl mx-auto')}>
         <textarea
           ref={taRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!hasCards) run(input) } }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              if (!hasCards) run(input)
+            }
+          }}
           placeholder="what should your swarm do?"
           rows={1}
           disabled={hasCards}
@@ -568,14 +676,18 @@ export function ChatAuth() {
           </p>
           {inputDock}
           <div className="text-center text-xs uppercase tracking-[0.12em] text-muted-foreground">
-            {modelMeta.name}{modelMeta.provider ? ` · ${modelMeta.provider}` : ''}
+            {modelMeta.name}
+            {modelMeta.provider ? ` · ${modelMeta.provider}` : ''}
           </div>
           <div className="flex flex-wrap gap-2 justify-center">
             {['research ai agents', 'write marketing copy', 'analyse competitors', 'build an api'].map((s) => (
               <button
                 key={s}
                 type="button"
-                onClick={() => { setInput(s); run(s) }}
+                onClick={() => {
+                  setInput(s)
+                  run(s)
+                }}
                 className="px-4 py-1.5 rounded-full text-xs uppercase tracking-[0.12em] bg-muted text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-all"
               >
                 {s}
@@ -642,12 +754,12 @@ async function streamIntoMessage(
       if (!gotFirst) {
         gotFirst = true
         const latencyMs = Math.round(performance.now() - t0)
-        setCards((prev) => prev.map((c) => c.id === id && c.stage === 'MESSAGE' ? { ...c, latencyMs } : c))
+        setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'MESSAGE' ? { ...c, latencyMs } : c)))
       }
       full += dec.decode(value, { stream: true })
-      setCards((prev) => prev.map((c) => c.id === id && c.stage === 'MESSAGE' ? { ...c, response: full } : c))
+      setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'MESSAGE' ? { ...c, response: full } : c)))
     }
-    setCards((prev) => prev.map((c) => c.id === id && c.stage === 'MESSAGE' ? { ...c, streaming: false } : c))
+    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'MESSAGE' ? { ...c, streaming: false } : c)))
   } catch {
     setCards((prev) =>
       prev.map((c) =>
@@ -689,7 +801,13 @@ function StageLabel({ children }: { children: React.ReactNode }) {
   return <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-2">{children}</div>
 }
 
-function CardShell({ tone = 'default', children }: { tone?: 'default' | 'accent' | 'warn'; children: React.ReactNode }) {
+function CardShell({
+  tone = 'default',
+  children,
+}: {
+  tone?: 'default' | 'accent' | 'warn'
+  children: React.ReactNode
+}) {
   return (
     <div
       className={cn(
@@ -730,7 +848,12 @@ function CopyButton({ text, label, onCopy }: { text: string; label: string; onCo
     <button
       type="button"
       onClick={async () => {
-        try { await navigator.clipboard.writeText(text); onCopy() } catch { /* blocked */ }
+        try {
+          await navigator.clipboard.writeText(text)
+          onCopy()
+        } catch {
+          /* blocked */
+        }
       }}
       className="px-3 py-1.5 rounded-full text-[10px] uppercase tracking-[0.12em] bg-foreground text-background hover:opacity-90 transition-all"
     >
@@ -744,7 +867,13 @@ function ConverseInput({ onSend, streaming }: { onSend: (t: string) => void; str
   return (
     <form
       className="flex gap-2 mt-3"
-      onSubmit={(e) => { e.preventDefault(); if (val.trim() && !streaming) { onSend(val); setVal('') } }}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (val.trim() && !streaming) {
+          onSend(val)
+          setVal('')
+        }
+      }}
     >
       <input
         value={val}
@@ -772,7 +901,16 @@ interface CardViewProps {
 }
 
 function CardView(props: CardViewProps) {
-  const { card, onKeyCopy, onKeyContinue, onMarkdownChange, onTeamDeploy, onConverseSend, onConverseContinue, onReset } = props
+  const {
+    card,
+    onKeyCopy,
+    onKeyContinue,
+    onMarkdownChange,
+    onTeamDeploy,
+    onConverseSend,
+    onConverseContinue,
+    onReset,
+  } = props
 
   switch (card.stage) {
     case 'INTRO':
@@ -783,9 +921,8 @@ function CardView(props: CardViewProps) {
             goal: <span className="font-medium">"{card.entry}"</span>
           </div>
           <div className="text-sm text-muted-foreground mt-1">
-            wallet → key → sign in → team → deploy → discover → message → converse → sell → buy.
-            three pause points: save your key, edit your agent, chat with it.
-            then the swarm earns.
+            wallet → key → sign in → team → deploy → discover → message → converse → sell → buy. three pause points:
+            save your key, edit your agent, chat with it. then the swarm earns.
           </div>
         </CardShell>
       )
@@ -814,8 +951,8 @@ function CardView(props: CardViewProps) {
         <CardShell tone={pending ? 'warn' : 'default'}>
           <StageLabel>stage 1 · save key · {pending ? 'awaiting you' : 'saved ✓'}</StageLabel>
           <div className="text-sm mb-3">
-            your api key — shown once.{' '}
-            <span className="font-semibold">save it now.</span> it's how your agent signs signals, deploys teams, and earns.
+            your api key — shown once. <span className="font-semibold">save it now.</span> it's how your agent signs
+            signals, deploys teams, and earns.
           </div>
           <div className="space-y-2 font-mono text-xs bg-background/60 rounded-lg p-3 border">
             <KeyRow label="api key" value={card.apiKey} secret />
@@ -827,8 +964,8 @@ function CardView(props: CardViewProps) {
               <div>
                 <div className="font-semibold text-foreground mb-1">add to .env</div>
                 paste into your project. use as{' '}
-                <code className="bg-muted px-1 rounded">Authorization: Bearer &lt;key&gt;</code> on every
-                signal, deploy, and pay call.
+                <code className="bg-muted px-1 rounded">Authorization: Bearer &lt;key&gt;</code> on every signal,
+                deploy, and pay call.
                 <div className="mt-2">
                   <CopyButton text={envLine} label={card.copied ? '✓ copied' : 'copy .env line'} onCopy={onKeyCopy} />
                 </div>
@@ -853,8 +990,7 @@ function CardView(props: CardViewProps) {
         <CardShell>
           <StageLabel>stage 2 · sign in · {card.latencyMs}ms</StageLabel>
           <div className="text-sm">
-            session established.{' '}
-            <code className="font-mono text-xs">#{card.sessionId}</code>
+            session established. <code className="font-mono text-xs">#{card.sessionId}</code>
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             agent: POST /api/auth/agent · human: better auth passkey. substrate sees the same session either way.
@@ -885,9 +1021,7 @@ function CardView(props: CardViewProps) {
               </div>
             </>
           ) : (
-            <div className="text-sm text-muted-foreground">
-              markdown committed. proceeding to TypeDB sync.
-            </div>
+            <div className="text-sm text-muted-foreground">markdown committed. proceeding to TypeDB sync.</div>
           )}
         </CardShell>
       )
@@ -927,8 +1061,12 @@ function CardView(props: CardViewProps) {
               .sort((a, b) => b.strength - a.strength)
               .map((a) => (
                 <div key={a.uid} className="flex justify-between">
-                  <span>{a.uid}:{a.skill}</span>
-                  <span className="text-muted-foreground">{a.price} SUI · s={a.strength}</span>
+                  <span>
+                    {a.uid}:{a.skill}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {a.price} SUI · s={a.strength}
+                  </span>
                 </div>
               ))}
           </div>
@@ -944,9 +1082,7 @@ function CardView(props: CardViewProps) {
           <StageLabel>
             stage 6 · message{card.latencyMs !== null ? ` · ${card.latencyMs}ms first token` : ''}
           </StageLabel>
-          <div className="text-sm text-muted-foreground mb-2">
-            signal: "{card.prompt}"
-          </div>
+          <div className="text-sm text-muted-foreground mb-2">signal: "{card.prompt}"</div>
           <div className="whitespace-pre-wrap text-sm">
             {card.response || <span className="text-muted-foreground">…</span>}
             {card.streaming && (
@@ -968,7 +1104,7 @@ function CardView(props: CardViewProps) {
           <StageLabel>stage 7 · converse · {pending ? 'live chat' : 'done ✓'}</StageLabel>
           <div className="text-sm text-muted-foreground mb-3">
             {pending
-              ? 'your agent is ready. ask it anything. when you\'re done, continue to sell.'
+              ? "your agent is ready. ask it anything. when you're done, continue to sell."
               : `${card.messages.filter((m) => m.role === 'user').length} exchanges. paths strengthened.`}
           </div>
           {card.messages.length > 0 && (
@@ -1051,8 +1187,8 @@ function CardView(props: CardViewProps) {
         <CardShell tone="accent">
           <StageLabel>done · your swarm is live</StageLabel>
           <div className="text-sm mb-4">
-            your agent earned. you bought. the path remembers. this is a real swarm —
-            every stage wrote to the substrate and the learning is permanent.
+            your agent earned. you bought. the path remembers. this is a real swarm — every stage wrote to the substrate
+            and the learning is permanent.
           </div>
           <div className="space-y-2 font-mono text-xs bg-background/60 rounded-lg p-3 border mb-4">
             <KeyRow label="uid" value={card.uid} />
@@ -1084,7 +1220,8 @@ function CardView(props: CardViewProps) {
             <div>
               send a signal:{' '}
               <code className="bg-muted px-1 rounded text-[10px]">
-                curl -X POST /api/signal -H "Authorization: Bearer {card.apiKey.slice(0, 16)}..." -d '{`{"receiver":"${card.uid}","data":"hello"}`}'
+                curl -X POST /api/signal -H "Authorization: Bearer {card.apiKey.slice(0, 16)}..." -d '
+                {`{"receiver":"${card.uid}","data":"hello"}`}'
               </code>
             </div>
             <div>

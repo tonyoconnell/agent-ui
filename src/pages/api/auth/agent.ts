@@ -123,7 +123,7 @@ export const POST: APIRoute = async ({ request }) => {
         /* SUI_SEED not set */
       }
 
-      const now = new Date().toISOString()
+      const now = new Date().toISOString().replace('Z', '')
       const walletClause = wallet ? `, has wallet "${esc(wallet)}"` : ''
       await write(`
         insert $u isa unit,
@@ -157,7 +157,7 @@ export const POST: APIRoute = async ({ request }) => {
     const apiKey = generateApiKey()
     const keyHash = await hashKey(apiKey)
     const keyId = `key-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-    const now = new Date().toISOString()
+    const now = new Date().toISOString().replace('Z', '')
 
     await write(`
       insert $k isa api-key,

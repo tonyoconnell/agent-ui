@@ -49,9 +49,7 @@ interface LaneState {
 
 const emptyLane = (): LaneState => ({ status: 'idle', timings: {}, errors: {} })
 
-async function timed<T>(
-  fn: () => Promise<T>,
-): Promise<{ ms: number; ok: boolean; data?: T; err?: string }> {
+async function timed<T>(fn: () => Promise<T>): Promise<{ ms: number; ok: boolean; data?: T; err?: string }> {
   const t0 = performance.now()
   try {
     const data = await fn()
@@ -141,9 +139,7 @@ export function LifecycleSpeedrun() {
     tick(setAgent, agentLane, 'key', { ms: 0, ok: rWallet.ok })
 
     // 2 SIGN IN — agent auth challenge (best-effort; endpoint may require signed payload)
-    const rSignin = await timed(() =>
-      postJson('/api/auth/agent', { uid: buyerUid }).catch(() => ({ skipped: true })),
-    )
+    const rSignin = await timed(() => postJson('/api/auth/agent', { uid: buyerUid }).catch(() => ({ skipped: true })))
     tick(setAgent, agentLane, 'signin', rSignin)
 
     // 3 JOIN BOARD — buyer signals CEO (seeds path buyer→ceo). CEO fans out to seller.
@@ -195,9 +191,7 @@ export function LifecycleSpeedrun() {
     tick(setAgent, agentLane, 'deploy', rDeploy)
 
     // 5 DISCOVER — look up seller by tag
-    const rDiscover = await timed(() =>
-      getJson(`/api/agents/discover?tag=${encodeURIComponent(tag)}`),
-    )
+    const rDiscover = await timed(() => getJson(`/api/agents/discover?tag=${encodeURIComponent(tag)}`))
     tick(setAgent, agentLane, 'discover', rDiscover)
 
     // 6 MESSAGE — first signal
@@ -250,9 +244,7 @@ export function LifecycleSpeedrun() {
     // the same substrate. Decision time is simulated as 0 so we measure only
     // the substrate's contribution to human-assisted onboarding.
 
-    const rHumanWallet = await timed(() =>
-      postJson('/api/signup', { name: humanUid, unitKind: 'human' }),
-    )
+    const rHumanWallet = await timed(() => postJson('/api/signup', { name: humanUid, unitKind: 'human' }))
     tick(setHuman, humanLane, 'wallet', rHumanWallet)
     tick(setHuman, humanLane, 'key', { ms: 0, ok: rHumanWallet.ok })
 
@@ -273,9 +265,7 @@ export function LifecycleSpeedrun() {
     tick(setHuman, humanLane, 'team', { ms: 0, ok: true })
     tick(setHuman, humanLane, 'deploy', { ms: 0, ok: true })
 
-    const rHDisc = await timed(() =>
-      getJson(`/api/agents/discover?tag=${encodeURIComponent(tag)}`),
-    )
+    const rHDisc = await timed(() => getJson(`/api/agents/discover?tag=${encodeURIComponent(tag)}`))
     tick(setHuman, humanLane, 'discover', rHDisc)
 
     const rHMsg = await timed(() =>
@@ -318,11 +308,7 @@ export function LifecycleSpeedrun() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Button
-          onClick={run}
-          disabled={running}
-          className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-medium"
-        >
+        <Button onClick={run} disabled={running} className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-medium">
           {running ? 'Running…' : 'Start speedrun'}
         </Button>
         <Badge variant="outline" className="font-mono text-cyan-300 border-cyan-900/60">
@@ -341,15 +327,7 @@ export function LifecycleSpeedrun() {
   )
 }
 
-function LaneCard({
-  title,
-  lane,
-  accent,
-}: {
-  title: string
-  lane: LaneState
-  accent: 'cyan' | 'emerald'
-}) {
+function LaneCard({ title, lane, accent }: { title: string; lane: LaneState; accent: 'cyan' | 'emerald' }) {
   const total = Object.values(lane.timings).reduce((sum, v) => sum + (v ?? 0), 0)
   const dotColor =
     lane.status === 'done'
@@ -367,18 +345,12 @@ function LaneCard({
           <span className={`inline-block w-2 h-2 rounded-full ${dotColor}`} />
           <h2 className="text-lg font-medium text-slate-100">{title}</h2>
         </div>
-        <span
-          className={`font-mono text-sm ${
-            accent === 'cyan' ? 'text-cyan-400' : 'text-emerald-400'
-          }`}
-        >
+        <span className={`font-mono text-sm ${accent === 'cyan' ? 'text-cyan-400' : 'text-emerald-400'}`}>
           {total.toFixed(0)}ms
         </span>
       </div>
 
-      {lane.uid && (
-        <div className="text-xs text-slate-500 font-mono mb-3 truncate">{lane.uid}</div>
-      )}
+      {lane.uid && <div className="text-xs text-slate-500 font-mono mb-3 truncate">{lane.uid}</div>}
 
       <ol className="space-y-1.5">
         {STAGES.map((s, i) => {
@@ -386,14 +358,9 @@ function LaneCard({
           const err = lane.errors[s.key]
           const done = ms !== undefined && !err
           return (
-            <li
-              key={s.key}
-              className="flex items-center justify-between text-sm px-2 py-1.5 rounded bg-slate-900/40"
-            >
+            <li key={s.key} className="flex items-center justify-between text-sm px-2 py-1.5 rounded bg-slate-900/40">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="font-mono text-[10px] text-slate-600 w-4 inline-block">
-                  {i}
-                </span>
+                <span className="font-mono text-[10px] text-slate-600 w-4 inline-block">{i}</span>
                 <span
                   className={`font-mono text-xs w-4 inline-block ${
                     err ? 'text-rose-400' : done ? 'text-emerald-400' : 'text-slate-600'
@@ -402,14 +369,10 @@ function LaneCard({
                   {err ? '×' : done ? '✓' : '·'}
                 </span>
                 <span className="text-slate-200 font-medium">{s.label}</span>
-                <span className="text-slate-500 text-xs truncate hidden sm:inline">
-                  {s.hint}
-                </span>
+                <span className="text-slate-500 text-xs truncate hidden sm:inline">{s.hint}</span>
               </div>
               <span
-                className={`font-mono text-xs ${
-                  err ? 'text-rose-400' : done ? 'text-slate-300' : 'text-slate-600'
-                }`}
+                className={`font-mono text-xs ${err ? 'text-rose-400' : done ? 'text-slate-300' : 'text-slate-600'}`}
                 title={err}
               >
                 {err ? 'err' : ms !== undefined ? `${ms.toFixed(0)}ms` : '—'}
