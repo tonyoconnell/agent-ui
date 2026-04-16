@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { DEFAULT_MODEL, POPULAR_MODELS } from '@/lib/chat/models'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { DEFAULT_MODEL } from '@/lib/chat/models'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 
@@ -38,8 +37,26 @@ type SwarmAgent = { uid: string; skill: string; price: number; strength: number 
 
 type Card =
   | { id: string; stage: 'INTRO'; entry: string }
-  | { id: string; stage: 'WALLET'; uid: string; address: string; latencyMs: number }
-  | { id: string; stage: 'KEY'; apiKey: string; address: string; copied: boolean; decided: 'pending' | 'continue' }
+  | {
+      id: string
+      stage: 'WALLET'
+      uid: string
+      name: string
+      address: string
+      latencyMs: number
+      online: boolean
+      returning: boolean
+    }
+  | {
+      id: string
+      stage: 'KEY'
+      apiKey: string
+      keyId: string
+      address: string
+      online: boolean
+      copied: boolean
+      decided: 'pending' | 'continue'
+    }
   | { id: string; stage: 'SIGNIN'; sessionId: string; latencyMs: number }
   | { id: string; stage: 'TEAM'; markdown: string; decided: 'pending' | 'deploy' }
   | { id: string; stage: 'DEPLOY'; agentName: string; unitId: string; skills: string[]; latencyMs: number }
@@ -169,6 +186,18 @@ Be concise: 2-3 sentences unless depth is requested.`
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 const uid = () => crypto.randomUUID()
 
+// Mirrors src/lib/api-key.ts format — used only when /api/auth/agent is unreachable.
+// Same shape (api_<ts-base36>_<32rand>) so the UI / copy-paste paths are identical.
+const KEY_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+function localApiKey(): string {
+  const ts = Date.now().toString(36)
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  let rand = ''
+  for (const b of bytes) rand += KEY_ALPHABET[b % KEY_ALPHABET.length]
+  return `api_${ts}_${rand}`
+}
+
 export function ChatAuth() {
   const [cards, setCards] = useState<Card[]>([])
   const [input, setInput] = useState('')
@@ -182,11 +211,6 @@ export function ChatAuth() {
   const agentAddressRef = useRef<string>('')
 
   const hasCards = cards.length > 0
-
-  const modelMeta = useMemo(() => {
-    const m = POPULAR_MODELS.find((x) => x.id === DEFAULT_MODEL)
-    return { name: m?.name ?? DEFAULT_MODEL, provider: m?.providers?.[0] ?? '' }
-  }, [])
 
   useEffect(() => {
     if (hasCards) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -223,14 +247,19 @@ export function ChatAuth() {
         // Real: POST /api/auth/agent {} → {uid, wallet, apiKey}
         transition('WALLET')
         const t0 = performance.now()
-        let agentUid = `my-world:${
+        const fallbackUid = `my-world:${
           entry
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .slice(0, 16) || 'agent'
         }`
+        let agentUid = fallbackUid
+        let agentName = fallbackUid.split(':')[1] ?? 'agent'
         let walletAddress = ''
         let apiKey = ''
+        let keyId = ''
+        let online = false
+        let returning = false
 
         try {
           const res = await fetch('/api/auth/agent', {
@@ -239,10 +268,21 @@ export function ChatAuth() {
             body: JSON.stringify({}),
           })
           if (res.ok) {
-            const data = (await res.json()) as { uid?: string; wallet?: string; apiKey?: string }
+            const data = (await res.json()) as {
+              uid?: string
+              name?: string
+              wallet?: string
+              apiKey?: string
+              keyId?: string
+              returning?: boolean
+            }
             agentUid = data.uid ?? agentUid
+            agentName = data.name ?? agentName
             walletAddress = data.wallet ?? ''
             apiKey = data.apiKey ?? ''
+            keyId = data.keyId ?? ''
+            returning = Boolean(data.returning)
+            online = Boolean(apiKey) // real key came back
           }
         } catch {
           /* offline — fall through to client-side */
@@ -252,7 +292,11 @@ export function ChatAuth() {
           const wlt = await makeWallet()
           walletAddress = wlt.address
         }
-        if (!apiKey) apiKey = `api_demo_${uid().slice(0, 8)}`
+        if (!apiKey) {
+          // Demo mode: mimic the real api_<ts-base36>_<32rand> format
+          apiKey = localApiKey()
+          keyId = keyId || `key-demo-${uid().slice(0, 6)}`
+        }
 
         apiKeyRef.current = apiKey
         agentUidRef.current = agentUid
@@ -264,8 +308,11 @@ export function ChatAuth() {
             id: uid(),
             stage: 'WALLET',
             uid: agentUid,
+            name: agentName,
             address: walletAddress,
             latencyMs: Math.round(performance.now() - t0),
+            online,
+            returning,
           },
         ])
         await sleep(800)
@@ -273,14 +320,16 @@ export function ChatAuth() {
         // ── 2 KEY ─────────────────────────────────────────────
         // Show the real apiKey — this is what the user saves
         transition('KEY')
-        const keyId = uid()
+        const keyCardId = uid()
         setCards((c) => [
           ...c,
           {
-            id: keyId,
+            id: keyCardId,
             stage: 'KEY',
             apiKey,
+            keyId,
             address: walletAddress,
+            online,
             copied: false,
             decided: 'pending',
           },
@@ -319,7 +368,7 @@ export function ChatAuth() {
         })
         await sleep(100)
 
-        const agentName = finalMd.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'my-agent'
+        const deployedName = finalMd.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? agentName
         const skillsMatch = [...finalMd.matchAll(/^\s+-\s+name:\s*(.+)$/gm)].map((m) => m[1].trim())
 
         // ── 5 DEPLOY ──────────────────────────────────────────
@@ -352,7 +401,7 @@ export function ChatAuth() {
           {
             id: uid(),
             stage: 'DEPLOY',
-            agentName,
+            agentName: deployedName,
             unitId: deployedUnitId,
             skills: deployedSkills,
             latencyMs: Math.round(performance.now() - t2),
@@ -651,59 +700,70 @@ export function ChatAuth() {
           placeholder="what should your swarm do?"
           rows={1}
           disabled={hasCards}
-          className="flex-1 resize-none rounded-2xl border bg-background px-4 py-3 text-base leading-7 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-40"
+          className="flex-1 resize-none rounded-2xl border border-border/80 bg-black/[0.04] dark:bg-black/30 px-4 py-3 text-base leading-7 shadow-sm shadow-black/10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-40 transition-all"
         />
-        <Button
-          type="submit"
-          disabled={!input.trim() || running || hasCards}
-          className="h-[52px] px-5 rounded-2xl text-base"
-        >
-          {running ? '…' : '⏎'}
-        </Button>
+        <CTA type="submit" disabled={!input.trim() || running || hasCards} className="min-w-[6rem]">
+          {running ? '…' : 'start →'}
+        </CTA>
       </div>
     </form>
   )
 
   if (!hasCards) {
     return (
-      <div className="grid w-full min-h-[100svh] place-items-center px-4">
-        <div className="max-w-2xl mx-auto w-full flex flex-col gap-6">
-          <h1 className="text-center text-2xl font-light tracking-tight">one — build a real swarm</h1>
-          <p className="text-center text-sm text-muted-foreground leading-6">
-            wallet → key → sign in → team → deploy → discover → message → converse → sell → buy
-            <br />
-            ten stages. your agent. real paths. the substrate learns.
-          </p>
-          {inputDock}
-          <div className="text-center text-xs uppercase tracking-[0.12em] text-muted-foreground">
-            {modelMeta.name}
-            {modelMeta.provider ? ` · ${modelMeta.provider}` : ''}
+      <div className="relative flex flex-col w-full min-h-[100svh] px-4">
+        <a href="/" className="absolute top-4 left-4 inline-flex" aria-label="one — home">
+          <img src="/icon.svg" alt="one" width={50} height={50} className="w-[50px] h-[50px]" />
+        </a>
+        <div className="flex-1 grid place-items-center">
+          <div className="max-w-2xl mx-auto w-full flex flex-col gap-6">
+            <h1 className="text-center text-3xl sm:text-4xl font-light tracking-tight">
+              one — generate your AI team agents
+            </h1>
+            <p className="text-center text-base text-muted-foreground leading-7">
+              wallet → key → sign in → team → deploy → discover → message → converse → sell → buy
+              <br />
+              ten stages. your agent. real paths. the substrate learns.
+            </p>
+            {inputDock}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {['research ai agents', 'write marketing copy', 'analyse competitors', 'build an api'].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    setInput(s)
+                    run(s)
+                  }}
+                  className="px-5 py-2.5 rounded-lg border-2 border-border hover:border-foreground text-sm uppercase tracking-[0.12em] font-medium bg-background text-foreground hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm transition-all duration-200 ease-out"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {['research ai agents', 'write marketing copy', 'analyse competitors', 'build an api'].map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => {
-                  setInput(s)
-                  run(s)
-                }}
-                className="px-4 py-1.5 rounded-full text-xs uppercase tracking-[0.12em] bg-muted text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-all"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+        </div>
+        <div className="flex justify-center gap-3 pb-6 text-sm uppercase tracking-[0.12em] text-muted-foreground">
+          <span className="inline-flex items-center gap-2 px-4 py-2 font-mono">
+            446ms <span className="text-2xl leading-none text-yellow-400">⚡</span> Chat
+          </span>
+          <span className="inline-flex items-center gap-2 px-4 py-2 font-mono">
+            186ms <span className="text-2xl leading-none text-yellow-400">⚡</span> API
+          </span>
         </div>
       </div>
     )
   }
 
+  const activeConverseCard = [...cards]
+    .reverse()
+    .find((c): c is Extract<Card, { stage: 'CONVERSE' }> => c.stage === 'CONVERSE' && c.decided === 'pending')
+
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-background via-background to-muted/20 text-foreground">
       <StageRail current={stage} />
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-2xl mx-auto w-full space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto w-full space-y-5">
           {cards.map((c) => (
             <div key={c.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <CardView
@@ -719,8 +779,19 @@ export function ChatAuth() {
             </div>
           ))}
           <div ref={bottomRef} />
+          {activeConverseCard && <div className="h-24" />}
         </div>
       </div>
+      {activeConverseCard && (
+        <div className="border-t border-border/60 bg-background/80 backdrop-blur-lg px-4 py-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="max-w-2xl mx-auto w-full">
+            <ConverseInput
+              onSend={(text) => handleConverseSend(activeConverseCard.id, text)}
+              streaming={activeConverseCard.streaming}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -783,7 +854,7 @@ function StageRail({ current }: { current: Stage }) {
           <span
             key={s}
             className={cn(
-              'px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.12em] transition-all',
+              'px-3 py-1.5 rounded-full text-xs uppercase tracking-[0.12em] transition-all',
               i < idx && 'bg-muted text-muted-foreground',
               i === idx && 'bg-primary text-primary-foreground scale-105',
               i > idx && 'bg-muted/40 text-muted-foreground/50',
@@ -798,46 +869,199 @@ function StageRail({ current }: { current: Stage }) {
 }
 
 function StageLabel({ children }: { children: React.ReactNode }) {
-  return <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-2">{children}</div>
+  return <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-2">{children}</div>
 }
 
-function CardShell({
-  tone = 'default',
-  children,
-}: {
-  tone?: 'default' | 'accent' | 'warn'
-  children: React.ReactNode
-}) {
+function CardShell({ tone = 'default', children }: { tone?: 'default' | 'accent'; children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        'rounded-2xl border px-4 py-4 text-base leading-7',
-        tone === 'default' && 'bg-muted border-transparent',
-        tone === 'accent' && 'bg-primary/10 border-primary/30',
-        tone === 'warn' && 'bg-amber-500/10 border-amber-500/30',
+        'group relative rounded-3xl border px-5 py-5 text-base leading-7 shadow-lg shadow-black/5 backdrop-blur-sm transition-all hover:shadow-xl hover:-translate-y-0.5',
+        tone === 'default' && 'bg-gradient-to-br from-card/80 via-card to-muted/40 border-border/60',
+        tone === 'accent' &&
+          'bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border-primary/40 shadow-primary/10',
       )}
     >
-      {children}
+      <div
+        className={cn(
+          'pointer-events-none absolute inset-0 rounded-3xl opacity-0 transition-opacity group-hover:opacity-100',
+          tone === 'accent' && 'bg-primary/[0.03]',
+        )}
+      />
+      <div className="relative">{children}</div>
     </div>
   )
 }
 
-function KeyRow({ label, value, secret = false }: { label: string; value: string; secret?: boolean }) {
+// The CTA button. Inverted duotone: black on light, white on dark.
+// Square, big, slightly animated — lifts on hover, presses on active.
+function CTA({
+  children,
+  onClick,
+  type = 'button',
+  disabled,
+  variant = 'solid',
+  size = 'lg',
+  className,
+}: {
+  children: React.ReactNode
+  onClick?: () => void
+  type?: 'button' | 'submit'
+  disabled?: boolean
+  variant?: 'solid' | 'ghost'
+  size?: 'lg' | 'md'
+  className?: string
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'group relative inline-flex items-center justify-center font-semibold tracking-tight rounded-lg border-2 select-none',
+        'transition-all duration-200 ease-out',
+        'hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:shadow-sm',
+        'disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none disabled:translate-y-0',
+        size === 'lg' && 'h-12 px-6 text-base min-w-[9rem]',
+        size === 'md' && 'h-10 px-5 text-sm min-w-[7rem]',
+        variant === 'solid' && [
+          // Light: black on white. Dark: white on black (inverted per user spec).
+          'bg-foreground text-background border-foreground shadow-md shadow-black/20',
+          'hover:bg-background hover:text-foreground',
+          'dark:bg-background dark:text-foreground dark:border-foreground',
+          'dark:hover:bg-foreground dark:hover:text-background',
+        ],
+        variant === 'ghost' && [
+          'bg-transparent text-foreground border-border',
+          'hover:border-foreground hover:bg-foreground/5',
+        ],
+        className,
+      )}
+    >
+      <span className="relative transition-transform duration-200 group-active:scale-95">{children}</span>
+    </button>
+  )
+}
+
+// Deterministic fake streaming — reveals fixed client-side copy char-by-char.
+// Real LLM streams stay on the reader.read() path in MESSAGE/CONVERSE.
+function Typed({
+  text,
+  speedMs = 10,
+  className,
+  caret = true,
+}: {
+  text: string
+  speedMs?: number
+  className?: string
+  caret?: boolean
+}) {
+  const [shown, setShown] = useState('')
+  const [done, setDone] = useState(false)
+  useEffect(() => {
+    setShown('')
+    setDone(false)
+    let i = 0
+    const id = setInterval(() => {
+      i++
+      if (i >= text.length) {
+        setShown(text)
+        setDone(true)
+        clearInterval(id)
+      } else {
+        setShown(text.slice(0, i))
+      }
+    }, speedMs)
+    return () => clearInterval(id)
+  }, [text, speedMs])
+  return (
+    <span className={className}>
+      {shown}
+      {caret && !done && (
+        <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
+      )}
+    </span>
+  )
+}
+
+// Duotone: the design system has exactly two surface tones.
+//   'muted'   — normal info (name, uid, address, keyId): neutral card surface
+//   'primary' — valuable / actionable (api key, .env line): primary-tinted, ringed, slightly elevated
+// Differentiation comes from hierarchy (ring + shadow), not hue.
+type RowTone = 'muted' | 'primary'
+
+function KeyRow({
+  label,
+  value,
+  secret = false,
+  tone = 'muted',
+  onCopy,
+}: {
+  label: string
+  value: string
+  secret?: boolean
+  tone?: RowTone
+  onCopy?: () => void
+}) {
   const [show, setShow] = useState(!secret)
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      onCopy?.()
+      setTimeout(() => setCopied(false), 1600)
+    } catch {
+      /* blocked */
+    }
+  }
+
+  const masked = show ? value : '•'.repeat(Math.min(value.length, 48))
+  const isPrimary = tone === 'primary'
+
   return (
     <div>
-      <div className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">{label}</div>
-      <div className="flex items-center gap-2">
-        <div className="flex-1 break-all">{show ? value : '•'.repeat(Math.min(value.length, 48))}</div>
+      <div
+        className={cn(
+          'text-[11px] uppercase tracking-[0.12em] mb-1.5',
+          isPrimary ? 'text-primary font-medium' : 'text-muted-foreground',
+        )}
+      >
+        {label}
+      </div>
+      <div
+        className={cn(
+          'flex items-center gap-2 rounded-xl border px-3 py-2.5 font-mono text-sm transition-all shadow-sm shadow-black/10',
+          isPrimary
+            ? 'bg-black/[0.06] dark:bg-black/40 border-primary/40 ring-1 ring-primary/20'
+            : 'bg-black/[0.04] dark:bg-black/30 border-border/80',
+        )}
+      >
+        <div className="flex-1 break-all leading-6 select-all text-foreground">{masked}</div>
         {secret && (
           <button
             type="button"
             onClick={() => setShow((v) => !v)}
-            className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground shrink-0"
+            className="px-2 py-1 rounded-md text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground hover:bg-background/60 transition-all shrink-0"
           >
             {show ? 'hide' : 'show'}
           </button>
         )}
+        <button
+          type="button"
+          onClick={copy}
+          className={cn(
+            'px-2.5 py-1 rounded-md text-[10px] uppercase tracking-[0.12em] font-medium transition-all shrink-0 border',
+            copied
+              ? 'bg-primary text-primary-foreground border-primary'
+              : isPrimary
+                ? 'bg-primary/10 border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground'
+                : 'bg-background border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+          )}
+        >
+          {copied ? 'copied' : 'copy'}
+        </button>
       </div>
     </div>
   )
@@ -845,8 +1069,8 @@ function KeyRow({ label, value, secret = false }: { label: string; value: string
 
 function CopyButton({ text, label, onCopy }: { text: string; label: string; onCopy: () => void }) {
   return (
-    <button
-      type="button"
+    <CTA
+      size="md"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text)
@@ -855,10 +1079,9 @@ function CopyButton({ text, label, onCopy }: { text: string; label: string; onCo
           /* blocked */
         }
       }}
-      className="px-3 py-1.5 rounded-full text-[10px] uppercase tracking-[0.12em] bg-foreground text-background hover:opacity-90 transition-all"
     >
       {label}
-    </button>
+    </CTA>
   )
 }
 
@@ -866,7 +1089,7 @@ function ConverseInput({ onSend, streaming }: { onSend: (t: string) => void; str
   const [val, setVal] = useState('')
   return (
     <form
-      className="flex gap-2 mt-3"
+      className="flex gap-2 items-end"
       onSubmit={(e) => {
         e.preventDefault()
         if (val.trim() && !streaming) {
@@ -880,11 +1103,11 @@ function ConverseInput({ onSend, streaming }: { onSend: (t: string) => void; str
         onChange={(e) => setVal(e.target.value)}
         placeholder="message your agent…"
         disabled={streaming}
-        className="flex-1 rounded-xl border bg-background/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+        className="flex-1 h-[52px] rounded-2xl border border-border/80 bg-black/[0.04] dark:bg-black/30 px-4 text-base shadow-sm shadow-black/10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 transition-all"
       />
-      <Button type="submit" size="sm" disabled={!val.trim() || streaming}>
-        {streaming ? '…' : '⏎'}
-      </Button>
+      <CTA type="submit" disabled={!val.trim() || streaming} className="min-w-[5.5rem]">
+        {streaming ? '…' : 'send'}
+      </CTA>
     </form>
   )
 }
@@ -920,25 +1143,45 @@ function CardView(props: CardViewProps) {
           <div>
             goal: <span className="font-medium">"{card.entry}"</span>
           </div>
-          <div className="text-sm text-muted-foreground mt-1">
-            wallet → key → sign in → team → deploy → discover → message → converse → sell → buy. three pause points:
-            save your key, edit your agent, chat with it. then the swarm earns.
-          </div>
+          <Typed
+            className="block text-base text-muted-foreground mt-1"
+            text="wallet → key → sign in → team → deploy → discover → message → converse → sell → buy. three pause points: save your key, edit your agent, chat with it. then the swarm earns."
+          />
         </CardShell>
       )
 
     case 'WALLET':
       return (
         <CardShell>
-          <StageLabel>stage 0 · wallet · {card.latencyMs}ms</StageLabel>
-          <div className="text-sm text-muted-foreground mb-2">
-            identity derived. ed25519 from seed + uid. no key stored.
+          <div className="flex items-center gap-2 mb-1">
+            <StageLabel>
+              stage 0 · wallet · {card.latencyMs}ms · {card.online ? 'live' : 'demo'}
+            </StageLabel>
+            {card.returning && (
+              <span className="text-[10px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/30">
+                welcome back
+              </span>
+            )}
+            {!card.online && (
+              <span className="text-[10px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">
+                offline — demo key
+              </span>
+            )}
           </div>
-          <div className="space-y-2 font-mono text-xs bg-background/60 rounded-lg p-3 border">
+          <Typed
+            className="block text-base text-muted-foreground mb-2"
+            text={
+              card.online
+                ? `identity derived from /api/auth/agent. ed25519 from seed + uid. key was just minted server-side — the hash lives in TypeDB, plaintext is shown once.`
+                : 'api/auth/agent unreachable. showing a locally-generated demo identity in the same shape. deploy the substrate to get a real key.'
+            }
+          />
+          <div className="space-y-3">
+            <KeyRow label="name" value={card.name} />
             <KeyRow label="uid" value={card.uid} />
             <KeyRow label="sui address" value={card.address} />
           </div>
-          <div className="mt-2 text-xs text-muted-foreground">
+          <div className="mt-2 text-sm text-muted-foreground">
             same uid always → same address. lose the seed, lose the wallet.
           </div>
         </CardShell>
@@ -948,38 +1191,45 @@ function CardView(props: CardViewProps) {
       const pending = card.decided === 'pending'
       const envLine = `ONE_API_KEY=${card.apiKey}`
       return (
-        <CardShell tone={pending ? 'warn' : 'default'}>
-          <StageLabel>stage 1 · save key · {pending ? 'awaiting you' : 'saved ✓'}</StageLabel>
-          <div className="text-sm mb-3">
+        <CardShell tone={pending ? 'accent' : 'default'}>
+          <div className="flex items-center gap-2 mb-1">
+            <StageLabel>stage 1 · save key · {pending ? 'awaiting you' : 'saved ✓'}</StageLabel>
+            <span
+              className={cn(
+                'text-[10px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full border',
+                card.online
+                  ? 'bg-primary/10 text-primary border-primary/30'
+                  : 'bg-muted text-muted-foreground border-border',
+              )}
+            >
+              {card.online ? 'real · minted' : 'demo · offline'}
+            </span>
+          </div>
+          <div className="text-base mb-3">
             your api key — shown once. <span className="font-semibold">save it now.</span> it's how your agent signs
             signals, deploys teams, and earns.
           </div>
-          <div className="space-y-2 font-mono text-xs bg-background/60 rounded-lg p-3 border">
-            <KeyRow label="api key" value={card.apiKey} secret />
+          <div className="space-y-3">
+            <KeyRow label="api key" value={card.apiKey} tone="primary" secret onCopy={onKeyCopy} />
+            {card.keyId && <KeyRow label="key id" value={card.keyId} />}
             <KeyRow label="sui address" value={card.address} />
-            <KeyRow label=".env line" value={envLine} secret />
+            <KeyRow label=".env line" value={envLine} tone="primary" secret onCopy={onKeyCopy} />
           </div>
           {pending && (
-            <div className="mt-4 space-y-3 text-xs text-muted-foreground">
-              <div>
-                <div className="font-semibold text-foreground mb-1">add to .env</div>
-                paste into your project. use as{' '}
-                <code className="bg-muted px-1 rounded">Authorization: Bearer &lt;key&gt;</code> on every signal,
-                deploy, and pay call.
-                <div className="mt-2">
-                  <CopyButton text={envLine} label={card.copied ? '✓ copied' : 'copy .env line'} onCopy={onKeyCopy} />
-                </div>
-              </div>
+            <div className="mt-4 text-sm text-muted-foreground">
+              copy any row above to save your key. paste into your .env and use it as{' '}
+              <code className="bg-muted px-1.5 py-0.5 rounded">Authorization: Bearer &lt;key&gt;</code> on every signal,
+              deploy, and pay call.
             </div>
           )}
           {pending ? (
             <div className="flex gap-2 mt-4">
-              <Button size="sm" onClick={onKeyContinue} disabled={!card.copied}>
-                {card.copied ? 'i saved it — continue' : 'copy the key first'}
-              </Button>
+              <CTA onClick={onKeyContinue} disabled={!card.copied}>
+                {card.copied ? 'i saved it — continue →' : 'copy the key first'}
+              </CTA>
             </div>
           ) : (
-            <div className="text-xs text-muted-foreground mt-3">✓ key saved — proceeding</div>
+            <div className="text-sm text-muted-foreground mt-3">✓ key saved — proceeding</div>
           )}
         </CardShell>
       )
@@ -989,12 +1239,13 @@ function CardView(props: CardViewProps) {
       return (
         <CardShell>
           <StageLabel>stage 2 · sign in · {card.latencyMs}ms</StageLabel>
-          <div className="text-sm">
-            session established. <code className="font-mono text-xs">#{card.sessionId}</code>
+          <div className="text-base">
+            session established. <code className="font-mono text-sm">#{card.sessionId}</code>
           </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            agent: POST /api/auth/agent · human: better auth passkey. substrate sees the same session either way.
-          </div>
+          <Typed
+            className="block text-sm text-muted-foreground mt-1"
+            text="agent: POST /api/auth/agent · human: better auth passkey. substrate sees the same session either way."
+          />
         </CardShell>
       )
 
@@ -1005,23 +1256,21 @@ function CardView(props: CardViewProps) {
           <StageLabel>stage 3 · create team · {pending ? 'edit + deploy' : 'deployed ✓'}</StageLabel>
           {pending ? (
             <>
-              <div className="text-sm text-muted-foreground mb-3">
+              <div className="text-base text-muted-foreground mb-3">
                 your agent.md. edit the name, skills, and system prompt. then deploy it.
               </div>
               <textarea
                 value={card.markdown}
                 onChange={(e) => onMarkdownChange(e.target.value)}
                 rows={14}
-                className="w-full font-mono text-xs bg-background/60 border rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-primary leading-5"
+                className="w-full font-mono text-sm bg-black/[0.04] dark:bg-black/30 border border-border/80 rounded-xl p-4 resize-none shadow-sm shadow-black/10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary leading-6 transition-all"
               />
               <div className="flex gap-2 mt-3">
-                <Button size="sm" onClick={onTeamDeploy}>
-                  deploy this team →
-                </Button>
+                <CTA onClick={onTeamDeploy}>deploy this team →</CTA>
               </div>
             </>
           ) : (
-            <div className="text-sm text-muted-foreground">markdown committed. proceeding to TypeDB sync.</div>
+            <div className="text-base text-muted-foreground">markdown committed. proceeding to TypeDB sync.</div>
           )}
         </CardShell>
       )
@@ -1031,10 +1280,10 @@ function CardView(props: CardViewProps) {
       return (
         <CardShell>
           <StageLabel>stage 4 · deploy · {card.latencyMs}ms</StageLabel>
-          <div className="text-sm mb-2">
+          <div className="text-base mb-2">
             <span className="font-mono">{card.unitId}</span> live in TypeDB.
           </div>
-          <div className="space-y-1 text-sm font-mono">
+          <div className="space-y-1.5 text-base font-mono">
             {card.skills.map((s) => (
               <div key={s} className="flex gap-2 text-muted-foreground">
                 <span>✓</span>
@@ -1042,9 +1291,10 @@ function CardView(props: CardViewProps) {
               </div>
             ))}
           </div>
-          <div className="mt-2 text-xs text-muted-foreground">
-            unit + capabilities + group membership written. agent is now discoverable.
-          </div>
+          <Typed
+            className="block mt-2 text-sm text-muted-foreground"
+            text="unit + capabilities + group membership written. agent is now discoverable."
+          />
         </CardShell>
       )
 
@@ -1052,10 +1302,10 @@ function CardView(props: CardViewProps) {
       return (
         <CardShell>
           <StageLabel>stage 5 · discover · tag: {card.tag}</StageLabel>
-          <div className="text-sm text-muted-foreground mb-2">
+          <div className="text-base text-muted-foreground mb-2">
             {card.agents.length} agents in world, ranked by pheromone strength:
           </div>
-          <div className="space-y-1 text-sm font-mono">
+          <div className="space-y-1.5 text-base font-mono">
             {card.agents
               .slice()
               .sort((a, b) => b.strength - a.strength)
@@ -1070,9 +1320,10 @@ function CardView(props: CardViewProps) {
                 </div>
               ))}
           </div>
-          <div className="mt-2 text-xs text-muted-foreground">
-            $0.001 per discovery query · layer 2 revenue. strongest path wins.
-          </div>
+          <Typed
+            className="block mt-2 text-sm text-muted-foreground"
+            text="$0.001 per discovery query · layer 2 revenue. strongest path wins."
+          />
         </CardShell>
       )
 
@@ -1082,15 +1333,15 @@ function CardView(props: CardViewProps) {
           <StageLabel>
             stage 6 · message{card.latencyMs !== null ? ` · ${card.latencyMs}ms first token` : ''}
           </StageLabel>
-          <div className="text-sm text-muted-foreground mb-2">signal: "{card.prompt}"</div>
-          <div className="whitespace-pre-wrap text-sm">
+          <div className="text-base text-muted-foreground mb-2">signal: "{card.prompt}"</div>
+          <div className="whitespace-pre-wrap text-base leading-7">
             {card.response || <span className="text-muted-foreground">…</span>}
             {card.streaming && (
               <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
             )}
           </div>
           {!card.streaming && card.response && (
-            <div className="mt-2 text-xs text-muted-foreground">
+            <div className="mt-2 text-sm text-muted-foreground">
               path marked ✓ · mark() → strength accumulates on this edge
             </div>
           )}
@@ -1102,7 +1353,7 @@ function CardView(props: CardViewProps) {
       return (
         <CardShell tone={pending ? 'accent' : 'default'}>
           <StageLabel>stage 7 · converse · {pending ? 'live chat' : 'done ✓'}</StageLabel>
-          <div className="text-sm text-muted-foreground mb-3">
+          <div className="text-base text-muted-foreground mb-3">
             {pending
               ? "your agent is ready. ask it anything. when you're done, continue to sell."
               : `${card.messages.filter((m) => m.role === 'user').length} exchanges. paths strengthened.`}
@@ -1113,7 +1364,7 @@ function CardView(props: CardViewProps) {
                 <div key={`${i}`} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
                   <div
                     className={cn(
-                      'max-w-[85%] rounded-xl px-3 py-2 text-sm',
+                      'max-w-[85%] rounded-2xl px-4 py-2.5 text-base leading-7',
                       m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-background/60 text-foreground',
                     )}
                   >
@@ -1126,17 +1377,12 @@ function CardView(props: CardViewProps) {
               ))}
             </div>
           )}
-          {pending && (
-            <>
-              <ConverseInput onSend={onConverseSend} streaming={card.streaming} />
-              {card.messages.length >= 2 && (
-                <div className="mt-3">
-                  <Button size="sm" variant="ghost" onClick={onConverseContinue} disabled={card.streaming}>
-                    continue to sell →
-                  </Button>
-                </div>
-              )}
-            </>
+          {pending && card.messages.length >= 2 && (
+            <div className="mt-3">
+              <CTA variant="ghost" size="md" onClick={onConverseContinue} disabled={card.streaming}>
+                continue to sell →
+              </CTA>
+            </div>
           )}
         </CardShell>
       )
@@ -1146,18 +1392,19 @@ function CardView(props: CardViewProps) {
       return (
         <CardShell>
           <StageLabel>stage 8 · sell · first inbound</StageLabel>
-          <div className="text-sm mb-2">
+          <div className="text-base mb-2">
             <span className="font-mono">{card.firstBuyer}</span> hired your{' '}
             <span className="font-semibold">{card.skill}</span> skill for{' '}
             <span className="font-semibold">{card.price} SUI</span>.
           </div>
-          <div className="space-y-1 text-xs font-mono text-muted-foreground">
+          <div className="space-y-1.5 text-sm font-mono text-muted-foreground">
             <div>path.strength: 0 → {card.strength} · mark() fired</div>
             <div>platform fee: 2% · net: {(card.price * 0.98).toFixed(4)} SUI</div>
           </div>
-          <div className="mt-2 text-xs text-muted-foreground">
-            first sale is the hardest. now pheromone works for you — proven providers get picked first.
-          </div>
+          <Typed
+            className="block mt-2 text-sm text-muted-foreground"
+            text="first sale is the hardest. now pheromone works for you — proven providers get picked first."
+          />
         </CardShell>
       )
 
@@ -1165,20 +1412,21 @@ function CardView(props: CardViewProps) {
       return (
         <CardShell>
           <StageLabel>stage 9 · buy · path learned</StageLabel>
-          <div className="text-sm mb-2">
+          <div className="text-base mb-2">
             hired <span className="font-mono">{card.provider}</span> for{' '}
             <span className="font-semibold">{card.paid} SUI</span>. escrow released.
           </div>
-          <div className="space-y-1 text-xs font-mono">
+          <div className="space-y-1.5 text-sm font-mono">
             <div>
               path.strength: <span className="text-muted-foreground">{card.before}</span> →{' '}
               <span className="font-semibold">{card.after}</span>
             </div>
             <div className="text-muted-foreground break-all">tx: {card.txHash}</div>
           </div>
-          <div className="mt-2 text-xs text-muted-foreground">
-            buyer→seller edge marked. next hire on this path is twice as likely.
-          </div>
+          <Typed
+            className="block mt-2 text-sm text-muted-foreground"
+            text="buyer→seller edge marked. next hire on this path is twice as likely."
+          />
         </CardShell>
       )
 
@@ -1186,19 +1434,19 @@ function CardView(props: CardViewProps) {
       return (
         <CardShell tone="accent">
           <StageLabel>done · your swarm is live</StageLabel>
-          <div className="text-sm mb-4">
+          <div className="text-base mb-4">
             your agent earned. you bought. the path remembers. this is a real swarm — every stage wrote to the substrate
             and the learning is permanent.
           </div>
-          <div className="space-y-2 font-mono text-xs bg-background/60 rounded-lg p-3 border mb-4">
+          <div className="space-y-3 mb-4">
             <KeyRow label="uid" value={card.uid} />
             <KeyRow label="sui address" value={card.address} />
-            <KeyRow label="api key" value={card.apiKey} secret />
+            <KeyRow label="api key" value={card.apiKey} tone="primary" secret />
           </div>
-          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-2">
+          <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-2">
             your agent.md — fork and deploy
           </div>
-          <pre className="font-mono text-xs bg-background/60 rounded-lg p-3 border overflow-x-auto whitespace-pre-wrap leading-5 mb-4">
+          <pre className="font-mono text-sm bg-black/[0.04] dark:bg-black/30 rounded-xl p-4 border border-border/80 shadow-sm shadow-black/10 overflow-x-auto whitespace-pre-wrap leading-6 mb-4">
             {card.agentMd}
           </pre>
           <div className="flex flex-wrap gap-2 mb-4">
@@ -1212,11 +1460,11 @@ function CardView(props: CardViewProps) {
               label="copy api key"
               onCopy={() => emitClick('ui:chat-auth:copy-key', { type: 'text', content: '' })}
             />
-            <Button size="sm" variant="ghost" onClick={onReset}>
+            <CTA variant="ghost" size="md" onClick={onReset}>
               build another
-            </Button>
+            </CTA>
           </div>
-          <div className="text-xs text-muted-foreground space-y-1">
+          <div className="text-sm text-muted-foreground space-y-1">
             <div>
               send a signal:{' '}
               <code className="bg-muted px-1 rounded text-[10px]">
