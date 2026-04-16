@@ -23,16 +23,16 @@
  * The bridge is 3 functions. Everything else is plumbing.
  */
 
-import {
-  cancelEscrow,
-  createPath,
-  createUnit,
-  getClient,
-  releaseEscrow,
-  mark as suiMark,
-  warn as suiWarn,
-} from '@/lib/sui'
 import { readParsed, writeSilent } from '@/lib/typedb'
+
+// Lazy-load @/lib/sui — the Sui SDK is SSR-externalized and unavailable
+// on Cloudflare Pages Workers at import time. Dynamic import keeps the
+// module graph intact for routes that never touch Sui (e.g. /api/chat).
+let _sui: typeof import('@/lib/sui') | null = null
+async function sui() {
+  if (!_sui) _sui = await import('@/lib/sui')
+  return _sui
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ADL: perm-network gate — cache + helper
@@ -170,6 +170,7 @@ export async function mirrorMark(from: string, to: string, amount = 1): Promise<
 
   // First interaction? Create on-chain path
   if (!pathId) {
+    const { createPath } = await sui()
     const r = await createPath(from, fIds.unitId, tIds.unitId).catch(() => null)
     if (!r?.pathId) return
     pathId = r.pathId
@@ -181,6 +182,7 @@ export async function mirrorMark(from: string, to: string, amount = 1): Promise<
     `)
   }
 
+  const { mark: suiMark } = await sui()
   await suiMark(from, pathId, amount).catch(() => {})
 }
 
@@ -193,12 +195,14 @@ export async function mirrorWarn(from: string, to: string, amount = 1): Promise<
 
   const pathId = await resolvePath(from, to)
   if (!pathId) return
+  const { warn: suiWarn } = await sui()
   await suiWarn(from, pathId, amount).catch(() => {})
 }
 
 /** Mirror a new actor to Sui. Returns { wallet, unitId } or null. */
 export async function mirrorActor(uid: string, name: string): Promise<{ wallet: string; unitId: string } | null> {
   try {
+    const { createUnit } = await sui()
     const { address, objectId } = await createUnit(uid, name)
     // Store IDs back in TypeDB
     writeSilent(`
@@ -231,6 +235,7 @@ interface SuiEvent {
  */
 export async function absorb(cursor?: string): Promise<{ count: number; cursor: string }> {
   if (!PACKAGE_ID) return { count: 0, cursor: cursor || '' }
+  const { getClient } = await sui()
   const client = getClient()
 
   const { data, nextCursor } = await client.queryEvents({
@@ -339,10 +344,9 @@ export const settleEscrow = (
   success: boolean,
 ): void => {
   if (success) {
-    resolve(claimantUid)
-      .then((ids) => {
+    Promise.all([resolve(claimantUid), sui()])
+      .then(([ids, { releaseEscrow }]) => {
         if (!ids?.unitId) return
-        // Path from poster→claimant; resolve for pathObjectId
         return resolvePath(posterUid, claimantUid).then((pathId) => {
           if (!pathId) return
           releaseEscrow(claimantUid, escrowObjectId, ids.unitId, pathId).catch(() => {})
@@ -350,8 +354,8 @@ export const settleEscrow = (
       })
       .catch(() => {})
   } else {
-    resolve(posterUid)
-      .then((ids) => {
+    Promise.all([resolve(posterUid), sui()])
+      .then(([ids, { cancelEscrow }]) => {
         if (!ids?.unitId) return
         return resolvePath(posterUid, claimantUid).then((pathId) => {
           if (!pathId) return

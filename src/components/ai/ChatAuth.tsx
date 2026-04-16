@@ -3,8 +3,10 @@ import { DEFAULT_MODEL } from '@/lib/chat/models'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 
+/* ── Types ─────────────────────────────────────────────────────────────────── */
+
 type Stage =
-  | 'INTRO'
+  | 'IDLE'
   | 'WALLET'
   | 'KEY'
   | 'SIGNIN'
@@ -12,60 +14,42 @@ type Stage =
   | 'DEPLOY'
   | 'DISCOVER'
   | 'MESSAGE'
-  | 'CONVERSE'
+  | 'READY'
   | 'SELL'
   | 'BUY'
-  | 'DONE'
+  | 'LIVE'
 
-const STAGE_ORDER: Stage[] = [
-  'INTRO',
-  'WALLET',
-  'KEY',
-  'SIGNIN',
-  'TEAM',
-  'DEPLOY',
-  'DISCOVER',
-  'MESSAGE',
-  'CONVERSE',
-  'SELL',
-  'BUY',
-  'DONE',
-]
-
-type ConvMsg = { role: 'user' | 'assistant'; content: string; streaming?: boolean }
 type SwarmAgent = { uid: string; skill: string; price: number; strength: number }
 
-type Card =
-  | { id: string; stage: 'INTRO'; entry: string }
-  | {
-      id: string
-      stage: 'WALLET'
-      uid: string
-      name: string
-      address: string
-      latencyMs: number
-      online: boolean
-      returning: boolean
-    }
-  | {
-      id: string
-      stage: 'KEY'
-      apiKey: string
-      keyId: string
-      address: string
-      online: boolean
-      copied: boolean
-      decided: 'pending' | 'continue'
-    }
-  | { id: string; stage: 'SIGNIN'; sessionId: string; latencyMs: number }
-  | { id: string; stage: 'TEAM'; markdown: string; decided: 'pending' | 'deploy' }
-  | { id: string; stage: 'DEPLOY'; agentName: string; unitId: string; skills: string[]; latencyMs: number }
-  | { id: string; stage: 'DISCOVER'; tag: string; agents: SwarmAgent[] }
-  | { id: string; stage: 'MESSAGE'; prompt: string; response: string; streaming: boolean; latencyMs: number | null }
-  | { id: string; stage: 'CONVERSE'; messages: ConvMsg[]; streaming: boolean; decided: 'pending' | 'continue' }
-  | { id: string; stage: 'SELL'; skill: string; price: number; firstBuyer: string; strength: number }
-  | { id: string; stage: 'BUY'; provider: string; paid: number; txHash: string; before: number; after: number }
-  | { id: string; stage: 'DONE'; uid: string; address: string; apiKey: string; agentMd: string }
+/** Compact status line in the generation stream */
+interface LogEntry {
+  id: string
+  stage: Stage
+  label: string
+  status: 'pending' | 'done' | 'error'
+  ms?: number
+  summary?: string
+}
+
+/** All identity data — stored for the data panel */
+interface Identity {
+  uid: string
+  name: string
+  address: string
+  apiKey: string
+  keyId: string
+  privateKey: string
+  seed: string
+  envLine: string
+  agentMd: string
+  online: boolean
+  skills: string[]
+  discoveredAgents: SwarmAgent[]
+  totalMs: number
+  readyMs: number
+}
+
+/* ── Constants ─────────────────────────────────────────────────────────────── */
 
 const SEED_WORDS = [
   'signal',
@@ -112,6 +96,8 @@ const SWARM_AGENTS: SwarmAgent[] = [
   { uid: 'world:writer', skill: 'copy', price: 0.02, strength: 9 },
   { uid: 'world:analyst', skill: 'analysis', price: 0.03, strength: 6 },
 ]
+
+/* ── Utilities ─────────────────────────────────────────────────────────────── */
 
 function hex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -184,10 +170,8 @@ Be concise: 2-3 sentences unless depth is requested.`
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
-const uid = () => crypto.randomUUID()
+const genId = () => crypto.randomUUID()
 
-// Mirrors src/lib/api-key.ts format — used only when /api/auth/agent is unreachable.
-// Same shape (api_<ts-base36>_<32rand>) so the UI / copy-paste paths are identical.
 const KEY_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 function localApiKey(): string {
   const ts = Date.now().toString(36)
@@ -198,55 +182,60 @@ function localApiKey(): string {
   return `api_${ts}_${rand}`
 }
 
+/* ── Main Component ────────────────────────────────────────────────────────── */
+
 export function ChatAuth() {
-  const [cards, setCards] = useState<Card[]>([])
+  const [phase, setPhase] = useState<'input' | 'generating' | 'live'>('input')
+  const [lines, setLines] = useState<LogEntry[]>([])
+  const [identity, setIdentity] = useState<Identity | null>(null)
   const [input, setInput] = useState('')
   const [running, setRunning] = useState(false)
-  const [stage, setStage] = useState<Stage>('INTRO')
-  const pauseRef = useRef<{ resolve: () => void; reject: () => void } | null>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const taRef = useRef<HTMLTextAreaElement>(null)
-  const apiKeyRef = useRef<string>('')
-  const agentUidRef = useRef<string>('')
-  const agentAddressRef = useRef<string>('')
+  const [showData, setShowData] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [messageResponse, setMessageResponse] = useState('')
+  const [messageStreaming, setMessageStreaming] = useState(false)
 
-  const hasCards = cards.length > 0
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
-    if (hasCards) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [cards])
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [lines, phase, messageResponse])
 
-  const transition = useCallback((s: Stage, meta?: Record<string, unknown>) => {
-    setStage(s)
-    emitClick(`ui:chat-auth:${s.toLowerCase()}`, { type: 'text', content: JSON.stringify(meta ?? {}) })
+  /* ── Line helpers ──────────────────────────────────────────────────────── */
+
+  const addLine = useCallback((stage: Stage, label: string) => {
+    const entry: LogEntry = { id: genId(), stage, label, status: 'pending' }
+    setLines((prev) => [...prev, entry])
+    return entry.id
   }, [])
 
-  const waitForUser = useCallback(
-    () =>
-      new Promise<void>((resolve, reject) => {
-        pauseRef.current = { resolve, reject }
-      }),
-    [],
-  )
+  const updateLine = useCallback((id: string, update: Partial<Pick<LogEntry, 'status' | 'ms' | 'summary'>>) => {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...update } : l)))
+  }, [])
+
+  /* ── Run: the continuous lifecycle ─────────────────────────────────────── */
 
   const run = useCallback(
     async (entry: string) => {
       if (!entry.trim() || running) return
       setRunning(true)
-      setCards([])
-      setStage('INTRO')
+      setPhase('generating')
+      setLines([])
+      setIdentity(null)
+      setShowData(false)
+      setMessageResponse('')
+      setMessageStreaming(false)
       emitClick('ui:chat-auth:start', { type: 'text', content: entry })
 
-      try {
-        // ── 0 INTRO ──────────────────────────────────────────
-        setCards((c) => [...c, { id: uid(), stage: 'INTRO', entry }])
-        transition('INTRO', { entry })
-        await sleep(700)
+      const t0 = performance.now()
 
-        // ── 1 WALLET ─────────────────────────────────────────
-        // Real: POST /api/auth/agent {} → {uid, wallet, apiKey}
-        transition('WALLET')
-        const t0 = performance.now()
+      try {
+        // ── 0 WALLET ──────────────────────────────────────────
+        const walletLineId = addLine('WALLET', 'generating wallet...')
+        const wt0 = performance.now()
+
         const fallbackUid = `my-world:${
           entry
             .toLowerCase()
@@ -259,7 +248,9 @@ export function ChatAuth() {
         let apiKey = ''
         let keyId = ''
         let online = false
-        let returning = false
+        let privateKey = ''
+        let seed = ''
+        let envLine = ''
 
         try {
           const res = await fetch('/api/auth/agent', {
@@ -281,100 +272,71 @@ export function ChatAuth() {
             walletAddress = data.wallet ?? ''
             apiKey = data.apiKey ?? ''
             keyId = data.keyId ?? ''
-            returning = Boolean(data.returning)
-            online = Boolean(apiKey) // real key came back
+            online = Boolean(apiKey)
           }
         } catch {
-          /* offline — fall through to client-side */
+          /* offline */
         }
 
-        if (!walletAddress) {
+        if (!walletAddress || !apiKey) {
           const wlt = await makeWallet()
-          walletAddress = wlt.address
+          if (!walletAddress) walletAddress = wlt.address
+          privateKey = wlt.privateKey
+          seed = wlt.seed
+          envLine = wlt.envLine
         }
         if (!apiKey) {
-          // Demo mode: mimic the real api_<ts-base36>_<32rand> format
           apiKey = localApiKey()
-          keyId = keyId || `key-demo-${uid().slice(0, 6)}`
+          keyId = keyId || `key-demo-${genId().slice(0, 6)}`
         }
 
-        apiKeyRef.current = apiKey
-        agentUidRef.current = agentUid
-        agentAddressRef.current = walletAddress
-
-        setCards((c) => [
-          ...c,
-          {
-            id: uid(),
-            stage: 'WALLET',
-            uid: agentUid,
-            name: agentName,
-            address: walletAddress,
-            latencyMs: Math.round(performance.now() - t0),
-            online,
-            returning,
-          },
-        ])
-        await sleep(800)
-
-        // ── 2 KEY ─────────────────────────────────────────────
-        // Show the real apiKey — this is what the user saves
-        transition('KEY')
-        const keyCardId = uid()
-        setCards((c) => [
-          ...c,
-          {
-            id: keyCardId,
-            stage: 'KEY',
-            apiKey,
-            keyId,
-            address: walletAddress,
-            online,
-            copied: false,
-            decided: 'pending',
-          },
-        ])
-        await waitForUser() // pause: user must copy the key
-
-        // ── 3 SIGN IN ─────────────────────────────────────────
-        // Agent onboarding IS sign-in; show the session confirmation
-        transition('SIGNIN')
-        const t1 = performance.now()
-        await sleep(300)
-        setCards((c) => [
-          ...c,
-          {
-            id: uid(),
-            stage: 'SIGNIN',
-            sessionId: agentUid.slice(0, 12),
-            latencyMs: Math.round(performance.now() - t1),
-          },
-        ])
-        await sleep(500)
-
-        // ── 4 TEAM ────────────────────────────────────────────
-        transition('TEAM')
-        const teamId = uid()
-        const defaultMd = buildAgentMd(entry)
-        setCards((c) => [...c, { id: teamId, stage: 'TEAM', markdown: defaultMd, decided: 'pending' }])
-        await waitForUser() // pause: user edits + deploys
-
-        // read final markdown from card state before leaving
-        let finalMd = defaultMd
-        setCards((prev) => {
-          const card = prev.find((c) => c.id === teamId && c.stage === 'TEAM')
-          if (card && card.stage === 'TEAM') finalMd = card.markdown
-          return prev
+        const walletMs = Math.round(performance.now() - wt0)
+        updateLine(walletLineId, {
+          status: 'done',
+          ms: walletMs,
+          summary: `${walletAddress.slice(0, 8)}...${walletAddress.slice(-4)}`,
         })
+        emitClick(`ui:chat-auth:wallet`, { type: 'text', content: walletAddress })
+        await sleep(150)
+
+        // ── 1 KEY ─────────────────────────────────────────────
+        const keyLineId = addLine('KEY', 'generating key...')
+        await sleep(80)
+        updateLine(keyLineId, {
+          status: 'done',
+          summary: `${apiKey.slice(0, 12)}...`,
+        })
+        emitClick(`ui:chat-auth:key`, { type: 'text', content: apiKey.slice(0, 8) })
+        await sleep(150)
+
+        // ── 2 SIGNIN ──────────────────────────────────────────
+        const signinLineId = addLine('SIGNIN', 'signing in...')
+        const st0 = performance.now()
+        await sleep(120)
+        const signinMs = Math.round(performance.now() - st0)
+        updateLine(signinLineId, {
+          status: 'done',
+          ms: signinMs,
+          summary: `#${agentName}`,
+        })
+        await sleep(150)
+
+        // ── 3 TEAM ────────────────────────────────────────────
+        const teamLineId = addLine('TEAM', 'creating team...')
+        const agentMd = buildAgentMd(entry)
+        const skillsMatch = [...agentMd.matchAll(/^\s+-\s+name:\s*(.+)$/gm)].map((m) => m[1].trim())
+        const deployedName = agentMd.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? agentName
+        agentName = deployedName
         await sleep(100)
+        updateLine(teamLineId, {
+          status: 'done',
+          summary: `${deployedName} · ${skillsMatch.length} skills`,
+        })
+        await sleep(150)
 
-        const deployedName = finalMd.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? agentName
-        const skillsMatch = [...finalMd.matchAll(/^\s+-\s+name:\s*(.+)$/gm)].map((m) => m[1].trim())
-
-        // ── 5 DEPLOY ──────────────────────────────────────────
-        // Real: POST /api/agents/sync with Bearer token → writes to TypeDB
-        transition('DEPLOY')
-        const t2 = performance.now()
+        // ── 4 DEPLOY ──────────────────────────────────────────
+        const deployLineId = addLine('DEPLOY', 'deploying to TypeDB...')
+        const dt0 = performance.now()
         let deployedUnitId = agentUid
         let deployedSkills = skillsMatch.length ? skillsMatch : ['answer']
 
@@ -385,7 +347,7 @@ export function ChatAuth() {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({ markdown: finalMd }),
+            body: JSON.stringify({ markdown: agentMd }),
           })
           if (res.ok) {
             const data = (await res.json()) as { uid?: string; skills?: string[] }
@@ -393,27 +355,22 @@ export function ChatAuth() {
             if (data.skills?.length) deployedSkills = data.skills
           }
         } catch {
-          /* TypeDB offline — show local result */
+          /* offline */
         }
 
-        setCards((c) => [
-          ...c,
-          {
-            id: uid(),
-            stage: 'DEPLOY',
-            agentName: deployedName,
-            unitId: deployedUnitId,
-            skills: deployedSkills,
-            latencyMs: Math.round(performance.now() - t2),
-          },
-        ])
-        await sleep(700)
+        const deployMs = Math.round(performance.now() - dt0)
+        updateLine(deployLineId, {
+          status: 'done',
+          ms: deployMs,
+          summary: deployedUnitId,
+        })
+        await sleep(150)
 
-        // ── 6 DISCOVER ────────────────────────────────────────
-        // Real: GET /api/agents/discover?tag=X → pheromone-ranked results
-        transition('DISCOVER')
+        // ── 5 DISCOVER ────────────────────────────────────────
+        const discoverLineId = addLine('DISCOVER', 'discovering network...')
         const discoverTag = deployedSkills[0] ?? 'general'
         let discoveredAgents = SWARM_AGENTS
+        const dct0 = performance.now()
 
         try {
           const res = await fetch(`/api/agents/discover?tag=${encodeURIComponent(discoverTag)}`)
@@ -432,21 +389,21 @@ export function ChatAuth() {
             }
           }
         } catch {
-          /* use mock swarm */
+          /* use mock */
         }
 
-        setCards((c) => [...c, { id: uid(), stage: 'DISCOVER', tag: discoverTag, agents: discoveredAgents }])
-        await sleep(800)
+        const discoverMs = Math.round(performance.now() - dct0)
+        updateLine(discoverLineId, {
+          status: 'done',
+          ms: discoverMs,
+          summary: `${discoveredAgents.length} agents found`,
+        })
+        await sleep(150)
 
-        // ── 7 MESSAGE ─────────────────────────────────────────
-        // Real: POST /api/signal → substrate routes + returns result
-        transition('MESSAGE')
-        const msgId = uid()
-        const t3 = performance.now()
-        setCards((c) => [
-          ...c,
-          { id: msgId, stage: 'MESSAGE', prompt: entry, response: '', streaming: true, latencyMs: null },
-        ])
+        // ── 6 MESSAGE ─────────────────────────────────────────
+        const msgLineId = addLine('MESSAGE', 'sending first signal...')
+        const mt0 = performance.now()
+        setMessageStreaming(true)
 
         let signalHandled = false
         try {
@@ -466,250 +423,134 @@ export function ChatAuth() {
           if (res.ok) {
             const data = (await res.json()) as { result?: string; latency?: number }
             if (data.result) {
-              const latencyMs = data.latency ?? Math.round(performance.now() - t3)
-              setCards((prev) =>
-                prev.map((c) =>
-                  c.id === msgId && c.stage === 'MESSAGE'
-                    ? { ...c, response: data.result!, streaming: false, latencyMs }
-                    : c,
-                ),
-              )
+              setMessageResponse(data.result)
               signalHandled = true
             }
           }
         } catch {
-          /* fall through to /api/chat */
+          /* fall through */
         }
 
         if (!signalHandled) {
-          await streamIntoMessage(msgId, entry, setCards, t3)
+          // Stream from /api/chat
+          try {
+            const res = await fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: DEFAULT_MODEL,
+                messages: [
+                  { role: 'system', content: 'You are a ONE substrate agent. Answer in 2-3 sentences.' },
+                  { role: 'user', content: entry },
+                ],
+              }),
+            })
+            if (res.ok && res.body) {
+              const reader = res.body.getReader()
+              const dec = new TextDecoder()
+              let full = ''
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                full += dec.decode(value, { stream: true })
+                setMessageResponse(full)
+              }
+            } else {
+              setMessageResponse(`[signal received] "${entry}"`)
+            }
+          } catch {
+            setMessageResponse(`[signal received] "${entry}"`)
+          }
         }
-        await sleep(500)
 
-        // ── 8 CONVERSE ────────────────────────────────────────
-        transition('CONVERSE')
-        const convId = uid()
-        setCards((c) => [...c, { id: convId, stage: 'CONVERSE', messages: [], streaming: false, decided: 'pending' }])
-        await waitForUser() // pause: user chats, then clicks continue
+        const msgMs = Math.round(performance.now() - mt0)
+        setMessageStreaming(false)
+        updateLine(msgLineId, {
+          status: 'done',
+          ms: msgMs,
+          summary: 'response received',
+        })
+        await sleep(200)
 
-        // ── 9 SELL ────────────────────────────────────────────
-        transition('SELL')
-        await sleep(600)
-        setCards((c) => [
-          ...c,
-          {
-            id: uid(),
-            stage: 'SELL',
-            skill: deployedSkills[0] ?? 'answer',
-            price: 0.005,
-            firstBuyer: 'world:explorer',
-            strength: 1,
-          },
-        ])
-        await sleep(700)
+        // ── READY ─────────────────────────────────────────────
+        const readyMs = Math.round(performance.now() - t0)
+        addLine('READY', `ready to sell in ${readyMs}ms`)
+        // Immediately mark done — this line is the announcement
+        setLines((prev) => prev.map((l) => (l.stage === 'READY' ? { ...l, status: 'done' as const, ms: readyMs } : l)))
+        await sleep(400)
 
-        // ── 10 BUY ────────────────────────────────────────────
-        transition('BUY')
-        await sleep(600)
-        const txBytes = new Uint8Array(16)
-        crypto.getRandomValues(txBytes)
+        // ── 7 SELL ────────────────────────────────────────────
+        const sellLineId = addLine('SELL', 'simulating first sale...')
+        await sleep(300)
+        const sellPrice = 0.005
+        updateLine(sellLineId, {
+          status: 'done',
+          summary: `+${sellPrice} SUI earned`,
+        })
+        await sleep(200)
+
+        // ── 8 BUY ─────────────────────────────────────────────
+        const buyLineId = addLine('BUY', 'simulating first purchase...')
+        await sleep(300)
         const bestProvider = discoveredAgents.find(
           (a) => a.strength === Math.max(...discoveredAgents.map((x) => x.strength)),
         )
-        setCards((c) => [
-          ...c,
-          {
-            id: uid(),
-            stage: 'BUY',
-            provider: bestProvider?.uid ?? 'world:scout',
-            paid: bestProvider?.price ?? 0.01,
-            txHash: `0x${hex(txBytes)}`,
-            before: bestProvider?.strength ?? 14,
-            after: (bestProvider?.strength ?? 14) + 1,
-          },
-        ])
-        await sleep(700)
+        const buyPrice = bestProvider?.price ?? 0.01
+        updateLine(buyLineId, {
+          status: 'done',
+          summary: `−${buyPrice} SUI · ${bestProvider?.uid ?? 'world:scout'}`,
+        })
+        await sleep(300)
 
-        // ── DONE ──────────────────────────────────────────────
-        transition('DONE')
-        setCards((c) => [
-          ...c,
-          {
-            id: uid(),
-            stage: 'DONE',
-            uid: deployedUnitId,
-            address: walletAddress,
-            apiKey,
-            agentMd: finalMd,
-          },
-        ])
+        // ── LIVE ──────────────────────────────────────────────
+        const totalMs = Math.round(performance.now() - t0)
+        const ident: Identity = {
+          uid: deployedUnitId,
+          name: agentName,
+          address: walletAddress,
+          apiKey,
+          keyId,
+          privateKey,
+          seed,
+          envLine,
+          agentMd,
+          online,
+          skills: deployedSkills,
+          discoveredAgents,
+          totalMs,
+          readyMs,
+        }
+        setIdentity(ident)
+        setEditName(agentName)
+        setPhase('live')
+        emitClick('ui:chat-auth:live', { type: 'text', content: JSON.stringify({ totalMs, readyMs }) })
       } catch {
         // cancelled — silence is valid
       } finally {
-        pauseRef.current = null
         setRunning(false)
       }
     },
-    [running, transition, waitForUser],
+    [running, addLine, updateLine],
   )
 
-  // KEY stage: user copied, mark done
-  const markKeyCopied = (id: string) => {
-    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'KEY' ? { ...c, copied: true } : c)))
-    emitClick('ui:chat-auth:key-copy', { type: 'text', content: apiKeyRef.current.slice(0, 8) })
-  }
-
-  const continueFromKey = (id: string) => {
-    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'KEY' ? { ...c, decided: 'continue' } : c)))
-    emitClick('ui:chat-auth:key-continue', { type: 'text', content: '' })
-    pauseRef.current?.resolve()
-  }
-
-  // TEAM stage: user edited + deploys
-  const updateTeamMarkdown = (id: string, markdown: string) => {
-    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'TEAM' ? { ...c, markdown } : c)))
-  }
-
-  const deployTeam = (id: string) => {
-    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'TEAM' ? { ...c, decided: 'deploy' } : c)))
-    emitClick('ui:chat-auth:team-deploy', { type: 'text', content: '' })
-    pauseRef.current?.resolve()
-  }
-
-  // CONVERSE stage: user sends a message
-  const handleConverseSend = useCallback(async (cardId: string, text: string) => {
-    if (!text.trim()) return
-
-    // snapshot history before streaming
-    let history: { role: 'user' | 'assistant'; content: string }[] = []
-    setCards((prev) => {
-      const card = prev.find((c) => c.id === cardId && c.stage === 'CONVERSE')
-      if (card && card.stage === 'CONVERSE') {
-        history = card.messages.map((m) => ({ role: m.role, content: m.content }))
-      }
-      return prev
-    })
-    await sleep(0) // flush
-
-    // add user message + empty assistant bubble
-    const assistantIdx = history.length + 1
-    setCards((prev) =>
-      prev.map((c) => {
-        if (c.id !== cardId || c.stage !== 'CONVERSE') return c
-        return {
-          ...c,
-          streaming: true,
-          messages: [
-            ...c.messages,
-            { role: 'user' as const, content: text },
-            { role: 'assistant' as const, content: '', streaming: true },
-          ],
-        }
-      }),
-    )
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: DEFAULT_MODEL,
-          messages: [
-            { role: 'system', content: 'You are a ONE substrate agent. Answer concisely in 2-3 sentences.' },
-            ...history,
-            { role: 'user', content: text },
-          ],
-        }),
-      })
-      if (!res.ok || !res.body) throw new Error()
-      const reader = res.body.getReader()
-      const dec = new TextDecoder()
-      let full = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        full += dec.decode(value, { stream: true })
-        setCards((prev) =>
-          prev.map((c) => {
-            if (c.id !== cardId || c.stage !== 'CONVERSE') return c
-            return {
-              ...c,
-              messages: c.messages.map((m, i) => (i === assistantIdx ? { ...m, content: full } : m)),
-            }
-          }),
-        )
-      }
-      setCards((prev) =>
-        prev.map((c) => {
-          if (c.id !== cardId || c.stage !== 'CONVERSE') return c
-          return {
-            ...c,
-            streaming: false,
-            messages: c.messages.map((m, i) => (i === assistantIdx ? { ...m, streaming: false } : m)),
-          }
-        }),
-      )
-    } catch {
-      setCards((prev) =>
-        prev.map((c) => {
-          if (c.id !== cardId || c.stage !== 'CONVERSE') return c
-          return {
-            ...c,
-            streaming: false,
-            messages: c.messages.map((m, i) =>
-              i === assistantIdx ? { ...m, content: '[no response — substrate offline]', streaming: false } : m,
-            ),
-          }
-        }),
-      )
-    }
-  }, [])
-
-  const continueFromConverse = (id: string) => {
-    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'CONVERSE' ? { ...c, decided: 'continue' } : c)))
-    emitClick('ui:chat-auth:converse-continue', { type: 'text', content: '' })
-    pauseRef.current?.resolve()
-  }
+  /* ── Reset ─────────────────────────────────────────────────────────────── */
 
   const reset = () => {
     emitClick('ui:chat-auth:reset', { type: 'text', content: '' })
-    setCards([])
-    setStage('INTRO')
+    setPhase('input')
+    setLines([])
+    setIdentity(null)
     setInput('')
+    setShowData(false)
+    setEditName('')
+    setIsEditingName(false)
+    setMessageResponse('')
+    setMessageStreaming(false)
   }
 
-  const inputDock = (
-    <form
-      className={cn('flex gap-2 items-end w-full', hasCards && 'border-t bg-background px-4 py-4')}
-      onSubmit={(e) => {
-        e.preventDefault()
-        if (!hasCards) run(input)
-      }}
-    >
-      <div className={cn('flex gap-2 items-end w-full', hasCards && 'max-w-2xl mx-auto')}>
-        <textarea
-          ref={taRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              if (!hasCards) run(input)
-            }
-          }}
-          placeholder="what should your swarm do?"
-          rows={1}
-          disabled={hasCards}
-          className="flex-1 resize-none rounded-2xl border border-border/80 bg-black/[0.04] dark:bg-black/30 px-4 py-3 text-base leading-7 shadow-sm shadow-black/10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-40 transition-all"
-        />
-        <CTA type="submit" disabled={!input.trim() || running || hasCards} className="min-w-[6rem]">
-          {running ? '…' : 'start →'}
-        </CTA>
-      </div>
-    </form>
-  )
+  /* ── Input phase ───────────────────────────────────────────────────────── */
 
-  if (!hasCards) {
+  if (phase === 'input') {
     return (
       <div className="relative flex flex-col w-full min-h-[100svh] px-4">
         <a href="/" className="absolute top-4 left-4 inline-flex" aria-label="one — home">
@@ -717,15 +558,39 @@ export function ChatAuth() {
         </a>
         <div className="flex-1 grid place-items-center">
           <div className="max-w-2xl mx-auto w-full flex flex-col gap-6">
-            <h1 className="text-center text-3xl sm:text-4xl font-light tracking-tight">
-              one — generate your AI team agents
-            </h1>
+            <h1 className="text-center text-3xl sm:text-4xl font-light tracking-tight">one — generate your AI agent</h1>
             <p className="text-center text-base text-muted-foreground leading-7">
-              wallet → key → sign in → team → deploy → discover → message → converse → sell → buy
+              ten stages. no stops. your agent goes live in under a second.
               <br />
-              ten stages. your agent. real paths. the substrate learns.
+              wallet, key, team, deploy, discover, message, sell, buy — all generated.
             </p>
-            {inputDock}
+            <form
+              className="flex gap-2 items-end w-full"
+              onSubmit={(e) => {
+                e.preventDefault()
+                run(input)
+              }}
+            >
+              <div className="flex gap-2 items-end w-full">
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      run(input)
+                    }
+                  }}
+                  placeholder="what should your agent do?"
+                  rows={1}
+                  className="flex-1 resize-none rounded-2xl border border-border/80 bg-black/[0.04] dark:bg-black/30 px-4 py-3 text-base leading-7 shadow-sm shadow-black/10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                />
+                <CTA type="submit" disabled={!input.trim() || running} className="min-w-[6rem]">
+                  start →
+                </CTA>
+              </div>
+            </form>
             <div className="flex flex-wrap gap-2 justify-center">
               {['research ai agents', 'write marketing copy', 'analyse competitors', 'build an api'].map((s) => (
                 <button
@@ -755,122 +620,317 @@ export function ChatAuth() {
     )
   }
 
-  const activeConverseCard = [...cards]
-    .reverse()
-    .find((c): c is Extract<Card, { stage: 'CONVERSE' }> => c.stage === 'CONVERSE' && c.decided === 'pending')
+  /* ── Generation + Live phase ───────────────────────────────────────────── */
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-background via-background to-muted/20 text-foreground">
-      <StageRail current={stage} />
-      <div className="flex-1 overflow-y-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto w-full space-y-5">
-          {cards.map((c) => (
-            <div key={c.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <CardView
-                card={c}
-                onKeyCopy={() => c.stage === 'KEY' && markKeyCopied(c.id)}
-                onKeyContinue={() => c.stage === 'KEY' && continueFromKey(c.id)}
-                onMarkdownChange={(md) => c.stage === 'TEAM' && updateTeamMarkdown(c.id, md)}
-                onTeamDeploy={() => c.stage === 'TEAM' && deployTeam(c.id)}
-                onConverseSend={(text) => c.stage === 'CONVERSE' && handleConverseSend(c.id, text)}
-                onConverseContinue={() => c.stage === 'CONVERSE' && continueFromConverse(c.id)}
-                onReset={reset}
-              />
-            </div>
-          ))}
-          <div ref={bottomRef} />
-          {activeConverseCard && <div className="h-24" />}
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background via-background to-muted/20 text-foreground">
+      {/* Header */}
+      <div className="border-b bg-background/80 backdrop-blur px-4 py-3">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <a href="/" className="inline-flex" aria-label="one — home">
+            <img src="/icon.svg" alt="one" width={32} height={32} className="w-8 h-8" />
+          </a>
+          {running && (
+            <span className="text-xs uppercase tracking-[0.12em] text-muted-foreground animate-pulse">
+              generating...
+            </span>
+          )}
+          {phase === 'live' && identity && (
+            <span className="text-xs uppercase tracking-[0.12em] text-primary font-medium">
+              live · {identity.totalMs}ms total
+            </span>
+          )}
         </div>
       </div>
-      {activeConverseCard && (
-        <div className="border-t border-border/60 bg-background/80 backdrop-blur-lg px-4 py-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="max-w-2xl mx-auto w-full">
-            <ConverseInput
-              onSend={(text) => handleConverseSend(activeConverseCard.id, text)}
-              streaming={activeConverseCard.streaming}
-            />
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto w-full space-y-3">
+          {/* Generation stream — compact log lines */}
+          <div className="space-y-0.5">
+            {lines.map((line) => (
+              <LogLine key={line.id} entry={line} />
+            ))}
           </div>
+
+          {/* Streaming message response (shows during MESSAGE stage) */}
+          {(messageStreaming || messageResponse) && (
+            <div className="animate-in fade-in duration-300">
+              <CardShell>
+                <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-2">
+                  first signal response
+                </div>
+                <div className="whitespace-pre-wrap text-base leading-7">
+                  {messageResponse || <span className="text-muted-foreground">...</span>}
+                  {messageStreaming && (
+                    <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
+                  )}
+                </div>
+              </CardShell>
+            </div>
+          )}
+
+          {/* Address card — appears after wallet generated */}
+          {lines.some((l) => l.stage === 'WALLET' && l.status === 'done') && identity === null && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <AddressReveal address={lines.find((l) => l.stage === 'WALLET')?.summary ?? ''} />
+            </div>
+          )}
+
+          {/* LIVE summary — appears when generation completes */}
+          {phase === 'live' && identity && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              {/* Ready badge */}
+              <div className="flex items-center justify-center gap-3 py-4">
+                <span className="text-3xl text-yellow-400">⚡</span>
+                <span className="text-2xl font-light tracking-tight">ready to sell in {identity.readyMs}ms</span>
+                <span className="text-3xl text-yellow-400">⚡</span>
+              </div>
+
+              {/* Address card (full) */}
+              <CardShell tone="accent">
+                <div className="text-[11px] uppercase tracking-[0.12em] text-primary mb-3">
+                  your address — accepts SUI + USDC
+                </div>
+                <div className="flex items-center gap-3 rounded-xl border border-primary/40 bg-black/[0.06] dark:bg-black/40 px-4 py-3 ring-1 ring-primary/20">
+                  <span className="font-mono text-lg tracking-tight break-all select-all flex-1">
+                    {identity.address}
+                  </span>
+                  <CopyBtn text={identity.address} />
+                </div>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  share this address to receive SUI and USDC payments. same uid always → same address.
+                </div>
+              </CardShell>
+
+              {/* Identity card — editable name */}
+              <CardShell>
+                <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-3">your identity</div>
+                <div className="space-y-3">
+                  {/* Editable name */}
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-1.5">name</div>
+                    <div className="flex items-center gap-2">
+                      {isEditingName ? (
+                        <input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onBlur={() => setIsEditingName(false)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') setIsEditingName(false)
+                            if (e.key === 'Escape') {
+                              setEditName(identity.name)
+                              setIsEditingName(false)
+                            }
+                          }}
+                          // biome-ignore lint/a11y/noAutofocus: inline edit needs focus
+                          autoFocus
+                          className="flex-1 h-10 rounded-xl border border-primary/40 bg-black/[0.04] dark:bg-black/30 px-3 font-mono text-base focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                        />
+                      ) : (
+                        <div
+                          className="flex-1 h-10 flex items-center rounded-xl border border-border/80 bg-black/[0.04] dark:bg-black/30 px-3 font-mono text-base cursor-pointer hover:border-primary/40 transition-all"
+                          onClick={() => setIsEditingName(true)}
+                        >
+                          {editName || identity.name}
+                          <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                            edit
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <KeyRow label="uid" value={identity.uid} />
+                  <KeyRow label="api key" value={identity.apiKey} tone="primary" secret />
+                  <KeyRow label="sui address" value={identity.address} />
+                </div>
+
+                {/* Skills */}
+                <div className="mt-4">
+                  <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-2">capabilities</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {identity.skills.map((s) => (
+                      <span
+                        key={s}
+                        className="px-3 py-1 rounded-full text-xs uppercase tracking-[0.08em] bg-primary/10 text-primary border border-primary/20"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick commands */}
+                <div className="mt-4 text-sm text-muted-foreground space-y-1">
+                  <div>
+                    send a signal:{' '}
+                    <code className="bg-muted px-1 rounded text-[10px]">
+                      curl -X POST /api/signal -H "Authorization: Bearer {identity.apiKey.slice(0, 12)}..." -d '
+                      {`{"receiver":"${identity.uid}","data":"hello"}`}'
+                    </code>
+                  </div>
+                  <div>
+                    add a channel:{' '}
+                    <code className="bg-muted px-1 rounded text-[10px]">
+                      bun run scripts/setup-nanoclaw.ts --agent {identity.name}
+                    </code>
+                  </div>
+                </div>
+              </CardShell>
+
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2">
+                <CTA onClick={() => setShowData((v) => !v)}>{showData ? 'hide your data' : 'view your data'}</CTA>
+                <CTA variant="ghost" onClick={reset}>
+                  build another
+                </CTA>
+              </div>
+
+              {/* Data panel — expandable */}
+              {showData && <DataPanel identity={identity} />}
+            </div>
+          )}
+
+          <div ref={bottomRef} />
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Sub-components ────────────────────────────────────────────────────────── */
+
+/** Compact log line — one per stage */
+function LogLine({ entry }: { entry: LogEntry }) {
+  const isReady = entry.stage === 'READY'
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 py-2 px-3 rounded-lg transition-all duration-300 animate-in fade-in slide-in-from-left-2',
+        isReady && 'bg-primary/10 border border-primary/20 mt-2 mb-2',
+        !isReady && 'hover:bg-muted/30',
+      )}
+    >
+      {/* Status icon */}
+      <span
+        className={cn(
+          'text-base shrink-0 transition-all',
+          entry.status === 'done' && !isReady && 'text-green-500',
+          entry.status === 'done' && isReady && 'text-yellow-400 text-lg',
+          entry.status === 'pending' && 'text-muted-foreground animate-pulse',
+          entry.status === 'error' && 'text-red-500',
+        )}
+      >
+        {entry.status === 'done' ? (isReady ? '⚡' : '✓') : entry.status === 'error' ? '✗' : '○'}
+      </span>
+
+      {/* Label */}
+      <span
+        className={cn(
+          'text-base font-medium',
+          isReady && 'text-primary',
+          entry.status === 'pending' && 'text-muted-foreground',
+        )}
+      >
+        {entry.label}
+      </span>
+
+      {/* Timing */}
+      {entry.ms !== undefined && !isReady && (
+        <span className="text-xs font-mono text-muted-foreground">{entry.ms}ms</span>
+      )}
+
+      {/* Summary */}
+      {entry.summary && (
+        <span className="text-sm text-muted-foreground ml-auto truncate max-w-[45%] font-mono">{entry.summary}</span>
       )}
     </div>
   )
 }
 
-async function streamIntoMessage(
-  id: string,
-  prompt: string,
-  setCards: React.Dispatch<React.SetStateAction<Card[]>>,
-  t0: number,
-) {
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        messages: [
-          { role: 'system', content: 'You are a ONE substrate agent. Answer in 2-3 sentences.' },
-          { role: 'user', content: prompt },
-        ],
-      }),
-    })
-    if (!res.ok || !res.body) throw new Error()
-    const reader = res.body.getReader()
-    const dec = new TextDecoder()
-    let full = ''
-    let gotFirst = false
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      if (!gotFirst) {
-        gotFirst = true
-        const latencyMs = Math.round(performance.now() - t0)
-        setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'MESSAGE' ? { ...c, latencyMs } : c)))
-      }
-      full += dec.decode(value, { stream: true })
-      setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'MESSAGE' ? { ...c, response: full } : c)))
-    }
-    setCards((prev) => prev.map((c) => (c.id === id && c.stage === 'MESSAGE' ? { ...c, streaming: false } : c)))
-  } catch {
-    setCards((prev) =>
-      prev.map((c) =>
-        c.id === id && c.stage === 'MESSAGE'
-          ? { ...c, response: `[demo] signal received: "${prompt}"`, streaming: false, latencyMs: 1 }
-          : c,
-      ),
-    )
-  }
-}
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function StageRail({ current }: { current: Stage }) {
-  const visible = STAGE_ORDER.filter((s) => s !== 'INTRO')
-  const idx = visible.indexOf(current)
+/** Wallet address teaser during generation */
+function AddressReveal({ address }: { address: string }) {
+  if (!address) return null
   return (
-    <div className="border-b bg-background/80 backdrop-blur px-4 py-3">
-      <div className="max-w-2xl mx-auto flex flex-wrap gap-1.5 justify-center">
-        {visible.map((s, i) => (
-          <span
-            key={s}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs uppercase tracking-[0.12em] transition-all',
-              i < idx && 'bg-muted text-muted-foreground',
-              i === idx && 'bg-primary text-primary-foreground scale-105',
-              i > idx && 'bg-muted/40 text-muted-foreground/50',
-            )}
-          >
-            {s.toLowerCase()}
-          </span>
-        ))}
-      </div>
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10 text-sm">
+      <span className="text-yellow-400">⚡</span>
+      <span className="text-muted-foreground">now accepting SUI + USDC at</span>
+      <span className="font-mono text-primary">{address}</span>
     </div>
   )
 }
 
-function StageLabel({ children }: { children: React.ReactNode }) {
-  return <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-2">{children}</div>
+/** Expandable data panel — shows all credentials and secrets */
+function DataPanel({ identity }: { identity: Identity }) {
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <CardShell>
+        <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-4">
+          your data — everything you need to reconstruct your agent
+        </div>
+        <div className="space-y-3">
+          {identity.privateKey && <KeyRow label="private key" value={identity.privateKey} secret tone="primary" />}
+          {identity.seed && <KeyRow label="seed phrase" value={identity.seed} secret tone="primary" />}
+          <KeyRow label="api key" value={identity.apiKey} secret tone="primary" />
+          <KeyRow label="key id" value={identity.keyId} />
+          <KeyRow label="sui address" value={identity.address} />
+          <KeyRow label=".env line" value={`ONE_API_KEY=${identity.apiKey}`} secret tone="primary" />
+          {identity.envLine && <KeyRow label="sui seed (.env)" value={identity.envLine} secret />}
+        </div>
+
+        {/* Agent markdown */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+              agent.md — fork and deploy
+            </div>
+            <CopyBtn text={identity.agentMd} label="copy" />
+          </div>
+          <pre className="font-mono text-sm bg-black/[0.04] dark:bg-black/30 rounded-xl p-4 border border-border/80 shadow-sm shadow-black/10 overflow-x-auto whitespace-pre-wrap leading-6">
+            {identity.agentMd}
+          </pre>
+        </div>
+
+        {/* Discovered agents */}
+        {identity.discoveredAgents.length > 0 && (
+          <div className="mt-4">
+            <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-2">
+              discovered agents — ranked by pheromone
+            </div>
+            <div className="space-y-1 font-mono text-sm">
+              {identity.discoveredAgents
+                .slice()
+                .sort((a, b) => b.strength - a.strength)
+                .map((a) => (
+                  <div key={a.uid} className="flex justify-between text-muted-foreground">
+                    <span>
+                      {a.uid}:{a.skill}
+                    </span>
+                    <span>
+                      {a.price} SUI · s={a.strength}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Timing breakdown */}
+        <div className="mt-4 pt-3 border-t border-border/40">
+          <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-1">performance</div>
+          <div className="flex gap-4 text-sm font-mono text-muted-foreground">
+            <span>ready: {identity.readyMs}ms</span>
+            <span>total: {identity.totalMs}ms</span>
+            <span>{identity.online ? 'live' : 'demo mode'}</span>
+          </div>
+        </div>
+      </CardShell>
+    </div>
+  )
 }
+
+/* ── UI Primitives ─────────────────────────────────────────────────────────── */
 
 function CardShell({ tone = 'default', children }: { tone?: 'default' | 'accent'; children: React.ReactNode }) {
   return (
@@ -893,8 +953,6 @@ function CardShell({ tone = 'default', children }: { tone?: 'default' | 'accent'
   )
 }
 
-// The CTA button. Inverted duotone: black on light, white on dark.
-// Square, big, slightly animated — lifts on hover, presses on active.
 function CTA({
   children,
   onClick,
@@ -925,7 +983,6 @@ function CTA({
         size === 'lg' && 'h-12 px-6 text-base min-w-[9rem]',
         size === 'md' && 'h-10 px-5 text-sm min-w-[7rem]',
         variant === 'solid' && [
-          // Light: black on white. Dark: white on black (inverted per user spec).
           'bg-foreground text-background border-foreground shadow-md shadow-black/20',
           'hover:bg-background hover:text-foreground',
           'dark:bg-background dark:text-foreground dark:border-foreground',
@@ -943,51 +1000,6 @@ function CTA({
   )
 }
 
-// Deterministic fake streaming — reveals fixed client-side copy char-by-char.
-// Real LLM streams stay on the reader.read() path in MESSAGE/CONVERSE.
-function Typed({
-  text,
-  speedMs = 10,
-  className,
-  caret = true,
-}: {
-  text: string
-  speedMs?: number
-  className?: string
-  caret?: boolean
-}) {
-  const [shown, setShown] = useState('')
-  const [done, setDone] = useState(false)
-  useEffect(() => {
-    setShown('')
-    setDone(false)
-    let i = 0
-    const id = setInterval(() => {
-      i++
-      if (i >= text.length) {
-        setShown(text)
-        setDone(true)
-        clearInterval(id)
-      } else {
-        setShown(text.slice(0, i))
-      }
-    }, speedMs)
-    return () => clearInterval(id)
-  }, [text, speedMs])
-  return (
-    <span className={className}>
-      {shown}
-      {caret && !done && (
-        <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
-      )}
-    </span>
-  )
-}
-
-// Duotone: the design system has exactly two surface tones.
-//   'muted'   — normal info (name, uid, address, keyId): neutral card surface
-//   'primary' — valuable / actionable (api key, .env line): primary-tinted, ringed, slightly elevated
-// Differentiation comes from hierarchy (ring + shadow), not hue.
 type RowTone = 'muted' | 'primary'
 
 function KeyRow({
@@ -995,13 +1007,11 @@ function KeyRow({
   value,
   secret = false,
   tone = 'muted',
-  onCopy,
 }: {
   label: string
   value: string
   secret?: boolean
   tone?: RowTone
-  onCopy?: () => void
 }) {
   const [show, setShow] = useState(!secret)
   const [copied, setCopied] = useState(false)
@@ -1010,14 +1020,13 @@ function KeyRow({
     try {
       await navigator.clipboard.writeText(value)
       setCopied(true)
-      onCopy?.()
       setTimeout(() => setCopied(false), 1600)
     } catch {
       /* blocked */
     }
   }
 
-  const masked = show ? value : '•'.repeat(Math.min(value.length, 48))
+  const masked = show ? value : '\u2022'.repeat(Math.min(value.length, 48))
   const isPrimary = tone === 'primary'
 
   return (
@@ -1067,419 +1076,29 @@ function KeyRow({
   )
 }
 
-function CopyButton({ text, label, onCopy }: { text: string; label: string; onCopy: () => void }) {
+/** Inline copy button */
+function CopyBtn({ text, label = 'copy' }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false)
   return (
-    <CTA
-      size="md"
+    <button
+      type="button"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text)
-          onCopy()
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1600)
         } catch {
           /* blocked */
         }
       }}
+      className={cn(
+        'px-2.5 py-1 rounded-md text-[10px] uppercase tracking-[0.12em] font-medium transition-all border shrink-0',
+        copied
+          ? 'bg-primary text-primary-foreground border-primary'
+          : 'bg-background border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+      )}
     >
-      {label}
-    </CTA>
+      {copied ? 'copied' : label}
+    </button>
   )
-}
-
-function ConverseInput({ onSend, streaming }: { onSend: (t: string) => void; streaming: boolean }) {
-  const [val, setVal] = useState('')
-  return (
-    <form
-      className="flex gap-2 items-end"
-      onSubmit={(e) => {
-        e.preventDefault()
-        if (val.trim() && !streaming) {
-          onSend(val)
-          setVal('')
-        }
-      }}
-    >
-      <input
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
-        placeholder="message your agent…"
-        disabled={streaming}
-        className="flex-1 h-[52px] rounded-2xl border border-border/80 bg-black/[0.04] dark:bg-black/30 px-4 text-base shadow-sm shadow-black/10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 transition-all"
-      />
-      <CTA type="submit" disabled={!val.trim() || streaming} className="min-w-[5.5rem]">
-        {streaming ? '…' : 'send'}
-      </CTA>
-    </form>
-  )
-}
-
-interface CardViewProps {
-  card: Card
-  onKeyCopy: () => void
-  onKeyContinue: () => void
-  onMarkdownChange: (md: string) => void
-  onTeamDeploy: () => void
-  onConverseSend: (text: string) => void
-  onConverseContinue: () => void
-  onReset: () => void
-}
-
-function CardView(props: CardViewProps) {
-  const {
-    card,
-    onKeyCopy,
-    onKeyContinue,
-    onMarkdownChange,
-    onTeamDeploy,
-    onConverseSend,
-    onConverseContinue,
-    onReset,
-  } = props
-
-  switch (card.stage) {
-    case 'INTRO':
-      return (
-        <CardShell>
-          <StageLabel>intro · ten stages</StageLabel>
-          <div>
-            goal: <span className="font-medium">"{card.entry}"</span>
-          </div>
-          <Typed
-            className="block text-base text-muted-foreground mt-1"
-            text="wallet → key → sign in → team → deploy → discover → message → converse → sell → buy. three pause points: save your key, edit your agent, chat with it. then the swarm earns."
-          />
-        </CardShell>
-      )
-
-    case 'WALLET':
-      return (
-        <CardShell>
-          <div className="flex items-center gap-2 mb-1">
-            <StageLabel>
-              stage 0 · wallet · {card.latencyMs}ms · {card.online ? 'live' : 'demo'}
-            </StageLabel>
-            {card.returning && (
-              <span className="text-[10px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/30">
-                welcome back
-              </span>
-            )}
-            {!card.online && (
-              <span className="text-[10px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">
-                offline — demo key
-              </span>
-            )}
-          </div>
-          <Typed
-            className="block text-base text-muted-foreground mb-2"
-            text={
-              card.online
-                ? `identity derived from /api/auth/agent. ed25519 from seed + uid. key was just minted server-side — the hash lives in TypeDB, plaintext is shown once.`
-                : 'api/auth/agent unreachable. showing a locally-generated demo identity in the same shape. deploy the substrate to get a real key.'
-            }
-          />
-          <div className="space-y-3">
-            <KeyRow label="name" value={card.name} />
-            <KeyRow label="uid" value={card.uid} />
-            <KeyRow label="sui address" value={card.address} />
-          </div>
-          <div className="mt-2 text-sm text-muted-foreground">
-            same uid always → same address. lose the seed, lose the wallet.
-          </div>
-        </CardShell>
-      )
-
-    case 'KEY': {
-      const pending = card.decided === 'pending'
-      const envLine = `ONE_API_KEY=${card.apiKey}`
-      return (
-        <CardShell tone={pending ? 'accent' : 'default'}>
-          <div className="flex items-center gap-2 mb-1">
-            <StageLabel>stage 1 · save key · {pending ? 'awaiting you' : 'saved ✓'}</StageLabel>
-            <span
-              className={cn(
-                'text-[10px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full border',
-                card.online
-                  ? 'bg-primary/10 text-primary border-primary/30'
-                  : 'bg-muted text-muted-foreground border-border',
-              )}
-            >
-              {card.online ? 'real · minted' : 'demo · offline'}
-            </span>
-          </div>
-          <div className="text-base mb-3">
-            your api key — shown once. <span className="font-semibold">save it now.</span> it's how your agent signs
-            signals, deploys teams, and earns.
-          </div>
-          <div className="space-y-3">
-            <KeyRow label="api key" value={card.apiKey} tone="primary" secret onCopy={onKeyCopy} />
-            {card.keyId && <KeyRow label="key id" value={card.keyId} />}
-            <KeyRow label="sui address" value={card.address} />
-            <KeyRow label=".env line" value={envLine} tone="primary" secret onCopy={onKeyCopy} />
-          </div>
-          {pending && (
-            <div className="mt-4 text-sm text-muted-foreground">
-              copy any row above to save your key. paste into your .env and use it as{' '}
-              <code className="bg-muted px-1.5 py-0.5 rounded">Authorization: Bearer &lt;key&gt;</code> on every signal,
-              deploy, and pay call.
-            </div>
-          )}
-          {pending ? (
-            <div className="flex gap-2 mt-4">
-              <CTA onClick={onKeyContinue} disabled={!card.copied}>
-                {card.copied ? 'i saved it — continue →' : 'copy the key first'}
-              </CTA>
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground mt-3">✓ key saved — proceeding</div>
-          )}
-        </CardShell>
-      )
-    }
-
-    case 'SIGNIN':
-      return (
-        <CardShell>
-          <StageLabel>stage 2 · sign in · {card.latencyMs}ms</StageLabel>
-          <div className="text-base">
-            session established. <code className="font-mono text-sm">#{card.sessionId}</code>
-          </div>
-          <Typed
-            className="block text-sm text-muted-foreground mt-1"
-            text="agent: POST /api/auth/agent · human: better auth passkey. substrate sees the same session either way."
-          />
-        </CardShell>
-      )
-
-    case 'TEAM': {
-      const pending = card.decided === 'pending'
-      return (
-        <CardShell tone={pending ? 'accent' : 'default'}>
-          <StageLabel>stage 3 · create team · {pending ? 'edit + deploy' : 'deployed ✓'}</StageLabel>
-          {pending ? (
-            <>
-              <div className="text-base text-muted-foreground mb-3">
-                your agent.md. edit the name, skills, and system prompt. then deploy it.
-              </div>
-              <textarea
-                value={card.markdown}
-                onChange={(e) => onMarkdownChange(e.target.value)}
-                rows={14}
-                className="w-full font-mono text-sm bg-black/[0.04] dark:bg-black/30 border border-border/80 rounded-xl p-4 resize-none shadow-sm shadow-black/10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary leading-6 transition-all"
-              />
-              <div className="flex gap-2 mt-3">
-                <CTA onClick={onTeamDeploy}>deploy this team →</CTA>
-              </div>
-            </>
-          ) : (
-            <div className="text-base text-muted-foreground">markdown committed. proceeding to TypeDB sync.</div>
-          )}
-        </CardShell>
-      )
-    }
-
-    case 'DEPLOY':
-      return (
-        <CardShell>
-          <StageLabel>stage 4 · deploy · {card.latencyMs}ms</StageLabel>
-          <div className="text-base mb-2">
-            <span className="font-mono">{card.unitId}</span> live in TypeDB.
-          </div>
-          <div className="space-y-1.5 text-base font-mono">
-            {card.skills.map((s) => (
-              <div key={s} className="flex gap-2 text-muted-foreground">
-                <span>✓</span>
-                <span>capability: {s}</span>
-              </div>
-            ))}
-          </div>
-          <Typed
-            className="block mt-2 text-sm text-muted-foreground"
-            text="unit + capabilities + group membership written. agent is now discoverable."
-          />
-        </CardShell>
-      )
-
-    case 'DISCOVER':
-      return (
-        <CardShell>
-          <StageLabel>stage 5 · discover · tag: {card.tag}</StageLabel>
-          <div className="text-base text-muted-foreground mb-2">
-            {card.agents.length} agents in world, ranked by pheromone strength:
-          </div>
-          <div className="space-y-1.5 text-base font-mono">
-            {card.agents
-              .slice()
-              .sort((a, b) => b.strength - a.strength)
-              .map((a) => (
-                <div key={a.uid} className="flex justify-between">
-                  <span>
-                    {a.uid}:{a.skill}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {a.price} SUI · s={a.strength}
-                  </span>
-                </div>
-              ))}
-          </div>
-          <Typed
-            className="block mt-2 text-sm text-muted-foreground"
-            text="$0.001 per discovery query · layer 2 revenue. strongest path wins."
-          />
-        </CardShell>
-      )
-
-    case 'MESSAGE':
-      return (
-        <CardShell>
-          <StageLabel>
-            stage 6 · message{card.latencyMs !== null ? ` · ${card.latencyMs}ms first token` : ''}
-          </StageLabel>
-          <div className="text-base text-muted-foreground mb-2">signal: "{card.prompt}"</div>
-          <div className="whitespace-pre-wrap text-base leading-7">
-            {card.response || <span className="text-muted-foreground">…</span>}
-            {card.streaming && (
-              <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
-            )}
-          </div>
-          {!card.streaming && card.response && (
-            <div className="mt-2 text-sm text-muted-foreground">
-              path marked ✓ · mark() → strength accumulates on this edge
-            </div>
-          )}
-        </CardShell>
-      )
-
-    case 'CONVERSE': {
-      const pending = card.decided === 'pending'
-      return (
-        <CardShell tone={pending ? 'accent' : 'default'}>
-          <StageLabel>stage 7 · converse · {pending ? 'live chat' : 'done ✓'}</StageLabel>
-          <div className="text-base text-muted-foreground mb-3">
-            {pending
-              ? "your agent is ready. ask it anything. when you're done, continue to sell."
-              : `${card.messages.filter((m) => m.role === 'user').length} exchanges. paths strengthened.`}
-          </div>
-          {card.messages.length > 0 && (
-            <div className="space-y-2 mb-3">
-              {card.messages.map((m, i) => (
-                <div key={`${i}`} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-                  <div
-                    className={cn(
-                      'max-w-[85%] rounded-2xl px-4 py-2.5 text-base leading-7',
-                      m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-background/60 text-foreground',
-                    )}
-                  >
-                    {m.content || <span className="opacity-50">…</span>}
-                    {m.streaming && (
-                      <span className="inline-block w-1 h-3 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {pending && card.messages.length >= 2 && (
-            <div className="mt-3">
-              <CTA variant="ghost" size="md" onClick={onConverseContinue} disabled={card.streaming}>
-                continue to sell →
-              </CTA>
-            </div>
-          )}
-        </CardShell>
-      )
-    }
-
-    case 'SELL':
-      return (
-        <CardShell>
-          <StageLabel>stage 8 · sell · first inbound</StageLabel>
-          <div className="text-base mb-2">
-            <span className="font-mono">{card.firstBuyer}</span> hired your{' '}
-            <span className="font-semibold">{card.skill}</span> skill for{' '}
-            <span className="font-semibold">{card.price} SUI</span>.
-          </div>
-          <div className="space-y-1.5 text-sm font-mono text-muted-foreground">
-            <div>path.strength: 0 → {card.strength} · mark() fired</div>
-            <div>platform fee: 2% · net: {(card.price * 0.98).toFixed(4)} SUI</div>
-          </div>
-          <Typed
-            className="block mt-2 text-sm text-muted-foreground"
-            text="first sale is the hardest. now pheromone works for you — proven providers get picked first."
-          />
-        </CardShell>
-      )
-
-    case 'BUY':
-      return (
-        <CardShell>
-          <StageLabel>stage 9 · buy · path learned</StageLabel>
-          <div className="text-base mb-2">
-            hired <span className="font-mono">{card.provider}</span> for{' '}
-            <span className="font-semibold">{card.paid} SUI</span>. escrow released.
-          </div>
-          <div className="space-y-1.5 text-sm font-mono">
-            <div>
-              path.strength: <span className="text-muted-foreground">{card.before}</span> →{' '}
-              <span className="font-semibold">{card.after}</span>
-            </div>
-            <div className="text-muted-foreground break-all">tx: {card.txHash}</div>
-          </div>
-          <Typed
-            className="block mt-2 text-sm text-muted-foreground"
-            text="buyer→seller edge marked. next hire on this path is twice as likely."
-          />
-        </CardShell>
-      )
-
-    case 'DONE':
-      return (
-        <CardShell tone="accent">
-          <StageLabel>done · your swarm is live</StageLabel>
-          <div className="text-base mb-4">
-            your agent earned. you bought. the path remembers. this is a real swarm — every stage wrote to the substrate
-            and the learning is permanent.
-          </div>
-          <div className="space-y-3 mb-4">
-            <KeyRow label="uid" value={card.uid} />
-            <KeyRow label="sui address" value={card.address} />
-            <KeyRow label="api key" value={card.apiKey} tone="primary" secret />
-          </div>
-          <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-2">
-            your agent.md — fork and deploy
-          </div>
-          <pre className="font-mono text-sm bg-black/[0.04] dark:bg-black/30 rounded-xl p-4 border border-border/80 shadow-sm shadow-black/10 overflow-x-auto whitespace-pre-wrap leading-6 mb-4">
-            {card.agentMd}
-          </pre>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <CopyButton
-              text={card.agentMd}
-              label="copy agent.md"
-              onCopy={() => emitClick('ui:chat-auth:copy-agent', { type: 'text', content: '' })}
-            />
-            <CopyButton
-              text={`ONE_API_KEY=${card.apiKey}`}
-              label="copy api key"
-              onCopy={() => emitClick('ui:chat-auth:copy-key', { type: 'text', content: '' })}
-            />
-            <CTA variant="ghost" size="md" onClick={onReset}>
-              build another
-            </CTA>
-          </div>
-          <div className="text-sm text-muted-foreground space-y-1">
-            <div>
-              send a signal:{' '}
-              <code className="bg-muted px-1 rounded text-[10px]">
-                curl -X POST /api/signal -H "Authorization: Bearer {card.apiKey.slice(0, 16)}..." -d '
-                {`{"receiver":"${card.uid}","data":"hello"}`}'
-              </code>
-            </div>
-            <div>
-              add a channel:{' '}
-              <code className="bg-muted px-1 rounded text-[10px]">
-                bun run scripts/setup-nanoclaw.ts --agent {card.uid.split(':')[1] ?? 'my-agent'}
-              </code>
-            </div>
-          </div>
-        </CardShell>
-      )
-  }
 }
