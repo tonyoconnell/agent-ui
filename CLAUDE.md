@@ -798,6 +798,23 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 - `loop.ts` must implement the 7 loops described in `dictionary.md` and `routing.md`
 - `world.tql` functions must match the classification/routing tables in `DSL.md`
 
+## Nested Context (subdir CLAUDE.md)
+
+Each subtree has its own CLAUDE.md that auto-loads when working inside it.
+Consult these before editing — they define the local contract.
+
+| File | Scope | What it locks |
+|------|-------|---------------|
+| `src/pages/CLAUDE.md` | Astro routes | Page → component → hydration table, substrate-to-surface mapping |
+| `src/pages/api/CLAUDE.md` | API routes | **All 50+ endpoints grouped by the 6 dimensions**, signal shape, rubric dims, four outcomes, `/api/claw` contract |
+| `src/engine/CLAUDE.md` | Runtime | Engine file table, signal flow, zero-returns rule |
+| `src/components/CLAUDE.md` | React islands | Component inventory, `emitClick` receiver naming |
+| `src/hooks/CLAUDE.md` | React hooks | Hook inventory, substrate subscription patterns |
+| `src/lib/CLAUDE.md` | Utilities | TypeDB client, edge cache, auth helpers |
+| `src/schema/CLAUDE.md` | TypeDB | Schema files, `one.tql` ontology, function syntax |
+
+**When editing an API route:** load `src/pages/api/CLAUDE.md` first — it's the authoritative index of every endpoint and its verb (send/mark/fade/follow/harden). The root CLAUDE.md here is the *map*; `api/CLAUDE.md` is the *territory*.
+
 ## Rules
 
 See `.claude/rules/` for framework-specific patterns:
