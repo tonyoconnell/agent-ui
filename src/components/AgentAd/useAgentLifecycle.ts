@@ -43,7 +43,7 @@ export interface AgentLifecycleState {
 
 type Action =
   | { type: 'START'; buyerUid: string; sellerUid: string }
-  | { type: 'WALLET'; buyerAddress: string; sellerAddress: string; ms: number }
+  | { type: 'WALLET'; buyerAddress: string; sellerAddress: string; ms: number; digests?: ChainDigest[] }
   | { type: 'FUNDED'; ms: number }
   | { type: 'LISTED'; ms: number; digest?: string }
   | { type: 'DISCOVERED'; agent: AgentLifecycleState['agent']; ms: number }
@@ -85,6 +85,7 @@ function reducer(state: AgentLifecycleState, action: Action): AgentLifecycleStat
         stage: 'funding',
         buyerAddress: action.buyerAddress,
         sellerAddress: action.sellerAddress,
+        digests: action.digests ? [...state.digests, ...action.digests] : state.digests,
         stageTimings: { ...state.stageTimings, wallet: action.ms },
       }
     case 'FUNDED':
@@ -195,11 +196,12 @@ export function useAgentLifecycle({ agentId, skill }: { agentId: string; skill: 
 
     dispatch({ type: 'START', buyerUid, sellerUid })
 
-    // ── 0 WALLET — register both buyer + seller, derive Sui addresses ────
+    // ── 0 WALLET — register + create on-chain Unit objects ─────────────
     let buyerAddress = ''
     let sellerAddress = ''
     try {
       const st = performance.now()
+      // Register in TypeDB first
       const [buyer, seller] = await Promise.all([
         postJson('/api/agents/register', { uid: buyerUid, kind: 'human', capabilities: [] }),
         postJson('/api/agents/register', {
@@ -210,9 +212,29 @@ export function useAgentLifecycle({ agentId, skill }: { agentId: string; skill: 
       ])
       buyerAddress = buyer.wallet ?? ''
       sellerAddress = seller.wallet ?? ''
-      dispatch({ type: 'WALLET', buyerAddress, sellerAddress, ms: performance.now() - st })
 
-      // Save wallet to localStorage
+      // Create on-chain Unit objects (funds + mints Move objects)
+      // These produce real Sui transactions visible on Suiscan
+      const [buyerOnChain, sellerOnChain] = await Promise.all([
+        postJson('/api/agents/create-onchain', { uid: buyerUid, name: buyerUid, kind: 'human' }, 30000).catch(
+          () => null,
+        ),
+        postJson('/api/agents/create-onchain', { uid: sellerUid, name: sellerUid, kind: 'agent' }, 30000).catch(
+          () => null,
+        ),
+      ])
+
+      // Use on-chain addresses if available (more accurate — derived from actual keypair)
+      if (buyerOnChain?.address) buyerAddress = buyerOnChain.address
+      if (sellerOnChain?.address) sellerAddress = sellerOnChain.address
+
+      // Collect on-chain creation digests
+      const walletDigests: ChainDigest[] = []
+      if (buyerOnChain?.digest) walletDigests.push({ stage: 'buyer-create', digest: buyerOnChain.digest })
+      if (sellerOnChain?.digest) walletDigests.push({ stage: 'seller-create', digest: sellerOnChain.digest })
+
+      dispatch({ type: 'WALLET', buyerAddress, sellerAddress, ms: performance.now() - st, digests: walletDigests })
+
       if (buyerAddress && typeof localStorage !== 'undefined') {
         localStorage.setItem('one-buyer-address', buyerAddress)
       }
@@ -222,12 +244,13 @@ export function useAgentLifecycle({ agentId, skill }: { agentId: string; skill: 
     }
 
     // ── 1 FUND — hit real Sui testnet faucet ─────────────────────────────
+    //    createUnit already calls ensureFunded, but we call faucet again
+    //    to make sure the buyer has enough for payments
     try {
       const st = performance.now()
       await postJson('/api/faucet', { address: buyerAddress }, 20000)
       dispatch({ type: 'FUNDED', ms: performance.now() - st })
     } catch {
-      // Faucet can rate-limit — not fatal, continue
       dispatch({ type: 'FUNDED', ms: 0 })
     }
 
