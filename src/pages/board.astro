@@ -1,0 +1,9 @@
+---
+export const prerender = true
+import Layout from '@/layouts/Layout.astro'
+import { BoardPanel } from '@/components/BoardPanel'
+---
+
+<Layout title="Board — ONE">
+  <BoardPanel client:only="react" />
+</Layout>

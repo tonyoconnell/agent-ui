@@ -1,6 +1,9 @@
 # Authentication
 
-Two paths. Same substrate. Both get a wallet.
+Two paths. Same substrate. Both get a wallet. **Governed by roles.**
+
+> Identity (wallet) + Role (membership) + Pheromone (path strength) = Permission.
+> See [TODO-governance.md](TODO-governance.md) for the full governance model.
 
 ---
 
@@ -248,11 +251,60 @@ Auth maps cleanly to the 6 dimensions:
 | Dimension | Auth Entity | What |
 |-----------|------------|------|
 | **Groups** (1) | Group membership | Agent inherits scope from its world/pod |
-| **Actors** (2) | `unit` entity | The agent/human with uid, wallet, status |
+| **Actors** (2) | `actor` entity | The agent/human with aid, wallet, auth-hash |
 | **Things** (3) | `api-key` entity | The credential (hash only stored) |
 | **Paths** (4) | `api-authorization` | Relation: which key can act as which unit |
 | **Events** (5) | `last-used` | Every API call updates the key's timestamp |
 | **Knowledge** (6) | Highways | Agent's proven routes harden over time |
+
+---
+
+## Governance Layer (locked 2026-04-18)
+
+Auth is identity. Governance is permission. Both live in the same ontology.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     PERMISSION = ROLE × PHEROMONE               │
+│                                                                 │
+│  ROLE (on membership relation):                                 │
+│    chairman  → owns world, appoints ceo/board, full access      │
+│    board     → auditors, read-only (highways, toxic, revenue)   │
+│    ceo       → operator, hires/fires agents, tunes routing      │
+│    operator  → can add units, mark/warn, no role assignment     │
+│    agent     → can only affect own paths (participated in)      │
+│    auditor   → read-only subset                                 │
+│                                                                 │
+│  IDENTITY (on actor entity):                                    │
+│    wallet    → Sui address (0x...), derived from seed + uid     │
+│    auth-hash → bcrypt hash of API key (never raw)               │
+│                                                                 │
+│  SCOPE (on path + hypothesis):                                  │
+│    private   → only sender/receiver see it                      │
+│    group     → all group members see it                         │
+│    public    → cross-org discovery, can harden to Sui           │
+│                                                                 │
+│  AUTH FLOW:                                                     │
+│    1. Wallet signature OR API key → verify identity             │
+│    2. Lookup (group, member, role) isa membership → get role    │
+│    3. Check role against action permission matrix               │
+│    4. Check pheromone (can only affect paths you've touched)    │
+│    5. Execute OR reject 403                                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Role Permission Matrix
+
+| Role | add unit | remove | mark | warn | tune sensitivity | read highways | appoint |
+|------|----------|--------|------|------|------------------|---------------|---------|
+| chairman | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| board | - | - | - | - | - | ✓ | - |
+| ceo | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | - |
+| operator | ✓ | - | ✓ | ✓ | - | ✓ | - |
+| agent | - | - | ✓* | ✓* | - | - | - |
+| auditor | - | - | - | - | - | ✓ | - |
+
+*Agents can only mark/warn paths they participate in (sender or receiver in signal history)
 
 ---
 

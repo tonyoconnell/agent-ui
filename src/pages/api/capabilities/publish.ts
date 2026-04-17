@@ -21,16 +21,29 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
   }
 
+  // Governance: operator+ required to list capabilities in marketplace
+  const { getRoleForUser } = await import('@/lib/api-auth')
+  const { roleCheck } = await import('@/lib/role-check')
+  const role = await getRoleForUser(auth.user)
+  if (!roleCheck(role ?? 'agent', 'add_unit')) {
+    return new Response(JSON.stringify({ error: 'Forbidden: operator+ role required to publish capabilities' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   const body = (await request.json()) as {
     skillId?: unknown
     name?: unknown
     price?: unknown
     mode?: string
     visibility?: string
+    scope?: string
     tags?: unknown
     rubricThresholds?: { fit?: number; form?: number; truth?: number; taste?: number }
   }
   const { skillId, name, price, mode, visibility, tags, rubricThresholds } = body
+  const scope = (body.scope as string) ?? 'group'
 
   if (typeof skillId !== 'string' || !/^[a-zA-Z0-9:_-]+$/.test(skillId))
     return new Response(JSON.stringify({ error: 'skillId must be a non-empty alphanumeric string' }), { status: 400 })
@@ -79,7 +92,7 @@ export const POST: APIRoute = async ({ request }) => {
       insert (provider: $u, offered: $s) isa capability, has price ${price};
     `)
 
-    return new Response(JSON.stringify({ ok: true, sid: skillId }), {
+    return new Response(JSON.stringify({ ok: true, sid: skillId, scope }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (err) {

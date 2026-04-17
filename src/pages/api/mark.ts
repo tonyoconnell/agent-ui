@@ -17,6 +17,34 @@ export const POST: APIRoute = async ({ request }) => {
     strength?: number
   }
 
+  // Governance: role check if auth provided (fail-open for backward compat)
+  const authHeader = request.headers.get('Authorization')
+  if (authHeader) {
+    const { validateApiKey, getRoleForUser } = await import('@/lib/api-auth')
+    const { roleCheck } = await import('@/lib/role-check')
+    try {
+      const auth = await validateApiKey(request)
+      if (!auth.isValid) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      const role = await getRoleForUser(auth.user)
+      if (!roleCheck(role ?? 'agent', 'mark')) {
+        return new Response(JSON.stringify({ error: 'Forbidden: operator+ role required' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+  }
+
   await write(`
     match
       $from isa unit, has uid "${from}";

@@ -105,7 +105,7 @@ if (!task) throw new Error(...)
 | File | Lines | Purpose |
 |------|------:|---------|
 | `world.ts` | 444 | Unit + World + strength/resistance + queue + ask (4 outcomes) |
-| `persist.ts` | 906 | PersistentWorld = World + TypeDB sync + sandwich + know/recall/reveal/forget/frontier |
+| `persist.ts` | 906 | PersistentWorld = World + TypeDB sync + sandwich + know/recall/reveal/forget/frontier + hasPathRelationship (pheromone gate) |
 | `core.ts` | 138 | Shared primitives: types, signal helpers, edge utils |
 | `builder.ts` | 34 | Fluent world builder shorthand |
 
@@ -194,7 +194,7 @@ if (!task) throw new Error(...)
 |------|------:|---------|
 | `agentverse.ts` | 101 | Fetch.ai AgentVerse: register/discover/call 2M agents |
 | `agentverse-bridge.ts` | 48 | Bridge: 2M AV agents as proxy units in main world |
-| `bridge.ts` | 363 | Sui ↔ TypeDB: mirror/absorb/resolve paths on-chain (testnet ✅) |
+| `bridge.ts` | 363 | Sui ↔ TypeDB: mirror/absorb/resolve paths on-chain + scope gate (canCallSui audits non-public paths) (testnet ✅) |
 | `durable-ask.ts` | 123 | Durable asks: pending asks in D1, survive worker restarts |
 | `federation.ts` | 58 | Federate: another ONE world as a unit in this one |
 | `api.ts` | 152 | `apiUnit()`: any HTTP endpoint as a substrate unit |

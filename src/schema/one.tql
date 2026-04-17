@@ -33,6 +33,8 @@ entity actor,
     owns prompt,                      # system prompt (mutable, evolves)
     owns generation,                  # prompt iteration count
     owns tag @card(0..),              # flat labels
+    owns wallet,                      # Sui address (0x...) — identity on-chain
+    owns auth-hash,                   # bcrypt hash of API key (never raw)
     plays path:source,
     plays path:target,
     plays capability:provider,
@@ -79,7 +81,8 @@ relation path,
     relates target,
     owns strength,                    # mark() increments
     owns resistance,                  # warn() increments
-    owns traversals;                  # count
+    owns traversals,                  # count
+    owns scope;                       # private/group/public — federation boundary
 
 relation capability,
     relates provider,
@@ -88,7 +91,8 @@ relation capability,
 
 relation membership,
     relates group,
-    relates member;
+    relates member,
+    owns role;                        # chairman/board/ceo/operator/agent/auditor
 
 # 5. EVENTS — what happened
 relation signal,
@@ -105,7 +109,8 @@ entity hypothesis,
     owns hid @key,
     owns statement,
     owns confidence,
-    owns observations;
+    owns observations,
+    owns scope;                       # private/group/public — shared learning boundary
 
 # =============================================================================
 # ATTRIBUTES
@@ -150,6 +155,14 @@ attribute persona, value string;
 attribute priority-score, value double;
 attribute exit-condition, value string;
 
+# GOVERNANCE — role, identity, scope (locked 2026-04-18)
+attribute role, value string;             # chairman/board/ceo/operator/agent/auditor
+attribute wallet, value string;           # Sui address (0x...)
+attribute auth-hash, value string;        # bcrypt hash of API key
+attribute scope, value string;            # private/group/public
+
 # =============================================================================
-# 6 dimensions. 4 entities. 6 relations. 36 attributes. ONE.
+# 6 dimensions. 4 entities. 6 relations. 40 attributes. ONE.
+# Governance layer locked: role on membership, wallet+auth-hash on actor,
+# scope on path+hypothesis. Permission = Role × Pheromone.
 # =============================================================================

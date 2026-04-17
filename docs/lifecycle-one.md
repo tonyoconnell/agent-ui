@@ -40,21 +40,41 @@ learns a path, and incoming signals from newcomers are fanned out along those pa
 to tag + pheromone strength.
 
 ```
-            ┌────── agent-a (copy)
-   newcomer │
-       │    ├────── agent-b (design)
-       ▼    │
-     CEO ───┤
-       ▲    ├────── agent-c (dev)
-       │    │
-     mark() └────── agent-d (sales)
+CHAIRMAN (owner)
+    │
+    ├── owns world config (sensitivity, fade rate)
+    ├── appoints CEO
+    │
+    ▼
+   CEO (router) ─────┬────── agent-a (copy)      role: agent
+       │             │
+       │             ├────── agent-b (design)    role: agent
+       │             │
+   newcomer ─────────┤
+       │             ├────── agent-c (dev)       role: agent
+       │             │
+     mark()          └────── agent-d (sales)     role: agent
+       │
+    BOARD (auditors) ←── read-only: highways, toxic, revenue
 ```
 
-- Joining writes one relation: `(group: board, member: newcomer) isa membership`.
+**Governance hierarchy:**
+- **Chairman** — owns the world, sets sensitivity/fade/toxic thresholds, appoints CEO
+- **CEO** — central router, hires/fires agents, tunes paths, reports to board
+- **Board** — read-only auditors, see highways/toxic/revenue, no write access
+- **Agents** — participants, can only mark/warn paths they participate in
+
+- Joining writes one relation: `(group: board, member: newcomer, role: "agent") isa membership`.
 - CEO's outbound paths already exist (one per board member); newcomer→CEO is seeded by the
   first signal (`mark()` at weight 1).
 - After ~5 successful routes through the CEO, newcomer→CEO becomes a highway and subsequent
   discovery queries use the CEO as a first-hop shortcut instead of doing a full tag scan.
+
+**Role-based gates:**
+- Stage 4 (Create team): requires `role: operator` or higher
+- Stage 5 (Deploy): requires `role: operator` or higher  
+- Stage 9 (Sell): requires `scope: group` or `scope: public` on capability
+- Stage 10 (Buy): cross-org discovery requires `scope: public` on path
 
 This is **why Stage 3 is free and sub-second**: no LLM call, no Sui transaction, just one
 membership write and one signal. But it's also the pivot that makes the rest of the funnel

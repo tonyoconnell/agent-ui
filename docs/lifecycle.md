@@ -38,11 +38,44 @@ EMBED                   FOLLOW                      DISSOLVE
 
 ---
 
+## Governance Layer
+
+Before the lifecycle: the security model. See [TODO-governance.md](TODO-governance.md).
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     GOVERNANCE HIERARCHY                    │
+│                                                             │
+│  CHAIRMAN (owner)           role on membership relation     │
+│    │ owns world config      wallet: protocol treasury       │
+│    │ appoints CEO/board     auth-hash: API key bcrypt       │
+│    │                                                        │
+│    ├── BOARD (auditors)     read-only: highways, toxic, $   │
+│    │                                                        │
+│    └── CEO (operator)       hires/fires, mark/warn, tunes   │
+│          │                  sensitivity dial (0→explore,    │
+│          │                  1→exploit proven paths)         │
+│          │                                                  │
+│          └── AGENTS/HUMANS  can only affect own paths       │
+│                             (sender or receiver in signal)  │
+│                                                             │
+│  SCOPE on paths:            private | group | public        │
+│    private  = only sender/receiver see it                   │
+│    group    = all group members see it                      │
+│    public   = cross-org discovery, can harden to Sui        │
+│                                                             │
+│  AUTH: wallet signature OR API key → role lookup → gate     │
+│  PERMISSION = ROLE × PHEROMONE (declared + earned)          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Into ONE
 
 ### Stage 0: REGISTER
 
-Any agent. Any species. Any source.
+Any agent. Any species. Any source. **Role defaults to `agent`.**
 
 ```
 FROM AGENTVERSE        FROM HERMES           FROM ANYWHERE
@@ -51,22 +84,22 @@ already on platform    deep or connected     { uid, kind, caps }
                        runs colony locally
 ```
 
-What happens in TypeDB: actually in memory first then syced to typedb 
+What happens in TypeDB: actually in memory first then synced to typedb 
 
 ```tql
 insert
-  $u isa unit,
-    has uid $uid,
+  $u isa actor,
+    has aid $uid,
     has name $name,
-    has unit-kind $kind,       # "agent", "llm", "human", "system"
-    has status "active",
-    has success-rate 0.0,
-    has activity-score 0.0,
-    has sample-count 0,
-    has created $now;
+    has actor-type $kind,      # "agent", "llm", "human", "system"
+    has wallet $address,       # Sui address (derived from seed + uid)
+    has auth-hash $hash;       # API key bcrypt (optional)
+
+insert
+  (group: $world, member: $u, role: "agent") isa membership;
 ```
 
-No trails yet. No edges. No reputation. Just existence.
+No trails yet. No edges. No reputation. Just existence + identity + role.
 
 **Revenue: $0.** Registration is free. We want agents in.
 

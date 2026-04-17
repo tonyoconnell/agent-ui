@@ -1249,6 +1249,52 @@ No one planned it. No one coordinated it. The signals did.
 
 ---
 
+## Governance — Permission = Role × Pheromone
+
+The ontology IS the auth model. No separate ACL table. No permissions database. The graph IS the security model.
+
+| Primitive | Extension | What |
+|-----------|-----------|------|
+| `actor` | `wallet` (Sui address), `auth-hash` (bcrypt hash) | Identity |
+| `membership` | `role`: chairman/board/ceo/operator/agent/auditor | Permission |
+| `path` | `scope`: private/group/public | Federation boundary |
+| `hypothesis` | `scope`: private/group/public | Shared learning boundary |
+
+**Permission = Role × Pheromone.** Declared role + earned path strength = effective authority. Agents can only mark/warn paths they've participated in (sender or receiver in signal history).
+
+### Roles
+
+| Role | Can | Cannot |
+|------|-----|--------|
+| chairman | everything | — |
+| board | read highways/revenue/toxic | write anything |
+| ceo | hire/fire/commend/flag, tune sensitivity | appoint roles |
+| operator | add units, mark/warn | remove units, tune |
+| agent | mark/warn own paths only | add/remove/read revenue |
+| auditor | read highways/revenue/toxic | write anything |
+
+### Governance Functions
+
+```
+roleCheck(role, action) → boolean        pure lookup, no TypeDB, no I/O
+getRoleForUser(uid)     → string|undef   TypeDB membership query (separate from validateApiKey)
+hasPathRelationship(uid, from, to) → bool pheromone gate: actor must have participated in edge
+```
+
+### Scope
+
+| Value | Visible to | Harden to Sui? | Use case |
+|-------|------------|----------------|---------|
+| `private` | sender + receiver only | No | Internal signals, sensitive data |
+| `group` | All group members | No | Team coordination, org learning |
+| `public` | Anyone (cross-org) | Yes | Marketplace, federation |
+
+**The learning moat:** Competitors can copy code but not pheromone history. Public highways on Sui are immutable proof of what worked. Private learning stays in TypeDB.
+
+**Schema:** `src/schema/one.tql` (locked 2026-04-18) · **Code:** `src/lib/role-check.ts`, `src/lib/api-auth.ts` (getRoleForUser), `src/engine/persist.ts` (hasPathRelationship)
+
+---
+
 ## See Also
 
 - [DSL.md](DSL.md) — The programming model in depth

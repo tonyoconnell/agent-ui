@@ -148,6 +148,7 @@ persist()
   .blocked()                // toxic paths
   .know()                   // promote highways to permanent learning (source="observed")
   .recall(match?)           // query hypotheses (string or {subject?,at?} bi-temporal)
+  .hasPathRelationship(uid, from, to) // pheromone gate: did uid participate in this edge?
   .reveal(uid)              // full MemoryCard: actor+hypotheses+highways+signals+groups+capabilities+frontier
   .forget(uid)              // GDPR erasure: delete all TypeDB records + cascade + fade cleanup
   .frontier(uid)            // unexplored tag clusters: world tags minus actor-touched tags
@@ -159,6 +160,13 @@ persist()
 
 **Signal scope:** `private | group | public` — private signals never surface in group queries or `know()`.
 **Hypothesis source:** `observed | asserted | verified` — asserted confidence capped at 0.30 until corroborated.
+
+**Governance (locked 2026-04-18):** Permission = Role × Pheromone. No ACL table — the graph IS the security model.
+- **Roles on membership:** `chairman` (all) · `board` (read-only) · `ceo` (hire/fire/tune) · `operator` (add/mark) · `agent` (own paths) · `auditor` (read-only)
+- **Identity on actor:** `wallet` (Sui address) · `auth-hash` (bcrypt API key hash)
+- **Scope on path/hypothesis:** `private` (sender+receiver) · `group` (members) · `public` (cross-org, Sui-hardenable)
+- **Key functions:** `roleCheck(role, action)` in `src/lib/role-check.ts` · `getRoleForUser(uid)` in `src/lib/api-auth.ts` · `hasPathRelationship(uid, from, to)` in `src/engine/persist.ts`
+- **Governance UI:** `/ceo` (CEOPanel) · `/board` (BoardPanel, read-only) · `/chairman` (blocked, needs config API)
 
 ### Tags
 Flat labels on skills and units. No hierarchy. Filter with `?tag=build&tag=P0`.
@@ -361,7 +369,7 @@ migrations/     # D1 schema (signals, messages, tasks, sync_log)
 | File | Lines | Purpose |
 |------|------:|---------|
 | `world.ts` | 225 | Unit + World + strength/resistance + queue + ask (4 outcomes) |
-| `persist.ts` | 715 | PersistentWorld = World + TypeDB sync + sandwich + know/recall/reveal/forget/frontier |
+| `persist.ts` | 1038 | PersistentWorld = World + TypeDB sync + sandwich + know/recall/reveal/forget/frontier + hasPathRelationship (pheromone gate) |
 | `loop.ts` | 164 | Growth tick: all 7 loops, chain depth, outcome handling |
 | `boot.ts` | 40 | Hydrate from TypeDB, add units, start tick |
 | `llm.ts` | 50 | LLM as unit: openrouter adapter (+ legacy anthropic/openai) |
@@ -789,6 +797,8 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 | `docs/patterns.md` | Reusable patterns — closed loop, deterministic sandwich, zero returns, toxicity | `world.ts`, `persist.ts`, `.claude/rules/engine.md` |
 | `docs/sdk.md` | SDK contract — register, discover, hire, earn | Public API surface |
 | `docs/world-map-page.md` | BUILD SPEC — /world page design, direct manipulation, personas, visitor mode, 12-component limit | `src/pages/world.astro`, `src/components/WorldMap/*` |
+| `docs/TODO-governance.md` | **GOVERNANCE** — Permission = Role × Pheromone. Schema locked 2026-04-18. Auth implementation + UI + federation. | `src/schema/one.tql`, `src/lib/role-check.ts`, `src/engine/persist.ts` |
+| `docs/auth.md` | Auth implementation — API key flows, role lookup, session management | `src/lib/api-auth.ts`, `src/lib/role-check.ts` |
 
 **Sync rules:**
 - File references in docs must match actual engine filenames
@@ -797,6 +807,7 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 - `skins.tql` and `skins/index.ts` must agree with `metaphors.md` mapping tables
 - `loop.ts` must implement the 7 loops described in `dictionary.md` and `routing.md`
 - `world.tql` functions must match the classification/routing tables in `DSL.md`
+- `role-check.ts` ROLE_PERMISSIONS matrix must match the table in `docs/TODO-governance.md` and `docs/dictionary.md`
 
 ## Nested Context (subdir CLAUDE.md)
 

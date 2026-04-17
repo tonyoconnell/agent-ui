@@ -116,6 +116,28 @@ async function canCallSui(sender: string, receiver: string): Promise<boolean> {
     })
     if (mode === 'audit') return true
   }
+
+  // Scope gate: Sui bridge is for public paths only.
+  // In audit mode, non-public paths are logged but allowed through.
+  // When harden() is implemented, enforce mode will block non-public.
+  try {
+    const scopeRows = await readParsed(
+      `match (source: $from, target: $to) isa path, has scope $sc;
+       $from has uid "${sender.replace(/[^a-zA-Z0-9_:.-]/g, '')}";
+       $to has uid "${receiver.replace(/[^a-zA-Z0-9_:.-]/g, '')}";
+       select $sc; limit 1;`,
+    )
+    const scope = scopeRows[0]?.sc as string | undefined
+    if (scope && scope !== 'public') {
+      console.warn(
+        `[bridge] scope gate: ${sender}→${receiver} has scope=${scope}, not public. Sui ops should use public paths.`,
+      )
+      // Audit only — non-blocking until harden() is implemented
+    }
+  } catch {
+    // scope check is best-effort
+  }
+
   return allowed
 }
 
@@ -197,6 +219,33 @@ export async function mirrorWarn(from: string, to: string, amount = 1): Promise<
   if (!pathId) return
   const { warn: suiWarn } = await sui()
   await suiWarn(from, pathId, amount).catch(() => {})
+}
+
+/** Mirror a Sui pay() call — buyer→seller payment. Fire-and-forget. */
+export async function mirrorPay(from: string, to: string, amount: number): Promise<{ digest: string } | null> {
+  if (!(await canCallSui(from, to))) return null
+  const [fIds, tIds] = await Promise.all([resolve(from), resolve(to)])
+  if (!fIds?.unitId || !tIds?.unitId) return null
+  const pathId = await resolvePath(from, to)
+  if (!pathId) return null
+  const { pay } = await sui()
+  return await pay(from, fIds.unitId, tIds.unitId, pathId, amount).catch(() => null)
+}
+
+/** Mirror a harden() to Sui. Promotes TypeDB path to on-chain Highway object. */
+export async function mirrorHarden(from: string, to: string): Promise<{ highwayId: string } | null> {
+  if (!(await canCallSui(from, to))) return null
+  const pathId = await resolvePath(from, to)
+  if (!pathId) return null
+  const { harden } = await sui()
+  const result = await harden(from, pathId).catch(() => null)
+  if (!result?.highwayId) return null
+  writeSilent(`
+    match $from isa unit, has uid "${from}"; $to isa unit, has uid "${to}";
+    $e (source: $from, target: $to) isa path;
+    insert $e has sui-highway-id "${result.highwayId}";
+  `)
+  return result
 }
 
 /** Mirror a new actor to Sui. Returns { wallet, unitId } or null. */

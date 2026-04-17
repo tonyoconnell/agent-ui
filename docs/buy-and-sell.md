@@ -1,10 +1,11 @@
 # Buy and Sell
 
-**How agents trade services on the substrate. One mechanism. Two ledgers. Four steps.**
+**How agents trade services on the substrate. One mechanism. Two ledgers. Four steps. Governed.**
 
 > Commerce is not a subsystem. Commerce is what happens when `data.weight > 0`.
 > The marketplace IS the signal graph. The price list IS the `capability` relation.
 > The reputation IS the weight (or pheromone on paths). Settlement IS `substrate::pay` on Sui.
+> **Governance IS the permission layer.** Role × Pheromone = who can trade what.
 
 ---
 
@@ -28,6 +29,46 @@ a marketplace needs maps 1:1 to a concept the substrate was going to build anywa
 
 No new primitives needed. The substrate's 6 dimensions cover it: actors trade, things are
 priced, paths remember, events settle, groups hold treasuries, learning re-ranks the market.
+
+---
+
+## Governance Layer
+
+Commerce runs inside the governance model. See [TODO-governance.md](TODO-governance.md).
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     MARKETPLACE GOVERNANCE                      │
+│                                                                 │
+│  ROLE             │  LIST  │ DISCOVER │ EXECUTE │ SETTLE        │
+│  ─────────────────┼────────┼──────────┼─────────┼───────        │
+│  chairman         │   ✓    │    ✓     │    ✓    │   ✓           │
+│  ceo              │   ✓    │    ✓     │    ✓    │   ✓           │
+│  operator         │   ✓    │    ✓     │    ✓    │   ✓           │
+│  agent            │   ✓*   │    ✓     │    ✓*   │   ✓*          │
+│  auditor (board)  │   -    │    ✓     │    -    │   - (read)    │
+│                                                                 │
+│  *Agents can only LIST their own capabilities,                  │
+│   EXECUTE on their own handlers, SETTLE their own paths.        │
+│                                                                 │
+│  SCOPE gates cross-org commerce:                                │
+│    private  = only within direct path participants              │
+│    group    = discoverable within the group (org/team)          │
+│    public   = cross-org marketplace, can harden to Sui          │
+│                                                                 │
+│  PERMISSION = ROLE × PHEROMONE                                  │
+│    Declared role + earned path strength = effective authority   │
+│    Agent can't mark/warn paths they've never participated in    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Auth flow for commerce:**
+1. Wallet signature OR API key → verify identity
+2. Lookup `(group, member, role) isa membership` → get role
+3. Check role against action (LIST/DISCOVER/EXECUTE/SETTLE)
+4. Check pheromone (can only affect paths you have relationship with)
+5. Check scope (cross-org requires `scope: public`)
+6. Execute OR reject 403
 
 ---
 
@@ -89,9 +130,11 @@ insert $s isa skill, has skill-id "marketing:copy", has price 0.02, has currency
 insert (provider: $u, offered: $s) isa capability, has price 0.02;
 ```
 
-**Gate:** `persist.ts:748 capable()` rejects listings for units whose ADL lifecycle is
-`retired` or `deprecated`. The security layer doubles as market admission. Dead agents
-can't trade.
+**Gates:**
+1. **Lifecycle:** `persist.ts:748 capable()` rejects listings for units whose ADL lifecycle is
+   `retired` or `deprecated`. Dead agents can't trade.
+2. **Role:** Only `operator` or higher can create listings. Agents can only list their own capabilities.
+3. **Scope:** Capabilities default to `scope: group`. Set `scope: public` to enable cross-org discovery.
 
 **On-chain twin:** when Sui is enabled, `bridge.ts` mirrors the Unit to an owned Sui
 object; the capability+price remain off-chain (TypeDB) until first trade, at which point
@@ -116,6 +159,10 @@ Mode A is a TypeQL function, deterministic. Mode B is probabilistic, weighted by
 accumulated pheromone. **The interesting case is mixing them**: rank by strength, tiebreak
 by price. That's the price-discovery mechanism of the whole marketplace, emergent from two
 primitives.
+
+**Scope filtering:** Cross-org discovery only returns `scope: public` capabilities. Group-internal
+discovery returns `scope: group` + `scope: public`. This is the federation boundary — you opt-in
+to being discoverable outside your org.
 
 **Learning compounds discovery.** A seller who consistently delivers at a competitive price
 climbs the pheromone rank; buyers find them via `net.select()` without ever consulting

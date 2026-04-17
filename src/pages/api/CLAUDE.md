@@ -14,7 +14,7 @@ These endpoints implement the substrate's nervous system.
 | Route | Method | Verb | Purpose |
 |-------|--------|------|---------|
 | `/api/signal` | POST | send | Emit signal into substrate `{receiver, data: {tags, weight, content}}` |
-| `/api/mark` | POST | mark | Strengthen a path (positive feedback) |
+| `/api/mark` | POST | mark | Strengthen a path; operator+ role check if Authorization header present |
 | `/api/tick` | GET | tick | Run one growth cycle (L1-L7 loops, interval-gated) |
 | `/api/decay` | POST | fade | Trigger asymmetric decay (resistance fades 2x faster) |
 | `/api/decay-cycle` | POST | fade | Decay with before/after stats |
@@ -241,6 +241,12 @@ Organization and team structures.
 | `/api/auth/[...all]` | ALL | Better Auth endpoints |
 | `/api/auth/agent` | POST | Agent authentication |
 | `/api/auth/api-keys` | GET/POST | API key management |
+
+**Governance role checks (2026-04-18):**
+- `POST /api/mark` — optional operator+ role check (fail-open; pass `Authorization: Bearer` to enforce)
+- `POST /api/capabilities/publish` — requires operator+ role
+- Role lookup: `getRoleForUser(uid)` from `src/lib/api-auth.ts` — separate TypeDB call, not cached with key
+- Permission matrix: `src/lib/role-check.ts` — pure `roleCheck(role, action)` lookup
 
 ---
 

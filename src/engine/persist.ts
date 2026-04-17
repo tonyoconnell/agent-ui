@@ -323,6 +323,25 @@ export const world = (): PersistentWorld => {
 
   const path = flow
 
+  const hasPathRelationship = async (uid: string, from: string, to: string): Promise<boolean> => {
+    const safeUid = uid.replace(/[^a-zA-Z0-9_:.-]/g, '')
+    const safeFrom = from.replace(/[^a-zA-Z0-9_:.-]/g, '')
+    const safeTo = to.replace(/[^a-zA-Z0-9_:.-]/g, '')
+    try {
+      const rows = await readParsed(
+        `match $u isa unit, has uid "${safeUid}";
+         $s isa unit, has uid "${safeFrom}";
+         $t isa unit, has uid "${safeTo}";
+         { (sender: $u, receiver: $t) isa signal; } or
+         { (sender: $s, receiver: $u) isa signal; };
+         select $u; limit 1;`,
+      )
+      return rows.length > 0
+    } catch {
+      return false
+    }
+  }
+
   const open = (n = 10) =>
     net.highways(n).map((h) => {
       const [from, to] = h.path.split('→')
@@ -1012,6 +1031,7 @@ export const world = (): PersistentWorld => {
     subscribe,
     tasksFor,
     dissolve,
+    hasPathRelationship,
     sync,
     load,
   }

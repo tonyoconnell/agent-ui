@@ -20,6 +20,7 @@ export interface AuthContext {
   permissions: string[]
   keyId: string
   isValid: boolean
+  role?: string
   scopeGroups?: string[]
   scopeSkills?: string[]
 }
@@ -28,7 +29,15 @@ export interface AuthContext {
 // Avoids O(n) PBKDF2 verification on every request after first auth.
 const KEY_CACHE = new Map<
   string,
-  { user: string; permissions: string[]; keyId: string; expires: number; scopeGroups: string[]; scopeSkills: string[] }
+  {
+    user: string
+    permissions: string[]
+    keyId: string
+    expires: number
+    role?: string
+    scopeGroups: string[]
+    scopeSkills: string[]
+  }
 >()
 const CACHE_TTL_MS = 5 * 60 * 1000
 
@@ -81,6 +90,7 @@ export async function validateApiKey(
       permissions: cached.permissions,
       keyId: cached.keyId,
       isValid: true,
+      role: cached.role,
       scopeGroups: cached.scopeGroups,
       scopeSkills: cached.scopeSkills,
     }
@@ -130,6 +140,7 @@ export async function validateApiKey(
         const nowMs = Date.now()
 
         // Cache — secondary map lets invalidateKeyCache(keyId) find and evict the right entry
+        // Role is looked up separately via getRoleForUser() to keep validateApiKey at 1 TypeDB call
         KEY_CACHE.set(key, { user, permissions, keyId, expires: nowMs + CACHE_TTL_MS, scopeGroups, scopeSkills })
         KEYID_TO_BEARER.set(keyId, key)
 
@@ -179,6 +190,24 @@ export function hasPermission(auth: AuthContext, required: string, group?: strin
   if (!auth.permissions.includes(required)) return false
   if (group && auth.scopeGroups && auth.scopeGroups.length > 0 && !auth.scopeGroups.includes(group)) return false
   return true
+}
+
+/**
+ * Look up governance role for a user uid from membership relation.
+ * Called separately from validateApiKey to keep auth at 1 TypeDB query.
+ */
+export async function getRoleForUser(uid: string): Promise<string | undefined> {
+  const safeUid = uid.replace(/[^a-zA-Z0-9_:.-]/g, '')
+  try {
+    const rows = await readParsed(
+      `match $u isa unit, has uid "${safeUid}";
+       (member: $u, group: $g) isa membership, has role $r;
+       select $r; limit 1;`,
+    )
+    return rows[0]?.r as string | undefined
+  } catch {
+    return undefined
+  }
 }
 
 /**

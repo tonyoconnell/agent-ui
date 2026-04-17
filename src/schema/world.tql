@@ -70,6 +70,7 @@ entity unit,
     owns alias-signal,            # skin-specific: signal metaphor
     owns unit-kind,               # "human", "agent", "llm", "system"
     owns wallet,                  # Sui address
+    owns auth-hash,               # bcrypt hash of API key (never raw)
     owns sui-unit-id,             # Sui Unit object ID (0x...)
     owns status,                  # "active" | "proven" | "at-risk" (inferred)
     owns balance,
@@ -188,7 +189,8 @@ relation path,
     owns sui-highway-id,          # Sui Highway object ID (0x...) — frozen after harden()
     owns hardened-at,             # datetime when harden() was called
     owns peak-strength,           # highest strength ever reached
-    owns path-status;             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
+    owns path-status,             # INFERRED: "highway" | "fresh" | "fading" | "toxic"
+    owns scope;                   # private/group/public — federation boundary
 
 # Unit can do skill (at a price)
 relation capability,
@@ -200,7 +202,8 @@ relation capability,
 relation membership,
     relates group,
     relates member,
-    owns joined-at;
+    owns joined-at,
+    owns role;                    # chairman/board/ceo/operator/agent/auditor
 
 
 # =============================================================================
@@ -230,6 +233,7 @@ entity hypothesis,
     owns p-value,
     owns action-ready,            # INFERRED
     owns source,                  # "observed" | "asserted" | "verified"
+    owns scope,                   # private/group/public — shared learning boundary
     owns observed-at,             # when the substrate learned it
     owns valid-from,              # when the fact became true
     owns valid-until;             # when it stopped being true (optional)
@@ -405,8 +409,10 @@ attribute contribution-type, value string;
 attribute frontier-type, value string;
 attribute objective-type, value string;
 attribute source, value string;           # hypothesis: "observed" | "asserted" | "verified"
-attribute scope, value string;            # signal: "private" | "group" | "public"
+attribute scope, value string;            # signal/path/hypothesis: "private" | "group" | "public"
 attribute wallet, value string;
+attribute auth-hash, value string;        # bcrypt hash of API key (never raw)
+attribute role, value string;             # chairman/board/ceo/operator/agent/auditor
 attribute sui-unit-id, value string;
 attribute sui-path-id, value string;
 attribute sui-highway-id, value string;
@@ -606,6 +612,28 @@ fun cheapest_provider($skill: skill) -> unit:
     match (provider: $u, offered: $skill) isa capability, has price $p;
     sort $p asc; limit 1;
     return $u;
+
+# Scope-aware routing — same as suggest_route/cheapest_provider but filters by path scope
+fun suggest_route_scoped($from: unit, $skill: skill, $scope: string) -> { uid, strength }:
+    match $from isa unit; $skill isa skill;
+          (source: $from, target: $to) isa path, has strength $s, has scope $scope;
+          (provider: $to, offered: $skill) isa capability;
+          $to has uid $id; $s >= 5.0;
+    sort $s desc; limit 5;
+    return { $id, $s };
+
+fun cheapest_provider_scoped($skill: skill, $scope: string) -> unit:
+    match (provider: $u, offered: $skill) isa capability, has price $p;
+          (source: $u) isa path, has scope $scope;
+    sort $p asc; limit 1;
+    return $u;
+
+# Federation: only return public-scoped paths that qualify as highways
+fun highways_public($threshold: double) -> { from_uid, to_uid, strength }:
+    match (source: $from, target: $to) isa path, has strength $s, has scope "public";
+          $from has uid $fid; $to has uid $tid; $s >= $threshold;
+    sort $s desc; limit 20;
+    return { $fid, $tid, $s };
 
 fun suggest_route($from: unit, $skill: skill) -> { uid, strength }:
     match $from isa unit; $skill isa skill;
