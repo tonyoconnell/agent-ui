@@ -307,21 +307,12 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       // Timeout: 120s to allow full W1→W4 chain (4 LLM calls)
       const outcome = await net.ask(taskSignal, 'loop', 120_000)
 
-      if (outcome.result !== undefined) {
+      const checkoff = await selfCheckoff(taskId, outcome)
+      if (checkoff.ok) {
         chainDepth++
         net.mark(edge, Math.min(chainDepth, CHAIN_CAP))
-        // Mark wave transitions
-        const wave = (taskSignal.data as { wave?: string })?.wave || 'W3'
-        const nextWave = ({ W1: 'W2', W2: 'W3', W3: 'W4', W4: 'W1' } as Record<string, string>)[wave]
-        net.mark(`wave-runner:${wave}→wave-runner:${nextWave}`, 1)
         previousTarget = 'builder'
         result.success = true
-        // Mark task done in TypeDB
-        writeSilent(`
-          match $t isa task, has task-id "${taskId}", has done $d, has task-status $st;
-          delete $d of $t; delete $st of $t;
-          insert $t has done true, has task-status "done";
-        `)
         // L6: Record which context docs led to success as a testable hypothesis
         if (contextDocs?.length) {
           const contextKey = contextDocs.slice(0, 5).join(',')
@@ -333,12 +324,12 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
             0.5,
           ).catch(() => {})
         }
-      } else if (outcome.dissolved) {
+      } else if (checkoff.outcome === 'dissolved') {
         // No handler — task is queued for external execution (CLI /work loop)
         net.enqueue(taskSignal)
         result.success = null
       } else {
-        net.warn(edge, 0.5)
+        net.warn(edge, checkoff.outcome === 'timeout' ? 0 : 0.5)
         result.success = false
         // Track repeated failures → auto-hypothesize at threshold
         const failCount = (taskFailures.get(taskId) || 0) + 1
