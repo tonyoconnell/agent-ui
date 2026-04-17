@@ -12,6 +12,16 @@ vi.mock('@/lib/typedb', () => ({
   writeSilent: vi.fn().mockResolvedValue(undefined),
 }))
 
+// Mock skill-audit so resolveContext tests don't hit TypeDB
+vi.mock('./skill-audit', () => ({
+  auditSkills: vi.fn().mockResolvedValue({
+    tags: [],
+    capable: [],
+    recommendation: 'acquire',
+    acquisition: { kind: 'learn', suggestedTaskId: 'acquire-unknown', rationale: 'mock' },
+  }),
+}))
+
 import {
   CANONICAL,
   contextForSkill,
@@ -22,6 +32,9 @@ import {
   readDoc,
   resolveContext,
 } from './context'
+import { auditSkills } from './skill-audit'
+
+const mockAuditSkills = vi.mocked(auditSkills)
 
 // ─── CANONICAL mapping ───────────────────────────────────────────────────────
 
@@ -217,6 +230,7 @@ describe('resolveContext', () => {
     expect(ctx.docs).toContain('DSL')
     expect(ctx.hypotheses).toEqual([])
     expect(ctx.highways).toEqual([])
+    expect(ctx.skillAudit).toBeDefined()
   })
 
   it('passes exit condition through', async () => {
@@ -235,5 +249,31 @@ describe('resolveContext', () => {
     const ctx = await resolveContext({ tags: ['engine'] }, mockNet)
     expect(ctx.highways.length).toBe(1)
     expect(ctx.highways[0].path).toContain('engine')
+  })
+
+  it('passes tags + requesterUid to auditSkills', async () => {
+    await resolveContext({ tags: ['copy', 'creative'], requesterUid: 'marketing:cmo' })
+    expect(mockAuditSkills).toHaveBeenCalledWith(['copy', 'creative'], { requesterUid: 'marketing:cmo' })
+  })
+
+  it('skillAudit recommendation surfaces in returned context', async () => {
+    const candidate = {
+      providerUid: 'donal',
+      skillId: 'copy-skill',
+      skillName: 'Copy',
+      price: 0.02,
+      pathStrength: 80,
+      tagOverlap: 1,
+      matchingTags: ['copy'],
+    }
+    mockAuditSkills.mockResolvedValueOnce({
+      tags: ['copy'],
+      capable: [candidate],
+      recommendation: 'ready',
+      best: candidate,
+    })
+    const ctx = await resolveContext({ tags: ['copy'] })
+    expect(ctx.skillAudit.recommendation).toBe('ready')
+    expect(ctx.skillAudit.best?.providerUid).toBe('donal')
   })
 })
