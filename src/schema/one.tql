@@ -40,7 +40,8 @@ entity actor,
     plays capability:provider,
     plays membership:member,
     plays signal:sender,
-    plays signal:receiver;
+    plays signal:receiver,
+    plays wallet-link:substrate;
 
 # 3. THINGS — what exists
 entity thing,
@@ -160,6 +161,17 @@ attribute role, value string;             # chairman/board/ceo/operator/agent/au
 attribute wallet, value string;           # Sui address (0x...)
 attribute auth-hash, value string;        # bcrypt hash of API key
 attribute scope, value string;            # private/group/public
+
+# WALLET INTEGRATION — links substrate actor to self-custodial wallets from /u
+attribute wallet-address, value string;   # external wallet address (chain-specific)
+
+entity ext-wallet,
+    owns wallet-address @key,
+    plays wallet-link:external;
+
+relation wallet-link,
+    relates substrate,
+    relates external;
 
 # =============================================================================
 # 6 dimensions. 4 entities. 6 relations. 40 attributes. ONE.
