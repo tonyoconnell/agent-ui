@@ -250,44 +250,44 @@ function AgentMemory({ agentId }: { agentId: string }) {
   const maxStrength = memory ? Math.max(1, ...memory.highways.map((h) => h.strength)) : 1
 
   const confidenceBadge = (conf: number) => {
-    if (conf >= 0.85) return <Badge className="text-[10px] bg-emerald-900/60 text-emerald-300 border-emerald-700/50 hover:bg-emerald-900/60">confirmed</Badge>
-    if (conf >= 0.5) return <Badge className="text-[10px] bg-amber-900/60 text-amber-300 border-amber-700/50 hover:bg-amber-900/60">testing</Badge>
-    return <Badge variant="secondary" className="text-[10px]">weak</Badge>
+    if (conf >= 0.85)
+      return (
+        <Badge className="text-[10px] bg-emerald-900/60 text-emerald-300 border-emerald-700/50 hover:bg-emerald-900/60">
+          confirmed
+        </Badge>
+      )
+    if (conf >= 0.5)
+      return (
+        <Badge className="text-[10px] bg-amber-900/60 text-amber-300 border-amber-700/50 hover:bg-amber-900/60">
+          testing
+        </Badge>
+      )
+    return (
+      <Badge variant="secondary" className="text-[10px]">
+        weak
+      </Badge>
+    )
   }
 
   return (
     <Card className="mb-6">
       {/* Header — always visible, acts as toggle */}
-      <CardHeader
-        className="pb-3 cursor-pointer select-none"
-        onClick={toggle}
-      >
+      <CardHeader className="pb-3 cursor-pointer select-none" onClick={toggle}>
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm">Memory</CardTitle>
           <span className="text-muted-foreground text-xs">{open ? '▲ collapse' : '▼ expand'}</span>
         </div>
-        {!open && (
-          <CardDescription className="text-xs">
-            What the substrate remembers about this agent
-          </CardDescription>
-        )}
+        {!open && <CardDescription className="text-xs">What the substrate remembers about this agent</CardDescription>}
       </CardHeader>
 
       {open && (
         <CardContent className="pt-0">
-          {memLoading && (
-            <div className="py-6 text-center text-sm text-muted-foreground">Loading memory...</div>
-          )}
+          {memLoading && <div className="py-6 text-center text-sm text-muted-foreground">Loading memory...</div>}
 
-          {memError && (
-            <div className="py-6 text-center text-sm text-muted-foreground/60">
-              Memory unavailable
-            </div>
-          )}
+          {memError && <div className="py-6 text-center text-sm text-muted-foreground/60">Memory unavailable</div>}
 
           {memory && !memLoading && (
             <div className="space-y-6">
-
               {/* Learned Facts */}
               <div>
                 <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
@@ -337,9 +337,7 @@ function AgentMemory({ agentId }: { agentId: string }) {
                           <span className="font-mono text-muted-foreground">
                             → <span className="text-foreground">{hw.to}</span>
                           </span>
-                          <span className="text-muted-foreground font-mono">
-                            strength: {hw.strength.toFixed(1)}
-                          </span>
+                          <span className="text-muted-foreground font-mono">strength: {hw.strength.toFixed(1)}</span>
                         </div>
                         <div className="h-1 bg-secondary rounded-full overflow-hidden">
                           <div
@@ -370,7 +368,6 @@ function AgentMemory({ agentId }: { agentId: string }) {
                   </div>
                 )}
               </div>
-
             </div>
           )}
         </CardContent>
@@ -451,9 +448,7 @@ function ConversationHistory({ agentId }: { agentId: string }) {
           <CardTitle className="text-sm">Past Conversations</CardTitle>
           <span className="text-muted-foreground text-xs">{open ? '▲ collapse' : '▼ expand'}</span>
         </div>
-        {!open && (
-          <CardDescription className="text-xs">Summaries of past sessions with this agent</CardDescription>
-        )}
+        {!open && <CardDescription className="text-xs">Summaries of past sessions with this agent</CardDescription>}
       </CardHeader>
 
       {open && (
@@ -466,47 +461,41 @@ function ConversationHistory({ agentId }: { agentId: string }) {
             <div className="py-6 text-center text-sm text-muted-foreground/60">Conversations unavailable</div>
           )}
 
-          {conversations !== null && !convLoading && (
-            <>
-              {conversations.length === 0 ? (
-                <p className="text-sm text-muted-foreground/60 py-4 text-center">
-                  No past conversations recorded
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {conversations.map((conv, i) => (
-                    <div
-                      key={`conv-${i}-${conv.date}`}
-                      className="flex items-start gap-4 p-3 rounded-lg bg-secondary/40 border"
-                    >
-                      {/* Date column */}
-                      <div className="shrink-0 w-20 text-right">
-                        <p className="text-[11px] text-muted-foreground leading-tight">
-                          {formatDate(conv.date)}
-                        </p>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="shrink-0 w-px self-stretch bg-border" />
-
-                      {/* Summary column */}
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <p className="text-sm leading-relaxed">{conv.summary}</p>
-                      </div>
-
-                      {/* Confidence badge */}
-                      <div className="shrink-0 flex flex-col items-end gap-1">
-                        {confidenceBadge(conv.confidence)}
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          {(conv.confidence * 100).toFixed(0)}%
-                        </span>
-                      </div>
+          {conversations !== null &&
+            !convLoading &&
+            (conversations.length === 0 ? (
+              <p className="text-sm text-muted-foreground/60 py-4 text-center">No past conversations recorded</p>
+            ) : (
+              <div className="space-y-3">
+                {conversations.map((conv, i) => (
+                  <div
+                    key={`conv-${i}-${conv.date}`}
+                    className="flex items-start gap-4 p-3 rounded-lg bg-secondary/40 border"
+                  >
+                    {/* Date column */}
+                    <div className="shrink-0 w-20 text-right">
+                      <p className="text-[11px] text-muted-foreground leading-tight">{formatDate(conv.date)}</p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+
+                    {/* Divider */}
+                    <div className="shrink-0 w-px self-stretch bg-border" />
+
+                    {/* Summary column */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="text-sm leading-relaxed">{conv.summary}</p>
+                    </div>
+
+                    {/* Confidence badge */}
+                    <div className="shrink-0 flex flex-col items-end gap-1">
+                      {confidenceBadge(conv.confidence)}
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        {(conv.confidence * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
         </CardContent>
       )}
     </Card>

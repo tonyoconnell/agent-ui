@@ -17,6 +17,9 @@ export type CapabilityListing = {
   sellerName: string
   successRate: number
   tags: string[]
+  strength: number
+  resistance: number
+  weight: number
 }
 
 export const GET: APIRoute = async ({ url }) => {
@@ -24,14 +27,54 @@ export const GET: APIRoute = async ({ url }) => {
     const tag = url.searchParams.get('tag')
     const maxPrice = url.searchParams.getAll('maxPrice')[0]
 
-    // 1. Core: capabilities with skill name + price + provider uid + success-rate
+    // 1. Capabilities + skill info only — fast, narrow query
     const capRows = await readParsed(`
       match
         (provider: $u, offered: $s) isa capability, has price $p;
         $s isa skill, has skill-id $sid, has name $sname;
-        $u has uid $uid, has name $uname, has success-rate $sr;
-      select $sid, $sname, $p, $uid, $uname, $sr;
-    `)
+        $u has uid $uid;
+      select $sid, $sname, $p, $uid;
+    `).catch(() => [])
+
+    // 1a. Unit info (name + success-rate) — separate query, fast independently
+    const unitRows = await readParsed(`
+      match
+        $u isa unit, has uid $uid, has name $uname;
+        try { $u has success-rate $sr; };
+      select $uid, $uname, $sr;
+    `).catch(async () =>
+      // Fallback without try{} for schemas that don't support it
+      readParsed(`
+        match
+          $u isa unit, has uid $uid, has name $uname, has success-rate $sr;
+        select $uid, $uname, $sr;
+      `).catch(() => []),
+    )
+
+    const unitMap = new Map<string, { name: string; successRate: number }>()
+    for (const r of unitRows) {
+      unitMap.set(r.uid as string, {
+        name: (r.uname as string) ?? '',
+        successRate: (r.sr as number) ?? 0.5,
+      })
+    }
+
+    // 1b. Path pheromone (strength/resistance) for each seller
+    const pathRows = await readParsed(`
+      match
+        (source: $from, target: $to) isa path, has strength $s, has resistance $r;
+        $to has uid $uid;
+      select $uid, $s, $r;
+    `).catch(() => [])
+
+    const pheromoneMap = new Map<string, { strength: number; resistance: number }>()
+    for (const r of pathRows) {
+      const uid = r.uid as string
+      const existing = pheromoneMap.get(uid) ?? { strength: 0, resistance: 0 }
+      existing.strength += r.s as number
+      existing.resistance += r.r as number
+      pheromoneMap.set(uid, existing)
+    }
 
     if (!capRows.length) {
       return Response.json(
@@ -56,20 +99,31 @@ export const GET: APIRoute = async ({ url }) => {
       tagMap.get(sid)!.push(r.t as string)
     }
 
-    // 3. Build listings
+    // 3. Build listings with pheromone
+    const SENSITIVITY = 0.7
     let capabilities: CapabilityListing[] = capRows.map((r) => {
       const price = r.p as number
+      const uid = r.uid as string
+      const pheromone = pheromoneMap.get(uid) ?? { strength: 0, resistance: 0 }
+      const unit = unitMap.get(uid) ?? { name: uid, successRate: 0.5 }
+      const weight = 1 + Math.max(0, pheromone.strength - pheromone.resistance) * SENSITIVITY
       return {
         skillId: r.sid as string,
         name: r.sname as string,
         price,
         pricingMode: price > 0 ? 'static' : 'free',
-        sellerUid: r.uid as string,
-        sellerName: r.uname as string,
-        successRate: r.sr as number,
+        sellerUid: uid,
+        sellerName: unit.name,
+        successRate: unit.successRate,
         tags: tagMap.get(r.sid as string) ?? [],
+        strength: pheromone.strength,
+        resistance: pheromone.resistance,
+        weight,
       }
     })
+
+    // Sort by weight (pheromone ranking) by default
+    capabilities.sort((a, b) => b.weight - a.weight)
 
     // Optional server-side filters
     if (tag) {

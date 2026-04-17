@@ -1,10 +1,10 @@
 ---
 title: TODO Marketplace Experience
 type: roadmap
-version: 1.0.0
-priority: Wire → Prove → Grow
-total_tasks: 28
-completed: 0
+version: 1.1.0
+priority: Wire → Prove → Grow → Refine
+total_tasks: 39
+completed: 28
 status: ACTIVE
 ---
 
@@ -36,9 +36,15 @@ status: ACTIVE
 > [ui.md](../.claude/rules/ui.md) — every onClick MUST `emitClick('ui:marketplace:…')`,
 > [react.md](../.claude/rules/react.md) — React 19 patterns (Actions, useOptimistic, useTransition).
 >
-> **Shape:** 3 cycles × 4 waves. Cycle exits at rubric ≥ 0.65 across all four
+> **Shape:** 4 cycles × 4 waves. Cycle exits at rubric ≥ 0.65 across all four
 > dimensions. Non-duplication rule: backend schema changes belong in
 > `TODO-marketplace.md`; this TODO owns only the **view + UX surface**.
+>
+> **Cycle 4 (REFINE) — audience split:** the 10-stage substrate is truth;
+> the 3-stage user rail is legibility. Humans get simplify + speed
+> (collapsed stages, optimistic UI, plain-English reputation). Agents
+> unaffected — they read `/api/marketplace` and emit `/api/signal` exactly
+> as before. Same pheromone, two affordances.
 >
 > **Schema:** Tasks map to `world.tql` dim 3b — `task` entity with `task-wave`,
 > `task-context` (doc keys: lifecycle, buy-and-sell, rubrics), `blocks`. Each
@@ -155,6 +161,78 @@ EXIT:        Panel loads < 10ms from KV (in-process cache hit); empty state
 SKILL:       marketplace-ui:highways
 ```
 
+#### Cycle 4 — REFINE (simplify + speed, two audiences)
+
+```
+DELIVERABLE: 3-stage user rail (substrate preserved)
+PATH:        src/components/Marketplace.tsx (LifecycleRail rework)
+             src/components/marketplace/useTradeLifecycle.ts (visibleStage selector)
+GOAL:        Humans see BROWSE → TRADE → DONE. Reducer still runs all 10 stages;
+             `visibleStage(state)` maps 10→3. ESCROW / VERIFY surface as hover
+             tooltip on the TRADE segment; DISPUTE is the only failure-only
+             4th badge, shown only when state transitions there.
+CONSUMERS:   Humans (decision latency ↓). Agents unaffected — state machine,
+             signal shape, and API surfaces unchanged.
+RUBRIC:      fit=0.40 form=0.25 truth=0.20 taste=0.15
+EXIT:        Rail renders 3 labels in normal flow, 4th only on DISPUTE;
+             TradeStage type unchanged; useTradeLifecycle.test.ts (14 tests)
+             still green; hover on TRADE reveals sub-stage; `grep -c
+             "BROWSE\|TRADE\|DONE" Marketplace.tsx` ≥ 3
+SKILL:       marketplace-ui:rail-collapse
+
+DELIVERABLE: Optimistic offer flow
+PATH:        src/components/marketplace/OfferPanel.tsx (useOptimistic)
+             src/components/marketplace/useTradeLifecycle.ts (commit/rollback)
+GOAL:        Click "Offer" → drawer shows "offered" state immediately; reconciles
+             on /api/signal ack. On network failure: rollback via dispatch({type:
+             'RESET'}) + toast. Drops perceived latency from ~200-400ms POST
+             roundtrip to 0ms. Uses React 19 `useOptimistic` (already validated
+             pattern in this codebase — see react.md).
+CONSUMERS:   Humans. Agents bypass (direct POST). Failure path exercises DISPUTE.
+RUBRIC:      fit=0.30 form=0.20 truth=0.35 taste=0.15
+EXIT:        useOptimistic wraps offer submit; rollback path covered by new
+             OfferPanel.test.tsx; network-throttled demo (Chrome devtools
+             "Slow 3G") shows UI commit < 50ms; double-submit guarded by
+             `useTransition` pending flag
+SKILL:       marketplace-ui:optimistic-offer
+
+DELIVERABLE: WebSocket marketplace consumer (no new backend)
+PATH:        src/hooks/useMarketplaceSocket.ts (new)
+             src/components/Marketplace.tsx (live strength bars)
+             src/components/marketplace/MarketplaceHighways.tsx (live rows)
+GOAL:        Subscribe to existing WsHub DO broadcasts filtered to
+             tags ∋ "marketplace". Reuse the `useTaskWebSocket` pattern
+             verbatim — only the message-type filter differs. Strength bars
+             + highways update live on mark/warn. Polling fallback (5s)
+             preserved from base hook. No changes to Gateway or /broadcast.
+CONSUMERS:   Everyone on /marketplace. Makes "revenue is pheromone" legible
+             live — a settled trade moves the bar within 1s.
+RUBRIC:      fit=0.30 form=0.25 truth=0.35 taste=0.10
+EXIT:        Hook returns typed messages; curl `/api/signal` with marketplace
+             tag → strength bar animates within 1s in dev; `useDeferredValue`
+             debounces burst updates; no regression in 11/11 ws-integration
+             tests; 45s heartbeat + exp-backoff reconnect inherited intact
+SKILL:       marketplace-ui:live-socket
+
+DELIVERABLE: Plain-English reputation
+PATH:        src/components/Marketplace.tsx (ServiceCard copy)
+             src/components/marketplace/ReceiptPanel.tsx (provider line)
+GOAL:        Replace the raw strength-bar label with social proof derived
+             from existing fields: "{pct}% settle · {avg}s avg · {n} trades".
+             settleRate = 1 - resistance/(strength+resistance). avgSec =
+             fallback "—" until we have per-signal timing (deferred). n =
+             traversals. Bar stays; label changes. Humans read reputation,
+             not pheromone math. Agents still see raw strength/resistance
+             from /api/marketplace unchanged.
+CONSUMERS:   Humans. Screen readers get raw numbers via `aria-describedby`.
+RUBRIC:      fit=0.35 form=0.20 truth=0.30 taste=0.15
+EXIT:        Three derived fields computed in-component (zero new API
+             fields); a11y check: raw numbers reachable via `aria-describedby`
+             stub; dead-name audit: no "pheromone" / "scent" user-facing
+             copy (metaphor stays in docs + TypeDB, never leaks to UI)
+SKILL:       marketplace-ui:plain-reputation
+```
+
 ---
 
 ## Routing
@@ -268,6 +346,17 @@ Agents see prices and pheromone; humans see the same graph with human affordance
 | mx.3.7 | 3 | W3 | sonnet | edit,ui | mx.3.3,mx.3.4 | Wire both into Marketplace.tsx grid |
 | mx.3.8 | 3 | W4 | sonnet | verify,rubric | mx.3.5..7 | `npm run verify` + rubric ≥ 0.65 |
 | mx.3.9 | 3 | W4 | sonnet | verify,e2e | mx.3.5..7 | Manual trade: list→discover→offer→settle→receipt, no console errors |
+| mx.4.1 | 4 | W1 | haiku | recon,ui | mx.3.9 | LifecycleRail + TradeStage current shape captured |
+| mx.4.2 | 4 | W1 | haiku | recon,react19 | mx.3.9 | useOptimistic precedent in codebase (grep + React 19 pattern) |
+| mx.4.3 | 4 | W1 | haiku | recon,ws | mx.3.9 | `useTaskWebSocket` hook + message types + DO filter surface captured |
+| mx.4.4 | 4 | W1 | haiku | recon,copy | mx.3.9 | ServiceCard strength-label + a11y pattern captured; dead-name audit |
+| mx.4.5 | 4 | W2 | opus | decide,ux | mx.4.1..4 | Folded spec: 10→3 mapping, optimistic commit/rollback, WS filter, copy schema |
+| mx.4.6 | 4 | W3 | sonnet | edit,ui | mx.4.5 | `visibleStage()` selector + 3-stage rail (hover reveals sub-stage) |
+| mx.4.7 | 4 | W3 | sonnet | edit,ui | mx.4.5 | OfferPanel `useOptimistic` + rollback + `useTransition` guard |
+| mx.4.8 | 4 | W3 | sonnet | edit,hook | mx.4.5 | `useMarketplaceSocket.ts` consumer (filters existing WsHub stream) |
+| mx.4.9 | 4 | W3 | sonnet | edit,ui | mx.4.8 | Wire live strength bars in Marketplace.tsx + MarketplaceHighways |
+| mx.4.10 | 4 | W3 | sonnet | edit,copy | mx.4.5 | Plain-English reputation labels + `aria-describedby` raw-number stub |
+| mx.4.11 | 4 | W4 | sonnet | verify,rubric | mx.4.6..10 | `npm run verify` green + rubric ≥ 0.65 across 4 dims |
 
 Each task row creates a matching TypeDB `skill` under `unit:marketplace-ui`.
 On `/close mx.N.M`, path strength accumulates; future `/do` runs prefer the
@@ -292,6 +381,11 @@ proven persona × tag combos.
   - [x] W2 — Decide (Opus, folded) — 2026-04-16 · artifact: [TODO-marketplace-experience-c3-w2.md](TODO-marketplace-experience-c3-w2.md) · 6 decisions · minimal Sui change: add `viewEscrow()` read-only helper · skip WS hook (scope creep); endpoint stays untouched per non-duplication rule · fan-out = 4 W3 agents
   - [x] W3 — Edits (Sonnet × 4, parallel) — 2026-04-16 · E1 `src/lib/sui.ts` +35 LOC `viewEscrow()` helper + `EscrowView` interface (uses existing `getClient()` lazy singleton, not a bare `client` const — agent adapted correctly) · E2 `EscrowBadge.tsx` NEW (2210 B, 4 render states: pending / loading / not-found / live) · E3 `MarketplaceHighways.tsx` NEW (2953 B, fetch-on-mount, `<3` empty state, row-click emits `ui:marketplace:highway-select`) · E4 wiring: Marketplace.tsx renders `<MarketplaceHighways />` after Top Earners, ReceiptPanel renders `<EscrowBadge escrowObjectId={state.receiptId} />` above the dl grid
   - [x] W4 — Verify — 2026-04-16 · biome clean (3 auto-fixes) · vitest **962/962 non-skipped pass** · rubric: fit 0.90 · form 0.85 · truth 0.75 · taste 0.85 · avg 0.834 · gate ≥ 0.65 met on all dims
+- [ ] **Cycle 4: REFINE** — simplify + speed for humans, substrate untouched for agents
+  - [ ] W1 — Recon (Haiku × 4, parallel) — rail shape + useOptimistic precedent + WS hook filter + reputation copy/a11y
+  - [ ] W2 — Decide (Opus, folded) — 10→3 mapping · optimistic commit/rollback contract · WS message-type filter · derived-field schema · dead-name audit
+  - [ ] W3 — Edits (Sonnet × 5, parallel) — `visibleStage` + rail · OfferPanel optimistic · `useMarketplaceSocket` · live bars wiring · plain-English labels
+  - [ ] W4 — Verify — biome · tsc · vitest (existing 962 + new OfferPanel optimistic tests) · rubric × 4 · **decision-latency probe:** network-throttled click-to-commit < 50ms (folds into `truth`)
 
 ---
 

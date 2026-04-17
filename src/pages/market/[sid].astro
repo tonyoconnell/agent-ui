@@ -6,6 +6,7 @@
  * Shows: description, pricing, seller info, recent bounties, hire button.
  */
 import Layout from '@/layouts/Layout.astro'
+import { HireButton } from '@/components/market/HireButton'
 import { readParsed } from '@/lib/typedb'
 
 export const prerender = false
@@ -82,14 +83,17 @@ if (!skill) {
         </div>
       </div>
 
-      <!-- Actions -->
+      <!-- Primary action: Hire (interactive pay flow) -->
+      <HireButton
+        client:load
+        skillId={skill.skillId}
+        sellerUid={skill.sellerUid}
+        sellerName={skill.sellerName}
+        price={skill.price}
+      />
+
+      <!-- Secondary actions -->
       <div class="flex gap-3">
-        <a
-          href={`/api/market/bundle?skill=${sid}`}
-          class="rounded bg-indigo-600 hover:bg-indigo-500 px-5 py-2 text-sm text-white transition-colors"
-        >
-          Hire
-        </a>
         <a
           href={`/market?bounty=${sid}`}
           class="rounded border border-[#252538] hover:border-indigo-500/50 px-5 py-2 text-sm text-slate-300 transition-colors"
