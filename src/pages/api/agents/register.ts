@@ -73,7 +73,7 @@ export const POST: APIRoute = async ({ request }) => {
         return Response.json({ error: 'wallet-link rate limit exceeded (10/day per actor)' }, { status: 429 })
       }
       // Insert ext-wallet entity + wallet-link relation
-      const chain = body.chain || 'sui'
+      const _chain = body.chain || 'sui'
       await writeSilent(`
         match
           $a isa actor, has aid "${body.uid}";

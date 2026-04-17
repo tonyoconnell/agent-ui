@@ -566,6 +566,7 @@ export function WalletsPage() {
             <Button
               className="w-full mt-4"
               onClick={() => {
+                emitClick('ui:wallet:copy-address')
                 navigator.clipboard.writeText(selectedWallet?.address || '')
               }}
             >

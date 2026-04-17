@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { emitClick } from '@/lib/ui-signal'
 import { BottomSheet, BottomSheetContent, BottomSheetFooter } from '../BottomSheet'
 import { useResponsive } from '../hooks/useResponsive'
 

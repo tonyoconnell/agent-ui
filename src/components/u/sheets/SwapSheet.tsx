@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { emitClick } from '@/lib/ui-signal'
 import { BottomSheet, BottomSheetContent, BottomSheetFooter } from '../BottomSheet'
 
 interface Chain {
