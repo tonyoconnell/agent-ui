@@ -8,6 +8,9 @@ export type RoleAction =
   | 'read_revenue'
   | 'read_toxic'
   | 'appoint_role'
+  | 'read_memory'
+  | 'delete_memory'
+  | 'discover'
 
 export type GovernanceRole = 'chairman' | 'board' | 'ceo' | 'operator' | 'agent' | 'auditor'
 
@@ -22,8 +25,11 @@ const PERMISSIONS: Record<GovernanceRole, Partial<Record<RoleAction, true>>> = {
     read_revenue: true,
     read_toxic: true,
     appoint_role: true,
+    read_memory: true,
+    delete_memory: true,
+    discover: true,
   },
-  board: { read_highways: true, read_revenue: true, read_toxic: true },
+  board: { read_highways: true, read_revenue: true, read_toxic: true, read_memory: true, discover: true },
   ceo: {
     add_unit: true,
     remove_unit: true,
@@ -33,10 +39,22 @@ const PERMISSIONS: Record<GovernanceRole, Partial<Record<RoleAction, true>>> = {
     read_highways: true,
     read_revenue: true,
     read_toxic: true,
+    read_memory: true,
+    delete_memory: true,
+    discover: true,
   },
-  operator: { add_unit: true, mark: true, warn: true, read_highways: true, read_toxic: true },
-  agent: { mark: true, warn: true },
-  auditor: { read_highways: true, read_revenue: true, read_toxic: true },
+  operator: {
+    add_unit: true,
+    mark: true,
+    warn: true,
+    read_highways: true,
+    read_toxic: true,
+    read_memory: true,
+    delete_memory: true,
+    discover: true,
+  },
+  agent: { mark: true, warn: true, discover: true },
+  auditor: { read_highways: true, read_revenue: true, read_toxic: true, read_memory: true, discover: true },
 }
 
 export function roleCheck(role: string, action: RoleAction): boolean {

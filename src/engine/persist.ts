@@ -94,7 +94,10 @@ export interface PersistentWorld extends World {
   proven: () => { id: string; strength: number }[]
   confidence: (type: string) => number
   know: () => Promise<Insight[]>
-  recall: (match?: string | { subject?: string; at?: string }, limit?: number) => Promise<Insight[]>
+  recall: (
+    match?: string | { subject?: string; at?: string; federated?: boolean },
+    limit?: number,
+  ) => Promise<Insight[]>
   reveal: (uid: string) => Promise<MemoryCard>
   forget: (uid: string) => Promise<void>
   frontier: (uid: string) => Promise<string[]>
@@ -506,12 +509,13 @@ export const world = (): PersistentWorld => {
   }
 
   const recall = async (
-    match?: string | { subject?: string; at?: string },
+    match?: string | { subject?: string; at?: string; federated?: boolean },
     limit: number = 100,
   ): Promise<Insight[]> => {
-    // Parse match argument — supports legacy string or new { subject?, at? } object
+    // Parse match argument — supports legacy string or new { subject?, at?, federated? } object
     const matchStr = typeof match === 'string' ? match : match?.subject
     const atDate = typeof match === 'object' ? match?.at : undefined
+    const isFederated = typeof match === 'object' ? match?.federated : false
     const safeMatch = matchStr ? escapeStr(matchStr) : undefined
 
     // E9: bi-temporal filter — only hypotheses valid at the given point in time
@@ -520,30 +524,33 @@ export const world = (): PersistentWorld => {
       : ''
     const containsClause = safeMatch ? `$s contains "${safeMatch}";` : ''
 
+    // E9.5: federated scope filter — only public and group-scoped signals visible to other worlds
+    const scopeClause = isFederated ? `{ $h has scope "public"; } or { $h has scope "group"; };` : ''
+
     // E10: query with source (new records) and without (legacy) — apply asserted confidence cap
     const confirmedWithSrc = readParsed(
       `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status $st, has source $src;
-       ${containsClause} { $st = "confirmed"; } or { $st = "testing"; }; ${temporalClause} select $s, $p, $src;`,
+       ${containsClause} { $st = "confirmed"; } or { $st = "testing"; }; ${temporalClause} ${scopeClause} select $s, $p, $src;`,
     ).catch(() => [] as Record<string, unknown>[])
 
     const confirmedNoSrc = readParsed(
       `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status $st;
        not { $h has source $anySrc; }; ${containsClause} { $st = "confirmed"; } or { $st = "testing"; };
-       ${temporalClause} select $s, $p;`,
+       ${temporalClause} ${scopeClause} select $s, $p;`,
     ).catch(() => [] as Record<string, unknown>[])
 
     const pendingQ = safeMatch
       ? readParsed(
           `match $h isa hypothesis, has statement $s, has p-value $p, has hypothesis-status "pending";
-           $s contains "${safeMatch}"; ${temporalClause} select $s, $p;`,
+           $s contains "${safeMatch}"; ${temporalClause} ${scopeClause} select $s, $p;`,
         ).catch(() => [] as Record<string, unknown>[])
       : Promise.resolve([] as Record<string, unknown>[])
 
-    // E11: scope filter — exclude private signals from failed-attempts surfacing
+    // E11: scope filter — exclude private signals from failed-attempts surfacing; federated filter applies here too
     const failedQ = safeMatch
       ? readParsed(
           `match $sig isa signal, has data $d, has success false;
-           $d contains "${safeMatch}"; not { $sig has scope "private"; }; select $d;`,
+           $d contains "${safeMatch}"; not { $sig has scope "private"; }; ${scopeClause} select $d;`,
         ).catch(() => [] as Record<string, unknown>[])
       : Promise.resolve([] as Record<string, unknown>[])
 

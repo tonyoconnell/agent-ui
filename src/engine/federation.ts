@@ -5,11 +5,19 @@
  * Pheromone tracks cross-world reliability: slow or failing worlds
  * accumulate resistance and get routed around, identically to any unit.
  *
+ * Memory recall across federation filters by scope:
+ * - Only public + group-scoped signals visible to other worlds (federated: true)
+ * - Private signals stay in originating world
+ *
  * Usage:
  *   net.units['world-legal']   = federate('world-legal',   'https://legal.one.ie',   LEGAL_KEY)
  *   net.units['world-finance'] = federate('world-finance', 'https://finance.one.ie', FINANCE_KEY)
  *   net.signal({ receiver: 'world-legal:review', data: { contract } }, 'drafter')
  *   // → forwards to https://legal.one.ie/api/signal with { receiver: 'review', data: { contract } }
+ *
+ *   // Cross-world memory recall with scope filtering
+ *   const insights = await net.recall({ subject: 'contract-review', federated: true })
+ *   // → only public + group-scoped hypotheses returned
  */
 
 import { type Unit, unit } from './world'
