@@ -3,6 +3,7 @@
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { type ComponentProps, createContext, type HTMLAttributes, useContext, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 
 // Shiki removed — chat uses lightweight <pre><code> blocks.
@@ -59,6 +60,7 @@ export const CodeBlockCopyButton = ({
   const { code } = useContext(CodeBlockContext)
 
   const copyToClipboard = async () => {
+    emitClick('ui:code-block:copy')
     if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
       onError?.(new Error('Clipboard API not available'))
       return

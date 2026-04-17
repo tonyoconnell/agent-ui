@@ -28,8 +28,8 @@ interface ConversationInsights {
 /** Derive p-value from conversation length */
 function pValueForLength(count: number): number {
   if (count >= 10) return 0.05
-  if (count >= 5) return 0.10
-  return 0.30
+  if (count >= 5) return 0.1
+  return 0.3
 }
 
 /** Escape double-quotes for inline TypeQL string literals */
@@ -61,9 +61,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Take only the last N messages to keep the prompt short
     const slice = messages.slice(-MAX_MESSAGES)
 
-    const transcript = slice
-      .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-      .join('\n')
+    const transcript = slice.map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n')
 
     // Cheapest model available — groq 8b or openrouter fallback
     const provider = groqKey
@@ -155,12 +153,15 @@ No preamble. No markdown fences. Pure JSON only.`,
           has source "observed",
           has observed-at ${now},
           has action-ready false;
-      `)
+      `),
     )
 
     // 2. Topic hypotheses — one per topic, L6 accumulates via upsertHypothesis
     for (let i = 0; i < insights.topics.length; i++) {
-      const topic = insights.topics[i].toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 40)
+      const topic = insights.topics[i]
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .slice(0, 40)
       if (!topic) continue
       const topicHid = `topic-${safe}-${topic}-${ts}-${i}`
       const topicStatement = tqlSafe(`topic:${agentId}:${topic}`)
@@ -175,7 +176,7 @@ No preamble. No markdown fences. Pure JSON only.`,
             has source "observed",
             has observed-at ${now},
             has action-ready false;
-        `)
+        `),
       )
     }
 
@@ -194,7 +195,7 @@ No preamble. No markdown fences. Pure JSON only.`,
             has source "observed",
             has observed-at ${now},
             has action-ready false;
-        `)
+        `),
       )
     }
 

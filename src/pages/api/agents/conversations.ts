@@ -51,9 +51,6 @@ export const GET: APIRoute = async ({ url }) => {
 
     return Response.json({ conversations })
   } catch (err) {
-    return Response.json(
-      { error: err instanceof Error ? err.message : 'Query failed' },
-      { status: 500 },
-    )
+    return Response.json({ error: err instanceof Error ? err.message : 'Query failed' }, { status: 500 })
   }
 }

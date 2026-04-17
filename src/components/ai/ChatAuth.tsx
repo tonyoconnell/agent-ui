@@ -1163,6 +1163,7 @@ function KeyRow({
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {
+    emitClick('ui:chat-auth:copy')
     try {
       await navigator.clipboard.writeText(value)
       setCopied(true)
@@ -1229,6 +1230,7 @@ function CopyBtn({ text, label = 'copy' }: { text: string; label?: string }) {
     <button
       type="button"
       onClick={async () => {
+        emitClick('ui:chat-auth:copy')
         try {
           await navigator.clipboard.writeText(text)
           setCopied(true)

@@ -107,6 +107,7 @@ function StepRow({
 function CopyRow({ label, value, href }: { label: string; value: string; href?: string }) {
   const [copied, setCopied] = useState(false)
   const copy = () => {
+    emitClick('ui:agent-ad:copy')
     navigator.clipboard.writeText(value)
     setCopied(true)
     setTimeout(() => setCopied(false), 1200)

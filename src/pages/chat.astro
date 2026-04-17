@@ -1,9 +1,9 @@
 ---
 export const prerender = true
 import Layout from "@/layouts/Layout.astro"
-import { FastChat } from "@/components/ai/FastChat"
+import { DebbyChat } from "@/components/ai/DebbyChat"
 ---
 
-<Layout title="Chat">
-  <FastChat client:only="react" />
+<Layout title="Elevare — Chat with Debby's School">
+  <DebbyChat client:only="react" />
 </Layout>

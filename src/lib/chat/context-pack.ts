@@ -73,9 +73,7 @@ export async function buildPack(actorUid: string): Promise<ContextPack> {
     ).catch(() => [] as Record<string, unknown>[]),
 
     // 3a. Frontier — all world skill tags
-    readParsed(`match $sk isa skill, has tag $t; select $t;`).catch(
-      () => [] as Record<string, unknown>[],
-    ),
+    readParsed(`match $sk isa skill, has tag $t; select $t;`).catch(() => [] as Record<string, unknown>[]),
 
     // 3b. Frontier — tags the actor has already touched via paths
     readParsed(
@@ -117,9 +115,7 @@ export async function buildPack(actorUid: string): Promise<ContextPack> {
  */
 export function systemPromptWithPack(basePrompt: string, pack: ContextPack): string {
   const hasMemory =
-    pack.hypotheses.some((h) => h.confidence >= 0.5) ||
-    pack.highways.length > 0 ||
-    pack.frontier.length > 0
+    pack.hypotheses.some((h) => h.confidence >= 0.5) || pack.highways.length > 0 || pack.frontier.length > 0
   if (!hasMemory) return basePrompt
 
   const lines: string[] = ['--- MEMORY ---']

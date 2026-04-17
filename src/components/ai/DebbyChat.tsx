@@ -70,11 +70,17 @@ function useVisitorId() {
     }
   }, [])
 
-  return groupId
+  const resetGroupId = useCallback(() => {
+    const gid = `web-${crypto.randomUUID().slice(0, 8)}`
+    localStorage.setItem('elevare-group', gid)
+    setGroupId(gid)
+  }, [])
+
+  return [groupId, resetGroupId] as const
 }
 
 export function DebbyChat() {
-  const groupId = useVisitorId()
+  const [groupId, resetGroupId] = useVisitorId()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -86,6 +92,14 @@ export function DebbyChat() {
 
   const hasMessages = messages.length > 0
   const lastServerTs = useRef(0)
+
+  const newChat = useCallback(() => {
+    emitClick('ui:debby:new-chat')
+    resetGroupId()
+    setMessages([])
+    setLatencyMs(null)
+    lastServerTs.current = 0
+  }, [resetGroupId])
 
   useEffect(() => {
     if (messages.length) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -137,7 +151,7 @@ export function DebbyChat() {
     fetch(`${DEBBY_CLAW_URL}/signal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sender: 'web:chat-debby', receiver, data: { tags, weight: 1, content } }),
+      body: JSON.stringify({ sender: 'web:chat', receiver, data: { tags, weight: 1, content } }),
     }).catch(() => {})
   }, [])
 
@@ -387,6 +401,17 @@ export function DebbyChat() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <span className="text-sm text-muted-foreground">Elevare · Debby</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={newChat}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          New Chat
+        </Button>
+      </div>
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto w-full space-y-4">
           {messages.map((m) => (

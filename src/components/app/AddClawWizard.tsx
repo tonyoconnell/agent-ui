@@ -1,4 +1,5 @@
 import { useReducer, useTransition } from 'react'
+import { emitClick } from '@/lib/ui-signal'
 
 interface Props {
   groupId: string
@@ -197,7 +198,10 @@ export function AddClawWizard({ groupId, onClose }: Props) {
                 </code>
                 <button
                   type="button"
-                  onClick={() => copy(val)}
+                  onClick={() => {
+                    emitClick('ui:add-claw:copy')
+                    copy(val)
+                  }}
                   className="px-3 py-1.5 rounded border border-[#252538] text-xs text-slate-400 hover:text-slate-100 shrink-0"
                 >
                   Copy
