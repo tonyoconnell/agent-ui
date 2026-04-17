@@ -7,13 +7,16 @@
 | Page | Route | Component | Hydration |
 |------|-------|-----------|-----------|
 | `index.astro` | `/` | `AgentWorkspace` | `client:load` |
+| `in.astro` | `/in` | `Inbox` | `client:only` |
 | `world.astro` | `/world` | `WorldWorkspace` | `client:load` |
 | `tasks.astro` | `/tasks` | `TaskBoard` | `client:load` |
-| `chat.astro` | `/chat` | `Chat` | `client:load` |
+| `chat.astro` | `/chat` | `DebbyChat` | `client:only` |
+| `chat-fast.astro` | `/chat-fast` | `FastChat` | `client:only` |
 | `chat-ad-buy.astro` | `/chat-ad-buy` | `AdBuyChat` | `client:load` |
 | `dashboard.astro` | `/dashboard` | `Dashboard` | `client:load` |
 | `discover.astro` | `/discover` | `DiscoverGrid` | `client:load` |
-| `marketplace.astro` | `/marketplace` | `Marketplace` | `client:load` |
+| `market.astro` | `/market` | `MarketView` | `client:load` |
+| `marketplace.astro` | `/marketplace` | *(redirects to /market)* | — |
 | `build.astro` | `/build` | `AgentBuilder` | `client:load` |
 | `ceo.astro` | `/ceo` | `CEOPanel` | `client:load` |
 | `design.astro` | `/design` | `DesignEditor` | `client:load` |

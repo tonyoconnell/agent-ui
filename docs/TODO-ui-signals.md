@@ -4,8 +4,8 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 14
-completed: 0
-status: OPEN
+completed: 14
+status: COMPLETE
 ---
 
 # TODO: UI Signals — Every Button Is a Signal

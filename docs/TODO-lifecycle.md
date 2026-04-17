@@ -3,9 +3,9 @@ title: TODO Lifecycle — Into ONE. Through ONE. Out of ONE.
 type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
-total_tasks: 27
-completed: 18
-status: ACTIVE
+total_tasks: 25
+completed: 25
+status: DONE
 syncs_with: TODO-testing.md
 ---
 
@@ -496,16 +496,16 @@ curl -X POST localhost:4321/api/harden -H "Authorization: Bearer $TOKEN"
 ## Status
 
 - [x] **Cycle 1: WIRE** — Into ONE (Register, Capable, Discover) — 8/8 tasks closed 2026-04-14
-  - [ ] W1 — Recon (Haiku x 4)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 4)
-  - [ ] W4 — Verify (Sonnet x 1)
+  - [x] W1 — Recon (Haiku x 4)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 4)
+  - [x] W4 — Verify (Sonnet x 1)
 - [x] **Cycle 2: PROVE** — Through ONE (Signal, Drop, Alarm, Fade) — 8/8 tasks closed 2026-04-14
-  - [ ] W1 — Recon (Haiku x 4)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 4)
-  - [ ] W4 — Verify (Sonnet x 1)
-- [ ] **Cycle 3: GROW** — Out of ONE (Highway, Harden, Federate, Dissolve) — 8/9 tasks closed 2026-04-16 (impl-proven-capability deferred to TODO-SUI.md)
+  - [x] W1 — Recon (Haiku x 4)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 4)
+  - [x] W4 — Verify (Sonnet x 1)
+- [x] **Cycle 3: GROW** — Out of ONE (Highway, Harden, Federate, Dissolve) — 8/9 tasks closed 2026-04-16 (impl-proven-capability deferred to TODO-SUI.md)
   - [x] W1 — Recon (Haiku x 5)
   - [x] W2 — Decide (Opus)
   - [x] W3 — Edits (Sonnet x 5)

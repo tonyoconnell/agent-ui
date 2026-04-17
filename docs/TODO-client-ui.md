@@ -5,7 +5,7 @@ version: 3.0.0
 priority: Wire → Prove → Grow
 total_tasks: 12
 completed: 12
-status: ACTIVE
+status: COMPLETE
 source: docs/client-ui.md
 ---
 

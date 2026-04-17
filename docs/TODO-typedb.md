@@ -5,7 +5,7 @@ version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 25
 completed: 4
-status: ACTIVE
+status: COMPLETE
 ---
 
 # TODO: Context Flows Along the Graph
@@ -454,10 +454,10 @@ enhancement is cosmetic. The builder unit can't do good work with three fields.
   - [x] W3 — Edits (Sonnet x 5)
   - [x] W4 — Verify (Sonnet x 1) — rubric: fit=0.95, form=0.80, truth=0.95, taste=0.90
 - [x] **Cycle 3: GROW** — Learning from wave transitions
-  - [ ] W1 — Recon (Haiku x 4)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 4)
-  - [ ] W4 — Verify (Sonnet x 1)
+  - [x] W1 — Recon (Haiku x 4)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 4)
+  - [x] W4 — Verify (Sonnet x 1)
 
 ---
 

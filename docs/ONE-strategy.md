@@ -49,8 +49,11 @@ model needed, no cost, no latency.
 The system gets faster every day. Every signal teaches it. Every highway
 that forms eliminates an LLM call forever. Agents that deliver rise
 automatically. Agents that fail sink automatically. The substrate is
-self-improving — not from us tuning it, but from the agents themselves
-working, earning, competing, trading.
+self-improving — not from us tuning it, but from every piece of data the
+world produces: agent outcomes, user clicks, email replies, page dwell,
+payments, refunds, ratings, support tickets. All of it collapses to the
+same two numbers per path. See [ingestion.md](ingestion.md) for the full
+taxonomy of how any data stream becomes pheromone.
 
 ### Any model powers it
 
@@ -615,6 +618,60 @@ The biological basis: ant pheromone evaporates in sunlight. Alarm pheromone
 (danger signal) evaporates faster than trail pheromone (food signal).
 The colony forgives danger faster than it forgets food. Same principle.
 
+### 9. Every Event Is Pheromone — The Ingestion Flywheel
+
+The substrate doesn't care where a signal comes from. An agent returning
+a result, a user clicking a button, a Stripe webhook firing, an email
+reply, a page-dwell timer, a support ticket closing — all of them
+collapse to the same two calls:
+
+```
+success → mark(edge, weight)       strength += weight
+failure → warn(edge, weight)       resistance += weight
+```
+
+This is why ONE beats stacks stitched from ten SaaS tools. Analytics
+sits in PostHog. Email metrics sit in SendGrid. Payments sit in Stripe.
+Support sits in Zendesk. Reviews sit in Trustpilot. None of these systems
+share a ranker. ONE has **one graph** and every source feeds it.
+
+```
+TRADITIONAL STACK                     ONE SUBSTRATE
+─────────────────                     ─────────────
+PostHog ranks pages                    All five sources feed the same
+SendGrid ranks emails                  edge weights. A seller's combined
+Stripe ranks products                  pheromone reflects email-reply rate
+Zendesk ranks tickets                  + Stripe success + NPS + support
+Trustpilot ranks sellers               resolution + reviews — all at once.
+(no cross-source ranker)               Routing picks the seller who wins
+                                       across every dimension.
+```
+
+**Two planes, same semantic.** Cheap signals (impressions, clicks, dwell)
+live in TypeDB — ~10ms, ~$0 per write. Valuable signals (paid trades,
+verified reviews, legal attestations) promote to Sui — immutable, public,
+uncopyable. The promotion rule is economic: if the signal's dollar value
+exceeds Sui gas × 100, it graduates on-chain. This is what `harden()`
+finally does in practice.
+
+**The reputation moat.** A Sui-hardened `Path` object is a public
+checkpoint of reputation that only the protocol (`substrate::pay`,
+`substrate::mark`) can mutate. A competitor can copy your marketplace
+surface, clone your agents, scrape your directory — they cannot
+replicate the **history of what worked**, because that history is a
+write-append log across thousands of Sui objects only you feed.
+
+**Cold-start ingestion.** A brand-new ONE deployment backfills the graph
+from the user's existing systems. Day 0: import AgentVerse directory as
+proxy units. Day 1: ingest Stripe history as hardened edges. Day 2:
+ingest email metrics as TypeDB edges. Day 7: first highway forms. LLM
+calls drop. Arithmetic takes over. The entire historical interaction
+graph of the user's business becomes pheromone in one hour.
+
+See [ingestion.md](ingestion.md) for the full taxonomy — seven tiers of
+sources, weight scales, plane assignments, and the instrumentation
+patterns that wire a new source in three lines.
+
 ---
 
 ## The Agent Species — Who Lives in the World
@@ -794,6 +851,50 @@ Expensive + good → highway → premium routing
 Price is a skill attribute. Quality is pheromone.
 The market clears through usage, not negotiation.
 ```
+
+### Curated Launch — ONE's Own Agents First
+
+We don't open the marketplace to anyone-can-list from day zero. We launch
+with **our own agents as sellers and buyers**, let them trade against
+real users, and accumulate clean pheromone before inviting external
+sellers. This is a deliberate choice — the moat is the history of what
+worked, so the first month of trades is the most valuable training data
+the graph will ever see. Noisy first-month data poisons routing for
+everyone downstream.
+
+```
+PHASE 1 — SEED  (Month 1)          PHASE 2 — INVITE  (Month 2-3)
+──────────────                      ─────────────────
+ONE pod agents (15 units)           AgentVerse bridge activated
+Donal pod agents (11 units)         2M AV agents become proxy sellers
+Debby school agents (24 units)      Hand-picked external pods invited
+First users paying real SUI         Pheromone from seeded trades
+Every trade settles on-chain        ranks new entrants from day 1
+Pheromone accumulates clean         No cold-start randomness for buyers
+
+PHASE 3 — OPEN  (Month 4+)
+─────────────────
+Self-serve seller onboarding
+Auto-wallet on markdown push
+.well-known/agents.json crawlable
+Any buyer can list, any seller can be found
+Pheromone-weighted ranking handles quality
+isToxic() handles abuse
+```
+
+The curated launch is also how we solve the cold-start trust problem.
+Before pheromone exists, new sellers have `strength=0` — nobody routes
+to them. If we opened the gate to everyone on day one, the first trades
+would be randomly assigned and buyers would get burned. By seeding with
+agents whose quality we control, every trade a buyer makes in month one
+produces a clean mark or warn. By month two, there's enough pheromone
+that new sellers enter a graph that already knows how to rank them.
+
+**This is the ASI-leadership-level play.** Competitors watching will see
+the marketplace fill gradually with known quality, then open to the
+world only after the reputation ledger is thick. They cannot replicate
+this sequencing because they don't have our agents and they don't have
+the Sui history. See [ingestion.md § What This Unlocks](ingestion.md#what-this-unlocks).
 
 ### AgentVerse Vocabulary → ONE Vocabulary
 

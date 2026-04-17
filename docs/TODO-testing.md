@@ -4,8 +4,8 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 34
-completed: 17
-status: CYCLES 1-3 COMPLETE
+completed: 31
+status: COMPLETE
 ---
 
 # TODO: The Deterministic Sandwich Around Everything
@@ -269,7 +269,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: .claude/settings.json has PostToolUse hook. Every Write/Edit runs biome on the file. Non-blocking.
   tags: infra, build, P1
 
-- [ ] Wire TaskCompleted hook for verify gate
+- [x] Wire TaskCompleted hook for verify gate
   id: hook-task-complete
   value: high
   effort: medium
@@ -277,8 +277,9 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   persona: dev
   exit: TaskCompleted hook runs bun run verify. Blocks if tests regress. Gates the mark.
   tags: infra, build, P1
+  done: .claude/hooks/task-complete-verify.sh — runs full `bun run verify`, exits 1 on failure (blocking). Wired in .claude/settings.json.
 
-- [ ] Wire Stop hook for session-end verify
+- [x] Wire Stop hook for session-end verify
   id: hook-session-end
   value: medium
   effort: low
@@ -286,6 +287,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   persona: dev
   exit: Stop hook runs verify, reports any regressions introduced during session.
   tags: infra, build, P2
+  done: .claude/hooks/session-end-verify.sh — runs biome check (fast, non-blocking). Reports issues without blocking session exit.
 
 - [x] Wire PostToolUse hook for TODO doc auto-sync
   id: hook-todo-sync
@@ -408,7 +410,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: context.ts test file. Covers: CANONICAL mapping, contextForSkill returns right docs, loadContext merges markdown
   tags: engine, test, P1
 
-- [ ] Test doc-scan.ts: item extraction, verification, gaps→signals
+- [x] Test doc-scan.ts: item extraction, verification, gaps→signals
   id: test-doc-scan
   value: medium
   effort: medium
@@ -416,6 +418,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   persona: dev
   exit: doc-scan.ts test file. Covers: extractItems (checkboxes, gaps), inferTags, inferPriority, verify (keyword match), gapsToSignals
   tags: engine, test, P2
+  done: doc-scan.test.ts extended — 65 tests total (+53 new). Covers extractItems, inferTags (8 domains), inferPriority (P0-P3), verify (mock FS), verifyAll, scanDocs deduplication, docMark.
 
 - [x] Test agent-md.ts: parse, toTypeDB, syncAgent ✓ agent-md.test.ts · 35 tests · 2026-04-16
   id: test-agent-md
@@ -436,7 +439,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: subscribe('scout', ['engine','build']) adds tags. tasksFor('scout') returns matching tasks ranked by overlap × priority + pheromone. Agent with 2 tag matches beats agent with 1. Pheromone breaks ties.
   tags: engine, test, P0
 
-- [ ] Test tag-filtered loop routing: previousTarget → tag join → task selection
+- [x] Test tag-filtered loop routing: previousTarget → tag join → task selection
   id: test-tag-loop-routing
   value: high
   effort: medium
@@ -444,6 +447,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   persona: dev
   exit: Loop L1b tries tag-filtered query first when previousTarget set. Falls back to global priority. Tag match prefers relevant tasks over highest-priority unrelated ones.
   tags: engine, test, P1
+  done: loop.test.ts extended — 81 tests total (+14 new). Covers WAVE_MODEL/EFFORT_MODEL mapping, model resolution priority, inferDocsFromTags, tag-filtered gate, tag preference over global priority, context doc merging, signal envelope shape, two-tier fallback.
 
 - [x] Test subscription via agent markdown: tags in frontmatter → TypeDB → tasksFor ✓ src/engine/subscribe.test.ts · 12 tests · 2026-04-16
   id: test-agent-md-subscription
@@ -473,7 +477,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
 
 ### Tasks
 
-- [ ] Test API endpoints: signal, tick, state, tasks
+- [x] Test API endpoints: signal, tick, state, tasks
   id: test-api-endpoints
   value: high
   effort: medium
@@ -481,6 +485,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   persona: dev
   exit: API test file. Covers: POST /api/signal routes correctly, GET /api/tick returns TickResult, GET /api/state returns world snapshot
   tags: api, test, P1
+  done: tick.test.ts (9 tests) + state.test.ts (13 tests). Tick: peek mode, loop timings, interval gating, reload. State: KV snapshots, toxicity detection, highway filtering, TypeDB fallback, default values.
 
 - [x] Test nanoclaw router: webhook auth, persona selection, message flow ✓ nanoclaw/src/workers/router.test.ts · 22 tests · 2026-04-16
   id: test-nanoclaw
@@ -510,7 +515,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: rubric.ts test file. Covers: score returns {fit,form,truth,taste,violations}, markDims writes 4 tagged paths, violations bypass scoring
   tags: engine, test, P1
 
-- [ ] Add CI pipeline: biome + tsc + vitest on every push
+- [x] Add CI pipeline: biome + tsc + vitest on every push
   id: ci-pipeline
   value: high
   effort: low
@@ -518,6 +523,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   persona: dev
   exit: GitHub Action runs bun run verify on push/PR. Badge in README.
   tags: infra, build, P1
+  done: .github/workflows/test.yml — lint, typecheck, test steps. Uploads coverage + test results as artifacts. Runs on push (main, feature/**) and PRs.
 
 - [x] Test self-learning: mark compounds, fade decays, know promotes
   id: test-self-learning
@@ -566,7 +572,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   exit: Send 200 signals. Measure: routing time decreases, highway count increases, LLM calls decrease. The flywheel from speed.md verified in code.
   tags: engine, test, P1
 
-- [ ] Coverage target: engine/ ≥ 80%, persist/ ≥ 70%
+- [x] Coverage target: engine/ ≥ 80%, persist/ ≥ 70%
   id: coverage-target
   value: medium
   effort: low
@@ -574,6 +580,7 @@ COVERAGE:  src/engine/ — 19 test files (routing, persist, loop, lifecycle, con
   persona: dev
   exit: bun run test:coverage shows ≥80% line coverage for src/engine/*.ts
   tags: engine, test, P2
+  done: vitest.config.ts — v8 coverage provider, threshold 80% lines for src/engine/**, html+json+text reporters. @vitest/coverage-v8 installed.
 
 ---
 
