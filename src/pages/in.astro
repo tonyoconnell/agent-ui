@@ -1,0 +1,11 @@
+---
+export const prerender = true
+import Layout from "@/layouts/Layout.astro"
+import { Inbox } from "@/components/in/Inbox"
+---
+
+<Layout title="/in — ONE">
+  <div class="h-screen w-screen overflow-hidden">
+    <Inbox client:only="react" />
+  </div>
+</Layout>
