@@ -7,9 +7,9 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { world as createWorld } from './world'
-import { waveRunner } from './wave-runner'
 import type { TaskEnvelope } from './wave-runner'
+import { waveRunner } from './wave-runner'
+import { world as createWorld } from './world'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -18,16 +18,24 @@ function makeNet() {
   const marks: Record<string, number> = {}
   const warns: Record<string, number> = {}
   const orig = { mark: w.mark.bind(w), warn: w.warn.bind(w) }
-  w.mark = (edge: string, s?: number) => { marks[edge] = (marks[edge] ?? 0) + (s ?? 1); return orig.mark(edge, s) }
-  w.warn = (edge: string, s?: number) => { warns[edge] = (warns[edge] ?? 0) + (s ?? 1); return orig.warn(edge, s) }
-  return { net: w as unknown as Parameters<typeof waveRunner>[0] & ReturnType<typeof createWorld>, marks, warns }
+  w.mark = (edge: string, s?: number) => {
+    marks[edge] = (marks[edge] ?? 0) + (s ?? 1)
+    return orig.mark(edge, s)
+  }
+  w.warn = (edge: string, s?: number) => {
+    warns[edge] = (warns[edge] ?? 0) + (s ?? 1)
+    return orig.warn(edge, s)
+  }
+  // Expose actor() so waveRunner(net) dispatch uses Form 1 (PersistentWorld path)
+  const net = Object.assign(w, { actor: (id: string) => w.add(id) })
+  return { net: net as unknown as Parameters<typeof waveRunner>[0] & ReturnType<typeof createWorld>, marks, warns }
 }
 
-const PASS_COMPLETE = vi
-  .fn()
-  .mockResolvedValue('W1 output')
+const PASS_COMPLETE = vi.fn().mockResolvedValue('W1 output')
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 // ── Form 1 (stub) ─────────────────────────────────────────────────────────────
 
@@ -78,7 +86,10 @@ describe('waveRunner Form 1 (stub)', () => {
     const received: unknown[] = []
     net.add('wave-runner') // already added by waveRunner, but capture incoming signals
     // Add a listener for the unblocked task signal
-    net.add('unblock-capture').on('task', (data) => { received.push(data); return data })
+    net.add('unblock-capture').on('task', (data) => {
+      received.push(data)
+      return data
+    })
     waveRunner(net)
 
     // Override the wave-runner:task handler to include blocks
@@ -185,12 +196,7 @@ describe('waveRunner Form 2 (LLM)', () => {
       .mockResolvedValueOnce('edits')
       .mockResolvedValueOnce('PASS\nfit:0.8 form:0.8 truth:0.8 taste:0.8')
     const u = net.add('builder')
-    waveRunner(
-      u,
-      complete,
-      undefined,
-      net,
-    )
+    waveRunner(u, complete, undefined, net)
 
     await net.ask(
       {
@@ -200,9 +206,27 @@ describe('waveRunner Form 2 (LLM)', () => {
           taskName: 'T4',
           skillAudit: {
             tags: ['copy'],
-            capable: [{ providerUid: 'donal', skillId: 'copy', skillName: 'Copy', price: 0.02, pathStrength: 30, tagOverlap: 1, matchingTags: ['copy'] }],
+            capable: [
+              {
+                providerUid: 'donal',
+                skillId: 'copy',
+                skillName: 'Copy',
+                price: 0.02,
+                pathStrength: 30,
+                tagOverlap: 1,
+                matchingTags: ['copy'],
+              },
+            ],
             recommendation: 'exploratory',
-            best: { providerUid: 'donal', skillId: 'copy', skillName: 'Copy', price: 0.02, pathStrength: 30, tagOverlap: 1, matchingTags: ['copy'] },
+            best: {
+              providerUid: 'donal',
+              skillId: 'copy',
+              skillName: 'Copy',
+              price: 0.02,
+              pathStrength: 30,
+              tagOverlap: 1,
+              matchingTags: ['copy'],
+            },
           },
         } as TaskEnvelope,
       },
