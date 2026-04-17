@@ -45,16 +45,27 @@ export const POST: APIRoute = async ({ request }) => {
     const hasFunds = BigInt(balance.totalBalance) > 0n
 
     if (!hasFunds) {
-      // Request faucet and wait for funds to arrive
+      // Try official Sui faucet first
       await fetch('https://faucet.testnet.sui.io/v1/gas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ FixedAmountRequest: { recipient: address } }),
       }).catch(() => {})
 
-      const funded = await waitForFunding(address, 12000)
+      let funded = await waitForFunding(address, 8000)
+
+      // Fallback: use testnet-buyer as internal faucet
       if (!funded) {
-        // Return address without on-chain object — still useful
+        const origin = new URL(request.url).origin
+        await fetch(`${origin}/api/faucet-internal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address, amount: 0.1 }),
+        }).catch(() => {})
+        funded = await waitForFunding(address, 6000)
+      }
+
+      if (!funded) {
         return Response.json({
           ok: false,
           uid,

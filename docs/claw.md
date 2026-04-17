@@ -7,7 +7,7 @@
 Live:
 - **claw** (edge agent): https://claw.oneie.workers.dev/health
 - **claw-donal** (marketing agent): https://claw-donal.oneie.workers.dev/health
-- **claw-debbie** (agency agent): configured, awaiting deployment
+- **claw-debby** (agency agent): https://debby-claw.oneie.workers.dev/health
 - Telegram (@onedotbot): connects via claw edge agent
 
 ## Local Development with Tunnels
@@ -69,6 +69,34 @@ Telegram/Discord/Web
 
 ---
 
+## Admin Dashboard
+
+Every claw gets a conversation admin panel at `/chat-debby-admin` (or any custom page).
+
+Uses `ClawAdmin` component — configurable for any claw:
+
+```astro
+<ClawAdmin
+  client:only="react"
+  clawUrl="https://debby-claw.oneie.workers.dev"
+  adminName="debby"
+/>
+```
+
+Or via URL params: `/chat-debby-admin?claw=https://nanoclaw.oneie.workers.dev&adminName=tony`
+
+### API Endpoints (shared, all claws)
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/conversations` | GET | List active conversations with metadata |
+| `/conversations/:group/reply` | POST | Admin injects message + pushes to student |
+| `/messages/:group` | GET | Full conversation history |
+
+Admin messages are stored with `sender: adminName` and `role: assistant` so the LLM sees them as part of the conversation context.
+
+---
+
 ## Completed
 
 ### Claw Core (Edge Agent)
@@ -92,7 +120,7 @@ Telegram/Discord/Web
 ### Persona Workers
 - [x] **claw** (main) — open edge agent
 - [x] **claw-donal** (isolated) — marketing specialist
-- [x] **claw-debbie** (isolated) — agency specialist
+- [x] **claw-debby** (isolated) — agency specialist
 - [x] Persona config: name, model, system prompt, channels
 
 ### Pheromone (Local + Global)
@@ -445,7 +473,7 @@ Four personas live in `src/personas.ts`. Each is an isolated worker deployment (
 |---------|--------|-------|---------|
 | **donal** | `donal-claw` | `anthropic/claude-haiku-4-5` | OO Marketing CMO — routes briefs to 11-agent marketing pod |
 | **one** | nanoclaw (default) | `anthropic/claude-haiku-4-5` | ONE Assistant — substrate front door |
-| **debbie** | `debbie-claw` | `anthropic/claude-haiku-4-5` | Debbie's Marketing CMO — alternative pod |
+| **debby** | `debby-claw` ✅ live | `anthropic/claude-haiku-4-5` | Debby's Marketing CMO — alternative pod |
 | **concierge** | optional | `google/gemma-4-26b-a4b-it` | Local Concierge — city recommendations |
 
 **Persona selection order:**

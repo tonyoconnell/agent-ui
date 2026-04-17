@@ -63,15 +63,15 @@ export function Marketplace() {
   const [services, setServices] = useState<Service[]>(FALLBACK_SERVICES)
   const [revenue, setRevenue] = useState<RevenueData>(FALLBACK_REVENUE)
   const [filter, setFilter] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const { state: trade, go } = useTradeLifecycle()
   const [offerTarget, setOfferTarget] = useState<Service | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
       const [svcRes, revRes] = await Promise.all([
-        fetch(`/api/marketplace${filter ? `?type=${filter}` : ''}`),
-        fetch('/api/revenue'),
+        fetch(`/api/marketplace${filter ? `?type=${filter}` : ''}`, { signal: AbortSignal.timeout(10000) }),
+        fetch('/api/revenue', { signal: AbortSignal.timeout(10000) }),
       ])
       if (svcRes.ok) {
         const svcData = (await svcRes.json()) as any

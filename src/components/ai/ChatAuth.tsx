@@ -196,8 +196,16 @@ export function ChatAuth() {
   const [messageResponse, setMessageResponse] = useState('')
   const [messageStreaming, setMessageStreaming] = useState(false)
 
+  /* Chat state */
+  type ChatMsg = { id: string; role: 'user' | 'assistant'; content: string; streaming?: boolean }
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const chatBottomRef = useRef<HTMLDivElement>(null)
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -546,7 +554,80 @@ export function ChatAuth() {
     setIsEditingName(false)
     setMessageResponse('')
     setMessageStreaming(false)
+    setChatMessages([])
+    setChatInput('')
+    setChatLoading(false)
   }
+
+  /* Auto-scroll chat */
+  const scrollChat = useCallback(() => {
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+  }, [])
+
+  /* ── Chat: send message to agent ──────────────────────────────────────── */
+
+  const sendChat = useCallback(
+    async (text: string) => {
+      if (!text.trim() || chatLoading || !identity) return
+      const userId = crypto.randomUUID()
+      const assistantId = crypto.randomUUID()
+      const history = chatMessages.map((m) => ({ role: m.role, content: m.content }))
+
+      setChatMessages((prev) => [
+        ...prev,
+        { id: userId, role: 'user', content: text },
+        { id: assistantId, role: 'assistant', content: '', streaming: true },
+      ])
+      setChatInput('')
+      setChatLoading(true)
+      scrollChat()
+      emitClick('ui:chat-auth:chat-send', { type: 'text', content: text })
+
+      if (chatInputRef.current) {
+        chatInputRef.current.style.height = 'auto'
+        chatInputRef.current.focus()
+      }
+
+      try {
+        const systemPrompt =
+          identity.agentMd.split('---').slice(2).join('---').trim() ||
+          `You are ${identity.name} — an agent in the ONE substrate. Be concise.`
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: DEFAULT_MODEL,
+            messages: [{ role: 'system', content: systemPrompt }, ...history, { role: 'user', content: text }],
+          }),
+        })
+
+        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
+
+        const reader = res.body.getReader()
+        const dec = new TextDecoder()
+        let full = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          full += dec.decode(value, { stream: true })
+          setChatMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: full } : m)))
+          scrollChat()
+        }
+
+        setChatMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)))
+      } catch (err) {
+        setChatMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, content: `Error: ${(err as Error).message}`, streaming: false } : m,
+          ),
+        )
+      } finally {
+        setChatLoading(false)
+      }
+    },
+    [chatMessages, chatLoading, identity, scrollChat],
+  )
 
   /* ── Input phase ───────────────────────────────────────────────────────── */
 
@@ -789,12 +870,77 @@ export function ChatAuth() {
 
               {/* Data panel — expandable */}
               {showData && <DataPanel identity={identity} />}
+
+              {/* Chat section */}
+              <div className="pt-4 border-t border-border/40">
+                <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mb-4">
+                  chat with your agent
+                </div>
+
+                {/* Chat messages */}
+                {chatMessages.length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {chatMessages.map((m) => (
+                      <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div
+                          className={cn(
+                            'max-w-[80%] rounded-2xl px-4 py-3 text-base leading-7 whitespace-pre-wrap',
+                            m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
+                          )}
+                        >
+                          {m.content || <span className="text-muted-foreground">...</span>}
+                          {m.streaming && (
+                            <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-current opacity-70 animate-pulse align-middle" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div ref={chatBottomRef} />
+              </div>
             </div>
           )}
 
           <div ref={bottomRef} />
         </div>
       </div>
+
+      {/* Sticky chat input — pinned to bottom in live phase */}
+      {phase === 'live' && identity && (
+        <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-4 py-4">
+          <form
+            className="max-w-2xl mx-auto flex gap-2 items-end"
+            onSubmit={(e) => {
+              e.preventDefault()
+              sendChat(chatInput)
+            }}
+          >
+            <textarea
+              ref={chatInputRef}
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onInput={(e) => {
+                const t = e.currentTarget
+                t.style.height = 'auto'
+                t.style.height = `${Math.min(t.scrollHeight, 160)}px`
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  sendChat(chatInput)
+                }
+              }}
+              placeholder={`message ${identity.name}...`}
+              rows={1}
+              className="flex-1 resize-none rounded-2xl border border-border/80 bg-black/[0.04] dark:bg-black/30 px-4 py-3 text-base leading-7 shadow-sm shadow-black/10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all min-h-[52px] max-h-[160px] overflow-y-auto"
+            />
+            <CTA type="submit" disabled={!chatInput.trim() || chatLoading} size="md" className="min-w-[5rem]">
+              {chatLoading ? '...' : 'send'}
+            </CTA>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

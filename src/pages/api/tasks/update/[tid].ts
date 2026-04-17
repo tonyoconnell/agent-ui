@@ -8,6 +8,7 @@
 import type { APIRoute } from 'astro'
 import * as store from '@/lib/tasks-store'
 import { writeSilent } from '@/lib/typedb'
+import { relayToGateway, wsManager } from '@/lib/ws-server'
 
 const VALID_STATUSES = new Set(['todo', 'in_progress', 'complete', 'blocked', 'failed'])
 
@@ -56,6 +57,27 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       delete $d of $t;
       insert $t has done true;
     `).catch(() => {})
+  }
+
+  // Broadcast status change to all connected clients
+  const taskUpdateMsg = {
+    type: 'task-update' as const,
+    task: { tid, name: updated?.name || tid, status },
+    timestamp: Date.now(),
+  }
+  wsManager.broadcast(taskUpdateMsg)
+  relayToGateway(taskUpdateMsg)
+
+  // Broadcast unblock events for cascaded tasks
+  for (const unblockedTid of unblocked) {
+    const unblockMsg = {
+      type: 'unblock' as const,
+      taskId: unblockedTid,
+      unblockedBy: tid,
+      timestamp: Date.now(),
+    }
+    wsManager.broadcast(unblockMsg)
+    relayToGateway(unblockMsg)
   }
 
   // Trigger KV refresh (fire and forget)

@@ -126,7 +126,7 @@ function corsHeaders(origin: string | null): Record<string, string> {
   const allowed = origin && CORS_ORIGINS.some((o) => origin.startsWith(o)) ? origin : CORS_ORIGINS[0]
   return {
     'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Upgrade, Connection',
     'Access-Control-Max-Age': '86400',
   }
@@ -302,6 +302,138 @@ export default {
         return Response.json(data, {
           headers: { ...headers, 'X-Cache': 'MISS' },
         })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Unknown error'
+        return Response.json({ error: msg }, { status: 500, headers })
+      }
+    }
+
+    // PATCH /tasks/:tid — Update task status in D1 + broadcast via WsHub
+    if (url.pathname.startsWith('/tasks/') && request.method === 'PATCH') {
+      const tid = url.pathname.split('/tasks/')[1]?.split('/')[0]
+      if (!tid) return Response.json({ error: 'Missing task id' }, { status: 400, headers })
+      if (!env.DB) return Response.json({ error: 'D1 not available' }, { status: 500, headers })
+
+      try {
+        const body = (await request.json()) as { status?: string }
+        const validStatuses = ['todo', 'in_progress', 'complete', 'blocked', 'failed']
+        if (!body.status || !validStatuses.includes(body.status)) {
+          return Response.json({ error: 'Invalid status' }, { status: 400, headers })
+        }
+
+        const now = Date.now()
+
+        // Upsert to D1 — update if exists, insert minimal row if not
+        const existing = await env.DB.prepare('SELECT tid FROM project_tasks WHERE tid = ?').bind(tid).first()
+        if (existing) {
+          await env.DB.prepare('UPDATE project_tasks SET status = ?, updated_at = ? WHERE tid = ?')
+            .bind(body.status, now, tid)
+            .run()
+        } else {
+          await env.DB.prepare(
+            'INSERT INTO project_tasks (tid, name, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+          )
+            .bind(tid, tid, body.status, now, now)
+            .run()
+        }
+
+        // Cascade unblock: if completing, find blocked tasks whose blockers are all done
+        const unblocked: string[] = []
+        if (body.status === 'complete') {
+          const blocked = await env.DB.prepare(
+            "SELECT tid, blocked_by FROM project_tasks WHERE status = 'blocked'",
+          ).all()
+          for (const row of blocked.results || []) {
+            const blockedBy: string[] = JSON.parse((row.blocked_by as string) || '[]')
+            if (!blockedBy.includes(tid)) continue
+            // Check if all blockers are now complete
+            const otherBlockers = blockedBy.filter((b) => b !== tid)
+            let allDone = true
+            for (const b of otherBlockers) {
+              const blocker = await env.DB.prepare('SELECT status FROM project_tasks WHERE tid = ?').bind(b).first()
+              if (!blocker || blocker.status !== 'complete') {
+                allDone = false
+                break
+              }
+            }
+            if (allDone) {
+              await env.DB.prepare("UPDATE project_tasks SET status = 'todo', updated_at = ? WHERE tid = ?")
+                .bind(now, row.tid)
+                .run()
+              unblocked.push(row.tid as string)
+            }
+          }
+        }
+
+        // Broadcast status change via WsHub DO (instant to all connected browsers)
+        const hubId = env.WS_HUB.idFromName('global')
+        const hub = env.WS_HUB.get(hubId)
+        await hub.fetch('https://do/send', {
+          method: 'POST',
+          body: JSON.stringify({ type: 'task-update', task: { tid, name: tid, status: body.status }, timestamp: now }),
+        })
+
+        // Broadcast unblock events
+        for (const ubTid of unblocked) {
+          await hub.fetch('https://do/send', {
+            method: 'POST',
+            body: JSON.stringify({ type: 'unblock', taskId: ubTid, unblockedBy: tid, timestamp: now }),
+          })
+        }
+
+        return Response.json({ ok: true, tid, status: body.status, unblocked }, { headers })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Unknown error'
+        return Response.json({ error: msg }, { status: 500, headers })
+      }
+    }
+
+    // POST /tasks/:tid/complete — Mark pheromone + status in D1 + broadcast
+    if (url.pathname.match(/^\/tasks\/[^/]+\/complete$/) && request.method === 'POST') {
+      const tid = url.pathname.split('/tasks/')[1]?.split('/')[0]
+      if (!tid) return Response.json({ error: 'Missing task id' }, { status: 400, headers })
+      if (!env.DB) return Response.json({ error: 'D1 not available' }, { status: 500, headers })
+
+      try {
+        const body = (await request.json()) as { from?: string; failed?: boolean }
+        const failed = body.failed === true
+        const now = Date.now()
+        const delta = failed ? 8.0 : 5.0
+        const field = failed ? 'alarm_pheromone' : 'trail_pheromone'
+
+        // Update pheromone in D1
+        await env.DB.prepare(
+          `UPDATE project_tasks SET ${field} = MIN(100, ${field} + ?), status = ?, updated_at = ? WHERE tid = ?`,
+        )
+          .bind(delta, failed ? 'failed' : 'complete', now, tid)
+          .run()
+
+        // Read back for broadcast values
+        const task = (await env.DB.prepare('SELECT trail_pheromone, alarm_pheromone FROM project_tasks WHERE tid = ?')
+          .bind(tid)
+          .first()) as { trail_pheromone: number; alarm_pheromone: number } | null
+
+        // Broadcast via WsHub DO
+        const hubId = env.WS_HUB.idFromName('global')
+        const hub = env.WS_HUB.get(hubId)
+
+        if (failed) {
+          await hub.fetch('https://do/send', {
+            method: 'POST',
+            body: JSON.stringify({ type: 'warn', taskId: tid, resistance: task?.alarm_pheromone ?? 0, timestamp: now }),
+          })
+        } else {
+          await hub.fetch('https://do/send', {
+            method: 'POST',
+            body: JSON.stringify({ type: 'mark', taskId: tid, strength: task?.trail_pheromone ?? 0, timestamp: now }),
+          })
+          await hub.fetch('https://do/send', {
+            method: 'POST',
+            body: JSON.stringify({ type: 'complete', taskId: tid, timestamp: now }),
+          })
+        }
+
+        return Response.json({ ok: true, tid, outcome: failed ? 'failed' : 'success' }, { headers })
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Unknown error'
         return Response.json({ error: msg }, { status: 500, headers })

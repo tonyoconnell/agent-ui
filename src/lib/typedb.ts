@@ -25,6 +25,7 @@ async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<un
       transactionType: txType,
       commit: txType === 'write',
     }),
+    signal: AbortSignal.timeout(8000),
   })
 
   if (!res.ok) {

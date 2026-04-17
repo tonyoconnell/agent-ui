@@ -18,7 +18,7 @@ export function MarketplaceHighways() {
 
   const fetchHighways = useCallback(async () => {
     try {
-      const res = await fetch('/api/export/highways?limit=10')
+      const res = await fetch('/api/export/highways?limit=10', { signal: AbortSignal.timeout(10000) })
       if (!res.ok) throw new Error(`status ${res.status}`)
       const data = (await res.json()) as Highway[]
       setHighways(Array.isArray(data) ? data : [])

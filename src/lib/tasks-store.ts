@@ -127,6 +127,52 @@ export function updateTask(tid: string, updates: Partial<ProjectTask>): ProjectT
   return updated
 }
 
+/**
+ * Seed the in-memory store from API/TypeDB data.
+ * Called when GET /api/tasks fetches from TypeDB so that
+ * subsequent PATCH/complete calls can find and broadcast tasks.
+ */
+export function seedFromApi(apiTasks: Array<Record<string, unknown>>): void {
+  loadFromDisk()
+  if (tasks.size > 0) return // already populated, don't overwrite
+  const now = Date.now()
+  for (const t of apiTasks) {
+    const tid = (t.tid || t.id) as string
+    if (!tid) continue
+    const rawStatus = (t.status as string) || 'open'
+    const status: ProjectTask['status'] =
+      rawStatus === 'done'
+        ? 'complete'
+        : rawStatus === 'open'
+          ? 'todo'
+          : rawStatus === 'blocked'
+            ? 'blocked'
+            : rawStatus === 'in_progress'
+              ? 'in_progress'
+              : rawStatus === 'failed'
+                ? 'failed'
+                : 'todo'
+    const tags = (t.tags as string[]) || []
+    tasks.set(tid, {
+      tid,
+      name: (t.name as string) || tid,
+      status,
+      priority: (tags.find((tag) => /^P[0-3]$/.test(tag)) as ProjectTask['priority']) || 'P1',
+      phase: (t.phase as string) || 'C1',
+      value: (t.value as string) || 'medium',
+      persona: (t.persona as string) || 'dev',
+      tags,
+      blockedBy: (t.blockedBy as string[]) || [],
+      blocks: (t.blocks as string[]) || [],
+      trailPheromone: (t.strength as number) || 0,
+      alarmPheromone: (t.resistance as number) || 0,
+      createdAt: now,
+      updatedAt: now,
+    })
+  }
+  saveToDisk()
+}
+
 export function deleteTask(tid: string): boolean {
   loadFromDisk()
   const existed = tasks.delete(tid)

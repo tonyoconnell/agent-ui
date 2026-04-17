@@ -25,9 +25,9 @@ const CHAT_MODELS: ModelSpec[] = [
  * Model is picked by the substrate (tag='chat') unless client specifies one.
  * On stream finish, outcome marks the tag→model edge so pheromone accumulates.
  */
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const { messages, model: clientModel, tags = ['chat'] } = (await request.json()) as any
+    const { messages, model: clientModel, tags = ['chat'], system: clientSystem } = (await request.json()) as any
 
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: 'No messages provided' }), {
@@ -36,9 +36,10 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    const groqKey = import.meta.env.GROQ_API_KEY
-    const cerebrasKey = import.meta.env.CEREBRAS_API_KEY
-    const openrouterKey = import.meta.env.OPENROUTER_API_KEY
+    const rt = (locals as any).runtime?.env ?? {}
+    const groqKey = import.meta.env.GROQ_API_KEY || rt.GROQ_API_KEY
+    const cerebrasKey = import.meta.env.CEREBRAS_API_KEY || rt.CEREBRAS_API_KEY
+    const openrouterKey = import.meta.env.OPENROUTER_API_KEY || rt.OPENROUTER_API_KEY
     if (!groqKey && !cerebrasKey && !openrouterKey) {
       return new Response(JSON.stringify({ error: 'No LLM API key configured' }), {
         status: 500,
@@ -81,7 +82,7 @@ export const POST: APIRoute = async ({ request }) => {
             apiKey: openrouterKey!,
           })
 
-    const systemPrompt = `You are a helpful assistant for the ONE world interface.
+    const defaultSystem = `You are a helpful assistant for the ONE world interface.
 You help users control a network of agents and signals.
 
 Available commands (users can speak these naturally):
@@ -94,6 +95,8 @@ Available commands (users can speak these naturally):
 - "inject/burst" - Send signals to all agents
 
 Respond helpfully and suggest commands when appropriate.`
+
+    const systemPrompt = clientSystem || defaultSystem
 
     const result = streamText({
       model: provider(modelId),

@@ -172,34 +172,69 @@ export function LifecycleSpeedrun() {
 
     // ── 0 WALLET ─────────────────────────────────────────────
     const rW = await timed(async () => {
+      // Register in TypeDB
       const [seller, buyer] = await Promise.all([
         postJson('/api/agents/register', { uid: sellerUid, kind: 'agent', capabilities: [{ skill, price }] }),
         postJson('/api/agents/register', { uid: buyerUid, kind: 'agent' }),
       ])
-      return { seller, buyer }
+      // Create on-chain Unit objects (funds wallets + mints Move objects)
+      const [sellerOnChain, buyerOnChain] = await Promise.all([
+        postJson('/api/agents/create-onchain', { uid: sellerUid, name: sellerUid, kind: 'agent' }, 35000).catch(
+          () => null,
+        ),
+        postJson('/api/agents/create-onchain', { uid: buyerUid, name: buyerUid, kind: 'agent' }, 35000).catch(
+          () => null,
+        ),
+      ])
+      return { seller, buyer, sellerOnChain, buyerOnChain }
     })
-    const wd = rW.data as { seller: Record<string, unknown>; buyer: Record<string, unknown> } | undefined
-    ch.sellerAddress = String(wd?.seller?.wallet ?? '')
-    ch.buyerAddress = String(wd?.buyer?.wallet ?? '')
+    const wd = rW.data as
+      | {
+          seller: Record<string, unknown>
+          buyer: Record<string, unknown>
+          sellerOnChain: Record<string, unknown> | null
+          buyerOnChain: Record<string, unknown> | null
+        }
+      | undefined
+    // Prefer on-chain address (derived from real keypair)
+    ch.sellerAddress = String(wd?.sellerOnChain?.address ?? wd?.seller?.wallet ?? '')
+    ch.buyerAddress = String(wd?.buyerOnChain?.address ?? wd?.buyer?.wallet ?? '')
+    // Collect creation digests
+    if (wd?.sellerOnChain?.digest) ch.digests.push({ stage: 'seller-create', digest: String(wd.sellerOnChain.digest) })
+    if (wd?.buyerOnChain?.digest) ch.digests.push({ stage: 'buyer-create', digest: String(wd.buyerOnChain.digest) })
     tick('wallet', rW, {
-      seller: { uid: sellerUid, address: ch.sellerAddress, capability: `${skill} @ ${price} SUI` },
-      buyer: { uid: buyerUid, address: ch.buyerAddress },
+      seller: {
+        uid: sellerUid,
+        address: ch.sellerAddress,
+        capability: `${skill} @ ${price} SUI`,
+        objectId: wd?.sellerOnChain?.objectId ?? 'pending',
+      },
+      buyer: {
+        uid: buyerUid,
+        address: ch.buyerAddress,
+        objectId: wd?.buyerOnChain?.objectId ?? 'pending',
+      },
+      onChain:
+        wd?.sellerOnChain?.ok && wd?.buyerOnChain?.ok
+          ? 'both units created on Sui testnet'
+          : 'pending — faucet may be rate-limited',
       explorer: ch.sellerAddress ? `${SUISCAN}/account/${ch.sellerAddress}` : null,
     })
     up()
 
     // ── 1 FUND ───────────────────────────────────────────────
-    const rF = await timed(() => postJson('/api/faucet', { address: ch.sellerAddress }, 20000))
+    //    createUnit already calls ensureFunded, but we fund buyer too
+    const rF = await timed(() => postJson('/api/faucet', { address: ch.buyerAddress }, 20000))
     const fd = rF.data as Record<string, unknown> | undefined
     ch.funded = rF.ok
     tick('fund', rF, {
-      address: ch.sellerAddress,
+      address: ch.buyerAddress,
       funded: rF.ok,
       rateLimited: fd?.rateLimited ?? false,
       note: fd?.rateLimited
         ? 'rate limited — wallet may already have SUI from prior run'
         : 'real SUI tokens delivered on testnet',
-      explorer: ch.sellerAddress ? `${SUISCAN}/account/${ch.sellerAddress}` : null,
+      explorer: ch.buyerAddress ? `${SUISCAN}/account/${ch.buyerAddress}` : null,
     })
     up()
 

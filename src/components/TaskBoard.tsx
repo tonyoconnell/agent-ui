@@ -1,21 +1,28 @@
 /**
- * TaskBoard — Live task visualization following one.tql schema
+ * TaskBoard — Live task visualization with realtime DB connection
  *
  * Shows: phase timeline, active task spotlight, dependency chains,
  * pheromone trails, and task flow (planned → active → complete).
  *
- * Falls back to TODO.md roadmap data when TypeDB isn't connected.
+ * Data: fetches from /api/tasks on mount, live updates via WebSocket.
+ * No hardcoded data — everything comes from the task store / TypeDB.
  */
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useTaskWebSocket } from '@/lib/use-task-websocket'
+import { cn } from '@/lib/utils'
 
-// Task source. Empty = same-origin (dev server's own /api/tasks → .tasks.json).
-// Set PUBLIC_TASKS_ORIGIN=https://one-substrate.pages.dev in .env to share
-// state with every other agent via the production substrate.
+// Task read origin — where to fetch the task list
 const TASKS_ORIGIN = (import.meta.env.PUBLIC_TASKS_ORIGIN as string | undefined) ?? ''
+// Task write origin — gateway for D1 writes + instant WS broadcast.
+// Dev: empty (same-origin, local store). Prod: gateway URL (D1 + WsHub DO).
+const GATEWAY_URL = (import.meta.env.PUBLIC_GATEWAY_URL as string | undefined) ?? ''
 
-// ─── Types (from one.tql) ───────────────────────────────────────────────────
+// ─── Types (aligned with tasks-store.ts + WS hook contract) ────────────────
 
 interface Task {
   tid: string
@@ -23,12 +30,9 @@ interface Task {
   status: 'todo' | 'in_progress' | 'complete' | 'blocked' | 'failed'
   priority: 'P0' | 'P1' | 'P2' | 'P3'
   phase: string
-  taskType: string
-  strength: number
-  resistance: number
-  trailStatus: 'proven' | 'fresh' | 'fading' | 'dead' | null
-  attractive: boolean
-  repelled: boolean
+  tags: string[]
+  trailPheromone: number
+  alarmPheromone: number
   blockedBy: string[]
   blocks: string[]
 }
@@ -41,662 +45,26 @@ interface Phase {
   total: number
 }
 
-// ─── Roadmap Data (self-hosted from TODO.md) ────────────────────────────────
+// ─── Phase Configuration ───────────────────────────────────────────────────
+// API returns C1–C7 phases. Map to display labels + colors.
 
-const ROADMAP: Task[] = [
-  // Phase 0: Tighten (COMPLETE)
-  {
-    tid: 'X-1',
-    name: 'One schema',
-    status: 'complete',
-    priority: 'P0',
-    phase: 'tighten',
-    taskType: 'build',
-    strength: 95,
-    resistance: 0,
-    trailStatus: 'proven',
-    attractive: false,
-    repelled: false,
-    blockedBy: [],
-    blocks: ['X-2', 'X-3', 'X-4', 'X-5', 'X-6'],
-  },
-  {
-    tid: 'X-2',
-    name: 'Kill entity service',
-    status: 'complete',
-    priority: 'P0',
-    phase: 'tighten',
-    taskType: 'build',
-    strength: 90,
-    resistance: 0,
-    trailStatus: 'proven',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['X-1'],
-    blocks: ['X-5'],
-  },
-  {
-    tid: 'X-3',
-    name: 'Converge vocabulary',
-    status: 'complete',
-    priority: 'P0',
-    phase: 'tighten',
-    taskType: 'build',
-    strength: 88,
-    resistance: 0,
-    trailStatus: 'proven',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['X-1'],
-    blocks: [],
-  },
-  {
-    tid: 'X-4',
-    name: 'Mark lessons as reference',
-    status: 'complete',
-    priority: 'P1',
-    phase: 'tighten',
-    taskType: 'build',
-    strength: 85,
-    resistance: 0,
-    trailStatus: 'proven',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['X-1'],
-    blocks: [],
-  },
-  {
-    tid: 'X-5',
-    name: 'Revenue on trails',
-    status: 'complete',
-    priority: 'P0',
-    phase: 'tighten',
-    taskType: 'build',
-    strength: 92,
-    resistance: 0,
-    trailStatus: 'proven',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['X-2'],
-    blocks: [],
-  },
-  {
-    tid: 'X-6',
-    name: 'Rename to world',
-    status: 'complete',
-    priority: 'P1',
-    phase: 'tighten',
-    taskType: 'build',
-    strength: 80,
-    resistance: 0,
-    trailStatus: 'proven',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['X-1'],
-    blocks: [],
-  },
-
-  // Phase 1: Wire
-  {
-    tid: 'W-1',
-    name: 'TypeDB Cloud instance',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'wire',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: [],
-    blocks: ['W-2'],
-  },
-  {
-    tid: 'W-2',
-    name: 'Cloudflare Worker proxy',
-    status: 'complete',
-    priority: 'P0',
-    phase: 'wire',
-    taskType: 'build',
-    strength: 60,
-    resistance: 0,
-    trailStatus: 'fresh',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['W-1'],
-    blocks: ['W-3'],
-  },
-  {
-    tid: 'W-3',
-    name: 'TypeDB client lib',
-    status: 'complete',
-    priority: 'P0',
-    phase: 'wire',
-    taskType: 'build',
-    strength: 55,
-    resistance: 0,
-    trailStatus: 'fresh',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['W-2'],
-    blocks: ['W-4'],
-  },
-  {
-    tid: 'W-4',
-    name: 'Persist layer',
-    status: 'complete',
-    priority: 'P0',
-    phase: 'wire',
-    taskType: 'build',
-    strength: 50,
-    resistance: 0,
-    trailStatus: 'fresh',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['W-3'],
-    blocks: ['T-1'],
-  },
-
-  // Phase 2: Tasks
-  {
-    tid: 'T-1',
-    name: 'Task API routes',
-    status: 'complete',
-    priority: 'P0',
-    phase: 'tasks',
-    taskType: 'build',
-    strength: 45,
-    resistance: 0,
-    trailStatus: 'fresh',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['W-4'],
-    blocks: ['T-2', 'T-3', 'T-4'],
-  },
-  {
-    tid: 'T-2',
-    name: 'Task board UI',
-    status: 'in_progress',
-    priority: 'P0',
-    phase: 'tasks',
-    taskType: 'build',
-    strength: 20,
-    resistance: 0,
-    trailStatus: 'fresh',
-    attractive: true,
-    repelled: false,
-    blockedBy: ['T-1'],
-    blocks: ['T-5'],
-  },
-  {
-    tid: 'T-3',
-    name: 'Dependencies + negation',
-    status: 'complete',
-    priority: 'P1',
-    phase: 'tasks',
-    taskType: 'build',
-    strength: 40,
-    resistance: 0,
-    trailStatus: 'fresh',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['T-1'],
-    blocks: ['T-6'],
-  },
-  {
-    tid: 'T-4',
-    name: 'Pheromone reinforcement',
-    status: 'complete',
-    priority: 'P1',
-    phase: 'tasks',
-    taskType: 'build',
-    strength: 35,
-    resistance: 0,
-    trailStatus: 'fresh',
-    attractive: false,
-    repelled: false,
-    blockedBy: ['T-1'],
-    blocks: ['T-6'],
-  },
-  {
-    tid: 'T-5',
-    name: 'Exploratory tasks panel',
-    status: 'todo',
-    priority: 'P2',
-    phase: 'tasks',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['T-2'],
-    blocks: [],
-  },
-  {
-    tid: 'T-6',
-    name: 'Self-host roadmap',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'tasks',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['T-3', 'T-4'],
-    blocks: ['T-7'],
-  },
-  {
-    tid: 'T-7',
-    name: '/grow skill',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'tasks',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['T-6'],
-    blocks: ['O-1'],
-  },
-
-  // Phase 3: Onboard
-  {
-    tid: 'O-1',
-    name: 'Seed world',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'onboard',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['T-6'],
-    blocks: ['O-2', 'O-4'],
-  },
-  {
-    tid: 'O-2',
-    name: 'Signup flow',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'onboard',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['O-1'],
-    blocks: ['O-3', 'O-5', 'O-6'],
-  },
-  {
-    tid: 'O-3',
-    name: 'Agent builder',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'onboard',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['O-2'],
-    blocks: ['O-7'],
-  },
-  {
-    tid: 'O-4',
-    name: 'Discovery',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'onboard',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['O-1'],
-    blocks: ['O-7'],
-  },
-  {
-    tid: 'O-5',
-    name: 'Profiles',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'onboard',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['O-2'],
-    blocks: [],
-  },
-  {
-    tid: 'O-6',
-    name: 'Eight personas',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'onboard',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['O-2'],
-    blocks: [],
-  },
-  {
-    tid: 'O-7',
-    name: 'Connect flow',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'onboard',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['O-3', 'O-4'],
-    blocks: [],
-  },
-
-  // Phase 4: Commerce
-  {
-    tid: 'C-1',
-    name: 'x402 payment layer',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'commerce',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['O-3'],
-    blocks: ['C-2', 'C-3', 'C-4'],
-  },
-  {
-    tid: 'C-2',
-    name: 'Service marketplace',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'commerce',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['C-1'],
-    blocks: ['C-5'],
-  },
-  {
-    tid: 'C-3',
-    name: 'Revenue tracking',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'commerce',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['C-1'],
-    blocks: ['C-6'],
-  },
-  {
-    tid: 'C-4',
-    name: 'Agent-to-agent payments',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'commerce',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['C-1'],
-    blocks: [],
-  },
-  {
-    tid: 'C-5',
-    name: 'Highway pricing',
-    status: 'todo',
-    priority: 'P2',
-    phase: 'commerce',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['C-2'],
-    blocks: [],
-  },
-  {
-    tid: 'C-6',
-    name: 'Agentverse bridge',
-    status: 'todo',
-    priority: 'P2',
-    phase: 'commerce',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['C-3'],
-    blocks: [],
-  },
-
-  // Phase 5: Intelligence
-  {
-    tid: 'I-1',
-    name: 'LLM as unit',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'intelligence',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['C-4'],
-    blocks: ['I-2'],
-  },
-  {
-    tid: 'I-2',
-    name: 'Agent castes',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'intelligence',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['I-1'],
-    blocks: ['I-5'],
-  },
-  {
-    tid: 'I-3',
-    name: 'Hypothesis engine',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'intelligence',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['C-3'],
-    blocks: ['I-4'],
-  },
-  {
-    tid: 'I-4',
-    name: 'Frontier detection',
-    status: 'todo',
-    priority: 'P2',
-    phase: 'intelligence',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['I-3'],
-    blocks: ['I-5'],
-  },
-  {
-    tid: 'I-5',
-    name: 'Dream state',
-    status: 'todo',
-    priority: 'P2',
-    phase: 'intelligence',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['I-2', 'I-4'],
-    blocks: [],
-  },
-
-  // Phase 6: Scale
-  {
-    tid: 'S-1',
-    name: 'Cloudflare Pages deploy',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'scale',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['I-1'],
-    blocks: ['S-2', 'S-4'],
-  },
-  {
-    tid: 'S-2',
-    name: 'Sui integration',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'scale',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['S-1'],
-    blocks: ['S-3'],
-  },
-  {
-    tid: 'S-3',
-    name: 'Security hardening',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'scale',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['S-2'],
-    blocks: ['S-5'],
-  },
-  {
-    tid: 'S-4',
-    name: 'Monitoring + alerts',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'scale',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['S-1'],
-    blocks: [],
-  },
-  {
-    tid: 'S-5',
-    name: 'ASI ecosystem',
-    status: 'todo',
-    priority: 'P1',
-    phase: 'scale',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['S-3'],
-    blocks: ['S-6'],
-  },
-  {
-    tid: 'S-6',
-    name: 'Self-sustaining economy',
-    status: 'todo',
-    priority: 'P0',
-    phase: 'scale',
-    taskType: 'build',
-    strength: 0,
-    resistance: 0,
-    trailStatus: null,
-    attractive: false,
-    repelled: false,
-    blockedBy: ['S-5'],
-    blocks: [],
-  },
-]
-
-const PHASE_ORDER = ['tighten', 'wire', 'tasks', 'onboard', 'commerce', 'intelligence', 'scale']
+const PHASE_ORDER = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7']
 
 const PHASE_META: Record<string, { label: string; color: string; glow: string }> = {
-  tighten: { label: 'Tighten', color: '#6ee7b7', glow: 'rgba(110,231,183,0.3)' },
-  wire: { label: 'Wire', color: '#67e8f9', glow: 'rgba(103,232,249,0.3)' },
-  tasks: { label: 'Tasks', color: '#fbbf24', glow: 'rgba(251,191,36,0.3)' },
-  onboard: { label: 'Onboard', color: '#4ade80', glow: 'rgba(74,222,128,0.3)' },
-  commerce: { label: 'Commerce', color: '#c084fc', glow: 'rgba(192,132,252,0.3)' },
-  intelligence: { label: 'Intelligence', color: '#f472b6', glow: 'rgba(244,114,182,0.3)' },
-  scale: { label: 'Scale', color: '#f87171', glow: 'rgba(248,113,113,0.3)' },
+  C1: { label: 'Tighten', color: '#6ee7b7', glow: 'rgba(110,231,183,0.3)' },
+  C2: { label: 'Wire', color: '#67e8f9', glow: 'rgba(103,232,249,0.3)' },
+  C3: { label: 'Tasks', color: '#fbbf24', glow: 'rgba(251,191,36,0.3)' },
+  C4: { label: 'Onboard', color: '#4ade80', glow: 'rgba(74,222,128,0.3)' },
+  C5: { label: 'Commerce', color: '#c084fc', glow: 'rgba(192,132,252,0.3)' },
+  C6: { label: 'Intelligence', color: '#f472b6', glow: 'rgba(244,114,182,0.3)' },
+  C7: { label: 'Scale', color: '#f87171', glow: 'rgba(248,113,113,0.3)' },
 }
 const PHASE_META_DEFAULT = { label: 'Unknown', color: '#94a3b8', glow: 'rgba(148,163,184,0.3)' }
 const getPhaseMeta = (phase: string) => PHASE_META[phase] ?? PHASE_META_DEFAULT
 
-const STATUS_STYLES: Record<string, { bg: string; border: string; text: string }> = {
-  complete: { bg: 'bg-emerald-500/8', border: 'border-emerald-500/20', text: 'text-emerald-400' },
-  in_progress: { bg: 'bg-amber-500/10', border: 'border-amber-400/40', text: 'text-amber-300' },
-  todo: { bg: 'bg-white/[0.03]', border: 'border-white/8', text: 'text-white/50' },
-  blocked: { bg: 'bg-white/[0.02]', border: 'border-white/5', text: 'text-white/25' },
-  failed: { bg: 'bg-red-500/8', border: 'border-red-500/20', text: 'text-red-400' },
-}
+const PRIORITY_COLORS: Record<string, string> = { P0: '#ef4444', P1: '#f59e0b', P2: '#3b82f6', P3: '#6b7280' }
 
-// ─── Phase Timeline ─────────────────────────────────────────────────────────
+// ─── Phase Timeline ────────────────────────────────────────────────────────
 
 function PhaseTimeline({ phases, activePhase }: { phases: Phase[]; activePhase: string }) {
   return (
@@ -710,7 +78,6 @@ function PhaseTimeline({ phases, activePhase }: { phases: Phase[]; activePhase: 
         return (
           <div key={phase.id} className="flex items-center gap-1 flex-1">
             <div className="flex-1 group relative">
-              {/* Phase label */}
               <div className="flex items-center justify-between mb-1.5">
                 <span
                   className="text-[11px] font-semibold tracking-wide"
@@ -723,7 +90,6 @@ function PhaseTimeline({ phases, activePhase }: { phases: Phase[]; activePhase: 
                 </span>
               </div>
 
-              {/* Progress bar */}
               <div className="relative h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-1000 ease-out"
@@ -745,14 +111,8 @@ function PhaseTimeline({ phases, activePhase }: { phases: Phase[]; activePhase: 
               </div>
             </div>
 
-            {/* Connector */}
             {i < phases.length - 1 && (
-              <div
-                className="w-4 h-px mt-4"
-                style={{
-                  background: isDone ? `${meta.color}40` : '#ffffff08',
-                }}
-              />
+              <div className="w-4 h-px mt-4" style={{ background: isDone ? `${meta.color}40` : '#ffffff08' }} />
             )}
           </div>
         )
@@ -761,7 +121,7 @@ function PhaseTimeline({ phases, activePhase }: { phases: Phase[]; activePhase: 
   )
 }
 
-// ─── Active Task Spotlight ──────────────────────────────────────────────────
+// ─── Active Task Spotlight ─────────────────────────────────────────────────
 
 function ActiveSpotlight({ task, allTasks }: { task: Task; allTasks: Task[] }) {
   const meta = getPhaseMeta(task.phase)
@@ -770,7 +130,6 @@ function ActiveSpotlight({ task, allTasks }: { task: Task; allTasks: Task[] }) {
 
   return (
     <div className="relative my-6">
-      {/* Glow backdrop */}
       <div
         className="absolute inset-0 rounded-2xl blur-3xl opacity-20 animate-pulse"
         style={{ background: meta.glow }}
@@ -800,33 +159,24 @@ function ActiveSpotlight({ task, allTasks }: { task: Task; allTasks: Task[] }) {
           </div>
         )}
 
-        {/* Current task (center spotlight) */}
-        <div
-          className="shrink-0 w-72 rounded-xl border-2 p-5 relative overflow-hidden"
+        {/* Center spotlight card */}
+        <Card
+          className="shrink-0 w-72 border-2 relative overflow-hidden bg-transparent"
           style={{
             borderColor: `${meta.color}50`,
             background: `linear-gradient(135deg, ${meta.color}08 0%, transparent 50%, ${meta.color}05 100%)`,
             boxShadow: `0 0 40px ${meta.glow}, inset 0 1px 0 ${meta.color}15`,
           }}
         >
-          {/* Animated border glow */}
-          <div
-            className="absolute inset-0 rounded-xl animate-[spin_8s_linear_infinite] opacity-20"
-            style={{
-              background: `conic-gradient(from 0deg, transparent, ${meta.color}, transparent, transparent)`,
-              maskImage: 'radial-gradient(ellipse, transparent 65%, black 70%)',
-              WebkitMaskImage: 'radial-gradient(ellipse, transparent 65%, black 70%)',
-            }}
-          />
-
-          <div className="relative">
+          <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-1">
-              <span
-                className="text-[10px] font-mono px-1.5 py-0.5 rounded"
-                style={{ background: `${meta.color}20`, color: meta.color }}
+              <Badge
+                variant="outline"
+                className="text-[10px] font-mono px-1.5 py-0"
+                style={{ borderColor: `${meta.color}40`, color: meta.color }}
               >
                 {task.tid}
-              </span>
+              </Badge>
               <span
                 className="text-[10px] font-semibold uppercase tracking-widest"
                 style={{ color: `${meta.color}aa` }}
@@ -838,24 +188,18 @@ function ActiveSpotlight({ task, allTasks }: { task: Task; allTasks: Task[] }) {
             <h3 className="text-lg font-bold text-white mt-2">{task.name}</h3>
 
             <div className="flex items-center gap-3 mt-3">
-              <StatusPill status={task.status} />
+              <StatusBadge status={task.status} />
               <PriorityDot priority={task.priority} />
-              {task.attractive && (
-                <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-                  attractive
-                </span>
-              )}
             </div>
 
-            {/* Pheromone visualization */}
-            {(task.strength > 0 || task.resistance > 0) && (
+            {(task.trailPheromone > 0 || task.alarmPheromone > 0) && (
               <div className="mt-4 space-y-1.5">
-                <PheromoneTrail value={task.strength} type="trail" color={meta.color} />
-                {task.resistance > 0 && <PheromoneTrail value={task.resistance} type="alarm" color="#ef4444" />}
+                <PheromoneBar value={task.trailPheromone} type="trail" color={meta.color} />
+                {task.alarmPheromone > 0 && <PheromoneBar value={task.alarmPheromone} type="alarm" color="#ef4444" />}
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Connector right */}
         {unblocks.length > 0 && (
@@ -884,53 +228,57 @@ function ActiveSpotlight({ task, allTasks }: { task: Task; allTasks: Task[] }) {
   )
 }
 
-// ─── Sub-components ─────────────────────────────────────────────────────────
+// ─── Sub-components ────────────────────────────────────────────────────────
 
 function MiniCard({ task, align }: { task: Task; align: 'left' | 'right' }) {
-  const style = STATUS_STYLES[task.status] || STATUS_STYLES.todo
   const meta = getPhaseMeta(task.phase)
+  const isDone = task.status === 'complete'
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${style.bg} ${style.border} max-w-[200px]`}>
-      {align === 'right' && task.status === 'complete' && <span className="text-emerald-400 text-xs">&#10003;</span>}
+    <div
+      className={cn(
+        'flex items-center gap-2 px-3 py-1.5 rounded-lg border max-w-[200px]',
+        isDone ? 'bg-emerald-500/8 border-emerald-500/20' : 'bg-white/[0.03] border-white/8',
+      )}
+    >
+      {align === 'right' && isDone && <span className="text-emerald-400 text-xs">&#10003;</span>}
       <div className={align === 'right' ? 'text-right' : ''}>
         <span className="text-[10px] font-mono block" style={{ color: `${meta.color}80` }}>
           {task.tid}
         </span>
-        <span className={`text-xs ${style.text} line-clamp-1`}>{task.name}</span>
+        <span className={cn('text-xs line-clamp-1', isDone ? 'text-emerald-400' : 'text-white/50')}>{task.name}</span>
       </div>
       {align === 'left' && task.status === 'todo' && <span className="text-white/15 text-[10px]">&#9679;</span>}
     </div>
   )
 }
 
-function StatusPill({ status }: { status: string }) {
-  const labels: Record<string, { text: string; className: string }> = {
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { text: string; className: string }> = {
     complete: { text: 'COMPLETE', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
     in_progress: { text: 'ACTIVE', className: 'bg-amber-500/15 text-amber-300 border-amber-500/30 animate-pulse' },
     todo: { text: 'PLANNED', className: 'bg-white/5 text-white/40 border-white/10' },
     blocked: { text: 'BLOCKED', className: 'bg-white/[0.03] text-white/20 border-white/5' },
     failed: { text: 'FAILED', className: 'bg-red-500/15 text-red-400 border-red-500/20' },
   }
-  const l = labels[status] || labels.todo
+  const c = config[status] || config.todo
   return (
-    <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full border ${l.className}`}>
-      {l.text}
-    </span>
+    <Badge variant="outline" className={cn('text-[10px] font-bold tracking-wider', c.className)}>
+      {c.text}
+    </Badge>
   )
 }
 
 function PriorityDot({ priority }: { priority: string }) {
-  const colors: Record<string, string> = { P0: '#ef4444', P1: '#f59e0b', P2: '#3b82f6', P3: '#6b7280' }
   return (
     <div className="flex items-center gap-1">
-      <div className="w-1.5 h-1.5 rounded-full" style={{ background: colors[priority] || '#6b7280' }} />
+      <div className="w-1.5 h-1.5 rounded-full" style={{ background: PRIORITY_COLORS[priority] || '#6b7280' }} />
       <span className="text-[10px] text-white/30">{priority}</span>
     </div>
   )
 }
 
-function PheromoneTrail({ value, type, color }: { value: number; type: 'trail' | 'alarm'; color: string }) {
+function PheromoneBar({ value, type, color }: { value: number; type: 'trail' | 'alarm'; color: string }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-[9px] uppercase tracking-wider w-8" style={{ color: `${color}60` }}>
@@ -953,9 +301,9 @@ function PheromoneTrail({ value, type, color }: { value: number; type: 'trail' |
   )
 }
 
-// ─── Task Flow Grid ─────────────────────────────────────────────────────────
+// ─── Task Flow Grid (3-column kanban with drag-drop) ───────────────────────
 
-type ColumnStatus = 'planned' | 'active' | 'complete'
+type ColumnKey = 'planned' | 'active' | 'complete'
 
 function TaskFlowGrid({
   tasks,
@@ -969,21 +317,13 @@ function TaskFlowGrid({
   onStatusChange: (tid: string, newStatus: Task['status']) => void
 }) {
   const [draggedId, setDraggedId] = useState<string | null>(null)
-  const [dragOverColumn, setDragOverColumn] = useState<ColumnStatus | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<ColumnKey | null>(null)
   const [rejectedId, setRejectedId] = useState<string | null>(null)
 
   const planned = tasks.filter((t) => t.status === 'todo' || t.status === 'blocked')
   const active = tasks.filter((t) => t.status === 'in_progress')
-  const done = tasks.filter((t) => t.status === 'complete')
-  const failed = tasks.filter((t) => t.status === 'failed')
+  const done = tasks.filter((t) => t.status === 'complete' || t.status === 'failed')
 
-  const handleDragStart = (tid: string) => setDraggedId(tid)
-  const handleDragEnd = () => {
-    setDraggedId(null)
-    setDragOverColumn(null)
-  }
-
-  // Check if task can be completed (all blockers must be complete)
   const canComplete = (tid: string): boolean => {
     const task = tasks.find((t) => t.tid === tid)
     if (!task) return false
@@ -993,10 +333,8 @@ function TaskFlowGrid({
     })
   }
 
-  const handleDrop = (column: ColumnStatus) => {
+  const handleDrop = (column: ColumnKey) => {
     if (!draggedId) return
-
-    // Validate: can't complete if blockers aren't done
     if (column === 'complete' && !canComplete(draggedId)) {
       setRejectedId(draggedId)
       setTimeout(() => setRejectedId(null), 600)
@@ -1004,8 +342,7 @@ function TaskFlowGrid({
       setDragOverColumn(null)
       return
     }
-
-    const statusMap: Record<ColumnStatus, Task['status']> = {
+    const statusMap: Record<ColumnKey, Task['status']> = {
       planned: 'todo',
       active: 'in_progress',
       complete: 'complete',
@@ -1015,6 +352,23 @@ function TaskFlowGrid({
     setDragOverColumn(null)
   }
 
+  const columnProps = (key: ColumnKey) => ({
+    activeId,
+    onSelect,
+    column: key,
+    draggedId,
+    rejectedId,
+    isDragOver: dragOverColumn === key,
+    onDragStart: setDraggedId,
+    onDragEnd: () => {
+      setDraggedId(null)
+      setDragOverColumn(null)
+    },
+    onDragOver: () => setDragOverColumn(key),
+    onDragLeave: () => setDragOverColumn(null),
+    onDrop: () => handleDrop(key),
+  })
+
   return (
     <div className="grid grid-cols-3 gap-6 mt-4">
       <FlowColumn
@@ -1022,52 +376,10 @@ function TaskFlowGrid({
         count={planned.length}
         color="#ffffff20"
         tasks={planned}
-        activeId={activeId}
-        onSelect={onSelect}
-        column="planned"
-        draggedId={draggedId}
-        rejectedId={rejectedId}
-        isDragOver={dragOverColumn === 'planned'}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragOver={() => setDragOverColumn('planned')}
-        onDragLeave={() => setDragOverColumn(null)}
-        onDrop={() => handleDrop('planned')}
+        {...columnProps('planned')}
       />
-      <FlowColumn
-        label="Active"
-        count={active.length}
-        color="#fbbf24"
-        tasks={active}
-        activeId={activeId}
-        onSelect={onSelect}
-        column="active"
-        draggedId={draggedId}
-        rejectedId={rejectedId}
-        isDragOver={dragOverColumn === 'active'}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragOver={() => setDragOverColumn('active')}
-        onDragLeave={() => setDragOverColumn(null)}
-        onDrop={() => handleDrop('active')}
-      />
-      <FlowColumn
-        label="Complete"
-        count={done.length}
-        color="#4ade80"
-        tasks={[...failed, ...done]}
-        activeId={activeId}
-        onSelect={onSelect}
-        column="complete"
-        draggedId={draggedId}
-        rejectedId={rejectedId}
-        isDragOver={dragOverColumn === 'complete'}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragOver={() => setDragOverColumn('complete')}
-        onDragLeave={() => setDragOverColumn(null)}
-        onDrop={() => handleDrop('complete')}
-      />
+      <FlowColumn label="Active" count={active.length} color="#fbbf24" tasks={active} {...columnProps('active')} />
+      <FlowColumn label="Complete" count={done.length} color="#4ade80" tasks={done} {...columnProps('complete')} />
     </div>
   )
 }
@@ -1095,7 +407,7 @@ function FlowColumn({
   tasks: Task[]
   activeId: string
   onSelect: (tid: string) => void
-  column: ColumnStatus
+  column: ColumnKey
   draggedId: string | null
   rejectedId: string | null
   isDragOver: boolean
@@ -1105,22 +417,21 @@ function FlowColumn({
   onDragLeave: () => void
   onDrop: () => void
 }) {
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    onDragOver()
-  }
-
   return (
     <div
-      onDragOver={handleDragOver}
+      onDragOver={(e) => {
+        e.preventDefault()
+        onDragOver()
+      }}
       onDragLeave={onDragLeave}
       onDrop={(e) => {
         e.preventDefault()
         onDrop()
       }}
-      className={`min-h-[200px] rounded-lg p-2 transition-all duration-200 ${
-        isDragOver ? 'bg-white/[0.04] ring-1 ring-white/10' : ''
-      }`}
+      className={cn(
+        'min-h-[200px] rounded-lg p-2 transition-all duration-200',
+        isDragOver && 'bg-white/[0.04] ring-1 ring-white/10',
+      )}
     >
       <div className="flex items-center gap-2 mb-3 px-1">
         <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
@@ -1163,58 +474,59 @@ function TaskRow({
   onDragEnd?: () => void
 }) {
   const meta = getPhaseMeta(task.phase)
-  const style = STATUS_STYLES[task.status] || STATUS_STYLES.todo
+  const statusClasses: Record<string, string> = {
+    complete: 'bg-emerald-500/8 border-emerald-500/20 text-emerald-400',
+    in_progress: 'bg-amber-500/10 border-amber-400/40 text-amber-300',
+    todo: 'bg-white/[0.03] border-white/8 text-white/50',
+    blocked: 'bg-white/[0.02] border-white/5 text-white/25',
+    failed: 'bg-red-500/8 border-red-500/20 text-red-400',
+  }
+  const cls = statusClasses[task.status] || statusClasses.todo
 
   return (
     <button
       draggable
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move'
-        e.dataTransfer.setData('text/plain', task.tid)
         onDragStart?.()
       }}
       onDragEnd={onDragEnd}
       onClick={() => onSelect(task.tid)}
-      className={`w-full text-left rounded-lg border px-3 py-2 transition-all duration-200 cursor-grab active:cursor-grabbing
-        ${style.bg} ${style.border}
-        ${isActive ? 'ring-1 ring-amber-400/30 scale-[1.02]' : 'hover:border-white/15 hover:bg-white/[0.04]'}
-        ${isDragging ? 'opacity-50 scale-95' : ''}
-        ${isRejected ? 'animate-shake ring-2 ring-red-500/50' : ''}
-      `}
+      className={cn(
+        'w-full text-left rounded-lg border px-3 py-2 transition-all duration-200 cursor-grab active:cursor-grabbing',
+        cls,
+        isActive && 'ring-1 ring-amber-400/30 scale-[1.02]',
+        isDragging && 'opacity-50 scale-95',
+        isRejected && 'animate-shake ring-2 ring-red-500/50',
+      )}
       style={isActive ? { boxShadow: `0 0 20px ${meta.glow}` } : undefined}
     >
       <div className="flex items-center gap-2">
-        {/* Phase color dot */}
         <div
           className="w-1 h-6 rounded-full shrink-0"
           style={{
             background: meta.color + (task.status === 'complete' ? '40' : task.status === 'blocked' ? '15' : '80'),
           }}
         />
-
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] font-mono" style={{ color: `${meta.color}70` }}>
               {task.tid}
             </span>
-            <span className={`text-xs truncate ${style.text}`}>{task.name}</span>
+            <span className="text-xs truncate">{task.name}</span>
           </div>
-
-          {/* Trail indicator */}
-          {task.strength > 0 && (
+          {task.trailPheromone > 0 && (
             <div className="mt-1 h-0.5 rounded-full bg-white/[0.03] overflow-hidden" style={{ maxWidth: '100%' }}>
               <div
                 className="h-full rounded-full"
                 style={{
-                  width: `${Math.min(task.strength, 100)}%`,
-                  background: task.trailStatus === 'proven' ? meta.color : `${meta.color}60`,
+                  width: `${Math.min(task.trailPheromone, 100)}%`,
+                  background: task.trailPheromone >= 50 ? meta.color : `${meta.color}60`,
                 }}
               />
             </div>
           )}
         </div>
-
-        {/* Status indicator */}
         {task.status === 'complete' && <span className="text-emerald-500/60 text-xs shrink-0">&#10003;</span>}
         {task.status === 'in_progress' && (
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
@@ -1226,7 +538,7 @@ function TaskRow({
   )
 }
 
-// ─── Stats Bar ──────────────────────────────────────────────────────────────
+// ─── Stats Bar ─────────────────────────────────────────────────────────────
 
 function StatsBar({ tasks }: { tasks: Task[] }) {
   const total = tasks.length
@@ -1235,32 +547,28 @@ function StatsBar({ tasks }: { tasks: Task[] }) {
   const ready = tasks.filter(
     (t) => t.status === 'todo' && t.blockedBy.every((b) => tasks.find((bt) => bt.tid === b)?.status === 'complete'),
   ).length
-  const _totalTrail = tasks.reduce((s, t) => s + t.strength, 0)
-  const highways = tasks.filter((t) => t.strength >= 50).length
+  const highways = tasks.filter((t) => t.trailPheromone >= 50).length
   const pct = total > 0 ? Math.round((complete / total) * 100) : 0
 
   return (
-    <div className="flex items-center gap-5 px-4 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02]">
-      <Stat label="total" value={total} color="#ffffff60" />
-      <Stat label="complete" value={complete} color="#4ade80" />
-      <Stat label="active" value={active} color="#fbbf24" />
-      <Stat label="ready" value={ready} color="#67e8f9" />
-      <Stat label="highways" value={highways} color="#c084fc" />
-      <div className="flex-1" />
-      <div className="flex items-center gap-2">
-        <div className="w-24 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-400 transition-all duration-1000"
-            style={{ width: `${pct}%` }}
-          />
+    <Card className="bg-white/[0.02] border-white/[0.06]">
+      <CardContent className="flex items-center gap-5 px-4 py-2.5">
+        <StatChip label="total" value={total} color="#ffffff60" />
+        <StatChip label="complete" value={complete} color="#4ade80" />
+        <StatChip label="active" value={active} color="#fbbf24" />
+        <StatChip label="ready" value={ready} color="#67e8f9" />
+        <StatChip label="highways" value={highways} color="#c084fc" />
+        <div className="flex-1" />
+        <div className="flex items-center gap-2">
+          <Progress value={pct} className="w-24 h-1.5 bg-white/[0.04]" />
+          <span className="text-xs font-mono text-emerald-400/70">{pct}%</span>
         </div>
-        <span className="text-xs font-mono text-emerald-400/70">{pct}%</span>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
-function Stat({ label, value, color }: { label: string; value: number; color: string }) {
+function StatChip({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-[10px] text-white/25 uppercase tracking-wider">{label}</span>
@@ -1271,58 +579,257 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
   )
 }
 
-// ─── Main Board ─────────────────────────────────────────────────────────────
+// ─── Highways Panel ────────────────────────────────────────────────────────
 
-// ─── Live State Types ───────────────────────────────────────────────────────
-
-interface LiveState {
+function HighwaysPanel({
+  highways,
+}: {
   highways: Array<{ from: string; to: string; strength: number; resistance: number }>
-  stats: { units: number; highways: number; edges: number; revenue: number }
-  lastSync: number
-  connected: boolean
+}) {
+  const sorted = useMemo(
+    () => [...highways].sort((a, b) => b.strength - b.resistance - (a.strength - a.resistance)).slice(0, 12),
+    [highways],
+  )
+
+  const maxStrength = sorted.length > 0 ? Math.max(...sorted.map((h) => h.strength)) : 0
+
+  return (
+    <Card className="bg-white/[0.02] border-white/[0.06]">
+      <CardHeader className="pb-3 px-4 pt-4">
+        <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              'w-1.5 h-1.5 rounded-full',
+              sorted.length > 0 ? 'bg-purple-400 animate-pulse' : 'bg-purple-400/50',
+            )}
+          />
+          <CardTitle className="text-xs font-semibold text-white/50">Live Highways</CardTitle>
+          {sorted.length > 0 && <span className="text-[10px] text-white/20 ml-auto">{highways.length} total</span>}
+        </div>
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        {sorted.length === 0 ? (
+          <p className="text-[10px] text-white/20 text-center py-8">No highways yet — strength builds from signals</p>
+        ) : (
+          <div className="space-y-2">
+            {sorted.map((h, i) => {
+              const weight = h.strength - h.resistance
+              const pct = maxStrength > 0 ? (h.strength / maxStrength) * 100 : 0
+              const isProven = h.strength >= 50 && h.resistance < 10
+              const isToxic = h.resistance >= 10 && h.resistance > h.strength * 2
+
+              return (
+                <div
+                  key={`${h.from}-${h.to}-${i}`}
+                  className={cn(
+                    'rounded-lg border px-3 py-2 transition-all duration-500',
+                    isToxic
+                      ? 'border-red-500/20 bg-red-500/5'
+                      : isProven
+                        ? 'border-purple-500/30 bg-purple-500/5'
+                        : 'border-white/[0.06] bg-white/[0.02]',
+                  )}
+                >
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <span className={cn('font-mono truncate', isProven ? 'text-purple-300' : 'text-white/40')}>
+                      {h.from.split(':').pop()}
+                    </span>
+                    <span className="text-white/15">&rarr;</span>
+                    <span className={cn('font-mono truncate', isProven ? 'text-purple-300' : 'text-white/40')}>
+                      {h.to.split(':').pop()}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="flex-1 h-1 rounded-full bg-white/[0.04] overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${pct}%`,
+                          background: isToxic
+                            ? 'linear-gradient(90deg, #ef444440, #ef4444)'
+                            : isProven
+                              ? 'linear-gradient(90deg, #c084fc40, #c084fc)'
+                              : 'linear-gradient(90deg, #ffffff10, #ffffff40)',
+                        }}
+                      />
+                    </div>
+                    <span
+                      className={cn(
+                        'text-[9px] font-mono w-6 text-right',
+                        isToxic ? 'text-red-400/70' : isProven ? 'text-purple-400/70' : 'text-white/25',
+                      )}
+                    >
+                      {weight.toFixed(0)}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
 
+// ─── Live Indicator ────────────────────────────────────────────────────────
+
+function LiveIndicator({
+  ws,
+  taskCount,
+}: {
+  ws: { connected: boolean; polling: boolean; reconnectAttempt: number }
+  taskCount: number
+}) {
+  const wsStatus = ws.connected
+    ? 'live'
+    : ws.polling
+      ? 'polling'
+      : ws.reconnectAttempt > 0
+        ? `retry ${ws.reconnectAttempt}`
+        : 'offline'
+  const wsColor = ws.connected ? 'text-emerald-400/70' : ws.polling ? 'text-amber-400/70' : 'text-white/30'
+
+  return (
+    <div className="flex items-center gap-4">
+      <span className="text-[10px] text-white/30">{taskCount} tasks</span>
+      <span className={cn('text-[10px] font-mono', wsColor)}>ws:{wsStatus}</span>
+      <div className="flex items-center gap-2">
+        <div className={cn('relative w-2 h-2 rounded-full', ws.connected ? 'bg-emerald-400' : 'bg-white/20')}>
+          {ws.connected && <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-50" />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Loading Skeleton ──────────────────────────────────────────────────────
+
+function TaskBoardSkeleton() {
+  return (
+    <div className="min-h-screen p-6 max-w-[1400px] mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <Skeleton className="h-5 w-32 bg-white/[0.06]" />
+          <Skeleton className="h-3 w-56 mt-2 bg-white/[0.04]" />
+        </div>
+        <Skeleton className="h-4 w-24 bg-white/[0.04]" />
+      </div>
+      <Skeleton className="h-10 w-full bg-white/[0.04] rounded-lg" />
+      <div className="flex gap-1">
+        {PHASE_ORDER.map((p) => (
+          <Skeleton key={p} className="h-8 flex-1 bg-white/[0.04] rounded" />
+        ))}
+      </div>
+      <Skeleton className="h-40 w-72 mx-auto bg-white/[0.04] rounded-xl" />
+      <div className="grid grid-cols-3 gap-6">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-4 w-20 bg-white/[0.04]" />
+            {[0, 1, 2].map((j) => (
+              <Skeleton key={j} className="h-10 w-full bg-white/[0.04] rounded-lg" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Board ────────────────────────────────────────────────────────────
+
 export function TaskBoard() {
-  const [tasks, setTasks] = useState<Task[]>(ROADMAP)
-  const [selectedId, setSelectedId] = useState<string>('')
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedId, setSelectedId] = useState('')
   const [lastCompletedId, setLastCompletedId] = useState<string | null>(null)
-  const [_tick, setTick] = useState(0)
-  const [live, setLive] = useState<LiveState>({
-    highways: [],
-    stats: { units: 0, highways: 0, edges: 0, revenue: 0 },
-    lastSync: 0,
-    connected: false,
-  })
+  const [highways, setHighways] = useState<Array<{ from: string; to: string; strength: number; resistance: number }>>(
+    [],
+  )
 
-  // Find active task or first ready task for spotlight
-  const activeTask = useMemo(() => {
-    if (selectedId) {
-      const found = tasks.find((t) => t.tid === selectedId)
-      if (found) return found
+  // Fetch tasks from the live store
+  const fetchTasks = useCallback(async () => {
+    try {
+      const res = await fetch(`${TASKS_ORIGIN}/api/tasks`)
+      const data = (await res.json()) as { tasks: Array<Record<string, unknown>> }
+      if (!data.tasks?.length) {
+        setLoading(false)
+        return
+      }
+
+      // Normalize API shape → Task interface
+      // API returns: id (not tid), status "done"/"open", priority in tags
+      const mapped: Task[] = data.tasks.map((t) => {
+        const tags = (t.tags as string[]) || []
+        const rawStatus = (t.status as string) || 'open'
+        const status: Task['status'] =
+          rawStatus === 'done'
+            ? 'complete'
+            : rawStatus === 'open'
+              ? 'todo'
+              : rawStatus === 'blocked'
+                ? 'blocked'
+                : rawStatus === 'in_progress'
+                  ? 'in_progress'
+                  : rawStatus === 'failed'
+                    ? 'failed'
+                    : 'todo'
+        const priority = (tags.find((tag) => /^P[0-3]$/.test(tag)) as Task['priority']) || 'P1'
+
+        return {
+          tid: (t.tid || t.id) as string,
+          name: t.name as string,
+          status,
+          priority,
+          phase: (t.phase as string) || 'C1',
+          tags,
+          trailPheromone: (t.trailPheromone as number) || (t.strength as number) || 0,
+          alarmPheromone: (t.alarmPheromone as number) || (t.resistance as number) || 0,
+          blockedBy: (t.blockedBy as string[]) || [],
+          blocks: (t.blocks as string[]) || [],
+        }
+      })
+
+      setTasks(mapped)
+      setLoading(false)
+    } catch {
+      setLoading(false)
     }
-    // Auto-select: first in_progress, then first ready todo
-    const inProgress = tasks.find((t) => t.status === 'in_progress')
-    if (inProgress) return inProgress
-    const ready = tasks.find(
-      (t) => t.status === 'todo' && t.blockedBy.every((b) => tasks.find((bt) => bt.tid === b)?.status === 'complete'),
-    )
-    return ready || tasks[0]
-  }, [tasks, selectedId])
+  }, [])
 
-  // Debounce rapid WS updates — render derived views from deferred value
-  // to avoid excessive re-renders when many mark/warn events arrive in bursts
+  // Fetch highways from live state
+  const fetchHighways = useCallback(async () => {
+    try {
+      const res = await fetch('/api/export/highways')
+      const data = (await res.json()) as {
+        highways?: Array<{ from: string; to: string; strength: number; resistance: number }>
+      }
+      if (data.highways) setHighways(data.highways)
+    } catch {
+      // Non-critical — highways panel stays empty
+    }
+  }, [])
+
+  // Initial data load
+  useEffect(() => {
+    fetchTasks()
+    fetchHighways()
+  }, [fetchTasks, fetchHighways])
+
+  // WebSocket for live push updates
+  const ws = useTaskWebSocket(setTasks)
+
+  // Debounce rapid WS bursts
   const deferredTasks = useDeferredValue(tasks)
 
-  // Build phases from deferredTasks — expensive filter/count avoids lag on
-  // rapid WS mark/warn bursts. React serves the last rendered value until
-  // this recomputes in a low-priority transition.
+  // Build phases from deferred tasks
   const phases = useMemo<Phase[]>(
     () =>
       PHASE_ORDER.map((id) => {
         const phaseTasks = deferredTasks.filter((t) => t.phase === id)
         return {
           id,
-          name: PHASE_META[id].label,
+          name: PHASE_META[id]?.label || id,
           tasks: phaseTasks,
           complete: phaseTasks.filter((t) => t.status === 'complete').length,
           total: phaseTasks.length,
@@ -1331,141 +838,108 @@ export function TaskBoard() {
     [deferredTasks],
   )
 
+  // Auto-select active task
+  const activeTask = useMemo(() => {
+    if (selectedId) {
+      const found = tasks.find((t) => t.tid === selectedId)
+      if (found) return found
+    }
+    const inProgress = tasks.find((t) => t.status === 'in_progress')
+    if (inProgress) return inProgress
+    const ready = tasks.find(
+      (t) => t.status === 'todo' && t.blockedBy.every((b) => tasks.find((bt) => bt.tid === b)?.status === 'complete'),
+    )
+    return ready || tasks[0]
+  }, [tasks, selectedId])
+
   const activePhase = activeTask?.phase || 'wire'
 
-  // Subtle tick for animations + live pulse
-  useEffect(() => {
-    const i = setInterval(() => setTick((t) => t + 1), 3000)
-    return () => clearInterval(i)
-  }, [])
+  // Handle drag-drop status changes with optimistic UI + API persist
+  const handleStatusChange = useCallback(
+    (tid: string, newStatus: Task['status']) => {
+      const prevTask = tasks.find((t) => t.tid === tid)
+      const wasComplete = prevTask?.status === 'complete'
 
-  // SSE realtime connection
-  useEffect(() => {
-    let es: EventSource | null = null
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+      setTasks((prev) => {
+        const updated = prev.map((t) => (t.tid === tid ? { ...t, status: newStatus } : t))
 
-    const connect = () => {
-      es = new EventSource('/api/stream')
-
-      es.addEventListener('connected', () => {
-        setLive((prev) => ({ ...prev, connected: true, lastSync: Date.now() }))
-      })
-
-      es.addEventListener('state', (event) => {
-        try {
-          const data = JSON.parse(event.data) as {
-            highways: Array<{ from: string; to: string; strength: number; resistance: number }>
-            stats: { units: number; highways: number; edges: number; revenue: number }
-            ts: number
-          }
-
-          setLive({
-            highways: data.highways,
-            stats: data.stats,
-            lastSync: data.ts,
-            connected: true,
+        if (newStatus === 'complete') {
+          return updated.map((t) => {
+            if (t.status !== 'blocked' || !t.blockedBy.includes(tid)) return t
+            const allBlockersComplete = t.blockedBy.every((blockerId) => {
+              const blocker = updated.find((bt) => bt.tid === blockerId)
+              return blocker?.status === 'complete'
+            })
+            return allBlockersComplete ? { ...t, status: 'todo' as const } : t
           })
-        } catch {
-          // Ignore parse errors
         }
+
+        if (newStatus === 'todo' || newStatus === 'in_progress') {
+          return updated.map((t) => {
+            if (t.blockedBy.includes(tid) && t.status === 'todo') return { ...t, status: 'blocked' as const }
+            return t
+          })
+        }
+
+        return updated
       })
 
-      es.addEventListener('error', () => {
-        setLive((prev) => ({ ...prev, connected: false }))
-        es?.close()
-        // Reconnect after 5 seconds
-        reconnectTimer = setTimeout(connect, 5000)
-      })
+      // Persist: gateway (D1 + WS broadcast) in prod, local API in dev
+      const writeBase = GATEWAY_URL || `${TASKS_ORIGIN}/api`
+      const updatePath = GATEWAY_URL ? `/tasks/${tid}` : `/tasks/update/${tid}`
+      fetch(`${writeBase}${updatePath}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      }).catch(() => {})
 
-      es.addEventListener('close', () => {
-        setLive((prev) => ({ ...prev, connected: false }))
-        es?.close()
-        // Reconnect after 1 second
-        reconnectTimer = setTimeout(connect, 1000)
-      })
-    }
-
-    connect()
-
-    return () => {
-      es?.close()
-      if (reconnectTimer) clearTimeout(reconnectTimer)
-    }
-  }, [])
-
-  // Fetch task data — initial load only (WebSocket handles live updates)
-  const fetchTasks = useCallback(async () => {
-    try {
-      const [tasksRes, readyRes, attractiveRes, repelledRes] = await Promise.all([
-        fetch(`${TASKS_ORIGIN}/api/tasks`)
-          .then((r) => r.json() as Promise<any>)
-          .catch(() => ({ tasks: [] })),
-        fetch(`${TASKS_ORIGIN}/api/tasks/ready`)
-          .then((r) => r.json() as Promise<any>)
-          .catch(() => ({ tasks: [] })),
-        fetch(`${TASKS_ORIGIN}/api/tasks/attractive`)
-          .then((r) => r.json() as Promise<any>)
-          .catch(() => ({ tasks: [] })),
-        fetch(`${TASKS_ORIGIN}/api/tasks/repelled`)
-          .then((r) => r.json() as Promise<any>)
-          .catch(() => ({ tasks: [] })),
-      ])
-
-      const liveTasks = tasksRes.tasks as Array<Record<string, unknown>>
-      if (!liveTasks?.length) return
-
-      const _readyIds = new Set((readyRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
-      const attractiveIds = new Set((attractiveRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
-      const repelledIds = new Set((repelledRes.tasks || []).map((t: Record<string, unknown>) => t.tid))
-
-      const merged = liveTasks.map((t) => ({
-        tid: (t.tid || t.id) as string,
-        name: t.name as string,
-        status: (t.status as Task['status']) || 'todo',
-        priority: (t.priority as Task['priority']) || 'P1',
-        phase: (t.phase as string) || 'onboard',
-        taskType: (t.taskType as string) || (t['task-type'] as string) || 'build',
-        // Use live API pheromone data (strength/resistance) if available
-        strength: (t.strength as number) || (t.strength as number) || 0,
-        resistance: (t.resistance as number) || (t.resistance as number) || 0,
-        trailStatus: null as Task['trailStatus'],
-        attractive: attractiveIds.has(t.tid || t.id),
-        repelled: repelledIds.has(t.tid || t.id),
-        blockedBy: (t.blockedBy as string[]) || [],
-        blocks: (t.blocks as string[]) || [],
-      }))
-
-      // Merge: live tasks override roadmap by tid, keep roadmap extras
-      const liveMap = new Map(merged.map((t) => [t.tid, t]))
-      const final = ROADMAP.map((r) => liveMap.get(r.tid) || r)
-      // Add any live tasks not in roadmap
-      for (const t of merged) {
-        if (!ROADMAP.find((r) => r.tid === t.tid)) final.push(t)
+      // Pheromone feedback
+      if (newStatus === 'complete' && !wasComplete) {
+        const edgeFrom = lastCompletedId || 'entry'
+        setLastCompletedId(tid)
+        fetch(`${writeBase}/tasks/${tid}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: edgeFrom, failed: false }),
+        }).catch(() => {})
+      } else if (wasComplete && newStatus !== 'complete') {
+        fetch(`${writeBase}/tasks/${tid}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: lastCompletedId || 'entry', failed: true }),
+        }).catch(() => {})
       }
-      setTasks(final)
-    } catch {
-      // Keep roadmap fallback
-    }
-  }, [])
+    },
+    [tasks, lastCompletedId],
+  )
 
-  // Initial data load via HTTP GET
-  useEffect(() => {
-    fetchTasks()
-  }, [fetchTasks])
+  if (loading) return <TaskBoardSkeleton />
 
-  // WebSocket for instant push updates — typed handler via useTaskWebSocket hook
-  // Returns { connected, polling, reconnectAttempt } for observability
-  const ws = useTaskWebSocket(setTasks)
+  if (tasks.length === 0) {
+    return (
+      <div className="min-h-screen p-6 max-w-[1400px] mx-auto flex items-center justify-center">
+        <Card className="bg-white/[0.02] border-white/[0.06] max-w-md">
+          <CardContent className="p-8 text-center">
+            <p className="text-white/40 text-sm">No tasks in the store yet.</p>
+            <p className="text-white/20 text-xs mt-2">
+              Sync tasks from TODO files with{' '}
+              <code className="text-white/40 bg-white/[0.06] px-1 rounded">/sync todos</code> or create via the API.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen p-6 max-w-[1400px] mx-auto">
-      {/* Header with Live Indicator */}
+      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-white/80 tracking-tight">ONE World</h1>
-          <p className="text-xs text-white/20 mt-0.5">Signal. Drop. Follow. Fade. Highway.</p>
+          <h1 className="text-lg font-bold text-white/80 tracking-tight">Tasks</h1>
+          <p className="text-xs text-white/20 mt-0.5">Live from substrate. Signal. Mark. Follow. Fade.</p>
         </div>
-        <LiveIndicator connected={live.connected} lastSync={live.lastSync} stats={live.stats} ws={ws} />
+        <LiveIndicator ws={ws} taskCount={tasks.length} />
       </div>
 
       {/* Stats */}
@@ -1486,221 +960,14 @@ export function TaskBoard() {
             tasks={tasks}
             activeId={activeTask?.tid || ''}
             onSelect={setSelectedId}
-            onStatusChange={(tid, newStatus) => {
-              const prevTask = tasks.find((t) => t.tid === tid)
-              const wasComplete = prevTask?.status === 'complete'
-
-              setTasks((prev) => {
-                // Update the dragged task
-                const updated = prev.map((t) => (t.tid === tid ? { ...t, status: newStatus } : t))
-
-                // Cascade unblock: if completing, check dependents
-                if (newStatus === 'complete') {
-                  return updated.map((t) => {
-                    // Skip if not blocked or not dependent on this task
-                    if (t.status !== 'blocked' || !t.blockedBy.includes(tid)) return t
-                    // Check if all blockers are now complete
-                    const allBlockersComplete = t.blockedBy.every((blockerId) => {
-                      const blocker = updated.find((bt) => bt.tid === blockerId)
-                      return blocker?.status === 'complete'
-                    })
-                    return allBlockersComplete ? { ...t, status: 'todo' as const } : t
-                  })
-                }
-
-                // Cascade block: if un-completing, check dependents
-                if (newStatus === 'todo' || newStatus === 'in_progress') {
-                  return updated.map((t) => {
-                    // If this task blocks others and we're un-completing, mark them blocked
-                    if (t.blockedBy.includes(tid) && t.status === 'todo') {
-                      return { ...t, status: 'blocked' as const }
-                    }
-                    return t
-                  })
-                }
-
-                return updated
-              })
-
-              // Persist status change to TypeDB
-              fetch(`/api/tasks/update/${tid}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus }),
-              }).catch(() => {}) // Fire and forget, optimistic UI
-
-              // Track last completed for pheromone edges
-              if (newStatus === 'complete' && !wasComplete) {
-                // Edge: lastCompletedId → tid (mark for success)
-                const edgeFrom = lastCompletedId || 'entry'
-                setLastCompletedId(tid)
-
-                // Call pheromone API to reinforce path
-                fetch(`/api/tasks/${tid}/complete`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ from: edgeFrom, failed: false }),
-                }).catch(() => {})
-              } else if (wasComplete && newStatus !== 'complete') {
-                // Regression: warn the path (mark as failure)
-                fetch(`/api/tasks/${tid}/complete`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ from: lastCompletedId || 'entry', failed: true }),
-                }).catch(() => {})
-              }
-            }}
+            onStatusChange={handleStatusChange}
           />
         </div>
 
         {/* Live Highways Panel (1 col) */}
         <div className="lg:col-span-1">
-          <HighwaysPanel highways={live.highways} />
+          <HighwaysPanel highways={highways} />
         </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Live Indicator ─────────────────────────────────────────────────────────
-
-function LiveIndicator({
-  connected,
-  lastSync,
-  stats,
-  ws,
-}: {
-  connected: boolean
-  lastSync: number
-  stats: { units: number; highways: number; edges: number; revenue: number }
-  ws?: { connected: boolean; polling: boolean; reconnectAttempt: number }
-}) {
-  const ago = lastSync ? Math.round((Date.now() - lastSync) / 1000) : 0
-
-  // WebSocket status: connected | reconnecting | polling | disconnected
-  const wsStatus = ws?.connected
-    ? 'live'
-    : ws?.polling
-      ? 'polling'
-      : ws && ws.reconnectAttempt > 0
-        ? `reconnect ${ws.reconnectAttempt}`
-        : 'disconnected'
-  const wsColor = ws?.connected ? 'text-emerald-400/70' : ws?.polling ? 'text-amber-400/70' : 'text-white/30'
-
-  return (
-    <div className="flex items-center gap-4">
-      {/* Live stats */}
-      <div className="flex items-center gap-3 text-[10px] text-white/30">
-        <span>{stats.units} units</span>
-        <span>{stats.highways} highways</span>
-        <span>{stats.edges} edges</span>
-        {stats.revenue > 0 && <span className="text-emerald-400/60">${stats.revenue.toFixed(2)}</span>}
-      </div>
-
-      {/* WebSocket status (only shown when ws prop is provided) */}
-      {ws && <span className={`text-[10px] font-mono ${wsColor}`}>ws:{wsStatus}</span>}
-
-      {/* Pulse */}
-      <div className="flex items-center gap-2">
-        <div className={`relative w-2 h-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-white/20'}`}>
-          {connected && <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-50" />}
-        </div>
-        <span className={`text-[10px] font-mono ${connected ? 'text-emerald-400/70' : 'text-white/20'}`}>
-          {connected ? `${ago}s ago` : 'offline'}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// ─── Highways Panel ─────────────────────────────────────────────────────────
-
-function HighwaysPanel({
-  highways,
-}: {
-  highways: Array<{ from: string; to: string; strength: number; resistance: number }>
-}) {
-  const sorted = useMemo(
-    () => [...highways].sort((a, b) => b.strength - b.resistance - (a.strength - a.resistance)).slice(0, 12),
-    [highways],
-  )
-
-  if (!sorted.length) {
-    return (
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-400/50" />
-          <span className="text-xs font-semibold text-white/40">Live Highways</span>
-        </div>
-        <p className="text-[10px] text-white/20 text-center py-8">No highways yet — strength builds from signals</p>
-      </div>
-    )
-  }
-
-  const maxStrength = Math.max(...sorted.map((h) => h.strength))
-
-  return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-        <span className="text-xs font-semibold text-white/50">Live Highways</span>
-        <span className="text-[10px] text-white/20 ml-auto">{highways.length} total</span>
-      </div>
-
-      <div className="space-y-2">
-        {sorted.map((h, i) => {
-          const weight = h.strength - h.resistance
-          const pct = maxStrength > 0 ? (h.strength / maxStrength) * 100 : 0
-          const isProven = h.strength >= 50 && h.resistance < 10
-          const isToxic = h.resistance >= 10 && h.resistance > h.strength * 2
-
-          return (
-            <div
-              key={`${h.from}-${h.to}-${i}`}
-              className={`rounded-lg border px-3 py-2 transition-all duration-500
-                ${
-                  isToxic
-                    ? 'border-red-500/20 bg-red-500/5'
-                    : isProven
-                      ? 'border-purple-500/30 bg-purple-500/5'
-                      : 'border-white/[0.06] bg-white/[0.02]'
-                }
-              `}
-            >
-              <div className="flex items-center gap-1 text-[10px]">
-                <span className={`font-mono truncate ${isProven ? 'text-purple-300' : 'text-white/40'}`}>
-                  {h.from.split(':').pop()}
-                </span>
-                <span className="text-white/15">→</span>
-                <span className={`font-mono truncate ${isProven ? 'text-purple-300' : 'text-white/40'}`}>
-                  {h.to.split(':').pop()}
-                </span>
-              </div>
-
-              <div className="mt-1.5 flex items-center gap-2">
-                <div className="flex-1 h-1 rounded-full bg-white/[0.04] overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${pct}%`,
-                      background: isToxic
-                        ? 'linear-gradient(90deg, #ef444440, #ef4444)'
-                        : isProven
-                          ? 'linear-gradient(90deg, #c084fc40, #c084fc)'
-                          : 'linear-gradient(90deg, #ffffff10, #ffffff40)',
-                    }}
-                  />
-                </div>
-                <span
-                  className={`text-[9px] font-mono w-6 text-right
-                  ${isToxic ? 'text-red-400/70' : isProven ? 'text-purple-400/70' : 'text-white/25'}`}
-                >
-                  {weight.toFixed(0)}
-                </span>
-              </div>
-            </div>
-          )
-        })}
       </div>
     </div>
   )

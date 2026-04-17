@@ -184,7 +184,7 @@ export function useTaskWebSocket<T extends TaskLike>(
 
     const tasksUrl = GATEWAY_URL ? `${GATEWAY_URL}/tasks` : '/api/tasks'
 
-    type TaskRow = { tid: string; strength?: number; resistance?: number }
+    type TaskRow = { tid?: string; id?: string; strength?: number; resistance?: number }
 
     const poll = async () => {
       try {
@@ -193,7 +193,8 @@ export function useTaskWebSocket<T extends TaskLike>(
         const data = (await res.json()) as TaskRow[] | { tasks?: TaskRow[] }
         const tasks: TaskRow[] = Array.isArray(data) ? data : (data.tasks ?? [])
         if (tasks.length === 0) return
-        const taskMap = new Map<string, TaskRow>(tasks.map((t) => [t.tid, t]))
+        // API may return `id` or `tid` — normalize to match component's `tid`
+        const taskMap = new Map<string, TaskRow>(tasks.map((t) => [(t.tid || t.id) as string, t]))
         setTasks((prev) =>
           prev.map((t) => {
             const update = taskMap.get(t.tid)

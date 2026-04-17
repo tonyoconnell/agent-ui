@@ -243,12 +243,14 @@ export function useAgentLifecycle({ agentId, skill }: { agentId: string; skill: 
       return
     }
 
-    // ── 1 FUND — hit real Sui testnet faucet ─────────────────────────────
-    //    createUnit already calls ensureFunded, but we call faucet again
-    //    to make sure the buyer has enough for payments
+    // ── 1 FUND — try official faucet, fallback to testnet-buyer ─────────
     try {
       const st = performance.now()
-      await postJson('/api/faucet', { address: buyerAddress }, 20000)
+      const faucetRes = await postJson('/api/faucet', { address: buyerAddress }, 20000).catch(() => null)
+      // If official faucet rate-limited, use internal faucet (testnet-buyer sends SUI)
+      if (!faucetRes?.ok || faucetRes?.rateLimited) {
+        await postJson('/api/faucet-internal', { address: buyerAddress, amount: 0.1 }, 15000).catch(() => null)
+      }
       dispatch({ type: 'FUNDED', ms: performance.now() - st })
     } catch {
       dispatch({ type: 'FUNDED', ms: 0 })

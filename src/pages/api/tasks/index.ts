@@ -212,6 +212,9 @@ export const GET: APIRoute = async ({ url }) => {
   // Sort by effective priority descending
   result.sort((a, b) => b.effectivePriority - a.effectivePriority)
 
+  // Seed the in-memory store so PATCH/complete endpoints can find these tasks
+  store.seedFromApi(result)
+
   return new Response(JSON.stringify({ tasks: result }), {
     headers: { 'Content-Type': 'application/json', ...CORS },
   })

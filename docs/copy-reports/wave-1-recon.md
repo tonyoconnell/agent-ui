@@ -95,7 +95,7 @@ ads, strategy, payment-processor, booking-agent, subscription-manager,
 escrow-service
 ```
 
-**Envelopes agents** (~30 .md): tutor, researcher, coder, writer, concierge, router, scout, harvester, guard, analyst, teacher, designer, trader, eth-dev, founder, ops, nanoclaw, community, asi-builder, ehc-officer, marketing/{analyst,ads,social,content,creative,director,seo,media-buyer}, donal/{cmo,full,quick,monthly,outreach,+1}, debbie/{...}, core/{classify,valence}.
+**Envelopes agents** (~30 .md): tutor, researcher, coder, writer, concierge, router, scout, harvester, guard, analyst, teacher, designer, trader, eth-dev, founder, ops, nanoclaw, community, asi-builder, ehc-officer, marketing/{analyst,ads,social,content,creative,director,seo,media-buyer}, donal/{cmo,full,quick,monthly,outreach,+1}, debby/{...}, core/{classify,valence}.
 
 **Collision surface:** `community`, `writer`, `social`, `ads` exist in both — W2 must decide which wins or how to namespace (`@oneie/templates` preset `community` vs `agents/community.md`). Proposal-free; flag only.
 

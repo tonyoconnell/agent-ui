@@ -125,6 +125,15 @@ export const POST: APIRoute = async ({ params, request }) => {
     relayToGateway(msg)
   }
 
+  // Also broadcast the status change so other clients update immediately
+  const completeMsg = {
+    type: 'complete' as const,
+    taskId: id,
+    timestamp: Date.now(),
+  }
+  wsManager.broadcast(completeMsg)
+  relayToGateway(completeMsg)
+
   return new Response(JSON.stringify({ ok: true, tid: id, outcome: failed ? 'failed' : 'success' }), {
     headers: { 'Content-Type': 'application/json' },
   })

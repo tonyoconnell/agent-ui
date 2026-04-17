@@ -29,7 +29,7 @@ BotFather will ask two questions:
 
 This is the display name people see in chats. Choose something that represents you or your service. Examples:
 
-- `Debbie Marketing`
+- `Debby Marketing`
 - `OO Agency Assistant`
 - `My SEO Bot`
 
@@ -39,7 +39,7 @@ Type your chosen name and send it.
 
 This is the @handle — must be unique and must end in `bot`. Examples:
 
-- `debbie_marketing_bot`
+- `debby_marketing_bot`
 - `oo_agency_bot`
 - `myseo_bot`
 

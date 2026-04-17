@@ -113,7 +113,7 @@ export function AddClawWizard({ groupId, onClose }: Props) {
               defaultValue="one"
               className="bg-[#161622] border border-[#252538] rounded px-3 py-2 text-sm text-slate-100"
             >
-              {['one', 'donal', 'debbie', 'concierge', 'custom'].map((p) => (
+              {['one', 'donal', 'debby', 'concierge', 'custom'].map((p) => (
                 <option key={p} value={p}>
                   {p}
                 </option>

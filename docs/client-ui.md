@@ -135,7 +135,7 @@ Three panes. Left: navigation. Middle: context. Right: inspector.
 │ 🤖 seo       │                                  │                   │
 │              │                                  │                   │
 │ ─ CLAWS ─    │                                  │                   │
-│ 🔌 debbie    │                                  │                   │
+│ 🔌 debby    │                                  │                   │
 │ 🔌 donal     │                                  │                   │
 │              │                                  │                   │
 │ ⚙ settings   │                                  │                   │
