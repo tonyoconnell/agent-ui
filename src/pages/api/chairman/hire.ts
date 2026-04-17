@@ -12,6 +12,8 @@ import { join } from 'node:path'
 import type { APIRoute } from 'astro'
 import { type AgentSpec, parse, syncAgentWithIdentity } from '@/engine/agent-md'
 import { writeSilent } from '@/lib/typedb'
+import { registerChairman } from '@/engine/chairman'
+import { getNet } from '@/lib/net'
 
 export const prerender = false
 
@@ -53,6 +55,10 @@ export const POST: APIRoute = async ({ request }) => {
 
   const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
   const groupId = spec.group ?? spec.name
+
+  // Wire recursive hire handlers onto this unit in the singleton world
+  const net = await getNet()
+  registerChairman(net)
 
   // Link owner as chairman of this agent's group
   if (owner) {
