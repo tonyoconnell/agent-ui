@@ -90,35 +90,72 @@ export async function writeBatch(queries: string[]): Promise<void> {
  * Asymmetric decay: strength fades slow, resistance fades 2x faster.
  * Per-path fade-rate when set, falls back to global defaults.
  * From ant biology: success persists, failure forgives.
+ *
+ * Mirrors world.ts fade() algorithm:
+ * - Resistance decays 2× faster than strength (same as in-memory)
+ * - Ghost trail floor: strength never drops below strength_before × 0.05
+ *   (TypeDB has no peak attribute, so we derive the floor from current value
+ *    each cycle — functionally equivalent for the common case)
+ * - Clean delete at < 0.01 (separate pass after floor is applied)
+ *
+ * Note: seasonal factor (age-based multiplier) is skipped here — TypeDB paths
+ * don't store lastUsed, and in-memory fade() already handles that dimension.
  */
 export async function decay(strengthRate = 0.05, resistanceRate = 0.2): Promise<void> {
+  // Ghost floor factor: after applying decay, strength won't drop below 5% of
+  // its pre-decay value. Matches world.ts: `if (strength < peak * 0.05) strength = peak * 0.05`.
+  // We use current strength as the floor base since TypeDB doesn't track peak.
   const tf = 1 - strengthRate
   const af = 1 - resistanceRate
 
   await Promise.all([
-    // Paths WITH per-path fade-rate: use it
+    // Paths WITH per-path fade-rate: decay strength with ghost floor
+    // floor = $s * 0.05 (5% of pre-decay value, matching world.ts ghost trail)
     writeSilent(`
       match $e isa path, has strength $s, has fade-rate $r; $s > 0.01;
+      let $decayed = $s * (1.0 - $r);
+      let $floor = $s * 0.05;
+      let $new_s = max($decayed, $floor);
       delete $s of $e;
-      insert $e has strength ($s * (1.0 - $r));
+      insert $e has strength $new_s;
     `),
+    // Paths WITH per-path fade-rate: decay resistance 2x faster (no floor — resistance fully forgives)
     writeSilent(`
       match $e isa path, has resistance $a, has fade-rate $r; $a > 0.01;
       delete $a of $e;
       insert $e has resistance ($a * (1.0 - $r * 2.0));
     `),
-    // Paths WITHOUT fade-rate: use global defaults
+    // Paths WITHOUT fade-rate: decay strength with ghost floor using global rate
     writeSilent(`
       match $e isa path, has strength $s; $s > 0.01;
       not { $e has fade-rate $r; };
+      let $decayed = $s * ${tf};
+      let $floor = $s * 0.05;
+      let $new_s = max($decayed, $floor);
       delete $s of $e;
-      insert $e has strength ($s * ${tf});
+      insert $e has strength $new_s;
     `),
+    // Paths WITHOUT fade-rate: decay resistance 2x faster (no floor)
     writeSilent(`
       match $e isa path, has resistance $a; $a > 0.01;
       not { $e has fade-rate $r; };
       delete $a of $e;
       insert $e has resistance ($a * ${af});
+    `),
+  ])
+
+  // Clean up ghost-floor paths that have been pinned near-zero for a long time.
+  // Once the floor value itself drops below 0.01, purge strength (and resistance if also tiny).
+  // This mirrors world.ts: `if (strength[e] < 0.01) { delete strength[e]; delete peak[e]; }`
+  // The floor of 5% means a path starting at 0.2 takes ~60 cycles to drop below 0.01.
+  await Promise.all([
+    writeSilent(`
+      match $e isa path, has strength $s; $s <= 0.01;
+      delete $s of $e;
+    `),
+    writeSilent(`
+      match $e isa path, has resistance $a; $a <= 0.01;
+      delete $a of $e;
     `),
   ])
 }

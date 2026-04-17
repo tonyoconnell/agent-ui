@@ -213,9 +213,6 @@ export function DebbyChat() {
           body: JSON.stringify({ group: groupId, text, stream: true }),
         })
 
-        const ms = Math.round(performance.now() - t0)
-        setLatencyMs(ms)
-
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
         // Stream SSE chunks into the message
@@ -223,9 +220,11 @@ export function DebbyChat() {
         if (!reader) throw new Error('No stream')
         const decoder = new TextDecoder()
         let accumulated = ''
+        let ttft = false
 
         setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, loading: false } : m)))
 
+        let streamError = ''
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -235,18 +234,25 @@ export function DebbyChat() {
             const payload = line.slice(6).trim()
             if (payload === '[DONE]') continue
             try {
-              const { t } = JSON.parse(payload)
-              if (t) {
-                accumulated += t
-                const text = accumulated
-                setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: text } : m)))
+              const parsed = JSON.parse(payload)
+              if (parsed.error) {
+                streamError = parsed.error
+              } else if (parsed.t) {
+                if (!ttft) {
+                  ttft = true
+                  setLatencyMs(Math.round(performance.now() - t0))
+                }
+                accumulated += parsed.t
+                const content = accumulated
+                setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content } : m)))
               }
             } catch {}
           }
         }
 
         if (!accumulated) {
-          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: 'No response' } : m)))
+          const msg = streamError || 'No response'
+          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: msg } : m)))
         }
       } catch (err) {
         setMessages((prev) =>

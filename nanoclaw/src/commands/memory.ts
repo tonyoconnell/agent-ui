@@ -37,7 +37,7 @@ export async function handleMemoryCommand(
   if (confident.length > 0) {
     lines.push('\nWhat I know:')
     for (const h of confident) {
-      lines.push(`  ${h.predicate}: ${h.object} (${Math.round(h.confidence * 100)}%)`)
+      lines.push(`  [${h.status}] ${h.statement} (${Math.round(h.confidence * 100)}%)`)
     }
   }
 
@@ -46,7 +46,7 @@ export async function handleMemoryCommand(
   if (hints.length > 0) {
     lines.push('\nWhat I think (less certain):')
     for (const h of hints) {
-      lines.push(`  possibly ${h.predicate}: ${h.object} (${Math.round(h.confidence * 100)}%)`)
+      lines.push(`  possibly: ${h.statement} (${Math.round(h.confidence * 100)}%)`)
     }
   }
 

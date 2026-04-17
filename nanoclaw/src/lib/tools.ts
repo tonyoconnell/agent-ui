@@ -4,7 +4,7 @@
 
 import type { Env } from '../types'
 import { browser } from './browser'
-import { highways, mark, query, suggestRoute, warn } from './substrate'
+import { highways, mark, query, rememberHypothesis, suggestRoute, warn } from './substrate'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOOL DEFINITIONS
@@ -135,7 +135,12 @@ export const executeTool = async (
     case 'remember': {
       const key = input.key as string
       const value = input.value as string
+      // Fast local write — always awaited
       await env.KV.put(`knowledge:${group}:${key}`, value).catch(() => {})
+      // Fire-and-forget TypeDB write so recall() and L6 can see this memory.
+      // Uses source="asserted" — confidence capped at 0.30 until corroborated.
+      // Never awaited; if the substrate is unreachable the KV write already succeeded.
+      rememberHypothesis(env, group, key, value)
       return { stored: key }
     }
 

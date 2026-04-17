@@ -289,26 +289,76 @@ export const actorHighways = async (
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// WRITE HYPOTHESIS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Write an asserted hypothesis to TypeDB (fire-and-forget).
+ * Called from the `remember` tool — the KV write already happened;
+ * this extends the memory into the substrate so recall() and L6 can see it.
+ * source="asserted" caps confidence at 0.30 until corroborated.
+ */
+export const rememberHypothesis = (
+  env: Env,
+  persona: string,
+  key: string,
+  value: string,
+): void => {
+  // Sanitise: escape double-quotes so they don't break the TQL string literal
+  const safeKey = key.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const safeValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const hid = `remember-${persona}-${safeKey}-${Date.now()}`
+  const statement = `${safeKey}: ${safeValue}`
+  const now = Date.now()
+
+  query(
+    env,
+    `insert $h isa hypothesis,
+      has hid "${hid}",
+      has statement "${statement}",
+      has hypothesis-status "confirmed",
+      has observations-count 1,
+      has p-value 0.05,
+      has source "asserted",
+      has observed-at ${now};`,
+    true,
+  ).catch((err: unknown) => {
+    console.warn('[substrate] rememberHypothesis failed (KV write still succeeded):', err)
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // RECALL HYPOTHESES
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const recallHypotheses = async (
   env: Env,
-  actorUid: string,
-): Promise<Array<{ predicate: string; object: string; confidence: number }>> => {
-  const safe = actorUid.replace(/"/g, '')
+  searchTerm: string,
+): Promise<Array<{ statement: string; status: string; confidence: number }>> => {
+  const safe = searchTerm.replace(/"/g, '')
   const rows = await query(
     env,
     `
     match
-      $h isa hypothesis, has subject "${safe}", has predicate $p, has object $o, has confidence $c;
-    sort $c desc; limit 20;
-    select $p, $o, $c;
+      $h isa hypothesis,
+        has statement $s,
+        has hypothesis-status $st,
+        has p-value $p;
+      $s contains "${safe}";
+      $st != "rejected";
+    sort $p asc; limit 20;
+    select $s, $st, $p;
   `,
   )
 
+  if (!rows.length) return []
+
   return rows.map((r: unknown) => {
-    const row = r as { p: string; o: string; c: number }
-    return { predicate: row.p, object: row.o, confidence: row.c }
+    const row = r as { s: string; st: string; p: number }
+    return {
+      statement: row.s,
+      status: row.st,
+      confidence: Math.max(0, Math.min(1, 1 - (row.p ?? 1))),
+    }
   })
 }

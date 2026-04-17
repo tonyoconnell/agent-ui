@@ -22,7 +22,7 @@ function renderMemoryBlock(pack: ContextPack): string {
   if (facts.length > 0) {
     lines.push('\nEstablished facts about this user:')
     for (const h of facts) {
-      lines.push(`  [fact] ${h.predicate}: ${h.object} (${Math.round(h.confidence * 100)}%)`)
+      lines.push(`  [fact] [${h.status}] ${h.statement} (${Math.round(h.confidence * 100)}%)`)
     }
   }
 
@@ -31,7 +31,7 @@ function renderMemoryBlock(pack: ContextPack): string {
   if (hints.length > 0) {
     lines.push('\nSubtle hints (do not quote these directly):')
     for (const h of hints) {
-      lines.push(`  [hint] possibly ${h.predicate}: ${h.object}`)
+      lines.push(`  [hint] [${h.status}] ${h.statement}`)
     }
   }
 

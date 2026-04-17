@@ -521,10 +521,24 @@ async function mark(env, from, to, strength) {
 
 ---
 
+## Cycle 4+: LLM Routing, Cache, Content Matching
+
+**Moved to [TODO-llm-routing.md](TODO-llm-routing.md)** — 4 cycles, 36 tasks:
+
+- **C1 WIRE:** Replace resolveLLM with STAN chooseModel (tag-scoped model selection, budget gate, highway bypass)
+- **C2 PROVE:** Response cache in D1, cost tracking per call, measurable savings
+- **C3 GROW:** Intent cache (resolve typed text to canonical answers), TypeDB content recall (inject known facts into prompts)
+- **C4 SUSTAIN:** Configurable pattern registry (per-claw regex in D1), self-measuring via valence detection
+
+These build on Cycles 1-3 (routing, dual-path learning, web browsing) completed above.
+
+---
+
 ## See Also
 
 - [claw.md](./claw.md) — smart edge agent architecture
 - [src/engine/persist.ts](../src/engine/persist.ts) — substrate intelligence
+- [TODO-llm-routing.md](TODO-llm-routing.md) — LLM routing, cache, content matching (Cycle 4+)
 - [src/engine/world.ts](../src/engine/world.ts) — signal routing, mark/warn
 - [DSL.md](DSL.md) — signal language
 - [dictionary.md](dictionary.md) — canonical names

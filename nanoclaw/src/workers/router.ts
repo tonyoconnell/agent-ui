@@ -531,6 +531,16 @@ app.post('/message', async (c) => {
 
     // ── STREAMING PATH ───────────────────────────────────────────
     if (wantStream) {
+      // Capture CORS origin before we leave Hono's response chain
+      const origin = c.req.header('Origin') || ''
+      const allowedOrigin =
+        origin.endsWith('.pages.dev') ||
+        origin.endsWith('.one.ie') ||
+        origin === 'https://one.ie' ||
+        origin.startsWith('http://localhost')
+          ? origin
+          : ''
+
       const res = await fetch(llm.url, {
         method: 'POST',
         headers: llm.headers,
@@ -539,6 +549,7 @@ app.post('/message', async (c) => {
           max_tokens: 512,
           stream: true,
           messages: [{ role: 'system', content: context.systemPrompt + studentCtx }, ...messages],
+          tools: openaiTools,
         }),
       })
 
@@ -551,12 +562,12 @@ app.post('/message', async (c) => {
       const encoder = new TextEncoder()
       const decoder = new TextDecoder()
       let fullReply = ''
+      const pendingToolCalls: { name: string; arguments: string }[] = []
 
       let buffer = ''
       const transform = new TransformStream({
         transform(chunk, controller) {
           buffer += decoder.decode(chunk, { stream: true })
-          // Process complete lines (SSE lines end with \n)
           const lines = buffer.split('\n')
           buffer = lines.pop() || '' // keep incomplete last line
           for (const line of lines) {
@@ -568,18 +579,42 @@ app.post('/message', async (c) => {
             }
             try {
               const json = JSON.parse(payload)
-              const delta = json.choices?.[0]?.delta?.content || ''
-              if (delta) {
-                fullReply += delta
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ t: delta })}\n\n`))
+              const delta = json.choices?.[0]?.delta
+              if (!delta) continue
+              // Text content
+              if (delta.content) {
+                fullReply += delta.content
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ t: delta.content })}\n\n`))
+              }
+              // Tool calls — accumulate, execute after stream
+              if (delta.tool_calls) {
+                for (const tc of delta.tool_calls) {
+                  const idx = tc.index ?? 0
+                  if (!pendingToolCalls[idx]) pendingToolCalls[idx] = { name: '', arguments: '' }
+                  if (tc.function?.name) pendingToolCalls[idx].name = tc.function.name
+                  if (tc.function?.arguments) pendingToolCalls[idx].arguments += tc.function.arguments
+                }
               }
             } catch {}
           }
         },
-        async flush() {
-          // Store complete reply + mark path (fire-and-forget via waitUntil)
+        async flush(controller) {
+          // Emit error if stream produced nothing
+          if (!fullReply && pendingToolCalls.length === 0) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Empty response' })}\n\n`))
+          }
+          // Store complete reply + execute tools + mark path
           c.executionCtx.waitUntil(
             (async () => {
+              // Execute accumulated tool calls
+              for (const tc of pendingToolCalls) {
+                if (tc.name) {
+                  try {
+                    const input = JSON.parse(tc.arguments)
+                    executeTool(c.env, group, tc.name, input).catch(() => {})
+                  } catch {}
+                }
+              }
               if (fullReply) {
                 await c.env.DB.prepare(
                   `INSERT INTO messages (id, group_id, channel, sender, content, role, ts) VALUES (?, ?, 'web', 'assistant', ?, 'assistant', ?)`,
@@ -592,29 +627,35 @@ app.post('/message', async (c) => {
                 afterResponse(c.env, sender, group, fullReply, postTags, student?.sessionCount ?? 0, {
                   studentMessage: text,
                 }).catch(() => {})
+              } else {
+                warn(c.env, 'entry', groupUid, 0.5).catch(() => {})
               }
             })(),
           )
         },
       })
 
-      return new Response(res.body.pipeThrough(transform), {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-          'Access-Control-Allow-Origin': c.res.headers.get('Access-Control-Allow-Origin') || '*',
-        },
-      })
+      const corsHeaders: Record<string, string> = {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      }
+      if (allowedOrigin) {
+        corsHeaders['Access-Control-Allow-Origin'] = allowedOrigin
+        corsHeaders['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+      }
+
+      return new Response(res.body.pipeThrough(transform), { headers: corsHeaders })
     }
 
-    // ── NON-STREAMING PATH (unchanged) ───────────────────────────
+    // ── NON-STREAMING PATH ─────────────────────────────────────
     const res = await fetch(llm.url, {
       method: 'POST',
       headers: llm.headers,
       body: JSON.stringify({
         model: llm.modelId,
-        max_tokens: 256,
+        max_tokens: 512,
         messages: [{ role: 'system', content: context.systemPrompt + studentCtx }, ...messages],
         tools: openaiTools,
       }),

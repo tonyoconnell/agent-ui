@@ -177,6 +177,12 @@ export function AgentDetail({ agentId }: Props) {
         </Card>
       )}
 
+      {/* Memory Section */}
+      <AgentMemory agentId={agentId} />
+
+      {/* Past Conversations Section */}
+      <ConversationHistory agentId={agentId} />
+
       {/* Chat Section */}
       <Card className="overflow-hidden">
         <CardHeader className="border-b">
@@ -189,6 +195,324 @@ export function AgentDetail({ agentId }: Props) {
   )
 }
 
+// ─── Agent Memory ──────────────────────────────────────────────────────────
+
+interface MemoryHypothesis {
+  pattern: string
+  confidence: number
+  at?: string
+}
+
+interface MemoryHighway {
+  from: string
+  to: string
+  strength: number
+}
+
+interface MemoryCard {
+  actor: { uid: string; kind?: string; firstSeen?: string }
+  hypotheses: MemoryHypothesis[]
+  highways: MemoryHighway[]
+  signals: { data: string; success: boolean }[]
+  groups: string[]
+  capabilities: { skillId: string; name: string; price: number }[]
+  frontier: string[]
+}
+
+function AgentMemory({ agentId }: { agentId: string }) {
+  const [memory, setMemory] = useState<MemoryCard | null>(null)
+  const [memLoading, setMemLoading] = useState(false)
+  const [memError, setMemError] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  // Fetch lazily on first expand
+  useEffect(() => {
+    if (!open || memory || memError) return
+    setMemLoading(true)
+    fetch(`/api/memory/reveal/${encodeURIComponent(agentId)}`, {
+      signal: AbortSignal.timeout(10000),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`)
+        return r.json() as Promise<MemoryCard>
+      })
+      .then(setMemory)
+      .catch(() => setMemError(true))
+      .finally(() => setMemLoading(false))
+  }, [open, agentId, memory, memError])
+
+  const toggle = () => {
+    emitClick('ui:agents:memory-toggle', { agent: agentId, open: !open })
+    setOpen((v) => !v)
+  }
+
+  // Max strength across all highways for relative bar scaling
+  const maxStrength = memory ? Math.max(1, ...memory.highways.map((h) => h.strength)) : 1
+
+  const confidenceBadge = (conf: number) => {
+    if (conf >= 0.85) return <Badge className="text-[10px] bg-emerald-900/60 text-emerald-300 border-emerald-700/50 hover:bg-emerald-900/60">confirmed</Badge>
+    if (conf >= 0.5) return <Badge className="text-[10px] bg-amber-900/60 text-amber-300 border-amber-700/50 hover:bg-amber-900/60">testing</Badge>
+    return <Badge variant="secondary" className="text-[10px]">weak</Badge>
+  }
+
+  return (
+    <Card className="mb-6">
+      {/* Header — always visible, acts as toggle */}
+      <CardHeader
+        className="pb-3 cursor-pointer select-none"
+        onClick={toggle}
+      >
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm">Memory</CardTitle>
+          <span className="text-muted-foreground text-xs">{open ? '▲ collapse' : '▼ expand'}</span>
+        </div>
+        {!open && (
+          <CardDescription className="text-xs">
+            What the substrate remembers about this agent
+          </CardDescription>
+        )}
+      </CardHeader>
+
+      {open && (
+        <CardContent className="pt-0">
+          {memLoading && (
+            <div className="py-6 text-center text-sm text-muted-foreground">Loading memory...</div>
+          )}
+
+          {memError && (
+            <div className="py-6 text-center text-sm text-muted-foreground/60">
+              Memory unavailable
+            </div>
+          )}
+
+          {memory && !memLoading && (
+            <div className="space-y-6">
+
+              {/* Learned Facts */}
+              <div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                  Learned Facts
+                </div>
+                {memory.hypotheses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground/60">No learned facts yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {memory.hypotheses.map((h, i) => (
+                      <div
+                        key={`${h.pattern}-${i}`}
+                        className="flex items-start gap-3 p-3 rounded-lg bg-secondary/40 border"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm leading-relaxed">{h.pattern}</p>
+                          {h.at && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {new Date(h.at).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <div className="shrink-0 flex flex-col items-end gap-1">
+                          {confidenceBadge(h.confidence)}
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {(h.confidence * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Connections */}
+              <div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                  Connections
+                </div>
+                {memory.highways.length === 0 ? (
+                  <p className="text-sm text-muted-foreground/60">No proven paths yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {memory.highways.map((hw, i) => (
+                      <div key={`${hw.from}-${hw.to}-${i}`} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-mono text-muted-foreground">
+                            → <span className="text-foreground">{hw.to}</span>
+                          </span>
+                          <span className="text-muted-foreground font-mono">
+                            strength: {hw.strength.toFixed(1)}
+                          </span>
+                        </div>
+                        <div className="h-1 bg-secondary rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary/70 rounded-full transition-all"
+                            style={{ width: `${Math.min(100, (hw.strength / maxStrength) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Unexplored */}
+              <div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                  Unexplored
+                </div>
+                {memory.frontier.length === 0 ? (
+                  <p className="text-sm text-muted-foreground/60">All known territory explored</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {memory.frontier.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs text-muted-foreground">
+                        #{tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
+// ─── Conversation History ──────────────────────────────────────────────────
+
+interface ConversationEntry {
+  summary: string
+  date: string
+  confidence: number
+}
+
+function ConversationHistory({ agentId }: { agentId: string }) {
+  const [conversations, setConversations] = useState<ConversationEntry[] | null>(null)
+  const [convLoading, setConvLoading] = useState(false)
+  const [convError, setConvError] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  // Fetch lazily on first expand
+  useEffect(() => {
+    if (!open || conversations !== null || convError) return
+    setConvLoading(true)
+    fetch(`/api/agents/conversations?id=${encodeURIComponent(agentId)}`, {
+      signal: AbortSignal.timeout(10000),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`)
+        return r.json() as Promise<{ conversations: ConversationEntry[] }>
+      })
+      .then((d) => setConversations(d.conversations))
+      .catch(() => setConvError(true))
+      .finally(() => setConvLoading(false))
+  }, [open, agentId, conversations, convError])
+
+  const toggle = () => {
+    emitClick('ui:agents:conversations-toggle', { agent: agentId, open: !open })
+    setOpen((v) => !v)
+  }
+
+  const confidenceBadge = (conf: number) => {
+    if (conf >= 0.85)
+      return (
+        <Badge className="text-[10px] bg-emerald-900/60 text-emerald-300 border-emerald-700/50 hover:bg-emerald-900/60">
+          confirmed
+        </Badge>
+      )
+    if (conf >= 0.5)
+      return (
+        <Badge className="text-[10px] bg-amber-900/60 text-amber-300 border-amber-700/50 hover:bg-amber-900/60">
+          testing
+        </Badge>
+      )
+    return (
+      <Badge variant="secondary" className="text-[10px]">
+        weak
+      </Badge>
+    )
+  }
+
+  const formatDate = (iso: string) => {
+    if (!iso) return ''
+    try {
+      return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    } catch {
+      return iso
+    }
+  }
+
+  return (
+    <Card className="mb-6">
+      {/* Header — always visible, acts as toggle */}
+      <CardHeader className="pb-3 cursor-pointer select-none" onClick={toggle}>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm">Past Conversations</CardTitle>
+          <span className="text-muted-foreground text-xs">{open ? '▲ collapse' : '▼ expand'}</span>
+        </div>
+        {!open && (
+          <CardDescription className="text-xs">Summaries of past sessions with this agent</CardDescription>
+        )}
+      </CardHeader>
+
+      {open && (
+        <CardContent className="pt-0">
+          {convLoading && (
+            <div className="py-6 text-center text-sm text-muted-foreground">Loading conversations...</div>
+          )}
+
+          {convError && (
+            <div className="py-6 text-center text-sm text-muted-foreground/60">Conversations unavailable</div>
+          )}
+
+          {conversations !== null && !convLoading && (
+            <>
+              {conversations.length === 0 ? (
+                <p className="text-sm text-muted-foreground/60 py-4 text-center">
+                  No past conversations recorded
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {conversations.map((conv, i) => (
+                    <div
+                      key={`conv-${i}-${conv.date}`}
+                      className="flex items-start gap-4 p-3 rounded-lg bg-secondary/40 border"
+                    >
+                      {/* Date column */}
+                      <div className="shrink-0 w-20 text-right">
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          {formatDate(conv.date)}
+                        </p>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="shrink-0 w-px self-stretch bg-border" />
+
+                      {/* Summary column */}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <p className="text-sm leading-relaxed">{conv.summary}</p>
+                      </div>
+
+                      {/* Confidence badge */}
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        {confidenceBadge(conv.confidence)}
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {(conv.confidence * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
 // ─── Agent Chat ────────────────────────────────────────────────────────────
 
 function AgentChat({ agent }: { agent: AgentData }) {
@@ -197,10 +521,46 @@ function AgentChat({ agent }: { agent: AgentData }) {
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // Track the latest messages in a ref so the beforeunload handler always has
+  // the current list without needing to be re-registered on every render.
+  const messagesRef = useRef<Message[]>(messages)
+  messagesRef.current = messages
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
+
+  // Summarise and persist the conversation when the user leaves.
+  // navigator.sendBeacon fires even if the tab is closing.
+  useEffect(() => {
+    const summarise = () => {
+      const current = messagesRef.current
+      // Only worth summarising if there are at least 2 messages (1 user + 1 assistant)
+      if (current.length < 2) return
+      const payload = JSON.stringify({
+        agentId: agent.id,
+        messages: current.filter((m) => !m.streaming).map((m) => ({ role: m.role, content: m.content })),
+      })
+      // sendBeacon survives tab close; falls back to fetch if unavailable
+      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        navigator.sendBeacon('/api/chat/summarize', new Blob([payload], { type: 'application/json' }))
+      } else {
+        fetch('/api/chat/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true,
+        }).catch(() => {})
+      }
+    }
+
+    window.addEventListener('beforeunload', summarise)
+    return () => {
+      window.removeEventListener('beforeunload', summarise)
+      // Also summarise when the component unmounts (route change within the SPA)
+      summarise()
+    }
+  }, [agent.id])
 
   const send = useCallback(async () => {
     const text = input.trim()
@@ -222,6 +582,7 @@ function AgentChat({ agent }: { agent: AgentData }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           system: agent.prompt,
+          agentId: agent.id,
           messages: [...history, { role: 'user', content: text }],
         }),
       })

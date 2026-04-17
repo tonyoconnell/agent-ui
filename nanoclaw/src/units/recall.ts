@@ -35,7 +35,7 @@ export async function recall(env: Env, groupId: string, actorUid: string, handle
     actorHighways(env, actorUid, 10).catch(() => [] as { to: string; strength: number }[]),
 
     // 3. Semantic: hypotheses about this actor
-    recallHypotheses(env, actorUid).catch(() => [] as { predicate: string; object: string; confidence: number }[]),
+    recallHypotheses(env, actorUid).catch(() => [] as { statement: string; status: string; confidence: number }[]),
   ])
 
   // Count messages in this group for the profile

@@ -32,6 +32,8 @@ export interface ContextPack {
     to: string
     strength: number
   }>
+  /** Tags present in the world that this actor has not yet touched via paths. */
+  frontier: string[]
   /** Recent conversation messages (populated externally from request history). */
   recent: Array<{
     role: string
@@ -56,7 +58,7 @@ const ASSERTED_CAP = 0.3
 export async function buildPack(actorUid: string): Promise<ContextPack> {
   const safe = actorUid.replace(/"/g, '')
 
-  const [highways, hypRows] = await Promise.all([
+  const [highways, hypRows, worldTagRows, actorTagRows] = await Promise.all([
     // 1. Actor highways — top paths FROM this actor
     actorHighways(actorUid, 10),
 
@@ -69,6 +71,16 @@ export async function buildPack(actorUid: string): Promise<ContextPack> {
        sort $p desc; limit 20;
        select $s, $p, $src;`,
     ).catch(() => [] as Record<string, unknown>[]),
+
+    // 3a. Frontier — all world skill tags
+    readParsed(`match $sk isa skill, has tag $t; select $t;`).catch(
+      () => [] as Record<string, unknown>[],
+    ),
+
+    // 3b. Frontier — tags the actor has already touched via paths
+    readParsed(
+      `match $u isa unit, has uid "${safe}"; (source: $u, target: $to) isa path; $to has tag $t; select $t;`,
+    ).catch(() => [] as Record<string, unknown>[]),
   ])
 
   const hypotheses = (hypRows as { s: string; p: number; src: string }[]).map((r) => ({
@@ -78,6 +90,10 @@ export async function buildPack(actorUid: string): Promise<ContextPack> {
     source: r.src,
   }))
 
+  const worldTags = new Set((worldTagRows as { t: string }[]).map((r) => r.t))
+  const actorTags = new Set((actorTagRows as { t: string }[]).map((r) => r.t))
+  const frontier = [...worldTags].filter((t) => !actorTags.has(t))
+
   return {
     profile: {
       uid: actorUid,
@@ -86,6 +102,7 @@ export async function buildPack(actorUid: string): Promise<ContextPack> {
     },
     hypotheses,
     highways,
+    frontier,
     recent: [], // caller injects current messages[] — recency is already in the LLM context
     tools: [],
   }
@@ -99,7 +116,10 @@ export async function buildPack(actorUid: string): Promise<ContextPack> {
  * Returns the base prompt unchanged if the pack contains nothing useful.
  */
 export function systemPromptWithPack(basePrompt: string, pack: ContextPack): string {
-  const hasMemory = pack.hypotheses.some((h) => h.confidence >= 0.5) || pack.highways.length > 0
+  const hasMemory =
+    pack.hypotheses.some((h) => h.confidence >= 0.5) ||
+    pack.highways.length > 0 ||
+    pack.frontier.length > 0
   if (!hasMemory) return basePrompt
 
   const lines: string[] = ['--- MEMORY ---']
@@ -127,6 +147,10 @@ export function systemPromptWithPack(basePrompt: string, pack: ContextPack): str
     for (const hw of pack.highways.slice(0, 5)) {
       lines.push(`  - ${hw.to} (strength: ${hw.strength.toFixed(1)})`)
     }
+  }
+
+  if (pack.frontier.length > 0) {
+    lines.push(`\nUnexplored areas you could help with: ${pack.frontier.slice(0, 10).join(', ')}`)
   }
 
   lines.push('--- END MEMORY ---')

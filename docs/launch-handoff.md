@@ -7,6 +7,11 @@ type: contract
 
 ONE is the substrate. [agent-launch](https://agent-launch.ai) is the mint. `oneie launch` is the only boundary between them.
 
+**Works from any deployment model.** Whether you call the SDK from BaaS
+(Vercel, AWS, mobile), CF Pages, or Managed — the launch handoff is identical.
+The agent's Sui wallet is derived from the platform seed + uid, regardless
+of where the agent compute runs.
+
 ---
 
 ## Contract

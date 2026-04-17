@@ -23,6 +23,9 @@
 | [TODO-marketplace](TODO-marketplace.md) | 13 | 8 | PROVE |
 | [TODO-ONE-strategy](TODO-ONE-strategy.md) | 11 | 3 | PROVE |
 | [TODO-ui-signals](TODO-ui-signals.md) | 9 | 7 | PROVE |
+| [TODO-llm-routing](TODO-llm-routing.md) | 40 | 0 | WIRE |
+| [TODO-knowledge-growth](TODO-knowledge-growth.md) | 24 | 0 | WIRE |
+| [TODO-emergence](TODO-emergence-tasks.md) | 24 | 0 | WIRE |
 | [TODO-CLAUDE](TODO-CLAUDE.md) | 8 | 0 | WIRE |
 | [TODO-testing](TODO-testing.md) | 7 | 33 | PROVE |
 | [TODO-client-ui](TODO-client-ui.md) | 6 | 3 | PROVE |

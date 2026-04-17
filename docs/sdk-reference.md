@@ -11,6 +11,14 @@ Conceptual overview: [sdk.md](sdk.md). This doc is the surface API.
 **Install:** `npm install @oneie/sdk`
 **Zero runtime deps** · dual ESM/CJS ready (ESM built now, CJS in next minor).
 
+**Platform-agnostic.** The SDK works from anywhere that can make HTTP calls —
+Vercel, AWS Lambda, CF Pages, mobile apps, Python (via HTTP), CLI scripts.
+It talks to `api.one.ie` (or your own gateway). No Cloudflare required.
+
+**BaaS model:** ONE provides the backend (136 API endpoints, routing, memory,
+learning, commerce). The SDK is the client. See [pricing.md](pricing.md) for tiers
+and [infra-models.md](infra-models.md) for deployment options (BaaS / CF Pages / Managed).
+
 ---
 
 ## Exports

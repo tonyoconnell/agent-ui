@@ -29,7 +29,7 @@ The LLM is the only probabilistic component. Everything else is math.
 ```bash
 bun run dev      # Start dev server (localhost:4321)
 bun run build    # Production build
-/deploy          # Deploy all 4 workers to Cloudflare
+/deploy          # Deploy all services (Gateway + Sync + NanoClaw + Pages)
 ```
 
 ## Tunnels (Dev)

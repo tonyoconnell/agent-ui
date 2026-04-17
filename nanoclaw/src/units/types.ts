@@ -11,9 +11,9 @@ export interface ContextPack {
   }
   /** Stable facts the substrate learned about this actor. */
   hypotheses: Array<{
-    predicate: string // "prefers", "works-in", "struggles-with"
-    object: string // "code-examples", "seo", "typescript"
-    confidence: number // 0..1
+    statement: string // full statement string, e.g. "user prefers code-examples"
+    status: string // "confirmed", "pending", "speculative"
+    confidence: number // 0..1 — derived from 1 - p-value
   }>
   /** Strongest paths from this actor to skills/topics. */
   highways: Array<{

@@ -43,6 +43,8 @@ export type TickResult = {
   evolved?: number
   hardened?: number
   hypotheses?: number
+  hypothesesPromoted?: number
+  hypothesesRejected?: number
   frontiers?: number
   docsSynced?: number
   prefetchMs?: number
@@ -78,6 +80,54 @@ let priorityEvolve: string[] = []
 let lastStrengths: Record<string, number> = {}
 const taskFailures = new Map<string, number>() // failure count per task for hypothesis generation
 const tagFailures = new Map<string, number>() // failure count per tag-cluster for pattern hypotheses
+
+/**
+ * Insert a new hypothesis or increment observations-count if one with the
+ * same statement already exists in "testing" status.  Uses writeTracked()
+ * so Rule 3 accounting is always honest.
+ *
+ * Returns true if a write succeeded (either upsert path).
+ */
+const upsertHypothesis = async (
+  hid: string,
+  statement: string,
+  status: string,
+  observationsCount: number,
+  pValue: number,
+  source?: string,
+  observedAt?: string,
+): Promise<boolean> => {
+  // Check for an existing hypothesis with the same statement
+  const existing = await readParsed(`
+    match $h isa hypothesis, has statement "${statement.replace(/"/g, "'")}",
+          has hypothesis-status "testing", has observations-count $n;
+    select $h, $n; limit 1;
+  `).catch(() => [])
+
+  if (existing.length > 0) {
+    const currentN = existing[0].n as number
+    const newN = currentN + 1
+    return writeTracked(`
+      match $h isa hypothesis, has statement "${statement.replace(/"/g, "'")}",
+            has hypothesis-status "testing", has observations-count $n; $n == ${currentN};
+      delete $n of $h;
+      insert $h has observations-count ${newN};
+    `)
+  }
+
+  // No duplicate — insert fresh
+  const sourcePart = source ? `, has source "${source}"` : ''
+  const observedPart = observedAt ? `, has observed-at ${observedAt}` : ''
+  return writeTracked(`
+    insert $h isa hypothesis,
+      has hid "${hid}",
+      has statement "${statement.replace(/"/g, "'")}",
+      has hypothesis-status "${status}",
+      has observations-count ${observationsCount},
+      has p-value ${pValue},
+      has action-ready false${sourcePart}${observedPart};
+  `)
+}
 
 export const tick = async (net: PersistentWorld, complete?: Complete): Promise<TickResult> => {
   const now = Date.now()
@@ -275,15 +325,13 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         // L6: Record which context docs led to success as a testable hypothesis
         if (contextDocs?.length) {
           const contextKey = contextDocs.slice(0, 5).join(',')
-          writeSilent(`
-            insert $h isa hypothesis,
-              has hid "ctx:${taskId.replace(/"/g, '')}:${Date.now()}",
-              has statement "docs:${contextKey}→${taskId}:success",
-              has hypothesis-status "testing",
-              has observations-count 1,
-              has p-value 0.5,
-              has action-ready false;
-          `)
+          upsertHypothesis(
+            `ctx:${taskId.replace(/"/g, '')}:${Date.now()}`,
+            `docs:${contextKey}→${taskId}:success`,
+            'testing',
+            1,
+            0.5,
+          ).catch(() => {})
         }
       } else if (outcome.dissolved) {
         // No handler — task is queued for external execution (CLI /work loop)
@@ -296,15 +344,13 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         const failCount = (taskFailures.get(taskId) || 0) + 1
         taskFailures.set(taskId, failCount)
         if (failCount >= 3) {
-          writeSilent(`
-            insert $h isa hypothesis,
-              has hid "fail:${taskId.replace(/"/g, '')}:${Date.now()}",
-              has statement "task:${taskId}:repeated-failure:count=${failCount}",
-              has hypothesis-status "testing",
-              has observations-count ${failCount},
-              has p-value 0.5,
-              has action-ready false;
-          `)
+          upsertHypothesis(
+            `fail:${taskId.replace(/"/g, '')}:${Date.now()}`,
+            `task:${taskId}:repeated-failure:count=${failCount}`,
+            'testing',
+            failCount,
+            0.5,
+          ).catch(() => {})
           taskFailures.delete(taskId)
         }
         // wave-failure-hypotheses: track failures by tag cluster
@@ -313,15 +359,13 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         const tagFailCount = (tagFailures.get(tagKey) || 0) + 1
         tagFailures.set(tagKey, tagFailCount)
         if (tagFailCount >= 3) {
-          writeSilent(`
-            insert $h isa hypothesis,
-              has hid "tagfail:${tagKey.replace(/[^a-z0-9]/gi, '-').slice(0, 40)}:${Date.now()}",
-              has statement "tag-cluster:${tagKey}:repeated-failure:wave=${taskWave}:count=${tagFailCount}",
-              has hypothesis-status "testing",
-              has observations-count ${tagFailCount},
-              has p-value 0.5,
-              has action-ready false;
-          `)
+          upsertHypothesis(
+            `tagfail:${tagKey.replace(/[^a-z0-9]/gi, '-').slice(0, 40)}:${Date.now()}`,
+            `tag-cluster:${tagKey}:repeated-failure:wave=${taskWave}:count=${tagFailCount}`,
+            'testing',
+            tagFailCount,
+            0.5,
+          ).catch(() => {})
           tagFailures.delete(tagKey)
         }
       }
@@ -533,12 +577,15 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     }
     for (const f of net.highways(50).filter((h) => h.strength >= 10 && h.strength < 20)) {
       result.writes!.hypoAttempted++
-      const ok = await writeTracked(`
-        insert $h isa hypothesis, has hid "fade-${f.path.replace(/[→:]/g, '-')}-${cycle}",
-          has statement "path ${f.path} is degrading (strength ${f.strength.toFixed(1)})",
-          has hypothesis-status "testing", has observations-count 0, has p-value 0.5,
-          has source "observed", has observed-at ${nowIso};
-      `)
+      const ok = await upsertHypothesis(
+        `fade-${f.path.replace(/[→:]/g, '-')}-${cycle}`,
+        `path ${f.path} is degrading (strength ${f.strength.toFixed(1)})`,
+        'testing',
+        0,
+        0.5,
+        'observed',
+        nowIso,
+      )
       if (ok) {
         result.writes!.hypoOk++
         hypoCount++
@@ -551,12 +598,15 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       const delta = h.strength - prev
       if (delta > SURGE_THRESHOLD) {
         result.writes!.hypoAttempted++
-        const ok = await writeTracked(`
-          insert $h isa hypothesis, has hid "surge-${h.path.replace(/[→:]/g, '-')}-${cycle}",
-            has statement "path ${h.path} surged by ${delta.toFixed(1)} (${prev.toFixed(1)} → ${h.strength.toFixed(1)})",
-            has hypothesis-status "testing", has observations-count 0, has p-value 0.3,
-            has source "observed", has observed-at ${nowIso};
-        `)
+        const ok = await upsertHypothesis(
+          `surge-${h.path.replace(/[→:]/g, '-')}-${cycle}`,
+          `path ${h.path} surged by ${delta.toFixed(1)} (${prev.toFixed(1)} → ${h.strength.toFixed(1)})`,
+          'testing',
+          0,
+          0.3,
+          'observed',
+          nowIso,
+        )
         if (ok) {
           result.writes!.hypoOk++
           hypoCount++
@@ -590,6 +640,49 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         }
       }
     }
+
+    // L6: HYPOTHESIS LIFECYCLE TRANSITIONS — testing → confirmed | rejected
+    // Rules (matching is_action_ready() from world.tql):
+    //   observations-count >= 50 AND p-value <= 0.05  → confirmed
+    //   observations-count >= 50 AND p-value > 0.20   → rejected
+    let hypothesesPromoted = 0
+    let hypothesesRejected = 0
+    const testingHypos = await readParsed(`
+      match $h isa hypothesis, has hid $hid, has hypothesis-status "testing",
+            has observations-count $n, has p-value $p;
+      select $hid, $n, $p;
+    `).catch(() => [])
+    for (const row of testingHypos) {
+      const hid = row.hid as string
+      const n = row.n as number
+      const p = row.p as number
+      if (n < 50) continue
+      if (p <= 0.05) {
+        result.writes!.hypoAttempted++
+        const ok = await writeTracked(`
+          match $h isa hypothesis, has hid "${hid}", has hypothesis-status $st;
+          delete $st of $h;
+          insert $h has hypothesis-status "confirmed";
+        `)
+        if (ok) {
+          result.writes!.hypoOk++
+          hypothesesPromoted++
+        }
+      } else if (p > 0.20) {
+        result.writes!.hypoAttempted++
+        const ok = await writeTracked(`
+          match $h isa hypothesis, has hid "${hid}", has hypothesis-status $st;
+          delete $st of $h;
+          insert $h has hypothesis-status "rejected";
+        `)
+        if (ok) {
+          result.writes!.hypoOk++
+          hypothesesRejected++
+        }
+      }
+    }
+    result.hypothesesPromoted = hypothesesPromoted
+    result.hypothesesRejected = hypothesesRejected
 
     // L7: detect frontiers from unexplored tag clusters
     const tagRows = await readParsed(`
@@ -720,6 +813,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     lastHarden = now
     result.hardened = insights.length
     result.hypotheses = hypoCount
+    // hypothesesPromoted + hypothesesRejected already set inline above (Rule 3)
     result.frontiers = frontierCount
     result.docsSynced = docsSynced
   }

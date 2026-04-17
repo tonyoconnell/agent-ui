@@ -19,18 +19,18 @@ describe('systemPromptWithPack', () => {
 
   it('prepends memory block when hypotheses present', () => {
     const pack = emptyPack()
-    pack.hypotheses = [{ predicate: 'prefers', object: 'code-examples', confidence: 0.9 }]
+    pack.hypotheses = [{ statement: 'user prefers code-examples', status: 'confirmed', confidence: 0.9 }]
     const result = systemPromptWithPack('You are helpful.', pack)
     expect(result).toContain('--- MEMORY ---')
-    expect(result).toContain('prefers: code-examples')
+    expect(result).toContain('user prefers code-examples')
     expect(result).toContain('You are helpful.')
   })
 
   it('excludes low-confidence hypotheses from memory block', () => {
     const pack = emptyPack()
     pack.hypotheses = [
-      { predicate: 'prefers', object: 'typescript', confidence: 0.9 },
-      { predicate: 'struggles-with', object: 'generics', confidence: 0.2 },
+      { statement: 'user prefers typescript', status: 'confirmed', confidence: 0.9 },
+      { statement: 'user struggles-with generics', status: 'speculative', confidence: 0.2 },
     ]
     const result = systemPromptWithPack('Base.', pack)
     expect(result).toContain('typescript')

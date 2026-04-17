@@ -2,6 +2,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { streamText } from 'ai'
 import type { APIRoute } from 'astro'
 import { chooseModel, type ModelSpec, markOutcome, seedModels } from '@/engine/llm-router'
+import { buildPack, systemPromptWithPack } from '@/lib/chat/context-pack'
 import { getNet } from '@/lib/net'
 
 export const prerender = false
@@ -27,7 +28,13 @@ const CHAT_MODELS: ModelSpec[] = [
  */
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const { messages, model: clientModel, tags = ['chat'], system: clientSystem } = (await request.json()) as any
+    const {
+      messages,
+      model: clientModel,
+      tags = ['chat'],
+      system: clientSystem,
+      agentId,
+    } = (await request.json()) as any
 
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: 'No messages provided' }), {
@@ -96,7 +103,20 @@ Available commands (users can speak these naturally):
 
 Respond helpfully and suggest commands when appropriate.`
 
-    const systemPrompt = clientSystem || defaultSystem
+    // If the caller provided a system prompt AND an agentId, enrich with world knowledge.
+    // buildPack queries TypeDB for hypotheses + highways — cap it at 5s, never block chat.
+    let systemPrompt = clientSystem || defaultSystem
+    if (clientSystem && agentId) {
+      try {
+        const pack = await Promise.race([
+          buildPack(agentId),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+        ])
+        systemPrompt = systemPromptWithPack(clientSystem, pack)
+      } catch {
+        // TypeDB down or slow — use the raw system prompt as-is
+      }
+    }
 
     const result = streamText({
       model: provider(modelId),

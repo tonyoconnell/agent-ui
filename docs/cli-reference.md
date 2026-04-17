@@ -11,6 +11,11 @@ version: 3.6.40-next
 **Install:** `npm install -g oneie` (or use `npx oneie`)
 **Source:** `cli/src/commands/` in this repo.
 
+**Deployment options:** `oneie deploy` works with all three models:
+- **BaaS** — uploads agent to `api.one.ie`, no hosting needed
+- **CF Pages** — deploys to developer's own Pages project (free compute)
+- **Managed** — ONE hosts via Workers for Platforms (zero-config)
+
 ---
 
 ## Substrate verbs (12)
@@ -32,13 +37,13 @@ These map 1:1 to engine primitives. See [DSL.md](DSL.md) + [dictionary.md](dicti
 | `know` | `oneie know` | POST `/api/tick?loops=L6` | `persist.know()` |
 | `highways` | `oneie highways [--limit N]` | GET `/api/loop/highways` | `world.highways()` |
 
-## Deploy verbs (4)
+## Deploy verbs (5)
 
 | Verb | Usage | What |
 |---|---|---|
 | `init` | `oneie init` | Bootstrap a new ONE project (copy folders) |
 | `agent` | `oneie agent` | Non-interactive ONE setup for AI agents |
-| `deploy` | `oneie deploy [args]` | Runs `bun run deploy` (full pipeline) |
+| `deploy` | `oneie deploy [args]` | Deploy agents (BaaS → `api.one.ie`, Pages → CF, Managed → WfP) |
 | `claw` | `oneie claw <agentId> [--dry-run]` | Generate NanoClaw config from `/api/claw` |
 | `sync` | `oneie sync [tick\|fade\|evolve\|know\|frontier]` | POST `/api/tick` with optional scope |
 

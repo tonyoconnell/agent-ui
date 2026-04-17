@@ -19,9 +19,9 @@ vi.mock('../lib/substrate', () => ({
   query: vi.fn(async () => []),
   actorHighways: vi.fn(async () => [{ to: 'seo', strength: 14 }]),
   recallHypotheses: vi.fn(async () => [
-    { predicate: 'prefers', object: 'code-examples', confidence: 0.92 },
-    { predicate: 'works-in', object: 'marketing', confidence: 0.6 },
-    { predicate: 'struggles-with', object: 'generics', confidence: 0.25 }, // should NOT appear
+    { statement: 'user prefers code-examples', status: 'confirmed', confidence: 0.92 },
+    { statement: 'user works in marketing', status: 'pending', confidence: 0.6 },
+    { statement: 'user struggles with generics', status: 'speculative', confidence: 0.25 }, // should NOT appear
   ]),
 }))
 
@@ -122,8 +122,8 @@ describe('Creepiness test (V9)', () => {
     const pack: ContextPack = {
       profile: { uid: 'telegram:42', handle: '@alice', messageCount: 2 },
       hypotheses: [
-        { predicate: 'prefers', object: 'typescript', confidence: 0.3 }, // below threshold
-        { predicate: 'works-in', object: 'finance', confidence: 0.45 }, // below threshold
+        { statement: 'user prefers typescript', status: 'speculative', confidence: 0.3 }, // below threshold
+        { statement: 'user works in finance', status: 'speculative', confidence: 0.45 }, // below threshold
       ],
       highways: [],
       recent: [],
@@ -140,9 +140,9 @@ describe('Creepiness test (V9)', () => {
     const pack: ContextPack = {
       profile: { uid: 'telegram:42', handle: '@alice', messageCount: 20 },
       hypotheses: [
-        { predicate: 'prefers', object: 'code-examples', confidence: 0.92 }, // [fact]
-        { predicate: 'works-in', object: 'marketing', confidence: 0.65 }, // [hint]
-        { predicate: 'dislikes', object: 'long-prose', confidence: 0.2 }, // excluded
+        { statement: 'user prefers code-examples', status: 'confirmed', confidence: 0.92 }, // [fact]
+        { statement: 'user works in marketing', status: 'pending', confidence: 0.65 }, // [hint]
+        { statement: 'user dislikes long-prose', status: 'speculative', confidence: 0.2 }, // excluded
       ],
       highways: [],
       recent: [],
