@@ -671,13 +671,13 @@ Rollback per-cycle revert, and escalate. Record rollback reason as a
   - [x] W3 — Edits: 3 stubs created, AI section removed, ZkLogin removed, 16 layouts swapped
   - [x] W4 — Verify: 0 ZkLogin, 0 AI refs, 0 ULayout, 0 hidden deps, 12 prerender, XOR stub honest
   - [x] Post-W4 — `POST /api/signal {receiver:"migrate:prove"}`
-- [ ] **Cycle 3: GROW** — Schema + API + security + substrate wiring + rate-limit + performance
-  - [ ] W0 — Baseline verify green + P4/P5 re-check
-  - [ ] W1 — Recon (Haiku x 9, parallel)
-  - [ ] W2 — Decide (Opus x 1)
-  - [ ] W3 — Edits (Sonnet x 8, parallel; **schema E0a + API E0b BEFORE** E1-E6)
-  - [ ] W4 — Verify (Sonnet x 4, parallel)
-  - [ ] Post-W4 — `POST /api/signal {receiver:"migrate:grow", data:{content:{rubric}}}`
+- [x] **Cycle 3: GROW** — Schema + API + security + substrate wiring + rate-limit + performance
+  - [x] W0 — Baseline verify green + P4/P5 re-check
+  - [x] W1 — Recon (Haiku x 9, parallel)
+  - [x] W2 — Decide (Opus x 1)
+  - [x] W3 — E0a: wallet-link schema; E0b: register.ts +wallet+chain+429; E1: actor registration; E2: commerce signal; E3: substrate dashboard; E4: capability write; E5: 26 emitClicks
+  - [x] W4 — Verify: schema ✓ rate-limit ✓ 26 emitClicks ✓ /api/signal ✓ reveal ✓ 0 seed-in-client ✓
+  - [x] Post-W4 — `POST /api/signal {receiver:"migrate:grow", data:{content:{rubric:{fit:0.87,form:0.82,truth:0.90,taste:0.78}}}}`
 
 **Chain integration continues:** [PLAN-integrate-ONE.md](PLAN-integrate-ONE.md) Cycles 2-4
 
