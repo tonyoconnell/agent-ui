@@ -48,7 +48,7 @@ if (agentId) {
   const groupPaths = [
     resolve(ROOT, 'agents', 'marketing', `${agentId}.md`),
     resolve(ROOT, 'agents', 'donal', `${agentId}.md`),
-    resolve(ROOT, 'agents', 'debbie', `${agentId}.md`),
+    resolve(ROOT, 'agents', 'debby', `${agentId}.md`),
   ]
 
   let agentFile: string | null = null

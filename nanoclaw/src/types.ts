@@ -8,6 +8,7 @@ export interface Env {
   AGENT_QUEUE: Queue
   GATEWAY_URL: string
   OPENROUTER_API_KEY: string
+  GROQ_API_KEY?: string
   TELEGRAM_TOKEN?: string
   TELEGRAM_TOKEN_DONAL?: string
   TELEGRAM_TOKEN_ONE?: string

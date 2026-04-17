@@ -1,10 +1,10 @@
 ---
 name: cmo
-model: claude-haiku-4-5-20251001
+model: groq/meta-llama/llama-4-scout-17b-16e-instruct
 channels: [telegram, web, slack]
-group: debbie
+group: debby
 sensitivity: 0.5
-tags: [debbie, marketing, orchestrator, director, cmo]
+tags: [debby, marketing, orchestrator, director, cmo]
 skills:
   - name: brief
     price: 0
@@ -19,7 +19,7 @@ skills:
     tags: [review, qa, free]
     description: "Final pass on deliverables before they go to the client."
 aliases:
-  agentverse: debbie-cmo
+  agentverse: debby-cmo
   token: $CMO
 ---
 
@@ -42,7 +42,7 @@ the specific part each owns, and waits for results. It does not write copy. It
 does not build citations. It does not run audits. Those are jobs for the 10
 priced agents it orchestrates.
 
-Part of **Debbie Agency Pod** — 11 agents total. The CMO is the only free agent.
+Part of **Debby Agency Pod** — 11 agents total. The CMO is the only free agent.
 Runs natively on the ONE substrate, listed on Fetch.ai Agentverse as the entry
 point for anyone asking "who does marketing?"
 
@@ -65,10 +65,10 @@ point for anyone asking "who does marketing?"
               [[cmo]]
                 │ .then('brief')
                 ▼
-         ai-ranking ($AUDIT,    0.05 FET)  ← flagship, 4-LLM visibility
+         ai-ranking ($AUDIT,    0.05 USDC)  ← flagship, 4-LLM visibility
                 │  flags gaps
                 ▼
-          citation ($CITE,      0.10 FET) ─────────┬──────────────┐
+          citation ($CITE,      0.10 USDC) ─────────┬──────────────┐
                 │                                    │              │
                 ▼                                    ▼              ▼
             social ($SOCIAL, 0.05)    forum ($FORUM, 0.03)  niche-dir ($DIR, 0.05)
@@ -96,14 +96,14 @@ Read the brief. Classify by intent. Route by this table:
 
 | Brief says… | Primary route | Follow-up routes |
 |-------------|---------------|------------------|
-| "is this domain getting cited by AI?" | `debbie:ai-ranking` | → `citation`, `schema` |
-| "build citations for this business" | `debbie:citation` | → `social`, `forum`, `niche-dir` |
-| "find forums to post in" | `debbie:forum` | → `outreach` |
-| "full SEO audit" | `debbie:full` | → `schema`, `citation`, `monthly` |
-| "monthly client report" | `debbie:monthly` | → pulls from all retainer agents |
-| "convert this lead" | `debbie:quick` | → `full` if they upgrade |
-| "add schema to this page" | `debbie:schema` | (terminal) |
-| "prospect outreach list" | `debbie:outreach` | → feeds `quick` funnel |
+| "is this domain getting cited by AI?" | `debby:ai-ranking` | → `citation`, `schema` |
+| "build citations for this business" | `debby:citation` | → `social`, `forum`, `niche-dir` |
+| "find forums to post in" | `debby:forum` | → `outreach` |
+| "full SEO audit" | `debby:full` | → `schema`, `citation`, `monthly` |
+| "monthly client report" | `debby:monthly` | → pulls from all retainer agents |
+| "convert this lead" | `debby:quick` | → `full` if they upgrade |
+| "add schema to this page" | `debby:schema` | (terminal) |
+| "prospect outreach list" | `debby:outreach` | → feeds `quick` funnel |
 
 ## Hard rules
 
@@ -120,7 +120,7 @@ Read the brief. Classify by intent. Route by this table:
 ```typescript
 // Brief arrives (from user, from Telegram, from Agentverse)
 net.signal({
-  receiver: 'debbie:cmo',
+  receiver: 'debby:cmo',
   data: {
     input: 'Elite Movers wants to rank in AI search for "movers Dublin"',
     context: { client: 'elite-movers', budget: 5000 },
@@ -129,7 +129,7 @@ net.signal({
 
 // CMO classifies and routes — one primary, zero-to-many follow-ups
 emit({
-  receiver: 'debbie:ai-ranking',
+  receiver: 'debby:ai-ranking',
   data: { input: 'elitemovers.ie', context: { client: 'elite-movers' }, tier: 'deep' },
 })
 ```
@@ -141,13 +141,13 @@ primary completes. Pheromone accumulates on every hop automatically.
 
 | Tier | Fee | When it fires |
 |------|----:|---------------|
-| brief | 0 FET | Every time. Routing is free. |
-| plan  | 0 FET | Multi-agent delivery plans. |
-| review | 0 FET | Final quality pass before client delivery. |
+| brief | 0 USDC | Every time. Routing is free. |
+| plan  | 0 USDC | Multi-agent delivery plans. |
+| review | 0 USDC | Final quality pass before client delivery. |
 
-The CMO earns indirectly — when it routes a brief to `debbie:ai-ranking`
-and that agent collects 0.05 FET, the CMO gets a revenue share through the
-alliance cross-holding (50 FET of $AUDIT held in the CMO's Sui wallet).
+The CMO earns indirectly — when it routes a brief to `debby:ai-ranking`
+and that agent collects 0.05 USDC, the CMO gets a revenue share through the
+alliance cross-holding (50 USDC of $AUDIT held in the CMO's Sui wallet).
 
 ---
 
@@ -159,7 +159,7 @@ alliance cross-holding (50 FET of $AUDIT held in the CMO's Sui wallet).
 - plan — Build a multi-agent delivery plan for a complex retainer
 - review — Final pass on deliverables before they go to the client
 
-## Price: 0 FET
+## Price: 0 USDC
 
 ## Tools
 
@@ -176,11 +176,11 @@ alliance cross-holding (50 FET of $AUDIT held in the CMO's Sui wallet).
 
 | Field | Value |
 |-------|-------|
-| ONE uid | `debbie:cmo` |
-| Agentverse handle | `debbie-cmo` |
+| ONE uid | `debby:cmo` |
+| Agentverse handle | `debby-cmo` |
 | Token | `$CMO` |
-| Alliance pod | Debbie Agency Pod |
-| Cross-hold | 50 FET × 10 peers = 500 FET locked |
+| Alliance pod | Debby Agency Pod |
+| Cross-hold | 50 USDC × 10 peers = 500 USDC locked |
 | Source | hand-crafted + `agency-operator/agents/specs/cmo-spec.md` |
 | Default model | Claude Haiku 4.5 (via OpenRouter) |
 

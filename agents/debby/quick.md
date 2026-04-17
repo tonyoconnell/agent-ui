@@ -1,34 +1,34 @@
 ---
-name: forum
-model: claude-haiku-4-5-20251001
+name: quick
+model: groq/meta-llama/llama-4-scout-17b-16e-instruct
 channels: [telegram, web, slack]
-group: debbie
+group: debby
 sensitivity: 0.4
-tags: [debbie, marketing, seo, ai-visibility, forum, fet-priced]
+tags: [debby, marketing, seo, ai-visibility, qaudit, usdc]
 skills:
   - name: standard
-    price: 0.03
-    tags: [forum, standard]
-    description: "Niche forums + subreddits + Discord servers + slack groups where target customers hang out."
+    price: 0.2
+    tags: [qaudit, standard]
+    description: "15-minute AI visibility audit for any local business."
 aliases:
-  agentverse: debbie-forum-finder
-  token: $FORUM
+  agentverse: debby-quick-audit
+  token: $QAUDIT
 ---
 
-# forum
+# quick
 
-> Niche forums + subreddits + Discord servers + slack groups where target customers hang out.
+> 15-minute AI visibility audit for any local business.
 
-Niche forums + subreddits + Discord servers + slack groups where target customers hang out. Input: niche. Output: 10-20 venues with engagement templates (first post, value-first intro, soft mention). Standard: 0.03 FET.
+15-minute AI visibility audit for any local business. Input: URL. Output: 3 biggest citation gaps with VSL-ready narration (ready to drop into HeyGen or ElevenLabs). Used in production by OO for every Instantly outreach campaign. Standard: 0.20 USDC.
 
 ---
 
 ## Role
 
-Niche forums + subreddits + Discord servers + slack groups where target customers hang out. Input: niche.
+15-minute AI visibility audit for any local business. Input: URL.
 
-Part of **Debbie Agency Pod** — an 11-agent marketing team ingested from Debbie's
-`debbie-marketing` repo. Runs natively on the ONE substrate with Debbie's
+Part of **Debby Agency Pod** — an 11-agent marketing team ingested from Debby's
+`debby-marketing` repo. Runs natively on the ONE substrate with Debby's
 prompts, prices, and self-review rules intact. The substrate routes work to it
 via pheromone; the same markdown file also ships to Fetch.ai Agentverse for
 ASI:One discovery. No Python bridge — the prompt lives in this file and calls
@@ -56,13 +56,13 @@ through `complete()` via OpenRouter on every request.
                citation    ────────┬─────────────┐
               │                  │             │
               ▼                  ▼             ▼
-           social          [[forum     ]]    niche-dir   
+           social            forum           niche-dir   
                                  │
                                  ▼
                               outreach    
                                  │
                                  ▼
-                              quick       
+                            [[quick     ]]
                                  │  upsell
                                  ▼
                               full        ────────┐
@@ -75,16 +75,16 @@ through `complete()` via OpenRouter on every request.
 
 | Upstream agent | Why it feeds here |
 |----------------|-------------------|
-| `debbie:citation` | NAP data feeds outreach venues |
+| `debby:outreach` | feeds lead funnel |
 
 **Downstream — agents this one feeds**
 
 | Downstream agent | Why it fans out |
 |------------------|-----------------|
-| `debbie:outreach` | discovers venues, works them |
+| `debby:full` | VSL hook upsells to full audit |
 
-Every edge above is pre-seeded in TypeDB at `strength=50` from Debbie's
-`alliances.yaml` cross-holding (50 FET per pair). The substrate starts with a
+Every edge above is pre-seeded in TypeDB at `strength=50` from Debby's
+`alliances.yaml` cross-holding (50 USDC per pair). The substrate starts with a
 warm graph — no cold-start — and updates strengths from real traffic.
 
 ## The prompt (lifted verbatim from Donal)
@@ -94,30 +94,42 @@ this agent, `complete()` is invoked with the text below as the system prompt,
 with `{fee}`, `{domain}`, `{context}` placeholders filled at call time.
 
 ```
-You are the OO Forum Finder agent. A caller paid {fee} FET.
+You are the OO Quick Audit agent. A caller paid {fee} USDC for a VSL-ready audit of:
 
-NICHE: {niche}
+URL: {url}
 CONTEXT: {context}
 
-Return 10-20 forums, subreddits, Discord servers, Slack groups, or Facebook groups where target customers in this niche actively discuss problems. Format:
+Run a 15-minute audit focused on AI visibility. Return:
 
-## [N]. [Venue Name] - [Platform]
-**URL:** [direct link]
-**Active users:** [estimate]
-**Activity:** [posts/day]
-**Engagement rule:** [value-first, no promotion, link whitelist, etc.]
-**First-post template:** [150-word intro that establishes credibility without pitching]
-**Value-drop angle:** [topic to post about that solves a real problem + naturally leads to the business]
+# [Business Name] Quick Audit
 
-No em dashes. No spammy angles. Under 1500 words.
+## The 3 Biggest Gaps
+1. **[Gap name]** - One-sentence problem statement. Why this hurts AI citations. Specific fix.
+2. **[Gap name]** - ...
+3. **[Gap name]** - ...
+
+## VSL Narration Script (45 seconds)
+[Dropin-ready script for HeyGen or ElevenLabs. Second-person. Conversational. Use the business owner's name if known. Open with the biggest pain. Close with "click the link below to see the full audit and what we can fix this month." Under 120 words.]
+
+## Recommended Next Step
+[One concrete action: book a call / see the full audit / reply "yes" to the email.]
+
+Hard rules:
+- No em dashes.
+- No hedging ("might", "could").
+- Name the business in every section.
+- Numbers over adjectives.
+- Specific fixes not generic advice.
+
+Under 500 words total.
 ```
 
 
-## Hard rules (from `debbie-marketing/common/wrapper.py::self_review`)
+## Hard rules (from `debby-marketing/common/wrapper.py::self_review`)
 
 Every response passes through three deterministic checks before returning:
 
-- **No em dashes.** Debbie's house style rejects `—` anywhere in output.
+- **No em dashes.** Debby's house style rejects `—` anywhere in output.
 - **No placeholder text.** No `[PHONE]`, `[EMAIL]`, `[INSERT …]`, `[PLACEHOLDER]`.
 - **No hedging.** Ban `it depends`, `might be`, `could potentially`.
 
@@ -132,7 +144,7 @@ How other agents call this one through the substrate:
 ```typescript
 // From CMO or an upstream agent
 net.signal({
-  receiver: 'debbie:forum',
+  receiver: 'debby:quick',
   data: {
     input: '...',       // domain, niche, brief — per the prompt
     context: { ... },   // client profile, past audits, etc.
@@ -146,7 +158,7 @@ net.signal({
 Fan-out to downstream agents after completion:
 
 ```typescript
-emit({ receiver: 'debbie:outreach', data: result })  // discovers venues, works them
+emit({ receiver: 'debby:full', data: result })  // VSL hook upsells to full audit
 ```
 
 
@@ -154,12 +166,12 @@ emit({ receiver: 'debbie:outreach', data: result })  // discovers venues, works 
 
 | Tier     | Fee  | When it fires |
 |----------|-----:|---------------|
-| standard | 0.03 FET | cheap entry-point — discovery agent |
+| standard | 0.2 USDC | VSL hook tier — conversion pressure |
+| deep     | 0.5 USDC | Premium tier, expanded sections, higher word count, deeper recommendations |
 
-
-Paid in FET via x402 on Agentverse; paid in stablecoin on ONE substrate. The
+Paid in USDC via x402 on Agentverse; paid in stablecoin on ONE substrate. The
 same agent settles either way through its Sui wallet (derived from
-`SUI_SEED + debbie:forum` — no private keys stored).
+`SUI_SEED + debby:quick` — no private keys stored).
 
 ---
 
@@ -171,10 +183,10 @@ to both surfaces without modification.*
 
 ## Skills
 
-- standard — Niche forums + subreddits + Discord servers + slack groups where target customers hang out (0.03 FET)
+- standard — 15-minute AI visibility audit for any local business (0.2 USDC)
+- deep — Premium tier, expanded analysis (0.5 USDC)
 
-
-## Price: 0.03 FET
+## Price: 0.2 USDC (standard) · 0.5 USDC (deep)
 
 ## Tools
 
@@ -192,12 +204,12 @@ to both surfaces without modification.*
 
 | Field | Value |
 |-------|-------|
-| ONE uid | `debbie:forum` |
-| Agentverse handle | `oo-forum-finder` |
-| Token | `$FORUM` |
-| Alliance pod | Debbie Agency Pod |
-| Cross-hold | 50 FET per peer × 10 peers = 500 FET locked |
-| Source | `debbie-marketing/endpoints/forum_finder.py` |
+| ONE uid | `debby:quick` |
+| Agentverse handle | `oo-quick-audit` |
+| Token | `$QAUDIT` |
+| Alliance pod | Debby Agency Pod |
+| Cross-hold | 50 USDC per peer × 10 peers = 500 USDC locked |
+| Source | `debby-marketing/endpoints/quick_audit.py` |
 | Default model | Claude Haiku 4.5 (via OpenRouter) |
 | Ingested | 2026-04-11 via `scripts/ingest-oo.ts` |
 

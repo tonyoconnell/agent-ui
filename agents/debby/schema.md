@@ -1,17 +1,17 @@
 ---
 name: schema
-model: claude-haiku-4-5-20251001
+model: groq/meta-llama/llama-4-scout-17b-16e-instruct
 channels: [telegram, web, slack]
-group: debbie
+group: debby
 sensitivity: 0.4
-tags: [debbie, marketing, seo, ai-visibility, schema, fet-priced]
+tags: [debby, marketing, seo, ai-visibility, schema, usdc]
 skills:
   - name: standard
     price: 0.05
     tags: [schema, standard]
     description: "JSON-LD schema.org markup generator tuned for AI citation."
 aliases:
-  agentverse: debbie-schema-build
+  agentverse: debby-schema-build
   token: $SCHEMA
 ---
 
@@ -19,7 +19,7 @@ aliases:
 
 > JSON-LD schema.org markup generator tuned for AI citation.
 
-JSON-LD schema.org markup generator tuned for AI citation. Input: entity type + business data. Output: validated JSON-LD ready to paste into <head>. Covers LocalBusiness, Service, Product, Review, FAQPage, HowTo, Article, Person. Standard: 0.05 FET.
+JSON-LD schema.org markup generator tuned for AI citation. Input: entity type + business data. Output: validated JSON-LD ready to paste into <head>. Covers LocalBusiness, Service, Product, Review, FAQPage, HowTo, Article, Person. Standard: 0.05 USDC.
 
 ---
 
@@ -27,8 +27,8 @@ JSON-LD schema.org markup generator tuned for AI citation. Input: entity type + 
 
 JSON-LD schema.org markup generator tuned for AI citation. Input: entity type + business data.
 
-Part of **Debbie Agency Pod** — an 11-agent marketing team ingested from Debbie's
-`debbie-marketing` repo. Runs natively on the ONE substrate with Debbie's
+Part of **Debby Agency Pod** — an 11-agent marketing team ingested from Debby's
+`debby-marketing` repo. Runs natively on the ONE substrate with Debby's
 prompts, prices, and self-review rules intact. The substrate routes work to it
 via pheromone; the same markdown file also ships to Fetch.ai Agentverse for
 ASI:One discovery. No Python bridge — the prompt lives in this file and calls
@@ -75,9 +75,9 @@ through `complete()` via OpenRouter on every request.
 
 | Upstream agent | Why it feeds here |
 |----------------|-------------------|
-| `debbie:ai-ranking` | audit recommends schema gaps |
-| `debbie:full` | audit recommends schema gaps |
-| `debbie:monthly` | monthly schema refreshes |
+| `debby:ai-ranking` | audit recommends schema gaps |
+| `debby:full` | audit recommends schema gaps |
+| `debby:monthly` | monthly schema refreshes |
 
 **Downstream — agents this one feeds**
 
@@ -85,8 +85,8 @@ through `complete()` via OpenRouter on every request.
 |------------------|-----------------|
 | — | This agent is a terminal in its chain |
 
-Every edge above is pre-seeded in TypeDB at `strength=50` from Debbie's
-`alliances.yaml` cross-holding (50 FET per pair). The substrate starts with a
+Every edge above is pre-seeded in TypeDB at `strength=50` from Debby's
+`alliances.yaml` cross-holding (50 USDC per pair). The substrate starts with a
 warm graph — no cold-start — and updates strengths from real traffic.
 
 ## The prompt (lifted verbatim from Donal)
@@ -96,7 +96,7 @@ this agent, `complete()` is invoked with the text below as the system prompt,
 with `{fee}`, `{domain}`, `{context}` placeholders filled at call time.
 
 ```
-You are the OO Schema Build agent. A caller paid {fee} FET.
+You are the OO Schema Build agent. A caller paid {fee} USDC.
 
 ENTITY TYPE: {entity_type}
 BUSINESS DATA: {business_data}
@@ -120,11 +120,11 @@ No em dashes. Under 1500 words.
 ```
 
 
-## Hard rules (from `debbie-marketing/common/wrapper.py::self_review`)
+## Hard rules (from `debby-marketing/common/wrapper.py::self_review`)
 
 Every response passes through three deterministic checks before returning:
 
-- **No em dashes.** Debbie's house style rejects `—` anywhere in output.
+- **No em dashes.** Debby's house style rejects `—` anywhere in output.
 - **No placeholder text.** No `[PHONE]`, `[EMAIL]`, `[INSERT …]`, `[PLACEHOLDER]`.
 - **No hedging.** Ban `it depends`, `might be`, `could potentially`.
 
@@ -139,7 +139,7 @@ How other agents call this one through the substrate:
 ```typescript
 // From CMO or an upstream agent
 net.signal({
-  receiver: 'debbie:schema',
+  receiver: 'debby:schema',
   data: {
     input: '...',       // domain, niche, brief — per the prompt
     context: { ... },   // client profile, past audits, etc.
@@ -156,12 +156,12 @@ This agent is a terminal node. Results return to caller via `replyTo`.
 
 | Tier     | Fee  | When it fires |
 |----------|-----:|---------------|
-| standard | 0.05 FET | cheap entry-point — discovery agent |
+| standard | 0.05 USDC | cheap entry-point — discovery agent |
 
 
-Paid in FET via x402 on Agentverse; paid in stablecoin on ONE substrate. The
+Paid in USDC via x402 on Agentverse; paid in stablecoin on ONE substrate. The
 same agent settles either way through its Sui wallet (derived from
-`SUI_SEED + debbie:schema` — no private keys stored).
+`SUI_SEED + debby:schema` — no private keys stored).
 
 ---
 
@@ -173,10 +173,10 @@ to both surfaces without modification.*
 
 ## Skills
 
-- standard — JSON-LD schema (0.05 FET)
+- standard — JSON-LD schema (0.05 USDC)
 
 
-## Price: 0.05 FET
+## Price: 0.05 USDC
 
 ## Tools
 
@@ -194,12 +194,12 @@ to both surfaces without modification.*
 
 | Field | Value |
 |-------|-------|
-| ONE uid | `debbie:schema` |
+| ONE uid | `debby:schema` |
 | Agentverse handle | `oo-schema-build` |
 | Token | `$SCHEMA` |
-| Alliance pod | Debbie Agency Pod |
-| Cross-hold | 50 FET per peer × 10 peers = 500 FET locked |
-| Source | `debbie-marketing/endpoints/schema_build.py` |
+| Alliance pod | Debby Agency Pod |
+| Cross-hold | 50 USDC per peer × 10 peers = 500 USDC locked |
+| Source | `debby-marketing/endpoints/schema_build.py` |
 | Default model | Claude Haiku 4.5 (via OpenRouter) |
 | Ingested | 2026-04-11 via `scripts/ingest-oo.ts` |
 

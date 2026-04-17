@@ -56,7 +56,7 @@ export const ensureRegistered = async (env: Env, groupId: string): Promise<void>
     true,
   ).catch(() => {})
 
-  await env.KV.put(key, '1', { expirationTtl: 86400 * 30 }) // 30 day TTL
+  await env.KV.put(key, '1', { expirationTtl: 86400 * 30 }).catch(() => {})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -80,7 +80,7 @@ export const isToxic = async (env: Env, source: string, target: string): Promise
   )
 
   if (!rows.length) {
-    await env.KV.put(key, '0', { expirationTtl: 300 }) // 5 min cache
+    await env.KV.put(key, '0', { expirationTtl: 300 }).catch(() => {})
     return false
   }
 
@@ -90,7 +90,7 @@ export const isToxic = async (env: Env, source: string, target: string): Promise
   const total = s + r
   const toxic = r >= 10 && r > s * 2 && total > 5
 
-  await env.KV.put(key, toxic ? '1' : '0', { expirationTtl: 300 })
+  await env.KV.put(key, toxic ? '1' : '0', { expirationTtl: 300 }).catch(() => {})
   return toxic
 }
 

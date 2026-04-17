@@ -135,7 +135,7 @@ export const executeTool = async (
     case 'remember': {
       const key = input.key as string
       const value = input.value as string
-      await env.KV.put(`knowledge:${group}:${key}`, value)
+      await env.KV.put(`knowledge:${group}:${key}`, value).catch(() => {})
       return { stored: key }
     }
 

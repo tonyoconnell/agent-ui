@@ -1,34 +1,34 @@
 ---
-name: quick
-model: claude-haiku-4-5-20251001
+name: niche-dir
+model: groq/meta-llama/llama-4-scout-17b-16e-instruct
 channels: [telegram, web, slack]
-group: debbie
+group: debby
 sensitivity: 0.4
-tags: [debbie, marketing, seo, ai-visibility, qaudit, fet-priced]
+tags: [debby, marketing, seo, ai-visibility, dir, usdc]
 skills:
   - name: standard
-    price: 0.2
-    tags: [qaudit, standard]
-    description: "15-minute AI visibility audit for any local business."
+    price: 0.05
+    tags: [dir, standard]
+    description: "Vetted directory list per business niche."
 aliases:
-  agentverse: debbie-quick-audit
-  token: $QAUDIT
+  agentverse: debby-niche-directory
+  token: $DIR
 ---
 
-# quick
+# niche-dir
 
-> 15-minute AI visibility audit for any local business.
+> Vetted directory list per business niche.
 
-15-minute AI visibility audit for any local business. Input: URL. Output: 3 biggest citation gaps with VSL-ready narration (ready to drop into HeyGen or ElevenLabs). Used in production by OO for every Instantly outreach campaign. Standard: 0.20 FET.
+Vetted directory list per business niche. Input: niche. Output: 15-25 niche-specific directories with DR scores, submission URLs, and pre-filled titles/descriptions. Standard: 0.05 USDC.
 
 ---
 
 ## Role
 
-15-minute AI visibility audit for any local business. Input: URL.
+Vetted directory list per business niche. Input: niche.
 
-Part of **Debbie Agency Pod** — an 11-agent marketing team ingested from Debbie's
-`debbie-marketing` repo. Runs natively on the ONE substrate with Debbie's
+Part of **Debby Agency Pod** — an 11-agent marketing team ingested from Debby's
+`debby-marketing` repo. Runs natively on the ONE substrate with Debby's
 prompts, prices, and self-review rules intact. The substrate routes work to it
 via pheromone; the same markdown file also ships to Fetch.ai Agentverse for
 ASI:One discovery. No Python bridge — the prompt lives in this file and calls
@@ -56,13 +56,13 @@ through `complete()` via OpenRouter on every request.
                citation    ────────┬─────────────┐
               │                  │             │
               ▼                  ▼             ▼
-           social            forum           niche-dir   
+           social            forum         [[niche-dir ]]
                                  │
                                  ▼
                               outreach    
                                  │
                                  ▼
-                            [[quick     ]]
+                              quick       
                                  │  upsell
                                  ▼
                               full        ────────┐
@@ -75,16 +75,16 @@ through `complete()` via OpenRouter on every request.
 
 | Upstream agent | Why it feeds here |
 |----------------|-------------------|
-| `debbie:outreach` | feeds lead funnel |
+| `debby:citation` | batch sibling submissions |
 
 **Downstream — agents this one feeds**
 
 | Downstream agent | Why it fans out |
 |------------------|-----------------|
-| `debbie:full` | VSL hook upsells to full audit |
+| — | This agent is a terminal in its chain |
 
-Every edge above is pre-seeded in TypeDB at `strength=50` from Debbie's
-`alliances.yaml` cross-holding (50 FET per pair). The substrate starts with a
+Every edge above is pre-seeded in TypeDB at `strength=50` from Debby's
+`alliances.yaml` cross-holding (50 USDC per pair). The substrate starts with a
 warm graph — no cold-start — and updates strengths from real traffic.
 
 ## The prompt (lifted verbatim from Donal)
@@ -94,42 +94,29 @@ this agent, `complete()` is invoked with the text below as the system prompt,
 with `{fee}`, `{domain}`, `{context}` placeholders filled at call time.
 
 ```
-You are the OO Quick Audit agent. A caller paid {fee} FET for a VSL-ready audit of:
+You are the OO Niche Directory agent. A caller paid {fee} USDC.
 
-URL: {url}
+NICHE: {niche}
 CONTEXT: {context}
 
-Run a 15-minute audit focused on AI visibility. Return:
+Return 15-25 niche-specific directories for this vertical. Format per entry:
+## [N]. [Directory Name] - DR[X]
+**URL:** [submission URL]
+**Cost:** [free / $X / premium]
+**Difficulty:** [easy / moderate / requires review]
+**Pre-filled title:** [60-char optimized]
+**Pre-filled description:** [160-char]
+**Category path:** [directory's taxonomy]
 
-# [Business Name] Quick Audit
-
-## The 3 Biggest Gaps
-1. **[Gap name]** - One-sentence problem statement. Why this hurts AI citations. Specific fix.
-2. **[Gap name]** - ...
-3. **[Gap name]** - ...
-
-## VSL Narration Script (45 seconds)
-[Dropin-ready script for HeyGen or ElevenLabs. Second-person. Conversational. Use the business owner's name if known. Open with the biggest pain. Close with "click the link below to see the full audit and what we can fix this month." Under 120 words.]
-
-## Recommended Next Step
-[One concrete action: book a call / see the full audit / reply "yes" to the email.]
-
-Hard rules:
-- No em dashes.
-- No hedging ("might", "could").
-- Name the business in every section.
-- Numbers over adjectives.
-- Specific fixes not generic advice.
-
-Under 500 words total.
+No em dashes. Real URLs only. Cover: general local, industry-specific, associations, trade publications, chambers. Under 1500 words.
 ```
 
 
-## Hard rules (from `debbie-marketing/common/wrapper.py::self_review`)
+## Hard rules (from `debby-marketing/common/wrapper.py::self_review`)
 
 Every response passes through three deterministic checks before returning:
 
-- **No em dashes.** Debbie's house style rejects `—` anywhere in output.
+- **No em dashes.** Debby's house style rejects `—` anywhere in output.
 - **No placeholder text.** No `[PHONE]`, `[EMAIL]`, `[INSERT …]`, `[PLACEHOLDER]`.
 - **No hedging.** Ban `it depends`, `might be`, `could potentially`.
 
@@ -144,7 +131,7 @@ How other agents call this one through the substrate:
 ```typescript
 // From CMO or an upstream agent
 net.signal({
-  receiver: 'debbie:quick',
+  receiver: 'debby:niche-dir',
   data: {
     input: '...',       // domain, niche, brief — per the prompt
     context: { ... },   // client profile, past audits, etc.
@@ -155,23 +142,18 @@ net.signal({
 })
 ```
 
-Fan-out to downstream agents after completion:
-
-```typescript
-emit({ receiver: 'debbie:full', data: result })  // VSL hook upsells to full audit
-```
-
+This agent is a terminal node. Results return to caller via `replyTo`.
 
 ## Pricing
 
 | Tier     | Fee  | When it fires |
 |----------|-----:|---------------|
-| standard | 0.2 FET | VSL hook tier — conversion pressure |
-| deep     | 0.5 FET | Premium tier, expanded sections, higher word count, deeper recommendations |
+| standard | 0.05 USDC | cheap entry-point — discovery agent |
 
-Paid in FET via x402 on Agentverse; paid in stablecoin on ONE substrate. The
+
+Paid in USDC via x402 on Agentverse; paid in stablecoin on ONE substrate. The
 same agent settles either way through its Sui wallet (derived from
-`SUI_SEED + debbie:quick` — no private keys stored).
+`SUI_SEED + debby:niche-dir` — no private keys stored).
 
 ---
 
@@ -183,10 +165,10 @@ to both surfaces without modification.*
 
 ## Skills
 
-- standard — 15-minute AI visibility audit for any local business (0.2 FET)
-- deep — Premium tier, expanded analysis (0.5 FET)
+- standard — Vetted directory list per business niche (0.05 USDC)
 
-## Price: 0.2 FET (standard) · 0.5 FET (deep)
+
+## Price: 0.05 USDC
 
 ## Tools
 
@@ -204,12 +186,12 @@ to both surfaces without modification.*
 
 | Field | Value |
 |-------|-------|
-| ONE uid | `debbie:quick` |
-| Agentverse handle | `oo-quick-audit` |
-| Token | `$QAUDIT` |
-| Alliance pod | Debbie Agency Pod |
-| Cross-hold | 50 FET per peer × 10 peers = 500 FET locked |
-| Source | `debbie-marketing/endpoints/quick_audit.py` |
+| ONE uid | `debby:niche-dir` |
+| Agentverse handle | `oo-niche-directory` |
+| Token | `$DIR` |
+| Alliance pod | Debby Agency Pod |
+| Cross-hold | 50 USDC per peer × 10 peers = 500 USDC locked |
+| Source | `debby-marketing/endpoints/niche_directory.py` |
 | Default model | Claude Haiku 4.5 (via OpenRouter) |
 | Ingested | 2026-04-11 via `scripts/ingest-oo.ts` |
 

@@ -20,6 +20,11 @@ const TOPIC_PATTERNS: [RegExp, string][] = [
   [/\b(design|ui|ux|component|layout|style|theme|color)\b/i, 'design'],
   [/\b(agent|substrate|signal|mark|warn|fade|pheromone|unit)\b/i, 'substrate'],
   [/\b(strategy|plan|roadmap|goal|objective|vision)\b/i, 'strategy'],
+  [/\b(learn|teach|lesson|curriculum|student|tutor|school|course|class)\b/i, 'education'],
+  [/\b(practice|practise|rehearse|drill|exercise|conversation|freeform)\b/i, 'practice'],
+  [/\b(pronunciation|pronounce|accent|intonation|phonetic|sound)\b/i, 'pronunciation'],
+  [/\b(mistake|error|correct|wrong|improve|progress|score|level|grade)\b/i, 'assessment'],
+  [/\b(confident|confidence|nervous|anxious|scared|presentation|interview|public.speak)\b/i, 'confidence'],
   [/^(hi|hello|hey|good morning|good evening|howdy)\b/i, 'greeting'],
   [/\?/, 'question'],
 ]

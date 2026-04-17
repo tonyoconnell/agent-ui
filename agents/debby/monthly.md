@@ -1,17 +1,17 @@
 ---
 name: monthly
-model: claude-haiku-4-5-20251001
+model: groq/meta-llama/llama-4-scout-17b-16e-instruct
 channels: [telegram, web, slack]
-group: debbie
+group: debby
 sensitivity: 0.4
-tags: [debbie, marketing, seo, ai-visibility, report, fet-priced]
+tags: [debby, marketing, seo, ai-visibility, report, usdc]
 skills:
   - name: standard
     price: 0.5
     tags: [report, standard]
     description: "Full monthly SEO + AI ranking report for retainer clients."
 aliases:
-  agentverse: debbie-monthly-report
+  agentverse: debby-monthly-report
   token: $REPORT
 ---
 
@@ -19,7 +19,7 @@ aliases:
 
 > Full monthly SEO + AI ranking report for retainer clients.
 
-Full monthly SEO + AI ranking report for retainer clients. Input: client slug + data payload (rankings, traffic, links, citations). Output: 8-section client-facing report ready to email. Auto-formatted, no manual editing. Standard: 0.50 FET per client per month.
+Full monthly SEO + AI ranking report for retainer clients. Input: client slug + data payload (rankings, traffic, links, citations). Output: 8-section client-facing report ready to email. Auto-formatted, no manual editing. Standard: 0.50 USDC per client per month.
 
 ---
 
@@ -27,8 +27,8 @@ Full monthly SEO + AI ranking report for retainer clients. Input: client slug + 
 
 Full monthly SEO + AI ranking report for retainer clients. Input: client slug + data payload (rankings, traffic, links, citations).
 
-Part of **Debbie Agency Pod** — an 11-agent marketing team ingested from Debbie's
-`debbie-marketing` repo. Runs natively on the ONE substrate with Debbie's
+Part of **Debby Agency Pod** — an 11-agent marketing team ingested from Debby's
+`debby-marketing` repo. Runs natively on the ONE substrate with Debby's
 prompts, prices, and self-review rules intact. The substrate routes work to it
 via pheromone; the same markdown file also ships to Fetch.ai Agentverse for
 ASI:One discovery. No Python bridge — the prompt lives in this file and calls
@@ -75,16 +75,16 @@ through `complete()` via OpenRouter on every request.
 
 | Upstream agent | Why it feeds here |
 |----------------|-------------------|
-| `debbie:full` | full audit feeds retainer reports |
+| `debby:full` | full audit feeds retainer reports |
 
 **Downstream — agents this one feeds**
 
 | Downstream agent | Why it fans out |
 |------------------|-----------------|
-| `debbie:schema` | monthly schema refreshes |
+| `debby:schema` | monthly schema refreshes |
 
-Every edge above is pre-seeded in TypeDB at `strength=50` from Debbie's
-`alliances.yaml` cross-holding (50 FET per pair). The substrate starts with a
+Every edge above is pre-seeded in TypeDB at `strength=50` from Debby's
+`alliances.yaml` cross-holding (50 USDC per pair). The substrate starts with a
 warm graph — no cold-start — and updates strengths from real traffic.
 
 ## The prompt (lifted verbatim from Donal)
@@ -94,7 +94,7 @@ this agent, `complete()` is invoked with the text below as the system prompt,
 with `{fee}`, `{domain}`, `{context}` placeholders filled at call time.
 
 ```
-You are the OO Monthly Report agent. A caller paid {fee} FET for a retainer-client monthly report.
+You are the OO Monthly Report agent. A caller paid {fee} USDC for a retainer-client monthly report.
 
 CLIENT: {client}
 DATA PAYLOAD: {data}
@@ -115,11 +115,11 @@ Voice: confident, numbers-first, client-facing, no agency jargon, no em dashes. 
 ```
 
 
-## Hard rules (from `debbie-marketing/common/wrapper.py::self_review`)
+## Hard rules (from `debby-marketing/common/wrapper.py::self_review`)
 
 Every response passes through three deterministic checks before returning:
 
-- **No em dashes.** Debbie's house style rejects `—` anywhere in output.
+- **No em dashes.** Debby's house style rejects `—` anywhere in output.
 - **No placeholder text.** No `[PHONE]`, `[EMAIL]`, `[INSERT …]`, `[PLACEHOLDER]`.
 - **No hedging.** Ban `it depends`, `might be`, `could potentially`.
 
@@ -134,7 +134,7 @@ How other agents call this one through the substrate:
 ```typescript
 // From CMO or an upstream agent
 net.signal({
-  receiver: 'debbie:monthly',
+  receiver: 'debby:monthly',
   data: {
     input: '...',       // domain, niche, brief — per the prompt
     context: { ... },   // client profile, past audits, etc.
@@ -148,7 +148,7 @@ net.signal({
 Fan-out to downstream agents after completion:
 
 ```typescript
-emit({ receiver: 'debbie:schema', data: result })  // monthly schema refreshes
+emit({ receiver: 'debby:schema', data: result })  // monthly schema refreshes
 ```
 
 
@@ -156,12 +156,12 @@ emit({ receiver: 'debbie:schema', data: result })  // monthly schema refreshes
 
 | Tier     | Fee  | When it fires |
 |----------|-----:|---------------|
-| standard | 0.5 FET | retainer deliverable — monthly work |
-| deep     | 1.5 FET | Premium tier, expanded sections, higher word count, deeper recommendations |
+| standard | 0.5 USDC | retainer deliverable — monthly work |
+| deep     | 1.5 USDC | Premium tier, expanded sections, higher word count, deeper recommendations |
 
-Paid in FET via x402 on Agentverse; paid in stablecoin on ONE substrate. The
+Paid in USDC via x402 on Agentverse; paid in stablecoin on ONE substrate. The
 same agent settles either way through its Sui wallet (derived from
-`SUI_SEED + debbie:monthly` — no private keys stored).
+`SUI_SEED + debby:monthly` — no private keys stored).
 
 ---
 
@@ -173,10 +173,10 @@ to both surfaces without modification.*
 
 ## Skills
 
-- standard — Full monthly SEO + AI ranking report for retainer clients (0.5 FET)
-- deep — Premium tier, expanded analysis (1.5 FET)
+- standard — Full monthly SEO + AI ranking report for retainer clients (0.5 USDC)
+- deep — Premium tier, expanded analysis (1.5 USDC)
 
-## Price: 0.5 FET (standard) · 1.5 FET (deep)
+## Price: 0.5 USDC (standard) · 1.5 USDC (deep)
 
 ## Tools
 
@@ -194,12 +194,12 @@ to both surfaces without modification.*
 
 | Field | Value |
 |-------|-------|
-| ONE uid | `debbie:monthly` |
+| ONE uid | `debby:monthly` |
 | Agentverse handle | `oo-monthly-report` |
 | Token | `$REPORT` |
-| Alliance pod | Debbie Agency Pod |
-| Cross-hold | 50 FET per peer × 10 peers = 500 FET locked |
-| Source | `debbie-marketing/endpoints/monthly_report.py` |
+| Alliance pod | Debby Agency Pod |
+| Cross-hold | 50 USDC per peer × 10 peers = 500 USDC locked |
+| Source | `debby-marketing/endpoints/monthly_report.py` |
 | Default model | Claude Haiku 4.5 (via OpenRouter) |
 | Ingested | 2026-04-11 via `scripts/ingest-oo.ts` |
 

@@ -1,34 +1,34 @@
 ---
-name: citation
-model: claude-haiku-4-5-20251001
+name: social
+model: groq/meta-llama/llama-4-scout-17b-16e-instruct
 channels: [telegram, web, slack]
-group: debbie
+group: debby
 sensitivity: 0.4
-tags: [debbie, marketing, seo, ai-visibility, cite, fet-priced]
+tags: [debby, marketing, seo, ai-visibility, social, usdc]
 skills:
   - name: standard
-    price: 0.1
-    tags: [cite, standard]
-    description: "Generate 30 ready-to-paste citation packets for any local business."
+    price: 0.05
+    tags: [social, standard]
+    description: "Ready-to-paste profile content for 6 platforms (LinkedIn, Facebook, Instagram, Twitter/X, YouTube, TikTok)."
 aliases:
-  agentverse: debbie-citation-builder
-  token: $CITE
+  agentverse: debby-social-profile
+  token: $SOCIAL
 ---
 
-# citation
+# social
 
-> Generate 30 ready-to-paste citation packets for any local business.
+> Ready-to-paste profile content for 6 platforms (LinkedIn, Facebook, Instagram, Twitter/X, YouTube, TikTok).
 
-Generate 30 ready-to-paste citation packets for any local business. Input: business name, niche, location. Output: 30 platform-specific submissions (Yelp, Yellow Pages, BBB, Google Business, Bing, Apple Maps, niche directories by vertical) with pre-filled titles, descriptions, NAP data, and category tags. Trained on Charles Floate + Matt Diggity link-building playbooks. Standard: 0.10 FET. Bulk 5+ cities: 0.40 FET.
+Ready-to-paste profile content for 6 platforms (LinkedIn, Facebook, Instagram, Twitter/X, YouTube, TikTok). Input: business + niche + NAP. Output: 6 platform packs with bio, description, tags, featured content ideas, CTA. Standard: 0.05 USDC.
 
 ---
 
 ## Role
 
-Generate 30 ready-to-paste citation packets for any local business. Input: business name, niche, location.
+Ready-to-paste profile content for 6 platforms (LinkedIn, Facebook, Instagram, Twitter/X, YouTube, TikTok). Input: business + niche + NAP.
 
-Part of **Debbie Agency Pod** — an 11-agent marketing team ingested from Debbie's
-`debbie-marketing` repo. Runs natively on the ONE substrate with Debbie's
+Part of **Debby Agency Pod** — an 11-agent marketing team ingested from Debby's
+`debby-marketing` repo. Runs natively on the ONE substrate with Debby's
 prompts, prices, and self-review rules intact. The substrate routes work to it
 via pheromone; the same markdown file also ships to Fetch.ai Agentverse for
 ASI:One discovery. No Python bridge — the prompt lives in this file and calls
@@ -53,10 +53,10 @@ through `complete()` via OpenRouter on every request.
                ai-ranking  
                     │  flags gaps
                     ▼
-             [[citation  ]]────────┬─────────────┐
+               citation    ────────┬─────────────┐
               │                  │             │
               ▼                  ▼             ▼
-           social            forum           niche-dir   
+         [[social    ]]      forum           niche-dir   
                                  │
                                  ▼
                               outreach    
@@ -75,18 +75,16 @@ through `complete()` via OpenRouter on every request.
 
 | Upstream agent | Why it feeds here |
 |----------------|-------------------|
-| `debbie:ai-ranking` | flags gaps, fills them |
+| `debby:citation` | NAP data feeds profile builder |
 
 **Downstream — agents this one feeds**
 
 | Downstream agent | Why it fans out |
 |------------------|-----------------|
-| `debbie:social` | NAP data feeds profile builder |
-| `debbie:forum` | NAP data feeds outreach venues |
-| `debbie:niche-dir` | batch sibling submissions |
+| — | This agent is a terminal in its chain |
 
-Every edge above is pre-seeded in TypeDB at `strength=50` from Debbie's
-`alliances.yaml` cross-holding (50 FET per pair). The substrate starts with a
+Every edge above is pre-seeded in TypeDB at `strength=50` from Debby's
+`alliances.yaml` cross-holding (50 USDC per pair). The substrate starts with a
 warm graph — no cold-start — and updates strengths from real traffic.
 
 ## The prompt (lifted verbatim from Donal)
@@ -96,37 +94,33 @@ this agent, `complete()` is invoked with the text below as the system prompt,
 with `{fee}`, `{domain}`, `{context}` placeholders filled at call time.
 
 ```
-You are the OO Citation Builder agent. A caller paid {fee} FET for citation packets.
+You are the OO Social Profile Builder. A caller paid {fee} USDC.
 
-INPUT (JSON):
-{input}
+INPUT: {input}
+CONTEXT: {context}
 
-For the business in the input, generate 30 citation submission packets in this exact format:
+Return 6 platform profile packs. For each:
 
-## 1. [Platform Name] - [URL]
-**Title:** [60-char business title optimized for the platform]
-**Description:** [160-char description]
-**NAP:** [Name | Address | Phone | Website]
-**Category:** [primary category from platform's taxonomy]
-**Tags:** [3-5 niche-specific tags]
+## [Platform]
+**Display name:** [optimized]
+**Username/handle:** [available, checked-style]
+**Bio / description:** [platform character limit, niche keywords, NAP visible]
+**Tagline:** [one punchy line]
+**First 3 posts (ready to publish):** [niche-relevant, no em dashes]
+**Profile image brief:** [what to use]
+**Cover image brief:** [what to use]
+**Pinned content:** [what to pin]
+**Hashtags:** [5-10 niche-specific]
 
-Cover these platform tiers:
-- Tier 1 (must have): Google Business, Yelp, Facebook, Yellow Pages, BBB, Bing Places, Apple Maps
-- Tier 2 (niche): 8-10 niche-specific directories for the vertical
-- Tier 3 (local): 8-10 local directories for the city/state
-- Tier 4 (authority): 5 high-DR general business directories
-
-Use real platform URLs. Use accurate NAP format per platform requirement (some want phone format xxx-xxx-xxxx, others want (xxx) xxx-xxxx). Categories must come from each platform's actual taxonomy.
-
-Output: markdown, numbered 1-30, ready to paste. No em dashes. Under 2000 words.
+Platforms: LinkedIn (company + personal), Facebook Business, Instagram Business, Twitter/X, YouTube channel, TikTok. Under 2000 words total.
 ```
 
 
-## Hard rules (from `debbie-marketing/common/wrapper.py::self_review`)
+## Hard rules (from `debby-marketing/common/wrapper.py::self_review`)
 
 Every response passes through three deterministic checks before returning:
 
-- **No em dashes.** Debbie's house style rejects `—` anywhere in output.
+- **No em dashes.** Debby's house style rejects `—` anywhere in output.
 - **No placeholder text.** No `[PHONE]`, `[EMAIL]`, `[INSERT …]`, `[PLACEHOLDER]`.
 - **No hedging.** Ban `it depends`, `might be`, `could potentially`.
 
@@ -141,7 +135,7 @@ How other agents call this one through the substrate:
 ```typescript
 // From CMO or an upstream agent
 net.signal({
-  receiver: 'debbie:citation',
+  receiver: 'debby:social',
   data: {
     input: '...',       // domain, niche, brief — per the prompt
     context: { ... },   // client profile, past audits, etc.
@@ -152,25 +146,18 @@ net.signal({
 })
 ```
 
-Fan-out to downstream agents after completion:
-
-```typescript
-emit({ receiver: 'debbie:social', data: result })  // NAP data feeds profile builder
-emit({ receiver: 'debbie:forum', data: result })  // NAP data feeds outreach venues
-emit({ receiver: 'debbie:niche-dir', data: result })  // batch sibling submissions
-```
-
+This agent is a terminal node. Results return to caller via `replyTo`.
 
 ## Pricing
 
 | Tier     | Fee  | When it fires |
 |----------|-----:|---------------|
-| standard | 0.1 FET | mid-tier — repeatable batch work |
-| deep     | 0.4 FET | Premium tier, expanded sections, higher word count, deeper recommendations |
+| standard | 0.05 USDC | cheap entry-point — discovery agent |
 
-Paid in FET via x402 on Agentverse; paid in stablecoin on ONE substrate. The
+
+Paid in USDC via x402 on Agentverse; paid in stablecoin on ONE substrate. The
 same agent settles either way through its Sui wallet (derived from
-`SUI_SEED + debbie:citation` — no private keys stored).
+`SUI_SEED + debby:social` — no private keys stored).
 
 ---
 
@@ -182,10 +169,10 @@ to both surfaces without modification.*
 
 ## Skills
 
-- standard — Generate 30 ready-to-paste citation packets for any local business (0.1 FET)
-- deep — Premium tier, expanded analysis (0.4 FET)
+- standard — Ready-to-paste profile content for 6 platforms (LinkedIn, Facebook, Instagram, Twitter/X, YouTube, TikTok) (0.05 USDC)
 
-## Price: 0.1 FET (standard) · 0.4 FET (deep)
+
+## Price: 0.05 USDC
 
 ## Tools
 
@@ -203,12 +190,12 @@ to both surfaces without modification.*
 
 | Field | Value |
 |-------|-------|
-| ONE uid | `debbie:citation` |
-| Agentverse handle | `oo-citation-builder` |
-| Token | `$CITE` |
-| Alliance pod | Debbie Agency Pod |
-| Cross-hold | 50 FET per peer × 10 peers = 500 FET locked |
-| Source | `debbie-marketing/endpoints/citation_builder.py` |
+| ONE uid | `debby:social` |
+| Agentverse handle | `oo-social-profile` |
+| Token | `$SOCIAL` |
+| Alliance pod | Debby Agency Pod |
+| Cross-hold | 50 USDC per peer × 10 peers = 500 USDC locked |
+| Source | `debby-marketing/endpoints/social_profile.py` |
 | Default model | Claude Haiku 4.5 (via OpenRouter) |
 | Ingested | 2026-04-11 via `scripts/ingest-oo.ts` |
 
