@@ -138,9 +138,9 @@ export async function createOrgProfile(profile: OrgProfile) {
 
 ## See Also
 
-- [Owner Profile](../people/${profile.ownerUsername}.md)
+- [Owner Profile](../actors/${profile.ownerUsername}.md)
 - [Organization Structure](./organisation.md)
-- [Multi-Tenancy](../connections/multitenant.md)
+- [Multi-Tenancy](../paths/multitenant.md)
 `;
 
   // Write file

@@ -344,7 +344,7 @@ async function runFullSetup() {
   console.log("2. Use AI agents:");
   console.log(chalk.gray("   claude\n"));
   console.log("3. Read the docs:");
-  console.log(chalk.gray("   cat one/knowledge/ontology.md\n"));
+  console.log(chalk.gray("   cat one/learning/ontology.md\n"));
   console.log("4. Create your first feature:");
   console.log(chalk.gray("   /one\n"));
 

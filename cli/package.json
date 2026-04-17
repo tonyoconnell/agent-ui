@@ -33,12 +33,12 @@
   "license": "SEE LICENSE IN https://one.ie/free-license",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/one-ie/one.git",
+    "url": "git+https://github.com/one-ie/envelopes.git",
     "directory": "cli"
   },
   "homepage": "https://one.ie",
   "bugs": {
-    "url": "https://github.com/one-ie/one/issues"
+    "url": "https://github.com/one-ie/envelopes/issues"
   },
   "engines": {
     "node": ">=22.16.0"
@@ -62,17 +62,16 @@
     "README.md",
     "LICENSE.md",
     "SECURITY.md",
-    "TESTING-ONBOARDING.md",
     "CREATE-WEBSITE.md",
-    "llms.txt",
     "folders.yaml",
     "CLAUDE.md",
     "AGENTS.md",
-    "one/knowledge",
-    "one/connections",
+    "one/learning",
+    "one/paths",
     "one/things",
-    "one/people",
+    "one/actors",
     "one/groups",
+    "one/events",
     "one/README.md",
     ".claude/agents",
     ".claude/commands",

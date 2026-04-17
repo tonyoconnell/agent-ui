@@ -18,7 +18,8 @@
   "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "bun run build"
   },
   "devDependencies": {
     "typescript": "5.9.2"

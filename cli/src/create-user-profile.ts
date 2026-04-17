@@ -15,7 +15,7 @@ export async function createUserProfile(profile: UserProfile) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
-  const filePath = path.join(process.cwd(), `one/people/${filename}.md`);
+  const filePath = path.join(process.cwd(), `one/actors/${filename}.md`);
 
   // Create directory
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -115,7 +115,7 @@ ${profile.website ? `- **Website:** ${profile.website}\n` : ""}
 ## See Also
 
 - [Organization Profile](../organisation/${filename}.md)
-- [People Roles](./people.md)
+- [Actor Roles](./actors.md)
 - [Organizations](../organisation/organisation.md)
 `;
 

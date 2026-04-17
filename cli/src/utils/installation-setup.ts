@@ -83,11 +83,11 @@ export async function mirrorOntologyStructure(
 ): Promise<void> {
   const ontologyDirs = [
     "groups",
-    "people",
+    "actors",
     "things",
-    "connections",
+    "paths",
     "events",
-    "knowledge",
+    "learning",
   ];
 
   for (const dir of ontologyDirs) {
@@ -372,11 +372,11 @@ This installation folder contains your organization-specific documentation and c
 ## Folder Structure
 
 - \`groups/\` - Group-specific documentation (supports hierarchical nesting)
-- \`people/\` - Role and governance documentation
+- \`actors/\` - Role and governance documentation
 - \`things/\` - Entity and specification documentation
-- \`connections/\` - Relationship and workflow documentation
+- \`paths/\` - Relationship and workflow documentation
 - \`events/\` - Event and deployment documentation
-- \`knowledge/\` - AI training data and RAG content
+- \`learning/\` - AI training data and RAG content
 
 ## File Resolution Priority
 
@@ -423,7 +423,7 @@ INSTALLATION_NAME={{installationIdentifier}}
 ## Learn More
 
 - Platform Documentation: \`/one/\`
-- 6-Dimension Ontology: \`/one/knowledge/ontology.md\`
-- Development Workflow: \`/one/connections/workflow.md\`
+- 6-Dimension Ontology: \`/one/learning/ontology.md\`
+- Development Workflow: \`/one/paths/workflow.md\`
 `;
 }
