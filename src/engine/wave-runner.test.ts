@@ -78,7 +78,7 @@ describe('waveRunner Form 1 (stub)', () => {
       'test',
       3_000,
     )
-    expect(outcome.dissolved).toBe(true)
+    expect(outcome.failure).toBe(true)
   })
 
   it('emits unblock signals to blocks[] on W4 pass', async () => {
@@ -130,7 +130,7 @@ describe('waveRunner Form 2 (LLM)', () => {
       3_000,
     )
     expect(complete).not.toHaveBeenCalled()
-    expect(outcome.dissolved).toBe(true)
+    expect(outcome.failure).toBe(true)
   })
 
   it('PASS — onDone called, net.mark("builder:done") deposited', async () => {
