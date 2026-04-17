@@ -103,6 +103,15 @@ export function reducer(state: TradeState, action: TradeAction): TradeState {
   }
 }
 
+export type VisibleStage = 'BROWSE' | 'TRADE' | 'DONE' | 'DISPUTE'
+
+export function visibleStage(stage: TradeStage): VisibleStage {
+  if (stage === 'LIST' || stage === 'DISCOVER') return 'BROWSE'
+  if (stage === 'DISPUTE') return 'DISPUTE'
+  if (stage === 'SETTLE' || stage === 'RECEIPT' || stage === 'FADE') return 'DONE'
+  return 'TRADE'
+}
+
 export function useTradeLifecycle() {
   const [state, dispatch] = useReducer(reducer, INITIAL)
 

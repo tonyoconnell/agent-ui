@@ -210,14 +210,15 @@ describe('Lifecycle Gate 4: HIGHWAY triggers at strength >= 50', () => {
     w = world()
   })
 
-  it('highways() excludes paths below strength 50', () => {
+  it('highways() includes paths below strength 50 (no hard filter — 50 is a business convention)', () => {
     w.mark('a→b', 40)
     w.mark('a→b', 5) // total strength = 45
 
     const highways = w.highways(10)
-    // Path with strength 45 should not be in highways
+    // highways() returns top-N by strength — no minimum threshold enforced technically
     const ab = highways.find((h) => h.path === 'a→b')
-    expect(ab).toBeUndefined()
+    expect(ab).toBeDefined()
+    expect(ab?.strength).toBe(45)
   })
 
   it('highways() includes paths at strength >= 50', () => {
@@ -275,13 +276,15 @@ describe('Lifecycle Gate 5: HARDEN requires highway state', () => {
     w = world()
   })
 
-  it('path must be highway (strength >= 50) to qualify for hardening', () => {
-    // A path below the highway threshold is not eligible
+  it('weak paths appear in highways() — harden eligibility (strength >= 50) is enforced by /api/harden, not highways()', () => {
+    // highways() returns all paths sorted by strength — no minimum filter
+    // The harden endpoint enforces the strength >= 50 business rule
     w.mark('weak→agent', 30)
 
     const highways = w.highways(10)
     const weak = highways.find((h) => h.path.startsWith('weak→'))
-    expect(weak).toBeUndefined() // not a highway, not eligible for harden
+    expect(weak).toBeDefined() // present in list, but ineligible for /api/harden
+    expect(weak?.strength).toBeLessThan(50)
   })
 
   it('highway path qualifies as harden candidate', () => {

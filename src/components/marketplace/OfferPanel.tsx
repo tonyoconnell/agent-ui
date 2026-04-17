@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useOptimistic, useTransition } from 'react'
 import { emitClick } from '@/lib/ui-signal'
 
 interface Service {
@@ -22,8 +22,11 @@ interface Props {
   onOffer: (receipt: OfferReceipt) => void
 }
 
+type OfferPhase = 'idle' | 'offered' | 'error'
+
 export function OfferPanel({ service, onClose, onOffer }: Props) {
-  const [submitting, setSubmitting] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [optimisticPhase, setOptimisticPhase] = useOptimistic<OfferPhase, OfferPhase>('idle', (_, next) => next)
 
   if (!service) return null
 
@@ -33,13 +36,38 @@ export function OfferPanel({ service, onClose, onOffer }: Props) {
   }
 
   const handleOffer = () => {
+    if (isPending) return
     emitClick('ui:marketplace:offer', { receiver: service.provider, price: service.price })
-    setSubmitting(true)
-    const id = `receipt_${crypto.randomUUID().slice(0, 8)}`
-    const receipt: OfferReceipt = { id, receiver: service.provider, price: service.price }
-    onOffer(receipt)
-    setSubmitting(false)
+
+    startTransition(async () => {
+      // Optimistic: show offered state immediately (0ms perceived latency)
+      setOptimisticPhase('offered')
+
+      const id = `receipt_${crypto.randomUUID().slice(0, 8)}`
+
+      try {
+        await fetch('/api/signal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiver: service.provider,
+            data: { type: 'offer', task: service.task, price: service.price, receiptId: id },
+          }),
+        })
+        onOffer({ id, receiver: service.provider, price: service.price })
+      } catch {
+        // Rollback: optimistic state reverts automatically when transition ends
+        setOptimisticPhase('error')
+      }
+    })
   }
+
+  const label =
+    optimisticPhase === 'offered'
+      ? 'Offered ✓'
+      : optimisticPhase === 'error'
+        ? 'Failed — retry?'
+        : `Offer $${service.price.toFixed(2)}`
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-label="Offer panel">
@@ -85,10 +113,10 @@ export function OfferPanel({ service, onClose, onOffer }: Props) {
         <button
           type="button"
           onClick={handleOffer}
-          disabled={submitting}
+          disabled={isPending || optimisticPhase === 'offered'}
           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded text-sm font-medium"
         >
-          {submitting ? 'Offering…' : `Offer $${service.price.toFixed(2)}`}
+          {label}
         </button>
       </div>
     </div>

@@ -256,6 +256,9 @@ function SkillCard({ listing, onHire, onBounty }: SkillCardProps) {
 
   const isProven = weight > 10
   const isToxic = resistance >= 10 && resistance > strength * 2
+  const total = strength + resistance
+  const settleRate = total > 0 ? Math.round((1 - resistance / total) * 100) : null
+  const tradeCount = Math.round(weight)
 
   return (
     <Card className="bg-[#161622] border border-[#252538] hover:border-[#353548] transition-colors group">
@@ -303,7 +306,10 @@ function SkillCard({ listing, onHire, onBounty }: SkillCardProps) {
           >
             {sellerName}
           </a>
-          <span className="text-xs text-slate-500">{Math.round(successRate * 100)}% success</span>
+          <span className="text-xs text-slate-500">
+            {settleRate !== null ? `${settleRate}% settle` : `${Math.round(successRate * 100)}% success`}
+            {tradeCount > 0 ? ` · ${tradeCount} trades` : ''}
+          </span>
         </div>
 
         {/* Tags */}
