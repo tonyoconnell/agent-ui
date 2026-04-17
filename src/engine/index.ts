@@ -21,7 +21,7 @@ export { brandPalette, injectBrand, invalidateBrandCache, purpleBrand, renderBra
 export { brandKey, emitBrandApplied } from './brand-signals'
 export { anthropic, llm, openai } from './llm'
 export { md, parse } from './md'
-export type { Insight, PersistentWorld, TaskMatch } from './persist'
+export type { Insight, MemoryCard, PersistentWorld, TaskMatch } from './persist'
 export { isToxic, world } from './persist'
 export type { Edge, Emit, Signal, Unit, World } from './world'
 export { unit, world as createWorld } from './world'
