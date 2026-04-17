@@ -29,6 +29,8 @@ export function ChairmanPanel() {
     }
   }
 
+  // stopPolling is stable (only depends on pollRef), safe to omit from deps
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cleanup ref, no rerun needed
   useEffect(() => () => stopPolling(), [])
 
   const hireCeo = async () => {
@@ -118,7 +120,9 @@ export function ChairmanPanel() {
               {unit.wallet && <p className="text-xs text-slate-500 font-mono mb-3 truncate">{unit.wallet}</p>}
               <div className="flex gap-2 flex-wrap">
                 {unit.skills.map((s) => (
-                  <span key={s} className="text-xs px-2 py-0.5 rounded bg-[#1a1a2e] text-slate-400">{s}</span>
+                  <span key={s} className="text-xs px-2 py-0.5 rounded bg-[#1a1a2e] text-slate-400">
+                    {s}
+                  </span>
                 ))}
               </div>
             </div>

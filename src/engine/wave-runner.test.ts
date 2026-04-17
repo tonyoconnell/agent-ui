@@ -31,7 +31,7 @@ function makeNet() {
   return { net: net as unknown as Parameters<typeof waveRunner>[0] & ReturnType<typeof createWorld>, marks, warns }
 }
 
-const PASS_COMPLETE = vi.fn().mockResolvedValue('W1 output')
+const _PASS_COMPLETE = vi.fn().mockResolvedValue('W1 output')
 
 beforeEach(() => {
   vi.clearAllMocks()

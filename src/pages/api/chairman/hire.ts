@@ -11,9 +11,9 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { APIRoute } from 'astro'
 import { type AgentSpec, parse, syncAgentWithIdentity } from '@/engine/agent-md'
-import { writeSilent } from '@/lib/typedb'
 import { registerChairman } from '@/engine/chairman'
 import { getNet } from '@/lib/net'
+import { writeSilent } from '@/lib/typedb'
 
 export const prerender = false
 
