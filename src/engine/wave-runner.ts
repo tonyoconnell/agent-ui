@@ -23,6 +23,7 @@
 
 import type { PersistentWorld } from './persist'
 import { markDims, score } from './rubric'
+import type { AuditResult } from './skill-audit'
 import { WAVE_MODEL } from './task-parse'
 import type { Unit } from './world'
 
@@ -39,6 +40,8 @@ export interface TaskEnvelope {
   effort?: string
   phase?: string
   priority?: number
+  skillAudit?: AuditResult // from resolveContext — gates W1 on 'acquire'
+  blocks?: string[] // task IDs to unblock on W4 pass
 }
 
 export interface WaveEnvelope extends TaskEnvelope {
@@ -158,6 +161,7 @@ function _wireUnit(u: Unit): Unit {
   // W1 RECON — sense(): read files, surface patterns
   u.on('recon', async (data) => {
     const env = data as TaskEnvelope
+    if (env.skillAudit?.recommendation === 'acquire') return null
     const fromRecon = { recon: await sense(env) }
     if (!fromRecon.recon) return null
     return { ...env, ...fromRecon } as WaveEnvelope
@@ -203,6 +207,11 @@ function _wireUnit(u: Unit): Unit {
     const env = data as WaveEnvelope
     const fromVerify = await mark(env)
     const result: WaveEnvelope = { ...env, verify: fromVerify }
+    if (fromVerify.ok) {
+      for (const blockId of env.blocks ?? []) {
+        emit({ receiver: `wave-runner:task`, data: { taskId: blockId, unblocked: true, by: env.taskId } })
+      }
+    }
     // Close ask(): forward final result back to original caller
     if (env._replyTo) emit({ receiver: env._replyTo, data: result })
     return result
@@ -231,6 +240,8 @@ function _wireUnitWithLLM(
   // W1 RECON — haiku reads task + context, surfaces patterns
   u.on('recon', async (data) => {
     const env = data as TaskEnvelope
+    if (env.skillAudit?.recommendation === 'acquire') return null
+
     const model = WAVE_MODEL.W1
 
     const prompt = [
@@ -246,6 +257,7 @@ function _wireUnitWithLLM(
     const recon = await complete(prompt, model)
     if (!recon) return null
 
+    net?.mark(`${u.id}:W1→W2`, 1)
     return { ...env, recon } as WaveEnvelope
   })
 
@@ -260,9 +272,16 @@ function _wireUnitWithLLM(
     const env = data as WaveEnvelope
     const model = WAVE_MODEL.W2
 
+    const auditLine = env.skillAudit
+      ? env.skillAudit.recommendation === 'exploratory'
+        ? `SKILL AUDIT (exploratory): best provider ${env.skillAudit.best?.providerUid ?? 'unknown'} (path untested — use select() routing)`
+        : `SKILL AUDIT (ready): route to ${env.skillAudit.best?.providerUid} (strength: ${env.skillAudit.best?.pathStrength})`
+      : ''
+
     const prompt = [
       `TASK: ${env.taskName}`,
       env.exit ? `EXIT: ${env.exit}` : '',
+      auditLine,
       env.recon ? `RECON:\n${env.recon}` : '',
       env.context ? `CONTEXT (excerpt):\n${env.context.slice(0, 2000)}` : '',
       '',
@@ -274,6 +293,7 @@ function _wireUnitWithLLM(
     const decision = await complete(prompt, model)
     if (!decision) return null
 
+    net?.mark(`${u.id}:W2→W3`, 1)
     const specs = decision
       .split('\n')
       .filter((l) => /^\d+\./.test(l.trim()))
@@ -306,6 +326,7 @@ function _wireUnitWithLLM(
     const edits = await complete(prompt, model)
     if (!edits) return null
 
+    net?.mark(`${u.id}:W3→W4`, 1)
     return { ...env, edits } as WaveEnvelope
   })
 
@@ -339,16 +360,21 @@ function _wireUnitWithLLM(
     const edge = `entry→${u.id}:verify`
     if (net) markDims(net, edge, dimScores)
 
+    const dimAvg = (dimScores.fit + dimScores.form + dimScores.truth + dimScores.taste) / 4
     const result: WaveEnvelope = {
       ...env,
-      verify: {
-        ok,
-        score: (dimScores.fit + dimScores.form + dimScores.truth + dimScores.taste) / 4,
-        message: verdict.slice(0, 200),
-      },
+      verify: { ok, score: dimAvg, message: verdict.slice(0, 200) },
     }
 
-    if (ok) onDone?.(result)
+    if (ok) {
+      net?.mark(`${u.id}:done`, dimAvg)
+      for (const blockId of env.blocks ?? []) {
+        emit({ receiver: `wave-runner:task`, data: { taskId: blockId, unblocked: true, by: env.taskId } })
+      }
+      onDone?.(result)
+    } else {
+      net?.warn(`${u.id}:done`, 1)
+    }
 
     // Close ask(): forward final result back to the original caller
     if (env._replyTo) emit({ receiver: env._replyTo, data: result })
