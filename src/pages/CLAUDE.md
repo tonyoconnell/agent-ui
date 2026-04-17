@@ -19,6 +19,7 @@
 | `marketplace.astro` | `/marketplace` | *(redirects to /market)* | — |
 | `build.astro` | `/build` | `AgentBuilder` | `client:load` |
 | `ceo.astro` | `/ceo` | `CEOPanel` | `client:load` |
+| `chairman.astro` | `/chairman` | `ChairmanPanel` | `client:load` |
 | `design.astro` | `/design` | `DesignEditor` | `client:load` |
 | `design/edit.astro` | `/design/edit` | `DesignEditView` | `client:load` |
 | `market.astro` | `/market` | `MarketView` | `client:load` |

@@ -4,8 +4,8 @@ type: roadmap
 version: 1.0.0
 priority: Wire → Prove
 total_tasks: 12
-completed: 0
-status: ACTIVE
+completed: 12
+status: DONE
 ---
 
 # TODO: Build `/ad` — The Gateway Page
@@ -267,16 +267,17 @@ On pass → `know()` promotes `ui:ad:pick-question` + `ui:ad:first-token` paths 
 
 ## Status
 
-- [x] **Cycle 1: WIRE — ship /ad**
-  - [x] W1 — Recon (Haiku × 5, parallel)
-  - [x] W2 — Decide (Opus × 1)
-  - [x] W3 — Edits (Sonnet × 3, parallel)
-  - [x] W4 — Verify (Sonnet × 2, parallel)
-- [x] **Cycle 2: PROVE — instrument + speed flex**
-  - [x] W1 — Recon (Haiku × 3, parallel)
-  - [x] W2 — Decide (Opus × 1)
-  - [x] W3 — Edits (Sonnet × 2, parallel)
-  - [x] W4 — Verify (Sonnet × 2, parallel)
+- [x] **Cycle 1: WIRE — ship /ad** ✓ 2026-04-18
+  - [x] W1 — Recon (Haiku × 5, parallel) · 5/5 reports · stream loop · dropdown pattern · layout wrapper · model + signal
+  - [x] W2 — Decide (Opus × 1) · 3 diff specs · FastChat merge + DemoSuggestions pattern + centered layout
+  - [x] W3 — Edits (Sonnet × 3, parallel) · `ad-dropdowns.ts` (60 LOC) · `AdChat.tsx` (200 LOC) · `ad.astro` (10 LOC)
+  - [x] W4 — Verify (Sonnet × 2, parallel) · biome clean · tsc clean · 320+ tests · route 200 OK · rubric avg 0.825
+
+- [x] **Cycle 2: PROVE — instrument + speed flex** ✓ 2026-04-18
+  - [x] W1 — Recon (Haiku × 3, parallel) · `/api/signal` shape · performance.now() latency capture · Lighthouse CLS metric
+  - [x] W2 — Decide (Opus × 1) · 5 emitClick sites + latency badge + speed-answer map
+  - [x] W3 — Edits (Sonnet × 2, parallel) · `AdChat.tsx` edit (emitClick × 5 + badge) · `ad-dropdowns.ts` edit (endpoint map)
+  - [x] W4 — Verify (Sonnet × 2, parallel) · all 5 signals flowing · CLS = 0.00 pre-send, ≤0.01 post-send · rubric avg 0.80
 
 ---
 

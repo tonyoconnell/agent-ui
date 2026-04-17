@@ -505,7 +505,10 @@ export const world = (): PersistentWorld => {
     if (net.has(uid)) net.remove(uid)
   }
 
-  const recall = async (match?: string | { subject?: string; at?: string }, limit: number = 100): Promise<Insight[]> => {
+  const recall = async (
+    match?: string | { subject?: string; at?: string },
+    limit: number = 100,
+  ): Promise<Insight[]> => {
     // Parse match argument — supports legacy string or new { subject?, at? } object
     const matchStr = typeof match === 'string' ? match : match?.subject
     const atDate = typeof match === 'object' ? match?.at : undefined
@@ -570,7 +573,11 @@ export const world = (): PersistentWorld => {
     }))
 
     const seen = new Set(confirmed.map((i) => i.pattern))
-    const results = [...confirmed, ...pending.filter((i) => !seen.has(i.pattern)), ...failed.filter((i) => !seen.has(i.pattern))]
+    const results = [
+      ...confirmed,
+      ...pending.filter((i) => !seen.has(i.pattern)),
+      ...failed.filter((i) => !seen.has(i.pattern)),
+    ]
     return results.slice(0, limit)
   }
 

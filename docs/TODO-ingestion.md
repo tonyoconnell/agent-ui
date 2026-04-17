@@ -123,11 +123,11 @@ signal sub relation,
   - [x] W2 — Decide (I06,I09)
   - [x] W3 — Edit (I07,I08,I10,I11,I13)
   - [x] W4 — Verify (I15-I17,I19)
-- [ ] **Cycle 2: PROVE** — Email + Rating + Stats + L5
+- [x] **Cycle 2: PROVE** — Email + Rating + Stats + L5
   - [x] W1 — Recon (coverage audit)
   - [x] W2 — Decide (edge cases)
-  - [ ] W3 — Edit (I12,I14,I21,I23)
-  - [ ] W4 — Verify (I18,I20,I22,I24)
+  - [x] W3 — Edit (I12,I14,I21,I23)
+  - [x] W4 — Verify (I18,I20,I22,I24)
 
 ## See Also
 
@@ -137,7 +137,7 @@ signal sub relation,
 - [buy-and-sell.md](buy-and-sell.md) — commerce signals feed Tier 5
 - [revenue.md](revenue.md) — five revenue layers all ingestion streams
 - [TODO-SUI.md](TODO-SUI.md) — Sui integration phases
-- [`src/engine/bridge.ts`](../src/engine/bridge.ts) — mirrorMark/mirrorWarn (pay/harden NOT wired)
+- [`src/engine/bridge.ts`](../src/engine/bridge.ts) — mirrorMark/mirrorWarn/mirrorPay/mirrorHarden (all wired)
 - [`src/lib/sui.ts`](../src/lib/sui.ts) — pay() and harden() Move calls ready
 - [`src/pages/api/signal.ts`](../src/pages/api/signal.ts) — current ingress handler
 

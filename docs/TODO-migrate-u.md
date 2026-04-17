@@ -664,13 +664,13 @@ Rollback per-cycle revert, and escalate. Record rollback reason as a
   - [ ] W3 — Execute (Sonnet x 5, parallel)
   - [ ] W4 — Verify (Sonnet x 2, parallel)
   - [ ] Post-W4 — `POST /api/signal {receiver:"migrate:wire"}` (substrate records progress)
-- [ ] **Cycle 2: PROVE** — Fix 10 imports + 3 stubs + 16 layouts + hydration rules + hidden-dep audit
-  - [ ] W0 — Baseline verify green
-  - [ ] W1 — Recon (Haiku x 6, parallel)
-  - [ ] W2 — Decide (Opus x 1)
-  - [ ] W3 — Edits (Sonnet x 6, parallel)
-  - [ ] W4 — Verify (Sonnet x 2, parallel)
-  - [ ] Post-W4 — `POST /api/signal {receiver:"migrate:prove"}`
+- [x] **Cycle 2: PROVE** — Fix 10 imports + 3 stubs + 16 layouts + hydration rules + hidden-dep audit
+  - [x] W0 — Baseline verify green
+  - [x] W1 — Recon (Haiku x 6, parallel)
+  - [x] W2 — Decide (Opus x 1)
+  - [x] W3 — Edits: 3 stubs created, AI section removed, ZkLogin removed, 16 layouts swapped
+  - [x] W4 — Verify: 0 ZkLogin, 0 AI refs, 0 ULayout, 0 hidden deps, 12 prerender, XOR stub honest
+  - [x] Post-W4 — `POST /api/signal {receiver:"migrate:prove"}`
 - [ ] **Cycle 3: GROW** — Schema + API + security + substrate wiring + rate-limit + performance
   - [ ] W0 — Baseline verify green + P4/P5 re-check
   - [ ] W1 — Recon (Haiku x 9, parallel)

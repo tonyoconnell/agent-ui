@@ -326,14 +326,14 @@ which role templates are toxic. Nothing is wasted.**
 
 ## Status
 
-- [ ] **Cycle 1: WIRE — Chairman hires CEO**
+- [x] **Cycle 1: WIRE — Chairman hires CEO**
   - [x] W1 — Recon (Haiku × 4: `agents/`, `pages/api/`, `schema/one.tql`, `engine/agent-md.ts`)
   - [x] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 4: `ceo.md`, `hire.ts`, `chairman.astro`, auth)
-  - [ ] W4 — Verify (Sonnet × 2: consistency + E2E)
+  - [x] W3 — Edits (Sonnet × 4: `ceo.md`, `hire.ts`, `chairman.astro`, auth)
+  - [x] W4 — Verify: rubric fit=0.97 form=0.93 truth=0.95 taste=0.92 avg=0.94
 - [ ] **Cycle 2: PROVE — CEO hires team**
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 1)
+  - [x] W1 — Recon (Haiku × 4)
+  - [x] W2 — Decide (Opus × 1)
   - [ ] W3 — Edits (Sonnet × 4: hire handler, 3 director md files, build-team, tree UI)
   - [ ] W4 — Verify (Sonnet × 2)
 - [ ] **Cycle 3: GROW — Recursive org**
