@@ -17,15 +17,48 @@ import { handleForgetCommand } from '../commands/forget'
 import { handleMemoryCommand } from '../commands/memory'
 import { detectValence } from '../lib/classify-fallback'
 import { issueClaim, linkIdentity } from '../lib/identity'
+import { notifyOwner, registerOwner } from '../lib/notify'
+import { sendToStudent } from '../lib/proactive'
 import { systemPromptWithPack } from '../lib/prompt'
 import { ensureRegistered, highways, isToxic, mark, warn } from '../lib/substrate'
 import { syncPersonas } from '../lib/sync-personas'
 import { executeTool, tools } from '../lib/tools'
 import { personas } from '../personas'
 import type { Env, GroupContext, QueueMessage } from '../types'
+import { assessStudent } from '../units/assessment'
+import { extractSidecar } from '../units/extract'
 import { ingest } from '../units/ingest'
 import { measureOutcome } from '../units/outcome'
 import { recall } from '../units/recall'
+import { getStudent, recordSidecar, studentContext } from '../units/student'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LLM PROVIDER ROUTING — call Groq directly when model starts with groq/
+// ═══════════════════════════════════════════════════════════════════════════
+
+function resolveLLM(model: string, env: Env): { url: string; headers: Record<string, string>; modelId: string } {
+  if (model.startsWith('groq/') && env.GROQ_API_KEY) {
+    return {
+      url: 'https://api.groq.com/openai/v1/chat/completions',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.GROQ_API_KEY}`,
+      },
+      modelId: model.slice(5), // strip groq/ prefix
+    }
+  }
+  // Fallback: OpenRouter
+  return {
+    url: 'https://openrouter.ai/api/v1/chat/completions',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      'HTTP-Referer': 'https://one.ie',
+      'X-Title': 'NanoClaw',
+    },
+    modelId: model,
+  }
+}
 
 // Detect if response is confident enough to handle locally (score 0-1)
 function detectConfidence(response: string, valence: number, highways: { to: string; strength: number }[]): number {
@@ -39,6 +72,26 @@ function detectConfidence(response: string, valence: number, highways: { to: str
 }
 
 const app = new Hono<{ Bindings: Env }>()
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CORS — allow browser calls from Pages domains
+// ═══════════════════════════════════════════════════════════════════════════
+
+app.use('*', async (c, next) => {
+  const origin = c.req.header('Origin') || ''
+  const allowed =
+    origin.endsWith('.pages.dev') ||
+    origin.endsWith('.one.ie') ||
+    origin === 'https://one.ie' ||
+    origin.startsWith('http://localhost')
+  if (allowed) {
+    c.header('Access-Control-Allow-Origin', origin)
+    c.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  }
+  if (c.req.method === 'OPTIONS') return c.text('', 204)
+  return next()
+})
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BOOT-TIME PERSONA SYNC (one-time guard)
@@ -79,6 +132,84 @@ app.use('*', async (c, next) => {
 // ROUTES
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Post-response hook — shared by /message and /webhook paths.
+ * Fire-and-forget: never blocks the response to the student.
+ *
+ * 1. If tutoring tags detected → extract side-car from LLM response
+ * 2. If student is new → check onboarding drip
+ * 3. If session milestone → run assessment
+ */
+async function afterResponse(
+  env: Env,
+  uid: string,
+  groupId: string,
+  reply: string,
+  tags: string[],
+  sessionCount: number,
+  opts?: { studentMessage?: string; confidence?: number },
+): Promise<void> {
+  // 1. Side-car extraction via AI SDK generateObject (structured, type-safe)
+  // Always attempt extraction when we have both student message + reply.
+  // The LLM is smart enough to return empty arrays when there's nothing to extract.
+  const studentMsg = opts?.studentMessage || ''
+  if (reply.length > 50 && studentMsg) {
+    const sidecar = await extractSidecar(env, studentMsg, reply).catch(() => null)
+    if (sidecar) {
+      const mistakes = sidecar.mistakes.map((m) => `${m.category}: ${m.example} → ${m.correction}`)
+      recordSidecar(env, uid, groupId, {
+        mistakes,
+        newVocab: sidecar.newVocab,
+        praise: sidecar.praise,
+        lessonTag: sidecar.lessonTag,
+        flag: sidecar.flag === 'none' ? undefined : sidecar.flag,
+      }).catch(() => {})
+    }
+  }
+
+  // 2. Onboarding — advance stage + send welcome message
+  const student = await getStudent(env, uid, undefined, groupId).catch(() => null)
+  if (student && student.onboardingStage !== 'active' && student.onboardingStage !== 'churning') {
+    const nextStage =
+      student.onboardingStage === 'new' && student.sessionCount >= 1
+        ? 'welcomed'
+        : student.onboardingStage === 'welcomed' && student.sessionCount >= 3
+          ? 'first-session'
+          : student.onboardingStage === 'first-session' && student.sessionCount >= 7
+            ? 'active'
+            : null
+    if (nextStage) {
+      await env.DB.prepare('UPDATE student_profiles SET onboarding_stage = ? WHERE uid = ?').bind(nextStage, uid).run()
+      const msg =
+        nextStage === 'welcomed'
+          ? "Welcome to Elevare! Ask me anything about our programs. When you're ready, Amara will help you practice every day."
+          : nextStage === 'first-session'
+            ? 'Quick tip: the more you chat with Amara, the better she gets at helping you. By session 5, you will notice the difference.'
+            : nextStage === 'active'
+              ? "You're doing great! First week done. Keep the momentum going."
+              : null
+      if (msg) sendToStudent(env, uid, msg).catch(() => {})
+    }
+  }
+
+  // 3. Assessment every 5 sessions
+  if (sessionCount > 0 && sessionCount % 5 === 0) {
+    assessStudent(env, uid, sessionCount).catch(() => {})
+  }
+
+  // 4. Notify claw owner
+  if (opts?.studentMessage) {
+    notifyOwner(env, {
+      studentName: uid,
+      studentMessage: opts.studentMessage,
+      groupId,
+      reply,
+      confidence: opts.confidence,
+      isFirstMessage: sessionCount <= 1,
+    }).catch(() => {})
+  }
+}
+
 // Health check
 app.get('/health', (c) =>
   c.json({
@@ -93,6 +224,203 @@ app.get('/highways', async (c) => {
   const limit = parseInt(c.req.query('limit') || '10', 10)
   const paths = await highways(c.env, limit)
   return c.json({ highways: paths })
+})
+
+// List active conversations — for Debby's admin dashboard
+app.get('/conversations', async (c) => {
+  try {
+    const rows = await c.env.DB.prepare(`
+      SELECT
+        m.group_id,
+        COUNT(*) as message_count,
+        MAX(m.ts) as last_ts,
+        (SELECT content FROM messages WHERE group_id = m.group_id ORDER BY ts DESC LIMIT 1) as last_message,
+        (SELECT role FROM messages WHERE group_id = m.group_id ORDER BY ts DESC LIMIT 1) as last_role,
+        sp.handle,
+        sp.onboarding_stage,
+        sp.session_count
+      FROM messages m
+      LEFT JOIN student_profiles sp ON sp.group_id = m.group_id
+      GROUP BY m.group_id
+      ORDER BY last_ts DESC
+      LIMIT 50
+    `).all()
+
+    return c.json({ conversations: rows.results || [] })
+  } catch (e) {
+    console.error('List conversations error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
+})
+
+// Debby replies into a conversation — human takeover
+app.post('/conversations/:group/reply', async (c) => {
+  try {
+    const group = c.req.param('group')
+    const { text, sender: adminSender = 'admin' } = (await c.req.json()) as { text: string; sender?: string }
+    if (!text) return c.json({ ok: false, error: 'text required' }, 400)
+
+    // Store as a human message (role = 'assistant' so LLM sees it as part of the conversation)
+    const msgId = `${adminSender}-${Date.now()}`
+    await c.env.DB.prepare(`
+      INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
+      VALUES (?, ?, 'web', ?, ?, 'assistant', ?)
+    `)
+      .bind(msgId, group, adminSender, text, Date.now())
+      .run()
+
+    // Push to student if on Telegram
+    await send(c.env, group, text).catch(() => {})
+
+    return c.json({ ok: true, id: msgId, group })
+  } catch (e) {
+    console.error('Reply error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STUDENT ADMIN API — Debby's visibility into her students
+// Protected by API_KEY (same auth middleware as all non-webhook routes)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// List all students — session counts, stages, last seen
+app.get('/students', async (c) => {
+  try {
+    const rows = await c.env.DB.prepare(`
+      SELECT uid, handle, group_id, first_seen, last_seen, session_count,
+             pillar, level, onboarding_stage, goals
+      FROM student_profiles
+      ORDER BY last_seen DESC
+      LIMIT 200
+    `).all()
+    return c.json({ students: rows.results || [] })
+  } catch (e) {
+    console.error('List students error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
+})
+
+// Get one student profile
+app.get('/student/:uid', async (c) => {
+  try {
+    const uid = c.req.param('uid')
+    const row = await c.env.DB.prepare('SELECT * FROM student_profiles WHERE uid = ?').bind(uid).first()
+    if (!row) return c.json({ ok: false, error: 'Student not found' }, 404)
+    return c.json({ student: row })
+  } catch (e) {
+    console.error('Get student error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
+})
+
+// Recent Amara side-car data for a student
+app.get('/sidecar/:uid', async (c) => {
+  try {
+    const uid = c.req.param('uid')
+    const limit = parseInt(c.req.query('limit') || '20', 10)
+    const { getRecentSidecar } = await import('../units/student')
+    const entries = await getRecentSidecar(c.env, uid, limit)
+    return c.json({ uid, sidecar: entries })
+  } catch (e) {
+    console.error('Get sidecar error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
+})
+
+// Manually update a student profile (Debby's corrections)
+app.post('/student/:uid/update', async (c) => {
+  try {
+    const uid = c.req.param('uid')
+    const body = (await c.req.json()) as {
+      pillar?: string
+      level?: string
+      goals?: string
+      onboardingStage?: 'new' | 'welcomed' | 'first-session' | 'active' | 'churning'
+      notes?: string
+    }
+    const { updateStudent } = await import('../units/student')
+    await updateStudent(c.env, uid, body)
+    return c.json({ ok: true, uid })
+  } catch (e) {
+    console.error('Update student error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OWNER NOTIFICATIONS — register to receive alerts when students message
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Register owner for notifications
+app.post('/owner', async (c) => {
+  const {
+    channel,
+    groupId,
+    alertLevel = 'all',
+  } = (await c.req.json()) as {
+    channel: string
+    groupId: string
+    alertLevel?: 'off' | 'first' | 'low-confidence' | 'all'
+  }
+  if (!channel || !groupId) return c.json({ ok: false, error: 'channel and groupId required' }, 400)
+  await registerOwner(c.env, channel, groupId, alertLevel)
+  return c.json({ ok: true, clawId: c.env.BOT_PERSONA || 'default', alertLevel })
+})
+
+// Get current owner config
+app.get('/owner', async (c) => {
+  const clawId = c.env.BOT_PERSONA || 'default'
+  const row = await c.env.DB.prepare('SELECT * FROM claw_owners WHERE claw_id = ?').bind(clawId).first()
+  if (!row) return c.json({ ok: false, error: 'No owner registered' }, 404)
+  return c.json({ ok: true, owner: row })
+})
+
+// Broadcast a message to ALL active conversations
+app.post('/broadcast', async (c) => {
+  try {
+    const { text, sender = 'admin' } = (await c.req.json()) as { text: string; sender?: string }
+    if (!text) return c.json({ ok: false, error: 'text required' }, 400)
+
+    // Get all active groups (with messages in last 7 days)
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+    const rows = await c.env.DB.prepare(`
+      SELECT DISTINCT group_id FROM messages
+      WHERE ts > ?
+      ORDER BY group_id
+    `)
+      .bind(cutoff)
+      .all()
+
+    const groups = (rows.results || []).map((r) => r.group_id as string)
+    const results: { group: string; ok: boolean; error?: string }[] = []
+
+    for (const group of groups) {
+      try {
+        // Store as assistant message in each conversation
+        const msgId = `${sender}-bc-${Date.now()}-${group.slice(0, 8)}`
+        await c.env.DB.prepare(`
+          INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
+          VALUES (?, ?, 'web', ?, ?, 'assistant', ?)
+        `)
+          .bind(msgId, group, sender, text, Date.now())
+          .run()
+
+        // Push to channel (Telegram/Discord — web clients pick it up via polling)
+        await send(c.env, group, text).catch(() => {})
+        results.push({ group, ok: true })
+      } catch (e) {
+        results.push({ group, ok: false, error: String(e) })
+      }
+    }
+
+    const sent = results.filter((r) => r.ok).length
+    const failed = results.filter((r) => !r.ok).length
+    return c.json({ ok: true, sent, failed, total: groups.length, results })
+  } catch (e) {
+    console.error('Broadcast error:', e)
+    return c.json({ ok: false, error: String(e) }, 500)
+  }
 })
 
 // Get conversation history
@@ -119,16 +447,23 @@ app.get('/messages/:group', async (c) => {
 })
 
 // Send a web message (direct API) — process synchronously for instant response
+// Pass `stream: true` to get SSE streaming response from Groq
 app.post('/message', async (c) => {
   try {
     const {
       group,
       text,
       sender = 'user',
+      prefill,
+      stream: wantStream,
     } = (await c.req.json()) as {
       group: string
       text: string
       sender?: string
+      /** Pre-canned answer — store Q+A in D1 for context, skip LLM */
+      prefill?: string
+      /** Stream LLM response as SSE */
+      stream?: boolean
     }
 
     if (!group || !text) {
@@ -143,6 +478,13 @@ app.post('/message', async (c) => {
       .bind(group, 'web', group, Math.floor(Date.now() / 1000))
       .run()
 
+    // ── PRE: Deterministic sandwich ──────────────────────────────
+    // 1. Toxic check — reject if path is poisoned
+    const groupUid = `nanoclaw:${group}`
+    if (await isToxic(c.env, 'entry', groupUid).catch(() => false)) {
+      return c.json({ ok: false, dissolved: true, reason: 'toxic' })
+    }
+
     // Store user message
     const msgId = `web-${Date.now()}`
     await c.env.DB.prepare(`
@@ -152,9 +494,29 @@ app.post('/message', async (c) => {
       .bind(msgId, group, sender, text, Date.now())
       .run()
 
-    // Process immediately (synchronous)
-    const context = await loadContext(c.env, group)
-    const messages = await buildMessages(c.env, group)
+    // ── MID: Response (prefill or LLM) ───────────────────────────
+    // Prefill: canned answer — deterministic, no LLM, still marks the path
+    if (prefill) {
+      const respId = `resp-${Date.now()}`
+      await c.env.DB.prepare(`
+        INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
+        VALUES (?, ?, 'web', 'assistant', ?, 'assistant', ?)
+      `)
+        .bind(respId, group, prefill, Date.now())
+        .run()
+      // POST: mark success on prefill too — pheromone accumulates
+      mark(c.env, 'entry', groupUid).catch(() => {})
+      return c.json({ ok: true, id: msgId, group, prefilled: true })
+    }
+
+    // LLM path — load context + student memory in parallel
+    const [context, chatMessages, student] = await Promise.all([
+      loadContext(c.env, group),
+      buildMessages(c.env, group),
+      getStudent(c.env, sender, sender, group).catch(() => null),
+    ])
+    const studentCtx = student ? `\n\n--- Student Memory ---\n${studentContext(student)}` : ''
+    const messages = chatMessages
 
     const openaiTools = tools.map((t) => ({
       type: 'function' as const,
@@ -165,26 +527,103 @@ app.post('/message', async (c) => {
       },
     }))
 
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const llm = resolveLLM(context.model, c.env)
+
+    // ── STREAMING PATH ───────────────────────────────────────────
+    if (wantStream) {
+      const res = await fetch(llm.url, {
+        method: 'POST',
+        headers: llm.headers,
+        body: JSON.stringify({
+          model: llm.modelId,
+          max_tokens: 512,
+          stream: true,
+          messages: [{ role: 'system', content: context.systemPrompt + studentCtx }, ...messages],
+        }),
+      })
+
+      if (!res.ok || !res.body) {
+        warn(c.env, 'entry', groupUid, 0.5).catch(() => {})
+        return c.json({ ok: false, error: 'LLM stream failed' }, 500)
+      }
+
+      // Pipe Groq SSE through to client, accumulate full reply for D1
+      const encoder = new TextEncoder()
+      const decoder = new TextDecoder()
+      let fullReply = ''
+
+      let buffer = ''
+      const transform = new TransformStream({
+        transform(chunk, controller) {
+          buffer += decoder.decode(chunk, { stream: true })
+          // Process complete lines (SSE lines end with \n)
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || '' // keep incomplete last line
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            const payload = line.slice(6).trim()
+            if (payload === '[DONE]') {
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+              continue
+            }
+            try {
+              const json = JSON.parse(payload)
+              const delta = json.choices?.[0]?.delta?.content || ''
+              if (delta) {
+                fullReply += delta
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ t: delta })}\n\n`))
+              }
+            } catch {}
+          }
+        },
+        async flush() {
+          // Store complete reply + mark path (fire-and-forget via waitUntil)
+          c.executionCtx.waitUntil(
+            (async () => {
+              if (fullReply) {
+                await c.env.DB.prepare(
+                  `INSERT INTO messages (id, group_id, channel, sender, content, role, ts) VALUES (?, ?, 'web', 'assistant', ?, 'assistant', ?)`,
+                )
+                  .bind(`resp-${Date.now()}`, group, fullReply, Date.now())
+                  .run()
+                  .catch(() => {})
+                mark(c.env, 'entry', groupUid).catch(() => {})
+                const postTags = student ? ([student.pillar, student.onboardingStage].filter(Boolean) as string[]) : []
+                afterResponse(c.env, sender, group, fullReply, postTags, student?.sessionCount ?? 0, {
+                  studentMessage: text,
+                }).catch(() => {})
+              }
+            })(),
+          )
+        },
+      })
+
+      return new Response(res.body.pipeThrough(transform), {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+          'Access-Control-Allow-Origin': c.res.headers.get('Access-Control-Allow-Origin') || '*',
+        },
+      })
+    }
+
+    // ── NON-STREAMING PATH (unchanged) ───────────────────────────
+    const res = await fetch(llm.url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${c.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://one.ie',
-        'X-Title': 'NanoClaw',
-      },
+      headers: llm.headers,
       body: JSON.stringify({
-        model: context.model,
-        max_tokens: 4096,
-        messages: [{ role: 'system', content: context.systemPrompt }, ...messages],
+        model: llm.modelId,
+        max_tokens: 256,
+        messages: [{ role: 'system', content: context.systemPrompt + studentCtx }, ...messages],
         tools: openaiTools,
       }),
     })
 
     const resText = await res.text()
     if (!res.ok) {
-      console.error('OpenRouter error:', res.status, resText.slice(0, 500))
-      await warn(c.env, 'entry', `nanoclaw:${group}`, 0.5)
+      console.error('LLM error:', res.status, resText.slice(0, 500))
+      warn(c.env, 'entry', `nanoclaw:${group}`, 0.5).catch(() => {})
       return c.json({ ok: false, error: 'LLM request failed' }, 500)
     }
 
@@ -196,22 +635,30 @@ app.post('/message', async (c) => {
     if (choice?.tool_calls) {
       for (const call of choice.tool_calls) {
         const input = JSON.parse(call.function.arguments)
-        await executeTool(c.env, group, call.function.name, input)
+        executeTool(c.env, group, call.function.name, input).catch(() => {})
       }
     }
 
-    // Store assistant message if there's a response
+    // Store assistant message + mark success (fire-and-forget, don't block response)
     const respId = `resp-${Date.now()}`
     if (reply) {
-      await c.env.DB.prepare(`
+      c.env.DB.prepare(`
         INSERT INTO messages (id, group_id, channel, sender, content, role, ts)
         VALUES (?, ?, 'web', 'assistant', ?, 'assistant', ?)
       `)
         .bind(respId, group, reply, Date.now())
         .run()
+        .catch(() => {})
 
-      // Mark success
-      await mark(c.env, 'entry', `nanoclaw:${group}`)
+      mark(c.env, 'entry', `nanoclaw:${group}`).catch(() => {})
+
+      // Post-response hook: side-car + onboarding + assessment
+      const postTags = student ? ([student.pillar, student.onboardingStage].filter(Boolean) as string[]) : []
+      try {
+        await afterResponse(c.env, sender, group, reply, postTags, student?.sessionCount ?? 0, { studentMessage: text })
+      } catch (e) {
+        console.error('afterResponse error:', e)
+      }
     }
 
     return c.json({
@@ -308,28 +755,29 @@ app.post('/webhook/:channel', async (c) => {
         .run()
         .catch(() => {})
 
-      // 4. Assemble ContextPack (three-parallel: episodic + associative + semantic)
-      const context = await loadContext(c.env, signal.group)
-      const pack = await recall(c.env, signal.group, uid, signal.sender)
-      const enhancedSystemPrompt = systemPromptWithPack(context.systemPrompt, pack)
-      const messages = await buildMessages(c.env, signal.group)
+      // 4. Assemble ContextPack (four-parallel: episodic + associative + semantic + student)
+      const [context, pack, chatMessages, student] = await Promise.all([
+        loadContext(c.env, signal.group),
+        recall(c.env, signal.group, uid, signal.sender),
+        buildMessages(c.env, signal.group),
+        getStudent(c.env, uid, signal.sender).catch(() => null),
+      ])
+      const studentCtx = student ? `\n\n--- Student Memory ---\n${studentContext(student)}` : ''
+      const enhancedSystemPrompt = systemPromptWithPack(context.systemPrompt, pack) + studentCtx
+      const messages = chatMessages
 
       const openaiTools = tools.map((t) => ({
         type: 'function' as const,
         function: { name: t.name, description: t.description, parameters: t.input_schema },
       }))
 
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const llm = resolveLLM(context.model, c.env)
+      const res = await fetch(llm.url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${c.env.OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://one.ie',
-          'X-Title': 'NanoClaw',
-        },
+        headers: llm.headers,
         body: JSON.stringify({
-          model: context.model,
-          max_tokens: 1024,
+          model: llm.modelId,
+          max_tokens: 512,
           messages: [{ role: 'system', content: enhancedSystemPrompt }, ...messages],
           tools: openaiTools,
         }),
@@ -362,6 +810,14 @@ app.post('/webhook/:channel', async (c) => {
 
             await send(c.env, signal.group, reply)
             await mark(c.env, 'entry', `nanoclaw:${signal.group}`, 1)
+
+            // Post-response hook — waitUntil keeps worker alive
+            c.executionCtx.waitUntil(
+              afterResponse(c.env, uid, signal.group, reply, tags, student?.sessionCount ?? 0, {
+                studentMessage: signal.content,
+                confidence,
+              }).catch(() => {}),
+            )
           }
           // Complex path: ≤0.7 confidence → queue to substrate, fallback with warn(0.5)
           else {
@@ -518,8 +974,8 @@ Be concise and helpful. Mark successful collaborations, warn on failures.`,
     ctx.model = 'google/gemma-4-26b-a4b-it'
   }
 
-  // Cache for 5 minutes
-  await env.KV.put(`context:${groupId}`, JSON.stringify(ctx), { expirationTtl: 300 })
+  // Cache for 5 minutes (swallow KV errors — free tier has daily write limits)
+  await env.KV.put(`context:${groupId}`, JSON.stringify(ctx), { expirationTtl: 300 }).catch(() => {})
   return ctx
 }
 
@@ -662,5 +1118,91 @@ export default {
         taskId: task.id as string,
       })
     }
+
+    // ── L3 CHURN DETECTION ────────────────────────────────────────
+    // Students inactive > 5 days → proactive re-engagement message
+    const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000
+    const churning = await env.DB.prepare(`
+      SELECT uid, handle, group_id, session_count FROM student_profiles
+      WHERE last_seen < ? AND onboarding_stage NOT IN ('new', 'churning')
+      LIMIT 20
+    `)
+      .bind(fiveDaysAgo)
+      .all()
+
+    for (const student of churning.results || []) {
+      const uid = student.uid as string
+      const groupId = student.group_id as string
+      if (!groupId) continue
+
+      // Mark as churning so we don't spam
+      await env.DB.prepare("UPDATE student_profiles SET onboarding_stage = 'churning' WHERE uid = ?")
+        .bind(uid)
+        .run()
+        .catch(() => {})
+
+      // Proactive re-engagement
+      const msg = `Hi! We noticed you haven't practised in a few days. Life gets busy — that's okay. Amara is ready whenever you are. Even 5 minutes of practice keeps the momentum going. 💬`
+      await send(env, groupId, msg).catch(() => {})
+    }
+
+    // ── L6 WEEKLY EDU SUMMARY ─────────────────────────────────────
+    // Every Sunday (cron: 0 8 * * 0) or when cron.name matches
+    const isWeeklySummary = event.cron === '0 8 * * 0' || (event as unknown as { name?: string }).name === 'weekly-edu'
+    if (!isWeeklySummary) return
+
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    const [activeStudents, newStudents, sidecars] = await Promise.all([
+      env.DB.prepare('SELECT COUNT(*) as n FROM student_profiles WHERE last_seen > ?').bind(weekAgo).first(),
+      env.DB.prepare('SELECT COUNT(*) as n FROM student_profiles WHERE first_seen > ?').bind(weekAgo).first(),
+      env.DB.prepare('SELECT COUNT(*) as n FROM amara_sidecar WHERE ts > ?').bind(weekAgo).first(),
+    ])
+
+    const active = (activeStudents?.n as number) || 0
+    const newCount = (newStudents?.n as number) || 0
+    const sessions = (sidecars?.n as number) || 0
+
+    // Find most common mistake categories this week
+    const mistakeRows = await env.DB.prepare('SELECT mistakes FROM amara_sidecar WHERE ts > ? AND mistakes != "[]"')
+      .bind(weekAgo)
+      .all()
+
+    const mistakeCounts: Record<string, number> = {}
+    for (const row of mistakeRows.results || []) {
+      const mistakes: string[] = JSON.parse((row.mistakes as string) || '[]')
+      for (const m of mistakes) {
+        const cat = m.split(':')[0]?.trim() || m
+        mistakeCounts[cat] = (mistakeCounts[cat] || 0) + 1
+      }
+    }
+    const topMistakes = Object.entries(mistakeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([cat, n]) => `${cat} (${n}×)`)
+
+    const summary = [
+      `📊 Weekly Elevare Summary`,
+      `Active students: ${active}`,
+      `New this week: ${newCount}`,
+      `Amara sessions logged: ${sessions}`,
+      topMistakes.length > 0 ? `Top mistakes: ${topMistakes.join(', ')}` : null,
+      `\nCurriculum focus: review ${topMistakes[0] || 'recent patterns'} across group exercises this week.`,
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    // Signal debby:edu group — the Education Director's inbox
+    const eduGroup = `debby:edu`
+    await env.DB.prepare(`INSERT OR IGNORE INTO groups (id, channel, name, created_at) VALUES (?, 'internal', ?, ?)`)
+      .bind(eduGroup, 'Education Director', Math.floor(Date.now() / 1000))
+      .run()
+      .catch(() => {})
+
+    await env.DB.prepare(
+      `INSERT INTO messages (id, group_id, channel, sender, content, role, ts) VALUES (?, ?, 'internal', 'substrate', ?, 'assistant', ?)`,
+    )
+      .bind(`edu-summary-${Date.now()}`, eduGroup, summary, Date.now())
+      .run()
+      .catch(() => {})
   },
 }

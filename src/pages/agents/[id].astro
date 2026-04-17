@@ -1,0 +1,15 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { AgentDetail } from "@/components/agents/AgentDetail"
+
+const rawId = Astro.params.id
+const id = rawId ? decodeURIComponent(rawId) : null
+
+if (!id) {
+  return Astro.redirect('/agents')
+}
+---
+
+<Layout title={`${id} — Agents — ONE`}>
+  <AgentDetail client:load agentId={id} />
+</Layout>

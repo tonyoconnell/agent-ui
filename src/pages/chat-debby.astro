@@ -1,0 +1,9 @@
+---
+export const prerender = true
+import Layout from "@/layouts/Layout.astro"
+import { DebbyChat } from "@/components/ai/DebbyChat"
+---
+
+<Layout title="Elevare — Chat with Debby's School">
+  <DebbyChat client:only="react" />
+</Layout>

@@ -1,0 +1,9 @@
+---
+export const prerender = true
+import Layout from "@/layouts/Layout.astro"
+import { ChatRouting } from "@/components/ai/ChatRouting"
+---
+
+<Layout title="Routing Demo">
+  <ChatRouting client:load />
+</Layout>
