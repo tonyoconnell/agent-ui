@@ -51,7 +51,7 @@ describe('expire-recovery: /api/tasks/expire releases stale claims', () => {
     ])
 
     // Mock the delete+insert operation
-    mockRead.mockResolvedValueOnce(null)
+    mockRead.mockResolvedValueOnce([])
 
     // Simulate the endpoint logic
     const q = `match $t isa task, has task-status "active", has owner $o, has claimed-at $c; select $t, $o, $c;`
@@ -124,7 +124,7 @@ describe('expire-recovery: /api/tasks/expire releases stale claims', () => {
     ])
 
     mockRead.mockResolvedValueOnce([{ id: 'task-a' }])
-    mockRead.mockResolvedValueOnce(null)
+    mockRead.mockResolvedValueOnce([])
 
     const q = `match $t isa task, has task-status "active", has owner $o, has claimed-at $c; select $t, $o, $c;`
     const rows = (await typedb.read(q)) as Array<{ t: string; o: string; c: string }>

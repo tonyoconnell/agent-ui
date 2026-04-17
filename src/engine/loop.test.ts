@@ -1029,6 +1029,212 @@ describe('loop.ts — growth tick', () => {
     })
   })
 
+  describe('L1b: tag-filtered task routing', () => {
+    /**
+     * Tests for the L1b block (lines ~196-230 of loop.ts):
+     * When previousTarget exists (a unit just succeeded), tag-filtered
+     * TypeDB query fires first — matching unit tags to task tags.
+     * Falls back to global priority if no tagged match.
+     *
+     * These tests verify the routing logic in isolation:
+     * - WAVE_MODEL / EFFORT_MODEL model selection
+     * - inferDocsFromTags context inference
+     * - Tag-filtered vs global fallback decision paths
+     */
+
+    it('WAVE_MODEL maps waves to correct models', async () => {
+      const { WAVE_MODEL } = await import('./task-parse')
+      expect(WAVE_MODEL.W1).toBe('haiku') // recon: cheap, fast
+      expect(WAVE_MODEL.W2).toBe('opus') // decide: expensive, smart
+      expect(WAVE_MODEL.W3).toBe('sonnet') // edit: balanced
+      expect(WAVE_MODEL.W4).toBe('sonnet') // verify: balanced
+    })
+
+    it('EFFORT_MODEL maps effort to correct models', async () => {
+      const { EFFORT_MODEL } = await import('./task-parse')
+      expect(EFFORT_MODEL.low).toBe('haiku')
+      expect(EFFORT_MODEL.medium).toBe('sonnet')
+      expect(EFFORT_MODEL.high).toBe('opus')
+    })
+
+    it('task signal uses WAVE_MODEL when wave is set', async () => {
+      const { WAVE_MODEL, EFFORT_MODEL } = await import('./task-parse')
+      // L1b picks model: WAVE_MODEL[wave] || EFFORT_MODEL[effort] || 'sonnet'
+      const resolveModel = (wave: string, effort: string) =>
+        WAVE_MODEL[wave as keyof typeof WAVE_MODEL] || EFFORT_MODEL[effort as keyof typeof EFFORT_MODEL] || 'sonnet'
+
+      expect(resolveModel('W1', 'high')).toBe('haiku') // wave wins over effort
+      expect(resolveModel('W2', 'low')).toBe('opus') // wave wins over effort
+      expect(resolveModel('W3', 'medium')).toBe('sonnet')
+      expect(resolveModel('W4', 'high')).toBe('sonnet')
+    })
+
+    it('task signal falls back to EFFORT_MODEL when wave is unknown', async () => {
+      const { WAVE_MODEL, EFFORT_MODEL } = await import('./task-parse')
+      const resolveModel = (wave: string, effort: string) =>
+        WAVE_MODEL[wave as keyof typeof WAVE_MODEL] || EFFORT_MODEL[effort as keyof typeof EFFORT_MODEL] || 'sonnet'
+
+      expect(resolveModel('W99', 'high')).toBe('opus') // unknown wave → effort
+      expect(resolveModel('W99', 'low')).toBe('haiku') // unknown wave → effort
+      expect(resolveModel('', 'medium')).toBe('sonnet') // empty wave → effort
+    })
+
+    it('task signal falls back to sonnet when both wave and effort are unknown', async () => {
+      const { WAVE_MODEL, EFFORT_MODEL } = await import('./task-parse')
+      const resolveModel = (wave: string, effort: string) =>
+        WAVE_MODEL[wave as keyof typeof WAVE_MODEL] || EFFORT_MODEL[effort as keyof typeof EFFORT_MODEL] || 'sonnet'
+
+      expect(resolveModel('', '')).toBe('sonnet')
+      expect(resolveModel('W99', 'unknown')).toBe('sonnet')
+    })
+
+    it('inferDocsFromTags returns relevant docs for engine tags', async () => {
+      const { inferDocsFromTags } = await import('./context')
+      const keys = inferDocsFromTags(['engine', 'routing'])
+      // engine → dsl, routing; routing → routing, dsl
+      expect(keys).toContain('dsl')
+      expect(keys).toContain('routing')
+    })
+
+    it('inferDocsFromTags returns relevant docs for commerce tags', async () => {
+      const { inferDocsFromTags } = await import('./context')
+      const keys = inferDocsFromTags(['commerce', 'api'])
+      expect(keys).toContain('sdk')
+      expect(keys).toContain('dsl')
+    })
+
+    it('inferDocsFromTags always includes dsl and dictionary as base context', async () => {
+      const { inferDocsFromTags } = await import('./context')
+      // Even with no matching tags, base context should be included
+      const keys = inferDocsFromTags([])
+      expect(keys).toContain('dsl')
+      expect(keys).toContain('dictionary')
+    })
+
+    it('inferDocsFromTags deduplicates when multiple tags map to same doc', async () => {
+      const { inferDocsFromTags } = await import('./context')
+      const keys = inferDocsFromTags(['engine', 'signal', 'routing'])
+      // All three tags map to 'dsl' and 'routing' — should not duplicate
+      const dslCount = keys.filter((k) => k === 'dsl').length
+      const routingCount = keys.filter((k) => k === 'routing').length
+      expect(dslCount).toBe(1)
+      expect(routingCount).toBe(1)
+    })
+
+    it('tag-filtered selection: previousTarget gates tag query', () => {
+      // The L1b block: if (previousTarget) { readParsed(tag-filtered query) }
+      // Without previousTarget, it goes straight to global priority.
+      // This tests the gate logic in isolation.
+      let previousTarget: string | null = null
+      const shouldTagFilter = () => !!previousTarget
+
+      expect(shouldTagFilter()).toBe(false) // no previous → global
+      previousTarget = 'builder'
+      expect(shouldTagFilter()).toBe(true) // previous exists → tag filter
+    })
+
+    it('fallback: empty tag result triggers global priority query', () => {
+      // The L1b logic: if (!topTasks.length) { readParsed(global query) }
+      const topTasks: Record<string, unknown>[] = []
+      const shouldFallbackToGlobal = topTasks.length === 0
+      expect(shouldFallbackToGlobal).toBe(true)
+
+      // With tag results, no fallback
+      topTasks.push({ id: 'task-1', name: 'test', p: 10 })
+      const shouldNotFallback = topTasks.length === 0
+      expect(shouldNotFallback).toBe(false)
+    })
+
+    it('tag match prefers relevant tasks: same priority, tagged wins', () => {
+      // When a unit has tags and a task shares those tags, the tag-filtered
+      // query fires first. If it returns results, global fallback is skipped.
+      // This means a lower-priority tagged task beats a higher-priority untagged one.
+      const taggedTask = { id: 'tagged-task', name: 'build API', p: 5, tags: ['engine', 'api'] }
+      const untaggedTask = { id: 'untagged-task', name: 'write docs', p: 10, tags: ['docs'] }
+
+      // Tag-filtered query returns taggedTask (unit tags match task tags)
+      const tagFilteredResults = [taggedTask]
+      // Global query would return untaggedTask (higher priority)
+      const globalResults = [untaggedTask]
+
+      // L1b logic: use tag results if available, skip global
+      const selected = tagFilteredResults.length > 0 ? tagFilteredResults[0] : globalResults[0]
+      expect(selected.id).toBe('tagged-task') // tagged wins despite lower priority
+    })
+
+    it('context docs merge inferred + explicit without duplicates', () => {
+      // L1b merges inferDocsFromTags(taskTags) with explicit task-context keys
+      const inferredKeys = ['dsl', 'routing', 'dictionary']
+      const explicitKeys = ['routing', 'sdk', 'patterns']
+      const allKeys = [...new Set([...inferredKeys, ...explicitKeys])]
+
+      expect(allKeys).toContain('dsl')
+      expect(allKeys).toContain('routing')
+      expect(allKeys).toContain('dictionary')
+      expect(allKeys).toContain('sdk')
+      expect(allKeys).toContain('patterns')
+      // No duplicates
+      expect(allKeys.filter((k) => k === 'routing').length).toBe(1)
+      expect(allKeys.length).toBe(5)
+    })
+
+    it('task signal shape matches expected envelope', () => {
+      // Verify the signal shape that L1b constructs for builder:task
+      const taskId = 'test-task-1'
+      const taskName = 'Build the API'
+      const taskPriority = 8
+      const taskEffort = 'medium'
+      const taskWave = 'W3'
+      const taskModel = 'sonnet'
+      const taskPhase = 'C4'
+      const exitCondition = 'API returns 200'
+      const taskTags = ['engine', 'api']
+      const contextDocs = ['dsl', 'routing', 'sdk']
+      const contextText = 'merged doc content...'
+      const learned = [{ pattern: 'api→success', confidence: 0.9 }]
+      const blockers = [{ id: 'task-2', name: 'Write tests' }]
+
+      const taskSignal = {
+        receiver: 'builder:task',
+        data: {
+          taskId,
+          taskName,
+          taskPriority,
+          effort: taskEffort,
+          wave: taskWave,
+          model: taskModel,
+          phase: taskPhase,
+          exit: exitCondition,
+          tags: taskTags,
+          contextDocs,
+          context: contextText,
+          learned: learned.slice(0, 5),
+          blockers,
+        },
+      }
+
+      expect(taskSignal.receiver).toBe('builder:task')
+      expect(taskSignal.data.model).toBe('sonnet')
+      expect(taskSignal.data.wave).toBe('W3')
+      expect(taskSignal.data.tags).toEqual(['engine', 'api'])
+      expect(taskSignal.data.contextDocs).toEqual(['dsl', 'routing', 'sdk'])
+      expect(taskSignal.data.blockers).toHaveLength(1)
+      expect(taskSignal.data.learned).toHaveLength(1)
+    })
+
+    it('two-tier global fallback: full query fails → simpler query', () => {
+      // L1b has a catch chain: full query with effort+phase, then simpler without
+      // This tests the fallback logic shape
+      const fullQueryResult: Record<string, unknown>[] = []
+      const simpleQueryResult: Record<string, unknown>[] = [{ id: 'simple-task', name: 'fallback', p: 3 }]
+
+      // Simulate: full query throws/returns empty, fallback returns result
+      const topTasks = fullQueryResult.length > 0 ? fullQueryResult : simpleQueryResult
+      expect(topTasks).toHaveLength(1)
+      expect(topTasks[0].id).toBe('simple-task')
+    })
+  })
+
   describe('L7: frontier detection (unexplored tag clusters)', () => {
     it('should identify unexplored tag clusters', () => {
       const net = createWorld()

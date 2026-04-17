@@ -2,12 +2,13 @@
  * doc-scan.test.ts — Test markdown item extraction and loop integration
  *
  * Tests extractItems (checkbox + gap parsing), groupByPriority,
- * renderTodo, and gapsToSignals. All pure functions — no mocking needed.
+ * renderTodo, gapsToSignals, inferTags, inferPriority, verify,
+ * verifyAll, scanDocs, and docMark.
  */
 
-import { describe, expect, it } from 'vitest'
-import type { DocItem } from './doc-scan'
-import { gapsToSignals, groupByPriority, renderTodo } from './doc-scan'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { DocItem, VerifiedItem } from './doc-scan'
+import { docMark, gapsToSignals, groupByPriority, renderTodo, verify, verifyAll } from './doc-scan'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -248,6 +249,531 @@ describe('doc-scan.ts — item extraction and loop integration', () => {
       expect(output).toContain('Done:  2')
       expect(output).toContain('P0: 2')
       expect(output).toContain('P1: 0')
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: extractItems (tested via scanDocs with mocked fs)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('extractItems (via scanDocs)', () => {
+    beforeEach(() => {
+      // Reset the lazy _node cache between tests so mocks take effect
+      vi.resetModules()
+    })
+
+    /** Helper: mock fs so scanDocs reads from an in-memory file map */
+    async function scanMocked(files: Record<string, string>): Promise<DocItem[]> {
+      // Monkey-patch the lazy node() loader via dynamic import mocking
+      vi.doMock('node:fs/promises', () => ({
+        readdir: vi.fn(async () => Object.keys(files)),
+        readFile: vi.fn(async (_path: string) => {
+          const name = _path.split('/').pop() ?? _path
+          return files[name] ?? ''
+        }),
+      }))
+      vi.doMock('node:path', () => ({
+        join: (...parts: string[]) => parts[parts.length - 1],
+        basename: (p: string) => p.split('/').pop() ?? p,
+      }))
+
+      // Re-import after mocking
+      const mod = await import('./doc-scan')
+      return mod.scanDocs('/fake/docs')
+    }
+
+    it('should parse unchecked checkbox items', async () => {
+      const items = await scanMocked({
+        'test.md': '- [ ] Build the API\n- [ ] Write tests\n',
+      })
+
+      expect(items.length).toBe(2)
+      expect(items[0].done).toBe(false)
+      expect(items[0].name).toBe('Build the API')
+      expect(items[1].name).toBe('Write tests')
+    })
+
+    it('should parse checked checkbox items', async () => {
+      const items = await scanMocked({
+        'test.md': '- [x] Deploy worker\n- [X] Ship it\n',
+      })
+
+      expect(items.length).toBe(2)
+      expect(items[0].done).toBe(true)
+      expect(items[1].done).toBe(true)
+    })
+
+    it('should parse indented checkbox items', async () => {
+      const items = await scanMocked({
+        'test.md': '  - [ ] Nested item\n    - [x] Deep nested\n',
+      })
+
+      expect(items.length).toBe(2)
+      expect(items[0].name).toBe('Nested item')
+      expect(items[1].done).toBe(true)
+    })
+
+    it('should parse Gap N: patterns', async () => {
+      const items = await scanMocked({
+        'gaps.md': 'Gap 1: Missing auth\nGap 2: No tests\n',
+      })
+
+      expect(items.length).toBe(2)
+      expect(items[0].id).toBe('gap-1')
+      expect(items[0].name).toBe('Gap 1: Missing auth')
+      expect(items[0].priority).toBe('P0')
+      expect(items[0].tags).toContain('gap')
+    })
+
+    it('should parse bold Gap patterns', async () => {
+      const items = await scanMocked({
+        'gaps.md': '**Gap 3: Bold gap** — description here\n',
+      })
+
+      expect(items.length).toBe(1)
+      expect(items[0].id).toBe('gap-3')
+      expect(items[0].name).toContain('Bold gap')
+    })
+
+    it('should track section headings', async () => {
+      const items = await scanMocked({
+        'plan.md': '## Critical\n\n- [ ] Fix auth\n\n## Later\n\n- [ ] Polish UI\n',
+      })
+
+      expect(items.length).toBe(2)
+      expect(items[0].section).toBe('Critical')
+      expect(items[1].section).toBe('Later')
+    })
+
+    it('should handle empty files', async () => {
+      const items = await scanMocked({
+        'empty.md': '',
+      })
+
+      expect(items).toHaveLength(0)
+    })
+
+    it('should handle files with no actionable items', async () => {
+      const items = await scanMocked({
+        'prose.md': '# Title\n\nJust some prose with no checkboxes or gaps.\n\n## Another section\n\nMore text.\n',
+      })
+
+      expect(items).toHaveLength(0)
+    })
+
+    it('should handle malformed markdown gracefully', async () => {
+      const items = await scanMocked({
+        'bad.md': '- [] Missing space\n- [z] Invalid marker\n- [ ]No space after bracket\n#No space heading\n',
+      })
+
+      // None of these should match the checkbox regex
+      expect(items).toHaveLength(0)
+    })
+
+    it('should strip bold/backtick formatting from names', async () => {
+      const items = await scanMocked({
+        'test.md': '- [ ] **Bold task** with `code` stuff\n',
+      })
+
+      expect(items.length).toBe(1)
+      expect(items[0].name).not.toContain('**')
+      expect(items[0].name).not.toContain('`')
+    })
+
+    it('should strip trailing explanatory text after em-dash', async () => {
+      const items = await scanMocked({
+        'test.md': '- [ ] Deploy worker — needs wrangler config first\n',
+      })
+
+      expect(items.length).toBe(1)
+      expect(items[0].name).toBe('Deploy worker')
+    })
+
+    it('should strip trailing parenthetical text', async () => {
+      const items = await scanMocked({
+        'test.md': '- [ ] Add auth (blocked by infra)\n',
+      })
+
+      expect(items.length).toBe(1)
+      expect(items[0].name).toBe('Add auth')
+    })
+
+    it('should generate source from filename', async () => {
+      const items = await scanMocked({
+        'TODO-deploy.md': '- [ ] Fix deploy\n',
+      })
+
+      expect(items[0].source).toBe('todo-deploy')
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: inferTags (tested via scanDocs item tags)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('inferTags (via scanDocs)', () => {
+    beforeEach(() => {
+      vi.resetModules()
+    })
+
+    async function tagsFor(text: string): Promise<string[]> {
+      vi.doMock('node:fs/promises', () => ({
+        readdir: vi.fn(async () => ['test.md']),
+        readFile: vi.fn(async () => `- [ ] ${text}\n`),
+      }))
+      vi.doMock('node:path', () => ({
+        join: (...parts: string[]) => parts[parts.length - 1],
+        basename: (p: string) => p.split('/').pop() ?? p,
+      }))
+      const mod = await import('./doc-scan')
+      const items = await mod.scanDocs('/fake')
+      return items[0]?.tags ?? []
+    }
+
+    it('should always include source as first tag', async () => {
+      const tags = await tagsFor('Some random task')
+      expect(tags[0]).toBe('test')
+    })
+
+    it('should detect build keywords', async () => {
+      const tags = await tagsFor('Deploy worker to cloudflare')
+      expect(tags).toContain('build')
+      expect(tags).toContain('infra')
+    })
+
+    it('should detect ui keywords', async () => {
+      const tags = await tagsFor('Fix the panel layout and graph edges')
+      expect(tags).toContain('ui')
+    })
+
+    it('should detect engine keywords', async () => {
+      const tags = await tagsFor('Implement routing with pheromone decay')
+      expect(tags).toContain('engine')
+    })
+
+    it('should detect commerce keywords', async () => {
+      const tags = await tagsFor('Add payment escrow with x402')
+      expect(tags).toContain('commerce')
+    })
+
+    it('should detect typedb keywords', async () => {
+      const tags = await tagsFor('Fix TypeDB schema query')
+      expect(tags).toContain('typedb')
+    })
+
+    it('should detect agent keywords', async () => {
+      const tags = await tagsFor('Configure nanoclaw agent LLM prompt')
+      expect(tags).toContain('agent')
+    })
+
+    it('should detect security keywords', async () => {
+      const tags = await tagsFor('Add auth token identity check')
+      expect(tags).toContain('security')
+    })
+
+    it('should detect marketing keywords', async () => {
+      const tags = await tagsFor('SEO content for blog signup campaign')
+      expect(tags).toContain('marketing')
+    })
+
+    it('should assign multiple matching tags', async () => {
+      const tags = await tagsFor('Deploy agent to cloudflare worker')
+      expect(tags).toContain('build')
+      expect(tags).toContain('agent')
+      expect(tags).toContain('infra')
+    })
+
+    it('should not duplicate tags', async () => {
+      const tags = await tagsFor('Deploy worker to cloudflare')
+      const uniqueTags = [...new Set(tags)]
+      expect(tags.length).toBe(uniqueTags.length)
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: inferPriority (tested via scanDocs section → priority mapping)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('inferPriority (via scanDocs)', () => {
+    beforeEach(() => {
+      vi.resetModules()
+    })
+
+    async function priorityFor(section: string): Promise<string> {
+      vi.doMock('node:fs/promises', () => ({
+        readdir: vi.fn(async () => ['test.md']),
+        readFile: vi.fn(async () => `## ${section}\n\n- [ ] Some task\n`),
+      }))
+      vi.doMock('node:path', () => ({
+        join: (...parts: string[]) => parts[parts.length - 1],
+        basename: (p: string) => p.split('/').pop() ?? p,
+      }))
+      const mod = await import('./doc-scan')
+      const items = await mod.scanDocs('/fake')
+      return items[0]?.priority ?? 'P2'
+    }
+
+    it('should map "Critical" section to P0', async () => {
+      expect(await priorityFor('Critical')).toBe('P0')
+    })
+
+    it('should map "Unblock" section to P0', async () => {
+      expect(await priorityFor('Unblock Live Agents')).toBe('P0')
+    })
+
+    it('should map "Security Checklist" to P0', async () => {
+      expect(await priorityFor('Security Checklist')).toBe('P0')
+    })
+
+    it('should map "High" section to P1', async () => {
+      expect(await priorityFor('High Priority')).toBe('P1')
+    })
+
+    it('should map "Phase 1" to P1', async () => {
+      expect(await priorityFor('Phase 1')).toBe('P1')
+    })
+
+    it('should map "Foundation" to P1', async () => {
+      expect(await priorityFor('Foundation')).toBe('P1')
+    })
+
+    it('should map "Medium" section to P2', async () => {
+      expect(await priorityFor('Medium')).toBe('P2')
+    })
+
+    it('should map "Phase 3" to P2', async () => {
+      expect(await priorityFor('Phase 3')).toBe('P2')
+    })
+
+    it('should map "Low" section to P3', async () => {
+      expect(await priorityFor('Low')).toBe('P3')
+    })
+
+    it('should map "Later" section to P3', async () => {
+      expect(await priorityFor('Later')).toBe('P3')
+    })
+
+    it('should map "Visual Polish" to P3', async () => {
+      expect(await priorityFor('Visual Polish')).toBe('P3')
+    })
+
+    it('should default to P2 for unknown sections', async () => {
+      expect(await priorityFor('Miscellaneous')).toBe('P2')
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: verify — mock file I/O, test keyword matching
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('verify', () => {
+    it('should mark done items as verified', async () => {
+      const item = makeItem({ done: true, tags: ['engine'] })
+
+      const result = await verify(item)
+
+      expect(result.verified).toBe(true)
+      expect(result.evidence).toBe('marked-done')
+    })
+
+    it('should return unverified when no tags match CODE_TARGETS', async () => {
+      const item = makeItem({ tags: ['unknown-tag'], done: false })
+
+      const result = await verify(item)
+
+      expect(result.verified).toBe(false)
+    })
+
+    it('should return unverified when item name words are too short', async () => {
+      // All words <= 3 chars get filtered out by keyword extraction
+      const item = makeItem({ name: 'Do it', tags: ['engine'], done: false })
+
+      const result = await verify(item)
+
+      // No keywords to search for, so won't find match
+      expect(result.verified).toBe(false)
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: verifyAll — concurrent verification
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('verifyAll', () => {
+    it('should verify all items concurrently', async () => {
+      const items: DocItem[] = [
+        makeItem({ id: 'a', done: true, tags: ['engine'] }),
+        makeItem({ id: 'b', done: true, tags: ['ui'] }),
+        makeItem({ id: 'c', done: false, tags: ['unknown'] }),
+      ]
+
+      const results = await verifyAll(items)
+
+      expect(results).toHaveLength(3)
+      expect(results[0].verified).toBe(true)
+      expect(results[1].verified).toBe(true)
+      expect(results[2].verified).toBe(false)
+    })
+
+    it('should handle empty input', async () => {
+      const results = await verifyAll([])
+      expect(results).toHaveLength(0)
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: scanDocs — deduplication
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('scanDocs deduplication', () => {
+    beforeEach(() => {
+      vi.resetModules()
+    })
+
+    it('should deduplicate items with the same ID', async () => {
+      vi.doMock('node:fs/promises', () => ({
+        readdir: vi.fn(async () => ['a.md', 'b.md']),
+        readFile: vi.fn(async (_path: string) => {
+          // Both files have a gap with the same number → same ID "gap-1"
+          return 'Gap 1: Missing auth\n'
+        }),
+      }))
+      vi.doMock('node:path', () => ({
+        join: (...parts: string[]) => parts[parts.length - 1],
+        basename: (p: string) => p.split('/').pop() ?? p,
+      }))
+
+      const mod = await import('./doc-scan')
+      const items = await mod.scanDocs('/fake')
+
+      // gap-1 should appear only once
+      const gap1Items = items.filter((i: DocItem) => i.id === 'gap-1')
+      expect(gap1Items).toHaveLength(1)
+    })
+
+    it('should prefer higher priority duplicate', async () => {
+      vi.doMock('node:fs/promises', () => ({
+        readdir: vi.fn(async () => ['low.md', 'high.md']),
+        readFile: vi.fn(async (path: string) => {
+          const name = path.split('/').pop() ?? path
+          if (name === 'low.md') {
+            return '## Later\n\nGap 1: Fix routing\n'
+          }
+          // high.md has gap in Critical section — but gap priority is always P0
+          return '## Critical\n\nGap 1: Fix routing\n'
+        }),
+      }))
+      vi.doMock('node:path', () => ({
+        join: (...parts: string[]) => parts[parts.length - 1],
+        basename: (p: string) => p.split('/').pop() ?? p,
+      }))
+
+      const mod = await import('./doc-scan')
+      const items = await mod.scanDocs('/fake')
+
+      const gap1 = items.find((i: DocItem) => i.id === 'gap-1')
+      expect(gap1).toBeDefined()
+      // Gap items always get P0
+      expect(gap1!.priority).toBe('P0')
+    })
+
+    it('should only scan .md files', async () => {
+      vi.doMock('node:fs/promises', () => ({
+        readdir: vi.fn(async () => ['readme.md', 'config.json', 'script.ts']),
+        readFile: vi.fn(async (path: string) => {
+          const name = path.split('/').pop() ?? path
+          if (name === 'readme.md') return '- [ ] One task\n'
+          return '- [ ] Should not appear\n'
+        }),
+      }))
+      vi.doMock('node:path', () => ({
+        join: (...parts: string[]) => parts[parts.length - 1],
+        basename: (p: string) => p.split('/').pop() ?? p,
+      }))
+
+      const mod = await import('./doc-scan')
+      const items = await mod.scanDocs('/fake')
+
+      expect(items).toHaveLength(1)
+      expect(items[0].name).toBe('One task')
+    })
+
+    it('should prefer higher priority when duplicate checkbox items exist across files', async () => {
+      vi.doMock('node:fs/promises', () => ({
+        readdir: vi.fn(async () => ['a.md', 'b.md']),
+        readFile: vi.fn(async (path: string) => {
+          const name = path.split('/').pop() ?? path
+          if (name === 'a.md') {
+            return '## Later\n\n- [ ] Fix deploy\n'
+          }
+          return '## Critical\n\n- [ ] Fix deploy\n'
+        }),
+      }))
+      vi.doMock('node:path', () => ({
+        join: (...parts: string[]) => parts[parts.length - 1],
+        basename: (p: string) => p.split('/').pop() ?? p,
+      }))
+
+      const mod = await import('./doc-scan')
+      const items = await mod.scanDocs('/fake')
+
+      // IDs include source prefix, so a-fix-deploy and b-fix-deploy are different
+      // Both should exist since they have different sources (different IDs)
+      expect(items.length).toBe(2)
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: docMark — mark/warn based on outcome
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('docMark', () => {
+    it('should call markFn on result outcome', () => {
+      const markFn = vi.fn()
+      const warnFn = vi.fn()
+      const marker = docMark(markFn, warnFn)
+
+      const item: VerifiedItem = {
+        ...makeItem({ source: 'gaps', tags: ['engine'] }),
+        verified: true,
+        target: 'src/engine/world.ts',
+      }
+
+      marker(item, { result: 'implemented' })
+
+      expect(markFn).toHaveBeenCalledWith('doc:gaps→src/engine/world.ts')
+      expect(warnFn).not.toHaveBeenCalled()
+    })
+
+    it('should call warnFn on non-result outcome', () => {
+      const markFn = vi.fn()
+      const warnFn = vi.fn()
+      const marker = docMark(markFn, warnFn)
+
+      const item: VerifiedItem = {
+        ...makeItem({ source: 'plan' }),
+        verified: false,
+      }
+
+      marker(item, { timeout: true })
+
+      expect(warnFn).toHaveBeenCalledWith('doc:plan→code', 0.5)
+      expect(markFn).not.toHaveBeenCalled()
+    })
+
+    it('should use "code" as fallback when no target', () => {
+      const markFn = vi.fn()
+      const warnFn = vi.fn()
+      const marker = docMark(markFn, warnFn)
+
+      const item: VerifiedItem = {
+        ...makeItem({ source: 'test' }),
+        verified: false,
+      }
+
+      marker(item, { dissolved: true })
+
+      expect(warnFn).toHaveBeenCalledWith('doc:test→code', 0.5)
     })
   })
 })

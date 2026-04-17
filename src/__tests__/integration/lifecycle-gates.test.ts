@@ -216,7 +216,7 @@ describe('Lifecycle Gate 4: HIGHWAY triggers at strength >= 50', () => {
 
     const highways = w.highways(10)
     // Path with strength 45 should not be in highways
-    const ab = highways.find((h) => h.from === 'a' && h.to === 'b')
+    const ab = highways.find((h) => h.path === 'a→b')
     expect(ab).toBeUndefined()
   })
 
@@ -280,7 +280,7 @@ describe('Lifecycle Gate 5: HARDEN requires highway state', () => {
     w.mark('weak→agent', 30)
 
     const highways = w.highways(10)
-    const weak = highways.find((h) => h.from === 'weak')
+    const weak = highways.find((h) => h.path.startsWith('weak→'))
     expect(weak).toBeUndefined() // not a highway, not eligible for harden
   })
 
