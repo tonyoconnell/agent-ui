@@ -1,0 +1,20 @@
+---
+// SSR required - client-side contacts data
+export const prerender = true;
+
+/**
+ * /u/people - Contacts & Profiles
+ *
+ * Add people, save addresses, build your network.
+ * No login required - stored locally.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { PeoplePage } from "@/components/u/pages/PeoplePage";
+
+const title = "People | u";
+const description = "Manage contacts, save addresses, build your crypto network.";
+---
+
+<Layout title={title} description={description}>
+  <PeoplePage client:only="react" />
+</Layout>

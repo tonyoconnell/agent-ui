@@ -1,0 +1,20 @@
+---
+// SSR required - client-side wallet interactions
+export const prerender = true;
+
+/**
+ * /u/wallets - Wallet Management
+ *
+ * All your wallets across all chains.
+ * Generate, import, export, manage.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { WalletsPage } from "@/components/u/pages/WalletsPage";
+
+const title = "Wallets | u";
+const description = "Manage your wallets across all chains. Generate new wallets, import existing ones, view balances.";
+---
+
+<Layout title={title} description={description}>
+  <WalletsPage client:only="react" />
+</Layout>

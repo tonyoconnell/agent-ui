@@ -1,0 +1,20 @@
+---
+// SSR required - client-side transaction data
+export const prerender = true;
+
+/**
+ * /u/transactions - Transaction History
+ *
+ * View all transactions across all wallets.
+ * Filter, search, export.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { TransactionsPage } from "@/components/u/pages/TransactionsPage";
+
+const title = "Transactions | u";
+const description = "View your complete transaction history across all chains and wallets.";
+---
+
+<Layout title={title} description={description}>
+  <TransactionsPage client:only="react" />
+</Layout>

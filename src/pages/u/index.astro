@@ -1,0 +1,23 @@
+---
+// Prerender with client-only component to reduce worker bundle
+export const prerender = true;
+
+/**
+ * /u - The Universal Wallet Dashboard
+ *
+ * No login. No account. Just you.
+ * Your keys. Your wallets. Your identity.
+ * Stored locally. Forever yours.
+ *
+ * Apple-like precision meets Web3 freedom.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { UDashboard } from "@/components/u/UDashboard";
+
+const title = "u | Your Universal Wallet";
+const description = "No login required. Generate wallets, create tokens, deploy contracts. Your keys, stored locally, forever yours.";
+---
+
+<Layout title={title} description={description}>
+  <UDashboard client:only="react" />
+</Layout>

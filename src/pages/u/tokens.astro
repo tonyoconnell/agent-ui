@@ -1,0 +1,20 @@
+---
+// SSR required - client-side token interactions
+export const prerender = true;
+
+/**
+ * /u/tokens - Token Management
+ *
+ * Create, deploy, and manage tokens.
+ * ERC-20, SPL, Move tokens - all from one place.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { TokensPage } from "@/components/u/pages/TokensPage";
+
+const title = "Tokens | u";
+const description = "Create and manage your tokens. Deploy ERC-20, SPL, or Move tokens with one click.";
+---
+
+<Layout title={title} description={description}>
+  <TokensPage client:only="react" />
+</Layout>

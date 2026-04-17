@@ -1,0 +1,21 @@
+---
+export const prerender = false;
+
+/**
+ * /u/receive/[id] - Single Wallet Receive
+ *
+ * Large QR code, full address, share button.
+ * "Send X USDC on Solana" style.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { ReceiveDetailPage } from "@/components/u/pages/ReceiveDetailPage";
+
+const { id } = Astro.params;
+
+const title = "Receive | u";
+const description = "Receive crypto with QR code";
+---
+
+<Layout title={title} description={description}>
+  <ReceiveDetailPage walletId={id || ""} client:only="react" />
+</Layout>

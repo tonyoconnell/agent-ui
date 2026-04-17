@@ -1,0 +1,21 @@
+---
+// SSR required - client-side wallet interactions
+export const prerender = true;
+
+/**
+ * /u/send - Send Crypto
+ *
+ * Send crypto to anyone - paste address, select from contacts,
+ * or transfer between your own wallets.
+ * Real-time exchange rates, multiple networks supported.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { SendPage } from "@/components/u/pages/SendPage";
+
+const title = "Send | u";
+const description = "Send crypto to anyone. Fast, safe, and simple. Paste an address or choose from your contacts.";
+---
+
+<Layout title={title} description={description}>
+  <SendPage client:only="react" />
+</Layout>

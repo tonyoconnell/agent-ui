@@ -1,0 +1,19 @@
+---
+export const prerender = true;
+
+/**
+ * /u/receive - Receive Crypto
+ *
+ * Fast wallet list with copy & QR.
+ * Zero friction receiving.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { ReceivePage } from "@/components/u/pages/ReceivePage";
+
+const title = "Receive | u";
+const description = "Receive crypto to any of your wallets. Simple QR codes and one-tap copy.";
+---
+
+<Layout title={title} description={description}>
+  <ReceivePage client:only="react" />
+</Layout>

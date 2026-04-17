@@ -1,0 +1,20 @@
+---
+// Prerender with client-only component to reduce worker bundle
+export const prerender = true;
+
+/**
+ * /u/swap - Swap Tokens
+ *
+ * Real-time token swaps across all chains.
+ * Coming soon, but here's where you can swap right now.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { SwapPage } from "@/components/u/pages/SwapPage";
+
+const title = "Swap | u";
+const description = "Swap tokens across multiple blockchains. We're building one-click swaps - in the meantime, use the best swap platforms with our guides.";
+---
+
+<Layout title={title} description={description}>
+  <SwapPage client:only="react" />
+</Layout>

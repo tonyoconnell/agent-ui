@@ -1,0 +1,10 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { UNav } from '@/components/u/UNav';
+import { CatSaleSetup } from '@/components/u/pages/CatSaleSetup';
+---
+
+<Layout title="Sell Cat for $100 - Universal Wallet">
+  <UNav active="products" />
+  <CatSaleSetup client:load />
+</Layout>

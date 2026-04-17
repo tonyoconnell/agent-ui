@@ -1,0 +1,20 @@
+---
+// SSR required - client-side contract interactions
+export const prerender = true;
+
+/**
+ * /u/contracts - Smart Contract Management
+ *
+ * Deploy, verify, and interact with smart contracts.
+ * Solidity, Move, Rust - any language, any chain.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { ContractsPage } from "@/components/u/pages/ContractsPage";
+
+const title = "Contracts | u";
+const description = "Deploy and manage smart contracts. Interact with ABIs, verify on explorers.";
+---
+
+<Layout title={title} description={description}>
+  <ContractsPage client:only="react" />
+</Layout>

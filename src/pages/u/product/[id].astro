@@ -1,0 +1,26 @@
+---
+// SSR required - dynamic product detail route
+export const prerender = false;
+
+/**
+ * /u/product/[id] - Individual Product View
+ *
+ * Detailed view of a single product with:
+ * - Product details and editing
+ * - Payment link management
+ * - QR code generation
+ * - Sales statistics
+ * - Wallet connection
+ */
+import Layout from "@/layouts/Layout.astro";
+import { ProductDetailPage } from "@/components/u/pages/ProductDetailPage";
+
+const { id } = Astro.params;
+
+const title = "Product Details | u";
+const description = "View and edit your product details, payment link, and sales statistics.";
+---
+
+<Layout title={title} description={description}>
+  <ProductDetailPage productId={id} client:only="react" />
+</Layout>

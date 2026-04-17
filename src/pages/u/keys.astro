@@ -1,0 +1,20 @@
+---
+// SSR required - client-side key management
+export const prerender = true;
+
+/**
+ * /u/keys - Key Management
+ *
+ * Store and manage your recovery phrases and private keys.
+ * View, export, and secure your crypto keys.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { KeysPage } from "@/components/u/pages/KeysPage";
+
+const title = "Keys | u";
+const description = "Store and manage your recovery phrases and private keys securely.";
+---
+
+<Layout title={title} description={description}>
+  <KeysPage client:only="react" />
+</Layout>

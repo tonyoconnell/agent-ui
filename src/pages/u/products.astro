@@ -1,0 +1,20 @@
+---
+// SSR required - client-side product management
+export const prerender = true;
+
+/**
+ * /u/products - Product Catalog
+ *
+ * List products and accept crypto payments.
+ * Generate payment links, track sales.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { ProductsPage } from "@/components/u/pages/ProductsPage";
+
+const title = "Products | u";
+const description = "List products for sale and accept crypto payments. Generate payment links instantly.";
+---
+
+<Layout title={title} description={description}>
+  <ProductsPage client:only="react" />
+</Layout>

@@ -1,0 +1,20 @@
+---
+// Prerender with client-only component to reduce worker bundle
+export const prerender = true;
+
+/**
+ * /u/testnet-tokens - Get Testnet Tokens
+ *
+ * Quick access to request test tokens for development across multiple
+ * blockchain networks. Includes step-by-step guides for popular faucets.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { TestnetTokensPage } from "@/components/u/pages/TestnetTokensPage";
+
+const title = "Testnet Tokens | u";
+const description = "Get free testnet tokens for development and testing across Ethereum, Solana, Polygon, and more. Quick access to testnet faucets with guides.";
+---
+
+<Layout title={title} description={description}>
+  <TestnetTokensPage client:only="react" />
+</Layout>

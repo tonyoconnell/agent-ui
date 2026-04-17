@@ -1,0 +1,25 @@
+---
+// SSR required - dynamic wallet detail route
+export const prerender = false;
+
+/**
+ * /u/wallet/[id] - Individual Wallet View
+ *
+ * Detailed view of a single wallet with:
+ * - Transaction history
+ * - Balance charts
+ * - Send/Receive actions
+ * - Export keys
+ */
+import Layout from "@/layouts/Layout.astro";
+import { WalletDetailPage } from "@/components/u/pages/WalletDetailPage";
+
+const { id } = Astro.params;
+
+const title = "Wallet Details | u";
+const description = "View your wallet details, transaction history, and manage your funds.";
+---
+
+<Layout title={title} description={description}>
+  <WalletDetailPage walletId={id} client:only="react" />
+</Layout>
