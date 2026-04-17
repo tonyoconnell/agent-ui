@@ -1,0 +1,10 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import { ChairmanPanel } from '@/components/chairman/ChairmanPanel'
+
+export const prerender = false
+---
+
+<Layout title="Chairman · ONE">
+  <ChairmanPanel client:load />
+</Layout>
