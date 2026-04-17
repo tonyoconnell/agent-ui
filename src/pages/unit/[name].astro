@@ -1,0 +1,153 @@
+---
+import { readParsed } from '@/lib/typedb'
+
+const { name } = Astro.params
+
+if (!name) {
+  return Astro.redirect('/discover')
+}
+
+// Fetch unit data
+let unit = {
+  uid: name,
+  name,
+  unitKind: 'unknown',
+  wallet: '',
+  status: 'active',
+  balance: 0,
+  reputation: 0,
+  successRate: 0.5,
+  activityScore: 0,
+  sampleCount: 0,
+}
+
+let _capabilities: Array<{
+  taskName: string
+  taskType: string
+  price: number
+  currency: string
+}> = []
+
+let edges: Array<{
+  targetName: string
+  targetKind: string
+  strength: number
+  traversals: number
+  revenue: number
+}> = []
+
+try {
+  // Fetch unit
+  const unitRows = await readParsed(`
+    match
+      $u isa unit,
+        has uid "${name}",
+        has name $n,
+        has unit-kind $k,
+        has status $st,
+        has balance $bal,
+        has reputation $rep,
+        has success-rate $sr,
+        has activity-score $as,
+        has sample-count $sc;
+    select $n, $k, $st, $bal, $rep, $sr, $as, $sc;
+  `)
+
+  if (unitRows.length > 0) {
+    const r = unitRows[0]
+    unit = {
+      uid: name,
+      name: (r.n as string) || name,
+      unitKind: (r.k as string) || 'unknown',
+      wallet: '',
+      status: (r.st as string) || 'active',
+      balance: (r.bal as number) || 0,
+      reputation: (r.rep as number) || 0,
+      successRate: (r.sr as number) || 0.5,
+      activityScore: (r.as as number) || 0,
+      sampleCount: (r.sc as number) || 0,
+    }
+
+    // Try to get wallet separately (optional attribute)
+    const walletRows = await readParsed(`
+      match $u isa unit, has uid "${name}", has wallet $w;
+      select $w;
+    `).catch(() => [])
+
+    if (walletRows.length > 0) {
+      unit.wallet = (walletRows[0].w as string) || ''
+    }
+  }
+
+  // Fetch capabilities
+  const capRows = await readParsed(`
+    match
+      $u isa unit, has uid "${name}";
+      (provider: $u, skill: $t) isa capability, has price $p;
+      $t has name $tn, has task-type $tt;
+    select $tn, $tt, $p;
+  `).catch(() => [])
+
+  _capabilities = capRows.map((r) => ({
+    taskName: (r.tn as string) || '',
+    taskType: (r.tt as string) || '',
+    price: (r.p as number) || 0,
+    currency: 'SUI',
+  }))
+
+  // Fetch edges (connections where this unit is the source)
+  const edgeRows = await readParsed(`
+    match
+      $u isa unit, has uid "${name}";
+      $e (source: $u, target: $t) isa edge,
+        has strength $s,
+        has traversals $tr,
+        has revenue $rev;
+      $t has name $tn, has unit-kind $tk;
+    select $tn, $tk, $s, $tr, $rev;
+  `).catch(() => [])
+
+  edges = edgeRows.map((r) => ({
+    targetName: (r.tn as string) || '',
+    targetKind: (r.tk as string) || '',
+    strength: (r.s as number) || 0,
+    traversals: (r.tr as number) || 0,
+    revenue: (r.rev as number) || 0,
+  }))
+
+  // Also fetch edges where this unit is the target
+  const inboundRows = await readParsed(`
+    match
+      $u isa unit, has uid "${name}";
+      $e (source: $s, target: $u) isa edge,
+        has strength $str,
+        has traversals $tr,
+        has revenue $rev;
+      $s has name $sn, has unit-kind $sk;
+    select $sn, $sk, $str, $tr, $rev;
+  `).catch(() => [])
+
+  const inbound = inboundRows.map((r) => ({
+    targetName: (r.sn as string) || '',
+    targetKind: (r.sk as string) || '',
+    strength: (r.str as number) || 0,
+    traversals: (r.tr as number) || 0,
+    revenue: (r.rev as number) || 0,
+  }))
+
+  edges = [...edges, ...inbound]
+} catch {
+  // TypeDB not available — show page with defaults
+}
+---
+
+<Layout title={`${unit.name} — ONE`}>
+  <main class="px-4 py-16 sm:py-24">
+    <UnitProfile
+      client:load
+      unit={unit}
+      capabilities={capabilities}
+      edges={edges}
+    />
+  </main>
+</Layout>
