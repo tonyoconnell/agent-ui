@@ -94,7 +94,7 @@ export interface PersistentWorld extends World {
   proven: () => { id: string; strength: number }[]
   confidence: (type: string) => number
   know: () => Promise<Insight[]>
-  recall: (match?: string | { subject?: string; at?: string }) => Promise<Insight[]>
+  recall: (match?: string | { subject?: string; at?: string }, limit?: number) => Promise<Insight[]>
   reveal: (uid: string) => Promise<MemoryCard>
   forget: (uid: string) => Promise<void>
   frontier: (uid: string) => Promise<string[]>
@@ -480,6 +480,16 @@ export const world = (): PersistentWorld => {
   // E6: forget — GDPR erasure: delete all TypeDB records for uid, remove from runtime
   const forget = async (uid: string): Promise<void> => {
     const safeUid = escapeStr(uid)
+    // GDPR audit: emit signal before cascade delete for compliance logging
+    net.signal({
+      receiver: 'audit:memory:deleted',
+      data: {
+        uid,
+        timestamp: new Date().toISOString(),
+        scope: 'private',
+        tags: ['audit', 'memory', 'gdpr'],
+      },
+    })
     // Delete relations first (TypeDB requires entity role-players to be removed before entity delete)
     await Promise.allSettled([
       writeSilent(`match $u isa unit, has uid "${safeUid}"; $sig (sender: $u) isa signal; delete $sig isa signal;`),
@@ -495,7 +505,7 @@ export const world = (): PersistentWorld => {
     if (net.has(uid)) net.remove(uid)
   }
 
-  const recall = async (match?: string | { subject?: string; at?: string }): Promise<Insight[]> => {
+  const recall = async (match?: string | { subject?: string; at?: string }, limit: number = 100): Promise<Insight[]> => {
     // Parse match argument — supports legacy string or new { subject?, at? } object
     const matchStr = typeof match === 'string' ? match : match?.subject
     const atDate = typeof match === 'object' ? match?.at : undefined
@@ -560,7 +570,8 @@ export const world = (): PersistentWorld => {
     }))
 
     const seen = new Set(confirmed.map((i) => i.pattern))
-    return [...confirmed, ...pending.filter((i) => !seen.has(i.pattern)), ...failed.filter((i) => !seen.has(i.pattern))]
+    const results = [...confirmed, ...pending.filter((i) => !seen.has(i.pattern)), ...failed.filter((i) => !seen.has(i.pattern))]
+    return results.slice(0, limit)
   }
 
   // taskBlockers: query what tasks are blocked by the given task
