@@ -525,6 +525,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       `)
       if (promptOk) {
         result.writes!.evolveOk++
+        net.mark(`${uid}→${uid}:evolve`, 2.0)
         // Cycle 1.6: evolved prompt changes downstream ADL state perception —
         // flush caches so the next signal reads the new generation, not the
         // stale sensitivity/perm snapshot from before the rewrite.
@@ -668,7 +669,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
           result.writes!.hypoOk++
           hypothesesPromoted++
         }
-      } else if (p > 0.20) {
+      } else if (p > 0.2) {
         result.writes!.hypoAttempted++
         const ok = await writeTracked(`
           match $h isa hypothesis, has hid "${hid}", has hypothesis-status $st;

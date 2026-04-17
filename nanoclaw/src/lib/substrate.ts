@@ -298,12 +298,7 @@ export const actorHighways = async (
  * this extends the memory into the substrate so recall() and L6 can see it.
  * source="asserted" caps confidence at 0.30 until corroborated.
  */
-export const rememberHypothesis = (
-  env: Env,
-  persona: string,
-  key: string,
-  value: string,
-): void => {
+export const rememberHypothesis = (env: Env, persona: string, key: string, value: string): void => {
   // Sanitise: escape double-quotes so they don't break the TQL string literal
   const safeKey = key.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
   const safeValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
