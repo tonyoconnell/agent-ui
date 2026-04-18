@@ -1,4 +1,4 @@
-import type { Edge } from '@/engine/world'
+import type { Edge } from '@/engine'
 
 interface EdgeInfoProps {
   highways: Edge[]

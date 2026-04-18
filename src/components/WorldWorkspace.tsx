@@ -14,8 +14,8 @@ import { OrgTree } from '@/components/world/OrgTree'
 import { PersonaMenu } from '@/components/world/PersonaMenu'
 import { TimeScrubber } from '@/components/world/TimeScrubber'
 import { useSkin } from '@/contexts/SkinContext'
-import type { Edge, World } from '@/engine/world'
-import { world as createWorld } from '@/engine/world'
+import type { Edge, World } from '@/engine'
+import { createWorld } from '@/engine'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES

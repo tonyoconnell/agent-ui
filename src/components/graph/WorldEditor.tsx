@@ -43,7 +43,7 @@ import {
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import '@xyflow/react/dist/style.css'
-import type { Edge, World } from '@/engine/world'
+import type { Edge, World } from '@/engine'
 import { cn } from '@/lib/utils'
 
 // ============================================================================

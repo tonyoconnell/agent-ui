@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { world as createWorld } from '@/engine/world'
+import { createWorld } from '@/engine'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 
