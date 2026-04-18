@@ -37,6 +37,15 @@ export { boot } from './boot'
 export { absorb, mirrorActor, mirrorMark, mirrorWarn, resolve, resolvePath } from './bridge'
 export type { BuilderComplete, BuilderOnDone } from './builder'
 export { registerBuilder } from './builder'
+// Chairman→CEO→Director→Specialist zero-LLM router chain
+export type { ChainData, ChainWiring, Dissolved, Specialist } from './chairman-chain'
+export {
+  createDirector,
+  DEFAULT_MARKETING_TEAM,
+  pickRoute,
+  seedDirectorTeam,
+  wireChairmanChain,
+} from './chairman-chain'
 export type { DocKey, DocMeta } from './context'
 // Context — docs as knowledge
 export {

@@ -9,6 +9,7 @@ import { pheromoneWeight, setAuditPheromone } from './adl-cache'
 import { connectAgentverse } from './agentverse-connect'
 import { registerBridges } from './bridges'
 import { registerBuilder } from './builder'
+import { wireChairmanChain } from './chairman-chain'
 import { tick } from './loop'
 import { registerPayUnit } from './pay'
 import { world } from './persist' // formerly one.ts
@@ -35,6 +36,10 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
     () => [],
   )
   for (const u of units) w.actor(u.id as string, u.kind as string)
+
+  // Wire Chairman → CEO → Director → Specialist zero-LLM routing chain.
+  // Seeds pheromone on tag edges so follow/select has data before any signals fly.
+  wireChairmanChain(w)
 
   // Register chain bridge units (evm, sol, btc — no bridge:sui, Sui is home)
   registerBridges(w)

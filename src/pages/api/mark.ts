@@ -4,7 +4,7 @@
  * Body: { from: string, to: string, strength?: number }
  */
 import type { APIRoute } from 'astro'
-import { write } from '@/lib/typedb'
+import { readParsed, write } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request }) => {
   const {
@@ -16,6 +16,12 @@ export const POST: APIRoute = async ({ request }) => {
     to: string
     strength?: number
   }
+
+  // Sanitize at entry so every downstream path (auth + write) uses safe interpolants.
+  // Allowlist matches substrate uid convention: alnum, underscore, colon, dot, hyphen.
+  const safeFrom = from.replace(/[^a-zA-Z0-9_:.-]/g, '')
+  const safeTo = to.replace(/[^a-zA-Z0-9_:.-]/g, '')
+  const safeStrength = Number.isFinite(strength) ? Number(strength) : 1.0
 
   // Governance: role check if auth provided (fail-open for backward compat)
   const authHeader = request.headers.get('Authorization')
@@ -37,6 +43,23 @@ export const POST: APIRoute = async ({ request }) => {
           headers: { 'Content-Type': 'application/json' },
         })
       }
+      // Pheromone gate: caller must have participated in this path (as sender or receiver of any signal between from and to).
+      // Fail-open preserved for headerless callers (block above would have returned early).
+      const safeUid = auth.user.replace(/[^a-zA-Z0-9_:.-]/g, '')
+      const participates = await readParsed(
+        `match $u isa unit, has uid "${safeUid}";
+         $s isa unit, has uid "${safeFrom}";
+         $t isa unit, has uid "${safeTo}";
+         { (sender: $u, receiver: $t) isa signal; } or
+         { (sender: $s, receiver: $u) isa signal; };
+         select $u; limit 1;`,
+      ).catch(() => [])
+      if (participates.length === 0) {
+        return new Response(JSON.stringify({ error: 'forbidden: caller has no pheromone on this path' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
     } catch {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -47,19 +70,19 @@ export const POST: APIRoute = async ({ request }) => {
 
   await write(`
     match
-      $from isa unit, has uid "${from}";
-      $to isa unit, has uid "${to}";
+      $from isa unit, has uid "${safeFrom}";
+      $to isa unit, has uid "${safeTo}";
       $e (source: $from, target: $to) isa path, has strength $s;
     delete $s of $e;
-    insert $e has strength ($s + ${strength});
+    insert $e has strength ($s + ${safeStrength});
   `).catch(() =>
     write(`
       match
-        $from isa unit, has uid "${from}";
-        $to isa unit, has uid "${to}";
+        $from isa unit, has uid "${safeFrom}";
+        $to isa unit, has uid "${safeTo}";
       insert
         (source: $from, target: $to) isa path,
-          has strength ${strength}, has resistance 0.0, has traversals 0, has revenue 0.0;
+          has strength ${safeStrength}, has resistance 0.0, has traversals 0, has revenue 0.0;
     `),
   )
 

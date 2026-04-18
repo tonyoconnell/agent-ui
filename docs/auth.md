@@ -130,16 +130,21 @@ curl -X POST /api/auth/sign-in/email \
   -d '{"email": "alice@example.com", "password": "securepass123"}'
 ```
 
-### Get a Wallet + API Key (after signin)
+### Automatic substrate identity (post-signin)
+
+Once signed in, Alice is already the substrate unit `human:alice`. The first gated request proves it:
 
 ```bash
-# Now get a substrate identity
-curl -X POST /api/auth/agent \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Alice", "uid": "alice", "kind": "human"}'
+# Cookie path — browser requests, no explicit onboarding call
+curl -b cookies.txt /api/me/agents
+
+# Bearer path — CLI / programmatic, BetterAuth bearer plugin or substrate api-key
+curl -H "Authorization: Bearer <session-token-or-api-key>" /api/me/agents
 ```
 
-This creates Alice as a unit in the substrate with a Sui wallet and API key.
+The resolver `resolveUnitFromSession(request)` in `src/lib/api-auth.ts` is the single entry point. Both front doors return the same `AuthContext`. First call lazy-binds the unit (`unit-kind: "human"`, deterministic Sui wallet from `SUI_SEED + uid`). Subsequent calls hit the 5-min cache.
+
+Manual onboarding via `POST /api/auth/agent` is still available for agents, CLIs, and humans who want a specific uid or a long-lived api-key — but no longer required.
 
 ### Bearer Token (for programmatic access)
 
@@ -150,6 +155,35 @@ BetterAuth's bearer plugin converts session tokens to cookie auth:
 curl -H "Authorization: Bearer <session-token>" \
   https://api.one.ie/api/state
 ```
+
+### Unified identity flow
+
+```
+      Authorization: Bearer …            Cookie: better-auth.*
+             │                                    │
+             ▼                                    ▼
+     ┌────────────────┐              ┌─────────────────────────┐
+     │ validateApiKey │              │ auth.api.getSession     │
+     │  (KEY_CACHE)   │              │ (BetterAuth cookieCache)│
+     └───────┬────────┘              └──────────┬──────────────┘
+             │                                   │
+             │                         deriveHumanUid(user.email)
+             │                                   │
+             │                         ensureHumanUnit(uid, user)   ← idempotent
+             │                                   │
+             │                         getRoleForUser(uid)
+             │                                   │
+             └──────────┬────────────────────────┘
+                        ▼
+                ┌───────────────┐
+                │  AuthContext  │  ← { user: uid, role, permissions, keyId, isValid }
+                └───────────────┘
+                        │
+                        ▼
+        (every gated route: /api/me/*, /api/mark, /api/signal, …)
+```
+
+Two front doors, one contract, one cache pipeline. No schema extension, no session hooks — BetterAuth manages session UX; the substrate owns the unit + role + pheromone layer. Revocation is natural: sign-out clears the cookie; cache entry expires in ≤ 5 min.
 
 ---
 

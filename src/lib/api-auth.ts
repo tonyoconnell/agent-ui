@@ -11,9 +11,11 @@
  */
 
 import { verifyKey } from '@/lib/api-key'
+import { auth } from '@/lib/auth'
 import { getNet } from '@/lib/net'
 import { emitSecurityEvent } from '@/lib/security-signals'
-import { readParsed, writeSilent } from '@/lib/typedb'
+import { addressFor } from '@/lib/sui'
+import { readParsed, write, writeSilent } from '@/lib/typedb'
 
 export interface AuthContext {
   user: string
@@ -210,14 +212,125 @@ export async function getRoleForUser(uid: string): Promise<string | undefined> {
   }
 }
 
+// Session cache: cookie-header value → verified identity (5-min TTL).
+// Keyed by the raw Cookie header so cookie rotation naturally invalidates.
+const SESSION_CACHE = new Map<string, { ctx: AuthContext; expires: number }>()
+
+function esc(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+/** Derive a substrate uid from a BetterAuth user. Stable across sessions. */
+export function deriveHumanUid(user: { id: string; email?: string | null }): string {
+  const basis = user.email || user.id
+  const slug = basis
+    .toLowerCase()
+    .replace(/@.*$/, '')
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+  return `human:${slug || user.id}`
+}
+
+/** Insert unit-if-absent for a BetterAuth-authenticated human. Idempotent. */
+export async function ensureHumanUnit(
+  uid: string,
+  user: { id: string; email?: string | null; name?: string | null },
+): Promise<void> {
+  const existing = await readParsed(`
+    match $u isa unit, has uid "${esc(uid)}";
+    select $u;
+  `).catch(() => [])
+  if (existing.length > 0) return
+
+  let wallet = ''
+  try {
+    wallet = await addressFor(uid)
+  } catch {
+    /* SUI_SEED not set */
+  }
+
+  const name = user.name || user.email || uid
+  const now = new Date().toISOString().replace('Z', '')
+  const walletClause = wallet ? `, has wallet "${esc(wallet)}"` : ''
+  await write(`
+    insert $u isa unit,
+      has uid "${esc(uid)}",
+      has name "${esc(name)}",
+      has unit-kind "human",
+      has status "active",
+      has success-rate 0.5,
+      has activity-score 0.0,
+      has sample-count 0,
+      has generation 0${walletClause},
+      has created ${now};
+  `).catch(() => {
+    /* best-effort; next request retries */
+  })
+}
+
+/**
+ * Unified identity resolver.
+ *
+ * Two front doors, one contract:
+ *   - Authorization: Bearer — substrate api-key via validateApiKey (agents, CLI)
+ *   - Cookie — BetterAuth session via auth.api.getSession (humans in browser)
+ *
+ * Result shape matches AuthContext so gated routes stay uniform.
+ * Cache: 5-min TTL, keyed by cookie header (bearer path already has KEY_CACHE).
+ */
+export async function resolveUnitFromSession(request: Request): Promise<AuthContext> {
+  // Front door 1: Bearer (agents, CLI, BetterAuth bearer plugin)
+  const authHeader = request.headers.get('Authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const bearer = await validateApiKey(request)
+    if (bearer.isValid) return bearer
+  }
+
+  // Front door 2: BetterAuth session cookie
+  const cookie = request.headers.get('Cookie') || ''
+  if (!cookie) {
+    return { user: '', permissions: [], keyId: '', isValid: false }
+  }
+
+  const cached = SESSION_CACHE.get(cookie)
+  if (cached && cached.expires > Date.now()) return cached.ctx
+
+  let session: Awaited<ReturnType<typeof auth.api.getSession>> = null
+  try {
+    session = await auth.api.getSession({ headers: request.headers })
+  } catch {
+    /* fail-closed */
+  }
+  if (!session?.user) {
+    return { user: '', permissions: [], keyId: '', isValid: false }
+  }
+
+  const uid = deriveHumanUid(session.user)
+  await ensureHumanUnit(uid, session.user)
+  const role = await getRoleForUser(uid)
+
+  const ctx: AuthContext = {
+    user: uid,
+    permissions: ['read', 'write'],
+    keyId: `sess:${session.session.id}`,
+    isValid: true,
+    role,
+    scopeGroups: [],
+    scopeSkills: [],
+  }
+  SESSION_CACHE.set(cookie, { ctx, expires: Date.now() + CACHE_TTL_MS })
+  return ctx
+}
+
 /**
  * Require API authentication
  */
-export function requireAuth(auth: AuthContext, required?: string) {
-  if (!auth.isValid) {
+export function requireAuth(ctx: AuthContext, required?: string) {
+  if (!ctx.isValid) {
     throw new Error('Unauthorized: Invalid API key')
   }
-  if (required && !hasPermission(auth, required)) {
+  if (required && !hasPermission(ctx, required)) {
     throw new Error(`Forbidden: Missing permission '${required}'`)
   }
 }

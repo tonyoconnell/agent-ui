@@ -52,6 +52,9 @@ import {
 import { getD1 } from '@/lib/cf-env'
 import { isWarm } from '@/lib/ui-prefetch'
 
+// 5-min cache for sender|receiver group-share resolution.
+const SCOPE_CACHE = new Map<string, { shares: boolean; expires: number }>()
+
 export const POST: APIRoute = async ({ request, locals }) => {
   // Cycle 3: drain the in-engine audit ring buffer into D1. Fire-and-forget —
   // callers never wait on observability. Prior requests' audits (from bridge,
@@ -59,19 +62,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // bind D1 themselves.
   const db = await getD1(locals)
   if (db) void flushAuditBuffer(db).catch(() => 0)
-  const {
-    sender,
-    receiver,
-    data,
-    amount = 0,
-    task,
-  } = (await request.json()) as {
-    sender: string
-    receiver: string
+
+  // Parse body defensively. A malformed body (unescaped control char, truncated
+  // keepalive payload, non-JSON mime) used to throw an uncaught SyntaxError that
+  // Astro surfaced as a 500, crashing the UI feedback loop. Return a clean 400
+  // instead so the chairman chat's 👍/👎/🐢 buttons degrade gracefully.
+  let body: {
+    sender?: string
+    receiver?: string
     data?: string
     task?: string
     amount?: number
+    scope?: 'private' | 'group' | 'public'
   }
+  try {
+    body = (await request.json()) as typeof body
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        error: 'Invalid JSON body',
+        detail: err instanceof Error ? err.message : String(err),
+      }),
+      { status: 400, headers: { 'content-type': 'application/json' } },
+    )
+  }
+  const { sender, receiver, data, amount = 0, task, scope } = body
 
   if (!sender || !receiver) {
     return new Response(JSON.stringify({ error: 'Missing sender or receiver' }), { status: 400 })
@@ -238,6 +253,56 @@ export const POST: APIRoute = async ({ request, locals }) => {
       mode: enforcementMode(),
       reason: `sender=${senderSensitivity} > receiver=${receiverSensitivity}`,
     })
+  }
+
+  // Scope enforcement (Cycle 3): only fires when caller is authenticated.
+  // Unauthed callers skip (preserves fail-open legacy behavior).
+  try {
+    const hasIdentity = request.headers.get('Authorization') || request.headers.get('Cookie')
+    if (hasIdentity) {
+      const { resolveUnitFromSession } = await import('@/lib/api-auth')
+      const ctx = await resolveUnitFromSession(request)
+      if (ctx.isValid) {
+        const effectiveScope = scope ?? 'group'
+        if (effectiveScope === 'private' && sender !== receiver) {
+          return new Response(JSON.stringify({ dissolved: true, reason: 'scope-private-violation' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        if (effectiveScope === 'group') {
+          const cacheKey = [sender, receiver].sort().join('|')
+          const cached = SCOPE_CACHE.get(cacheKey)
+          let sharesGroup: boolean
+          if (cached && cached.expires > Date.now()) {
+            sharesGroup = cached.shares
+          } else {
+            const safeSender = sender.replace(/[^a-zA-Z0-9_:.-]/g, '')
+            const safeReceiver = receiver.replace(/[^a-zA-Z0-9_:.-]/g, '')
+            const rows = await readParsed(
+              `match
+                $a isa unit, has uid "${safeSender}";
+                $b isa unit, has uid "${safeReceiver}";
+                (member: $a, group: $g) isa membership;
+                (member: $b, group: $g) isa membership;
+                select $g; limit 1;`,
+            ).catch(() => [])
+            sharesGroup = rows.length > 0
+            SCOPE_CACHE.set(cacheKey, { shares: sharesGroup, expires: Date.now() + 5 * 60 * 1000 })
+          }
+          // Self-signals always allowed regardless of group
+          if (!sharesGroup && sender !== receiver) {
+            return new Response(JSON.stringify({ dissolved: true, reason: 'scope-group-violation' }), {
+              status: 403,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          }
+        }
+        // 'public' — no check
+      }
+    }
+  } catch {
+    /* scope enforcement is best-effort; fail-open on errors */
   }
 
   const dataStr = data ? escapeTqlString(data).slice(0, 10000) : ''
