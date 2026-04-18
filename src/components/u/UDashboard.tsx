@@ -312,14 +312,14 @@ export function UDashboard() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-6 py-16">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
           {/* Hero */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 mb-6 shadow-2xl">
-              <span className="text-5xl font-bold gradient-text">u</span>
+          <div className="text-center mb-8 sm:mb-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 mb-4 sm:mb-6 shadow-2xl">
+              <span className="text-3xl sm:text-5xl font-bold gradient-text">u</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Your Universal Wallet</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-2">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Your Universal Wallet</h1>
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-2">
               One identity. Every blockchain. Zero friction.
             </p>
             <p className="text-sm text-muted-foreground/70">
@@ -327,8 +327,8 @@ export function UDashboard() {
             </p>
           </div>
 
-          {/* Wallet Cards Grid - 3x2 layout */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12">
+          {/* Wallet Cards Grid - responsive layout */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-12">
             {SUPPORTED_CHAINS.map((chain) => {
               const hasWallet = hasWalletForChain(chain.id)
               const isCurrentlyGenerating = isGenerating === chain.id
@@ -360,11 +360,11 @@ export function UDashboard() {
                       className={`absolute inset-0 bg-gradient-to-br ${chain.color} opacity-0 group-hover:opacity-10 transition-opacity`}
                     />
 
-                    <div className="relative p-5 text-center">
+                    <div className="relative p-3 sm:p-5 text-center">
                       {/* Chain Icon */}
                       <div
                         className={`
-                        w-14 h-14 mx-auto mb-3 rounded-xl flex items-center justify-center text-2xl shadow-lg transition-all
+                        w-10 h-10 sm:w-14 sm:h-14 mx-auto mb-2 sm:mb-3 rounded-lg sm:rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-lg transition-all
                         ${
                           hasWallet
                             ? `bg-gradient-to-br ${chain.color} text-white`
@@ -382,25 +382,25 @@ export function UDashboard() {
                       </div>
 
                       {/* Chain Name */}
-                      <h3 className="font-semibold mb-0.5">{chain.name}</h3>
-                      <p className="text-xs text-muted-foreground mb-3">{chain.description}</p>
+                      <h3 className="font-semibold text-sm sm:text-base mb-0.5">{chain.name}</h3>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3 hidden sm:block">{chain.description}</p>
 
                       {/* Status */}
                       {hasWallet ? (
-                        <Badge className="bg-green-500/20 text-green-600 border-green-500/30">✓ Created</Badge>
+                        <Badge className="bg-green-500/20 text-green-600 border-green-500/30 text-[10px] sm:text-xs">✓ Created</Badge>
                       ) : (
                         <Badge
                           variant="outline"
-                          className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                          className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors text-[10px] sm:text-xs"
                         >
-                          + Add Wallet
+                          + Add
                         </Badge>
                       )}
                     </div>
 
                     {/* Bottom Gradient Line */}
                     <div
-                      className={`h-1.5 bg-gradient-to-r ${chain.color} ${hasWallet ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'} transition-opacity`}
+                      className={`h-1 sm:h-1.5 bg-gradient-to-r ${chain.color} ${hasWallet ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'} transition-opacity`}
                     />
                   </div>
                 </div>
@@ -409,12 +409,12 @@ export function UDashboard() {
           </div>
 
           {/* Create All Button */}
-          <div className="text-center mb-16">
+          <div className="text-center mb-8 sm:mb-16">
             <Button
               size="lg"
               onClick={handleGenerateAllWallets}
               disabled={isGeneratingAll || SUPPORTED_CHAINS.every((c) => hasWalletForChain(c.id))}
-              className="h-14 px-8 text-lg bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 shadow-xl font-semibold"
+              className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 shadow-xl font-semibold w-full sm:w-auto"
             >
               {isGeneratingAll ? (
                 <>
@@ -432,7 +432,7 @@ export function UDashboard() {
           </div>
 
           {/* Features */}
-          <div className="grid grid-cols-3 gap-6 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-12 sm:mb-16">
             <FeatureCard
               icon="🔐"
               title="Self-Custodial"
@@ -451,10 +451,10 @@ export function UDashboard() {
           </div>
 
           {/* Security Note - Enhanced */}
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
             <Card className="bg-muted/30 border-dashed">
-              <CardContent className="flex items-start gap-4 pt-6">
-                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-2xl shrink-0">
+              <CardContent className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 pt-4 sm:pt-6">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500/10 flex items-center justify-center text-xl sm:text-2xl shrink-0">
                   🛡️
                 </div>
                 <div>
@@ -470,9 +470,9 @@ export function UDashboard() {
 
             {/* Storage Explanation Card */}
             <Card className="bg-blue-500/5 border-blue-500/20">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-2xl shrink-0">
+              <CardContent className="pt-4 sm:pt-6">
+                <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-xl sm:text-2xl shrink-0">
                     💾
                   </div>
                   <div>
@@ -515,7 +515,7 @@ export function UDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
       {/* Quick Actions Bar - Compact */}
-      <div className="px-4 py-3 flex items-center justify-between gap-2">
+      <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
         <SecurityStatus
           onSetupPassword={() => setShowSetupPassword(true)}
           onUnlock={() => setShowUnlock(true)}
@@ -527,19 +527,19 @@ export function UDashboard() {
         </Button>
       </div>
 
-      <div className="px-4 pb-6">
+      <div className="px-4 sm:px-6 pb-6">
         {/* Total Value Card - Hero card at top */}
-        <div className="mb-4">
+        <div className="mb-4 sm:mb-6">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="pt-4 pb-4">
+            <CardContent className="p-4 sm:pt-4 sm:pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl sm:text-4xl font-bold">${totalValue.toLocaleString()}</div>
-                  <div className="text-sm text-muted-foreground">Total Value</div>
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold">${totalValue.toLocaleString()}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Total Value</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-green-500 text-sm font-medium">+12.5%</div>
-                  <div className="text-xs text-muted-foreground">24h</div>
+                  <div className="text-green-500 text-xs sm:text-sm font-medium">+12.5%</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">24h</div>
                 </div>
               </div>
             </CardContent>
@@ -564,7 +564,7 @@ export function UDashboard() {
         )}
 
         {/* Quick Actions - Horizontal on mobile */}
-        <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
           <QuickActionButton
             icon="↗"
             label="Send"
@@ -593,18 +593,19 @@ export function UDashboard() {
 
         {/* Main Content */}
         <div className="space-y-6">
-          {/* Wallets by Chain - 3x2 Grid */}
+          {/* Wallets by Chain - Responsive Grid */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Your Wallets</h3>
-              <Button variant="outline" size="sm" onClick={() => setShowGenerateDialog(true)}>
-                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold">Your Wallets</h3>
+              <Button variant="outline" size="sm" onClick={() => setShowGenerateDialog(true)} className="h-8 sm:h-9 text-xs sm:text-sm">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add Wallet
+                <span className="hidden sm:inline">Add Wallet</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {SUPPORTED_CHAINS.map((chain) => {
                 // Case-insensitive comparison to handle both old (uppercase) and new (lowercase) wallets
                 const chainWallets = wallets.filter((w) => w.chain.toLowerCase() === chain.id.toLowerCase())
@@ -660,7 +661,7 @@ export function UDashboard() {
 
           {/* Recent Activity */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Recent Activity</h3>
             {transactions.length === 0 ? (
               <Card className="bg-muted/30">
                 <CardContent className="py-8 text-center">
@@ -788,7 +789,7 @@ function FeatureCard({ icon, title, description }: { icon: string; title: string
   )
 }
 
-// Quick Action Button - Compact square buttons
+// Quick Action Button - Touch-friendly buttons
 function QuickActionButton({
   icon,
   label,
@@ -803,10 +804,10 @@ function QuickActionButton({
   return (
     <button
       onClick={onClick}
-      className={`${color} hover:opacity-90 active:scale-95 transition-all text-white rounded-xl p-3 flex flex-col items-center gap-1`}
+      className={`${color} hover:opacity-90 active:scale-95 transition-all text-white rounded-xl p-2.5 sm:p-3 flex flex-col items-center gap-0.5 sm:gap-1 min-h-[56px] sm:min-h-[64px]`}
     >
-      <span className="text-xl">{icon}</span>
-      <span className="text-[10px] font-medium">{label}</span>
+      <span className="text-lg sm:text-xl">{icon}</span>
+      <span className="text-[10px] sm:text-xs font-medium">{label}</span>
     </button>
   )
 }

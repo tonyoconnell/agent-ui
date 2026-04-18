@@ -139,35 +139,36 @@ export function Inbox() {
   }
 
   return (
-    <div
-      className="grid h-full bg-[#0a0a0f] text-foreground"
-      style={{ gridTemplateColumns: '240px minmax(340px, 1fr) 1.5fr' }}
-    >
+    <>
       <Toaster position="top-right" theme="dark" />
-
-      <aside className="flex flex-col border-r border-[#252538] bg-[#0d0d14]">
-        <ProfileHeader name="Anthony O'Connell" initial="A" />
-        <Navigation items={nav} active={dimension} onChange={setDimension} />
-        <div className="border-t border-[#252538] px-4 py-3">
-          <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-            <span>{DATA.meta.name}</span>
-            <span className="font-mono">v{DATA.meta.version}</span>
+      <div
+        className="grid h-full bg-[#0a0a0f] text-foreground"
+        style={{ gridTemplateColumns: '20% 30% 50%' }}
+      >
+        <aside className="flex flex-col border-r border-[#252538] bg-[#0d0d14]">
+          <ProfileHeader name="Anthony O'Connell" initial="A" />
+          <Navigation items={nav} active={dimension} onChange={setDimension} />
+          <div className="border-t border-[#252538] px-4 py-3">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+              <span>{DATA.meta.name}</span>
+              <span className="font-mono">v{DATA.meta.version}</span>
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
 
-      <section className="flex flex-col border-r border-[#252538]">
-        <StatusTabs active={status} counts={statusCounts} onChange={setStatus} />
-        <SearchBar value={query} onChange={setQuery} />
-        <div className="flex-1 overflow-y-auto p-4">
-          <EntityList entities={entities} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
-        </div>
-      </section>
+        <section className="flex flex-col border-r border-[#252538]">
+          <StatusTabs active={status} counts={statusCounts} onChange={setStatus} />
+          <SearchBar value={query} onChange={setQuery} />
+          <div className="flex-1 overflow-y-auto p-4">
+            <EntityList entities={entities} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
+          </div>
+        </section>
 
-      <section className="overflow-hidden">
-        <EntityDetail entity={selected} />
-      </section>
-    </div>
+        <section className="overflow-hidden">
+          <EntityDetail entity={selected} />
+        </section>
+      </div>
+    </>
   )
 }
 
