@@ -3,6 +3,10 @@
 #
 # Runs on Stop (session end). Non-blocking — just reports.
 # Lets human see what might have broken without blocking the session.
+# Emits hook:session-end:{ok,warn} signal per Rule 1 (see .claude/skills/signal.md).
+
+# shellcheck source=lib/signal.sh
+source "$CLAUDE_PROJECT_DIR/.claude/hooks/lib/signal.sh"
 
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 
@@ -19,6 +23,7 @@ EXIT=$?
 if [ $EXIT -eq 0 ]; then
   echo "✓ All checks passed. Baseline is green."
   echo ""
+  emit_signal "hook:session-end:ok" 1 "biome=clean"
   exit 0
 fi
 
@@ -38,6 +43,9 @@ fi
 echo ""
 echo "Next session should start with: bun run verify"
 echo ""
+
+# Mild warn — baseline dirty but session continuing
+emit_signal "hook:session-end:warn" -0.5 "failed=${FAILED:-0} errors=${ERRORS:-0}"
 
 # Non-blocking — always exit 0
 exit 0

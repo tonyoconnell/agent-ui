@@ -18,8 +18,15 @@
   "rules": {
     "auto-load": {
       "*.astro": ["rules/astro.md"],
-      "*.tsx": ["rules/react.md"],
-      "src/engine/**/*.ts": ["rules/engine.md"]
+      "*.tsx": ["rules/react.md", "rules/ui.md"],
+      "*.move": ["skills/sui.md"],
+      "*.tql": ["skills/typedb/SKILL.md"],
+      "src/engine/**/*.ts": ["rules/engine.md"],
+      "src/components/**/*.tsx": ["rules/ui.md"],
+      "src/engine/bridge.ts": ["skills/sui.md", "skills/typedb/SKILL.md"],
+      "src/lib/sui.ts": ["skills/sui.md"],
+      "src/lib/typedb.ts": ["skills/typedb/SKILL.md"],
+      ".claude/hooks/**/*.sh": ["skills/signal.md"]
     }
   },
   "hooks": {

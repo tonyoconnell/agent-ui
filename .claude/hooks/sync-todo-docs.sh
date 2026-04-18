@@ -9,6 +9,10 @@
 #
 # The dev server does all the real work; this hook is just a trigger.
 # To run the full sync manually: `/sync` (or `POST /api/tasks/sync`).
+# Emits hook:todo-sync:{ok,dissolved} signal per Rule 1 (see .claude/skills/signal.md).
+
+# shellcheck source=lib/signal.sh
+source "$CLAUDE_PROJECT_DIR/.claude/hooks/lib/signal.sh"
 
 FILE=$(echo "$1" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null)
 
@@ -30,9 +34,13 @@ RESP=$(curl -s -o /dev/null -w "%{http_code}" \
   --max-time 2 \
   -X POST "${DEV_URL}/api/tasks/sync" 2>/dev/null)
 
+BASE=$(basename "$FILE")
 if [ "$RESP" = "200" ]; then
-  echo "todo-sync: regenerated TODO.md + todo.json from $(basename "$FILE")" >&2
+  echo "todo-sync: regenerated TODO.md + todo.json from $BASE" >&2
+  emit_signal "hook:todo-sync:ok" 1 "file=$BASE"
+else
+  # Server down/timeout/error → dissolved (missing unit semantics, mild warn)
+  emit_signal "hook:todo-sync:dissolved" -0.5 "file=$BASE http=$RESP"
 fi
-# Any other response (server down, timeout, error): silently skip. Non-blocking.
 
 exit 0
