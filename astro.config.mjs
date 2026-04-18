@@ -11,6 +11,10 @@ const adapter = isDev
   ? node({ mode: "standalone" })
   : cloudflare({
       platformProxy: { enabled: true },
+      // Prerender in Node instead of workerd so Astro doesn't emit
+      // dist/server/.prerender/wrangler.json with an [assets] binding named
+      // ASSETS — CF Pages treats ASSETS as a reserved name and rejects deploy.
+      prerenderEnvironment: "node",
     });
 
 // Development WebSocket server middleware for Vite
