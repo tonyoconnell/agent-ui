@@ -13,7 +13,9 @@
 import type { APIRoute } from 'astro'
 import { markOutcome, type RouteChoice } from '@/engine/llm-router'
 import { getNet } from '@/lib/net'
-import { resolveUnit, send as suiSend } from '@/lib/sui'
+// @/lib/sui is imported lazily inside the Sui-mirror try block so that a Sui
+// SDK breakage (e.g. v1→v2 rename) cannot take down /api/signal and, with it,
+// every page that routes UI clicks through this endpoint.
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 
 /** Validate UID format (alphanumeric, hyphens, colons only) */
@@ -417,6 +419,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 7. Mirror to Sui (if configured — fire and forget)
     let suiDigest: string | null = null
     try {
+      const { resolveUnit, send: suiSend } = await import('@/lib/sui')
       const senderUnit = await resolveUnit(sender)
       const receiverUnit = await resolveUnit(target)
       if (senderUnit?.wallet && receiverUnit?.wallet) {
@@ -434,7 +437,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         suiDigest = digest
       }
     } catch {
-      // Sui not configured or tx failed — TypeDB signal still recorded
+      // Sui not configured, SDK broken, or tx failed — TypeDB signal still recorded
     }
 
     // Invalidate receiver's permission cache so next signal picks up any changes
