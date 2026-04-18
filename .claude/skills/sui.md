@@ -119,6 +119,58 @@ try {
 
 **Why:** `/api/signal` is imported transitively by every page that routes a UI click. A top-level `import { ... } from '@/lib/sui'` means any Sui SDK type break bricks the entire API route (and thus every dependent page). Lazy import contains the blast radius to just the mirror step. Apply this same pattern to any other hot route that touches Sui only as fire-and-forget.
 
+---
+
+## Works With /typedb — The Same Ontology, Two Deterministic Fires
+
+`src/schema/sui.tql:1` already put it best: **"The same ontology. Two deterministic fires."** Move is the permanent, economic fire (path revenue, escrow, treasury — expensive to write, cheap to trust). TypeDB is the learning, classification fire (hypotheses, frontiers, tags — cheap to write, rich to query). The runtime is the fast nervous system between them. Both skills speak the same vocabulary by design — `strength`, `resistance`, `revenue`, `path`, `unit` — so the bridge is a **1:1 rename, not a translation**.
+
+### Canonical crosswalk
+
+`src/schema/sui.tql` (336 lines) is the Rosetta Stone — every Move struct has a matching TQL entity, every Move function has a matching TQL `fun`. Read it when names or shapes drift. The runtime schema is `src/schema/world.tql`; `sui.tql` is the parallel declaration that proves the two layers agree.
+
+### Attribute mapping (Move struct ⇌ TypeDB attribute)
+
+| Move field (`one.move`)         | TQL attribute (`world.tql`)    | Move type   | TQL type | Direction                     |
+|---------------------------------|--------------------------------|-------------|----------|-------------------------------|
+| `Unit.id` (address)             | `unit.sui-unit-id`             | address     | string   | Sui → TQL on `mirrorActor()`  |
+| *derived by* `addressFor(uid)`  | `unit.wallet`                  | address     | string   | Runtime → TQL on agent sync   |
+| `Unit.name`                     | `unit.name`                    | String      | string   | bidirectional                 |
+| `Unit.balance`                  | `unit.balance`                 | u64         | double   | Sui → TQL via `absorb()`      |
+| **`Path.strength`**             | **`path.strength`**            | u64         | double   | bidirectional — load-bearing  |
+| **`Path.resistance`**           | **`path.resistance`**          | u64         | double   | bidirectional — load-bearing  |
+| `Path.revenue`                  | `path.revenue`                 | u64         | double   | Sui → TQL via `absorb()`      |
+| `Path.id` (address)             | `path.sui-path-id`             | address     | string   | Sui → TQL on mirror           |
+| `Highway.id` (address)          | `path.sui-highway-id`          | address     | string   | Sui → TQL on `mirrorHarden()` |
+| `Signal.payload` (vector<u8>)   | `signal.data`                  | bytes       | string   | one-way, usually TQL-only     |
+
+**Name drift to know about:** Move still has `struct Colony` (one.move:71). TypeDB moved to `entity group` per `docs/dictionary.md`, but the Move contract hasn't been migrated yet because that requires a package upgrade. When bridging, read Move `Colony` → TQL `group`.
+
+**Load-bearing invariant:** `strength` and `resistance` share the same name in both layers. If you rename one, rename both — `bridge.ts` is a pass-through, there's no translation logic. Type-width (`u64` ↔ `double`) is handled by JSON serialization at the bridge; don't write logic that depends on sub-integer precision.
+
+### Bridge contract (`src/engine/bridge.ts`, 479 lines)
+
+| Function                          | Fires when                  | Maps                                                                   |
+|-----------------------------------|-----------------------------|------------------------------------------------------------------------|
+| `mirrorMark(from, to, amount?)`   | every `persist.mark()`       | Runtime strength++ → Sui `mark_path()`                                   |
+| `mirrorWarn(from, to, amount?)`   | every `persist.warn()`       | Runtime resistance++ → Sui `warn_path()`                                 |
+| `mirrorPay(from, to, amount)`     | L4 payment signal            | Runtime payment → Sui `pay()` → `Path.revenue +=`                        |
+| `mirrorHarden(from, to)`          | L6 highway promotion         | TQL harden → Sui `harden_path()` → Highway object created                |
+| `mirrorActor(uid, name)`          | `/api/agents/register`       | `addressFor(uid)` + `createUnit()` → writes `wallet` + `sui-unit-id` back |
+| `resolve(uid)`                    | before any outbound Sui call | TQL lookup → `{ wallet, unitId }` — no on-chain twin? dissolve           |
+| `resolvePath(from, to)`           | on-chain path ops            | TQL `sui-path-id` lookup — memoized via edge cache                       |
+| `absorb(cursor?)`                 | `/api/absorb` cron (1 min)   | Sui events → TQL writes: UnitCreated, Marked, Warned, Paid, Hardened     |
+| `settleEscrow(...)` *(Phase 3)*   | `releaseEscrow()` succeeds   | on-chain settlement → TQL `path.revenue` + `path.strength` mark          |
+
+**Guarantee:** `mirror*` functions are fire-and-forget. They never block the TypeDB write or the runtime signal loop. If Sui is down, TypeDB still learns; pheromone re-converges when `absorb()` catches up.
+
+### When to load /typedb alongside this skill
+
+- Writing or reading any attribute prefixed with `sui-*` in TQL
+- Querying `unit.wallet` — the value comes from `addressFor(uid)` in `src/lib/sui.ts`, not stored by default
+- Editing `src/engine/bridge.ts` — every function there touches both worlds
+- Adding a TQL entity that has a Move twin — name alignment is a maintenance contract
+
 ## Capabilities
 
 ### 1. Mirror to Sui (mark/warn auto-propagate)

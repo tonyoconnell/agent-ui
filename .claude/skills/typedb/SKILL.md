@@ -1459,6 +1459,77 @@ limit 1;
 
 ---
 
+## Works With /sui — The Same Ontology, Two Deterministic Fires
+
+`src/schema/sui.tql:1` already put it best: **"The same ontology. Two deterministic fires."** TypeDB is the learning, classification fire (hypotheses, frontiers, tags — cheap to write, rich to query). Move is the permanent, economic fire (path revenue, escrow, treasury — expensive to write, cheap to trust). The runtime is the fast nervous system between them. Both skills speak the same vocabulary by design — `strength`, `resistance`, `revenue`, `path`, `unit` — so the bridge is a **1:1 rename, not a translation**.
+
+### Canonical crosswalk
+
+`src/schema/sui.tql` (336 lines) is the Rosetta Stone — every Move struct has a matching TQL entity, every Move function has a matching TQL `fun`. Read it when names or shapes drift. The runtime schema is `src/schema/world.tql`; `sui.tql` is the parallel declaration that proves the two layers agree. The canonical ontology (6 dimensions, stable) is `src/schema/one.tql`.
+
+### Attribute mapping (Move struct ⇌ TypeDB attribute)
+
+| Move field (`one.move`)         | TQL attribute (`world.tql`)    | Move type   | TQL type | Direction                     |
+|---------------------------------|--------------------------------|-------------|----------|-------------------------------|
+| `Unit.id` (address)             | `unit.sui-unit-id`             | address     | string   | Sui → TQL on `mirrorActor()`  |
+| *derived by* `addressFor(uid)`  | `unit.wallet`                  | address     | string   | Runtime → TQL on agent sync   |
+| `Unit.name`                     | `unit.name`                    | String      | string   | bidirectional                 |
+| `Unit.balance`                  | `unit.balance`                 | u64         | double   | Sui → TQL via `absorb()`      |
+| **`Path.strength`**             | **`path.strength`**            | u64         | double   | bidirectional — load-bearing  |
+| **`Path.resistance`**           | **`path.resistance`**          | u64         | double   | bidirectional — load-bearing  |
+| `Path.revenue`                  | `path.revenue`                 | u64         | double   | Sui → TQL via `absorb()`      |
+| `Path.id` (address)             | `path.sui-path-id`             | address     | string   | Sui → TQL on mirror           |
+| `Highway.id` (address)          | `path.sui-highway-id`          | address     | string   | Sui → TQL on `mirrorHarden()` |
+| `Signal.payload` (vector<u8>)   | `signal.data`                  | bytes       | string   | one-way, usually TQL-only     |
+
+**Name drift to know about:** Move still has `struct Colony` (one.move:71). TypeDB moved to `entity group` per `docs/dictionary.md`, but the Move contract hasn't been migrated yet because that requires a package upgrade. When reading bridge code, treat Move `Colony` as TQL `group`.
+
+**Load-bearing invariant:** `strength` and `resistance` share the same name in both layers. If you rename one, rename both — `bridge.ts` is a pass-through, there's no translation logic. Type-width (`u64` ↔ `double`) is handled by JSON serialization at the bridge; don't write TQL queries that assume sub-integer precision on these columns.
+
+### Bridge contract (`src/engine/bridge.ts`, 479 lines)
+
+| Function                          | Fires when                  | Maps                                                                   |
+|-----------------------------------|-----------------------------|------------------------------------------------------------------------|
+| `mirrorMark(from, to, amount?)`   | every `persist.mark()`       | Runtime strength++ → Sui `mark_path()`                                   |
+| `mirrorWarn(from, to, amount?)`   | every `persist.warn()`       | Runtime resistance++ → Sui `warn_path()`                                 |
+| `mirrorPay(from, to, amount)`     | L4 payment signal            | Runtime payment → Sui `pay()` → `Path.revenue +=`                        |
+| `mirrorHarden(from, to)`          | L6 highway promotion         | TQL harden → Sui `harden_path()` → Highway object created                |
+| `mirrorActor(uid, name)`          | `/api/agents/register`       | `addressFor(uid)` + `createUnit()` → writes `wallet` + `sui-unit-id` back |
+| `resolve(uid)`                    | before any outbound Sui call | TQL lookup → `{ wallet, unitId }` — no on-chain twin? dissolve           |
+| `resolvePath(from, to)`           | on-chain path ops            | TQL `sui-path-id` lookup — memoized via edge cache                       |
+| `absorb(cursor?)`                 | `/api/absorb` cron (1 min)   | Sui events → TQL writes: UnitCreated, Marked, Warned, Paid, Hardened     |
+| `settleEscrow(...)` *(Phase 3)*   | `releaseEscrow()` succeeds   | on-chain settlement → TQL `path.revenue` + `path.strength` mark          |
+
+**Guarantee:** `mirror*` functions are fire-and-forget. They never block the TypeDB write or the runtime signal loop. If Sui is down, TypeDB still learns; pheromone re-converges when `absorb()` catches up. That's why it's safe to use `writeSilent()` / `writeTracked()` semantics at the TypeDB layer — the bridge can always replay.
+
+### TQL queries that read on-chain state
+
+```typeql
+# Find units with an on-chain twin
+match $u isa unit, has wallet $w, has sui-unit-id $s;
+select $u, $w, $s;
+
+# Paths that accumulated real revenue on-chain
+match $p isa path, has revenue $r, has sui-path-id $id;
+$r > 0.0;
+select $p, $r, $id;
+sort $r desc;
+
+# Hardened highways (frozen on-chain)
+match $p isa path, has sui-highway-id $hw;
+select $p, $hw;
+```
+
+### When to load /sui alongside this skill
+
+- Adding a field to a Move struct that needs off-chain query — the TQL attribute must match
+- Touching `src/move/one/sources/one.move` path/signal logic — `src/schema/one.tql` and `docs/dictionary.md` are the source of truth for names
+- Debugging why `absorb()` isn't writing to TypeDB — check `world.tql` accepts the attribute type
+- Writing a TQL `fun` that needs an on-chain twin — see `src/schema/sui.tql` for parallel function signatures
+- Querying `unit.wallet` values — they're derived by `addressFor(uid)` in `src/lib/sui.ts`, not always stored
+
+---
+
 ## Project-Specific Patterns
 
 ### Signal-Edge Operations (Trading)
