@@ -139,9 +139,8 @@ export const leafHandler = (opts: LeafOptions) => {
     const incomingChain = Array.isArray(d.chain) ? d.chain : []
     // Dedupe when a router self-fallbacks: director adds itself to chain, then
     // routes to its own `:respond` — leaf would double-append without this.
-    const fullChain = incomingChain[incomingChain.length - 1] === opts.uid
-      ? incomingChain
-      : [...incomingChain, opts.uid]
+    const fullChain =
+      incomingChain[incomingChain.length - 1] === opts.uid ? incomingChain : [...incomingChain, opts.uid]
     opts.onStart?.(opts.uid, fullChain)
     return await complete(content, {
       system,
