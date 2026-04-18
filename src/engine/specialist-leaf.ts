@@ -23,6 +23,9 @@ export interface LeafOptions {
   systemPrompt?: string
   /** Called with each token chunk as the LLM streams. */
   onDelta?: (text: string, ctx: Ctx) => void
+  /** Called once, right before the LLM call. Lets the endpoint emit an early
+   * breadcrumb with the *full* chain that reached this leaf (uid + data.chain). */
+  onStart?: (uid: string, chain: string[]) => void
   /**
    * Override for the completion call. Default wires to OpenRouter with
    * OPENROUTER_API_KEY. Tests inject a mock that streams tokens via onToken.
@@ -52,7 +55,9 @@ const openrouterStream = async (
   prompt: string,
   opts: { system?: string; onToken?: (t: string) => void; model?: string },
 ): Promise<string> => {
-  const apiKey = (globalThis as any).process?.env?.OPENROUTER_API_KEY
+  const apiKey =
+    (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.OPENROUTER_API_KEY ??
+    (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.OPENROUTER_API_KEY
   if (!apiKey) throw new Error('OPENROUTER_API_KEY missing')
   const body = {
     model: opts.model ?? DEFAULT_MODEL,
@@ -125,10 +130,14 @@ export const leafHandler = (opts: LeafOptions) => {
     // Zero returns: an unconfigured LLM is a missing capability, not a failure.
     // Dissolve so the chain warns(0.5) instead of warn(1).
     if (opts.complete === undefined) {
-      const apiKey = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
-        ?.OPENROUTER_API_KEY
+      // Astro loads .env into import.meta.env, Node into process.env — check both.
+      const apiKey =
+        (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.OPENROUTER_API_KEY ??
+        (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.OPENROUTER_API_KEY
       if (!apiKey) return { dissolved: true }
     }
+    const incomingChain = Array.isArray(d.chain) ? d.chain : []
+    opts.onStart?.(opts.uid, [...incomingChain, opts.uid])
     return await complete(content, {
       system,
       model: opts.model,

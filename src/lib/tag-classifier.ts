@@ -14,6 +14,21 @@
 // Multi-word entries (containing a space) are matched on the normalized
 // phrase, not token-by-token.
 const TAG_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  // --- Marketing domain direct hits (user says "marketing" without a specific sub-verb) ---
+  marketing: [
+    'marketing',
+    'market',
+    'promote',
+    'promotion',
+    'audience',
+    'customer',
+    'customers',
+    'launch',
+    'brand awareness',
+    'go-to-market',
+    'gtm',
+    'positioning',
+  ],
   // --- Marketing sub-tags ---
   seo: ['rank', 'google', 'serp', 'keyword', 'keywords', 'ahrefs', 'search', 'backlink', 'backlinks'],
   content: ['blog', 'article', 'post', 'copywriting', 'write', 'writing', 'draft'],
@@ -48,6 +63,7 @@ const TAG_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
 
 // Which sub-tags belong to which primary domain.
 const DOMAIN_OF: Readonly<Record<string, string>> = {
+  marketing: 'marketing',
   seo: 'marketing',
   content: 'marketing',
   copy: 'marketing',
