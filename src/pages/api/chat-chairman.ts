@@ -20,7 +20,7 @@
  */
 
 import type { APIRoute } from 'astro'
-import { wireChairmanChain } from '@/engine/chairman-chain'
+import { PRODUCTION_MARKETING_TEAM, wireChairmanChain } from '@/engine/chairman-chain'
 import type { PersistentWorld } from '@/engine/persist'
 import { leafHandler } from '@/engine/specialist-leaf'
 import { getRoleForUser } from '@/lib/api-auth'
@@ -47,7 +47,43 @@ let edgesLoaded = false
  * Runs on every request but is fast, and results accumulate on the singleton
  * net.strength so subsequent synthesis + routing see them.
  */
+// Local file cache for chain edges. Only available when node:fs can bind; on
+// CF Workers the imports fail and we no-op. In dev, cache survives restarts so
+// TypeDB outages don't force cold starts to re-query an unresponsive gateway.
+const CACHE_PATH = `${(globalThis as { process?: { cwd?: () => string } }).process?.cwd?.() ?? '.'}/node_modules/.cache/chairman-chain-edges.json`
+
+async function readCache(): Promise<Record<string, number>> {
+  try {
+    const { readFile } = await import('node:fs/promises')
+    const text = await readFile(CACHE_PATH, 'utf-8')
+    const parsed = JSON.parse(text) as { edges?: Record<string, number> }
+    return parsed.edges ?? {}
+  } catch {
+    return {}
+  }
+}
+
+async function writeCache(edges: Record<string, number>): Promise<void> {
+  try {
+    const { writeFile, mkdir } = await import('node:fs/promises')
+    const { dirname } = await import('node:path')
+    await mkdir(dirname(CACHE_PATH), { recursive: true }).catch(() => 0)
+    await writeFile(CACHE_PATH, JSON.stringify({ edges, ts: Date.now() }), 'utf-8')
+  } catch {
+    /* no fs, no cache — fine */
+  }
+}
+
 async function loadChainEdges(net: PersistentWorld): Promise<void> {
+  // Apply cache first so routing works when TypeDB is unreachable. Cached
+  // values are overwritten by any fresh higher-strength TypeDB value.
+  const cached = await readCache()
+  for (const [edge, strength] of Object.entries(cached)) {
+    if (typeof strength === 'number' && strength > 0 && (net.strength[edge] ?? 0) < strength) {
+      net.strength[edge] = strength
+    }
+  }
+
   // Total budget — if TypeDB is slow today, give up early rather than block
   // the chat request for 30s+ per round. Uses whatever edges we managed to
   // hydrate; downstream falls back to CEO self-leaf if net.strength is empty.
@@ -68,10 +104,9 @@ async function loadChainEdges(net: PersistentWorld): Promise<void> {
   const visited = new Set<string>()
   let frontier = seeds
   const MAX_ROUNDS = 3
+  const newlyLoaded: Record<string, number> = {}
   for (let r = 0; r < MAX_ROUNDS && frontier.length && Date.now() < deadline; r++) {
     const next = new Set<string>()
-    // Query all current-frontier uids in parallel — subsequent rounds need
-    // the results but within-round we can race them.
     const results = await Promise.all(
       frontier
         .filter((f) => !visited.has(f))
@@ -88,12 +123,17 @@ async function loadChainEdges(net: PersistentWorld): Promise<void> {
         if (typeof to === 'string' && typeof strength === 'number' && strength > 0) {
           const edge = `${from}→${to}`
           if ((net.strength[edge] ?? 0) < strength) net.strength[edge] = strength
+          newlyLoaded[edge] = strength
           if (!visited.has(to)) next.add(to)
         }
       }
     }
     frontier = [...next]
   }
+
+  // Persist anything we pulled this session. Next cold start reads this first
+  // and has a working chain even if the gateway is 503 at that moment.
+  if (Object.keys(newlyLoaded).length) void writeCache({ ...cached, ...newlyLoaded })
 }
 
 /**
@@ -107,7 +147,12 @@ async function ensureChain(net: PersistentWorld): Promise<void> {
     edgesLoaded = true
     await loadChainEdges(net)
   }
-  wireChairmanChain(net, { registerSpecialists: false })
+  wireChairmanChain(net, {
+    registerSpecialists: false,
+    directorUid: 'marketing-cmo',
+    directorDomainTag: 'marketing',
+    specialists: PRODUCTION_MARKETING_TEAM,
+  })
 }
 
 /**

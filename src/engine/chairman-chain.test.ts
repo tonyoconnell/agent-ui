@@ -61,18 +61,22 @@ describe('chairman-chain', () => {
     expect(out.receiver).toMatch(/^marketing-/)
   })
 
-  it('CEO returns dissolved when no route exists for tag', async () => {
+  it('CEO self-leafs when no route exists for tag (no cascade dissolve)', async () => {
     const net = createWorld() as Parameters<typeof wireChairmanChain>[0]
     wireChairmanChain(net)
+    const captured: unknown[] = []
+    net.get('ceo')?.on('respond', (data) => {
+      captured.push(data)
+      return 'ceo-replied'
+    })
 
     const out = await net.ask({
       receiver: 'ceo:route',
-      data: { content: 'mystery', tags: ['unknown-tag'] },
+      data: { content: 'mystery', tags: ['unknown-tag'], llmFallback: false },
     })
 
-    // ask wraps the handler's return in {result: ...}; our handler returns {dissolved:true}
-    const res = out.result as { dissolved?: boolean } | undefined
-    expect(res?.dissolved).toBe(true)
+    expect(out.result).toBe('ceo-replied')
+    expect(captured).toHaveLength(1)
   })
 
   it('director forwards to specialist via tag', async () => {
@@ -173,14 +177,12 @@ describe('chairman-chain', () => {
   })
 })
 
-// LLM-classifier bootstrap disabled: the current `makeCeoRouteHandler` prefers
-// the CEO self-leaf over LLM classification when no pheromone route matches.
-// Routing low-confidence signals to a director that only has sub-tag edges
-// (e.g., 'seo', 'copy' — not 'marketing') caused cascade-dissolves. Self-leaf
-// gives a graceful reply instead. The classifier API is still exported for
-// future reuse; re-enable these tests when directors learn to self-fallback
-// with classifier-bootstrapped subtag edges.
-describe.skip('chairman-chain CEO low-confidence LLM fallback', () => {
+// LLM-classifier bootstrap: re-enabled. Three-tier routing is now:
+//   1. Hot path: `firstRoute` via pheromone — zero LLM.
+//   2. Warm path: low-confidence + no route → LLM picks director, marks edge.
+//   3. Cold path: still no target → CEO self-leaf.
+// Directors self-leaf too if their subtags miss, so no cascade-dissolves.
+describe('chairman-chain CEO low-confidence LLM fallback', () => {
   afterEach(() => {
     resetClassifierForTests()
   })

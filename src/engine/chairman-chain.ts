@@ -11,7 +11,12 @@
  * Zero returns: no throws on missing handler; silence is valid.
  */
 
-import { type CeoDirectorCandidate, hasClassifierOverride } from './ceo-classifier'
+import {
+  type CeoClassifyResult,
+  type CeoDirectorCandidate,
+  getActiveClassifier,
+  hasClassifierOverride,
+} from './ceo-classifier'
 import type { PersistentWorld } from './persist'
 import { type LeafOptions, leafHandler } from './specialist-leaf'
 import type { Emit, Unit, World } from './world'
@@ -39,8 +44,13 @@ export type Specialist = { uid: string; tags: string[] }
 type Net = World | PersistentWorld
 
 const SEED_STRENGTH = 0.5
+// Directors must outweigh specialists on their own domain tag. Synthesis
+// creates `<domain>→<specialist>` edges for every specialist whose uid starts
+// with the domain (e.g., `marketing-seo-specialist`), so without a strength
+// boost the CEO's pickRoute would tie and sometimes bypass the director.
+const DIRECTOR_STRENGTH = 1.0
 const CEO_FALLBACK_CONFIDENCE_THRESHOLD = 0.4
-const _CEO_FALLBACK_MARK_STRENGTH = 0.5
+const CEO_FALLBACK_MARK_STRENGTH = 0.5
 
 // TypeDB stores paths as unit→unit relations (no tag attribute in one.tql).
 // But pickRoute scans for <tag>→<to> synthetic edges. Bridge the two: for
@@ -61,11 +71,19 @@ export const synthesizeTagEdgesFromUids = (net: Net): number => {
     return parts.length === 2 && !!parts[0] && !!parts[1]
   })
   for (const [edge, strength] of seeds) {
-    const [, to] = edge.split('→')
+    const [from, to] = edge.split('→')
     if (!to.includes('-')) continue
+    // Skip segments the SOURCE already owns — prevents the `marketing→<every
+    // marketing-* specialist>` spam that happens when a director's outgoing
+    // edges get synthesized on each specialist's shared prefix. If source is
+    // `marketing-cmo` and target is `marketing-forum`, the shared 'marketing'
+    // segment is the director's own domain — don't dilute it with specialist
+    // ties.
+    const sourceSegments = new Set(from.split('-'))
     const segments = to.split('-')
     for (const seg of segments) {
       if (!seg || seg === to) continue
+      if (sourceSegments.has(seg)) continue
       const synthetic = `${seg}→${to}`
       if (synthetic === edge) continue
       if ((net.strength[synthetic] ?? 0) < strength) {
@@ -173,7 +191,7 @@ export const makeRouteHandler =
 // listDirectors: any registered unit with a `route` handler (director), except
 // the CEO itself. Used to feed the LLM classifier the universe of valid targets.
 // Examples from a director's own seeded edges give the LLM a hint about domain.
-const _listDirectors = (net: Net, ceoUid: string): CeoDirectorCandidate[] => {
+const listDirectors = (net: Net, ceoUid: string): CeoDirectorCandidate[] => {
   const out: CeoDirectorCandidate[] = []
   for (const uid of net.list()) {
     if (uid === ceoUid) continue
@@ -197,7 +215,7 @@ const _listDirectors = (net: Net, ceoUid: string): CeoDirectorCandidate[] => {
   return out
 }
 
-const _shouldFallbackToLlm = (d: ChainData): boolean => {
+const shouldFallbackToLlm = (d: ChainData): boolean => {
   if (d.llmFallback === false) return false
   const conf = typeof d.confidence === 'number' ? d.confidence : 1
   if (conf >= CEO_FALLBACK_CONFIDENCE_THRESHOLD) return false
@@ -207,9 +225,14 @@ const _shouldFallbackToLlm = (d: ChainData): boolean => {
   return !!env?.OPENROUTER_API_KEY
 }
 
-// CEO-only route handler. Same zero-LLM hot path as makeRouteHandler, plus an
-// async bootstrap: when `pickRoute` finds nothing AND the classifier was
-// unsure, ask an LLM once to pick a director. Mark the edge, then proceed.
+// CEO route handler with three-tier routing:
+//   1. Hot path: pheromone `firstRoute` picks a known director. Zero LLM.
+//   2. Warm path: low-confidence + no route + classifier available → one LLM
+//      call to pick a director. Marks `<tag>→<director>` so subsequent same-tag
+//      signals skip the LLM. Classified tag is prepended to forwarded tags so
+//      the director routes on it via its own seeds.
+//   3. Cold path: still no target → CEO self-leaf (replies directly).
+// Safe because directors self-leaf too when their subtags miss.
 const makeCeoRouteHandler =
   (net: Net, uid: string) =>
   async (data: unknown, send: Emit, _ctx: RouteCtx): Promise<unknown> => {
@@ -217,36 +240,40 @@ const makeCeoRouteHandler =
     const tags = Array.isArray(d.tags) ? d.tags : []
     const chain = d.chain ?? ['chairman']
 
-    // Hot path: zero LLM when pheromone already knows the route.
-    const target = firstRoute(net, tags, uid, chain)
+    let target = firstRoute(net, tags, uid, chain)
+    let classified: CeoClassifyResult | null = null
 
-    // LLM-classifier bootstrap intentionally skipped: routing a low-confidence
-    // signal to a director that only has sub-tag edges (e.g., 'seo', 'copy' but
-    // not 'marketing') causes the director to dissolve at its own firstRoute.
-    // The self-fallback below (CEO answers directly) is a better default UX
-    // than cascading dissolves. The classifier path is still callable via
-    // listDirectors + getActiveClassifier for future cycles; the trigger can
-    // be re-enabled when directors learn to self-fallback too.
+    if (!target && shouldFallbackToLlm(d)) {
+      const candidates = listDirectors(net, uid)
+      if (candidates.length) {
+        classified = await getActiveClassifier()({
+          content: typeof d.content === 'string' ? d.content : '',
+          availableDirectors: candidates,
+        })
+        const validUids = new Set(candidates.map((c) => c.uid))
+        if (
+          classified &&
+          classified.directorUid !== uid &&
+          !chain.includes(classified.directorUid) &&
+          validUids.has(classified.directorUid)
+        ) {
+          net.mark(`${classified.tag}→${classified.directorUid}`, CEO_FALLBACK_MARK_STRENGTH)
+          target = classified.directorUid
+        } else {
+          classified = null
+        }
+      }
+    }
 
     const replyTo = d.replyTo
     delete d.replyTo
     const nextChain = [...chain, uid]
 
     if (!target) {
-      // Self-fallback: CEO answers directly when no director matches.
-      // Off-domain "yo" / small talk / ambiguous queries get a graceful CEO
-      // reply instead of dissolving. Preserves replyTo so the leaf's response
-      // streams back to the chairman.
-      send({
-        receiver: `${uid}:respond`,
-        data: { ...d, chain: nextChain, ...(replyTo && { replyTo }) },
-      })
+      send({ receiver: `${uid}:respond`, data: { ...d, chain: nextChain, ...(replyTo && { replyTo }) } })
       return undefined
     }
 
-    // Scope defense-in-depth: if caller asked for group-scoped routing,
-    // reject targets whose uid-prefix (`<group>:<name>`) doesn't match the caller's prefix.
-    // Self-signals (target === uid) always allowed.
     if (d.scope && d.scope !== 'public' && target !== uid) {
       const callerPrefix = uid.includes(':') ? uid.split(':')[0] : ''
       const targetPrefix = target.includes(':') ? target.split(':')[0] : ''
@@ -255,7 +282,7 @@ const makeCeoRouteHandler =
       }
     }
 
-    const forwardedTags = tags
+    const forwardedTags = classified ? [classified.tag, ...tags.filter((t) => t !== classified?.tag)] : tags
     send({
       receiver: `${target}:route`,
       data: { ...d, tags: forwardedTags, chain: nextChain, ...(replyTo && { replyTo }) },
@@ -287,8 +314,9 @@ export const seedDirectorTeam = (net: Net, directorUid: string, specialists: Spe
 export const createDirector = (net: Net, uid: string, domainTag: string, specialists: Specialist[]): Unit => {
   const u = net.has(uid) ? net.get(uid)! : net.add(uid)
   seedDirectorTeam(net, uid, specialists)
-  // Seed self on domain tag so CEO's follow(domainTag) can find this director.
-  seedWrite(net, `${domainTag}→${uid}`, SEED_STRENGTH)
+  // Director wins the domain tag at 2x specialist strength so synthesis-derived
+  // `<domain>→<specialist>` edges (from uid prefix matching) don't tie.
+  seedWrite(net, `${domainTag}→${uid}`, DIRECTOR_STRENGTH)
   u.on('route', makeRouteHandler(net, uid, ':respond'))
   return u
 }
@@ -310,8 +338,13 @@ export type WireChainOptions = {
   ceoLeaf?: Omit<LeafOptions, 'uid'>
   /** If false, skip auto-registering specialist `.on('respond')` handlers from seeded edges. Default: true. */
   registerSpecialists?: boolean
-  /** Override the seed set entirely (tests). When provided, edges are seeded AND leaves registered for these uids; auto-discovery is skipped. */
+  /** Override the seed set entirely. */
   specialists?: Specialist[]
+  /** Default marketing director uid. Production uses 'marketing-cmo' to match
+   * `scripts/seed-chairman-chain.ts`; tests/dev default to 'marketing-director'. */
+  directorUid?: string
+  /** Domain tag the director owns. Defaults to 'marketing'. */
+  directorDomainTag?: string
 }
 
 // Fallback seed kept for the zero-seed case (fresh world, no TypeDB). Production
@@ -323,6 +356,31 @@ export const DEFAULT_MARKETING_TEAM: Specialist[] = [
   { uid: 'marketing-content', tags: ['content', 'social'] },
   { uid: 'marketing-ads', tags: ['ads', 'analytics'] },
   { uid: 'marketing-citation', tags: ['citation', 'outreach'] },
+]
+
+// Production seed matching scripts/seed-chairman-chain.ts output. Used when
+// the endpoint wants breadcrumbs to show the real business director name
+// (`marketing-cmo`) and specialist names regardless of TypeDB availability.
+// Specialists do NOT claim the 'marketing' domain tag — the director owns it
+// (at DIRECTOR_STRENGTH). Each specialist only claims sub-tags so `pickRoute`
+// returns the director for 'marketing' and a specialist for subdomain tags.
+export const PRODUCTION_MARKETING_TEAM: Specialist[] = [
+  { uid: 'marketing-seo-specialist', tags: ['seo', 'ranking', 'search'] },
+  { uid: 'marketing-content-writer', tags: ['content', 'writing', 'blog', 'article'] },
+  { uid: 'marketing-ads-manager', tags: ['ads', 'ppc', 'campaign', 'paid'] },
+  { uid: 'marketing-creative', tags: ['creative', 'copy', 'brand', 'headline'] },
+  { uid: 'marketing-analyst', tags: ['analytics', 'data', 'conversion', 'funnel'] },
+  { uid: 'marketing-social-media', tags: ['social', 'twitter', 'linkedin', 'instagram'] },
+  { uid: 'marketing-media-buyer', tags: ['media', 'buying'] },
+  { uid: 'marketing-outreach', tags: ['outreach', 'prospect', 'cold-email'] },
+  { uid: 'marketing-citation', tags: ['citation', 'local-seo', 'listings'] },
+  { uid: 'marketing-forum', tags: ['forum', 'community'] },
+  { uid: 'marketing-ai-ranking', tags: ['ai-ranking', 'llm-seo'] },
+  { uid: 'marketing-schema', tags: ['schema', 'structured-data'] },
+  { uid: 'marketing-niche-dir', tags: ['directory', 'niche'] },
+  { uid: 'marketing-monthly', tags: ['report', 'monthly', 'reporting'] },
+  { uid: 'marketing-quick', tags: ['quick-audit'] },
+  { uid: 'marketing-full', tags: ['full-audit', 'comprehensive'] },
 ]
 
 // Two-pass: pass 1 learns which tags route TO any director; pass 2 finds leaf
@@ -392,7 +450,9 @@ export const wireChairmanChain = (net: Net, opts: WireChainOptions = {}): ChainW
   // registerability is idempotent, and the handler closures over `net` so
   // listDirectors() is evaluated at call time, not wire time. Order-safe.
   const seed = opts.specialists ?? DEFAULT_MARKETING_TEAM
-  const marketingDirector = createDirector(net, 'marketing-director', 'marketing', seed)
+  const directorUid = opts.directorUid ?? 'marketing-director'
+  const directorDomainTag = opts.directorDomainTag ?? 'marketing'
+  const marketingDirector = createDirector(net, directorUid, directorDomainTag, seed)
 
   // Discover additional directors from loaded pheromone (e.g. marketing-cmo).
   // Each gets a `route` handler so `ceo:route → <director>:route` resolves.
