@@ -26,7 +26,18 @@ const PROTOCOL_ID = import.meta.env.SUI_PROTOCOL_ID || ''
 
 // Platform seed — 32 bytes, base64-encoded. Generate once:
 //   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-const SEED_B64 = import.meta.env.SUI_SEED || ''
+//
+// Read at call time: Vite's `import.meta.env` only sees build-time values,
+// so a `wrangler secret put SUI_SEED` on the deployed Worker is invisible
+// to the module-level const. process.env comes from CF's runtime bindings
+// when nodejs_compat is on — this is the seam where the secret becomes
+// readable. Falling through to build-time keeps local dev working when
+// SUI_SEED is in .env but not in the Worker runtime.
+function readSeedB64(): string {
+  const fromRuntime = typeof process !== 'undefined' && process.env && process.env.SUI_SEED
+  const fromBuild = import.meta.env.SUI_SEED
+  return (fromRuntime || fromBuild || '').toString()
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLIENT
@@ -52,12 +63,13 @@ export function getClient(): SuiJsonRpcClient {
  * For agents that bring their own wallet (Phase 2), skip this and use their keypair.
  */
 export async function deriveKeypair(uid: string): Promise<Ed25519Keypair> {
-  if (!SEED_B64)
+  const seedB64 = readSeedB64()
+  if (!seedB64)
     throw new Error(
       "SUI_SEED not configured. Generate: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
     )
 
-  const seed = Uint8Array.from(atob(SEED_B64), (c) => c.charCodeAt(0))
+  const seed = Uint8Array.from(atob(seedB64), (c) => c.charCodeAt(0))
   const encoder = new TextEncoder()
 
   // HKDF-like: SHA-256(seed || uid) → 32 bytes → Ed25519 keypair

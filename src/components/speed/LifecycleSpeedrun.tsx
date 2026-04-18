@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { formatMs } from '@/lib/format-ms'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 
@@ -402,7 +403,7 @@ export function LifecycleSpeedrun() {
           {running ? 'Running…' : 'Start speedrun'}
         </Button>
         <Badge variant="outline" className="font-mono text-cyan-300 border-cyan-900/60">
-          total: {totalMs.toFixed(0)}ms
+          total: {formatMs(totalMs)}
         </Badge>
         {activeStage && running && (
           <Badge variant="outline" className="font-mono text-amber-300 border-amber-900/60 animate-pulse">
@@ -467,7 +468,7 @@ export function LifecycleSpeedrun() {
             />
             <h2 className="text-lg font-medium text-slate-100">Sell-First Lifecycle</h2>
           </div>
-          <span className="font-mono text-sm text-cyan-400">{totalMs.toFixed(0)}ms</span>
+          <span className="font-mono text-sm text-cyan-400">{formatMs(totalMs)}</span>
         </div>
 
         {chain.sellerUid && (
@@ -504,7 +505,7 @@ export function LifecycleSpeedrun() {
                     <span
                       className={`font-mono text-xs ${err ? 'text-rose-400' : done ? 'text-slate-300' : 'text-slate-600'}`}
                     >
-                      {err ? 'err' : stage ? `${stage.ms.toFixed(0)}ms` : '—'}
+                      {err ? 'err' : stage ? formatMs(stage.ms) : '—'}
                     </span>
                     {stage && <span className={cn('text-[10px] transition-transform', isExp && 'rotate-180')}>▾</span>}
                   </div>
@@ -684,7 +685,7 @@ function VerifyDialog({
         <DialogHeader>
           <DialogTitle className="text-slate-100">Chain Verification</DialogTitle>
           <DialogDescription className="text-slate-400">
-            {passCount}/{Object.keys(stages).length} stages in {Math.round(totalMs)}ms. Real Sui testnet data.
+            {passCount}/{Object.keys(stages).length} stages in {formatMs(totalMs)}. Real Sui testnet data.
           </DialogDescription>
         </DialogHeader>
 

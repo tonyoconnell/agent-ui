@@ -6,8 +6,8 @@
 
 |  |  |
 |---|---|
-| Generated at | 2026-04-18T14:24:30.707Z |
-| Test run at | 2026-04-18T14:24:30.404Z |
+| Generated at | 2026-04-18T14:44:59.196Z |
+| Test run at | 2026-04-18T14:44:58.036Z |
 | Benchmarks measured | 0 named ops, 0 samples |
 | Budget coverage | 0 / 45 operations |
 | Verdict | **0 pass** · **0 over** · 45 missing |
@@ -157,14 +157,15 @@ to get a verdict column.
 This is the **test harness** duration, not the production system. Kept here
 so we notice if the gate itself grows too slow to run inside the AI edit loop.
 
-**Totals:** ✓ 27/27 tests · 90.16ms across 1 files
+**Totals:** ✓ 24/33 tests · 293ms across 2 files
 
 Top 10 slowest test files:
 
 | File | Tests | Duration |
 |------|------:|---------:|
-| `chairman-chain.test.ts` | 27 | 90.16ms |
+| `chat-chairman-integration.test.ts` | 6 | 220ms |
+| `chairman-chain.test.ts` | 27 | 73.15ms |
 
 ---
 
-_Report generated 2026-04-18T14:24:30.708Z._
+_Report generated 2026-04-18T14:44:59.197Z._

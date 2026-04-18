@@ -5,7 +5,7 @@
  * Uses D1 as the source of truth for settlement status.
  */
 
-import type { DurableSettlement, EscrowReleasedEvent } from '@/types/escrow-settlement'
+import type { DurableSettlement } from '@/types/escrow-settlement'
 
 // Lazy-load D1 — only available in worker context
 let _db: any = null

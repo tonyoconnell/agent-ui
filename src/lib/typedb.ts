@@ -16,7 +16,12 @@ const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://one-gateway.o
 
 /** Execute a TypeQL query via Cloudflare gateway */
 async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<unknown[]> {
-  // Always route through Cloudflare gateway
+  // Always route through Cloudflare gateway.
+  // Timeout: reads get more headroom than writes. TypeDB 3.x's query
+  // planner can spend 8-15s on compound join/attr-projection queries
+  // (discovery, capability scans). Short writes should still fail
+  // fast so /api/signal and friends don't hang a request.
+  const timeoutMs = txType === 'write' ? 8000 : 30000
   const res = await fetch(`${GATEWAY_URL}/typedb/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -25,7 +30,7 @@ async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<un
       transactionType: txType,
       commit: txType === 'write',
     }),
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(timeoutMs),
   })
 
   if (!res.ok) {

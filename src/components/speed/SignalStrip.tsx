@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { formatMs } from '@/lib/format-ms'
 import { cn } from '@/lib/utils'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -244,11 +245,3 @@ export function SignalStrip({ onJourneyComplete }: Props) {
   )
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatMs(ms: number): string {
-  if (ms < 0.01) return `${(ms * 1000).toFixed(0)}us`
-  if (ms < 1) return `${ms.toFixed(3)}ms`
-  if (ms < 1000) return `${ms.toFixed(1)}ms`
-  return `${(ms / 1000).toFixed(2)}s`
-}

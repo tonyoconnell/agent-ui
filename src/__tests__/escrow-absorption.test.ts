@@ -17,8 +17,6 @@ vi.mock('@/lib/typedb', () => ({
   readParsed: vi.fn(),
 }))
 
-import { writeSilent } from '@/lib/typedb'
-
 describe('Escrow Event Absorption', () => {
   beforeEach(() => {
     vi.clearAllMocks()

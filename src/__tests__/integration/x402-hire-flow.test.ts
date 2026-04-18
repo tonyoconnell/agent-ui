@@ -11,7 +11,7 @@
 
 import { beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { world } from '@/engine/persist'
-import { readParsed, writeSilent } from '@/lib/typedb'
+import { writeSilent } from '@/lib/typedb'
 import type { Payment402Response } from '@/types/escrow'
 
 describe('x402 Hire Flow — 402 Payment Required', () => {
@@ -38,11 +38,11 @@ describe('x402 Hire Flow — 402 Payment Required', () => {
   beforeEach(async () => {
     // Clear pheromone before each test
     try {
-      const net = world()
-      const pathKey = `${buyerUid}→${providerUid}`
+      const _net = world()
+      const _pathKey = `${buyerUid}→${providerUid}`
       // Reset by not having any prior signal delivery
       // (world is module-cached, so we reload for clean state in practice)
-    } catch (e) {
+    } catch (_e) {
       // Expected in fresh env
     }
   })
@@ -84,8 +84,8 @@ describe('x402 Hire Flow — 402 Payment Required', () => {
   test('escrow template is deterministic (same request within 1h)', async () => {
     // Same pheromone state, same request → same template
     // (except deadline_ms increments with wall time, but both should be within 1h)
-    const net = world()
-    const pathKey = `${buyerUid}→${providerUid}`
+    const _net = world()
+    const _pathKey = `${buyerUid}→${providerUid}`
 
     // First request
     const template1 = {

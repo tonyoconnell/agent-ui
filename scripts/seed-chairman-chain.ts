@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * seed-chairman-chain — Bootstrap the chairman → ceo → director → specialists
  * pheromone graph in TypeDB (idempotent).
@@ -24,8 +25,8 @@
  *   - Re-runs show `+0 new actors, +0 new edges`.
  */
 
-import { readdir, readFile } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
+import { readdir, readFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -39,9 +40,7 @@ const RESET = args.includes('--reset')
 const CONFIRMED = args.includes('--confirm')
 const chairmanFlagIdx = args.indexOf('--chairman')
 const CHAIRMAN_UID =
-  chairmanFlagIdx >= 0 && args[chairmanFlagIdx + 1]
-    ? args[chairmanFlagIdx + 1]
-    : process.env.CHAIRMAN_UID || 'chairman'
+  chairmanFlagIdx >= 0 && args[chairmanFlagIdx + 1] ? args[chairmanFlagIdx + 1] : process.env.CHAIRMAN_UID || 'chairman'
 
 if (RESET && !CONFIRMED) {
   console.error('--reset is destructive and requires --confirm')
@@ -194,7 +193,7 @@ async function readAgentMeta(file: string): Promise<AgentMeta | null> {
   try {
     const content = await readFile(file, 'utf-8')
     const fm = parseFrontmatter(content)
-    if (!fm || !fm.name) return null
+    if (!fm?.name) return null
     const name = String(fm.name)
     const group = fm.group ? String(fm.group) : ''
     const tagsRaw = fm.tags
@@ -258,9 +257,7 @@ async function ensureUnit(uid: string, kind: string, tags: string[]): Promise<bo
     return true
   }
   // Check first
-  const existing = parse(
-    await q(`match $u isa unit, has uid "${esc(uid)}"; select $u;`).catch(() => []),
-  )
+  const existing = parse(await q(`match $u isa unit, has uid "${esc(uid)}"; select $u;`).catch(() => []))
   if (existing.length > 0) return false
 
   const tagClauses = tags.map((t) => `has tag "${esc(t)}"`).join(', ')
@@ -424,7 +421,9 @@ if (await markOnce(CHAIRMAN_UID, 'ceo', STRENGTH_CHAIRMAN_CEO, HIRE_TAG)) newEdg
 // 7. Ensure director (unit already exists from syncWorld — ensure tags)
 const beforeDirector = newActors
 if (await ensureUnit(directorUid, 'agent', ['role:director', aliasTag(directorOrigUid)])) newActors++
-console.log(`  director ${directorUid} (alias ${directorOrigUid}): ${newActors > beforeDirector ? 'created' : 'exists'}`)
+console.log(
+  `  director ${directorUid} (alias ${directorOrigUid}): ${newActors > beforeDirector ? 'created' : 'exists'}`,
+)
 
 // 8. ceo → director
 if (await markOnce('ceo', directorUid, STRENGTH_CEO_DIRECTOR, 'marketing')) newEdges++

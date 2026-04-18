@@ -27,6 +27,7 @@ import { getRoleForUser } from '@/lib/api-auth'
 import { getNet } from '@/lib/net'
 import { roleCheck } from '@/lib/role-check'
 import { classifyWithConfidence } from '@/lib/tag-classifier'
+import { readParsed } from '@/lib/typedb'
 
 export const prerender = false
 
@@ -35,10 +36,54 @@ const ASK_TIMEOUT_MS = 30_000
 // Module-level flag so wireChairmanChain runs exactly once per isolate.
 let chainWired = false
 
+/**
+ * Narrow, anchored edge loader. The general load() query in persist.ts scans
+ * the full path table which times out against production TypeDB when there
+ * are many paths. We only need edges from chairman/ceo and whoever they hire,
+ * so query by specific from-uids — anchored queries return fast (~100ms).
+ * Runs on every request but is fast, and results accumulate on the singleton
+ * net.strength so subsequent synthesis + routing see them.
+ */
+async function loadChainEdges(net: PersistentWorld): Promise<void> {
+  const seeds = ['chairman', 'ceo']
+  // Discover directors hired by CEO (from earlier runs that populated seeds).
+  // First pass: known seeds. Second pass: anyone CEO routes to.
+  const rounds = 3
+  const visited = new Set<string>()
+  let frontier = seeds
+  for (let r = 0; r < rounds && frontier.length; r++) {
+    const next = new Set<string>()
+    for (const from of frontier) {
+      if (visited.has(from)) continue
+      visited.add(from)
+      try {
+        const rows = await readParsed(
+          `match $e (source: $f, target: $t) isa path, has strength $s; $f has uid "${from.replace(/"/g, '\\"')}"; $t has uid $tid; select $tid, $s;`,
+        )
+        for (const row of rows) {
+          const to = row.tid as string
+          const strength = row.s as number
+          if (typeof to === 'string' && typeof strength === 'number' && strength > 0) {
+            const edge = `${from}→${to}`
+            if ((net.strength[edge] ?? 0) < strength) net.strength[edge] = strength
+            if (!visited.has(to)) next.add(to)
+          }
+        }
+      } catch {
+        /* TypeDB timeout or parse error — continue with what we have */
+      }
+    }
+    frontier = [...next]
+  }
+}
+
 /** Wire the chain against the singleton world on first use. Idempotent. */
 async function ensureChain(net: PersistentWorld): Promise<void> {
   if (chainWired) return
   chainWired = true
+  // Load edges anchored on chairman/ceo/directors so pickRoute has data
+  // even when the global load() timed out against a large path table.
+  await loadChainEdges(net)
   // Wire routing units (ceo + marketing-director) but do NOT register default
   // specialist leaves here — the endpoint registers per-session leaves below
   // so each request streams to its own SSE writer.
@@ -70,16 +115,21 @@ function wireSessionLeaves(
   }
   const CEO_PROMPT =
     'You are the CEO of the ONE substrate. Your team includes specialists in marketing, SEO, content, ads, analytics, and creative work. For casual greetings, small talk, or unclear requests, reply warmly and briefly (<=80 words), then invite the user to ask about a specific area your team handles. Never pretend to be a specialist — route work to them by naming what they cover.'
+  const DIRECTOR_PROMPT = (uid: string) =>
+    `You are the ${uid} director on the ONE substrate. You route work to specialists, but when a request only has a domain tag (no sub-tag matching a specialist), answer directly and briefly (<=100 words). Explain what your team covers and invite the user to narrow the request. Never pretend to be a specialist.`
+
   for (const uid of targets) {
     const u = net.has(uid) ? net.get(uid)! : net.add(uid)
-    // Skip pure routers (director units) — their route handlers stay as-is;
-    // we only rewire leaves.
-    if (u.has('route') && uid !== 'ceo') continue
+    // Every unit gets a streaming respond handler. Routers (directors, CEO)
+    // also get one so their self-fallback path works when no sub-tag matches.
+    const isCeo = uid === 'ceo'
+    const isRouter = u.has('route')
+    const systemPrompt = isCeo ? CEO_PROMPT : isRouter ? DIRECTOR_PROMPT(uid) : undefined
     u.on(
       'respond',
       leafHandler({
         uid,
-        ...(uid === 'ceo' ? { systemPrompt: CEO_PROMPT } : {}),
+        ...(systemPrompt ? { systemPrompt } : {}),
         onDelta: (tok) => onDelta(uid, tok),
         ...(complete ? { complete } : {}),
       }),
@@ -171,8 +221,7 @@ export const POST: APIRoute = async ({ request }) => {
             const routeMs = performance.now() - tRouteStart
             // Chain reflects actual hops reached. CEO self-fallback stops at ceo;
             // everything else reached through the CEO + a director to the leaf.
-            const chain =
-              uid === 'ceo' ? ['chairman', 'ceo'] : Array.from(new Set(['chairman', 'ceo', uid]))
+            const chain = uid === 'ceo' ? ['chairman', 'ceo'] : Array.from(new Set(['chairman', 'ceo', uid]))
             emit('breadcrumb', {
               chain,
               latencyMs: { classify: Math.round(classifyMs * 100) / 100, route: Math.round(routeMs * 100) / 100 },

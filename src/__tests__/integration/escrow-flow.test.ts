@@ -10,7 +10,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { cancelEscrow, createUnit, releaseEscrow, viewEscrow } from '@/lib/sui'
+import { createUnit, viewEscrow } from '@/lib/sui'
 import { readParsed, write } from '@/lib/typedb'
 
 // Skip in CI: requires SUI_PACKAGE_ID + testnet wallet. Run locally with env set.
@@ -19,7 +19,7 @@ describe.skipIf(!process.env.SUI_PACKAGE_ID)('Escrow Flow (e2e)', () => {
   let workerUid = ''
   let posterUnitId = ''
   let workerUnitId = ''
-  const pathUnitId = ''
+  const _pathUnitId = ''
 
   beforeAll(async () => {
     // Setup: create poster and worker units on Sui + TypeDB
@@ -76,8 +76,8 @@ describe.skipIf(!process.env.SUI_PACKAGE_ID)('Escrow Flow (e2e)', () => {
 
   it('should create escrow successfully', async () => {
     const taskName = 'test-task'
-    const amountMist = 1_000_000_000n // 1 SUI in MIST
-    const deadlineMs = Date.now() + 3600_000 // 1 hour from now
+    const _amountMist = 1_000_000_000n // 1 SUI in MIST
+    const _deadlineMs = Date.now() + 3600_000 // 1 hour from now
 
     // Get path ID from TypeDB
     const paths = await readParsed(`
@@ -105,7 +105,7 @@ describe.skipIf(!process.env.SUI_PACKAGE_ID)('Escrow Flow (e2e)', () => {
   it('should view escrow state', async () => {
     // This would require a created escrow ID
     // For now, verify the viewEscrow function signature is correct
-    const escrowId = '0x' + '0'.repeat(63) + '1' // placeholder invalid ID
+    const escrowId = `0x${'0'.repeat(63)}1` // placeholder invalid ID
     const view = await viewEscrow(escrowId).catch(() => null)
 
     // viewEscrow returns null for non-existent escrows (graceful)

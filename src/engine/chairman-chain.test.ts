@@ -173,7 +173,14 @@ describe('chairman-chain', () => {
   })
 })
 
-describe('chairman-chain CEO low-confidence LLM fallback', () => {
+// LLM-classifier bootstrap disabled: the current `makeCeoRouteHandler` prefers
+// the CEO self-leaf over LLM classification when no pheromone route matches.
+// Routing low-confidence signals to a director that only has sub-tag edges
+// (e.g., 'seo', 'copy' — not 'marketing') caused cascade-dissolves. Self-leaf
+// gives a graceful reply instead. The classifier API is still exported for
+// future reuse; re-enable these tests when directors learn to self-fallback
+// with classifier-bootstrapped subtag edges.
+describe.skip('chairman-chain CEO low-confidence LLM fallback', () => {
   afterEach(() => {
     resetClassifierForTests()
   })
@@ -182,7 +189,7 @@ describe('chairman-chain CEO low-confidence LLM fallback', () => {
   const captureDirectorHop = (
     net: ReturnType<typeof createWorld>,
     directorUid: string,
-  ): { hits: Array<{ data: unknown }> } => {
+  ): Array<{ data: unknown }> => {
     const hits: Array<{ data: unknown }> = []
     const d = net.has(directorUid) ? net.get(directorUid)! : net.add(directorUid)
     d.on('route', (data) => {

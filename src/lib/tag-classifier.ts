@@ -78,8 +78,8 @@ function normalize(s: string): string {
 function hitCount(tokens: string[], norm: string, kw: string): number {
   if (kw.includes(' ')) {
     // Multi-word: substring match with word boundaries via spaces.
-    const padded = ' ' + norm + ' '
-    const needle = ' ' + kw + ' '
+    const padded = ` ${norm} `
+    const needle = ` ${kw} `
     let count = 0
     let idx = padded.indexOf(needle)
     while (idx !== -1) {

@@ -267,14 +267,32 @@ export const world = (): PersistentWorld => {
   // ── Hydration ─────────────────────────────────────────────────────────
 
   const load = async () => {
-    const answers = await read(`
-      match $e (source: $from, target: $to) isa path, has strength $s, has resistance $a;
-      $from has uid $fid; $to has uid $tid; select $fid, $tid, $s, $a;
-    `)
-    for (const row of parseAnswers(answers)) {
-      net.strength[`${row.fid}→${row.tid}`] = row.s as number
-      if ((row.a as number) > 0) net.resistance[`${row.fid}→${row.tid}`] = row.a as number
+    // Two narrower queries instead of one joined query — the joined form
+    // (strength AND resistance in one match) times out against production
+    // TypeDB when the path table is large. Strength alone is fast; resistance
+    // is fetched separately and defaults to 0 when absent.
+    const strengthAnswers = await read(`
+      match $e (source: $from, target: $to) isa path, has strength $s;
+      $from has uid $fid; $to has uid $tid; select $fid, $tid, $s;
+    `).catch(() => '[]')
+    for (const row of parseAnswers(strengthAnswers as unknown[])) {
+      const s = row.s as number
+      if (typeof s === 'number' && s > 0) {
+        net.strength[`${row.fid}→${row.tid}`] = s
+      }
     }
+
+    const resistanceAnswers = await read(`
+      match $e (source: $from, target: $to) isa path, has resistance $a;
+      $from has uid $fid; $to has uid $tid; select $fid, $tid, $a;
+    `).catch(() => '[]')
+    for (const row of parseAnswers(resistanceAnswers as unknown[])) {
+      const a = row.a as number
+      if (typeof a === 'number' && a > 0) {
+        net.resistance[`${row.fid}→${row.tid}`] = a
+      }
+    }
+
     const pending = await read(`
       match (sender: $f, receiver: $to) isa signal, has success false, has data $d;
       $to has uid $tid; select $tid, $d;

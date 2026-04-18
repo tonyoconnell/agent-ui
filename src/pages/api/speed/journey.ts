@@ -178,7 +178,7 @@ export const POST: APIRoute = async ({ request }) => {
 }
 
 function round(n: number): number {
-  return Math.round(n * 1000) / 1000
+  return Math.round(n * 1e6) / 1e6
 }
 
 function sleep(ms: number): Promise<void> {

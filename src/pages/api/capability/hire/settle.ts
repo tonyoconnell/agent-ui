@@ -31,7 +31,6 @@
  */
 
 import type { APIRoute } from 'astro'
-import { auth } from '@/lib/auth'
 import { getPendingSettlement, markFailed, markSettled, storePendingSettlement } from '@/lib/durable-settlement'
 import { verifySuiTx } from '@/lib/sui-verify'
 import { readParsed, writeSilent } from '@/lib/typedb'
@@ -106,7 +105,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Edge: buyer → provider (strength increases on successful settlement)
     const from = originalRequest.buyer
     const to = originalRequest.provider
-    const edge = `${from}→${to}`
+    const _edge = `${from}→${to}`
 
     writeSilent(`
       match

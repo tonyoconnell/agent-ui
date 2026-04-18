@@ -28,6 +28,16 @@ import { loadContext } from './context'
 import type { PersistentWorld } from './persist'
 import type { World } from './world'
 
+// Schema feature flag: reads runtime env first (CF Worker secret binding)
+// then build-time env (Vite). Enables rolling schema migrations without
+// redeploying every caller. Flip to 'true' once the attr is in live TypeDB.
+function readSchemaFlag(name: string): boolean {
+  const fromRuntime = typeof process !== 'undefined' && process.env && process.env[name]
+  const fromBuild = import.meta.env?.[name]
+  const v = (fromRuntime || fromBuild || '').toString().toLowerCase()
+  return v === 'true' || v === '1'
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SCHEMAS — Single source of truth for types, parsing, validation, JSON Schema
 // ═══════════════════════════════════════════════════════════════════════════
@@ -182,8 +192,15 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
     `has reputation 0.0`,
     `has balance 0.0`,
     `has generation 0`,
-    `has data-sensitivity "${sensitivityEnum}"`,
   ]
+
+  // data-sensitivity is gated on schema support. Live TypeDB schemas
+  // pre-ADL don't have the attribute defined; writing it aborts the
+  // whole unit insert with [INF2]. Enable via env once the schema
+  // migration lands: SCHEMA_HAS_DATA_SENSITIVITY=true.
+  if (readSchemaFlag('SCHEMA_HAS_DATA_SENSITIVITY')) {
+    clauseArray.push(`has data-sensitivity "${sensitivityEnum}"`)
+  }
 
   if (spec.adlVersion) {
     clauseArray.push(`has adl-version "${spec.adlVersion}"`)
@@ -218,16 +235,22 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
     })
   }
 
+  // Idempotent unit insert: skip if uid already exists.
+  // Re-sync of the same agent spec is common (edits, redeploys) and
+  // must not trip the @unique constraint on uid.
   queries.push(`
+    match not { $existing isa unit, has uid "${uid}"; };
     insert $u isa unit,
       ${clauseArray.join(',\n      ')};
   `)
 
-  // Group membership
+  // Group membership — only create if not already a member.
   if (spec.group) {
     queries.push(`
-      match $g isa group, has gid "${spec.group}";
-            $u isa unit, has uid "${uid}";
+      match
+        $g isa group, has gid "${spec.group}";
+        $u isa unit, has uid "${uid}";
+        not { (group: $g, member: $u) isa membership; };
       insert (group: $g, member: $u) isa membership, has joined-at ${new Date().toISOString().replace('Z', '')};
     `)
   }
@@ -236,21 +259,33 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
   const allSkills: readonly { name: string; price?: number; tags?: readonly string[]; description?: string }[] =
     spec.skills?.some((s) => s.name === 'hire') ? spec.skills : [...(spec.skills ?? []), { name: 'hire' }]
   for (const skill of allSkills) {
-    const skillId = spec.group ? `${spec.group}:${skill.name}` : skill.name
+    // Skill-id MUST be unique per (agent, skill) pair — the `@unique`
+    // constraint on skill-id means two agents with the same `hire` skill
+    // collide in a non-group setup. Always prefix with the unit's uid so
+    // each agent owns its own skill identity; group-scoped queries can
+    // still filter by the group prefix embedded in uid.
+    const skillId = `${uid}:${skill.name}`
     const skillTags = skill.tags?.map((t) => `has tag "${t}"`).join(', ') || ''
 
-    // Insert skill (if not exists, using match-not-insert pattern)
+    // Idempotent skill insert: only create if not already present.
+    // Repeated syncs of the same agent spec must not re-insert and trip
+    // the uniqueness constraint.
     queries.push(`
+      match not { $existing isa skill, has skill-id "${skillId}"; };
       insert $s isa skill,
         has skill-id "${skillId}",
         has name "${skill.name}",
         has price ${skill.price || 0}${skill.description ? `, has description "${escapeString(skill.description)}"` : ''}${skillTags ? `, ${skillTags}` : ''};
     `)
 
-    // Capability relation
+    // Idempotent capability: only create if this unit doesn't already
+    // offer this skill. Without this guard, repeated syncs pile up
+    // duplicate capability relations, breaking `discover` ranking.
     queries.push(`
-      match $u isa unit, has uid "${uid}";
-            $s isa skill, has skill-id "${skillId}";
+      match
+        $u isa unit, has uid "${uid}";
+        $s isa skill, has skill-id "${skillId}";
+        not { (provider: $u, offered: $s) isa capability; };
       insert (provider: $u, offered: $s) isa capability, has price ${skill.price || 0};
     `)
   }
@@ -300,8 +335,10 @@ export const worldToTypeDB = (spec: WorldSpec): string[] => {
 
 export const syncAgent = async (spec: AgentSpec): Promise<void> => {
   const queries = toTypeDB(spec)
+  // Writes must propagate — swallowing here caused silent partial persist
+  // (skill lands, unit missing) that returned ok:true from the sync route.
   for (const q of queries) {
-    await write(q).catch((e) => console.warn('TypeDB insert:', e.message))
+    await write(q)
   }
 }
 
@@ -363,8 +400,9 @@ export const syncAgentWithIdentity = async (spec: AgentSpec): Promise<AgentSpec>
 
 export const syncWorld = async (spec: WorldSpec): Promise<void> => {
   const queries = worldToTypeDB(spec)
+  // Writes must propagate — see syncAgent for the silent-partial-persist history.
   for (const q of queries) {
-    await write(q).catch((e) => console.warn('TypeDB insert:', e.message))
+    await write(q)
   }
 }
 

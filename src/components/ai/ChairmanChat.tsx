@@ -190,7 +190,7 @@ export function ChairmanChat({
   // Auto-scroll on new message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [])
 
   // -----------------------------------------------------------------------
   // Patch helper — mutate one message in-place

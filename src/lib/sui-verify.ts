@@ -51,7 +51,7 @@ export async function verifySuiTx(
 
     // Parse events
     const events = txBlock.events || []
-    const escrowReleasedEventType = `${packageId}::substrate::EscrowReleased`
+    const _escrowReleasedEventType = `${packageId}::substrate::EscrowReleased`
 
     let foundEvent = null
     for (const event of events) {
@@ -71,7 +71,7 @@ export async function verifySuiTx(
           }
           break
         }
-      } catch (e) {
+      } catch (_e) {
         // Continue to next event
       }
     }
@@ -110,7 +110,7 @@ export async function extractEscrowReleasedEvents(txDigest: string): Promise<Esc
       },
     })
 
-    if (!txBlock || !txBlock.events) return []
+    if (!txBlock?.events) return []
 
     const events: EscrowReleasedEvent[] = []
     for (const event of txBlock.events) {

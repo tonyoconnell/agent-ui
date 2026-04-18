@@ -285,8 +285,9 @@ describe('toTypeDB() — capability relations for skills', () => {
     const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
 
     expect(skillQueries.length).toBe(4) // 3 explicit + 1 auto-injected 'hire'
-    // Without a group, skill-id is just the skill name
-    expect(skillQueries[0]).toContain('has skill-id "lesson"')
+    // skill-id is prefixed with the unit's uid so two agents offering the
+    // same skill name don't collide on the @unique(skill-id) constraint.
+    expect(skillQueries[0]).toContain('has skill-id "spanish-tutor:lesson"')
     expect(skillQueries[0]).toContain('has name "lesson"')
     expect(skillQueries[0]).toContain('has price 0.01')
   })
@@ -311,12 +312,14 @@ describe('toTypeDB() — capability relations for skills', () => {
     expect(capabilityQueries[0]).toContain('has price')
   })
 
-  it('uses group:skillname as skill-id when group is present', () => {
+  it('uses uid:skillname as skill-id when group is present', () => {
     const spec = parse(groupedAgentMarkdown)
     const queries = toTypeDB(spec)
     const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
 
-    expect(skillQueries[0]).toContain('has skill-id "marketing:copywrite"')
+    // uid for a grouped agent is "${group}:${name}", so skill-id becomes
+    // "${group}:${name}:${skill}" — keeps each agent's skill distinct.
+    expect(skillQueries[0]).toContain('has skill-id "marketing:creative:copywrite"')
   })
 
   it('handles agents with no skills gracefully', () => {
@@ -339,7 +342,7 @@ describe('tag extraction flow', () => {
     const queries = toTypeDB(spec)
 
     // Find skill insert and verify tags are present
-    const skillInsert = queries.find((q) => q.includes('has skill-id "lesson"'))
+    const skillInsert = queries.find((q) => q.includes('has skill-id "spanish-tutor:lesson"'))
     expect(skillInsert).toBeDefined()
     expect(skillInsert).toContain('has tag "education"')
     expect(skillInsert).toContain('has tag "spanish"')

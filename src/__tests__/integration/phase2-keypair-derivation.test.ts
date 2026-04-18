@@ -135,6 +135,12 @@ describe('Phase 2.1 — Keypair Derivation (deriveKeypair + addressFor)', () => 
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Phase 2.2 — Agent Sync with Wallet Derivation', () => {
+  // Per-run suffix makes uids unique so the tests can hit live TypeDB without
+  // tripping the @unique(uid) constraint on units left by earlier runs.
+  // Wallet-derivation semantics (determinism, uniqueness, group-namespacing)
+  // are preserved because addressFor(uid) is a pure function of uid.
+  const RUN = Date.now().toString(36)
+
   beforeEach(() => {
     vi.resetModules()
     vi.clearAllMocks()
@@ -145,8 +151,9 @@ describe('Phase 2.2 — Agent Sync with Wallet Derivation', () => {
   it('(2a) syncAgentWithIdentity derives and returns wallet address', async () => {
     const { syncAgentWithIdentity } = await import('@/engine/agent-md')
 
+    const name = `test-agent-${RUN}`
     const spec = {
-      name: 'test-agent',
+      name,
       model: 'gpt-4',
       prompt: 'You are a test agent.',
     }
@@ -156,7 +163,7 @@ describe('Phase 2.2 — Agent Sync with Wallet Derivation', () => {
 
     expect(result.wallet).toBeDefined()
     expect(result.wallet).toMatch(/^0x[0-9a-f]{64}$/)
-    expect(result.name).toBe('test-agent')
+    expect(result.name).toBe(name)
   })
 
   // Test 2b: Same agent spec → same wallet
@@ -164,7 +171,7 @@ describe('Phase 2.2 — Agent Sync with Wallet Derivation', () => {
     const { syncAgentWithIdentity } = await import('@/engine/agent-md')
 
     const spec = {
-      name: 'idempotent-agent',
+      name: `idempotent-agent-${RUN}`,
       model: 'gpt-4',
       prompt: 'Idempotent test.',
     }
@@ -183,14 +190,14 @@ describe('Phase 2.2 — Agent Sync with Wallet Derivation', () => {
 
     const spec = {
       name: 'shared-agent-name',
-      group: 'team-alpha',
+      group: `team-alpha-${RUN}`,
       model: 'gpt-4',
       prompt: 'Team agent.',
     }
 
     const result = await syncAgentWithIdentity(spec as any)
 
-    // UID should be "team-alpha:shared-agent-name" internally
+    // UID should be "team-alpha-<run>:shared-agent-name" internally
     expect(result.wallet).toMatch(/^0x[0-9a-f]{64}$/)
   })
 
@@ -198,16 +205,18 @@ describe('Phase 2.2 — Agent Sync with Wallet Derivation', () => {
   it('(2d) different agent names in same group get different wallets', async () => {
     const { syncAgentWithIdentity } = await import('@/engine/agent-md')
 
+    const group = `team-beta-${RUN}`
+
     const spec1 = {
       name: 'alice',
-      group: 'team-beta',
+      group,
       model: 'gpt-4',
       prompt: 'Alice.',
     }
 
     const spec2 = {
       name: 'bob',
-      group: 'team-beta',
+      group,
       model: 'gpt-4',
       prompt: 'Bob.',
     }

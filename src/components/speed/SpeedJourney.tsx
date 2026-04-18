@@ -180,10 +180,7 @@ function SpeedJourneyContent() {
           liveNumber="strength>20"
         >
           <p>Fifty {markVerb}s. One highway. Seventeen times faster.</p>
-          <RunItBlock
-            command="curl https://dev.one.ie/api/export/highways"
-            description="See live proven paths:"
-          />
+          <RunItBlock command="curl https://dev.one.ie/api/export/highways" description="See live proven paths:" />
         </Stop>
 
         <Stop
@@ -205,10 +202,7 @@ function SpeedJourneyContent() {
         <div className="space-y-3">
           <RunItBlock command="bun vitest run routing.test.ts" description="Run the routing benchmarks:" />
           <RunItBlock command="curl https://api.one.ie/health" description="Check the gateway:" />
-          <RunItBlock
-            command="curl https://dev.one.ie/api/export/highways"
-            description="See live proven paths:"
-          />
+          <RunItBlock command="curl https://dev.one.ie/api/export/highways" description="See live proven paths:" />
         </div>
         {lastMs !== null && (
           <p className="text-sm text-slate-400">

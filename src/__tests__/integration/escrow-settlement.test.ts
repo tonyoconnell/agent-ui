@@ -16,7 +16,7 @@ import type { DurableSettlement } from '@/types/escrow-settlement'
 
 describe('Escrow Settlement (SUI Phase 3 D3)', () => {
   // Test setup: escrow IDs, worker/provider UIDs, etc.
-  const TEST_ESCROW_ID = '0x' + 'a'.repeat(40) // Mock Sui object ID
+  const TEST_ESCROW_ID = `0x${'a'.repeat(40)}` // Mock Sui object ID
   const TEST_TX_DIGEST = 'fT4XKrvYqfRwz7VLqfeFdVrGNQ7NjGdHH1LvPrGGX6s' // Mock TX digest
   const BUYER_UID = 'test-buyer:settle'
   const PROVIDER_UID = 'test-provider:settle'
@@ -38,7 +38,7 @@ describe('Escrow Settlement (SUI Phase 3 D3)', () => {
       // Test: Verify that settlement endpoint validates TX before storing
       // This test would mock the Sui RPC getTransactionBlock() call
 
-      const request = {
+      const _request = {
         escrow_id: TEST_ESCROW_ID,
         proof: {
           tx_digest: TEST_TX_DIGEST,
@@ -123,7 +123,7 @@ describe('Escrow Settlement (SUI Phase 3 D3)', () => {
       // Test: Invalid TX digest or missing EscrowReleased event
       // Expected: 400 response with error message
 
-      const request = {
+      const _request = {
         escrow_id: TEST_ESCROW_ID,
         proof: {
           tx_digest: 'invalid-digest-format',
@@ -144,7 +144,7 @@ describe('Escrow Settlement (SUI Phase 3 D3)', () => {
       // Test: Settlement without original_request (and not in durable storage)
       // Expected: 400 response
 
-      const request = {
+      const _request = {
         escrow_id: TEST_ESCROW_ID,
         proof: {
           tx_digest: TEST_TX_DIGEST,
@@ -178,7 +178,7 @@ describe('Escrow Settlement (SUI Phase 3 D3)', () => {
     it('should store pending settlement in D1', async () => {
       // Test: D1 table has correct schema and settlement can be retrieved
 
-      const settlement: DurableSettlement = {
+      const _settlement: DurableSettlement = {
         id: `settle:${TEST_ESCROW_ID}`,
         escrow_id: TEST_ESCROW_ID,
         tx_digest: TEST_TX_DIGEST,

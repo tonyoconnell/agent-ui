@@ -21,24 +21,65 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   try {
-    // Query: find units with capability for skill, ranked by pheromone strength
-    // Include path strength from any source as a discovery metric
-    const rows = await readParsed(`
+    // TWO-STAGE QUERY (TypeDB 3.x planner fix):
+    //
+    // A single compound match that pulls 6 unit attributes + joins through
+    // capability + filters by skill-name times out at 8s because the planner
+    // tries to scan all capabilities for each unit-attr combination.
+    //
+    // Stage 1: find (uid, skill) pairs for skills matching the param.
+    //          Minimal attribute reads = fast.
+    // Stage 2: fetch unit attrs in bulk, bounded by the uids from stage 1.
+    //          Narrow scan, no cross-join = fast.
+    const pairRows = await readParsed(`
       match
-        $u isa unit,
-          has uid $uid,
-          has name $n,
-          has unit-kind $k,
-          has reputation $rep,
-          has success-rate $sr,
-          has activity-score $activity;
-        (provider: $u, offered: $s) isa capability, has price $p;
-        $s isa skill, has skill-id $sid, has name $sn;
+        $s isa skill, has name $sn, has skill-id $sid;
         $sn contains "${skillParam.toLowerCase()}";
-      select $uid, $n, $k, $rep, $sr, $activity, $sid, $sn, $p;
-      sort $sr desc, $rep desc;
+        (provider: $u, offered: $s) isa capability, has price $p;
+        $u has uid $uid;
+      select $uid, $sid, $sn, $p;
       limit ${limit};
     `).catch(() => [])
+
+    if (pairRows.length === 0) {
+      return new Response(JSON.stringify({ agents: [], skill: skillParam, count: 0 }), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Stage 2: bulk-fetch unit attributes for the uids we just found.
+    const uidsForFetch = [...new Set(pairRows.map((r) => r.uid as string).filter(Boolean))]
+    const uidListLiteral = uidsForFetch.map((u) => `"${u}"`).join(', ')
+    const unitRows = await readParsed(`
+      match
+        $u isa unit, has uid $uid;
+        $uid in [${uidListLiteral}];
+        $u has name $n, has unit-kind $k, has reputation $rep,
+           has success-rate $sr, has activity-score $activity;
+      select $uid, $n, $k, $rep, $sr, $activity;
+    `).catch(() => [])
+
+    // Index unit attrs by uid for the merge.
+    const unitByUid: Record<string, Record<string, unknown>> = {}
+    for (const r of unitRows) {
+      const u = r.uid as string | undefined
+      if (u) unitByUid[u] = r
+    }
+
+    // Merge stage 1 (skill/price) with stage 2 (unit attrs).
+    const rows = pairRows.map((p) => ({
+      uid: p.uid,
+      sid: p.sid,
+      sn: p.sn,
+      p: p.p,
+      ...(unitByUid[p.uid as string] || {
+        n: p.uid,
+        k: 'agent',
+        rep: 0,
+        sr: 0.5,
+        activity: 0,
+      }),
+    }))
 
     if (rows.length === 0) {
       return new Response(

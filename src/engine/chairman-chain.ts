@@ -147,7 +147,18 @@ export const makeRouteHandler =
     const tags = Array.isArray(d.tags) ? d.tags : []
     const chain = d.chain ?? ['chairman']
     const target = firstRoute(net, tags, uid, chain)
-    if (!target) return { dissolved: true } as Dissolved
+    const replyTo = d.replyTo
+    delete d.replyTo // stop world.ts from auto-replying after this hop
+    const nextChain = [...chain, uid]
+
+    if (!target) {
+      // Self-fallback: director answers directly when no sub-tag specialist
+      // matches. A signal with just a domain tag like ['marketing'] would
+      // otherwise dissolve at the director (specialists are tagged by sub-tag,
+      // not domain). Director-as-leaf is better UX than cascading dissolve.
+      send({ receiver: `${uid}:respond`, data: { ...d, chain: nextChain, ...(replyTo && { replyTo }) } })
+      return undefined
+    }
 
     // Scope defense-in-depth: if caller asked for group-scoped routing,
     // reject targets whose uid-prefix (`<group>:<name>`) doesn't match the caller's prefix.
@@ -160,9 +171,6 @@ export const makeRouteHandler =
       }
     }
 
-    const replyTo = d.replyTo
-    delete d.replyTo // stop world.ts from auto-replying after this hop
-    const nextChain = [...chain, uid]
     send({ receiver: `${target}${suffix}`, data: { ...d, chain: nextChain, ...(replyTo && { replyTo }) } })
     return undefined
   }
@@ -215,35 +223,15 @@ const makeCeoRouteHandler =
     const chain = d.chain ?? ['chairman']
 
     // Hot path: zero LLM when pheromone already knows the route.
-    let target = firstRoute(net, tags, uid, chain)
-    let classified: CeoClassifyResult | null = null
+    const target = firstRoute(net, tags, uid, chain)
 
-    if (!target && shouldFallbackToLlm(d)) {
-      const candidates = listDirectors(net, uid)
-      if (candidates.length) {
-        classified = await getActiveClassifier()({
-          content: typeof d.content === 'string' ? d.content : '',
-          availableDirectors: candidates,
-        })
-        // Defense in depth: the classifier validates against `availableDirectors`
-        // internally, but also check here so a stubbed classifier (tests) or a
-        // future race where a director was removed mid-call still dissolves cleanly.
-        const validUids = new Set(candidates.map((c) => c.uid))
-        if (
-          classified &&
-          classified.directorUid !== uid &&
-          !chain.includes(classified.directorUid) &&
-          validUids.has(classified.directorUid)
-        ) {
-          // Mark the tag→director edge so the next same-tag signal is zero-LLM.
-          const edge = `${classified.tag}→${classified.directorUid}`
-          net.mark(edge, CEO_FALLBACK_MARK_STRENGTH)
-          target = classified.directorUid
-        } else {
-          classified = null
-        }
-      }
-    }
+    // LLM-classifier bootstrap intentionally skipped: routing a low-confidence
+    // signal to a director that only has sub-tag edges (e.g., 'seo', 'copy' but
+    // not 'marketing') causes the director to dissolve at its own firstRoute.
+    // The self-fallback below (CEO answers directly) is a better default UX
+    // than cascading dissolves. The classifier path is still callable via
+    // listDirectors + getActiveClassifier for future cycles; the trigger can
+    // be re-enabled when directors learn to self-fallback too.
 
     const replyTo = d.replyTo
     delete d.replyTo
@@ -272,7 +260,7 @@ const makeCeoRouteHandler =
       }
     }
 
-    const forwardedTags = classified ? [classified.tag, ...tags.filter((t) => t !== classified!.tag)] : tags
+    const forwardedTags = tags
     send({
       receiver: `${target}:route`,
       data: { ...d, tags: forwardedTags, chain: nextChain, ...(replyTo && { replyTo }) },
@@ -280,15 +268,24 @@ const makeCeoRouteHandler =
     return undefined
   }
 
+// Direct strength write — bypasses PersistentWorld.mark() which triggers a
+// TypeDB writeSilent + mirrorMark (Sui permission check via canCallSui +
+// 8s TypeDB timeout per call). Seeding runs ~20-30 times per wire; routing
+// through mark() would queue that many bridge checks and block the chat for
+// 100+ seconds. Seeds are routing hints, not economic events — they should
+// not persist to Sui.
+const seedWrite = (net: Net, edge: string, strength: number): void => {
+  const current = net.strength[edge] ?? 0
+  if (current >= strength) return
+  net.strength[edge] = strength
+}
+
 export const seedDirectorTeam = (net: Net, directorUid: string, specialists: Specialist[]): void => {
   for (const sp of specialists) {
     for (const tag of sp.tags) {
-      const edge = `${tag}→${sp.uid}`
-      if (net.sense(edge) >= 0.4) continue
-      net.mark(edge, SEED_STRENGTH)
+      seedWrite(net, `${tag}→${sp.uid}`, SEED_STRENGTH)
     }
-    const teamEdge = `${directorUid}→${sp.uid}`
-    if (net.sense(teamEdge) < 0.4) net.mark(teamEdge, SEED_STRENGTH)
+    seedWrite(net, `${directorUid}→${sp.uid}`, SEED_STRENGTH)
   }
 }
 
@@ -296,8 +293,7 @@ export const createDirector = (net: Net, uid: string, domainTag: string, special
   const u = net.has(uid) ? net.get(uid)! : net.add(uid)
   seedDirectorTeam(net, uid, specialists)
   // Seed self on domain tag so CEO's follow(domainTag) can find this director.
-  const domainEdge = `${domainTag}→${uid}`
-  if (net.sense(domainEdge) < 0.4) net.mark(domainEdge, SEED_STRENGTH)
+  seedWrite(net, `${domainTag}→${uid}`, SEED_STRENGTH)
   u.on('route', makeRouteHandler(net, uid, ':respond'))
   return u
 }
