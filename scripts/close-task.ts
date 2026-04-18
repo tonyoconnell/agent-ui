@@ -121,41 +121,41 @@ try {
     'write',
   )
 } catch {}
-const existing = parse(
-  (
-    await q(`
-  match $from isa unit, has uid "loop"; $to isa unit, has uid "builder";
-    $edge (source: $from, target: $to) isa path, has strength $s;
-  select $s;
-`).catch(() => ({ answers: [] }))
-  ).answers || [],
-)
-
 const delta = 5 // chain depth default — matches selfCheckoff mark strength
-if (existing.length === 0) {
-  await q(
-    `
-    match $from isa unit, has uid "loop"; $to isa unit, has uid "builder";
-    insert (source: $from, target: $to) isa path,
-      has strength ${delta.toFixed(1)}, has resistance 0.0, has traversals 1;
-  `,
-    'write',
-  )
-  console.log(`  ✓ path loop→builder created (strength=${delta})`)
-} else {
-  const cur = existing[0].s as number
-  const next = cur + delta
+// Best-effort pheromone deposit: try update-in-place, fall back to fresh insert,
+// swallow any failure so the cascade-unblock step below always runs. The primary
+// job of close-task.ts is marking done + cascading; the loop→builder pheromone is
+// secondary signal. Direct TypeDB 3.x rejects the delete+insert-attr-in-place
+// pattern that the gateway-routed mark.ts accepts (REP1 variable-type collision);
+// path unique constraint rejects re-insert when the path exists.
+let pheromone = 'skipped'
+try {
   await q(
     `
     match $from isa unit, has uid "loop"; $to isa unit, has uid "builder";
       $edge (source: $from, target: $to) isa path, has strength $s;
     delete $s of $edge;
-    insert $edge has strength ${next.toFixed(1)};
+    insert $edge has strength ($s + ${delta.toFixed(1)});
   `,
     'write',
   )
-  console.log(`  ✓ path loop→builder strength ${cur} → ${next} (+${delta})`)
+  pheromone = `updated +${delta}`
+} catch {
+  try {
+    await q(
+      `
+      match $from isa unit, has uid "loop"; $to isa unit, has uid "builder";
+      insert (source: $from, target: $to) isa path,
+        has strength ${delta.toFixed(1)}, has resistance 0.0, has traversals 1;
+    `,
+      'write',
+    )
+    pheromone = `created =${delta}`
+  } catch {
+    pheromone = 'skipped (path exists, update rejected)'
+  }
 }
+console.log(`  ✓ path loop→builder: ${pheromone}`)
 
 // 3. Find dependents (tasks this one was blocking) and check whether any are now fully unblocked
 const downstream = parse(
