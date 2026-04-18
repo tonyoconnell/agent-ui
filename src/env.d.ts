@@ -1,6 +1,5 @@
 /// <reference types="astro/client" />
-
-type Runtime = import('@astrojs/cloudflare').Runtime<Env>
+/// <reference types="@cloudflare/workers-types" />
 
 interface Env {
   // Cloudflare bindings
@@ -22,8 +21,20 @@ interface Env {
   CLOUDFLARE_GLOBAL_API_KEY?: string
 }
 
+// Astro 6 + @astrojs/cloudflare v13 removed `Astro.locals.runtime.env`.
+// Canonical replacement is `import { env } from 'cloudflare:workers'`.
+// Shim keeps the old `locals?.runtime?.env?.DB` type-legal; callers are
+// already optional-chained and guard on `if (!db)`, so undefined-at-runtime
+// behaves as "no binding" rather than crashing. TODO: migrate callers.
 declare namespace App {
-  interface Locals extends Runtime {
+  interface Locals {
+    runtime?: {
+      env: Env
+      cf?: unknown
+      ctx?: ExecutionContext
+      caches?: CacheStorage
+    }
+    cfContext?: ExecutionContext
     user: { id: string; name: string; email: string } | null
     paths?: Record<string, { strength: number; resistance: number }>
     units?: Record<string, { kind: string; status: string }>

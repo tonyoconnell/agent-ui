@@ -6,8 +6,8 @@
  */
 
 import { Effect, Context, Layer } from "effect";
-import { SuiClient } from "@mysten/sui/client";
-import type { SuiTransactionBlockResponse } from "@mysten/sui/client";
+import { SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
+import type { SuiTransactionBlockResponse } from "@mysten/sui/jsonRpc";
 import { Transaction } from "@mysten/sui/transactions";
 
 // ============================================================
@@ -190,7 +190,7 @@ export const ONEContractService = Context.GenericTag<ONEContractService>(
 // ============================================================
 
 const makeONEContractService = (
-  suiClient: SuiClient,
+  suiClient: SuiJsonRpcClient,
   config: ONEContractConfig,
   signer: { signAndExecuteTransaction: (tx: Transaction) => Promise<SuiTransactionBlockResponse> }
 ): ONEContractService => {
@@ -532,7 +532,7 @@ const makeONEContractService = (
 // ============================================================
 
 export const ONEContractServiceLive = (
-  suiClient: SuiClient,
+  suiClient: SuiJsonRpcClient,
   config: ONEContractConfig,
   signer: { signAndExecuteTransaction: (tx: Transaction) => Promise<SuiTransactionBlockResponse> }
 ) =>

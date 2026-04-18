@@ -770,11 +770,11 @@ await db.insert("events", {
 ```typescript
 // convex/services/providers/sui.ts
 import { Effect, Layer } from "effect";
-import { SuiClient } from "@mysten/sui/client";
+import { SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
 
 export class SuiProvider extends Effect.Service<SuiProvider>()("SuiProvider", {
   effect: Effect.gen(function* () {
-    const client = new SuiClient({ url: process.env.SUI_RPC_URL });
+    const client = new SuiJsonRpcClient({ url: process.env.SUI_RPC_URL, network: "mainnet" });
 
     return {
       // Query methods

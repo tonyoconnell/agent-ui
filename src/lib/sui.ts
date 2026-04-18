@@ -12,7 +12,7 @@
  * Network in env: SUI_NETWORK (testnet | mainnet | devnet)
  */
 
-import { getFullnodeUrl, SuiClient } from '@mysten/sui/client'
+import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 import { Transaction } from '@mysten/sui/transactions'
 
@@ -32,10 +32,10 @@ const SEED_B64 = import.meta.env.SUI_SEED || ''
 // CLIENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-let _client: SuiClient | null = null
+let _client: SuiJsonRpcClient | null = null
 
-export function getClient(): SuiClient {
-  if (!_client) _client = new SuiClient({ url: getFullnodeUrl(NETWORK) })
+export function getClient(): SuiJsonRpcClient {
+  if (!_client) _client = new SuiJsonRpcClient({ url: getJsonRpcFullnodeUrl(NETWORK), network: NETWORK })
   return _client
 }
 

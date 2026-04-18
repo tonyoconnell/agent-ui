@@ -414,7 +414,7 @@ The ONE Platform's protocol-agnostic ontology enables seamless multi-chain suppo
 ```typescript
 // convex/services/providers/blockchain.ts
 import { Effect, Layer } from "effect";
-import { SuiClient } from "@mysten/sui/client";
+import { SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
 import { Connection } from "@solana/web3.js";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
@@ -424,7 +424,7 @@ export class BlockchainProvider extends Effect.Service<BlockchainProvider>()(
   {
     effect: Effect.gen(function* () {
       // Initialize all network clients
-      const sui = new SuiClient({ url: process.env.SUI_RPC_URL });
+      const sui = new SuiJsonRpcClient({ url: process.env.SUI_RPC_URL, network: "mainnet" });
       const solana = new Connection(process.env.SOLANA_RPC_URL);
       const baseClient = createPublicClient({
         chain: base,

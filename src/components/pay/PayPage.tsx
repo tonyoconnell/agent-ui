@@ -6,7 +6,7 @@ import {
   WalletProvider,
 } from '@mysten/dapp-kit'
 import '@mysten/dapp-kit/dist/index.css'
-import { getFullnodeUrl } from '@mysten/sui/client'
+import { getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, useTransition } from 'react'
 import { emitClick } from '@/lib/ui-signal'
@@ -25,8 +25,8 @@ const PLATFORM_FEE = 0.02
 // Stable network config — referenced by identity in SuiClientProvider, so
 // it must be module-level (not re-created on every render).
 const { networkConfig } = createNetworkConfig({
-  testnet: { url: getFullnodeUrl('testnet') },
-  mainnet: { url: getFullnodeUrl('mainnet') },
+  testnet: { url: getJsonRpcFullnodeUrl('testnet'), network: 'testnet' },
+  mainnet: { url: getJsonRpcFullnodeUrl('mainnet'), network: 'mainnet' },
 })
 
 function PayPageContent({ skillId, skillName, price, seller }: Props) {

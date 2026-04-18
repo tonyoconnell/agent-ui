@@ -160,7 +160,7 @@ npm install @mysten/sui
 TypeScript
 
 ```
-import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
+import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { Transaction } from '@mysten/sui/transactions';
 
@@ -176,7 +176,7 @@ export default {
     const { action, payload } = await request.json();
     
     // 1. Setup Connection
-    const client = new SuiClient({ url: getFullnodeUrl('testnet') });
+    const client = new SuiJsonRpcClient({ url: getJsonRpcFullnodeUrl('testnet'), network: 'testnet' });
     const keypair = Ed25519Keypair.fromSecretKey(env.PRIVATE_KEY); // Simplified, usually requires decoding
 
     const tx = new Transaction();
@@ -241,9 +241,9 @@ TypeScript
 
 ```
 // Astro Component (e.g., index.astro)
-import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
+import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc';
 
-const client = new SuiClient({ url: getFullnodeUrl('testnet') });
+const client = new SuiJsonRpcClient({ url: getJsonRpcFullnodeUrl('testnet'), network: 'testnet' });
 const ADMIN_ADDRESS = "0x..."; // Your system wallet address
 
 // Fetch all objects owned by the Admin
@@ -715,12 +715,12 @@ Cloudflare Workers are usually "triggered" by a user request, but for syncing, w
 TypeScript
 
 ```
-import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
+import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc';
 
 export default {
   // This function runs automatically every minute
   async scheduled(event, env, ctx) {
-    const client = new SuiClient({ url: getFullnodeUrl('testnet') });
+    const client = new SuiJsonRpcClient({ url: getJsonRpcFullnodeUrl('testnet'), network: 'testnet' });
 
     // 1. Get the last "Cursor" (Where did we stop last time?)
     // We store this in the DB so we don't re-read old events.
@@ -1292,7 +1292,7 @@ This worker sits between Stripe and Sui.
 TypeScript
 
 ```
-import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
+import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { Transaction } from '@mysten/sui/transactions';
 
@@ -1331,7 +1331,7 @@ export default {
     // 3. THE MAGIC: Sui Transaction
     try {
       // Setup the System Wallet (The "Grader" or "Issuer")
-      const client = new SuiClient({ url: getFullnodeUrl('testnet') });
+      const client = new SuiJsonRpcClient({ url: getJsonRpcFullnodeUrl('testnet'), network: 'testnet' });
       const keypair = Ed25519Keypair.fromSecretKey(env.SYSTEM_PRIVATE_KEY);
 
       const tx = new Transaction();

@@ -674,10 +674,10 @@ sui client publish --gas-budget 100000000
 ### TypeScript Integration
 
 ```typescript
-import { SuiClient } from '@mysten/sui/client'
+import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
 import { Transaction } from '@mysten/sui/transactions'
 
-const client = new SuiClient({ url: 'https://fullnode.testnet.sui.io' })
+const client = new SuiJsonRpcClient({ url: 'https://fullnode.testnet.sui.io', network: 'testnet' })
 const tx = new Transaction()
 
 // Deposit SUI into a unit

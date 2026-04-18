@@ -60,7 +60,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     .prepare(sql)
     .bind(...binds)
     .all()
-    .catch((e) => {
+    .catch((e: unknown) => {
       console.error('[adl denials] query failed:', e)
       return { results: [] as unknown[] }
     })
