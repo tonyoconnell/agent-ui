@@ -151,10 +151,7 @@ export function DiscoverGrid() {
         <div className="flex gap-1.5 mb-8 flex-wrap">
           {topTags.map(([tag, count]) => (
             <button key={tag} type="button" onClick={() => toggleTag(tag)}>
-              <Badge
-                variant={selectedTags.has(tag) ? 'default' : 'outline'}
-                className="cursor-pointer"
-              >
+              <Badge variant={selectedTags.has(tag) ? 'default' : 'outline'} className="cursor-pointer">
                 {tag}
                 <span className="ml-1 opacity-50">{count}</span>
               </Badge>
@@ -307,9 +304,7 @@ function ListingCard({
 
           {/* Run button */}
           <div className="flex items-center justify-between border-t pt-3">
-            <span className="text-[10px] text-muted-foreground">
-              sensitivity · {agent.sensitivity.toFixed(2)}
-            </span>
+            <span className="text-[10px] text-muted-foreground">sensitivity · {agent.sensitivity.toFixed(2)}</span>
             <button
               type="button"
               onClick={() => {
@@ -325,12 +320,7 @@ function ListingCard({
       </Card>
 
       {isOpen && (
-        <AgentAd
-          agentId={agent.id}
-          skill={skill.name}
-          price={skill.price}
-          headline={`${agent.name} — ${skill.name}`}
-        />
+        <AgentAd agentId={agent.id} skill={skill.name} price={skill.price} headline={`${agent.name} — ${skill.name}`} />
       )}
     </div>
   )

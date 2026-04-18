@@ -11,10 +11,10 @@
  */
 
 import { useState, useTransition } from 'react'
-import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAuth } from '@/hooks/useAuth'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 
@@ -115,9 +115,7 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
               onClick={() => switchIntent(value)}
               className={cn(
                 'flex-1 rounded-full px-3 py-1.5 transition-colors',
-                active
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-zinc-400 hover:text-white',
+                active ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white',
               )}
             >
               {label}
@@ -141,7 +139,9 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
         <input type="hidden" name="callbackURL" value={redirect} />
 
         <div className="space-y-1.5">
-          <Label htmlFor="name" className="text-zinc-300">Name</Label>
+          <Label htmlFor="name" className="text-zinc-300">
+            Name
+          </Label>
           <Input
             id="name"
             name="name"
@@ -157,7 +157,9 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email" className="text-zinc-300">Email</Label>
+          <Label htmlFor="email" className="text-zinc-300">
+            Email
+          </Label>
           <Input
             id="email"
             name="email"
@@ -172,7 +174,9 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="password" className="text-zinc-300">Password</Label>
+          <Label htmlFor="password" className="text-zinc-300">
+            Password
+          </Label>
           <Input
             id="password"
             name="password"
@@ -198,10 +202,10 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
                       ? tier === 1
                         ? 'bg-red-500/70'
                         : tier === 2
-                        ? 'bg-amber-500/70'
-                        : tier === 3
-                        ? 'bg-emerald-500/70'
-                        : 'bg-violet-400'
+                          ? 'bg-amber-500/70'
+                          : tier === 3
+                            ? 'bg-emerald-500/70'
+                            : 'bg-violet-400'
                       : 'bg-zinc-800',
                   )}
                 />
@@ -259,10 +263,7 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
         >
           <span className="inline-flex items-center gap-2">
             <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M12 2 4 12l8 10 8-10L12 2zm0 3.4L17.6 12 12 18.6 6.4 12 12 5.4z"
-              />
+              <path fill="currentColor" d="M12 2 4 12l8 10 8-10L12 2zm0 3.4L17.6 12 12 18.6 6.4 12 12 5.4z" />
             </svg>
             Continue with Sui wallet
             <span className="rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-violet-300">
@@ -286,9 +287,14 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
 
       <p className="mt-4 text-center text-[11px] leading-relaxed text-zinc-600">
         By continuing you agree to our{' '}
-        <a href="/terms" className="underline-offset-4 hover:text-zinc-400 hover:underline">terms</a>
-        {' '}and{' '}
-        <a href="/privacy" className="underline-offset-4 hover:text-zinc-400 hover:underline">privacy policy</a>.
+        <a href="/terms" className="underline-offset-4 hover:text-zinc-400 hover:underline">
+          terms
+        </a>{' '}
+        and{' '}
+        <a href="/privacy" className="underline-offset-4 hover:text-zinc-400 hover:underline">
+          privacy policy
+        </a>
+        .
       </p>
     </div>
   )

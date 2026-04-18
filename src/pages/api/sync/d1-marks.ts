@@ -63,7 +63,7 @@ export const POST = async ({ locals }: { locals: any }): Promise<Response> => {
       })
     }
 
-    const { readParsed, writeSilent } = await import('@/lib/typedb')
+    const { writeSilent } = await import('@/lib/typedb')
 
     // 2. For each edge, update TypeDB
     let updatesOk = 0
