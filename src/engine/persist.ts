@@ -166,7 +166,7 @@ export const world = (): PersistentWorld => {
           receiver: 'loop:metrics',
           data: {
             tags: ['revenue:updated', 'L4'],
-            content: { edge, strength, traversals: (net.sense(edge) / strength) || 1 },
+            content: { edge, strength, traversals: net.sense(edge) / strength || 1 },
           },
         },
         'persist',

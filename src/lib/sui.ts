@@ -410,7 +410,121 @@ export async function harden(uid: string, pathObjectId: string): Promise<{ diges
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ESCROW — Lock tokens for async tasks
+// ESCROW TX BUILDERS — Unsigned transaction factories
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Build TX to create an escrow on Sui.
+ * Poster locks amount, worker claims on completion before deadline.
+ *
+ * Args:
+ *   posterUnitId    — Sui object ID of poster's Unit
+ *   workerId        — Sui ID of worker (dest unit)
+ *   taskName        — human task name (e.g., "research")
+ *   amountMist      — amount in MIST (1 SUI = 1e9 MIST)
+ *   deadlineMs      — absolute deadline in milliseconds
+ *   pathId          — Sui ID of the path to mark/warn on settle
+ *
+ * Returns: Transaction object, unsigned.
+ * Caller invokes signAndExecute(tx, keypair) after obtaining keypair.
+ */
+export function createEscrowTx(
+  posterUnitId: string,
+  workerId: string,
+  taskName: string,
+  amountMist: number,
+  deadlineMs: number,
+  pathId: string,
+): Transaction {
+  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
+  if (amountMist <= 0) throw new Error('amount must be positive')
+  if (deadlineMs <= Date.now()) throw new Error('deadline must be in future')
+
+  const tx = new Transaction()
+  tx.moveCall({
+    target: `${PACKAGE_ID}::substrate::create_escrow`,
+    arguments: [
+      tx.object(posterUnitId), // &mut Unit poster
+      tx.pure.id(workerId), // worker_id: ID
+      tx.pure.string(taskName), // task_name: String
+      tx.pure.u64(amountMist), // amount: u64
+      tx.pure.u64(deadlineMs), // deadline: u64 (ms timestamp)
+      tx.pure.id(pathId), // path_id: ID
+    ],
+  })
+
+  return tx
+}
+
+/**
+ * Build TX to release escrow to worker. Task completed successfully.
+ * Atomic: worker receives payment, path marked (strength+1, hits+1),
+ * protocol fee (50 bps) collected.
+ *
+ * Preconditions (enforced on-chain):
+ *   - clock::timestamp_ms(clock) <= escrow.deadline (not expired)
+ *   - signer must be the worker (object::id(worker) == escrow.worker)
+ *
+ * Args:
+ *   escrowId      — Sui object ID of Escrow shared object
+ *   workerUnitId  — Sui object ID of worker's Unit
+ *   pathId        — Sui object ID of the path to mark
+ *
+ * Returns: Transaction object, unsigned.
+ */
+export function releaseEscrowTx(escrowId: string, workerUnitId: string, pathId: string): Transaction {
+  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
+  if (!PROTOCOL_ID) throw new Error('SUI_PROTOCOL_ID not configured')
+
+  const tx = new Transaction()
+  tx.moveCall({
+    target: `${PACKAGE_ID}::substrate::release_escrow`,
+    arguments: [
+      tx.object(escrowId), // escrow: Escrow (mutable shared object)
+      tx.object(workerUnitId), // &mut Unit worker
+      tx.object(pathId), // &mut Path path
+      tx.object(PROTOCOL_ID), // &mut Protocol protocol
+      tx.object('0x6'), // &Clock (shared object)
+    ],
+  })
+
+  return tx
+}
+
+/**
+ * Build TX to cancel escrow. Deadline has passed. Bounty returns to poster.
+ * Path is warned (resistance+1, misses+1).
+ *
+ * Preconditions (enforced on-chain):
+ *   - clock::timestamp_ms(clock) > escrow.deadline (expired)
+ *   - signer must be the poster (object::id(poster) == escrow.poster)
+ *
+ * Args:
+ *   escrowId      — Sui object ID of Escrow shared object
+ *   posterUnitId  — Sui object ID of poster's Unit
+ *   pathId        — Sui object ID of the path to warn
+ *
+ * Returns: Transaction object, unsigned.
+ */
+export function cancelEscrowTx(escrowId: string, posterUnitId: string, pathId: string): Transaction {
+  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
+
+  const tx = new Transaction()
+  tx.moveCall({
+    target: `${PACKAGE_ID}::substrate::cancel_escrow`,
+    arguments: [
+      tx.object(escrowId), // escrow: Escrow (mutable shared object)
+      tx.object(posterUnitId), // &mut Unit poster
+      tx.object(pathId), // &mut Path path
+      tx.object('0x6'), // &Clock (shared object)
+    ],
+  })
+
+  return tx
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ESCROW — Sign + execute convenience wrappers
 // ═══════════════════════════════════════════════════════════════════════════
 
 export async function createEscrow(
@@ -422,22 +536,8 @@ export async function createEscrow(
   deadlineMs: number,
   pathObjectId: string,
 ): Promise<{ digest: string; escrowId: string }> {
-  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
-
   const keypair = await deriveKeypair(posterUid)
-  const tx = new Transaction()
-
-  tx.moveCall({
-    target: `${PACKAGE_ID}::substrate::create_escrow`,
-    arguments: [
-      tx.object(posterUnitObjectId),
-      tx.pure.id(workerUnitObjectId),
-      tx.pure.string(taskName),
-      tx.pure.u64(amount),
-      tx.pure.u64(deadlineMs),
-      tx.pure.id(pathObjectId),
-    ],
-  })
+  const tx = createEscrowTx(posterUnitObjectId, workerUnitObjectId, taskName, amount, deadlineMs, pathObjectId)
 
   const result = await signAndExecute(tx, keypair)
   const created = (result.effects as any)?.created || []
@@ -453,23 +553,8 @@ export async function releaseEscrow(
   workerUnitObjectId: string,
   pathObjectId: string,
 ): Promise<{ digest: string }> {
-  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
-  if (!PROTOCOL_ID) throw new Error('SUI_PROTOCOL_ID not configured')
-
   const keypair = await deriveKeypair(workerUid)
-  const tx = new Transaction()
-
-  tx.moveCall({
-    target: `${PACKAGE_ID}::substrate::release_escrow`,
-    arguments: [
-      tx.object(escrowObjectId),
-      tx.object(workerUnitObjectId),
-      tx.object(pathObjectId),
-      tx.object(PROTOCOL_ID),
-      tx.object('0x6'), // Clock
-    ],
-  })
-
+  const tx = releaseEscrowTx(escrowObjectId, workerUnitObjectId, pathObjectId)
   return signAndExecute(tx, keypair)
 }
 
@@ -479,21 +564,8 @@ export async function cancelEscrow(
   posterUnitObjectId: string,
   pathObjectId: string,
 ): Promise<{ digest: string }> {
-  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
-
   const keypair = await deriveKeypair(posterUid)
-  const tx = new Transaction()
-
-  tx.moveCall({
-    target: `${PACKAGE_ID}::substrate::cancel_escrow`,
-    arguments: [
-      tx.object(escrowObjectId),
-      tx.object(posterUnitObjectId),
-      tx.object(pathObjectId),
-      tx.object('0x6'), // Clock
-    ],
-  })
-
+  const tx = cancelEscrowTx(escrowObjectId, posterUnitObjectId, pathObjectId)
   return signAndExecute(tx, keypair)
 }
 
@@ -565,6 +637,9 @@ export default {
   pay,
   createPath,
   harden,
+  createEscrowTx,
+  releaseEscrowTx,
+  cancelEscrowTx,
   createEscrow,
   releaseEscrow,
   cancelEscrow,

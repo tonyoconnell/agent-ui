@@ -72,7 +72,8 @@ export const GET = async ({ locals, url }: { locals: any; url: URL }): Promise<R
       WHERE ts >= ?
     `,
       )
-      .bind(startTime).all()
+      .bind(startTime)
+      .all()
     if (throughputRows.results && throughputRows.results.length > 0) {
       const r = throughputRows.results[0] as Record<string, number>
       result.throughput.total_marks = r.mark_count || 0
@@ -96,7 +97,8 @@ export const GET = async ({ locals, url }: { locals: any; url: URL }): Promise<R
       LIMIT 10
     `,
       )
-      .bind(startTime).all()
+      .bind(startTime)
+      .all()
     if (hotRows.results) {
       result.hotPaths = (hotRows.results as any[]).map((r) => ({
         edge: r.edge,
@@ -128,7 +130,8 @@ export const GET = async ({ locals, url }: { locals: any; url: URL }): Promise<R
       ) grouped
     `,
       )
-      .bind(startTime).all()
+      .bind(startTime)
+      .all()
     if (velocityRows.results && velocityRows.results.length > 0) {
       const r = velocityRows.results[0] as Record<string, number>
       result.velocity.new_edges_created = r.edge_count || 0
@@ -152,7 +155,8 @@ export const GET = async ({ locals, url }: { locals: any; url: URL }): Promise<R
       LIMIT 20
     `,
       )
-      .bind(startTime).all()
+      .bind(startTime)
+      .all()
     if (toxicRows.results) {
       result.toxic = (toxicRows.results as any[]).map((r) => ({
         edge: r.edge,

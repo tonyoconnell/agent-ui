@@ -173,8 +173,35 @@ relation wallet-link,
     relates substrate,
     relates external;
 
+# ESCROW SETTLEMENT — locked payment for async tasks (Sui Phase 3)
+entity escrow,
+    owns sui-escrow-id @key,              # Sui object ID (0x...)
+    owns escrow-status,                   # "created", "released", "cancelled"
+    owns escrow-amount,                   # initial amount in SUI
+    owns escrow-task,                     # task name
+    owns escrow-created-ms,               # timestamp when created
+    owns escrow-released-ms,              # timestamp when released (settled)
+    owns escrow-cancelled-ms,             # timestamp when cancelled (refunded)
+    owns escrow-payment-amount,           # amount paid to worker (after fee)
+    owns escrow-refund-amount;            # amount refunded to poster
+
+relation escrow-parties,
+    relates creator,                      # poster unit
+    relates recipient;                    # worker unit
+
+attribute sui-escrow-id, value string;
+attribute escrow-status, value string;
+attribute escrow-amount, value double;
+attribute escrow-task, value string;
+attribute escrow-created-ms, value integer;
+attribute escrow-released-ms, value integer;
+attribute escrow-cancelled-ms, value integer;
+attribute escrow-payment-amount, value double;
+attribute escrow-refund-amount, value double;
+
 # =============================================================================
-# 6 dimensions. 4 entities. 6 relations. 40 attributes. ONE.
+# 6 dimensions. 5 entities. 7 relations. 50 attributes. ONE.
 # Governance layer locked: role on membership, wallet+auth-hash on actor,
 # scope on path+hypothesis. Permission = Role × Pheromone.
+# Escrow layer: sui-escrow-id on escrow, status tracking for settlement audit.
 # =============================================================================

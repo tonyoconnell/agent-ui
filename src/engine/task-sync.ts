@@ -30,12 +30,15 @@ async function ensureBuilder() {
   `)
 }
 
-/** Render insert block for one task — used inside a packed batch query */
-function renderTaskInsert(task: Task, idx: number): string {
+/** Render insert block for one task — used inside a packed batch query.
+ *  When `skipSkill` is true, we only insert the task entity; the skill +
+ *  capability are assumed to exist (orphan-skill case from a prior sync).
+ *  Required because `skill-id` is a unique key — re-inserting it throws CNT9. */
+function renderTaskInsert(task: Task, idx: number, skipSkill = false): string {
   const tags = [...new Set(task.tags)].map((t) => `has tag "${esc(t)}"`).join(', ')
   const nameEsc = esc(task.name).slice(0, 200)
   const contextStr = task.context?.length ? `has task-context "${esc(task.context.join(','))}",` : ''
-  return `
+  const taskBlock = `
     $t${idx} isa task,
       has task-id "${esc(task.id)}",
       has name "${nameEsc}",
@@ -52,16 +55,18 @@ function renderTaskInsert(task: Task, idx: number): string {
       ${task.exit ? `has exit-condition "${esc(task.exit)}",` : ''}
       has done ${task.done},
       ${tags ? `${tags},` : ''}
-      has created ${new Date().toISOString().replace('Z', '')};
+      has created ${new Date().toISOString().replace('Z', '')};`
+  if (skipSkill) return taskBlock
+  return `${taskBlock}
     $s${idx} isa skill, has skill-id "${esc(task.id)}", has name "${nameEsc}",
       ${tags ? `${tags},` : ''} has price 0.0, has currency "SUI";
     (provider: $u, offered: $s${idx}) isa capability, has price 0.0;`
 }
 
 /** Insert a packed batch of tasks in one TypeDB round-trip */
-async function insertTaskBatch(batch: Task[]): Promise<number> {
+async function insertTaskBatch(batch: Task[], existingSkills: Set<string>): Promise<number> {
   if (batch.length === 0) return 0
-  const inserts = batch.map((t, i) => renderTaskInsert(t, i)).join('\n')
+  const inserts = batch.map((t, i) => renderTaskInsert(t, i, existingSkills.has(t.id))).join('\n')
   try {
     await write(`
       match $u isa unit, has uid "${UNIT_ID}";
@@ -75,7 +80,7 @@ async function insertTaskBatch(batch: Task[]): Promise<number> {
       try {
         await write(`
           match $u isa unit, has uid "${UNIT_ID}";
-          insert ${renderTaskInsert(t, 0)}
+          insert ${renderTaskInsert(t, 0, existingSkills.has(t.id))}
         `)
         ok++
       } catch {}
@@ -128,9 +133,16 @@ async function insertBlocks(tasks: Task[]): Promise<number> {
 export async function syncTasks(tasks: Task[]): Promise<{ synced: number; blocks: number; errors: number }> {
   await ensureBuilder()
 
-  // Skip tasks that already exist OR are currently claimed (status="active")
-  const existingRows = await readParsed(`match $t isa task, has task-id $id; select $id;`).catch(() => [])
+  // Skip tasks that already exist OR are currently claimed (status="active").
+  // Also fetch existing skill-ids so we can skip the skill+capability portion
+  // when a prior run landed the skill but not the task (orphan-skill case —
+  // otherwise the skill-id unique-key constraint throws CNT9 on retry).
+  const [existingRows, existingSkillRows] = await Promise.all([
+    readParsed(`match $t isa task, has task-id $id; select $id;`).catch(() => []),
+    readParsed(`match $s isa skill, has skill-id $id; select $id;`).catch(() => []),
+  ])
   const activeIds = new Set(existingRows.map((r) => r.id as string))
+  const existingSkills = new Set(existingSkillRows.map((r) => r.id as string))
 
   let synced = 0
   let errors = 0
@@ -139,7 +151,7 @@ export async function syncTasks(tasks: Task[]): Promise<{ synced: number; blocks
   const pending = tasks.filter((t) => !activeIds.has(t.id))
   for (let i = 0; i < pending.length; i += TASKS_PER_QUERY) {
     const batch = pending.slice(i, i + TASKS_PER_QUERY)
-    const ok = await insertTaskBatch(batch)
+    const ok = await insertTaskBatch(batch, existingSkills)
     synced += ok
     errors += batch.length - ok
   }

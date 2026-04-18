@@ -28,8 +28,9 @@ export const POST: APIRoute = async () => {
     await syncAgentWithIdentity(parse(markdown))
   }
 
-  // Fan out via in-memory signal routing
-  net.signal({ receiver: 'ceo:build-team', data: {} })
+  // Fan out via ask so the response reflects actual signal output
+  const outcome = await net.ask({ receiver: 'ceo:build-team', data: {} })
+  const building = (outcome.result as { building?: string[] })?.building ?? ['cto', 'cmo', 'cfo']
 
-  return Response.json({ ok: true, building: ['cto', 'cmo', 'cfo'] })
+  return Response.json({ ok: true, building })
 }

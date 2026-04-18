@@ -9,7 +9,7 @@
  * 5. Treasury unit — registered and collects fees
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 describe('L4 Economic — Five Blockers Unblocked', () => {
   // Blocker 1: Memory pricing gates

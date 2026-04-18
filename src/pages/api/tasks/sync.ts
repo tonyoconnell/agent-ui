@@ -21,7 +21,7 @@
  * After that, this endpoint is fully deterministic.
  */
 import type { APIRoute } from 'astro'
-import { EFFORT_MODEL, effectivePriority, WAVE_MODEL, type Effort } from '@/engine/task-parse'
+import { EFFORT_MODEL, type Effort, effectivePriority, WAVE_MODEL } from '@/engine/task-parse'
 import { readParsed } from '@/lib/typedb'
 
 /** FNV-1a hash for KV write comparison */

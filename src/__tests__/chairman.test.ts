@@ -46,6 +46,8 @@ describe('chairman engine', () => {
       const outcome = await net.ask({ receiver: 'agent:hire', data: { role: 'cto' } })
       expect(syncAgentWithIdentity).toHaveBeenCalledOnce()
       expect(outcome.result).toBe('roles:cto')
+      // pheromone: hiring path must strengthen on success
+      expect(net.sense('agent→roles:cto')).toBeGreaterThan(0)
     })
   })
 

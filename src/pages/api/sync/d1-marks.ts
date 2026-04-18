@@ -124,7 +124,8 @@ export const POST = async ({ locals }: { locals: any }): Promise<Response> => {
         DELETE FROM marks WHERE synced = 1 AND ts < ?
       `,
         )
-        .bind(sevenDaysAgo).all()
+        .bind(sevenDaysAgo)
+        .all()
       console.log(`[d1-sync] cleaned up ${cleanupResult?.meta?.duration || 0} old marks`)
     } catch (err) {
       console.error('[d1-sync] cleanup failed:', err)

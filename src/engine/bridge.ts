@@ -315,6 +315,15 @@ export async function absorb(cursor?: string): Promise<{ count: number; cursor: 
       case 'PaymentSent':
         await absorbPayment(d)
         break
+      case 'EscrowCreated':
+        await absorbEscrowCreated(d)
+        break
+      case 'EscrowReleased':
+        await absorbEscrowReleased(d)
+        break
+      case 'EscrowCancelled':
+        await absorbEscrowCancelled(d)
+        break
     }
   }
 
@@ -375,6 +384,60 @@ async function absorbPayment(d: Record<string, unknown>) {
     $e (source: $from, target: $to) isa path, has revenue $r;
     delete $r of $e;
     insert $e has revenue ($r + ${amount / 1e9});
+  `)
+}
+
+async function absorbEscrowCreated(d: Record<string, unknown>) {
+  const escrowId = d.escrow_id as string
+  const posterId = d.poster as string
+  const workerId = d.worker as string
+  const bounty = Number(d.bounty || 0)
+  const task = (d.task as string) || ''
+  const timestampMs = Date.now()
+
+  // Write escrow state to TypeDB for audit trail
+  // Fire-and-forget: don't block on TypeDB write
+  writeSilent(`
+    match $poster isa unit, has sui-unit-id "${posterId}";
+    $worker isa unit, has sui-unit-id "${workerId}";
+    insert $escrow isa escrow,
+      has sui-escrow-id "${escrowId}",
+      has escrow-status "created",
+      has escrow-amount ${bounty / 1e9},
+      has escrow-task "${task}",
+      has escrow-created-ms ${timestampMs};
+    insert (creator: $poster, recipient: $worker) isa escrow-parties;
+  `)
+}
+
+async function absorbEscrowReleased(d: Record<string, unknown>) {
+  const escrowId = d.escrow_id as string
+  const amount = Number(d.amount || 0)
+  const timestampMs = Date.now()
+
+  // Mark escrow as settled in TypeDB
+  // Amount is the payment received by worker (after protocol fee)
+  writeSilent(`
+    match $e isa escrow, has sui-escrow-id "${escrowId}", has escrow-status $old_status;
+    delete $old_status of $e;
+    insert $e has escrow-status "released",
+      has escrow-released-ms ${timestampMs},
+      has escrow-payment-amount ${amount / 1e9};
+  `)
+}
+
+async function absorbEscrowCancelled(d: Record<string, unknown>) {
+  const escrowId = d.escrow_id as string
+  const amount = Number(d.amount || 0)
+  const timestampMs = Date.now()
+
+  // Mark escrow as cancelled (refunded) in TypeDB
+  writeSilent(`
+    match $e isa escrow, has sui-escrow-id "${escrowId}", has escrow-status $old_status;
+    delete $old_status of $e;
+    insert $e has escrow-status "cancelled",
+      has escrow-cancelled-ms ${timestampMs},
+      has escrow-refund-amount ${amount / 1e9};
   `)
 }
 
