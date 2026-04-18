@@ -341,7 +341,7 @@ function loadCredentials(): Record<string, string> {
 
 function smokeCheck() {
   const checks = [
-    { name: 'Pages dist/', path: join(ROOT, 'dist', '_worker.js') },
+    { name: 'Worker dist/', path: join(ROOT, 'dist', '_worker.js', 'index.js') },
     { name: 'Gateway config', path: join(ROOT, 'gateway', 'wrangler.toml') },
     { name: 'Sync config', path: join(ROOT, 'workers/sync', 'wrangler.toml') },
     { name: 'NanoClaw config', path: join(ROOT, 'nanoclaw', 'wrangler.toml') },
@@ -375,7 +375,7 @@ async function approve(branch: string): Promise<boolean> {
   console.log(`    • Gateway     (api.one.ie)`)
   console.log(`    • Sync        (one-sync.oneie.workers.dev)`)
   console.log(`    • NanoClaw    (nanoclaw.oneie.workers.dev)`)
-  console.log(`    • Pages       (one-substrate.pages.dev)`)
+  console.log(`    • Astro Worker (one-substrate — was Pages, mid-migration)`)
   console.log()
 
   if (DRY_RUN) {
@@ -433,8 +433,11 @@ async function deployService(
   const versionMatch = result.stdout.match(/Version ID:\s*([a-f0-9-]+)/i)
   const version = versionMatch ? (versionMatch[1]?.slice(0, 12) ?? '?') : '?'
 
-  // Pages outputs a preview URL like "https://b7746117.one-substrate.pages.dev"
-  const previewMatch = result.stdout.match(/https:\/\/([a-f0-9]+)\.one-substrate\.pages\.dev/)
+  // Workers deploy outputs URLs like "https://one-substrate.<account>.workers.dev"
+  // (Legacy Pages format was "https://<hash>.one-substrate.pages.dev" — matched for backward compat.)
+  const previewMatch =
+    result.stdout.match(/https:\/\/[\w-]+\.workers\.dev/) ??
+    result.stdout.match(/https:\/\/[a-f0-9]+\.one-substrate\.pages\.dev/)
   const previewUrl = previewMatch ? previewMatch[0] : undefined
 
   return { name, elapsed, version, previewUrl }
@@ -473,20 +476,17 @@ async function deployAll(creds: Record<string, string>): Promise<DeployResult[]>
     c.gray(`  (parallel total: ${workerElapsed}ms — vs ~${workers.reduce((a, b) => a + b.elapsed, 0)}ms sequential)`),
   )
 
-  // Pages deploys last so workers back it.
-  console.log(c.gray(`  → Pages...`))
-  const pages = await deployService(
-    'Pages',
-    ROOT,
-    ['pages', 'deploy', 'dist/', '--project-name=one-substrate', '--commit-dirty=true'],
-    env,
-  )
-  console.log(c.green(`  ✓ ${pages.name}`) + c.gray(` (${pages.elapsed}ms)`))
-  if (pages.previewUrl) {
-    console.log(c.blue(`    📎 Preview: ${pages.previewUrl}`))
+  // Main Astro worker deploys last so sibling workers (Gateway/Sync/NanoClaw)
+  // back it. Reads config from wrangler.toml — project name, assets, bindings.
+  // (Was `wrangler pages deploy` before the Pages → Workers migration.)
+  console.log(c.gray(`  → Astro Worker...`))
+  const astroWorker = await deployService('Worker', ROOT, ['deploy'], env)
+  console.log(c.green(`  ✓ ${astroWorker.name}`) + c.gray(` (${astroWorker.elapsed}ms)`))
+  if (astroWorker.previewUrl) {
+    console.log(c.blue(`    📎 Preview: ${astroWorker.previewUrl}`))
   }
 
-  return [...workers, pages]
+  return [...workers, astroWorker]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
