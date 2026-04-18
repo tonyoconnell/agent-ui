@@ -465,12 +465,15 @@ async function deployAll(creds: Record<string, string>): Promise<DeployResult[]>
   }
 
   // Workers are independent — parallelize for ~3× speedup.
+  // Pass `--config wrangler.toml` explicitly so wrangler 4.x doesn't traverse
+  // up to the root's `.wrangler/deploy/config.json` (created by `astro build`)
+  // and refuse to deploy with a "found both configs" error.
   console.log(c.gray(`  → Gateway, Sync, NanoClaw (parallel)...`))
   const workerStart = Date.now()
   const workers = await Promise.all([
-    deployService('Gateway', join(ROOT, 'gateway'), ['deploy'], env),
-    deployService('Sync', join(ROOT, 'workers/sync'), ['deploy'], env),
-    deployService('NanoClaw', join(ROOT, 'nanoclaw'), ['deploy'], env),
+    deployService('Gateway', join(ROOT, 'gateway'), ['deploy', '--config', 'wrangler.toml'], env),
+    deployService('Sync', join(ROOT, 'workers/sync'), ['deploy', '--config', 'wrangler.toml'], env),
+    deployService('NanoClaw', join(ROOT, 'nanoclaw'), ['deploy', '--config', 'wrangler.toml'], env),
   ])
   const workerElapsed = Date.now() - workerStart
 
