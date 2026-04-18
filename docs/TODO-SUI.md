@@ -171,11 +171,21 @@ Once Steps 1-5 are done and we have real on-chain state, these open up:
 ## Summary
 
 ```
-Steps 1-5 (testnet):     33 done, 0 open ← TESTNET COMPLETE
-Phase 2 (identity):      0 done, 6 open ← IN FLIGHT
-Phases 3-6 (after P2):   0 done, 22 open
+Steps 1-5 (testnet):     33 done, 0 open ← TESTNET COMPLETE (2026-04-14)
+Phase 2 (identity):      6 done, 0 open ← COMPLETE (2026-04-18)
+  ✓ deriveKeypair(uid) + addressFor(uid): deterministic Ed25519 derivation
+  ✓ syncAgentWithIdentity(): wallet sync on agent creation
+  ✓ 14 tests pass: determinism + uniqueness + idempotency verified
+Phase 3 (escrow):        0 done, 6 open ← W2 DECISIONS LOCKED, W3-W4 READY (2026-04-18)
+  ├─ Create escrow on-chain (lock SUI for async tasks)
+  ├─ Release on success (payment + mark + 50 bps fee, atomic)
+  ├─ Cancel on timeout (tokens return, path warned)
+  ├─ x402 HTTP flow (402 → fund → execute → release)
+  ├─ Multi-hop payment chains
+  └─ Multi-currency (USDC, FET)
+Phases 4-6 (after P3):   0 done, 16 open
 ──────────────────────────────────────────
-Total: 33 done, 28 open
+Total: 39 done, 22 open
 ```
 
 ---

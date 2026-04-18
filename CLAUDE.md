@@ -85,12 +85,17 @@ learning are the same mechanism: warn() is simultaneously a firewall and a lesso
 L1 SIGNAL     per message     signal → ask → outcome
 L2 TRAIL      per outcome     mark/warn → strength/resistance accumulates
 L3 FADE       every 5 min     asymmetric decay (resistance forgives 2x faster)
-L4 ECONOMIC   per payment     revenue on paths (capability price)
-L5 EVOLUTION  every 10 min    rewrite struggling agent prompts (24h cooldown)
-L6 KNOWLEDGE  every hour      know highways + auto-hypothesize
-L7 FRONTIER   every hour      detect unexplored tag clusters
+L4 ECONOMIC   per payment     revenue on paths (capability price) — all 5 blockers unblocked (2026-04-18)
+L5 EVOLUTION  every 10 min    rewrite struggling agent prompts (24h cooldown) + emit :success signal to treasury
+L6 KNOWLEDGE  every hour      know highways + auto-hypothesize + fire reflexes on confirmed patterns
+L7 FRONTIER   every hour      detect unexplored tag clusters + hypothesis reflex chain closes learning loop
 L8 SURFACES   per deploy      verify SEO/a11y/meta tags on live site (non-blocking)
 ```
+
+**L4-L7 Integration Status (2026-04-18):**
+- **L4 blockers:** Memory pricing gates ✅ · L5 signals ✅ · Toxicity exposure ✅ · Revenue feedback ✅ · Treasury fee ✅
+- **L6-L7 C2:** Hypothesis reflexes ✅ (confirmed patterns auto-warn toxic paths, 12/12 tests)
+- **Escrow settlement:** 50 bps protocol fee, Phase 3 W2 decisions locked, ready for W3-W4 implementation
 
 ### Four Outcome Types
 
@@ -161,10 +166,13 @@ persist()
 **Signal scope:** `private | group | public` — private signals never surface in group queries or `know()`.
 **Hypothesis source:** `observed | asserted | verified` — asserted confidence capped at 0.30 until corroborated.
 
-**Governance (locked 2026-04-18):** Permission = Role × Pheromone. No ACL table — the graph IS the security model.
+**Governance & Memory (locked 2026-04-18):** Permission = Role × Pheromone. No ACL table — the graph IS the security model.
 - **Roles on membership:** `chairman` (all) · `board` (read-only) · `ceo` (hire/fire/tune) · `operator` (add/mark) · `agent` (own paths) · `auditor` (read-only)
+- **Memory actions (C4):** `read_memory` (board+) · `delete_memory` (operator+) · `discover` (all)
 - **Identity on actor:** `wallet` (Sui address) · `auth-hash` (bcrypt API key hash)
 - **Scope on path/hypothesis:** `private` (sender+receiver) · `group` (members) · `public` (cross-org, Sui-hardenable)
+- **Memory routes (GDPR):** `GET /api/memory/reveal/:uid` (read-memory) · `DELETE /api/memory/forget/:uid` (delete-memory, audit logged) · `GET /api/memory/frontier/:uid` (discover)
+- **Federation:** `recall({federated: true})` filters scope (excludes private hypotheses from other worlds)
 - **Key functions:** `roleCheck(role, action)` in `src/lib/role-check.ts` · `getRoleForUser(uid)` in `src/lib/api-auth.ts` · `hasPathRelationship(uid, from, to)` in `src/engine/persist.ts`
 - **Governance UI:** `/ceo` (CEOPanel) · `/board` (BoardPanel, read-only) · `/chairman` (blocked, needs config API)
 
@@ -389,11 +397,17 @@ migrations/     # D1 schema (signals, messages, tasks, sync_log)
 | Component | What |
 |-----------|------|
 | `src/move/one/sources/one.move` | Move contract: Unit, Signal, Path, payment, fade (680 lines, 7 objects, 6 verbs) |
-| `src/lib/sui.ts` | Sui client: all contract functions, keypair derivation, faucet |
+| `src/lib/sui.ts` | Sui client: all contract functions, keypair derivation (Phase 2 ✅), faucet |
 | `src/engine/bridge.ts` | Mirror/absorb: Runtime ↔ Sui ↔ TypeDB (mark/warn auto-propagate) |
-| `src/schema/world.tql` | TypeQL schema: `sui-unit-id`, `sui-path-id` attributes on unit/path |
+| `src/schema/world.tql` | TypeQL schema: `sui-unit-id`, `sui-path-id`, `wallet` attributes on unit/path |
 | Testnet Package | `0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e` |
-| Status | Phase 1-5 done (on testnet). Phase 2 in flight (wallets). See `/sui` skill + `docs/TODO-SUI.md` |
+| Status | Phase 1-2 complete ✅ (testnet wallets live, deterministic derivation, sync integration). Phase 3 ready (escrow settlement plan locked). See `/sui` skill + `docs/TODO-SUI.md` |
+
+**Phase 2 — Identity & Wallet (Complete 2026-04-18):**
+- `deriveKeypair(uid)` + `addressFor(uid)`: deterministic Ed25519 keypair from `SUI_SEED + uid`
+- `syncAgentWithIdentity()`: wires wallet into agent creation, persists to TypeDB
+- 14 tests pass: determinism + uniqueness + idempotency verified
+- Unblocks Phase 3 (escrow on-chain) and marketplace on-chain discovery
 
 ## Key Patterns
 

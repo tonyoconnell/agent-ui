@@ -627,6 +627,67 @@ TQL. The actor owns their memory; the substrate just indexes it.
 
 ---
 
+## Access Control & Federation (C4 Governance)
+
+Memory is subject to the **Permission = Role × Pheromone** model. No
+separate ACL table — the graph IS the security model.
+
+### Three New Role Actions (locked 2026-04-18)
+
+| Action | Minimum Role | What it permits |
+|--------|--------------|-----------------|
+| `read_memory` | `board` | Call `reveal(uid)` to export full memory card |
+| `delete_memory` | `operator` | Call `forget(uid)` to erase + cascade + audit |
+| `discover` | any user | Call `frontier(uid)` to find unexplored tags |
+
+```typescript
+// roleCheck enforces the gate
+if (!roleCheck(userId, 'read_memory')) return 403
+
+// forget() emits audit signal for compliance
+net.signal({
+  receiver: 'audit:memory:deleted',
+  data: { uid, timestamp, scope: 'private', tags: ['audit', 'memory', 'gdpr'] }
+})
+```
+
+### Private Signals Never Federate
+
+Signal scope is one of: `private | group | public`.
+
+```
+private  — sender + receiver only
+group    — visible to group members
+public   — cross-org, hardenable on Sui
+```
+
+When `recall({federated: true})` runs in a federated world, private
+hypotheses are filtered out. The query still works; it just returns
+fewer results. Other worlds cannot see your secrets.
+
+### Lifecycle Policy
+
+`recall()` supports three options:
+
+| Option | What it returns |
+|--------|-----------------|
+| `limit` | cap at N results (default 100, prevents unbounded queries) |
+| `retention` | filter by source: `'observed'` ∣ `'asserted'` ∣ `'all'` (default) |
+| `federated` | scope filter: exclude private hypotheses from cross-world queries |
+
+```typescript
+// All options work together
+const learned = await persist.recall({
+  subject: 'donal',
+  retention: 'observed',
+  limit: 50,
+  federated: false
+})
+// Returns: top 50 observed hypotheses about donal, private included
+```
+
+---
+
 ## When You Still Want Embeddings
 
 Be honest — there are three cases:

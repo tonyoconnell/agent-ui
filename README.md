@@ -32,6 +32,20 @@ These compound. Breaking either breaks the flywheel.
 
 ---
 
+## Status (2026-04-18)
+
+✅ **Memory System Complete** — C1-C3 (schema + engine + routes) + C4 (governance + federation + lifecycle). GDPR Article 17 (right to erasure) + Article 20 (data portability) via reveal/forget/frontier primitives. 60 tests pass.
+
+✅ **Sui Phase 2 Live** — Deterministic keypair derivation `addressFor(uid)` + wallet sync on agent creation. 14 tests pass. Unblocks Phase 3 (escrow on-chain).
+
+✅ **L4 Economic Blockers Unblocked** — All 5 blockers cleared: memory pricing gates, L5 evolution signals, toxicity exposure, revenue feedback loop, treasury fee handler. L4 integration complete.
+
+✅ **L6-L7 C2 Hypothesis Reflexes** — Confirmed patterns auto-warn toxic paths. Tag-cluster-fail hypotheses trigger edge warnings in same cycle. 12 tests pass. Learning loop closed.
+
+⏳ **SUI Phase 3 Ready** — Escrow settlement model with 50 bps protocol fee. W2 decisions locked. W3-W4 ready to execute.
+
+---
+
 ## The DSL
 
 ```typescript
@@ -128,14 +142,14 @@ L7 FRONTIER   every hour      detect unexplored territory
 
 ## Learning from Experience
 
-The substrate remembers what doesn't work and what you've learned:
+The substrate remembers what doesn't work and what you've learned. Memory is GDPR-compliant by construction.
 
 ```typescript
 // Recall failed attempts on a task + confirmed hypotheses
 const learned = await net.recall('task-id')
 // Returns: [
-//   { pattern: "pattern-found", confidence: 0.9 },
-//   { pattern: "failed: timeout error", confidence: 0.3 },
+//   { pattern: "pattern-found", confidence: 0.9, source: "observed" },
+//   { pattern: "failed: timeout error", confidence: 0.3, source: "asserted" },
 //   ...
 // ]
 
@@ -148,11 +162,16 @@ const gaps = await net.frontier('person:a7f3')
 // Returns: ['design', 'marketing', ...] — unexplored tag clusters
 
 // Structural erasure (GDPR Article 17 — right to be forgotten)
+// Emits audit signal before cascade delete for compliance
 await net.forget('person:a7f3')
 // Deletes all signals, paths, memberships, capabilities, unit entity
 ```
 
-The executor can see **what failed before**, **what you'll unblock**, and **what gaps remain**. Knowledge informs action.
+Memory types by source:
+- **observed** — learned from outcomes, outcomes, signals, confirmed hypotheses (unbounded confidence)
+- **asserted** — claimed by the actor (confidence capped at 0.30 until corroborated by outcomes)
+
+The executor can see **what failed before**, **what you'll unblock**, and **what gaps remain**. Knowledge informs action. Private signals never surface in group queries or `know()` promotion.
 
 ---
 
