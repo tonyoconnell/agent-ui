@@ -1,9 +1,10 @@
 {
-  "count": 546,
+  "count": 560,
   "files": [
     "src/components/EdgeInfo.tsx",
     "src/components/landing/TrustBar.tsx",
     "src/components/AgentWorkspace.tsx",
+    "src/components/app/MyAgents.tsx",
     "src/components/app/AddClawWizard.tsx",
     "src/components/app/SkillInspector.tsx",
     "src/components/app/PathsGraph.tsx",

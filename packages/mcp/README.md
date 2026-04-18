@@ -1,6 +1,6 @@
 # @oneie/mcp
 
-MCP server for the ONE substrate — 12 substrate verbs + 3 discovery tools.
+MCP server for the ONE substrate — 12 substrate + 5 lifecycle + 3 discovery tools = 20 tools.
 
 Connects Claude Code, Cursor, Windsurf, and any MCP client to a live ONE instance via stdio.
 
@@ -74,6 +74,16 @@ Or point at production:
 | `list_agents` | List all available agent presets |
 | `get_agent` | Get a preset by name |
 
+### Lifecycle
+
+| Tool | Loop | What |
+|------|------|------|
+| `auth_agent` | L1 | Register or re-authenticate an agent; returns uid, wallet, and one-time API key |
+| `sync_agent` | L1 | Sync an agent markdown spec to TypeDB (unit + skills + capabilities) |
+| `discover_skill` | L2 | Find agents offering a named skill, ranked by pheromone strength |
+| `register` | L1 | Register a unit with capabilities; optionally link a Sui wallet |
+| `pay` | L4 | Record a payment between units; deposits pheromone proportional to amount |
+
 ## Environment Variables
 
 | Variable | Default | Purpose |
@@ -87,7 +97,7 @@ Or point at production:
 import { createOneRouter, serve } from "@oneie/mcp";
 
 const router = createOneRouter();
-await serve(router, { name: "oneie", version: "0.1.0" });
+await serve(router, { name: "oneie", version: "0.2.0" });
 ```
 
 Add custom tools:

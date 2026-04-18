@@ -334,3 +334,27 @@ function getDetectionSource(type: "user" | "org"): string {
     return "git remote";
   }
 }
+
+import { apiRequest } from "../lib/http.js";
+
+export async function runAgentWatch(pattern: string): Promise<void> {
+  const { watch } = await import("fs");
+  const dir = pattern.includes("/") ? pattern.split("/").slice(0, -1).join("/") || "." : ".";
+  console.error(`watching ${dir} for *.md changes — ctrl+c to stop`);
+  watch(dir, { recursive: true }, async (_event, filename) => {
+    if (!filename || !filename.endsWith(".md")) return;
+    const fullPath = `${dir}/${filename}`;
+    try {
+      const { readFileSync } = await import("fs");
+      const markdown = readFileSync(fullPath, "utf8");
+      const res = await apiRequest("/api/agents/sync", {
+        method: "POST",
+        body: { markdown },
+      });
+      console.error(`synced ${filename}:`, JSON.stringify(res));
+    } catch (err) {
+      console.error(`sync error for ${filename}:`, (err as Error).message);
+    }
+  });
+  await new Promise(() => {}); // keep alive
+}

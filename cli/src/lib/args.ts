@@ -54,3 +54,7 @@ export function flagNumber(args: ParsedArgs, key: string, fallback?: number): nu
 export function flagBool(args: ParsedArgs, key: string): boolean {
   return args.flags[key] === true || args.flags[key] === "true";
 }
+
+export function hasDryRun(args: ParsedArgs): boolean {
+  return flagBool(args, "dry-run");
+}

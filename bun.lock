@@ -134,6 +134,9 @@
     "packages/sdk": {
       "name": "@oneie/sdk",
       "version": "0.2.0",
+      "dependencies": {
+        "zod": "^4.3.6",
+      },
       "devDependencies": {
         "typescript": "5.9.2",
       },

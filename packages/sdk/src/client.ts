@@ -1,12 +1,28 @@
 import { OneSdkError } from "./types.js";
 import type {
+  AgentActionResponse,
+  AgentCapability,
+  AgentStatusResponse,
+  AuthAgentOpts,
+  AuthAgentResponse,
+  CapabilityItem,
+  ClawOpts,
+  ClawResponse,
   DecayResponse,
+  DiscoverResponse,
+  Health,
   HighwaysResponse,
   HypothesesResponse,
   MarkDimsResponse,
   Outcome,
+  PayResponse,
+  RegisterOpts,
+  RegisterResponse,
   SdkConfig,
   SignalResponse,
+  Stats,
+  SyncAgentResponse,
+  SyncAgentWorldInput,
 } from "./types.js";
 import { resolveApiKey, resolveBaseUrl } from "./urls.js";
 import { emit } from "./telemetry.js";
@@ -175,6 +191,130 @@ export class SubstrateClient {
       this.apiKey,
     );
     emit("toolkit:sdk:select", ["sdk", "method-select"]);
+    return result;
+  }
+
+  async authAgent(opts: AuthAgentOpts = {}): Promise<AuthAgentResponse> {
+    const result = await req<AuthAgentResponse>(
+      this.baseUrl,
+      "/api/auth/agent",
+      { method: "POST", body: JSON.stringify(opts) },
+      this.apiKey,
+    );
+    emit("toolkit:sdk:authAgent", ["sdk", "method-authAgent", result.returning ? "returning" : "new"]);
+    return result;
+  }
+
+  async syncAgent(input: string | SyncAgentWorldInput): Promise<SyncAgentResponse> {
+    const body = typeof input === "string" ? { markdown: input } : input;
+    const result = await req<SyncAgentResponse>(
+      this.baseUrl,
+      "/api/agents/sync",
+      { method: "POST", body: JSON.stringify(body) },
+      this.apiKey,
+    );
+    emit("toolkit:sdk:syncAgent", ["sdk", "method-syncAgent"]);
+    return result;
+  }
+
+  async discover(skill: string, limit = 10): Promise<DiscoverResponse> {
+    const qs = `?skill=${encodeURIComponent(skill)}&limit=${limit}`;
+    const result = await req<DiscoverResponse>(
+      this.baseUrl,
+      `/api/agents/discover${qs}`,
+      {},
+      this.apiKey,
+    );
+    emit("toolkit:sdk:discover", ["sdk", "method-discover"]);
+    return result;
+  }
+
+  async register(uid: string, opts: RegisterOpts = {}): Promise<RegisterResponse> {
+    const result = await req<RegisterResponse>(
+      this.baseUrl,
+      "/api/agents/register",
+      { method: "POST", body: JSON.stringify({ uid, ...opts }) },
+      this.apiKey,
+    );
+    emit("toolkit:sdk:register", ["sdk", "method-register"]);
+    return result;
+  }
+
+  async pay(from: string, to: string, task: string, amount: number): Promise<PayResponse> {
+    const result = await req<PayResponse>(
+      this.baseUrl,
+      "/api/pay",
+      { method: "POST", body: JSON.stringify({ from, to, task, amount }) },
+      this.apiKey,
+    );
+    emit("toolkit:sdk:pay", ["sdk", "method-pay"]);
+    return result;
+  }
+
+  async claw(name: string, opts: ClawOpts = {}): Promise<ClawResponse> {
+    const result = await req<ClawResponse>(
+      this.baseUrl,
+      "/api/claw",
+      { method: "POST", body: JSON.stringify({ name, ...opts }) },
+      this.apiKey,
+    );
+    emit("toolkit:sdk:claw", ["sdk", "method-claw"]);
+    return result;
+  }
+
+  async commend(uid: string): Promise<AgentActionResponse> {
+    const result = await req<AgentActionResponse>(
+      this.baseUrl,
+      `/api/agents/${encodeURIComponent(uid)}/commend`,
+      { method: "POST", body: JSON.stringify({}) },
+      this.apiKey,
+    );
+    emit("toolkit:sdk:commend", ["sdk", "method-commend"]);
+    return result;
+  }
+
+  async flag(uid: string): Promise<AgentActionResponse> {
+    const result = await req<AgentActionResponse>(
+      this.baseUrl,
+      `/api/agents/${encodeURIComponent(uid)}/flag`,
+      { method: "POST", body: JSON.stringify({}) },
+      this.apiKey,
+    );
+    emit("toolkit:sdk:flag", ["sdk", "method-flag"]);
+    return result;
+  }
+
+  async status(uid: string, active: boolean): Promise<AgentStatusResponse> {
+    const result = await req<AgentStatusResponse>(
+      this.baseUrl,
+      `/api/agents/${encodeURIComponent(uid)}/status`,
+      { method: "POST", body: JSON.stringify({ status: active ? "active" : "inactive" }) },
+      this.apiKey,
+    );
+    emit("toolkit:sdk:status", ["sdk", "method-status"]);
+    return result;
+  }
+
+  async capabilities(uid: string): Promise<CapabilityItem[]> {
+    const result = await req<CapabilityItem[]>(
+      this.baseUrl,
+      `/api/agents/${encodeURIComponent(uid)}/capabilities`,
+      {},
+      this.apiKey,
+    );
+    emit("toolkit:sdk:capabilities", ["sdk", "method-capabilities"]);
+    return result;
+  }
+
+  async stats(): Promise<Stats> {
+    const result = await req<Stats>(this.baseUrl, "/api/stats", {}, this.apiKey);
+    emit("toolkit:sdk:stats", ["sdk", "method-stats"]);
+    return result;
+  }
+
+  async health(): Promise<Health> {
+    const result = await req<Health>(this.baseUrl, "/api/health", {}, this.apiKey);
+    emit("toolkit:sdk:health", ["sdk", "method-health"]);
     return result;
   }
 }

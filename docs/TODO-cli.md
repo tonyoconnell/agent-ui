@@ -348,16 +348,16 @@ Hard stop: any W4 looping > 3 times → halt + escalate.
 
 ## Status
 
-- [ ] **Cycle 1: WIRE — Commerce + Governance + Observability (12 verbs)**
-  - [ ] W1 — Recon (Haiku × 12, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 13, parallel by file)
-  - [ ] W4 — Verify (Sonnet × 3, parallel by check type)
-- [ ] **Cycle 2: PROVE — Ergonomics (6 features)**
-  - [ ] W1 — Recon (Haiku × 6, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 7, parallel by file)
-  - [ ] W4 — Verify (Sonnet × 3, parallel)
+- [x] **Cycle 1: WIRE — Commerce + Governance + Observability (12 verbs)**
+  - [x] W1 — Recon (Haiku × 12, parallel)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 13, parallel by file)
+  - [x] W4 — Verify (Sonnet × 3, parallel by check type)
+- [x] **Cycle 2: PROVE — Ergonomics (6 features)**
+  - [x] W1 — Recon (Haiku × 6, parallel)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 7, parallel by file)
+  - [x] W4 — Verify (Sonnet × 3, parallel)
 - [ ] **Cycle 3: GROW — Interactive + Batch (4 features)**
   - [ ] W1 — Recon (Haiku × 4, parallel)
   - [ ] W2 — Decide (Opus × 1)

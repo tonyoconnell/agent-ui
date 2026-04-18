@@ -302,11 +302,11 @@ Hard stop: any W4 looping more than 3 times → halt, escalate.
 
 ## Status
 
-- [ ] **Cycle 1: WIRE — Lifecycle (5 tools)**
-  - [ ] W1 — Recon (Haiku × 5, one per endpoint)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 3, one per file)
-  - [ ] W4 — Verify (Sonnet × 3, by check type)
+- [x] **Cycle 1: WIRE — Lifecycle (5 tools)**
+  - [x] W1 — Recon (Haiku × 5, one per endpoint)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 3, one per file)
+  - [x] W4 — Verify (Sonnet × 3, by check type)
 - [ ] **Cycle 2: PROVE — Commerce (10 tools)**
   - [ ] W1 — Recon (Haiku × 10, one per endpoint)
   - [ ] W2 — Decide (Opus × 2 shards)

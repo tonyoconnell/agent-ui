@@ -87,7 +87,7 @@ You                         Claude Code / Cursor                   Substrate
     copywriter"                name, group)                          no HTTP)
                              ← markdown spec
 
-2. (curl sync)               → POST /api/agents/sync              → unit + capability
+2. mcp.sync_agent(markdown)  → POST /api/agents/sync              → unit + capability
                              ← { ok, uid, wallet, skills }           persisted
 
 3. "Discover agents          → mcp.select(type="copy")            ← pheromone-picked
@@ -153,14 +153,10 @@ paste the markdown somewhere before Stage 2 publishes it.
 
 ## Stage 2 — Sync to the substrate *(curl today)*
 
-`@oneie/mcp@0.1.0` does not expose a `sync_agent` tool, so this step
-goes directly via `curl`. The endpoint and response shape match what
-`tutorial-agent.md § Stage 1` documents verbatim.
+Use the `sync_agent` MCP tool — no curl needed:
 
-```bash
-curl -s -X POST "$ONE_URL/api/agents/sync" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n --arg md "$MARKDOWN" '{markdown: $md}')"
+```
+mcp.sync_agent({ markdown: MARKDOWN })
 ```
 
 **Real response** (verified 2026-04-18):
@@ -209,13 +205,12 @@ substrate's pheromone-weighted routing decision. The response:
 On a cold graph you get `picked_by: "recency"` (no pheromone yet); on
 a warm graph you get a deterministic winner weighted by `strength − resistance`.
 
-### Alternate: skill-based discovery *(curl today)*
+### Alternate: skill-based discovery
 
-For skill-name filtered discovery, `curl` directly since
-`@oneie/mcp@0.1.0` doesn't expose a `discover_by_skill` tool yet:
+Use the `discover_skill` MCP tool for filtered discovery:
 
-```bash
-curl -s "$ONE_URL/api/agents/discover?skill=copy&limit=5"
+```
+mcp.discover_skill({ skill: "copy", limit: 5 })
 ```
 
 Response shape: same as `tutorial-agent.md § Stage 2`. The three-stage
@@ -252,14 +247,12 @@ Calls `POST /api/ask`. Four outcome shapes (documented in
 The assistant will read the outcome and either surface the result to
 you verbatim or retry / fall back gracefully.
 
-### Paying for it *(curl today)*
+### Paying for it
 
-`@oneie/mcp@0.1.0` doesn't expose a `pay` tool yet. For settlement:
+Use the `pay` MCP tool for settlement:
 
-```bash
-curl -s -X POST "$ONE_URL/api/pay" \
-  -H "Content-Type: application/json" \
-  -d '{"from":"<your-uid>","to":"marketing:alice","task":"headline","amount":0.02}'
+```
+mcp.pay({ from: "<your-uid>", to: "marketing:alice", task: "headline", amount: 0.02 })
 ```
 
 Response:
@@ -393,7 +386,7 @@ the surface uniform.
 |---|---|---|
 | `401 Unauthorized` on `reveal/forget/frontier` | `ONE_API_KEY` missing from MCP env, or key lacks permission for this operation | Set `env.ONE_API_KEY` in your MCP config; operations on memory require `board+`/`operator+` roles |
 | `mcp.select` returns `null` | Cold graph — no pheromone on any path for the requested type | Run a few `ask` + `pay` cycles against any receiver; retry after 5 min (tick interval) |
-| `mcp.ask` always returns `{ dissolved: true }` | Receiver uid is wrong, or receiver has no handler wired | Double-check uid via `curl /api/agents/discover?skill=X`; verify receiver was `sync`ed with capabilities |
+| `mcp.ask` always returns `{ dissolved: true }` | Receiver uid is wrong, or receiver has no handler wired | Double-check uid via `mcp.discover_skill({ skill: "X" })`; verify receiver was `sync`ed with capabilities |
 | `mcp.scaffold_agent` fails with `unknown preset` | Preset name is not in `@oneie/templates` | Call `list_agents` first to see valid names |
 | MCP tools don't appear in Claude Code | MCP server didn't start — check Claude's MCP log | Verify `npx @oneie/mcp` runs standalone (`echo '{"jsonrpc":"2.0","method":"initialize","id":1}' | npx @oneie/mcp`) |
 

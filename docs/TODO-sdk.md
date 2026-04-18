@@ -386,11 +386,11 @@ Hard stop: W4 loops > 3 → halt, escalate.
 
 ## Status
 
-- [ ] **Cycle 1: WIRE — Method Parity (12 methods)**
-  - [ ] W1 — Recon (Haiku × 12, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 3, parallel by file)
-  - [ ] W4 — Verify (Sonnet × 3, parallel)
+- [x] **Cycle 1: WIRE — Method Parity (12 methods)**
+  - [x] W1 — Recon (Haiku × 12, parallel)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 3, parallel by file)
+  - [x] W4 — Verify (Sonnet × 3, parallel)
 - [ ] **Cycle 2: PROVE — Type Safety (6 features)**
   - [ ] W1 — Recon (Haiku × 6, parallel)
   - [ ] W2 — Decide (Opus × 2 shards)

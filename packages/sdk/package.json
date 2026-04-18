@@ -31,5 +31,8 @@
     "type": "git",
     "url": "git+https://github.com/one-ie/envelopes.git",
     "directory": "packages/sdk"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
   }
 }

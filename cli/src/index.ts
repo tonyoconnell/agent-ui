@@ -22,6 +22,11 @@ const SUBSTRATE_COMMANDS = [
   "signal", "ask", "mark", "warn", "fade",
   "highways", "know", "recall", "reveal", "forget",
   "frontier", "select", "sync", "claw", "launch",
+  // Cycle 1: commerce + governance + observability
+  "pay", "hire", "bounty", "commend", "flag", "status",
+  "capabilities", "publish", "stats", "health", "revenue", "export",
+  // Cycle 2: ergonomics
+  "config", "completion", "doctor",
 ] as const;
 
 type SubstrateCommand = (typeof SUBSTRATE_COMMANDS)[number];
@@ -29,6 +34,17 @@ type SubstrateCommand = (typeof SUBSTRATE_COMMANDS)[number];
 async function main() {
   // Check for command line arguments
   const args = process.argv.slice(2);
+
+  // Extract global flags before routing
+  const profileIdx = args.indexOf("--profile");
+  if (profileIdx >= 0 && args[profileIdx + 1] && !args[profileIdx + 1].startsWith("--")) {
+    process.env.ONEIE_PROFILE = args[profileIdx + 1];
+    args.splice(profileIdx, 2);
+  }
+  const outputIdx = args.indexOf("--output");
+  if (outputIdx >= 0 && args[outputIdx + 1] && !args[outputIdx + 1].startsWith("--")) {
+    process.env.ONEIE_OUTPUT = args[outputIdx + 1];
+  }
 
   // Admin subcommands (monorepo-only)
   if (args[0] === "admin") {
@@ -124,8 +140,32 @@ SUBSTRATE VERBS
   select [type]               Probabilistic next unit (L1)
   sync                        Fire full tick — all L1-L7 loops
 
+CONFIGURATION
+  config list                     List all profiles
+  config add <name> --url U --key K  Add a profile
+  config use <name>               Set active profile
+  config rm <name>                Remove a profile
+  completion bash|zsh|fish        Print shell completion script
+  doctor                          Diagnose config, auth, substrate
+
+COMMERCE
+  pay <to> --from <uid> --task <id> [--amount N]  Transfer payment (L4)
+  hire <providerUid> <skillId> [--message <txt>]  Hire agent for skill
+  bounty <uid> <skillId> --price N --deadline N   Post a bounty
+  commend <agent-id>          Raise agent success-rate + paths
+  flag <agent-id>             Lower agent success-rate + paths
+  status <agent-id> <active|inactive>  Set lifecycle status
+  capabilities <agent-id> --task <name> [--price N]  Add capability
+  publish <skillId> --name N --price N [--scope S]   Publish to marketplace
+
+OBSERVABILITY
+  stats                       Substrate statistics (units, skills, revenue)
+  health                      Health check (status, uptime, world)
+  revenue                     Revenue aggregates (GDP, top earners)
+  export <paths|units|skills|highways|toxic>  Export substrate data
+
 AGENTS
-  agent [--dry-run]           Parse + sync agent markdown → TypeDB
+  agent [--dry-run] [--watch <dir>]  Parse + sync agent markdown → TypeDB
   claw <agent-id>             Generate NanoClaw config for agent
   launch <agent-id>           Launch agent on substrate
 
