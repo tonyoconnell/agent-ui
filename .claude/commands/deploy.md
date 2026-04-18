@@ -1,8 +1,10 @@
 # /deploy
 
-**Skills:** `/cloudflare` (Workers + Pages auth) · `/signal` (deploy:success / deploy:degraded)
+**Skills:** `/cloudflare` (Workers auth) · `/signal` (deploy:success / deploy:degraded)
 
 Ship all four services to Cloudflare. Deterministic sandwich — W0 baseline, build, smoke, approval, parallel deploy, health.
+
+> **Migrated 2026-04-18:** Astro site moved from CF Pages → CF Workers with Static Assets (Astro 6 + @astrojs/cloudflare v13 dropped Pages support). Deploy command is now `wrangler deploy` (not `wrangler pages deploy`). `one-substrate.pages.dev` still live as legacy URL; Cycle 3 (custom-domain cutover) pending. See `docs/TODO-cf-workers-migration.md`.
 
 ## Modes
 

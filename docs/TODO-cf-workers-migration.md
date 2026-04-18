@@ -440,11 +440,31 @@ touches live deployment — fail-fast is non-negotiable.
   - [x] W2 — Decide (4 diff specs)
   - [x] W3 — Edits (scripts/deploy.ts: smoke path, deploy command, preview URL regex, approval-prompt text)
   - [x] W4 — Verify (biome + typecheck green; wrangler dry-run local-TTY-blocked; CI validation on feature branch)
-- [ ] **Cycle 3: GROW** — Cutover + Cleanup — *BLOCKED on CF dashboard access*
-  - [ ] W1 — Recon (docs + CF dashboard state inspection)
-  - [ ] W2 — Decide (cutover strategy, rollback window, doc sweep scope)
-  - [ ] W3 — Edits (CF dashboard: create Workers project, cutover `dev.one.ie`, pause Pages; docs: 20+ Pages refs across docs/**/*.md; memory note — ALREADY SAVED at `feedback_astro_adapter_target.md`)
-  - [ ] W4 — Verify (main CI green on Workers; custom domain health check; Pages archived)
+- [ ] **Cycle 3: GROW** — Cutover + Cleanup — *partial, BLOCKED on TypeDB IP allowlist*
+  - [x] W1 — Recon (CF API inventory complete: Pages + Workers state known; egress IP hypothesis identified)
+  - [x] W2 — Decide (cutover strategy locked; stop before DNS flip while data layer broken)
+  - [ ] W3 — Edits (CF API: secrets ✓ set; DNS flip ⏸ pending TypeDB fix; docs: 20+ Pages refs; memory — saved)
+  - [ ] W4 — Verify (needs post-DNS cutover step)
+
+#### Cycle 3 C1 investigation findings (2026-04-18)
+
+Used `CLOUDFLARE_GLOBAL_API_KEY` from `.env` to drive CF API directly:
+- ✓ Workers script `one-substrate` deployed (main-branch CI at commit 9569a08)
+- ✓ Bindings present: `KV` (id=1c1dac4766...), `ASSETS`, `IMAGES`, `SESSION` auto-provisioned by v13 adapter
+- ✓ 7 secrets set via CF API PUT `/workers/scripts/one-substrate/secrets` (TYPEDB_*, OPENROUTER_API_KEY, SUI_SEED, BROADCAST_SECRET)
+- ✓ Worker serves HTTP at `one-substrate.oneie.workers.dev` (prerendered pages return content; `/api/tick?reload=1` works)
+- ✗ `/api/health` returns `status: degraded`, `units: 0` on Workers vs `status: healthy`, `units: 140` on Pages (same code, same credentials)
+- ✗ `/api/export/units` returns `[]` on Workers vs full list on Pages — TypeDB query returns empty rather than erroring
+- ✓ TypeDB signin works from local IP (credentials valid)
+
+**Hypothesis:** TypeDB Cloud allowlists the Pages project's Worker egress IPs; the new Workers script egresses from different IPs so queries return empty (not reject, just no rows).
+
+**To unblock full Cycle 3 cutover, need ONE of:**
+1. TypeDB Cloud admin access: add new Worker egress IPs to allowlist
+2. Route Worker → TypeDB through the existing Gateway worker (`api.one.ie`) which is already on the allowlist
+3. `wrangler tail one-substrate` to see the actual TypeDB query failure mode
+
+**What's safe right now:** Pages continues serving at `dev.one.ie` and `one-substrate.pages.dev`. Workers is stable but its data layer is empty. No user impact. DNS flip explicitly deferred.
 
 ### Cycle 1+2 Rubric (self-reported, 2026-04-18)
 
