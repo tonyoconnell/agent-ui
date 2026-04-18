@@ -23,6 +23,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Astro 6 requires Node >= 22.12. Bun alone doesn't set Node version,
+      # and `astro build` shells out to Node. Pin from .nvmrc.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:

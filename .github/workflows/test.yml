@@ -19,6 +19,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Keep Node version pinned (.nvmrc) for parity with Deploy workflow.
+      # Test workflow runs under Bun, but some tooling shells to Node.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
