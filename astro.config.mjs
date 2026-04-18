@@ -9,9 +9,7 @@ import { defineConfig } from "astro/config";
 const isDev = process.env.NODE_ENV !== "production";
 const adapter = isDev
   ? node({ mode: "standalone" })
-  : cloudflare({
-      platformProxy: { enabled: true },
-    });
+  : cloudflare({ prerenderEnvironment: 'node' });
 
 // Development WebSocket server middleware for Vite
 // Uses ssrLoadModule to import TS through Vite's transform pipeline
