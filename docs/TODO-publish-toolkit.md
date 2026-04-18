@@ -759,11 +759,11 @@ curl -s 'https://api.one.ie/api/events?type=toolkit-consumed&since=1h' | jq '.co
   - [x] W2 — Decide — publish order: templates→sdk→mcp→cli; --access public for scoped; create CHANGELOGs
   - [x] W3 — Edits (Sonnet × 2) — cli bump 3.6.40→3.7.0; CHANGELOG.md × 3 created
   - [x] W4 — Verify+Ship — all 4 published and confirmed: oneie@3.7.0 · @oneie/sdk@0.2.0 · @oneie/mcp@0.1.0 · @oneie/templates@0.2.0
-- [ ] **C5 CONSUME** — install from npm, scaffold into envelopes/
-  - [ ] W1 — Recon (Haiku × 3, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 5, parallel)
-  - [ ] W4 — Verify (Sonnet × 2, parallel)
+- [x] **C5 CONSUME** — install from npm, scaffold into envelopes/
+  - [x] W1 — Recon (Haiku × 3) — agents/ has no collision; signal needs sender+receiver; oneie globally installed
+  - [x] W2 — Decide — npm install -g 3.7.0; generate via templates (no scaffold cmd); localhost:4321 for API calls
+  - [x] W3 — Edits (Sonnet × 4) — consume-published.mjs + .sh; Consumer Story docs; agents/published-demo/
+  - [x] W4 — Verify — SUCCESS: 4 agents generated from npm install; ask()→dissolved; recall()→0; commit 29f03c6 on main; 1539/1539 tests
 
 ---
 
