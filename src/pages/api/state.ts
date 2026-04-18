@@ -137,7 +137,12 @@ async function fromTypeDB() {
 }
 
 export const GET: APIRoute = async (context) => {
-  const kv = ((context.locals as any)?.runtime?.env as KVEnv)?.KV
+  let kv: KVNamespace | undefined
+  try {
+    kv = ((context.locals as any)?.runtime?.env as KVEnv)?.KV
+  } catch {
+    // Astro 6 removed locals.runtime.env — getter throws. Fall through to TypeDB.
+  }
 
   const data = kv ? await fromKV(kv).catch(() => fromTypeDB()) : await fromTypeDB()
 

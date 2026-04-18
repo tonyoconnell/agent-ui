@@ -27,8 +27,11 @@ export async function getD1(locals: App.Locals | undefined): Promise<D1Database 
     // cloudflare:workers unavailable (dev mode, Node adapter) — fall through.
   }
 
-  // Legacy path: still populated by the v13 adapter at runtime, emits a
-  // deprecation warning but returns the binding. Works in both dev (via
-  // shim in env.d.ts) and production until we fully migrate off.
-  return locals?.runtime?.env?.DB ?? null
+  // Astro 6 removed locals.runtime.env — the getter throws now instead of
+  // returning undefined. Optional chaining can't save us; wrap in try/catch.
+  try {
+    return locals?.runtime?.env?.DB ?? null
+  } catch {
+    return null
+  }
 }

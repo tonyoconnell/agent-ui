@@ -83,4 +83,5 @@ export default defineConfig({
   },
   output: "server",
   adapter,
+  security: { checkOrigin: false },
 });
