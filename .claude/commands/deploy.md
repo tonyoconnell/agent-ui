@@ -1,5 +1,7 @@
 # /deploy
 
+**Skills:** `/cloudflare` (Workers + Pages auth) · `/signal` (deploy:success / deploy:degraded)
+
 Ship all four services to Cloudflare. Deterministic sandwich — W0 baseline, build, smoke, approval, parallel deploy, health.
 
 ## Modes

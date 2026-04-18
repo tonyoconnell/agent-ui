@@ -9,6 +9,17 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 Build consistent UI with shadcn/ui components, customized for the Envelope System's dark theme.
 
+## Works With
+
+| Skill      | Load when                                                                    |
+|------------|------------------------------------------------------------------------------|
+| `/react19` | shadcn components ARE React components — ref-as-prop, Actions, transitions apply. |
+| `/astro`   | Placement inside islands + hydration strategy decisions.                       |
+| `/signal`  | Buttons, menus, dialogs — every semantic click emits `ui:<surface>:<action>`. |
+| `/ai-ui`   | AI Elements (reasoning cards, tool-call blocks) compose shadcn primitives.    |
+
+Auto-loads on `*.tsx`: `rules/react.md` + `rules/ui.md` (per `.claude/settings.json`).
+
 ## When to Use This Skill
 
 - Use existing shadcn components from `src/components/ui/`

@@ -1,5 +1,7 @@
 # /create
 
+**Skills:** `/typedb` (write new entity) · `/signal` (emit creation, `ui:*` or `cli:create:*`)
+
 Emit a new entity into the substrate.
 
 ## Nouns

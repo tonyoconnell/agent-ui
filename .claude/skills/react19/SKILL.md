@@ -9,6 +9,18 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 Modern React 19 patterns for building interactive components in the Envelope System.
 
+## Works With
+
+| Skill        | Load when                                                                        |
+|--------------|----------------------------------------------------------------------------------|
+| `/signal`    | Any `onClick` — every click emits `ui:<surface>:<action>` via `emitClick()`. See `.claude/rules/ui.md`. |
+| `/astro`     | The component lives in an Astro page — hydration directives (`client:load`, `client:only`) decide worker bundle size. |
+| `/shadcn`    | Using Cards, Tabs, Badges, Dialog — shadcn components are React components with ref-as-prop. |
+| `/ai-ui`     | Agent reasoning UIs, tool-call visualization, generative components composed from shadcn. |
+| `/reactflow` | Graph visualizations — ColonyGraph, PheromoneGraph read substrate highways.       |
+
+Auto-loads on `*.tsx`: `rules/react.md` + `rules/ui.md` (per `.claude/settings.json`).
+
 ## When to Use This Skill
 
 - Build React components in `src/components/`

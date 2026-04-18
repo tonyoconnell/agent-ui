@@ -1,5 +1,7 @@
 # /close
 
+**Skills:** `/signal` (4-outcome grammar: result / timeout / dissolved / failure) · `/typedb` (mark-dims, rubric scoring, write completion)
+
 Mark a result — close the signal loop.
 
 ## Flags

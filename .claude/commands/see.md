@@ -1,5 +1,7 @@
 # /see
 
+**Skills:** `/typedb` (read-only queries across all 6 dimensions)
+
 Read the world — query substrate state without emitting signals.
 
 ## Nouns

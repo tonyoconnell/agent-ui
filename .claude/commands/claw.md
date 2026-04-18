@@ -1,5 +1,7 @@
 # /claw
 
+**Skills:** `/sui` (agent wallet derivation via `addressFor(uid)`) · `/cloudflare` (Worker deploy + secrets) · `/signal` (webhook channel routing, `ui:*` + `hook:*`)
+
 Add a NanoClaw (edge worker with LLM + substrate tools) to any agent.
 
 ## Usage

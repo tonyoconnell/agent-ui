@@ -9,6 +9,18 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 Build server-rendered pages with strategic client-side interactivity using Astro 5's islands architecture.
 
+## Works With
+
+| Skill      | Load when                                                                             |
+|------------|---------------------------------------------------------------------------------------|
+| `/react19` | Islands hydrate React components — pick `client:load` / `client:visible` / `client:only`. |
+| `/signal`  | Writing an Astro API route — `/api/*.ts` files are the substrate's HTTP surface.       |
+| `/shadcn`  | shadcn components live inside islands; decide dark-theme tokens + hydration strategy.  |
+| `/sui`     | SSR pages that read on-chain data — use `client:only="react"` to keep the CF Pages worker under 10 MiB (locked rule in CLAUDE.md). |
+| `/typedb`  | SSR data fetching — Astro pages call `readParsed()` directly from `src/lib/typedb.ts`. |
+
+Auto-loads on `*.astro`: `rules/astro.md` (per `.claude/settings.json`).
+
 ## When to Use This Skill
 
 - Create new pages in `src/pages/`

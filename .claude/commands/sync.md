@@ -1,5 +1,7 @@
 # /sync
 
+**Skills:** `/typedb` (tick loops, query & write) · `/signal` (per-loop outcomes, L4 payment emissions)
+
 Reconcile substrate state — tick loops, absorb markdown, propagate knowledge.
 
 ## Nouns

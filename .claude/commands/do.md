@@ -1,5 +1,7 @@
 # /do
 
+**Skills:** `/signal` (mark/warn/dissolve outcomes) · `/typedb` (query tasks, write pheromone)
+
 > **Before anything else:** Read `docs/TODO.md`.
 > It is the mission briefing — active fronts, top priority, what's built, where we're going.
 > Load it once per session. Let it orient the work.
