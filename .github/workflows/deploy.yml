@@ -47,4 +47,10 @@ jobs:
           CLOUDFLARE_API_TOKEN: ''
           # Human approval already happened via the production environment gate.
           DEPLOY_CONFIRM: 'yes'
+          # PUBLIC_* env vars are inlined by Astro at build time. Without this,
+          # Worker bundles default to https://one-gateway.oneie.workers.dev,
+          # which may route differently than the custom domain. Pinning to
+          # api.one.ie ensures the TypeDB proxy path uses the same custom
+          # domain Pages used.
+          PUBLIC_GATEWAY_URL: https://api.one.ie
         run: bun run deploy

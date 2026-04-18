@@ -457,12 +457,16 @@ Used `CLOUDFLARE_GLOBAL_API_KEY` from `.env` to drive CF API directly:
 - ✗ `/api/export/units` returns `[]` on Workers vs full list on Pages — TypeDB query returns empty rather than erroring
 - ✓ TypeDB signin works from local IP (credentials valid)
 
-**Hypothesis:** TypeDB Cloud allowlists the Pages project's Worker egress IPs; the new Workers script egresses from different IPs so queries return empty (not reject, just no rows).
+**Diagnosis refined (2026-04-18 T+1h):** TypeDB IP allowlist is NOT the root cause — `src/lib/typedb.ts` already routes ALL queries through the Gateway (`api.one.ie/typedb/query`), not direct TypeDB. Gateway itself is a CF Worker and works fine from external curl (tested, returns full query results).
 
-**To unblock full Cycle 3 cutover, need ONE of:**
-1. TypeDB Cloud admin access: add new Worker egress IPs to allowlist
-2. Route Worker → TypeDB through the existing Gateway worker (`api.one.ie`) which is already on the allowlist
-3. `wrangler tail one-substrate` to see the actual TypeDB query failure mode
+**Actual root cause (most likely):** `PUBLIC_GATEWAY_URL` is an Astro `PUBLIC_*` env var — inlined at **build time**. CI's build didn't pass `PUBLIC_GATEWAY_URL`, so the bundled Worker has the default fallback `https://one-gateway.oneie.workers.dev` hardcoded. Tried setting it as a runtime secret via CF API — no effect (it's build-time-baked, runtime secrets don't override inlined strings).
+
+Silent-empty comes from `src/pages/api/export/units.ts:51` and similar routes that wrap `readParsed()` in `try { ... } catch { return [] }` — any fetch/network error returns empty array rather than propagating.
+
+**To unblock DNS cutover:**
+1. Add `PUBLIC_GATEWAY_URL=https://api.one.ie` to `.github/workflows/deploy.yml` env block (or to repo secrets + env) so CI bakes the correct URL into the Worker bundle. Rebuild + redeploy.
+2. OR: refactor `src/lib/typedb.ts` to check a runtime env var (e.g. `GATEWAY_URL` as Worker secret) before falling back to the `PUBLIC_*` inlined value. More flexible but more code.
+3. OR: `wrangler tail one-substrate` + hit `/api/export/units` to confirm the fetch error shape (for certainty before redeploy).
 
 **What's safe right now:** Pages continues serving at `dev.one.ie` and `one-substrate.pages.dev`. Workers is stable but its data layer is empty. No user impact. DNS flip explicitly deferred.
 
