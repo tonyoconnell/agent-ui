@@ -24,15 +24,18 @@ data = { tags?: string[], weight?: number, content?: unknown }
 
 `receiver` matches `/^[a-zA-Z0-9:_-]+$/`, max 255 chars. The first colon-delimited segment is the **surface** — use a prefix so substrate queries can partition cleanly:
 
-| Prefix     | Example                     | Who emits                                    | Skill         |
-|------------|-----------------------------|----------------------------------------------|---------------|
-| `ui:*`     | `ui:chat:copy`              | onClick handlers via `emitClick()`           | `/react19` + `.claude/rules/ui.md` |
-| `hook:*`   | `hook:post-edit:ok`         | `.claude/hooks/*.sh` via `emit_signal`       | this skill    |
-| `cli:*`    | `cli:signal:send`           | `oneie` CLI verb handlers                    | —             |
-| `bridge:*` | `bridge:mirrorMark`         | `src/engine/bridge.ts` on Sui mirror         | `/sui`        |
-| `l4:*`     | `l4:payment:settle`         | L4 economic loop (on-chain settlement)       | `/sui`        |
-| `w4:*`     | `w4:verify:ok`              | W4 rubric gate outcomes                      | `/do` command |
-| `unit:skill` | `scout:observe`           | substrate tasks (plain unit + skill name)    | `/typedb`     |
+| Prefix     | Example                     | Who emits                                                      | Skill         |
+|------------|-----------------------------|----------------------------------------------------------------|---------------|
+| `ui:*`     | `ui:chat:copy`              | onClick handlers via `emitClick()`                             | `/react19` + `.claude/rules/ui.md` |
+| `tool:*`   | `tool:Edit:ok`, `tool:Bash:fail` | every PostToolUse via `.claude/hooks/tool-signal.sh`      | this skill    |
+| `hook:*`   | `hook:post-edit:ok`         | other hook scripts via `emit_signal` from `hooks/lib/signal.sh` | this skill    |
+| `cli:*`    | `cli:signal:send`           | `oneie` CLI verb handlers                                      | —             |
+| `bridge:*` | `bridge:mirrorMark`         | `src/engine/bridge.ts` on Sui mirror                           | `/sui`        |
+| `l4:*`     | `l4:payment:settle`         | L4 economic loop (on-chain settlement)                         | `/sui`        |
+| `w4:*`     | `w4:verify:ok`              | W4 rubric gate outcomes from hooks + subagents                 | `/do` command |
+| `do:*`     | `do:close`                  | `/do` wave/cycle boundaries (soft + hard gates)                | `/do` + `/close` commands |
+| `loop:*`   | `loop:feedback`             | `/close` per-task rubric feedback to tag paths                  | `/close` command |
+| `unit:skill` | `scout:observe`           | substrate tasks (plain unit + skill name)                      | `/typedb`     |
 
 **Format is always `<surface>:<subject>:<action-or-outcome>`** — three segments for event-style signals, two for unit-task signals.
 

@@ -1,8 +1,19 @@
 /**
  * Claude Code Event Types
  *
- * Complete list of all events that Claude Code emits during execution
- * Each event type will be converted into a conversational message
+ * Complete list of all events that Claude Code emits during execution.
+ * Each event type converts to a `ConversationMessage` for rendering in
+ * the ONE UI's chat timeline (React component tree).
+ *
+ * SCOPE: This file is **UI-only** — it describes the shape of messages
+ * shown to humans, not substrate telemetry. Do NOT bridge PostToolUse
+ * hook JSON through this file to `/api/signal`; the two shapes solve
+ * different problems and joining them invents a translation layer that
+ * doesn't belong in either.
+ *
+ * For substrate telemetry on tool calls, see `.claude/hooks/tool-signal.sh`
+ * which consumes the raw hook JSON directly and emits canonical
+ * `tool:<name>:<outcome>` signals per `.claude/skills/signal.md`.
  */
 
 export type ClaudeCodeEventType =
