@@ -38,6 +38,11 @@ export function GenerateWalletDialog({
   const [generating, setGenerating] = useState<string | null>(null)
   const [generatingAll, setGeneratingAll] = useState(false)
 
+  const walletCounts = existingWallets.reduce<Record<string, number>>((acc, id) => {
+    acc[id] = (acc[id] ?? 0) + 1
+    return acc
+  }, {})
+
   const handleGenerate = async (chainId: string) => {
     setGenerating(chainId)
     await onGenerate(chainId)
@@ -48,7 +53,7 @@ export function GenerateWalletDialog({
     setGeneratingAll(true)
 
     for (const chain of chains) {
-      if (!existingWallets.includes(chain.id)) {
+      if (!walletCounts[chain.id]) {
         await onGenerate(chain.id)
         await new Promise((r) => setTimeout(r, 200))
       }
@@ -58,7 +63,7 @@ export function GenerateWalletDialog({
     onOpenChange(false)
   }
 
-  const missingChains = chains.filter((c) => !existingWallets.includes(c.id))
+  const missingChains = chains.filter((c) => !walletCounts[c.id])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,7 +108,7 @@ export function GenerateWalletDialog({
           {/* Individual Chain Cards - 3x2 Grid */}
           <div className="grid grid-cols-3 gap-3">
             {chains.map((chain) => {
-              const exists = existingWallets.includes(chain.id)
+              const count = walletCounts[chain.id] ?? 0
               const isGenerating = generating === chain.id
 
               return (
@@ -111,32 +116,21 @@ export function GenerateWalletDialog({
                   key={chain.id}
                   className={`
                     cursor-pointer transition-all duration-300 overflow-hidden
-                    ${
-                      exists
-                        ? 'opacity-50 cursor-not-allowed border-green-500/30'
-                        : 'hover:shadow-xl hover:-translate-y-1 hover:border-primary/30'
-                    }
+                    hover:shadow-xl hover:-translate-y-1 hover:border-primary/30
                     ${isGenerating ? 'animate-pulse' : ''}
                   `}
-                  onClick={() => !exists && !generating && handleGenerate(chain.id)}
+                  onClick={() => !generating && handleGenerate(chain.id)}
                 >
                   {/* Top gradient line */}
-                  <div className={`h-1.5 bg-gradient-to-r ${chain.color} ${exists ? 'opacity-50' : ''}`} />
+                  <div className={`h-1.5 bg-gradient-to-r ${chain.color}`} />
 
                   <CardContent className="pt-4 pb-4 text-center relative">
                     {/* Chain Icon */}
                     <div
-                      className={`
-                        w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center text-xl shadow-lg transition-all
-                        ${exists ? 'bg-muted text-muted-foreground' : `bg-gradient-to-br ${chain.color} text-white`}
-                      `}
+                      className={`w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center text-xl shadow-lg transition-all bg-gradient-to-br ${chain.color} text-white`}
                     >
                       {isGenerating ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : exists ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
                       ) : (
                         chain.icon
                       )}
@@ -148,9 +142,9 @@ export function GenerateWalletDialog({
 
                     {/* Status Badge */}
                     <div className="mt-2">
-                      {exists ? (
+                      {count > 0 ? (
                         <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600">
-                          Created
+                          {count} · + Add
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-[10px]">

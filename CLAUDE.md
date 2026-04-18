@@ -508,6 +508,22 @@ Five verbs. Each takes a noun that specifies what to act on.
 /sync    pay <receiver> <amt>    emit payment signal (L4 economic)       L4
 ```
 
+### CLI fallbacks (no dev server needed)
+
+When the Astro dev server is down or the gateway 8s timeout blocks bulk
+reads, use these direct-to-TypeDB scripts — same semantics, same writes.
+Required because `/api/tasks/sync` loses context on compile errors in the
+working tree and `readParsed()` times out on 1000+ row graph queries.
+
+```
+bun run scripts/sync-todos.ts            # scan TODO-*.md → TypeDB (replaces /sync todos)
+bun run scripts/ready-tasks.ts [N]       # top N tasks with no open blockers
+bun run scripts/close-task.ts <task-id>  # mark done + pheromone deposit + cascade
+bun run scripts/close-task.ts --search "phrase"   # find by name first
+```
+
+See `docs/task-management.md § CLI Tools` for the full contract.
+
 ## The Three Locked Rules
 
 These compound. Breaking any one breaks the flywheel.

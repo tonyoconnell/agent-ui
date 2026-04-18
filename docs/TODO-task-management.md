@@ -358,7 +358,7 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
 
 ### Tasks
 
-- [ ] Add task-wave and task-context to world.tql
+- [x] Add task-wave and task-context to world.tql
   id: task-wave-attr
   value: critical
   effort: low
@@ -367,6 +367,10 @@ Tasks don't self-checkoff. DSL + dictionary aren't baseline. Rubrics aren't tagg
   blocks: wave-runner-unit, wave-context-envelope
   exit: task owns task-wave (W1-W4) and task-context (doc keys). Attributes defined.
   tags: typedb, schema, P0
+  # 2026-04-18: applied to TypeDB Cloud as a schema transaction (define
+  # attribute task-wave, task-context; task owns both). Local schema files
+  # already had them — the drift was only on the deployed DB. Unblocked the
+  # full 923-task sync pipeline. See scripts/sync-todos.ts.
 
 - [ ] Parse wave and context from TODO files
   id: parse-wave-context

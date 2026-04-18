@@ -45,12 +45,50 @@ A task is simultaneously a skill in the marketplace. Other agents can discover i
 
 ---
 
+## CLI Tools (Dev-Server-Independent)
+
+Three scripts under `scripts/` drive the full task loop without touching the
+Astro dev server or Cloudflare gateway. They connect directly to TypeDB Cloud
+over `/v1/signin` + `/v1/query`, so they work when `/api/tasks/sync` is
+unreachable (compile error in working tree, gateway timeout on bulk reads,
+no server running at all).
+
+| Script | Verb | What it does |
+|--------|------|--------------|
+| `scripts/sync-todos.ts` | send | `scanTodos(docs/)` → `syncTasks()` → write tasks + skills + capabilities + blocks. Idempotent. |
+| `scripts/ready-tasks.ts [N]` | follow | Top N tasks with no open blockers, ranked by priority-score + unlock count. Also prints source distribution and biggest unlockers. |
+| `scripts/close-task.ts <id>` | mark | `done=true` + `status="done"` + `strength += 5` on `loop→builder` + cascade-check dependents. Mirrors `selfCheckoff()` in `src/engine/task-sync.ts`. |
+
+```bash
+bun run scripts/sync-todos.ts                    # load TODO-*.md → TypeDB
+bun run scripts/ready-tasks.ts 20                # top 20 actionable tasks
+bun run scripts/close-task.ts --search "phrase"  # find a task by name
+bun run scripts/close-task.ts <task-id>          # mark done + deposit pheromone
+```
+
+**Why the gateway is bypassed.** The Cloudflare Worker gateway has an 8s
+`AbortSignal.timeout()` in `src/lib/typedb.ts`. For 1000+ row reads (the full
+task graph), that's too tight. The direct TypeDB Cloud connection uses a 30s
+cap, same auth, same queries. Writes through either path are identical.
+
+**Orphan skill safety.** `syncTasks()` now pre-fetches existing `skill-id`s
+and renders task-only inserts when a skill already exists (unique-key
+constraint on `skill-id` would otherwise throw `CNT9` and fail the whole
+batch). Adds one read to the sync; makes re-runs always idempotent even
+when prior runs left partial state.
+
+---
+
 ## Task Lifecycle (Every Step Verified)
 
 ### Step 1: Query Available Tasks
 
 ```bash
+# API path (requires dev server or production)
 curl -s "https://one-substrate.pages.dev/api/tasks?value=critical"
+
+# CLI equivalent (no server needed)
+bun run scripts/ready-tasks.ts 20
 ```
 
 ```json

@@ -256,8 +256,12 @@ export function UDashboard() {
       if (showSecurityDialog) {
         // Wait for state to update before transitioning
         await new Promise((resolve) => setTimeout(resolve, 100))
-        setIsFirstVisit(false)
-        setShowGenerateDialog(false)
+        // First wallet ever: close dialog + exit onboarding.
+        // Subsequent wallets: keep dialog open so user can keep generating.
+        if (isFirstVisit) {
+          setIsFirstVisit(false)
+          setShowGenerateDialog(false)
+        }
       }
     } catch (error) {
       console.error('Failed to generate wallet:', error)
@@ -653,10 +657,9 @@ export function UDashboard() {
                   )
                 }
 
-                const wallet = chainWallets[0]
-                return (
+                return chainWallets.map((wallet) => (
                   <EnhancedWalletCard
-                    key={chain.id}
+                    key={wallet.id}
                     wallet={wallet}
                     chain={chain}
                     onClick={(walletId) => (window.location.href = `/u/wallet/${walletId}`)}
@@ -668,7 +671,7 @@ export function UDashboard() {
                       setShowMnemonic({ id: walletId, name: walletName })
                     }}
                   />
-                )
+                ))
               })}
             </div>
           </div>
