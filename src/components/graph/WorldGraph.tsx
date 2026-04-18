@@ -33,7 +33,7 @@ import {
 import { useMemo, useState } from 'react'
 import '@xyflow/react/dist/style.css'
 import { useSkin } from '@/contexts/SkinContext'
-import type { Edge, World } from '@/engine'
+import type { Edge, World } from '@/engine/world'
 import { cn } from '@/lib/utils'
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -3,8 +3,8 @@ import { EdgeInfo } from '@/components/EdgeInfo'
 import { EnvelopeFlowCanvas } from '@/components/EnvelopeFlowCanvas'
 import { WorldEditor } from '@/components/graph/WorldEditor'
 import { HighwayPanel } from '@/components/panels/HighwayPanel'
-import type { Edge, World } from '@/engine'
-import { createWorld } from '@/engine'
+import type { Edge, World } from '@/engine/world'
+import { world as createWorld } from '@/engine/world'
 import { cn } from '@/lib/utils'
 
 // Agent data from JSON (plain object, not a class instance)

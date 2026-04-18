@@ -20,15 +20,9 @@ import { EnhancedWalletCard } from './EnhancedWalletCard'
 import { GenerateWalletDialog } from './GenerateWalletDialog'
 import { useWallets } from './hooks/useWallets'
 import type { Wallet } from './lib/adapters/WalletAdapter'
-import { SecureKeyStorage } from './lib/SecureKeyStorage'
-import {
-  BackupExportDialog,
-  BackupImportDialog,
-  SecurityStatus,
-  SetupPasswordDialog,
-  UnlockDialog,
-  ViewMnemonicDialog,
-} from './SecureStorageDialogs'
+import { useVault } from './lib/vault/useVault'
+import { VaultBackupDialog, VaultUnlockDialog } from './VaultDialogs'
+import { VaultUnlockChip } from './VaultUnlockChip'
 
 // Chain configurations - mapped to one-protocol chains (6 chains for 3x2 grid)
 // Using lowercase IDs for consistency with wallet storage
@@ -129,13 +123,11 @@ export function UDashboard() {
   const [isGenerating, setIsGenerating] = useState<string | null>(null)
   const [isGeneratingAll, setIsGeneratingAll] = useState(false)
 
-  // Security dialog states
-  const [showSetupPassword, setShowSetupPassword] = useState(false)
+  // Vault dialog states (chip owns the setup wizard + unlock dialog itself).
+  const vault = useVault()
   const [showUnlock, setShowUnlock] = useState(false)
-  const [showBackupExport, setShowBackupExport] = useState(false)
-  const [showBackupImport, setShowBackupImport] = useState(false)
+  const [showBackup, setShowBackup] = useState(false)
   const [showMnemonic, setShowMnemonic] = useState<{ id: string; name: string } | null>(null)
-  const [_securityStatus, setSecurityStatus] = useState(SecureKeyStorage.getStatus())
   const [substrateData, setSubstrateData] = useState<{
     reputation: number
     highways: { from: string; to: string; strength: number }[]
@@ -151,8 +143,6 @@ export function UDashboard() {
       setIsFirstVisit(true)
     }
 
-    setSecurityStatus(SecureKeyStorage.getStatus())
-
     const storedTokens = localStorage.getItem('u_tokens')
     if (storedTokens) setTokens(JSON.parse(storedTokens))
 
@@ -167,8 +157,9 @@ export function UDashboard() {
     const uid = wallets?.[0]?.id
     if (uid) {
       const controller = new AbortController()
+      type HighwaysResponse = { highways?: { from: string; to: string; strength: number }[] }
       fetch('/api/loop/highways', { signal: controller.signal })
-        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => (r.ok ? (r.json() as Promise<HighwaysResponse>) : null))
         .catch(() => null)
         .then((highways) => {
           setSubstrateData({
@@ -231,9 +222,10 @@ export function UDashboard() {
         // Always save both mnemonic and private key to u_keys storage (legacy support)
         saveToKeysStorage(newWallet.id, chain.name, newWallet.mnemonic, newWallet.privateKey)
 
-        // Save to secure storage if password is available
-        if (SecureKeyStorage.hasPassword() && !SecureKeyStorage.isLocked()) {
-          await SecureKeyStorage.saveWallet({
+        // Save to vault if it exists and is unlocked.
+        // Setup wizard handles vault creation; we don't auto-create here.
+        if (vault.status?.hasVault && !vault.status.isLocked) {
+          await vault.saveWallet({
             id: newWallet.id,
             chain: chainId,
             address: newWallet.address,
@@ -518,11 +510,14 @@ export function UDashboard() {
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
       {/* Quick Actions Bar - Compact */}
       <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
-        <SecurityStatus
-          onSetupPassword={() => setShowSetupPassword(true)}
-          onUnlock={() => setShowUnlock(true)}
-          onBackup={() => setShowBackupExport(true)}
-        />
+        <div className="flex items-center gap-2">
+          <VaultUnlockChip />
+          {vault.status?.hasVault && !vault.status.isLocked && (
+            <Button variant="ghost" size="sm" onClick={() => setShowBackup(true)}>
+              Backup
+            </Button>
+          )}
+        </div>
         <Button onClick={() => setShowGenerateDialog(true)} size="sm" className="shrink-0">
           <span className="mr-1.5">+</span>
           Add
@@ -659,7 +654,7 @@ export function UDashboard() {
                     onClick={(walletId) => (window.location.href = `/u/wallet/${walletId}`)}
                     onDelete={(walletId) => {
                       deleteWallet(walletId)
-                      SecureKeyStorage.deleteWallet(walletId)
+                      void vault.deleteWallet(walletId).catch(() => {})
                     }}
                     onViewMnemonic={(walletId, walletName) => {
                       setShowMnemonic({ id: walletId, name: walletName })
@@ -732,57 +727,99 @@ export function UDashboard() {
         existingWallets={wallets.map((w) => w.chain.toLowerCase())}
       />
 
-      {/* Security Dialogs */}
-      <SetupPasswordDialog
-        open={showSetupPassword}
-        onOpenChange={setShowSetupPassword}
-        onSetup={() => {
-          setSecurityStatus(SecureKeyStorage.getStatus())
-        }}
-      />
+      {/* Vault Dialogs */}
+      <VaultUnlockDialog open={showUnlock} onOpenChange={setShowUnlock} />
 
-      <UnlockDialog
-        open={showUnlock}
-        onOpenChange={setShowUnlock}
-        onUnlock={() => {
-          setSecurityStatus(SecureKeyStorage.getStatus())
-        }}
-      />
-
-      <BackupExportDialog open={showBackupExport} onOpenChange={setShowBackupExport} />
-
-      <BackupImportDialog
-        open={showBackupImport}
-        onOpenChange={setShowBackupImport}
-        onImport={(count) => {
-          // Reload wallets after import
-          const secureWallets = SecureKeyStorage.getEncryptedWallets()
-          const displayWallets: Wallet[] = secureWallets.map((sw) => ({
-            id: sw.id,
-            name: `My ${sw.chain} Wallet`,
-            chain: sw.chain,
-            address: sw.address,
-            publicKey: sw.publicKey,
-            balance: sw.balance,
-            usdValue: sw.usdValue,
-            lastUpdated: sw.createdAt,
-            context: 'mainnet',
-          }))
-          setWallets(displayWallets)
-        }}
-      />
+      <VaultBackupDialog open={showBackup} onOpenChange={setShowBackup} />
 
       {showMnemonic && (
-        <ViewMnemonicDialog
-          open={!!showMnemonic}
-          onOpenChange={(open) => !open && setShowMnemonic(null)}
+        <ViewMnemonicWithVault
           walletId={showMnemonic.id}
           walletName={showMnemonic.name}
+          onClose={() => setShowMnemonic(null)}
         />
       )}
 
       {/* Keys are now saved automatically to u_keys storage */}
       {/* Users can view their private keys and recovery phrases on the /u/keys page */}
+    </div>
+  )
+}
+
+// ViewMnemonicWithVault — fetch the mnemonic via vault.getMnemonic with step-up.
+function ViewMnemonicWithVault({
+  walletId,
+  walletName,
+  onClose,
+}: {
+  walletId: string
+  walletName: string
+  onClose: () => void
+}) {
+  const vault = useVault()
+  const [mnemonic, setMnemonic] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      setLoading(true)
+      try {
+        // Step-up before reveal — confirms presence on a sensitive op.
+        const ok = vault.status?.capabilities.prf ? await vault.stepUp() : true
+        if (!ok) {
+          if (!cancelled) {
+            setError('Verification cancelled')
+            setLoading(false)
+          }
+          return
+        }
+        const m = await vault.getMnemonic(walletId)
+        if (!cancelled) {
+          if (!m) setError('No mnemonic stored for this wallet')
+          else setMnemonic(m)
+        }
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [walletId, vault])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div
+        className="max-w-lg w-full rounded-lg border border-[#252538] bg-[#0a0a0f] p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-semibold text-slate-100">Recovery phrase — {walletName}</h3>
+        <p className="mt-1 text-sm text-slate-400">Write this down. Anyone with these words can spend your funds.</p>
+        {loading && <p className="mt-4 text-sm text-slate-400">Verifying…</p>}
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+        {mnemonic && (
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {mnemonic.split(' ').map((word, i) => (
+              <div
+                key={`${i}-${word}`}
+                className="flex items-center gap-1.5 rounded-md border border-[#252538] bg-[#161622] px-2 py-1.5 font-mono text-sm"
+              >
+                <span className="text-xs text-slate-500">{i + 1}</span>
+                <span className="text-slate-100">{word}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-4 flex justify-end">
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

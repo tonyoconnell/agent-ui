@@ -75,9 +75,10 @@ export function utf8Decode(b: Uint8Array): string {
 
 // TS 5.9 narrows TextEncoder/Uint8Array to <ArrayBufferLike>, but WebCrypto
 // signatures want BufferSource (ArrayBufferView | ArrayBuffer with concrete
-// ArrayBuffer). The shape is correct at runtime — this cast is purely a type
-// reconciliation. See https://github.com/microsoft/TypeScript/issues/58468
-const bs = (u: Uint8Array): BufferSource => u as unknown as BufferSource
+// ArrayBuffer). Shape is correct at runtime — this cast reconciles the
+// generic-parameter mismatch only. See microsoft/TypeScript#58468.
+// biome-ignore lint/suspicious/noExplicitAny: deliberate type bridge
+const bs = (u: any): BufferSource => u as BufferSource
 
 // ===== HASH =====
 
@@ -93,13 +94,9 @@ export async function deriveKeyFromPassword(
   salt: Uint8Array,
   usage: KeyUsage[] = ['encrypt', 'decrypt'],
 ): Promise<CryptoKey> {
-  const baseKey = await crypto.subtle.importKey(
-    'raw',
-    bs(utf8Encode(password)),
-    { name: 'PBKDF2' },
-    false,
-    ['deriveKey'],
-  )
+  const baseKey = await crypto.subtle.importKey('raw', bs(utf8Encode(password)), { name: 'PBKDF2' }, false, [
+    'deriveKey',
+  ])
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
@@ -118,7 +115,9 @@ export async function deriveKeyFromPassword(
 // the password-unlock path mirrors the passkey-PRF path, so vault.ts can derive
 // per-wallet subkeys the same way regardless of how the user unlocked.
 export async function deriveSecretFromPassword(password: string, salt: Uint8Array): Promise<Uint8Array> {
-  const baseKey = await crypto.subtle.importKey('raw', bs(utf8Encode(password)), { name: 'PBKDF2' }, false, ['deriveBits'])
+  const baseKey = await crypto.subtle.importKey('raw', bs(utf8Encode(password)), { name: 'PBKDF2' }, false, [
+    'deriveBits',
+  ])
   const bits = await crypto.subtle.deriveBits(
     { name: 'PBKDF2', salt: bs(salt), iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
     baseKey,
@@ -128,13 +127,7 @@ export async function deriveSecretFromPassword(password: string, salt: Uint8Arra
 }
 
 export async function importMasterSecret(secret: Uint8Array): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    'raw',
-    bs(secret),
-    { name: 'HKDF' },
-    false,
-    ['deriveKey', 'deriveBits'],
-  )
+  return crypto.subtle.importKey('raw', bs(secret), { name: 'HKDF' }, false, ['deriveKey', 'deriveBits'])
 }
 
 export async function deriveSubKey(baseKey: CryptoKey, info: string): Promise<CryptoKey> {
@@ -155,14 +148,10 @@ export async function deriveSubKey(baseKey: CryptoKey, info: string): Promise<Cr
 
 // ===== ENCRYPT / DECRYPT =====
 
-export async function encryptWithKey(
-  plaintext: Uint8Array,
-  key: CryptoKey,
-  info: string,
-): Promise<EncryptedRecord> {
+export async function encryptWithKey(plaintext: Uint8Array, key: CryptoKey, info: string): Promise<EncryptedRecord> {
   // 12 random bytes → 2^96 IV space, safe since keys rotate per-wallet (NIST SP 800-38D).
   const iv = randomBytes(IV_LENGTH)
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext)
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: bs(iv) }, key, bs(plaintext))
   return {
     ciphertext: new Uint8Array(ct),
     iv,
@@ -171,16 +160,9 @@ export async function encryptWithKey(
   }
 }
 
-export async function decryptWithKey(
-  record: EncryptedRecord,
-  key: CryptoKey,
-): Promise<Uint8Array> {
+export async function decryptWithKey(record: EncryptedRecord, key: CryptoKey): Promise<Uint8Array> {
   try {
-    const pt = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: record.iv },
-      key,
-      record.ciphertext,
-    )
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bs(record.iv) }, key, bs(record.ciphertext))
     return new Uint8Array(pt)
   } catch {
     // WebCrypto surfaces auth-tag failure as a generic error — translate to domain code.
@@ -200,10 +182,7 @@ export async function encryptUnderMaster(
   return encryptWithKey(bytes, sub, info)
 }
 
-export async function decryptUnderMaster(
-  record: EncryptedRecord,
-  masterKey: CryptoKey,
-): Promise<string> {
+export async function decryptUnderMaster(record: EncryptedRecord, masterKey: CryptoKey): Promise<string> {
   const sub = await deriveSubKey(masterKey, record.info)
   const pt = await decryptWithKey(record, sub)
   return utf8Decode(pt)

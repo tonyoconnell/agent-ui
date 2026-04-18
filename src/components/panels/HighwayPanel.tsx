@@ -1,4 +1,4 @@
-import type { Edge } from '@/engine'
+import type { Edge } from '@/engine/world'
 
 interface HighwayPanelProps {
   highways: Edge[] // Array of { path: string, strength: number }

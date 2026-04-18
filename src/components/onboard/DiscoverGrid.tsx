@@ -1,220 +1,337 @@
 /**
  * DiscoverGrid — Browse agents by capability
  *
- * Fetches from /api/discover, optionally filtered by ?task=
- * Shows agents ranked by edge strength.
+ * Buyer-facing surface: flattens markdown agents into (skill, provider) rows,
+ * groups by capability. Same data source as /agents (`/api/agents/list`), same
+ * shadcn theme tokens. Click "Run →" to expand AgentAd inline.
  */
 
-import { useCallback, useEffect, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AgentAd } from '@/components/AgentAd/AgentAd'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { emitClick } from '@/lib/ui-signal'
 
-interface Agent {
-  uid: string
+interface Skill {
   name: string
-  unitKind: string
-  reputation: number
-  successRate: number
-  taskName: string
-  taskType: string
   price: number
-  currency: string
-  strength: number
+  tags: string[]
 }
 
+interface AgentSummary {
+  id: string
+  name: string
+  group: string
+  model: string
+  tags: string[]
+  skills: Skill[]
+  channels: string[]
+  sensitivity: number
+  promptPreview: string
+}
+
+interface ListResponse {
+  agents: AgentSummary[]
+  groups: Record<string, AgentSummary[]>
+  tags: string[]
+  count: number
+}
+
+interface Listing {
+  agent: AgentSummary
+  skill: Skill
+}
+
+const FALLBACK: ListResponse = { agents: [], groups: {}, tags: [], count: 0 }
+
 export function DiscoverGrid() {
-  const [agents, setAgents] = useState<Agent[]>([])
+  const [data, setData] = useState<ListResponse>(FALLBACK)
   const [search, setSearch] = useState('')
-  const [activeFilter, setActiveFilter] = useState('')
-  const [isPending, startTransition] = useTransition()
-  const [loaded, setLoaded] = useState(false)
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
   const [activeRun, setActiveRun] = useState<string | null>(null)
 
-  const fetchAgents = useCallback((task?: string) => {
-    startTransition(async () => {
-      const params = task ? `?task=${encodeURIComponent(task)}` : ''
-      const res = await fetch(`/api/discover${params}`)
-      const data = (await res.json()) as { agents?: Agent[] }
-      setAgents(data.agents || [])
-      setLoaded(true)
-    })
+  const fetchAgents = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agents/list', { signal: AbortSignal.timeout(10000) })
+      if (res.ok) {
+        const json = (await res.json()) as ListResponse
+        if (json.agents?.length) setData(json)
+      }
+    } catch {
+      // Fallback stays empty
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
     fetchAgents()
   }, [fetchAgents])
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    setActiveFilter(search)
-    fetchAgents(search || undefined)
-  }
+  // Flatten: each skill on each agent is a listing
+  const listings = useMemo<Listing[]>(() => {
+    return data.agents.flatMap((a) => a.skills.map((s) => ({ agent: a, skill: s })))
+  }, [data.agents])
 
-  // Group agents by capability
-  const grouped = agents.reduce<Record<string, Agent[]>>((acc, agent) => {
-    const key = agent.taskName || 'uncategorized'
-    if (!acc[key]) acc[key] = []
-    acc[key].push(agent)
-    return acc
-  }, {})
+  const filtered = useMemo(() => {
+    return listings.filter(({ agent, skill }) => {
+      if (selectedTags.size > 0) {
+        const allTags = [...agent.tags, ...skill.tags]
+        if (![...selectedTags].some((t) => allTags.includes(t))) return false
+      }
+      if (search) {
+        const q = search.toLowerCase()
+        return (
+          skill.name.toLowerCase().includes(q) ||
+          agent.name.toLowerCase().includes(q) ||
+          agent.group.toLowerCase().includes(q) ||
+          skill.tags.some((t) => t.toLowerCase().includes(q)) ||
+          agent.tags.some((t) => t.toLowerCase().includes(q))
+        )
+      }
+      return true
+    })
+  }, [listings, search, selectedTags])
 
-  const uniqueTasks = Object.keys(grouped).sort()
+  // Group by skill name (capability)
+  const grouped = useMemo(() => {
+    const map = new Map<string, Listing[]>()
+    for (const l of filtered) {
+      const key = l.skill.name || 'uncategorized'
+      const list = map.get(key) || []
+      list.push(l)
+      map.set(key, list)
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
+  }, [filtered])
 
-  const strengthBar = (strength: number) => {
-    const pct = Math.min(strength / 100, 1) * 100
-    return (
-      <div className="h-1.5 w-full rounded-full bg-[#252538] overflow-hidden">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    )
+  const topTags = useMemo(() => {
+    const freq = new Map<string, number>()
+    for (const { skill, agent } of listings) {
+      for (const t of skill.tags) freq.set(t, (freq.get(t) || 0) + 1)
+      for (const t of agent.tags) freq.set(t, (freq.get(t) || 0) + 1)
+    }
+    return [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 24)
+  }, [listings])
+
+  const toggleTag = (tag: string) => {
+    emitClick('ui:discover:filter-tag', { tag })
+    setSelectedTags((prev) => {
+      const next = new Set(prev)
+      if (next.has(tag)) next.delete(tag)
+      else next.add(tag)
+      return next
+    })
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white">Discover</h1>
-        <p className="mt-3 text-lg text-slate-400">Browse agents by capability, ranked by edge strength</p>
+    <div className="mx-auto max-w-7xl">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Discover</h1>
+        <p className="text-muted-foreground">
+          {listings.length} capabilities across {data.count} agents. Filter by tag or search.
+        </p>
       </div>
 
       {/* Search */}
-      <form onSubmit={handleSearch} className="mb-8 flex gap-3">
+      <div className="mb-6">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by task... translate, classify, analyze"
-          className="bg-[#161622] border-[#252538] text-white placeholder:text-slate-600 h-11 flex-1"
+          placeholder="Search by capability... translate, classify, analyze"
+          className="max-w-md"
         />
-        <button
-          type="submit"
-          className="h-11 rounded-lg border border-[#252538] bg-[#161622] px-6 text-sm font-medium text-slate-300 hover:border-violet-500 hover:text-white transition-all"
-        >
-          {isPending ? 'Searching...' : 'Search'}
-        </button>
-      </form>
+      </div>
 
-      {/* Active filter */}
-      {activeFilter && (
-        <div className="mb-6 flex items-center gap-2">
-          <span className="text-sm text-slate-500">Filtered by:</span>
-          <Badge variant="secondary" className="bg-violet-500/10 text-violet-400 border-violet-500/20">
-            {activeFilter}
-          </Badge>
-          <button
-            onClick={() => {
-              setActiveFilter('')
-              setSearch('')
-              fetchAgents()
-            }}
-            className="text-xs text-slate-500 hover:text-white transition-colors"
-          >
-            clear
-          </button>
+      {/* Tag pills */}
+      {topTags.length > 0 && (
+        <div className="flex gap-1.5 mb-8 flex-wrap">
+          {topTags.map(([tag, count]) => (
+            <button key={tag} type="button" onClick={() => toggleTag(tag)}>
+              <Badge
+                variant={selectedTags.has(tag) ? 'default' : 'outline'}
+                className="cursor-pointer"
+              >
+                {tag}
+                <span className="ml-1 opacity-50">{count}</span>
+              </Badge>
+            </button>
+          ))}
+          {selectedTags.size > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                emitClick('ui:discover:clear-tags')
+                setSelectedTags(new Set())
+              }}
+            >
+              <Badge variant="destructive" className="cursor-pointer">
+                clear
+              </Badge>
+            </button>
+          )}
         </div>
       )}
 
-      {/* Results */}
-      {loaded && agents.length === 0 && (
-        <div className="rounded-xl border border-[#252538] bg-[#161622] p-12 text-center">
-          <p className="text-slate-400">No agents found</p>
-          <p className="mt-2 text-sm text-slate-500">
-            {activeFilter ? 'Try a different search term' : 'Be the first to register'}
-          </p>
-          <a
-            href="/build"
-            className="mt-4 inline-block text-sm text-violet-400 hover:text-violet-300 transition-colors"
-          >
-            Build an agent
-          </a>
-        </div>
-      )}
+      {/* Results count */}
+      <div className="text-xs text-muted-foreground mb-4">
+        {filtered.length} of {listings.length} capabilities
+      </div>
 
       {/* Grouped by capability */}
-      <div className="space-y-8">
-        {uniqueTasks.map((taskName) => (
-          <div key={taskName}>
-            <h2 className="mb-4 flex items-center gap-3 text-lg font-semibold text-white">
-              <span className="font-mono">{taskName}</span>
-              <span className="text-sm font-normal text-slate-500">
-                {grouped[taskName].length} provider{grouped[taskName].length !== 1 ? 's' : ''}
-              </span>
-            </h2>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {grouped[taskName]
-                .sort((a, b) => b.strength - a.strength)
-                .map((agent, i) => (
-                  <div key={`${agent.uid}-${i}`} className="flex flex-col gap-2">
-                    <div className="rounded-xl border border-[#252538] bg-[#161622] p-5 transition-all hover:border-violet-500/40">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={`/u/${agent.name}`}
-                              className="font-mono font-semibold text-white hover:text-violet-300 transition-colors"
-                            >
-                              {agent.name}
-                            </a>
-                            <Badge variant="outline" className="text-[10px] border-[#353548] text-slate-500">
-                              {agent.unitKind}
-                            </Badge>
-                          </div>
-                          <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-500">
-                            <span>rep: {(agent.reputation || 0).toFixed(1)}</span>
-                            <span>success: {((agent.successRate || 0) * 100).toFixed(0)}%</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-mono text-sm text-emerald-400">
-                            {agent.price} {agent.currency || 'SUI'}
-                          </span>
-                          <div className="mt-1">
-                            <Badge variant="secondary" className="bg-[#252538] text-slate-400 text-[10px]">
-                              {agent.taskType}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-3">{strengthBar(agent.strength)}</div>
-                      <div className="mt-1.5 flex items-end justify-between text-[10px] text-slate-600">
-                        <span>edge strength · {(agent.strength || 0).toFixed(1)}</span>
-                        <button
-                          type="button"
-                          onClick={() => setActiveRun(activeRun === agent.uid ? null : agent.uid)}
-                          className="text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
-                        >
-                          {activeRun === agent.uid ? 'collapse ↑' : 'Run →'}
-                        </button>
-                      </div>
-                    </div>
-                    {activeRun === agent.uid && (
-                      <AgentAd
-                        agentId={agent.uid}
-                        skill={agent.taskType || 'default'}
-                        price={agent.price}
-                        headline={`${agent.name} — ${agent.taskName}`}
-                      />
-                    )}
-                  </div>
-                ))}
+      {loading ? (
+        <div className="text-muted-foreground text-center py-12">Loading capabilities...</div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-xl border bg-card p-12 text-center">
+          <p className="text-muted-foreground">No capabilities match your filters.</p>
+          <a href="/build" className="mt-4 inline-block text-sm text-primary hover:underline">
+            Build an agent →
+          </a>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          {grouped.map(([capability, rows]) => (
+            <div key={capability}>
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-lg font-semibold font-mono">{capability}</h2>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {rows.length} provider{rows.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {rows
+                  .sort((a, b) => a.skill.price - b.skill.price)
+                  .map((listing, i) => (
+                    <ListingCard
+                      key={`${listing.agent.id}-${listing.skill.name}-${i}`}
+                      listing={listing}
+                      runKey={`${listing.agent.id}:${listing.skill.name}`}
+                      activeRun={activeRun}
+                      setActiveRun={setActiveRun}
+                    />
+                  ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Links */}
-      <div className="mt-12 flex justify-center gap-6 text-sm text-slate-500">
-        <a href="/signup" className="hover:text-violet-400 transition-colors">
-          Sign up
+      {/* Footer links */}
+      <div className="mt-16 flex justify-center gap-6 text-sm text-muted-foreground">
+        <a href="/agents" className="hover:text-foreground transition-colors">
+          All agents
         </a>
-        <span>|</span>
-        <a href="/build" className="hover:text-violet-400 transition-colors">
+        <span>·</span>
+        <a href="/build" className="hover:text-foreground transition-colors">
           Build an agent
         </a>
+        <span>·</span>
+        <a href="/signup" className="hover:text-foreground transition-colors">
+          Sign up
+        </a>
       </div>
+    </div>
+  )
+}
+
+// ─── Listing Card ──────────────────────────────────────────────────────────
+
+function ListingCard({
+  listing,
+  runKey,
+  activeRun,
+  setActiveRun,
+}: {
+  listing: Listing
+  runKey: string
+  activeRun: string | null
+  setActiveRun: (key: string | null) => void
+}) {
+  const { agent, skill } = listing
+  const modelShort = agent.model.split('/').pop() || agent.model
+  const isOpen = activeRun === runKey
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Card className="h-full transition-all hover:ring-1 hover:ring-primary/40">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="text-base font-mono truncate">{skill.name}</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                by{' '}
+                <a
+                  href={`/agents/${agent.id}`}
+                  onClick={() => emitClick('ui:discover:select-agent', { id: agent.id })}
+                  className="text-foreground hover:text-primary transition-colors"
+                >
+                  {agent.name}
+                </a>
+                <span className="text-muted-foreground"> · {agent.group}</span>
+              </CardDescription>
+            </div>
+            {skill.price > 0 && (
+              <Badge variant="outline" className="font-mono shrink-0">
+                {skill.price.toFixed(3)} SUI
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {/* Skill tags */}
+          {skill.tags.length > 0 && (
+            <div className="flex gap-1.5 flex-wrap">
+              {skill.tags.slice(0, 6).map((t) => (
+                <Badge key={t} variant="secondary" className="text-[10px] px-1.5 py-0 font-mono">
+                  {t}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          {/* Channels + model */}
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <div className="flex gap-1.5">
+              {agent.channels.slice(0, 3).map((ch) => (
+                <span key={ch} className="font-mono">
+                  {ch}
+                </span>
+              ))}
+            </div>
+            <span className="font-mono truncate ml-2">{modelShort}</span>
+          </div>
+
+          {/* Run button */}
+          <div className="flex items-center justify-between border-t pt-3">
+            <span className="text-[10px] text-muted-foreground">
+              sensitivity · {agent.sensitivity.toFixed(2)}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                emitClick('ui:discover:run', { agent: agent.id, skill: skill.name })
+                setActiveRun(isOpen ? null : runKey)
+              }}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              {isOpen ? 'collapse ↑' : 'Run →'}
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isOpen && (
+        <AgentAd
+          agentId={agent.id}
+          skill={skill.name}
+          price={skill.price}
+          headline={`${agent.name} — ${skill.name}`}
+        />
+      )}
     </div>
   )
 }

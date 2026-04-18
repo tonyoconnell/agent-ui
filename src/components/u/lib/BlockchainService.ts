@@ -252,7 +252,7 @@ async function getEvmBalance(address: string, chainId: string): Promise<BalanceR
       const response = await fetch(
         `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=demo`,
       )
-      const data = await response.json()
+      const data = (await response.json()) as { result?: string }
       balanceWei = data.result || '0'
     } catch {
       // Fallback to RPC
@@ -266,7 +266,7 @@ async function getEvmBalance(address: string, chainId: string): Promise<BalanceR
           params: [address, 'latest'],
         }),
       })
-      const data = await response.json()
+      const data = (await response.json()) as { result?: string }
       balanceWei = data.result ? parseInt(data.result, 16).toString() : '0'
     }
   } else {
@@ -281,7 +281,7 @@ async function getEvmBalance(address: string, chainId: string): Promise<BalanceR
         params: [address, 'latest'],
       }),
     })
-    const data = await response.json()
+    const data = (await response.json()) as { result?: string }
     balanceWei = data.result ? parseInt(data.result, 16).toString() : '0'
   }
 
@@ -306,7 +306,7 @@ async function getSolBalance(address: string): Promise<BalanceResult> {
     }),
   })
 
-  const data = await response.json()
+  const data = (await response.json()) as { result?: { value?: number } }
   const balanceLamports = data.result?.value || 0
   const balanceSol = balanceLamports / 1e9
 
@@ -320,7 +320,9 @@ async function getSolBalance(address: string): Promise<BalanceResult> {
 
 async function getBtcBalance(address: string): Promise<BalanceResult> {
   const response = await fetch(`https://blockstream.info/api/address/${address}`)
-  const data = await response.json()
+  const data = (await response.json()) as {
+    chain_stats?: { funded_txo_sum?: number; spent_txo_sum?: number }
+  }
 
   const funded = data.chain_stats?.funded_txo_sum || 0
   const spent = data.chain_stats?.spent_txo_sum || 0
@@ -382,7 +384,7 @@ async function getSuiTransactions(address: string): Promise<Transaction[]> {
     }),
   })
 
-  const fromData = await fromResponse.json()
+  const fromData = (await fromResponse.json()) as { result?: { data?: Array<Record<string, any>> } }
   const fromTxs = fromData.result?.data || []
 
   // Get transactions TO this address
@@ -405,7 +407,7 @@ async function getSuiTransactions(address: string): Promise<Transaction[]> {
     }),
   })
 
-  const toData = await toResponse.json()
+  const toData = (await toResponse.json()) as { result?: { data?: Array<Record<string, any>> } }
   const toTxs = toData.result?.data || []
 
   // Combine and dedupe
@@ -443,7 +445,7 @@ async function getEthTransactions(address: string): Promise<Transaction[]> {
     `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=desc&page=1&offset=25&apikey=demo`,
   )
 
-  const data = await response.json()
+  const data = (await response.json()) as { result?: Record<string, string>[] }
 
   if (!data.result || !Array.isArray(data.result)) {
     return []
@@ -477,7 +479,7 @@ async function getSolTransactions(address: string): Promise<Transaction[]> {
     }),
   })
 
-  const data = await response.json()
+  const data = (await response.json()) as { result?: Record<string, unknown>[] }
 
   if (!data.result || !Array.isArray(data.result)) {
     return []

@@ -804,7 +804,7 @@ export function ProductsPage() {
                     </div>
                     <div
                       className="p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors"
-                      onClick={() => openPaymentLink(showPaymentLinkDialog.paymentLinkManual)}
+                      onClick={() => showPaymentLinkDialog.paymentLinkManual && openPaymentLink(showPaymentLinkDialog.paymentLinkManual)}
                     >
                       <code className="text-xs break-all text-muted-foreground hover:text-primary">
                         {showPaymentLinkDialog.paymentLinkManual}

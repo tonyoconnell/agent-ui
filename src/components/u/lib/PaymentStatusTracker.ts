@@ -19,7 +19,7 @@ export interface PaymentStatus {
   chain?: string
   status: 'pending' | 'confirming' | 'confirmed' | 'failed' | 'expired'
   confirmations: number
-  url: string
+  url?: string
   timestamp: number
   expectedAmount?: string
   receivedAmount?: string

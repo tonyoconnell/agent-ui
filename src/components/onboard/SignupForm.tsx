@@ -1,151 +1,295 @@
 /**
- * SignupForm — Name reservation for name.one.ie
+ * SignupForm — Beautiful, polished sign-up using Better Auth + TypeDB adapter.
  *
- * Fields: name, unit-kind (human/agent/llm), optional Sui wallet
- * Posts to /api/signup
+ * Calls authClient.signUp.email() (via useAuth) so we get:
+ *   - inline loading/error UX
+ *   - cookie-cache hydration on success (no extra session roundtrip)
+ *   - shared TypeDB gateway session (no 401 races)
+ *
+ * Emits ui:signup:* signals so the conversion funnel becomes a learnable
+ * substrate path (mark on success, warn on failure).
  */
 
 import { useState, useTransition } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { emitClick } from '@/lib/ui-signal'
+import { cn } from '@/lib/utils'
 
-interface SignupResult {
-  ok?: boolean
-  uid?: string
-  error?: string
+type Intent = 'human' | 'agent-owner'
+
+interface Props {
+  intent: Intent
+  redirect: string
 }
 
-export function SignupForm() {
+const COPY: Record<Intent, { heading: string; sub: string; cta: string; badge: string }> = {
+  human: {
+    heading: 'Hire your first agent',
+    sub: 'Create an account, launch agents, own your memory. Pay per result, never per token.',
+    cta: 'Start for free',
+    badge: 'Hiring',
+  },
+  'agent-owner': {
+    heading: 'Earn from the substrate',
+    sub: 'Register your identity, price your skills, and let pheromone routing send you work.',
+    cta: 'Register as agent',
+    badge: 'Earning',
+  },
+}
+
+function passwordStrength(pw: string): { score: 0 | 1 | 2 | 3 | 4; label: string } {
+  if (!pw) return { score: 0, label: '' }
+  let score = 0
+  if (pw.length >= 8) score++
+  if (pw.length >= 12) score++
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++
+  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++
+  const labels = ['', 'Weak', 'Fair', 'Strong', 'Excellent']
+  return { score: score as 0 | 1 | 2 | 3 | 4, label: labels[score] }
+}
+
+export function SignupForm({ intent: initialIntent, redirect: initialRedirect }: Props) {
+  const { signUp } = useAuth()
+  const [intent, setIntent] = useState<Intent>(initialIntent)
   const [name, setName] = useState('')
-  const [unitKind, setUnitKind] = useState<'human' | 'agent' | 'llm'>('human')
-  const [wallet, setWallet] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const [result, setResult] = useState<SignupResult | null>(null)
+
+  const copy = COPY[intent]
+  const strength = passwordStrength(password)
+  const redirect = intent === 'agent-owner' ? '/app?onboarding=agent-owner' : '/app?onboarding=human'
+
+  const switchIntent = (next: Intent) => {
+    if (next === intent) return
+    emitClick(`ui:signup:intent-${next}`)
+    setIntent(next)
+    // Update URL without reload so the brand panel + back/forward stay in sync.
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('intent', next)
+      window.history.replaceState({}, '', url.toString())
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setResult(null)
+    setError(null)
+    emitClick('ui:signup:submit', { intent })
 
     startTransition(async () => {
-      const res = await fetch('/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, unitKind, wallet: wallet || undefined }),
-      })
-      const data = (await res.json()) as SignupResult
-      setResult(data)
-      if (data.ok) {
-        setName('')
-        setWallet('')
+      try {
+        await signUp(email, password, name)
+        emitClick('ui:signup:success', { intent })
+        // Hard nav so any layout that reads session via SSR re-renders cleanly.
+        window.location.href = redirect
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Sign-up failed'
+        emitClick('ui:signup:error', { intent, message })
+        setError(message)
       }
     })
   }
 
-  const kinds = [
-    { value: 'human' as const, label: 'Human', desc: 'A person' },
-    { value: 'agent' as const, label: 'Agent', desc: 'Autonomous software' },
-    { value: 'llm' as const, label: 'LLM', desc: 'Language model' },
-  ]
-
   return (
-    <div className="mx-auto max-w-lg">
-      <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white">Reserve your name</h1>
-        <p className="mt-3 text-lg text-slate-400">
-          Claim <span className="text-violet-400 font-mono">{name || 'you'}.one.ie</span>
-        </p>
+    <div className="w-full max-w-md">
+      {/* Intent segmented control */}
+      <div
+        role="tablist"
+        aria-label="Sign-up intent"
+        className="mb-8 flex gap-1 rounded-full border border-zinc-800 bg-zinc-900/60 p-1 text-xs font-medium"
+      >
+        {(['human', 'agent-owner'] as const).map((value) => {
+          const active = intent === value
+          const label = value === 'human' ? 'Hire an agent' : 'Be an agent'
+          return (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => switchIntent(value)}
+              className={cn(
+                'flex-1 rounded-full px-3 py-1.5 transition-colors',
+                active
+                  ? 'bg-white text-black shadow-sm'
+                  : 'text-zinc-400 hover:text-white',
+              )}
+            >
+              {label}
+            </button>
+          )
+        })}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Name */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300">Name</label>
-          <div className="relative">
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-              placeholder="your-name"
-              required
-              maxLength={32}
-              className="bg-[#161622] border-[#252538] text-white placeholder:text-slate-600 h-12 text-lg font-mono pr-24"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500 font-mono">.one.ie</span>
-          </div>
-          <p className="text-xs text-slate-500">Lowercase letters, numbers, and hyphens only</p>
+      {/* Heading */}
+      <div className="mb-8">
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-violet-300">
+          <span className="size-1.5 rounded-full bg-violet-400 animate-pulse" />
+          {copy.badge}
         </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">{copy.heading}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-zinc-400">{copy.sub}</p>
+      </div>
 
-        {/* Unit Kind */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-slate-300">What are you?</label>
-          <div className="grid grid-cols-3 gap-3">
-            {kinds.map((k) => (
-              <button
-                key={k.value}
-                type="button"
-                onClick={() => setUnitKind(k.value)}
-                className={`rounded-lg border p-4 text-left transition-all ${
-                  unitKind === k.value
-                    ? 'border-violet-500 bg-violet-500/10 text-white'
-                    : 'border-[#252538] bg-[#161622] text-slate-400 hover:border-[#353548] hover:text-slate-300'
-                }`}
-              >
-                <div className="text-sm font-semibold">{k.label}</div>
-                <div className="mt-1 text-xs opacity-60">{k.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <input type="hidden" name="callbackURL" value={redirect} />
 
-        {/* Wallet */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300">
-            Sui Wallet <span className="text-slate-500">(optional)</span>
-          </label>
+        <div className="space-y-1.5">
+          <Label htmlFor="name" className="text-zinc-300">Name</Label>
           <Input
-            value={wallet}
-            onChange={(e) => setWallet(e.target.value)}
-            placeholder="0x..."
-            className="bg-[#161622] border-[#252538] text-white placeholder:text-slate-600 h-12 font-mono text-sm"
+            id="name"
+            name="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ada Lovelace"
+            required
+            autoComplete="name"
+            autoFocus
+            className="h-11 border-zinc-800 bg-zinc-950/60 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20"
           />
-          <p className="text-xs text-slate-500">Link a Sui wallet for x402 payments</p>
         </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="text-zinc-300">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@domain.com"
+            required
+            autoComplete="email"
+            className="h-11 border-zinc-800 bg-zinc-950/60 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className="text-zinc-300">Password</Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="At least 8 characters"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            aria-describedby="password-hint"
+            className="h-11 border-zinc-800 bg-zinc-950/60 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20"
+          />
+          {/* Strength meter */}
+          <div id="password-hint" className="flex items-center gap-2 pt-0.5">
+            <div className="flex flex-1 gap-1">
+              {[1, 2, 3, 4].map((tier) => (
+                <div
+                  key={tier}
+                  className={cn(
+                    'h-1 flex-1 rounded-full transition-colors',
+                    strength.score >= tier
+                      ? tier === 1
+                        ? 'bg-red-500/70'
+                        : tier === 2
+                        ? 'bg-amber-500/70'
+                        : tier === 3
+                        ? 'bg-emerald-500/70'
+                        : 'bg-violet-400'
+                      : 'bg-zinc-800',
+                  )}
+                />
+              ))}
+            </div>
+            <span className="w-16 text-right text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+              {strength.label || '—'}
+            </span>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div
+            role="alert"
+            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300"
+          >
+            {error}
+          </div>
+        )}
 
         {/* Submit */}
         <Button
           type="submit"
-          disabled={!name || isPending}
-          className="w-full h-12 text-base font-semibold bg-violet-600 hover:bg-violet-500 text-white"
+          disabled={isPending || !name || !email || password.length < 8}
+          className="h-11 w-full bg-white text-sm font-semibold text-black hover:bg-zinc-200 disabled:opacity-60"
         >
-          {isPending ? 'Reserving...' : `Reserve ${name || 'name'}.one.ie`}
+          {isPending ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="size-3.5 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+              Creating account…
+            </span>
+          ) : (
+            <>
+              {copy.cta}
+              <span aria-hidden="true">→</span>
+            </>
+          )}
         </Button>
 
-        {/* Result */}
-        {result?.ok && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
-            <p className="text-emerald-400 font-medium">Reserved successfully</p>
-            <p className="mt-1 text-sm text-slate-400">
-              UID: <span className="font-mono text-white">{result.uid}</span>
-            </p>
-          </div>
-        )}
+        {/* Divider */}
+        <div className="flex items-center gap-3 py-1">
+          <div className="h-px flex-1 bg-zinc-800" />
+          <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">or</span>
+          <div className="h-px flex-1 bg-zinc-800" />
+        </div>
 
-        {result?.error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-center">
-            <p className="text-red-400 font-medium">{result.error}</p>
-          </div>
-        )}
+        {/* Sui wallet — visual placeholder until walletconnect is wired */}
+        <Button
+          type="button"
+          variant="outline"
+          disabled
+          title="Coming soon — sign in with your Sui wallet"
+          className="h-11 w-full justify-center border-zinc-800 bg-zinc-950/60 text-sm font-medium text-zinc-400 hover:bg-zinc-900 disabled:opacity-70"
+        >
+          <span className="inline-flex items-center gap-2">
+            <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12 2 4 12l8 10 8-10L12 2zm0 3.4L17.6 12 12 18.6 6.4 12 12 5.4z"
+              />
+            </svg>
+            Continue with Sui wallet
+            <span className="rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-violet-300">
+              Soon
+            </span>
+          </span>
+        </Button>
       </form>
 
-      {/* Links */}
-      <div className="mt-12 flex justify-center gap-6 text-sm text-slate-500">
-        <a href="/build" className="hover:text-violet-400 transition-colors">
-          Build an agent
+      {/* Footnote */}
+      <p className="mt-6 text-center text-xs text-zinc-500">
+        Already have an account?{' '}
+        <a
+          href="/login"
+          onClick={() => emitClick('ui:signup:goto-login')}
+          className="font-medium text-zinc-300 underline-offset-4 transition-colors hover:text-white hover:underline"
+        >
+          Sign in
         </a>
-        <span>|</span>
-        <a href="/discover" className="hover:text-violet-400 transition-colors">
-          Discover agents
-        </a>
-      </div>
+      </p>
+
+      <p className="mt-4 text-center text-[11px] leading-relaxed text-zinc-600">
+        By continuing you agree to our{' '}
+        <a href="/terms" className="underline-offset-4 hover:text-zinc-400 hover:underline">terms</a>
+        {' '}and{' '}
+        <a href="/privacy" className="underline-offset-4 hover:text-zinc-400 hover:underline">privacy policy</a>.
+      </p>
     </div>
   )
 }

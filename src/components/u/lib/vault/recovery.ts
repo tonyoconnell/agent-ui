@@ -1,12 +1,8 @@
 // vault/recovery.ts — BIP-39 24-word recovery phrase.
 // Generates, validates, normalises, derives vault master secret.
 
-import {
-  generateMnemonic,
-  mnemonicToSeed,
-  validateMnemonic,
-} from '@scure/bip39'
-import { wordlist } from '@scure/bip39/wordlists/english'
+import { generateMnemonic, mnemonicToSeed, validateMnemonic } from '@scure/bip39'
+import { wordlist } from '@scure/bip39/wordlists/english.js'
 import { VaultError } from './types'
 
 // ===== CONFIG =====
@@ -72,29 +68,20 @@ export function assertValidRecoveryPhrase(phrase: string): void {
   const words = normalised.split(' ')
 
   if (words.length !== 12 && words.length !== 24) {
-    throw new VaultError(
-      `Recovery phrase must be 12 or 24 words (got ${words.length})`,
-      'invalid-mnemonic',
-    )
+    throw new VaultError(`Recovery phrase must be 12 or 24 words (got ${words.length})`, 'invalid-mnemonic')
   }
 
   // Per-word wordlist check (more specific than @scure's boolean result)
   const wordlistSet = new Set(wordlist)
   for (let i = 0; i < words.length; i++) {
     if (!wordlistSet.has(words[i] as string)) {
-      throw new VaultError(
-        `Word #${i + 1} ("${words[i]}") is not in the BIP-39 wordlist`,
-        'invalid-mnemonic',
-      )
+      throw new VaultError(`Word #${i + 1} ("${words[i]}") is not in the BIP-39 wordlist`, 'invalid-mnemonic')
     }
   }
 
   // All words in list — any remaining failure is a checksum failure.
   if (!validateMnemonic(normalised, wordlist)) {
-    throw new VaultError(
-      'Recovery phrase checksum failed — check for typos',
-      'invalid-mnemonic',
-    )
+    throw new VaultError('Recovery phrase checksum failed — check for typos', 'invalid-mnemonic')
   }
 }
 
@@ -107,10 +94,7 @@ export function assertValidRecoveryPhrase(phrase: string): void {
  * @param phrase recovery phrase (validated by caller)
  * @param passphrase optional BIP-39 passphrase ("25th word"), default ''
  */
-export function recoveryToSeed(
-  phrase: string,
-  passphrase: string = '',
-): Promise<Uint8Array> {
+export function recoveryToSeed(phrase: string, passphrase: string = ''): Promise<Uint8Array> {
   const normalised = normaliseRecoveryPhrase(phrase)
   return mnemonicToSeed(normalised, passphrase)
 }
@@ -125,10 +109,7 @@ export function recoveryToSeed(
  *
  * @returns 32-byte Uint8Array
  */
-export async function recoveryToVaultSecret(
-  phrase: string,
-  passphrase: string = '',
-): Promise<Uint8Array> {
+export async function recoveryToVaultSecret(phrase: string, passphrase: string = ''): Promise<Uint8Array> {
   assertValidRecoveryPhrase(phrase)
   const normalised = normaliseRecoveryPhrase(phrase)
   const seed = await mnemonicToSeed(normalised, passphrase)

@@ -442,6 +442,8 @@ export function getPaymentUrl(params: {
   token?: string
   chain?: string
   memo?: string
+  type?: string
+  product?: string
 }): string {
   const url = new URL('https://pay.one.ie/pay')
   url.searchParams.set('to', params.to)
@@ -449,6 +451,8 @@ export function getPaymentUrl(params: {
   if (params.token) url.searchParams.set('token', params.token)
   if (params.chain) url.searchParams.set('chain', params.chain)
   if (params.memo) url.searchParams.set('memo', params.memo)
+  if (params.type) url.searchParams.set('type', params.type)
+  if (params.product) url.searchParams.set('product', params.product)
   return url.toString()
 }
 

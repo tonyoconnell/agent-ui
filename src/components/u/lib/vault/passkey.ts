@@ -2,11 +2,7 @@
 // Touch ID/Face ID/Windows Hello → deterministic 32-byte secret per enrollment.
 // Caller never sees the credential — only the PRF output.
 
-import type {
-  PasskeyEnrollment,
-  PasskeyUnlockResult,
-  PasskeyCapabilities,
-} from './types'
+import type { PasskeyCapabilities, PasskeyEnrollment, PasskeyUnlockResult } from './types'
 import { VaultError } from './types'
 
 // ===== CONFIG =====
@@ -24,19 +20,12 @@ function getRpId(): string {
 
 function assertSecureContext(): void {
   if (typeof window === 'undefined' || !window.isSecureContext) {
-    throw new VaultError(
-      'WebAuthn requires secure context (HTTPS or localhost)',
-      'passkey-unsupported',
-    )
+    throw new VaultError('WebAuthn requires secure context (HTTPS or localhost)', 'passkey-unsupported')
   }
 }
 
 function assertWebAuthn(): void {
-  if (
-    typeof window === 'undefined' ||
-    typeof window.PublicKeyCredential === 'undefined' ||
-    !navigator.credentials
-  ) {
+  if (typeof window === 'undefined' || typeof window.PublicKeyCredential === 'undefined' || !navigator.credentials) {
     throw new VaultError('WebAuthn API not available', 'passkey-unsupported')
   }
 }
@@ -45,16 +34,13 @@ function assertWebAuthn(): void {
 
 export async function detectCapabilities(): Promise<PasskeyCapabilities> {
   const webauthn =
-    typeof window !== 'undefined' &&
-    typeof window.PublicKeyCredential !== 'undefined' &&
-    !!navigator.credentials
+    typeof window !== 'undefined' && typeof window.PublicKeyCredential !== 'undefined' && !!navigator.credentials
   const secure = typeof window !== 'undefined' && !!window.isSecureContext
 
   let platformAuthenticator = false
   if (webauthn) {
     try {
-      platformAuthenticator =
-        await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      platformAuthenticator = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
     } catch {
       platformAuthenticator = false
     }
@@ -111,17 +97,13 @@ function extractPrfSecret(cred: PublicKeyCredential): Uint8Array | null {
   }
   const first = ext?.prf?.results?.first
   if (!first) return null
-  const bytes =
-    first instanceof Uint8Array ? new Uint8Array(first) : new Uint8Array(first)
+  const bytes = first instanceof Uint8Array ? new Uint8Array(first) : new Uint8Array(first)
   return bytes.byteLength === 32 ? bytes : null
 }
 
 // ===== ENROLLMENT =====
 
-export async function enrollPasskey(
-  userIdentifier: string,
-  userDisplayName: string,
-): Promise<PasskeyEnrollment> {
+export async function enrollPasskey(userIdentifier: string, userDisplayName: string): Promise<PasskeyEnrollment> {
   assertSecureContext()
   assertWebAuthn()
 
@@ -133,11 +115,11 @@ export async function enrollPasskey(
   const publicKey: PublicKeyCredentialCreationOptions = {
     rp: { name: RP_NAME, id: rpId },
     user: {
-      id: userHandle,
+      id: userHandle as unknown as BufferSource,
       name: userIdentifier,
       displayName: userDisplayName,
     },
-    challenge,
+    challenge: challenge as unknown as BufferSource,
     // ES256 + RS256 — the universally supported pair.
     pubKeyCredParams: [
       { type: 'public-key', alg: -7 },
@@ -172,10 +154,7 @@ export async function enrollPasskey(
       throw new VaultError('Passkey creation cancelled', 'passkey-cancelled')
     }
     if (err instanceof VaultError) throw err
-    throw new VaultError(
-      `Passkey creation failed: ${(err as Error)?.message ?? String(err)}`,
-      'passkey-unsupported',
-    )
+    throw new VaultError(`Passkey creation failed: ${(err as Error)?.message ?? String(err)}`, 'passkey-unsupported')
   }
 
   const credentialId = new Uint8Array(credential.rawId)
@@ -187,9 +166,9 @@ export async function enrollPasskey(
   try {
     const verifyChallenge = randomBytes(32)
     const verifyOptions: PublicKeyCredentialRequestOptions = {
-      challenge: verifyChallenge,
+      challenge: verifyChallenge as unknown as BufferSource,
       rpId,
-      allowCredentials: [{ id: credentialId, type: 'public-key' }],
+      allowCredentials: [{ id: credentialId as unknown as BufferSource, type: 'public-key' }],
       userVerification: 'required',
       timeout: 60_000,
       extensions: {
@@ -222,9 +201,7 @@ export async function enrollPasskey(
 
 // ===== UNLOCK =====
 
-export async function unlockWithPasskey(
-  enrollment: PasskeyEnrollment,
-): Promise<PasskeyUnlockResult> {
+export async function unlockWithPasskey(enrollment: PasskeyEnrollment): Promise<PasskeyUnlockResult> {
   try {
     if (typeof window === 'undefined' || !window.isSecureContext) {
       return { ok: false, reason: 'unsupported' }
@@ -237,9 +214,9 @@ export async function unlockWithPasskey(
     const challenge = randomBytes(32)
 
     const options: PublicKeyCredentialRequestOptions = {
-      challenge,
+      challenge: challenge as unknown as BufferSource,
       rpId,
-      allowCredentials: [{ id: enrollment.credentialId, type: 'public-key' }],
+      allowCredentials: [{ id: enrollment.credentialId as unknown as BufferSource, type: 'public-key' }],
       userVerification: 'required',
       timeout: 60_000,
       extensions: {

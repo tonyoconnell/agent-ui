@@ -10,7 +10,7 @@ import { useStore } from '@nanostores/react'
 import { Mic, Send, Sparkles, Square } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSkin } from '@/contexts/SkinContext'
-import type { World } from '@/engine'
+import type { World } from '@/engine/world'
 import { cn } from '@/lib/utils'
 import { addMessage, isStreaming$, messages$, setStreaming } from '@/stores/chat-store'
 

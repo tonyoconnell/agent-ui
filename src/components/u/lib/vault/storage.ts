@@ -117,7 +117,8 @@ export function deleteVaultDb(): Promise<void> {
       return
     }
     req.onsuccess = () => resolve()
-    req.onerror = () => reject(new VaultError(`Failed to delete vault db: ${req.error?.message ?? 'unknown'}`, 'storage-error'))
+    req.onerror = () =>
+      reject(new VaultError(`Failed to delete vault db: ${req.error?.message ?? 'unknown'}`, 'storage-error'))
     req.onblocked = () => reject(new VaultError('Vault db delete blocked by another connection', 'storage-error'))
   })
 }

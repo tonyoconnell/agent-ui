@@ -3,56 +3,47 @@
 // Sessions hold a non-extractable CryptoKey only — the raw secret is never retained.
 
 import {
-  bytesToBase64,
   base64ToBytes,
+  bytesToBase64,
   constantTimeEqual,
   decryptUnderMaster,
-  decryptWithKey,
-  deriveKeyFromPassword,
   deriveSecretFromPassword,
   encryptUnderMaster,
-  encryptWithKey,
   importMasterSecret,
   randomBytes,
   SALT_LENGTH,
   sha256,
-  utf8Decode,
   utf8Encode,
 } from './crypto'
 import {
-  enrollPasskey,
   detectCapabilities,
+  enrollPasskey,
   guessAuthenticatorLabel,
   unlockWithPasskey as passkeyUnlock,
 } from './passkey'
-import {
-  assertValidRecoveryPhrase,
-  generateRecoveryPhrase,
-  recoveryToVaultSecret,
-} from './recovery'
+import { assertValidRecoveryPhrase, generateRecoveryPhrase, recoveryToVaultSecret } from './recovery'
 import {
   appendAudit,
-  clearWallets,
   deleteVaultDb,
-  deleteWallet as storageDeleteWallet,
   getMeta,
-  getWallet as storageGetWallet,
   isStorageAvailable,
-  listWallets as storageListWallets,
   putMeta,
   putWallet,
+  deleteWallet as storageDeleteWallet,
+  getWallet as storageGetWallet,
+  listWallets as storageListWallets,
 } from './storage'
 import {
-  HKDF_DOMAINS,
   type AuditEvent,
   type EncryptedRecord,
+  HKDF_DOMAINS,
   type PasskeyEnrollment,
+  VAULT_SCHEMA_VERSION,
+  VaultError,
   type VaultMeta,
   type VaultSession,
   type VaultStatus,
   type VaultWallet,
-  VaultError,
-  VAULT_SCHEMA_VERSION,
 } from './types'
 
 // ============================================
@@ -137,7 +128,7 @@ function recordSuccess(): void {
 // SENTINEL — proves the master key matches what set up the vault
 // ============================================
 
-async function makeSentinel(masterKey: CryptoKey): Promise<EncryptedRecord> {
+async function _makeSentinel(masterKey: CryptoKey): Promise<EncryptedRecord> {
   return encryptUnderMaster(SENTINEL_PLAINTEXT, masterKey, HKDF_DOMAINS.masterCheck())
 }
 
@@ -265,11 +256,7 @@ export async function setup(opts: SetupOptions = {}): Promise<SetupResult> {
     // Store the recovery sentinel encrypted under the PASSWORD-derived base key so
     // password unlock can recover the master too. We do this by storing the master
     // SECRET (32 bytes) wrapped under the password key. Same for passkey path.
-    meta.passwordCheck = await encryptUnderMaster(
-      bytesToBase64(masterSecret),
-      pwBaseKey,
-      HKDF_DOMAINS.masterCheck(),
-    )
+    meta.passwordCheck = await encryptUnderMaster(bytesToBase64(masterSecret), pwBaseKey, HKDF_DOMAINS.masterCheck())
     meta.passwordSalt = passwordSalt
     meta.hasPassword = true
   }
@@ -574,7 +561,12 @@ export async function addPasskey(userIdentifier?: string): Promise<PasskeyEnroll
   // key... but masterKey is non-extractable HKDF base, deriveBits is allowed.
   const rawMaster = new Uint8Array(
     await crypto.subtle.deriveBits(
-      { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: utf8Encode(HKDF_DOMAINS.masterCheck() + '.export') },
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(0) as unknown as BufferSource,
+        info: utf8Encode(`${HKDF_DOMAINS.masterCheck()}.export`) as unknown as BufferSource,
+      },
       s.masterKey,
       256,
     ),
@@ -618,7 +610,12 @@ export async function setPassword(password: string): Promise<void> {
   // Same export-master dance as addPasskey.
   const rawMaster = new Uint8Array(
     await crypto.subtle.deriveBits(
-      { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: utf8Encode(HKDF_DOMAINS.masterCheck() + '.export') },
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(0) as unknown as BufferSource,
+        info: utf8Encode(`${HKDF_DOMAINS.masterCheck()}.export`) as unknown as BufferSource,
+      },
       s.masterKey,
       256,
     ),
@@ -766,7 +763,12 @@ function replaceBytes(_key: string, value: unknown): unknown {
   return value
 }
 function reviveBytes(_key: string, value: unknown): unknown {
-  if (value && typeof value === 'object' && '__bytes' in value && typeof (value as { __bytes: string }).__bytes === 'string') {
+  if (
+    value &&
+    typeof value === 'object' &&
+    '__bytes' in value &&
+    typeof (value as { __bytes: string }).__bytes === 'string'
+  ) {
     return base64ToBytes((value as { __bytes: string }).__bytes)
   }
   return value

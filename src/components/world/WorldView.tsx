@@ -10,8 +10,8 @@ import { SkinSwitcher } from '@/components/controls/SkinSwitcher'
 import { WorldGraph } from '@/components/graph/WorldGraph'
 import { WorldChat } from '@/components/world/WorldChat'
 import { SkinProvider, useSkin } from '@/contexts/SkinContext'
-import type { Edge, World } from '@/engine'
-import { createWorld } from '@/engine'
+import type { Edge, World } from '@/engine/world'
+import { world as createWorld } from '@/engine/world'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES

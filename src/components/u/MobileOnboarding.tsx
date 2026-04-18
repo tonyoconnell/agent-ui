@@ -50,7 +50,7 @@ export function MobileOnboarding({
   isGenerating,
   isGeneratingAll,
 }: MobileOnboardingProps) {
-  const { isMobile } = useResponsive()
+  const { isMobile, isDesktop } = useResponsive()
   const [showDetails, setShowDetails] = useState(false)
 
   const hasWalletForChain = (chainId: string) => existingWallets.includes(chainId)

@@ -255,7 +255,7 @@ async function fetchTokenPrice(chainId: string): Promise<number> {
 
   try {
     const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${geckoId}&vs_currencies=usd`)
-    const data = await response.json()
+    const data = (await response.json()) as Record<string, { usd?: number }>
     return data[geckoId]?.usd || 0
   } catch (error) {
     console.error('Failed to fetch price:', error)
@@ -278,7 +278,7 @@ async function fetchSuiBalance(address: string): Promise<{ balance: string; usdV
       }),
     })
 
-    const data = await response.json()
+    const data = (await response.json()) as { result?: { totalBalance?: string } }
     const totalBalance = data.result?.totalBalance || '0'
     const balanceInSui = parseInt(totalBalance, 10) / 1e9 // 9 decimals
 
@@ -323,7 +323,7 @@ async function fetchSuiTransactions(address: string): Promise<Transaction[]> {
       }),
     })
 
-    const data = await response.json()
+    const data = (await response.json()) as { result?: { data?: Array<Record<string, any>> } }
     const txs = data.result?.data || []
 
     // Also get transactions TO this address
@@ -350,7 +350,7 @@ async function fetchSuiTransactions(address: string): Promise<Transaction[]> {
       }),
     })
 
-    const dataTo = await responseToAddr.json()
+    const dataTo = (await responseToAddr.json()) as { result?: { data?: Array<Record<string, any>> } }
     const txsTo = dataTo.result?.data || []
 
     // Combine and dedupe
@@ -390,18 +390,30 @@ async function fetchSuiTransactions(address: string): Promise<Transaction[]> {
   }
 }
 
-// Fetch ETH balance
+// Fetch ETH balance via public Cloudflare RPC (no API key required)
 async function fetchEthBalance(address: string): Promise<{ balance: string; usdValue: number }> {
   try {
-    const response = await fetch(
-      `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=demo`,
-    )
-    const data = await response.json()
-    const balanceWei = data.result || '0'
-    const balanceEth = parseInt(balanceWei, 10) / 1e18
+    const response = await fetch('https://cloudflare-eth.com', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_getBalance',
+        params: [address, 'latest'],
+      }),
+    })
+    const data = (await response.json()) as { result?: string }
+    const hex = typeof data.result === 'string' && data.result.startsWith('0x') ? data.result : '0x0'
+    const balanceWei = BigInt(hex)
+    const balanceEth = Number(balanceWei) / 1e18
+
+    if (!Number.isFinite(balanceEth)) {
+      return { balance: '0', usdValue: 0 }
+    }
 
     const price = await fetchTokenPrice('eth')
-    const usdValue = balanceEth * price
+    const usdValue = Number.isFinite(balanceEth * price) ? balanceEth * price : 0
 
     return {
       balance: balanceEth.toFixed(6),
@@ -426,7 +438,7 @@ async function fetchSolBalance(address: string): Promise<{ balance: string; usdV
         params: [address],
       }),
     })
-    const data = await response.json()
+    const data = (await response.json()) as { result?: { value?: number } }
     const balanceLamports = data.result?.value || 0
     const balanceSol = balanceLamports / 1e9
 
@@ -598,7 +610,7 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
         const response = await fetch(
           `https://api.etherscan.io/api?module=account&action=txlist&address=${wallet.address}&startblock=0&endblock=99999999&sort=desc&apikey=demo`,
         )
-        const data = await response.json()
+        const data = (await response.json()) as { result?: Array<Record<string, string>> }
 
         if (data.result && Array.isArray(data.result)) {
           parsedTx = data.result.slice(0, 20).map((tx: Record<string, string>) => ({
@@ -629,7 +641,7 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
             params: [wallet.address, { limit: 20 }],
           }),
         })
-        const data = await response.json()
+        const data = (await response.json()) as { result?: Array<Record<string, unknown>> }
 
         if (data.result && Array.isArray(data.result)) {
           parsedTx = data.result.map((sig: Record<string, unknown>) => ({
@@ -649,7 +661,7 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       } else if (wallet.chain === 'btc') {
         // Use Blockstream API
         const response = await fetch(`https://blockstream.info/api/address/${wallet.address}/txs`)
-        const data = await response.json()
+        const data = (await response.json()) as Array<Record<string, unknown>>
 
         if (Array.isArray(data)) {
           parsedTx = data.slice(0, 20).map((tx: Record<string, unknown>) => ({
@@ -811,9 +823,18 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
   }
 
   const style = CHAIN_STYLES[wallet.chain] ?? CHAIN_STYLES.unknown
-  const displayBalance = liveBalance !== null ? parseFloat(liveBalance.balance).toFixed(6) : wallet.balance
-  const displayUsd =
-    liveBalance !== null ? liveBalance.usdValue.toLocaleString() : wallet.usdValue.toLocaleString()
+  const safeBalance = (raw: string | number | undefined) => {
+    const n = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''))
+    return Number.isFinite(n) ? n.toFixed(6) : '0.000000'
+  }
+  const safeUsd = (raw: number | undefined) => {
+    const n = Number(raw)
+    return Number.isFinite(n)
+      ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : '0.00'
+  }
+  const displayBalance = liveBalance !== null ? safeBalance(liveBalance.balance) : safeBalance(wallet.balance)
+  const displayUsd = liveBalance !== null ? safeUsd(liveBalance.usdValue) : safeUsd(wallet.usdValue)
   const isLive = liveBalance !== null && liveBalance.balance !== String(wallet.balance)
 
   return (
@@ -1028,12 +1049,13 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 font-medium capitalize text-sm">
                                 {tx.type}
-                                <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.75} />
+                                <ExternalLink
+                                  className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                  strokeWidth={1.75}
+                                />
                               </div>
                               <div className="text-xs text-muted-foreground font-mono truncate">
-                                {tx.type === 'send'
-                                  ? `To · ${tx.to.slice(0, 10)}…`
-                                  : `From · ${tx.from.slice(0, 10)}…`}
+                                {tx.type === 'send' ? `To · ${tx.to.slice(0, 10)}…` : `From · ${tx.from.slice(0, 10)}…`}
                               </div>
                             </div>
                           </div>
@@ -1171,11 +1193,7 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <span
-                className={cn(
-                  'flex h-9 w-9 items-center justify-center rounded-xl ring-1',
-                  style.tile,
-                  style.ring,
-                )}
+                className={cn('flex h-9 w-9 items-center justify-center rounded-xl ring-1', style.tile, style.ring)}
               >
                 <ArrowUpRight className={cn('h-4 w-4', style.icon)} strokeWidth={1.75} />
               </span>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { emitClick } from '@/lib/ui-signal'
+import { OrgChart } from './OrgChart'
 
 interface HiredUnit {
   uid: string
@@ -67,7 +68,6 @@ export function ChairmanPanel() {
       return
     }
 
-    // Poll for directors appearing in the substrate
     let elapsed = 0
     stopPolling()
     pollRef.current = setInterval(async () => {
@@ -90,73 +90,57 @@ export function ChairmanPanel() {
     }, 1000)
   }
 
-  const roleLabel = (uid: string) => uid.replace('roles:', '').toUpperCase()
-
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-slate-200 p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-semibold mb-2">Chairman</h1>
-        <p className="text-slate-500 text-sm mb-8">One click. One CEO. The org builds itself.</p>
+    <div className="min-h-screen flex flex-col bg-[#0a0a0f] text-slate-200">
+      {/* Header */}
+      <div className="px-8 pt-8 pb-4 shrink-0">
+        <h1 className="text-2xl font-semibold mb-1">Chairman</h1>
+        <p className="text-slate-500 text-sm">One click. One CEO. The org builds itself.</p>
+      </div>
 
-        {!unit ? (
+      {/* Content */}
+      {!unit ? (
+        /* Pre-hire: centered button */
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <button
             type="button"
             onClick={hireCeo}
             disabled={hiring}
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
+            className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-indigo-900/40"
           >
             {hiring ? 'Hiring CEO…' : 'Hire CEO'}
           </button>
-        ) : (
-          <div className="space-y-4">
-            {/* CEO card */}
-            <div className="rounded-lg border border-[#252538] bg-[#0d0d14] px-6 py-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-indigo-400">{unit.uid}</span>
-                <span className="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">hired</span>
-              </div>
-              {unit.wallet && <p className="text-xs text-slate-500 font-mono mb-3 truncate">{unit.wallet}</p>}
-              <div className="flex gap-2 flex-wrap">
-                {unit.skills.map((s) => (
-                  <span key={s} className="text-xs px-2 py-0.5 rounded bg-[#1a1a2e] text-slate-400">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+        </div>
+      ) : (
+        /* Post-hire: org chart fills remaining height */
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 min-h-0">
+            <OrgChart unit={unit} orgUnits={orgUnits} building={building} />
+          </div>
 
-            {/* Build Team button */}
+          {/* Controls below chart */}
+          <div className="px-8 py-5 shrink-0 flex items-center gap-4 border-t border-[#1a1a2e]">
             {orgUnits.length === 0 && (
               <button
                 type="button"
                 onClick={buildTeam}
                 disabled={building}
-                className="px-6 py-3 bg-violet-700 hover:bg-violet-600 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
+                className="px-6 py-2.5 bg-violet-700 hover:bg-violet-600 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
               >
                 {building ? 'Building team…' : 'Build Team'}
               </button>
             )}
-
-            {/* Director cards */}
             {orgUnits.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Directors</p>
-                {orgUnits.map((u) => (
-                  <div
-                    key={u.uid}
-                    className="rounded-lg border border-[#252538] bg-[#0d0d14] px-5 py-4 flex items-center justify-between animate-fade-in"
-                  >
-                    <span className="text-sm font-medium text-violet-400">{roleLabel(u.uid)}</span>
-                    <span className="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">hired</span>
-                  </div>
-                ))}
-              </div>
+              <span className="text-xs text-slate-500">
+                {orgUnits.length} director{orgUnits.length !== 1 ? 's' : ''} hired —{' '}
+                {orgUnits.map((u) => u.uid.replace('roles:', '').toUpperCase()).join(', ')}
+              </span>
             )}
+            {error && <p className="text-sm text-red-400 ml-auto">{error}</p>}
           </div>
-        )}
-
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

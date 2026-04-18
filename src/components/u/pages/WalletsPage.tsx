@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { emitClick } from '@/lib/ui-signal'
 import { UNav } from '../UNav'
 
 const CHAINS = [

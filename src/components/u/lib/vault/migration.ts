@@ -2,9 +2,9 @@
 // u_wallets (plaintext) → migrate automatically post-unlock.
 // u_secure_wallets (old PBKDF2 100k) → migrate only when caller passes the old password.
 
-import { encryptUnderMaster, decryptWithKey, base64ToBytes } from './crypto'
-import { putWallet, listWallets } from './storage'
-import { HKDF_DOMAINS, type EncryptedRecord, type VaultWallet, VaultError } from './types'
+import { base64ToBytes, decryptWithKey, encryptUnderMaster } from './crypto'
+import { listWallets, putWallet } from './storage'
+import { type EncryptedRecord, HKDF_DOMAINS, VaultError, type VaultWallet } from './types'
 
 // ============================================
 // LEGACY KEYS (from old SecureKeyStorage.ts)
@@ -102,11 +102,15 @@ async function decryptLegacy(rec: LegacyEncryptedData, password: string): Promis
   const ciphertext = base64ToBytes(rec.ciphertext)
   // Old format: PBKDF2 100k → AES-GCM. We re-derive the key with the SAME 100k count
   // by calling crypto.subtle directly (deriveKeyFromPassword uses the new 600k count).
-  const baseKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, [
-    'deriveKey',
-  ])
+  const baseKey = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password) as unknown as BufferSource,
+    'PBKDF2',
+    false,
+    ['deriveKey'],
+  )
   const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: salt as unknown as BufferSource, iterations: 100_000, hash: 'SHA-256' },
     baseKey,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -129,10 +133,7 @@ async function decryptLegacy(rec: LegacyEncryptedData, password: string): Promis
  * After successful migration, legacy keys are renamed to *_backup so the user
  * can recover them manually if anything went wrong; nothing is deleted outright.
  */
-export async function migrateLegacy(
-  masterKey: CryptoKey,
-  oldPassword?: string,
-): Promise<MigrationResult> {
+export async function migrateLegacy(masterKey: CryptoKey, oldPassword?: string): Promise<MigrationResult> {
   const result: MigrationResult = { migratedPlaintext: 0, migratedEncrypted: 0, skipped: 0, errors: [] }
 
   if (typeof localStorage === 'undefined') return result
@@ -160,11 +161,7 @@ export async function migrateLegacy(
         name: w.name,
       }
       if (w.mnemonic) {
-        wallet.encryptedMnemonic = await encryptUnderMaster(
-          w.mnemonic,
-          masterKey,
-          HKDF_DOMAINS.walletMnemonic(w.id),
-        )
+        wallet.encryptedMnemonic = await encryptUnderMaster(w.mnemonic, masterKey, HKDF_DOMAINS.walletMnemonic(w.id))
       }
       await putWallet(wallet)
       known.add(key)
@@ -202,19 +199,11 @@ export async function migrateLegacy(
         }
         if (w.encryptedMnemonic) {
           const mnemonic = await decryptLegacy(w.encryptedMnemonic, oldPassword)
-          wallet.encryptedMnemonic = await encryptUnderMaster(
-            mnemonic,
-            masterKey,
-            HKDF_DOMAINS.walletMnemonic(w.id),
-          )
+          wallet.encryptedMnemonic = await encryptUnderMaster(mnemonic, masterKey, HKDF_DOMAINS.walletMnemonic(w.id))
         }
         if (w.encryptedPrivateKey) {
           const pk = await decryptLegacy(w.encryptedPrivateKey, oldPassword)
-          wallet.encryptedPrivateKey = await encryptUnderMaster(
-            pk,
-            masterKey,
-            HKDF_DOMAINS.walletPrivateKey(w.id),
-          )
+          wallet.encryptedPrivateKey = await encryptUnderMaster(pk, masterKey, HKDF_DOMAINS.walletPrivateKey(w.id))
         }
         await putWallet(wallet)
         known.add(key)
