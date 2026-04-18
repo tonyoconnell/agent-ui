@@ -17,10 +17,11 @@ import { handleForgetCommand } from '../commands/forget'
 import { handleMemoryCommand } from '../commands/memory'
 import { detectValence } from '../lib/classify-fallback'
 import { issueClaim, linkIdentity } from '../lib/identity'
+import { MODELS } from '../lib/models'
 import { notifyOwner, registerOwner } from '../lib/notify'
 import { sendToStudent } from '../lib/proactive'
 import { systemPromptWithPack } from '../lib/prompt'
-import { ensureRegistered, highways, isToxic, mark, warn } from '../lib/substrate'
+import { chooseModelLocal, ensureRegistered, highways, isToxic, mark, markModelOutcome, warn } from '../lib/substrate'
 import { syncPersonas } from '../lib/sync-personas'
 import { executeTool, tools } from '../lib/tools'
 import { personas } from '../personas'
@@ -527,7 +528,8 @@ app.post('/message', async (c) => {
       },
     }))
 
-    const llm = resolveLLM(context.model, c.env)
+    const stanChoice = await chooseModelLocal(c.env, context.tags ?? [], MODELS, context.model)
+    const llm = resolveLLM(stanChoice.modelId, c.env)
 
     // ── STREAMING PATH ───────────────────────────────────────────
     if (wantStream) {
@@ -812,7 +814,8 @@ app.post('/webhook/:channel', async (c) => {
         function: { name: t.name, description: t.description, parameters: t.input_schema },
       }))
 
-      const llm = resolveLLM(context.model, c.env)
+      const stanChoiceWh = await chooseModelLocal(c.env, context.tags ?? [], MODELS, context.model)
+      const llm = resolveLLM(stanChoiceWh.modelId, c.env)
       const res = await fetch(llm.url, {
         method: 'POST',
         headers: llm.headers,
@@ -839,6 +842,7 @@ app.post('/webhook/:channel', async (c) => {
           // Compute confidence: sentiment signal (from incoming msg) + highways + response clarity
           const valence = detectValence(signal.content)
           const confidence = detectConfidence(reply, valence, pack.highways)
+          markModelOutcome(c.env, stanChoiceWh.edge, confidence > 0.5).catch(() => {})
 
           // Simple path: >0.7 confidence → mark locally, send in 3s
           if (confidence > 0.7) {
@@ -1053,18 +1057,13 @@ async function processMessage(env: Env, msg: QueueMessage): Promise<void> {
     },
   }))
 
-  // User-provided key hook: POST /api/claw sets OPENROUTER_API_KEY as worker secret.
-  // Per-user key override: extend here to read from D1 user_secrets table if needed.
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const stanChoiceQ = await chooseModelLocal(env, context.tags ?? [], MODELS, context.model)
+  const llmQ = resolveLLM(stanChoiceQ.modelId, env)
+  const res = await fetch(llmQ.url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-      'HTTP-Referer': 'https://one.ie',
-      'X-Title': 'NanoClaw',
-    },
+    headers: llmQ.headers,
     body: JSON.stringify({
-      model: context.model,
+      model: llmQ.modelId,
       max_tokens: 4096,
       messages: [{ role: 'system', content: context.systemPrompt }, ...messages],
       tools: openaiTools,

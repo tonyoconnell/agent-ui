@@ -357,3 +357,94 @@ export const recallHypotheses = async (
     }
   })
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAN — Model Selection via D1 Pheromone
+// ═══════════════════════════════════════════════════════════════════════════
+
+import type { NanoModel } from './models'
+import { DEFAULT_MAX_COST, DEFAULT_MODEL_ID } from './models'
+
+// Module-level pheromone cache: tag→modelId → net strength. TTL 60s.
+const _pheromoneCache = new Map<string, { value: number; expiresAt: number }>()
+const CACHE_TTL_MS = 60_000
+
+async function readEdgeStrength(env: Env, source: string, target: string): Promise<number> {
+  const key = `${source}→${target}`
+  const cached = _pheromoneCache.get(key)
+  if (cached && cached.expiresAt > Date.now()) return cached.value
+
+  const row = await env.DB.prepare(
+    'SELECT strength, resistance FROM claw_paths WHERE source = ? AND target = ? LIMIT 1',
+  )
+    .bind(source, target)
+    .first<{ strength: number; resistance: number } | null>()
+    .catch(() => null)
+
+  const value = row ? Math.max(0, (row.strength ?? 0) - (row.resistance ?? 0)) : 0
+  _pheromoneCache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS })
+  return value
+}
+
+/**
+ * STAN model selection for nanoclaw.
+ * Reads tag→model pheromone from D1 claw_paths, picks best model within budget.
+ * Falls back to the persona's configured model if no pheromone data.
+ */
+export async function chooseModelLocal(
+  env: Env,
+  tags: string[],
+  models: NanoModel[],
+  fallbackModelId: string = DEFAULT_MODEL_ID,
+  maxCostPerCall: number = DEFAULT_MAX_COST,
+): Promise<{ modelId: string; reason: string; edge: string }> {
+  if (tags.length === 0 || models.length === 0) {
+    return { modelId: fallbackModelId, reason: 'no-tags', edge: '' }
+  }
+
+  // Budget gate: filter models within cost limit (estimate 512 tokens per call)
+  const tokensEst = 512
+  const affordable = models.filter((m) => (m.pricePerM / 1_000_000) * tokensEst <= maxCostPerCall)
+  if (affordable.length === 0) {
+    return { modelId: fallbackModelId, reason: 'budget-fallback', edge: '' }
+  }
+
+  // Read pheromone for each tag×model pair
+  let bestModel = affordable[0]
+  let bestStrength = -Infinity
+  let bestEdge = ''
+  let bestReason = 'seed'
+
+  for (const tag of tags) {
+    for (const m of affordable) {
+      const edge = `${tag}→${m.id}`
+      const strength = await readEdgeStrength(env, tag, m.id)
+      if (strength > bestStrength) {
+        bestStrength = strength
+        bestModel = m
+        bestEdge = edge
+        bestReason = strength > 0 ? 'pheromone' : 'seed'
+      }
+    }
+  }
+
+  return { modelId: bestModel.id, reason: bestReason, edge: bestEdge }
+}
+
+/**
+ * Mark model outcome — deposits pheromone on tag→model edge in D1.
+ * success=true → mark (strengthen), success=false → warn (weaken).
+ */
+export async function markModelOutcome(env: Env, edge: string, success: boolean, strength = 1): Promise<void> {
+  if (!edge) return
+  const [source, target] = edge.split('→')
+  if (!source || !target) return
+
+  if (success) {
+    await mark(env, source, target, strength).catch(() => {})
+  } else {
+    await warn(env, source, target, strength).catch(() => {})
+  }
+  // Invalidate cache entry
+  _pheromoneCache.delete(edge)
+}
