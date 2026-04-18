@@ -615,7 +615,9 @@ import { Card } from "@/components/ui/card"
 
 > **Migration in progress (2026-04-18):** Astro 5 + CF Pages → Astro 6 + CF Workers
 > with Static Assets. Cycles 1-2 shipped on `feature/cf-workers-migration-c1-c2`;
-> Cycle 3 (custom-domain cutover, Pages project archive) needs CF dashboard work.
+> Cycle 3 W3 partial — `PUBLIC_GATEWAY_URL` env fix in `deploy.yml` + DNS flip
+> tool `scripts/cf-cutover.ts` both ready; pending redeploy + health verify +
+> `bun run cf-cutover --execute`.
 > See [docs/TODO-cf-workers-migration.md](docs/TODO-cf-workers-migration.md).
 
 ### Deploy
@@ -626,6 +628,9 @@ bun run deploy -- --strict        # no flaky test allowance
 bun run deploy -- --preview-only  # build + smoke only
 bun run deploy -- --skip-tests    # skip W0 (risky)
 DEPLOY_CONFIRM=yes bun run deploy # non-interactive approval (CI)
+
+bun run cf-cutover                # Pages→Workers DNS flip, dry-run (safe)
+bun run cf-cutover --execute      # real cutover: route + detach + verify + signal
 ```
 
 ### GitHub Actions (CI) — `.github/workflows/deploy.yml`
@@ -666,7 +671,9 @@ Verified 2026-04-15: 21 MiB → 9.5 MiB. Pages: FAILED → ✓. Full diagnosis: 
 
 | Service | URL |
 |---------|-----|
-| Astro Worker | https://one-substrate.pages.dev (Pages-era URL; Cycle 3 cutover moves origin to Workers, URL preserved via CF) |
+| Astro Worker | https://dev.one.ie (CF Workers custom domain, cut over 2026-04-18) |
+| Astro Worker (direct) | https://one-substrate.oneie.workers.dev (workers.dev fallback) |
+| Pages (legacy idle) | https://one-substrate.pages.dev (old Pages project, kept as rollback safety net) |
 | Gateway | https://api.one.ie/health |
 | Sync | https://one-sync.oneie.workers.dev |
 | NanoClaw | https://nanoclaw.oneie.workers.dev/health |
