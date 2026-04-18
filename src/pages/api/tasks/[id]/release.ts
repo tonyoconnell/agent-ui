@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { read } from '@/lib/typedb'
+import { write } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request, params }) => {
   const { sessionId } = (await request.json()) as { sessionId: string }
@@ -10,7 +10,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   const q = `${match} ${patch}`
 
   try {
-    const result = await read(q)
+    const result = await write(q)
     if (!result || result.length === 0) {
       return new Response(JSON.stringify({ error: 'Not owner or not claimed' }), { status: 403 })
     }

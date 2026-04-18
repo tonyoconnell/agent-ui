@@ -125,7 +125,7 @@ const existing = parse(
   (
     await q(`
   match $from isa unit, has uid "loop"; $to isa unit, has uid "builder";
-    $e (source: $from, target: $to) isa path, has strength $s;
+    $edge (source: $from, target: $to) isa path, has strength $s;
   select $s;
 `).catch(() => ({ answers: [] }))
   ).answers || [],
@@ -148,9 +148,9 @@ if (existing.length === 0) {
   await q(
     `
     match $from isa unit, has uid "loop"; $to isa unit, has uid "builder";
-      $e (source: $from, target: $to) isa path, has strength $s;
-    delete $s of $e;
-    insert $e has strength ${next.toFixed(1)};
+      $edge (source: $from, target: $to) isa path, has strength $s;
+    delete $s of $edge;
+    insert $edge has strength ${next.toFixed(1)};
   `,
     'write',
   )

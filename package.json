@@ -29,6 +29,7 @@
     "seed:tasks": "bun run scripts/seed-tasks.ts",
     "seed:agents": "bun run scripts/seed-agents.ts",
     "deploy": "bun scripts/deploy.ts",
+    "cf-cutover": "bun scripts/cf-cutover.ts",
     "tunnel": "cloudflared tunnel --url http://localhost:4321",
     "tunnel:local": "cloudflared tunnel --config ~/.cloudflared/one-local.yml run",
     "tunnel:main": "cloudflared tunnel --config ~/.cloudflared/one-main.yml run",

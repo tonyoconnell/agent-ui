@@ -585,8 +585,8 @@ describe('POST /api/tasks/:id/claim', () => {
   }
 
   it('claims an open task successfully', async () => {
-    const { read } = await import('@/lib/typedb')
-    ;(read as any).mockResolvedValueOnce([{ ok: true }])
+    const { write } = await import('@/lib/typedb')
+    ;(write as any).mockResolvedValueOnce([{ ok: true }])
 
     const res = await POST(makeCtx('T-300', { sessionId: 'session-1' }))
     const body = await res.json()
@@ -596,8 +596,8 @@ describe('POST /api/tasks/:id/claim', () => {
   })
 
   it('returns 409 when task is already claimed', async () => {
-    const { read } = await import('@/lib/typedb')
-    ;(read as any).mockResolvedValueOnce([])
+    const { write } = await import('@/lib/typedb')
+    ;(write as any).mockResolvedValueOnce([])
 
     const res = await POST(makeCtx('T-300', { sessionId: 'session-2' }))
     expect(res.status).toBe(409)
@@ -606,8 +606,8 @@ describe('POST /api/tasks/:id/claim', () => {
   })
 
   it('returns 500 on TypeDB error', async () => {
-    const { read } = await import('@/lib/typedb')
-    ;(read as any).mockRejectedValueOnce(new Error('TypeDB connection failed'))
+    const { write } = await import('@/lib/typedb')
+    ;(write as any).mockRejectedValueOnce(new Error('TypeDB connection failed'))
 
     const res = await POST(makeCtx('T-300', { sessionId: 'session-3' }))
     expect(res.status).toBe(500)
@@ -645,8 +645,8 @@ describe('POST /api/tasks/:id/release', () => {
   }
 
   it('releases a claimed task by the owner', async () => {
-    const { read } = await import('@/lib/typedb')
-    ;(read as any).mockResolvedValueOnce([{ ok: true }])
+    const { write } = await import('@/lib/typedb')
+    ;(write as any).mockResolvedValueOnce([{ ok: true }])
 
     const res = await POST(makeCtx('T-400', { sessionId: 'session-1' }))
     const body = await res.json()
@@ -654,8 +654,8 @@ describe('POST /api/tasks/:id/release', () => {
   })
 
   it('returns 403 when session is not the owner', async () => {
-    const { read } = await import('@/lib/typedb')
-    ;(read as any).mockResolvedValueOnce([])
+    const { write } = await import('@/lib/typedb')
+    ;(write as any).mockResolvedValueOnce([])
 
     const res = await POST(makeCtx('T-400', { sessionId: 'wrong-session' }))
     expect(res.status).toBe(403)
@@ -664,8 +664,8 @@ describe('POST /api/tasks/:id/release', () => {
   })
 
   it('returns 500 on TypeDB error', async () => {
-    const { read } = await import('@/lib/typedb')
-    ;(read as any).mockRejectedValueOnce(new Error('Connection lost'))
+    const { write } = await import('@/lib/typedb')
+    ;(write as any).mockRejectedValueOnce(new Error('Connection lost'))
 
     const res = await POST(makeCtx('T-400', { sessionId: 'session-1' }))
     expect(res.status).toBe(500)

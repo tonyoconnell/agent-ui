@@ -440,11 +440,11 @@ touches live deployment — fail-fast is non-negotiable.
   - [x] W2 — Decide (4 diff specs)
   - [x] W3 — Edits (scripts/deploy.ts: smoke path, deploy command, preview URL regex, approval-prompt text)
   - [x] W4 — Verify (biome + typecheck green; wrangler dry-run local-TTY-blocked; CI validation on feature branch)
-- [ ] **Cycle 3: GROW** — Cutover + Cleanup — *partial, BLOCKED on TypeDB IP allowlist*
-  - [x] W1 — Recon (CF API inventory complete: Pages + Workers state known; egress IP hypothesis identified)
-  - [x] W2 — Decide (cutover strategy locked; stop before DNS flip while data layer broken)
-  - [ ] W3 — Edits (CF API: secrets ✓ set; DNS flip ⏸ pending TypeDB fix; docs: 20+ Pages refs; memory — saved)
-  - [ ] W4 — Verify (needs post-DNS cutover step)
+- [ ] **Cycle 3: GROW** — Cutover + Cleanup — *partial; env fix shipped, awaiting redeploy + DNS flip via `scripts/cf-cutover.ts`*
+  - [x] W1 — Recon (CF API inventory complete: Pages + Workers state known; `dev.one.ie` already detached from Pages per `bun run cf-cutover` dry-run; root cause = `PUBLIC_GATEWAY_URL` build-time inline, NOT TypeDB IP allowlist)
+  - [x] W2 — Decide (cutover strategy locked: env fix → redeploy → cf-cutover script → verify)
+  - [ ] W3 — Edits (env: `PUBLIC_GATEWAY_URL` ✓ in `deploy.yml`; DNS flip tool: ✓ `scripts/cf-cutover.ts`; redeploy + flip: ⏸ pending; docs: 20+ Pages refs; memory — saved)
+  - [ ] W4 — Verify (Workers `/api/health` returns 140 units; `bun run cf-cutover --execute` health-verify passes; Pages archived after rollback window)
 
 #### Cycle 3 C1 investigation findings (2026-04-18)
 
@@ -463,12 +463,13 @@ Used `CLOUDFLARE_GLOBAL_API_KEY` from `.env` to drive CF API directly:
 
 Silent-empty comes from `src/pages/api/export/units.ts:51` and similar routes that wrap `readParsed()` in `try { ... } catch { return [] }` — any fetch/network error returns empty array rather than propagating.
 
-**To unblock DNS cutover:**
-1. Add `PUBLIC_GATEWAY_URL=https://api.one.ie` to `.github/workflows/deploy.yml` env block (or to repo secrets + env) so CI bakes the correct URL into the Worker bundle. Rebuild + redeploy.
-2. OR: refactor `src/lib/typedb.ts` to check a runtime env var (e.g. `GATEWAY_URL` as Worker secret) before falling back to the `PUBLIC_*` inlined value. More flexible but more code.
-3. OR: `wrangler tail one-substrate` + hit `/api/export/units` to confirm the fetch error shape (for certainty before redeploy).
+**To unblock DNS cutover (current order of operations):**
+1. ✓ `PUBLIC_GATEWAY_URL=https://api.one.ie` already set in `.github/workflows/deploy.yml:55`. The next main push bakes the correct Gateway URL into the Worker bundle.
+2. Push to main (or trigger workflow manually) → deploy re-runs → verify `curl https://one-substrate.oneie.workers.dev/api/health` returns `status: healthy`, `units: 140` (matches Pages). If still empty, run `wrangler tail one-substrate` while hitting `/api/export/units` to capture the actual fetch error shape.
+3. Once Workers health is green, flip DNS: `bun run cf-cutover` (dry-run first), then `bun run cf-cutover --execute`. Script creates the `dev.one.ie/*` Workers route, detaches from Pages, and curl-verifies. See `scripts/cf-cutover.ts`.
+4. Alternate if ever needed: refactor `src/lib/typedb.ts` to prefer a runtime `GATEWAY_URL` secret over the `PUBLIC_*` inlined value. More flexible but more code — not needed if step 1 holds.
 
-**What's safe right now:** Pages continues serving at `dev.one.ie` and `one-substrate.pages.dev`. Workers is stable but its data layer is empty. No user impact. DNS flip explicitly deferred.
+**What's safe right now:** Pages continues serving at `dev.one.ie` and `one-substrate.pages.dev`. Workers is stable but its data layer is empty until step 2 completes. No user impact. DNS flip (step 3) is now a single `bun run` instead of a dashboard session.
 
 ### Cycle 1+2 Rubric (self-reported, 2026-04-18)
 
