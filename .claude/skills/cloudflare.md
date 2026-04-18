@@ -9,6 +9,16 @@ allowed-tools: Bash(*), Read(*), Write(*)
 
 Manage ONE's Cloudflare deployment: credentials, secrets, KV namespaces, D1 database, monitoring, logs, rollback.
 
+## Works With
+
+| Skill      | Load when                                                                                      |
+|------------|------------------------------------------------------------------------------------------------|
+| `/deploy`  | Any push to Workers/Pages — bundle-size rules + Global API Key enforcement live in `.claude/commands/deploy.md`. |
+| `/astro`   | CF Pages SSR worker bundle — the 10 MiB ceiling needs `ssr.external` + `client:only="react"` (Astro-specific).  |
+| `/sui`     | Workers signing on-chain txns — platform keypair lives in CF secrets (`SUI_SEED`), derived per-agent.           |
+| `/typedb`  | Gateway proxies TypeDB Cloud at port 1729 — `/v1/` API prefix and credentials flow through CF secrets.          |
+| `/signal`  | Post-deploy `deploy:success` / `deploy:degraded` signals + `/broadcast` WsHub DO auth (`X-Broadcast-Secret`).    |
+
 ## Credentials — GLOBAL API KEY ONLY
 
 **⚠ NON-NEGOTIABLE: Every wrangler/curl invocation in this project uses the Global API Key.**

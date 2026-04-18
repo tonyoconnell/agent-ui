@@ -7,6 +7,8 @@ allowed-tools: Bash
 
 # Build Envelope System
 
+**Skills:** `/deploy` (wraps this as step 3 of the 8-step pipeline) · `/astro` (bundle-size rules — `markdown.syntaxHighlight: false`, `ssr.external`, keeps CF Pages worker under 10 MiB)
+
 Build the Astro + React 19 project for production.
 
 ## Command

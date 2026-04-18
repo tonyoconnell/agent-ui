@@ -7,6 +7,8 @@ allowed-tools: Bash
 
 # TypeScript Type Check
 
+**Skills:** `/do` (W4 verify runs this — types must be clean for rubric `truth` dim) · `/deploy` (W0 baseline gate — `scripts/typecheck.sh` wraps tsc and suppresses the known internal stack-overflow bug: real errors start with `TS####`)
+
 Run TypeScript compiler in check mode without emitting files.
 
 ## Command

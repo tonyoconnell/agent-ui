@@ -9,6 +9,16 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 Create interactive flow visualizations for the Envelope System using ReactFlow.
 
+## Works With
+
+| Skill      | Load when                                                                                    |
+|------------|----------------------------------------------------------------------------------------------|
+| `/react19` | Custom nodes/edges are React components — ref-as-prop, transitions for non-blocking updates.  |
+| `/typedb`  | Edge weights render `path.strength - path.resistance`; query highways from TypeDB for layout. |
+| `/signal`  | Every node/edge click emits `ui:graph:<action>` — graph interactions feed pheromone.          |
+| `/astro`   | Graph pages are Astro routes — hydrate with `client:only="react"` (canvas can't SSR).        |
+| `/shadcn`  | Side panels, node detail sheets, toolbars — shadcn primitives on dark-theme tokens.           |
+
 ## When to Use This Skill
 
 - Visualize envelope chains as node graphs

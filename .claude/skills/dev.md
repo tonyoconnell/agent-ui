@@ -7,6 +7,8 @@ allowed-tools: Bash
 
 # Start Development Server
 
+**Skills:** `/signal` (dev server hosts `/api/*` — every signal lands here first) · `/astro` (HMR + islands hydration in local mode)
+
 Start the Astro dev server with hot module replacement.
 
 ## Command

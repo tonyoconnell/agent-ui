@@ -7,6 +7,16 @@ description: Build advanced AI UIs with agent reasoning, tool visualization, gen
 
 Build production-ready agentic interfaces with reasoning traces, tool calls, generative UI, and composable AI Elements.
 
+## Works With
+
+| Skill      | Load when                                                                                 |
+|------------|-------------------------------------------------------------------------------------------|
+| `/react19` | AI Elements are React components — use Actions, `use()`, transitions for streaming.        |
+| `/shadcn`  | Reasoning cards, tool-call blocks, message bubbles compose shadcn primitives + dark theme. |
+| `/ai-sdk`  | Structured tool outputs (`generateObject` + Zod) feed the Tool/Reasoning display shapes.   |
+| `/signal`  | Every tool-call button, approval gate, retry — emit `ui:<surface>:<action>` via `emitClick`. |
+| `/astro`   | Chat pages that host agent UIs — pick hydration (`client:load` for interactive streams).   |
+
 ## When to Use This Skill
 
 Use this skill when you need to:

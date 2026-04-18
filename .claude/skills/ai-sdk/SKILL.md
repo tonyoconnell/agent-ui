@@ -7,6 +7,15 @@ description: Generate type-safe structured data with Vercel AI SDK using generat
 
 Generate validated, type-safe structured data from AI models using schemas.
 
+## Works With
+
+| Skill      | Load when                                                                                |
+|------------|------------------------------------------------------------------------------------------|
+| `/react19` | Streaming `streamObject` into a component — pair with `use()` + transitions for UI.       |
+| `/signal`  | Zod-validated output lands in `data.content` — the structured shape becomes a signal body. |
+| `/ai-ui`   | Tool/Reasoning blocks render the `generateObject` shapes; schemas double as UI contracts.  |
+| `/typedb`  | Extracted structured data persists as attributes on entities — match Zod types to TQL.    |
+
 ## When to Use This Skill
 
 Use this skill when you need to:
