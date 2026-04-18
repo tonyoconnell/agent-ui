@@ -146,9 +146,17 @@ export function useWallets(): UseWalletsReturn {
         publicKey = address // Fallback
       }
 
+      // Read latest wallet list from storage (avoids stale closure when generating rapidly)
+      const existingForChain = WalletAdapter.fromLocalStorage({ context }).filter(
+        (w) => w.chain.toLowerCase() === chain,
+      ).length
+      const chainUpper = chain.toUpperCase()
+      const name =
+        existingForChain === 0 ? `My ${chainUpper} Wallet` : `My ${chainUpper} Wallet ${existingForChain + 1}`
+
       const newWallet: Wallet = {
         id: `${chain}-${Date.now()}`,
-        name: `My ${chain.toUpperCase()} Wallet`,
+        name,
         address,
         chain, // Store as lowercase
         context,
@@ -180,7 +188,8 @@ export function useWallets(): UseWalletsReturn {
     [wallets],
   )
 
-  // Find the primary wallet for the current network
+  // Returns the FIRST wallet for the current network — prefer explicit wallet
+  // selection (by id) when multiple wallets per chain are in play.
   const currentWallet = wallets.find((w) => w.chain === network.id)
 
   return {

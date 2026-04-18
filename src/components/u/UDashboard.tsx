@@ -162,27 +162,21 @@ export function UDashboard() {
     const storedTx = localStorage.getItem('u_transactions')
     if (storedTx) setTransactions(JSON.parse(storedTx))
 
-    // Substrate augmentation: reputation + highways + frontier (parallel, non-blocking)
+    // Substrate augmentation: highways only (public endpoint).
+    // reveal/frontier require board+ role + scale+ tier — not available on no-login /u surface.
     const uid = wallets?.[0]?.id
     if (uid) {
       const controller = new AbortController()
-      Promise.all([
-        fetch(`/api/memory/reveal/${uid}`, { signal: controller.signal })
-          .then((r) => r.json())
-          .catch(() => null),
-        fetch('/api/loop/highways', { signal: controller.signal })
-          .then((r) => r.json())
-          .catch(() => null),
-        fetch(`/api/memory/frontier/${uid}`, { signal: controller.signal })
-          .then((r) => r.json())
-          .catch(() => null),
-      ]).then(([reveal, highways, frontier]) => {
-        setSubstrateData({
-          reputation: reveal?.reputation ?? 0,
-          highways: highways?.highways ?? [],
-          frontier: frontier?.frontier ?? [],
+      fetch('/api/loop/highways', { signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
+        .then((highways) => {
+          setSubstrateData({
+            reputation: 0,
+            highways: highways?.highways ?? [],
+            frontier: [],
+          })
         })
-      })
       return () => controller.abort()
     }
   }, [wallets.length, isLoading, wallets?.[0]?.id])

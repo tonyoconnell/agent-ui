@@ -75,7 +75,16 @@ export function useCurrencyConversion(): UseCurrencyConversionReturn {
         throw new Error(`Failed to fetch prices: ${response.status}`)
       }
 
-      const data = await response.json()
+      type CoinGeckoQuote = {
+        usd?: number
+        eur?: number
+        gbp?: number
+        jpy?: number
+        aud?: number
+        cad?: number
+        usd_24h_change?: number
+      }
+      const data = (await response.json()) as Record<string, CoinGeckoQuote>
 
       // Transform CoinGecko response to our format
       const rates: ConversionRates = {}

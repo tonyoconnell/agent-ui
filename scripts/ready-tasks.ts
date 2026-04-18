@@ -26,10 +26,14 @@ if (!TYPEDB_URL || !TYPEDB_PASSWORD) {
 }
 
 const signin = await fetch(`${TYPEDB_URL}/v1/signin`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ username: TYPEDB_USERNAME, password: TYPEDB_PASSWORD }),
 })
-if (!signin.ok) { console.error('signin failed:', signin.status); process.exit(1) }
+if (!signin.ok) {
+  console.error('signin failed:', signin.status)
+  process.exit(1)
+}
 const { token } = (await signin.json()) as { token: string }
 
 async function query(tql: string): Promise<Record<string, unknown>[]> {
@@ -61,7 +65,9 @@ const [openRows, doneRows, blocksRows, tagRows, phRows] = await Promise.all([
          $e has strength $s, has resistance $r;
          select $uid, $s, $r;`).catch(() => []),
 ])
-console.log(`fetched in ${Date.now() - t0}ms: open=${openRows.length} done-rows=${doneRows.length} blocks=${blocksRows.length} tags=${tagRows.length}`)
+console.log(
+  `fetched in ${Date.now() - t0}ms: open=${openRows.length} done-rows=${doneRows.length} blocks=${blocksRows.length} tags=${tagRows.length}`,
+)
 
 const doneMap = new Map<string, boolean>()
 for (const r of doneRows) doneMap.set(r.id as string, r.d as boolean)
@@ -69,7 +75,8 @@ for (const r of doneRows) doneMap.set(r.id as string, r.d as boolean)
 const blockersOf = new Map<string, Set<string>>()
 const blocksWhat = new Map<string, Set<string>>()
 for (const r of blocksRows) {
-  const a = r.aid as string, b = r.bid as string
+  const a = r.aid as string,
+    b = r.bid as string
   if (!blockersOf.has(b)) blockersOf.set(b, new Set())
   blockersOf.get(b)!.add(a)
   if (!blocksWhat.has(a)) blocksWhat.set(a, new Set())
@@ -117,8 +124,20 @@ for (let i = 0; i < Math.min(limit, ranked.length); i++) {
 
 const bySource = new Map<string, number>()
 for (const t of ready) bySource.set(t.src as string, (bySource.get(t.src as string) || 0) + 1)
-console.log(`\nready by source: ${[...bySource].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([s, n]) => `${s}(${n})`).join(' ')}`)
+console.log(
+  `\nready by source: ${[...bySource]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([s, n]) => `${s}(${n})`)
+    .join(' ')}`,
+)
 
-const unlockers = ranked.filter((t) => t.unlocks > 0).sort((a, b) => b.unlocks - a.unlocks).slice(0, 5)
+const unlockers = ranked
+  .filter((t) => t.unlocks > 0)
+  .sort((a, b) => b.unlocks - a.unlocks)
+  .slice(0, 5)
 console.log(`\nbiggest unlockers (complete to cascade):`)
-for (const t of unlockers) console.log(`  unlocks ${String(t.unlocks).padStart(2)}  pri ${String(t.p).padStart(3)}  ${(t.n as string).slice(0, 65)}`)
+for (const t of unlockers)
+  console.log(
+    `  unlocks ${String(t.unlocks).padStart(2)}  pri ${String(t.p).padStart(3)}  ${(t.n as string).slice(0, 65)}`,
+  )

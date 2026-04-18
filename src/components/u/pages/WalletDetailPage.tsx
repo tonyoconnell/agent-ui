@@ -9,7 +9,30 @@
  * - Activity feed
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import {
+  Activity,
+  ArrowDownLeft,
+  ArrowDownToLine,
+  ArrowLeftRight,
+  ArrowUpRight,
+  Check,
+  ChevronLeft,
+  Copy,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  FileCode,
+  Flame,
+  KeyRound,
+  Loader2,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  Wallet as WalletIcon,
+  Zap,
+} from 'lucide-react'
+import { type ComponentType, useCallback, useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,7 +45,97 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { ReceiveSheet } from '../sheets/ReceiveSheet'
 import { UNav } from '../UNav'
+
+type ChainStyle = {
+  tile: string
+  icon: string
+  ring: string
+  accent: string
+  surface: string
+  dot: string
+}
+
+const CHAIN_STYLES: Record<string, ChainStyle> = {
+  eth: {
+    tile: 'bg-indigo-500/10',
+    icon: 'text-indigo-400',
+    ring: 'ring-indigo-500/20',
+    accent: 'text-indigo-300',
+    surface: 'from-indigo-500/10 via-background to-background',
+    dot: 'bg-indigo-400',
+  },
+  btc: {
+    tile: 'bg-orange-500/10',
+    icon: 'text-orange-400',
+    ring: 'ring-orange-500/20',
+    accent: 'text-orange-300',
+    surface: 'from-orange-500/10 via-background to-background',
+    dot: 'bg-orange-400',
+  },
+  sol: {
+    tile: 'bg-fuchsia-500/10',
+    icon: 'text-fuchsia-400',
+    ring: 'ring-fuchsia-500/20',
+    accent: 'text-fuchsia-300',
+    surface: 'from-fuchsia-500/10 via-background to-background',
+    dot: 'bg-fuchsia-400',
+  },
+  sui: {
+    tile: 'bg-sky-500/10',
+    icon: 'text-sky-400',
+    ring: 'ring-sky-500/20',
+    accent: 'text-sky-300',
+    surface: 'from-sky-500/10 via-background to-background',
+    dot: 'bg-sky-400',
+  },
+  usdc: {
+    tile: 'bg-blue-500/10',
+    icon: 'text-blue-400',
+    ring: 'ring-blue-500/20',
+    accent: 'text-blue-300',
+    surface: 'from-blue-500/10 via-background to-background',
+    dot: 'bg-blue-400',
+  },
+  one: {
+    tile: 'bg-emerald-500/10',
+    icon: 'text-emerald-400',
+    ring: 'ring-emerald-500/20',
+    accent: 'text-emerald-300',
+    surface: 'from-emerald-500/10 via-background to-background',
+    dot: 'bg-emerald-400',
+  },
+  unknown: {
+    tile: 'bg-muted',
+    icon: 'text-muted-foreground',
+    ring: 'ring-border',
+    accent: 'text-muted-foreground',
+    surface: 'from-muted/40 via-background to-background',
+    dot: 'bg-muted-foreground',
+  },
+}
+
+const TX_ICONS: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  send: ArrowUpRight,
+  receive: ArrowDownLeft,
+  swap: ArrowLeftRight,
+  mint: Sparkles,
+  burn: Flame,
+  deploy: FileCode,
+  interact: Zap,
+}
+
+const TX_TILE: Record<string, string> = {
+  send: 'bg-rose-500/10 text-rose-400 ring-rose-500/20',
+  receive: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
+  swap: 'bg-blue-500/10 text-blue-400 ring-blue-500/20',
+  mint: 'bg-violet-500/10 text-violet-400 ring-violet-500/20',
+  burn: 'bg-orange-500/10 text-orange-400 ring-orange-500/20',
+  deploy: 'bg-slate-500/10 text-slate-400 ring-slate-500/20',
+  interact: 'bg-amber-500/10 text-amber-400 ring-amber-500/20',
+}
 
 // Sui RPC endpoint (public mainnet)
 const SUI_RPC = 'https://fullnode.mainnet.sui.io:443'
@@ -630,32 +743,14 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
     setShowOwnWallets(false)
   }
 
-  const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      send: '↗',
-      receive: '↙',
-      swap: '⇄',
-      mint: '✨',
-      burn: '🔥',
-      deploy: '📜',
-      interact: '⚡',
-    }
-    return icons[type] || '•'
-  }
+  const getTypeIcon = (type: string) => TX_ICONS[type] || Zap
+  const getTypeTile = (type: string) => TX_TILE[type] || 'bg-muted text-muted-foreground ring-border'
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'send':
-        return 'text-red-500'
-      case 'receive':
-        return 'text-green-500'
-      case 'swap':
-        return 'text-blue-500'
-      case 'mint':
-        return 'text-purple-500'
-      default:
-        return 'text-muted-foreground'
-    }
+  const formatCreated = (timestamp?: number) => {
+    if (!timestamp || Number.isNaN(timestamp)) return 'Just now'
+    const d = new Date(timestamp)
+    if (Number.isNaN(d.getTime())) return 'Just now'
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
   }
 
   const formatDate = (timestamp: number) => {
@@ -684,8 +779,8 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       <div className="min-h-screen bg-background">
         <UNav active="wallets" />
         <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin text-4xl">⏳</div>
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" strokeWidth={1.5} />
           </div>
         </div>
       </div>
@@ -698,217 +793,266 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
         <UNav active="wallets" />
         <div className="max-w-6xl mx-auto px-6 py-8">
           <Card className="p-12 text-center">
-            <div className="text-6xl mb-4">🔍</div>
-            <h2 className="text-2xl font-bold mb-2">Wallet Not Found</h2>
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[22px] bg-muted ring-1 ring-border">
+              <Search className="h-8 w-8 text-muted-foreground" strokeWidth={1.5} />
+            </div>
+            <h2 className="text-2xl font-semibold tracking-tight mb-2">Wallet Not Found</h2>
             <p className="text-muted-foreground mb-6">
               The wallet you're looking for doesn't exist or has been deleted.
             </p>
-            <Button onClick={() => (window.location.href = '/u/wallets')}>← Back to Wallets</Button>
+            <Button onClick={() => (window.location.href = '/u/wallets')} className="gap-1">
+              <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
+              Back to Wallets
+            </Button>
           </Card>
         </div>
       </div>
     )
   }
 
+  const style = CHAIN_STYLES[wallet.chain] ?? CHAIN_STYLES.unknown
+  const displayBalance = liveBalance !== null ? parseFloat(liveBalance.balance).toFixed(6) : wallet.balance
+  const displayUsd =
+    liveBalance !== null ? liveBalance.usdValue.toLocaleString() : wallet.usdValue.toLocaleString()
+  const isLive = liveBalance !== null && liveBalance.balance !== String(wallet.balance)
+
   return (
     <div className="min-h-screen bg-background">
       <UNav active="wallets" />
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Back Button */}
-        <Button variant="ghost" className="mb-4" onClick={() => (window.location.href = '/u/wallets')}>
-          ← Back to Wallets
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-4 -ml-2 gap-1 text-muted-foreground hover:text-foreground"
+          onClick={() => (window.location.href = '/u/wallets')}
+        >
+          <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
+          Back to Wallets
         </Button>
 
-        {/* Hero Section */}
-        <Card
-          className={`mb-8 overflow-hidden border-2 bg-gradient-to-br ${chainInfo.color}/10 border-${chainInfo.color.split(' ')[0].replace('from-', '')}/30`}
-        >
-          <CardContent className="p-0">
-            <div className="relative">
-              {/* Gradient Background */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${chainInfo.color} opacity-10`} />
-              <div
-                className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${chainInfo.color} opacity-20 rounded-full blur-3xl -translate-y-32 translate-x-32`}
-              />
-
-              <div className="relative p-8">
-                <div className="flex items-start justify-between">
-                  {/* Wallet Info */}
-                  <div className="flex items-center gap-6">
-                    <div
-                      className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${chainInfo.color} flex items-center justify-center text-5xl text-white shadow-2xl`}
-                    >
-                      {chainInfo.icon}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h1 className="text-3xl font-bold">{wallet.name || chainInfo.name}</h1>
-                        <Badge variant="outline" className="text-lg px-3">
-                          {chainInfo.symbol}
-                        </Badge>
-                      </div>
-                      <div
-                        className="flex items-center gap-2 p-3 bg-black/5 dark:bg-white/5 rounded-lg cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                        onClick={copyAddress}
-                      >
-                        <code className="font-mono text-sm">{wallet.address}</code>
-                        <span className="text-lg">{copied ? '✓' : '📋'}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Created {new Date(wallet.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
+        {/* Hero Card */}
+        <Card className={cn('mb-6 overflow-hidden border-border/60 bg-gradient-to-br shadow-sm', style.surface)}>
+          <CardContent className="p-6 sm:p-8">
+            <div className="flex flex-col gap-6 sm:gap-7">
+              {/* Identity row */}
+              <div className="flex items-center gap-4 sm:gap-5">
+                <div
+                  className={cn(
+                    'flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-[20px] ring-1 shrink-0',
+                    style.tile,
+                    style.ring,
+                  )}
+                >
+                  <WalletIcon className={cn('h-7 w-7 sm:h-8 sm:w-8', style.icon)} strokeWidth={1.5} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">
+                      {wallet.name || chainInfo.name}
+                    </h1>
+                    <Badge variant="secondary" className="rounded-full font-medium tracking-wide">
+                      {chainInfo.symbol}
+                    </Badge>
                   </div>
-
-                  {/* Balance */}
-                  <div className="text-right">
-                    <div className="text-sm text-muted-foreground mb-1 flex items-center justify-end gap-2">
-                      Balance
-                      {fetchingBalance && <span className="animate-spin">⟳</span>}
-                    </div>
-                    <div className="text-5xl font-bold mb-1">
-                      {liveBalance !== null ? parseFloat(liveBalance.balance).toFixed(6) : wallet.balance}{' '}
-                      <span className="text-2xl text-muted-foreground">{chainInfo.symbol}</span>
-                    </div>
-                    <div className="text-2xl text-muted-foreground">
-                      ≈ $
-                      {liveBalance !== null ? liveBalance.usdValue.toLocaleString() : wallet.usdValue.toLocaleString()}
-                    </div>
-                    {liveBalance !== null && liveBalance.balance !== String(wallet.balance) && (
-                      <div className="text-xs text-green-500 mt-1">Live from blockchain</div>
-                    )}
-                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                    Created {formatCreated(wallet.createdAt)}
+                  </p>
                 </div>
               </div>
+
+              {/* Balance */}
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-1.5">
+                  Balance
+                  {fetchingBalance && <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2} />}
+                </div>
+                <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
+                  <span className="text-4xl sm:text-5xl font-semibold tabular-nums tracking-tight">
+                    {displayBalance}
+                  </span>
+                  <span className="text-lg sm:text-xl font-medium text-muted-foreground">{chainInfo.symbol}</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-sm sm:text-base text-muted-foreground">
+                  <span className="tabular-nums">≈ ${displayUsd}</span>
+                  {isLive && (
+                    <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', style.accent)}>
+                      <span className={cn('h-1.5 w-1.5 rounded-full animate-pulse', style.dot)} />
+                      Live
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Address pill */}
+              <button
+                type="button"
+                onClick={copyAddress}
+                className="group flex items-center gap-3 rounded-2xl bg-background/60 hover:bg-background/90 border border-border/60 px-4 py-3 text-left transition-colors"
+              >
+                <code className="flex-1 min-w-0 truncate font-mono text-xs sm:text-sm text-foreground/90">
+                  {wallet.address}
+                </code>
+                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4 text-emerald-400" strokeWidth={2} />
+                      <span className="hidden sm:inline">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" strokeWidth={1.75} />
+                      <span className="hidden sm:inline">Copy</span>
+                    </>
+                  )}
+                </span>
+              </button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-6 gap-4 mb-8">
-          <Button
-            size="lg"
-            className={`h-20 bg-gradient-to-br ${chainInfo.color} text-white hover:opacity-90`}
+        {/* Action Tiles */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 mb-6 sm:mb-8">
+          <ActionTile
+            icon={ArrowUpRight}
+            label="Send"
+            toneClasses={cn(style.tile, style.icon, style.ring)}
             onClick={() => setShowSendDialog(true)}
-          >
-            <div className="text-center">
-              <div className="text-2xl mb-1">↗</div>
-              <div className="font-semibold">Send</div>
-            </div>
-          </Button>
-          <Button size="lg" variant="outline" className="h-20" onClick={() => setShowReceiveDialog(true)}>
-            <div className="text-center">
-              <div className="text-2xl mb-1">↙</div>
-              <div className="font-semibold">Receive</div>
-            </div>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-20"
+          />
+          <ActionTile
+            icon={ArrowDownLeft}
+            label="Receive"
+            toneClasses="bg-emerald-500/10 text-emerald-400 ring-emerald-500/20"
+            onClick={() => setShowReceiveDialog(true)}
+          />
+          <ActionTile
+            icon={ExternalLink}
+            label="Explorer"
+            toneClasses="bg-slate-500/10 text-slate-300 ring-slate-500/20"
             onClick={() => window.open(getExplorerAddressUrl(), '_blank')}
-          >
-            <div className="text-center">
-              <div className="text-2xl mb-1">🔍</div>
-              <div className="font-semibold">Explorer</div>
-            </div>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-20"
-            onClick={fetchBlockchainTransactions}
+          />
+          <ActionTile
+            icon={ArrowDownToLine}
+            label={fetchingTx ? 'Fetching' : 'Fetch TX'}
+            loading={fetchingTx}
             disabled={fetchingTx || !supportsLiveFetch}
-          >
-            <div className="text-center">
-              <div className="text-2xl mb-1">{fetchingTx ? '⏳' : '📥'}</div>
-              <div className="font-semibold">{fetchingTx ? 'Loading...' : 'Fetch TX'}</div>
-            </div>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-20"
-            onClick={fetchLiveBalance}
+            toneClasses="bg-violet-500/10 text-violet-300 ring-violet-500/20"
+            onClick={fetchBlockchainTransactions}
+          />
+          <ActionTile
+            icon={RefreshCw}
+            label={fetchingBalance ? 'Refreshing' : 'Refresh'}
+            loading={fetchingBalance}
             disabled={fetchingBalance || !supportsLiveFetch}
-          >
-            <div className="text-center">
-              <div className="text-2xl mb-1">{fetchingBalance ? '⏳' : '💰'}</div>
-              <div className="font-semibold">{fetchingBalance ? 'Loading...' : 'Refresh'}</div>
-            </div>
-          </Button>
-          <Button size="lg" variant="outline" className="h-20" onClick={() => setShowExportDialog(true)}>
-            <div className="text-center">
-              <div className="text-2xl mb-1">🔐</div>
-              <div className="font-semibold">Export Key</div>
-            </div>
-          </Button>
+            toneClasses="bg-cyan-500/10 text-cyan-300 ring-cyan-500/20"
+            onClick={fetchLiveBalance}
+          />
+          <ActionTile
+            icon={KeyRound}
+            label="Export Key"
+            toneClasses="bg-amber-500/10 text-amber-300 ring-amber-500/20"
+            onClick={() => setShowExportDialog(true)}
+          />
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Transaction History */}
-          <div className="col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span>↔️</span> Transaction History
-                </CardTitle>
-                <CardDescription>All transactions for this wallet</CardDescription>
+          <div className="lg:col-span-2">
+            <Card className="border-border/60">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 ring-1 ring-blue-500/20">
+                    <ArrowLeftRight className="h-4 w-4 text-blue-400" strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold tracking-tight">Transaction History</CardTitle>
+                    <CardDescription className="text-xs">All transactions for this wallet</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {transactions.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="text-5xl mb-4">📭</div>
-                    <h3 className="text-lg font-semibold mb-2">No Transactions Yet</h3>
-                    <p className="text-muted-foreground mb-4">Send or receive funds to see your transaction history</p>
-                    <div className="flex gap-2 justify-center">
-                      <Button onClick={() => setShowReceiveDialog(true)}>↙ Receive Funds</Button>
+                  <div className="flex flex-col items-center text-center py-10 sm:py-14">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-muted ring-1 ring-border mb-4">
+                      <ArrowDownToLine className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-base font-semibold tracking-tight mb-1">No Transactions Yet</h3>
+                    <p className="text-sm text-muted-foreground mb-5 max-w-xs">
+                      Send or receive funds to see your transaction history
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <Button size="sm" onClick={() => setShowReceiveDialog(true)} className="gap-1.5">
+                        <ArrowDownLeft className="h-4 w-4" strokeWidth={1.75} />
+                        Receive Funds
+                      </Button>
                       {supportsLiveFetch && (
-                        <Button variant="outline" onClick={fetchBlockchainTransactions} disabled={fetchingTx}>
-                          {fetchingTx ? '⏳ Loading...' : '📥 Fetch from Chain'}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={fetchBlockchainTransactions}
+                          disabled={fetchingTx}
+                          className="gap-1.5"
+                        >
+                          {fetchingTx ? (
+                            <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
+                          ) : (
+                            <ArrowDownToLine className="h-4 w-4" strokeWidth={1.75} />
+                          )}
+                          {fetchingTx ? 'Loading' : 'Fetch from Chain'}
                         </Button>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {transactions.map((tx) => (
-                      <div
-                        key={tx.id}
-                        className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer group"
-                        onClick={() => window.open(getExplorerTxUrl(tx.hash), '_blank')}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`w-10 h-10 rounded-full bg-background flex items-center justify-center text-xl ${getTypeColor(tx.type)}`}
-                          >
-                            {getTypeIcon(tx.type)}
-                          </div>
-                          <div>
-                            <div className="font-semibold capitalize flex items-center gap-2">
-                              {tx.type}
-                              <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                                🔗 View on Explorer
-                              </span>
+                  <div className="divide-y divide-border/60 -mx-6">
+                    {transactions.map((tx) => {
+                      const Icon = getTypeIcon(tx.type)
+                      return (
+                        <button
+                          type="button"
+                          key={tx.id}
+                          className="w-full flex items-center justify-between px-6 py-3.5 hover:bg-muted/40 transition-colors text-left group"
+                          onClick={() => window.open(getExplorerTxUrl(tx.hash), '_blank')}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className={cn(
+                                'flex h-10 w-10 items-center justify-center rounded-xl ring-1 shrink-0',
+                                getTypeTile(tx.type),
+                              )}
+                            >
+                              <Icon className="h-4 w-4" strokeWidth={1.75} />
                             </div>
-                            <div className="text-sm text-muted-foreground font-mono">
-                              {tx.type === 'send' ? `To: ${tx.to.slice(0, 10)}...` : `From: ${tx.from.slice(0, 10)}...`}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 font-medium capitalize text-sm">
+                                {tx.type}
+                                <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.75} />
+                              </div>
+                              <div className="text-xs text-muted-foreground font-mono truncate">
+                                {tx.type === 'send'
+                                  ? `To · ${tx.to.slice(0, 10)}…`
+                                  : `From · ${tx.from.slice(0, 10)}…`}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div
-                            className={`font-bold ${tx.type === 'receive' ? 'text-green-500' : tx.type === 'send' ? 'text-red-500' : ''}`}
-                          >
-                            {tx.type === 'receive' ? '+' : tx.type === 'send' ? '-' : ''}
-                            {tx.amount} {tx.token}
+                          <div className="text-right shrink-0 ml-3">
+                            <div
+                              className={cn(
+                                'font-semibold tabular-nums text-sm',
+                                tx.type === 'receive' && 'text-emerald-400',
+                                tx.type === 'send' && 'text-rose-400',
+                              )}
+                            >
+                              {tx.type === 'receive' ? '+' : tx.type === 'send' ? '−' : ''}
+                              {tx.amount} {tx.token}
+                            </div>
+                            <div className="text-xs text-muted-foreground">{formatDate(tx.timestamp)}</div>
                           </div>
-                          <div className="text-sm text-muted-foreground">{formatDate(tx.timestamp)}</div>
-                        </div>
-                      </div>
-                    ))}
+                        </button>
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -916,24 +1060,31 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">📊 Activity</CardTitle>
+          <div className="space-y-4 sm:space-y-6">
+            {/* Activity */}
+            <Card className="border-border/60">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 ring-1 ring-violet-500/20">
+                    <Activity className="h-4 w-4 text-violet-400" strokeWidth={1.75} />
+                  </div>
+                  <CardTitle className="text-base font-semibold tracking-tight">Activity</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Transactions</span>
-                  <span className="font-bold">{transactions.length}</span>
+                  <span className="font-semibold tabular-nums">{transactions.length}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Sent</span>
-                  <span className="font-bold text-red-500">{transactions.filter((t) => t.type === 'send').length}</span>
+                  <span className="font-semibold tabular-nums text-rose-400">
+                    {transactions.filter((t) => t.type === 'send').length}
+                  </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Received</span>
-                  <span className="font-bold text-green-500">
+                  <span className="font-semibold tabular-nums text-emerald-400">
                     {transactions.filter((t) => t.type === 'receive').length}
                   </span>
                 </div>
@@ -942,42 +1093,60 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
 
             {/* Same Chain Wallets */}
             {sameChainWallets.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">👛 Other {chainInfo.symbol} Wallets</CardTitle>
-                  <CardDescription>Quick transfer between your wallets</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {sameChainWallets.map((w) => (
+              <Card className="border-border/60">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
                     <div
+                      className={cn(
+                        'flex h-9 w-9 items-center justify-center rounded-xl ring-1',
+                        style.tile,
+                        style.ring,
+                      )}
+                    >
+                      <WalletIcon className={cn('h-4 w-4', style.icon)} strokeWidth={1.75} />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base font-semibold tracking-tight">
+                        Other {chainInfo.symbol} Wallets
+                      </CardTitle>
+                      <CardDescription className="text-xs">Quick transfer between your wallets</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-1.5">
+                  {sameChainWallets.map((w) => (
+                    <button
+                      type="button"
                       key={w.id}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-muted/60 transition-colors text-left"
                       onClick={() => (window.location.href = `/u/wallet/${w.id}`)}
                     >
-                      <div>
-                        <div className="font-medium text-sm">{w.name || chainInfo.name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">
-                          {w.address.slice(0, 8)}...{w.address.slice(-6)}
+                      <div className="min-w-0">
+                        <div className="font-medium text-sm truncate">{w.name || chainInfo.name}</div>
+                        <div className="text-xs text-muted-foreground font-mono truncate">
+                          {w.address.slice(0, 8)}…{w.address.slice(-6)}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-sm">{w.balance}</div>
+                      <div className="text-right shrink-0 ml-2">
+                        <div className="font-semibold text-sm tabular-nums">{w.balance}</div>
                         <div className="text-xs text-muted-foreground">{chainInfo.symbol}</div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </CardContent>
               </Card>
             )}
 
             {/* Security Reminder */}
-            <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-              <CardContent className="pt-6">
+            <Card className="border-amber-500/20 bg-amber-500/5">
+              <CardContent className="pt-5 pb-5">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">🔒</span>
-                  <div>
-                    <h4 className="font-semibold text-amber-800 dark:text-amber-200">Security Reminder</h4>
-                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 shrink-0">
+                    <ShieldAlert className="h-4 w-4 text-amber-400" strokeWidth={1.75} />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-sm text-amber-300 mb-0.5">Security Reminder</h4>
+                    <p className="text-xs text-amber-200/80 leading-relaxed">
                       Never share your private key. Back up your recovery phrase securely.
                     </p>
                   </div>
@@ -1000,13 +1169,17 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-3">
               <span
-                className={`w-8 h-8 rounded-full bg-gradient-to-br ${chainInfo.color} flex items-center justify-center text-white`}
+                className={cn(
+                  'flex h-9 w-9 items-center justify-center rounded-xl ring-1',
+                  style.tile,
+                  style.ring,
+                )}
               >
-                {chainInfo.icon}
+                <ArrowUpRight className={cn('h-4 w-4', style.icon)} strokeWidth={1.75} />
               </span>
-              Send {chainInfo.symbol}
+              <span className="font-semibold tracking-tight">Send {chainInfo.symbol}</span>
             </DialogTitle>
             <DialogDescription>Send from {wallet.name || chainInfo.name}</DialogDescription>
           </DialogHeader>
@@ -1081,65 +1254,27 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
             <Button variant="outline" onClick={() => setShowSendDialog(false)}>
               Cancel
             </Button>
-            <Button
-              disabled={!sendTo || !sendAmount}
-              onClick={sendTransaction}
-              className={`bg-gradient-to-r ${chainInfo.color} text-white`}
-            >
+            <Button disabled={!sendTo || !sendAmount} onClick={sendTransaction} className="gap-1.5">
+              <ArrowUpRight className="h-4 w-4" strokeWidth={1.75} />
               Send {chainInfo.symbol}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Receive Dialog */}
-      <Dialog open={showReceiveDialog} onOpenChange={setShowReceiveDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span
-                className={`w-8 h-8 rounded-full bg-gradient-to-br ${chainInfo.color} flex items-center justify-center text-white`}
-              >
-                {chainInfo.icon}
-              </span>
-              Receive {chainInfo.symbol}
-            </DialogTitle>
-            <DialogDescription>Share your address to receive funds</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="bg-white dark:bg-black p-6 rounded-xl text-center mb-4">
-              {/* QR Code placeholder - in production use a QR library */}
-              <div className="w-48 h-48 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg flex items-center justify-center mb-4 relative overflow-hidden">
-                <div className="absolute inset-4 grid grid-cols-8 gap-0.5">
-                  {Array.from({ length: 64 }).map((_, i) => (
-                    <div key={i} className={`${Math.random() > 0.5 ? 'bg-black dark:bg-white' : 'bg-transparent'}`} />
-                  ))}
-                </div>
-                <div
-                  className={`absolute w-12 h-12 rounded bg-gradient-to-br ${chainInfo.color} flex items-center justify-center text-white text-xl z-10`}
-                >
-                  {chainInfo.icon}
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground mb-2">Scan or copy address</div>
-            </div>
-            <div
-              className="p-4 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors"
-              onClick={copyAddress}
-            >
-              <code className="text-sm font-mono break-all block">{wallet.address}</code>
-              <div className="text-center mt-2 text-sm text-muted-foreground">
-                {copied ? '✓ Copied!' : 'Click to copy'}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowReceiveDialog(false)} className="w-full">
-              Done
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Receive Sheet — real QR, copy, share, payment link */}
+      <ReceiveSheet
+        open={showReceiveDialog}
+        onOpenChange={setShowReceiveDialog}
+        wallet={{ id: wallet.id, address: wallet.address }}
+        chain={{
+          id: chainInfo.id,
+          name: chainInfo.name,
+          symbol: chainInfo.symbol,
+          color: chainInfo.color,
+          icon: chainInfo.icon,
+        }}
+      />
 
       {/* Export Key Dialog */}
       <Dialog
@@ -1151,45 +1286,60 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">🔐 Export Private Key</DialogTitle>
+            <DialogTitle className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20">
+                <KeyRound className="h-4 w-4 text-amber-400" strokeWidth={1.75} />
+              </span>
+              <span className="font-semibold tracking-tight">Export Private Key</span>
+            </DialogTitle>
             <DialogDescription>Your private key gives full access to this wallet</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-              <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">⚠️ Security Warning</p>
-              <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
-                <li>• Never share your private key with anyone</li>
-                <li>• Anyone with this key can steal your funds</li>
-                <li>• Store it in a secure, offline location</li>
+            <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/5">
+              <div className="flex items-start gap-2.5 mb-2">
+                <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" strokeWidth={1.75} />
+                <p className="text-sm font-semibold text-rose-300">Security Warning</p>
+              </div>
+              <ul className="text-xs text-rose-200/80 space-y-1 pl-6 leading-relaxed">
+                <li>Never share your private key with anyone</li>
+                <li>Anyone with this key can steal your funds</li>
+                <li>Store it in a secure, offline location</li>
               </ul>
             </div>
 
             {!keyRevealed ? (
-              <div
-                className="p-6 bg-muted rounded-lg text-center cursor-pointer hover:bg-muted/80 transition-colors"
+              <button
+                type="button"
+                className="w-full p-6 bg-muted/60 rounded-2xl text-center hover:bg-muted transition-colors border border-border/60"
                 onClick={() => setKeyRevealed(true)}
               >
-                <div className="text-4xl mb-3">👁️</div>
-                <p className="font-medium">Click to reveal private key</p>
-                <p className="text-sm text-muted-foreground">Make sure no one is watching</p>
-              </div>
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-background ring-1 ring-border">
+                  <Eye className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+                </div>
+                <p className="font-medium text-sm">Click to reveal private key</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Make sure no one is watching</p>
+              </button>
             ) : (
               <div className="space-y-3">
-                <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg border-2 border-amber-200 dark:border-amber-800">
-                  <code className="text-sm font-mono break-all">{wallet.privateKey || 'No key available'}</code>
+                <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5">
+                  <code className="text-xs font-mono break-all text-amber-200/90">
+                    {wallet.privateKey || 'No key available'}
+                  </code>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 gap-1.5"
                     onClick={() => {
                       navigator.clipboard.writeText(wallet.privateKey || '')
                     }}
                   >
-                    📋 Copy Key
+                    <Copy className="h-4 w-4" strokeWidth={1.75} />
+                    Copy Key
                   </Button>
-                  <Button variant="outline" className="flex-1" onClick={() => setKeyRevealed(false)}>
-                    🙈 Hide Key
+                  <Button variant="outline" className="flex-1 gap-1.5" onClick={() => setKeyRevealed(false)}>
+                    <EyeOff className="h-4 w-4" strokeWidth={1.75} />
+                    Hide Key
                   </Button>
                 </div>
               </div>
@@ -1203,5 +1353,45 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+type ActionTileProps = {
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>
+  label: string
+  toneClasses: string
+  onClick?: () => void
+  disabled?: boolean
+  loading?: boolean
+}
+
+function ActionTile({ icon: Icon, label, toneClasses, onClick, disabled, loading }: ActionTileProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'group flex flex-col items-center justify-start gap-2 rounded-2xl border border-border/60 bg-card',
+        'px-2 py-3 sm:py-4 transition-all',
+        'hover:bg-muted/60 active:scale-[0.98]',
+        'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-card disabled:active:scale-100',
+      )}
+    >
+      <span
+        className={cn(
+          'flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl ring-1 transition-transform',
+          'group-hover:scale-[1.04] group-disabled:group-hover:scale-100',
+          toneClasses,
+        )}
+      >
+        {loading ? (
+          <Loader2 className="h-5 w-5 animate-spin" strokeWidth={1.75} />
+        ) : (
+          <Icon className="h-5 w-5" strokeWidth={1.5} />
+        )}
+      </span>
+      <span className="text-[11px] sm:text-xs font-medium text-foreground/90">{label}</span>
+    </button>
   )
 }

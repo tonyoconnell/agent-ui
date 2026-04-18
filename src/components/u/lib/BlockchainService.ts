@@ -175,7 +175,7 @@ export async function getTokenPrice(chainId: string): Promise<number> {
 
   try {
     const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`)
-    const data = await response.json()
+    const data = (await response.json()) as Record<string, { usd?: number }>
     const price = data[coingeckoId]?.usd || 0
 
     // Cache the result
@@ -228,7 +228,7 @@ async function getSuiBalance(address: string): Promise<BalanceResult> {
     }),
   })
 
-  const data = await response.json()
+  const data = (await response.json()) as { result?: { totalBalance?: string } }
   const totalBalance = data.result?.totalBalance || '0'
   const balanceInSui = parseInt(totalBalance, 10) / 1e9
 
