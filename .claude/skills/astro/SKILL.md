@@ -308,7 +308,7 @@ Static pages served from `[assets]` binding don't count against request quota �
 
 - [Astro Cloudflare adapter](https://docs.astro.build/en/guides/integrations-guide/cloudflare/) — authoritative for v13
 - [CF Workers framework guide — Astro](https://developers.cloudflare.com/workers/frameworks/framework-guides/astro/)
-- `docs/TODO-cf-workers-migration.md` — C1+C2 shipped, C3 needs CF dashboard work
+- `docs/TODO-cf-workers-migration.md` — C1+C2+C3 shipped; `dev.one.ie` live on Workers
 - `docs/deploy.md` — bundle-size diagnosis + LOCKED rules
 - `.claude/rules/astro.md` — auto-loaded on `*.astro` edits
 

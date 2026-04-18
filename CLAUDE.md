@@ -6,7 +6,7 @@ The LLM is the only probabilistic component. Everything else is math.
 **Ontology:** `src/schema/one.tql` — 100 lines, 6 dimensions, stable forever.
 **Naming:** `docs/dictionary.md` — canonical names, retired names, never rename again.
 
-**Live:** api.one.ie + one-substrate.pages.dev + nanoclaw.oneie.workers.dev
+**Live:** api.one.ie + dev.one.ie (Workers) + nanoclaw.oneie.workers.dev · legacy idle: one-substrate.pages.dev
 **Brain:** TypeDB Cloud (19 units, 18 skills, 19 functions)
 **LLM:** All models via [OpenRouter](https://openrouter.ai) — default: `meta-llama/llama-4-maverick` (1M ctx, $0.15/M tokens)
 **Bots:** @onedotbot (ONE assistant) · donal-claw (OO Marketing CMO)
@@ -48,7 +48,7 @@ bun run tunnel:main    # Named tunnel → main.one.ie → localhost:4321
 |-----|---------|---------|
 | `local.one.ie` | Personal dev, webhook testing | `bun run tunnel:local` |
 | `main.one.ie` | Main branch preview (until one.ie migrates) | `bun run tunnel:main` |
-| `dev.one.ie` | **CF Pages custom domain** → `one-substrate.pages.dev` (every `main` deploy) | — |
+| `dev.one.ie` | **Primary live URL** — CF Workers Static Assets (`one-substrate`), deployed from `main` | — |
 
 See `docs/PLAN-tunnels.md` for setup details. Tunnels expose localhost through Cloudflare
 for webhook testing (Telegram, Discord) without ngrok.

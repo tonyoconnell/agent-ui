@@ -127,7 +127,8 @@ Build logs saved to `.deploy-build.log` (separate, for W0 baseline diagnostics).
 ### Custom Domains
 
 - Gateway: `api.one.ie` (custom domain via Cloudflare)
-- Pages: `one-substrate.pages.dev` (auto, plus custom domain via dashboard)
+- Astro Worker: `dev.one.ie` (custom domain, post-migration primary) + `one-substrate.<account>.workers.dev` (auto)
+- Pages (legacy idle): `one-substrate.pages.dev` — kept as rollback safety net, do not deploy
 - Sync & NanoClaw: `*.oneie.workers.dev` (auto)
 
 ## First-Time Setup
@@ -149,13 +150,18 @@ printf 'admin' | bun wrangler secret put TYPEDB_USERNAME
 printf 'YOUR-PASSWORD' | bun wrangler secret put TYPEDB_PASSWORD
 cd ..
 
-# Pages project
-bun wrangler pages project create one-substrate --production-branch=main
+# Astro Worker (no project-create step — `wrangler deploy` creates on first run)
+# Root wrangler.toml is pre-configured with name = "one-substrate"
+bun run deploy
 ```
 
 ## Rollback
 
 ```bash
+# Workers — rollback to previous version
+bun wrangler rollback --name one-substrate
+
+# Legacy Pages fallback (still live at one-substrate.pages.dev for rollback window):
 bun wrangler pages deployment list --project-name=one-substrate
 bun wrangler pages deployments rollback --project-name=one-substrate
 ```
@@ -163,14 +169,14 @@ bun wrangler pages deployments rollback --project-name=one-substrate
 ## Monitoring
 
 ```bash
-# Live logs
-bun wrangler pages tail --project-name=one-substrate
+# Astro Worker live logs
+bun wrangler tail --name one-substrate
 
 # Gateway logs
 cd gateway && bun wrangler tail && cd ..
 
-# Deployment list
-bun wrangler pages deployment list --project-name=one-substrate | head -10
+# Deployment list (current platform)
+bun wrangler deployments list --name one-substrate | head -10
 ```
 
 ## Gotchas

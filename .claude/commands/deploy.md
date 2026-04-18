@@ -4,7 +4,7 @@
 
 Ship all four services to Cloudflare. Deterministic sandwich — W0 baseline, build, smoke, approval, parallel deploy, health.
 
-> **Migrated 2026-04-18:** Astro site moved from CF Pages → CF Workers with Static Assets (Astro 6 + @astrojs/cloudflare v13 dropped Pages support). Deploy command is now `wrangler deploy` (not `wrangler pages deploy`). `one-substrate.pages.dev` still live as legacy URL; Cycle 3 (custom-domain cutover) pending. See `docs/TODO-cf-workers-migration.md`.
+> **Post-migration (2026-04-18):** Astro site runs on **CF Workers with Static Assets** (not Pages). Deploy command is `wrangler deploy`. Primary URL is `https://dev.one.ie` (custom domain → `one-substrate` Worker). Legacy Pages project paused as rollback safety net at `one-substrate.pages.dev` — do not deploy to it. See `docs/TODO-cf-workers-migration.md` and `scripts/cf-cutover.ts` for cutover history.
 
 ## Modes
 
@@ -13,16 +13,16 @@ Ship all four services to Cloudflare. Deterministic sandwich — W0 baseline, bu
 | `/deploy` | Full pipeline — W0 + build + 4 services + health |
 | `/deploy --skip-tests` | Skip W0 baseline (risky — use only when already verified) |
 | `/deploy --dry-run` | Build + smoke only, no deploy |
-| `/deploy --preview-only` | Build + Pages preview deploy (no workers) |
-| `/deploy pages` | Pages only (re-bundle after UI changes) |
-| `/deploy workers` | Gateway + Sync + NanoClaw only (no Pages rebuild) |
+| `/deploy --preview-only` | Build + preview Worker deploy (no CI-gated services) |
+| `/deploy astro` | Astro Worker only (re-bundle after UI changes) |
+| `/deploy workers` | Gateway + Sync + NanoClaw only (no Astro rebuild) |
 | `/deploy gateway` | Gateway worker only |
 | `/deploy sync` | Sync worker only |
 | `/deploy nanoclaw` | NanoClaw edge agents only |
 
 ## The 8-Step Pipeline
 
-```
+```bash
 bun run deploy          # full pipeline
 bun run deploy -- --dry-run
 bun run deploy -- --skip-tests
@@ -31,7 +31,7 @@ DEPLOY_CONFIRM=yes bun run deploy   # CI / non-interactive
 
 **Step 1 — W0 Baseline**
 ```bash
-bun run verify   # biome + tsc --noEmit + vitest run
+bun run verify   # biome + tsc --noEmit + vitest run + audit:design
 ```
 Record tests passed/total. Fix before proceeding — never deploy on red.
 
@@ -42,38 +42,38 @@ Record tests passed/total. Fix before proceeding — never deploy on red.
 ```bash
 NODE_ENV=production astro build
 ```
-Target: ~23s. Watch for bundle size warnings.
+Target: ~23s. Emits `dist/_worker.js/index.js` + static assets via `@astrojs/cloudflare@13`. Watch for bundle size warnings.
 
 **Step 4 — Credentials**
 `CLOUDFLARE_API_TOKEN` must be unset. Deploy uses `CLOUDFLARE_GLOBAL_API_KEY` only.
 Scoped tokens lack permissions for workers + custom domains.
 
 **Step 5 — Smoke**
-Verify `dist/`, `gateway/wrangler.toml`, `workers/sync/wrangler.toml`, `nanoclaw/wrangler.toml`.
+Verify `dist/_worker.js/`, `gateway/wrangler.toml`, `workers/sync/wrangler.toml`, `nanoclaw/wrangler.toml`, root `wrangler.toml`.
 
 **Step 6 — Approval**
 `main` branch: prompts "yes". Other branches: auto-approved.
-CI: `DEPLOY_CONFIRM=yes bun run deploy`.
+CI: `DEPLOY_CONFIRM=yes bun run deploy` (already set in `.github/workflows/deploy.yml`).
 
-**Step 7 — Deploy (parallel workers + pages)**
-Gateway + Sync + NanoClaw deploy in parallel (~16s). Pages deploys after (~29s).
-Total: ~74s.
+**Step 7 — Deploy (parallel workers + astro)**
+Gateway + Sync + NanoClaw deploy in parallel (~16s). Astro Worker deploys after (~16s).
 
 **Step 8 — Health**
 ```bash
-curl https://api.one.ie/health         # Gateway
-curl https://one-substrate.pages.dev/  # Pages
-curl https://one-sync.oneie.workers.dev/   # Sync
-curl https://nanoclaw.oneie.workers.dev/health  # NanoClaw
+curl https://api.one.ie/health                   # Gateway
+curl https://dev.one.ie/api/health               # Astro Worker (primary)
+curl https://one-sync.oneie.workers.dev/         # Sync
+curl https://nanoclaw.oneie.workers.dev/health   # NanoClaw
 ```
-3 retries with backoff. All 4 must return 200.
+3 retries with backoff. All 4 must return 200. Astro `/api/health` must report `units: 140` (or current count) — empty `units: 0` means the build didn't bake `PUBLIC_GATEWAY_URL` correctly.
 
 ---
 
-## Bundle Size Rules (CF Pages Free Tier)
+## Bundle Size Rules (CF Workers Free Tier — ~10 MiB uncompressed)
 
-The Pages worker bundle must stay under ~10 MiB uncompressed to deploy.
-These rules are **LOCKED** — do not revert them.
+The Astro Worker bundle must stay under the CF free-tier ceiling to deploy.
+These rules are **LOCKED** — do not revert them. Apply identically to any
+developer template we ship (`oneie init` Workers scaffold mirrors this shape).
 
 ### Rule 1 — `syntaxHighlight: false` in `astro.config.mjs`
 
@@ -117,14 +117,16 @@ import { MyComponent } from "@/components/MyComponent"
 `client:only="react"` — Astro renders an empty div on the server; the component never
 runs in the worker. The React component tree (+ all its imports) stays out of the SSR bundle.
 
-`export const prerender = true` — the page becomes a static HTML file generated once
-at build time. The page's SSR handler collapses to a 63-byte stub. Zero worker cost
+`export const prerender = true` — the page becomes a static asset generated once
+at build time. The page's SSR handler collapses to a small stub. Zero worker cost
 at runtime.
 
 **Use this pattern for:** any page that has no server-side data dependencies
 (no `Astro.locals`, no `Astro.request`, no DB queries in frontmatter).
 
-Currently prerendered: `build.astro`, `ceo.astro`, `chat.astro`, `tasks.astro`.
+Currently prerendered (verify with `grep -l "export const prerender = true" src/pages/*.astro`):
+`404.astro`, `board.astro`, `build.astro`, `ceo.astro`, `chat.astro`, `chat-agents.astro`,
+`chat-fast.astro`, `chat-routing.astro`, `in.astro`, `speed.astro`.
 
 Pages that CANNOT be prerendered (need runtime session/auth):
 `world.astro` (reads `Astro.locals.session`), `market.astro` (fetches capabilities).
@@ -146,25 +148,24 @@ Do not remove for production builds.
 
 ## Verified Bundle Numbers
 
-| Before | After | What changed |
-|--------|-------|-------------|
-| 21 MiB worker | 9.5 MiB | All three rules applied |
+| Before migration | After migration | What changed |
+|------------------|-----------------|-------------|
+| 21 MiB Pages bundle | 9.5 MiB Worker bundle | All four rules applied |
 | Shiki grammars in worker | External references only | `ssr.external` + `syntaxHighlight: false` |
-| `build/ceo/chat/tasks` in SSR handler | 63-byte stubs | `prerender = true` |
-| Pages deploy: FAILED | Pages deploy: ✓ 29.6s | Under CF free-tier threshold |
-
-Last verified: 2026-04-15. Deploy: 74.9s total, 4/4 services, 4/4 health.
+| `build/ceo/chat` in SSR handler | Static asset stubs | `prerender = true` |
+| Pages deploy: FAILED | Worker deploy: ✓ ~16s | Under CF free-tier threshold |
 
 ---
 
-## Service Map
+## Service Map (post-migration)
 
 | Service | URL | Config | Deploy command |
 |---------|-----|--------|---------------|
-| Pages | one-substrate.pages.dev | `astro.config.mjs` | `wrangler pages deploy dist/` |
-| Gateway | api.one.ie | `gateway/wrangler.toml` | `cd gateway && wrangler deploy` |
-| Sync | one-sync.oneie.workers.dev | `workers/sync/wrangler.toml` | `cd workers/sync && wrangler deploy` |
-| NanoClaw | nanoclaw.oneie.workers.dev | `nanoclaw/wrangler.toml` | `cd nanoclaw && wrangler deploy` |
+| Astro Worker | `dev.one.ie` → `one-substrate` | `wrangler.toml` (root) | `wrangler deploy` |
+| Gateway | `api.one.ie` → `one-gateway` | `gateway/wrangler.toml` | `cd gateway && wrangler deploy` |
+| Sync | `one-sync.oneie.workers.dev` | `workers/sync/wrangler.toml` | `cd workers/sync && wrangler deploy` |
+| NanoClaw | `nanoclaw.oneie.workers.dev` | `nanoclaw/wrangler.toml` | `cd nanoclaw && wrangler deploy` |
+| Pages (legacy idle) | `one-substrate.pages.dev` | — | **do not deploy** — kept as rollback window |
 
 ---
 
@@ -176,6 +177,14 @@ Never: `CLOUDFLARE_API_TOKEN` (scoped token lacks workers + custom domain permis
 The deploy script auto-unsets `CLOUDFLARE_API_TOKEN` from the spawned env to prevent
 accidental use of a scoped token that was exported in the shell.
 
+CI secrets required in `.github/workflows/deploy.yml` env block:
+- `CLOUDFLARE_API_KEY` (mapped from `secrets.CLOUDFLARE_GLOBAL_API_KEY`)
+- `CLOUDFLARE_EMAIL`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN: ''` (explicit blank)
+- `DEPLOY_CONFIRM: 'yes'`
+- `PUBLIC_GATEWAY_URL: https://api.one.ie` (build-time-inlined by Astro — **required**; without this the Worker bundle falls back to `one-gateway.oneie.workers.dev` and `/api/health` returns `units: 0`)
+
 ---
 
 ## Steps
@@ -186,9 +195,9 @@ accidental use of a scoped token that was exported in the shell.
 2. `git diff` summary — surface scope to user.
 3. `NODE_ENV=production bun run build` — Astro production build.
 4. Verify credentials: assert `CLOUDFLARE_GLOBAL_API_KEY` present, unset `CLOUDFLARE_API_TOKEN`.
-5. Smoke check: assert `dist/` exists, all 3 wrangler configs present.
+5. Smoke check: assert `dist/_worker.js/` exists, all 4 wrangler configs present.
 6. Approval gate: prompt on `main`, auto on other branches.
-7. Parallel deploy: Gateway + Sync + NanoClaw concurrently, then Pages.
+7. Parallel deploy: Gateway + Sync + NanoClaw concurrently, then Astro Worker.
 8. Health checks: all 4 endpoints × 3 retries with backoff.
 9. Report:
    ```
@@ -196,19 +205,19 @@ accidental use of a scoped token that was exported in the shell.
    Tests:    320/320 pass
    Build:    23.2s
    Workers:  parallel 16.7s (vs ~42s sequential)
-   Pages:    29.6s
-   Health:   4/4 (Gateway 308ms, Pages 666ms, Sync 287ms, NanoClaw 287ms)
-   Preview:  https://<hash>.one-substrate.pages.dev
-   Total:    74.9s
+   Astro:    16.1s
+   Health:   4/4 (Gateway 308ms, Astro 666ms, Sync 287ms, NanoClaw 287ms)
+   Preview:  https://<hash>.one-substrate.<account>.workers.dev
+   Total:    ~65s
    ```
 
-### `/deploy pages`
+### `/deploy astro`
 
 1. `NODE_ENV=production bun run build`
 2. Check bundle size: `du -sh dist/_worker.js/`
 3. If > 12 MiB: check which chunk grew (`ls -lhS dist/_worker.js/chunks/ | head -15`)
-4. `wrangler pages deploy dist/ --project-name=one-substrate --commit-dirty=true`
-5. Health: `curl -sL https://one-substrate.pages.dev/`
+4. `wrangler deploy` (from repo root)
+5. Health: `curl -sL https://dev.one.ie/api/health | jq '.world.units'` (expect 140+)
 
 ### `/deploy workers`
 
@@ -217,6 +226,17 @@ cd gateway && bun wrangler deploy && cd ../workers/sync && bun wrangler deploy &
 ```
 
 Report: version hash per worker, health latency per service.
+
+### Cutover tool (`scripts/cf-cutover.ts`)
+
+For Pages→Workers custom-domain flips on other services (script is parameterized):
+
+```bash
+bun run cf-cutover                # dry-run, safe
+bun run cf-cutover --execute      # real cutover: Workers route + Pages detach + health verify + substrate signal
+```
+
+Defaults: domain=`dev.one.ie`, worker=`one-substrate`, pages=`one-substrate`. Override via `CF_CUTOVER_DOMAIN`, `CF_CUTOVER_WORKER`, `CF_CUTOVER_PAGES_PROJECT` env vars.
 
 ---
 
@@ -247,14 +267,18 @@ grep -l "react-vendor" dist/_worker.js/chunks/
 ## Rollback
 
 ```bash
-# Revert to previous Pages deployment
-wrangler pages deployment list --project-name=one-substrate
-wrangler pages deployment rollback <deployment-id> --project-name=one-substrate
+# Revert the Astro Worker to the previous version
+wrangler rollback --name one-substrate
 
-# Revert a worker
+# Or re-point DNS back to paused Pages project (emergency only)
+bun run cf-cutover --execute   # re-run against Pages project if ever rolled back
+# (In practice: manually revert route via CF dashboard or CF API, Pages project
+# is still alive at one-substrate.pages.dev)
+
+# Revert a Worker
 cd gateway && git stash && bun wrangler deploy
 ```
 
 ---
 
-*Deploy is the closed loop. W0 baseline in, health check out. If health fails, mark() is blocked.*
+*Deploy is the closed loop. W0 baseline in, health check out. If health fails, mark() is blocked. Determinism: every step reports numbers, every number gets marked.*

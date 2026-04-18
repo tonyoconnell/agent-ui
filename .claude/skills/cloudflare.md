@@ -23,7 +23,7 @@ Manage ONE's Cloudflare deployment: credentials, secrets, KV/D1, monitoring, log
 
 | Worker | URL | Adapter | Role |
 |---|---|---|---|
-| Astro (one-substrate) | `one-substrate.pages.dev` (URL preserved across migration) | `@astrojs/cloudflare@13` | SSR + static assets |
+| Astro (one-substrate) | `dev.one.ie` (primary, CF Workers Static Assets) · `one-substrate.pages.dev` (legacy idle, rollback safety net) | `@astrojs/cloudflare@13` | SSR + static assets |
 | Gateway | `api.one.ie` (custom domain) → `one-gateway.oneie.workers.dev` | vanilla Worker | TypeDB proxy + WsHub DO |
 | Sync | `one-sync.oneie.workers.dev` | vanilla Worker | TypeDB → KV cron (1 min) |
 | NanoClaw | `nanoclaw.oneie.workers.dev` | vanilla Worker | Edge agents (Telegram/Discord webhooks) |
@@ -364,7 +364,7 @@ custom_domain = true
 
 ## Pages → Workers Migration State
 
-**Status (2026-04-18):** Cycle 1 + 2 shipped on `feature/cf-workers-migration-c1-c2`. Cycle 3 (custom-domain cutover, Pages archive) needs CF dashboard work.
+**Status (2026-04-18):** Cycles 1-3 shipped on main. Cutover is live — `dev.one.ie` now serves from the `one-substrate` Worker; Pages project paused as rollback safety net. Cutover tool: `bun run cf-cutover` (dry-run) / `--execute` (commit). Script in `scripts/cf-cutover.ts`.
 
 | | CF Pages (old) | CF Workers + Assets (new) |
 |---|---|---|
@@ -400,7 +400,7 @@ bun wrangler tail --name=one-substrate
 
 ```bash
 time curl -s https://api.one.ie/health -o /dev/null            # expect <10ms
-time curl -s https://one-substrate.pages.dev/ -o /dev/null     # expect <500ms
+time curl -s https://dev.one.ie/ -o /dev/null                  # expect <500ms (Workers)
 time curl -s https://nanoclaw.oneie.workers.dev/health -o /dev/null
 ```
 
@@ -489,7 +489,7 @@ workflow_dispatch →  manual trigger
 
 ## Reference
 
-- `docs/TODO-cf-workers-migration.md` — C1+C2 shipped, C3 pending dashboard work
+- `docs/TODO-cf-workers-migration.md` — C1+C2+C3 shipped; cutover live on `dev.one.ie`
 - `docs/deploy.md` — 8-step pipeline, bundle diagnosis, LOCKED rules
 - `.claude/commands/deploy.md` — pipeline script + bundle rules
 - `.claude/skills/deploy.md` — skill version
