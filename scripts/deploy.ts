@@ -340,8 +340,13 @@ function loadCredentials(): Record<string, string> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function smokeCheck() {
+  // Astro 6 + @astrojs/cloudflare v13 emits via module reference
+  // ("@astrojs/cloudflare/entrypoints/server" as main), so the dist/ layout
+  // varies — worker bundle lives under dist/server/ and assets under dist/.
+  // Checking `dist/` + wrangler.toml presence is robust across adapter versions.
   const checks = [
-    { name: 'Worker dist/', path: join(ROOT, 'dist', '_worker.js', 'index.js') },
+    { name: 'Astro dist/', path: join(ROOT, 'dist') },
+    { name: 'Astro wrangler.toml', path: join(ROOT, 'wrangler.toml') },
     { name: 'Gateway config', path: join(ROOT, 'gateway', 'wrangler.toml') },
     { name: 'Sync config', path: join(ROOT, 'workers/sync', 'wrangler.toml') },
     { name: 'NanoClaw config', path: join(ROOT, 'nanoclaw', 'wrangler.toml') },
