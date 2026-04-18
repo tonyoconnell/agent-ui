@@ -87,6 +87,7 @@ export const POST: APIRoute = async ({ request }) => {
       highways: [],
       recent: [],
       tools: [],
+      frontier: [],
     }))
 
     // Step 4: inject memory into system prompt

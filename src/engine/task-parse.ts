@@ -26,7 +26,7 @@ async function node() {
 
 // ── Types ───────────────────────────────────────────────────────────────
 
-export type Value = 'critical' | 'high' | 'medium'
+export type Value = 'critical' | 'high' | 'medium' | 'low'
 export type Phase = 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7'
 export type Effort = 'low' | 'medium' | 'high'
 export type Wave = 'W1' | 'W2' | 'W3' | 'W4'
@@ -51,9 +51,9 @@ export interface Task {
   name: string
   done: boolean
   value: Value
-  effort: Effort
-  wave: Wave
-  phase: Phase
+  effort: string
+  wave: string
+  phase: string
   persona: string
   context: string[]
   blocks: string[]
@@ -67,8 +67,8 @@ export interface Task {
 
 // ── Score Maps — Pure Arithmetic ────────────────────────────────────────
 
-const VALUE_SCORES: Record<Value, number> = { critical: 30, high: 25, medium: 20 }
-const PHASE_SCORES: Record<Phase, number> = { C1: 40, C2: 35, C3: 30, C4: 25, C5: 20, C6: 15, C7: 10 }
+const VALUE_SCORES: Record<Value, number> = { critical: 30, high: 25, medium: 20, low: 10 }
+const PHASE_SCORES: Partial<Record<Phase, number>> = { C1: 40, C2: 35, C3: 30, C4: 25, C5: 20, C6: 15, C7: 10 }
 const PERSONA_SCORES: Record<string, number> = {
   ceo: 25,
   dev: 20,
@@ -83,12 +83,12 @@ const PERSONA_SCORES: Record<string, number> = {
 
 export function computePriority(
   value: Value,
-  phase: Phase,
+  phase: string,
   persona: string,
   blockingCount: number,
 ): { score: number; formula: string } {
   const v = VALUE_SCORES[value] ?? 20
-  const p = PHASE_SCORES[phase] ?? 25
+  const p = PHASE_SCORES[phase as Phase] ?? 25
   const per = PERSONA_SCORES[persona] ?? 5
   const b = Math.min(blockingCount * 5, 20)
 

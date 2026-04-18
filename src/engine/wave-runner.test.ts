@@ -7,6 +7,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { PersistentWorld } from './persist'
 import type { TaskEnvelope } from './wave-runner'
 import { waveRunner } from './wave-runner'
 import { world as createWorld } from './world'
@@ -28,7 +29,7 @@ function makeNet() {
   }
   // Expose actor() so waveRunner(net) dispatch uses Form 1 (PersistentWorld path)
   const net = Object.assign(w, { actor: (id: string) => w.add(id) })
-  return { net: net as unknown as Parameters<typeof waveRunner>[0] & ReturnType<typeof createWorld>, marks, warns }
+  return { net: net as unknown as PersistentWorld, marks, warns }
 }
 
 const _PASS_COMPLETE = vi.fn().mockResolvedValue('W1 output')

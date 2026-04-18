@@ -284,7 +284,7 @@ describe('toTypeDB() — capability relations for skills', () => {
     const queries = toTypeDB(spec)
     const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
 
-    expect(skillQueries.length).toBe(3)
+    expect(skillQueries.length).toBe(4) // 3 explicit + 1 auto-injected 'hire'
     // Without a group, skill-id is just the skill name
     expect(skillQueries[0]).toContain('has skill-id "lesson"')
     expect(skillQueries[0]).toContain('has name "lesson"')
@@ -305,7 +305,7 @@ describe('toTypeDB() — capability relations for skills', () => {
     const queries = toTypeDB(spec)
     const capabilityQueries = queries.filter((q) => q.includes('isa capability'))
 
-    expect(capabilityQueries.length).toBe(3)
+    expect(capabilityQueries.length).toBe(4) // 3 explicit + 1 auto-injected 'hire'
     expect(capabilityQueries[0]).toContain('provider: $u')
     expect(capabilityQueries[0]).toContain('offered: $s')
     expect(capabilityQueries[0]).toContain('has price')
@@ -323,9 +323,9 @@ describe('toTypeDB() — capability relations for skills', () => {
     const spec = parse(minimalMarkdown)
     const queries = toTypeDB(spec)
 
-    // Should have only unit insert (no skills, no capabilities)
+    // Should have only the auto-injected 'hire' skill
     const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
-    expect(skillQueries.length).toBe(0)
+    expect(skillQueries.length).toBe(1)
   })
 })
 
@@ -371,9 +371,9 @@ Multi-skill agent.`
     const spec = parse(markdownWithDupeTags)
     const queries = toTypeDB(spec)
 
-    // Both skills should exist with their own tags
+    // Both explicit skills + auto-injected 'hire' should exist
     const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
-    expect(skillQueries.length).toBe(2)
+    expect(skillQueries.length).toBe(3) // 2 explicit + 1 auto-injected 'hire'
     expect(skillQueries[0]).toContain('has tag "common"')
     expect(skillQueries[1]).toContain('has tag "common"')
   })

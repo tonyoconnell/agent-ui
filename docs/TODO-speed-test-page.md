@@ -502,24 +502,24 @@ curl localhost:4321/speed?step=3        # stop 3 (sandwich) active
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — Shell + API
-  - [ ] W0 — Baseline (`bun run verify` green before any edit)
-  - [ ] W1 — Recon (Haiku x 5, parallel)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 6, parallel)
-  - [ ] W4 — Verify (Sonnet x 3, parallel by check type)
-- [ ] **Cycle 2: PROVE** — Live Data + 9 Stops
-  - [ ] W0 — Baseline
-  - [ ] W1 — Recon (Haiku x 6, parallel)
-  - [ ] W2 — Decide (Opus x 1–2 shards)
-  - [ ] W3 — Edits (Sonnet x 7, parallel)
-  - [ ] W4 — Verify (Sonnet x 4, parallel by check type)
-- [ ] **Cycle 3: GROW** — Personas + Polish
-  - [ ] W0 — Baseline
-  - [ ] W1 — Recon (Haiku x 4, parallel)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet x 5, parallel)
-  - [ ] W4 — Verify (Sonnet x 3, parallel by check type)
+- [x] **Cycle 1: WIRE** — Shell + API
+  - [x] W0 — Baseline (`bun run verify` green before any edit)
+  - [x] W1 — Recon (Haiku x 5, parallel)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 6, parallel)
+  - [x] W4 — Verify (Sonnet x 3, parallel by check type)
+- [x] **Cycle 2: PROVE** — Live Data + 9 Stops
+  - [x] W0 — Baseline
+  - [x] W1 — Recon (Haiku x 6, parallel)
+  - [x] W2 — Decide (Opus x 1–2 shards)
+  - [x] W3 — Edits (Sonnet x 7, parallel)
+  - [x] W4 — Verify (Sonnet x 4, parallel by check type)
+- [x] **Cycle 3: GROW** — Personas + Polish
+  - [x] W0 — Baseline
+  - [x] W1 — Recon (Haiku x 4, parallel)
+  - [x] W2 — Decide (Opus)
+  - [x] W3 — Edits (Sonnet x 5, parallel)
+  - [x] W4 — Verify (Sonnet x 3, parallel by check type)
 
 ---
 

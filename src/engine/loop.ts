@@ -11,7 +11,9 @@ import { augmentPromptWithADL } from './adl'
 import { invalidateAdlCache } from './adl-cache'
 import { inferDocsFromTags, loadContext } from './context'
 import type { PersistentWorld } from './persist'
+import { computeZTestPValue } from './stats'
 import { EFFORT_MODEL, WAVE_MODEL } from './task-parse'
+import { selfCheckoff } from './task-sync'
 
 // doc-scan and node:path imported dynamically to avoid Cloudflare bundling issues
 
@@ -45,6 +47,7 @@ export type TickResult = {
   hypotheses?: number
   hypothesesPromoted?: number
   hypothesesRejected?: number
+  reflexesTriggered?: number
   frontiers?: number
   docsSynced?: number
   prefetchMs?: number
@@ -80,6 +83,117 @@ let priorityEvolve: string[] = []
 let lastStrengths: Record<string, number> = {}
 const taskFailures = new Map<string, number>() // failure count per task for hypothesis generation
 const tagFailures = new Map<string, number>() // failure count per tag-cluster for pattern hypotheses
+
+/**
+ * Compute p-value from D1 marks data (Cycle 1 Foundation).
+ * Query D1 marks table for success rate before/after pattern detection.
+ * Returns 0.5 if insufficient data.
+ *
+ * Wired into hypothesis generation in Cycle 2: when a tag-cluster-fail hypothesis
+ * reaches observations-count >= 50, we query D1 to confirm statistical significance
+ * before marking the path as toxic.
+ */
+export const computePValueFromD1 = async (
+  edge: string,
+  patternDetectedTs: string,
+  db?: D1Database,
+): Promise<number> => {
+  if (!db) return 0.5 // No D1, uncertain
+
+  try {
+    // Query D1 marks: count marks (success) vs warns (failure) before/after pattern
+    // Before = synced marks before patternDetectedTs
+    // After = synced marks after patternDetectedTs
+    const beforeRows = await db
+      .prepare(
+        `
+      SELECT
+        SUM(CASE WHEN delta_s > 0 THEN count ELSE 0 END) as success,
+        SUM(CASE WHEN delta_r > 0 THEN count ELSE 0 END) as failure
+      FROM marks
+      WHERE edge = ? AND ts < ? AND synced = 1
+    `,
+      )
+      .bind(edge, patternDetectedTs)
+      .all()
+
+    const afterRows = await db
+      .prepare(
+        `
+      SELECT
+        SUM(CASE WHEN delta_s > 0 THEN count ELSE 0 END) as success,
+        SUM(CASE WHEN delta_r > 0 THEN count ELSE 0 END) as failure
+      FROM marks
+      WHERE edge = ? AND ts >= ? AND synced = 1
+    `,
+      )
+      .bind(edge, patternDetectedTs)
+      .all()
+
+    const before = (beforeRows.results?.[0] as any) || { success: 0, failure: 0 }
+    const after = (afterRows.results?.[0] as any) || { success: 0, failure: 0 }
+
+    const pValue = computeZTestPValue(
+      (before.success || 0) + (before.failure || 0) > 0 ? before.success || 0 : 0,
+      (before.success || 0) + (before.failure || 0),
+      (after.success || 0) + (after.failure || 0) > 0 ? after.success || 0 : 0,
+      (after.success || 0) + (after.failure || 0),
+    )
+
+    return pValue
+  } catch (err) {
+    console.error('[stats] p-value computation failed:', err)
+    return 0.5
+  }
+}
+
+/**
+ * REFLEX: When a tag-cluster-fail hypothesis is confirmed (p < 0.05),
+ * automatically warn the routing edges that used this tag cluster.
+ * This closes the learning loop: bad patterns trigger immediate rerouting.
+ */
+const fireHypothesisReflex = async (
+  net: PersistentWorld,
+  hypothesis: { hid: string; statement: string; status: string },
+): Promise<boolean> => {
+  // Parse: tag-cluster:X::Y::Z:repeated-failure:wave=W#:count=N
+  const tagMatch = hypothesis.statement.match(/tag-cluster:(.+):repeated-failure:wave=(\w\d+):count=(\d+)/)
+  if (!tagMatch) return false
+
+  const tagCluster = tagMatch[1] // e.g., "api::build::P0"
+  const wave = tagMatch[2] // e.g., "W3"
+  const count = parseInt(tagMatch[3], 10)
+
+  // Find all tasks with ANY of the tags in this cluster that failed in this wave
+  const tasksInCluster = await readParsed(`
+    match $t isa task, has task-id $id, has task-wave "${wave}", has tag $tag;
+    select $id;
+  `).catch(() => [])
+
+  // Warn each edge with reflex strength 2.0 (confirmed pattern, high confidence)
+  // Edge format: loop→builder:{taskId}
+  let reflexCount = 0
+  for (const row of tasksInCluster) {
+    const edgeId = row.id as string
+    net.warn(`loop→builder:${edgeId}`, 2.0)
+    reflexCount++
+  }
+
+  // Emit reflex signal so downstream can observe the pattern detection
+  const reflexSignal = {
+    receiver: 'hypothesis:reflex',
+    data: {
+      type: 'tag-cluster-fail',
+      tagCluster,
+      wave,
+      failCount: count,
+      edgesWarned: reflexCount,
+    },
+  }
+  net.signal(reflexSignal, 'loop')
+
+  return reflexCount > 0
+}
 
 /**
  * Insert a new hypothesis or increment observations-count if one with the
@@ -307,8 +421,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       // Timeout: 120s to allow full W1→W4 chain (4 LLM calls)
       const outcome = await net.ask(taskSignal, 'loop', 120_000)
 
-      const checkoff = await selfCheckoff(taskId, outcome)
-      if (checkoff.ok) {
+      if (outcome.result) {
+        await selfCheckoff(taskId, net)
         chainDepth++
         net.mark(edge, Math.min(chainDepth, CHAIN_CAP))
         previousTarget = 'builder'
@@ -324,12 +438,12 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
             0.5,
           ).catch(() => {})
         }
-      } else if (checkoff.outcome === 'dissolved') {
+      } else if (outcome.dissolved) {
         // No handler — task is queued for external execution (CLI /work loop)
         net.enqueue(taskSignal)
         result.success = null
       } else {
-        net.warn(edge, checkoff.outcome === 'timeout' ? 0 : 0.5)
+        net.warn(edge, outcome.timeout ? 0 : 0.5)
         result.success = false
         // Track repeated failures → auto-hypothesize at threshold
         const failCount = (taskFailures.get(taskId) || 0) + 1
@@ -370,9 +484,9 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
   const _prefetchStart = Date.now()
   const _uiReceivers = net
     .highways(20)
-    .filter((e: { to: string }) => e.to?.startsWith('ui:'))
+    .filter((e) => e.path?.startsWith('ui:'))
     .slice(0, 5)
-    .map((e: { to: string }) => e.to)
+    .map((e) => e.path)
   if (_uiReceivers.length > 0) warmUI(_uiReceivers)
   const prefetchMs = Date.now() - _prefetchStart
 
@@ -521,6 +635,17 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         // flush caches so the next signal reads the new generation, not the
         // stale sensitivity/perm snapshot from before the rewrite.
         invalidateAdlCache(uid)
+        // L5 feedback: emit evolution:success signal for marketplace updates
+        net.signal(
+          {
+            receiver: 'loop:metrics',
+            data: {
+              tags: ['evolution:success', 'L5'],
+              content: { unit: uid, generation: (u.g as number) + 1, from: u.sr as number },
+            },
+          },
+          'loop',
+        )
       } else {
         // TypeDB write failed — same closed-loop treatment as LLM fail.
         net.warn(`${uid}→${uid}:evolve`, 0.3)
@@ -637,15 +762,20 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     // Rules (matching is_action_ready() from world.tql):
     //   observations-count >= 50 AND p-value <= 0.05  → confirmed
     //   observations-count >= 50 AND p-value > 0.20   → rejected
+    //
+    // CYCLE 2 REFLEXES: When tag-cluster-fail hypothesis confirms,
+    // automatically warn() the edges that tag cluster was using.
     let hypothesesPromoted = 0
     let hypothesesRejected = 0
+    let reflexesTriggered = 0
     const testingHypos = await readParsed(`
       match $h isa hypothesis, has hid $hid, has hypothesis-status "testing",
-            has observations-count $n, has p-value $p;
-      select $hid, $n, $p;
+            has statement $stmt, has observations-count $n, has p-value $p;
+      select $hid, $stmt, $n, $p;
     `).catch(() => [])
     for (const row of testingHypos) {
       const hid = row.hid as string
+      const stmt = row.stmt as string
       const n = row.n as number
       const p = row.p as number
       if (n < 50) continue
@@ -659,6 +789,16 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
         if (ok) {
           result.writes!.hypoOk++
           hypothesesPromoted++
+
+          // CYCLE 2 REFLEX: Fire reflex for confirmed tag-cluster-fail
+          if (stmt.includes('tag-cluster:') && stmt.includes(':repeated-failure:')) {
+            const reflexFired = await fireHypothesisReflex(net, {
+              hid,
+              statement: stmt,
+              status: 'confirmed',
+            })
+            if (reflexFired) reflexesTriggered++
+          }
         }
       } else if (p > 0.2) {
         result.writes!.hypoAttempted++
@@ -675,6 +815,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     }
     result.hypothesesPromoted = hypothesesPromoted
     result.hypothesesRejected = hypothesesRejected
+    result.reflexesTriggered = reflexesTriggered
 
     // L7: detect frontiers from unexplored tag clusters
     const tagRows = await readParsed(`

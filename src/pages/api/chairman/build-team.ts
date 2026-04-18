@@ -24,12 +24,12 @@ export const POST: APIRoute = async () => {
   // Check CEO exists in TypeDB — sync if not already live
   const ceoPath = join(process.cwd(), 'agents', 'roles', 'ceo.md')
   const markdown = await readFile(ceoPath, 'utf-8').catch(() => null)
-  if (markdown && !net.has('roles:ceo')) {
+  if (markdown && !net.has('ceo')) {
     await syncAgentWithIdentity(parse(markdown))
   }
 
   // Fan out via in-memory signal routing
-  net.signal({ receiver: 'roles:ceo:build-team', data: {} })
+  net.signal({ receiver: 'ceo:build-team', data: {} })
 
   return Response.json({ ok: true, building: ['cto', 'cmo', 'cfo'] })
 }

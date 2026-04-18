@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { emitClick } from '@/lib/ui-signal'
 
 interface HiredUnit {
@@ -22,16 +22,14 @@ export function ChairmanPanel() {
   const [orgUnits, setOrgUnits] = useState<OrgUnit[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const stopPolling = () => {
+  const stopPolling = useCallback(() => {
     if (pollRef.current) {
       clearInterval(pollRef.current)
       pollRef.current = null
     }
-  }
+  }, [])
 
-  // stopPolling is stable (only depends on pollRef), safe to omit from deps
-  // biome-ignore lint/correctness/useExhaustiveDependencies: cleanup ref, no rerun needed
-  useEffect(() => () => stopPolling(), [])
+  useEffect(() => () => stopPolling(), [stopPolling])
 
   const hireCeo = async () => {
     emitClick('ui:chairman:hire-ceo')

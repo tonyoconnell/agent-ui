@@ -90,7 +90,7 @@ describe('Stage 0: Wallet — POST /api/agents/register', () => {
       ctx('POST', { uid: 'seller-test', kind: 'agent', capabilities: [{ skill: 'copy', price: 0.02 }] }),
     )
     expect(res.status).toBe(200)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.uid).toBe('seller-test')
     expect(data.wallet).toMatch(/^0x[a-f0-9]+$/)
@@ -106,7 +106,7 @@ describe('Stage 0: Wallet — POST /api/agents/register', () => {
   it('should register without capabilities', async () => {
     const { POST } = await import('@/pages/api/agents/register')
     const res = await POST(ctx('POST', { uid: 'buyer-test', kind: 'agent' }))
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.capabilities).toBe(0)
   })
@@ -129,7 +129,7 @@ describe('Stage 1: Fund — POST /api/faucet', () => {
     globalThis.fetch = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
     const { POST } = await import('@/pages/api/faucet')
     const res = await POST(ctx('POST', { address }))
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.address).toBe(address)
     globalThis.fetch = originalFetch
@@ -145,7 +145,7 @@ describe('Stage 2: List — POST /api/subscribe', () => {
     const { POST } = await import('@/pages/api/subscribe')
     const res = await POST(ctx('POST', { receiver: 'seller-test', tags: ['sell', 'test', 'copy'] }))
     expect(res.status).toBe(200)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.receiver).toBe('seller-test')
     expect(data.tags).toEqual(['sell', 'test', 'copy'])
@@ -175,7 +175,7 @@ describe('Stage 5: Sell — POST /api/pay', () => {
 
     const { POST } = await import('@/pages/api/pay')
     const res = await POST(ctx('POST', { from: 'buyer-test', to: 'seller-test', amount: 0.02, task: 'copy' }))
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.from).toBe('buyer-test')
     expect(data.to).toBe('seller-test')
@@ -186,7 +186,7 @@ describe('Stage 5: Sell — POST /api/pay', () => {
     const { POST } = await import('@/pages/api/pay')
     const res = await POST(ctx('POST', { from: 'buyer-test' }))
     expect(res.status).toBe(400)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.error).toContain('Missing')
   })
 
@@ -214,7 +214,7 @@ describe('Stage 8: Buy — POST /api/pay (reverse)', () => {
 
     const { POST } = await import('@/pages/api/pay')
     const res = await POST(ctx('POST', { from: 'seller-test', to: 'buyer-test', amount: 0.01, task: 'tip' }))
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.from).toBe('seller-test')
     expect(data.to).toBe('buyer-test')
@@ -238,7 +238,7 @@ describe('Sell-First Full Flow', () => {
       ctx('POST', { uid: sellerUid, kind: 'agent', capabilities: [{ skill, price: 0.02 }] }),
     )
     expect(r0a.status).toBe(200)
-    const seller = await r0a.json()
+    const seller = (await r0a.json()) as Record<string, any>
     expect(seller.wallet).toBeTruthy()
 
     const r0b = await registerPost(ctx('POST', { uid: buyerUid, kind: 'agent' }))
@@ -248,7 +248,7 @@ describe('Sell-First Full Flow', () => {
     globalThis.fetch = vi.fn().mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }))
     const { POST: faucetPost } = await import('@/pages/api/faucet')
     const r1 = await faucetPost(ctx('POST', { address: seller.wallet }))
-    const fundData = await r1.json()
+    const fundData = (await r1.json()) as Record<string, any>
     expect(fundData.ok).toBe(true)
 
     // Stage 2: List (subscribe)
@@ -265,7 +265,7 @@ describe('Sell-First Full Flow', () => {
     ;(write as any).mockResolvedValue(undefined)
     const { POST: payPost } = await import('@/pages/api/pay')
     const r5 = await payPost(ctx('POST', { from: buyerUid, to: sellerUid, amount: 0.02, task: skill }))
-    const sellData = await r5.json()
+    const sellData = (await r5.json()) as Record<string, any>
     expect(sellData.ok).toBe(true)
 
     // Stage 6: Subscribe (seller to buy tags)
@@ -274,7 +274,7 @@ describe('Sell-First Full Flow', () => {
 
     // Stage 8: Buy (reverse pay)
     const r8 = await payPost(ctx('POST', { from: sellerUid, to: buyerUid, amount: 0.01, task: 'tip' }))
-    const buyData = await r8.json()
+    const buyData = (await r8.json()) as Record<string, any>
     expect(buyData.ok).toBe(true)
 
     // Stage 9: Verify (just aggregation — no API call)

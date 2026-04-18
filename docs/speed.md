@@ -2,6 +2,8 @@
 
 ONE is the fastest AI execution platform on Earth. Not because our LLM is faster. Because our **routing is 1,000,000× faster**.
 
+Want to see these numbers live? Visit [/speed](/speed) — watch one signal travel through 9 stops with live timings.
+
 Everything except the LLM is **math**. The deterministic sandwich makes routing instant. Agents learn 43,000× faster than humans can review feedback. Highways emerge automatically, and routing cost drops 200× once proven.
 
 ```
@@ -578,6 +580,7 @@ This is how we win: **Not smarter. Faster.**
 
 ## See Also
 
+- [/speed](/speed) — Live signal speedrun: 9 stops, real timings, in-browser
 - [docs/fastest-ai.md](fastest-ai.md) — Full positioning story
 - [docs/agent-speed-advantage.md](agent-speed-advantage.md) — Economic breakdown
 - [docs/speed-hyperliquid.md](speed-hyperliquid.md) — Trading proof

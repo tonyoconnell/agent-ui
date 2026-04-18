@@ -26,7 +26,7 @@ export interface RichMessage {
  *                first are auto-derived into tags: `['ui','click','chat','copy']`.
  * @param payload Optional rich payload attached as `data.rich`.
  */
-export function emitClick(id: string, payload?: RichMessage): void {
+export function emitClick(id: string, payload?: Record<string, unknown>): void {
   const segments = id.split(':')
   const derived = segments.length > 1 ? segments.slice(1) : []
   const tags = ['ui', 'click', ...derived]

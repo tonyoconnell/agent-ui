@@ -114,6 +114,7 @@ export interface PersistentWorld extends World {
     uid: string,
     opts?: { reason?: string },
   ) => Promise<{ uid: string; dissolvedAt: string; drainedSignals: number; pathsTouched: number }>
+  hasPathRelationship: (uid: string, from: string, to: string) => Promise<boolean>
   sync: () => Promise<void>
   load: () => Promise<void>
   settle: (
@@ -158,6 +159,19 @@ export const world = (): PersistentWorld => {
     `)
     // Mirror to Sui (fire-and-forget)
     mirrorMark(from.trim(), to.trim(), strength).catch(() => {})
+    // L4 revenue feedback: emit signal for marketplace routing updates
+    if (strength > 0) {
+      net.signal(
+        {
+          receiver: 'loop:metrics',
+          data: {
+            tags: ['revenue:updated', 'L4'],
+            content: { edge, strength, traversals: (net.sense(edge) / strength) || 1 },
+          },
+        },
+        'persist',
+      )
+    }
   }
 
   const warn = (edge: string, strength = 1) => {

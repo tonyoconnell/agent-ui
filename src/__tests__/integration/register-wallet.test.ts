@@ -57,7 +57,7 @@ describe('POST /api/agents/register — wallet derivation', () => {
     const res = await callRegister({ uid: 'buyer-abc123', kind: 'human' })
 
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
     expect(body.ok).toBe(true)
     expect(body.uid).toBe('buyer-abc123')
     expect(body.status).toBe('registered')
@@ -71,7 +71,7 @@ describe('POST /api/agents/register — wallet derivation', () => {
     const res = await callRegister({ uid: 'buyer-no-seed', kind: 'human' })
 
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
     expect(body.ok).toBe(true)
     expect(body.uid).toBe('buyer-no-seed')
     expect(body.status).toBe('registered')
@@ -83,7 +83,7 @@ describe('POST /api/agents/register — wallet derivation', () => {
     const res = await callRegister({ kind: 'agent' })
 
     expect(res.status).toBe(400)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
     expect(body.error).toMatch(/uid/)
     // addressFor should NOT be called without a uid
     expect(addressFor).not.toHaveBeenCalled()
@@ -113,7 +113,7 @@ describe('POST /api/agents/register — wallet derivation', () => {
       ],
     })
 
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
     expect(body.capabilities).toBe(2)
   })
 })

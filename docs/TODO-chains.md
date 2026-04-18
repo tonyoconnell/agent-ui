@@ -273,16 +273,16 @@ The architecture in [chains.md](chains.md) is correct and the moat is real — p
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — Bridge units (read-only: balance, history, price)
-  - [ ] W1 — Recon (Haiku x 6)
-  - [ ] W2 — Decide (Opus x 1)
-  - [ ] W3 — Edits (Sonnet x 5)
-  - [ ] W4 — Verify (Sonnet x 2)
-- [ ] **Cycle 2: SELL** — `/pay/:skillId` on Sui with USDC settlement
-  - [ ] W1 — Recon (Haiku x 5)
-  - [ ] W2 — Decide (Opus x 1)
-  - [ ] W3 — Edits (Sonnet x 4)
-  - [ ] W4 — Verify (Sonnet x 3)
+- [x] **Cycle 1: WIRE** — Bridge units (read-only: balance, history, price) ✓ 2026-04-18
+  - [x] W1 — Recon (Haiku x 6)
+  - [x] W2 — Decide (Opus x 1)
+  - [x] W3 — Edits (Sonnet x 5)
+  - [x] W4 — Verify (Sonnet x 2)
+- [x] **Cycle 2: SELL** — `/pay/:skillId` on Sui with USDC settlement ✓ 2026-04-18
+  - [x] W1 — Recon (Haiku x 5)
+  - [x] W2 — Decide (Opus x 1)
+  - [x] W3 — Edits (Sonnet x 4): pay.ts + [skillId].astro + PayPage.tsx + test-pay-sui.ts
+  - [x] W4 — Verify (Sonnet x 3): tsc clean on new files, bridges.test 12/12 green, pay unit registered in boot.ts
 - [ ] **Cycle 3: LEARN** — FROZEN (pheromone-gated)
   - [ ] Trigger monitor: weekly `/see events --tag commerce:attempt` and `commerce:settle` count
 

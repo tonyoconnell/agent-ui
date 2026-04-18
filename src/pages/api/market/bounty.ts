@@ -28,6 +28,8 @@ export type BountyData = {
   claims: string | null
 }
 
+export type BountyStatus = 'locked' | 'delivered' | 'released' | 'refunded'
+
 export type Bounty = {
   id: string
   edge: string
@@ -37,6 +39,11 @@ export type Bounty = {
   data: BountyData
   escrowId?: string
   createdAt: number
+  // Flattened view-model fields (derived from data)
+  status: BountyStatus
+  price: number
+  deadline: number // unix ms
+  rubric: { fit?: number; form?: number; truth?: number; taste?: number }
 }
 
 export const GET: APIRoute = async ({ url, locals }) => {

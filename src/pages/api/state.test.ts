@@ -51,7 +51,7 @@ describe('GET /api/state', () => {
     })
 
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.units).toHaveLength(2)
     expect(body.units[0].id).toBe('scout')
@@ -87,7 +87,7 @@ describe('GET /api/state', () => {
     })
 
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.stats.units).toBe(3)
     expect(body.stats.edges).toBe(3)
@@ -110,7 +110,7 @@ describe('GET /api/state', () => {
     })
 
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.highways).toHaveLength(2)
     expect(body.highways[0].from).toBe('a')
@@ -127,7 +127,7 @@ describe('GET /api/state', () => {
     })
 
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.edges[0].toxic).toBe(true)
   })
@@ -145,7 +145,7 @@ describe('GET /api/state', () => {
     })
 
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     const toxicEdge = body.edges.find((e: any) => e.from === 'x')
     const safeEdge = body.edges.find((e: any) => e.from === 'a')
@@ -164,7 +164,7 @@ describe('GET /api/state', () => {
     })
 
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.edges[0].toxic).toBe(true)
   })
@@ -179,7 +179,7 @@ describe('GET /api/state', () => {
     })
 
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.units).toEqual([])
     expect(body.edges).toEqual([])
@@ -200,7 +200,7 @@ describe('GET /api/state', () => {
 
     const ctx = makeCtx() // no KV
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(readParsed).toHaveBeenCalled()
     expect(body.units).toHaveLength(1)
@@ -216,7 +216,7 @@ describe('GET /api/state', () => {
 
     const ctx = makeCtx() // no KV, TypeDB fails
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     // Should return empty state, not crash
     expect(body.units).toEqual([])
@@ -235,7 +235,7 @@ describe('GET /api/state', () => {
     })
 
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.units[0].kind).toBe('agent')
     expect(body.units[0].g).toBe(1)
@@ -251,7 +251,7 @@ describe('GET /api/state', () => {
     })
 
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.edges[0].revenue).toBe(0)
   })
@@ -275,7 +275,7 @@ describe('GET /api/state', () => {
       'toxic.json': JSON.stringify([]),
     })
     const res = await GET(ctx)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.tags).toEqual([])
     expect(body.tagMap).toEqual({})

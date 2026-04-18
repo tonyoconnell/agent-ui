@@ -231,7 +231,7 @@ function generateMockMnemonic(wordCount: number): string {
     'air',
     'airport',
     'aisle',
-    'alarm',
+    'alarm', // naming:allow BIP39 standard mnemonic word
     'album',
     'alcohol',
     'alert',

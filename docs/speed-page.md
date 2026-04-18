@@ -1,5 +1,7 @@
 # Speed Page
 
+**Status: Built**
+
 Build spec for `/speed` — **ride a signal through the world**. Not a dashboard.
 Not a pitch deck. A guided journey where the visitor watches one real signal
 travel from click → edge → substrate → LLM → mark → highway → Sui, with every
@@ -11,6 +13,22 @@ stop a tutorial on one locked dictionary word.
 
 The companion execution plan is `docs/TODO-speed-page.md` (created separately,
 run via `/do` — Haiku W1 recon, Opus W2 decide, Sonnet W3 edit + W4 verify).
+
+---
+
+## Implementation
+
+| File | Purpose |
+|------|---------|
+| `src/pages/speed.astro` | Page shell |
+| `src/pages/api/speed/journey.ts` | SSE stream of sandwich-layer events |
+| `src/components/speed/SignalStrip.tsx` | Interactive strip (persistent top bar, outbound + return) |
+| `src/components/speed/SpeedJourney.tsx` | Orchestrator — SkinProvider + 9 stops + URL sync |
+| `src/components/speed/Stop.tsx` | Generic stop card |
+| `src/components/speed/SandwichStack.tsx` | 5-layer sandwich visual |
+| `src/components/speed/PathAnimator.tsx` | mark/warn animation on path edges |
+| `src/components/speed/LoopsPanel.tsx` | 7-loop live panel (polls `/api/tick?peek=1`) |
+| `src/components/speed/RunItBlock.tsx` | Copy-to-clipboard command block |
 
 ---
 
@@ -343,12 +361,12 @@ Default is build fresh. An imported component must save >100 LOC and add
 
 | Component | ~LOC | Props |
 |-----------|------|-------|
-| `<SignalStrip>` | 90 | `currentStep`, `elapsed`, `steps[]`, `direction: out|ret` — persistent top bar showing outbound + return trip |
-| `<Stop>` | 60 | `step`, `title`, `vocab[]`, `liveNumber`, `code`, children |
-| `<SandwichStack>` | 120 | `layers: {name, budget, measured, outcome}[]` |
-| `<PathAnimator>` | 100 | `from`, `to`, `strengthBefore`, `strengthAfter`, `polarity: mark|warn` — handles return-trip animation |
-| `<LoopsPanel>` | 150 | `loops: L1..L7[]` — persistent side panel from stop 6 forward, subscribes to loop tick ws events, renders heartbeat rows |
-| `<RunItBlock>` | 50 | `command`, `liveOutput` (async fetch with SSE) |
+| `<SignalStrip>` | 90 | `currentStep`, `elapsed`, `steps[]`, `direction: out|ret` — persistent top bar showing outbound + return trip. ✓ built at `src/components/speed/SignalStrip.tsx` |
+| `<Stop>` | 60 | `step`, `title`, `vocab[]`, `liveNumber`, `code`, children. ✓ built at `src/components/speed/Stop.tsx` |
+| `<SandwichStack>` | 120 | `layers: {name, budget, measured, outcome}[]`. ✓ built at `src/components/speed/SandwichStack.tsx` |
+| `<PathAnimator>` | 100 | `from`, `to`, `strengthBefore`, `strengthAfter`, `polarity: mark|warn` — handles return-trip animation. ✓ built at `src/components/speed/PathAnimator.tsx` |
+| `<LoopsPanel>` | 150 | `loops: L1..L7[]` — persistent side panel from stop 6 forward, subscribes to loop tick ws events, renders heartbeat rows. ✓ built at `src/components/speed/LoopsPanel.tsx` |
+| `<RunItBlock>` | 50 | `command`, `liveOutput` (async fetch with SSE). ✓ built at `src/components/speed/RunItBlock.tsx` |
 | `<SkinSwitcher>` | 40 | reads `?skin`, re-labels via metaphors.md table |
 
 All new components: typed props (`react.md`), named exports, emit

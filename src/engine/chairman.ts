@@ -30,37 +30,33 @@ export function registerHire(net: World | PersistentWorld, uid: string): void {
     const role = d?.role ?? ''
     if (!role) return
 
+    // isToxic pre-check: skip LLM if this hire path has bad track record
+    const edge = `${uid}→roles:${role}`
+    const s = net.sense(edge)
+    const r = net.danger(edge)
+    if (r >= 10 && r > s * 2 && r + s > 5) return // dissolved — toxic path
+
     const markdown = d?.spec ?? (await loadRole(role))
     if (!markdown) return // dissolved — no template for this role
 
     const spec = await syncAgentWithIdentity(parse(markdown))
     const hired = spec.group ? `${spec.group}:${spec.name}` : spec.name
 
+    net.mark(edge, 1) // pheromone: hiring path strengthens on success
     registerHire(net, hired) // recursion: hired unit inherits hire skill
     return hired
   })
 }
 
 export function registerChairman(net: World | PersistentWorld): void {
-  const ceoId = 'roles:ceo'
-  const ceo = net.has(ceoId) ? net.get(ceoId)! : net.add(ceoId)
+  const ceoId = 'ceo'
 
-  ceo.on('hire', async (data, emit) => {
-    const d = data as { role?: string; spec?: string } | null
-    const role = d?.role ?? ''
-    if (!role) return
+  // Wire hire skill (same recursive primitive as every other unit)
+  registerHire(net, ceoId)
 
-    const markdown = d?.spec ?? (await loadRole(role))
-    if (!markdown) return
-
-    const spec = await syncAgentWithIdentity(parse(markdown))
-    const hired = spec.group ? `${spec.group}:${spec.name}` : spec.name
-
-    registerHire(net, hired)
-    return hired
-  })
-
-  ceo.on('build-team', (data, emit) => {
+  // Wire build-team on top — CEO-specific fan-out
+  const ceo = net.get(ceoId)!
+  ceo.on('build-team', async (_data, emit) => {
     for (const role of ['cto', 'cmo', 'cfo']) {
       emit({ receiver: `${ceoId}:hire`, data: { role } })
     }

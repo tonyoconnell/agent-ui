@@ -105,7 +105,6 @@ interface SignalRecord {
 
 interface WorldState {
   agents: AgentData[]
-  strength: Record<string, number>
   strength?: Record<string, number>
   positions: Record<string, { x: number; y: number }>
 }

@@ -62,7 +62,7 @@ const SUISCAN = 'https://suiscan.xyz/testnet'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-async function postJson(url: string, body: unknown, timeoutMs = 15000) {
+async function postJson<T = any>(url: string, body: unknown, timeoutMs = 15000): Promise<T> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
@@ -72,22 +72,22 @@ async function postJson(url: string, body: unknown, timeoutMs = 15000) {
       body: JSON.stringify(body),
       signal: ctrl.signal,
     })
-    const j = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(j?.error || `${r.status} ${r.statusText}`)
-    return j
+    const j = (await r.json().catch(() => ({}))) as Record<string, unknown>
+    if (!r.ok) throw new Error((j?.error as string | undefined) || `${r.status} ${r.statusText}`)
+    return j as T
   } finally {
     clearTimeout(timer)
   }
 }
 
-async function getJson(url: string, timeoutMs = 15000) {
+async function getJson<T = any>(url: string, timeoutMs = 15000): Promise<T> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
     const r = await fetch(url, { signal: ctrl.signal })
-    const j = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(j?.error || `${r.status} ${r.statusText}`)
-    return j
+    const j = (await r.json().catch(() => ({}))) as Record<string, unknown>
+    if (!r.ok) throw new Error((j?.error as string | undefined) || `${r.status} ${r.statusText}`)
+    return j as T
   } finally {
     clearTimeout(timer)
   }

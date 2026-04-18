@@ -63,47 +63,11 @@ export function useWallets(): UseWalletsReturn {
   const [error, setError] = useState<Error | null>(null)
   const [syncStatus, setSyncStatus] = useState<'local' | 'synced' | 'syncing' | 'error'>('local')
 
-  const loadWallets = async () => {
-    setIsLoading(true)
-    try {
-      const context = isTestnet ? 'testnet' : 'mainnet'
-
-      // 1. Load local wallets matching current chain & context
-      // Note: We might want to see ALL wallets, but typically we filter by context (mainnet vs testnet)
-      const local = WalletAdapter.fromLocalStorage({
-        context, // Filter by mainnet/testnet
-      })
-
-      // Filter for current chain specifically if needed, or show all for that context
-      // For now, let's show all wallets in the current context (e.g. all Mainnet wallets)
-      setWallets(local)
-
-      // 2. Background sync balances
-      if (local.length > 0) {
-        refreshBalances(local)
-      } else {
-        setSyncStatus('local')
-      }
-    } catch (err) {
-      setError(err as Error)
-      setSyncStatus('error')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Load wallets for current network context
-  useEffect(() => {
-    loadWallets()
-  }, [loadWallets])
-
-  const refreshBalances = async (currentWallets: Wallet[] = wallets) => {
+  const refreshBalances = useCallback(async (currentWallets: Wallet[]) => {
     setSyncStatus('syncing')
     try {
       const updated = await Promise.all(
         currentWallets.map(async (wallet) => {
-          // Only refresh if chain matches connected API capabilities
-          // or if we have a generic balance endpoint
           if (wallet.chain) {
             const response = await PayService.getBalance({
               address: wallet.address,
@@ -130,7 +94,32 @@ export function useWallets(): UseWalletsReturn {
       console.error('Balance refresh failed', e)
       setSyncStatus('error')
     }
-  }
+  }, [])
+
+  const loadWallets = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const context = isTestnet ? 'testnet' : 'mainnet'
+      const local = WalletAdapter.fromLocalStorage({ context })
+      setWallets(local)
+
+      if (local.length > 0) {
+        refreshBalances(local)
+      } else {
+        setSyncStatus('local')
+      }
+    } catch (err) {
+      setError(err as Error)
+      setSyncStatus('error')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [isTestnet, refreshBalances])
+
+  // Load wallets for current network context
+  useEffect(() => {
+    loadWallets()
+  }, [loadWallets])
 
   const createWallet = useCallback(
     async (chainOverride?: string): Promise<Wallet> => {
@@ -202,7 +191,7 @@ export function useWallets(): UseWalletsReturn {
     createWallet,
     deleteWallet,
     setWallets,
-    refreshBalances: () => refreshBalances(),
+    refreshBalances: () => refreshBalances(wallets),
     currentWallet,
   }
 }

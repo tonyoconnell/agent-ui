@@ -331,13 +331,13 @@ which role templates are toxic. Nothing is wasted.**
   - [x] W2 — Decide (Opus × 1)
   - [x] W3 — Edits (Sonnet × 4: `ceo.md`, `hire.ts`, `chairman.astro`, auth)
   - [x] W4 — Verify: rubric fit=0.97 form=0.93 truth=0.95 taste=0.92 avg=0.94
-- [ ] **Cycle 2: PROVE — CEO hires team**
+- [x] **Cycle 2: PROVE — CEO hires team**
   - [x] W1 — Recon (Haiku × 4)
   - [x] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 4: hire handler, 3 director md files, build-team, tree UI)
-  - [ ] W4 — Verify (Sonnet × 2)
+  - [x] W3 — Edits (Sonnet × 7: chairman.ts, hire.ts, build-team.ts, cto.md, cmo.md, cfo.md, ChairmanPanel.tsx)
+  - [x] W4 — Verify: rubric fit=0.95 form=0.85 truth=0.92 taste=0.90 avg=0.91
 - [ ] **Cycle 3: GROW — Recursive org**
-  - [ ] W1 — Recon (Haiku × 4)
+  - [x] W1 — Recon (Haiku × 4)
   - [ ] W2 — Decide (Opus × 1)
   - [ ] W3 — Edits (Sonnet × 4: default skills, toxic check, pheromone, E2E test)
   - [ ] W4 — Verify (Sonnet × 2)

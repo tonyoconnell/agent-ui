@@ -57,7 +57,7 @@ describe('subscribe — add tags to unit for task routing', () => {
 
     // Check that both tags were attempted
     const calls = (writeSilent as any).mock.calls as unknown[][]
-    const tagCalls = calls.filter((c) => c[0]?.includes('has tag'))
+    const tagCalls = calls.filter((c) => (c[0] as string)?.includes('has tag'))
     expect(tagCalls.length).toBeGreaterThanOrEqual(2)
   })
 
@@ -72,7 +72,7 @@ describe('subscribe — add tags to unit for task routing', () => {
     // Verify writeSilent was called for each tag
     expect(writeSilent).toHaveBeenCalled()
     const calls = (writeSilent as any).mock.calls as unknown[][]
-    const tagInserts = calls.filter((c) => c[0]?.includes('has tag'))
+    const tagInserts = calls.filter((c) => (c[0] as string)?.includes('has tag'))
     expect(tagInserts.length).toBeGreaterThanOrEqual(2)
   })
 
@@ -186,7 +186,7 @@ describe('subscribe — add tags to unit for task routing', () => {
 
     // Each tag should be an independent TQL insert
     const calls = (writeSilent as any).mock.calls as unknown[][]
-    const tagCalls = calls.filter((c) => c[0]?.includes('has tag'))
+    const tagCalls = calls.filter((c) => (c[0] as string)?.includes('has tag'))
     expect(tagCalls.length).toBeGreaterThanOrEqual(tags.length)
   })
 

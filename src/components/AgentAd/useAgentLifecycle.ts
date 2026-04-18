@@ -158,7 +158,7 @@ function reducer(state: AgentLifecycleState, action: Action): AgentLifecycleStat
 
 /* ── Helpers ───────────────────────────────────────────────────────────────── */
 
-async function postJson(url: string, body: unknown, timeoutMs = 15000) {
+async function postJson<T = any>(url: string, body: unknown, timeoutMs = 15000): Promise<T> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
@@ -168,9 +168,9 @@ async function postJson(url: string, body: unknown, timeoutMs = 15000) {
       body: JSON.stringify(body),
       signal: ctrl.signal,
     })
-    const j = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(j?.error || `${r.status}`)
-    return j
+    const j = (await r.json().catch(() => ({}))) as Record<string, unknown>
+    if (!r.ok) throw new Error((j?.error as string | undefined) || `${r.status}`)
+    return j as T
   } finally {
     clearTimeout(timer)
   }
@@ -210,8 +210,8 @@ export function useAgentLifecycle({ agentId, skill }: { agentId: string; skill: 
           capabilities: [{ skill, price: 0.02 }],
         }),
       ])
-      buyerAddress = buyer.wallet ?? ''
-      sellerAddress = seller.wallet ?? ''
+      buyerAddress = (buyer.wallet as string | undefined) ?? ''
+      sellerAddress = (seller.wallet as string | undefined) ?? ''
 
       // Create on-chain Unit objects (funds + mints Move objects)
       // These produce real Sui transactions visible on Suiscan
@@ -225,13 +225,13 @@ export function useAgentLifecycle({ agentId, skill }: { agentId: string; skill: 
       ])
 
       // Use on-chain addresses if available (more accurate — derived from actual keypair)
-      if (buyerOnChain?.address) buyerAddress = buyerOnChain.address
-      if (sellerOnChain?.address) sellerAddress = sellerOnChain.address
+      if (buyerOnChain?.address) buyerAddress = buyerOnChain.address as string
+      if (sellerOnChain?.address) sellerAddress = sellerOnChain.address as string
 
       // Collect on-chain creation digests
       const walletDigests: ChainDigest[] = []
-      if (buyerOnChain?.digest) walletDigests.push({ stage: 'buyer-create', digest: buyerOnChain.digest })
-      if (sellerOnChain?.digest) walletDigests.push({ stage: 'seller-create', digest: sellerOnChain.digest })
+      if (buyerOnChain?.digest) walletDigests.push({ stage: 'buyer-create', digest: buyerOnChain.digest as string })
+      if (sellerOnChain?.digest) walletDigests.push({ stage: 'seller-create', digest: sellerOnChain.digest as string })
 
       dispatch({ type: 'WALLET', buyerAddress, sellerAddress, ms: performance.now() - st, digests: walletDigests })
 
@@ -326,11 +326,12 @@ export function useAgentLifecycle({ agentId, skill }: { agentId: string; skill: 
           receiver: `${agentId}:${skill}`,
           data: JSON.stringify({ tags: [skill], content: `run ${skill}` }),
         })
-        const result =
+        const result = String(
           sigRes.result ??
-          sigRes.reply ??
-          sigRes.output ??
-          (sigRes.routed ? `routed → ${sigRes.routed}` : sigRes.ok ? 'signal delivered' : 'no response')
+            sigRes.reply ??
+            sigRes.output ??
+            (sigRes.routed ? `routed → ${sigRes.routed}` : sigRes.ok ? 'signal delivered' : 'no response'),
+        )
         const digest = sigRes?.sui as string | undefined
         dispatch({ type: 'SIGNALED', result, ms: performance.now() - st, digest })
         emitClick('ui:ad:signal', { receiver: `${agentId}:${skill}` })

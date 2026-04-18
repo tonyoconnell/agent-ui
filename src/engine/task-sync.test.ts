@@ -63,7 +63,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
 
   it('inserts task entity with all required fields', async () => {
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
     await syncTasks([mockTask])
 
     expect(write).toHaveBeenCalled()
@@ -82,7 +82,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
 
   it('creates corresponding skill entity for capability routing', async () => {
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
     await syncTasks([mockTask])
 
     const tql = vi.mocked(write).mock.calls[0][0] as string
@@ -95,7 +95,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
 
   it('creates capability relation (provider: builder, offered: skill)', async () => {
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
     await syncTasks([mockTask])
 
     const tql = vi.mocked(write).mock.calls[0][0] as string
@@ -108,7 +108,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
 
   it('applies all tags to both task and skill entities', async () => {
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
     await syncTasks([mockTask])
 
     const tql = vi.mocked(write).mock.calls[0][0] as string
@@ -121,7 +121,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
   it('marks task as done when done=true', async () => {
     const doneTask: Task = { ...mockTask, done: true }
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
     await syncTasks([doneTask])
 
     const tql = vi.mocked(write).mock.calls[0][0] as string
@@ -135,7 +135,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
       context: ['path\\with\\backslash'],
     }
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
     await syncTasks([escapedTask])
 
     const tql = vi.mocked(write).mock.calls[0][0] as string
@@ -145,7 +145,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
 
   it('includes exit condition when present', async () => {
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
     await syncTasks([mockTask])
 
     const tql = vi.mocked(write).mock.calls[0][0] as string
@@ -156,7 +156,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
   it('omits exit condition when empty', async () => {
     const noExitTask: Task = { ...mockTask, exit: '' }
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
     await syncTasks([noExitTask])
 
     const tql = vi.mocked(write).mock.calls[0][0] as string
@@ -176,7 +176,7 @@ describe('Act 2: syncTasks — Batch insertion with duplicate skipping', () => {
 
   it('calls ensureBuilder to create system builder unit', async () => {
     vi.mocked(readParsed).mockResolvedValue([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await syncTasks([])
 
@@ -277,7 +277,7 @@ describe('Act 2: syncTasks — Batch insertion with duplicate skipping', () => {
     ]
 
     vi.mocked(readParsed).mockResolvedValueOnce([]) // no existing tasks
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     const result = await syncTasks(tasks)
 
@@ -331,7 +331,7 @@ describe('Act 2: syncTasks — Batch insertion with duplicate skipping', () => {
     vi.mocked(readParsed).mockResolvedValueOnce([]) // no existing
     // First write call (batch) fails, fallback to per-task
     vi.mocked(write).mockRejectedValueOnce(new Error('Batch failed'))
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     const result = await syncTasks(tasks)
 
@@ -390,7 +390,7 @@ describe('Act 3: Blocks Relations — Task blocking relationships', () => {
     }
 
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await syncTasks([taskA, taskB])
 
@@ -425,7 +425,7 @@ describe('Act 3: Blocks Relations — Task blocking relationships', () => {
     }
 
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await syncTasks([taskA])
 
@@ -493,7 +493,7 @@ describe('Act 3: Blocks Relations — Task blocking relationships', () => {
     ]
 
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     const result = await syncTasks(tasks)
 
@@ -512,7 +512,7 @@ describe('Act 4: markTaskDone — Task completion and notifications', () => {
   })
 
   it('updates task-status and done attributes in TypeDB', async () => {
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await markTaskDone('task-123')
 
@@ -522,7 +522,7 @@ describe('Act 4: markTaskDone — Task completion and notifications', () => {
   })
 
   it('broadcasts complete message via WebSocket', async () => {
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await markTaskDone('task-xyz')
 
@@ -535,7 +535,7 @@ describe('Act 4: markTaskDone — Task completion and notifications', () => {
   })
 
   it('relays complete message to Gateway', async () => {
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await markTaskDone('task-relay')
 
@@ -578,7 +578,7 @@ describe('Act 5: Tag extraction and application', () => {
     }
 
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await syncTasks([taskWithDupeTags])
 
@@ -609,7 +609,7 @@ describe('Act 5: Tag extraction and application', () => {
     }
 
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await syncTasks([taskWithTags])
 
@@ -645,7 +645,7 @@ describe('Act 5: Tag extraction and application', () => {
     }
 
     vi.mocked(readParsed).mockResolvedValueOnce([])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await syncTasks([taskWithOrderedTags])
 
@@ -712,7 +712,7 @@ describe('Act 7: selfCheckoff — Closure pattern for task completion flow', () 
     }
 
     vi.mocked(readParsed).mockImplementation(async () => [])
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     const result = await selfCheckoff('task-complete', mockWorld as any)
 
@@ -748,7 +748,7 @@ describe('Act 7: selfCheckoff — Closure pattern for task completion flow', () 
       }
       return []
     })
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     const result = await selfCheckoff('task-complete', mockWorld as any)
 
@@ -770,7 +770,7 @@ describe('Act 7: selfCheckoff — Closure pattern for task completion flow', () 
       if (callCount === 2) return [{ ph: 'BUILD' }] // phase lookup
       return [] // no remaining tasks
     })
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await selfCheckoff('last-in-phase', mockWorld as any)
 
@@ -792,7 +792,7 @@ describe('Act 7: selfCheckoff — Closure pattern for task completion flow', () 
       if (callCount === 4) return [{ ph: 'BUILD' }] // phase lookup
       return [{ id: 'other-task' }] // other tasks remain
     })
-    vi.mocked(write).mockResolvedValue(undefined)
+    vi.mocked(write).mockResolvedValue([])
 
     await selfCheckoff('primary-task', mockWorld as any)
 

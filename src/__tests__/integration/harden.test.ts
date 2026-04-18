@@ -73,7 +73,7 @@ describe('POST /api/harden', () => {
     const res = await callHarden({ uid: 'alice', from: 'alice', to: 'bob' })
 
     expect(res.status).toBe(400)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
     expect(body.error).toMatch(/not strong enough/)
     expect(body.effective).toBeCloseTo(20)
     // Sui and TypeDB must NOT be called
@@ -91,7 +91,7 @@ describe('POST /api/harden', () => {
     const res = await callHarden({ uid: 'alice', from: 'alice', to: 'bob' })
 
     expect(res.status).toBe(409)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
     expect(body.error).toMatch(/not on-chain/)
     expect(suiHarden).not.toHaveBeenCalled()
     expect(writeSilent).not.toHaveBeenCalled()
@@ -113,7 +113,7 @@ describe('POST /api/harden', () => {
     const res = await callHarden({ uid: 'alice', from: 'alice', to: 'bob' })
 
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
     expect(body.digest).toBe(mockDigest)
     expect(body.highwayId).toBe(mockHighwayId)
     expect(body.strength).toBe(100)

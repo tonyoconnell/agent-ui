@@ -86,7 +86,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 }
 No preamble. No markdown fences. Pure JSON only.`,
       prompt: `Extract insights from this conversation with agent "${agentId}":\n\n${transcript}`,
-      maxTokens: 200,
+      maxOutputTokens: 200,
     })
 
     const safe = agentId.replace(/[^a-z0-9-_:]/gi, '-')

@@ -89,7 +89,7 @@ export function SendPage() {
   }, [])
 
   // Detect chain from address format
-  const detectChain = (addr: string): { chain: string; confidence: 'high' | 'medium' | 'low' } | null => {
+  const detectChain = useCallback((addr: string): { chain: string; confidence: 'high' | 'medium' | 'low' } | null => {
     if (!addr || addr.length < 10) return null
 
     const trimmed = addr.trim()
@@ -123,7 +123,7 @@ export function SendPage() {
     }
 
     return null
-  }
+  }, [])
 
   // Detected chain info
   const detectedChainInfo = useMemo(() => {

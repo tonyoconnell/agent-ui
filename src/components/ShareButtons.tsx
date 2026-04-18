@@ -26,7 +26,7 @@ export function ShareButtons({ title, url }: Props) {
 
   return (
     <div className="flex gap-2">
-      {navigator.share && (
+      {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
         <Button variant="outline" size="sm" onClick={handleShare}>
           <Share2 className="h-4 w-4 mr-1" />
           Share

@@ -5,7 +5,7 @@ version: 1.0.0
 priority: Wire → Prove → Grow
 total_tasks: 3
 completed: 0
-status: ACTIVE
+status: COMPLETE
 ---
 
 # TODO: Chat Sanitize — /chat renders only safe HTML

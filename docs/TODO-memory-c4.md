@@ -4,8 +4,8 @@ type: roadmap
 version: 1.0.0
 priority: Role Gates → Federation → GC Policy → Economics
 total_tasks: 16
-completed: 0
-status: READY
+completed: 16
+status: DONE (2026-04-18)
 ---
 
 ## Status

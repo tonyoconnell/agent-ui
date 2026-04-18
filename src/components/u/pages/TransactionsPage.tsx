@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getTransactions as fetchChainTransactions, getChain, getExplorerTxUrl } from '../lib/BlockchainService'
+import { getTransactions as fetchChainTransactions, getChain, getExplorerTxUrl } from '@/lib/chains'
 import { UNav } from '../UNav'
 
 interface Transaction {

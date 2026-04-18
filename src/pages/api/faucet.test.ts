@@ -35,7 +35,7 @@ describe('POST /api/faucet', () => {
     const { POST } = await import('./faucet')
     const res = await POST(createCtx({}))
     expect(res.status).toBe(400)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.error).toContain('valid Sui address')
   })
 
@@ -43,7 +43,7 @@ describe('POST /api/faucet', () => {
     const { POST } = await import('./faucet')
     const res = await POST(createCtx({ address: 'abc123' }))
     expect(res.status).toBe(400)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.error).toContain('valid Sui address')
   })
 
@@ -61,7 +61,7 @@ describe('POST /api/faucet', () => {
     const address = `0x${'a'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(200)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.address).toBe(address)
     expect(data.faucet).toEqual(faucetResponse)
@@ -82,7 +82,7 @@ describe('POST /api/faucet', () => {
     const address = `0x${'b'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(200)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.rateLimited).toBe(true)
     expect(data.note).toContain('already be funded')
@@ -94,7 +94,7 @@ describe('POST /api/faucet', () => {
     const { POST } = await import('./faucet')
     const address = `0x${'c'.repeat(64)}`
     const res = await POST(createCtx({ address }))
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.rateLimited).toBe(true)
   })
@@ -106,7 +106,7 @@ describe('POST /api/faucet', () => {
     const address = `0x${'d'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(502)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.error).toContain('faucet 500')
   })
 
@@ -117,7 +117,7 @@ describe('POST /api/faucet', () => {
     const address = `0x${'e'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(200)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.timeout).toBe(true)
     expect(data.note).toContain('faucet slow')
@@ -130,7 +130,7 @@ describe('POST /api/faucet', () => {
     const address = `0x${'f'.repeat(64)}`
     const res = await POST(createCtx({ address }))
     expect(res.status).toBe(500)
-    const data = await res.json()
+    const data = (await res.json()) as Record<string, any>
     expect(data.error).toContain('fetch failed')
   })
 })

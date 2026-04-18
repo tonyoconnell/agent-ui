@@ -96,7 +96,7 @@ export async function checkEscrowStatus(paymentId: string): Promise<PaymentStatu
       type: 'escrow',
       status,
       confirmations: data.status === 'completed' ? 12 : data.status === 'detected' ? 1 : 0,
-      url: data.checkStatusUrl,
+      url: undefined,
       timestamp: Date.now(),
       expectedAmount: '0', // Need to fetch from create response ideally
       receivedAmount: data.receivedAmount,

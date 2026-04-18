@@ -1,12 +1,13 @@
 /// <reference types="@cloudflare/workers-types" />
 /**
- * Sync Worker — TypeDB ↔ KV ↔ Sui
+ * Sync Worker — TypeDB ↔ KV ↔ Sui ↔ D1
  * Scheduled: every minute
  *
- * Three jobs:
- *   1. TypeDB → KV     Export snapshots (paths, units, skills, highways, toxic)
- *   2. Sui → TypeDB    Absorb on-chain events (Marked, Warned, UnitCreated, etc.)
- *   3. KV cursor        Track Sui event cursor between runs
+ * Four jobs:
+ *   1. TypeDB → KV       Export snapshots (paths, units, skills, highways, toxic)
+ *   2. Sui → TypeDB      Absorb on-chain events (Marked, Warned, UnitCreated, etc.)
+ *   3. D1 → TypeDB       Batch sync marks WAL to TypeDB (Cycle 1 Foundation)
+ *   4. KV cursor         Track Sui event cursor between runs
  *
  * Hash-based change detection: only writes to KV if data changed.
  * This keeps KV writes minimal and TTL-respecting CDN cache valid.
@@ -87,6 +88,24 @@ export default {
       console.error('Sui absorb error:', e)
     }
 
+    // ── Job 3: D1 → TypeDB (Cycle 1 Foundation) ─────────────────────────
+
+    let d1Synced = { edges_synced: 0, total_marks: 0 }
+    try {
+      const res = await fetch(`${base}/api/sync/d1-marks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (res.ok) {
+        const data = (await res.json()) as { edges_synced: number; total_marks: number }
+        d1Synced = data
+      } else {
+        console.error('D1 sync status:', res.status)
+      }
+    } catch (e) {
+      console.error('D1 sync error:', e)
+    }
+
     await env.KV.put('synced_at', Date.now().toString())
 
     if (failed.length > 0) {
@@ -94,7 +113,10 @@ export default {
     }
 
     const changed = synced.filter((s) => s.changed).map((s) => s.key)
-    console.log('Sync complete:', JSON.stringify({ synced: synced.length, changed, absorbed }))
+    console.log(
+      'Sync complete:',
+      JSON.stringify({ synced: synced.length, changed, absorbed, d1_edges: d1Synced.edges_synced }),
+    )
   },
 
   // Also handle manual trigger via HTTP

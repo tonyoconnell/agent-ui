@@ -21,7 +21,7 @@
  * After that, this endpoint is fully deterministic.
  */
 import type { APIRoute } from 'astro'
-import { EFFORT_MODEL, effectivePriority, WAVE_MODEL } from '@/engine/task-parse'
+import { EFFORT_MODEL, effectivePriority, WAVE_MODEL, type Effort } from '@/engine/task-parse'
 import { readParsed } from '@/lib/typedb'
 
 /** FNV-1a hash for KV write comparison */
@@ -208,7 +208,7 @@ export const GET: APIRoute = async () => {
         name: t.name,
         value: t.value,
         effort: t.effort,
-        model: EFFORT_MODEL[t.effort] || 'sonnet',
+        model: EFFORT_MODEL[t.effort as Effort] || 'sonnet',
         phase: t.phase,
         persona: t.persona,
         priority: t.priority,
@@ -301,7 +301,7 @@ export const POST: APIRoute = async (context) => {
           value: t.value,
           effort: t.effort,
           wave,
-          model: WAVE_MODEL[wave as keyof typeof WAVE_MODEL] || EFFORT_MODEL[t.effort] || 'sonnet',
+          model: WAVE_MODEL[wave as keyof typeof WAVE_MODEL] || EFFORT_MODEL[t.effort as Effort] || 'sonnet',
           phase: t.phase,
           persona: t.persona,
           context,

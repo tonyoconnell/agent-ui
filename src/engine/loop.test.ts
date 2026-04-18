@@ -790,9 +790,9 @@ describe('loop.ts — growth tick', () => {
           step1Done = true
           return { result: 'step1-done' }
         })
-        .then('step1', (r) => ({
+        .then('step1', (r: unknown) => ({
           receiver: 'bob:step2',
-          data: { from: 'alice', result: r.result },
+          data: { from: 'alice', result: (r as { result: unknown })?.result },
         }))
 
       const bob = net.add('bob')

@@ -13,13 +13,21 @@ interface Props {
   liveNumber?: string
   code?: string
   children?: React.ReactNode
+  id?: string
+  active?: boolean
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function Stop({ step, title, vocab, liveNumber, code, children }: Props) {
+export function Stop({ step, title, vocab, liveNumber, code, children, id, active }: Props) {
   return (
-    <Card className="bg-[#161622] border-[#252538] p-5 space-y-4">
+    <Card
+      id={id}
+      className={cn(
+        'bg-[#161622] border-[#252538] p-5 space-y-4 scroll-mt-20 transition-all',
+        active && 'ring-1 ring-cyan-500/40 shadow-lg shadow-cyan-500/10',
+      )}
+    >
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm font-mono text-slate-400">

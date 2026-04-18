@@ -233,7 +233,9 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
   }
 
   // Skills and capabilities
-  for (const skill of spec.skills || []) {
+  const allSkills: readonly { name: string; price?: number; tags?: readonly string[]; description?: string }[] =
+    spec.skills?.some((s) => s.name === 'hire') ? spec.skills : [...(spec.skills ?? []), { name: 'hire' }]
+  for (const skill of allSkills) {
     const skillId = spec.group ? `${spec.group}:${skill.name}` : skill.name
     const skillTags = skill.tags?.map((t) => `has tag "${t}"`).join(', ') || ''
 

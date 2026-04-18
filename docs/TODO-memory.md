@@ -1,11 +1,11 @@
 ---
-title: TODO Memory — Substrate Memory Primitives
+title: TODO Memory — Substrate Memory Primitives (C1-C3)
 type: roadmap
 version: 1.0.0
 priority: Schema → Engine → Integrate → Verify
 total_tasks: 18
 completed: 18
-status: DONE
+status: DONE (2026-04-18)
 ---
 
 ## Status

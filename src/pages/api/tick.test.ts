@@ -73,7 +73,7 @@ describe('GET /api/tick', () => {
 
   it('returns loop timings without running tick when peek=1', async () => {
     const res = await GET(makeCtx({ peek: '1' }))
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.ticked).toBe(false)
     expect(body.peek).toBe(true)
@@ -98,7 +98,7 @@ describe('GET /api/tick', () => {
 
   it('runs tick and returns result on first call', async () => {
     const res = await GET(makeCtx({ interval: '0' }))
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.ticked).toBe(true)
     expect(body.result).toBeDefined()
@@ -112,7 +112,7 @@ describe('GET /api/tick', () => {
 
   it('returns all 7 loop timings', async () => {
     const res = await GET(makeCtx({ interval: '0' }))
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     const loops = ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7']
     for (const l of loops) {
@@ -128,12 +128,12 @@ describe('GET /api/tick', () => {
   it('skips tick when within interval window', async () => {
     // First call runs the tick
     const res1 = await GET(makeCtx({ interval: '9999' }))
-    const body1 = await res1.json()
+    const body1 = (await res1.json()) as Record<string, any>
     expect(body1.ticked).toBe(true)
 
     // Second call within interval should be gated
     const res2 = await GET(makeCtx({ interval: '9999' }))
-    const body2 = await res2.json()
+    const body2 = (await res2.json()) as Record<string, any>
     expect(body2.ticked).toBe(false)
     expect(body2.lastRun).toBeDefined()
     expect(body2.nextRun).toBeDefined()
@@ -162,7 +162,7 @@ describe('GET /api/tick', () => {
 
   it('loop timing intervals match expected values', async () => {
     const res = await GET(makeCtx({ peek: '1' }))
-    const body = await res.json()
+    const body = (await res.json()) as Record<string, any>
 
     expect(body.loopTimings.l1.interval).toBe(100) // L1: per message
     expect(body.loopTimings.l2.interval).toBe(1000) // L2: per outcome

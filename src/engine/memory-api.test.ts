@@ -616,7 +616,7 @@ describe('Act 7: Integration — Full Memory Card Lifecycle', () => {
       .mockResolvedValueOnce([{ tid: 'task-1', s: 8 }]) // highways
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ sid: 'work', sn: 'Work', p: 0.1 }])
-      .mockResolvedValueOnce(['frontier-tag'])
+      .mockResolvedValueOnce([{ t: 'frontier-tag' }])
 
     const card = await w.reveal('charlie')
 

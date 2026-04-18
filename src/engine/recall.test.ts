@@ -203,7 +203,7 @@ describe('recall() — Query hypotheses from TypeDB', () => {
 
   it('escapes special characters in match string to prevent injection', async () => {
     const maliciousInput = 'test"; $h delete; //'
-    const mockResults = [] // no matches
+    const mockResults: unknown[] = [] // no matches
 
     ;(readParsed as any).mockResolvedValue(mockResults)
 

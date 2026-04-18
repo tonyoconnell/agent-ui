@@ -21,8 +21,8 @@ export function EscrowBadge({ escrowObjectId }: Props) {
     setLoading(true)
     fetch(`/api/sui/escrow/${encodeURIComponent(escrowObjectId)}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((v: EscrowView | null) => {
-        if (!cancelled) setView(v)
+      .then((v: unknown) => {
+        if (!cancelled) setView(v as EscrowView | null)
       })
       .catch(() => {
         if (!cancelled) setView(null)

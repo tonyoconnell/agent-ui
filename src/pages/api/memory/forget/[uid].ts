@@ -40,6 +40,28 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     })
   }
 
+  // L4 pricing gate: check tier level from Authorization header
+  // Format: "Bearer <api-key>:<tier>" where tier is free|builder|scale|world|enterprise
+  const authHeader = request.headers.get('Authorization') || ''
+  const tierMatch = authHeader.match(/:(\w+)$/)
+  const tier = tierMatch ? tierMatch[1] : 'free'
+
+  // World+ tier required for memory forget (GDPR erasure, L4 feature)
+  const allowedTiers = ['world', 'enterprise']
+  if (!allowedTiers.includes(tier)) {
+    return new Response(
+      JSON.stringify({
+        error: `Forbidden: memory forget requires World+ tier (you have: ${tier})`,
+        tier,
+        required: 'world',
+      }),
+      {
+        status: 402,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+  }
+
   const net = await getNet()
   await net.forget(uid)
 

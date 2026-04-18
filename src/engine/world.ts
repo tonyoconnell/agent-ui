@@ -11,6 +11,8 @@
  * Signal. Mark. Warn. Follow. Fade. Highway. Queue.
  */
 
+import { bufferMark } from './wal'
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -46,7 +48,7 @@ export interface World {
   latency: Record<string, number>
   revenue: Record<string, number>
   queue: Signal[]
-  add: (id: string) => Unit
+  add: (id: string, existing?: Unit) => Unit
   remove: (id: string) => void
   signal: (s: Signal, from?: string) => void
   ask: (
@@ -193,11 +195,19 @@ export const world = (): World => {
     peak[path] = Math.max(peak[path] || 0, strength[path])
     lastUsed[path] = Date.now()
     invalidate()
+
+    // Buffer to D1 WAL for persistence (Cycle 1: Foundation)
+    // delta_s = +amount (mark increases strength)
+    bufferMark(path, amount, 0)
   }
 
   const warn = (path: string, amount = 1) => {
     resistance[path] = (resistance[path] || 0) + amount
     invalidate()
+
+    // Buffer to D1 WAL for persistence (Cycle 1: Foundation)
+    // delta_r = +amount (warn increases resistance)
+    bufferMark(path, 0, amount)
   }
 
   const sense = (path: string) => strength[path] || 0
@@ -289,8 +299,8 @@ export const world = (): World => {
   }
   const pending = () => queue.length
 
-  const add = (id: string) => {
-    const u = unit(id, (s, from) => signal(s, from))
+  const add = (id: string, existing?: Unit) => {
+    const u = existing ?? unit(id, (s, from) => signal(s, from))
     units[id] = u
     // drain queued signals for this unit
     let i = queue.length
