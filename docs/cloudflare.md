@@ -13,7 +13,9 @@ TypeDB thinks. Cloudflare moves. Haiku executes. Opus architects.
 
 | Service | URL | Status |
 |---------|-----|--------|
-| Pages (frontend) | https://one-substrate.pages.dev | 200 OK, 0.4s |
+| Astro Worker (dev) | https://dev.one.ie | 200 OK, ~0.3s |
+| Astro Worker (prod, planned) | https://one.ie | — (cutover pending) |
+| Pages (legacy idle) | https://one-substrate.pages.dev | paused, do not deploy |
 | Gateway (API) | https://api.one.ie/health | `{"status":"ok"}` |
 | Sync (cron) | https://one-sync.oneie.workers.dev | `*/1 * * * *` |
 | NanoClaw | https://nanoclaw.oneie.workers.dev/health | `{"status":"ok"}` |
@@ -282,7 +284,7 @@ You are a helpful assistant.
 EOF
 
 # 2. Sync to TypeDB
-curl -X POST https://one-substrate.pages.dev/api/agents/sync \
+curl -X POST https://dev.one.ie/api/agents/sync \
   -H "Content-Type: application/json" \
   -d "{\"markdown\": \"$(cat agents/my-agent.md | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')\"}"
 

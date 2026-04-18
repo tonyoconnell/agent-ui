@@ -33,7 +33,7 @@ DEVELOPER'S MACHINE                    ONE'S CLOUDFLARE ACCOUNT
        │ deploys to ───────────►       │  KV (cached TypeDB snapshots)     │
        │                               └──────────────────────────────────┘
        │                                         ▲
-       │                               ┌── Pages (one-substrate.pages.dev) ┐
+       │                               ┌── Astro Worker (dev.one.ie / one.ie) ┐
        │                               │  Astro SSR (frontend)             │
        └─ deploys to ───────────►      │  API routes (/api/*)              │
                                        │  NanoClaw (Pages Functions)       │

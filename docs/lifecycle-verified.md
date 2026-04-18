@@ -25,7 +25,7 @@ L7 FRONTIER    (every hour)       → Stage: DISSOLVE (cleanup)
 **Action:** New agent added to the substrate
 
 ```bash
-curl -X POST https://one-substrate.pages.dev/api/agents/sync \
+curl -X POST https://dev.one.ie/api/agents/sync \
   -H "Content-Type: application/json" \
   -d '{"markdown": "---\nname: translator-v1\nmodel: claude-3-5-sonnet\ncapabilities: [translate, proofread]\n---\nYou are a translator..."}'
 ```
@@ -671,16 +671,16 @@ $tag_strength_sum = sum($s);
 
 ```bash
 # Check current highways
-curl https://one-substrate.pages.dev/api/export/highways | jq '.[] | select(.from | contains("translator"))'
+curl https://dev.one.ie/api/export/highways | jq '.[] | select(.from | contains("translator"))'
 
 # Check unit status
-curl https://one-substrate.pages.dev/api/export/units | jq '.[] | select(.uid == "translator-v1")'
+curl https://dev.one.ie/api/export/units | jq '.[] | select(.uid == "translator-v1")'
 
 # Check skills offered
-curl https://one-substrate.pages.dev/api/export/skills | jq '.[] | select(.provider_uid == "translator-v1")'
+curl https://dev.one.ie/api/export/skills | jq '.[] | select(.provider_uid == "translator-v1")'
 
 # Check toxic paths (auto-blocked)
-curl https://one-substrate.pages.dev/api/export/toxic | jq '.[] | select(.to | contains("translator"))'
+curl https://dev.one.ie/api/export/toxic | jq '.[] | select(.to | contains("translator"))'
 
 # Run routing tests (all 43 verified)
 bun vitest run src/engine/routing.test.ts

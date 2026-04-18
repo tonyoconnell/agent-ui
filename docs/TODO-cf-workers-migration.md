@@ -469,7 +469,7 @@ Silent-empty comes from `src/pages/api/export/units.ts:51` and similar routes th
 3. Once Workers health is green, flip DNS: `bun run cf-cutover` (dry-run first), then `bun run cf-cutover --execute`. Script creates the `dev.one.ie/*` Workers route, detaches from Pages, and curl-verifies. See `scripts/cf-cutover.ts`.
 4. Alternate if ever needed: refactor `src/lib/typedb.ts` to prefer a runtime `GATEWAY_URL` secret over the `PUBLIC_*` inlined value. More flexible but more code — not needed if step 1 holds.
 
-**What's safe right now:** Pages continues serving at `dev.one.ie` and `one-substrate.pages.dev`. Workers is stable but its data layer is empty until step 2 completes. No user impact. DNS flip (step 3) is now a single `bun run` instead of a dashboard session.
+**Current state (2026-04-18, post-cutover):** `dev.one.ie` now serves the `one-substrate` Worker (step 3 done). Data layer green — `/api/health` returns 140 units from TypeDB via Gateway. Pages project paused at `one-substrate.pages.dev` as rollback safety net. Production cutover at `one.ie` is the next step (C4, planned).
 
 ### Cycle 1+2 Rubric (self-reported, 2026-04-18)
 

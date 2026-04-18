@@ -8,13 +8,13 @@
 
 ```bash
 curl -H "Authorization: Bearer api_mnofj2sd_fUXu3spCCcTVIKODMCCXoALX8y6Xh4Tv" \
-  https://one-substrate.pages.dev/api/tasks
+  https://dev.one.ie/api/tasks
 ```
 
 ### 2. Create a New Agent
 
 ```bash
-curl -X POST https://one-substrate.pages.dev/api/agents/sync \
+curl -X POST https://dev.one.ie/api/agents/sync \
   -H "Authorization: Bearer api_mnofj2sd_fUXu3spCCcTVIKODMCCXoALX8y6Xh4Tv" \
   -H "Content-Type: application/json" \
   -d '{
@@ -25,7 +25,7 @@ curl -X POST https://one-substrate.pages.dev/api/agents/sync \
 ### 3. List API Keys
 
 ```bash
-curl "https://one-substrate.pages.dev/api/keys?action=list&user=david" \
+curl "https://dev.one.ie/api/keys?action=list&user=david" \
   -H "Authorization: Bearer api_mnofj2sd_fUXu3spCCcTVIKODMCCXoALX8y6Xh4Tv"
 ```
 
@@ -51,7 +51,7 @@ export ONE_API_KEY="api_mnofj2sd_fUXu3spCCcTVIKODMCCXoALX8y6Xh4Tv"
 
 # Then use it:
 curl -H "Authorization: Bearer $ONE_API_KEY" \
-  https://one-substrate.pages.dev/api/tasks
+  https://dev.one.ie/api/tasks
 ```
 
 ### Using in Node.js/JavaScript
@@ -60,7 +60,7 @@ curl -H "Authorization: Bearer $ONE_API_KEY" \
 const API_KEY = 'api_mnofj2sd_fUXu3spCCcTVIKODMCCXoALX8y6Xh4Tv'
 
 async function listTasks() {
-  const response = await fetch('https://one-substrate.pages.dev/api/tasks', {
+  const response = await fetch('https://dev.one.ie/api/tasks', {
     headers: {
       'Authorization': `Bearer ${API_KEY}`,
       'Content-Type': 'application/json'
@@ -70,7 +70,7 @@ async function listTasks() {
 }
 
 async function createAgent(markdown) {
-  const response = await fetch('https://one-substrate.pages.dev/api/agents/sync', {
+  const response = await fetch('https://dev.one.ie/api/agents/sync', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${API_KEY}`,
@@ -92,7 +92,7 @@ console.log(tasks)
 import requests
 
 API_KEY = 'api_mnofj2sd_fUXu3spCCcTVIKODMCCXoALX8y6Xh4Tv'
-BASE_URL = 'https://one-substrate.pages.dev/api'
+BASE_URL = 'https://dev.one.ie/api'
 
 def list_tasks():
     response = requests.get(
@@ -125,15 +125,15 @@ export ONE_API_KEY="api_mnofj2sd_fUXu3spCCcTVIKODMCCXoALX8y6Xh4Tv"
 
 # List tasks
 curl -H "Authorization: Bearer $ONE_API_KEY" \
-  https://one-substrate.pages.dev/api/tasks | jq .
+  https://dev.one.ie/api/tasks | jq .
 
 # List specific category (ready, attractive, repelled, exploratory)
 curl -H "Authorization: Bearer $ONE_API_KEY" \
-  "https://one-substrate.pages.dev/api/tasks/ready" | jq .
+  "https://dev.one.ie/api/tasks/ready" | jq .
 
 # Filter by tags
 curl -H "Authorization: Bearer $ONE_API_KEY" \
-  "https://one-substrate.pages.dev/api/tasks?tag=P0&tag=build" | jq .
+  "https://dev.one.ie/api/tasks?tag=P0&tag=build" | jq .
 ```
 
 ---

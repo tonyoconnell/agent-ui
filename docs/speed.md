@@ -178,7 +178,7 @@ End-to-end from `bun run deploy` → production across all 4 services:
 | **Gateway deploy** | 13.7s | `api.one.ie` |
 | **Sync deploy** | 8.2s | `one-sync.oneie.workers.dev` |
 | **NanoClaw deploy** | 9.2s | `nanoclaw.oneie.workers.dev` |
-| **Pages deploy** | 17.4s | `one-substrate.pages.dev` |
+| **Astro Worker deploy** | ~16s | `dev.one.ie` (pre-migration Pages: 17.4s → `one-substrate.pages.dev`, legacy idle) |
 | Health checks (parallel) | <1s | 3/4 green (Pages warming) |
 | **Total** | **106.9s** | commit → production |
 
@@ -510,7 +510,7 @@ bun vitest run src/engine/routing.test.ts -t "mark"
 
 ```bash
 # Top 10 proven paths (highways)
-curl https://one-substrate.pages.dev/api/export/highways
+curl https://dev.one.ie/api/export/highways
 
 # Example output:
 # [
@@ -519,13 +519,13 @@ curl https://one-substrate.pages.dev/api/export/highways
 # ]
 
 # Toxic paths (auto-blocked)
-curl https://one-substrate.pages.dev/api/export/toxic
+curl https://dev.one.ie/api/export/toxic
 
 # All units
-curl https://one-substrate.pages.dev/api/export/units
+curl https://dev.one.ie/api/export/units
 
 # All skills
-curl https://one-substrate.pages.dev/api/export/skills
+curl https://dev.one.ie/api/export/skills
 ```
 
 ### Measure Locally

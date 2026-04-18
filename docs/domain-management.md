@@ -97,12 +97,16 @@ Expected output: `May 23 10:30:25 2026 GMT` (89+ days remaining as of April 2026
 
 View current DNS via Cloudflare dashboard: https://dash.cloudflare.com → DNS
 
-Expected records:
+Expected records (post CF Workers migration, 2026-04-18):
 ```
-one.ie          CNAME  one-substrate.pages.dev
-app.one.ie      CNAME  one-substrate.pages.dev
-api.one.ie      CNAME  one-gateway.oneie.workers.dev
+dev.one.ie      CNAME  one-substrate.<account>.workers.dev   # dev environment (LIVE)
+one.ie          CNAME  one-substrate.<account>.workers.dev   # production (planned; currently still
+                                                              # pointing at legacy Pages, cutover pending)
+app.one.ie      CNAME  one-substrate.<account>.workers.dev   # (planned, will follow one.ie cutover)
+api.one.ie      CNAME  one-gateway.oneie.workers.dev          # Gateway (unchanged by migration)
 ```
+
+Legacy idle — paused Pages project at `one-substrate.pages.dev`, kept as rollback safety net.
 
 Cloudflare manages these automatically. Don't edit manually.
 

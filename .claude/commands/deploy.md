@@ -4,7 +4,15 @@
 
 Ship all four services to Cloudflare. Deterministic sandwich — W0 baseline, build, smoke, approval, parallel deploy, health.
 
-> **Post-migration (2026-04-18):** Astro site runs on **CF Workers with Static Assets** (not Pages). Deploy command is `wrangler deploy`. Primary URL is `https://dev.one.ie` (custom domain → `one-substrate` Worker). Legacy Pages project paused as rollback safety net at `one-substrate.pages.dev` — do not deploy to it. See `docs/TODO-cf-workers-migration.md` and `scripts/cf-cutover.ts` for cutover history.
+> **Post-migration (2026-04-18):** Astro site runs on **CF Workers with Static Assets** (not Pages). Deploy command is `wrangler deploy`.
+>
+> **Environment model:**
+> - **Dev (live):** `https://dev.one.ie` — deployed on every `main` push
+> - **Production (planned):** `https://one.ie` — custom-domain cutover pending
+> - **Gateway (live, stable):** `https://api.one.ie` — same URL in both envs
+> - **Legacy idle:** `https://one-substrate.pages.dev` — paused Pages project, rollback only, **do not deploy**
+>
+> See `docs/TODO-cf-workers-migration.md` and `scripts/cf-cutover.ts` for cutover history.
 
 ## Modes
 
@@ -161,7 +169,8 @@ Do not remove for production builds.
 
 | Service | URL | Config | Deploy command |
 |---------|-----|--------|---------------|
-| Astro Worker | `dev.one.ie` → `one-substrate` | `wrangler.toml` (root) | `wrangler deploy` |
+| Astro Worker (dev) | `dev.one.ie` → `one-substrate` | `wrangler.toml` (root) | `wrangler deploy` |
+| Astro Worker (prod, planned) | `one.ie` → `one-substrate` (or `[env.production]` variant) | `wrangler.toml` (root, future `[env.production]` section) | `wrangler deploy --env production` (when provisioned) |
 | Gateway | `api.one.ie` → `one-gateway` | `gateway/wrangler.toml` | `cd gateway && wrangler deploy` |
 | Sync | `one-sync.oneie.workers.dev` | `workers/sync/wrangler.toml` | `cd workers/sync && wrangler deploy` |
 | NanoClaw | `nanoclaw.oneie.workers.dev` | `nanoclaw/wrangler.toml` | `cd nanoclaw && wrangler deploy` |

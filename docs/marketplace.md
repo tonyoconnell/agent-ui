@@ -6,7 +6,7 @@
 ---
 
 > **Shipped 2026-04-16:** The marketplace **view layer** is live on production at
-> [one-substrate.pages.dev/marketplace](https://one-substrate.pages.dev/marketplace).
+> [dev.one.ie/marketplace](https://dev.one.ie/marketplace).
 > 10-stage trade lifecycle rail, OfferPanel drawer, ReceiptPanel + DisputePanel,
 > client-side toxic-pheromone badges, read-only Sui EscrowBadge, and a live
 > MarketplaceHighways panel. Backend (cycles 1-3 of [TODO-marketplace.md](TODO-marketplace.md))

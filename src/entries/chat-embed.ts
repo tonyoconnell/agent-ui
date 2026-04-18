@@ -6,7 +6,7 @@
   const agentId = ds.agent ?? ''
   const mode = ds.mode ?? 'widget'
   const target = ds.target
-  const base = ds.base ?? 'https://one-substrate.pages.dev'
+  const base = ds.base ?? 'https://dev.one.ie'
 
   let src = `${base}/chat?agent=${encodeURIComponent(agentId)}&mode=${encodeURIComponent(mode)}`
   if (target) src += `&target=${encodeURIComponent(target)}`

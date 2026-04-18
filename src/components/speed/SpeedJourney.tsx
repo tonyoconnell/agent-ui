@@ -181,7 +181,7 @@ function SpeedJourneyContent() {
         >
           <p>Fifty {markVerb}s. One highway. Seventeen times faster.</p>
           <RunItBlock
-            command="curl https://one-substrate.pages.dev/api/export/highways"
+            command="curl https://dev.one.ie/api/export/highways"
             description="See live proven paths:"
           />
         </Stop>
@@ -206,7 +206,7 @@ function SpeedJourneyContent() {
           <RunItBlock command="bun vitest run routing.test.ts" description="Run the routing benchmarks:" />
           <RunItBlock command="curl https://api.one.ie/health" description="Check the gateway:" />
           <RunItBlock
-            command="curl https://one-substrate.pages.dev/api/export/highways"
+            command="curl https://dev.one.ie/api/export/highways"
             description="See live proven paths:"
           />
         </div>

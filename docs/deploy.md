@@ -25,7 +25,7 @@ Step-by-step. Every command proven. Every link verified.
 - [x] **Step 6** — Gateway deployed: https://one-gateway.oneie.workers.dev/health → `{"status":"ok"}`
 - [x] **Step 6 e2e** — Gateway → TypeDB query → `conceptRows` OK
 - [x] **Step 7** — Sync worker deployed: https://one-sync.oneie.workers.dev → cron `*/5 * * * *`
-- [x] **Step 8** — Pages deployed: https://one-substrate.pages.dev → HTTP 200 in 0.3s
+- [x] **Step 8** — Pages deployed: https://dev.one.ie → HTTP 200 in 0.3s
 - [x] **Step 9** — Seed data: 18 units, 18 skills, 1 group in TypeDB (8 marketing + 5 example + 5 system)
 - [x] **Step 10** — Custom domains: one.ie (200), app.one.ie (200), api.one.ie/health → `{"status":"ok"}`
 - [x] **Step 10b** — R2 bucket `one-files` created (required when `pages_build_output_dir` set)
@@ -363,10 +363,10 @@ TYPEDB_DATABASE = "one"
 
 ```toml
 [vars]
-APP_URL = "https://one-substrate.pages.dev"
+APP_URL = "https://dev.one.ie"
 ```
 
-Replace `one-substrate.pages.dev` with your actual Pages URL after first deploy.
+Replace `dev.one.ie` with your actual Workers URL (or custom domain) after first deploy.
 
 ---
 
@@ -462,13 +462,13 @@ Output:
 
 ```
 ✨ Success! Uploaded 25 files
-✨ Deployment complete! Take a peek over at https://xxxxxxxx.one-substrate.pages.dev
+✨ Deployment complete! Take a peek over at https://xxxxxxxx.one-substrate.<account>.workers.dev
 ```
 
 **Verify:**
 
 ```bash
-curl -sL https://one-substrate.pages.dev/ -o /dev/null -w '%{http_code} %{time_total}s'
+curl -sL https://dev.one.ie/ -o /dev/null -w '%{http_code} %{time_total}s'
 # → 200 0.6s
 ```
 
@@ -476,7 +476,7 @@ Now update `workers/sync/wrangler.toml` with the real Pages URL:
 
 ```toml
 [vars]
-APP_URL = "https://one-substrate.pages.dev"
+APP_URL = "https://dev.one.ie"
 ```
 
 Redeploy sync worker: `cd workers/sync && bun wrangler deploy && cd ../..`
@@ -488,7 +488,7 @@ Redeploy sync worker: `cd workers/sync && bun wrangler deploy && cd ../..`
 ### 9a. Sync a Single Agent
 
 ```bash
-curl -X POST https://one-substrate.pages.dev/api/agents/sync \
+curl -X POST https://dev.one.ie/api/agents/sync \
   -H "Content-Type: application/json" \
   -d '{"markdown": "---\nname: tutor\nmodel: claude-sonnet-4-6\nchannels: [telegram]\ngroup: education\nskills:\n  - name: lesson\n    price: 0.01\n    tags: [teach, spanish]\n---\nYou are a patient Spanish tutor."}'
 ```
@@ -497,7 +497,7 @@ curl -X POST https://one-substrate.pages.dev/api/agents/sync \
 
 ```bash
 # Read all agent markdown files and sync as a world
-curl -X POST https://one-substrate.pages.dev/api/agents/sync \
+curl -X POST https://dev.one.ie/api/agents/sync \
   -H "Content-Type: application/json" \
   -d "{\"world\": \"marketing\", \"agents\": [$(cat agents/marketing/*.md | python3 -c "
 import sys, json
@@ -649,8 +649,8 @@ curl -s -X POST https://api.one.ie/typedb/query \
   | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(f'OK — {len(d.get(\"answers\",[]))} units')"
 
 echo ""
-echo "=== Pages ==="
-curl -sL https://one-substrate.pages.dev/ -o /dev/null -w '%{http_code} %{time_total}s'
+echo "=== Astro Worker (dev) ==="
+curl -sL https://dev.one.ie/ -o /dev/null -w '%{http_code} %{time_total}s'
 
 echo ""
 echo "=== Sync Worker ==="
@@ -663,7 +663,7 @@ curl -s https://nanoclaw.oneie.workers.dev/health
 echo ""
 echo "=== Export APIs ==="
 for ep in units skills paths highways toxic; do
-  code=$(curl -sL "https://one-substrate.pages.dev/api/export/$ep" -o /dev/null -w '%{http_code}')
+  code=$(curl -sL "https://dev.one.ie/api/export/$ep" -o /dev/null -w '%{http_code}')
   printf "  /api/export/%-10s HTTP %s\n" "$ep" "$code"
 done
 ```
@@ -1009,7 +1009,7 @@ cd gateway && bun wrangler deploy && cd ../workers/sync && bun wrangler deploy &
 
 | Service | URL | Status |
 |---------|-----|--------|
-| Pages | https://one-substrate.pages.dev | 200 OK, 0.4s |
+| Astro Worker (dev) | https://dev.one.ie | 200 OK, ~0.3s |
 | Gateway | https://api.one.ie/health | `{"status":"ok"}` |
 | Gateway (alt) | https://one-gateway.oneie.workers.dev | Same worker |
 | Sync | https://one-sync.oneie.workers.dev | cron `*/5 * * * *` |

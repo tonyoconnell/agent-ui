@@ -102,7 +102,7 @@ status: READY
 │                                                                          │
 │  TaskBoard.tsx                                                           │
 │       │                                                                  │
-│       ├── HTTP fetch ───→ one-substrate.pages.dev/api/tasks             │
+│       ├── HTTP fetch ───→ dev.one.ie/api/tasks             │
 │       │                   (polling on interval, no live updates)         │
 │       │                                                                  │
 │       └── No WebSocket connection                                        │
@@ -122,7 +122,7 @@ status: READY
 │  Production WebSocket (exists on Pages, not Gateway)                     │
 │       │                                                                  │
 │       ├── src/pages/api/ws.ts ── CF WebSocketPair                       │
-│       │                          (one-substrate.pages.dev/api/ws)        │
+│       │                          (dev.one.ie/api/ws)        │
 │       │                                                                  │
 │       └── Gateway (api.one.ie) ── NO WebSocket support                  │
 │                                   (only TypeDB proxy + D1)               │
@@ -988,7 +988,7 @@ if (url.pathname === '/ws' && request.headers.get('upgrade') === 'websocket') {
 
 // GET /tasks — proxy task list with pheromone
 if (url.pathname === '/tasks' && request.method === 'GET') {
-  // Proxy to one-substrate.pages.dev/api/tasks or query TypeDB directly
+  // Proxy to dev.one.ie/api/tasks or query TypeDB directly
 }
 ```
 

@@ -76,7 +76,7 @@
 
 | Service | URL | Status |
 |---------|-----|--------|
-| Pages | https://one-substrate.pages.dev | 200 OK, 0.4s |
+| Astro Worker (dev) | https://dev.one.ie | 200 OK, ~0.3s |
 | Gateway | https://api.one.ie/health | `{"status":"ok"}` |
 | Gateway (alt) | https://one-gateway.oneie.workers.dev | same worker |
 | Sync | https://one-sync.oneie.workers.dev | cron `*/5` |
@@ -134,9 +134,9 @@ cd gateway && bun wrangler deploy && cd ../workers/sync && bun wrangler deploy &
 curl -s https://api.one.ie/health
 curl -s https://one-sync.oneie.workers.dev/
 curl -s https://nanoclaw.oneie.workers.dev/health
-curl -sL https://one-substrate.pages.dev/ -o /dev/null -w '%{http_code} %{time_total}s'
+curl -sL https://dev.one.ie/ -o /dev/null -w '%{http_code} %{time_total}s'
 for ep in units skills paths highways toxic; do
-  code=$(curl -sL "https://one-substrate.pages.dev/api/export/$ep" -o /dev/null -w '%{http_code}')
+  code=$(curl -sL "https://dev.one.ie/api/export/$ep" -o /dev/null -w '%{http_code}')
   printf "  /api/export/%-10s HTTP %s\n" "$ep" "$code"
 done
 ```

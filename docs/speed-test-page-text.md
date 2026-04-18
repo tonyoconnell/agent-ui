@@ -330,7 +330,7 @@ CLICK  EDGE  ROUTE SAND  LLM           MARK  LOOPS HIGH  HARDEN
 │  marketing:quick       → marketing:full          50        0               │
 │                                                                             │
 │  ┌──────────────────────────────────────────────────────────────────┐       │
-│  │  curl https://one-substrate.pages.dev/api/export/highways        │[copy]│
+│  │  curl https://dev.one.ie/api/export/highways        │[copy]│
 │  └──────────────────────────────────────────────────────────────────┘       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -395,7 +395,7 @@ CLICK  EDGE  ROUTE SAND  LLM           MARK  LOOPS HIGH  HARDEN
 │  │  # ~182ms from APAC · ~80ms from EU                                │     │
 │  ├────────────────────────────────────────────────────────────────────┤     │
 │  │  # 3. live highway map                                             │     │
-│  │  curl https://one-substrate.pages.dev/api/export/highways          │[cp] │
+│  │  curl https://dev.one.ie/api/export/highways          │[cp] │
 │  │  # 11 proven paths · strength 50 · resistance 0                   │     │
 │  └────────────────────────────────────────────────────────────────────┘     │
 │                                                                             │

@@ -67,10 +67,11 @@ Status: Ready for L6 hypothesis promotion via TypeDB schema
   ├─ Deployed 2026-04-06
   └─ 6.26 KiB gzipped (24.47 KiB uncompressed)
 
-✓ Cloudflare Pages     — one-substrate.pages.dev
-  ├─ Astro 5 SSR + React 19 hydration
+✓ Cloudflare Workers + Static Assets — dev.one.ie (dev, live) · one.ie (prod, planned)
+  ├─ Astro 6 SSR + React 19 hydration on @astrojs/cloudflare@13
   ├─ /world, /tasks, /chat, /dashboard routes
-  └─ Live client:only rendering
+  ├─ Live client:only rendering
+  └─ Legacy idle: one-substrate.pages.dev (paused Pages, rollback window)
 
 ✓ Sync Worker         — one-sync.oneie.workers.dev
   ├─ KV snapshots (paths, units, skills, highways, toxic)
@@ -213,7 +214,7 @@ ONE SUBSTRATE (LIVE)
 │  Client: /world, /tasks, /chat, /dashboard          │
 │         Astro 5 + React 19 (Islands)                │
 │                                                     │
-│  Pages: one-substrate.pages.dev                     │
+│  Dev: dev.one.ie · Prod (planned): one.ie            │
 │                                                     │
 ├─────────────────────────────────────────────────────┤
 │  API Layer: /api/signal, /api/state, /api/tick     │

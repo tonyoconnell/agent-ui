@@ -146,10 +146,11 @@ pages_build_output_dir = "dist"
 command = "bun run build"
 ```
 
-**Status**: Deployed ✅
-- Project name: `one-substrate`
-- Default URL: `one-substrate.pages.dev`
-- Custom domains: `one.ie`, `app.one.ie` (configured in Pages dashboard)
+**Status**: Deployed ✅ (on CF Workers with Static Assets post-migration 2026-04-18)
+- Worker name: `one-substrate`
+- Dev URL: `dev.one.ie` (custom domain, live)
+- Production URL: `one.ie` (planned; custom-domain cutover pending)
+- Legacy idle: `one-substrate.pages.dev` (paused Pages project, do not deploy — rollback window)
 
 ### Sync Worker (TypeDB→KV)
 

@@ -4,7 +4,7 @@ describe('SEO & Accessibility Compliance', () => {
   let html: string
 
   beforeAll(async () => {
-    const response = await fetch('https://one-substrate.pages.dev')
+    const response = await fetch('https://dev.one.ie')
     html = await response.text()
   })
 

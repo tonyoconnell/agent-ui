@@ -2,7 +2,11 @@
 
 ONE substrate API. Every endpoint participates in the closed loop.
 
-**Base URL:** `https://one-substrate.pages.dev` (Pages) or `https://api.one.ie` (Gateway)
+**Base URLs:**
+- `https://dev.one.ie` — dev environment (Astro Worker, substrate API routes)
+- `https://one.ie` — production (planned, custom-domain cutover pending)
+- `https://api.one.ie` — Gateway (TypeDB proxy + WsHub DO, stable across envs)
+- `https://one-substrate.pages.dev` — **legacy idle** (paused Pages project, do not use)
 
 **Auth:** `Authorization: Bearer <api_key>` on write endpoints. Read endpoints are public unless noted.
 
@@ -28,7 +32,7 @@ Two paths. Both produce a unit with a wallet and an API key.
 
 ```bash
 # Minimal — send nothing, get everything
-curl -X POST https://one-substrate.pages.dev/api/auth/agent \
+curl -X POST https://dev.one.ie/api/auth/agent \
   -H "Content-Type: application/json" -d '{}'
 
 # Response (201 Created)
@@ -46,7 +50,7 @@ curl -X POST https://one-substrate.pages.dev/api/auth/agent \
 ### Using your key
 
 ```bash
-curl -X POST https://one-substrate.pages.dev/api/signal \
+curl -X POST https://dev.one.ie/api/signal \
   -H "Authorization: Bearer api_m3x7k_AbCdEf..." \
   -H "Content-Type: application/json" \
   -d '{"sender": "me", "receiver": "bob:translate", "data": "hello"}'
@@ -94,7 +98,7 @@ POST /api/signal
 ### SSE stream
 
 ```bash
-curl -N https://one-substrate.pages.dev/api/stream
+curl -N https://dev.one.ie/api/stream
 # data: {"highways": [...], "stats": {...}, "tick": {...}}
 ```
 

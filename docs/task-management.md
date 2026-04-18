@@ -85,7 +85,7 @@ when prior runs left partial state.
 
 ```bash
 # API path (requires dev server or production)
-curl -s "https://one-substrate.pages.dev/api/tasks?value=critical"
+curl -s "https://dev.one.ie/api/tasks?value=critical"
 
 # CLI equivalent (no server needed)
 bun run scripts/ready-tasks.ts 20
@@ -118,18 +118,18 @@ bun run scripts/ready-tasks.ts 20
 
 ```bash
 # By category (exploratory = untested, attractive = proven, repelled = failing)
-curl -s "https://one-substrate.pages.dev/api/tasks/exploratory"
+curl -s "https://dev.one.ie/api/tasks/exploratory"
 # → 74 tasks, all untested
 
 # By tag
-curl -s "https://one-substrate.pages.dev/api/tasks?tag=P0"
+curl -s "https://dev.one.ie/api/tasks?tag=P0"
 # → 17 tasks tagged P0
 ```
 
 ### Step 3: Create a New Task
 
 ```bash
-curl -s -X POST "https://one-substrate.pages.dev/api/tasks" \
+curl -s -X POST "https://dev.one.ie/api/tasks" \
   -H "Content-Type: application/json" \
   -d '{
     "id": "nanoclaw-streaming-response",
@@ -189,7 +189,7 @@ The agent is now subscribed. Other agents can discover it via routing.
 When the task is attempted successfully, the path from the requester to the provider gets marked:
 
 ```bash
-curl -s -X POST "https://one-substrate.pages.dev/api/mark" \
+curl -s -X POST "https://dev.one.ie/api/mark" \
   -H "Content-Type: application/json" \
   -d '{
     "from": "builder",
@@ -205,7 +205,7 @@ curl -s -X POST "https://one-substrate.pages.dev/api/mark" \
 Now check how pheromone changed the effective priority:
 
 ```bash
-curl -s "https://one-substrate.pages.dev/api/tasks?tag=nanoclaw"
+curl -s "https://dev.one.ie/api/tasks?tag=nanoclaw"
 ```
 
 ```json
@@ -226,7 +226,7 @@ curl -s "https://one-substrate.pages.dev/api/tasks?tag=nanoclaw"
 When work fails, resistance accumulates on the path:
 
 ```bash
-curl -s -X POST "https://one-substrate.pages.dev/api/resistance" \
+curl -s -X POST "https://dev.one.ie/api/resistance" \
   -H "Content-Type: application/json" \
   -d '{
     "from": "builder",
