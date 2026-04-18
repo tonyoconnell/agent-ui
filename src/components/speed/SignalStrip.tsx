@@ -244,4 +244,3 @@ export function SignalStrip({ onJourneyComplete }: Props) {
     </div>
   )
 }
-
