@@ -430,21 +430,31 @@ touches live deployment — fail-fast is non-negotiable.
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — Config + Types
-  - [ ] W1 — Recon (Haiku × 4, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 3–4, parallel)
-  - [ ] W4 — Verify (Sonnet × 2, parallel)
-- [ ] **Cycle 2: PROVE** — Deploy Pipeline + Feature Branch Test
-  - [ ] W1 — Recon (Haiku × 4, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 3, parallel)
-  - [ ] W4 — Verify (Sonnet × 3, parallel)
-- [ ] **Cycle 3: GROW** — Cutover + Cleanup
-  - [ ] W1 — Recon (Haiku × 4, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 4–5, parallel)
-  - [ ] W4 — Verify (Sonnet × 3, parallel)
+- [x] **Cycle 1: WIRE** — Config + Types — *shipped on `feature/cf-workers-migration-c1-c2` (29a7cbd)*
+  - [x] W1 — Recon (direct Read × 4 — files small enough that Agent overhead outweighed benefit)
+  - [x] W2 — Decide (main context × 1)
+  - [x] W3 — Edits (wrangler.toml + src/env.d.ts; astro.config.mjs + package.json already in correct state)
+  - [x] W4 — Verify (biome + typecheck green; truth dim CI-deferred, rubric 0.74)
+- [x] **Cycle 2: PROVE** — Deploy Pipeline — *shipped on same branch (29a7cbd); scope tightened: code changes only, live validation deferred to Cycle 3*
+  - [x] W1 — Recon (direct Read on scripts/deploy.ts)
+  - [x] W2 — Decide (4 diff specs)
+  - [x] W3 — Edits (scripts/deploy.ts: smoke path, deploy command, preview URL regex, approval-prompt text)
+  - [x] W4 — Verify (biome + typecheck green; wrangler dry-run local-TTY-blocked; CI validation on feature branch)
+- [ ] **Cycle 3: GROW** — Cutover + Cleanup — *BLOCKED on CF dashboard access*
+  - [ ] W1 — Recon (docs + CF dashboard state inspection)
+  - [ ] W2 — Decide (cutover strategy, rollback window, doc sweep scope)
+  - [ ] W3 — Edits (CF dashboard: create Workers project, cutover `dev.one.ie`, pause Pages; docs: 20+ Pages refs across docs/**/*.md; memory note — ALREADY SAVED at `feedback_astro_adapter_target.md`)
+  - [ ] W4 — Verify (main CI green on Workers; custom domain health check; Pages archived)
+
+### Cycle 1+2 Rubric (self-reported, 2026-04-18)
+
+| Dim | Weight | Score | Notes |
+|---|---|---|---|
+| fit | 0.25 | 0.80 | Config matches Workers target; all preconditions met |
+| form | 0.15 | 0.85 | Minimal wrangler.toml, documented choices, type shim clean |
+| truth | 0.45 | 0.60 | Can't locally prove Workers build; CI is the authoritative validator |
+| taste | 0.15 | 0.85 | No dead config, trust adapter defaults |
+| **avg** | 1.00 | **0.74** | ≥ 0.65 gate passed. Truth weakest on purpose — CI collapses it to pass/fail. |
 
 ---
 
