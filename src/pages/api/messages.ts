@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import { getD1 } from '@/lib/cf-env'
 
 export const prerender = false
 
@@ -17,8 +18,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       })
     }
 
-    // Get D1 from Cloudflare locals
-    const db = locals?.runtime?.env?.DB
+    const db = await getD1(locals)
 
     if (!db) {
       return new Response(JSON.stringify({ error: 'D1 database not available' }), {

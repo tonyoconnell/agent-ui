@@ -12,11 +12,12 @@
  */
 import type { APIRoute } from 'astro'
 import { auditStats, flushAuditBuffer } from '@/engine/adl-cache'
+import { getD1 } from '@/lib/cf-env'
 
 export const prerender = false
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  const db = locals?.runtime?.env?.DB
+  const db = await getD1(locals)
   if (!db) {
     return Response.json({ error: 'D1 database not available' }, { status: 500 })
   }

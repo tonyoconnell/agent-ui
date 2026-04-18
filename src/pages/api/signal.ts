@@ -49,6 +49,7 @@ import {
   invalidatePermCache,
   setCached,
 } from '@/engine/adl-cache'
+import { getD1 } from '@/lib/cf-env'
 import { isWarm } from '@/lib/ui-prefetch'
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -56,7 +57,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // callers never wait on observability. Prior requests' audits (from bridge,
   // llm, api, persist gates) become durable here since those modules can't
   // bind D1 themselves.
-  const db = locals?.runtime?.env?.DB
+  const db = await getD1(locals)
   if (db) void flushAuditBuffer(db).catch(() => 0)
   const {
     sender,
