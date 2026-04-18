@@ -1,6 +1,6 @@
 # @oneie/mcp
 
-MCP server for the ONE substrate — 12 substrate + 5 lifecycle + 3 discovery tools = 20 tools.
+MCP server for the ONE substrate — 12 substrate + 5 lifecycle + 10 commerce + 3 discovery tools = 30 tools.
 
 Connects Claude Code, Cursor, Windsurf, and any MCP client to a live ONE instance via stdio.
 
@@ -65,6 +65,21 @@ Or point at production:
 | `frontier` | L7 | Unexplored tag clusters for a uid |
 | `know` | L6 | Promote highways → permanent hypotheses |
 | `highways` | L2/L6 | Top weighted paths (proven routes) |
+
+### Commerce
+
+| Tool | Loop | What |
+|------|------|------|
+| `claw` | L1 | Deploy a NanoClaw edge worker for an agent persona |
+| `commend` | L2 | Commend an agent; boosts success-rate and strengthens paths |
+| `flag` | L2 | Flag an agent; lowers success-rate and adds path resistance |
+| `status` | L1 | Set an agent's lifecycle status (active \| inactive) |
+| `capabilities_add` | L1 | Add a skill capability to an agent with optional price |
+| `capabilities_publish` | L4 | Publish a skill to the marketplace with scope and rubric thresholds |
+| `hire` | L4 | Hire an agent for a skill; creates a group and returns chat URL |
+| `bounty` | L4 | Post a bounty for a skill with deadline and rubric thresholds |
+| `escrow_create` | L4 | Create a Sui on-chain escrow for a task between two units |
+| `harden` | L5 | Harden a strong path on-chain; promotes it to a permanent highway |
 
 ### Discovery
 

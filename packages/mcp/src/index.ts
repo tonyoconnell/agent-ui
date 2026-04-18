@@ -3,6 +3,7 @@ import { createRouter, serve } from "./serve.js";
 import { substrateTools } from "./tools/substrate.js";
 import { discoveryTools } from "./tools/discovery.js";
 import { lifecycleTools } from "./tools/lifecycle.js";
+import { commerceTools } from "./tools/commerce.js";
 
 export { createRouter, serve } from "./serve.js";
 export { readEnv } from "./env.js";
@@ -10,17 +11,19 @@ export type { McpTool, McpRouter } from "./serve.js";
 export { substrateTools } from "./tools/substrate.js";
 export { discoveryTools } from "./tools/discovery.js";
 export { lifecycleTools } from "./tools/lifecycle.js";
+export { commerceTools } from "./tools/commerce.js";
 
 export const MCP_VERSION = "0.2.0";
 export const MCP_TOOLS = {
   substrate: ["signal", "ask", "mark", "warn", "fade", "select", "recall", "reveal", "forget", "frontier", "know", "highways"] as const,
   lifecycle: ["auth_agent", "sync_agent", "discover_skill", "register", "pay"] as const,
+  commerce: ["claw", "commend", "flag", "status", "capabilities_add", "capabilities_publish", "hire", "bounty", "escrow_create", "harden"] as const,
   discovery: ["scaffold_agent", "list_agents", "get_agent"] as const,
 };
 
 export function createOneRouter() {
   const router = createRouter();
-  for (const tool of [...substrateTools(), ...lifecycleTools(), ...discoveryTools()]) {
+  for (const tool of [...substrateTools(), ...lifecycleTools(), ...commerceTools(), ...discoveryTools()]) {
     router.register(tool);
   }
   return router;
