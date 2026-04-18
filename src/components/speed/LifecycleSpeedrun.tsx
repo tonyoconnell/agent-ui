@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -123,6 +123,9 @@ export function LifecycleSpeedrun() {
   const [activeStage, setActiveStage] = useState<StageKey | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [verifyOpen, setVerifyOpen] = useState(false)
+  // Tracks which run() invocation is active; stale background mints check this
+  // to avoid writing into state after the user starts a fresh speedrun.
+  const currentRunIdRef = useRef<string>('')
 
   const tick = useCallback(
     (key: StageKey, r: { ms: number; ok: boolean; err?: string; data?: unknown }, detail?: Record<string, unknown>) => {
@@ -144,6 +147,7 @@ export function LifecycleSpeedrun() {
   const run = useCallback(async () => {
     emitClick('ui:speed:run')
     const runId = Math.random().toString(36).slice(2, 8)
+    currentRunIdRef.current = runId
     const sellerUid = `seller-${runId}`
     const buyerUid = `buyer-${runId}`
     const skill = `copy-${runId}`
@@ -172,56 +176,86 @@ export function LifecycleSpeedrun() {
     const up = () => setTotalMs(performance.now() - t0)
 
     // ── 0 WALLET ─────────────────────────────────────────────
+    // Register in TypeDB (fast). Derived Sui address comes back in the
+    // response — it's deterministic from SUI_SEED + uid so we don't need
+    // to wait for on-chain minting to know the wallet. We fire the Move
+    // object creation in the background below; the card updates when
+    // digests arrive without blocking subsequent stages.
     const rW = await timed(async () => {
-      // Register in TypeDB
       const [seller, buyer] = await Promise.all([
         postJson('/api/agents/register', { uid: sellerUid, kind: 'agent', capabilities: [{ skill, price }] }),
         postJson('/api/agents/register', { uid: buyerUid, kind: 'agent' }),
       ])
-      // Create on-chain Unit objects (funds wallets + mints Move objects)
-      const [sellerOnChain, buyerOnChain] = await Promise.all([
-        postJson('/api/agents/create-onchain', { uid: sellerUid, name: sellerUid, kind: 'agent' }, 35000).catch(
-          () => null,
-        ),
-        postJson('/api/agents/create-onchain', { uid: buyerUid, name: buyerUid, kind: 'agent' }, 35000).catch(
-          () => null,
-        ),
-      ])
-      return { seller, buyer, sellerOnChain, buyerOnChain }
+      return { seller, buyer }
     })
-    const wd = rW.data as
-      | {
-          seller: Record<string, unknown>
-          buyer: Record<string, unknown>
-          sellerOnChain: Record<string, unknown> | null
-          buyerOnChain: Record<string, unknown> | null
-        }
-      | undefined
-    // Prefer on-chain address (derived from real keypair)
-    ch.sellerAddress = String(wd?.sellerOnChain?.address ?? wd?.seller?.wallet ?? '')
-    ch.buyerAddress = String(wd?.buyerOnChain?.address ?? wd?.buyer?.wallet ?? '')
-    // Collect creation digests
-    if (wd?.sellerOnChain?.digest) ch.digests.push({ stage: 'seller-create', digest: String(wd.sellerOnChain.digest) })
-    if (wd?.buyerOnChain?.digest) ch.digests.push({ stage: 'buyer-create', digest: String(wd.buyerOnChain.digest) })
+    const wd = rW.data as { seller: Record<string, unknown>; buyer: Record<string, unknown> } | undefined
+    ch.sellerAddress = String(wd?.seller?.wallet ?? '')
+    ch.buyerAddress = String(wd?.buyer?.wallet ?? '')
     tick('wallet', rW, {
       seller: {
         uid: sellerUid,
         address: ch.sellerAddress,
         capability: `${skill} @ ${price} SUI`,
-        objectId: wd?.sellerOnChain?.objectId ?? 'pending',
+        objectId: 'minting in background…',
       },
       buyer: {
         uid: buyerUid,
         address: ch.buyerAddress,
-        objectId: wd?.buyerOnChain?.objectId ?? 'pending',
+        objectId: 'minting in background…',
       },
-      onChain:
-        wd?.sellerOnChain?.ok && wd?.buyerOnChain?.ok
-          ? 'both units created on Sui testnet'
-          : 'pending — faucet may be rate-limited',
+      onChain: 'addresses ready · Move objects queued (runs async, does not block speedrun)',
       explorer: ch.sellerAddress ? `${SUISCAN}/account/${ch.sellerAddress}` : null,
     })
     up()
+
+    // ── Lazy Sui mint — does not block subsequent stages ─────
+    const thisRunId = runId
+    Promise.all([
+      postJson<{ ok?: boolean; objectId?: string; digest?: string; address?: string }>(
+        '/api/agents/create-onchain',
+        { uid: sellerUid, name: sellerUid, kind: 'agent' },
+        35000,
+      ).catch(() => null),
+      postJson<{ ok?: boolean; objectId?: string; digest?: string; address?: string }>(
+        '/api/agents/create-onchain',
+        { uid: buyerUid, name: buyerUid, kind: 'agent' },
+        35000,
+      ).catch(() => null),
+    ]).then(([sellerOnChain, buyerOnChain]) => {
+      // Guard: if the user kicked off another run, ignore these results.
+      if (currentRunIdRef.current !== thisRunId) return
+
+      const newDigests: { stage: string; digest: string }[] = []
+      if (sellerOnChain?.digest) newDigests.push({ stage: 'seller-create', digest: String(sellerOnChain.digest) })
+      if (buyerOnChain?.digest) newDigests.push({ stage: 'buyer-create', digest: String(buyerOnChain.digest) })
+
+      if (newDigests.length > 0) {
+        setChain((prev) => ({ ...prev, digests: [...prev.digests, ...newDigests] }))
+      }
+
+      setStages((prev) => {
+        const walletStage = prev.wallet
+        if (!walletStage?.detail) return prev
+        const detail = walletStage.detail as Record<string, unknown>
+        const sellerDetail = detail.seller as Record<string, unknown> | undefined
+        const buyerDetail = detail.buyer as Record<string, unknown> | undefined
+        return {
+          ...prev,
+          wallet: {
+            ...walletStage,
+            detail: {
+              ...detail,
+              seller: { ...(sellerDetail ?? {}), objectId: sellerOnChain?.objectId ?? 'rate-limited' },
+              buyer: { ...(buyerDetail ?? {}), objectId: buyerOnChain?.objectId ?? 'rate-limited' },
+              onChain:
+                sellerOnChain?.ok && buyerOnChain?.ok
+                  ? 'both units minted on Sui testnet'
+                  : 'on-chain mint rate-limited — TypeDB addresses are still real and verifiable',
+            },
+          },
+        }
+      })
+    })
 
     // ── 1 FUND ───────────────────────────────────────────────
     //    createUnit already calls ensureFunded, but we fund buyer too
@@ -387,7 +421,17 @@ export function LifecycleSpeedrun() {
     )
     up()
 
-    setChain({ ...ch })
+    // Functional merge so any background-mint digests that already landed
+    // (seller-create / buyer-create) are preserved; dedupe by digest hash.
+    setChain((prev) => {
+      const seen = new Set<string>()
+      const merged = [...ch.digests, ...prev.digests].filter((d) => {
+        if (seen.has(d.digest)) return false
+        seen.add(d.digest)
+        return true
+      })
+      return { ...ch, digests: merged }
+    })
     setStatus('done')
     setActiveStage(null)
     setVerifyOpen(true)
