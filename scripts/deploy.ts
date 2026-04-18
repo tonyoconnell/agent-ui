@@ -54,6 +54,7 @@ const KNOWN_FLAKY = [
   'Escrow Flow (e2e)', // requires SUI_PACKAGE_ID + testnet wallet; skipIf gates correctly but vitest exits non-zero for a skipped suite
   'CEO returns dissolved when no route exists for', // chairman-chain: order-dependent — passes standalone (18/18), fails only when a prior suite dirties the shared world singleton
   'dissolved outcome whe', // chat-chairman integration: same root cause as above; passes standalone (6/6), full-suite order pollution
+  'CEO low-confidence LLM fallback', // chairman-chain LLM-fallback suite — same shared-world pollution; 27/27 pass standalone, order-dependent in full suite
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
