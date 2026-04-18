@@ -21,34 +21,55 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   try {
-    // TWO-STAGE QUERY (TypeDB 3.x planner fix):
+    // THREE-STAGE QUERY — TypeDB 3.x planner workaround.
     //
-    // A single compound match that pulls 6 unit attributes + joins through
-    // capability + filters by skill-name times out at 8s because the planner
-    // tries to scan all capabilities for each unit-attr combination.
-    //
-    // Stage 1: find (uid, skill) pairs for skills matching the param.
-    //          Minimal attribute reads = fast.
-    // Stage 2: fetch unit attrs in bulk, bounded by the uids from stage 1.
-    //          Narrow scan, no cross-join = fast.
-    const pairRows = await readParsed(`
+    // Combining `$sn contains "X"` + relation-join + multi-attr projection
+    // in one match times out at 30s regardless of bindings. Single-role
+    // capability queries that only read key attrs return in 500ms. So we
+    // split the work: find matching skills first, fetch ALL cap pairs
+    // unfiltered, intersect in JS (~1500 rows), then bulk-fetch unit attrs.
+    const needle = skillParam.toLowerCase()
+    const skillRows = await readParsed(`
       match
         $s isa skill, has name $sn, has skill-id $sid;
-        $sn contains "${skillParam.toLowerCase()}";
-        (provider: $u, offered: $s) isa capability, has price $p;
-        $u has uid $uid;
-      select $uid, $sid, $sn, $p;
-      limit ${limit};
+        $sn contains "${needle}";
+      select $sid, $sn;
+      limit ${limit * 5};
     `).catch(() => [])
 
-    if (pairRows.length === 0) {
+    if (skillRows.length === 0) {
       return new Response(JSON.stringify({ agents: [], skill: skillParam, count: 0 }), {
         headers: { 'Content-Type': 'application/json' },
       })
     }
 
-    // Stage 2: bulk-fetch unit attributes for the uids we just found.
-    const uidsForFetch = [...new Set(pairRows.map((r) => r.uid as string).filter(Boolean))]
+    const wantedSkillIds = new Set(skillRows.map((r) => r.sid as string).filter(Boolean))
+    const skillNameById: Record<string, string> = {}
+    for (const r of skillRows) {
+      if (r.sid && r.sn) skillNameById[r.sid as string] = r.sn as string
+    }
+
+    // Stage 1: unfiltered capability pairs — this shape completes fast
+    // (~500ms for ~1.5k rows) because the planner uses relation+role-key
+    // indices and skips the scan explosion caused by `$sn contains`.
+    const pairRows = await readParsed(`
+      match
+        (provider: $u, offered: $s) isa capability, has price $p;
+        $u has uid $uid;
+        $s has skill-id $sid;
+      select $uid, $sid, $p;
+    `).catch(() => [])
+
+    const pairs = pairRows.filter((r) => r.sid && wantedSkillIds.has(r.sid as string)).slice(0, limit)
+
+    if (pairs.length === 0) {
+      return new Response(JSON.stringify({ agents: [], skill: skillParam, count: 0 }), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Stage 2: bulk-fetch unit attrs bounded by the uids we need.
+    const uidsForFetch = [...new Set(pairs.map((r) => r.uid as string).filter(Boolean))]
     const uidListLiteral = uidsForFetch.map((u) => `"${u}"`).join(', ')
     const unitRows = await readParsed(`
       match
@@ -59,18 +80,16 @@ export const GET: APIRoute = async ({ url }) => {
       select $uid, $n, $k, $rep, $sr, $activity;
     `).catch(() => [])
 
-    // Index unit attrs by uid for the merge.
     const unitByUid: Record<string, Record<string, unknown>> = {}
     for (const r of unitRows) {
       const u = r.uid as string | undefined
       if (u) unitByUid[u] = r
     }
 
-    // Merge stage 1 (skill/price) with stage 2 (unit attrs).
-    const rows = pairRows.map((p) => ({
+    const rows = pairs.map((p) => ({
       uid: p.uid,
       sid: p.sid,
-      sn: p.sn,
+      sn: skillNameById[p.sid as string] || p.sid,
       p: p.p,
       ...(unitByUid[p.uid as string] || {
         n: p.uid,

@@ -11,11 +11,6 @@ interface BufferedMark {
   count: number
 }
 
-interface D1Result {
-  success: boolean
-  rows?: { id: number }[]
-}
-
 // In-memory buffer: edge → {delta_s, delta_r, count}
 const markBuffer = new Map<string, BufferedMark>()
 let flushTimer: NodeJS.Timeout | null = null

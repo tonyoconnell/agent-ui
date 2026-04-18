@@ -45,32 +45,48 @@ let chainWired = false
  * net.strength so subsequent synthesis + routing see them.
  */
 async function loadChainEdges(net: PersistentWorld): Promise<void> {
+  // Total budget — if TypeDB is slow today, give up early rather than block
+  // the chat request for 30s+ per round. Uses whatever edges we managed to
+  // hydrate; downstream falls back to CEO self-leaf if net.strength is empty.
+  const BUDGET_MS = 4_000
+  const deadline = Date.now() + BUDGET_MS
+
+  const queryFrom = (from: string): Promise<Array<{ tid?: unknown; s?: unknown }>> => {
+    const remaining = Math.max(500, deadline - Date.now())
+    return Promise.race([
+      readParsed(
+        `match $e (source: $f, target: $t) isa path, has strength $s; $f has uid "${from.replace(/"/g, '\\"')}"; $t has uid $tid; select $tid, $s;`,
+      ) as Promise<Array<{ tid?: unknown; s?: unknown }>>,
+      new Promise<Array<{ tid?: unknown; s?: unknown }>>((resolve) => setTimeout(() => resolve([]), remaining)),
+    ]).catch(() => [])
+  }
+
   const seeds = ['chairman', 'ceo']
-  // Discover directors hired by CEO (from earlier runs that populated seeds).
-  // First pass: known seeds. Second pass: anyone CEO routes to.
-  const rounds = 3
   const visited = new Set<string>()
   let frontier = seeds
-  for (let r = 0; r < rounds && frontier.length; r++) {
+  const MAX_ROUNDS = 3
+  for (let r = 0; r < MAX_ROUNDS && frontier.length && Date.now() < deadline; r++) {
     const next = new Set<string>()
-    for (const from of frontier) {
-      if (visited.has(from)) continue
-      visited.add(from)
-      try {
-        const rows = await readParsed(
-          `match $e (source: $f, target: $t) isa path, has strength $s; $f has uid "${from.replace(/"/g, '\\"')}"; $t has uid $tid; select $tid, $s;`,
-        )
-        for (const row of rows) {
-          const to = row.tid as string
-          const strength = row.s as number
-          if (typeof to === 'string' && typeof strength === 'number' && strength > 0) {
-            const edge = `${from}→${to}`
-            if ((net.strength[edge] ?? 0) < strength) net.strength[edge] = strength
-            if (!visited.has(to)) next.add(to)
-          }
+    // Query all current-frontier uids in parallel — subsequent rounds need
+    // the results but within-round we can race them.
+    const results = await Promise.all(
+      frontier
+        .filter((f) => !visited.has(f))
+        .map(async (from) => {
+          visited.add(from)
+          const rows = await queryFrom(from)
+          return { from, rows }
+        }),
+    )
+    for (const { from, rows } of results) {
+      for (const row of rows) {
+        const to = row.tid as string
+        const strength = row.s as number
+        if (typeof to === 'string' && typeof strength === 'number' && strength > 0) {
+          const edge = `${from}→${to}`
+          if ((net.strength[edge] ?? 0) < strength) net.strength[edge] = strength
+          if (!visited.has(to)) next.add(to)
         }
-      } catch {
-        /* TypeDB timeout or parse error — continue with what we have */
       }
     }
     frontier = [...next]

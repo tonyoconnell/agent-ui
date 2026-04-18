@@ -11,12 +11,7 @@
  * Zero returns: no throws on missing handler; silence is valid.
  */
 
-import {
-  type CeoClassifyResult,
-  type CeoDirectorCandidate,
-  getActiveClassifier,
-  hasClassifierOverride,
-} from './ceo-classifier'
+import { type CeoDirectorCandidate, hasClassifierOverride } from './ceo-classifier'
 import type { PersistentWorld } from './persist'
 import { type LeafOptions, leafHandler } from './specialist-leaf'
 import type { Emit, Unit, World } from './world'
@@ -45,7 +40,7 @@ type Net = World | PersistentWorld
 
 const SEED_STRENGTH = 0.5
 const CEO_FALLBACK_CONFIDENCE_THRESHOLD = 0.4
-const CEO_FALLBACK_MARK_STRENGTH = 0.5
+const _CEO_FALLBACK_MARK_STRENGTH = 0.5
 
 // TypeDB stores paths as unit→unit relations (no tag attribute in one.tql).
 // But pickRoute scans for <tag>→<to> synthetic edges. Bridge the two: for
@@ -178,7 +173,7 @@ export const makeRouteHandler =
 // listDirectors: any registered unit with a `route` handler (director), except
 // the CEO itself. Used to feed the LLM classifier the universe of valid targets.
 // Examples from a director's own seeded edges give the LLM a hint about domain.
-const listDirectors = (net: Net, ceoUid: string): CeoDirectorCandidate[] => {
+const _listDirectors = (net: Net, ceoUid: string): CeoDirectorCandidate[] => {
   const out: CeoDirectorCandidate[] = []
   for (const uid of net.list()) {
     if (uid === ceoUid) continue
@@ -202,7 +197,7 @@ const listDirectors = (net: Net, ceoUid: string): CeoDirectorCandidate[] => {
   return out
 }
 
-const shouldFallbackToLlm = (d: ChainData): boolean => {
+const _shouldFallbackToLlm = (d: ChainData): boolean => {
   if (d.llmFallback === false) return false
   const conf = typeof d.confidence === 'number' ? d.confidence : 1
   if (conf >= CEO_FALLBACK_CONFIDENCE_THRESHOLD) return false

@@ -186,10 +186,7 @@ describe.skip('chairman-chain CEO low-confidence LLM fallback', () => {
   })
 
   // Helper: capture director-hop signals; verify via deposits to `*-director:route`.
-  const captureDirectorHop = (
-    net: ReturnType<typeof createWorld>,
-    directorUid: string,
-  ): Array<{ data: unknown }> => {
+  const captureDirectorHop = (net: ReturnType<typeof createWorld>, directorUid: string): Array<{ data: unknown }> => {
     const hits: Array<{ data: unknown }> = []
     const d = net.has(directorUid) ? net.get(directorUid)! : net.add(directorUid)
     d.on('route', (data) => {
