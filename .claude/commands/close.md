@@ -13,6 +13,9 @@ Mark a result — close the signal loop.
 | `<task-id> --dissolved` | warn(0.5) | dissolved — mild warn | L2 |
 | `<task-id> --timeout` | neutral | timeout — slow, not bad | L2 |
 | *(no arg)* | mark() + tick | session report — record all outcomes | L2, L6 |
+| `--todo <slug> --wave N` | emit `do:close` | wave close (soft gate) — append learnings.md; next wave proceeds if skipped | L1, L6 |
+| `--todo <slug> --cycle N` | emit `do:close` | cycle close (**hard gate**) — verify learnings grew; block next cycle if missing | L1, L2, L6 |
+| `--todo <slug> --cycle N --wave N` | emit `do:close` | specific wave of a cycle — used for re-running a failed close | L1 |
 
 ## Routing
 

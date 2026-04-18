@@ -833,6 +833,7 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 | `docs/world-map-page.md` | BUILD SPEC — /world page design, direct manipulation, personas, visitor mode, 12-component limit | `src/pages/world.astro`, `src/components/WorldMap/*` |
 | `docs/TODO-governance.md` | **GOVERNANCE** — Permission = Role × Pheromone. Schema locked 2026-04-18. Auth implementation + UI + federation. | `src/schema/one.tql`, `src/lib/role-check.ts`, `src/engine/persist.ts` |
 | `docs/auth.md` | Auth implementation — API key flows, role lookup, session management | `src/lib/api-auth.ts`, `src/lib/role-check.ts` |
+| `docs/loop-close.md` | **LOOP CLOSE** — verify→signal→propagate; one `do:close` signal, one learnings log, hard cycle gate | `.claude/commands/close.md`, `.claude/commands/do.md`, `docs/learnings.md` |
 
 **Sync rules:**
 - File references in docs must match actual engine filenames

@@ -76,6 +76,7 @@ Record: tests passed/total, any known failures. Fix before proceeding. Don't bui
 6. Mark Wave 1 complete in the Status section: `- [ ]` → `- [x]`
 
 Log: `W1: tasks_parallel=N  marked=N  warned=N  dissolved=N`
+CLOSE: `/close --todo <slug> --wave 1` — emit `do:close` [`cycle:N`, `wave:1`, `todo:<slug>`]; append to learnings.md (soft gate).
 
 ---
 
@@ -95,6 +96,7 @@ Log: `W1: tasks_parallel=N  marked=N  warned=N  dissolved=N`
 5. Mark Wave 2 complete
 
 Log: `W2: decisions=N  fan_out=N`
+CLOSE: `/close --todo <slug> --wave 2` — emit `do:close` [`cycle:N`, `wave:2`, `todo:<slug>`]; append to learnings.md (soft gate).
 
 ---
 
@@ -110,6 +112,7 @@ Log: `W2: decisions=N  fan_out=N`
 6. Mark Wave 3 complete
 
 Log: `W3: edits_parallel=N  marked=N  warned=N  dissolved=N  reloops=N`
+CLOSE: `/close --todo <slug> --wave 3` — emit `do:close` [`cycle:N`, `wave:3`, `todo:<slug>`]; append to learnings.md (soft gate).
 
 ---
 
@@ -128,13 +131,15 @@ Log: `W3: edits_parallel=N  marked=N  warned=N  dissolved=N  reloops=N`
 5. If inconsistencies → spawn micro-edit agents (Wave 3.5) → re-verify (max 3 loops total)
 
 Log: `W4: rubric={fit, form, truth, taste}  delta_vs_W0={...}  verify=green|red`
+CLOSE: `/close --todo <slug> --wave 4` — emit `do:close` [`cycle:N`, `wave:4`, `todo:<slug>`]; append to learnings.md (soft gate).
 
 ---
 
 **After each wave:**
 - Update TODO Status section (`[x]`)
 - Report: `{ marked: N, warned: N, dissolved: N }`
-- If all 4 waves complete: "Cycle N complete. Run `/do TODO-file` for next cycle."
+- If all 4 waves complete: run cycle close — `/close --todo <slug> --cycle N` (**hard gate**: emit `do:close` [`wave:gate`], verify learnings.md grew by 1 entry, block next cycle if skipped). Then report "Cycle N complete."
+CLOSE: (cycle gate) `/close --todo <slug> --cycle N` — **hard gate**; missing close → `do:close-missing` dissolved; `/do --auto` halts.
 - If all cycles complete: "All cycles complete."
 
 **Rules:**

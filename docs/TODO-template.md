@@ -255,6 +255,12 @@ W4 verify = rubric scoring (quality, probabilistic)
 **If tests fail after W3 edits:** re-enter W3 with the test failure as context.
 The failure IS the signal. Route it back to the editor. Max 3 loops.
 
+### Loop Close
+
+Run before the Cycle Gate. See [loop-close.md](loop-close.md) for the full protocol.
+
+Emit `do:close` via `/close --todo <slug> --cycle N` (hard gate). Append to `docs/learnings.md`. Verify before the next cycle begins.
+
 ### Cycle Gate = Tests Green
 
 A cycle is complete when:
@@ -591,6 +597,18 @@ strongest defect-catch pheromone. **The verifier learns to be more useful.**
 - `outcome = dissolved` → `warn(0.5)` regardless of rubric (path doesn't exist yet)
 - `outcome = failure` → `warn(1)` on all tag paths (chain breaks, L5 evolution triggered)
 - Always emit. Even timeout. Even dissolved. Every loop closes.
+
+### Loop Close
+
+Run before the Cycle Gate. See [loop-close.md](loop-close.md) for the full protocol.
+
+**Step 1 — Verify:** audit each deliverable against its exit condition. Mark `[x]` on passing items.
+
+**Step 2 — Signal:** emit `do:close` via `/close --todo <slug> --cycle N`.
+
+**Step 3 — Propagate:** update source-of-truth doc + feature doc; update CLAUDE.md if dimensional; append to `docs/learnings.md`.
+
+**Gate:** cycle close is a **hard gate** — missing close emits `do:close-missing` dissolved; next cycle refuses to start under `--auto`.
 
 ### Cycle 1 Gate
 

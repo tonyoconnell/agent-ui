@@ -181,3 +181,27 @@ When running `/do TODO-{name}.md`, the workflow enforces:
 ---
 
 *Documentation is not a post-mortem. It's the blueprint. Build it first. Verify it matches.*
+
+---
+
+## Loop Close
+
+Every wave and cycle close triggers a propagate step — see [loop-close.md](../docs/loop-close.md).
+
+**When to propagate to which doc:**
+
+| Target | Update when |
+|--------|-------------|
+| Source-of-truth doc | always — even if only touch-verified |
+| `CLAUDE.md` root | 6 dimensions, L1-L8, or locked rules changed |
+| Nested `CLAUDE.md` | directory contract changed |
+| `README.md` | public surface changed (CLI verbs, API routes, SDK exports) |
+| Feature doc | always if one exists |
+
+**Learnings entry** (append to `docs/learnings.md` on each close):
+
+```
+- YYYY-MM-DD · cycle N · wave N|gate · {one sentence} · rubric=0.NN · source=w1|w2|w3|w4|cycle
+```
+
+W4 rubric applies to docs too: fit (solves stated problem), form (clean, no dead links), truth (accurate), taste (consistent style).
