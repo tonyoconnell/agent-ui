@@ -740,25 +740,25 @@ curl -s 'https://api.one.ie/api/events?type=toolkit-consumed&since=1h' | jq '.co
 
 ## Status
 
-- [ ] **C1 BASELINE** — verify gaps stayed closed, smoke tests green
-  - [ ] W1 — Recon (Haiku × 1)
-  - [ ] W3 — Edits (conditional, Sonnet × 1)
-  - [ ] W4 — Verify (Sonnet × 1)
-- [ ] **C2 UPGRADE** — SubstrateClient + 30 presets + buildWorld
-  - [ ] W1 — Recon (Haiku × 4, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 10, parallel)
-  - [ ] W4 — Verify (Sonnet × 3, parallel by shard)
-- [ ] **C3 DOGFOOD (LOCAL)** — pack, install in /tmp, run against dev server
-  - [ ] W1 — Recon (Haiku × 3, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 4, parallel)
-  - [ ] W4 — Verify (Sonnet × 2, parallel)
-- [ ] **C4 SHIP** — version bumps, publish, verify from registry
-  - [ ] W1 — Recon (Haiku × 2, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 2, parallel)
-  - [ ] W4 — Verify + publish sequence (Sonnet × 2, then manual)
+- [x] **C1 BASELINE** — verify gaps stayed closed, smoke tests green
+  - [x] W1 — Recon (Haiku × 1) — G1-G5 all green at architectural level; folder dimensions correct
+  - [x] W3 — Edits (skipped per TODO rule — no regression); 6 smoke tests exit 0 (T-P1-02); npm pack --dry-run × 4 packages: 0 warnings
+  - [x] W4 — Verify (Sonnet × 1) — PASS with finding: 9 scaffold MDs under cli/one/{learning,paths,actors,things}/ still have dead-name frontmatter (`dimension: knowledge`, `related_dimensions: connections, events, people`). Doc drift only — 0 source imports from these files (verified via grep). Filed for TODO-rename (already active). Does not block C1→C2.
+- [x] **C2 UPGRADE** — SubstrateClient + 30 presets + buildWorld
+  - [x] W1 — Recon (Haiku × 4, parallel) — API shapes, SDK internals, preset gap (16→30), builder surface
+  - [x] W2 — Decide (Sonnet × 1) — 13 edit specs: types.ts 4-branch Outcome, client.ts SubstrateClient, telemetry.ts, world.ts buildWorld/buildTeam, 14 new presets, version bumps
+  - [x] W3 — Edits (Sonnet × 13, parallel) — SubstrateClient 12 methods, 30 presets, buildWorld/buildTeam, telemetry across 4 packages, 4 READMEs, 2 smoke tests
+  - [x] W4 — Verify (Sonnet × 3, parallel by shard) — 1539/1539 pass, token baseline 546/546, both smoke tests exit 0
+- [x] **C3 DOGFOOD (LOCAL)** — pack, install in /tmp, run against dev server
+  - [x] W1 — Recon (Haiku × 3, parallel) — CLI 1200 files, SDK test artifact found, dev server up (dissolved in 293ms)
+  - [x] W2 — Decide — fix .npmignore for SDK test artifacts, install from tarballs, dogfood-local.sh structure
+  - [x] W3 — Edits (Sonnet × 4, parallel) — dogfood-local.sh, test-substrate-client-live.mjs, test-templates-live.mjs, .npmignore, docs section
+  - [x] W4 — Verify — dogfood-local.sh exits 0, PASS=10 FAIL=0; SubstrateClient 12 methods from tarball; 30 presets from tarball; buildTeam 5 agents; 1539/1539 tests
+- [x] **C4 SHIP** — version bumps, publish, verify from registry
+  - [x] W1 — Recon (Haiku × 2) — oneie@3.6.40 live; @oneie/* first publish; npm whoami=oneie ✓
+  - [x] W2 — Decide — publish order: templates→sdk→mcp→cli; --access public for scoped; create CHANGELOGs
+  - [x] W3 — Edits (Sonnet × 2) — cli bump 3.6.40→3.7.0; CHANGELOG.md × 3 created
+  - [x] W4 — Verify+Ship — all 4 published and confirmed: oneie@3.7.0 · @oneie/sdk@0.2.0 · @oneie/mcp@0.1.0 · @oneie/templates@0.2.0
 - [ ] **C5 CONSUME** — install from npm, scaffold into envelopes/
   - [ ] W1 — Recon (Haiku × 3, parallel)
   - [ ] W2 — Decide (Opus × 1)

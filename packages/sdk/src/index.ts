@@ -5,4 +5,7 @@ export * from "./handoff.js";
 export { launchToken } from "./launch.js";
 export type { LaunchOpts, LaunchResult } from "./launch.js";
 
-export const SDK_VERSION = "0.1.0";
+export { SubstrateClient } from "./client.js";
+export { emit as telemetryEmit, isDisabled as isTelemetryDisabled, sessionId } from "./telemetry.js";
+
+export const SDK_VERSION = "0.2.0";

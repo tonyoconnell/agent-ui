@@ -676,3 +676,61 @@ oneie CLI
 - [dictionary.md](dictionary.md) — canonical names
 - [routing.md](routing.md) — four-outcome algebra, the model SubstrateClient must surface
 - [launch-handoff.md](launch-handoff.md) — the agent-launch contract
+
+---
+
+## Local Dogfood (C3)
+
+Before publishing, all 4 packages are proven from packed tarballs:
+
+```bash
+bash scripts/dogfood-local.sh        # pack → /tmp/dogfood-toolkit → install → assert
+bash scripts/dogfood-local.sh --clean  # wipe previous run first
+```
+
+**What it proves:**
+1. `npm pack` produces clean tarballs (files[] array correct, no source leaks)
+2. `oneie` binary runs from installed tarball — `--version`, `--help` (≥17 verbs)
+3. `SubstrateClient` imports from installed `@oneie/sdk`, hits `localhost:4321`
+4. `listPresets()` returns 30 from installed `@oneie/templates`
+5. `buildTeam('marketing', 5)` writes 5 agent markdowns to `/tmp/dogfood-toolkit/generated-world/`
+6. `toolkit-verified-local` signal emitted to substrate
+
+Log written to `/tmp/dogfood-toolkit/dogfood.log`. Artifacts preserved on success.
+
+**C3 assertions (all must pass before C4 publish):**
+- `[ ] scripts/dogfood-local.sh exits 0`
+- `[ ] /tmp/dogfood-toolkit/node_modules/` has all 4 packages
+- `[ ] SubstrateClient.ask() returns typed Outcome from localhost:4321`
+- `[ ] listPresets().length === 30 from tarball`
+- `[ ] buildTeam writes 5 files to generated-world/`
+- `[ ] toolkit-verified-local signal visible in substrate`
+
+---
+
+## Consumer Story (C5)
+
+The only proof the toolkit ships correctly is that someone who has never touched the source installs from npm and gets real output. C5 plays that role.
+
+```bash
+bash scripts/consume-published.sh    # install globally + run consume script
+node scripts/consume-published.mjs   # run consumer script directly (requires global install)
+```
+
+**What it proves:**
+1. `npm install -g oneie@3.7.0` succeeds from the public registry
+2. `@oneie/sdk@0.2.0` SubstrateClient makes real calls to `api.one.ie`
+3. `@oneie/templates@0.2.0` generates real agent markdown from presets
+4. `agents/published-demo/` folder exists in git with valid frontmatter
+5. `toolkit-consumed` signal visible in substrate pheromone
+
+**Calls made against `api.one.ie`:**
+- `.signal()` — announces consume event
+- `.ask()` — round-trip to substrate (expects dissolved — no concierge unit yet)
+- `.recall()` — reads learned hypotheses
+
+**Generated artifacts committed to git:**
+- `agents/published-demo/concierge.md`
+- `agents/published-demo/tutor.md`
+- `agents/published-demo/researcher.md`
+- `agents/published-demo/world.md`

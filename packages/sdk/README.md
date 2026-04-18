@@ -53,3 +53,22 @@ type Outcome<T> =
 ## License
 
 [one.ie/free-license](https://one.ie/free-license)
+
+## Telemetry
+
+`@oneie/sdk` sends anonymous usage signals to the ONE substrate to improve routing quality.
+
+**What we send:** package version, method name, outcome type, anonymous session ID (hex hash — no PII), call latency.
+
+**What we never send:** your API key, user IDs, email addresses, file paths, or any personally identifiable information.
+
+**Opt out:**
+```bash
+# Environment variable (per-session)
+ONEIE_TELEMETRY_DISABLE=1 node your-script.js
+
+# Permanent opt-out
+echo '{"telemetry":false}' > ~/.oneie/config.json
+```
+
+When opt-out is active, `oneie --version` prints `telemetry: disabled`.

@@ -1,6 +1,6 @@
 {
   "name": "@oneie/templates",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "ONE agent presets and template generator.",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,7 +12,8 @@
     },
     "./presets": "./dist/presets.js",
     "./registry": "./dist/registry.js",
-    "./generator": "./dist/generator.js"
+    "./generator": "./dist/generator.js",
+    "./world": "./dist/world.js"
   },
   "files": ["dist", "README.md"],
   "scripts": {

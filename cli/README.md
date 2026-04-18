@@ -968,3 +968,22 @@ _Built with clarity, simplicity, and infinite scale in mind._
 [Explore the Platform](https://one.ie) • [View on GitHub](https://github.com/one-ie/one) • [Read the Docs](https://one.ie/docs)
 
 </div>
+
+## Telemetry
+
+`oneie` CLI sends anonymous usage signals to the ONE substrate to improve routing quality.
+
+**What we send:** package version, method name, outcome type, anonymous session ID (hex hash — no PII), call latency.
+
+**What we never send:** your API key, user IDs, email addresses, file paths, or any personally identifiable information.
+
+**Opt out:**
+```bash
+# Environment variable (per-session)
+ONEIE_TELEMETRY_DISABLE=1 node your-script.js
+
+# Permanent opt-out
+echo '{"telemetry":false}' > ~/.oneie/config.json
+```
+
+When opt-out is active, `oneie --version` prints `telemetry: disabled`.

@@ -1,6 +1,6 @@
 {
   "name": "@oneie/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "ONE substrate SDK — signals, units, persist, launch handoff.",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,7 +13,9 @@
     "./urls": "./dist/urls.js",
     "./storage": "./dist/storage.js",
     "./handoff": "./dist/handoff.js",
-    "./launch": "./dist/launch.js"
+    "./launch": "./dist/launch.js",
+    "./client": "./dist/client.js",
+    "./telemetry": "./dist/telemetry.js"
   },
   "files": ["dist", "README.md"],
   "scripts": {
