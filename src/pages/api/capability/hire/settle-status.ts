@@ -21,7 +21,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
   }
 
   try {
-    const db = (locals as any).runtime?.env?.DB
+    const { getD1 } = await import('@/lib/cf-env')
+    const db = await getD1(locals)
     const settlement = await getSettlementById(settlementId as string, db)
 
     if (!settlement) {

@@ -39,7 +39,8 @@ interface AnalyticsResult {
 }
 
 export const GET = async ({ locals, url }: { locals: any; url: URL }): Promise<Response> => {
-  const db = locals.runtime?.env?.DB as D1Database | undefined
+  const { getD1 } = await import('@/lib/cf-env')
+  const db = await getD1(locals)
   if (!db) {
     return new Response(JSON.stringify({ error: 'D1 not available' }), {
       status: 503,

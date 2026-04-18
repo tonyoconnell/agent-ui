@@ -20,7 +20,8 @@ interface D1SyncResult {
 }
 
 export const POST = async ({ locals }: { locals: any }): Promise<Response> => {
-  const db = locals.runtime?.env?.DB as D1Database | undefined
+  const { getD1 } = await import('@/lib/cf-env')
+  const db = await getD1(locals)
   if (!db) {
     return new Response(JSON.stringify({ error: 'D1 not available' }), {
       status: 503,

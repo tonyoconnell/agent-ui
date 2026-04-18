@@ -19,7 +19,8 @@ type KpiCard = {
 }
 
 export const GET: APIRoute = async ({ locals }) => {
-  const db = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env?.DB
+  const { getD1 } = await import('@/lib/cf-env')
+  const db = await getD1(locals)
 
   // 1. closedLoopRate — % signals last hour with success != null
   let closedLoopRate = 0

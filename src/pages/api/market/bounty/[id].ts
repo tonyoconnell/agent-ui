@@ -10,7 +10,8 @@ import { getNet } from '@/lib/net'
 
 export const GET: APIRoute = async ({ params, locals }) => {
   try {
-    const env = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env
+    const { getEnv } = await import('@/lib/cf-env')
+    const env = (await getEnv(locals)) as { DB?: D1Database }
     const db = env?.DB as D1Database | undefined
     if (!db) return Response.json({ error: 'Not available' }, { status: 503 })
 
@@ -38,7 +39,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
   try {
-    const env = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env
+    const { getEnv } = await import('@/lib/cf-env')
+    const env = (await getEnv(locals)) as { DB?: D1Database }
     const db = env?.DB as D1Database | undefined
     if (!db) return Response.json({ error: 'Not available' }, { status: 503 })
 

@@ -50,7 +50,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return Response.json({ ok: false, reason: 'insufficient messages' }, { status: 400 })
     }
 
-    const rt = (locals as any).runtime?.env ?? {}
+    // Astro 6 throws on locals.runtime.env — use getEnv to read safely.
+    const { getEnv } = await import('@/lib/cf-env')
+    const rt = (await getEnv(locals)) as Record<string, string>
     const groqKey = import.meta.env.GROQ_API_KEY || rt.GROQ_API_KEY
     const openrouterKey = import.meta.env.OPENROUTER_API_KEY || rt.OPENROUTER_API_KEY
 

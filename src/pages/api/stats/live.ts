@@ -3,9 +3,10 @@ import type { APIRoute } from 'astro'
 export const prerender = false
 
 export const GET: APIRoute = async ({ locals }) => {
-  const env = (locals as { runtime?: { env?: { KV?: KVNamespace; DB?: D1Database } } }).runtime?.env
-  const kv = env?.KV
-  const db = env?.DB
+  const { getEnv } = await import('@/lib/cf-env')
+  const env = (await getEnv(locals)) as { KV?: KVNamespace; DB?: D1Database }
+  const kv = env.KV
+  const db = env.DB
 
   let highways = 0
   let activeWorlds = 0

@@ -243,8 +243,11 @@ export const POST: APIRoute = async (context) => {
   const taskHash = fnv1a(taskJson)
   let kvWritten = false
 
-  // Try to write to CF KV if available (edge runtime)
-  const kv = ((context.locals as any)?.runtime?.env as { KV?: KVNamespace })?.KV
+  // Try to write to CF KV if available (edge runtime).
+  // getEnv() wraps the Astro 6 throwing getter on locals.runtime.env.
+  const { getEnv } = await import('@/lib/cf-env')
+  const env = await getEnv(context.locals)
+  const kv = (env as { KV?: KVNamespace }).KV
   if (kv) {
     try {
       // Read existing hash

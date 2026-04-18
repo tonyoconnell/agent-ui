@@ -43,7 +43,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       })
     }
 
-    const rt = (locals as any).runtime?.env ?? {}
+    const { getEnv } = await import('@/lib/cf-env')
+    const rt = (await getEnv(locals)) as Record<string, string>
     const groqKey = import.meta.env.GROQ_API_KEY || rt.GROQ_API_KEY
     const cerebrasKey = import.meta.env.CEREBRAS_API_KEY || rt.CEREBRAS_API_KEY
     const openrouterKey = import.meta.env.OPENROUTER_API_KEY || rt.OPENROUTER_API_KEY

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { auth } from '@/lib/auth'
+import { getD1 } from '@/lib/cf-env'
 import { encryptSecret } from '@/lib/crypto/key-wrap'
 
 export const prerender = false
@@ -8,7 +9,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) return new Response('Unauthorized', { status: 401 })
 
-  const db = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env?.DB
+  const db = await getD1(locals)
   if (!db) return new Response('DB unavailable', { status: 500 })
 
   try {
@@ -26,7 +27,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) return new Response('Unauthorized', { status: 401 })
 
-  const db = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env?.DB
+  const db = await getD1(locals)
   if (!db) return new Response('DB unavailable', { status: 500 })
 
   let label: string, value: string
@@ -59,7 +60,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) return new Response('Unauthorized', { status: 401 })
 
-  const db = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env?.DB
+  const db = await getD1(locals)
   if (!db) return new Response('DB unavailable', { status: 500 })
 
   const label = new URL(request.url).searchParams.get('label')

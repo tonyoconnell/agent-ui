@@ -8,7 +8,8 @@
 import type { APIRoute } from 'astro'
 
 export const GET: APIRoute = async ({ locals }) => {
-  const env = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env
+  const { getEnv } = await import('@/lib/cf-env')
+  const env = (await getEnv(locals)) as { DB?: D1Database }
   if (!env?.DB) return new Response(JSON.stringify({ ok: false, error: 'no DB binding' }), { status: 503 })
 
   const [intents, queries] = await Promise.all([

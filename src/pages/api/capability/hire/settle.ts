@@ -91,7 +91,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Step 4: Store in durable storage (fire-and-forget)
-    const db = (locals as any).runtime?.env?.DB
+    const { getD1 } = await import('@/lib/cf-env')
+    const db = await getD1(locals)
     const settlementId = await storePendingSettlement(escrow_id, proof.tx_digest, originalRequest, db)
 
     // Step 5: Re-execute hire logic

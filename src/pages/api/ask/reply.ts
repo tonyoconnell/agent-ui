@@ -18,9 +18,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const body = (await request.json()) as { id?: string; result?: unknown }
   if (!body?.id) return new Response(JSON.stringify({ ok: false, error: 'missing id' }), { status: 400 })
 
-  const env = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env
-  if (!env?.DB) return new Response(JSON.stringify({ ok: false, error: 'no DB binding' }), { status: 503 })
+  const { getD1 } = await import('@/lib/cf-env')
+  const db = await getD1(locals)
+  if (!db) return new Response(JSON.stringify({ ok: false, error: 'no DB binding' }), { status: 503 })
 
-  const resolved = await resolveAsk({ DB: env.DB }, body.id, body.result ?? true)
+  const resolved = await resolveAsk({ DB: db }, body.id, body.result ?? true)
   return new Response(JSON.stringify({ ok: resolved }), { headers: { 'Content-Type': 'application/json' } })
 }

@@ -48,7 +48,8 @@ export type Bounty = {
 
 export const GET: APIRoute = async ({ url, locals }) => {
   try {
-    const env = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env
+    const { getEnv } = await import('@/lib/cf-env')
+    const env = (await getEnv(locals)) as { DB?: D1Database }
     const db = env?.DB as D1Database | undefined
     if (!db) return Response.json({ bounties: [] })
 
@@ -89,7 +90,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const env = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env
+    const { getEnv } = await import('@/lib/cf-env')
+    const env = (await getEnv(locals)) as { DB?: D1Database }
     const db = env?.DB as D1Database | undefined
 
     const body = (await request.json()) as {

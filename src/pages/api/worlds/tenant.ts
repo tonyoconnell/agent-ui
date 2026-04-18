@@ -9,6 +9,7 @@
  * Tiers: starter ($499/mo), growth ($1,999/mo), enterprise ($9,999/mo)
  */
 import type { APIRoute } from 'astro'
+import { getD1 } from '@/lib/cf-env'
 // TODO: requires tenancy.ts — tier → quota mapping (A4's job)
 import { hasPermission, validateApiKey } from '@/lib/api-auth'
 import { readParsed, write } from '@/lib/typedb'
@@ -25,7 +26,7 @@ const BRAND_PREFIXES = ['premium:', 'enterprise:', 'public:'] as const
 
 export const GET: APIRoute = async ({ locals }) => {
   try {
-    const db = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env?.DB
+    const db = await getD1(locals)
 
     const rows = await readParsed(`
       match $g isa group, has gid $id, has name $n, has group-type "world";
@@ -70,7 +71,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return Response.json({ error: 'Forbidden: admin permission required' }, { status: 403 })
     }
 
-    const db = (locals as { runtime?: { env?: { DB?: D1Database } } }).runtime?.env?.DB
+    const db = await getD1(locals)
 
     const body = (await request.json()) as {
       name?: string
