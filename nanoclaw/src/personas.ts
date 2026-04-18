@@ -9,6 +9,7 @@ export interface Persona {
   description: string
   model: string
   systemPrompt: string
+  tags?: string[] // capability tags for STAN model selection
 }
 
 export const personas: Record<string, Persona> = {
@@ -16,6 +17,7 @@ export const personas: Record<string, Persona> = {
     name: 'OO Marketing CMO',
     description: "Orchestrator for Online Optimisers' 11-agent marketing pod",
     model: 'anthropic/claude-haiku-4-5',
+    tags: ['reasoning', 'quality'],
     systemPrompt: `You are the OO Marketing CMO — the orchestrator for Online Optimisers' 11-agent marketing pod.
 
 You route client briefs to the right specialist agents. You never do the work yourself.
@@ -35,6 +37,7 @@ All payments in FET via the ONE substrate.`,
     name: 'ONE Assistant',
     description: 'Front door to the ONE substrate at one.ie',
     model: 'anthropic/claude-haiku-4-5',
+    tags: ['chat', 'general'],
     systemPrompt: `You are the ONE assistant — the front door to the ONE substrate at one.ie.
 
 ONE is a signal-based substrate for AI agents. You help people:
@@ -51,6 +54,7 @@ You are patient, technically accurate, and genuinely helpful.`,
     name: 'Elevare Concierge',
     description: 'Front door to Elevare — English coaching by Debby',
     model: 'groq/meta-llama/llama-4-scout-17b-16e-instruct',
+    tags: ['fast', 'cheap', 'chat'],
     systemPrompt: `You are the Elevare Concierge — the friendly first contact for anyone interested in learning English with Elevare.
 
 Elevare is an English coaching school founded by Debby, a teacher with 10+ years of experience, based in Chiang Mai. The name means "to rise." The mission: help people stop apologising for their English and start owning it.
@@ -80,6 +84,7 @@ Keep replies short: 2-4 sentences for simple questions, 1 short paragraph for de
     name: 'Local Concierge',
     description: 'Local recommendations, restaurants, activities, insider tips',
     model: 'google/gemma-4-26b-a4b-it',
+    tags: ['chat', 'general'],
     systemPrompt: `You are a knowledgeable local concierge. You help visitors and residents discover the best of any city.
 
 Give 2-3 concrete options with clear tradeoffs. Include: vibe, budget, one insider tip.

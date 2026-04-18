@@ -625,12 +625,14 @@ app.post('/message', async (c) => {
                   .run()
                   .catch(() => {})
                 mark(c.env, 'entry', groupUid).catch(() => {})
+                markModelOutcome(c.env, stanChoice.edge, true).catch(() => {})
                 const postTags = student ? ([student.pillar, student.onboardingStage].filter(Boolean) as string[]) : []
                 afterResponse(c.env, sender, group, fullReply, postTags, student?.sessionCount ?? 0, {
                   studentMessage: text,
                 }).catch(() => {})
               } else {
                 warn(c.env, 'entry', groupUid, 0.5).catch(() => {})
+                markModelOutcome(c.env, stanChoice.edge, false).catch(() => {})
               }
             })(),
           )
@@ -667,6 +669,7 @@ app.post('/message', async (c) => {
     if (!res.ok) {
       console.error('LLM error:', res.status, resText.slice(0, 500))
       warn(c.env, 'entry', `nanoclaw:${group}`, 0.5).catch(() => {})
+      markModelOutcome(c.env, stanChoice.edge, false).catch(() => {})
       return c.json({ ok: false, error: 'LLM request failed' }, 500)
     }
 
@@ -694,6 +697,7 @@ app.post('/message', async (c) => {
         .catch(() => {})
 
       mark(c.env, 'entry', `nanoclaw:${group}`).catch(() => {})
+      markModelOutcome(c.env, stanChoice.edge, true).catch(() => {})
 
       // Post-response hook: side-car + onboarding + assessment
       const postTags = student ? ([student.pillar, student.onboardingStage].filter(Boolean) as string[]) : []
@@ -998,6 +1002,7 @@ You can use tools to interact with other agents in the network.
 Be concise and helpful. Mark successful collaborations, warn on failures.`,
     model: botDefault?.model ?? 'google/gemma-4-26b-a4b-it',
     sensitivity: 0.5,
+    tags: botDefault?.tags ?? [],
   }
 
   // Check D1 for group-specific config
@@ -1074,6 +1079,7 @@ async function processMessage(env: Env, msg: QueueMessage): Promise<void> {
   if (!res.ok) {
     console.error('OpenRouter API error:', res.status, resText.slice(0, 500))
     await warn(env, `entry`, `nanoclaw:${groupId}`, 0.5)
+    markModelOutcome(env, stanChoiceQ.edge, false).catch(() => {})
     return
   }
 
@@ -1119,6 +1125,7 @@ async function processMessage(env: Env, msg: QueueMessage): Promise<void> {
 
   // Mark success
   await mark(env, 'entry', `nanoclaw:${groupId}`)
+  markModelOutcome(env, stanChoiceQ.edge, !!reply).catch(() => {})
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

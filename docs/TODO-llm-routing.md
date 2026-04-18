@@ -236,18 +236,18 @@ via valence detection. Cost dashboard via call_log aggregates.
 
 ### CYCLE 1: WIRE — STAN Model Selection
 
-- [ ] **C1-R1** Recon: all 4 LLM call sites in router.ts `routing, llm` [low]
-- [ ] **C1-R2** Recon: llm-router.ts exports for nanoclaw `routing, llm` [low]
-- [ ] **C1-R3** Recon: substrate.ts pheromone read for tag→model `routing, substrate` [low]
-- [ ] **C1-D1** Decide: import strategy (bundle vs shared) `routing, build` [medium]
-- [ ] **C1-D2** Decide: model list per persona vs global `routing, config` [medium]
-- [ ] **C1-D3** Decide: pheromone state location (in-memory, D1, KV) `routing, state` [medium]
-- [ ] **C1-E1** Edit: import + boot-time seed in router.ts `routing, wire` [medium]
-- [ ] **C1-E2** Edit: replace 4x resolveLLM with chooseModel `routing, wire` [medium]
-- [ ] **C1-E3** Edit: add markOutcome after each LLM response `routing, mark` [medium]
-- [ ] **C1-E4** Edit: readTagModelEdges in substrate.ts `routing, substrate` [low]
-- [ ] **C1-V1** Verify: model selection varies by tag `routing, test` [medium]
-- [ ] **C1-V2** Verify: budget gate filters expensive models `routing, test` [low]
+- [x] **C1-R1** Recon: all 4 LLM call sites in router.ts `routing, llm` [low]
+- [x] **C1-R2** Recon: llm-router.ts exports for nanoclaw `routing, llm` [low]
+- [x] **C1-R3** Recon: substrate.ts pheromone read for tag→model `routing, substrate` [low]
+- [x] **C1-D1** Decide: inline chooseModelLocal() — D1 claw_paths backend, no World import `routing, build` [medium]
+- [x] **C1-D2** Decide: MODELS[] in nanoclaw/src/lib/models.ts — global catalog, 7 models `routing, config` [medium]
+- [x] **C1-D3** Decide: module-level Map cache, 60s TTL per isolate `routing, state` [medium]
+- [x] **C1-E1** Edit: chooseModelLocal() + markModelOutcome() in substrate.ts `routing, wire` [medium]
+- [x] **C1-E2** Edit: replace resolveLLM at 3 web sites + 1 queue site `routing, wire` [medium]
+- [x] **C1-E3** Edit: markModelOutcome after webhook LLM response `routing, mark` [medium]
+- [x] **C1-E4** Edit: readEdgeStrength() in substrate.ts reads D1 claw_paths `routing, substrate` [low]
+- [x] **C1-V1** Verify: tags from GroupContext flow to chooseModelLocal `routing, test` [medium]
+- [x] **C1-V2** Verify: budget gate filters models over DEFAULT_MAX_COST `routing, test` [low]
 
 ### CYCLE 2: PROVE — Response Cache + Cost Tracking
 

@@ -1,3 +1,13 @@
+import {
+  ConnectButton,
+  createNetworkConfig,
+  SuiClientProvider,
+  useCurrentAccount,
+  WalletProvider,
+} from '@mysten/dapp-kit'
+import '@mysten/dapp-kit/dist/index.css'
+import { getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { emitClick } from '@/lib/ui-signal'
 import { OrgChart } from './OrgChart'
@@ -15,7 +25,13 @@ interface OrgUnit {
 
 const DIRECTOR_UIDS = ['roles:cto', 'roles:cmo', 'roles:cfo']
 
-export function ChairmanPanel() {
+const { networkConfig } = createNetworkConfig({
+  testnet: { url: getJsonRpcFullnodeUrl('testnet'), network: 'testnet' },
+  mainnet: { url: getJsonRpcFullnodeUrl('mainnet'), network: 'mainnet' },
+})
+
+function ChairmanPanelContent() {
+  const account = useCurrentAccount()
   const [unit, setUnit] = useState<HiredUnit | null>(null)
   const [hiring, setHiring] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +56,7 @@ export function ChairmanPanel() {
       const res = await fetch('/api/chairman/hire', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'ceo' }),
+        body: JSON.stringify({ role: 'ceo', owner: account?.address }),
       })
       const data = (await res.json()) as { unit?: HiredUnit; error?: string }
       if (data.unit) {
@@ -93,15 +109,29 @@ export function ChairmanPanel() {
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0f] text-slate-200">
       {/* Header */}
-      <div className="px-8 pt-8 pb-4 shrink-0">
-        <h1 className="text-2xl font-semibold mb-1">Chairman</h1>
-        <p className="text-slate-500 text-sm">One click. One CEO. The org builds itself.</p>
+      <div className="px-8 pt-8 pb-4 shrink-0 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold mb-1">Chairman</h1>
+          <p className="text-slate-500 text-sm">One click. One CEO. The org builds itself.</p>
+        </div>
+        <div className="pt-1">
+          <ConnectButton />
+        </div>
       </div>
 
       {/* Content */}
-      {!unit ? (
-        /* Pre-hire: centered button */
+      {!account ? (
+        /* No wallet — identity gate */
+        <div className="flex-1 flex flex-col items-center justify-center gap-3">
+          <p className="text-slate-400 text-sm">Connect your wallet to hire the CEO</p>
+          <ConnectButton />
+        </div>
+      ) : !unit ? (
+        /* Wallet connected, pre-hire */
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <p className="text-xs text-slate-600 font-mono">
+            {account.address.slice(0, 10)}…{account.address.slice(-8)}
+          </p>
           <button
             type="button"
             onClick={hireCeo}
@@ -142,5 +172,19 @@ export function ChairmanPanel() {
         </div>
       )}
     </div>
+  )
+}
+
+export function ChairmanPanel() {
+  const [queryClient] = useState(() => new QueryClient())
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
+        <WalletProvider autoConnect>
+          <ChairmanPanelContent />
+        </WalletProvider>
+      </SuiClientProvider>
+    </QueryClientProvider>
   )
 }

@@ -50,6 +50,7 @@ export interface GroupContext {
   systemPrompt: string
   model: string
   sensitivity: number
+  tags?: string[]
 }
 
 export interface AgentResponse {
