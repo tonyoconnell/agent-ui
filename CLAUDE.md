@@ -13,14 +13,18 @@ The LLM is the only probabilistic component. Everything else is math.
 
 ## The 6 Dimensions (LOCKED)
 
-| # | Dimension | Ontology | Runtime | What |
-|---|-----------|----------|---------|------|
-| 1 | **Groups** | `group` | `group` | Containers — worlds, teams, orgs |
-| 2 | **Actors** | `actor` | `unit` | Who acts — humans, agents, animals, worlds |
-| 3 | **Things** | `thing` | `skill` | What exists — skills, tasks, tokens |
-| 4 | **Paths** | `path` | `path` | Weighted connections — strength, resistance |
-| 5 | **Events** | `signal` | `signal` | What happened — signals, payments |
-| 6 | **Learning** | `hypothesis` | `hypothesis` | What was discovered — patterns |
+| # | Dimension | Ontology (`one.tql`) | Runtime (`world.ts`) | Move (`one.move`)           | What |
+|---|-----------|----------------------|----------------------|------------------------------|------|
+| 1 | **Groups**   | `group`        | `group`        | `Colony` ⚠                    | Containers — worlds, teams, orgs |
+| 2 | **Actors**   | `actor`        | `unit`         | `Unit`                        | Who acts — humans, agents, animals, worlds |
+| 3 | **Things**   | `thing`        | `skill`        | — *(TQL-only)*                | What exists — skills, tasks, tokens |
+| 4 | **Paths**    | `path`         | `path`         | `Path` → `Highway` on harden  | Weighted connections — strength, resistance |
+| 5 | **Events**   | `signal`       | `signal`       | `Signal`                      | What happened — signals, payments |
+| 6 | **Learning** | `hypothesis`   | `hypothesis`   | — *(TQL-only)*                | What was discovered — patterns |
+
+Three of six dimensions have on-chain twins (economic, permanent). Two (Things, Learning) live only in TypeDB because they're classification/learning surfaces where writes are cheap and speculative. Move-only structs without a dimension: `Escrow` (settlement machinery), `Protocol` (treasury, fee_bps). Full bridge contract: `/sui` + `/typedb` skills.
+
+**⚠ Colony → Group is a pending rename.** Move still has `struct Colony` (one.move:71); renaming requires a package upgrade, so TypeDB moved first. Read Move `Colony` as TQL `group` when bridging.
 
 **Dead names (never use):** knowledge, connections, people, node, scent, alarm, trail, colony (as dimension)
 

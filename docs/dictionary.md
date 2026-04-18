@@ -538,6 +538,25 @@ something you can build a platform on.
     └─────────────────────────────────────────────┘
 ```
 
+### At a glance — the six dimensions across all layers
+
+The same dimension in three schemas. If these ever disagree, the bridge breaks.
+
+| # | Dimension | Ontology (`src/schema/one.tql`) | Runtime (`src/engine/world.ts`) | Move (`src/move/one/sources/one.move`) |
+|---|-----------|--------------------------------|--------------------------------|-----------------------------------------|
+| 1 | **Groups**   | `group`       | `group`       | `Colony` ⚠ *(pending rename)*          |
+| 2 | **Actors**   | `actor`       | `unit`        | `Unit`                                  |
+| 3 | **Things**   | `thing`       | `skill`       | — *(TQL-only; classification layer)*    |
+| 4 | **Paths**    | `path`        | `path`        | `Path` → `Highway` on `harden()`        |
+| 5 | **Events**   | `signal`      | `signal`      | `Signal`                                |
+| 6 | **Learning** | `hypothesis`  | `hypothesis`  | — *(TQL-only; learning layer)*          |
+
+- **Three dimensions have on-chain twins** (Groups, Actors, Paths, Events) — the permanent, economic layer. Move writes are expensive but trustless.
+- **Two dimensions live only in TypeDB** (Things, Learning) — the classification/learning layer. Writes are cheap, queries are rich, nothing needs consensus.
+- **Move-only structs without a dimension:** `Escrow` (settlement machinery), `Protocol` (treasury + `fee_bps`). These are machinery, not ontology.
+- **⚠ `Colony` → `Group` is pending a package upgrade.** Renaming a Move struct requires republishing the contract, so TypeDB moved first. When reading bridge code, treat Move `Colony` as TQL `group`.
+- **Crosswalk file:** `src/schema/sui.tql` (336 lines) is the full TypeQL mirror of the Move contract — "The same ontology. Two deterministic fires." Every Move struct has a matching TQL entity, every Move function has a matching TQL `fun`. If shapes drift, fix it there first.
+
 ---
 
 ### 1. Groups — Who Belongs Together
