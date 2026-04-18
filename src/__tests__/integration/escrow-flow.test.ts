@@ -13,7 +13,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { cancelEscrow, createUnit, releaseEscrow, viewEscrow } from '@/lib/sui'
 import { readParsed, write } from '@/lib/typedb'
 
-describe('Escrow Flow (e2e)', () => {
+// Skip in CI: requires SUI_PACKAGE_ID + testnet wallet. Run locally with env set.
+describe.skipIf(!process.env.SUI_PACKAGE_ID)('Escrow Flow (e2e)', () => {
   let posterUid = ''
   let workerUid = ''
   let posterUnitId = ''

@@ -11,7 +11,7 @@ describe('engine import boundary', () => {
   it('no file outside src/engine/ imports from @/engine/world', () => {
     const result = execSync(
       "grep -rn \"from '@/engine/world'\" src/ --include='*.ts' --include='*.tsx' --include='*.astro' || true",
-      { cwd: '/Users/toc/Server/envelopes', encoding: 'utf-8' },
+      { cwd: process.cwd(), encoding: 'utf-8' },
     )
     const violations = result
       .split('\n')
