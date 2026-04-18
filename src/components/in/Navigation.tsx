@@ -31,22 +31,18 @@ export function Navigation({ items, active, onChange }: NavigationProps) {
             }}
             className={cn(
               'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
               isActive
-                ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30'
-                : 'text-muted-foreground hover:bg-[#161622] hover:text-foreground',
+                ? 'bg-primary/10 text-primary ring-1 ring-primary/30'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            <Icon
-              className={cn('h-4 w-4 flex-shrink-0 transition-transform', isActive && 'scale-110 text-emerald-400')}
-            />
+            <Icon className={cn('h-4 w-4 flex-shrink-0 transition-transform', isActive && 'scale-110 text-primary')} />
             <span className="flex-1 text-left font-semibold">{label}</span>
             <span
               className={cn(
                 'rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors',
-                isActive
-                  ? 'bg-emerald-500/20 text-emerald-300'
-                  : 'bg-[#161622] text-muted-foreground group-hover:bg-[#1e1e2a]',
+                isActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground group-hover:bg-accent',
               )}
             >
               {count}

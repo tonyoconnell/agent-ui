@@ -4,7 +4,7 @@
  * Minimal, Apple-like navigation with beautiful circular icons
  */
 
-import { ArrowLeftRight, Coins, Download, FileText, Home, Key, Send, ShoppingBag, Users, Wallet } from 'lucide-react'
+import { ArrowLeftRight, Download, Home, Key, Send, ShoppingBag, Users, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface UNavProps {
@@ -28,9 +28,7 @@ const NAV_ITEMS = [
   { id: 'wallets', label: 'Wallets', icon: Wallet, href: '/u/wallets', color: 'from-amber-500 to-orange-500' },
   { id: 'send', label: 'Send', icon: Send, href: '/u/send', color: 'from-green-500 to-emerald-500' },
   { id: 'receive', label: 'Receive', icon: Download, href: '/u/receive', color: 'from-purple-500 to-violet-500' },
-  { id: 'tokens', label: 'Tokens', icon: Coins, href: '/u/tokens', color: 'from-yellow-500 to-amber-500' },
   { id: 'testnet-tokens', label: 'Testnet', icon: '💧', href: '/u/testnet-tokens', color: 'from-cyan-500 to-blue-500' },
-  { id: 'contracts', label: 'Contracts', icon: FileText, href: '/u/contracts', color: 'from-slate-500 to-gray-600' },
   { id: 'products', label: 'Products', icon: ShoppingBag, href: '/u/products', color: 'from-pink-500 to-rose-500' },
   {
     id: 'transactions',

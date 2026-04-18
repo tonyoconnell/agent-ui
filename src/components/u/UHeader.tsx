@@ -8,20 +8,7 @@
  * - View transitions between pages
  */
 
-import {
-  ArrowLeftRight,
-  ChevronDown,
-  Coins,
-  Download,
-  FileText,
-  Home,
-  Key,
-  Plus,
-  Send,
-  ShoppingBag,
-  Users,
-  Wallet,
-} from 'lucide-react'
+import { ArrowLeftRight, ChevronDown, Download, Home, Key, Plus, Send, ShoppingBag, Users, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ModeToggle } from '@/components/ModeToggle'
 import { Button } from '@/components/ui/button'
@@ -46,8 +33,6 @@ const navItems: NavItem[] = [
   { title: 'Wallets', icon: <Wallet className="w-4 h-4" />, url: '/u/wallets' },
   { title: 'Send', icon: <Send className="w-4 h-4" />, url: '/u/send' },
   { title: 'Receive', icon: <Download className="w-4 h-4" />, url: '/u/receive' },
-  { title: 'Tokens', icon: <Coins className="w-4 h-4" />, url: '/u/tokens' },
-  { title: 'Contracts', icon: <FileText className="w-4 h-4" />, url: '/u/contracts' },
   { title: 'Products', icon: <ShoppingBag className="w-4 h-4" />, url: '/u/products' },
   { title: 'Transactions', icon: <ArrowLeftRight className="w-4 h-4" />, url: '/u/transactions' },
   { title: 'People', icon: <Users className="w-4 h-4" />, url: '/u/people' },

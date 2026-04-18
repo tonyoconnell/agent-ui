@@ -383,11 +383,15 @@ export function UDashboard() {
 
                       {/* Chain Name */}
                       <h3 className="font-semibold text-sm sm:text-base mb-0.5">{chain.name}</h3>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3 hidden sm:block">{chain.description}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3 hidden sm:block">
+                        {chain.description}
+                      </p>
 
                       {/* Status */}
                       {hasWallet ? (
-                        <Badge className="bg-green-500/20 text-green-600 border-green-500/30 text-[10px] sm:text-xs">✓ Created</Badge>
+                        <Badge className="bg-green-500/20 text-green-600 border-green-500/30 text-[10px] sm:text-xs">
+                          ✓ Created
+                        </Badge>
                       ) : (
                         <Badge
                           variant="outline"
@@ -597,8 +601,18 @@ export function UDashboard() {
           <div>
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold">Your Wallets</h3>
-              <Button variant="outline" size="sm" onClick={() => setShowGenerateDialog(true)} className="h-8 sm:h-9 text-xs sm:text-sm">
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGenerateDialog(true)}
+                className="h-8 sm:h-9 text-xs sm:text-sm"
+              >
+                <svg
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 <span className="hidden sm:inline">Add Wallet</span>

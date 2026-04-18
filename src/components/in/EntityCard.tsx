@@ -14,14 +14,14 @@ export function EntityCard({ entity, selected, onClick }: EntityCardProps) {
       onClick={onClick}
       className={cn(
         'group relative w-full rounded-xl border p-4 text-left transition-all',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
         selected
-          ? 'border-emerald-500/40 bg-[#14142a] shadow-[0_0_0_1px_rgba(16,185,129,0.2),0_8px_24px_-12px_rgba(16,185,129,0.3)]'
-          : 'border-[#252538] bg-[#0d0d14] hover:border-[#3a3a52] hover:bg-[#14141e]',
+          ? 'border-primary/40 bg-primary/5 shadow-lg ring-1 ring-primary/20'
+          : 'border-border bg-card hover:border-primary/20 hover:bg-accent/50',
       )}
     >
       {entity.unread && (
-        <span className="absolute right-4 top-4 h-2 w-2 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+        <span className="absolute right-4 top-4 h-2 w-2 animate-pulse rounded-full bg-primary shadow-lg" />
       )}
 
       <div className="mb-1.5 flex items-start justify-between gap-3">
@@ -44,7 +44,7 @@ export function EntityCard({ entity, selected, onClick }: EntityCardProps) {
           {entity.tags.slice(0, 4).map((tag) => (
             <span
               key={tag}
-              className="rounded-full bg-[#161622] px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-[#252538]"
+              className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border"
             >
               {tag}
             </span>

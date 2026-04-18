@@ -5,7 +5,7 @@
  * "Send X USDC on Solana" style messaging.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -52,6 +52,7 @@ export function ReceiveDetailPage({ walletId }: ReceiveDetailPageProps) {
   const [copied, setCopied] = useState(false)
   const [requestAmount, setRequestAmount] = useState('')
   const [showRequest, setShowRequest] = useState(false)
+  const sharingRef = useRef(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('u_wallets')
@@ -71,13 +72,25 @@ export function ReceiveDetailPage({ walletId }: ReceiveDetailPageProps) {
 
   const shareAddress = async () => {
     if (!wallet) return
+    // Web Share API forbids concurrent share() calls — ignore double-taps
+    // while the native sheet is still open.
+    if (sharingRef.current) return
+
     const chain = CHAINS[wallet.chain] || CHAINS.eth
     const text = requestAmount
       ? `Send ${requestAmount} ${chain.symbol} on ${chain.network}\n\nAddress: ${wallet.address}`
       : `Send ${chain.symbol} on ${chain.network}\n\nAddress: ${wallet.address}`
 
     if (navigator.share) {
-      await navigator.share({ title: `Receive ${chain.symbol}`, text })
+      sharingRef.current = true
+      try {
+        await navigator.share({ title: `Receive ${chain.symbol}`, text })
+      } catch (err) {
+        // User-cancelled shares throw AbortError — silent by design.
+        if ((err as DOMException)?.name !== 'AbortError') throw err
+      } finally {
+        sharingRef.current = false
+      }
     } else {
       await navigator.clipboard.writeText(text)
       setCopied(true)

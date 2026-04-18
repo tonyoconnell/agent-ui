@@ -26,9 +26,9 @@ export function EntityDetail({ entity }: EntityDetailProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-b border-[#252538] bg-[#0d0d14] px-6 py-5">
+      <header className="border-b border-border bg-card px-6 py-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-700/10 font-mono text-xs font-semibold text-emerald-300 ring-1 ring-emerald-500/20">
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 font-mono text-xs font-semibold text-primary ring-1 ring-primary/20">
             {entity.code ?? entity.dimension.slice(0, 3).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
@@ -50,7 +50,7 @@ export function EntityDetail({ entity }: EntityDetailProps) {
               {entity.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-[#161622] px-2.5 py-1 text-xs font-medium text-muted-foreground ring-1 ring-[#252538]"
+                  className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border"
                 >
                   #{tag}
                 </span>
@@ -65,7 +65,7 @@ export function EntityDetail({ entity }: EntityDetailProps) {
                 {entity.related.map((id) => (
                   <span
                     key={id}
-                    className="rounded-full bg-emerald-500/5 px-2.5 py-1 font-mono text-[11px] text-emerald-300/80 ring-1 ring-emerald-500/20"
+                    className="rounded-full bg-primary/5 px-2.5 py-1 font-mono text-[11px] text-primary/80 ring-1 ring-primary/20"
                   >
                     {id}
                   </span>
@@ -79,7 +79,7 @@ export function EntityDetail({ entity }: EntityDetailProps) {
               <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Properties
               </h3>
-              <dl className="space-y-1.5 rounded-lg border border-[#252538] bg-[#0d0d14] p-3 text-xs">
+              <dl className="space-y-1.5 rounded-lg border border-border bg-card p-3 text-xs">
                 {Object.entries(entity.properties).map(([k, v]) => (
                   <div key={k} className="flex gap-3">
                     <dt className="w-32 flex-shrink-0 font-medium text-muted-foreground">{k}</dt>
@@ -92,8 +92,8 @@ export function EntityDetail({ entity }: EntityDetailProps) {
         </div>
       </div>
 
-      <footer className="border-t border-[#252538] bg-[#0d0d14]">
-        <div className="flex items-center gap-1 border-b border-[#252538] px-3 py-2">
+      <footer className="border-t border-border bg-card">
+        <div className="flex items-center gap-1 border-b border-border px-3 py-2">
           {[
             { id: 'reply', label: 'Reply', icon: Reply },
             { id: 'share', label: 'Share', icon: Share2 },
@@ -105,7 +105,7 @@ export function EntityDetail({ entity }: EntityDetailProps) {
               key={id}
               type="button"
               onClick={() => emitClick(`ui:in:${id}`, { entityId: entity.id })}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-[#161622] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <Icon className="h-3.5 w-3.5" />
               {label}
@@ -137,12 +137,12 @@ export function EntityDetail({ entity }: EntityDetailProps) {
                 }}
                 rows={1}
                 placeholder={`Reply to ${entity.sender ?? 'conversation'}…`}
-                className="flex-1 resize-none rounded-xl border border-[#252538] bg-[#0a0a0f] px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="flex-1 resize-none rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
               <Button
                 type="submit"
                 disabled={!reply.trim()}
-                className="gap-1.5 rounded-xl bg-emerald-600 px-4 text-black hover:bg-emerald-500"
+                className="gap-1.5 rounded-xl bg-primary px-4 text-primary-foreground hover:bg-primary/90"
               >
                 <Send className="h-3.5 w-3.5" />
                 Send

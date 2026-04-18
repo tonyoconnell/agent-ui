@@ -82,14 +82,14 @@ export function Inbox() {
 
   if (isMobile) {
     return (
-      <div className="flex h-full flex-col bg-[#0a0a0f]">
+      <div className="flex h-full flex-col bg-background">
         <Toaster position="top-right" theme="dark" />
         {mobileView === 'list' ? (
           <>
             <ProfileHeader name="Anthony O'Connell" initial="A" />
             <StatusTabs active={status} counts={statusCounts} onChange={setStatus} />
             <SearchBar value={query} onChange={setQuery} />
-            <div className="flex gap-2 overflow-x-auto border-b border-[#252538] bg-[#0d0d14] px-4 py-3 scrollbar-hide">
+            <div className="flex gap-2 overflow-x-auto border-b border-border bg-card px-4 py-3 scrollbar-hide">
               {nav.map(({ id, label, count }) => (
                 <button
                   key={id}
@@ -98,8 +98,8 @@ export function Inbox() {
                   className={
                     'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ' +
                     (dimension === id
-                      ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30'
-                      : 'bg-[#161622] text-muted-foreground')
+                      ? 'bg-primary/20 text-primary ring-1 ring-primary/30'
+                      : 'bg-muted text-muted-foreground')
                   }
                 >
                   {label}
@@ -120,12 +120,8 @@ export function Inbox() {
           </>
         ) : (
           <>
-            <div className="flex h-12 items-center border-b border-[#252538] bg-[#0d0d14] px-4">
-              <button
-                type="button"
-                onClick={() => setMobileView('list')}
-                className="text-sm font-medium text-emerald-400"
-              >
+            <div className="flex h-12 items-center border-b border-border bg-card px-4">
+              <button type="button" onClick={() => setMobileView('list')} className="text-sm font-medium text-primary">
                 ← Back
               </button>
             </div>
@@ -141,14 +137,11 @@ export function Inbox() {
   return (
     <>
       <Toaster position="top-right" theme="dark" />
-      <div
-        className="grid h-full bg-[#0a0a0f] text-foreground"
-        style={{ gridTemplateColumns: '20% 30% 50%' }}
-      >
-        <aside className="flex flex-col border-r border-[#252538] bg-[#0d0d14]">
+      <div className="grid h-full bg-background text-foreground" style={{ gridTemplateColumns: '20% 30% 50%' }}>
+        <aside className="flex flex-col border-r border-border bg-card">
           <ProfileHeader name="Anthony O'Connell" initial="A" />
           <Navigation items={nav} active={dimension} onChange={setDimension} />
-          <div className="border-t border-[#252538] px-4 py-3">
+          <div className="border-t border-border px-4 py-3">
             <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
               <span>{DATA.meta.name}</span>
               <span className="font-mono">v{DATA.meta.version}</span>
@@ -156,7 +149,7 @@ export function Inbox() {
           </div>
         </aside>
 
-        <section className="flex flex-col border-r border-[#252538]">
+        <section className="flex flex-col border-r border-border">
           <StatusTabs active={status} counts={statusCounts} onChange={setStatus} />
           <SearchBar value={query} onChange={setQuery} />
           <div className="flex-1 overflow-y-auto p-4">
@@ -174,7 +167,7 @@ export function Inbox() {
 
 function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div className="border-b border-[#252538] bg-[#0d0d14] px-5 py-3">
+    <div className="border-b border-border bg-card px-5 py-3">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <input
@@ -184,7 +177,7 @@ function SearchBar({ value, onChange }: { value: string; onChange: (v: string) =
             emitClick('ui:in:search', { query: e.target.value })
           }}
           placeholder="Search inbox…"
-          className="w-full rounded-lg border border-[#252538] bg-[#0a0a0f] pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          className="w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
       </div>
     </div>

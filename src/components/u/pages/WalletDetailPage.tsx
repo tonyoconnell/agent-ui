@@ -364,19 +364,17 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       }
     }
 
-    // Load transactions
+    // Load transactions by walletId only; the second effect re-filters once
+    // wallet state is populated (address-based matches).
     const storedTx = localStorage.getItem('u_transactions')
     if (storedTx) {
       const allTx: Transaction[] = JSON.parse(storedTx)
-      // Filter transactions for this wallet
-      const walletTx = allTx.filter(
-        (tx) => tx.walletId === walletId || (wallet && (tx.from === wallet.address || tx.to === wallet.address)),
-      )
+      const walletTx = allTx.filter((tx) => tx.walletId === walletId)
       setTransactions(walletTx)
     }
 
     setLoading(false)
-  }, [walletId, wallet.address, wallet])
+  }, [walletId])
 
   // Re-filter transactions when wallet is loaded
   useEffect(() => {

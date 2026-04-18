@@ -1,4 +1,13 @@
-import { ConnectButton, useCurrentAccount } from '@mysten/dapp-kit'
+import {
+  ConnectButton,
+  createNetworkConfig,
+  SuiClientProvider,
+  useCurrentAccount,
+  WalletProvider,
+} from '@mysten/dapp-kit'
+import '@mysten/dapp-kit/dist/index.css'
+import { getFullnodeUrl } from '@mysten/sui/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, useTransition } from 'react'
 import { emitClick } from '@/lib/ui-signal'
 
@@ -13,7 +22,14 @@ type PayState = 'connect' | 'review' | 'paying' | 'done' | 'error'
 
 const PLATFORM_FEE = 0.02
 
-export function PayPage({ skillId, skillName, price, seller }: Props) {
+// Stable network config — referenced by identity in SuiClientProvider, so
+// it must be module-level (not re-created on every render).
+const { networkConfig } = createNetworkConfig({
+  testnet: { url: getFullnodeUrl('testnet') },
+  mainnet: { url: getFullnodeUrl('mainnet') },
+})
+
+function PayPageContent({ skillId, skillName, price, seller }: Props) {
   const account = useCurrentAccount()
   const [state, setState] = useState<PayState>('connect')
   const [receipt, setReceipt] = useState<{ digest: string; escrowId: string } | null>(null)
@@ -155,5 +171,21 @@ export function PayPage({ skillId, skillName, price, seller }: Props) {
         </button>
       </div>
     </div>
+  )
+}
+
+export function PayPage(props: Props) {
+  // Lazy QueryClient so the instance is stable across re-renders but not
+  // shared between component trees (each PayPage mount gets its own).
+  const [queryClient] = useState(() => new QueryClient())
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
+        <WalletProvider autoConnect>
+          <PayPageContent {...props} />
+        </WalletProvider>
+      </SuiClientProvider>
+    </QueryClientProvider>
   )
 }
