@@ -256,3 +256,26 @@ export const cerebras =
       ChatCompletion,
       (r) => r.choices[0].message.content,
     )
+
+// ASI-1 Mini — first Web3-native LLM from ASI Alliance (Fetch.ai + SingularityNET + Ocean)
+// Optimized for agentic workflows. Get key at asi1.ai → set ASI1_API_KEY in .env
+export const asi1 =
+  (apiKey: string, model = 'asi1-mini'): Complete =>
+  (prompt, ctx) =>
+    callLLM(
+      'asi1',
+      'https://api.asi1.ai/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [
+            ...(ctx?.system ? [{ role: 'system', content: ctx.system }] : []),
+            { role: 'user', content: prompt },
+          ],
+        }),
+      },
+      ChatCompletion,
+      (r) => r.choices[0].message.content,
+    )

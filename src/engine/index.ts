@@ -19,7 +19,7 @@ export {
 export type { BrandContext, BrandTokens, Mode } from './brand'
 export { brandPalette, injectBrand, invalidateBrandCache, purpleBrand, renderBrand, resolveBrand } from './brand'
 export { brandKey, emitBrandApplied } from './brand-signals'
-export { anthropic, llm, openai } from './llm'
+export { anthropic, asi1, cerebras, llm, openai, openrouter } from './llm'
 export { md, parse } from './md'
 export type { Insight, MemoryCard, PersistentWorld, TaskMatch } from './persist'
 export { isToxic, world } from './persist'
@@ -29,6 +29,9 @@ export { unit, world as createWorld } from './world'
 // DocItem, VerifiedItem — import directly from "./doc-scan" (uses Node.js APIs)
 
 export { agentverse } from './agentverse'
+export { bridgeAgentverse } from './agentverse-bridge'
+export type { AgentverseConfig } from './agentverse-connect'
+export { connectAgentverse } from './agentverse-connect'
 export { boot } from './boot'
 // Bridge — three systems, one truth
 export { absorb, mirrorActor, mirrorMark, mirrorWarn, resolve, resolvePath } from './bridge'

@@ -6,6 +6,7 @@
 
 import { readParsed } from '@/lib/typedb'
 import { pheromoneWeight, setAuditPheromone } from './adl-cache'
+import { connectAgentverse } from './agentverse-connect'
 import { registerBridges } from './bridges'
 import { registerBuilder } from './builder'
 import { tick } from './loop'
@@ -40,6 +41,14 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
 
   // Register pay unit (Sui-native USDC commerce, L4 Marketplace)
   registerPayUnit(w)
+
+  // Bridge Agentverse — 2M agents routable as 'av:*' receivers
+  // Pheromone in THIS world tracks which AV agents are reliable.
+  // No-op when AGENTVERSE_API_KEY is unset; failures are silent (warn via dissolved).
+  const av = await connectAgentverse(w).catch((err) => {
+    console.warn('[boot] Agentverse connect failed:', err instanceof Error ? err.message : err)
+    return null
+  })
 
   // Register loop:feedback — the return-path signal.
   // After every W4 verify pass (or /close success), agents emit:
@@ -94,6 +103,7 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
 
   return {
     world: w,
+    agentverse: av, // null if AGENTVERSE_API_KEY not set
     signal: (s: Signal) => w.signal(s),
     ask: (s: Signal) => w.ask(s),
     enqueue: (s: Signal) => w.enqueue(s),
