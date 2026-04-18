@@ -180,7 +180,7 @@ bun wrangler pages deployment list --project-name=one-substrate | head -10
 - Always `CLOUDFLARE_API_KEY` (Global) — scoped tokens lack permissions
 - Pages `import.meta.env` is build-time — gateway URL baked at build
 - Custom domains: `[[routes]]` double bracket, no wildcards, add `workers_dev = true`
-- Worker bundle limit: 3 MiB free / 10 MiB paid — use `export const prerender = true` on static pages
+- Worker bundle limit: ~10 MiB uncompressed (free tier) — Astro worker is at 9.5 MiB. Use `export const prerender = true` + `client:only="react"` + `ssr.external` rules in CLAUDE.md
 
 ## Reference
 
