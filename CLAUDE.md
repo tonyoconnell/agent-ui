@@ -613,6 +613,11 @@ import { Card } from "@/components/ui/card"
 
 **One script. Same code path locally and in CI. `wrangler` CLI direct + async parallel workers.**
 
+> **Migration in progress (2026-04-18):** Astro 5 + CF Pages → Astro 6 + CF Workers
+> with Static Assets. Cycles 1-2 shipped on `feature/cf-workers-migration-c1-c2`;
+> Cycle 3 (custom-domain cutover, Pages project archive) needs CF dashboard work.
+> See [docs/TODO-cf-workers-migration.md](docs/TODO-cf-workers-migration.md).
+
 ### Deploy
 ```bash
 bun run deploy              # full pipeline, prompts "yes" on main
@@ -638,14 +643,15 @@ Required secrets: `CLOUDFLARE_GLOBAL_API_KEY`, `CLOUDFLARE_EMAIL`, `CLOUDFLARE_A
 4. Credentials — auto-enforce Global API Key, unset `CLOUDFLARE_API_TOKEN`
 5. Smoke — verify dist/ + 3 wrangler.toml
 6. Approval — `main` prompts "yes"; other branches auto
-7. Deploy — Gateway + Sync + NanoClaw **parallel** (24s), then Pages (16s)
+7. Deploy — Gateway + Sync + NanoClaw **parallel** (24s), then Astro Worker (~16s)
 8. Health — 3 retries with backoff + record to substrate via `/api/signal`
 
-**Verified speed (2026-04-15):** 74.9s total.
+**Verified speed (2026-04-15, pre-migration):** 74.9s total.
 Workers parallel 16.7s (vs ~42s sequential — 2.5× speedup) • Pages 29.6s • health 4/4 in 287-666ms.
-Preview URL captured inline: `📎 https://<hash>.one-substrate.pages.dev`.
+Preview URL format: pre-migration `📎 https://<hash>.one-substrate.pages.dev`;
+post-migration `📎 https://one-substrate.<account>.workers.dev` (regex matches both during the transition).
 
-**CF Pages bundle size — LOCKED rules (do not revert):**
+**CF bundle size — LOCKED rules (do not revert, apply to Pages AND Workers):**
 Three rules keep the SSR worker under the CF free-tier limit (~10 MiB uncompressed):
 1. `markdown: { syntaxHighlight: false }` — kills ~5.8 MiB of Shiki grammars from worker
 2. `ssr.external: ["shiki", "@mysten/sui", "@mysten/bcs", "node:async_hooks"]` — bare import references without inlining; safe only when the package is never called server-side (`shiki` callers are all `client:only`)
@@ -660,7 +666,7 @@ Verified 2026-04-15: 21 MiB → 9.5 MiB. Pages: FAILED → ✓. Full diagnosis: 
 
 | Service | URL |
 |---------|-----|
-| Pages | https://one-substrate.pages.dev |
+| Astro Worker | https://one-substrate.pages.dev (Pages-era URL; Cycle 3 cutover moves origin to Workers, URL preserved via CF) |
 | Gateway | https://api.one.ie/health |
 | Sync | https://one-sync.oneie.workers.dev |
 | NanoClaw | https://nanoclaw.oneie.workers.dev/health |
