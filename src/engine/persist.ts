@@ -747,17 +747,25 @@ export const world = (): PersistentWorld => {
       return { dissolved: true }
     }
 
-    // PEP-3: capability check
+    // PEP-3: capability check — skip if the unit has the task handler
+    // registered in-memory. The handler IS the capability; a runtime route
+    // like `ceo:route` or `marketing-cmo:respond` is wired via chairman-chain
+    // and won't have a corresponding TypeDB skill entry. Only check TypeDB
+    // for externally-declared capabilities where no handler is wired.
     const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
     const skill = s.receiver.includes(':') ? s.receiver.split(':')[1] : null
     if (skill) {
-      const ok = await readParsed(
-        `match $u isa unit, has uid "${uid}"; $sk isa skill, has skill-id "${skill}";
-         (provider: $u, offered: $sk) isa capability; select $u;`,
-      ).catch(() => [])
-      if (!ok.length) {
-        emitSecurityEvent({ kind: 'capability-missing', receiver: uid })
-        return { dissolved: true }
+      const localUnit = net.get(uid)
+      const hasLocalHandler = localUnit?.has(skill) || localUnit?.has('default')
+      if (!hasLocalHandler) {
+        const ok = await readParsed(
+          `match $u isa unit, has uid "${uid}"; $sk isa skill, has skill-id "${skill}";
+           (provider: $u, offered: $sk) isa capability; select $u;`,
+        ).catch(() => [])
+        if (!ok.length) {
+          emitSecurityEvent({ kind: 'capability-missing', receiver: uid })
+          return { dissolved: true }
+        }
       }
     }
 

@@ -33,8 +33,11 @@ export const prerender = false
 
 const ASK_TIMEOUT_MS = 30_000
 
-// Module-level flag so wireChairmanChain runs exactly once per isolate.
-let chainWired = false
+// Module-level flag so loadChainEdges runs at most once per isolate.
+// wireChairmanChain runs every request — it's idempotent (guards with
+// `!u.has(...)`) and cheap. Running it per-request defends against HMR or
+// singleton resets that lose the handler registrations.
+let edgesLoaded = false
 
 /**
  * Narrow, anchored edge loader. The general load() query in persist.ts scans
@@ -93,16 +96,17 @@ async function loadChainEdges(net: PersistentWorld): Promise<void> {
   }
 }
 
-/** Wire the chain against the singleton world on first use. Idempotent. */
+/**
+ * Per-request chain setup. `loadChainEdges` is one-shot (TypeDB is slow).
+ * `wireChairmanChain` runs every request because its guards (`!u.has`) make
+ * it idempotent and cheap, and this protects against HMR-induced loss of
+ * handler registrations on the shared singleton net.
+ */
 async function ensureChain(net: PersistentWorld): Promise<void> {
-  if (chainWired) return
-  chainWired = true
-  // Load edges anchored on chairman/ceo/directors so pickRoute has data
-  // even when the global load() timed out against a large path table.
-  await loadChainEdges(net)
-  // Wire routing units (ceo + marketing-director) but do NOT register default
-  // specialist leaves here — the endpoint registers per-session leaves below
-  // so each request streams to its own SSE writer.
+  if (!edgesLoaded) {
+    edgesLoaded = true
+    await loadChainEdges(net)
+  }
   wireChairmanChain(net, { registerSpecialists: false })
 }
 
@@ -116,6 +120,7 @@ async function ensureChain(net: PersistentWorld): Promise<void> {
 function wireSessionLeaves(
   net: PersistentWorld,
   onDelta: (uid: string, text: string) => void,
+  onStart: (uid: string, chain: string[]) => void,
   complete?: Parameters<typeof leafHandler>[0]['complete'],
 ): void {
   // Dynamic discovery: every unit that is a target of some pheromone edge
@@ -147,6 +152,7 @@ function wireSessionLeaves(
         uid,
         ...(systemPrompt ? { systemPrompt } : {}),
         onDelta: (tok) => onDelta(uid, tok),
+        onStart: (leafUid, chain) => onStart(leafUid, chain),
         ...(complete ? { complete } : {}),
       }),
     )
@@ -228,25 +234,29 @@ export const POST: APIRoute = async ({ request }) => {
         let specialistUid: string | null = null
         const tRouteStart = performance.now()
 
-        // Wire leaves: onDelta fires as the LLM streams. We also use the
-        // first token as the breadcrumb trigger — by then the chain is
-        // locked in (the leaf received the signal, so all hops happened).
-        wireSessionLeaves(net, (uid, tok) => {
-          if (!breadcrumbEmitted) {
+        // Wire leaves. `onStart` fires once when the leaf receives the signal,
+        // with the full chain (chairman + every router hop + leaf uid). That's
+        // the authoritative breadcrumb — streams tokens follow via `onDelta`.
+        wireSessionLeaves(
+          net,
+          (uid, tok) => {
+            emit('delta', { text: tok })
+            deltaEmitted = true
+          },
+          (uid, chain) => {
+            if (breadcrumbEmitted) return
             specialistUid = uid
             const routeMs = performance.now() - tRouteStart
-            // Chain reflects actual hops reached. CEO self-fallback stops at ceo;
-            // everything else reached through the CEO + a director to the leaf.
-            const chain = uid === 'ceo' ? ['chairman', 'ceo'] : Array.from(new Set(['chairman', 'ceo', uid]))
             emit('breadcrumb', {
               chain,
-              latencyMs: { classify: Math.round(classifyMs * 100) / 100, route: Math.round(routeMs * 100) / 100 },
+              latencyMs: {
+                classify: Math.round(classifyMs * 100) / 100,
+                route: Math.round(routeMs * 100) / 100,
+              },
             })
             breadcrumbEmitted = true
-          }
-          emit('delta', { text: tok })
-          deltaEmitted = true
-        })
+          },
+        )
 
         // The ask: signal ceo:route, resolve when leaf returns or dissolves.
         const outcome = await net.ask(
