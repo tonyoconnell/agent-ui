@@ -29,11 +29,14 @@ export const GET: APIRoute = async ({ url }) => {
     // split the work: find matching skills first, fetch ALL cap pairs
     // unfiltered, intersect in JS (~1500 rows), then bulk-fetch unit attrs.
     const needle = skillParam.toLowerCase()
+    // Stage 0: find matching skills by name. Read price from the skill
+    // entity directly — we skip reading price off the capability relation
+    // because that projection hangs TypeDB 3.x's planner when joined.
     const skillRows = await readParsed(`
       match
-        $s isa skill, has name $sn, has skill-id $sid;
+        $s isa skill, has name $sn, has skill-id $sid, has price $sp;
         $sn contains "${needle}";
-      select $sid, $sn;
+      select $sid, $sn, $sp;
       limit ${limit * 5};
     `).catch(() => [])
 
@@ -45,19 +48,22 @@ export const GET: APIRoute = async ({ url }) => {
 
     const wantedSkillIds = new Set(skillRows.map((r) => r.sid as string).filter(Boolean))
     const skillNameById: Record<string, string> = {}
+    const skillPriceById: Record<string, number> = {}
     for (const r of skillRows) {
       if (r.sid && r.sn) skillNameById[r.sid as string] = r.sn as string
+      if (r.sid) skillPriceById[r.sid as string] = (r.sp as number) || 0
     }
 
-    // Stage 1: unfiltered capability pairs — this shape completes fast
-    // (~500ms for ~1.5k rows) because the planner uses relation+role-key
-    // indices and skips the scan explosion caused by `$sn contains`.
+    // Stage 1: unfiltered capability pairs, KEY ATTRS ONLY.
+    // Adding `has price $p` to this query tips the planner over (30s+).
+    // Capability price is almost always == skill price, so read it from
+    // stage 0 instead and leave this query on its fast path.
     const pairRows = await readParsed(`
       match
-        (provider: $u, offered: $s) isa capability, has price $p;
+        (provider: $u, offered: $s) isa capability;
         $u has uid $uid;
         $s has skill-id $sid;
-      select $uid, $sid, $p;
+      select $uid, $sid;
     `).catch(() => [])
 
     const pairs = pairRows.filter((r) => r.sid && wantedSkillIds.has(r.sid as string)).slice(0, limit)
@@ -90,7 +96,7 @@ export const GET: APIRoute = async ({ url }) => {
       uid: p.uid,
       sid: p.sid,
       sn: skillNameById[p.sid as string] || p.sid,
-      p: p.p,
+      p: skillPriceById[p.sid as string] ?? 0,
       ...(unitByUid[p.uid as string] || {
         n: p.uid,
         k: 'agent',
