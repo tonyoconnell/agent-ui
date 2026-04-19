@@ -1,7 +1,7 @@
 /**
  * POST /api/me/groups/:gid/invite — caller must be chairman or ceo of gid.
  * Body: { uid: string, role?: string }
- * Inserts (member: $target, group: $g) isa membership, has role '<role>'. Idempotent.
+ * Inserts (member: $target, group: $g) isa membership, has member-role '<role>'. Idempotent.
  */
 import type { APIRoute } from 'astro'
 import { resolveUnitFromSession } from '@/lib/api-auth'
@@ -46,7 +46,7 @@ export const POST: APIRoute = async ({ request, params }) => {
       match
         $caller isa unit, has uid "${safeCaller}";
         $g isa group, has group-id "${safeGid}";
-        (member: $caller, group: $g) isa membership, has role $r;
+        (member: $caller, group: $g) isa membership, has member-role $r;
       select $r;
     `)
 
@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request, params }) => {
       match
         $t isa unit, has uid "${safeTarget}";
         $g isa group, has group-id "${safeGid}";
-        (member: $t, group: $g) isa membership, has role $r;
+        (member: $t, group: $g) isa membership, has member-role $r;
       select $r;
     `)
 
@@ -85,15 +85,15 @@ export const POST: APIRoute = async ({ request, params }) => {
         match
           $t isa unit, has uid "${safeTarget}";
           $g isa group, has group-id "${safeGid}";
-          $m (member: $t, group: $g) isa membership, has role $old;
+          $m (member: $t, group: $g) isa membership, has member-role $old;
         delete $old of $m;
-        insert $m has role "${safeRole}";
+        insert $m has member-role "${safeRole}";
       `).catch(() =>
         writeSilent(`
           match
             $t isa unit, has uid "${safeTarget}";
             $g isa group, has group-id "${safeGid}";
-          insert (member: $t, group: $g) isa membership, has role "${safeRole}";
+          insert (member: $t, group: $g) isa membership, has member-role "${safeRole}";
         `),
       )
 
@@ -105,7 +105,7 @@ export const POST: APIRoute = async ({ request, params }) => {
       match
         $t isa unit, has uid "${safeTarget}";
         $g isa group, has group-id "${safeGid}";
-      insert (member: $t, group: $g) isa membership, has role "${safeRole}";
+      insert (member: $t, group: $g) isa membership, has member-role "${safeRole}";
     `)
 
     return Response.json({ ok: true, uid, role, already_member: false })

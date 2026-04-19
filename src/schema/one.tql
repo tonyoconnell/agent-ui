@@ -132,7 +132,7 @@ relation capability,
 relation membership,
     relates group,
     relates member,
-    owns role;                        # chairman/board/ceo/operator/agent/auditor
+    owns member-role;                 # chairman/board/ceo/operator/agent/auditor (renamed from `role`: reserved keyword in TypeDB 3.x)
 
 # 5. EVENTS — what happened
 relation signal,
@@ -219,8 +219,8 @@ attribute started-at, value datetime;
 attribute closed-at, value datetime;
 attribute verified-at, value datetime;
 
-# GOVERNANCE — role, identity, scope (locked 2026-04-18)
-attribute role, value string;             # chairman/board/ceo/operator/agent/auditor
+# GOVERNANCE — member-role, identity, scope (locked 2026-04-18)
+attribute member-role, value string;      # chairman/board/ceo/operator/agent/auditor (renamed from `role`: reserved in TypeDB 3.x queries)
 attribute wallet, value string;           # Sui address (0x...)
 attribute auth-hash, value string;        # bcrypt hash of API key
 attribute scope, value string;            # private/group/public
@@ -266,7 +266,7 @@ attribute escrow-refund-amount, value double;
 # 6 dimensions. 5 entities. 9 relations. 67 attributes. ONE.
 # v2.0: `thing` now absorbs plan/cycle/task/skill (via thing-type).
 # `task` entity deprecated; kept for two cycles. See one/task.md.
-# Governance layer locked: role on membership, wallet+auth-hash on actor,
+# Governance layer locked: member-role on membership, wallet+auth-hash on actor,
 # scope on path+hypothesis. Permission = Role × Pheromone.
 # Escrow layer: sui-escrow-id on escrow, status tracking for settlement audit.
 # =============================================================================

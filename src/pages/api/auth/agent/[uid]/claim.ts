@@ -74,7 +74,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     match
       $g isa group, has gid "${esc(ownershipGroup)}";
       $u isa unit, has uid "${esc(humanUid)}";
-      (member: $u, group: $g) isa membership, has role "chairman";
+      (member: $u, group: $g) isa membership, has member-role "chairman";
     select $g;
   `).catch(() => [])
 
@@ -105,7 +105,7 @@ export const POST: APIRoute = async ({ request, params }) => {
       $g isa group, has gid "${esc(ownershipGroup)}";
       $agent isa unit, has uid "${esc(uid)}";
     insert
-      (group: $g, member: $agent) isa membership, has role "agent";
+      (group: $g, member: $agent) isa membership, has member-role "agent";
   `).catch(() => {
     /* already exists */
   })
@@ -115,7 +115,7 @@ export const POST: APIRoute = async ({ request, params }) => {
       $g isa group, has gid "${esc(ownershipGroup)}";
       $human isa unit, has uid "${esc(humanUid)}";
     insert
-      (group: $g, member: $human) isa membership, has role "chairman";
+      (group: $g, member: $human) isa membership, has member-role "chairman";
   `).catch(() => {
     /* already exists */
   })

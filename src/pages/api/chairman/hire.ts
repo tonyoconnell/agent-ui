@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request }) => {
     await writeSilent(`
       match $g isa group, has gid "${groupId}";
             $u isa unit, has uid "${owner}";
-      insert (group: $g, member: $u) isa membership, has role "chairman";
+      insert (group: $g, member: $u) isa membership, has member-role "chairman";
     `).catch(() => {})
   }
 

@@ -28,10 +28,10 @@ export const GET: APIRoute = async ({ request }) => {
     const membershipRows = await readParsed(`
       match
         $u isa unit, has uid "${esc(ctx.user)}";
-        (member: $u, group: $g) isa membership, has role $r;
+        (member: $u, group: $g) isa membership, has member-role $r;
         $g has name $gn;
         select $gn, $r;
-    `)
+    `).catch(() => [])
 
     const authGroups = membershipRows
       .filter((row) => row.r === 'chairman' || row.r === 'ceo')
@@ -57,10 +57,10 @@ export const GET: APIRoute = async ({ request }) => {
           memberRows = await readParsed(`
             match
               $g isa unit, has uid "${esc(groupName)}";
-              (member: $a, group: $g) isa membership, has role $role;
+              (member: $a, group: $g) isa membership, has member-role $mrole;
               $a has uid $uid, has name $name;
               not { $a has uid "${esc(ctx.user)}"; };
-              select $uid, $name, $role;
+              select $uid, $name, $mrole;
           `)
         } catch {
           // Fallback: group is a separate group entity with name
@@ -68,10 +68,10 @@ export const GET: APIRoute = async ({ request }) => {
             memberRows = await readParsed(`
               match
                 $g isa group, has name "${esc(groupName)}";
-                (member: $a, group: $g) isa membership, has role $role;
+                (member: $a, group: $g) isa membership, has member-role $mrole;
                 $a has uid $uid, has name $name;
                 not { $a has uid "${esc(ctx.user)}"; };
-                select $uid, $name, $role;
+                select $uid, $name, $mrole;
             `)
           } catch {
             /* group not found — skip */
@@ -84,7 +84,7 @@ export const GET: APIRoute = async ({ request }) => {
           seen.set(uid, {
             uid,
             name: row.name as string,
-            role: row.role as string,
+            role: row.mrole as string,
             wallet: null,
             status: null,
           })

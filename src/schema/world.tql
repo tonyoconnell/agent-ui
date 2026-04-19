@@ -203,7 +203,7 @@ relation membership,
     relates group,
     relates member,
     owns joined-at,
-    owns role;                    # chairman/board/ceo/operator/agent/auditor
+    owns member-role;             # chairman/board/ceo/operator/agent/auditor (renamed from `role`: reserved keyword in TypeDB 3.x)
 
 
 # =============================================================================
@@ -412,7 +412,7 @@ attribute source, value string;           # hypothesis: "observed" | "asserted" 
 attribute scope, value string;            # signal/path/hypothesis: "private" | "group" | "public"
 attribute wallet, value string;
 attribute auth-hash, value string;        # bcrypt hash of API key (never raw)
-attribute role, value string;             # chairman/board/ceo/operator/agent/auditor
+attribute member-role, value string;      # chairman/board/ceo/operator/agent/auditor (renamed from `role`: reserved in TypeDB 3.x queries)
 attribute sui-unit-id, value string;
 attribute sui-path-id, value string;
 attribute sui-highway-id, value string;

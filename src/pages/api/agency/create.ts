@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
     await writeSilent(`
       match $g isa group, has group-id "${groupId}";
       insert $u isa actor, has aid "${ownerId}", has name "owner";
-      (member: $u, group: $g) isa membership, has role "owner";
+      (member: $u, group: $g) isa membership, has member-role "owner";
     `).catch(() => {
       // Actor may already exist — try membership insert only
     })

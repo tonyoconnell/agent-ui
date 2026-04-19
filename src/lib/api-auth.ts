@@ -207,7 +207,7 @@ export async function getRoleForUser(uid: string): Promise<string | undefined> {
   try {
     const rows = await readParsed(
       `match $u isa unit, has uid "${safeUid}";
-       (member: $u, group: $g) isa membership, has role $r;
+       (member: $u, group: $g) isa membership, has member-role $r;
        select $r; limit 1;`,
     )
     return rows[0]?.r as string | undefined
@@ -325,7 +325,7 @@ export async function resolveUnitFromSession(request: Request): Promise<AuthCont
       match
         $u isa unit, has uid "${esc(uid)}";
         $g isa group, has gid "${esc(ownershipGroup)}";
-        (member: $u, group: $g) isa membership, has role $r;
+        (member: $u, group: $g) isa membership, has member-role $r;
         select $r;
     `).catch(() => [])
     const isChairman = (membershipRows as Array<{ r: string }>).some((row) => row.r === 'chairman')
