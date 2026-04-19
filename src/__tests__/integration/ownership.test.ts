@@ -33,9 +33,9 @@ type ClaimResult =
 function claimTask(tid: string, sessionId: string): ClaimResult {
   const task = store.getTask(tid)
   if (!task) return { ok: false, status: 404, reason: 'not_found' }
-  if (task.status !== 'todo') return { ok: false, status: 422, reason: 'not_todo' }
+  if (task.task_status !== 'open') return { ok: false, status: 422, reason: 'not_todo' }
 
-  store.updateTask(tid, { status: 'active' })
+  store.updateTask(tid, { task_status: 'picked' })
   ownerRegistry.set(tid, { owner: sessionId, claimedAt: new Date().toISOString() })
   return { ok: true, status: 200 }
 }
@@ -50,7 +50,7 @@ function releaseTask(tid: string, sessionId: string): ReleaseResult {
   if (!claim) return { ok: false, status: 404, reason: 'not_found' }
   if (claim.owner !== sessionId) return { ok: false, status: 403, reason: 'wrong_session' }
 
-  store.updateTask(tid, { status: 'todo' })
+  store.updateTask(tid, { task_status: 'open' })
   ownerRegistry.delete(tid)
   return { ok: true, status: 200 }
 }
@@ -66,7 +66,7 @@ function completeTask(tid: string, sessionId: string): CompleteResult {
   if (claim.owner !== sessionId) return { ok: false, status: 403, reason: 'wrong_session' }
 
   store.markPheromone(tid, 'trail', 5.0)
-  store.updateTask(tid, { status: 'complete' })
+  store.updateTask(tid, { task_status: 'verified' })
   store.cascadeUnblock(tid)
   ownerRegistry.delete(tid)
   return { ok: true, status: 200 }
@@ -76,16 +76,13 @@ function makeTask(tid: string, name: string) {
   store.createTask({
     tid,
     name,
-    status: 'todo',
-    priority: 'P1',
-    phase: 'C3',
-    value: 'high',
-    persona: 'agent',
+    task_status: 'open',
+    task_priority: 0.75,
     tags: ['test', 'ownership'],
-    blockedBy: [],
+    blocked_by: [],
     blocks: [],
-    trailPheromone: 0,
-    alarmPheromone: 0,
+    strength: 0,
+    resistance: 0,
   })
 }
 
@@ -107,7 +104,7 @@ describe('ownership: only the claiming session can release or complete a task', 
 
   it('task starts with no owner', () => {
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.status).toBe('todo')
+    expect(store.getTask(TID)?.task_status).toBe('open')
   })
 
   it('session-A claims task and becomes owner', () => {
@@ -115,7 +112,7 @@ describe('ownership: only the claiming session can release or complete a task', 
     expect(res.ok).toBe(true)
     expect(res.status).toBe(200)
     expect(ownerRegistry.get(TID)?.owner).toBe(SESSION_A)
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
   })
 
   it('session-B gets 403 when trying to release session-A task', () => {
@@ -129,7 +126,7 @@ describe('ownership: only the claiming session can release or complete a task', 
     }
 
     // Task still active, owner unchanged
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
     expect(ownerRegistry.get(TID)?.owner).toBe(SESSION_A)
   })
 
@@ -140,8 +137,8 @@ describe('ownership: only the claiming session can release or complete a task', 
     expect(res.ok).toBe(true)
     expect(res.status).toBe(200)
 
-    // Task back to todo, owner cleared
-    expect(store.getTask(TID)?.status).toBe('todo')
+    // Task back to open, owner cleared
+    expect(store.getTask(TID)?.task_status).toBe('open')
     expect(ownerRegistry.has(TID)).toBe(false)
   })
 
@@ -166,9 +163,9 @@ describe('ownership: only the claiming session can release or complete a task', 
     }
 
     // Task still active, not completed
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
     expect(ownerRegistry.get(TID)?.owner).toBe(SESSION_A)
-    expect(store.getTask(TID)?.trailPheromone).toBe(0)
+    expect(store.getTask(TID)?.strength).toBe(0)
   })
 
   it('session-A completes its own task successfully', () => {
@@ -178,9 +175,9 @@ describe('ownership: only the claiming session can release or complete a task', 
     expect(res.ok).toBe(true)
     expect(res.status).toBe(200)
 
-    expect(store.getTask(TID)?.status).toBe('complete')
+    expect(store.getTask(TID)?.task_status).toBe('verified')
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.trailPheromone).toBeGreaterThan(0)
+    expect(store.getTask(TID)?.strength).toBeGreaterThan(0)
   })
 
   it('unclaimed task returns 404 on release attempt', () => {
@@ -219,7 +216,7 @@ describe('ownership: only the claiming session can release or complete a task', 
     // A releases
     const release = releaseTask(TID, SESSION_A)
     expect(release.ok).toBe(true)
-    expect(store.getTask(TID)?.status).toBe('todo')
+    expect(store.getTask(TID)?.task_status).toBe('open')
 
     // B claims
     const bClaim = claimTask(TID, SESSION_B)
@@ -229,7 +226,7 @@ describe('ownership: only the claiming session can release or complete a task', 
     // B completes
     const bComplete = completeTask(TID, SESSION_B)
     expect(bComplete.ok).toBe(true)
-    expect(store.getTask(TID)?.status).toBe('complete')
+    expect(store.getTask(TID)?.task_status).toBe('verified')
     expect(ownerRegistry.has(TID)).toBe(false)
   })
 })

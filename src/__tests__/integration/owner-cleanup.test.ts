@@ -25,8 +25,8 @@ const ownerRegistry = new Map<string, { owner: string; claimedAt: string }>()
 
 function claimTask(tid: string, sessionId: string): boolean {
   const task = store.getTask(tid)
-  if (!task || task.status !== 'todo') return false
-  store.updateTask(tid, { status: 'active' })
+  if (!task || task.task_status !== 'open') return false
+  store.updateTask(tid, { task_status: 'picked' })
   ownerRegistry.set(tid, { owner: sessionId, claimedAt: new Date().toISOString() })
   return true
 }
@@ -34,10 +34,10 @@ function claimTask(tid: string, sessionId: string): boolean {
 function completeTask(tid: string, failed = false): void {
   if (failed) {
     store.markPheromone(tid, 'alarm', 8.0)
-    store.updateTask(tid, { status: 'failed' })
+    store.updateTask(tid, { task_status: 'failed' })
   } else {
     store.markPheromone(tid, 'trail', 5.0)
-    store.updateTask(tid, { status: 'complete' })
+    store.updateTask(tid, { task_status: 'verified' })
     store.cascadeUnblock(tid)
   }
   // Simulate TypeDB writeSilent clearing owner + claimed-at
@@ -48,16 +48,13 @@ function makeTask(tid: string, name: string) {
   store.createTask({
     tid,
     name,
-    status: 'todo',
-    priority: 'P1',
-    phase: 'C2',
-    value: 'high',
-    persona: 'agent',
+    task_status: 'open',
+    task_priority: 0.75,
     tags: ['test', 'owner-cleanup'],
-    blockedBy: [],
+    blocked_by: [],
     blocks: [],
-    trailPheromone: 0,
-    alarmPheromone: 0,
+    strength: 0,
+    resistance: 0,
   })
 }
 
@@ -81,15 +78,15 @@ describe('owner-cleanup: owner attribute removed on complete', () => {
     const claimed = claimTask(TID, SESSION)
     expect(claimed).toBe(true)
     expect(ownerRegistry.has(TID)).toBe(true)
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
 
     // Complete the task (claimed → done)
     completeTask(TID, false)
 
     // Owner and claimed-at must be removed
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.status).toBe('complete')
-    expect(store.getTask(TID)?.trailPheromone).toBeGreaterThan(0)
+    expect(store.getTask(TID)?.task_status).toBe('verified')
+    expect(store.getTask(TID)?.strength).toBeGreaterThan(0)
   })
 
   it('complete unclaimed task → no-op on owner', () => {
@@ -101,8 +98,8 @@ describe('owner-cleanup: owner attribute removed on complete', () => {
 
     // Owner remains absent (no-op)
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.status).toBe('complete')
-    expect(store.getTask(TID)?.trailPheromone).toBeGreaterThan(0)
+    expect(store.getTask(TID)?.task_status).toBe('verified')
+    expect(store.getTask(TID)?.strength).toBeGreaterThan(0)
   })
 
   it('complete twice → idempotent (second delete is no-op)', () => {
@@ -111,16 +108,16 @@ describe('owner-cleanup: owner attribute removed on complete', () => {
     completeTask(TID, false)
 
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.status).toBe('complete')
+    expect(store.getTask(TID)?.task_status).toBe('verified')
 
-    const trailAfterFirst = store.getTask(TID)?.trailPheromone ?? 0
+    const trailAfterFirst = store.getTask(TID)?.strength ?? 0
 
     // Complete again (idempotent)
     completeTask(TID, false)
 
     // Still complete, no owner, pheromone incremented again
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.status).toBe('complete')
-    expect(store.getTask(TID)?.trailPheromone).toBeGreaterThan(trailAfterFirst)
+    expect(store.getTask(TID)?.task_status).toBe('verified')
+    expect(store.getTask(TID)?.strength).toBeGreaterThan(trailAfterFirst)
   })
 })

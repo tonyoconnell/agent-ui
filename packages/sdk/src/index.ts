@@ -8,4 +8,7 @@ export type { LaunchOpts, LaunchResult } from "./launch.js";
 export { SubstrateClient } from "./client.js";
 export { emit as telemetryEmit, isDisabled as isTelemetryDisabled, sessionId } from "./telemetry.js";
 
+export * from "./errors.js";
+export * from "./schemas.js";
+
 export const SDK_VERSION = "0.2.0";

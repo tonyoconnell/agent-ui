@@ -33,16 +33,13 @@ function simulateSyncUpsert(tid: string, fields: Pick<store.ProjectTask, 'name' 
     store.createTask({
       tid,
       name: fields.name,
-      status: 'todo',
-      priority: 'P2',
-      phase: fields.phase,
-      value: fields.value,
-      persona: 'agent',
+      task_status: 'open',
+      task_priority: 0.55,
       tags: fields.tags,
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
   } else {
     // Existing task — update only metadata, preserve runtime status
@@ -65,16 +62,13 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
     store.createTask({
       tid: TID,
       name: 'Guard Sync Task',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C2',
-      value: 'high',
-      persona: 'agent',
+      task_status: 'open',
+      task_priority: 0.75,
       tags: ['test', 'guard'],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
   })
 
@@ -82,15 +76,15 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
     resetStore()
   })
 
-  it('task starts as todo', () => {
+  it('task starts as open', () => {
     const task = store.getTask(TID)
-    expect(task?.status).toBe('todo')
+    expect(task?.task_status).toBe('open')
   })
 
-  it('claimed task remains active after sync upsert', () => {
+  it('claimed task remains picked after sync upsert', () => {
     // Claim the task
-    store.updateTask(TID, { status: 'active' })
-    expect(store.getTask(TID)?.status).toBe('active')
+    store.updateTask(TID, { task_status: 'picked' })
+    expect(store.getTask(TID)?.task_status).toBe('picked')
 
     // Sync runs — re-parses doc with same task data
     simulateSyncUpsert(TID, {
@@ -100,13 +94,13 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
       phase: 'C2',
     })
 
-    // Task must still be active
+    // Task must still be picked
     const task = store.getTask(TID)
-    expect(task?.status).toBe('active')
+    expect(task?.task_status).toBe('picked')
   })
 
   it('sync updates metadata without touching status', () => {
-    store.updateTask(TID, { status: 'active' })
+    store.updateTask(TID, { task_status: 'picked' })
 
     // Sync with updated name/tags
     simulateSyncUpsert(TID, {
@@ -117,7 +111,7 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
     })
 
     const task = store.getTask(TID)
-    expect(task?.status).toBe('active')
+    expect(task?.task_status).toBe('picked')
     expect(task?.name).toBe('Guard Sync Task (renamed)')
     expect(task?.tags).toContain('updated')
   })
@@ -132,12 +126,12 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
     })
 
     const task = store.getTask(NEW_TID)
-    expect(task?.status).toBe('todo')
+    expect(task?.task_status).toBe('open')
     store.deleteTask(NEW_TID)
   })
 
-  it('in_progress task also survives sync', () => {
-    store.updateTask(TID, { status: 'in_progress' })
+  it('picked task also survives sync', () => {
+    store.updateTask(TID, { task_status: 'picked' })
 
     simulateSyncUpsert(TID, {
       name: 'Guard Sync Task',
@@ -146,6 +140,6 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
       phase: 'C2',
     })
 
-    expect(store.getTask(TID)?.status).toBe('in_progress')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
   })
 })

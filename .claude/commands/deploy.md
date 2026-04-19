@@ -276,17 +276,84 @@ grep -l "react-vendor" dist/_worker.js/chunks/
 ## Rollback
 
 ```bash
-# Revert the Astro Worker to the previous version
-wrangler rollback --name one-substrate
+# Workers — rollback to previous version
+bun wrangler rollback --name one-substrate
 
-# Or re-point DNS back to paused Pages project (emergency only)
-bun run cf-cutover --execute   # re-run against Pages project if ever rolled back
-# (In practice: manually revert route via CF dashboard or CF API, Pages project
-# is still alive at one-substrate.pages.dev)
+# Legacy Pages fallback (still live at one-substrate.pages.dev for rollback window):
+bun wrangler pages deployment list --project-name=one-substrate
+bun wrangler pages deployments rollback --project-name=one-substrate
 
-# Revert a Worker
+# Revert a Worker via git
 cd gateway && git stash && bun wrangler deploy
 ```
+
+---
+
+## Known-Flaky Test Allowlist
+
+Located in `scripts/deploy.ts`:
+
+```typescript
+const KNOWN_FLAKY = [
+  'Act 15: Speed Benchmarks',  // hardware-dependent
+  'STAN distribution',          // stochastic
+  'explorer mode',              // stochastic
+]
+```
+
+These failures don't block deploy. Real failures (type errors, broken logic)
+always block. Use `--strict` to require full green.
+
+---
+
+## First-Time Setup
+
+Only needed once — see `docs/deploy.md` for full walkthrough:
+
+```bash
+# Create CF resources
+bun wrangler d1 create one
+bun wrangler kv namespace create KV
+# → Paste IDs into wrangler.toml + workers/sync/wrangler.toml
+
+# Run D1 migration
+bun wrangler d1 execute one --remote --file=migrations/0001_init.sql
+
+# Gateway secrets (TypeDB credentials)
+cd gateway
+printf 'admin' | bun wrangler secret put TYPEDB_USERNAME
+printf 'YOUR-PASSWORD' | bun wrangler secret put TYPEDB_PASSWORD
+cd ..
+
+# First deploy — Worker auto-provisions on first `wrangler deploy`
+bun run deploy
+```
+
+---
+
+## Logs
+
+- `.deploy.log` — all deployment output, each worker appends here
+- `.deploy-build.log` — W0 baseline diagnostics (biome + tsc + vitest separate)
+
+Live logs:
+
+```bash
+bun wrangler tail --name one-substrate       # Astro Worker
+cd gateway && bun wrangler tail && cd ..     # Gateway
+bun wrangler deployments list --name one-substrate | head -10
+```
+
+---
+
+## Gotchas
+
+- TypeDB Cloud port is **1729** (not 80 or 443)
+- TypeDB HTTP API prefix is `/v1/` (signin, query, databases)
+- Always `CLOUDFLARE_GLOBAL_API_KEY` — scoped tokens lack permissions for workers + custom domains
+- `import.meta.env` is build-time — `PUBLIC_GATEWAY_URL` is baked into the worker bundle at build. Missing → `/api/health` returns `units: 0`
+- Custom domains: `[[routes]]` double bracket, no wildcards, add `workers_dev = true`
+- Worker bundle limit: ~10 MiB uncompressed (free tier). Astro worker is at 9.5 MiB — follow the 4 Bundle Size Rules above
 
 ---
 

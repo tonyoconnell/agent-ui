@@ -2,7 +2,7 @@
  * POST /api/tasks/:id/claim — Atomically claim an open task
  *
  * One match-delete-insert query: matches only when task-status is "open",
- * transitions to "active", stamps owner + claimed-at. If no rows returned,
+ * transitions to "active", stamps owner. If no rows returned,
  * the task is already claimed (409).
  */
 
@@ -20,17 +20,15 @@ export const POST: APIRoute = async ({ request, params }) => {
     return new Response(JSON.stringify({ error: 'Missing sessionId' }), { status: 400 })
   }
 
-  const iso = new Date().toISOString()
-
   // Atomic match-delete-insert: only succeeds if task is currently "open"
-  const q = `match $t isa task, has task-id "${id}", has task-status $s; $s = "open"; delete $s of $t; insert $t has task-status "active", has owner "${sessionId}", has claimed-at "${iso}";`
+  const q = `match $t isa task, has task-id "${id}", has task-status $s; $s = "open"; delete $s of $t; insert $t has task-status "active", has owner "${sessionId}";`
 
   try {
     const result = await write(q)
     if (!result || result.length === 0) {
       return new Response(JSON.stringify({ error: 'Already claimed', tid: id }), { status: 409 })
     }
-    return new Response(JSON.stringify({ ok: true, tid: id, owner: sessionId, claimedAt: iso }), {
+    return new Response(JSON.stringify({ ok: true, tid: id, owner: sessionId, claimedAt: new Date().toISOString() }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })

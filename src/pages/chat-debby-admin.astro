@@ -1,0 +1,13 @@
+---
+export const prerender = true
+import Layout from "@/layouts/Layout.astro"
+import { ClawAdmin } from "@/components/ai/ClawAdmin"
+---
+
+<Layout title="Elevare — Admin">
+  <ClawAdmin
+    client:only="react"
+    clawUrl="https://debby-claw.oneie.workers.dev"
+    adminName="debby"
+  />
+</Layout>

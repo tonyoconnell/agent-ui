@@ -1,14 +1,15 @@
 # TypeDB 3.0 Complete Reference Skill
 
 > **Version**: TypeDB 3.x (3.0+)
-> **Last Updated**: 2026-01-16
+> **Last Updated**: 2026-04-20
 > **Purpose**: Comprehensive TypeDB/TypeQL knowledge for Claude Code
+> **Primary sources**: TypeQL paper (Dorn & Pribadi, PACMMOD 2024, *Best Newcomer Award* at SIGMOD/PODS 2024) · TypeDB lecture series (Vaticle YouTube, 2023–2024) · "Inside TypeDB: The Next Chapter" (Dec 2025) · TypeDB 3.0 roadmap ([GitHub #6764](https://github.com/typedb/typedb/issues/6764))
 
 ---
 
 ## Table of Contents
 
-1. [Overview](#overview)
+1. [Overview](#overview) — includes *Fourth Category of Database* and *Queries as Types* framing
 2. [Critical Syntax Rules](#critical-syntax-rules)
 3. [Schema Definition](#schema-definition)
 4. [Data Pipelines](#data-pipelines)
@@ -22,22 +23,61 @@
 12. [Best Practices](#best-practices)
 13. [Query Optimization](#query-optimization)
 14. [Complete Keyword Reference](#complete-keyword-reference)
-15. [Project-Specific Patterns](#project-specific-patterns)
+15. [Mental Models (Type Theory, Polymorphism, Dependent Types)](#mental-models-type-theory-polymorphism-dependent-types)
+16. [Canonical Polymorphic Example: Filesystem + Ownership](#canonical-polymorphic-example-filesystem--ownership)
+17. [TypeDB 3.x Feature Deep Dive](#typedb-3x-feature-deep-dive) — cascade, structs, list attrs, `@index`, functions, MVCC
+18. [Production Deployment & Scaling](#production-deployment--scaling)
+19. [Development Tools & Ecosystem](#development-tools--ecosystem) — Studio, Vibe Querying, Cloud, LSP
+20. [SQL → TypeQL: Concrete Contrasts](#sql--typeql-concrete-contrasts)
+21. [Works With /sui](#works-with-sui--the-same-ontology-two-deterministic-fires)
+22. [Production Patterns: Classifier Functions, Thing Collapse, Symmetric Routing](#production-patterns-classifier-functions-thing-collapse-symmetric-routing) — from `src/schema/world.tql`
+23. [Project-Specific Patterns](#project-specific-patterns)
 
 ---
 
 ## Overview
 
-TypeDB is a strongly-typed, polymorphic, transactional database using the **Polymorphic Entity-Relation-Attribute (PERA)** data model. TypeQL is its declarative query language.
+TypeDB is a strongly-typed, polymorphic, transactional database using the **Polymorphic Entity-Relation-Attribute (PERA)** data model. TypeQL is its declarative query language. The **PERA model** and its **Queries as Types** principle were published at SIGMOD/PODS 2024 (Dorn & Pribadi, PACMMOD 2024, Article 110, *Best Newcomer Award*) — DOI [10.1145/3651611](https://dl.acm.org/doi/10.1145/3651611).
+
+### The Fourth Category of Database
+
+TypeDB is positioned as a **fourth category of database**, generalizing the first three:
+
+1. **Relational** — tables, rows, foreign keys
+2. **Graph** — nodes, edges, labels
+3. **Document** — nested JSON-like trees, flexible schema
+4. **Polymorphic (TypeDB)** — entities, relations, attributes with type polymorphism, interface-based role playing, and type-theoretic query semantics
+
+TypeDB 3.x is written in **Rust** (rewritten from Java in 2024–2025) and is "competitive and surpassing Neo4j" on their first Rust optimization pass (per "Inside TypeDB: The Next Chapter", Dec 2025). It's especially aimed at:
+- **Knowledge graphs** and semantic-driven applications
+- **Intelligent / agentic systems** that need polymorphic reasoning
+- **Complex domain models** where inheritance, role-based access, and multi-value constraints matter
+
+### Queries as Types (the core mental model)
+
+TypeQL's design inverts SQL's operational worldview. In SQL you write a *plan* (scan, filter, project). In TypeQL you describe a **type** — and that type *is* the query:
+
+```typeql
+# This pattern describes a type: "(user, name) pairs where user owns name"
+match
+  $u isa user, has name $n;
+select $u, $n;
+```
+
+This is a generalization of Wadler's *Propositions as Types* into **Queries as Types**. Consequences:
+- **Composability** — types compose (dependent types), queries stay concise as schemas grow.
+- **Polymorphism by default** — `$x isa vehicle` matches cars, bikes, drones without rewriting.
+- **Planner freedom** — declarative intent lets the optimizer reorder, parallelize, index freely.
 
 ### Core Concepts
 
 - **Entity Types**: Independent objects that exist without dependencies
-- **Relation Types**: Connect entities through roles
-- **Attribute Types**: Store primitive values, identified by their value
-- **Roles**: Interfaces that types implement to participate in relations
-- **Ownership**: Types declare what attributes they own
-- **Type Hierarchies**: Single-inheritance subtyping with `sub`
+- **Relation Types**: **Dependent types** — their instances depend on instances of other types (role players). Explicit n-ary dependency makes integrity, cascade, and indexing explicit.
+- **Attribute Types**: Store primitive values, identified by their value. Immutable by identity.
+- **Roles**: **Interfaces** that types implement to participate in relations (think typeclasses / traits).
+- **Ownership**: Types declare what attributes they own. `plays` declares roles they fulfill.
+- **Type Hierarchies**: Single-inheritance subtyping with `sub`. Works on entities, relations, AND attributes.
+- **Type Functions**: `fun` declarations replace 2.x `rule`; dependent-type subtyping generalizes Datalog-like reasoning.
 
 ### Connection Details (TypeDB Cloud)
 
@@ -63,6 +103,7 @@ with driver.transaction("database-name", TransactionType.READ) as tx:
 | Feature | Correct TypeDB 3.0 |
 |---------|-------------------|
 | Sessions | **NO SESSIONS** - transactions directly on driver |
+| Concept API | **DROPPED** — all operations go through TypeQL queries |
 | Query syntax | `match ... select` |
 | Delete syntax | `delete $attr;` (NOT `delete $e has attr $attr;`) |
 | Value type: integer | `integer` (NOT `long`) |
@@ -70,6 +111,10 @@ with driver.transaction("database-name", TransactionType.READ) as tx:
 | Type declaration | `entity person` (root types) or `entity employee sub person` (subtypes) |
 | Variables | All use `$` |
 | Functions | `fun name() -> type:` (replaces rules) |
+| Attributes | **CANNOT** own attributes. **CANNOT** play roles. Model as entities if you need either. |
+| Role aliasing | `relates group as owned` — a subtype relation can rename an inherited role |
+| List attributes | `attribute emails, value string[];` — 3.x-only syntax for list-valued attributes |
+| Struct values | `struct address { street: string, city: string };` — 3.x compound values |
 
 ### Transaction Pattern (No Sessions!)
 
@@ -1459,6 +1504,428 @@ limit 1;
 
 ---
 
+## Mental Models (Type Theory, Polymorphism, Dependent Types)
+
+These are the ideas that make TypeQL feel inevitable rather than arbitrary. They're the difference between writing valid TypeQL and writing *idiomatic* TypeQL. Sources: the 2024 PACMMOD paper and TypeDB's 2023–2024 lecture series (`MF2vaEo3o58`, `2S0zPXQCy0U`, `IJomvpKbevk`, `LMzZoq6fUqg` on the Vaticle YouTube channel).
+
+### Queries as Types
+
+SQL view: a query is a *plan* — an operational recipe of joins, filters, projections that transforms tables into tables.
+
+TypeQL view: a query is a *type* — a declarative description of the domain of data you want. The pattern **is** the type.
+
+```typeql
+# Reads as: "the type of (u, n) pairs where u is a user and u owns name n"
+match $u isa user, has name $n;
+```
+
+The planner is free to reorder, parallelize, index, push predicates — it just has to preserve the type. This is why TypeQL schemas stay small as systems grow: you don't need a new query for every shape of question, because polymorphism is baked into the type system.
+
+### Relations as Dependent Types
+
+A relation in TypeDB is a **dependent type**: its instances depend on instances of its role players. Formally, `friendship` is parameterized by two `person`s; you cannot instantiate it without them.
+
+```typeql
+define
+relation friendship,
+  relates friend @card(2);
+```
+
+Consequences:
+- **Integrity** — you can't create a relation pointing at nothing (contrast: SQL allows NULL foreign keys, graph DBs allow dangling edges).
+- **Cascade** — deleting a role player can trigger deletion of the relation (`@cascade`), because the relation *depends* on the player.
+- **n-ary** — relations aren't stuck at binary (unlike property graphs' edges). `relation meeting, relates organizer, relates attendee, relates venue;`
+
+### Interface Polymorphism (Role Playing)
+
+Roles are **interfaces**. Multiple unrelated types can implement the same role, and relations referencing that role automatically work for all implementers.
+
+```typeql
+define
+entity person, plays adoption:parent, plays adoption:child;
+entity company, plays adoption:parent;   # companies can adopt (projects, subsidiaries)
+entity organization, plays adoption:parent;
+relation adoption,
+  relates parent,
+  relates child;
+```
+
+A single query works for every combination — person→person, company→person, organization→person — with no rewriting. When a new type joins (`entity foundation, plays adoption:parent;`), existing queries automatically include it.
+
+This is why Haskell calls them *typeclasses*, Rust calls them *traits*, and TypeDB calls them *roles*. Same idea, applied to a database.
+
+### Abstract Types and Subtyping
+
+Entities, relations, AND attributes can be abstract and subtyped — this is richer than any of the three classical database paradigms.
+
+```typeql
+define
+entity resource @abstract, owns id, plays ownership:resource;
+entity file sub resource, owns path;
+entity directory sub resource, owns path;
+
+attribute id @abstract, value string;
+attribute email sub id;
+attribute path sub id;
+```
+
+A query against `$r isa resource` returns files AND directories. A query against `$x has id` returns anything with *any* subtype of `id` — email, path, anything added later.
+
+---
+
+## Canonical Polymorphic Example: Filesystem + Ownership
+
+This schema (from the TypeDB Fundamentals docs) is the canonical teaching example for polymorphism. It demonstrates abstract entities, role aliasing in subrelations, abstract attribute hierarchies, and polymorphic fetch.
+
+```typeql
+define
+
+# Actors
+entity user,
+    owns email,
+    owns password-hash,
+    owns created-timestamp,
+    owns active,
+    plays resource-ownership:resource-owner;
+
+entity admin sub user,
+    plays group-ownership:group-owner;
+
+entity user-group,
+    owns name,
+    owns created-timestamp,
+    plays group-ownership:group,
+    plays resource-ownership:resource-owner;
+
+# Abstract base + concrete resources
+entity resource @abstract,
+    owns id,
+    owns created-timestamp,
+    owns modified-timestamp,
+    plays resource-ownership:resource;
+
+entity file sub resource,
+    owns path;
+
+entity directory sub resource,
+    owns path;
+
+# Abstract relation + role aliasing in subrelations
+relation ownership @abstract,
+    relates owned,
+    relates owner;
+
+relation group-ownership sub ownership,
+    relates group as owned,            # subrelation renames the inherited role
+    relates group-owner as owner;
+
+relation resource-ownership sub ownership,
+    relates resource as owned,
+    relates resource-owner as owner;
+
+# Abstract attribute hierarchy
+attribute id @abstract, value string;
+attribute email sub id;
+attribute name sub id;
+attribute path sub id;
+attribute password-hash, value string;
+
+attribute event-timestamp @abstract, value datetime;
+attribute created-timestamp sub event-timestamp;
+attribute modified-timestamp sub event-timestamp;
+attribute active, value boolean;
+```
+
+### Polymorphic fetch over this schema
+
+```typeql
+# Returns every resource of every subtype (files AND directories)
+# with all their timestamps (created AND modified, since both sub event-timestamp).
+match
+  $resource isa resource;
+fetch {
+  "resource": {
+    "id": $resource.id,
+    "event-timestamp": [ $resource.event-timestamp ],
+  }
+};
+```
+
+The `[...]` brackets around `$resource.event-timestamp` tell `fetch` this is a multi-valued projection. Because the resource owns `created-timestamp` and `modified-timestamp` (both subtypes of `event-timestamp`), the polymorphic fetch returns both.
+
+---
+
+## TypeDB 3.x Feature Deep Dive
+
+These are 3.0+ features that change how you model data. Previously unavailable in 2.x.
+
+### Cascading Delete
+
+Delete semantics are explicit via `@cascade` on relation roles. When the annotated role player is deleted, the relation itself is also deleted.
+
+```typeql
+define
+relation ownership,
+    relates owner @cascade,   # if owner deleted → delete relation
+    relates owned;
+
+# A single delete of $folder cascades to all ownership relations
+# where $folder plays owner.
+match $folder isa directory, has path "/tmp/old";
+delete $folder;
+```
+
+Use case: cleaning up role-based access control (RBAC) — delete a user, their ownership edges go too.
+
+### Struct Value Types
+
+Compose multi-field values without reifying them as entities.
+
+```typeql
+define
+
+struct address {
+    street:      string,
+    city:        string,
+    postal-code: string,
+    country:     string,
+}
+
+attribute home-address, value address;
+
+entity person, owns home-address @card(0..1);
+
+# Insert
+insert $p isa person,
+    has home-address (
+        street: "123 Main St",
+        city: "Portland",
+        postal-code: "97214",
+        country: "USA"
+    );
+
+# Match by a struct field (project from the struct)
+match
+  $p isa person, has home-address $addr;
+  $addr.city == "Portland";
+select $p;
+```
+
+Use structs for values that are always copied together and have no identity of their own — otherwise, prefer an entity + relation.
+
+### List Attributes
+
+3.x native list-valued attributes are distinct from multi-cardinality ownership.
+
+```typeql
+define
+attribute tags, value string[];        # list value type
+entity article, owns tags;
+
+insert $a isa article,
+    has tags ["typedb", "polymorphism", "type-theory"];
+
+match $a isa article, has tags $ts;
+select $ts;                            # returns the list as one value
+```
+
+Rule of thumb: use a **list attribute** when order matters or the collection is consumed atomically. Use `@card(0..)` multi-ownership when each element is independently queryable (e.g., multiple emails where you want to match on any one).
+
+### Relation Indexing
+
+Mark high-cardinality lookup roles with `@index` for planner hints.
+
+```typeql
+define
+relation friendship,
+    relates friend @card(2) @index;
+
+# Planner prioritizes indexed-role lookup for:
+match $f isa friendship, links (friend: $alice, friend: $other);
+  $alice has name "Alice";
+select $other;
+```
+
+### Functions (replace 2.x `rule`)
+
+Rules are gone. Functions are the only way to express derivation logic in 3.x.
+
+```typeql
+define
+fun reachable-cities($from: city) -> { $to: city } :
+  match
+    ($from, $to) isa flight;
+  return { $to };
+
+# Transitively: fun with recursive call (bounded by type system)
+fun reachable-transitively($from: city) -> { $to: city } :
+  match
+    { ($from, $direct) isa flight; }
+    or
+    { reachable-cities($from) contains $mid;
+      reachable-transitively($mid) contains $direct; };
+  return { $direct };
+
+# Use in a query
+match
+  $nyc isa city, has name "New York";
+  let $dests = reachable-transitively($nyc);
+select $dests;
+```
+
+Functions can return streams (`{ ... }`), single values (`scalar`), or structs. They compose in pipelines and let the planner see through the abstraction.
+
+### MVCC + Temporal (under the hood)
+
+TypeDB 3.x uses **MVCC** internally. Every transaction is tagged with a version; old versions are retained for a configurable TTL. The API to read-at-version is **not yet exposed** (per "Inside TypeDB: The Next Chapter", Dec 2025 — "probably not more than a day or two of work to expose"). Track:
+
+```
+# When exposed, expected surface:
+with driver.transaction(db, TransactionType.READ, at_version=42) as tx:
+    ...
+```
+
+Design implication: you can already treat your data as time-travelable for audit/testing purposes; the exposure is a driver-level unlock, not a storage migration.
+
+---
+
+## Production Deployment & Scaling
+
+### Architecture (3.x)
+
+- **Core**: Rewritten in Rust (2024–2025). Old Java codebase retired; Rust rewrite is GA as of TypeDB 3.0.
+- **Storage**: RocksDB as the key-value layer; TypeDB's type-level indexing built on top.
+- **Cluster**: Highly-available cluster mode (Raft-replicated) — single writer, multiple readers. Rust HA cluster was in final preview as of Dec 2025 (`LS6C4Gl9ldU`).
+
+### Scale markers (from Dec 2025 all-hands)
+
+| Metric | Status |
+|--------|--------|
+| Single-node data size | Tested beyond 1 TB |
+| Benchmark comparison | Competitive with and surpassing Neo4j on first Rust-optimization pass |
+| Read scaling | Horizontal via Raft cluster replicas |
+| Write scaling | Single master; partitioned writes on roadmap |
+| Cloud free tier | Always available, no credit card |
+
+### Operational checklist
+
+- Set **transaction timeout** explicitly if you query long ranges — default is 5 minutes, which bites large migrations.
+- Set **schema lock timeout** only in schema transactions — default 30 seconds is usually fine.
+- Prefer **TypeDB Cloud** or HA cluster for anything user-facing — single-node is for dev, demos, and embedded use.
+- **Snapshot isolation** is the model. Reads never block writes and vice versa; conflicts surface at commit time → catch `ConflictException` and retry (exponential backoff — see "Error Handling" section).
+
+---
+
+## Development Tools & Ecosystem
+
+### TypeDB Studio (web-based)
+
+Web IDE for TypeDB, also downloadable as a local package. Connects to any local TypeDB server, TypeDB Cloud, or any HTTP-accessible endpoint. Schema visualization, query runner, result graph view.
+
+- Hosted: https://studio.typedb.com
+- Local download: https://typedb.com/downloads
+
+Migration note: older docs reference the **Kotlin desktop** Studio — that's retired. Current Studio is browser-native.
+
+### Vibe Querying (alpha — agentic TypeQL)
+
+LLM-powered natural-language → TypeQL, currently running on GPT-5. Available in TypeDB Studio and the docs chatbot.
+
+- Good for: exploration, scaffolding, "show me something like X".
+- Not good for: production queries without review. It still makes mistakes on domain-specific type names.
+- Recommended pattern: generate → paste into Studio → adjust → commit the TypeQL, not the prompt.
+
+### TypeDB Cloud
+
+- **Free tier**: always available, 1 GB storage, no credit card.
+- **Security Center** + **MFA** + configurable **backups** since 2025.
+- Python connection (same code works for self-hosted, Cloud, or HA cluster):
+
+```python
+from typedb.driver import TypeDB, Credentials, DriverOptions, TransactionType
+import os
+
+credentials = Credentials("admin", os.environ["TYPEDB_PASSWORD"])
+options = DriverOptions(is_tls_enabled=True)
+driver = TypeDB.driver(
+    "https://my-cluster.typedb.cloud:1729",   # Cloud
+    credentials,
+    options,
+)
+```
+
+**Port 1729** is canonical — not 80, not 443. The HTTP API prefix is `/v1/`.
+
+### Language Server Protocol (on roadmap)
+
+TypeDB team announced (Dec 2025) an incoming **`analyze`** endpoint — returns type annotations for a query without executing it — plus LSP support for VS Code, JetBrains, Vim. Expected through 2025. Until then, the console and Studio's inline diagnostics are the fastest feedback loop.
+
+### Ecosystem libraries (community-maintained)
+
+- **Pydantic** integration for model (de)serialization.
+- **CSV / JSON loaders** for bulk import.
+- **IDE syntax plugins** for VS Code, IntelliJ (before the LSP ships).
+
+---
+
+## SQL → TypeQL: Concrete Contrasts
+
+### Simple filter + projection
+
+```sql
+-- SQL
+SELECT p.product_name, p.unit_price
+FROM   products p
+JOIN   categories c ON p.category_id = c.category_id
+WHERE  c.category_name = 'Beverages';
+```
+
+```typeql
+# TypeQL — the relation (category-assignment) IS the join
+match
+  $cat isa category, has name "Beverages";
+  $prod isa product, has product-name $pname, has unit-price $price;
+  (assigned: $prod, category: $cat) isa category-assignment;
+select $pname, $price;
+```
+
+Differences:
+- **Relation is first-class** — no foreign-key column, no `JOIN ON`. The relation `category-assignment` models the membership explicitly.
+- **Polymorphic by default** — if later you add `entity beverage sub product;`, this query returns beverages automatically.
+- **No nullable join columns** — a relation either exists between role players or it doesn't. No NULL tri-state.
+
+### Reachability (graph-style)
+
+```cypher
+// Neo4j
+MATCH path = (c1:City {name: "New York"})-[:FLIGHT*1..3]->(c2:City {name: "London"})
+RETURN path
+```
+
+```typeql
+# TypeQL — reachability is a type function, not a path operator
+define
+fun flight-reachable($from: city, $hops: integer) -> { $to: city } :
+  match
+    { $hops == 1; ($from, $to) isa flight; }
+    or
+    { $hops > 1;
+      ($from, $mid) isa flight;
+      let $rest = flight-reachable($mid, $hops - 1);
+      $to == $rest; };
+  return { $to };
+
+match
+  $nyc isa city, has name "New York";
+  let $cities = flight-reachable($nyc, 3);
+  $cities has name "London";
+select $cities;
+```
+
+In Neo4j, variable-length path is a query-language primitive. In TypeQL, it's a **user-definable function** — which means any reachability logic (weighted, filtered by attribute, cross-type) is equally expressible without new syntax.
+
+---
+
 ## Works With /sui — The Same Ontology, Two Deterministic Fires
 
 `src/schema/sui.tql:1` already put it best: **"The same ontology. Two deterministic fires."** TypeDB is the learning, classification fire (hypotheses, frontiers, tags — cheap to write, rich to query). Move is the permanent, economic fire (path revenue, escrow, treasury — expensive to write, cheap to trust). The runtime is the fast nervous system between them. Both skills speak the same vocabulary by design — `strength`, `resistance`, `revenue`, `path`, `unit` — so the bridge is a **1:1 rename, not a translation**.
@@ -1527,6 +1994,197 @@ select $p, $hw;
 - Debugging why `absorb()` isn't writing to TypeDB — check `world.tql` accepts the attribute type
 - Writing a TQL `fun` that needs an on-chain twin — see `src/schema/sui.tql` for parallel function signatures
 - Querying `unit.wallet` values — they're derived by `addressFor(uid)` in `src/lib/sui.ts`, not always stored
+
+---
+
+## Production Patterns: Classifier Functions, Thing Collapse, Symmetric Routing
+
+These three patterns come from **`src/schema/world.tql`** — the ONE substrate's live runtime schema — and are worth learning because they turn abstract ideas ("Queries as Types", polymorphism, role interfaces) into code that's actually short, composable, and fast to query. Cross-reference: `packages/typedb-inference-patterns/` has the lesson-by-lesson version; this section is the distillation.
+
+### Pattern 1 — The Deterministic Sandwich as a Function Chain
+
+A **deterministic sandwich** wraps a probabilistic operation (usually an LLM call) in a pre-check and a post-check, so the indeterminism is bounded on both sides. In TypeQL 3.x, every slice of the sandwich is a **typed function** returning either `first true` (boolean pass) or a stream.
+
+```typeql
+# src/schema/world.tql:536–567 — the sandwich, verbatim shape
+
+# PRE: Can this receiver handle this skill? (capability check)
+fun can_receive($u: unit, $sk: skill) -> boolean:
+    match (provider: $u, offered: $sk) isa capability;
+    return first true;
+
+# PRE: Is the path to this receiver safe? (not toxic)
+fun is_safe($from: unit, $to: unit) -> boolean:
+    match (source: $from, target: $to) isa path,
+          has strength $s, has resistance $a;
+    return first if ($a > $s and $a >= 10.0) then false else true;
+
+# PRE: Is the signal within budget?
+fun within_budget($u: unit, $sk: skill, $amount: double) -> boolean:
+    match (provider: $u, offered: $sk) isa capability, has price $p;
+    return first if ($amount >= $p) then true else false;
+
+# POST: Does the referenced unit still exist?
+fun unit_exists($uid: string) -> boolean:
+    match $u isa unit, has uid $uid;
+    return first true;
+
+# POST: Is a unit performing well enough to trust its output?
+fun is_trustworthy($u: unit) -> boolean:
+    match $u has success-rate $sr, has sample-count $sc;
+    return first if ($sr >= 0.50 or $sc < 10) then true else false;
+
+# COMPOSED: All the PRE checks as a single type assertion
+fun preflight($from: unit, $to: unit, $sk: skill) -> boolean:
+    match (provider: $to, offered: $sk) isa capability;
+          (source: $from, target: $to) isa path,
+          has strength $s, has resistance $a;
+    return first if ($a > $s and $a >= 10.0) then false else true;
+```
+
+**Why this is elegant:**
+
+1. **Each check is a type, not a subroutine.** `is_safe($from, $to)` declares the type "this path is safe". The planner decides whether to evaluate it by scanning strength/resistance, by checking an index, or by proving it vacuously. You never write "first look up strength, then compare".
+
+2. **`return first if ... then ... else ...`** is the TypeDB 3.x idiom for boolean classifiers. The body is a single conditional expression. No side effects, no cascading rules, no rule-firing order to debug.
+
+3. **Composition is just another function.** `preflight()` inlines the match patterns of its children rather than calling them — this lets the planner see the whole constraint set and pick the cheapest plan. (Calling three separate functions would force three sequential lookups.)
+
+4. **Negative space stays declarative.** `is_trustworthy` returns `true` when `sr >= 0.50 OR sc < 10` — new agents are trusted by default because we have no evidence against them. That's a domain rule encoded as a type, not as a runtime `if`.
+
+### Pattern 2 — The `thing` Collapse (Polymorphism as Entity-Level Union)
+
+Instead of modeling plan, cycle, task, and skill as four separate entities, the canonical ontology (`src/schema/one.tql:47–84`) **collapses them into one `thing` entity** discriminated by a `thing-type` attribute. Attributes specific to each kind (`task-status`, `cycles-planned`, `goal`) live on the shared entity, unused for non-matching kinds.
+
+```typeql
+entity thing,
+    owns tid @key,
+    owns name,
+    owns thing-type,                 # "skill" | "task" | "plan" | "service"
+    owns price,
+    owns tag @card(0..),
+    # Task-only (meaningful when thing-type='task')
+    owns task-status,                 # open/blocked/picked/done/verified/failed/dissolved
+    owns task-effort,
+    owns task-value,
+    owns exit-condition,
+    # Plan-only (meaningful when thing-type='plan')
+    owns goal,
+    owns cycles-planned,
+    owns escape-condition,
+    # Rubric (post-verify, any thing-type)
+    owns rubric-fit,
+    owns rubric-form,
+    owns rubric-truth,
+    owns rubric-taste,
+    plays capability:offered,
+    plays blocks:blocker,
+    plays blocks:blocked,
+    plays containment:container,
+    plays containment:contained,
+    plays production:producer,
+    plays production:produced;
+```
+
+**When to use it:**
+
+- The concepts share >50% of their attributes and all their relations.
+- You want polymorphic queries that span all kinds (`match $t isa thing, has tag "P0";` returns tasks AND plans AND skills tagged P0).
+- The kinds aren't large enough to warrant physical partitioning.
+
+**When to avoid it:**
+
+- A concept has strict invariants enforced by NOT NULL (TypeDB doesn't enforce attribute presence by `thing-type`; you'd need a function to validate).
+- You need compile-time guarantees that "only tasks have `task-status`". The collapse is dynamic typing inside a static system.
+
+**Filter pattern (the "discriminated fetch"):**
+
+```typeql
+# Only things that are tasks AND open
+fun open_tasks() -> { thing } :
+    match
+        $t isa thing, has thing-type "task", has task-status "open";
+    return { $t };
+
+# Polymorphic priority: works across kinds because all own priority-score
+fun top_by_priority($kind: string) -> { thing } :
+    match
+        $t isa thing, has thing-type $kind, has priority-score $p;
+    sort $p desc; limit 10;
+    return { $t };
+```
+
+Compare this with the maximalist `src/schema/world.tql` (787 lines, separate `task` entity with its own `task-id`, `task-status`, `priority-formula`, etc.). The **skinny ontology** (`one.tql`) uses the collapse for flexibility; the **runtime schema** (`world.tql`) uses separate entities for performance and strict typing. Both are valid — the choice depends on how much schema change you expect.
+
+### Pattern 3 — Symmetric Routing via Shared-Variable Unification
+
+When you have a relation "X matches Y on tag", you usually need both directions — "what Y's match this X" AND "what X's match this Y". In SQL this is two separate queries. In TypeQL, both queries share the same match pattern; only the return changes.
+
+```typeql
+# src/schema/world.tql:752–775 — verbatim symmetric pair
+
+# "What tasks can this unit work on?" (unit → tasks)
+fun tasks_for_unit($u: unit) -> { task } :
+    match
+        $u has tag $tag;
+        $t isa task, has tag $tag,
+            has done false, has task-status "open";
+    return { $t };
+
+# "Which units can do this task?" (task → units)
+fun units_for_task($t: task) -> { unit } :
+    match
+        $t has tag $tag;
+        $u isa unit, has tag $tag, has status "active";
+    return { $u };
+
+# "Best unit for this task": tag overlap × pheromone strength
+fun best_unit_for_task($t: task) -> unit :
+    match
+        $t has tag $tag;
+        $u isa unit, has tag $tag, has status "active";
+        (source: $any, target: $u) isa path, has strength $s;
+    sort $s desc; limit 1;
+    return $u;
+```
+
+**Why this is "Queries as Types" at its cleanest:**
+
+- The `$tag` variable is shared between `$u has tag $tag` and `$t has tag $tag`. TypeQL **unifies** these — there must exist at least one tag value that both sides agree on. No `JOIN ON` clause, no foreign key; the type constraint IS the join.
+
+- The pattern is symmetric because the *type* of "unit-task matches on tag" doesn't care about direction. Only the *projection* (`return { $t }` vs `return { $u }`) picks a side.
+
+- `best_unit_for_task` composes the matching pattern with a *third* constraint (pheromone strength on an incoming path). Notice `(source: $any, target: $u)` — `$any` is bound but unconstrained; we don't care WHO marked the path, only that SOMEONE marked it. That's a free variable in the type.
+
+### Pattern 4 — Classification by Cascade (the `path_status` function)
+
+One more worth lifting out. The substrate labels every path with one of five statuses using a single function whose body is a nested conditional:
+
+```typeql
+# src/schema/world.tql:523–530
+fun path_status($e: path) -> string:
+    match $e has strength $s, has resistance $a, has traversals $t;
+    return first
+        if ($a > $s and $a >= 10.0)             then "toxic"
+        else if ($s >= 50.0)                    then "highway"
+        else if ($s >= 10.0 and $s < 50.0 and $t < 10) then "fresh"
+        else if ($s > 0.0 and $s < 5.0)         then "fading"
+        else "active";
+```
+
+The rules compose top-down — `toxic` wins over `highway` if both apply, `highway` wins over `fresh`. In 2.x this would be five chained `rule`s with priority annotations. In 3.x it's one function, and the cascade order is visible in the source. Debugging path status is now a single function call.
+
+**Adjacent pattern — reading the label:**
+
+```typeql
+match
+    $p isa path, has strength $s;
+    let $status = path_status($p);
+    $status == "highway";
+select $p, $s;
+```
+
+The result reads like English: "paths whose status is highway". The function is a verb (`path_status(p)`) that returns a type-tagged string. This is the L2 "quality rule" from `packages/typedb-inference-patterns/LOOPS.md` — classification without explicit rule firing.
 
 ---
 
@@ -1682,8 +2340,23 @@ reduce $wins = count groupby $name;
 
 ## References
 
+### External
+
 - [TypeDB Documentation](https://typedb.com/docs)
 - [TypeQL Reference](https://typedb.com/docs/typeql-reference/)
 - [Python Driver Reference](https://typedb.com/docs/reference/typedb-grpc-drivers/python/)
 - [TypeDB 2.x to 3.x Migration](https://typedb.com/docs/reference/typedb-2-vs-3/)
 - [Query Optimization Guide](https://typedb.com/docs/maintenance-operation/troubleshooting/optimizing-queries/)
+- [TypeQL Paper · Dorn & Pribadi · PACMMOD 2024](https://dl.acm.org/doi/10.1145/3651611) — Best Newcomer Award, SIGMOD/PODS 2024
+- [Vaticle YouTube Channel](https://www.youtube.com/c/vaticle) — lecture series on type theory and polymorphic modeling
+
+### In-repo
+
+- `src/schema/one.tql` — canonical 6-dimension ontology (stable, 272 lines). See *Pattern 2 — The `thing` Collapse* for the polymorphic-union move it demonstrates.
+- `src/schema/world.tql` — live substrate schema (787 lines) with classifier functions, deterministic-sandwich pre/post-checks, symmetric-routing pair. Source for the *Production Patterns* section above.
+- `src/schema/sui.tql` — on-chain mirror of the same ontology. Proves the model bridges to a value-bearing substrate (Move). See the *Works With /sui* section above.
+- `packages/typedb-inference-patterns/` — lesson-by-lesson version of the 6 patterns that `world.tql` distills. The `standalone/*.tql` files are PRE-3.x (banner-marked); the `runtime/colony.ts` is 3.x-compliant; the README is the rule→fun translation guide.
+- `.claude/skills/typedb/reference/research-notes-2026-04.md` — source notes behind this skill's 2026-04 refinement: PACMMOD paper, 3.0 roadmap, Vaticle lectures, "Inside TypeDB: The Next Chapter".
+- `.claude/skills/typedb/reference/migration-2x-3x.md` — mechanical 2.x→3.x translations (sessions, Concept API, rule→fun, long→integer, delete syntax).
+- `.claude/skills/typedb/reference/python-driver.md` — deeper Python-driver reference than the summary in this file.
+- `.claude/skills/typedb/examples/` — working TQL files: schema-patterns, query-patterns, python-patterns.

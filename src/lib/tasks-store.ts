@@ -5,6 +5,9 @@
  * Production uses D1 with TypeDB sync.
  */
 
+import type { Task, TaskStatus } from '@/types/task'
+import { normalizeStatus, priorityFromLabel } from '@/types/task'
+
 // Detect the Cloudflare Workers runtime. Astro's cloudflare adapter
 // polyfills `process.cwd`, so that check is unreliable — but the runtime's
 // `navigator.userAgent` is always exactly 'Cloudflare-Workers'.
@@ -26,19 +29,11 @@ if (IS_NODE) {
   _path = (await import('node:path')) as unknown as { join: (...parts: string[]) => string }
 }
 
-export interface ProjectTask {
-  tid: string
-  name: string
-  status: 'todo' | 'in_progress' | 'active' | 'complete' | 'blocked' | 'failed'
-  priority: 'P0' | 'P1' | 'P2' | 'P3'
-  phase: string
-  value: string
-  persona: string
-  tags: string[]
-  blockedBy: string[]
-  blocks: string[]
-  trailPheromone: number
-  alarmPheromone: number
+/**
+ * Store-local Task extends canonical with timestamps.
+ * Canonical fields: see `src/types/task.ts`.
+ */
+export type ProjectTask = Task & {
   createdAt: number
   updatedAt: number
 }
@@ -84,41 +79,65 @@ export function getTask(tid: string): ProjectTask | undefined {
   return tasks.get(tid)
 }
 
-export function createTask(task: Omit<ProjectTask, 'createdAt' | 'updatedAt'>): ProjectTask {
+export function createTask(input: Partial<ProjectTask> & { tid: string; name?: string }): ProjectTask {
   loadFromDisk()
   const now = Date.now()
-  const full: ProjectTask = {
-    ...task,
+  const tid = input.tid
+  const task: ProjectTask = {
+    tid,
+    thing_type: 'task',
+    name: input.name ?? tid,
+    task_status: 'open',
+    task_wave: input.task_wave ?? null,
+    task_priority:
+      typeof input.task_priority === 'number'
+        ? input.task_priority
+        : priorityFromLabel(((input as Record<string, unknown>).priority as 'P0' | 'P1' | 'P2' | 'P3') ?? 'P2'),
+    task_effort: input.task_effort ?? 0.5,
+    task_value: input.task_value ?? 0.5,
+    task_variant: input.task_variant ?? null,
+    tags: input.tags ?? [],
+    blocks: input.blocks ?? [],
+    blocked_by: input.blocked_by ?? ((input as Record<string, unknown>).blockedBy as string[]) ?? [],
+    strength: 0,
+    resistance: 0,
     createdAt: now,
     updatedAt: now,
+    ...(input.exit_condition ? { exit_condition: input.exit_condition } : {}),
   }
-  tasks.set(task.tid, full)
+  tasks.set(tid, task)
 
-  // Update blockedBy on tasks this blocks
+  // Update blocked_by on tasks this blocks
   for (const blockedTid of task.blocks) {
     const blocked = tasks.get(blockedTid)
-    if (blocked && !blocked.blockedBy.includes(task.tid)) {
-      blocked.blockedBy.push(task.tid)
+    if (blocked && !blocked.blocked_by.includes(tid)) {
+      blocked.blocked_by.push(tid)
       blocked.updatedAt = now
       // If it has incomplete blockers, mark as blocked
-      if (blocked.status === 'todo') {
-        blocked.status = 'blocked'
+      if (blocked.task_status === 'open') {
+        blocked.task_status = 'blocked'
       }
     }
   }
 
   saveToDisk()
-  return full
+  return task
 }
 
-export function updateTask(tid: string, updates: Partial<ProjectTask>): ProjectTask | null {
+export function updateTask(tid: string, updates: Partial<Task>): ProjectTask | null {
   loadFromDisk()
   const existing = tasks.get(tid)
   if (!existing) return null
 
+  // Normalize any incoming status field
+  const normalizedUpdates: Partial<Task> = { ...updates }
+  if ('task_status' in normalizedUpdates && normalizedUpdates.task_status) {
+    normalizedUpdates.task_status = normalizeStatus(normalizedUpdates.task_status)
+  }
+
   const updated: ProjectTask = {
     ...existing,
-    ...updates,
+    ...normalizedUpdates,
     tid, // Can't change tid
     updatedAt: Date.now(),
   }
@@ -139,33 +158,26 @@ export function seedFromApi(apiTasks: Array<Record<string, unknown>>): void {
   for (const t of apiTasks) {
     const tid = (t.tid || t.id) as string
     if (!tid) continue
-    const rawStatus = (t.status as string) || 'open'
-    const status: ProjectTask['status'] =
-      rawStatus === 'done'
-        ? 'complete'
-        : rawStatus === 'open'
-          ? 'todo'
-          : rawStatus === 'blocked'
-            ? 'blocked'
-            : rawStatus === 'in_progress'
-              ? 'in_progress'
-              : rawStatus === 'failed'
-                ? 'failed'
-                : 'todo'
+    const rawStatus = (t.task_status as string) ?? (t.status as string) ?? 'open'
+    const task_status: TaskStatus = normalizeStatus(rawStatus)
     const tags = (t.tags as string[]) || []
+    const priorityTag = tags.find((tag) => /^P[0-3]$/.test(tag)) as 'P0' | 'P1' | 'P2' | 'P3' | undefined
     tasks.set(tid, {
       tid,
+      thing_type: 'task',
       name: (t.name as string) || tid,
-      status,
-      priority: (tags.find((tag) => /^P[0-3]$/.test(tag)) as ProjectTask['priority']) || 'P1',
-      phase: (t.phase as string) || 'C1',
-      value: (t.value as string) || 'medium',
-      persona: (t.persona as string) || 'dev',
+      task_status,
+      task_wave: (t.task_wave as ProjectTask['task_wave']) ?? null,
+      task_priority:
+        typeof t.task_priority === 'number' ? (t.task_priority as number) : priorityFromLabel(priorityTag ?? 'P1'),
+      task_effort: (t.task_effort as number) ?? 0.5,
+      task_value: (t.task_value as number) ?? 0.5,
+      task_variant: (t.task_variant as ProjectTask['task_variant']) ?? null,
       tags,
-      blockedBy: (t.blockedBy as string[]) || [],
+      blocked_by: (t.blocked_by as string[]) || (t.blockedBy as string[]) || [],
       blocks: (t.blocks as string[]) || [],
-      trailPheromone: (t.strength as number) || 0,
-      alarmPheromone: (t.resistance as number) || 0,
+      strength: (t.strength as number) || 0,
+      resistance: (t.resistance as number) || 0,
       createdAt: now,
       updatedAt: now,
     })
@@ -186,9 +198,9 @@ export function markPheromone(tid: string, type: 'trail' | 'alarm', delta: numbe
   if (!task) return
 
   if (type === 'trail') {
-    task.trailPheromone = Math.max(0, Math.min(100, task.trailPheromone + delta))
+    task.strength = Math.max(0, Math.min(100, task.strength + delta))
   } else {
-    task.alarmPheromone = Math.max(0, Math.min(100, task.alarmPheromone + delta))
+    task.resistance = Math.max(0, Math.min(100, task.resistance + delta))
   }
   task.updatedAt = Date.now()
   saveToDisk()
@@ -200,17 +212,17 @@ export function cascadeUnblock(completedTid: string): string[] {
   const unblocked: string[] = []
 
   for (const task of tasks.values()) {
-    if (task.status !== 'blocked') continue
-    if (!task.blockedBy.includes(completedTid)) continue
+    if (task.task_status !== 'blocked') continue
+    if (!task.blocked_by.includes(completedTid)) continue
 
-    // Check if all blockers are now complete
-    const allBlockersComplete = task.blockedBy.every((bid) => {
+    // Check if all blockers are now verified
+    const allBlockersVerified = task.blocked_by.every((bid) => {
       const blocker = tasks.get(bid)
-      return blocker?.status === 'complete'
+      return blocker?.task_status === 'verified'
     })
 
-    if (allBlockersComplete) {
-      task.status = 'todo'
+    if (allBlockersVerified) {
+      task.task_status = 'open'
       task.updatedAt = Date.now()
       unblocked.push(task.tid)
     }

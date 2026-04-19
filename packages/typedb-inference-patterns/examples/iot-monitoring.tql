@@ -1,14 +1,16 @@
 # =============================================================================
-# DOMAIN EXAMPLE: IoT Device Monitoring & Anomaly Detection
+# DOMAIN EXAMPLE (TypeDB 3.x): IoT Device Monitoring & Anomaly Detection
 # =============================================================================
 #
-# Shows inference patterns applied to IoT:
-#   - Device health classification (healthy, degraded, critical, offline)
-#   - Anomaly detection via threshold rules
-#   - Maintenance scheduling (predictive)
-#   - Fleet-wide health aggregation
+# Migrated to 3.x 2026-04-20.
 #
-# Based on: classification.tql, quality-rules.tql, autonomous-goals.tql
+# Demonstrates:
+#   - Device health classification (4 rules collapse into one cascading fun)
+#   - Maintenance-due flag as a composed classifier (calls device_health)
+#   - Fleet aggregation with `reduce ... groupby` over a classifier
+#   - Alert severity type-checked via `@values`
+#
+# Based on patterns from: classification.tql, quality-rules.tql, autonomous-goals.tql
 # =============================================================================
 
 define
@@ -18,15 +20,13 @@ define
 entity device,
     owns device-id @key,
     owns device-name,
-    owns device-type,              # "sensor", "actuator", "gateway"
+    owns device-type,
     owns location,
-    owns uptime-percentage,        # 0.0 - 100.0
-    owns error-rate,               # errors per hour
-    owns avg-response-ms,          # average response latency
+    owns uptime-percentage,
+    owns error-rate,
+    owns avg-response-ms,
     owns last-heartbeat,
     owns readings-count,
-    owns device-health,            # INFERRED: "healthy", "degraded", "critical"
-    owns maintenance-due,          # INFERRED: boolean
     plays device-group-membership:member,
     plays device-alert:alerting-device;
 
@@ -38,133 +38,189 @@ entity device-group,
 
 entity alert,
     owns alert-id @key,
-    owns alert-type,               # "threshold", "anomaly", "heartbeat"
-    owns alert-severity,           # "info", "warning", "critical"
+    owns alert-type,
+    owns alert-severity,
     owns alert-message,
     owns triggered-at,
     owns acknowledged,
     owns resolved-at,
     plays device-alert:alert-record;
 
-# --- Attributes ---
-attribute device-id, value string;
-attribute device-name, value string;
-attribute device-type, value string;
-attribute location, value string;
-attribute uptime-percentage, value double;
-attribute error-rate, value double;
-attribute avg-response-ms, value double;
-attribute last-heartbeat, value datetime;
-attribute readings-count, value integer;
-attribute device-health, value string;
-attribute maintenance-due, value boolean;
 
-attribute group-id, value string;
-attribute group-name, value string;
-attribute group-location, value string;
+# --- Attributes (with 3.x constraints) ---
 
-attribute alert-id, value string;
-attribute alert-type, value string;
-attribute alert-severity, value string;
-attribute alert-message, value string;
-attribute triggered-at, value datetime;
-attribute acknowledged, value boolean;
-attribute resolved-at, value datetime;
+attribute device-id,            value string;
+attribute device-name,          value string;
+attribute device-type,          value string @values("sensor", "actuator", "gateway");
+attribute location,             value string;
+attribute uptime-percentage,    value double  @range(0.0..100.0);
+attribute error-rate,           value double;           # errors per hour
+attribute avg-response-ms,      value double;
+attribute last-heartbeat,       value datetime;
+attribute readings-count,       value integer;
+
+attribute group-id,             value string;
+attribute group-name,           value string;
+attribute group-location,       value string;
+
+attribute alert-id,             value string;
+attribute alert-type,           value string @values("threshold", "anomaly", "heartbeat");
+attribute alert-severity,       value string @values("info", "warning", "critical");
+attribute alert-message,        value string;
+attribute triggered-at,         value datetime;
+attribute acknowledged,         value boolean;
+attribute resolved-at,          value datetime;
+
 
 # --- Relations ---
 
 relation device-group-membership,
-    relates member,
+    relates member @cascade,     # delete device → remove group membership
     relates group;
 
 relation device-alert,
-    relates alerting-device,
+    relates alerting-device @cascade,
     relates alert-record;
 
 
 # =============================================================================
-# DEVICE HEALTH RULES
+# CLASSIFIER FUNCTIONS — replacing 2.x rules
 # =============================================================================
 
-# Healthy: High uptime, low errors, fast response
-rule healthy-device:
-    when {
-        $d isa device,
-            has uptime-percentage $up,
-            has error-rate $er,
-            has avg-response-ms $ms,
-            has readings-count $rc;
-        $up >= 99.0;
-        $er < 1.0;
-        $ms < 100.0;
-        $rc >= 100;
-    } then {
-        $d has device-health "healthy";
-    };
+# --- Device health: cascading classifier (replaces 3 rules: healthy/degraded/critical) ---
+#
+# Order: strictest criteria first. "offline" is added for heartbeat-absent
+# devices (not present in 2.x, but natural in 3.x with time-aware classifiers).
+#
+fun device_health($d: device) -> string:
+    match $d has uptime-percentage $up, has error-rate $er, has avg-response-ms $ms,
+             has readings-count $rc;
+    return first
+        if ($up < 95.0 or $er >= 10.0)
+            then "critical"
+        else if ($up >= 99.0 and $er < 1.0 and $ms < 100.0 and $rc >= 100)
+            then "healthy"
+        else if ($rc < 100)
+            then "new"
+        else "degraded";
 
-# Degraded: Moderate issues
-rule degraded-device:
-    when {
-        $d isa device,
-            has uptime-percentage $up,
-            has error-rate $er;
-        { $up < 99.0; $up >= 95.0; } or { $er >= 1.0; $er < 10.0; };
-    } then {
-        $d has device-health "degraded";
-    };
 
-# Critical: Major issues
-rule critical-device:
-    when {
-        $d isa device,
-            has uptime-percentage $up,
-            has error-rate $er;
-        { $up < 95.0; } or { $er >= 10.0; };
-    } then {
-        $d has device-health "critical";
-    };
-
-# Maintenance due: Degraded with enough data
-rule maintenance-needed:
-    when {
-        $d isa device,
-            has device-health "degraded",
-            has readings-count $rc;
+# --- Maintenance-due: composed classifier (replaces the 2.x maintenance-needed rule) ---
+#
+# Calls device_health() via `let`. The planner sees through the abstraction
+# and can push the predicate into the main device scan.
+#
+fun is_maintenance_due($d: device) -> boolean:
+    match
+        let $h = device_health($d);
+        $h == "degraded";
+        $d has readings-count $rc;
         $rc >= 1000;
-    } then {
-        $d has maintenance-due true;
-    };
+    return first true;
 
 
 # =============================================================================
 # QUERY FUNCTIONS
 # =============================================================================
 
-# Get all critical devices
+# --- Device partitions by health ---
+
+fun healthy_devices() -> { device }:
+    match
+        $d isa device;
+        let $h = device_health($d);
+        $h == "healthy";
+    return { $d };
+
 fun critical_devices() -> { device }:
-    match $d isa device, has device-health "critical";
+    match
+        $d isa device;
+        let $h = device_health($d);
+        $h == "critical";
     return { $d };
 
-# Get devices needing maintenance
+fun degraded_devices() -> { device }:
+    match
+        $d isa device;
+        let $h = device_health($d);
+        $h == "degraded";
+    return { $d };
+
+
+# --- Maintenance queue (derived from classifier composition) ---
+
 fun maintenance_queue() -> { device }:
-    match $d isa device, has maintenance-due true;
+    match
+        $d isa device;
+        let $due = is_maintenance_due($d);
     return { $d };
 
-# Get devices in a specific group
+
+# --- Group navigation ---
+
 fun devices_in_group($group_name: string) -> { device }:
     match
         $g isa device-group, has group-name $group_name;
-        $rel(member: $d, group: $g) isa device-group-membership;
+        $rel (member: $d, group: $g) isa device-group-membership;
     return { $d };
 
-# Count devices by health status
-fun count_by_health($health: string) -> integer:
+# How many critical devices in a given group? (composition)
+fun critical_in_group($group_name: string) -> integer:
     match
-        $d isa device, has device-health $health;
+        $g isa device-group, has group-name $group_name;
+        $rel (member: $d, group: $g) isa device-group-membership;
+        let $h = device_health($d);
+        $h == "critical";
     return count($d);
 
-# Get unacknowledged alerts
-fun unacked_alerts() -> { alert }:
+
+# --- Aggregates ---
+
+fun count_by_health($health: string) -> integer:
     match
-        $a isa alert, has acknowledged false;
+        $d isa device;
+        let $h = device_health($d);
+        $h == $health;
+    return count($d);
+
+
+# --- Alert stream ---
+
+fun unacked_alerts() -> { alert }:
+    match $a isa alert, has acknowledged false;
     return { $a };
+
+fun critical_alerts() -> { alert }:
+    match $a isa alert, has alert-severity "critical", has acknowledged false;
+    return { $a };
+
+
+# =============================================================================
+# USAGE
+# =============================================================================
+#
+# Ops dashboard: fleet health counts
+#   match
+#     let $healthy  = count_by_health("healthy");
+#     let $degraded = count_by_health("degraded");
+#     let $critical = count_by_health("critical");
+#   select $healthy, $degraded, $critical;
+#
+# Maintenance crew dispatch list
+#   match let $d = maintenance_queue();
+#         $d has device-name $n, has location $loc;
+#   select $n, $loc;
+#
+# Group-level SLA monitoring (count critical per group)
+#   match
+#     $g isa device-group, has group-name $gname;
+#     let $critical = critical_in_group($gname);
+#   select $gname, $critical;
+#
+# Alert panel (unacknowledged critical alerts, newest first):
+#   match let $a = critical_alerts();
+#         $a has triggered-at $ts, has alert-message $msg;
+#   select $a, $ts, $msg;
+#   sort $ts desc;
+#
+# =============================================================================

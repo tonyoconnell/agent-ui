@@ -1,14 +1,17 @@
 # =============================================================================
-# DOMAIN EXAMPLE: Social Network / Community Intelligence
+# DOMAIN EXAMPLE (TypeDB 3.x): Social Network / Community Intelligence
 # =============================================================================
 #
-# Shows inference patterns applied to social/community platforms:
-#   - User reputation tiers (trusted, standard, new, flagged)
-#   - Content quality scoring
-#   - Community health metrics
-#   - Influence detection
+# Migrated to 3.x 2026-04-20.
 #
-# Based on: classification.tql, contribution-tracking.tql
+# Demonstrates:
+#   - Reputation tier classification (3 rules → one cascading fun)
+#   - Content quality classification (2 rules → one fun with implicit default)
+#   - Moderator-eligibility as a COMPOSED classifier (calls reputation_tier)
+#   - `@cascade` on `authored:author` — deleting a member deletes their authorship
+#     links (but not the content; content follows its own lifecycle)
+#
+# Based on patterns from: classification.tql, contribution-tracking.tql
 # =============================================================================
 
 define
@@ -22,154 +25,216 @@ entity community-member,
     owns posts-count,
     owns helpful-votes,
     owns report-count,
-    owns reputation-score,         # computed from activity
-    owns reputation-tier,          # INFERRED: "trusted", "standard", "new", "flagged"
-    owns moderator-eligible,       # INFERRED: boolean
+    owns reputation-score,
     plays follows:follower,
     plays follows:followed,
     plays authored:author;
 
 entity content-item,
     owns content-id @key,
-    owns content-type,             # "post", "comment", "answer"
+    owns content-type,
     owns content-text,
     owns upvotes,
     owns downvotes,
     owns report-count,
     owns created-at,
-    owns content-quality,          # INFERRED: "high", "standard", "low", "spam"
     plays authored:content;
 
-# --- Attributes ---
-attribute member-id, value string;
-attribute display-name, value string;
-attribute joined-at, value datetime;
-attribute posts-count, value integer;
-attribute helpful-votes, value integer;
-attribute report-count, value integer;
-attribute reputation-score, value double;
-attribute reputation-tier, value string;
-attribute moderator-eligible, value boolean;
 
-attribute content-id, value string;
-attribute content-type, value string;
-attribute content-text, value string;
-attribute upvotes, value integer;
-attribute downvotes, value integer;
-attribute created-at, value datetime;
-attribute content-quality, value string;
+# --- Attributes (with 3.x constraints) ---
+
+attribute member-id,          value string;
+attribute display-name,       value string;
+attribute joined-at,          value datetime;
+attribute posts-count,        value integer;
+attribute helpful-votes,      value integer;
+attribute report-count,       value integer;
+attribute reputation-score,   value double;
+
+attribute content-id,         value string;
+attribute content-type,       value string @values("post", "comment", "answer");
+attribute content-text,       value string;
+attribute upvotes,            value integer;
+attribute downvotes,          value integer;
+attribute created-at,         value datetime;
+
 
 # --- Relations ---
 
 relation follows,
-    relates follower,
+    relates follower @cascade,       # delete member → drop all their follows
     relates followed;
 
 relation authored,
-    relates author,
+    relates author @cascade,
     relates content;
 
 
 # =============================================================================
-# REPUTATION RULES
+# CLASSIFIER FUNCTIONS — replacing 2.x rules
 # =============================================================================
 
-# Trusted: High reputation, many posts, few reports
-rule trusted-member:
-    when {
-        $m isa community-member,
-            has reputation-score $rs,
-            has posts-count $pc,
-            has report-count $rc;
-        $rs >= 100.0;
-        $pc >= 50;
-        $rc < 3;
-    } then {
-        $m has reputation-tier "trusted";
-    };
+# --- Reputation tier: cascading classifier (replaces trusted + flagged rules) ---
+#
+# Ordered bands:
+#   "flagged" if report ratio is concerning (strictest — takes precedence)
+#   "trusted" if all three signals clear the high-reputation thresholds
+#   "new"     if the member is too fresh to judge
+#   "standard" otherwise
+#
+fun reputation_tier($m: community-member) -> string:
+    match
+        $m has reputation-score $rs,
+           has posts-count $pc,
+           has helpful-votes $hv,
+           has report-count $rc;
+    return first
+        if ($rc >= 5 and $pc >= 1)
+            then "flagged"
+        else if ($rs >= 100.0 and $pc >= 50 and $rc < 3)
+            then "trusted"
+        else if ($pc < 5)
+            then "new"
+        else "standard";
 
-# Flagged: Many reports relative to activity
-rule flagged-member:
-    when {
-        $m isa community-member,
-            has report-count $rc,
-            has posts-count $pc;
-        $rc >= 5;
-        $pc >= 1;
-    } then {
-        $m has reputation-tier "flagged";
-    };
 
-# Moderator eligible: Trusted + high helpful votes
-rule moderator-candidate:
-    when {
-        $m isa community-member,
-            has reputation-tier "trusted",
-            has helpful-votes $hv;
+# --- Moderator eligibility: composed classifier ---
+#
+# Replaces the 2.x `moderator-candidate` rule (which depended on
+# `reputation-tier "trusted"` having fired first). 3.x composes by calling
+# `reputation_tier()` inside the match; no dependency on rule ordering.
+#
+fun is_moderator_eligible($m: community-member) -> boolean:
+    match
+        let $tier = reputation_tier($m);
+        $tier == "trusted";
+        $m has helpful-votes $hv;
         $hv >= 200;
-    } then {
-        $m has moderator-eligible true;
-    };
+    return first true;
 
-# =============================================================================
-# CONTENT QUALITY RULES
-# =============================================================================
 
-# High quality: Many upvotes, few downvotes
-rule high-quality-content:
-    when {
-        $c isa content-item,
-            has upvotes $up,
-            has downvotes $down,
-            has report-count $rc;
-        $up >= 10;
-        $down < 3;
-        $rc == 0;
-    } then {
-        $c has content-quality "high";
-    };
-
-# Spam: Reported multiple times
-rule spam-content:
-    when {
-        $c isa content-item,
-            has report-count $rc;
-        $rc >= 3;
-    } then {
-        $c has content-quality "spam";
-    };
+# --- Content quality: cascading classifier (replaces 2 rules + implicit default) ---
+#
+# Ordered bands:
+#   "spam"    if reported multiple times
+#   "high"    if vote ratio is strong and zero reports
+#   "low"     if downvotes dominate upvotes
+#   "standard" otherwise
+#
+fun content_quality($c: content-item) -> string:
+    match
+        $c has upvotes $up, has downvotes $down, has report-count $rc;
+    return first
+        if ($rc >= 3)
+            then "spam"
+        else if ($up >= 10 and $down < 3 and $rc == 0)
+            then "high"
+        else if ($down >= $up and $up < 3)
+            then "low"
+        else "standard";
 
 
 # =============================================================================
 # QUERY FUNCTIONS
 # =============================================================================
 
-# Get trusted members
+# --- Member partitions via the tier classifier ---
+
 fun trusted_members() -> { community-member }:
-    match $m isa community-member, has reputation-tier "trusted";
+    match
+        $m isa community-member;
+        let $tier = reputation_tier($m);
+        $tier == "trusted";
     return { $m };
 
-# Get flagged members for review
 fun flagged_members() -> { community-member }:
-    match $m isa community-member, has reputation-tier "flagged";
+    match
+        $m isa community-member;
+        let $tier = reputation_tier($m);
+        $tier == "flagged";
     return { $m };
 
-# Get moderator candidates
+# Moderator candidates (composed via is_moderator_eligible)
 fun moderator_candidates() -> { community-member }:
-    match $m isa community-member, has moderator-eligible true;
+    match
+        $m isa community-member;
+        let $ok = is_moderator_eligible($m);
     return { $m };
 
-# Get high-quality content
+
+# --- Content partitions via the quality classifier ---
+
 fun quality_content() -> { content-item }:
-    match $c isa content-item, has content-quality "high";
+    match
+        $c isa content-item;
+        let $q = content_quality($c);
+        $q == "high";
     return { $c };
 
-# Get spam content for removal
 fun spam_content() -> { content-item }:
-    match $c isa content-item, has content-quality "spam";
+    match
+        $c isa content-item;
+        let $q = content_quality($c);
+        $q == "spam";
     return { $c };
 
-# Count members by tier
+
+# --- Aggregates ---
+
 fun members_by_tier($tier: string) -> integer:
-    match $m isa community-member, has reputation-tier $tier;
+    match
+        $m isa community-member;
+        let $t = reputation_tier($m);
+        $t == $tier;
     return count($m);
+
+# Community health index: ratio of non-flagged content
+fun quality_rate() -> double:
+    match
+        let $q  = spam_content_count();
+        let $all = content_count();
+        $all > 0;
+    return first 1.0 - ($q / $all);
+
+fun spam_content_count() -> integer:
+    match
+        $c isa content-item;
+        let $q = content_quality($c);
+        $q == "spam";
+    return count($c);
+
+fun content_count() -> integer:
+    match $c isa content-item;
+    return count($c);
+
+
+# =============================================================================
+# USAGE
+# =============================================================================
+#
+# Moderation panel: flagged members newest first
+#   match let $m = flagged_members();
+#         $m has display-name $n, has joined-at $j;
+#   select $m, $n, $j;
+#   sort $j desc;
+#
+# Recruit new moderators
+#   match let $m = moderator_candidates();
+#         $m has display-name $n, has helpful-votes $h;
+#   select $n, $h;
+#
+# Spam removal queue
+#   match let $c = spam_content();
+#         $c has content-id $id, has report-count $rc;
+#   select $id, $rc;
+#
+# Community health dashboard
+#   match
+#     let $trusted  = members_by_tier("trusted");
+#     let $standard = members_by_tier("standard");
+#     let $new      = members_by_tier("new");
+#     let $flagged  = members_by_tier("flagged");
+#     let $health   = quality_rate();
+#   select $trusted, $standard, $new, $flagged, $health;
+#
+# =============================================================================

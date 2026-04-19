@@ -7,6 +7,7 @@
 import type { APIRoute } from 'astro'
 import { openrouter } from '@/engine/llm'
 import { tick } from '@/engine/loop'
+import { pickBest } from '@/engine/match'
 import { selfCheckoff } from '@/engine/task-sync'
 import { getNet, reloadMeta } from '@/lib/net'
 import { readParsed } from '@/lib/typedb'
@@ -133,7 +134,9 @@ export const GET: APIRoute = async ({ url }) => {
         const taskId = (taskRow.t as Record<string, unknown>)?.['task-id'] as string | undefined
         const tags = (taskRow.t as Record<string, unknown>)?.tag as string[] | string | undefined
         const tagList = Array.isArray(tags) ? tags : tags ? [tags] : []
-        const bestAgent = tagList.length > 0 ? net.select(tagList[0]) : net.select()
+        // Multi-tag Jaccard × pheromone match. Falls back to legacy single-tag
+        // select() when no unit shares any tag with the task.
+        const bestAgent = tagList.length > 0 ? ((await pickBest(net, tagList)) ?? net.select(tagList[0])) : net.select()
         if (taskId && bestAgent) {
           const { result: taskResult, dissolved } = await net.ask({ receiver: bestAgent, data: taskRow.t })
           if (taskResult) {

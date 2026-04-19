@@ -55,24 +55,7 @@ export type TaskStatus = 'todo' | 'in_progress' | 'complete' | 'blocked' | 'fail
 export type Priority = 'P0' | 'P1' | 'P2' | 'P3'
 export type Phase = 'wire' | 'tasks' | 'onboard' | 'commerce' | 'intelligence' | 'scale'
 
-export interface Task {
-  tid: string
-  name: string
-  description?: string
-  taskType: TaskType
-  status: TaskStatus
-  priority: Priority
-  phase: Phase
-  importance: number // 1–10
-  price: number // x402 price (0 = free, >0 = paid service)
-  currency: 'SUI' | 'USDC' | 'FET'
-  timeout?: number // max latency ms
-  // L4 Inferred
-  attractive?: boolean
-  repelled?: boolean
-  // Dependencies
-  blockedBy?: string[] // tids of blocking tasks
-}
+export type { Task } from './task'
 
 // =============================================================================
 // DIMENSION 4: EDGES

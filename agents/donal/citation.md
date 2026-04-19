@@ -214,7 +214,7 @@ to both surfaces without modification.*
 
 ## See also
 
-- [`docs/Donal-lifecycle.md`](../../docs/Donal-lifecycle.md) — the full conversion plan
+- [`docs/Donal-lifecycle.md`](Donal-lifecycle.md) — the full conversion plan
 - [`src/worlds/donal-marketing.ts`](../../src/worlds/donal-marketing.ts) — WorldSpec with alliance edges
 - [`agents/donal/cmo.md`](./cmo.md) — the orchestrator that routes briefs to this agent
 - [`agents/donal/README.md`](./README.md) — full pod roster

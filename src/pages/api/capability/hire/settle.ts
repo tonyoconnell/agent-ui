@@ -108,10 +108,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const to = originalRequest.provider
     const _edge = `${from}→${to}`
 
+    // Increment existing strength (TypeDB 3.0: match/delete/insert)
     writeSilent(`
-      match
-        $p isa path, has from-unit "${from}", has to-unit "${to}";
-      update $p has strength (or \`strength + 1.0\`, 1.0);
+      match $p isa path, has from-unit "${from}", has to-unit "${to}", has strength $s;
+      delete $p has strength $s;
+      insert $p has strength ($s + 1.0);
+    `)
+    // If path has no strength yet, set to 1.0
+    writeSilent(`
+      match $p isa path, has from-unit "${from}", has to-unit "${to}";
+      not { $p has strength $_; };
+      insert $p has strength 1.0;
     `)
 
     // Step 7: Mark settlement as complete

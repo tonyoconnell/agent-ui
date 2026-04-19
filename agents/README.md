@@ -145,6 +145,6 @@ npx wrangler deploy
 
 ## See Also
 
-- [cloudflare.md](../docs/cloudflare.md) — Full platform details
+- [cloudflare.md](cloudflare.md) — Full platform details
 - [nanoclaw.md](../docs/nanoclaw.md) — Architecture deep dive
-- [agent-launch.md](../docs/agent-launch.md) — Tokenization and trading
+- [agent-launch.md](agent-launch.md) — Tokenization and trading

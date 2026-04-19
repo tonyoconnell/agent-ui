@@ -1,6 +1,6 @@
 # @oneie/mcp
 
-MCP server for the ONE substrate — 12 substrate + 5 lifecycle + 10 commerce + 3 discovery tools = 30 tools.
+MCP server for the ONE substrate — 12 substrate + 5 lifecycle + 10 commerce + 10 observability + 3 discovery tools = 40 tools.
 
 Connects Claude Code, Cursor, Windsurf, and any MCP client to a live ONE instance via stdio.
 
@@ -80,6 +80,21 @@ Or point at production:
 | `bounty` | L4 | Post a bounty for a skill with deadline and rubric thresholds |
 | `escrow_create` | L4 | Create a Sui on-chain escrow for a task between two units |
 | `harden` | L5 | Harden a strong path on-chain; promotes it to a permanent highway |
+
+### Observability
+
+| Tool | Loop | What |
+|------|------|------|
+| `stats` | L2 | Aggregate substrate stats: unit counts, highways, revenue totals |
+| `health` | L1 | Substrate health: world state, unit count, revenue, top group |
+| `revenue` | L4 | Revenue breakdown: GDP, total transactions, top earners by unit |
+| `frontiers_global` | L7 | Unexplored frontier hypotheses with expected value >= 0.5 |
+| `hypotheses_global` | L6 | All hypotheses; filterable by status (pending\|testing\|confirmed\|rejected) |
+| `export_units` | L1 | Export all units as JSON snapshot (uid, name, kind, successRate, generation) |
+| `export_highways` | L2 | Export top weighted paths (strength >= 20) with optional context hints |
+| `intent_learn` | L6 | Unrecognized queries ranked by frequency; discovers new intent patterns |
+| `ingest_event` | L1 | Ingest a pheromone event (email\|stripe\|rating\|analytics) into the substrate |
+| `chat_turn` | L1 | Send a chat turn to the substrate LLM; returns streamed text and next-turn tags |
 
 ### Discovery
 

@@ -25,6 +25,9 @@ export interface AuthContext {
   role?: string
   scopeGroups?: string[]
   scopeSkills?: string[]
+  realUser?: string // originating human identity when acting as another unit
+  actAs?: string // explicit act-as request (validated, identity swapped)
+  ownerOf?: string[] // agents this user has chairman membership in
 }
 
 // In-process cache: plaintext bearer → verified identity (5-min TTL).
@@ -142,8 +145,9 @@ export async function validateApiKey(
         const nowMs = Date.now()
 
         // Cache — secondary map lets invalidateKeyCache(keyId) find and evict the right entry
-        // Role is looked up separately via getRoleForUser() to keep validateApiKey at 1 TypeDB call
-        KEY_CACHE.set(key, { user, permissions, keyId, expires: nowMs + CACHE_TTL_MS, scopeGroups, scopeSkills })
+        // Role lookup: one extra TypeDB query per cache miss (~5 min per key), acceptable cost
+        const role = await getRoleForUser(user).catch(() => undefined)
+        KEY_CACHE.set(key, { user, permissions, keyId, expires: nowMs + CACHE_TTL_MS, role, scopeGroups, scopeSkills })
         KEYID_TO_BEARER.set(keyId, key)
 
         // Update last-used (fire-and-forget; best-effort)
@@ -157,7 +161,7 @@ export async function validateApiKey(
           insert $k has last-used ${nowTs};
         `)
 
-        return { user, permissions, keyId, isValid: true, scopeGroups, scopeSkills }
+        return { user, permissions, keyId, isValid: true, role, scopeGroups, scopeSkills }
       }
     }
 
@@ -309,6 +313,43 @@ export async function resolveUnitFromSession(request: Request): Promise<AuthCont
   const uid = deriveHumanUid(session.user)
   await ensureHumanUnit(uid, session.user)
   const role = await getRoleForUser(uid)
+
+  // Act-as: cookie session can act as owned agents if chairman in g:owns:<target>
+  const actAsParam = new URL(request.url).searchParams.get('actAs')
+  const actAsHeader = request.headers.get('X-Act-As')
+  const actAsTarget = actAsParam || actAsHeader
+
+  if (actAsTarget) {
+    const ownershipGroup = `g:owns:${actAsTarget}`
+    const membershipRows = await readParsed(`
+      match
+        $u isa unit, has uid "${esc(uid)}";
+        $g isa group, has gid "${esc(ownershipGroup)}";
+        (member: $u, group: $g) isa membership, has role $r;
+        select $r;
+    `).catch(() => [])
+    const isChairman = (membershipRows as Array<{ r: string }>).some((row) => row.r === 'chairman')
+
+    if (!isChairman) {
+      emitSecurityEvent({ kind: 'auth-fail', caller: uid, reason: 'act-as-unauthorized' })
+      warnAuthBoundary(uid)
+      return { user: '', permissions: [], keyId: '', isValid: false }
+    }
+
+    const actAsRole = await getRoleForUser(actAsTarget).catch(() => undefined)
+    // actAs context is not cached — always fresh (prevents stale ownership after revoke)
+    return {
+      user: actAsTarget,
+      permissions: ['read', 'write'],
+      keyId: `sess:${session.session.id}`,
+      isValid: true,
+      role: actAsRole,
+      scopeGroups: [ownershipGroup],
+      scopeSkills: [],
+      realUser: uid,
+      actAs: actAsTarget,
+    }
+  }
 
   const ctx: AuthContext = {
     user: uid,

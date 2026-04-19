@@ -21,7 +21,18 @@ import { MODELS } from '../lib/models'
 import { notifyOwner, registerOwner } from '../lib/notify'
 import { sendToStudent } from '../lib/proactive'
 import { systemPromptWithPack } from '../lib/prompt'
-import { chooseModelLocal, ensureRegistered, highways, isToxic, mark, markModelOutcome, warn } from '../lib/substrate'
+import {
+  chooseModelLocal,
+  ensureRegistered,
+  highways,
+  isToxic,
+  mark,
+  markModelOutcome,
+  matchClawPattern,
+  recallHypotheses,
+  resolveIntentLocal,
+  warn,
+} from '../lib/substrate'
 import { syncPersonas } from '../lib/sync-personas'
 import { executeTool, tools } from '../lib/tools'
 import { personas } from '../personas'
@@ -59,6 +70,13 @@ function resolveLLM(model: string, env: Env): { url: string; headers: Record<str
     },
     modelId: model,
   }
+}
+
+// ─── Response cache ─────────────────────────────────────────────────────────
+
+async function hashKey(parts: string[]): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(parts.join(':')))
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 // Detect if response is confident enough to handle locally (score 0-1)
@@ -654,13 +672,77 @@ app.post('/message', async (c) => {
     }
 
     // ── NON-STREAMING PATH ─────────────────────────────────────
+    // Pattern registry: check D1 patterns before any cache or LLM
+    const patternMatch = await matchClawPattern(c.env, text).catch(() => null)
+    if (patternMatch) {
+      if (patternMatch.action === 'reply' && patternMatch.value) {
+        return c.json({ ok: true, id: msgId, group, response: patternMatch.value, pattern: patternMatch.name })
+      }
+      if (patternMatch.action === 'block') {
+        return c.json({ ok: false, error: patternMatch.value ?? 'blocked' }, 403)
+      }
+      if (patternMatch.action === 'tag' && patternMatch.value) {
+        context.tags = [...(context.tags ?? []), patternMatch.value]
+      }
+    }
+
+    let cacheKey: string | null = null
+    if (c.env.DB) {
+      cacheKey = await hashKey([text, JSON.stringify(context.tags ?? [])]).catch(() => null)
+      if (cacheKey) {
+        const cached = await c.env.DB.prepare(
+          'SELECT response, quality FROM response_cache WHERE hash = ? AND expires_at > ?',
+        )
+          .bind(cacheKey, Date.now())
+          .first()
+          .catch(() => null)
+        if (cached?.response) {
+          markModelOutcome(c.env, stanChoice.edge, true).catch(() => {})
+          return c.json({ ok: true, id: msgId, group, response: cached.response as string, cached: true })
+        }
+      }
+    }
+
+    // Intent resolution: check D1 for high-confidence intent → cache hit
+    if (c.env.DB) {
+      const intentMatch = await resolveIntentLocal(c.env, text).catch(() => null)
+      if (intentMatch && intentMatch.confidence >= 0.8) {
+        const intentKey = await hashKey([intentMatch.intent, JSON.stringify(context.tags ?? [])]).catch(() => null)
+        if (intentKey) {
+          const intentCached = await c.env.DB.prepare(
+            'SELECT response FROM response_cache WHERE hash = ? AND expires_at > ?',
+          )
+            .bind(intentKey, Date.now())
+            .first()
+            .catch(() => null)
+          if (intentCached?.response) {
+            c.env.DB.prepare('INSERT INTO intent_queries (raw, intent, resolver, cached, ts) VALUES (?,?,?,1,?)')
+              .bind(text.slice(0, 500), intentMatch.intent, 'keyword', Date.now())
+              .run()
+              .catch(() => {})
+            markModelOutcome(c.env, stanChoice.edge, true).catch(() => {})
+            return c.json({ ok: true, id: msgId, group, response: intentCached.response as string, cached: true })
+          }
+        }
+      }
+    }
+
+    // Content recall: inject top hypotheses into system prompt
+    let enrichedSystemPrompt = context.systemPrompt
+    const recallResults = await recallHypotheses(c.env, text.slice(0, 100)).catch(() => [])
+    const topFacts = recallResults.filter((h) => h.confidence > 0.5).slice(0, 2)
+    if (topFacts.length) {
+      const factBlock = topFacts.map((h) => `- ${h.statement}`).join('\n')
+      enrichedSystemPrompt = `${context.systemPrompt}\n\nKnown facts:\n${factBlock}`
+    }
+
     const res = await fetch(llm.url, {
       method: 'POST',
       headers: llm.headers,
       body: JSON.stringify({
         model: llm.modelId,
         max_tokens: 512,
-        messages: [{ role: 'system', content: context.systemPrompt + studentCtx }, ...messages],
+        messages: [{ role: 'system', content: enrichedSystemPrompt + studentCtx }, ...messages],
         tools: openaiTools,
       }),
     })
@@ -698,6 +780,45 @@ app.post('/message', async (c) => {
 
       mark(c.env, 'entry', `nanoclaw:${group}`).catch(() => {})
       markModelOutcome(c.env, stanChoice.edge, true).catch(() => {})
+
+      // Store in response cache (quality-gated: >0.5 quality → cache)
+      const cacheQuality = reply.trim().length > 100 ? 0.75 : reply.trim().length > 20 ? 0.55 : 0.3
+      const cacheTtlMs = cacheQuality > 0.7 ? 86_400_000 : cacheQuality > 0.5 ? 3_600_000 : 0
+      if (cacheTtlMs > 0 && cacheKey) {
+        c.env.DB.prepare(
+          'INSERT OR REPLACE INTO response_cache (hash, tags, model, response, quality, group_id, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        )
+          .bind(
+            cacheKey,
+            JSON.stringify(context.tags ?? []),
+            stanChoice.modelId,
+            reply,
+            cacheQuality,
+            group,
+            Date.now(),
+            Date.now() + cacheTtlMs,
+          )
+          .run()
+          .catch(() => {})
+      }
+      // Log call for cost tracking
+      c.env.DB.prepare(
+        'INSERT INTO call_log (id, group_id, model, tags, tokens_est, cost_est, quality, reason, latency_ms, ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+        .bind(
+          `log-${Date.now()}`,
+          group,
+          stanChoice.modelId,
+          JSON.stringify(context.tags ?? []),
+          Math.floor(reply.split(' ').length * 1.3),
+          Math.floor(reply.split(' ').length * 1.3 * 0.00000015 * 100) / 100,
+          cacheQuality,
+          stanChoice.reason,
+          0,
+          Date.now(),
+        )
+        .run()
+        .catch(() => {})
 
       // Post-response hook: side-car + onboarding + assessment
       const postTags = student ? ([student.pillar, student.onboardingStage].filter(Boolean) as string[]) : []

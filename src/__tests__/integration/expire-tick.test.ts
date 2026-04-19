@@ -33,8 +33,8 @@ const claimRegistry = new Map<string, ClaimRecord>()
 
 function claimWithTimestamp(tid: string, owner: string, claimedAt: Date): boolean {
   const task = store.getTask(tid)
-  if (!task || task.status !== 'todo') return false
-  store.updateTask(tid, { status: 'active' })
+  if (!task || task.task_status !== 'open') return false
+  store.updateTask(tid, { task_status: 'picked' })
   claimRegistry.set(tid, { owner, claimedAt })
   return true
 }
@@ -48,11 +48,11 @@ function runExpireTick(now: Date): Array<{ tid: string; owner: string; releasedA
 
   for (const [tid, claim] of claimRegistry.entries()) {
     const task = store.getTask(tid)
-    if (!task || task.status !== 'active') continue
+    if (!task || task.task_status !== 'picked') continue
 
     const age = now.getTime() - claim.claimedAt.getTime()
     if (age > CLAIM_TTL_MS) {
-      store.updateTask(tid, { status: 'todo' })
+      store.updateTask(tid, { task_status: 'open' })
       claimRegistry.delete(tid)
       released.push({ tid, owner: claim.owner, releasedAt: now.toISOString() })
     }
@@ -71,16 +71,13 @@ describe('expire-tick: tasks older than 30min are released by the tick', () => {
     store.createTask({
       tid: TID,
       name: 'Expire Tick Task',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C2',
-      value: 'medium',
-      persona: 'agent',
+      task_status: 'open',
+      task_priority: 0.75,
       tags: ['test', 'expire'],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
   })
 
@@ -96,7 +93,7 @@ describe('expire-tick: tasks older than 30min are released by the tick', () => {
     // Tick runs at same time — 0ms age
     const released = runExpireTick(now)
     expect(released).toHaveLength(0)
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
   })
 
   it('29min old claim is not released', () => {
@@ -105,7 +102,7 @@ describe('expire-tick: tasks older than 30min are released by the tick', () => {
 
     const released = runExpireTick(new Date())
     expect(released).toHaveLength(0)
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
   })
 
   it('31min old claim is released by tick', () => {
@@ -124,7 +121,7 @@ describe('expire-tick: tasks older than 30min are released by the tick', () => {
 
     runExpireTick(new Date())
 
-    expect(store.getTask(TID)?.status).toBe('todo')
+    expect(store.getTask(TID)?.task_status).toBe('open')
   })
 
   it('claim record is removed after expiry', () => {
@@ -142,16 +139,13 @@ describe('expire-tick: tasks older than 30min are released by the tick', () => {
     store.createTask({
       tid: TID2,
       name: 'Fresh Task',
-      status: 'todo',
-      priority: 'P2',
-      phase: 'C2',
-      value: 'low',
-      persona: 'agent',
+      task_status: 'open',
+      task_priority: 0.55,
       tags: ['test'],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
 
     // T1: old claim (31min)
@@ -165,8 +159,8 @@ describe('expire-tick: tasks older than 30min are released by the tick', () => {
     expect(released[0].tid).toBe(TID)
 
     // T1 released, T2 still active
-    expect(store.getTask(TID)?.status).toBe('todo')
-    expect(store.getTask(TID2)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('open')
+    expect(store.getTask(TID2)?.task_status).toBe('picked')
 
     store.deleteTask(TID2)
   })
@@ -181,7 +175,7 @@ describe('expire-tick: tasks older than 30min are released by the tick', () => {
 
     const released = runExpireTick(now)
     expect(released).toHaveLength(0)
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
   })
 
   it('released task can be re-claimed after expiry', () => {
@@ -192,7 +186,7 @@ describe('expire-tick: tasks older than 30min are released by the tick', () => {
     // Task is todo again — new session can claim it
     const ok = claimWithTimestamp(TID, 'session-new', new Date())
     expect(ok).toBe(true)
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
     expect(claimRegistry.get(TID)?.owner).toBe('session-new')
   })
 })

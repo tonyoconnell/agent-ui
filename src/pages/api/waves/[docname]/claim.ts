@@ -4,9 +4,8 @@ import { write } from '@/lib/typedb'
 export const POST: APIRoute = async ({ request, params }) => {
   const { sessionId } = (await request.json()) as { sessionId: string }
   const docname = (params as { docname: string }).docname
-  const iso = new Date().toISOString()
 
-  const q = `insert $wl isa wave-lock, has wave-lock-id "${docname}", has owner "${sessionId}", has claimed-at "${iso}";`
+  const q = `insert $wl isa wave-lock, has wave-lock-id "${docname}", has owner "${sessionId}";`
   try {
     await write(q)
     return new Response(JSON.stringify({ ok: true, owner: sessionId }), { status: 200 })

@@ -144,7 +144,8 @@ describe('Act 3: in-process cache — accuracy and speed', () => {
   it('calls TypeDB on first request (cold)', async () => {
     vi.mocked(readParsed).mockClear()
     await validateApiKey(makeRequest(`Bearer ${CACHED_KEY}`))
-    expect(readParsed).toHaveBeenCalledTimes(1)
+    // 2 calls: key lookup + getRoleForUser (role bundled into cache entry)
+    expect(readParsed).toHaveBeenCalledTimes(2)
   })
 
   it('does NOT call TypeDB on second request (cache hit)', async () => {
@@ -164,9 +165,9 @@ describe('Act 3: in-process cache — accuracy and speed', () => {
     // Invalidate by keyId (new API)
     invalidateKeyCache('key-cache-001')
     vi.mocked(readParsed).mockClear()
-    // Next call must go to TypeDB
+    // Next call must go to TypeDB (key lookup + getRoleForUser = 2 calls)
     await validateApiKey(makeRequest(`Bearer ${CACHED_KEY}`))
-    expect(readParsed).toHaveBeenCalledTimes(1)
+    expect(readParsed).toHaveBeenCalledTimes(2)
   })
 
   it('cache hit is faster than cold verify', async () => {

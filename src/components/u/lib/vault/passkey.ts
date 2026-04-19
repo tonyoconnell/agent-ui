@@ -137,9 +137,8 @@ export async function enrollPasskey(userIdentifier: string, userDisplayName: str
     attestation: 'none',
     timeout: 60_000,
     extensions: {
-      // biome-ignore lint/suspicious/noExplicitAny: PRF extension not yet in lib.dom
-      prf: { eval: { first: prfSalt } } as any,
-    },
+      prf: { eval: { first: prfSalt } },
+    } as PublicKeyCredentialCreationOptions['extensions'],
   }
 
   let credential: PublicKeyCredential
@@ -172,9 +171,8 @@ export async function enrollPasskey(userIdentifier: string, userDisplayName: str
       userVerification: 'required',
       timeout: 60_000,
       extensions: {
-        // biome-ignore lint/suspicious/noExplicitAny: PRF extension not yet in lib.dom
-        prf: { eval: { first: prfSalt } } as any,
-      },
+        prf: { eval: { first: prfSalt } },
+      } as PublicKeyCredentialRequestOptions['extensions'],
     }
     const assertion = (await navigator.credentials.get({
       publicKey: verifyOptions,
@@ -220,9 +218,8 @@ export async function unlockWithPasskey(enrollment: PasskeyEnrollment): Promise<
       userVerification: 'required',
       timeout: 60_000,
       extensions: {
-        // biome-ignore lint/suspicious/noExplicitAny: PRF extension not yet in lib.dom
-        prf: { eval: { first: enrollment.prfSalt } } as any,
-      },
+        prf: { eval: { first: enrollment.prfSalt } },
+      } as PublicKeyCredentialRequestOptions['extensions'],
     }
 
     let assertion: PublicKeyCredential | null

@@ -22,7 +22,9 @@
  */
 
 import type { APIRoute } from 'astro'
+import { resolveUnitFromSession } from '@/lib/api-auth'
 import { generateApiKey, hashKey } from '@/lib/api-key'
+import { emitSecurityEvent } from '@/lib/security-signals'
 import { addressFor, ensureFunded } from '@/lib/sui'
 import { readParsed, write } from '@/lib/typedb'
 
@@ -113,6 +115,26 @@ export const POST: APIRoute = async ({ request }) => {
     `).catch(() => [])
 
     const returning = existing.length > 0
+
+    // Re-mint gate: returning agents require proof of possession or ownership
+    if (returning) {
+      const remintMode = (import.meta.env.AUTH_AGENT_REMINT_MODE as string | undefined) ?? 'audit'
+      const authCtx = await resolveUnitFromSession(request)
+      const hasPossession = authCtx.isValid && authCtx.user === uid
+      const hasOwnership =
+        authCtx.isValid && authCtx.role === 'chairman' && (authCtx.scopeGroups?.includes(`g:owns:${uid}`) ?? false)
+
+      if (!hasPossession && !hasOwnership) {
+        emitSecurityEvent({ kind: 'auth-fail', caller: authCtx.user || 'unknown', reason: 'remint-no-proof' })
+        if (remintMode === 'enforce') {
+          return new Response(JSON.stringify({ error: 'Re-mint requires proof of possession or ownership' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        // audit mode: log the denial but do not block
+      }
+    }
 
     // If new, create the unit
     if (!returning) {

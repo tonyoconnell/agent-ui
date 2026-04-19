@@ -160,5 +160,5 @@ Set with `wrangler secret put`:
 ## See Also
 
 - [docs/nanoclaw.md](../docs/nanoclaw.md) — Full documentation
-- [docs/PLAN-tunnels.md](../docs/PLAN-tunnels.md) — Tunnel setup
+- [docs/PLAN-tunnels.md](PLAN-tunnels.md) — Tunnel setup
 - [scripts/setup-nanoclaw.ts](../scripts/setup-nanoclaw.ts) — Deployment script

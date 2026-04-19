@@ -34,3 +34,6 @@ node_modules
 
 # Vitest coverage reports (regenerated per run)
 coverage/
+
+# Release staging — built by scripts/release.ts, pushed to one-ie/one
+releases*

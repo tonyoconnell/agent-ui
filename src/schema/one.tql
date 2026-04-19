@@ -54,9 +54,38 @@ entity thing,
     owns task-context @card(0..),     # doc keys providing context (can have multiple)
     owns brand,                       # brand label (e.g. "acme", "one", "donal")
     owns owner,                       # creator's user-id; first-save sets, later saves must match
-    plays capability:offered;
+    # Task-only (meaningful when thing-type='task')
+    owns task-status,                 # open/blocked/picked/done/verified/failed/dissolved
+    owns task-effort,                 # 0..1
+    owns task-value,                  # 0..1
+    owns task-priority,               # 0..1
+    owns task-variant,                # null/'a'/'b'/'c' (split-test letter)
+    owns exit-condition,              # machine-observable acceptance
+    # Rubric (post-verify, any thing-type)
+    owns rubric-fit,
+    owns rubric-form,
+    owns rubric-truth,
+    owns rubric-taste,
+    # Plan-only (meaningful when thing-type='plan')
+    owns goal,
+    owns cycles-planned,
+    owns escape-condition,
+    owns escape-action,
+    # Timestamps
+    owns started-at,
+    owns closed-at,
+    owns verified-at,
+    plays capability:offered,
+    plays blocks:blocker,
+    plays blocks:blocked,
+    plays containment:container,
+    plays containment:contained,
+    plays production:producer,
+    plays production:produced;
 
-# 3b. TASKS — atomic work units (extends thing with task-specific metadata)
+# 3b. TASKS — DEPRECATED 2026-04-20 (see one/task.md § 10 migration).
+#     Kept to not break existing api/tasks/*.ts reads. Cycle 2 migrates callers;
+#     Cycle 3 removes this entity. New code writes to `thing` with thing-type='task'.
 entity task,
     owns task-id @key,
     owns task-name,
@@ -75,6 +104,16 @@ entity task,
 relation blocks,
     relates blocker,
     relates blocked;
+
+# Containment — plan contains cycle contains task
+relation containment,
+    relates container,
+    relates contained;
+
+# Production — a verified task produces a skill
+relation production,
+    relates producer,
+    relates produced;
 
 # 4. PATHS — connections with weight
 relation path,
@@ -156,6 +195,30 @@ attribute persona, value string;
 attribute priority-score, value double;
 attribute exit-condition, value string;
 
+# Task lifecycle (on `thing` when thing-type='task')
+attribute task-status, value string;           # open/blocked/picked/done/verified/failed/dissolved
+attribute task-effort, value double;
+attribute task-value, value double;
+attribute task-priority, value double;
+attribute task-variant, value string;          # null/'a'/'b'/'c'
+
+# Rubric scoring (any thing-type, set post-verify)
+attribute rubric-fit, value double;
+attribute rubric-form, value double;
+attribute rubric-truth, value double;
+attribute rubric-taste, value double;
+
+# Plan-only (on `thing` when thing-type='plan')
+attribute goal, value string;
+attribute cycles-planned, value integer;
+attribute escape-condition, value string;
+attribute escape-action, value string;
+
+# Timestamps (datetime strings)
+attribute started-at, value datetime;
+attribute closed-at, value datetime;
+attribute verified-at, value datetime;
+
 # GOVERNANCE — role, identity, scope (locked 2026-04-18)
 attribute role, value string;             # chairman/board/ceo/operator/agent/auditor
 attribute wallet, value string;           # Sui address (0x...)
@@ -200,7 +263,9 @@ attribute escrow-payment-amount, value double;
 attribute escrow-refund-amount, value double;
 
 # =============================================================================
-# 6 dimensions. 5 entities. 7 relations. 50 attributes. ONE.
+# 6 dimensions. 5 entities. 9 relations. 67 attributes. ONE.
+# v2.0: `thing` now absorbs plan/cycle/task/skill (via thing-type).
+# `task` entity deprecated; kept for two cycles. See one/task.md.
 # Governance layer locked: role on membership, wallet+auth-hash on actor,
 # scope on path+hypothesis. Permission = Role × Pheromone.
 # Escrow layer: sui-escrow-id on escrow, status tracking for settlement audit.

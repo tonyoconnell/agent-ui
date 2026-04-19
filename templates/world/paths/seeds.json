@@ -1,4 +1,7 @@
 {
-  "paths": [],
-  "note": "Initial path seeds. Each entry: { source, target, strength }. Empty = let the world learn from scratch."
+  "note": "Pre-weighted funnel paths — a fresh world starts with the lifecycle wired so day-1 signals route correctly. Paths connect units (source/target = uids of actors). Strength 1.0 = starting highway, 0.5 = discoverable but not proven. Replace 'my-world' with the world name from world.md. Replace 'newcomer', 'ceo', 'agent' with your actor uids from actors/*.md. Stage tags (stage:sell, stage:buy, etc.) belong in signal.data.tags at write-time — see one/dictionary.md § Stage Tags. Empty paths = let the world learn from scratch.",
+  "paths": [
+    { "source": "my-world:newcomer", "target": "my-world:ceo",   "strength": 1.0 },
+    { "source": "my-world:ceo",      "target": "my-world:agent", "strength": 1.0 }
+  ]
 }

@@ -1,14 +1,17 @@
 # =============================================================================
-# DOMAIN EXAMPLE: Supply Chain Risk & Reliability
+# DOMAIN EXAMPLE (TypeDB 3.x): Supply Chain Risk & Reliability
 # =============================================================================
 #
-# Shows inference patterns applied to supply chain management:
-#   - Supplier reliability tiers (preferred, standard, probation, blacklisted)
-#   - Shipment risk scoring
-#   - Alternative supplier detection
-#   - Bottleneck identification
+# Migrated to 3.x 2026-04-20 — see ../standalone/quality-rules.tql for the
+# classifier-function template this example follows.
 #
-# Based on: classification.tql, quality-rules.tql
+# Demonstrates:
+#   - Supplier tier classification via cascading `fun` (replaces 2 rules)
+#   - Shipment risk scoring as a derived-on-demand classifier
+#   - Single-source detection via negation aggregate
+#   - Alternative-supplier discovery through relation traversal
+#
+# Based on patterns from: classification.tql, quality-rules.tql
 # =============================================================================
 
 define
@@ -19,11 +22,10 @@ entity supplier,
     owns supplier-id @key,
     owns supplier-name,
     owns supplier-region,
-    owns on-time-rate,             # 0.0 - 1.0
-    owns defect-rate,              # 0.0 - 1.0
+    owns on-time-rate,
+    owns defect-rate,
     owns total-orders,
     owns avg-lead-days,
-    owns supplier-tier,            # INFERRED: "preferred", "standard", "probation"
     plays supplies:supplier,
     plays alternative-source:primary-supplier,
     plays alternative-source:backup-supplier;
@@ -32,8 +34,7 @@ entity component,
     owns component-id @key,
     owns component-name,
     owns component-category,
-    owns criticality,              # "high", "medium", "low"
-    owns single-source,            # INFERRED: boolean (only 1 supplier)
+    owns criticality,
     plays supplies:component,
     plays alternative-source:component-supplied;
 
@@ -43,112 +44,193 @@ entity shipment,
     owns expected-arrival,
     owns actual-arrival,
     owns days-late,
-    owns shipment-status,          # "on_time", "delayed", "lost"
-    owns shipment-risk,            # INFERRED: "low", "medium", "high"
+    owns shipment-status,
     plays shipment-tracking:tracked-shipment;
 
-# --- Attributes ---
-attribute supplier-id, value string;
-attribute supplier-name, value string;
-attribute supplier-region, value string;
-attribute on-time-rate, value double;
-attribute defect-rate, value double;
-attribute total-orders, value integer;
-attribute avg-lead-days, value integer;
-attribute supplier-tier, value string;
 
-attribute component-id, value string;
-attribute component-name, value string;
-attribute component-category, value string;
-attribute criticality, value string;
-attribute single-source, value boolean;
+# --- Attributes (with 3.x constraints) ---
 
-attribute shipment-id, value string;
-attribute shipped-at, value datetime;
-attribute expected-arrival, value datetime;
-attribute actual-arrival, value datetime;
-attribute days-late, value integer;
-attribute shipment-status, value string;
-attribute shipment-risk, value string;
+attribute supplier-id,         value string;
+attribute supplier-name,       value string;
+attribute supplier-region,     value string;
+attribute on-time-rate,        value double  @range(0.0..1.0);
+attribute defect-rate,         value double  @range(0.0..1.0);
+attribute total-orders,        value integer;
+attribute avg-lead-days,       value integer;
+
+attribute component-id,        value string;
+attribute component-name,      value string;
+attribute component-category,  value string;
+attribute criticality,         value string  @values("high", "medium", "low");
+
+attribute shipment-id,         value string;
+attribute shipped-at,          value datetime;
+attribute expected-arrival,    value datetime;
+attribute actual-arrival,      value datetime;
+attribute days-late,           value integer;
+attribute shipment-status,     value string  @values("on_time", "delayed", "lost");
+
 
 # --- Relations ---
 
 relation supplies,
     relates supplier,
-    relates component;
+    relates component @cascade;        # delete component → remove supplies rows
 
 relation alternative-source,
     relates primary-supplier,
     relates backup-supplier,
-    relates component-supplied;
+    relates component-supplied @cascade;
 
 relation shipment-tracking,
-    relates tracked-shipment;
+    relates tracked-shipment @cascade;
 
 
 # =============================================================================
-# SUPPLIER TIER RULES
+# CLASSIFIER FUNCTIONS — replacing 2.x rules
 # =============================================================================
 
-# Preferred: Reliable, low defects, enough history
-rule preferred-supplier:
-    when {
-        $s isa supplier,
-            has on-time-rate $otr,
-            has defect-rate $dr,
-            has total-orders $to;
-        $otr >= 0.95;
-        $dr < 0.02;
-        $to >= 50;
-    } then {
-        $s has supplier-tier "preferred";
-    };
+# --- Supplier tier: cascading if/else (replaces preferred + probation rules) ---
+#
+# Ordered bands, first match wins:
+#   "new"        if history is too short to judge (total-orders < 10)
+#   "preferred"  if high on-time + low defect + enough history
+#   "probation"  if history exists and (late or defective enough)
+#   "standard"   otherwise (the middle band — implicit default)
+#
+fun supplier_tier($s: supplier) -> string:
+    match
+        $s has on-time-rate $otr, has defect-rate $dr, has total-orders $to;
+    return first
+        if ($to < 10)
+            then "new"
+        else if ($otr >= 0.95 and $dr < 0.02 and $to >= 50)
+            then "preferred"
+        else if ($otr < 0.80 or $dr >= 0.10)
+            then "probation"
+        else "standard";
 
-# Probation: Poor performance
-rule probation-supplier:
-    when {
-        $s isa supplier,
-            has on-time-rate $otr,
-            has defect-rate $dr,
-            has total-orders $to;
-        $to >= 10;
-        { $otr < 0.80; } or { $dr >= 0.10; };
-    } then {
-        $s has supplier-tier "probation";
-    };
+
+# --- Shipment risk: derived from lateness + status ---
+#
+# No 2.x equivalent (the old file noted it as "INFERRED" but had no rule).
+# 3.x makes the derivation explicit.
+#
+fun shipment_risk($sh: shipment) -> string:
+    match $sh has shipment-status $st, has days-late $dl;
+    return first
+        if ($st == "lost")       then "high"
+        else if ($dl >= 7)       then "high"
+        else if ($dl >= 3)       then "medium"
+        else                          "low";
 
 
 # =============================================================================
 # QUERY FUNCTIONS
 # =============================================================================
 
-# Get preferred suppliers
+# --- Supplier partitions via the tier classifier ---
+
 fun preferred_suppliers() -> { supplier }:
-    match $s isa supplier, has supplier-tier "preferred";
+    match
+        $s isa supplier;
+        let $tier = supplier_tier($s);
+        $tier == "preferred";
     return { $s };
 
-# Get suppliers on probation
 fun probation_suppliers() -> { supplier }:
-    match $s isa supplier, has supplier-tier "probation";
+    match
+        $s isa supplier;
+        let $tier = supplier_tier($s);
+        $tier == "probation";
     return { $s };
 
-# Get alternative suppliers for a component
+fun new_suppliers() -> { supplier }:
+    match
+        $s isa supplier;
+        let $tier = supplier_tier($s);
+        $tier == "new";
+    return { $s };
+
+
+# --- Alternative-supplier discovery ---
+
 fun alternatives_for($component_id: string) -> { supplier }:
     match
         $comp isa component, has component-id $component_id;
-        $rel(component-supplied: $comp, backup-supplier: $backup) isa alternative-source;
-        $backup isa supplier;
+        $rel (component-supplied: $comp, backup-supplier: $backup) isa alternative-source;
     return { $backup };
 
-# Get high-criticality single-source components (supply chain risk)
+
+# --- Single-source detection (supply-chain concentration risk) ---
+#
+# "Only one supplier exists for this component" = count of suppliers via the
+# `supplies` relation is exactly 1. Derived, not stored.
+#
+fun supplier_count($component_id: string) -> integer:
+    match
+        $comp isa component, has component-id $component_id;
+        $sup (supplier: $s, component: $comp) isa supplies;
+    return count($s);
+
+fun is_single_source($component_id: string) -> boolean:
+    match
+        let $n = supplier_count($component_id);
+        $n == 1;
+    return first true;
+
+# High-criticality components with only one supplier — the bottleneck set
 fun single_source_critical() -> { component }:
     match
-        $c isa component,
-            has criticality "high",
-            has single-source true;
+        $c isa component, has criticality "high", has component-id $cid;
+        let $n = supplier_count($cid);
+        $n == 1;
     return { $c };
 
-# Count suppliers by tier
+
+# --- Aggregates ---
+
 fun count_by_tier($tier: string) -> integer:
-    match $s isa supplier, has supplier-tier $tier;
+    match
+        $s isa supplier;
+        let $t = supplier_tier($s);
+        $t == $tier;
     return count($s);
+
+fun high_risk_shipments() -> { shipment }:
+    match
+        $sh isa shipment;
+        let $risk = shipment_risk($sh);
+        $risk == "high";
+    return { $sh };
+
+
+# =============================================================================
+# USAGE
+# =============================================================================
+#
+# Find suppliers to promote (preferred tier):
+#   match let $s = preferred_suppliers(); $s has supplier-name $n; select $n;
+#
+# Find bottleneck components (critical + single-source):
+#   match let $c = single_source_critical(); $c has component-name $n; select $n;
+#
+# Dashboard: tier counts
+#   match let $p = count_by_tier("preferred");
+#         let $s = count_by_tier("standard");
+#         let $pr = count_by_tier("probation");
+#         let $n = count_by_tier("new");
+#   select $p, $s, $pr, $n;
+#
+# Find alternatives for a component whose primary is failing:
+#   match let $backup = alternatives_for("COMP-42");
+#         $backup has supplier-name $name;
+#   select $name;
+#
+# Risk-dashboard for shipments in-flight:
+#   match $sh isa shipment, has shipment-status $st;
+#         not { $st == "on_time"; };
+#         let $risk = shipment_risk($sh);
+#   select $sh, $risk;
+#
+# =============================================================================

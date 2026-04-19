@@ -619,12 +619,9 @@ import { Card } from "@/components/ui/card"
 
 **One script. Same code path locally and in CI. `wrangler` CLI direct + async parallel workers.**
 
-> **Migration in progress (2026-04-18):** Astro 5 + CF Pages → Astro 6 + CF Workers
-> with Static Assets. Cycles 1-2 shipped on `feature/cf-workers-migration-c1-c2`;
-> Cycle 3 W3 partial — `PUBLIC_GATEWAY_URL` env fix in `deploy.yml` + DNS flip
-> tool `scripts/cf-cutover.ts` both ready; pending redeploy + health verify +
-> `bun run cf-cutover --execute`.
-> See [docs/TODO-cf-workers-migration.md](docs/TODO-cf-workers-migration.md).
+> **Migration complete (2026-04-18):** Astro 6 + `@astrojs/cloudflare@13` + CF Workers
+> with Static Assets. `dev.one.ie` serves the `one-substrate` Worker; 140 units healthy.
+> Pages project paused at `one-substrate.pages.dev` as rollback safety net.
 
 ### Deploy
 ```bash
@@ -634,9 +631,6 @@ bun run deploy -- --strict        # no flaky test allowance
 bun run deploy -- --preview-only  # build + smoke only
 bun run deploy -- --skip-tests    # skip W0 (risky)
 DEPLOY_CONFIRM=yes bun run deploy # non-interactive approval (CI)
-
-bun run cf-cutover                # Pages→Workers DNS flip, dry-run (safe)
-bun run cf-cutover --execute      # real cutover: route + detach + verify + signal
 ```
 
 ### GitHub Actions (CI) — `.github/workflows/deploy.yml`
@@ -657,17 +651,16 @@ Required secrets: `CLOUDFLARE_GLOBAL_API_KEY`, `CLOUDFLARE_EMAIL`, `CLOUDFLARE_A
 7. Deploy — Gateway + Sync + NanoClaw **parallel** (24s), then Astro Worker (~16s)
 8. Health — 3 retries with backoff + record to substrate via `/api/signal`
 
-**Verified speed (2026-04-15, pre-migration):** 74.9s total.
-Workers parallel 16.7s (vs ~42s sequential — 2.5× speedup) • Pages 29.6s • health 4/4 in 287-666ms.
-Preview URL format: pre-migration `📎 https://<hash>.one-substrate.pages.dev`;
-post-migration `📎 https://one-substrate.<account>.workers.dev` (regex matches both during the transition).
+**Verified speed (2026-04-15):** 74.9s total.
+Workers parallel 16.7s (vs ~42s sequential — 2.5× speedup) • Astro Worker 29.6s • health 4/4 in 287-666ms.
+Preview URL: `📎 https://one-substrate.<account>.workers.dev`
 
 **CF bundle size — LOCKED rules (do not revert, apply to Pages AND Workers):**
 Three rules keep the SSR worker under the CF free-tier limit (~10 MiB uncompressed):
 1. `markdown: { syntaxHighlight: false }` — kills ~5.8 MiB of Shiki grammars from worker
 2. `ssr.external: ["shiki", "@mysten/sui", "@mysten/bcs", "node:async_hooks"]` — bare import references without inlining; safe only when the package is never called server-side (`shiki` callers are all `client:only`)
 3. Pure-shell pages use `export const prerender = true` + `client:only="react"` — component tree stays out of worker, page handler collapses to 63-byte stub
-Verified 2026-04-15: 21 MiB → 9.5 MiB. Pages: FAILED → ✓. Full diagnosis: `docs/deploy.md` § Bundle Size.
+Verified 2026-04-15: 21 MiB → 9.5 MiB. Workers deploy: ✓. Full diagnosis: `docs/deploy.md` § Bundle Size.
 
 **Auth is non-negotiable:** Global API Key only. `.env` stores it as `CLOUDFLARE_GLOBAL_API_KEY`, script maps to `CLOUDFLARE_API_KEY` for wrangler and blanks `CLOUDFLARE_API_TOKEN` in the spawned env. Scoped tokens are forbidden — they lack permissions for workers + custom domains. See `/cloudflare` skill.
 

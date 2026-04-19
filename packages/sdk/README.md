@@ -183,3 +183,168 @@ const health = await client.health();
 // { status: "healthy" | "degraded", world: { units, agents, edges, ... }, version }
 if (health.status === "degraded") console.warn("Substrate degraded");
 ```
+
+---
+
+## Cycle 2 — Type Safety: Zod Schemas, Error Hierarchy, Retry
+
+### Error Hierarchy
+
+```typescript
+import { SubstrateError, AuthError, RateLimitError, ValidationError } from "@oneie/sdk/errors";
+
+try {
+  await client.authAgent();
+} catch (err) {
+  if (err instanceof AuthError) console.error("Auth failed:", err.status);
+  if (err instanceof RateLimitError) console.error("Rate limited, retry after:", err.retryAfterMs);
+  if (err instanceof ValidationError) console.error("Bad request:", err.body);
+  if (err instanceof SubstrateError) console.error("Substrate error:", err.code);
+}
+```
+
+### Retry Configuration
+
+```typescript
+const client = new SubstrateClient({
+  apiKey: "...",
+  retry: { maxAttempts: 3, backoff: "exp" } // retries 503, 429, 502, 504
+});
+
+// Or use the static factory
+const client = SubstrateClient.fromApiKey("api_...");
+```
+
+### Zod Schemas
+
+```typescript
+import { HealthSchema, StatsSchema, AuthAgentResponseSchema } from "@oneie/sdk/schemas";
+
+// Parse and validate responses manually
+const raw = await fetch("/api/health").then(r => r.json());
+const health = HealthSchema.parse(raw); // throws ZodError on mismatch
+// health.status is "healthy" | "degraded" — fully inferred
+```
+
+### Outcome<T> with kind
+
+```typescript
+const outcome = await client.ask("tutor:teach", { topic: "TypeScript" });
+
+switch (outcome.kind) {
+  case "result":   console.log("Got:", outcome.result); break;
+  case "timeout":  console.log("Timed out"); break;
+  case "dissolved": console.log("No handler"); break;
+  case "failure":  console.log("Handler failed"); break;
+}
+```
+
+### Validation Mode
+
+```typescript
+// strict: throw ValidationError if response shape mismatches schema
+// warn: log mismatch but return data (default)
+// off: skip validation entirely (perf-optimized)
+const client = new SubstrateClient({ validate: "strict" });
+```
+
+---
+
+## Cycle 3 — React Integration: Hooks, Streams, Test Helpers
+
+### Setup
+
+```tsx
+import { SubstrateClient } from "@oneie/sdk";
+import { SubstrateProvider } from "@oneie/sdk/react";
+
+const client = SubstrateClient.fromApiKey(process.env.ONEIE_API_KEY!);
+
+function App() {
+  return (
+    <SubstrateProvider client={client}>
+      <MyApp />
+    </SubstrateProvider>
+  );
+}
+```
+
+### Data Hooks
+
+```tsx
+import { useAgent, useDiscover, useHighways } from "@oneie/sdk/react";
+
+function AgentProfile({ uid }: { uid: string }) {
+  const { data, loading, error, refetch } = useAgent(uid);
+  if (loading) return <div>Loading…</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  return <pre>{JSON.stringify(data, null, 2)}</pre>;
+}
+
+function TopPaths() {
+  const { data, refetch } = useHighways(10);
+  return (
+    <>
+      <button onClick={refetch}>Refresh</button>
+      {data?.highways.map(h => <div key={h.path}>{h.path}: {h.net}</div>)}
+    </>
+  );
+}
+```
+
+### Optimistic Updates
+
+```tsx
+import { useOptimisticMark } from "@oneie/sdk/react";
+
+function MarkButton({ edge }: { edge: string }) {
+  const { optimistic, mark } = useOptimisticMark();
+  return (
+    <button
+      disabled={optimistic.pending}
+      onClick={() => mark(edge, { fit: 1, form: 1, truth: 1, taste: 1 })}
+    >
+      {optimistic.pending ? "Marking…" : "Mark ✓"}
+    </button>
+  );
+}
+```
+
+### Streaming Chat
+
+```tsx
+import { streamChat, useSubstrate } from "@oneie/sdk/react";
+import { useState } from "react";
+
+function Chat() {
+  const { client } = useSubstrate();
+  const [output, setOutput] = useState("");
+
+  async function send(text: string) {
+    setOutput("");
+    for await (const chunk of streamChat(client, [{ role: "user", content: text }])) {
+      setOutput(prev => prev + chunk);
+    }
+  }
+
+  return (
+    <>
+      <button onClick={() => send("Hello!")}>Send</button>
+      <pre>{output}</pre>
+    </>
+  );
+}
+```
+
+### Test Helpers
+
+```typescript
+import { createMockSubstrate } from "@oneie/sdk/testing";
+
+const client = createMockSubstrate({
+  highways: () => Promise.resolve({ highways: [{ path: "a→b", strength: 5, resistance: 1, net: 4 }] })
+});
+
+const result = await client.highways();
+// result.highways[0].path === "a→b"
+```

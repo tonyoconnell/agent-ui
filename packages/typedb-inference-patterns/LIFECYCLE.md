@@ -532,7 +532,7 @@ All lifecycles follow the same pattern:
 
 ## See Also
 
-- [Lesson 3: Hypothesis Lifecycle](lessons/03-hypothesis.md)
-- [Lesson 4: Task Allocation](lessons/04-task-allocation.md)
-- [Lesson 6: Emergence](lessons/06-emergence.md)
-- [LOOPS.md](LOOPS.md) - Deterministic vs Probabilistic loops
+- [Lesson 3: Hypothesis Lifecycle](03-hypothesis.md)
+- [Lesson 4: Task Allocation](04-task-allocation.md)
+- [Lesson 6: Emergence](06-emergence.md)
+- [LOOPS.md](packages/typedb-inference-patterns/LOOPS.md) - Deterministic vs Probabilistic loops

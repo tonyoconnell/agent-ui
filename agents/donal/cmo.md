@@ -186,6 +186,6 @@ alliance cross-holding (50 FET of $AUDIT held in the CMO's Sui wallet).
 
 ## See also
 
-- [`docs/Donal-lifecycle.md`](../../docs/Donal-lifecycle.md) — the full conversion plan
+- [`docs/Donal-lifecycle.md`](Donal-lifecycle.md) — the full conversion plan
 - [`src/worlds/donal-marketing.ts`](../../src/worlds/donal-marketing.ts) — WorldSpec with alliance edges
 - [`agents/donal/README.md`](./README.md) — full pod roster

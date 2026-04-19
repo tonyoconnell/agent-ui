@@ -13,6 +13,7 @@ import { getNet } from '@/lib/net'
 import * as store from '@/lib/tasks-store'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 import { updateTasksCache } from '@/lib/ws-cache'
+import { normalizeStatus, priorityFromLabel } from '@/types/task'
 
 type Row = Record<string, unknown>
 
@@ -59,7 +60,7 @@ export const GET: APIRoute = async ({ url }) => {
         return {
           tid: t.tid,
           name: t.name,
-          status: t.status,
+          status: normalizeStatus(t.status),
           priority: t.priority,
           phase: t.phase,
           value: t.value,
@@ -93,10 +94,24 @@ export const GET: APIRoute = async ({ url }) => {
   const phaseMatch = phase ? `$t has task-phase "${phase}";` : ''
   const valueMatch = value ? `$t has task-value "${value}";` : ''
 
+  // FIRST try: new canonical `thing` entity with thing-type="task"
+  const thingRows = (await readParsed(`
+    match $t isa thing, has thing-type "task", has tid $id,
+      has name $name, has task-status $status;
+    not { $t has task-status "active"; };
+    ${tagMatch}
+    ${phaseMatch}
+    ${valueMatch}
+    select $id, $name, $status;
+  `).catch(() => [])) as Row[]
+
+  // Collect IDs found in new entity for merge preference
+  const thingIds = new Set(thingRows.map((r) => r.id as string))
+
   // Query tasks from TypeDB. Note: TypeQL 3.x requires the `not {}` block on
   // its own statement (ended by `;`) — it can't continue a `has` chain with a
   // comma. Keeping clauses on separate `;` statements is the safe canonical form.
-  const tasks = (await readParsed(`
+  const legacyTasks = (await readParsed(`
     match $t isa task,
       has task-id $id, has name $name, has done $done,
       has task-value $val, has task-phase $ph, has task-persona $persona,
@@ -108,6 +123,10 @@ export const GET: APIRoute = async ({ url }) => {
     ${valueMatch}
     select $id, $name, $done, $val, $ph, $persona, $priority, $formula, $source, $status;
   `).catch(() => [])) as Row[]
+
+  // MERGE: prefer `thing` rows when both exist; append legacy-only rows
+  const thingById = new Map(thingRows.map((r) => [r.id as string, r]))
+  const tasks: Row[] = [...thingRows, ...legacyTasks.filter((r) => !thingIds.has(r.id as string))]
 
   // Get tags per task
   const tagRows = (await readParsed(`
@@ -203,9 +222,17 @@ export const GET: APIRoute = async ({ url }) => {
       traversals: ph.traversals,
       unit: unitId,
       source: t.source as string,
-      status: t.status as string,
+      status: normalizeStatus(t.status as string | null | undefined),
       wave: (t.wave as string | undefined) || 'W3',
       context: (t.context as string[] | undefined) || [],
+      // Canonical fields from new `thing` entity (present when row from thingById)
+      ...(thingById.has(id)
+        ? {
+            task_wave: (t.task_wave as string | undefined) ?? null,
+            task_priority: typeof t.task_priority === 'number' ? (t.task_priority as number) : null,
+            rubric: t.rubric ?? undefined,
+          }
+        : {}),
     }
   })
 
@@ -288,6 +315,22 @@ export const POST: APIRoute = async ({ request }) => {
       ${tagInserts ? `${tagInserts},` : ''}
       has created ${new Date().toISOString().replace('Z', '')};
   `).catch(() => {})
+
+  // DUAL-WRITE: new canonical `thing` entity (backward-compat parallel insert)
+  const taskPriorityNum = priorityFromLabel(priority as 'P0' | 'P1' | 'P2' | 'P3')
+  const taskValueNum =
+    body.value === 'critical' ? 0.95 : body.value === 'high' ? 0.75 : body.value === 'medium' ? 0.55 : 0.25
+  await writeSilent(`
+    insert $tnew isa thing,
+      has thing-id "${esc(body.id)}",
+      has tid "${esc(body.id)}",
+      has thing-type "task",
+      has name "${esc(body.name)}",
+      has task-status "open",
+      has task-priority ${taskPriorityNum},
+      has task-effort 0.5,
+      has task-value ${taskValueNum};
+  `)
 
   // Create matching skill for capability routing
   await writeSilent(`

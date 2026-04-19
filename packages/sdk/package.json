@@ -1,6 +1,6 @@
 {
   "name": "@oneie/sdk",
-  "version": "0.2.0",
+  "version": "0.6.0",
   "description": "ONE substrate SDK — signals, units, persist, launch handoff.",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,9 +15,36 @@
     "./handoff": "./dist/handoff.js",
     "./launch": "./dist/launch.js",
     "./client": "./dist/client.js",
-    "./telemetry": "./dist/telemetry.js"
+    "./telemetry": "./dist/telemetry.js",
+    "./schemas": {
+      "types": "./dist/schemas.d.ts",
+      "import": "./dist/schemas.js"
+    },
+    "./errors": {
+      "types": "./dist/errors.d.ts",
+      "import": "./dist/errors.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    }
   },
-  "files": ["dist", "README.md"],
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

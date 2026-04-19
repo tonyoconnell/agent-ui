@@ -9,9 +9,9 @@
  * Tiers: starter ($499/mo), growth ($1,999/mo), enterprise ($9,999/mo)
  */
 import type { APIRoute } from 'astro'
-import { getD1 } from '@/lib/cf-env'
 // TODO: requires tenancy.ts — tier → quota mapping (A4's job)
 import { hasPermission, validateApiKey } from '@/lib/api-auth'
+import { getD1 } from '@/lib/cf-env'
 import { readParsed, write } from '@/lib/typedb'
 
 type Tier = 'starter' | 'growth' | 'enterprise'
