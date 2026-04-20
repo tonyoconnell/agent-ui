@@ -31,6 +31,8 @@ const SUBSTRATE_COMMANDS = [
   "repl", "pipe", "tail",
   // Platform BaaS Cycle 4: first-class commerce verbs
   "sell", "buy", "invite", "domain",
+  // Lifecycle ONE Cycle 1: subscribe (Stage 12 — reverse tag edges)
+  "subscribe",
 ] as const;
 
 type SubstrateCommand = (typeof SUBSTRATE_COMMANDS)[number];

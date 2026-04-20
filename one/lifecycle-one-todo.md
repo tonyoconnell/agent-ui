@@ -235,16 +235,16 @@ curl -X POST localhost:4321/api/signal \
 
 ## Status
 
-- [ ] **Cycle 1: DECLARE** — subscription storage + reverse edges + SDK + CLI
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet × 4)
-  - [ ] W4 — Verify (Sonnet × 1)
-- [ ] **Cycle 2: ROUTE** — tag-based signal resolution
-  - [ ] W1 — Recon (Haiku × 3)
-  - [ ] W2 — Decide (Opus)
-  - [ ] W3 — Edits (Sonnet × 3)
-  - [ ] W4 — Verify (Sonnet × 1)
+- [x] **Cycle 1: DECLARE** — subscription storage + reverse edges + SDK + CLI · rubric 0.85
+  - [x] W1 — Recon (Haiku × 4) · 2026-04-20 · 4 findings
+  - [x] W2 — Decide (Opus) · 2026-04-20 · D1 storage, 5 diffs locked
+  - [x] W3 — Edits (Sonnet × 5) · 2026-04-20 · 5 marked, 0 dissolved; +1 rename fix
+  - [x] W4 — Verify (Sonnet × 1) · 2026-04-20 · 1614/1637 ✓ · rubric 0.85
+- [x] **Cycle 2: ROUTE** — tag-based signal resolution · rubric 0.875
+  - [x] W1 — Recon (Haiku × 3) · 2026-04-20 · tag: prefix absent; signal.ts 14 gates
+  - [x] W2 — Decide (Opus) · 2026-04-20 · 4 diffs; public-only resolver before metering
+  - [x] W3 — Edits (Sonnet × 4) · 2026-04-20 · 4 marked, 0 dissolved; subscribe-routing.ts new
+  - [x] W4 — Verify (Sonnet × 1) · 2026-04-20 · 1619/1642 ✓ · rubric 0.875
 
 ---
 

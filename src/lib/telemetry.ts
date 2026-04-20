@@ -73,7 +73,6 @@ export function emit(event: ApiTelemetryEvent): void {
 
   const allTags = ['telemetry', 'api', method.toLowerCase(), statusClass, bucket, ...tags]
 
-  const tagsStr = allTags.map((t) => `"${escapeTql(t)}"`).join(', ')
   const now = new Date().toISOString().replace('Z', '')
 
   // Write telemetry signal directly to TypeDB (fire-and-forget)

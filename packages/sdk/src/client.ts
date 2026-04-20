@@ -271,12 +271,12 @@ export class SubstrateClient {
     return result;
   }
 
-  async subscribe(opts: { receiver: string; tags: string[] }): Promise<{ ok: boolean; receiver: string; tags: string[] }> {
-    const result = await this.r<{ ok: boolean; receiver: string; tags: string[] }>(
+  async subscribe(opts: { receiver: string; tags: string[]; scope?: 'private' | 'public' }): Promise<{ ok: boolean; uid?: string; receiver?: string; subscriptions?: Array<{ tag: string; scope: string }> }> {
+    const result = await this.r<{ ok: boolean; uid?: string; receiver?: string; subscriptions?: Array<{ tag: string; scope: string }> }>(
       "/api/subscribe",
-      { method: "POST", body: JSON.stringify(opts) },
+      { method: "POST", body: JSON.stringify({ uid: opts.receiver, tags: opts.tags, scope: opts.scope }) },
     );
-    emit("toolkit:sdk:subscribe", ["stage:list"]);
+    emit("toolkit:sdk:subscribe", ["sdk", "method-subscribe", "stage:subscribe"]);
     return result;
   }
 
