@@ -204,8 +204,10 @@ Your start page: http://localhost:4321/start
   /plan [idea]     Get your 100-step roadmap
   /fast [feature]  Build features in minutes
   /create [type]   Work with AI specialists
-  /push            Save your progress
+  /do              Advance the next task (W1→W4)
   /deploy          Go live to the world
+  /push            Save your progress
+  /see             View tasks, highways, frontiers
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
