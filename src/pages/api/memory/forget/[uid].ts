@@ -5,16 +5,20 @@
  * capabilities, unit entity) and invalidates the edge KV cache.
  *
  * Authorization: requires 'delete-memory' permission (operator+).
+ * BaaS tier gate: GDPR erasure is a World+ feature (Cycle 1 T-B1-06).
  *
  * GDPR Article 17 — right to erasure.
  */
 import type { APIRoute } from 'astro'
-import { getRoleForUser, validateApiKey } from '@/lib/api-auth'
+import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
+import { getD1 } from '@/lib/cf-env'
 import { kvInvalidate } from '@/lib/edge'
+import { getUsage, recordCall } from '@/lib/metering'
 import { getNet } from '@/lib/net'
 import { roleCheck } from '@/lib/role-check'
+import { checkApiCallLimit, tierAllows, tierLimitResponse } from '@/lib/tier-limits'
 
-export const DELETE: APIRoute = async ({ params, request }) => {
+export const DELETE: APIRoute = async ({ params, request, locals }) => {
   const uid = params.uid
   if (!uid) {
     return new Response(JSON.stringify({ error: 'uid required' }), {
@@ -24,7 +28,7 @@ export const DELETE: APIRoute = async ({ params, request }) => {
   }
 
   // Check authorization: validate API key and verify role has delete-memory permission (operator+)
-  const auth = await validateApiKey(request)
+  const auth = await resolveUnitFromSession(request, locals)
   if (!auth.isValid) {
     return new Response(JSON.stringify({ error: 'Unauthorized: invalid or missing API key' }), {
       status: 401,
@@ -32,7 +36,7 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     })
   }
 
-  const role = await getRoleForUser(auth.user)
+  const role = auth.role ?? (await getRoleForUser(auth.user))
   if (!roleCheck(role ?? 'agent', 'delete_memory')) {
     return new Response(JSON.stringify({ error: 'Forbidden: requires delete-memory permission (operator+)' }), {
       status: 403,
@@ -40,20 +44,15 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     })
   }
 
-  // L4 pricing gate: check tier level from Authorization header
-  // Format: "Bearer <api-key>:<tier>" where tier is free|builder|scale|world|enterprise
-  const authHeader = request.headers.get('Authorization') || ''
-  const tierMatch = authHeader.match(/:(\w+)$/)
-  const tier = tierMatch ? tierMatch[1] : 'free'
-
-  // World+ tier required for memory forget (GDPR erasure, L4 feature)
-  const allowedTiers = ['world', 'enterprise']
-  if (!allowedTiers.includes(tier)) {
+  // Tier gate: memoryForget is World+. Scaled from AuthContext.tier, no bearer-suffix hack.
+  const tier = auth.tier ?? 'free'
+  if (!tierAllows(tier, 'memoryForget')) {
     return new Response(
       JSON.stringify({
         error: `Forbidden: memory forget requires World+ tier (you have: ${tier})`,
         tier,
         required: 'world',
+        upgradeUrl: 'https://one.ie/pricing',
       }),
       {
         status: 402,
@@ -61,6 +60,13 @@ export const DELETE: APIRoute = async ({ params, request }) => {
       },
     )
   }
+
+  // Metering
+  const db = await getD1(locals)
+  const usage = await getUsage(db, auth.keyId)
+  const callGate = checkApiCallLimit(tier, usage)
+  if (!callGate.ok) return tierLimitResponse(callGate)
+  void recordCall(db, auth.keyId)
 
   const net = await getNet()
   await net.forget(uid)

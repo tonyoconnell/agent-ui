@@ -1,6 +1,6 @@
 {
   "name": "oneie",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "type": "module",
   "description": "Build apps, websites, and AI agents in English. Zero-interaction setup for AI agents (Claude Code, Cursor, Windsurf). Download to your computer, run in the cloud, deploy to the edge. Open source and free forever.",
   "bin": {
@@ -44,7 +44,7 @@
     "node": ">=22.16.0"
   },
   "dependencies": {
-    "@oneie/sdk": "workspace:*",
+    "@oneie/sdk": "^0.7.0",
     "chalk": "^5.3.0",
     "fs-extra": "^11.2.0",
     "glob": "^10.3.10",
@@ -61,22 +61,6 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE.md",
-    "SECURITY.md",
-    "CREATE-WEBSITE.md",
-    "folders.yaml",
-    "CLAUDE.md",
-    "AGENTS.md",
-    "one/learning",
-    "one/paths",
-    "one/things",
-    "one/actors",
-    "one/groups",
-    "one/events",
-    "one/README.md",
-    ".claude/agents",
-    ".claude/commands",
-    ".claude/hooks",
-    ".claude/skills"
+    "LICENSE.md"
   ]
 }

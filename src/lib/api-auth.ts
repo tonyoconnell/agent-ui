@@ -12,10 +12,12 @@
 
 import { verifyKey } from '@/lib/api-key'
 import { auth } from '@/lib/auth'
+import { getD1 } from '@/lib/cf-env'
 import { getNet } from '@/lib/net'
 import { roleCheck } from '@/lib/role-check'
 import { emitSecurityEvent } from '@/lib/security-signals'
 import { addressFor } from '@/lib/sui'
+import { resolveTier, type Tier } from '@/lib/tier-limits'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 
 export interface AuthContext {
@@ -29,6 +31,7 @@ export interface AuthContext {
   realUser?: string // originating human identity when acting as another unit
   actAs?: string // explicit act-as request (validated, identity swapped)
   ownerOf?: string[] // agents this user has chairman membership in
+  tier?: Tier // Platform BaaS tier (free|builder|scale|world|enterprise). Populated when locals is passed.
 }
 
 // In-process cache: plaintext bearer → verified identity (5-min TTL).
@@ -43,6 +46,7 @@ const KEY_CACHE = new Map<
     role?: string
     scopeGroups: string[]
     scopeSkills: string[]
+    tier?: Tier
   }
 >()
 const CACHE_TTL_MS = 5 * 60 * 1000
@@ -64,10 +68,13 @@ function warnAuthBoundary(caller: string): void {
  * Format: "Bearer api_xxx_yyy"
  *
  * @param context - Optional scope context for per-call scope enforcement
+ * @param locals  - Optional Astro locals (for D1 tier lookup). If provided,
+ *                  AuthContext.tier will be populated from `developer_tiers`.
  */
 export async function validateApiKey(
   request: Request,
   context?: { group?: string; skill?: string },
+  locals?: App.Locals,
 ): Promise<AuthContext> {
   const authHeader = request.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -91,6 +98,13 @@ export async function validateApiKey(
       warnAuthBoundary(cached.keyId)
       return { user: '', permissions: [], keyId: '', isValid: false }
     }
+    // Tier: populate on first caller to supply locals, then cache for the TTL.
+    let tier = cached.tier
+    if (tier === undefined && locals !== undefined) {
+      const db = await getD1(locals)
+      tier = await resolveTier(cached.user, db)
+      cached.tier = tier
+    }
     return {
       user: cached.user,
       permissions: cached.permissions,
@@ -99,6 +113,7 @@ export async function validateApiKey(
       role: cached.role,
       scopeGroups: cached.scopeGroups,
       scopeSkills: cached.scopeSkills,
+      tier,
     }
   }
 
@@ -148,7 +163,25 @@ export async function validateApiKey(
         // Cache — secondary map lets invalidateKeyCache(keyId) find and evict the right entry
         // Role lookup: one extra TypeDB query per cache miss (~5 min per key), acceptable cost
         const role = await getRoleForUser(user).catch(() => undefined)
-        KEY_CACHE.set(key, { user, permissions, keyId, expires: nowMs + CACHE_TTL_MS, role, scopeGroups, scopeSkills })
+
+        // Tier lookup (optional — only when locals is available for D1 access).
+        // Missing / unreachable D1 → 'free'. Cached alongside role for the TTL.
+        let tier: Tier | undefined
+        if (locals !== undefined) {
+          const db = await getD1(locals)
+          tier = await resolveTier(user, db)
+        }
+
+        KEY_CACHE.set(key, {
+          user,
+          permissions,
+          keyId,
+          expires: nowMs + CACHE_TTL_MS,
+          role,
+          scopeGroups,
+          scopeSkills,
+          tier,
+        })
         KEYID_TO_BEARER.set(keyId, key)
 
         // Update last-used (fire-and-forget; best-effort)
@@ -162,7 +195,7 @@ export async function validateApiKey(
           insert $k has last-used ${nowTs};
         `)
 
-        return { user, permissions, keyId, isValid: true, role, scopeGroups, scopeSkills }
+        return { user, permissions, keyId, isValid: true, role, scopeGroups, scopeSkills, tier }
       }
     }
 
@@ -284,11 +317,11 @@ export async function ensureHumanUnit(
  * Result shape matches AuthContext so gated routes stay uniform.
  * Cache: 5-min TTL, keyed by cookie header (bearer path already has KEY_CACHE).
  */
-export async function resolveUnitFromSession(request: Request): Promise<AuthContext> {
+export async function resolveUnitFromSession(request: Request, locals?: App.Locals): Promise<AuthContext> {
   // Front door 1: Bearer (agents, CLI, BetterAuth bearer plugin)
   const authHeader = request.headers.get('Authorization')
   if (authHeader?.startsWith('Bearer ')) {
-    const bearer = await validateApiKey(request)
+    const bearer = await validateApiKey(request, undefined, locals)
     if (bearer.isValid) return bearer
   }
 
@@ -315,6 +348,14 @@ export async function resolveUnitFromSession(request: Request): Promise<AuthCont
   await ensureHumanUnit(uid, session.user)
   const role = await getRoleForUser(uid)
 
+  // Tier (opportunistic): populated when the caller supplies locals for D1 access.
+  // Missing D1 (dev mode, tests) → 'free'. See tier-limits.ts § resolveTier.
+  let tier: Tier | undefined
+  if (locals !== undefined) {
+    const db = await getD1(locals)
+    tier = await resolveTier(uid, db)
+  }
+
   // Act-as: cookie session can act as owned agents if chairman in g:owns:<target>
   const actAsParam = new URL(request.url).searchParams.get('actAs')
   const actAsHeader = request.headers.get('X-Act-As')
@@ -338,6 +379,7 @@ export async function resolveUnitFromSession(request: Request): Promise<AuthCont
     }
 
     const actAsRole = await getRoleForUser(actAsTarget).catch(() => undefined)
+    // Tier follows the real user (billing stays with the session holder, not the target).
     // actAs context is not cached — always fresh (prevents stale ownership after revoke)
     return {
       user: actAsTarget,
@@ -349,6 +391,7 @@ export async function resolveUnitFromSession(request: Request): Promise<AuthCont
       scopeSkills: [],
       realUser: uid,
       actAs: actAsTarget,
+      tier,
     }
   }
 
@@ -360,6 +403,7 @@ export async function resolveUnitFromSession(request: Request): Promise<AuthCont
     role,
     scopeGroups: [],
     scopeSkills: [],
+    tier,
   }
   SESSION_CACHE.set(cookie, { ctx, expires: Date.now() + CACHE_TTL_MS })
   return ctx

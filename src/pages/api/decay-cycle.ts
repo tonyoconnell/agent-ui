@@ -3,8 +3,15 @@
  *
  * Asymmetric decay: strength 5%, resistance 10%.
  * From ant biology: success persists, failure forgives.
+ *
+ * BaaS metering (Cycle 1 T-B1-06): L3 feature — available on all tiers.
+ * Authenticated callers are metered.
  */
 import type { APIRoute } from 'astro'
+import { resolveUnitFromSession } from '@/lib/api-auth'
+import { getD1 } from '@/lib/cf-env'
+import { getUsage, recordCall } from '@/lib/metering'
+import { checkApiCallLimit, tierLimitResponse } from '@/lib/tier-limits'
 import { decay, readParsed } from '@/lib/typedb'
 
 async function getDecayStats() {
@@ -25,7 +32,18 @@ async function getDecayStats() {
   }
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  // BaaS metering gate
+  const db = await getD1(locals)
+  const auth = await resolveUnitFromSession(request, locals).catch(() => null)
+  if (auth?.isValid) {
+    const tier = auth.tier ?? 'free'
+    const usage = await getUsage(db, auth.keyId)
+    const gate = checkApiCallLimit(tier, usage)
+    if (!gate.ok) return tierLimitResponse(gate)
+    void recordCall(db, auth.keyId)
+  }
+
   const body = (await request.json().catch(() => ({}))) as {
     trailRate?: number
     resistanceRate?: number

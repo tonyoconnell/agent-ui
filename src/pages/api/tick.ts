@@ -9,7 +9,11 @@ import { openrouter } from '@/engine/llm'
 import { tick } from '@/engine/loop'
 import { pickBest } from '@/engine/match'
 import { selfCheckoff } from '@/engine/task-sync'
+import { resolveUnitFromSession } from '@/lib/api-auth'
+import { getD1 } from '@/lib/cf-env'
+import { getUsage, recordCall } from '@/lib/metering'
 import { getNet, reloadMeta } from '@/lib/net'
+import { checkApiCallLimit, tierAllowsLoop, tierLimitResponse } from '@/lib/tier-limits'
 import { readParsed } from '@/lib/typedb'
 
 let lastTick = 0
@@ -31,11 +35,35 @@ let lastL5 = 0
 let lastL6 = 0
 let lastL7 = 0
 
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ url, request, locals }) => {
   const interval = parseInt(url.searchParams.get('interval') || '60', 10) * 1000
   const reload = url.searchParams.get('reload') === '1'
   const peek = url.searchParams.get('peek') === '1'
   const now = Date.now()
+
+  // BaaS gate (Cycle 1 T-B1-07): tick advances all 7 loops. Gate on tier.
+  // Anonymous callers (cron, internal) pass through to preserve scheduled ticks.
+  // Authenticated free-tier callers get 402 on non-peek (L4-L7 require Builder+).
+  const db = await getD1(locals)
+  const auth = await resolveUnitFromSession(request, locals).catch(() => null)
+  const tier = auth?.isValid ? (auth.tier ?? 'free') : null
+  if (tier && !peek) {
+    const usage = await getUsage(db, auth?.keyId ?? '')
+    const callGate = checkApiCallLimit(tier, usage)
+    if (!callGate.ok) return tierLimitResponse(callGate)
+    if (!tierAllowsLoop(tier, 'L4')) {
+      return new Response(
+        JSON.stringify({
+          error: 'tick requires Builder+ tier — free tier is L1-L3 only. Use ?peek=1 to read state.',
+          tier,
+          required: 'builder',
+          upgradeUrl: 'https://one.ie/pricing',
+        }),
+        { status: 402, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+    void recordCall(db, auth?.keyId ?? '')
+  }
 
   // If peek=1, just report timings without running tick
   if (peek) {

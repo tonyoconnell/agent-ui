@@ -5,15 +5,19 @@
  * actor, hypotheses, highways, signals, groups, capabilities, frontier.
  *
  * Authorization: requires 'read-memory' permission (board+).
+ * BaaS tier gate: L6 feature — requires Scale+ tier (Cycle 1 T-B1-06).
  *
  * GDPR Article 20 — data portability export.
  */
 import type { APIRoute } from 'astro'
-import { getRoleForUser, validateApiKey } from '@/lib/api-auth'
+import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
+import { getD1 } from '@/lib/cf-env'
+import { getUsage, recordCall } from '@/lib/metering'
 import { getNet } from '@/lib/net'
 import { roleCheck } from '@/lib/role-check'
+import { checkApiCallLimit, tierAllows, tierLimitResponse } from '@/lib/tier-limits'
 
-export const GET: APIRoute = async ({ params, request }) => {
+export const GET: APIRoute = async ({ params, request, locals }) => {
   const uid = params.uid
   if (!uid) {
     return new Response(JSON.stringify({ error: 'uid required' }), {
@@ -23,7 +27,7 @@ export const GET: APIRoute = async ({ params, request }) => {
   }
 
   // Check authorization: validate API key and verify role has read-memory permission
-  const auth = await validateApiKey(request)
+  const auth = await resolveUnitFromSession(request, locals)
   if (!auth.isValid) {
     return new Response(JSON.stringify({ error: 'Unauthorized: invalid or missing API key' }), {
       status: 401,
@@ -31,7 +35,7 @@ export const GET: APIRoute = async ({ params, request }) => {
     })
   }
 
-  const role = await getRoleForUser(auth.user)
+  const role = auth.role ?? (await getRoleForUser(auth.user))
   if (!roleCheck(role ?? 'agent', 'read_memory')) {
     return new Response(JSON.stringify({ error: 'Forbidden: requires read-memory permission (board+)' }), {
       status: 403,
@@ -39,20 +43,16 @@ export const GET: APIRoute = async ({ params, request }) => {
     })
   }
 
-  // L4 pricing gate: check tier level from Authorization header
-  // Format: "Bearer <api-key>:<tier>" where tier is free|builder|scale|world|enterprise
-  const authHeader = request.headers.get('Authorization') || ''
-  const tierMatch = authHeader.match(/:(\w+)$/)
-  const tier = tierMatch ? tierMatch[1] : 'free'
-
-  // Scale+ tier required for memory reveal (L4 feature)
-  const allowedTiers = ['scale', 'world', 'enterprise']
-  if (!allowedTiers.includes(tier)) {
+  // Tier gate: memoryReveal is Scale+. AuthContext.tier is populated from
+  // developer_tiers via resolveUnitFromSession — no more bearer-suffix hack.
+  const tier = auth.tier ?? 'free'
+  if (!tierAllows(tier, 'memoryReveal')) {
     return new Response(
       JSON.stringify({
         error: `Forbidden: memory reveal requires Scale+ tier (you have: ${tier})`,
         tier,
         required: 'scale',
+        upgradeUrl: 'https://one.ie/pricing',
       }),
       {
         status: 402,
@@ -60,6 +60,13 @@ export const GET: APIRoute = async ({ params, request }) => {
       },
     )
   }
+
+  // Metering
+  const db = await getD1(locals)
+  const usage = await getUsage(db, auth.keyId)
+  const callGate = checkApiCallLimit(tier, usage)
+  if (!callGate.ok) return tierLimitResponse(callGate)
+  void recordCall(db, auth.keyId)
 
   const net = await getNet()
   const card = await net.reveal(uid)

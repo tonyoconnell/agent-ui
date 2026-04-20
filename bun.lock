@@ -100,7 +100,7 @@
     },
     "packages/cli": {
       "name": "oneie",
-      "version": "3.7.0",
+      "version": "3.8.0",
       "bin": {
         "oneie": "./dist/index.js",
         "one": "./dist/index.js",
@@ -123,13 +123,13 @@
     },
     "packages/mcp": {
       "name": "@oneie/mcp",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "bin": {
         "oneie-mcp": "./dist/index.js",
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.0",
-        "@oneie/sdk": "^0.2.0",
+        "@oneie/sdk": "^0.7.0",
       },
       "devDependencies": {
         "typescript": "5.9.2",
@@ -137,11 +137,12 @@
     },
     "packages/sdk": {
       "name": "@oneie/sdk",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "dependencies": {
         "zod": "^4.3.6",
       },
       "devDependencies": {
+        "@types/node": "^22",
         "typescript": "5.9.2",
       },
       "peerDependencies": {
@@ -2140,9 +2141,9 @@
 
     "@noble/curves/@noble/hashes": ["@noble/hashes@2.2.0", "", {}, "sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg=="],
 
-    "@oneie/mcp/@oneie/sdk": ["@oneie/sdk@0.2.0", "", {}, "sha512-VxS2O4z+zn72feqGgpF6ARpLHu5Xbl0ynKkepxfwi0vOyeUdtNqrS/NQoFeXQG7HXNxIT4VNtGQdVaNpBZc1/A=="],
-
     "@oneie/mcp/typescript": ["typescript@5.9.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A=="],
+
+    "@oneie/sdk/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
 
     "@oneie/sdk/typescript": ["typescript@5.9.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A=="],
 
@@ -2291,6 +2292,8 @@
     "wrap-ansi-cjs/strip-ansi": ["strip-ansi@6.0.1", "", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
 
     "@isaacs/cliui/string-width/emoji-regex": ["emoji-regex@9.2.2", "", {}, "sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg=="],
+
+    "@oneie/sdk/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "@tailwindcss/node/lightningcss/lightningcss-android-arm64": ["lightningcss-android-arm64@1.32.0", "", { "os": "android", "cpu": "arm64" }, "sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg=="],
 

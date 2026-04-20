@@ -16,12 +16,18 @@
  *   6. report    — deterministic receipt: files, bytes, ms per step
  */
 
-import { cp, mkdir, readdir, rm, stat } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 
 const ROOT = process.cwd()
-const OUT = join(ROOT, 'releases')
+const OUT = join(ROOT, 'release')
 const TEMPLATES = join(ROOT, 'scripts', 'release-templates')
+
+const args = new Set(Bun.argv.slice(2))
+const PUSH = args.has('--push')
+const DRY_RUN = args.has('--dry-run')
 
 type Entry = { from: string; to: string; exclude?: string[] }
 
@@ -120,11 +126,15 @@ const manifest: Entry[] = [
   { from: 'packages/sdk', to: 'sdk', exclude: ['node_modules', 'dist', '.DS_Store'] },
   { from: 'packages/mcp', to: 'mcp', exclude: ['node_modules', 'dist', '.DS_Store'] },
   { from: '.claude', to: '.claude', exclude: ['settings.local.json', 'scheduled_tasks.lock', '.DS_Store'] },
-  // web/ slot removed 2026-04-19 — app code lives in envelopes monorepo only,
-  // public repo ships docs + agents + sdk + mcp + .claude harness.
+  // web/ from templates/web — Astro + React template for chatbot + landing
+  {
+    from: 'templates/web',
+    to: 'web',
+    exclude: ['node_modules', 'dist', '.astro', '.wrangler', 'bun.lock', 'package-lock.json', '.DS_Store'],
+  },
 ]
 
-const SLOTS = ['agents', 'one', 'sdk', 'mcp', '.claude'] as const
+const SLOTS = ['agents', 'one', 'sdk', 'mcp', '.claude', 'web'] as const
 
 type Stats = { files: number; bytes: number; ms: number }
 const stats: Record<string, Stats> = {}
@@ -274,8 +284,49 @@ async function verify(): Promise<Stats> {
   return { files, bytes: 0, ms: 0 }
 }
 
+async function pushToGitHub(): Promise<void> {
+  console.log('\n[Push] one-ie/one')
+
+  const hasGit = existsSync(join(OUT, '.git'))
+  if (!hasGit) {
+    console.log('  → git init')
+    spawnSync('git', ['init'], { cwd: OUT, stdio: 'inherit' })
+    spawnSync('git', ['remote', 'add', 'origin', 'git@github.com:one-ie/one.git'], { cwd: OUT, stdio: 'inherit' })
+  }
+
+  spawnSync('git', ['add', '.'], { cwd: OUT, stdio: 'inherit' })
+
+  const pkgJson = await readFile(join(ROOT, 'package.json'), 'utf-8')
+  const version = JSON.parse(pkgJson).version ?? '0.0.0'
+  const msg = `release: v${version}`
+
+  const commit = spawnSync('git', ['commit', '-m', msg], { cwd: OUT, stdio: 'inherit' })
+  if (commit.status !== 0) {
+    console.log('  (nothing to commit)')
+  }
+
+  console.log('  → git push origin main')
+  const push = spawnSync('git', ['push', '-u', 'origin', 'main'], { cwd: OUT, stdio: 'inherit' })
+
+  if (push.status === 0) {
+    console.log('\n✓ Pushed to github.com/one-ie/one')
+  } else {
+    console.log('\n✗ Push failed — check git credentials or remote')
+  }
+}
+
 async function main() {
   console.log(`release → ${relative(ROOT, OUT)}/\n`)
+
+  if (DRY_RUN) {
+    console.log('⊘ DRY RUN — would copy:\n')
+    for (const e of manifest) {
+      console.log(`  ${e.from} → release/${e.to}`)
+    }
+    console.log(`  one/ (filtered by allowlist)`)
+    return
+  }
+
   await timed('clean', clean)
   await timed('copy', copyManifest)
   await timed('one', copyOneDocs)
@@ -287,7 +338,12 @@ async function main() {
   const bytes = Object.values(stats).reduce((a, b) => a + b.bytes, 0)
   const files = stats.copy?.files ?? 0
   console.log(`\n✓ release staged in ${total}ms — ${files} files, ${fmtBytes(bytes)}`)
-  console.log(`  cd releases && git push origin main`)
+
+  if (PUSH) {
+    await pushToGitHub()
+  } else {
+    console.log('\n  Next: bun run release --push')
+  }
 }
 
 main().catch((e) => {

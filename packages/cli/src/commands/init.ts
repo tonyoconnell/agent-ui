@@ -15,6 +15,7 @@ import {
   updateOrgEnvFile,
   updateGitignore,
   rollbackInstallation,
+  writeEnvExample,
 } from "../utils/installation-setup.js";
 import {
   isValidEmail,
@@ -46,12 +47,85 @@ export interface InitOptions {
  * Runs the init command interactively (new onboarding flow)
  */
 export async function runInit(options: InitOptions = {}): Promise<void> {
+  // Reject legacy --pages flag — CF Pages is frozen; Workers is the default
+  if (process.argv.includes('--pages')) {
+    console.error(
+      '\n❌  --pages is no longer supported.\n' +
+      '   CF Workers with Static Assets is now the default (migrated 2026-04-18).\n' +
+      '   Run: npx oneie init  (Workers is automatic)\n' +
+      '   See: one/quickstart-workers.md\n'
+    )
+    process.exit(1)
+  }
+
   // Display banner
   displayBanner();
 
   console.log(chalk.cyan("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
   console.log(chalk.cyan("Welcome! Let's build your platform."));
   console.log(chalk.cyan("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"));
+
+  const basePath = options.basePath || process.cwd();
+
+  // Step 0: Clone the ONE repo (one-ie/one) to get all platform files
+  const oneRepoPath = path.join(basePath, ".one-repo");
+  const spinner = ora("Cloning ONE platform from github.com/one-ie/one...").start();
+
+  try {
+    // Check if already cloned
+    if (await fs.pathExists(oneRepoPath)) {
+      spinner.text = "Updating ONE platform...";
+      await execAsync(`cd "${oneRepoPath}" && git pull`);
+      spinner.succeed("ONE platform updated!");
+    } else {
+      await execAsync(
+        `git clone --depth 1 https://github.com/one-ie/one.git "${oneRepoPath}"`
+      );
+      spinner.succeed("ONE platform cloned!");
+    }
+
+    // Copy platform files from cloned repo
+    const copySpinner = ora("Setting up platform files...").start();
+
+    // Copy .claude/
+    const claudeSource = path.join(oneRepoPath, ".claude");
+    const claudeTarget = path.join(basePath, ".claude");
+    if (await fs.pathExists(claudeSource)) {
+      await fs.copy(claudeSource, claudeTarget, { overwrite: true });
+    }
+
+    // Copy one/
+    const oneSource = path.join(oneRepoPath, "one");
+    const oneTarget = path.join(basePath, "one");
+    if (await fs.pathExists(oneSource)) {
+      await fs.copy(oneSource, oneTarget, { overwrite: true });
+    }
+
+    // Copy agents/
+    const agentsSource = path.join(oneRepoPath, "agents");
+    const agentsTarget = path.join(basePath, "agents");
+    if (await fs.pathExists(agentsSource)) {
+      await fs.copy(agentsSource, agentsTarget, { overwrite: true });
+    }
+
+    // Copy root files
+    for (const file of ["CLAUDE.md", "AGENTS.md", "README.md", "LICENSE"]) {
+      const src = path.join(oneRepoPath, file);
+      const dst = path.join(basePath, file);
+      if (await fs.pathExists(src)) {
+        await fs.copy(src, dst, { overwrite: true });
+      }
+    }
+
+    copySpinner.succeed("Platform files installed!");
+
+    // Clean up cloned repo (optional - keep for updates)
+    // await fs.remove(oneRepoPath);
+
+  } catch (error: any) {
+    spinner.fail("Failed to clone ONE platform");
+    console.log(chalk.yellow(`\n⚠ You can clone manually:\n  git clone https://github.com/one-ie/one.git\n`));
+  }
 
   // Step 1: Collect user information
   let userName = options.name;
@@ -205,56 +279,11 @@ CONVEX_DEPLOYMENT=dev:your-deployment
   const installationName = orgSlug;
 
   // Create installation folder
-  const basePath = options.basePath || process.cwd();
   let installationPath: string | null = null;
 
   try {
-    // Step 1: Sync platform files
-    console.log(chalk.bold("\n📚 Setting up ONE Platform files...\n"));
-
-    // Sync /one directory
-    let spinner = ora("Copying /one directory (ontology, docs, specs)...").start();
-    const oneSourcePath = path.join(path.dirname(new URL(import.meta.url).pathname), "../../one");
-    const oneTargetPath = path.join(basePath, "one");
-
-    if (await fs.pathExists(oneSourcePath)) {
-      await fs.copy(oneSourcePath, oneTargetPath, { overwrite: true });
-      spinner.succeed("Copied /one directory");
-    } else {
-      spinner.warn("/one directory not found in CLI package");
-    }
-
-    // Sync .claude directory
-    spinner = ora("Copying .claude directory (agents, commands, hooks)...").start();
-    const claudeSourcePath = path.join(path.dirname(new URL(import.meta.url).pathname), "../../.claude");
-    const claudeTargetPath = path.join(basePath, ".claude");
-
-    if (await fs.pathExists(claudeSourcePath)) {
-      await fs.copy(claudeSourcePath, claudeTargetPath, { overwrite: true });
-      spinner.succeed("Copied .claude directory");
-    } else {
-      spinner.warn(".claude directory not found in CLI package");
-    }
-
-    // Copy root documentation files
-    spinner = ora("Copying documentation files...").start();
-    const rootFiles = ["AGENTS.md", "CLAUDE.md", "README.md", "SECURITY.md", "LICENSE.md"];
-    const cliRoot = path.join(path.dirname(new URL(import.meta.url).pathname), "../..");
-
-    let copiedCount = 0;
-    for (const file of rootFiles) {
-      const sourcePath = path.join(cliRoot, file);
-      const targetPath = path.join(basePath, file);
-
-      if (await fs.pathExists(sourcePath)) {
-        await fs.copy(sourcePath, targetPath, { overwrite: true });
-        copiedCount++;
-      }
-    }
-    spinner.succeed(`Copied ${copiedCount} documentation files`);
-
-    // Step 2: Create installation folder
-    spinner = ora(`Creating installation folder: /${installationName}`).start();
+    // Create installation folder
+    let spinner = ora(`Creating installation folder: /${installationName}`).start();
     installationPath = await createInstallationFolder(
       installationName,
       basePath
@@ -297,6 +326,22 @@ CONVEX_DEPLOYMENT=dev:your-deployment
     await updateGitignore(installationName, true, basePath);
     spinner.succeed(`Updated .gitignore to exclude /${installationName}/`);
 
+    // Scaffold .env.example with Layer 0 → Layer 1 upgrade path documented.
+    // The scaffold runs standalone by default; developers opt in by setting ONE_API_KEY.
+    spinner = ora("Writing .env.example (standalone + connected modes)...").start();
+    await writeEnvExample(basePath);
+    spinner.succeed("Wrote .env.example — standalone runs with no ONE key; set ONE_API_KEY to connect");
+
+    // Echo the Layer 0 → Layer 1 upgrade hint.
+    // Standalone mode stays free forever on CF; connected mode unlocks the substrate.
+    if (process.env.ONE_API_KEY) {
+      console.log(chalk.green("\n🔗 Connected mode detected — ONE_API_KEY is set in your env."));
+      console.log(chalk.gray("   Your scaffold will route through api.one.ie for memory + highways + marketplace."));
+    } else {
+      console.log(chalk.cyan("\n🏝  Standalone mode — this scaffold runs with no ONE credentials."));
+      console.log(chalk.gray("   To join the world later, set ONE_API_KEY (free at one.ie/signup) — no code change needed."));
+    }
+
     // Launch Claude Code (unless skipped)
     if (!options.skipClaudeLaunch) {
       await launchClaude(`/${installationName}`, websiteCloned);
@@ -320,15 +365,17 @@ CONVEX_DEPLOYMENT=dev:your-deployment
 
       if (websiteCloned) {
         console.log(chalk.bold("🚀 Next steps:\n"));
-        console.log(chalk.cyan("  1. Start your website:"));
-        console.log(chalk.gray("     cd web"));
-        console.log(chalk.gray("     bun install"));
-        console.log(chalk.gray("     bun run dev\n"));
-        console.log(chalk.cyan("  2. Build features with AI:"));
+        console.log(chalk.cyan("  1. Deploy your agent (CF Workers — free tier):"));
+        console.log(chalk.gray("     wrangler deploy\n"));
+        console.log(chalk.cyan("  2. Start local dev:"));
+        console.log(chalk.gray("     cd web && bun install && bun run dev\n"));
+        console.log(chalk.cyan("  3. Build features with AI:"));
         console.log(chalk.gray("     Run Claude Code and type /one\n"));
       } else {
         console.log(chalk.bold("🚀 Next steps:\n"));
-        console.log(chalk.gray("   Run Claude Code and type /one\n"));
+        console.log(chalk.cyan("  1. Deploy (CF Workers — free tier):"));
+        console.log(chalk.gray("     wrangler deploy\n"));
+        console.log(chalk.gray("   Then: Run Claude Code and type /one\n"));
       }
     }
   } catch (error: any) {

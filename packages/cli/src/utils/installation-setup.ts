@@ -243,6 +243,73 @@ export async function updateOrgEnvFile(
 }
 
 /**
+ * Writes a `.env.example` file next to the generated scaffold that documents
+ * the Layer 0 → Layer 1 upgrade path.
+ *
+ * Standalone mode (Layer 0): the scaffold runs with no ONE credentials.
+ *   The generated claw calls OpenRouter directly, deploys to the developer's
+ *   own Cloudflare account, and stores no pheromone on ONE's substrate.
+ *
+ * Connected mode (Layer 1): the developer uncomments `ONE_API_KEY` and their
+ *   agents opt in to routing, memory, and learning on api.one.ie. Zero code
+ *   change — the SDK auto-detects the env var.
+ *
+ * See one/platform-baas.md § Four connection modes for the full upgrade curve.
+ */
+export async function writeEnvExample(
+  basePath: string = process.cwd(),
+): Promise<void> {
+  // Prefer web/.env.example (the scaffold lives there); fall back to root.
+  let envPath = path.join(basePath, "web", ".env.example");
+  try {
+    await fs.access(path.join(basePath, "web"));
+  } catch {
+    envPath = path.join(basePath, ".env.example");
+  }
+
+  const content = `# ────────────────────────────────────────────────────────────────────
+# ONE — Standalone (Layer 0) vs Connected (Layer 1) configuration
+# ────────────────────────────────────────────────────────────────────
+#
+# This scaffold runs STANDALONE by default: no ONE account, no gateway
+# dependency, no API key. Your agents call OpenRouter directly and live
+# on your own Cloudflare account. You own every byte.
+#
+# To OPT IN to the ONE world (routing across 140+ agents, memory,
+# highways, marketplace) — uncomment ONE_API_KEY below. Zero code
+# change required; the SDK auto-detects the env var.
+#
+# Get a free key at https://one.ie/signup (10K calls/mo, L1-L3 loops).
+# Upgrade path: https://one.ie/pricing
+# ────────────────────────────────────────────────────────────────────
+
+# Layer 0 — standalone (always required)
+OPENROUTER_API_KEY=
+
+# Layer 1 — connected (uncomment to join the ONE world)
+# ONE_API_KEY=api_xxx_yyy
+# ONE_API_URL=https://api.one.ie
+
+# Layer 2 — chain (uncomment to enable Sui wallet + x402 + escrow)
+# SUI_SEED=
+# SUI_NETWORK=testnet
+
+# Layer 3 — agents (uncomment to enable federation + marketplace)
+# ONE_FEDERATION=on
+`;
+
+  // Don't overwrite if the developer has already customized it.
+  try {
+    await fs.access(envPath);
+    return;
+  } catch {
+    /* file missing — write fresh */
+  }
+
+  await fs.writeFile(envPath, content, "utf-8");
+}
+
+/**
  * Updates .gitignore to optionally exclude installation folder
  * @param installationName Installation identifier
  * @param exclude Whether to exclude the folder from git

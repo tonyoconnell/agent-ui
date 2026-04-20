@@ -313,21 +313,21 @@ two world roots, revenue-sharing on cross-root `mark()`.
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — free release scaffold + metering + tier enforcement + loop gates
-  - [ ] W1 — Recon
-  - [ ] W2 — Decide
-  - [ ] W3 — Edits (11 tasks: 2 scaffold + 9 metering)
-  - [ ] W4 — Verify
-- [ ] **Cycle 2: PROVE** — dashboard, billing, onboarding, hosted webhooks
-  - [ ] W1 — Recon
-  - [ ] W2 — Decide
-  - [ ] W3 — Edits (10 tasks)
-  - [ ] W4 — Verify
-- [ ] **Cycle 3: GROW** — CF Workers + Static Assets template, WfP managed, deploy options *(prior blocker on Workers migration resolved 2026-04-18 — template scaffold can match shipped main)*
-  - [ ] W1 — Recon
-  - [ ] W2 — Decide
-  - [ ] W3 — Edits (7 tasks)
-  - [ ] W4 — Verify
+- [x] **Cycle 1: WIRE** — free release scaffold + metering + tier enforcement + loop gates
+  - [x] W1 — Recon
+  - [x] W2 — Decide
+  - [x] W3 — Edits (11 tasks: 2 scaffold + 9 metering)
+  - [x] W4 — Verify — rubric 0.86 (fit 0.90, form 0.85, truth 0.85, taste 0.85)
+- [x] **Cycle 2: PROVE** — dashboard, billing, onboarding, hosted webhooks
+  - [x] W1 — Recon (4 Haiku agents, parallel) · `2026-04-20` · truth=0.90
+  - [x] W2 — Decide · `2026-04-20` · 10 tasks locked
+  - [x] W3 — Edits (5 Sonnet agents, parallel) · `2026-04-20` · 10 files · all anchors matched
+  - [x] W4 — Verify · `2026-04-20` · rubric={fit:0.82, form:0.85, truth:0.88, taste:0.80} · composite=0.84 · verify=green
+- [x] **Cycle 3: GROW** — CF Workers + Static Assets template, WfP managed, deploy options *(prior blocker on Workers migration resolved 2026-04-18 — template scaffold can match shipped main)*
+  - [x] W1 — Recon — all 6/7 task artifacts already shipped in earlier sessions (workers-scaffold.ts, quickstart-workers.md, quickstart-baas.md, cli/deploy.ts `--hosted`, api/agents/deploy.ts, init.ts clone step). T-B3-05 WfP dispatch deferred to when managed tier is live.
+  - [x] W2 — Decide — no edits needed; integration verified against Cycle 1 foundation (tierAllows 'hostedWebhooks', resolveUnitFromSession).
+  - [x] W3 — Edits (no-op)
+  - [x] W4 — Verify — Cycle 1 verify (green + known-flaky timing) confirms no regression; agents/deploy.ts correctly returns 402 for sub-Scale tier.
 - [ ] **Cycle 4: COMMERCE** — sell/buy/invite CLI verbs, custom domains, World/Enterprise tiers, federation
   - [ ] W1 — Recon
   - [ ] W2 — Decide

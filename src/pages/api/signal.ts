@@ -49,7 +49,10 @@ import {
   invalidatePermCache,
   setCached,
 } from '@/engine/adl-cache'
+import { resolveUnitFromSession } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
+import { getUsage, recordCall } from '@/lib/metering'
+import { checkApiCallLimit, tierLimitResponse } from '@/lib/tier-limits'
 import { isWarm } from '@/lib/ui-prefetch'
 
 // 5-min cache for sender|receiver group-share resolution.
@@ -106,6 +109,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Validate amount
   if (typeof amount !== 'number' || amount < 0 || amount > 1_000_000) {
     return new Response(JSON.stringify({ error: 'Invalid amount' }), { status: 400 })
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BAAS METERING (Platform tier gate — Cycle 1 T-B1-04)
+  //
+  // Run BEFORE ADL gates so a rate-limited caller never touches the ADL
+  // permission cache or TypeDB. Anonymous callers fall through — they get
+  // rate-limited by the Cloudflare frontdoor, not here.
+  // ═══════════════════════════════════════════════════════════════════════════
+  const auth = await resolveUnitFromSession(request, locals).catch(() => null)
+  if (auth?.isValid) {
+    const tier = auth.tier ?? 'free'
+    const usage = await getUsage(db, auth.keyId)
+    const gate = checkApiCallLimit(tier, usage)
+    if (!gate.ok) {
+      // Warn the caller's boundary once so pheromone learns which keys hit the wall.
+      void import('@/lib/security-signals')
+        .then((m) => m.emitSecurityEvent({ kind: 'rate-limit', edge: `${auth.keyId}→tier-${tier}` }))
+        .catch(() => {})
+      return tierLimitResponse(gate)
+    }
+    // Fire-and-forget: record this call in D1. Never blocks the request.
+    void recordCall(db, auth.keyId)
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -257,11 +283,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // Scope enforcement (Cycle 3): only fires when caller is authenticated.
   // Unauthed callers skip (preserves fail-open legacy behavior).
+  // Reuses `auth` already resolved at the metering gate (avoids a second lookup).
   try {
-    const hasIdentity = request.headers.get('Authorization') || request.headers.get('Cookie')
-    if (hasIdentity) {
-      const { resolveUnitFromSession } = await import('@/lib/api-auth')
-      const ctx = await resolveUnitFromSession(request)
+    if (auth?.isValid) {
+      const ctx = auth
       if (ctx.isValid) {
         const effectiveScope = scope ?? 'group'
         if (effectiveScope === 'private' && sender !== receiver) {
