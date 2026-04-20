@@ -176,7 +176,19 @@ function loadEnv(): Record<string, string> {
 // Step 1: W0 Baseline
 // ─────────────────────────────────────────────────────────────────────────────
 
-function runVerify(): { ok: boolean; allowedFailures: number; totalFailures: number } {
+type SpeedSummary = {
+  freshOver: number
+  baselineOver: number
+  regressions: Array<{ name: string; p95: number; budget: number }>
+  recoveries: Array<{ name: string; p95: number }>
+}
+
+function runVerify(): {
+  ok: boolean
+  allowedFailures: number
+  totalFailures: number
+  speed?: SpeedSummary
+} {
   if (SKIP_TESTS) {
     console.log(c.yellow('⊘ Skipping W0 baseline (--skip-tests)'))
     return { ok: true, allowedFailures: 0, totalFailures: 0 }
@@ -214,7 +226,8 @@ function runVerify(): { ok: boolean; allowedFailures: number; totalFailures: num
 
   if (totalFailures === 0 && vitest.ok) {
     console.log(c.green('  ✓ All tests pass'))
-    return { ok: true, allowedFailures: 0, totalFailures: 0 }
+    const speed = runSpeedCheck()
+    return { ok: true, allowedFailures: 0, totalFailures: 0, speed }
   }
 
   // Count failures from known-flaky suites
@@ -249,7 +262,49 @@ function runVerify(): { ok: boolean; allowedFailures: number; totalFailures: num
   }
 
   console.log(c.yellow(`  ⊘ ${totalFailures} known-flaky test(s) failed, allowed`))
-  return { ok: true, allowedFailures, totalFailures }
+  const speed = runSpeedCheck()
+  return { ok: true, allowedFailures, totalFailures, speed }
+}
+
+// Speed regression gate — compares .vitest/speed-report.md vs tracked one/speed-test.md.
+// Fails W0 only when a benchmark flipped pass → over (new regressions).
+// Recoveries are surfaced but never fail the gate.
+function runSpeedCheck(): SpeedSummary | undefined {
+  console.log(c.gray('  → speed-check (regression gate)...'))
+  const result = run('bun', ['run', 'scripts/speed-check.ts'], {
+    silent: true,
+    env: { SPEED_CHECK_JSON: '1' },
+  })
+  const match = (result.stdout + result.stderr).match(/__SPEED_JSON__(\{.*\})/)
+  let summary: SpeedSummary | undefined
+  if (match) {
+    try {
+      summary = JSON.parse(match[1] ?? '{}') as SpeedSummary
+    } catch {
+      /* ignore parse failure */
+    }
+  }
+  if (!result.ok) {
+    console.log(c.red('  ✗ Speed regression detected'))
+    if (summary && summary.regressions.length > 0) {
+      for (const r of summary.regressions.slice(0, 5)) {
+        console.log(c.red(`    • ${r.name}: p95 ${r.p95}ms > budget ${r.budget}ms`))
+      }
+    }
+    if (!STRICT) {
+      console.log(c.yellow('  (non-strict: speed regression warns but does not block)'))
+      console.log(c.gray('  Use --strict to fail deploy on speed regression.'))
+      return summary
+    }
+    die('Speed regression failed (--strict)')
+  }
+  if (summary) {
+    const recoveries = summary.recoveries.length > 0 ? ` · ${summary.recoveries.length} recovered` : ''
+    console.log(c.green(`  ✓ Speed: ${summary.freshOver} over (baseline ${summary.baselineOver})${recoveries}`))
+  } else {
+    console.log(c.gray('  ⊘ Speed check: no fresh report (first run?)'))
+  }
+  return summary
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -575,7 +630,13 @@ async function main() {
   }
 
   // Rule 3: record deploy to substrate — let the world learn from its own deploys
-  await recordToSubstrate({ branch, deployResults, health, totalFailures: verify.totalFailures })
+  await recordToSubstrate({
+    branch,
+    deployResults,
+    health,
+    totalFailures: verify.totalFailures,
+    speed: verify.speed,
+  })
 
   const totalElapsed = ((Date.now() - startTotal) / 1000).toFixed(1)
   const preview = deployResults.find((r) => r.previewUrl)?.previewUrl
@@ -671,10 +732,14 @@ async function recordToSubstrate(data: {
   deployResults: DeployResult[]
   health: Array<{ name: string; ok: boolean; elapsed: number }>
   totalFailures: number
+  speed?: SpeedSummary
 }) {
   try {
     const allHealthy = data.health.every((h) => h.ok)
-    const receiver = allHealthy ? 'deploy:success' : 'deploy:degraded'
+    const speedRegressed = (data.speed?.regressions?.length ?? 0) > 0
+    // receiver: deploy:success | deploy:degraded | deploy:speed-regression
+    // Health takes precedence; only flag speed when health is green.
+    const receiver = !allHealthy ? 'deploy:degraded' : speedRegressed ? 'deploy:speed-regression' : 'deploy:success'
     const payload = {
       receiver,
       data: {
@@ -682,6 +747,20 @@ async function recordToSubstrate(data: {
         services: data.deployResults.map((r) => ({ name: r.name, elapsed: r.elapsed, version: r.version })),
         healthMs: Object.fromEntries(data.health.map((h) => [h.name.toLowerCase(), h.elapsed])),
         testFailures: data.totalFailures,
+        speed: data.speed
+          ? {
+              freshOver: data.speed.freshOver,
+              baselineOver: data.speed.baselineOver,
+              regressions: data.speed.regressions,
+              recoveries: data.speed.recoveries.map((r) => r.name),
+            }
+          : null,
+        tags: [
+          'deploy',
+          allHealthy ? 'healthy' : 'degraded',
+          speedRegressed ? 'speed-regression' : 'speed-ok',
+          ...(data.speed?.recoveries.length ? ['speed-recovery'] : []),
+        ],
         timestamp: new Date().toISOString(),
       },
     }

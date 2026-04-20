@@ -12,13 +12,16 @@
  *
  * Output: docs/speed-test.md
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { basename, resolve } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { basename, dirname, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..')
 const RESULTS = resolve(ROOT, '.vitest/results.json')
 const SAMPLES = resolve(ROOT, '.vitest/speed.ndjson')
-const OUT = resolve(ROOT, 'one/speed-test.md')
+// Write to gitignored .vitest/ — keeps test teardown from dirtying the tree.
+// Promote to tracked `one/speed-test.md` via `bun run speed:promote`.
+// Deploy W0 gates on regression via `bun run speed:check`.
+const OUT = resolve(ROOT, '.vitest/speed-report.md')
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Budgets — kept in sync with docs/speed.md
@@ -419,6 +422,8 @@ function main() {
   parts.push(renderGateAppendix(results))
   parts.push(`\n---\n\n_Report generated ${new Date().toISOString()}._\n`)
 
+  const outDir = dirname(OUT)
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true })
   writeFileSync(OUT, parts.join(''))
 
   const benches = new Set(samples.map((s) => s.name)).size

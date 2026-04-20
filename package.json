@@ -18,6 +18,8 @@
     "test:watch": "vitest watch",
     "test:bench": "PERF_SCALE=1 vitest run src/engine/routing.test.ts",
     "test:live": "LIVE=1 vitest run src/__tests__/live/",
+    "speed:check": "bun run scripts/speed-check.ts",
+    "speed:promote": "bun run scripts/speed-promote.ts",
     "check": "biome check .",
     "check:fix": "biome check --fix .",
     "format": "biome format --write .",
