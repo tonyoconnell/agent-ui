@@ -189,12 +189,12 @@ async function reexecuteHire(originalRequest: {
 
     // Only insert if new group
     if (!existingGroupId) {
-      writeSilent(`insert $g isa group, has group-id "${groupId}", has name "hire:${provider}", has tag "hire";`)
+      writeSilent(`insert $g isa group, has gid "${groupId}", has name "hire:${provider}", has tag "hire";`)
       writeSilent(
-        `match $g isa group, has group-id "${groupId}"; $b isa unit, has uid "${buyer}"; insert (member: $b, group: $g) isa membership, has member-role "buyer";`,
+        `match $g isa group, has gid "${groupId}"; $b isa unit, has uid "${buyer}"; insert (member: $b, group: $g) isa membership, has member-role "buyer";`,
       )
       writeSilent(
-        `match $g isa group, has group-id "${groupId}"; $p isa unit, has uid "${provider}"; insert (member: $p, group: $g) isa membership, has member-role "provider";`,
+        `match $g isa group, has gid "${groupId}"; $p isa unit, has uid "${provider}"; insert (member: $p, group: $g) isa membership, has member-role "provider";`,
       )
     }
 

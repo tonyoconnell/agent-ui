@@ -31,7 +31,7 @@ export const POST: APIRoute = async ({ request }) => {
           $ut isa unit, has uid "${(to as string).replace(/"/g, '')}";
           (group: $gf, member: $uf) isa membership;
           (group: $gt, member: $ut) isa membership;
-          $gf has group-id $gfid; $gt has group-id $gtid;
+          $gf has gid $gfid; $gt has gid $gtid;
     select $gfid, $gtid;
   `).catch(() => [] as any[])
 

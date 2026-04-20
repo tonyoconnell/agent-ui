@@ -17,6 +17,7 @@ import { getUsage, recordCall } from '@/lib/metering'
 import { getNet } from '@/lib/net'
 import { roleCheck } from '@/lib/role-check'
 import { checkApiCallLimit, tierAllows, tierLimitResponse } from '@/lib/tier-limits'
+import { writeSilent } from '@/lib/typedb'
 
 export const DELETE: APIRoute = async ({ params, request, locals }) => {
   const uid = params.uid
@@ -70,6 +71,11 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
 
   const net = await getNet()
   await net.forget(uid)
+
+  // Cascade personal group (belt-and-suspenders; persist.ts forget() also does this)
+  const escPGid = `group:${uid}`.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  writeSilent(`match $g isa group, has gid "${escPGid}"; $m (group: $g) isa membership; delete $m isa membership;`)
+  writeSilent(`match $g isa group, has gid "${escPGid}"; delete $g isa group;`)
 
   // E13: invalidate edge cache — paths, units, highways all change after erasure
   kvInvalidate('paths.json')

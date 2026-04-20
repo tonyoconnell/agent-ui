@@ -774,6 +774,10 @@ fun tasks_by_tag($tag: string) -> { task }:
     sort $p desc;
     return { $t };
 
+fun children_of($root: group) -> { group }:
+    match (parent: $root, child: $child) isa hierarchy;
+    return { $child };
+
 
 # =============================================================================
 # ~300 lines. One file. One world. WORLD.

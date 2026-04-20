@@ -649,21 +649,21 @@ bun vitest run src/__tests__/integration/inbox.test.ts
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — Schema + `gid` rename
-  - [ ] W1 — Recon (Haiku × 5, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 3, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel by check type)
-- [ ] **Cycle 2: PROVE** — `/api/groups` CRUD + roles per group + scoped pheromone + personal-group on signup + owner attribute + forget cascade + sub-groups + list shape + multi-session
-  - [ ] W1 — Recon (Haiku × 5, parallel)
-  - [ ] W2 — Decide (Opus × 2 shards)
-  - [ ] W3 — Edits (Sonnet × 13, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel by check type)
-- [ ] **Cycle 3: GROW** — Hierarchy closure + federation handshake (incl. personal↔personal) + inbox + plans + TQL-driven suggestedJoins
-  - [ ] W1 — Recon (Haiku × 5, parallel)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 7, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel by check type)
+- [x] **Cycle 1: WIRE** — Schema + `gid` rename
+  - [x] W1 — Recon (Haiku × 5, parallel)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 3, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel by check type)
+- [x] **Cycle 2: PROVE** — `/api/groups` CRUD + roles per group + scoped pheromone + personal-group on signup + owner attribute + forget cascade + sub-groups + list shape + multi-session
+  - [x] W1 — Recon (Haiku × 5, parallel)
+  - [x] W2 — Decide (Opus × 2 shards)
+  - [x] W3 — Edits (Sonnet × 13, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel by check type)
+- [x] **Cycle 3: GROW** — Hierarchy closure + federation handshake (incl. personal↔personal) + inbox + plans + TQL-driven suggestedJoins
+  - [x] W1 — Recon (Haiku × 5, parallel)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 7, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel by check type)
 
 ---
 

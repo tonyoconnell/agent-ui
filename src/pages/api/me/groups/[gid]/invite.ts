@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     const callerRows = await readParsed(`
       match
         $caller isa unit, has uid "${safeCaller}";
-        $g isa group, has group-id "${safeGid}";
+        $g isa group, has gid "${safeGid}";
         (member: $caller, group: $g) isa membership, has member-role $r;
       select $r;
     `)
@@ -69,7 +69,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     const memberRows = await readParsed(`
       match
         $t isa unit, has uid "${safeTarget}";
-        $g isa group, has group-id "${safeGid}";
+        $g isa group, has gid "${safeGid}";
         (member: $t, group: $g) isa membership, has member-role $r;
       select $r;
     `)
@@ -84,7 +84,7 @@ export const POST: APIRoute = async ({ request, params }) => {
       await write(`
         match
           $t isa unit, has uid "${safeTarget}";
-          $g isa group, has group-id "${safeGid}";
+          $g isa group, has gid "${safeGid}";
           $m (member: $t, group: $g) isa membership, has member-role $old;
         delete $old of $m;
         insert $m has member-role "${safeRole}";
@@ -92,7 +92,7 @@ export const POST: APIRoute = async ({ request, params }) => {
         writeSilent(`
           match
             $t isa unit, has uid "${safeTarget}";
-            $g isa group, has group-id "${safeGid}";
+            $g isa group, has gid "${safeGid}";
           insert (member: $t, group: $g) isa membership, has member-role "${safeRole}";
         `),
       )
@@ -104,7 +104,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     await write(`
       match
         $t isa unit, has uid "${safeTarget}";
-        $g isa group, has group-id "${safeGid}";
+        $g isa group, has gid "${safeGid}";
       insert (member: $t, group: $g) isa membership, has member-role "${safeRole}";
     `)
 

@@ -30,7 +30,9 @@ const SUBSTRATE_COMMANDS = [
   // Cycle 3: interactive + batch
   "repl", "pipe", "tail",
   // Platform BaaS Cycle 4: first-class commerce verbs
-  "sell", "buy", "invite", "domain",
+  "sell", "buy", "domain",
+  // Dimension 1: group management
+  "group",
   // Lifecycle ONE Cycle 1: subscribe (Stage 12 — reverse tag edges)
   "subscribe",
 ] as const;
@@ -178,9 +180,17 @@ COMMERCE
   publish <skillId> --name N --price N [--scope S]   Publish to marketplace
   sell <skill-receiver> --price N [--tags t1,t2]   List capability on marketplace (Builder+)
   buy <tag> [--from <agent-uid>]                   Discover + ask an agent (Free)
-  invite <uid> --into <gid> [--role operator]      Add agent to group (Scale+)
-  invite world --url <url>                         Open federation bridge (Enterprise)
   domain <hostname>                                Bind custom hostname (Scale+)
+
+GROUPS (Dimension 1)
+  group create <gid> --name <n> [--type T] [--visibility V]  Create a group
+  group list                                       List groups
+  group join <gid>                                 Join a group
+  group leave <gid>                                Leave a group
+  group members <gid>                              List members of a group
+  group invite <gid> <uid> [--role member|operator|agent]  Invite uid to group
+  group bridge <from> <to>                         Bridge two groups (federation path)
+  group inbox <uid> [--limit N]                    Group inbox for uid
 
 OBSERVABILITY
   stats                       Substrate statistics (units, skills, revenue)

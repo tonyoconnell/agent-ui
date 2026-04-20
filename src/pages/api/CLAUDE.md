@@ -208,6 +208,7 @@ Organization and team structures.
 | `/api/groups/:gid` | PATCH | Update group (update_group permission) |
 | `/api/groups/:gid` | DELETE | Delete group + cascade (delete_group permission) |
 | `/api/groups/:gid/members` | GET | List members (members only) |
+| `/api/groups/:gid/invite` | POST | Invite a unit to a private group (invite_member permission) |
 | `/api/groups/:gid/role` | PATCH | Change member role; ownership transfer auto-demotes |
 | `/api/groups/join` | POST | Join a group (public: auto; private: 403 invite required) |
 | `/api/groups/leave` | POST | Leave a group (personal or chairman: 409) |

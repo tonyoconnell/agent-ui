@@ -123,6 +123,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const suiWallet = await addressFor(body.uid).catch(() => null)
 
+    // Write owner attribute when caller is authenticated (tracks who registered this agent)
+    const callerUid = auth?.isValid ? auth.user : null
+    if (callerUid) {
+      const escUid = body.uid.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      const escCaller = callerUid.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      writeSilent(`match $u isa unit, has uid "${escUid}"; insert $u has owner "${escCaller}";`)
+    }
+
     // Record in D1 AFTER successful creation (idempotent via ON CONFLICT DO NOTHING).
     if (auth?.isValid) {
       void recordAgent(db, auth.keyId, body.uid)

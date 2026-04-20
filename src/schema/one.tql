@@ -14,8 +14,13 @@ define
 entity group,
     owns gid @key,
     owns name,
-    owns group-type,                  # "world", "friends", "team", "community", "org", "dao"
+    owns group-type,                  # "world", "friends", "team", "community", "org", "dao", "personal"
     owns brand,                       # brand label (e.g. "acme", "one", "donal")
+    owns sensitivity,                 # governance: explore ↔ exploit (0..1, default 0.7)
+    owns fade-rate,                   # governance: L3 decay rate (0..1, default 0.05)
+    owns toxicity-threshold,          # governance: resistance gate for toxic (default 10.0)
+    owns visibility,                  # private/group/public — who can see this group
+    owns plan,                        # starter|growth|enterprise — tenant quota tier
     plays hierarchy:parent,
     plays hierarchy:child,
     plays membership:group;
@@ -122,7 +127,8 @@ relation path,
     owns strength,                    # mark() increments
     owns resistance,                  # warn() increments
     owns traversals,                  # count
-    owns scope;                       # private/group/public — federation boundary
+    owns scope,                       # private/group/public — federation boundary
+    owns bridge-kind;                 # federation/export/escrow — cross-root edge type
 
 relation capability,
     relates provider,
@@ -142,7 +148,8 @@ relation signal,
     owns amount,                      # payment (0 = free)
     owns success,
     owns latency,                     # ms from dispatch to outcome
-    owns ts;
+    owns ts,
+    owns scope;                       # private/group/public — federation boundary
 
 # 6. LEARNING — what was discovered
 entity hypothesis,
@@ -224,6 +231,14 @@ attribute member-role, value string;      # chairman/board/ceo/operator/agent/au
 attribute wallet, value string;           # Sui address (0x...)
 attribute auth-hash, value string;        # bcrypt hash of API key
 attribute scope, value string;            # private/group/public
+attribute visibility, value string;       # private/group/public — group visibility
+attribute bridge-kind, value string;      # federation/export/escrow — cross-root edge type
+
+# WORLD-CONFIG KNOBS — group-level governance tuning (added 2026-04-20 for Chairman dashboard)
+attribute sensitivity, value double;          # explore ↔ exploit (0..1, default 0.7)
+attribute fade-rate, value double;            # L3 decay rate (0..1, default 0.05)
+attribute toxicity-threshold, value double;   # resistance count for toxic path gate (default 10.0)
+attribute plan, value string;                 # starter|growth|enterprise — tenant quota tier
 
 # WALLET INTEGRATION — links substrate actor to self-custodial wallets from /u
 attribute wallet-address, value string;   # external wallet address (chain-specific)

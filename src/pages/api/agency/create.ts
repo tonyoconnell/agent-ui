@@ -40,14 +40,14 @@ export const POST: APIRoute = async ({ request }) => {
     // Create agency group with kind="agency" tag
     await writeSilent(`
       insert $g isa group,
-        has group-id "${groupId}",
+        has gid "${groupId}",
         has name "${name.replace(/"/g, '\\"')}",
         has tag "agency";
     `)
 
     // Create owner actor if not present, then add membership
     await writeSilent(`
-      match $g isa group, has group-id "${groupId}";
+      match $g isa group, has gid "${groupId}";
       insert $u isa actor, has aid "${ownerId}", has name "owner";
       (member: $u, group: $g) isa membership, has member-role "owner";
     `).catch(() => {

@@ -58,6 +58,7 @@ const KNOWN_FLAKY = [
   'returns 410 when sunset-at is in the past in enforce mode', // ADL lifecycle gate test — audit() mock not wired to route handler; test env issue
   'proceeds in audit mode and emits adl:denial:lifecycle signal', // ADL audit mode test — same mock wiring gap
   'should complete all 10 stages without throwing', // speed-lifecycle: fetch() returns undefined in vitest — test env mock missing
+  'different agent names in same group get different wallets', // phase2-keypair: passes standalone (14/14); shared-world singleton pollution in full suite
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────

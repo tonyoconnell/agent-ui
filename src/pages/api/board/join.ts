@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
     const existing = await readParsed(`
       match
         $u isa unit, has uid "${uid}";
-        $g isa group, has group-id "${group}";
+        $g isa group, has gid "${group}";
         $m (group: $g, member: $u) isa membership;
       select $m;
     `)
@@ -57,7 +57,7 @@ export const POST: APIRoute = async ({ request }) => {
       await writeSilent(`
         match
           $u isa unit, has uid "${uid}";
-          $g isa group, has group-id "${group}";
+          $g isa group, has gid "${group}";
         insert
           (group: $g, member: $u) isa membership, has member-role "agent";
       `)

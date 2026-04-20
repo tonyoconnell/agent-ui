@@ -331,6 +331,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
             sharesGroup = rows.length > 0
             SCOPE_CACHE.set(cacheKey, { shares: sharesGroup, expires: Date.now() + 5 * 60 * 1000 })
           }
+          // Hierarchy fallback: sibling sub-groups under same parent world share scope
+          if (!sharesGroup) {
+            const sorted = [sender, receiver].sort().join('|')
+            const hierKey = `hier:${sorted}`
+            const hierCached = SCOPE_CACHE.get(hierKey)
+            if (hierCached && hierCached.expires > Date.now()) {
+              sharesGroup = hierCached.shares
+            } else {
+              const safeSender = sender.replace(/[^a-zA-Z0-9_:.-]/g, '')
+              const safeReceiver = receiver.replace(/[^a-zA-Z0-9_:.-]/g, '')
+              const hierRows = await readParsed(`
+                match $a isa unit, has uid "${safeSender}";
+                      $b isa unit, has uid "${safeReceiver}";
+                      (member: $a, group: $ga) isa membership;
+                      (member: $b, group: $gb) isa membership;
+                      (parent: $root, child: $ga) isa hierarchy;
+                      (parent: $root, child: $gb) isa hierarchy;
+                select $root; limit 1;
+              `).catch(() => [])
+              sharesGroup = hierRows.length > 0
+              SCOPE_CACHE.set(hierKey, { shares: sharesGroup, expires: Date.now() + 5 * 60 * 1000 })
+            }
+          }
           // Self-signals always allowed regardless of group
           if (!sharesGroup && sender !== receiver) {
             return new Response(JSON.stringify({ dissolved: true, reason: 'scope-group-violation' }), {

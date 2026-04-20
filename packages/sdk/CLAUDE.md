@@ -86,6 +86,16 @@ Memory:
 - `forget(uid)` — GDPR erasure
 - `frontier(uid)` — unexplored clusters
 
+Groups (dimension 1):
+- `createGroup({ gid, name, groupType?, visibility?, plan? })` — create group, caller becomes chairman
+- `listGroups()` — own + public groups with role + groupType per row
+- `joinGroup(gid)` — join a public group
+- `leaveGroup(gid)` — leave a group
+- `groupMembers(gid)` — list members + roles (members only)
+- `inviteMember(gid, uid, role?)` — invite uid into a private group
+- `bridge(from, to)` — federation handshake (first call → 202 pending, second → 201 bridged)
+- `inbox(uid, opts?)` — unified signal inbox across all memberships
+
 ## Telemetry
 
 Every method emits `toolkit:sdk:<method>` to substrate. Disable with:
