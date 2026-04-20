@@ -1,9 +1,5 @@
 // Shape of the /in inbox dataset. Live data fetched from substrate + claw APIs.
-// Build-time static data (in.json) used as fallback only.
-//
-// Dimensions follow the six canonical names from docs/dictionary.md. Any
-// page can create its own JSON matching this schema and mount the Inbox
-// component with its own data.
+// Dimensions follow the six canonical names from docs/dictionary.md.
 
 export type Dimension = 'groups' | 'actors' | 'things' | 'paths' | 'events' | 'learning'
 

@@ -32,6 +32,8 @@ export interface AuthContext {
   actAs?: string // explicit act-as request (validated, identity swapped)
   ownerOf?: string[] // agents this user has chairman membership in
   tier?: Tier // Platform BaaS tier (free|builder|scale|world|enterprise). Populated when locals is passed.
+  personalGid?: string // personal group: "group:{uid}" — auto-created on sign-up
+  suggestedJoins?: string[] // public groups to surface on sign-up; TQL-driven, fallback ["one"]
 }
 
 // In-process cache: plaintext bearer → verified identity (5-min TTL).
@@ -236,11 +238,13 @@ export function hasPermission(auth: AuthContext, required: string, group?: strin
  * Look up governance role for a user uid from membership relation.
  * Called separately from validateApiKey to keep auth at 1 TypeDB query.
  */
-export async function getRoleForUser(uid: string): Promise<string | undefined> {
+export async function getRoleForUser(uid: string, gid?: string): Promise<string | undefined> {
   const safeUid = uid.replace(/[^a-zA-Z0-9_:.-]/g, '')
+  const groupFilter = gid ? `$g isa group, has gid "${gid.replace(/[^a-zA-Z0-9_:.-]/g, '')}";` : ''
   try {
     const rows = await readParsed(
       `match $u isa unit, has uid "${safeUid}";
+       ${groupFilter}
        (member: $u, group: $g) isa membership, has member-role $r;
        select $r; limit 1;`,
     )
@@ -259,7 +263,7 @@ export async function getGroupsForUser(
     const rows = await readParsed(`
       match $u isa unit, has uid "${safeUid}";
       (member: $u, group: $g) isa membership, has member-role $r;
-      $g has group-id $gid, has name $gname;
+      $g has gid $gid, has name $gname;
       select $gid, $gname, $r;
     `)
     return rows
@@ -325,6 +329,25 @@ export async function ensureHumanUnit(
   `).catch(() => {
     /* best-effort; next request retries */
   })
+
+  // Auto-create personal group (idempotent)
+  const escPGid = esc(`group:${uid}`)
+  writeSilent(`
+    match $u isa unit, has uid "${esc(uid)}";
+    not { $g isa group, has gid "${escPGid}"; };
+    insert $g isa group,
+      has gid "${escPGid}",
+      has name "${esc(uid)}",
+      has group-type "personal",
+      has visibility "private",
+      has status "active";
+  `)
+  writeSilent(`
+    match $u isa unit, has uid "${esc(uid)}";
+          $g isa group, has gid "${escPGid}";
+    not { (group: $g, member: $u) isa membership; };
+    insert (group: $g, member: $u) isa membership, has member-role "chairman";
+  `)
 }
 
 /**
@@ -415,6 +438,15 @@ export async function resolveUnitFromSession(request: Request, locals?: App.Loca
     }
   }
 
+  const suggestedJoins = await readParsed(`
+    match $g isa group, has gid $gid, has name $n, has visibility "public";
+    not { $g has group-type "personal"; };
+    select $gid, $n; limit 5;
+  `)
+    .then((rows) => rows.map((r) => String(r.gid)))
+    .catch(() => ['one'])
+    .then((gs) => (gs.length > 0 ? gs : ['one']))
+
   const ctx: AuthContext = {
     user: uid,
     permissions: ['read', 'write'],
@@ -424,6 +456,8 @@ export async function resolveUnitFromSession(request: Request, locals?: App.Loca
     scopeGroups: [],
     scopeSkills: [],
     tier,
+    personalGid: `group:${uid}`,
+    suggestedJoins,
   }
   SESSION_CACHE.set(cookie, { ctx, expires: Date.now() + CACHE_TTL_MS })
   return ctx

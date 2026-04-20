@@ -12,6 +12,7 @@ import {
   type Status,
 } from '@/data/in-types'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { getClawUrl } from '@/lib/claw-registry'
 import { emitClick } from '@/lib/ui-signal'
 import { EntityCard } from './EntityCard'
 import { EntityDetail } from './EntityDetail'
@@ -29,14 +30,15 @@ const ICONS: Record<Dimension, NavigationItem['icon']> = {
 }
 
 export function Inbox({
-  clawUrl = 'https://debby-claw.oneie.workers.dev',
   groupId,
   groups = [],
 }: {
-  clawUrl?: string
   groupId?: string
   groups?: Array<{ gid: string; name: string; role: string }>
 }) {
+  const clawUrl = getClawUrl(groupId ?? groups[0]?.gid ?? 'debby')
+  const ownerName = groups.find((g) => g.gid === groupId)?.name ?? groups[0]?.name ?? 'Owner'
+  const ownerInitial = ownerName[0]?.toUpperCase() ?? 'O'
   const isMobile = useIsMobile()
   const [liveEntities, setLiveEntities] = useState<InboxEntity[]>([])
   const DATA: InboxData = useMemo(
@@ -126,7 +128,7 @@ export function Inbox({
     void fetchAll()
     const id = setInterval(() => void fetchAll(), 5000)
     return () => clearInterval(id)
-  }, [clawUrl])
+  }, [clawUrl, groupId])
 
   const handleReply = useCallback(
     async (entityId: string, text: string, entityType?: string, entitySessionId?: string) => {
@@ -171,7 +173,7 @@ export function Inbox({
         <Toaster position="top-right" theme="dark" />
         {mobileView === 'list' ? (
           <>
-            <ProfileHeader name="Anthony O'Connell" initial="A" />
+            <ProfileHeader name={ownerName} initial={ownerInitial} />
             <StatusTabs active={status} counts={statusCounts} onChange={setStatus} />
             <SearchBar value={query} onChange={setQuery} />
             <div className="flex gap-2 overflow-x-auto border-b border-border bg-card px-4 py-3 scrollbar-hide">
@@ -224,7 +226,7 @@ export function Inbox({
       <Toaster position="top-right" theme="dark" />
       <div className="grid h-full bg-background text-foreground" style={{ gridTemplateColumns: '20% 30% 50%' }}>
         <aside className="flex flex-col border-r border-border bg-card">
-          <ProfileHeader name="Anthony O'Connell" initial="A" />
+          <ProfileHeader name={ownerName} initial={ownerInitial} />
           {groups.length > 1 && (
             <div className="border-b border-border px-4 py-2">
               <select
