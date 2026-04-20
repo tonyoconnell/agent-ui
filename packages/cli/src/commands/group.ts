@@ -1,5 +1,5 @@
 import { apiRequest } from '../lib/http.js'
-import { parseArgs } from '../lib/args.js'
+import { flagNumber, flagString, parseArgs } from '../lib/args.js'
 
 export const name = 'group'
 
@@ -32,7 +32,7 @@ export async function run(argv: string[]): Promise<void> {
       if (!gid) { console.log(JSON.stringify({ error: 'gid required' })); return }
       const res = await apiRequest('/api/groups', {
         method: 'POST',
-        body: { gid, name: args.name ?? gid, groupType: args.type ?? 'org', visibility: args.visibility ?? 'private' },
+        body: { gid, name: flagString(args, 'name') ?? gid, groupType: flagString(args, 'type') ?? 'org', visibility: flagString(args, 'visibility') ?? 'private' },
       }).catch((e: Error) => ({ error: e.message }))
       console.log(JSON.stringify(res, null, 2))
       break
@@ -75,7 +75,7 @@ export async function run(argv: string[]): Promise<void> {
       if (!gid || !uid) { console.log(JSON.stringify({ error: 'gid and uid required' })); return }
       const res = await apiRequest(`/api/groups/${encodeURIComponent(gid)}/invite`, {
         method: 'POST',
-        body: { uid, role: args.role ?? 'member' },
+        body: { uid, role: flagString(args, 'role') ?? 'member' },
       }).catch((e: Error) => ({ error: e.message }))
       console.log(JSON.stringify(res, null, 2))
       break
@@ -94,7 +94,8 @@ export async function run(argv: string[]): Promise<void> {
     case 'inbox': {
       const uid = rest[0]
       if (!uid) { console.log(JSON.stringify({ error: 'uid required' })); return }
-      const qs = args.limit ? `?limit=${args.limit}` : ''
+      const limit = flagNumber(args, 'limit')
+      const qs = limit ? `?limit=${limit}` : ''
       const res = await apiRequest(`/api/inbox/${encodeURIComponent(uid)}${qs}`).catch((e: Error) => ({ error: e.message }))
       console.log(JSON.stringify(res, null, 2))
       break

@@ -1,13 +1,16 @@
 {
   "name": "@oneie/mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "ONE substrate MCP server — 12 substrate verbs + 3 discovery tools.",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
     "oneie-mcp": "./dist/index.js"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
