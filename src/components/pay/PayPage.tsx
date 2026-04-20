@@ -44,16 +44,22 @@ function PayPageContent({ skillId, skillName, price, seller }: Props) {
     startTransition(async () => {
       setState('paying')
       try {
+        // /api/signal requires sender + receiver at the top level.
+        // The buyer's wallet address is the sender; pay:initiate is the receiver.
+        // USDC has 6 decimals — the micro-unit amount lives in data.amount (not
+        // the top-level field, which is capped at 1M and meant for dollar weight).
+        const buyer = account?.address ?? 'anon'
         const res = await fetch('/api/signal', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            sender: buyer,
             receiver: 'pay:initiate',
             data: {
               skillId,
-              buyerUid: account?.address ?? 'anon',
+              buyerUid: buyer,
               sellerUid: seller,
-              amount: Math.round(price * 1_000_000), // USDC has 6 decimals
+              amount: Math.round(price * 1_000_000),
             },
           }),
         })
