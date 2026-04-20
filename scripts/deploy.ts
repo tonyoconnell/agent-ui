@@ -287,8 +287,13 @@ function showChanges() {
 function build(): number {
   const start = Date.now()
   console.log(c.gray('  → astro build...'))
+  // Astro + Vite bundling exhausts the default Node 22 2 GiB heap on this bundle size.
+  // Pin to 8 GiB so CI (GitHub Actions) and clean local envs don't hit SIGABRT.
   const result = run('bun', ['run', 'build'], {
-    env: { NODE_ENV: 'production' },
+    env: {
+      NODE_ENV: 'production',
+      NODE_OPTIONS: process.env.NODE_OPTIONS ?? '--max-old-space-size=8192',
+    },
     silent: true,
   })
   if (!result.ok) {
