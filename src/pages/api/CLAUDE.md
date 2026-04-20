@@ -202,6 +202,20 @@ Organization and team structures.
 
 | Route | Method | Purpose |
 |-------|--------|---------|
+| `/api/groups` | GET | List groups (own + public for authed, public-only for anon) |
+| `/api/groups` | POST | Create group (auth required; auto-adds creator as chairman) |
+| `/api/groups/:gid` | GET | Group details (403 if private + non-member) |
+| `/api/groups/:gid` | PATCH | Update group (update_group permission) |
+| `/api/groups/:gid` | DELETE | Delete group + cascade (delete_group permission) |
+| `/api/groups/:gid/members` | GET | List members (members only) |
+| `/api/groups/:gid/role` | PATCH | Change member role; ownership transfer auto-demotes |
+| `/api/groups/join` | POST | Join a group (public: auto; private: 403 invite required) |
+| `/api/groups/leave` | POST | Leave a group (personal or chairman: 409) |
+| `/api/paths/bridge` | POST | Federation handshake — two chairmen bridge two groups |
+| `/api/paths/bridge` | DELETE | Dissolve a bridge path |
+| `/api/inbox/:uid` | GET | Unified signal inbox across all memberships |
+| `/api/in/sessions` | GET | Owner inbox session bus — list sessions or fetch by `?sessionId=` |
+| `/api/in/sessions` | POST | Upsert session message `{sessionId, sender, content}` — bridges `/chat` → `/in` |
 | `/api/export/groups` | GET | All groups with members |
 | `/api/team` | GET | Team structure for current world |
 

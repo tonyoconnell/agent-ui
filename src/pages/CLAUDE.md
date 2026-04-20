@@ -7,7 +7,8 @@
 | Page | Route | Component | Hydration |
 |------|-------|-----------|-----------|
 | `index.astro` | `/` | `AgentWorkspace` | `client:load` |
-| `in.astro` | `/in` | `Inbox` | `client:only` |
+| `in.astro` | `/in` | `Inbox` (auth → redirect to `/in/[gid]`) | `client:only` |
+| `in/[groupId].astro` | `/in/[groupId]` | `Inbox` (owner gate: chairman/ceo/operator) | `client:only` |
 | `world.astro` | `/world` | `WorldWorkspace` | `client:load` |
 | `tasks.astro` | `/tasks` | `TaskBoard` | `client:load` |
 | `chat.astro` | `/chat` | `DebbyChat` | `client:only` |

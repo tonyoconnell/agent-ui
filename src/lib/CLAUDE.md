@@ -14,11 +14,12 @@
 | `utils.ts` | cn() and other utilities | `/shadcn` |
 | `net.ts` | In-process substrate network instance (pattern execution surface) | — |
 | `edge.ts` | In-process KV cache (`globalThis._edgeKvCache`), `kvInvalidate()` | — |
-| `api-auth.ts` | API request authentication middleware + `getRoleForUser(uid)` | — |
+| `api-auth.ts` | API request authentication middleware + `getRoleForUser(uid)` + `getGroupsForUser(uid, roles?)` | — |
 | `role-check.ts` | Governance role permission matrix: `roleCheck(role, action)`, `isGovernanceRole()` | — |
 | `api-key.ts` | API key generation and validation | — |
 | `streamSignals.ts` | SSE stream of substrate signals; carries agent lifecycle events | — |
 | `signalSender.ts` | HTTP helper to POST signals to `/api/signal` | — |
+| `claw-registry.ts` | `groupId → clawUrl` map + `getClawUrl(gid)` helper | — |
 | `sdk.ts` | `@oneie/sdk` singleton `SubstrateClient` for browser/scripts — same-origin via `window.location.origin`, retry on 5xx/429. **Preferred for all API calls.** | — |
 | `ui-signal.ts` | `emitClick(id, payload?)` — every UI onClick emits to substrate | `/react19` |
 | `telemetry.ts` | API telemetry — `emit()` writes `api:<route>:<method>` signals to TypeDB | — |
