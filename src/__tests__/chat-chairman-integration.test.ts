@@ -10,6 +10,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createWorld, DEFAULT_MARKETING_TEAM, wireChairmanChain } from '@/engine'
+import { resetClassifierForTests } from '@/engine/ceo-classifier'
 import { leafHandler } from '@/engine/specialist-leaf'
 import { classifyWithConfidence } from '@/lib/tag-classifier'
 
@@ -50,9 +51,11 @@ function collector() {
 describe('chat-chairman integration', () => {
   beforeEach(() => {
     vi.useRealTimers()
+    resetClassifierForTests()
   })
   afterEach(() => {
     vi.restoreAllMocks()
+    resetClassifierForTests()
   })
 
   it('classify → route → stream → done with full chain breadcrumb', async () => {

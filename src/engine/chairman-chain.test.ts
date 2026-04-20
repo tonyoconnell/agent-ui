@@ -4,7 +4,7 @@
  * Run: bun vitest run src/engine/chairman-chain.test.ts
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetClassifierForTests, setClassifierForTests } from './ceo-classifier'
 import {
   createDirector,
@@ -183,6 +183,9 @@ describe('chairman-chain', () => {
 //   3. Cold path: still no target → CEO self-leaf.
 // Directors self-leaf too if their subtags miss, so no cascade-dissolves.
 describe('chairman-chain CEO low-confidence LLM fallback', () => {
+  beforeEach(() => {
+    resetClassifierForTests()
+  })
   afterEach(() => {
     resetClassifierForTests()
   })
