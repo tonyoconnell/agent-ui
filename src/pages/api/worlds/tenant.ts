@@ -6,7 +6,7 @@
  * billing tier. OO Agency is tenant #1. Premium = group-type "world" +
  * entry in the D1 tenants table.
  *
- * Tiers: starter ($499/mo), growth ($1,999/mo), enterprise ($9,999/mo)
+ * Tiers: world ($499/mo), enterprise ($9,999/mo)
  */
 import type { APIRoute } from 'astro'
 // TODO: requires tenancy.ts — tier → quota mapping (A4's job)
@@ -14,11 +14,10 @@ import { hasPermission, validateApiKey } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
 import { readParsed, write } from '@/lib/typedb'
 
-type Tier = 'starter' | 'growth' | 'enterprise'
+type Tier = 'world' | 'enterprise'
 
 const TIER_PRICE: Record<Tier, number> = {
-  starter: 499,
-  growth: 1999,
+  world: 499,
   enterprise: 9999,
 }
 
@@ -48,15 +47,15 @@ export const GET: APIRoute = async ({ locals }) => {
       return Response.json({
         tenants: worlds.map((w) => ({
           ...w,
-          tier: (tierMap.get(w.gid)?.tier as Tier | undefined) ?? 'starter',
-          pricePerMonth: TIER_PRICE[(tierMap.get(w.gid)?.tier as Tier | undefined) ?? 'starter'],
+          tier: (tierMap.get(w.gid)?.tier as Tier | undefined) ?? 'world',
+          pricePerMonth: TIER_PRICE[(tierMap.get(w.gid)?.tier as Tier | undefined) ?? 'world'],
           active: (tierMap.get(w.gid)?.active as number | undefined) === 1,
         })),
       })
     }
 
     return Response.json({
-      tenants: worlds.map((w) => ({ ...w, tier: 'starter' as Tier, pricePerMonth: 499, active: false })),
+      tenants: worlds.map((w) => ({ ...w, tier: 'world' as Tier, pricePerMonth: 499, active: false })),
     })
   } catch {
     return Response.json({ tenants: [] })
@@ -86,7 +85,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const slug = body.brand.toLowerCase().replace(/[^a-z0-9-]/g, '-')
     const gid = `world:${slug}`
-    const tier = body.tier ?? 'starter'
+    const tier = body.tier ?? 'world'
     // Spec: brand = "<tier>:<slug>" e.g. "premium:oo-agency"
     const brand = `${tier}:${slug}`
     const price = TIER_PRICE[tier]

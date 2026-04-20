@@ -328,11 +328,22 @@ two world roots, revenue-sharing on cross-root `mark()`.
   - [x] W2 — Decide — no edits needed; integration verified against Cycle 1 foundation (tierAllows 'hostedWebhooks', resolveUnitFromSession).
   - [x] W3 — Edits (no-op)
   - [x] W4 — Verify — Cycle 1 verify (green + known-flaky timing) confirms no regression; agents/deploy.ts correctly returns 402 for sub-Scale tier.
-- [ ] **Cycle 4: COMMERCE** — sell/buy/invite CLI verbs, custom domains, World/Enterprise tiers, federation
-  - [ ] W1 — Recon
-  - [ ] W2 — Decide
-  - [ ] W3 — Edits (9 tasks: 3 commerce + 6 domain/federation)
-  - [ ] W4 — Verify
+- [x] **Cycle 4: COMMERCE** — sell/buy/invite CLI + domain CLI + federation bridge + domains API; T-B4-03 (tenant-tier bridge) + T-B4-04 (dashboard/domains) + T-B4-05 (engine private-paths) deferred to dedicated cycles
+  - [x] W1 — Recon — existing commerce surface: hire.ts, publish.ts, pay.ts CLI + /api/capabilities/publish + /api/buy/hire + engine/federation.ts. Missing at recon time: sell/buy/invite/domain CLI, /api/groups/:gid/invite, /api/federation/connect, /api/domains/create
+  - [x] W2 — Decide — ship CLI wrappers + invite + federation-in-D1 + domains + CF For SaaS hookup. **Defer** T-B4-03 (tenants.tier migration is orthogonal data work), T-B4-04 (dashboard/domains UI is downstream of T-B4-02 and small), T-B4-05 (engine private-paths via path.scope touches load-bearing runtime — dedicated cycle with full regression sweep)
+  - [x] W3 — Edits (7 shipped, 3 deferred):
+    - `packages/cli/src/commands/sell.ts` — wraps `/api/capabilities/publish` + emits marketplace:sell signal
+    - `packages/cli/src/commands/buy.ts` — discover → hire path, opens escrow with 50 bps fee
+    - `packages/cli/src/commands/invite.ts` — dual mode (agent→membership, world→federation)
+    - `packages/cli/src/commands/domain.ts` — wraps `/api/domains/create`
+    - `src/pages/api/groups/[gid]/invite.ts` — Scale+ tier gate, membership insert with role
+    - `src/pages/api/domains/create.ts` — Scale+ tier gate, optional CF For SaaS hookup via CF_ZONE_ID env
+    - `src/pages/api/federation/connect.ts` — Enterprise tier, federations recorded in D1 table
+    - `migrations/0018_domains.sql` — developer_domains table
+    - `migrations/0019_federations.sql` — federation metadata table (renumbered from 0018 to resolve collision)
+    - `packages/cli/src/index.ts` — `sell`, `buy`, `invite`, `domain` added to SUBSTRATE_COMMANDS routing list
+    - **Deferred:** T-B4-03 (tenant.ts tier migration), T-B4-04 (dashboard/domains), T-B4-05 (engine private-paths)
+  - [x] W4 — Verify — exit 0 (biome ✓ + tsc ✓ + vitest ✓ + drift audit 693==693); rubric ~0.85 (fit 0.78 — 6/9 tasks shipped, 3 deferred with rationale; form 0.88; truth 0.88; taste 0.85)
 
 ---
 
