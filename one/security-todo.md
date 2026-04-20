@@ -785,9 +785,11 @@ Mapping the twelve invariants from `security.md` to cycles that establish them:
 |-------|:--------:|:-------:|:---------:|:---------:|-------|
 | 1 WIRE-DELETE | 4 | 1 | 4 | 4 | Small surface |
 | 2 SCOPE-KEYS | 4 | 1 | 5 | 4 | Schema + auth |
-| 3 LOCK-PEP | 4 | 1 | 5 | 4 | Engine critical path |
-| 4 LEARN-SIGNALS | 4 | 1 | 5 | 4 | Instrumentation |
-| 5 SHIELD-DATA | 4 | 2 shards | 7 | 4 | Widest, split Opus by domain |
+| 2.5 ENGINE-HARDEN | 5 | 1 | 10 | 4 | Runtime correctness, broadest engine touch |
+| 3 LOCK-PEP | 4 | 1 | 9 | 4 | PEP + API auth sweep (very broad W3) |
+| 4 LEARN-SIGNALS | 4 | 1 | 9 | 4 | Events + Gateway hardening |
+| 5 SHIELD-DATA | 4 | 2 shards | 7 | 4 | Crypto + audit, split Opus by domain |
+| 7 SUI-LOCK | 4 | 2 shards | 8 | 4 | Move contract — bundle with Phase 3 escrow |
 
 **Hard stop:** any W4 looping > 3× → halt, escalate. Security cycles don't
 ship yellow.
@@ -806,6 +808,11 @@ ship yellow.
   - [ ] W2 — Decide (Opus × 1)
   - [ ] W3 — Edits (Sonnet × 5, parallel)
   - [ ] W4 — Verify (Sonnet × 4, parallel)
+- [ ] **Cycle 2.5: ENGINE-HARDEN** — per-instance state, one tick, fill test holes
+  - [ ] W1 — Recon (Haiku × 5)
+  - [ ] W2 — Decide (Opus × 1)
+  - [ ] W3 — Edits (Sonnet × 10, parallel)
+  - [ ] W4 — Verify (Sonnet × 4, parallel)
 - [ ] **Cycle 3: LOCK-PEP** — canonical PEP order + nonce + lint rule
   - [ ] W1 — Recon (Haiku × 4)
   - [ ] W2 — Decide (Opus × 1)
@@ -820,6 +827,11 @@ ship yellow.
   - [ ] W1 — Recon (Haiku × 4)
   - [ ] W2 — Decide (Opus × 2 shards)
   - [ ] W3 — Edits (Sonnet × 7, parallel)
+  - [ ] W4 — Verify (Sonnet × 4, parallel)
+- [ ] **Cycle 7: SUI-LOCK** — Move contract access control + arithmetic + escrow reconcile
+  - [ ] W1 — Recon (Haiku × 4)
+  - [ ] W2 — Decide (Opus × 2 shards)
+  - [ ] W3 — Edits (Sonnet × 8, parallel)
   - [ ] W4 — Verify (Sonnet × 4, parallel)
 
 ---
@@ -848,6 +860,7 @@ waves, maximum parallel within.
 ## See Also
 
 - [security.md](one/security.md) — source of truth for the five choke points
+- [SYSTEM-HEALTH.md](../docs/SYSTEM-HEALTH.md) — 2026-04-20 audit (24 Crit · 52 High) that expanded this TODO from 5 cycles to 7
 - [auth.md](auth.md) — identity + credential model
 - [groups.md](one/groups.md) — RBAC/ABAC/ReBAC scope
 - [DSL.md](one/DSL.md) — signal grammar (loaded in W2)
@@ -855,11 +868,15 @@ waves, maximum parallel within.
 - [rubrics.md](rubrics.md) — quality scoring
 - [TODO-template.md](one/TODO-template.md) — this template
 - [TODO-task-management.md](TODO-task-management.md) — self-learning task system
+- [TODO-SUI.md](../docs/TODO-SUI.md) — Sui phase roadmap; Cycle 7 bundles with Phase 3 escrow
 - `src/engine/persist.ts` — the PEP
+- `src/engine/tick.ts` · `loops.ts` — canonical tick (post Cycle 2.5)
 - `src/lib/api-auth.ts` · `src/lib/api-key.ts` — credential verification
-- `src/schema/one.tql` — ontology
+- `src/schema/one.tql` — conceptual ontology (runtime is `world.tql`)
+- `src/move/one/sources/one.move` — Sui contract (Cycle 7)
 
 ---
 
-*Five cycles. Delete → Scope → Lock → Learn → Shield. Each cycle activates
-one deeper loop. The firewall writes itself from data.*
+*Seven cycles. Delete → Scope → Engine → Lock → Learn → Shield → Sui. Each
+cycle activates one deeper loop. The firewall writes itself from data — and
+the audit writes itself into the firewall.*

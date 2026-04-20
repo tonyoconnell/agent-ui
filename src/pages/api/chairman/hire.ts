@@ -10,6 +10,7 @@
 import type { APIRoute } from 'astro'
 import { type AgentSpec, parse, syncAgentWithIdentity } from '@/engine/agent-md'
 import { registerChairman } from '@/engine/chairman'
+import { resolveUnitFromSession } from '@/lib/api-auth'
 import { getNet } from '@/lib/net'
 import { writeSilent } from '@/lib/typedb'
 
@@ -21,13 +22,18 @@ const roleTemplates = import.meta.glob('../../../../agents/roles/*.md', {
 
 export const prerender = false
 
-export const POST: APIRoute = async ({ request }) => {
-  let role: string, owner: string | undefined, customMarkdown: string | undefined
+export const POST: APIRoute = async ({ request, locals }) => {
+  // Trust session for owner identity (C1.4 — never trust request-body owner)
+  const ctx = await resolveUnitFromSession(request, locals)
+  if (!ctx.isValid) {
+    return Response.json({ error: 'Unauthorized — sign in first' }, { status: 401 })
+  }
+  const owner = ctx.user
 
+  let role: string, customMarkdown: string | undefined
   try {
-    const body = (await request.json()) as { role?: string; owner?: string; markdown?: string }
+    const body = (await request.json()) as { role?: string; markdown?: string }
     role = body.role ?? ''
-    owner = body.owner
     customMarkdown = body.markdown
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 })

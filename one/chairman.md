@@ -358,7 +358,7 @@ The capability is free (`price: 0.00`) but the *roles* it hires are priced indiv
 ## 11 — Status
 
 - [ ] **Cycle 1 — Live stream (A)**
-  - [ ] W1 recon (5 parallel)
+  - [x] W1 recon (5 parallel)
   - [ ] W2 decide + docs
   - [ ] W3 edits (parallel by file)
   - [ ] W4 verify

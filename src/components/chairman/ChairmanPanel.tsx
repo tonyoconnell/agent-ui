@@ -9,6 +9,7 @@ import '@mysten/dapp-kit/dist/index.css'
 import { getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { WalletSignIn } from '@/components/auth/WalletSignIn'
 import { emitClick } from '@/lib/ui-signal'
 import { OrgChart } from './OrgChart'
 
@@ -56,7 +57,7 @@ function ChairmanPanelContent() {
       const res = await fetch('/api/chairman/hire', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'ceo', owner: account?.address }),
+        body: JSON.stringify({ role: 'ceo' }),
       })
       const data = (await res.json()) as { unit?: HiredUnit; error?: string }
       if (data.unit) {
@@ -123,8 +124,8 @@ function ChairmanPanelContent() {
       {!account ? (
         /* No wallet — identity gate */
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <p className="text-slate-400 text-sm">Connect your wallet to hire the CEO</p>
-          <ConnectButton />
+          <p className="text-slate-400 text-sm">Sign in with your Sui wallet to hire the CEO</p>
+          <WalletSignIn label="Sign in with Sui" />
         </div>
       ) : !unit ? (
         /* Wallet connected, pre-hire */

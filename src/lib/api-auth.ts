@@ -352,6 +352,64 @@ export async function ensureHumanUnit(
   if (!memOk) console.warn(`[ensureHumanUnit] chairman membership create failed for ${uid}`)
 }
 
+async function resolveSuiSession(token: string, locals?: App.Locals): Promise<AuthContext> {
+  const INVALID: AuthContext = { user: '', permissions: [], keyId: '', isValid: false }
+  const [payloadB64, sig] = token.split('.')
+  if (!payloadB64 || !sig) return INVALID
+
+  const env =
+    (locals as { runtime?: { env?: Record<string, string> } } | undefined)?.runtime?.env ??
+    (process.env as Record<string, string>)
+  const secret = env.SUI_SESSION_SECRET ?? env.WALLET_NONCE_SECRET
+  if (!secret) return INVALID
+
+  try {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    )
+    const expectedBytes = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payloadB64)))
+    const expected = btoa(String.fromCharCode(...expectedBytes))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
+    if (expected !== sig) return INVALID
+
+    const pad = payloadB64.length % 4 ? 4 - (payloadB64.length % 4) : 0
+    const b64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(pad)
+    const bin = atob(b64)
+    const bytes = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+    const payload = JSON.parse(new TextDecoder().decode(bytes)) as { u: string; e: number }
+
+    if (payload.e < Date.now()) return INVALID
+
+    const uid = payload.u
+    const role = await getRoleForUser(uid).catch(() => undefined)
+    let tier: Tier | undefined
+    if (locals !== undefined) {
+      const db = await getD1(locals)
+      tier = await resolveTier(uid, db)
+    }
+    return {
+      user: uid,
+      permissions: ['read', 'write'],
+      keyId: `sess:sui:${uid}`,
+      isValid: true,
+      role,
+      scopeGroups: [],
+      scopeSkills: [],
+      tier,
+      personalGid: `group:${uid}`,
+    }
+  } catch {
+    return INVALID
+  }
+}
+
 /**
  * Unified identity resolver.
  *
@@ -370,11 +428,19 @@ export async function resolveUnitFromSession(request: Request, locals?: App.Loca
     if (bearer.isValid) return bearer
   }
 
-  // Front door 2: BetterAuth session cookie
+  // Front door 2: Sui session cookie (parallel to BetterAuth, for SIWS)
   const cookie = request.headers.get('Cookie') || ''
   if (!cookie) {
     return { user: '', permissions: [], keyId: '', isValid: false }
   }
+
+  const suiSessionMatch = cookie.match(/(?:^|;\s*)one\.sui\.session=([^;]+)/)
+  if (suiSessionMatch) {
+    const suiCtx = await resolveSuiSession(suiSessionMatch[1], locals)
+    if (suiCtx.isValid) return suiCtx
+  }
+
+  // Front door 3: BetterAuth session cookie
 
   const cached = SESSION_CACHE.get(cookie)
   if (cached && cached.expires > Date.now()) return cached.ctx
