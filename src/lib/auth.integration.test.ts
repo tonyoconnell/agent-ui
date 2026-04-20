@@ -22,6 +22,7 @@ vi.mock('@/lib/typedb', () => ({
   readParsed: vi.fn(),
   write: vi.fn().mockResolvedValue(undefined),
   writeSilent: vi.fn(),
+  writeTracked: vi.fn().mockResolvedValue(true),
 }))
 
 vi.mock('@/lib/auth', () => ({
