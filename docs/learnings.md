@@ -1,0 +1,1 @@
+- 2026-04-20 · cycle 2 · wave 4|gate · subscribe routing: tag:X receivers resolve via D1 subscriptions table before BAAS metering; let-alias pattern for const destructure reassignment; lazy import('@/lib/subscribe-routing') keeps cold-start clean · rubric=0.875 · source=w3 w4

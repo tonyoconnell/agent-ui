@@ -89,7 +89,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       { status: 400, headers: { 'content-type': 'application/json' } },
     )
   }
-  const { sender, receiver, data, amount = 0, task, scope } = body
+  const { sender, receiver: receiverRaw, data, amount = 0, task, scope } = body
+  let receiver = receiverRaw
 
   if (!sender || !receiver) {
     return new Response(JSON.stringify({ error: 'Missing sender or receiver' }), { status: 400 })
@@ -109,6 +110,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Validate amount
   if (typeof amount !== 'number' || amount < 0 || amount > 1_000_000) {
     return new Response(JSON.stringify({ error: 'Invalid amount' }), { status: 400 })
+  }
+
+  // ── TAG RECEIVER ROUTING (Stage 12: Subscribe — Cycle 2) ────────────────────
+  // Resolve tag:X receivers to the best public subscriber before metering.
+  // Aborted tag signals (no subscriber) never consume API quota or ADL checks.
+  if (receiver.startsWith('tag:')) {
+    const { resolveTagReceiver } = await import('@/lib/subscribe-routing')
+    const resolvedUid = await resolveTagReceiver(receiver.slice(4), db)
+    if (!resolvedUid) {
+      return new Response(JSON.stringify({ dissolved: true, reason: 'no-subscriber', tag: receiver }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    receiver = resolvedUid
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

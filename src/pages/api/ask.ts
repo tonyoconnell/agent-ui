@@ -49,7 +49,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const timeout = Math.min(Math.max(body.timeout ?? DEFAULT_TIMEOUT, 100), MAX_TIMEOUT)
     const net = await getNet()
-    const outcome = await net.ask({ receiver: body.receiver, data: body.data }, body.from ?? 'api-ask', timeout)
+    // ── TAG RECEIVER ROUTING (Stage 12: Subscribe — Cycle 2) ────────────────────
+    let resolvedReceiver = body.receiver
+    if (resolvedReceiver.startsWith('tag:')) {
+      const { resolveTagReceiver } = await import('@/lib/subscribe-routing')
+      const tagUid = await resolveTagReceiver(resolvedReceiver.slice(4), db)
+      if (!tagUid) {
+        return new Response(
+          JSON.stringify({
+            dissolved: true,
+            reason: 'no-subscriber',
+            tag: resolvedReceiver,
+            latency: Date.now() - started,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      resolvedReceiver = tagUid
+    }
+    const outcome = await net.ask({ receiver: resolvedReceiver, data: body.data }, body.from ?? 'api-ask', timeout)
     return new Response(JSON.stringify({ ...outcome, latency: Date.now() - started }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

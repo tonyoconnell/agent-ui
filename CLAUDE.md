@@ -890,6 +890,9 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 | `docs/speed.md` | Performance benchmarks — routing `<0.005ms`, gateway `<10ms`, TTFB `<200ms` | `gateway/`, `src/lib/edge.ts`, all API routes |
 | `docs/patterns.md` | Reusable patterns — closed loop, deterministic sandwich, zero returns, toxicity | `world.ts`, `persist.ts`, `.claude/rules/engine.md` |
 | `docs/sdk.md` | SDK contract — register, discover, hire, earn | Public API surface |
+| `one/backend-tutorial.md` | **DEVELOPER GUIDE** — auth → six verbs → commerce → memory → tiers → deploy. 15 parts, machine-verified against source. Entry point for external developers. | `packages/sdk/src/client.ts`, `src/lib/tier-limits.ts`, all API routes |
+| `one/quickstart-baas.md` | 5-minute first signal — API key + SDK init | `src/pages/api/auth/agent.ts` |
+| `one/quickstart-workers.md` | 3-command CF Workers deploy | `packages/cli/src/commands/init.ts` |
 | `docs/world-map-page.md` | BUILD SPEC — /world page design, direct manipulation, personas, visitor mode, 12-component limit | `src/pages/world.astro`, `src/components/WorldMap/*` |
 | `docs/TODO-governance.md` | **GOVERNANCE** — Permission = Role × Pheromone. Schema locked 2026-04-18. Auth implementation + UI + federation. | `src/schema/one.tql`, `src/lib/role-check.ts`, `src/engine/persist.ts` |
 | `docs/auth.md` | Auth implementation — API key flows, role lookup, session management | `src/lib/api-auth.ts`, `src/lib/role-check.ts` |

@@ -83,6 +83,11 @@ const ONE_PUBLIC_DOCS = new Set<string>([
   'mcp-tools.md',
   'adl-integration.md',
   'adl-mcp.md',
+  // Quickstarts + BaaS developer docs
+  'quickstart-baas.md',
+  'quickstart-workers.md',
+  'backend-tutorial.md',
+  'auth.md',
   // Tutorials / onboarding
   'tutorial.md',
   'tutorial-agent.md',
