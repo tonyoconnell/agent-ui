@@ -125,6 +125,14 @@ The pricing should map to these questions, not to CF billing units.
 
 ## Pricing tiers
 
+> **Code contract:** the 5-tier matrix below is mirrored verbatim in
+> `src/lib/tier-limits.ts` (`TIER_LIMITS`). Every gated endpoint calls
+> `checkApiCallLimit(tier, usage)` or `tierAllows(tier, feature)` from that
+> module. Adding a tier or changing a cap is a two-file edit: this doc +
+> `tier-limits.ts`. The D1 storage is `developer_tiers`
+> (`migrations/0016_metering.sql`), set by `/api/billing/webhook.ts` on
+> Stripe subscription events.
+
 ### The table
 
 Same tiers apply to all three deployment options (BaaS, CF Pages, Managed).

@@ -176,7 +176,7 @@ curl -H "Authorization: Bearer <session-token>" \
              └──────────┬────────────────────────┘
                         ▼
                 ┌───────────────┐
-                │  AuthContext  │  ← { user: uid, role, permissions, keyId, isValid }
+                │  AuthContext  │  ← { user: uid, role, permissions, keyId, isValid, tier? }
                 └───────────────┘
                         │
                         ▼
@@ -184,6 +184,25 @@ curl -H "Authorization: Bearer <session-token>" \
 ```
 
 Two front doors, one contract, one cache pipeline. No schema extension, no session hooks — BetterAuth manages session UX; the substrate owns the unit + role + pheromone layer. Revocation is natural: sign-out clears the cookie; cache entry expires in ≤ 5 min.
+
+### Platform BaaS tier (`AuthContext.tier`)
+
+Every route that gates on `free | builder | scale | world | enterprise` reads
+`auth.tier` populated by the two front doors when the caller passes `locals`:
+
+```typescript
+// Both signatures accept an optional `locals` for D1 access:
+validateApiKey(request, context?, locals?) : Promise<AuthContext>
+resolveUnitFromSession(request, locals?)   : Promise<AuthContext>
+
+// With locals provided, tier is resolved from D1 `developer_tiers` (default 'free')
+// and cached alongside the key for the 5-min TTL.
+```
+
+Tier storage is `developer_tiers` in D1 (`migrations/0016_metering.sql`), keyed
+by `user_id`. Billing webhooks (`/api/billing/webhook.ts`) call `setTier()` on
+Stripe subscription events. See `src/lib/tier-limits.ts` for the canonical
+matrix and `one/pricing.md` for pricing.
 
 ---
 

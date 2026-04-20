@@ -4,8 +4,8 @@ type: roadmap
 version: 2.0.0
 priority: Release → Prove → Grow → Commerce
 total_tasks: 36
-completed: 0
-status: READY
+completed: 36
+status: DONE
 updated: 2026-04-20
 ---
 
