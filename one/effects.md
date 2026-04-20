@@ -391,18 +391,18 @@ const isValid = Effect.runSync(
 
 ## TypeQL ↔ Effect Mapping
 
-The TypeQL schemas (1,606 lines in `src/schema/`, 4,157 lines in `packages/`) implement the same 6 dimensions as the DataProvider — but with inference rules that fire automatically. Effect wraps these in typed, composable operations.
+The TypeQL schemas (1,606 lines in `src/schema/`, 4,157 lines in `packages/`) implement the same 6 dimensions as the DataProvider — but with classifier functions that evaluate on query. Effect wraps these in typed, composable operations.
 
 ### Dimension Mapping
 
-| Dimension | DataProvider | TypeQL Entity | TypeQL Relations | Inference |
+| Dimension | DataProvider | TypeQL Entity | TypeQL Relations | Classifier `fun` |
 |-----------|-------------|---------------|-----------------|-----------|
-| **Groups** | `groups.*` | `group` | `membership`, `hierarchy` | `splitting-colony` (internal highways diverge) |
-| **Actors** | `auth.*` | `unit` | `capability`, `assignment` | `proven-unit` (sr ≥ 0.75), `at-risk-unit` (sr < 0.40) |
-| **Things** | `things.*` | `task` | `dependency`, `trail` | `attractive-task` (trail ≥ 50), `repelled-task` (resistance > trail) |
-| **Paths** | *missing — add* | `edge` | `flow`, `connection` | `highway` (strength ≥ 50), `toxic-edge` (resistance > strength) |
-| **Events** | `events.*` | `signal` | `traversal`, `contribution-event` | `hypothesis-action-ready` (p ≤ 0.05, n ≥ 50) |
-| **Knowledge** | *missing — add* | `hypothesis`, `frontier` | `tests`, `spawns` | `action-ready`, `promising-frontier` (ev ≥ 0.5) |
+| **Groups** | `groups.*` | `group` | `membership`, `hierarchy` | `splitting_colony()` (internal highways diverge) |
+| **Actors** | `auth.*` | `unit` | `capability`, `assignment` | `proven_unit()` (sr ≥ 0.75), `at_risk_unit()` (sr < 0.40) |
+| **Things** | `things.*` | `task` | `dependency`, `trail` | `attractive_task()` (trail ≥ 50), `repelled_task()` (resistance > trail) |
+| **Paths** | *missing — add* | `edge` | `flow`, `connection` | `path_status()` → "highway" (strength ≥ 50), "toxic" (resistance > strength) |
+| **Events** | `events.*` | `signal` | `traversal`, `contribution-event` | `is_action_ready()` (p ≤ 0.05, n ≥ 50) |
+| **Knowledge** | *missing — add* | `hypothesis`, `frontier` | `tests`, `spawns` | `is_action_ready()`, `promising_frontiers()` (ev ≥ 0.5) |
 
 **Paths and Knowledge are the learning layer** — currently missing from `DataProvider`.
 
@@ -415,7 +415,7 @@ Wraps TypeQL queries in Effect. The schema is ready (1,606 lines). The driver is
 
 import { Effect, Data } from "effect"
 
-// Error types from inference rules
+// Error types from classifier functions
 export class PathToxicError extends Data.TaggedError("PathToxicError")<{
   from: string; to: string; resistance: number; weight: number
 }> {}
@@ -441,9 +441,9 @@ function tql<T>(query: string): Effect.Effect<T, DatabaseError> {
 }
 ```
 
-### Wrapping Inference Functions
+### Wrapping Classifier Functions
 
-TypeQL functions become Effect operations. The inference rules fire inside TypeDB — Effect just types the results.
+TypeQL functions become Effect operations. The classifier `fun` evaluates inside TypeDB on each query — Effect just types the results.
 
 ```typescript
 // fun highways(min_strength, min_traversals) → { edge }
@@ -467,13 +467,13 @@ const provenAgents = (): Effect.Effect<Unit[], QueryError> =>
   tql(`match let $u in proven_units(); fetch $u;`)
 ```
 
-### Inference Rules as Error Guards
+### Classifier Functions as Error Guards
 
-TypeQL rules infer status automatically. Effect reads those statuses and branches:
+TypeQL classifier `fun`s derive status on query. Effect reads those statuses and branches:
 
 ```typescript
-// Rule: highway — when strength >= 50
-// Rule: toxic-edge — when resistance > strength AND resistance >= 10
+// path_status() returns "highway" when strength >= 50
+// path_status() returns "toxic" when resistance > strength AND resistance >= 10
 
 const routeWithConfidence = (task: string) => Effect.gen(function* () {
   const edges = yield* tql<Edge[]>(
@@ -517,7 +517,7 @@ interface DataProvider {
       Effect.Effect<string, PathToxicError | NoHighwayError>
   }
 
-  // Dimension 6: Knowledge (inference outputs)
+  // Dimension 6: Knowledge (classifier outputs)
   knowledge: {
     highways: (limit?: number) =>
       Effect.Effect<Path[], QueryError>
@@ -593,7 +593,7 @@ const fadeLoop = Effect.gen(function* () {
 
 ## Six Lessons as Effect Patterns
 
-The TypeQL inference patterns (packages/typedb-inference-patterns/) map to Effect patterns:
+The TypeQL classifier patterns (packages/typedb-inference-patterns/) map to Effect patterns:
 
 ### Lesson 1: Classification → Type Guards
 
@@ -620,10 +620,13 @@ const requireProven = (agentId: string) =>
 ### Lesson 2: Quality Bands → Error Severity
 
 ```tql
--- TypeQL: mutually exclusive quality rules
-rule high-quality-record:
-    when { $r isa learning-record, has effectiveness $e; $e >= 0.7; }
-    then { $r has quality-label "high"; };
+-- TypeQL 3.x: mutually exclusive quality bands via classifier fun
+fun quality_label($r: learning-record) -> string:
+    match $r has effectiveness $e;
+    return first
+        if ($e >= 0.7) then "high"
+        else if ($e >= 0.4) then "medium"
+        else "low";
 ```
 
 ```typescript
@@ -638,12 +641,12 @@ type PathQuality = "highway" | "fresh" | "fading" | "toxic"
 ### Lesson 3: Hypothesis Lifecycle → State Machines
 
 ```tql
--- TypeQL: hypothesis confirmed when statistically significant
-rule hypothesis-action-ready:
-    when { $h isa hypothesis, has hypothesis-status "confirmed",
-           has p-value $p, has observations-count $n;
-           $p <= 0.05; $n >= 50; }
-    then { $h has action-ready true; };
+-- TypeQL 3.x: hypothesis action-ready when statistically significant
+fun is_action_ready($h: hypothesis) -> boolean:
+    match $h has hypothesis-status $s, has p-value $p, has observations-count $n;
+    return first
+        if ($s == "confirmed" and $p <= 0.05 and $n >= 50) then true
+        else false;
 ```
 
 ```typescript
@@ -742,8 +745,8 @@ Effect.ts and the substrate solve the same problem at different scales:
 | **Error flow** | `Effect.catchTag()` | `resist()` → toxic path | `fun is_toxic` infers status |
 | **Composition** | `Effect.gen(function*())` | `.then()` continuations | `continuation` relation |
 | **Multi-backend** | CompositeProvider routes | World routes to units | `membership` + `capability` |
-| **Learning** | — (static routing) | `mark()` / `fade()` / `highways()` | `edge` weight + inference rules |
-| **Classification** | `Data.TaggedError()` | Path status (highway/toxic) | Rules: proven, at-risk, fading |
+| **Learning** | — (static routing) | `mark()` / `fade()` / `highways()` | `edge` weight + classifier `fun` |
+| **Classification** | `Data.TaggedError()` | Path status (highway/toxic) | Classifiers: `proven_units()`, `at_risk_units()`, `path_status()` |
 | **Autonomy** | — (human-triggered) | Continuations chain signals | `spawns` frontier → objective |
 
 **Three layers, one flow:**
@@ -801,7 +804,7 @@ envelopes/src/schema/              # TypeQL — what Effect will wrap
 ├── agents.tql      (134 lines)   # Envelope communication
 ├── skins.tql   (301 lines)   # 6 metaphor skins
 ├── sui.tql         (334 lines)   # Move/Sui on-chain mirror
-├── substrate.tql   (486 lines)   # ONE ontology + 6 inference lessons
+├── substrate.tql   (486 lines)   # ONE ontology + 6 classifier lessons
 ├── unified.tql     (134 lines)   # Unified view
 └── one.tql         (217 lines)   # Entity definitions
 
@@ -826,7 +829,7 @@ envelopes/packages/typedb-inference-patterns/
 
 - [flows.md](flows.md) — How signals flow through the substrate (emergent routing)
 - [one-ontology.md](one-ontology.md) — Six dimensions the DataProvider maps to
-- [ontology.md](one/ontology.md) — TypeDB inference rules that become Effect error guards
+- [ontology.md](one/ontology.md) — TypeDB classifier functions that become Effect error guards
 - [substrate-learning.md](substrate-learning.md) — mark/fade/highways as reinforcement learning
 - [typedb.md](typedb.md) — TypeDB 3.0 architecture and pulse client
 - [integration.md](integration.md) — How all systems connect through world()

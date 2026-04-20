@@ -1,28 +1,31 @@
 ---
-title: TODO — BaaS platform infrastructure
+title: TODO — Free release + connected world + commerce verbs
 type: roadmap
-version: 1.1.0
-priority: Wire → Prove → Grow → Scale
-total_tasks: 32
+version: 2.0.0
+priority: Release → Prove → Grow → Commerce
+total_tasks: 36
 completed: 0
 status: READY
-updated: 2026-04-19
+updated: 2026-04-20
 ---
 
-# TODO: ONE as Backend-as-a-Service
+# TODO: Free Release + Optional Connection + Commerce
 
 > **Time units:** tasks → waves → cycles. No calendar time.
 >
-> **Thesis:** the 136 API endpoints on `api.one.ie` are already the
-> product. The gateway already IS the boundary. This TODO turns that
-> architectural fact into a developer-facing BaaS — metered, tiered,
-> dashboarded, and billed. See [platform-baas.md](platform-baas.md) for
-> the strategy (why this wins, who it's for, unit economics, the moat).
+> **Thesis:** `/release` ships a **free Astro + claw scaffold** that
+> works **standalone** — no ONE account, no gateway, no API key. The
+> same scaffold can **opt in** to connect: to our world (routing,
+> memory, learning), to the blockchain (Sui wallet, x402, escrow), or
+> to other agents (federation, invites, marketplace). Commerce verbs
+> (**sell, buy, invite**) ride atop the connected layers and pay us on
+> value flow, not at the subscription gate. See
+> [platform-baas.md](platform-baas.md) for the strategy.
 >
-> **Goal:** ship five tiers (Free → Builder → Scale → World → Enterprise)
-> against the existing substrate. Developers call `api.one.ie` from any
-> stack (Vercel, AWS, mobile, Python, CF Pages) and get routing, memory,
-> learning, commerce. Compute is their choice; intelligence is ours.
+> **Goal:** ship four connection modes (Standalone → World → Chain →
+> Agents) and both revenue streams (subscription tiers for connected
+> depth; transaction fees for commerce). The standalone release is the
+> acquisition vector; commerce verbs are the revenue signal.
 >
 > **Source of truth:**
 > - [platform-baas.md](platform-baas.md) — **strategy**: why BaaS wins, persona fit, moat, rollout thesis
@@ -78,8 +81,8 @@ updated: 2026-04-19
          │                                        │
          ▼                                        │
     ┌─ CYCLE 1: WIRE ───────────────────────┐     │
-    │ Metering, tier enforcement, dev       │─────┤ L1 signal
-    │ scoping, loop gates                   │     │ L2 trail
+    │ Free release (Astro+claw standalone), │─────┤ L1 signal
+    │ metering, tier enforcement, loop gates│     │ L2 trail
     └──────────┬────────────────────────────┘     │
                ▼                                  │
     ┌─ CYCLE 2: PROVE ──────────────────────┐     │
@@ -93,28 +96,33 @@ updated: 2026-04-19
     │ --workers, oneie deploy --hosted     │      │
     └──────────┬────────────────────────────┘     │
                ▼                                  │
-    ┌─ CYCLE 4: SCALE ─────────────────────┐      │
-    │ CF for SaaS custom domains, World    │──────┤ L7 frontier
-    │ tier, Enterprise federation          │      │
+    ┌─ CYCLE 4: COMMERCE ──────────────────┐      │
+    │ sell / buy / invite CLI verbs, CF    │──────┤ L7 frontier
+    │ for SaaS, World tier, federation     │      │ L4 economic (chain settle)
     └───────────────────────────────────────┘      │
 ```
 
 ---
 
-## Cycle 1: WIRE — Metering + tier enforcement
+## Cycle 1: WIRE — Free release + metering + tier enforcement
 
-**Scope:** Add usage metering per API key, enforce tier limits on the
-gateway, implement loop gates (L1-L3 free, L4-L5 builder, L6-L7 scale),
-per-developer D1 scoping for conversation isolation.
+**Scope:** Ship the **free Astro + claw scaffold** (`npx oneie` runs
+standalone, no API key needed). Add usage metering per API key for
+developers who opt in, enforce tier limits on the gateway, implement
+loop gates (L1-L3 free, L4-L5 builder, L6-L7 scale), per-developer D1
+scoping for conversation isolation.
 
 **What's already built:** `validateApiKey()` with permissions, scoped groups/skills,
-TTL, revocation, pheromone warn on bad auth. This cycle extends it with
-tier-based quotas and metering.
+TTL, revocation, pheromone warn on bad auth. `scripts/release.ts` writes
+to `/releases/`. This cycle extends the CLI scaffold for standalone
+mode and wires tier-based quotas + metering for the connected path.
 
 ### Wave 3 — Edits
 
 | Task id | File / artifact | Cat | Tags |
 |---|---|---|---|
+| T-B1-00a | `packages/cli/src/commands/init.ts` — verify `npx oneie` scaffold runs **standalone**: no `ONE_API_KEY` required, no `api.one.ie` calls in the generated code, LLM calls go direct to OpenRouter with developer's key, `wrangler deploy` works on developer's own CF account. Add a `.env.example` with a commented-out `ONE_API_KEY` line that explains the Layer 0 → Layer 1 upgrade. | edit | release, standalone |
+| T-B1-00b | `packages/cli/src/commands/init.ts` — on scaffold generation, detect whether a `ONE_API_KEY` is present in the developer's env; if yes, inject `import { SubstrateClient } from '@oneie/sdk'` into the claw runtime and wire a fallback `emit → api.one.ie/api/signal` path. If not, leave the scaffold pure-standalone. **Zero-config Layer 1 upgrade**: no code change, just set the env var. | edit | release, connect |
 | T-B1-01 | `src/lib/api-auth.ts` — extend `AuthContext` with `tier: 'free' \| 'builder' \| 'scale' \| 'world' \| 'enterprise'`. Read from `unit` entity owning the key (via `user-id`) and cache alongside existing key cache (5-min TTL); invalidate through existing `invalidateKeyCache(keyId)` path. **Both front doors must populate tier**: `validateApiKey()` for CLI/SDK callers AND `resolveUnitFromSession()` for BetterAuth cookie/bearer sessions (per [auth.md § Unified identity flow](auth.md)). One contract, one cache, two callers. | edit | auth, tier |
 | T-B1-02 | `src/lib/tier-limits.ts` — new: `TIER_LIMITS` config (agents, apiCalls/mo, loops[], storage), `checkTierLimit(auth, resource)` → `{ok}` or `{error, status: 402}`. Match keys and phrasing to `docs/pricing.md` | new | tier, limits |
 | T-B1-03 | `src/lib/metering.ts` — new: count API calls per key per month in D1 (`INSERT INTO meter (key_id, month, calls) ... ON CONFLICT UPDATE SET calls = calls + 1`), `getUsage(keyId, month)`. Fire-and-forget on the hot path, counted durably in D1 | new | meter |
@@ -128,6 +136,8 @@ tier-based quotas and metering.
 ### Cycle 1 Gate
 
 ```
+[ ] npx oneie scaffolds Astro + claw that deploys standalone on dev's own CF — no ONE_API_KEY required
+[ ] Adding ONE_API_KEY to .env flips the scaffold into connected mode with ZERO code changes
 [ ] Every brain-touching API endpoint checks tier + meters the call
 [ ] Free tier: L1-L3 loops only; L4-L7 return 402 with upgrade prompt
 [ ] Builder: L1-L5 active; L6-L7 gated
@@ -222,11 +232,14 @@ platform we run.)
 
 ---
 
-## Cycle 4: SCALE — Custom domains + World/Enterprise tiers
+## Cycle 4: COMMERCE — sell / buy / invite + custom domains + federation
 
-**Scope:** CF for SaaS integration for developer custom domains. Bridge
-the existing tenant system (`/api/worlds/tenant`) to the World pricing tier.
-Enterprise federation (dedicated TypeDB, private paths + shared highways).
+**Scope:** Ship `sell`, `buy`, and `invite` as first-class CLI verbs
+wired to the already-shipped `/api/marketplace/*`, Sui escrow, and
+federation primitives. CF for SaaS integration for developer custom
+domains. Bridge the existing tenant system (`/api/worlds/tenant`) to
+the World pricing tier. Enterprise federation (dedicated TypeDB,
+private paths + shared highways).
 
 **Groups mapping (per [groups.md](groups.md)):** World tier means the
 developer's group becomes a **tenant root** in the forest — a
@@ -245,6 +258,9 @@ two world roots, revenue-sharing on cross-root `mark()`.
 
 | Task id | File / artifact | Cat | Tags |
 |---|---|---|---|
+| T-B4-00a | `packages/cli/src/commands/sell.ts` — new: `oneie sell <skill> --price <amount> [--tag ...]`. Wraps `POST /api/marketplace/list`, writes a `capability` relation with price, emits `marketplace:sell` signal. Requires Builder+ tier (buy-only on Free per pricing.md). Test: listed capability appears in `/api/marketplace/discover`. | new | cli, commerce, sell |
+| T-B4-00b | `packages/cli/src/commands/buy.ts` — new: `oneie buy <tag> [--from <agent>]`. Wraps `GET /api/marketplace/discover` + `POST /api/ask`. On delivery: 50 bps protocol fee on escrow settle (per `buy-and-sell.md` § SETTLE); on failure: `warn(1)` + refund. Available on Free tier (buy is entry-level commerce). | new | cli, commerce, buy |
+| T-B4-00c | `packages/cli/src/commands/invite.ts` — new: `oneie invite <agent\|world> --into <group> [--role operator]`. Two modes: (1) `agent` — adds `(group:$g, member:$a, role:$r) isa membership` via `/api/groups/:gid/invite`; (2) `world` — opens bridge path with `bridge-kind = "federation"` via `/api/federation/connect`. Scale+ tier for agent invites; Enterprise for world federation. | new | cli, commerce, invite |
 | T-B4-01 | `cli/src/commands/domain.ts` — new: `oneie domain <hostname>`: calls CF for SaaS API to create custom hostname, updates webhook URL | new | cli, domain |
 | T-B4-02 | `src/pages/api/domains/create.ts` — POST: create custom hostname via CF API, store mapping in D1. Requires Scale+ tier. | new | api, domain |
 | T-B4-03 | `src/pages/api/worlds/tenant.ts` — update: bridge existing $499/$1999/$9999 tiers to new World ($499) / Enterprise (custom) pricing curve. Add `tier` field from pricing.md. | edit | tenant, tier |
@@ -255,6 +271,11 @@ two world roots, revenue-sharing on cross-root `mark()`.
 ### Cycle 4 Gate
 
 ```
+[ ] oneie sell tutor:lesson --price 0.02 lists a capability on the marketplace
+[ ] oneie buy algebra --from math:tutor executes + settles with 50 bps fee
+[ ] oneie invite math:tutor --into group:my-school adds a membership edge
+[ ] oneie invite world --federate opens a bridge path with revenue share
+[ ] Failed delivery → warn(1) → automatic refund on escrow (tested)
 [ ] oneie domain tutor.dev.com creates custom hostname with auto SSL
 [ ] World tier ($499/mo) bridges to existing tenant system
 [ ] Private paths: World/Enterprise developers' mark/warn isolated
@@ -292,10 +313,10 @@ two world roots, revenue-sharing on cross-root `mark()`.
 
 ## Status
 
-- [ ] **Cycle 1: WIRE** — metering, tier enforcement, loop gates, dev scoping
+- [ ] **Cycle 1: WIRE** — free release scaffold + metering + tier enforcement + loop gates
   - [ ] W1 — Recon
   - [ ] W2 — Decide
-  - [ ] W3 — Edits (9 tasks)
+  - [ ] W3 — Edits (11 tasks: 2 scaffold + 9 metering)
   - [ ] W4 — Verify
 - [ ] **Cycle 2: PROVE** — dashboard, billing, onboarding, hosted webhooks
   - [ ] W1 — Recon
@@ -307,10 +328,10 @@ two world roots, revenue-sharing on cross-root `mark()`.
   - [ ] W2 — Decide
   - [ ] W3 — Edits (7 tasks)
   - [ ] W4 — Verify
-- [ ] **Cycle 4: SCALE** — custom domains, World/Enterprise tiers, federation
+- [ ] **Cycle 4: COMMERCE** — sell/buy/invite CLI verbs, custom domains, World/Enterprise tiers, federation
   - [ ] W1 — Recon
   - [ ] W2 — Decide
-  - [ ] W3 — Edits (6 tasks)
+  - [ ] W3 — Edits (9 tasks: 3 commerce + 6 domain/federation)
   - [ ] W4 — Verify
 
 ---
@@ -345,8 +366,9 @@ two world roots, revenue-sharing on cross-root `mark()`.
 
 ---
 
-*4 cycles. 16 waves. 32 tasks. Wire metering first, prove with dashboard
-+ billing, grow with CF Workers + Static Assets template + managed tier,
-scale with domains + federation. ONE IS the backend. The 136 endpoints
-are the product. The deploy target matches what we run ourselves —
-Workers, not Pages. Strategy: [platform-baas.md](platform-baas.md).*
+*4 cycles. 16 waves. 36 tasks. Ship the free Astro+claw scaffold
+(standalone first) alongside metering, prove with dashboard + billing,
+grow with CF Workers + Static Assets template + managed tier, unlock
+commerce with sell/buy/invite + federation. The scaffold is the
+acquisition vector. The graph is the moat. Commerce is the revenue
+signal. Strategy: [platform-baas.md](platform-baas.md).*

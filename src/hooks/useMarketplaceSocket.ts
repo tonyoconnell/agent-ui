@@ -44,11 +44,11 @@ export function useMarketplaceSocket(
 
   useEffect(() => {
     const handleMessage = (msg: WsMessage) => {
-      // Only process messages tagged marketplace (tag carried in taskId by convention)
+      // Only process messages tagged marketplace (tag carried in tid by convention)
       if (msg.type !== 'mark' && msg.type !== 'warn') return
-      if (!msg.taskId?.startsWith('marketplace:')) return
+      if (!msg.tid?.startsWith('marketplace:')) return
 
-      const skillId = msg.taskId.replace('marketplace:', '')
+      const skillId = msg.tid.replace('marketplace:', '')
 
       if (msg.type === 'mark') {
         setListings((prev) => prev.map((l) => (l.skillId === skillId ? { ...l, strength: msg.strength } : l)))

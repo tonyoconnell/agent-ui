@@ -891,7 +891,7 @@ REPELLED         resistance >= 30 AND resistance > strength
                  World says: "avoid — this failed before"
 ```
 
-Categories are computed at query time from the strength/resistance maps. No inference rules needed.
+Categories are computed at query time from the strength/resistance maps via classifier functions. No materialized classifiers needed.
 
 ### API Routes
 

@@ -615,6 +615,54 @@ import { group, unit } from "@/engine/world"
 import { Card } from "@/components/ui/card"
 ```
 
+## SDK
+
+`@oneie/sdk` is workspace-linked. **Browser and scripts only** — server-side Astro routes must call the engine directly (fetch → own endpoint is pointless latency).
+
+```typescript
+// Browser React: import the singleton (same-origin via window.location.origin)
+import { sdk } from "@/lib/sdk"
+const stats = await sdk.stats()
+const highways = await sdk.highways(10)
+const data = await sdk.exportData("units")
+
+// React hooks: wrap island in <SdkProvider>, then use hooks
+import { SdkProvider } from "@/components/providers/SdkProvider"
+import { useAgentList, useHighways, useStats } from "@oneie/sdk/react"
+
+function MyComponent() {
+  const { data, loading, refetch } = useAgentList()
+  const { data: highways } = useHighways(10)
+}
+
+// Scripts: construct an explicit client
+import { SubstrateClient } from "@oneie/sdk"
+const client = new SubstrateClient({ baseUrl: process.env.ONE_API_URL })
+```
+
+**React Hooks:** `useAgent(uid)`, `useAgentList()`, `useDiscover(skill)`, `useHighways(limit)`, `useStats()`, `useHealth()`, `useRevenue()`, `useRecall(status?)`
+
+**CLI uses SDK internally:** `packages/cli` imports `@oneie/sdk` — commands call `getClient().<method>()`. See `one/sdk-cli-integration.md`.
+
+Every SDK call emits `toolkit:sdk:<method>` to `/api/signal` — pheromone tracks which client surfaces are used.
+
+## Telemetry
+
+**Every surface emits signals. The graph learns what works.**
+
+| Surface | Receiver Pattern | Tags | File |
+|---------|------------------|------|------|
+| SDK | `toolkit:sdk:<method>` | `[telemetry, ...]` | `packages/sdk/src/telemetry.ts` |
+| CLI | `toolkit:cli:<verb>` | `[telemetry, cli, verb, node-N, platform]` | `packages/cli/src/lib/telemetry.ts` |
+| MCP | `toolkit:mcp:<tool>` | `[telemetry, mcp, tool]` | `packages/mcp/src/telemetry.ts` |
+| UI | `ui:<surface>:<action>` | `[ui, click, surface, action]` | `src/lib/ui-signal.ts` |
+| API | `api:<route>:<method>` | `[telemetry, api, method, status]` | `src/lib/telemetry.ts` |
+
+Tags become paths. Paths become highways. The install base IS the learning signal.
+Rate limit: 100-500/hour per session. Opt-out: `ONEIE_TELEMETRY_DISABLE=1` or `~/.oneie/config.json`.
+
+See `one/telemetry.md` for full architecture.
+
 ## Deploy
 
 **One script. Same code path locally and in CI. `wrangler` CLI direct + async parallel workers.**
@@ -846,6 +894,8 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 | `docs/TODO-governance.md` | **GOVERNANCE** — Permission = Role × Pheromone. Schema locked 2026-04-18. Auth implementation + UI + federation. | `src/schema/one.tql`, `src/lib/role-check.ts`, `src/engine/persist.ts` |
 | `docs/auth.md` | Auth implementation — API key flows, role lookup, session management | `src/lib/api-auth.ts`, `src/lib/role-check.ts` |
 | `docs/loop-close.md` | **LOOP CLOSE** — verify→signal→propagate; one `do:close` signal, one learnings log, hard cycle gate | `.claude/commands/close.md`, `.claude/commands/do.md`, `docs/learnings.md` |
+| `one/telemetry.md` | **TELEMETRY** — distributed pheromone from SDK/CLI/MCP/UI/API; tags→paths→highways; install base = learning | `packages/*/src/telemetry.ts`, `src/lib/telemetry.ts`, `src/lib/ui-signal.ts` |
+| `one/do.md` | **TASK MANAGEMENT** — /do tutorial, intent mode, skill pre-flight, wave mechanics, learning flywheel | `.claude/commands/do.md`, `one/template-plan.md` |
 
 **Sync rules:**
 - File references in docs must match actual engine filenames

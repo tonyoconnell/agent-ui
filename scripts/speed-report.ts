@@ -18,7 +18,7 @@ import { basename, resolve } from 'node:path'
 const ROOT = resolve(import.meta.dir, '..')
 const RESULTS = resolve(ROOT, '.vitest/results.json')
 const SAMPLES = resolve(ROOT, '.vitest/speed.ndjson')
-const OUT = resolve(ROOT, 'docs/speed-test.md')
+const OUT = resolve(ROOT, 'one/speed-test.md')
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Budgets — kept in sync with docs/speed.md

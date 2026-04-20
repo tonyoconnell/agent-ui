@@ -13,6 +13,7 @@
 import { verifyKey } from '@/lib/api-key'
 import { auth } from '@/lib/auth'
 import { getNet } from '@/lib/net'
+import { roleCheck } from '@/lib/role-check'
 import { emitSecurityEvent } from '@/lib/security-signals'
 import { addressFor } from '@/lib/sui'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
@@ -374,4 +375,61 @@ export function requireAuth(ctx: AuthContext, required?: string) {
   if (required && !hasPermission(ctx, required)) {
     throw new Error(`Forbidden: Missing permission '${required}'`)
   }
+}
+
+// Gate helper — single function for all role-gated routes
+// Uses ADL_ENFORCEMENT_MODE (audit|enforce) from @/engine/adl-cache
+// In audit mode: logs would-deny, returns ok:true (caller proceeds)
+// In enforce mode: returns ok:false with 403 Response
+export async function requireRole(
+  request: Request,
+  action: string,
+  context?: { uid?: string; gate?: string },
+): Promise<{ ok: true; auth: AuthContext; role: string } | { ok: false; res: Response }> {
+  // Lazy import to avoid circular deps (adl-cache → persist → api-auth)
+  const { enforcementMode, audit } = await import('@/engine/adl-cache')
+  const mode = enforcementMode()
+
+  const auth = await validateApiKey(request)
+  const role = auth.role ?? 'agent'
+  const gate = context?.gate ?? `role:${action}`
+
+  // Not authenticated at all
+  if (!auth.isValid) {
+    audit({
+      sender: 'anonymous',
+      receiver: context?.uid ?? 'unknown',
+      gate,
+      decision: mode === 'enforce' ? 'deny' : 'would-deny',
+      mode,
+      reason: 'no bearer token',
+    })
+    if (mode === 'enforce') {
+      return {
+        ok: false,
+        res: Response.json({ error: 'bearer token required', gate, required: action }, { status: 401 }),
+      }
+    }
+    return { ok: true, auth, role }
+  }
+
+  const allowed = roleCheck(role, action as any)
+  if (!allowed) {
+    audit({
+      sender: auth.user,
+      receiver: context?.uid ?? 'unknown',
+      gate,
+      decision: mode === 'enforce' ? 'deny' : 'would-deny',
+      mode,
+      reason: `role ${role} cannot ${action}`,
+    })
+    if (mode === 'enforce') {
+      return {
+        ok: false,
+        res: Response.json({ error: 'insufficient role', gate, required: action, have: role }, { status: 403 }),
+      }
+    }
+  }
+
+  return { ok: true, auth, role }
 }

@@ -22,7 +22,7 @@ REFERENCE (design patterns to adopt)
 ├── ants-at-work/         — Pheromone routing, stigmergy, pattern tracking
 ├── agitrader/            — Self-improving loops, outcome learning
 ├── paperclip/            — Heartbeat protocol, adapter model, agent orchestration
-├── kybernesis/           — TypeDB inference rules, knowledge graph
+├── kybernesis/           — TypeDB classifier functions, knowledge graph
 
 SECONDARY (tools & utilities)
 ├── fetchlaunchpad/       — Token launchpad, bonding curves
@@ -343,7 +343,7 @@ rule tag_based_similarity:
 High Impact, Low Effort
 ├── Donal's relevance scoring (generalize intel system)
 ├── Ants' pheromone storage patterns (reference implementation)
-├── Kybernesis inference rules (TypeQL template)
+├── Kybernesis classifier functions (TypeQL template)
 └── Paperclip's heartbeat scheduler (port to envelopes)
 
 High Impact, High Effort
@@ -393,7 +393,7 @@ envelopes/
 │   ├── engine/
 │   │   ├── loop.ts ← Add L3.5 heartbeat (Paperclip pattern)
 │   │   │          ← Add L5 evolution (Agitrader pattern)
-│   │   ├── world.ts ← Add inference rules (Kybernesis pattern)
+│   │   ├── world.ts ← Add classifier functions (Kybernesis pattern)
 │   │   ├── agent-md.ts ← Add AgentLaunch export
 │   │   └── [existing]
 │   ├── tools/

@@ -27,6 +27,8 @@
     "scripts/**",
     "nanoclaw/**",
     "gateway/**",
-    "workers/**"
+    "workers/**",
+    "release/**",
+    "templates/**"
   ]
 }

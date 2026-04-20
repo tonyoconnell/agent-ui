@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { sdk } from '@/lib/sdk'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -43,11 +44,8 @@ export function EventTable({ groupId: _groupId }: Props) {
 
     async function fetchEvents() {
       try {
-        const res = await fetch('/api/signals')
-        if (!res.ok) throw new Error(`${res.status}`)
-        const raw: unknown = await res.json()
-        if (!Array.isArray(raw)) throw new Error('unexpected shape')
-        const rows = (raw as Record<string, unknown>[])
+        const raw = await sdk.signals({ limit: 50 })
+        const rows = (raw as unknown as Record<string, unknown>[])
           .map(parseRow)
           .sort((a, b) => b.ts - a.ts)
           .slice(0, 50)

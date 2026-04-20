@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { sdk } from '@/lib/sdk'
 import { cn } from '@/lib/utils'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -98,12 +99,12 @@ function RevenueBreakdown() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/state')
-      .then((r) => r.json() as Promise<any>)
-      .then((data: { edges?: Array<{ from: string; to: string; revenue: number; strength: number }> }) => {
-        const edges = (data.edges || [])
-          .filter((e: { revenue: number }) => e.revenue > 0)
-          .sort((a: { revenue: number }, b: { revenue: number }) => b.revenue - a.revenue)
+    sdk
+      .state()
+      .then((data) => {
+        const edges = ((data.edges as Array<{ from: string; to: string; revenue: number; strength: number }>) || [])
+          .filter((e) => e.revenue > 0)
+          .sort((a, b) => b.revenue - a.revenue)
           .slice(0, 10)
         setPaths(edges)
       })
@@ -153,30 +154,27 @@ export function Dashboard() {
 
     try {
       const [healthRes, statsRes] = await Promise.all([
-        fetch('/api/health')
-          .then((r) => r.json() as Promise<any>)
-          .catch(() => null),
-        fetch('/api/stats')
-          .then((r) => r.json() as Promise<any>)
-          .catch(() => null),
-        fetch('/api/tick').catch(() => null), // growth loop (includes decay)
+        sdk.health().catch(() => null),
+        sdk.stats().catch(() => null),
+        sdk.know().catch(() => null), // growth loop (includes decay)
       ])
 
       if (healthRes) {
-        setHealth(healthRes as HealthData)
-        if (healthRes.typedb?.status !== 'ok') {
+        const h = healthRes as unknown as HealthData
+        setHealth(h)
+        if (h.typedb?.status !== 'ok') {
           newAlerts.push({
             id: 'typedb-down',
             type: 'error',
-            message: `TypeDB connectivity lost (${healthRes.typedb?.latencyMs}ms)`,
+            message: `TypeDB connectivity lost (${h.typedb?.latencyMs}ms)`,
             timestamp: now,
           })
         }
-        if (healthRes.typedb?.latencyMs > 1000) {
+        if (h.typedb?.latencyMs > 1000) {
           newAlerts.push({
             id: 'typedb-slow',
             type: 'warning',
-            message: `TypeDB latency spike: ${healthRes.typedb.latencyMs}ms`,
+            message: `TypeDB latency spike: ${h.typedb.latencyMs}ms`,
             timestamp: now,
           })
         }
@@ -189,17 +187,18 @@ export function Dashboard() {
         })
       }
 
-      if (statsRes && !statsRes.error) {
-        setStats(statsRes as StatsData)
-        if (statsRes.units?.atRisk > 0) {
+      if (statsRes) {
+        const s = statsRes as unknown as StatsData
+        setStats(s)
+        if (s.units?.atRisk > 0) {
           newAlerts.push({
             id: 'at-risk',
             type: 'warning',
-            message: `${statsRes.units.atRisk} unit(s) at risk`,
+            message: `${s.units.atRisk} unit(s) at risk`,
             timestamp: now,
           })
         }
-        if (statsRes.highways?.count === 0 && statsRes.highways?.totalEdges > 0) {
+        if (s.highways?.count === 0 && s.highways?.totalEdges > 0) {
           newAlerts.push({
             id: 'no-highways',
             type: 'warning',

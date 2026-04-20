@@ -334,7 +334,7 @@ signal-path (ephemeral)
             --> transfer across missions & colonies
 ```
 
-### Tier Classification (Inference Rules)
+### Tier Classification (Classifier Functions)
 
 ```
 TIER        WIN RATE    TRAIL      TRADES    MEANING
@@ -344,7 +344,7 @@ danger      < 40%       resistance>=25  >= 30     avoid this path
 superhighway any        >= 85      >= 100    colony's highway
 ```
 
-These are DERIVED, not assigned. TypeDB inference rules fire automatically.
+These are DERIVED, not assigned. TypeDB classifier functions evaluate on query (or pipelines materialize them on a schedule).
 
 ---
 

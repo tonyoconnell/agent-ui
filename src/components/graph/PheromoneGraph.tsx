@@ -76,10 +76,10 @@ interface TaskData {
   status: string
   priority: number
   tags: string[]
-  blockedBy: string[]
+  blockers: string[]
   blocks: string[]
-  trailPheromone: number
-  alarmPheromone: number
+  strength: number
+  resistance: number
   category: 'attractive' | 'ready' | 'exploratory' | 'repelled'
 }
 
@@ -96,7 +96,7 @@ interface TaskNodeData {
   label: string
   priority: number
   category: string
-  blockedBy: string[]
+  blockers: string[]
   blocks: string[]
   [key: string]: unknown
 }
@@ -279,7 +279,7 @@ function AgentNode({ data, selected }: NodeProps) {
 
 function TaskNode({ data, selected }: NodeProps) {
   const d = data as TaskNodeData
-  const isBlocked = d.blockedBy.length > 0
+  const isBlocked = d.blockers.length > 0
   const isRepelled = d.category === 'repelled'
   const isAttractive = d.category === 'attractive'
 
@@ -469,7 +469,7 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
         label: t.name,
         priority: t.priority,
         category: t.category,
-        blockedBy: t.blockedBy,
+        blockers: t.blockers,
         blocks: t.blocks,
       } satisfies TaskNodeData,
     }))
@@ -511,8 +511,8 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
           target: `task:${t.tid}`,
           type: 'pheromone',
           data: {
-            strength: t.trailPheromone,
-            resistance: t.alarmPheromone,
+            strength: t.strength,
+            resistance: t.resistance,
             toxic: t.category === 'repelled',
             highway: t.category === 'attractive',
           } satisfies PheromoneEdgeData,

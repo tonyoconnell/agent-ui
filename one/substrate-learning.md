@@ -15,7 +15,7 @@ The substrate implements the ONE ontology's 6 dimensions:
 | **Events**    | Signals flowing                   | Training examples             |
 | **Learning**  | Highways, toxic paths             | Inference outputs             |
 
-The 6 dimensions ARE the training loop. Paths store what's learned. Events are training data. Knowledge emerges from inference rules.
+The 6 dimensions ARE the training loop. Paths store what's learned. Events are training data. Knowledge emerges from classifier functions.
 
 ## The Insight
 
@@ -144,7 +144,7 @@ A unit can be:
 - An API endpoint
 - Another colony
 
-The substrate doesn't care. It routes signals, drops on paths, fades weights. Intelligence emerges from the ONE ontology: Paths store learned weights, Events flow as training data, Knowledge hardens through inference rules.
+The substrate doesn't care. It routes signals, drops on paths, fades weights. Intelligence emerges from the ONE ontology: Paths store learned weights, Events flow as training data, Knowledge hardens through classifier functions.
 
 ## Why It Works
 
@@ -161,13 +161,13 @@ Actors      → Units that process signals
 Things      → Data flowing through the system
 Paths       → Edges with mark/fade weights (THE MODEL)
 Events      → Signals = immutable training examples
-Knowledge   → Highways, toxic paths = inference outputs
+Knowledge   → Highways, toxic paths = classifier outputs
 ```
 
 The 6 dimensions aren't just a data model. They ARE the learning loop:
 - **Paths** store what the system has learned (weights, alarms)
 - **Events** are the training data (every signal is a training example)
-- **Knowledge** emerges through inference (highway/toxic rules derive intelligence)
+- **Knowledge** emerges through classifier `fun`s (highway/toxic derivations produce intelligence)
 
 Training and inference collapse into the same substrate.
 

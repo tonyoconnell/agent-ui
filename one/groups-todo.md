@@ -461,7 +461,8 @@ to global for backward compat; persist via `path.scope` on the TypeDB write.
 
 1. Verify each deliverable against its exit condition
 2. Emit `/close --todo groups --cycle 2`
-3. Propagate: update `groups.md` API table + `auth.md` role matrix + `one/CLAUDE.md` if public surface changed + append to `one/learnings.md`
+3. Propagate: update `groups.md` API table + `auth.md` role matrix + **`lifecycle-one.md` Stage 3 (Personal group) + Stage 11 (Subscribe private/public split)** + `one/CLAUDE.md` if public surface changed + append to `one/learnings.md`
+   - `lifecycle-one.md` is the user-facing funnel view of this cycle's substrate work — every time the auto-personal-group flow or subscribe scope changes, the lifecycle doc's Stage 3 / Stage 11 / Speed table / Substrate hooks table must re-sync.
 
 ### Cycle 2 Gate
 
@@ -589,7 +590,8 @@ Key decisions:
 
 1. Verify each deliverable against its exit condition
 2. Emit `/close --todo groups --cycle 3`
-3. Propagate: update `groups.md` (Multi-Tenancy Checklist ✓) + `routing.md` § bridge behavior + `one/CLAUDE.md` if new public surface + append to `one/learnings.md`
+3. Propagate: update `groups.md` (Multi-Tenancy Checklist ✓) + `routing.md` § bridge behavior + **`lifecycle-one.md` § Collaboration shapes (add "Bridge" lane with personal↔personal handshake once shipped)** + `one/CLAUDE.md` if new public surface + append to `one/learnings.md`
+   - The "Bridge" collaboration lane in `lifecycle-one.md` Stage 3 references this cycle's `POST /api/paths/bridge` endpoint — keep the lane's example commands in sync with the handshake shape when landed.
 
 ### Cycle 3 Gate
 

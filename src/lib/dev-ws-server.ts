@@ -23,7 +23,8 @@ export function attachWebSocketServer(httpServer: Server) {
   if (wss) return
 
   // Register this module's broadcast function with wsManager
-  registerDevBroadcaster(broadcastToDevClients)
+  // Cast needed: broadcastToDevClients accepts broader type and returns count
+  registerDevBroadcaster(broadcastToDevClients as unknown as Parameters<typeof registerDevBroadcaster>[0])
 
   // WebSocketServer with noServer=true to manually handle upgrades
   // This prevents interference with Vite's HMR WebSocket

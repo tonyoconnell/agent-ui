@@ -15,11 +15,13 @@
 
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { AgentLaneContainer } from '@/components/tasks/AgentLaneContainer'
 import { KanbanBoard, statusForColumn } from '@/components/tasks/KanbanBoard'
 import { LifecycleStepper } from '@/components/tasks/LifecycleStepper'
 import { NextUpCard } from '@/components/tasks/NextUpCard'
 import { PersonaNetworkToggle } from '@/components/tasks/PersonaNetworkToggle'
 import { QueueBar } from '@/components/tasks/QueueBar'
+import { TaskGraph } from '@/components/tasks/TaskGraph'
 import type { ChainState, ColumnKey, Network, Persona, Task } from '@/components/tasks/types'
 import { WaveSwimLaneContainer } from '@/components/tasks/WaveSwimLaneContainer'
 import { Card, CardContent } from '@/components/ui/card'
@@ -212,7 +214,10 @@ export function TaskBoard() {
   const [loading, setLoading] = useState(true)
   const [persona, setPersona] = useState<Persona>('human')
   const [network, setNetwork] = useState<Network>('testnet')
-  const [groupBy, setGroupBy] = useState<'none' | 'wave'>('wave')
+  const [groupBy, setGroupBy] = useState<'none' | 'wave' | 'grid' | 'graph'>('wave')
+  const [highways, setHighways] = useState<Array<{ from: string; to: string; strength: number; resistance: number }>>(
+    [],
+  )
 
   // Fetch + normalize
   const fetchTasks = useCallback(async () => {
@@ -231,6 +236,19 @@ export function TaskBoard() {
   useEffect(() => {
     fetchTasks()
   }, [fetchTasks])
+
+  // Fetch highways once — feeds TaskGraph's agent→agent edges.
+  useEffect(() => {
+    fetch('/api/export/highways')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const data = d as {
+          highways?: Array<{ from: string; to: string; strength: number; resistance: number }>
+        } | null
+        if (data?.highways) setHighways(data.highways)
+      })
+      .catch(() => {})
+  }, [])
 
   const ws = useTaskWebSocket(setTasks)
   const deferredTasks = useDeferredValue(tasks)
@@ -355,26 +373,19 @@ export function TaskBoard() {
           />
           <LiveIndicator ws={ws} network={network} />
           <div className="flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.03] p-0.5 text-[10px] font-mono">
-            <button
-              type="button"
-              onClick={() => setGroupBy('none')}
-              className={cn(
-                'rounded px-2 py-0.5 transition-colors',
-                groupBy === 'none' ? 'bg-white/[0.10] text-white/80' : 'text-white/35 hover:text-white/55',
-              )}
-            >
-              flat
-            </button>
-            <button
-              type="button"
-              onClick={() => setGroupBy('wave')}
-              className={cn(
-                'rounded px-2 py-0.5 transition-colors',
-                groupBy === 'wave' ? 'bg-white/[0.10] text-white/80' : 'text-white/35 hover:text-white/55',
-              )}
-            >
-              wave
-            </button>
+            {(['none', 'wave', 'grid', 'graph'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setGroupBy(mode)}
+                className={cn(
+                  'rounded px-2 py-0.5 transition-colors',
+                  groupBy === mode ? 'bg-white/[0.10] text-white/80' : 'text-white/35 hover:text-white/55',
+                )}
+              >
+                {mode === 'none' ? 'flat' : mode}
+              </button>
+            ))}
           </div>
         </div>
       </header>
@@ -402,12 +413,11 @@ export function TaskBoard() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Kanban board */}
-      {groupBy === 'wave' ? (
-        <WaveSwimLaneContainer tasks={deferredTasks} onMove={handleMove} />
-      ) : (
-        <KanbanBoard tasks={deferredTasks} onMove={handleMove} />
-      )}
+      {/* Board view — four perspectives on the same tasks */}
+      {groupBy === 'wave' && <WaveSwimLaneContainer tasks={deferredTasks} onMove={handleMove} />}
+      {groupBy === 'none' && <KanbanBoard tasks={deferredTasks} onMove={handleMove} />}
+      {groupBy === 'grid' && <AgentLaneContainer tasks={deferredTasks} />}
+      {groupBy === 'graph' && <TaskGraph tasks={deferredTasks} highways={highways} />}
 
       {/* Footer hint */}
       <p className="mt-6 text-center text-[10px] text-white/25">

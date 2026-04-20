@@ -19,7 +19,9 @@
 | `api-key.ts` | API key generation and validation | — |
 | `streamSignals.ts` | SSE stream of substrate signals; carries agent lifecycle events | — |
 | `signalSender.ts` | HTTP helper to POST signals to `/api/signal` | — |
+| `sdk.ts` | `@oneie/sdk` singleton `SubstrateClient` for browser/scripts — same-origin via `window.location.origin`, retry on 5xx/429. **Preferred for all API calls.** | — |
 | `ui-signal.ts` | `emitClick(id, payload?)` — every UI onClick emits to substrate | `/react19` |
+| `telemetry.ts` | API telemetry — `emit()` writes `api:<route>:<method>` signals to TypeDB | — |
 | `security-signals.ts` | Emit security/audit signals (auth failure, rate-limit, toxicity) | — |
 | `claude-code-events.ts` | Bridge Claude Code hook events → substrate signals | — |
 | `tasks-store.ts` | In-memory task state store (pattern execution surface) | — |

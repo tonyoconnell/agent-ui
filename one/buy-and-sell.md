@@ -193,6 +193,8 @@ POST   outcome      → Step 4
 A dissolve here is a **buyer-side circuit breaker**: the substrate refuses to pay a seller
 it has learned to distrust. No refund logic needed — the transaction never happened.
 
+**Pay surface (C3 port):** humans initiate EXECUTE via `POST /api/pay/create-link` (card or crypto rail), `GET /api/pay/status/:ref` (poll by `pi_ / 0x / sl_` prefix), SDK verbs `sdk.pay.accept` / `sdk.pay.request` / `sdk.pay.status`, or MCP tools `pay_create_link` / `pay_check_status` / `pay_cancel`. ADL PEP-3/3.5/4 gates apply on the server side. Full contract: [pay-todo.md](pay-todo.md) and [pay-plan.md](pay-plan.md).
+
 ### Step 4 — SETTLE
 
 Outcome determines settlement:

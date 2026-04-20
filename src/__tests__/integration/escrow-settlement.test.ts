@@ -113,13 +113,17 @@ describe('POST /api/capability/hire/settle', () => {
     // readParsed returns a row — provider capability exists
     vi.mocked(readParsed).mockResolvedValue([{ u: { uid: PROVIDER_UID } }])
 
-    // writeSilent is fire-and-forget
-    vi.mocked(writeSilent).mockReturnValue(undefined)
+    // writeSilent is fire-and-forget (returns Promise)
+    vi.mocked(writeSilent).mockResolvedValue(undefined)
 
     const res = await callSettle(VALID_BODY)
     expect(res.status).toBe(200)
 
-    const json = await res.json()
+    const json = (await res.json()) as Record<string, unknown> & {
+      result: { ok: boolean; groupId: string; chatUrl: string }
+      escrow_id: string
+      settlement_id: string
+    }
     expect(json.result.ok).toBe(true)
     expect(json.result.groupId).toMatch(/^hire:/)
     expect(json.result.chatUrl).toMatch(/^\/app\//)
@@ -147,7 +151,7 @@ describe('POST /api/capability/hire/settle', () => {
     const res = await callSettle(VALID_BODY)
     expect(res.status).toBe(400)
 
-    const json = await res.json()
+    const json = (await res.json()) as { error: string; reason: string }
     expect(json.error).toContain('TX verification failed')
     expect(json.reason).toBe('No EscrowReleased event found')
 
@@ -197,7 +201,11 @@ describe('POST /api/capability/hire/settle', () => {
     const res = await callSettle(VALID_BODY)
     expect(res.status).toBe(200)
 
-    const json = await res.json()
+    const json = (await res.json()) as {
+      reused: boolean
+      result: { groupId: string; chatUrl: string }
+      settlement_id: string
+    }
     expect(json.reused).toBe(true)
     expect(json.result.groupId).toBe(cachedGroupId)
     expect(json.result.chatUrl).toBe(`/app/${cachedGroupId}`)
@@ -237,7 +245,7 @@ describe('POST /api/capability/hire/settle', () => {
     const res = await callSettle(bodyWithoutOriginalRequest)
     expect(res.status).toBe(400)
 
-    const json = await res.json()
+    const json = (await res.json()) as { error: string }
     expect(json.error).toContain('original_request')
 
     // Should not attempt re-execution
@@ -266,12 +274,12 @@ describe('POST /api/capability/hire/settle', () => {
 
     // readParsed returns empty — capability no longer exists
     vi.mocked(readParsed).mockResolvedValue([])
-    vi.mocked(writeSilent).mockReturnValue(undefined)
+    vi.mocked(writeSilent).mockResolvedValue(undefined)
 
     const res = await callSettle(VALID_BODY)
     expect(res.status).toBe(500)
 
-    const json = await res.json()
+    const json = (await res.json()) as { error: string }
     expect(json.error).toContain('Hire re-execution failed')
 
     // Settlement must be marked as failed
@@ -297,7 +305,7 @@ describe('POST /api/capability/hire/settle', () => {
     const res = await callSettle(badBody)
     expect(res.status).toBe(400)
 
-    const json = await res.json()
+    const json = (await res.json()) as { error: string; details: unknown }
     expect(json.error).toBe('Invalid request')
     expect(json.details).toBeDefined()
 
@@ -343,13 +351,13 @@ describe('POST /api/capability/hire/settle', () => {
 
     // readParsed confirms capability for stored-provider
     vi.mocked(readParsed).mockResolvedValue([{ u: { uid: 'stored-provider' } }])
-    vi.mocked(writeSilent).mockReturnValue(undefined)
+    vi.mocked(writeSilent).mockResolvedValue(undefined)
 
     const res = await callSettle(VALID_BODY)
     // Should succeed using the stored original_request
     expect(res.status).toBe(200)
 
-    const json = await res.json()
+    const json = (await res.json()) as { result: { ok: boolean; groupId: string } }
     expect(json.result.ok).toBe(true)
     // groupId should reference stored buyer/provider, not the body's
     expect(json.result.groupId).toContain('stored-buyer')

@@ -4,6 +4,11 @@ import { PayPage } from "@/components/pay/PayPage"
 
 const { skillId } = Astro.params
 
+const railParam = Astro.url.searchParams.get("rail")
+if (railParam === "card" || railParam === "crypto" || railParam === "chat") {
+  return Astro.redirect(`/pay/${railParam}/${encodeURIComponent(skillId ?? "")}`, 302)
+}
+
 // SSR: look up skill info from KV snapshot
 let skill: { name: string; price: number; seller: string } | null = null
 

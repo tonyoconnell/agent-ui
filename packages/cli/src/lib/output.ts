@@ -2,6 +2,10 @@ import { stringify as yamlStringify } from "yaml";
 
 export type OutputFormat = "json" | "yaml" | "table";
 
+export function output(data: unknown): void {
+  console.log(formatOutput(data));
+}
+
 export function getOutputFormat(): OutputFormat {
   const f = process.env.ONEIE_OUTPUT;
   if (f === "yaml" || f === "table") return f;

@@ -58,8 +58,8 @@ vi.mock('@/lib/tasks-store', () => {
     markPheromone: vi.fn((tid: string, type: string, delta: number) => {
       const task = store.get(tid)
       if (!task) return
-      if (type === 'trail') task.trailPheromone = Math.min(100, task.trailPheromone + delta)
-      else task.alarmPheromone = Math.min(100, task.alarmPheromone + delta)
+      if (type === 'trail') task.strength = Math.min(100, (task.strength || 0) + delta)
+      else task.resistance = Math.min(100, (task.resistance || 0) + delta)
     }),
     cascadeUnblock: vi.fn().mockReturnValue([]),
     seedFromApi: vi.fn(),
@@ -121,16 +121,15 @@ describe('GET /api/tasks', () => {
     store.set('T-1', {
       tid: 'T-1',
       name: 'Build API',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C1',
-      value: 'high',
-      persona: 'dev',
+      task_status: 'open',
+      task_priority: 0.7,
+      task_wave: 'W1',
+      task_value: 0.75,
       tags: ['build', 'api'],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
 
     const res = await GET(makeCtx())
@@ -148,16 +147,15 @@ describe('GET /api/tasks', () => {
     store.set('T-2', {
       tid: 'T-2',
       name: 'Proven Path',
-      status: 'todo',
-      priority: 'P0',
-      phase: 'C1',
-      value: 'high',
-      persona: 'dev',
+      task_status: 'open',
+      task_priority: 0.9,
+      task_wave: 'W1',
+      task_value: 0.75,
       tags: [],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 60,
-      alarmPheromone: 10,
+      strength: 60,
+      resistance: 10,
     })
 
     const res = await GET(makeCtx())
@@ -173,16 +171,15 @@ describe('GET /api/tasks', () => {
     store.set('T-3', {
       tid: 'T-3',
       name: 'Toxic Path',
-      status: 'todo',
-      priority: 'P2',
-      phase: 'C1',
-      value: 'low',
-      persona: 'dev',
+      task_status: 'open',
+      task_priority: 0.5,
+      task_wave: 'W1',
+      task_value: 0.25,
       tags: [],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 5,
-      alarmPheromone: 40,
+      strength: 5,
+      resistance: 40,
     })
 
     const res = await GET(makeCtx())
@@ -198,16 +195,15 @@ describe('GET /api/tasks', () => {
     store.set('T-4', {
       tid: 'T-4',
       name: 'Normal Task',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C2',
-      value: 'medium',
-      persona: 'dev',
+      task_status: 'open',
+      task_priority: 0.7,
+      task_wave: 'W2',
+      task_value: 0.55,
       tags: [],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 20,
-      alarmPheromone: 5,
+      strength: 20,
+      resistance: 5,
     })
 
     const res = await GET(makeCtx())
@@ -222,30 +218,28 @@ describe('GET /api/tasks', () => {
     store.set('T-5', {
       tid: 'T-5',
       name: 'Tagged',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C1',
-      value: 'high',
-      persona: 'dev',
+      task_status: 'open',
+      task_priority: 0.7,
+      task_wave: 'W1',
+      task_value: 0.75,
       tags: ['build', 'api'],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
     store.set('T-6', {
       tid: 'T-6',
       name: 'Untagged',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C1',
-      value: 'high',
-      persona: 'dev',
+      task_status: 'open',
+      task_priority: 0.7,
+      task_wave: 'W1',
+      task_value: 0.75,
       tags: ['docs'],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
 
     const res = await GET(makeCtx({ tag: 'build' }))
@@ -260,84 +254,79 @@ describe('GET /api/tasks', () => {
 
     store.set('T-7', {
       tid: 'T-7',
-      name: 'Phase C1',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C1',
-      value: 'high',
-      persona: 'dev',
+      name: 'Phase W1',
+      task_status: 'open',
+      task_priority: 0.7,
+      task_wave: 'W1',
+      task_value: 0.75,
       tags: [],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
     store.set('T-8', {
       tid: 'T-8',
-      name: 'Phase C2',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C2',
-      value: 'medium',
-      persona: 'dev',
+      name: 'Phase W2',
+      task_status: 'open',
+      task_priority: 0.7,
+      task_wave: 'W2',
+      task_value: 0.55,
       tags: [],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
 
-    const res = await GET(makeCtx({ phase: 'C1' }))
+    const res = await GET(makeCtx({ phase: 'W1' }))
     const body = await res.json()
     expect(body.tasks.length).toBe(1)
     expect(body.tasks[0].tid).toBe('T-7')
   })
 
-  it('excludes in_progress and active tasks', async () => {
+  it('excludes picked tasks', async () => {
     const storeModule = await import('@/lib/tasks-store')
     const store = (storeModule as any)._store as Map<string, any>
 
     store.set('T-9', {
       tid: 'T-9',
-      name: 'Active',
-      status: 'active',
-      priority: 'P1',
-      phase: 'C1',
-      value: 'high',
-      persona: 'dev',
+      name: 'Picked',
+      task_status: 'picked',
+      task_priority: 0.7,
+      task_wave: 'W1',
+      task_value: 0.75,
       tags: [],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
     store.set('T-10', {
       tid: 'T-10',
-      name: 'In Progress',
-      status: 'in_progress',
-      priority: 'P1',
-      phase: 'C1',
-      value: 'high',
-      persona: 'dev',
+      name: 'Also Picked',
+      task_status: 'picked',
+      task_priority: 0.7,
+      task_wave: 'W1',
+      task_value: 0.75,
       tags: [],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
     store.set('T-11', {
       tid: 'T-11',
-      name: 'Todo',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C1',
-      value: 'high',
-      persona: 'dev',
+      name: 'Open',
+      task_status: 'open',
+      task_priority: 0.7,
+      task_wave: 'W1',
+      task_value: 0.75,
       tags: [],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
 
     const res = await GET(makeCtx())
@@ -414,9 +403,8 @@ describe('POST /api/tasks', () => {
     expect(createTask).toHaveBeenCalledWith(
       expect.objectContaining({
         tid: 'T-102',
-        value: 'medium',
-        phase: 'C4',
-        persona: 'agent',
+        task_wave: 'C4',
+        task_value: 0.55, // 'medium' maps to 0.55
       }),
     )
   })
@@ -451,16 +439,15 @@ describe('POST /api/tasks/:id/complete', () => {
     store.set('T-200', {
       tid: 'T-200',
       name: 'Completable',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C1',
-      value: 'high',
-      persona: 'dev',
+      task_status: 'open',
+      task_priority: 0.7,
+      task_wave: 'W1',
+      task_value: 0.75,
       tags: [],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     })
@@ -494,7 +481,7 @@ describe('POST /api/tasks/:id/complete', () => {
     expect(res.status).toBe(400)
   })
 
-  it('marks success — trail pheromone +5, status complete', async () => {
+  it('marks success — trail pheromone +5, status verified', async () => {
     const res = await POST(makeCtx('T-200'))
     const body = await res.json()
     expect(body.ok).toBe(true)
@@ -502,7 +489,7 @@ describe('POST /api/tasks/:id/complete', () => {
 
     const { markPheromone, updateTask } = await import('@/lib/tasks-store')
     expect(markPheromone).toHaveBeenCalledWith('T-200', 'trail', 5.0)
-    expect(updateTask).toHaveBeenCalledWith('T-200', { status: 'complete' })
+    expect(updateTask).toHaveBeenCalledWith('T-200', { task_status: 'verified' })
   })
 
   it('marks failure — alarm pheromone +8, status failed', async () => {
@@ -513,7 +500,7 @@ describe('POST /api/tasks/:id/complete', () => {
 
     const { markPheromone, updateTask } = await import('@/lib/tasks-store')
     expect(markPheromone).toHaveBeenCalledWith('T-200', 'alarm', 8.0)
-    expect(updateTask).toHaveBeenCalledWith('T-200', { status: 'failed' })
+    expect(updateTask).toHaveBeenCalledWith('T-200', { task_status: 'failed' })
   })
 
   it('cascades unblock on success', async () => {
@@ -534,19 +521,19 @@ describe('POST /api/tasks/:id/complete', () => {
   it('broadcasts mark message on success via WebSocket', async () => {
     await POST(makeCtx('T-200'))
     const { wsManager } = await import('@/lib/ws-server')
-    expect(wsManager.broadcast).toHaveBeenCalledWith(expect.objectContaining({ type: 'mark', taskId: 'T-200' }))
+    expect(wsManager.broadcast).toHaveBeenCalledWith(expect.objectContaining({ type: 'mark', tid: 'T-200' }))
   })
 
   it('broadcasts warn message on failure via WebSocket', async () => {
     await POST(makeCtx('T-200', { failed: true }))
     const { wsManager } = await import('@/lib/ws-server')
-    expect(wsManager.broadcast).toHaveBeenCalledWith(expect.objectContaining({ type: 'warn', taskId: 'T-200' }))
+    expect(wsManager.broadcast).toHaveBeenCalledWith(expect.objectContaining({ type: 'warn', tid: 'T-200' }))
   })
 
   it('broadcasts complete event on success', async () => {
     await POST(makeCtx('T-200'))
     const { wsManager } = await import('@/lib/ws-server')
-    expect(wsManager.broadcast).toHaveBeenCalledWith(expect.objectContaining({ type: 'complete', taskId: 'T-200' }))
+    expect(wsManager.broadcast).toHaveBeenCalledWith(expect.objectContaining({ type: 'complete', tid: 'T-200' }))
   })
 
   it('writes status update to TypeDB', async () => {

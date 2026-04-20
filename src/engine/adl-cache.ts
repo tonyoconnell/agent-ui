@@ -157,9 +157,16 @@ export function enforcementMode(): EnforcementMode {
 
 // ── Audit sink (structured log → D1 adl_audit table via follow-up) ────────
 
-export type AuditGate = 'lifecycle' | 'network' | 'sensitivity' | 'schema' | 'bridge-network' | 'bridge-error'
+export type AuditGate =
+  | 'lifecycle'
+  | 'network'
+  | 'sensitivity'
+  | 'schema'
+  | 'bridge-network'
+  | 'bridge-error'
+  | `stage-${string}`
 
-export type AuditDecision = 'deny' | 'allow-audit' | 'fail-closed' | 'observe'
+export type AuditDecision = 'deny' | 'allow-audit' | 'fail-closed' | 'observe' | 'would-deny'
 
 export interface AuditRecord {
   sender: string

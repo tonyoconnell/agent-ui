@@ -44,6 +44,7 @@
     "node": ">=22.16.0"
   },
   "dependencies": {
+    "@oneie/sdk": "workspace:*",
     "chalk": "^5.3.0",
     "fs-extra": "^11.2.0",
     "glob": "^10.3.10",

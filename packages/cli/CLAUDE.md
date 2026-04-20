@@ -2,6 +2,8 @@
 
 Substrate orchestrator CLI. Distributed as `oneie` on npm. Runs substrate verbs against a live ONE instance.
 
+**Uses `@oneie/sdk` internally** — commands call `getClient().<method>()` from `src/lib/sdk.ts`. See `one/sdk-cli-integration.md` for migration status.
+
 **Context:** [DSL.md](one/DSL.md) — signal grammar the CLI emits. [dictionary.md](dictionary.md) — canonical verb names: signal/mark/warn/fade/follow/harden. [routing.md](routing.md) — L1-L7 loops the CLI triggers. [lifecycle.md](one/lifecycle.md) — register→signal→highway→harden; CLI commands map to each stage. [rubrics.md](rubrics.md) — fit/form/truth/taste; `/api/loop/mark-dims` is the CLI quality gate. [buy-and-sell.md](buy-and-sell.md) — EXECUTE and SETTLE verbs available via `signal` and `mark`. [revenue.md](one/revenue.md) — Layer 1 routing fees fire on every `signal` command. [speed.md](one/speed.md) — routing `<0.005ms`, mark `<0.001ms`; CLI calls add HTTP overhead. [patterns.md](one/patterns.md) — closed loop and zero-returns apply to every CLI command's outcome handling.
 
 ## Files
@@ -28,7 +30,9 @@ Substrate orchestrator CLI. Distributed as `oneie` on npm. Runs substrate verbs 
 | `src/commands/claw.ts` | `claw` — generate NanoClaw config for an agent |
 | `src/commands/launch.ts` | `launch` — launch agent on AgentVerse / substrate |
 | `src/commands/init.ts` | `init` — scaffold a new ONE project |
-| `src/lib/http.ts` | `apiRequest()` — base HTTP client for all commands |
+| `src/lib/sdk.ts` | `getClient()` — cached `SubstrateClient` from `@oneie/sdk` |
+| `src/lib/output.ts` | `output()` — format + print JSON results |
+| `src/lib/http.ts` | `apiRequest()` — legacy HTTP client (being replaced by SDK) |
 | `src/lib/args.ts` | `parseArgs()`, `requireArg()` — argv helpers |
 | `src/lib/config.ts` | Load `.env` / `one.config.json` — base URL, API key |
 | `src/lib/detect.ts` | Auto-detect ONE instance (local vs remote) |
@@ -99,7 +103,25 @@ The CLI is a thin HTTP client — it triggers loops on the substrate:
 
 ## Key Patterns
 
-Every command calls `apiRequest()` from `src/lib/http.ts`. Base URL from `ONE_API_URL` env var (default: `http://localhost:4321`). All commands print JSON to stdout. Errors surface as `{ error: message }` — never as stack traces.
+**New pattern (SDK):** Commands call `getClient().<method>()`. Base URL from `ONE_API_URL` env (default: `http://localhost:4321`). All commands print JSON via `output()`. Errors surface as `{ error: message }`.
+
+```typescript
+import { getClient } from "../lib/sdk.js";
+import { parseArgs, flagNumber } from "../lib/args.js";
+import { output } from "../lib/output.js";
+
+export const name = "fade";
+export async function run(argv: string[]): Promise<void> {
+  const args = parseArgs(argv);
+  const rate = flagNumber(args, "rate", 0.05) ?? 0.05;
+  const res = await getClient()
+    .fade(rate, rate * 2)
+    .catch((err: Error) => ({ error: err.message }));
+  output(res);
+}
+```
+
+**Legacy pattern (being replaced):** Commands call `apiRequest()` from `src/lib/http.ts`.
 
 ```typescript
 import { apiRequest } from "../lib/http.js";

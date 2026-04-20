@@ -23,52 +23,41 @@ function resetStore() {
 }
 
 /** Simulates what syncTasks does: upsert tasks from parsed docs.
- * If the task already exists, it only updates non-runtime fields (name, tags, value, phase).
+ * If the task already exists, it only updates non-runtime fields (name, tags).
  * It must NOT reset status/owner back to defaults.
  */
-function simulateSyncUpsert(tid: string, fields: Pick<store.ProjectTask, 'name' | 'tags' | 'value' | 'phase'>) {
+function simulateSyncUpsert(tid: string, fields: { name: string; tags: string[] }) {
   const existing = store.getTask(tid)
   if (!existing) {
     // New task from doc — insert with defaults
     store.createTask({
       tid,
       name: fields.name,
-      task_status: 'open',
-      task_priority: 0.55,
       tags: fields.tags,
       blocked_by: [],
       blocks: [],
-      strength: 0,
-      resistance: 0,
     })
   } else {
     // Existing task — update only metadata, preserve runtime status
     store.updateTask(tid, {
       name: fields.name,
       tags: fields.tags,
-      value: fields.value,
-      phase: fields.phase,
-      // status intentionally NOT overwritten
+      // task_status intentionally NOT overwritten
     })
   }
 }
 
 describe('guard-sync: sync does not reset claimed tasks', () => {
   const TID = 'guard-sync-T1'
-  const _SESSION = 'session-abc-123'
 
   beforeEach(() => {
     resetStore()
     store.createTask({
       tid: TID,
       name: 'Guard Sync Task',
-      task_status: 'open',
-      task_priority: 0.75,
       tags: ['test', 'guard'],
       blocked_by: [],
       blocks: [],
-      strength: 0,
-      resistance: 0,
     })
   })
 
@@ -90,8 +79,6 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
     simulateSyncUpsert(TID, {
       name: 'Guard Sync Task',
       tags: ['test', 'guard'],
-      value: 'high',
-      phase: 'C2',
     })
 
     // Task must still be picked
@@ -106,8 +93,6 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
     simulateSyncUpsert(TID, {
       name: 'Guard Sync Task (renamed)',
       tags: ['test', 'guard', 'updated'],
-      value: 'high',
-      phase: 'C2',
     })
 
     const task = store.getTask(TID)
@@ -116,13 +101,11 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
     expect(task?.tags).toContain('updated')
   })
 
-  it('sync of new task from doc inserts as todo', () => {
+  it('sync of new task from doc inserts as open', () => {
     const NEW_TID = 'guard-sync-T-new'
     simulateSyncUpsert(NEW_TID, {
       name: 'New Task From Doc',
       tags: ['new'],
-      value: 'medium',
-      phase: 'C2',
     })
 
     const task = store.getTask(NEW_TID)
@@ -130,14 +113,12 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
     store.deleteTask(NEW_TID)
   })
 
-  it('picked task also survives sync', () => {
+  it('picked task survives sync', () => {
     store.updateTask(TID, { task_status: 'picked' })
 
     simulateSyncUpsert(TID, {
       name: 'Guard Sync Task',
       tags: ['test', 'guard'],
-      value: 'high',
-      phase: 'C2',
     })
 
     expect(store.getTask(TID)?.task_status).toBe('picked')

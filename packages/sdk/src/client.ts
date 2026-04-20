@@ -1,3 +1,5 @@
+import { accept as payAccept, request as payRequest, status as payStatus } from "./pay.js";
+import type { PayAcceptOpts, PayAcceptResult, PayRequestOpts, PayRequestResult, PayStatusResult } from "./pay.js";
 import type {
   AgentActionResponse,
   AgentStatusResponse,
@@ -102,11 +104,24 @@ export class SubstrateClient {
   private readonly retryConfig: RetryConfig | undefined;
   readonly validateMode: "strict" | "warn" | "off";
 
+  /** Pay module — accept, request, status. Bound to this client's baseUrl + apiKey. */
+  readonly pay: {
+    accept: (opts: PayAcceptOpts) => Promise<PayAcceptResult>;
+    request: (opts: PayRequestOpts) => Promise<PayRequestResult>;
+    status: (ref: string) => Promise<PayStatusResult>;
+  };
+
   constructor(cfg: SdkConfig = {}) {
     this.baseUrl = resolveBaseUrl(cfg.baseUrl);
     this.apiKey = resolveApiKey(cfg.apiKey);
     this.retryConfig = cfg.retry;
     this.validateMode = cfg.validate ?? "warn";
+    // Bind pay module methods to this client's config
+    this.pay = {
+      accept: (opts: PayAcceptOpts) => payAccept(opts, cfg),
+      request: (opts: PayRequestOpts) => payRequest(opts, cfg),
+      status: (ref: string) => payStatus(ref, cfg),
+    };
   }
 
   static fromApiKey(key: string, baseUrl?: string): SubstrateClient {
@@ -211,7 +226,56 @@ export class SubstrateClient {
 
   async know(): Promise<unknown> {
     const result = await this.r<unknown>("/api/tick");
-    emit("toolkit:sdk:know", ["sdk", "method-know"]);
+    emit("toolkit:sdk:know", ["sdk", "method-know", "stage:advocate"]);
+    return result;
+  }
+
+  async walletFor(uid: string): Promise<{ uid: string; address: string }> {
+    const result = await this.r<{ uid: string; address: string; derivedAt: string }>(
+      `/api/identity/${encodeURIComponent(uid)}/address`,
+    );
+    emit("toolkit:sdk:walletFor", ["sdk", "method-walletFor", "stage:wallet"]);
+    return { uid: result.uid, address: result.address };
+  }
+
+  async signIn(opts: { email: string; password: string }): Promise<{ sessionId: string; userId: string }> {
+    const result = await this.r<{ sessionId: string; userId: string }>(
+      "/api/auth/sign-in/email",
+      { method: "POST", body: JSON.stringify(opts) },
+    );
+    emit("toolkit:sdk:signIn", ["sdk", "method-signIn", "stage:sign-in:human"]);
+    return result;
+  }
+
+  async signOut(): Promise<void> {
+    await this.r<unknown>("/api/auth/sign-out", { method: "POST", body: JSON.stringify({}) });
+    emit("toolkit:sdk:signOut", ["sdk", "method-signOut", "stage:sign-in:human"]);
+  }
+
+  async join(opts: { uid: string; group?: string }): Promise<{ ok: boolean; uid: string; group: string; role: string }> {
+    const result = await this.r<{ ok: boolean; uid: string; group: string; role: string }>(
+      "/api/board/join",
+      { method: "POST", body: JSON.stringify(opts) },
+    );
+    emit("toolkit:sdk:join", ["sdk", "method-join", "stage:join-board"]);
+    return result;
+  }
+
+  async deployOnBehalf(opts: { owner: string; spec: Record<string, unknown> }): Promise<{ ok: boolean; uid: string; owner: string; inheritedPaths: Array<{ from: string; to: string; strength: number }> }> {
+    const result = await this.r<{ ok: boolean; uid: string; owner: string; inheritedPaths: Array<{ from: string; to: string; strength: number }> }>(
+      "/api/agents/deploy-on-behalf",
+      { method: "POST", body: JSON.stringify(opts) },
+    );
+    emit("toolkit:sdk:deployOnBehalf", ["sdk", "method-deployOnBehalf", "stage:team-deploy:on-behalf"]);
+    return result;
+  }
+
+  async subscribe(opts: { receiver: string; tags: string[] }): Promise<{ ok: boolean; receiver: string; tags: string[] }> {
+    const result = await this.r<{ ok: boolean; receiver: string; tags: string[] }>(
+      "/api/subscribe",
+      { method: "POST", body: JSON.stringify(opts) },
+    );
+    emit("toolkit:sdk:subscribe", ["stage:list"]);
     return result;
   }
 
@@ -229,7 +293,7 @@ export class SubstrateClient {
       "/api/auth/agent",
       { method: "POST", body: JSON.stringify(opts) },
     );
-    emit("toolkit:sdk:authAgent", ["sdk", "method-authAgent", result.returning ? "returning" : "new"]);
+    emit("toolkit:sdk:authAgent", ["sdk", "method-authAgent", result.returning ? "returning" : "new", "stage:sign-in:agent"]);
     return result;
   }
 
@@ -239,7 +303,7 @@ export class SubstrateClient {
       "/api/agents/sync",
       { method: "POST", body: JSON.stringify(body) },
     );
-    emit("toolkit:sdk:syncAgent", ["sdk", "method-syncAgent"]);
+    emit("toolkit:sdk:syncAgent", ["sdk", "method-syncAgent", "stage:team-deploy"]);
     return result;
   }
 
@@ -247,7 +311,7 @@ export class SubstrateClient {
     const result = await this.r<DiscoverResponse>(
       `/api/agents/discover?skill=${encodeURIComponent(skill)}&limit=${limit}`,
     );
-    emit("toolkit:sdk:discover", ["sdk", "method-discover"]);
+    emit("toolkit:sdk:discover", ["sdk", "method-discover", "stage:discover"]);
     return result;
   }
 
@@ -256,16 +320,16 @@ export class SubstrateClient {
       "/api/agents/register",
       { method: "POST", body: JSON.stringify({ uid, ...opts }) },
     );
-    emit("toolkit:sdk:register", ["sdk", "method-register"]);
+    emit("toolkit:sdk:register", ["sdk", "method-register", "stage:sell"]);
     return result;
   }
 
-  async pay(from: string, to: string, task: string, amount: number): Promise<PayResponse> {
+  async payWeight(from: string, to: string, task: string, amount: number): Promise<PayResponse> {
     const result = await this.r<PayResponse>(
       "/api/pay",
       { method: "POST", body: JSON.stringify({ from, to, task, amount }) },
     );
-    emit("toolkit:sdk:pay", ["sdk", "method-pay"]);
+    emit("toolkit:sdk:payWeight", ["sdk", "method-payWeight", "stage:buy"]);
     return result;
   }
 

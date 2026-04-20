@@ -1,8 +1,8 @@
-# LOOPS.md — The Two Inference Engines
+# LOOPS.md — The Two Engines: Classifiers + Behavior
 
-The colony runs on two parallel loops: **Deterministic** and **Probabilistic**.
+The colony runs on two parallel loops: **Deterministic Classifier** and **Probabilistic Behavior**.
 
-The deterministic loop is the physics — guaranteed, reproducible, the same every time.
+The classifier loop is the physics — guaranteed, reproducible, the same every time.
 The probabilistic loop is the behavior — adaptive, exploratory, evolving.
 
 Together, they create intelligence.
@@ -13,15 +13,15 @@ Together, they create intelligence.
 
 ```
 ┌───────────────────────────────────────────────────────────┐
-│                   DETERMINISTIC LOOP                      │
-│                   (TypeDB Inference)                      │
+│                 DETERMINISTIC CLASSIFIER LOOP             │
+│               (TypeDB Classifiers + Pipelines)            │
 │                                                           │
 │   "What IS true?"                                         │
 │                                                           │
-│   • Rules fire when conditions match — ALWAYS             │
-│   • Functions return exact results — REPRODUCIBLE         │
-│   • State transitions are guaranteed — DETERMINISTIC      │
-│   • Same input = same output — PHYSICS                    │
+│   • Classifier functions evaluate when queried — EXACT    │
+│   • Pipelines materialize state on a schedule — EXPLICIT  │
+│   • Same function body + same inputs = same output        │
+│   • No hidden firing; every transition is a query         │
 │                                                           │
 │   This is the SUBSTRATE. The laws of nature.              │
 ├───────────────────────────────────────────────────────────┤
@@ -41,64 +41,75 @@ Together, they create intelligence.
 
 ---
 
-## Loop 1: Deterministic Inference
+## Loop 1: Deterministic Classifier
 
-The deterministic loop runs inside TypeDB. It answers: **"Given this data, what is true?"**
+The classifier loop runs inside TypeDB. It answers: **"Given this data, what is true?"**
+
+In TypeDB 3.x there is no auto-firing rule engine. Classification is driven by
+two explicit mechanisms: (a) typed `fun` classifiers evaluated when a query
+calls them, and (b) `match ... insert ...` / `match ... update ...` pipelines
+run on a schedule or after a write. Both are deterministic — same function body
+plus same inputs always produces the same output.
 
 ### Characteristics
 
 | Property | Description |
 |----------|-------------|
-| **Trigger** | Data change (insert, update, delete) |
-| **Execution** | Automatic — rules fire when conditions match |
-| **Output** | Inferred attributes, classifications, state transitions |
-| **Guarantee** | Same data = same inference, always |
+| **Trigger** | Query calls a classifier, or a scheduled pipeline runs |
+| **Execution** | Explicit — classifier evaluates on-query, pipeline on-schedule |
+| **Output** | Derived values, materialized attributes, state transitions |
+| **Guarantee** | Same data + same function = same result, always |
 | **Speed** | Milliseconds (query time) |
 
-### The Deterministic Cycle
+### The Classifier Cycle
 
 ```
 ┌───────────────────────────────────────────────────────────┐
 │                                                           │
-│   DATA CHANGE ─────────────────────────────────────────┐  │
+│   QUERY OR SCHEDULED PIPELINE ─────────────────────────┐  │
 │       │                                                │  │
 │       ▼                                                │  │
 │   ┌───────────────────────────────────────────────┐    │  │
-│   │            INFERENCE ENGINE                   │    │  │
+│   │        TYPEDB CLASSIFIERS + PIPELINES         │    │  │
 │   │                                               │    │  │
 │   │   1. CLASSIFICATION (L1)                      │    │  │
-│   │      success-rate >= 0.75 → elite             │    │  │
+│   │      identify_elites() returns units with     │    │  │
+│   │      success-rate >= 0.75                     │    │  │
 │   │                                               │    │  │
-│   │   2. QUALITY RULES (L2)                       │    │  │
-│   │      energy=0 + reliable=high → REJECT        │    │  │
+│   │   2. QUALITY CLASSIFIERS (L2)                 │    │  │
+│   │      record_quality($r) cascades to           │    │  │
+│   │      high / medium / low                      │    │  │
 │   │                                               │    │  │
 │   │   3. STATE TRANSITIONS (L3)                   │    │  │
-│   │      obs >= 100, p <= 0.05 → confirmed        │    │  │
+│   │      pipeline: match is_confirmable($h);      │    │  │
+│   │      update $h has status "confirmed"         │    │  │
 │   │                                               │    │  │
 │   │   4. AVAILABILITY (L4)                        │    │  │
-│   │      no incomplete blockers → ready           │    │  │
+│   │      ready_tasks() returns tasks with         │    │  │
+│   │      no incomplete blockers                   │    │  │
 │   │                                               │    │  │
 │   │   5. AGGREGATION (L5)                         │    │  │
-│   │      sum(contributions) → total               │    │  │
+│   │      total_contribution($a) sums records     │    │  │
 │   │                                               │    │  │
 │   │   6. EMERGENCE (L6)                           │    │  │
-│   │      expected_value >= 0.5 → spawn            │    │  │
+│   │      promising_frontiers() filters by         │    │  │
+│   │      expected_value >= 0.5                    │    │  │
 │   │                                               │    │  │
 │   └───────────────────────────────────────────────┘    │  │
 │       │                                                │  │
 │       ▼                                                │  │
-│   INFERRED FACTS ──────────────────────────────────────┘  │
+│   CLASSIFIED RESULTS ──────────────────────────────────┘  │
 │       │                                                   │
 │       └───────────────────────────────────────────────────┘
 │                                                           │
-│   Query → Inference → Result. Instant. Guaranteed.        │
+│   Query → Classifier → Result. Explicit. Reproducible.    │
 └───────────────────────────────────────────────────────────┘
 ```
 
-### What Gets Inferred
+### What Gets Classified
 
-| Lesson | Input | Inferred Output |
-|--------|-------|-----------------|
+| Lesson | Input | Classifier Output |
+|--------|-------|-------------------|
 | L1 | Attributes (success-rate, activity) | Tier (elite, standard, at-risk) |
 | L2 | State combination | Valid/Invalid, quality-label |
 | L3 | Observations count, p-value | Status (pending → confirmed) |
@@ -106,26 +117,26 @@ The deterministic loop runs inside TypeDB. It answers: **"Given this data, what 
 | L5 | Contribution records | Rank (elite, active, occasional) |
 | L6 | Frontier metrics | Objective spawning |
 
-### Deterministic Loop Code
+### Classifier Loop Code
 
 ```python
-async def deterministic_tick(agent_id: str):
-    """One tick of deterministic inference."""
+async def classifier_tick(agent_id: str):
+    """One tick of the classifier loop. Each query calls a typed `fun`."""
 
-    # L1: What am I?
+    # L1: What am I? — identify_elites() is a classifier function
     tier = await query("match let $a in identify_elites(); ...")
 
     # L3: What's my hypothesis status?
     status = await query(f"match $h has owner '{agent_id}'; ...")
 
-    # L4: What can I work on?
+    # L4: What can I work on? — ready_tasks(), attractive_tasks() are classifiers
     ready = await query("match let $t in ready_tasks(); ...")
     attractive = await query("match let $t in attractive_tasks(); ...")
 
-    # L5: What have I contributed?
+    # L5: What have I contributed? — total_contribution() is an aggregate fn
     contribution = await query(f"let $c = total_contribution('{agent_id}'); ...")
 
-    # L6: Are there new frontiers?
+    # L6: Are there new frontiers? — promising_frontiers() filters by EV
     frontiers = await query("match let $f in promising_frontiers(); ...")
 
     return {
@@ -291,10 +302,10 @@ async def decay_cycle():
 │   │                                                   │   │
 │   └───────────────────────┬───────────────────────────┘   │
 │                           │                               │
-│                           ▼ TRIGGERS                      │
+│                           ▼ CLASSIFIES / MATERIALIZES     │
 │   ┌───────────────────────────────────────────────────┐   │
-│   │              DETERMINISTIC LOOP                   │   │
-│   │              (TypeDB Inference)                   │   │
+│   │              DETERMINISTIC CLASSIFIER LOOP        │   │
+│   │          (TypeDB Classifiers + Pipelines)         │   │
 │   │                                                   │   │
 │   │   L1:classify → L2:validate → L3:transition →     │   │
 │   │   L4:ready → L5:aggregate → L6:spawn              │   │
@@ -330,7 +341,8 @@ async def colony_tick():
     """One complete tick of the colony."""
 
     # ══════════════════════════════════════════════════════
-    # PHASE 1: DETERMINISTIC INFERENCE
+    # PHASE 1: DETERMINISTIC CLASSIFIERS
+    # Each query calls a typed `fun`. Pipelines run on schedule.
     # ══════════════════════════════════════════════════════
     ready = await query("match let $t in ready_tasks(); ...")
     attractive = await query("match let $t in attractive_tasks(); ...")
@@ -384,9 +396,9 @@ async def colony_tick():
 | Aspect | Deterministic | Probabilistic |
 |--------|--------------|---------------|
 | **Where** | TypeDB | Agent Runtime |
-| **When** | On query | On tick |
+| **When** | On query / on schedule | On tick |
 | **What** | Classification, validation | Selection, exploration |
-| **How** | Inference rules | Weighted random |
+| **How** | Classifier functions + pipelines | Weighted random |
 | **Output** | Facts (what IS) | Actions (what to DO) |
 | **Guarantee** | Reproducible | Stochastic |
 

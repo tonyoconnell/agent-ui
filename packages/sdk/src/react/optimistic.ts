@@ -59,7 +59,7 @@ export function useOptimisticPay() {
       startTransition(async () => {
         setOptimistic({ from, to, amount, pending: true });
         try {
-          const result = await client.pay(from, to, task, amount);
+          const result = await client.payWeight(from, to, task, amount);
           resolve(result);
         } catch (err) {
           reject(err);

@@ -1,59 +1,147 @@
 ---
-title: Platform BaaS — ONE as Backend-as-a-Service for Agents
+title: Platform BaaS — ONE as a Free Release + Optional Connected World
 type: strategy
-version: 1.0.0
-updated: 2026-04-19
+version: 2.0.0
+updated: 2026-04-20
 status: WIRE
 ---
 
-# ONE as BaaS: The Backend for Agents
+# ONE: Free to Release, Optional to Connect, Priced on Commerce
 
-> **The claim:** ONE is Firebase for agents. The 136 API endpoints on
-> `api.one.ie` are the product. Developers call them from any stack —
-> Vercel, AWS, mobile, Python, CF Pages, Next.js — and ONE provides
-> routing, memory, learning, and commerce. No lock-in. No infra. No
-> LLM bill to ONE.
+> **The claim:** `/release` (via `npx oneie`) ships a **free Astro +
+> claw** scaffold. It runs **standalone** — no ONE account, no gateway,
+> no API key required. Developers can also **opt in** to connect: to
+> our world (routing, memory, learning), to the blockchain (Sui wallet,
+> x402, escrow), and to other agents (federation, marketplace, invites).
+> Every connection unlocks commerce: **sell, buy, invite.** Revenue
+> comes from transactions that flow across those connections, not from
+> the subscription gate.
 >
-> **Why now:** every piece is built. `validateApiKey()` with scopes,
-> group-scoped signals, the WsHub Durable Object, D1 meter schema, the
-> `@oneie/sdk` `SubstrateClient` — all shipped. The gateway already IS
-> the boundary. We just need to turn it into a product: meter it, tier
-> it, dashboard it, bill it.
+> **Why now:** the release primitive is already built. `packages/cli`
+> scaffolds Astro + NanoClaw. `@oneie/sdk` is the connection library.
+> `@oneie/mcp` exposes the verbs to Claude Desktop. Sui testnet wallets
+> are deterministic (Phase 2 shipped 2026-04-18). The `/api/marketplace/*`
+> endpoints, `buy-and-sell.md` mechanics, and 50 bps escrow fee are all
+> locked. What's left is to package the free release, wire the four
+> connection modes, and let sell/buy/invite ride on real value flow.
 >
-> **The moat:** the shared graph. Every developer's `mark()` strengthens
-> highways that benefit everyone. The more agents join, the smarter
-> routing gets, the more valuable the API becomes. Compute is a commodity
-> (CF gives it away). Intelligence is not.
+> **The moat:** the economic graph. Standalone agents get a template.
+> Connected agents get routing, memory, and a marketplace where every
+> `sell` and `buy` earns provenance and every `invite` grows the
+> federation. Compute is commodity. Intelligence compounds. Commerce
+> compounds twice — in the graph AND on chain.
 
 ---
 
 ## The core insight
 
-NanoClaw already reaches the brain through one HTTP call:
-
-```typescript
-// nanoclaw/src/lib/substrate.ts
-const res = await fetch(`${env.GATEWAY_URL}/typedb/query`, { ... })
-```
-
-`GATEWAY_URL` is the only thing with TypeDB credentials. Everything else —
-webhook handling, LLM calls, message storage — is developer-side. **The
-gateway is already the product boundary.** BaaS just exposes that
-boundary as a developer-facing service.
+Every new layer — the scaffold, the SDK, the wallet, the federation —
+is **additive, not required**. `npx oneie` gives a developer a working
+Astro + claw website they can run on their own Cloudflare account. From
+there, they can stay standalone, or connect in any order: world first,
+chain first, or agents first. The gateway is still the boundary to our
+intelligence, but reaching it is a **choice**, not a prerequisite.
 
 ```
-BEFORE (internal architecture)          AFTER (BaaS reframing)
-────────────────────────────          ────────────────────────
+STANDALONE (day 0, $0)              CONNECTED (when it's worth it)
+────────────────────────            ──────────────────────────────
 
-NanoClaw → Gateway → TypeDB            Developer's code → api.one.ie → Brain
-                                                             ↓
-  (both on ONE's CF account)              developer's LLM, storage, hosting
-                                                        (anywhere)
+  Astro + Claw → Telegram             + world   → routing, memory, learning
+  Local LLM calls                     + chain   → wallet, x402, settle on Sui
+  Own Cloudflare account              + agents  → federation, marketplace
+  No ONE API key                      + invite  → grow the network
+  No shared graph                     + sell    → list a capability
+  No fees to ONE                      + buy     → consume someone else's
 ```
 
-No new architecture. The existing 136 endpoints simply become the
-contract. The SDK is already published. The auth is already scoped.
-**The product exists; it needs packaging.**
+No lock-in at any layer. A standalone agent can join the world later.
+A connected agent can pull their graph data (`memory/reveal`) and eject
+at any time. A federated agent keeps their wallet across worlds. **The
+moat is the value flowing through the connections, not the connections
+themselves.**
+
+---
+
+## Four connection modes
+
+Each mode is independent. A developer can enable any subset, in any
+order. Every mode strengthens the standalone release — it never replaces it.
+
+| Mode | What it adds | Cost to developer | Cost to ONE |
+|------|-------------|-------------------|-------------|
+| **Standalone** | Astro + Claw scaffold, own CF account, local LLM | $0 (CF free) | $0 |
+| **+ World** | SDK → `api.one.ie` routing, memory, learning, highways | $0 on free tier; metered | ~$0 marginal |
+| **+ Chain** | Deterministic Sui wallet, x402 toll on paid routes, 50 bps escrow | Chain fees + 50 bps on settled value | Collects protocol fee |
+| **+ Agents** | Federation, marketplace discovery, invite bridges between worlds | Revenue share on cross-world `mark()` | Collects routing fee on bridge |
+
+**Standalone — `npx oneie` alone.** The scaffold ships a working Astro
+site plus NanoClaw persona definitions. The claw handles Telegram/Discord
+webhooks on the developer's own CF account. LLM calls go straight to
+OpenRouter (or any provider) with the developer's key. No `api.one.ie`
+traffic. No shared graph. This is the guaranteed path — even if ONE
+goes away tomorrow, the developer's agents keep working.
+
+**+ World — set `ONE_API_KEY`.** The scaffold flips on calls to
+`api.one.ie`. Signals route through shared highways. `mark()` and
+`warn()` deposit pheromone on the shared graph. `know()` promotes
+highways to hypotheses. The developer's personal group (`group:{uid}`,
+locked 2026-04-18) is their sovereign namespace inside our world.
+
+**+ Chain — mint a wallet.** One POST to `/api/auth/agent` derives a
+deterministic Sui wallet from `SUI_SEED || uid`. Now the agent can
+settle x402 payments on-chain, escrow value across deals (50 bps
+protocol fee), and expose its address for inbound payments. Wallet
+lives forever on Sui — we just hold the derivation seed.
+
+**+ Agents — invite and federate.** Two modes: (1) `oneie invite
+<agent-id>` into your group (their signals + yours, shared pheromone);
+(2) federation — two World-tier groups bridge via `path` with
+`bridge-kind = "federation"`, signals cross the boundary, revenue-shared
+on cross-world routes. See [groups.md § Bridge paths](groups.md).
+
+---
+
+## Sell, Buy, Invite — commerce as a first-class verb set
+
+Free release + optional connection creates a blank canvas. Commerce is
+what fills it. Three primitive verbs, three revenue hooks:
+
+```
+sell <capability> --price <amount>     # agent lists a capability on paths
+buy <capability> --from <agent>        # agent executes someone else's
+invite <agent|world> --into <group>    # agent joins a sovereign namespace
+```
+
+**Sell** — a capability is a skill + price. When another agent executes
+it, the payment flows through the Sui escrow. Fee: 50 bps to ONE's
+protocol wallet, 99.5% to the seller. The pheromone `mark()` on the
+path compounds the seller's reputation. See
+[buy-and-sell.md](buy-and-sell.md) § LIST / EXECUTE / SETTLE.
+
+**Buy** — an agent queries `/api/marketplace/discover?skill=x&tag=y`,
+picks a provider by price × pheromone strength, issues an `ask`. The
+gateway charges an x402 toll (per [revenue.md § Layer 1](revenue.md))
+on the routing itself; the provider gets paid on delivery. Failed
+delivery → `warn()`, toxic path, automatic refund.
+
+**Invite** — two kinds. (1) **Agent invite** into your personal group:
+adds a membership edge with a role; their pheromone now feeds your
+graph. (2) **World invite** (federation): a bridge path opens between
+two World-tier tenants; cross-world signals carry revenue share back
+to both treasuries. Invites compound the network; every accepted invite
+is a mini viral event that strengthens specific paths.
+
+**Why this is different from BaaS metering alone:**
+
+- Metering counts API calls. Commerce counts **value delivered**. The
+  former caps scale; the latter aligns our revenue with developer
+  revenue.
+- A standalone agent that never hits `api.one.ie` can still `sell` on
+  chain once connected — the seller doesn't need us to run their
+  handler, only to clear the settlement.
+- `invite` has no analogue in subscription SaaS. It's a growth loop
+  unique to the connection model: every invite is simultaneously a
+  route to more commerce and a vote of trust in the recipient.
 
 ---
 
@@ -155,22 +243,38 @@ onto the existing auth context; they don't rebuild identity.
 
 ## Who this is for
 
-### Firebase refugees
-"I need auth + DB + real-time for my app." ONE is the same shape — but
-for agents. 10K API calls/mo free, $29 for production, and a shared
-graph that makes every agent smarter over time.
+### Free-release adopters (standalone)
+"I want a working Astro + Telegram bot in ten minutes and I don't want
+to talk to anyone." `npx oneie` scaffolds the whole thing. Free forever.
+No API key. No `api.one.ie` calls. They own the repo, their CF account,
+their LLM bill, and their users. ONE earns nothing — and that's fine,
+because this is the top of the funnel.
+
+### World-connecters (opt-in routing)
+"My agents work but they don't learn. I want pheromone routing without
+rebuilding my stack." Set `ONE_API_KEY`; the existing scaffold starts
+calling `api.one.ie`. Free tier (L1-L3 loops). Usage metered. Graduates
+to Builder ($29/mo) when L4-L5 evolution + revenue-on-paths matter.
+
+### Chain-connecters (commerce)
+"I want my agents to sell services and settle on-chain." One POST to
+`/api/auth/agent` mints their wallet. `/api/marketplace/list` puts a
+capability on sale. `sell` events flow through the escrow (50 bps
+protocol fee). Revenue is theirs, settlement is ours, provenance is
+the graph's.
+
+### Agent-connecters (federation + invites)
+"I want my 11-agent marketing pod to discover and hire from a 25-agent
+school pod across tenant boundaries." World tier ($499/mo) or
+Enterprise (custom) opens federation. `oneie invite` or
+`POST /api/federation/connect` drops a bridge path. Cross-world signals
+earn revenue for both sides.
 
 ### Mobile + Python + Next.js builders
-"I'm not on Cloudflare and don't want to be." BaaS doesn't care.
-`npm install @oneie/sdk` on any platform. The SDK talks to `api.one.ie`
-over HTTPS. From iOS, Android, FastAPI, Next.js on Vercel, Django on
-Heroku — it all works the same.
-
-### Bot builders on CF Pages (the free compute path)
-"I want a Telegram bot but I don't want to pay for hosting." `npx oneie`
-scaffolds a Pages-compatible NanoClaw. Free 100K invocations/day. Free
-100 custom domains. Unlimited bandwidth. They pay $0 to Cloudflare and
-only ONE's gateway fee (often $0 on free tier).
+"I'm not on Cloudflare and don't want to be." Skip the scaffold, use
+the SDK directly. `npm install @oneie/sdk` on any platform; call the
+same 136 endpoints. Start standalone (SDK offline mode, mock client),
+connect when the commerce value is real.
 
 ### Agencies + consultants (Builder → Scale)
 "I run 10 client agents and I need revenue flowing on paths." Builder
@@ -186,7 +290,12 @@ route is already live.
 
 ---
 
-## Five tiers, one curve
+## Five tiers, one curve (subscription side)
+
+The tier curve is **one of two revenue streams**, and it only applies
+when a developer connects to our world (Layer 1+). Standalone (Layer 0)
+developers never touch it. For those who do connect, tiers gate the
+depth of the loop integration:
 
 ```
             FREE        BUILDER      SCALE        WORLD        ENTERPRISE
@@ -195,13 +304,15 @@ route is already live.
 Agents      5           25           200          1,000        Unlimited
 API calls   10K/mo      100K/mo      1M/mo        10M/mo       Unlimited
 Loops       L1-L3       + L4, L5     + L6, L7     + private    + federation
+Commerce    buy only    sell + buy   sell + buy   sell + buy   sell + buy
+Invites     —           —            invite       invite       federation
 Price       $0          $29/mo       $99/mo       $499/mo      Custom
 ```
 
-**The free tier is the demo.** L1-L3 runs the substrate: signals route,
-paths strengthen/weaken, decay forgets 2× faster than it remembers. A
-developer can build a production-quality agent and prove it works without
-paying anything.
+**The free tier is the demo for the world-connected path.** L1-L3 runs
+the substrate: signals route, paths strengthen/weaken, decay forgets 2×
+faster than it remembers. A developer can build a production-quality
+agent and prove it works without paying a cent.
 
 **L4+L5 is the hook.** Revenue flows along paths. Underperforming agents
 get their prompts rewritten automatically. The "my agents get better
@@ -219,22 +330,25 @@ See [pricing.md](pricing.md) for the full matrix.
 
 ## Three deployment paths, one pricing curve
 
-Developers choose how agents run. The pricing curve is the same for all three.
+Developers choose how agents run. The pricing curve above only applies
+when a path is **world-connected**. Standalone developers pay $0.
 
 ```
-Option 0 — BaaS (default)      Option 1 — CF Pages (free)    Option 2 — Managed (WfP)
-─────────────────────────      ──────────────────────         ───────────────────────
+Option 0 — Standalone (/release)   Option 1 — SDK-only (BaaS)    Option 2 — Managed (WfP)
+────────────────────────────────   ──────────────────────        ───────────────────────
 
-npm i @oneie/sdk               npx oneie                     oneie deploy --hosted
-const one = new Client(key)    wrangler pages deploy         ONE hosts everything
-Call from anywhere             100K/day free compute         $25/mo WfP base
-Developer owns hosting         Developer owns CF project     ONE owns the lot
-ONE cost/dev: ~$0              ONE cost/dev: ~$0             ONE cost/dev: $0–29
+npx oneie                          npm i @oneie/sdk              oneie deploy --hosted
+wrangler deploy                    const one = new Client(key)   ONE hosts everything
+Own CF, own LLM key                Call from anywhere            $25/mo WfP base
+Optional ONE_API_KEY later         Developer owns hosting        ONE owns the lot
+ONE cost/dev: $0                   ONE cost/dev: ~$0             ONE cost/dev: $0–29
 ```
 
-All three talk to `api.one.ie`. All three feed the same TypeDB. All three
-strengthen the same highways. The deployment choice is about where agent
-compute lives; it doesn't change what the developer pays ONE.
+Option 0 works **without** `api.one.ie`. Options 1 and 2 both talk to
+it. When Option 0 flips on `ONE_API_KEY` it becomes indistinguishable
+from Option 1 at runtime. Deployment choice is about where the agent's
+compute lives; the connection choice is about which of the four modes
+(standalone/world/chain/agents) the agent participates in.
 
 See [infra-models.md](infra-models.md) for the full architecture.
 
@@ -242,13 +356,16 @@ See [infra-models.md](infra-models.md) for the full architecture.
 
 ## The four-cycle rollout
 
-Each cycle delivers a complete developer experience. Cycle 1 is the
-minimum viable BaaS; subsequent cycles add graduation paths.
+Each cycle delivers a complete developer experience. Cycle 1 ships the
+**free release** plus the metering substrate; subsequent cycles layer
+on connection depth and commerce verbs.
 
-### Cycle 1 — WIRE: Meter the gateway
+### Cycle 1 — WIRE: Ship the free release + meter the gateway
 
-**Thesis:** before BaaS is a product, the gateway must know who each
-caller is and count what they consume. Everything else depends on this.
+**Thesis:** the release is the acquisition vector; metering is the
+commerce substrate. Both must ship together so a Layer 0 → Layer 1
+handoff is trivial: add `ONE_API_KEY`, the scaffold starts reporting
+usage, nothing else changes.
 
 - Extend `validateApiKey()` → `AuthContext` with `tier` (from the owning
   unit entity in TypeDB, cached alongside the key)
@@ -303,12 +420,20 @@ commands. Or `oneie deploy --hosted` for zero-infra developers.
 **Precondition:** our own `main` must be on Workers. (Done 2026-04-18
 per root CLAUDE.md — `dev.one.ie` serves the `one-substrate` Worker.)
 
-### Cycle 4 — SCALE: Custom domains + federation
+### Cycle 4 — SCALE: Commerce verbs + custom domains + federation
 
-**Thesis:** World and Enterprise tiers need private paths, branded
-domains, and cross-world routing. The existing tenant system bridges
-to the new pricing curve.
+**Thesis:** `sell`, `buy`, and `invite` become first-class CLI and SDK
+verbs. World and Enterprise tiers unlock private paths, branded domains,
+and cross-world routing. The existing tenant system bridges to the new
+pricing curve; the commerce verbs ride on the already-shipped Sui escrow
+(50 bps fee) and marketplace endpoints.
 
+- `oneie sell <skill> --price <amount>` — list capability on marketplace
+  (wraps `/api/marketplace/list`); pheromone + Sui escrow do the rest
+- `oneie buy <tag> [--from <agent>]` — discover + execute + settle; 50
+  bps protocol fee on successful delivery
+- `oneie invite <agent|world> --into <group>` — add membership or open
+  bridge path (`bridge-kind = "federation"`)
 - `oneie domain <hostname>` — CF for SaaS custom hostname, auto SSL
 - `/api/worlds/tenant` — bridge existing $499/$1999/$9999 tiers to the
   World ($499) / Enterprise (custom) pricing curve
@@ -372,45 +497,45 @@ requirements. It costs the developer the network. Most never choose it.
 
 ## What the developer does
 
-The sell fits on one screen. Two equivalent front doors — humans use
-BetterAuth (email + password), machines use the zero-friction agent
-endpoint:
+Four layers. Each works alone. Each is optional.
 
 ```bash
-# Path A — CLI / machine / absolute minimum (per auth.md § Agent Onboarding)
+# Layer 0 — Standalone release (day 0, $0, works forever offline)
+npx oneie                               # scaffold Astro + Claw + persona
+cd my-agent && bun install
+wrangler deploy                         # live Telegram bot on own CF account
+
+# Layer 1 — Connect to our world (opt-in routing + memory)
 curl -X POST https://api.one.ie/api/auth/agent -d '{}'
-# → { uid, wallet, apiKey, personalGid: "group:<uid>", role: "chairman",
-#     returning: false }
+# → { uid, wallet, apiKey, personalGid: "group:<uid>", role: "chairman" }
+echo "ONE_API_KEY=api_xxx" >> .env
+# scaffold auto-detects key: SDK calls start flowing to api.one.ie
 
-# Path B — Human signup (BetterAuth, for the dashboard + long-lived key)
-curl -X POST https://api.one.ie/api/auth/sign-up/email \
-  -d '{"email":"dev@example.com","password":"secure","name":"Dev"}'
-# → cookie session; first gated request lazy-binds a unit + personal group.
-# Mint a programmatic key:
-curl -X POST https://api.one.ie/api/auth/agent \
-  -H "Authorization: Bearer <session>" -d '{"uid":"<my-uid>"}'
-# → { apiKey, wallet, returning: true }
+# Layer 2 — Connect to chain (commerce verbs go live)
+oneie sell tutor:lesson --price 0.02    # list capability on the marketplace
+oneie buy math:tutor --tag algebra      # discover + execute + settle
+# x402 toll collected on routing; 50 bps on escrow settlement
 
-# Install from anywhere
+# Layer 3 — Connect to agents (federation + invites)
+oneie invite math:tutor --into group:my-school
+oneie federate --with group:their-world  # opens a bridge path
+# cross-world mark() earns revenue share for both tenants
+
+# Alternative — SDK only, skip the scaffold (any stack)
 npm install @oneie/sdk
-
-# Call from Next.js, Python, iOS, anywhere
 import { SubstrateClient } from '@oneie/sdk'
 const one = new SubstrateClient({ apiKey: 'api_xxx' })
-
 await one.ask({ receiver: 'tutor:lesson', data: { content: 'hello' } })
 await one.mark('entry→tutor', 2)
 const routes = await one.highways({ limit: 10 })
 ```
 
-Two steps. No Cloudflare account. No wrangler. No TypeDB. No
-deployment. The developer has a working agent backend, a deterministic
-Sui wallet, and a sovereign personal group.
-
-When they're ready to scale, they upgrade (`oneie upgrade --plan builder`).
-When they want a Telegram bot, they wire a webhook (`oneie claw tutor
---token $BOT --hosted` on Scale tier). When they outgrow BaaS, they
-`oneie init` and deploy Workers with the same API key.
+**Zero pressure to connect.** The standalone release is the acquisition
+vector. A developer who only ever runs Layer 0 is still doing ONE a
+favor — they're advertising the template. A developer who reaches
+Layer 3 is doing commerce on our graph, and paying us per transaction
+rather than per seat. Two paid revenue streams (tiered subscription +
+transaction fees) coexist; neither gates the release.
 
 ---
 
@@ -470,10 +595,14 @@ marketed, the graph is already producing value.
 | Memory routes (reveal/forget/frontier) | ✅ shipped 2026-04-18 | `/api/memory/*` |
 | Governance (role × pheromone) | ✅ shipped 2026-04-18 | `src/lib/role-check.ts` |
 | D1 up to escrow | ✅ shipped | `migrations/0014_escrow_settlement.sql` |
+| Marketplace LIST / DISCOVER / EXECUTE / SETTLE | ✅ shipped | `/api/marketplace/*`, `buy-and-sell.md` |
+| `/release` script → `/releases` staging | ✅ shipped | `scripts/release.ts`, `release.md` |
+| `npx oneie` scaffold (Astro + Claw, standalone) | ⏳ Cycle 1 | `packages/cli/` init path |
 | Tier-aware auth context | ⏳ Cycle 1 | `src/lib/api-auth.ts` extension |
 | Meter table | ⏳ Cycle 1 | `migrations/0015_metering.sql` |
 | Dashboard + Stripe | ⏳ Cycle 2 | `src/pages/dashboard.astro` |
-| Workers template scaffold | ⏳ Cycle 3 | `packages/templates/` |
+| Workers template scaffold (for connected path) | ⏳ Cycle 3 | `packages/templates/` |
+| `oneie sell` / `buy` / `invite` CLI verbs | ⏳ Cycle 4 | `packages/cli/src/commands/` |
 | Custom domains + federation | ⏳ Cycle 4 | CF for SaaS + `/api/federation/*` |
 
 **The gap between today and Cycle 1 complete is small** — perhaps 9
@@ -500,7 +629,9 @@ Read this doc before planning. Read the TODO when building.
 
 ## See Also
 
-- [platform-baas-todo.md](platform-baas-todo.md) — 4 cycles, 31 tasks, waves + rubric
+- [release.md](release.md) — `/release` → `/releases/` bundle (agents + docs + sdk + mcp + .claude + web)
+- [buy-and-sell.md](buy-and-sell.md) — LIST / DISCOVER / EXECUTE / SETTLE mechanics for commerce verbs
+- [platform-baas-todo.md](platform-baas-todo.md) — 4 cycles, 32 tasks, waves + rubric
 - [auth.md](auth.md) — identity, API keys, wallets, BetterAuth + agent onboarding, governance
 - [groups.md](groups.md) — multi-tenancy, personal + world + org hierarchy, RBAC+ABAC+ReBAC
 - [groups-todo.md](groups-todo.md) — personal group auto-create + schema additions (PROPOSED)
@@ -515,5 +646,7 @@ Read this doc before planning. Read the TODO when building.
 
 ---
 
-*ONE is the backend. The graph is the product. The 136 endpoints are
-the API. BaaS is just the packaging.*
+*ONE is free to release, optional to connect, priced on commerce.
+The scaffold is the acquisition vector. The graph is the moat. The
+136 endpoints are the surface. Transactions — sell, buy, invite —
+are the revenue signal.*

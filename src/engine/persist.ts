@@ -147,7 +147,7 @@ export const world = (): PersistentWorld => {
     // Broadcast pheromone change to connected TaskBoard clients (task edges only)
     const taskMatch = to.trim().match(/^builder:(.+)$/)
     if (taskMatch?.[1]) {
-      const markMsg = { type: 'mark' as const, taskId: taskMatch[1], strength: net.sense(edge), timestamp: Date.now() }
+      const markMsg = { type: 'mark' as const, tid: taskMatch[1], strength: net.sense(edge) }
       wsManager.broadcast(markMsg)
       relayToGateway(markMsg) // reach production WS clients via Gateway
     }
@@ -181,12 +181,7 @@ export const world = (): PersistentWorld => {
     // Broadcast pheromone change to connected TaskBoard clients (task edges only)
     const taskMatch = to.trim().match(/^builder:(.+)$/)
     if (taskMatch?.[1]) {
-      const warnMsg = {
-        type: 'warn' as const,
-        taskId: taskMatch[1],
-        resistance: net.danger(edge),
-        timestamp: Date.now(),
-      }
+      const warnMsg = { type: 'warn' as const, tid: taskMatch[1], resistance: net.danger(edge) }
       wsManager.broadcast(warnMsg)
       relayToGateway(warnMsg) // reach production WS clients via Gateway
     }

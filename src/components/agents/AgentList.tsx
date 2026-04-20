@@ -1,69 +1,37 @@
 /**
  * AgentList — Filterable agent directory organized by group clusters
  *
- * Fetches all agents from /api/agents/list.
+ * Fetches all agents via SDK useAgentList hook.
  * Tag pills filter across groups. Click a card → /agents/[id].
  * Uses shadcn Card/Badge from /design system.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { AgentSummary, ListAgentsResponse } from '@oneie/sdk'
+import { useAgentList } from '@oneie/sdk/react'
+import { useMemo, useState } from 'react'
+import { SdkProvider } from '@/components/providers/SdkProvider'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
 
-interface Skill {
-  name: string
-  price: number
-  tags: string[]
-}
-
-interface AgentSummary {
-  id: string
-  name: string
-  group: string
-  model: string
-  tags: string[]
-  skills: Skill[]
-  channels: string[]
-  sensitivity: number
-  promptPreview: string
-}
-
-interface ListResponse {
-  agents: AgentSummary[]
-  groups: Record<string, AgentSummary[]>
-  tags: string[]
-  count: number
-}
-
-const FALLBACK: ListResponse = { agents: [], groups: {}, tags: [], count: 0 }
+const FALLBACK: ListAgentsResponse = { agents: [], groups: {}, tags: [], count: 0 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export function AgentList() {
-  const [data, setData] = useState<ListResponse>(FALLBACK)
+  return (
+    <SdkProvider>
+      <AgentListInner />
+    </SdkProvider>
+  )
+}
+
+function AgentListInner() {
+  const { data: rawData, loading } = useAgentList()
+  const data = rawData ?? FALLBACK
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
-
-  const fetchAgents = useCallback(async () => {
-    try {
-      const res = await fetch('/api/agents/list', { signal: AbortSignal.timeout(10000) })
-      if (res.ok) {
-        const json = (await res.json()) as ListResponse
-        if (json.agents?.length) setData(json)
-      }
-    } catch {
-      // Fallback stays
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchAgents()
-  }, [fetchAgents])
 
   const filtered = useMemo(() => {
     return data.agents.filter((a) => {

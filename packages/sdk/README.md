@@ -136,10 +136,12 @@ const reg = await client.register("marketing:alice", {
 ### Pay
 
 ```typescript
-// Send a payment between agents
-const payment = await client.pay("marketing:alice", "tutor:alice", "task-123", 0.05);
+// Send a payment between agents (legacy weight-rail API)
+const payment = await client.payWeight("marketing:alice", "tutor:alice", "task-123", 0.05);
 // { ok, from, to, task, amount, sui: string | null }
 // sui is null for off-chain fast-path, a digest for on-chain
+
+// Note: `client.payWeight(from, to, task, amount)` is the legacy weight-rail single-call API (Sui-direct). For card/crypto rails that flow through `pay.one.ie`, use the `client.pay.accept` / `client.pay.request` / `client.pay.status` namespace.
 ```
 
 ### Claw (Edge Deployment)
@@ -348,3 +350,28 @@ const client = createMockSubstrate({
 const result = await client.highways();
 // result.highways[0].path === "a→b"
 ```
+
+---
+
+## Pay
+
+Three verbs for agent-to-agent payments:
+
+```typescript
+const { linkUrl, qr, intent } = await sdk.pay.accept({
+  skill: "my-skill",
+  price: 25,
+  rail: "card" | "crypto" | "auto",
+  memo: "optional note"
+})
+
+const { linkUrl, status } = await sdk.pay.request({
+  to: "seller-uid",
+  amount: 10,
+  memo: "invoice #1"
+})
+
+const { status, ref, amount, rail } = await sdk.pay.status(ref)
+```
+
+Each call emits `toolkit:sdk:pay:<method>` telemetry. Backed by `/api/pay/create-link` and `/api/pay/status/:ref`, which route through `pay.one.ie` (crypto) or Stripe (card). ADL gates apply on the server side. See [one/pay-todo.md](../../one/pay-todo.md).

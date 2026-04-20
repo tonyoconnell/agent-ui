@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { sdk } from '@/lib/sdk'
 
 type SkillRow = { skillId: string; name?: string; price?: number; tags?: string[] }
 
@@ -34,11 +35,8 @@ export function ThingsTable({ groupId: _groupId, onSelect }: Props) {
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetch('/api/export/skills')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json() as Promise<unknown>
-      })
+    sdk
+      .exportData('skills')
       .then((data) => {
         if (!cancelled) {
           setRows(parseSkillRows(data))

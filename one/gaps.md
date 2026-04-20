@@ -9,7 +9,7 @@
 | Layer | Lines | Status |
 |-------|-------|--------|
 | **Substrate** (src/engine/) | 957 | Fully implemented — colony, unit, signals, pheromones |
-| **TypeQL Schemas** (src/schema/) | 1,606 | Production-quality — 6 dimensions, inference rules, metaphors |
+| **TypeQL Schemas** (src/schema/) | 1,606 | Production-quality — 6 dimensions, classifier functions, metaphors |
 | **Inference Patterns** (packages/) | 4,157 | Reference library — biology-grounded, 6 lessons |
 | **UI Components** (src/components/) | 4,660 | Polished — graph editor, metaphor switching, world view |
 | **Move Contract** (src/move/) | 335 | Complete — Unit, World, Signal, Path, Highway on Sui |

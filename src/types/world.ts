@@ -10,6 +10,8 @@
  *   6. Knowledge — hypotheses, frontiers, objectives
  */
 
+import type { Task } from './task'
+
 // =============================================================================
 // DIMENSION 1: GROUPS
 // =============================================================================
@@ -51,7 +53,7 @@ export interface Unit {
 
 export type TaskType = 'work' | 'explore' | 'validate' | 'build' | 'inference' | 'analysis' | 'data' | 'compute'
 
-export type TaskStatus = 'todo' | 'in_progress' | 'complete' | 'blocked' | 'failed'
+export type { TaskStatus } from '@/types/task'
 export type Priority = 'P0' | 'P1' | 'P2' | 'P3'
 export type Phase = 'wire' | 'tasks' | 'onboard' | 'commerce' | 'intelligence' | 'scale'
 
@@ -80,8 +82,8 @@ export interface Edge {
 export interface Trail {
   sourceTask: string // tid
   destinationTask: string // tid
-  trailPheromone: number // 0–100 (drop on success)
-  resistancePheromone: number // 0–100 (resistance on failure)
+  strength: number // strength (mark() deposits)
+  resistance: number // resistance (warn() deposits)
   completions: number
   failures: number
   revenue: number // x402 revenue from this task sequence

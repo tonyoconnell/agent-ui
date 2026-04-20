@@ -252,9 +252,9 @@ TypeDB is the single source of truth. Everything flows from the graph.
 
 **Control**: AI SDK `streamText()` with substrate tools drives LLM agents directly. Hermes agents self-direct but read substrate state. OpenClaw agents receive signals via API.
 
-**Record**: Every action flows back into TypeDB as signals. Pheromone trails form. Inference rules classify.
+**Record**: Every action flows back into TypeDB as signals. Pheromone trails form. Classifier functions derive tiers.
 
-**Infer**: TypeDB rules fire automatically — highways emerge, units get classified, tasks become attractive or repelled. This feeds back into the next generation cycle.
+**Infer**: TypeDB classifier functions evaluate on query (or pipelines materialize on a schedule) — highways emerge, units get classified, tasks become attractive or repelled. This feeds back into the next generation cycle.
 
 The loop is closed for ALL agent types. TypeDB doesn't know or care what generated the signal.
 

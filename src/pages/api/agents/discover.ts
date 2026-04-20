@@ -92,19 +92,20 @@ export const GET: APIRoute = async ({ url }) => {
       if (u) unitByUid[u] = r
     }
 
-    const rows = pairs.map((p) => ({
-      uid: p.uid,
-      sid: p.sid,
-      sn: skillNameById[p.sid as string] || p.sid,
-      p: skillPriceById[p.sid as string] ?? 0,
-      ...(unitByUid[p.uid as string] || {
-        n: p.uid,
-        k: 'agent',
-        rep: 0,
-        sr: 0.5,
-        activity: 0,
-      }),
-    }))
+    const rows = pairs.map((p) => {
+      const unit = unitByUid[p.uid as string] || {}
+      return {
+        uid: p.uid as string,
+        sid: p.sid as string,
+        sn: skillNameById[p.sid as string] || (p.sid as string),
+        p: skillPriceById[p.sid as string] ?? 0,
+        n: (unit.n as string) ?? (p.uid as string),
+        k: (unit.k as string) ?? 'agent',
+        rep: (unit.rep as number) ?? 0,
+        sr: (unit.sr as number) ?? 0.5,
+        activity: (unit.activity as number) ?? 0,
+      }
+    })
 
     if (rows.length === 0) {
       return new Response(

@@ -52,6 +52,24 @@ export const POST: APIRoute = async ({ request }) => {
       return Response.json({ error: 'uid required' }, { status: 400 })
     }
 
+    // Gate stage-9: validate capability scope BEFORE any side effects
+    if (Array.isArray(body.capabilities)) {
+      for (const cap of body.capabilities as Array<Record<string, unknown>>) {
+        const scope = cap.scope as string | undefined
+        if (scope === 'private') {
+          return Response.json(
+            {
+              error: 'capability scope cannot be private — capabilities must be discoverable',
+              gate: 'stage-9',
+              valid: ['group', 'public'],
+            },
+            { status: 400 },
+          )
+        }
+        if (!scope) cap.scope = 'group'
+      }
+    }
+
     const net = world()
     const kind = body.kind || 'agent'
 

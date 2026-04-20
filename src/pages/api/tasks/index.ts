@@ -41,42 +41,40 @@ export const GET: APIRoute = async ({ url }) => {
       filtered = filtered.filter((t) => filterTags.every((tag) => t.tags.includes(tag)))
     }
     if (phase) {
-      filtered = filtered.filter((t) => t.phase === phase)
+      filtered = filtered.filter((t) => t.task_wave === phase)
     }
     if (value) {
-      filtered = filtered.filter((t) => t.value === value)
+      const valueNum = value === 'critical' ? 0.95 : value === 'high' ? 0.75 : value === 'medium' ? 0.55 : 0.25
+      filtered = filtered.filter((t) => t.task_value === valueNum)
     }
 
     const net = await getNet()
 
     const result = filtered
-      .filter((t) => t.status !== 'in_progress' && t.status !== 'active')
+      .filter((t) => (t.task_status as string) !== 'picked')
       .map((t) => {
-        const repelled = t.alarmPheromone >= 30 && t.alarmPheromone > t.trailPheromone
-        const attractive = t.trailPheromone >= 50
-        const exploratory = t.trailPheromone === 0 && t.alarmPheromone === 0
+        const repelled = t.resistance >= 30 && t.resistance > t.strength
+        const attractive = t.strength >= 50
+        const exploratory = t.strength === 0 && t.resistance === 0
         const category = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
-        const taskAny = t as unknown as Record<string, unknown>
         return {
           tid: t.tid,
           name: t.name,
-          status: normalizeStatus(t.status),
-          priority: t.priority,
-          phase: t.phase,
-          value: t.value,
-          persona: t.persona,
+          task_status: t.task_status,
+          task_priority: t.task_priority,
+          task_wave: t.task_wave,
+          task_value: t.task_value,
           tags: t.tags,
-          blockedBy: t.blockedBy,
+          blocked_by: t.blocked_by,
           blocks: t.blocks,
-          trailPheromone: t.trailPheromone,
-          alarmPheromone: t.alarmPheromone,
+          strength: t.strength,
+          resistance: t.resistance,
           category,
           attractive,
           repelled,
-          strength: net.sense(`loop→builder:${t.tid}`) || 0,
-          resistance: net.danger(`loop→builder:${t.tid}`) || 0,
-          wave: (taskAny.wave as string | undefined) || 'W3',
-          context: (taskAny.context as string[] | undefined) || [],
+          netStrength: net.sense(`loop→builder:${t.tid}`) || 0,
+          netResistance: net.danger(`loop→builder:${t.tid}`) || 0,
+          wave: t.task_wave || 'W3',
         }
       })
 
@@ -280,19 +278,16 @@ export const POST: APIRoute = async ({ request }) => {
   const priority = priorityTag || (score >= 90 ? 'P0' : score >= 70 ? 'P1' : score >= 50 ? 'P2' : 'P3')
 
   // Write to local store (always works, fast)
+  // Convert value string to numeric task_value
+  const taskValueNum = value === 'critical' ? 0.95 : value === 'high' ? 0.75 : value === 'medium' ? 0.55 : 0.25
   store.createTask({
     tid: body.id,
     name: body.name,
-    status: 'todo',
-    priority,
-    phase,
-    value,
-    persona,
+    task_wave: phase as store.ProjectTask['task_wave'],
+    task_value: taskValueNum,
     tags,
-    blockedBy: [],
+    blocked_by: [],
     blocks,
-    trailPheromone: 0,
-    alarmPheromone: 0,
   })
 
   const tagInserts = tags.map((t) => `has tag "${t}"`).join(', ')
@@ -318,8 +313,6 @@ export const POST: APIRoute = async ({ request }) => {
 
   // DUAL-WRITE: new canonical `thing` entity (backward-compat parallel insert)
   const taskPriorityNum = priorityFromLabel(priority as 'P0' | 'P1' | 'P2' | 'P3')
-  const taskValueNum =
-    body.value === 'critical' ? 0.95 : body.value === 'high' ? 0.75 : body.value === 'medium' ? 0.55 : 0.25
   await writeSilent(`
     insert $tnew isa thing,
       has thing-id "${esc(body.id)}",

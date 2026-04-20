@@ -11,4 +11,7 @@ export { emit as telemetryEmit, isDisabled as isTelemetryDisabled, sessionId } f
 export * from "./errors.js";
 export * from "./schemas.js";
 
-export const SDK_VERSION = "0.2.0";
+export * from "./pay.js";
+
+import pkg from '../package.json' with { type: 'json' }
+export const SDK_VERSION: string = (pkg as { version: string }).version

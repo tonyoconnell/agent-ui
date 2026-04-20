@@ -251,5 +251,64 @@ export function commerceTools(): McpTool[] {
           body: JSON.stringify({ uid: args.uid, from: args.from, to: args.to }),
         }),
     },
+    // ── Pay tools (ported from pay-plan.md section 5 on 2026-04-20) ──────────
+    {
+      name: "pay_create_link",
+      description: "Create a payment link for a unit on any rail (card, crypto, or weight). Returns a linkUrl and optional QR code URL.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient unit uid" },
+          rail: { type: "string", enum: ["card", "crypto", "weight"], description: "Payment rail" },
+          amount: { type: "number", description: "Amount in major currency unit (e.g. 29.99)" },
+          sku: { type: "string", description: "Optional product SKU or task ref" },
+          from: { type: "string", description: "Sender uid (optional)" },
+          currency: { type: "string", description: "Currency code (default usd)" },
+          memo: { type: "string", description: "Optional memo / description" },
+        },
+        required: ["to", "rail", "amount"],
+      },
+      handler: async (args, env) =>
+        apiCall(env.baseUrl, env.apiKey, "/api/pay/create-link", {
+          method: "POST",
+          body: JSON.stringify({
+            to: args.to,
+            rail: args.rail,
+            amount: args.amount,
+            sku: args.sku,
+            from: args.from,
+            currency: args.currency,
+            memo: args.memo,
+          }),
+        }),
+    },
+    {
+      name: "pay_check_status",
+      description: "Check the status of a payment by ref (pi_ for Stripe, 0x for Sui digest, sl_ for pay.one.ie shortlink).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          ref: { type: "string", description: "Payment ref (pi_..., 0x..., or sl_...)" },
+        },
+        required: ["ref"],
+      },
+      handler: async (args, env) =>
+        apiCall(env.baseUrl, env.apiKey, `/api/pay/status/${encodeURIComponent(args.ref as string)}`),
+    },
+    {
+      name: "pay_cancel",
+      description: "Cancel a pending payment by ref. Only supported for Stripe PaymentIntents (pi_ prefix).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          ref: { type: "string", description: "Stripe PaymentIntent id (pi_...)" },
+        },
+        required: ["ref"],
+      },
+      handler: async (args, env) =>
+        apiCall(env.baseUrl, env.apiKey, `/api/pay/status/${encodeURIComponent(args.ref as string)}`, {
+          method: "DELETE",
+        }),
+    },
   ];
 }

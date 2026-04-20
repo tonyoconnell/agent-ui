@@ -14,7 +14,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Task } from '@/engine/task-parse'
+import type { ParsedTask } from '@/engine/task-parse'
 
 // ── Mock TypeDB — isolate task-sync.ts from the database ────────────────────
 // All reads return empty by default. Individual tests override readParsed
@@ -63,7 +63,7 @@ describe('sync-guard: preserve owner on claimed task', () => {
     ])
 
     // Task parsed from TODO file (maybe values changed, but we don't care — it's claimed)
-    const task: Task = {
+    const task: ParsedTask = {
       id: 't-sync-guard-1',
       name: 'Sync Guard Test Task',
       done: false,
@@ -101,7 +101,7 @@ describe('sync-guard: preserve owner on claimed task', () => {
     // Setup: T2 does NOT exist in TypeDB
     vi.mocked(readParsed).mockResolvedValueOnce([]) // no existing tasks
 
-    const task: Task = {
+    const task: ParsedTask = {
       id: 't-sync-guard-2-new',
       name: 'New Open Task',
       done: false,
@@ -139,7 +139,7 @@ describe('sync-guard: preserve owner on claimed task', () => {
     // Simulate TypeDB returning the task ID (indicating it's already there)
     vi.mocked(readParsed).mockResolvedValueOnce([{ id: 't-sync-guard-3-claimed' }])
 
-    const task: Task = {
+    const task: ParsedTask = {
       id: 't-sync-guard-3-claimed',
       name: 'Claimed Task with History',
       done: false,
@@ -180,7 +180,7 @@ describe('sync-guard: preserve owner on claimed task', () => {
       { id: 't-sync-guard-claimed' }, // existing, claimed
     ])
 
-    const tasks: Task[] = [
+    const tasks: ParsedTask[] = [
       {
         id: 't-sync-guard-claimed',
         name: 'Already Claimed',

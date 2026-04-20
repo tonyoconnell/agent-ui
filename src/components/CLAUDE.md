@@ -34,7 +34,17 @@ components/
   onboard/              # Onboarding (AgentBuilder, DiscoverGrid, SignupForm)
   ai/                   # Chat, elements, tool calls
   ui/                   # shadcn primitives
+  pay/                  # Payment UI — C3 port from ../ONE/web (see one/pay-plan.md, one/pay-todo.md)
+    card/               # Stripe Elements: StripeProvider / StripeCheckoutForm / StripeCheckoutWrapper / OneClickPayments
+                        # Ported from ../ONE/web/src/components/ecommerce
+    crypto/             # Sui/crypto accept: CryptoAcceptAddress / CryptoPaymentLink
+                        # Ported from ontology-ui/crypto/payments; wired to pay.one.ie via PayService
+    chat/               # Conversational checkout: BuyInChat / BuyInChatEnhanced / AddressForm /
+                        # PaymentProcessor / PurchaseIntent / OrderSummary / OrderConfirmation / ShippingOptions
+                        # Ported from shop/buy-in-chatgpt, renamed BuyInChatGPT* → BuyInChat*
 ```
+
+**Pay component rule:** every onClick in `pay/` must emit `ui:pay:<action>` via `emitClick()` per `.claude/rules/ui.md`. Ported components conform to this rule.
 
 ## Patterns
 
@@ -55,7 +65,30 @@ import { cn } from "@/lib/utils"
 
 Dark theme: `bg-[#0a0a0f]`, `bg-[#161622]`, `border-[#252538]`, `text-slate-400`
 
-### Substrate Integration
+### SDK Hooks (Preferred for Data Fetching)
+```tsx
+import { useAgentList, useHighways, useStats } from '@oneie/sdk/react'
+import { SdkProvider } from '@/components/providers/SdkProvider'
+
+// Wrap component in SdkProvider for hook access
+export function MyComponent() {
+  return <SdkProvider><MyComponentInner /></SdkProvider>
+}
+
+function MyComponentInner() {
+  const { data, loading, error, refetch } = useAgentList()
+  const { data: highways } = useHighways(10)
+  // ... render with data
+}
+```
+
+**Available hooks:** `useAgent(uid)`, `useAgentList()`, `useDiscover(skill)`, `useHighways(limit)`, `useStats()`, `useHealth()`, `useRevenue()`, `useRecall(status?)`
+
+**When to use SDK vs direct fetch:**
+- SDK hooks → request/response patterns (agents, highways, stats)
+- WebSocket hooks → real-time streams (tasks, signals)
+
+### Substrate Integration (Direct Engine Access)
 ```tsx
 import { world } from "@/engine"
 import type { World, Edge } from "@/engine"

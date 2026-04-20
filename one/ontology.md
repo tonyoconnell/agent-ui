@@ -381,7 +381,7 @@ Change the schema, change the behavior.
 
 ## See Also
 
-- [flows.md](flows.md) — How inference rules drive path formation and knowledge
+- [flows.md](flows.md) — How classifier functions drive path formation and knowledge
 - [one-ontology.md](one-ontology.md) — Biological grounding of the six dimensions
 - [substrate-learning.md](substrate-learning.md) — Ontology as reinforcement learning
 - [typedb.md](typedb.md) — TypeDB 3.0 schema and inference functions

@@ -1,8 +1,10 @@
-# LIFECYCLE.md - State Machines via Inference
+# LIFECYCLE.md - State Machines via Classifier Functions
 
-All lifecycles in the colony are state machines where **transitions
-happen via inference rules**. No manual state updates. The database
-infers the next state when conditions are met.
+All lifecycles in the colony are state machines where **transitions are
+guarded by classifier functions and materialized by explicit pipelines**.
+Classifier functions (`fun`) evaluate on query. Pipelines (`match ... update ...`)
+materialize state transitions on a schedule or on demand. In TypeDB 3.x
+there is no auto-firing rule engine — state changes are always explicit.
 
 ---
 
@@ -513,8 +515,8 @@ fun urgent_objectives() -> { autonomous-objective }:
 All lifecycles follow the same pattern:
 
 1. **States are attribute values** (status, trail-status, etc.)
-2. **Transitions are inference rules** (when conditions match)
-3. **No manual updates** - the database infers the next state
+2. **Transitions are classifier functions + pipelines** — a `fun` tests whether a transition is valid, a `match ... update ...` pipeline materializes it
+3. **Updates are explicit** — the database classifies via `fun`, the application fires the transition pipeline
 4. **Conditions are numeric thresholds** - tunable per domain
 
 ```

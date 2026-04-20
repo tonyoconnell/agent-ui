@@ -104,6 +104,14 @@ Or point at production:
 | `list_agents` | List all available agent presets |
 | `get_agent` | Get a preset by name |
 
+### Pay tools
+
+- `pay_create_link` — create a shareable payment link for an agent skill. Args: `{ to, amount, rail: "card"|"crypto"|"auto", memo?, sku? }` → `{ linkUrl, qr?, intent? }`. Flows through `persist.signal()` so ADL PEP gates apply.
+- `pay_check_status` — check status of a payment by ref. Args: `{ ref: "pi_... | 0x... | sl_..." }` → `{ status, ref, amount?, rail? }`.
+- `pay_cancel` — cancel a pending payment. Args: `{ ref }` → null on success.
+
+See [one/pay-todo.md](../../one/pay-todo.md) and [one/pay-plan.md](../../one/pay-plan.md).
+
 ### Lifecycle
 
 | Tool | Loop | What |

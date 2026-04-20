@@ -248,7 +248,7 @@ Three castes, like ant colonies:
 │  ────────────────────────────                                        │
 │  • Analyze strength graph for proto-group patterns                      │
 │  • Propose new ontological types                                     │
-│  • Write new TypeDB inference rules                                  │
+│  • Write new TypeDB classifier functions                             │
 │  • Run dream state analysis (Spark 7)                                │
 │  • Design economic parameters for nested economies                   │
 │  • Reason about BOTH fires — the only agents that do                 │
@@ -350,7 +350,7 @@ Three castes, like ant colonies:
 
 ### Phase 5: The Ouroboros
 - [ ] Opus proposes ontology extensions
-- [ ] TypeDB validates against meta-rules
+- [ ] TypeDB validates against classifier functions
 - [ ] Ontology grows from agent behavior
 - [ ] New capabilities enable new proposals
 - [ ] Recursive self-improvement

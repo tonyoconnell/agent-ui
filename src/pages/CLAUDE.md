@@ -32,6 +32,10 @@
 | `settings/keys.astro` | `/settings/keys` | `KeysSettings` | `client:load` |
 | `app/[groupId]/index.astro` | `/app/[groupId]` | `AppGroup` | `client:load` |
 | `[groupId]/index.astro` | `/[groupId]` | `GroupHome` | `client:load` |
+| `pay/[skillId].astro` | `/pay/[skillId]` | `PayPage` (Sui dapp-kit) | `client:only` |
+| `pay/card/[skillId].astro` | `/pay/card/[skillId]` | `StripeCheckoutWrapper` | `client:only` |
+| `pay/crypto/[skillId].astro` | `/pay/crypto/[skillId]` | `CryptoAcceptAddress` + `CryptoPaymentLink` | `client:only` |
+| `pay/chat/[skillId].astro` | `/pay/chat/[skillId]` | `BuyInChatEnhanced` | `client:only` |
 
 ## Substrate Learning
 

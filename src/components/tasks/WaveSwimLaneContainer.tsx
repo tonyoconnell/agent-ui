@@ -1,10 +1,10 @@
 import { KanbanBoard } from './KanbanBoard'
-import type { Task } from './types'
+import type { ColumnKey, Task } from './types'
 import { WAVES, type WaveKey, waveForTask } from './types'
 
 type Props = {
   tasks: Task[]
-  onMove: (tid: string, targetColumn: string) => void
+  onMove: (tid: string, targetColumn: ColumnKey) => void
   onSelect?: (tid: string) => void
 }
 

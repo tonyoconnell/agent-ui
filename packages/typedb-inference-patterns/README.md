@@ -141,7 +141,7 @@ TICK 3: Hypothesis (L3)
 ────────────────────────
 agent-001 has hypothesis: "Task X will succeed"
 observations_count: 5 → status: "pending"
-observations_count: 15 → RULE FIRES → status: "testing"
+observations_count: 15 → CLASSIFIER matches → pipeline updates status: "testing"
 
 TICK 4: Task Allocation (L4)
 ─────────────────────────────
@@ -176,7 +176,7 @@ CURIOSITY SIGNAL: "gap_detected" (task-D has no trail)
 
 FRONTIER: "task-D area" detected
 → expected_value = 0.6 (high potential, low cost)
-→ RULE FIRES: spawn exploration objective
+→ PIPELINE FIRES: spawn exploration objective (classifier-guarded match ... insert)
 
 NEW OBJECTIVE SPAWNED: "explore-task-D"
 

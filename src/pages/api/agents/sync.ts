@@ -13,11 +13,11 @@
 
 import type { APIRoute } from 'astro'
 import { type AgentSpec, parse, syncAgentWithIdentity, syncWorld, toTypeDB, type WorldSpec } from '@/engine/agent-md'
-import { validateApiKey } from '@/lib/api-auth'
 
 export const POST: APIRoute = async ({ request }) => {
-  // Validate API key if provided (optional for now, can be required later)
-  const _auth = await validateApiKey(request)
+  const { requireRole } = await import('@/lib/api-auth')
+  const gate = await requireRole(request, 'add_unit', { gate: 'stage-4' })
+  if (!gate.ok) return gate.res
   try {
     const body = (await request.json()) as any
 

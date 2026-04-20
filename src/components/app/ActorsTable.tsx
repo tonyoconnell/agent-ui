@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { sdk } from '@/lib/sdk'
 
 type UnitRow = {
   uid: string
@@ -55,9 +56,7 @@ export function ActorsTable({ groupId: _groupId, onSelect }: Props) {
 
     async function load() {
       try {
-        const res = await fetch('/api/export/units')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const raw = (await res.json()) as unknown
+        const raw = await sdk.exportData('units')
         if (!cancelled) {
           setRows(parseRows(raw))
           setLoading(false)

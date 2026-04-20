@@ -1311,17 +1311,20 @@ emits a signal with `data.tags` including the canonical tag below. See [lifecycl
 
 | Tag              | Stage         | Writes to                                    |
 |------------------|---------------|----------------------------------------------|
-| `stage:wallet`   | 0 — identity     | `actor.wallet` derived                    |
-| `stage:key`      | 1 — save key     | `actor.auth-hash` or device credential    |
-| `stage:signin`   | 2 — sign in      | `signal` receiver=`auth:signin`           |
-| `stage:join`     | 3 — join board   | `membership` + `signal` → ceo             |
-| `stage:team`     | 4 — create team  | `group` + `actor` inserts                 |
-| `stage:deploy`   | 5 — deploy       | `capability` relation                     |
-| `stage:discover` | 6 — discover     | `signal` receiver=`discover:<tag>`        |
-| `stage:message`  | 7 — first signal | `signal` with `data`                      |
-| `stage:converse` | 8 — converse     | N signals → `path.strength` accumulates   |
-| `stage:sell`     | 9 — sell         | `signal` + `amount > 0` + `mark`          |
-| `stage:buy`      | 10 — buy         | mirror of 9, other direction              |
+| `stage:wallet`    | 0 — identity        | `actor.wallet` derived                                                                     |
+| `stage:key`       | 1 — save key        | `actor.auth-hash` or device credential                                                     |
+| `stage:signin`    | 2 — sign in         | `signal` receiver=`auth:signin`                                                            |
+| `stage:personal`  | 3 — personal group  | `group(type:personal, visibility:private)` + `membership(role:chairman)` + (for agents) `actor.owner`. **Private by default.** Opting into any world is a separate, later act. |
+| `stage:team`      | 4 — create team     | `group` + `actor` inserts (agents into personal group or an org/sub-group)                 |
+| `stage:deploy`    | 5 — deploy          | `capability` relation                                                                      |
+| `stage:discover`  | 6 — discover        | `signal` receiver=`discover:<tag>` (scope follows the caller's group)                      |
+| `stage:message`   | 7 — first signal    | `signal` with `data`                                                                       |
+| `stage:converse`  | 8 — converse        | N signals → `path.strength` accumulates                                                    |
+| `stage:sell`      | 9 — sell            | `signal` + `amount > 0` + `mark`                                                           |
+| `stage:buy`       | 10 — buy            | mirror of 9, other direction                                                               |
+| `stage:advocate`  | 11 — advocate       | `hypothesis(source:observed)` + Layer-2 referral routing                                   |
+| `stage:subscribe` | 12 — subscribe      | reverse edge `tag → agent` — `scope: private` (closed network) OR `scope: public` (world aperture). **The aperture is this stage.** |
+| `stage:invite`    | 13 — invite         | referral `signal` + new `actor` + initial paths (inviter earns 0.1× on invitee's tag edges) |
 
 Aggregate consumption is an application-code scan of `signal.data` — TypeDB's JSON-string
 `data` attribute means queries look like "filter signals by sender, then JS-side check

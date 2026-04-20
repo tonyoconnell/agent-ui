@@ -549,7 +549,7 @@ src/
 
 | Source | Provides | Consumers |
 |--------|----------|-----------|
-| `one.tql` | Schema, inference rules | TypeDB |
+| `one.tql` | Schema, classifier functions | TypeDB |
 | `skins.tql` | Universal functions | Query layer |
 | `ui_world()` | JSON state | React components |
 | `WorldContext` | Actor/path state | Nodes, edges |

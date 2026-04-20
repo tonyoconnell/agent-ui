@@ -253,17 +253,16 @@ async function verifyHealth(): Promise<Record<string, unknown>> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function recordOutcome(outcome: Record<string, unknown>): Promise<void> {
-  const base = env.ONE_API_URL ?? `https://${CUSTOM_DOMAIN}`
+  const { SubstrateClient } = await import('@oneie/sdk')
+  const baseUrl = env.ONE_API_URL ?? `https://${CUSTOM_DOMAIN}`
+  const client = new SubstrateClient({ baseUrl })
   try {
-    const res = await fetch(`${base}/api/signal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        receiver: 'deploy:cutover',
-        data: { tags: ['deploy', 'cf', 'cutover'], weight: outcome.ok ? 1 : -0.5, content: outcome },
-      }),
+    const res = await client.signal('cli:cutover', 'deploy:cutover', {
+      tags: ['deploy', 'cf', 'cutover'],
+      weight: outcome.ok ? 1 : -0.5,
+      content: outcome,
     })
-    console.log(c.gray(`  → /api/signal deploy:cutover (${res.status})`))
+    console.log(c.gray(`  → /api/signal deploy:cutover (${res.success ? 'ok' : 'error'})`))
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.log(c.gray(`  → signal post failed (best-effort): ${msg.slice(0, 80)}`))

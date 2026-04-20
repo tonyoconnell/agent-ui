@@ -56,7 +56,7 @@ import { auth } from '@/lib/auth'
 import { readParsed } from '@/lib/typedb'
 
 const mockReadParsed = readParsed as Mock
-const mockGetSession = auth.api.getSession as Mock
+const mockGetSession = auth.api.getSession as unknown as Mock
 const mockVerifyKey = verifyKey as Mock
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ describe('POST /api/auth/agent re-mint gate', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ uid: 'swift-scout' }),
     })
-    const res = await POST({ request: req } as Parameters<typeof POST>[0])
+    const res = await POST({ request: req } as unknown as Parameters<typeof POST>[0])
     expect(res.status).toBe(403)
   })
 
@@ -222,7 +222,7 @@ describe('POST /api/auth/agent re-mint gate', () => {
       },
       body: JSON.stringify({ uid: 'swift-scout' }),
     })
-    const res = await POST({ request: req } as Parameters<typeof POST>[0])
+    const res = await POST({ request: req } as unknown as Parameters<typeof POST>[0])
     expect(res.status).toBe(200)
   })
 
@@ -238,7 +238,7 @@ describe('POST /api/auth/agent re-mint gate', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ uid: 'swift-scout' }),
     })
-    const res = await POST({ request: req } as Parameters<typeof POST>[0])
+    const res = await POST({ request: req } as unknown as Parameters<typeof POST>[0])
     expect(res.status).not.toBe(403)
   })
 })
@@ -276,8 +276,14 @@ describe('POST /api/auth/agent/:uid/claim', () => {
         Authorization: 'Bearer api_k1_key',
       },
     })
-    const res = await POST({ request: req, params: { uid: 'swift-scout' } } as Parameters<typeof POST>[0])
-    const body = await res.json()
+    const res = await POST({ request: req, params: { uid: 'swift-scout' } } as unknown as Parameters<typeof POST>[0])
+    const body = (await res.json()) as {
+      owned: boolean
+      ownerUid: string
+      agentUid: string
+      group: string
+      newKey: string
+    }
 
     expect(res.status).toBe(200)
     expect(body.owned).toBe(true)
@@ -312,7 +318,7 @@ describe('POST /api/auth/agent/:uid/claim', () => {
       method: 'POST',
       headers: { Authorization: 'Bearer api_wrong_key', Cookie: 'session=xxx' },
     })
-    const res = await POST({ request: req, params: { uid: 'swift-scout' } } as Parameters<typeof POST>[0])
+    const res = await POST({ request: req, params: { uid: 'swift-scout' } } as unknown as Parameters<typeof POST>[0])
     expect(res.status).toBe(403)
   })
 
@@ -324,7 +330,7 @@ describe('POST /api/auth/agent/:uid/claim', () => {
       method: 'POST',
       headers: { Authorization: 'Bearer api_k1_key' },
     })
-    const res = await POST({ request: req, params: { uid: 'swift-scout' } } as Parameters<typeof POST>[0])
+    const res = await POST({ request: req, params: { uid: 'swift-scout' } } as unknown as Parameters<typeof POST>[0])
     expect(res.status).toBe(401)
   })
 
@@ -347,8 +353,8 @@ describe('POST /api/auth/agent/:uid/claim', () => {
       method: 'POST',
       headers: { Authorization: 'Bearer api_k2_key', Cookie: 'session=xxx' },
     })
-    const res = await POST({ request: req, params: { uid: 'swift-scout' } } as Parameters<typeof POST>[0])
-    const body = await res.json()
+    const res = await POST({ request: req, params: { uid: 'swift-scout' } } as unknown as Parameters<typeof POST>[0])
+    const body = (await res.json()) as { alreadyClaimed: boolean }
     expect(res.status).toBe(200)
     expect(body.alreadyClaimed).toBe(true)
   })

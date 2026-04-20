@@ -66,8 +66,7 @@ describe('system speed — websocket broadcast', () => {
       () =>
         wsManager.broadcast({
           type: 'task-update',
-          task: { tid: 'bench', name: 'bench', status: 'done' },
-          timestamp: Date.now(),
+          task: { tid: 'bench', name: 'bench', task_status: 'done' },
         }),
       2_000,
     )

@@ -11,7 +11,7 @@
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 import { relayToGateway, wsManager } from '@/lib/ws-server'
 import type { PersistentWorld } from './persist'
-import type { Task } from './task-parse'
+import type { ParsedTask } from './task-parse'
 
 const UNIT_ID = 'builder'
 const TASKS_PER_QUERY = 25
@@ -34,7 +34,7 @@ async function ensureBuilder() {
  *  When `skipSkill` is true, we only insert the task entity; the skill +
  *  capability are assumed to exist (orphan-skill case from a prior sync).
  *  Required because `skill-id` is a unique key — re-inserting it throws CNT9. */
-function renderTaskInsert(task: Task, idx: number, skipSkill = false): string {
+function renderTaskInsert(task: ParsedTask, idx: number, skipSkill = false): string {
   const tags = [...new Set(task.tags)].map((t) => `has tag "${esc(t)}"`).join(', ')
   const nameEsc = esc(task.name).slice(0, 200)
   const contextStr = task.context?.length ? `has task-context "${esc(task.context.join(','))}",` : ''
@@ -64,7 +64,7 @@ function renderTaskInsert(task: Task, idx: number, skipSkill = false): string {
 }
 
 /** Insert a packed batch of tasks in one TypeDB round-trip */
-async function insertTaskBatch(batch: Task[], existingSkills: Set<string>): Promise<number> {
+async function insertTaskBatch(batch: ParsedTask[], existingSkills: Set<string>): Promise<number> {
   if (batch.length === 0) return 0
   const inserts = batch.map((t, i) => renderTaskInsert(t, i, existingSkills.has(t.id))).join('\n')
   try {
@@ -90,7 +90,7 @@ async function insertTaskBatch(batch: Task[], existingSkills: Set<string>): Prom
 }
 
 /** Insert blocks relations — packed into multi-pair queries */
-async function insertBlocks(tasks: Task[]): Promise<number> {
+async function insertBlocks(tasks: ParsedTask[]): Promise<number> {
   const taskIds = new Set(tasks.map((t) => t.id))
   const pairs: Array<[string, string]> = []
   for (const task of tasks) {
@@ -130,7 +130,7 @@ async function insertBlocks(tasks: Task[]): Promise<number> {
 }
 
 /** Sync all tasks to TypeDB. Returns counts. */
-export async function syncTasks(tasks: Task[]): Promise<{ synced: number; blocks: number; errors: number }> {
+export async function syncTasks(tasks: ParsedTask[]): Promise<{ synced: number; blocks: number; errors: number }> {
   await ensureBuilder()
 
   // Skip tasks that already exist OR are currently claimed (status="active").
@@ -169,7 +169,7 @@ export async function markTaskDone(taskId: string): Promise<void> {
     delete $d of $t; delete $st of $t;
     insert $t has done true, has task-status "done";
   `)
-  const completeMsg = { type: 'complete' as const, taskId, timestamp: Date.now() }
+  const completeMsg = { type: 'complete' as const, tid: taskId }
   wsManager.broadcast(completeMsg)
   relayToGateway(completeMsg)
 }
@@ -239,11 +239,11 @@ export async function selfCheckoff(
   }
 
   // 6. Broadcast completion and unblock events via WebSocket + Gateway relay
-  const completeMsg = { type: 'complete' as const, taskId, timestamp: Date.now() }
+  const completeMsg = { type: 'complete' as const, tid: taskId }
   wsManager.broadcast(completeMsg)
   relayToGateway(completeMsg)
   for (const unblockedId of unblocked) {
-    const unblockMsg = { type: 'unblock' as const, taskId: unblockedId, unblockedBy: taskId, timestamp: Date.now() }
+    const unblockMsg = { type: 'unblock' as const, tid: unblockedId }
     wsManager.broadcast(unblockMsg)
     relayToGateway(unblockMsg)
   }
@@ -263,7 +263,7 @@ export async function taskBlockers(taskId: string): Promise<string[]> {
 }
 
 /** Load all tasks from TypeDB */
-export async function loadTasks(): Promise<Task[]> {
+export async function loadTasks(): Promise<ParsedTask[]> {
   const rows = await readParsed(`
     match $t isa task,
       has task-id $id, has name $name, has done $done,
@@ -329,10 +329,10 @@ export async function loadTasks(): Promise<Task[]> {
     id: r.id as string,
     name: r.name as string,
     done: r.done as boolean,
-    value: r.val as Task['value'],
-    effort: (r.effort as Task['effort']) || 'medium',
-    wave: (r.wave as Task['wave']) || 'W3',
-    phase: r.phase as Task['phase'],
+    value: r.val as ParsedTask['value'],
+    effort: (r.effort as ParsedTask['effort']) || 'medium',
+    wave: (r.wave as ParsedTask['wave']) || 'W3',
+    phase: r.phase as ParsedTask['phase'],
     persona: r.persona as string,
     context: contextMap[r.id as string] || [],
     blocks: blockMap[r.id as string] || [],

@@ -119,7 +119,7 @@ Self-modifying infrastructure through the agents it hosts.
 ```
 OPUS — Architects
   Analyze strength graph for proto-group patterns.
-  Propose new ontological types. Write inference rules.
+  Propose new ontological types. Write classifier functions.
   Design economic parameters. Reason about BOTH fires.
 
 SONNET — Coordinators

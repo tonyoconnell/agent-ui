@@ -63,10 +63,10 @@ export const POST: APIRoute = async ({ params, request }) => {
   // Update local store pheromone
   if (failed) {
     store.markPheromone(id, 'alarm', 8.0)
-    store.updateTask(id, { status: 'failed' })
+    store.updateTask(id, { task_status: 'failed' })
   } else {
     store.markPheromone(id, 'trail', 5.0)
-    store.updateTask(id, { status: 'complete' })
+    store.updateTask(id, { task_status: 'verified' })
     store.cascadeUnblock(id)
   }
 
@@ -116,21 +116,17 @@ export const POST: APIRoute = async ({ params, request }) => {
   // Broadcast pheromone change to all connected TaskBoard instances
   const task = store.getTask(id)
   if (failed) {
-    const msg = { type: 'warn' as const, taskId: id, resistance: task?.alarmPheromone ?? 0, timestamp: Date.now() }
+    const msg = { type: 'warn' as const, tid: id, resistance: task?.resistance ?? 0 }
     wsManager.broadcast(msg)
     relayToGateway(msg)
   } else {
-    const msg = { type: 'mark' as const, taskId: id, strength: task?.trailPheromone ?? 0, timestamp: Date.now() }
+    const msg = { type: 'mark' as const, tid: id, strength: task?.strength ?? 0 }
     wsManager.broadcast(msg)
     relayToGateway(msg)
   }
 
   // Also broadcast the status change so other clients update immediately
-  const completeMsg = {
-    type: 'complete' as const,
-    taskId: id,
-    timestamp: Date.now(),
-  }
+  const completeMsg = { type: 'complete' as const, tid: id }
   wsManager.broadcast(completeMsg)
   relayToGateway(completeMsg)
 

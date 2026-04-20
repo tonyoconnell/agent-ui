@@ -113,7 +113,7 @@ entity frontier,
     owns frontier-status;          # "unexplored" | "exploring" | "exhausted"
 
 # ── FUNCTIONS ────────────────────────────────────────────────────────────────
-# TypeDB 3.x uses fun (NOT rule). Functions are the inference layer.
+# TypeDB 3.x uses fun (NOT rule). Functions are the classifier layer.
 # Call them in queries. They classify, route, and aggregate on demand.
 
 # Classify path: highway (strong), fading (weak), toxic (resistance > strength)
@@ -380,7 +380,7 @@ Lines 56–64    KNOWLEDGE (Dimension 6)
                The colony's intelligence, known.
 
 Lines 65–100   FUNCTIONS
-               TypeDB 3.x uses fun, not rule. Functions are the inference layer.
+               TypeDB 3.x uses fun, not rule. Functions are the classifier layer.
                path_status() classifies: highway, fading, toxic.
                unit_status() classifies: proven, at-risk.
                optimal_route() follows the strongest path.

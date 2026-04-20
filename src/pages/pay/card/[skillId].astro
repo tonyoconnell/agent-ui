@@ -1,0 +1,58 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { StripeCheckoutWrapper } from "@/components/pay/card/StripeCheckoutWrapper"
+
+export const prerender = false
+
+const { skillId } = Astro.params
+
+// SSR: look up skill info from KV snapshot
+let skill: { name: string; price: number; seller: string } | null = null
+
+try {
+  const kv = await import("@/lib/edge")
+  const skills = await kv.kvGet("skills") as any[] | null
+  const found = skills?.find((s: any) => s.skillId === skillId || s.id === skillId)
+  if (found) {
+    skill = {
+      name: found.name ?? skillId,
+      price: found.price ?? 0,
+      seller: found.seller ?? found.uid ?? "unknown",
+    }
+  }
+} catch {
+  // Fallback: render with just the skillId
+}
+
+if (!skill) {
+  return new Response("Skill not found", { status: 404, headers: { "Content-Type": "text/plain" } })
+}
+
+const items = [{ productId: skillId ?? "skill", quantity: 1 }]
+---
+
+<Layout title={`Pay card · ${skill.name}`}>
+  <main class="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+    <StripeCheckoutWrapper
+      client:only="react"
+      amount={Math.round(skill.price * 100)}
+      items={items}
+      sellerUid={skill.seller}
+      metadata={{ skillId: skillId ?? "", skillName: skill.name }}
+      onSuccess={(paymentIntentId: string) => {
+        window.location.href = `/pay/done?ref=${paymentIntentId}`
+      }}
+    />
+  </main>
+</Layout>
+
+<script is:inline define:vars={{ skillId }}>
+  fetch('/api/signal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      receiver: 'ui:pay:page:card:view',
+      data: { tags: ['pay', 'page', 'view', 'card'], content: { skillId } }
+    })
+  }).catch(() => {})
+</script>

@@ -1,5 +1,10 @@
 import { SubstrateClient } from "../client.js";
 import type {
+  PayAcceptResult,
+  PayRequestResult,
+  PayStatusResult,
+} from "../pay.js";
+import type {
   AgentActionResponse,
   AgentStatusResponse,
   AuthAgentResponse,
@@ -35,6 +40,9 @@ const defaultSync: SyncAgentResponse = { ok: true, uid: "mock:agent", skills: []
 const defaultDiscover: DiscoverResponse = { agents: [], skill: "", count: 0, limit: 10 };
 const defaultRegister: RegisterResponse = { ok: true, uid: "mock:agent", status: "registered", kind: "agent", wallet: null, walletLinked: false, capabilities: 0 };
 const defaultPay: PayResponse = { ok: true, from: "", to: "", task: "", amount: 0, sui: null };
+const defaultPayAccept: PayAcceptResult = { linkUrl: "", qr: undefined, intent: undefined };
+const defaultPayRequest: PayRequestResult = { linkUrl: "", qr: undefined, intent: undefined };
+const defaultPayStatus: PayStatusResult = { status: "pending", ref: "" };
 const defaultClaw: ClawResponse = { ok: true };
 const defaultAction: AgentActionResponse = { ok: true, id: "", action: "commend" };
 const defaultStatus: AgentStatusResponse = { ok: true, id: "", status: "active" };
@@ -65,7 +73,12 @@ export function createMockSubstrate(overrides: PartialMocks = {}): SubstrateClie
     syncAgent: stub(defaultSync),
     discover: stub(defaultDiscover),
     register: stub(defaultRegister),
-    pay: stub(defaultPay),
+    payWeight: stub(defaultPay),
+    pay: {
+      accept: async () => defaultPayAccept,
+      request: async () => defaultPayRequest,
+      status: async () => defaultPayStatus,
+    },
     claw: stub(defaultClaw),
     commend: stub(defaultAction),
     flag: stub({ ...defaultAction, action: "flag" }),
