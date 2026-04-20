@@ -63,7 +63,7 @@ export function Inbox({
     [DATA],
   )
 
-  const entities = useMemo(() => filterInbox(DATA, dimension, status, query), [dimension, status, query])
+  const entities = useMemo(() => filterInbox(DATA, dimension, status, query), [dimension, status, query, DATA])
 
   const statusCounts = useMemo(() => {
     const counts: Record<Status, number> = { now: 0, top: 0, todo: 0, done: 0 }

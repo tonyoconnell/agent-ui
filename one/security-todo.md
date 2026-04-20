@@ -1,11 +1,13 @@
 ---
 title: TODO Security
 type: roadmap
-version: 1.0.0
-priority: Delete → Scope → Lock → Learn → Shield
-total_tasks: 20
+version: 2.0.0
+priority: Delete → Scope → Engine → Lock → Learn → Shield → Sui
+total_tasks: 34
 completed: 0
 status: READY
+audit_source: docs/SYSTEM-HEALTH.md (commit 44b671b, 2026-04-20)
+audit_totals: 24 Critical · 52 High · 62 Medium · 34 Low · 25 Praise
 ---
 
 # TODO: Security — Harden the Five Choke Points
@@ -50,9 +52,64 @@ Each W4 emits mark(edge:fit|form|truth|taste). Weak dims fan out to coaches.
 Each cycle gate = tests green + rubric >= 0.65.
 ```
 
-The five cycles map one-to-one to the five choke points in `security.md`:
-Identity → PEP → Handler → Persistence → Revocation. Cycle 1 (Delete) precedes
-them because negative-LOC is the highest-ROI patch.
+The five security.md choke points are now **seven cycles** after absorbing the
+2026-04-20 system audit: Identity → PEP → Handler → Persistence → Revocation,
+plus **ENGINE-HARDEN** (cycle 2.5 — fixes module-level state that makes Cycle 3's
+nonce dedupe unreliable) and **SUI-LOCK** (cycle 7 — Move contract access control
+before Phase 3 escrow). Cycle 1 (Delete) still precedes them all because
+negative-LOC is the highest-ROI patch.
+
+---
+
+## Audit Alignment — docs/SYSTEM-HEALTH.md → Cycles
+
+Every Critical and High from the 2026-04-20 audit maps to a cycle below.
+This TODO is the execution plan; SYSTEM-HEALTH.md is the evidence.
+
+| Finding | Severity | Cycle | Notes |
+|---------|:--------:|:-----:|-------|
+| C-1 module tick state bleeds CF isolates | Crit | 2.5 | ENGINE-HARDEN |
+| C-2 NONCE_SEEN/LIFECYCLE_CACHE module-level | Crit | 2.5 | Must precede Cycle 3 nonce work |
+| C-3 scope-group/scope-skill not in schema | Crit | 2 | Already covered by Cycle 2 E1 |
+| C-4 tenant-kek entity not in schema | Crit | 5 | Already covered by Cycle 5 E5 |
+| C-5 tick() untested | Crit | 2.5 | |
+| C-6 ADL gates untested | Crit | 2.5 | |
+| C-7 persist core methods untested | Crit | 2.5 | |
+| C-8 /api/query no auth | Crit | 3 | PEP gate rollout |
+| C-9 Gateway /typedb/query no auth | Crit | 3 | |
+| C-10 SSRF /proxy/sse | Crit | 4 | SecurityEvent + allowlist |
+| C-11 seed endpoints no auth | Crit | 3 | |
+| C-12 decay/resistance no auth | Crit | 3 | |
+| C-13 faucet-internal no auth | Crit | 3 | |
+| C-14 /api/keys legacy no auth | Crit | 2 | Delete or gate |
+| C-15 /api/auth/agent no rate limit | Crit | 2 | |
+| C-16 TQL injection endemic | Crit | 3 | `validateUid` + `escapeTqlString` sweep |
+| C-17 commend/flag no auth | Crit | 3 | |
+| C-18 group signal caller not checked | Crit | 3 | |
+| C-19 Sui treasury drainable | Crit | 7 | AdminCap |
+| C-20 Sui mark/warn unrestricted | Crit | 7 | Sender check |
+| C-21 Sui arithmetic overflow | Crit | 7 | Reorder + cap |
+| C-22 Sui fade(0) wipes learning | Crit | 7 | Assert range |
+| H-1..H-11 engine correctness | High | 2.5 | Single-tick, fade drift, process.env, markDims |
+| H-12 PBKDF2 O(n) key scan | High | 2 | Fast-lookup token |
+| H-16..H-22 API auth missing | High | 3 | Rolled into Cycle 3 sweep |
+| H-23..H-26 Sui Move | High | 7 | |
+| H-27..H-28 Gateway hardening | High | 4 | Timing-safe + broadcast auth |
+| H-29 settleEscrow fire-and-forget | High | 7 | |
+| H-30 /api/hypotheses no auth | High | 3 | |
+| M-13..M-18 Gateway | Med | 4 | TOCTOU, CORS, headers |
+| M-19..M-22 wave/expire/rubric | Med | 3 | |
+| M-23 SSRF brand extract | Med | 4 | |
+| M-24..M-26 scope leaks | Med | 3 | `tenantScope()` sweep (already Cycle 3 E6) |
+| M-27..M-29 revoke/invite/stream | Med | 4 | |
+| M-30 HKDF derivation | Med | 5 | Already Cycle 5 E1 |
+| L-14..L-20 | Low | per-cycle | Rolled into matching W3 sweeps |
+
+**Orphan summary:** all 24 Criticals and 52 Highs now have a home. Two new
+cycles (2.5 ENGINE-HARDEN, 7 SUI-LOCK) carry findings that fall outside
+`security.md`'s original five choke points.
+
+---
 
 ## Testing — Sandwich Around Every Cycle
 
@@ -152,6 +209,12 @@ Decisions:
 **Scope:** add `scope-group` and `scope-skill` to `api-key`, default
 `read`-only, enforce `expires-at`, default 24h TTL for new keys.
 
+**Audit findings covered:** C-3 (scope attrs missing from schema — two TQL lines
+in E1 fix it), C-14 (legacy `/api/keys` backdoor — delete or gate in this cycle),
+C-15 (`/api/auth/agent` rate limit + UID squatting), H-12 (PBKDF2 O(n) scan →
+fast-lookup token), L-16 (`Math.random` keyId → `crypto.randomUUID`), M-27
+(revoked-key cache TTL — coordinate with Cycle 4 broadcast).
+
 **Files:**
 - `src/schema/one.tql` (extend `api-key`)
 - `src/lib/api-key.ts` (generation includes scope)
@@ -205,11 +268,137 @@ Decisions:
 
 ---
 
+## Cycle 2.5 — ENGINE-HARDEN: Fix the Runtime Before Locking the PEP
+
+**Scope:** move module-level singleton state to per-instance, close the
+four parallel tick implementations, fix `process.env` on CF Workers, align
+`markDims` thresholds, fill the ADL/persist test black holes.
+
+**Audit findings covered (all of engine-correctness):**
+- **Module-level state bleeding across isolates** — C-1 (tick counters +
+  `previousTarget` + `chainDepth` in `loop.ts`/`loops.ts`/`tick.ts`/
+  `substrate.ts`), C-2 (`NONCE_SEEN` + `LIFECYCLE_CACHE` in `persist.ts` —
+  **must land before Cycle 3** or nonce dedupe is unreliable across worlds).
+- **Parallel implementations + drift** — H-1 (four tick orchestrators), H-2
+  (`isToxic` copy-pasted in `one-complete.ts`, `one-prod.ts`, `chairman.ts`
+  — the `chairman.ts` copy returns the wrong dissolved shape), H-3 (in-memory
+  seasonal decay vs flat TypeDB decay → revival on hydrate), H-9 (two
+  `markDims` with 0.5 vs 0.65 thresholds — `wave-runner.ts` uses the wrong
+  one and pheromone learns mediocrity is good).
+- **Silent production degradation** — H-7 (WAL `flushToD1(db?)` — D1 handle
+  never wired, every pheromone write is a no-op), H-8 (`process.env`
+  broken in `ceo-classifier.ts`, `agentverse-connect.ts`, `context.ts`,
+  `auth.ts`, `logger.ts` → fall through to `'admin'` creds or `undefined`
+  keys), H-10 (stale Gateway fallback URL in `typedb.ts`), H-11 (two
+  conflicting schemas — `one.tql` uses `actor/aid`, `world.tql` uses
+  `unit/uid`; engine loads `world.tql` but CLAUDE.md says `one.tql` is
+  "stable forever").
+- **Fail-open bridge on malformed perms** — H-5 (`bridge.ts:99-103`
+  `malformed → fail open` contradicts the "fail CLOSED on TypeDB errors"
+  header on the same file; real-money path).
+- **WAL SQL injection** — H-6 (`wal.ts:84` builds SQL via `${r.edge.replace
+  (/'/g, "''")}` — `\` or `;` in a UID drops the whole batch silently).
+- **Test black holes** — C-5 (`tick()` never imported in `loop.test.ts` —
+  seven-loop orchestration entirely uncovered), C-6 (ADL lifecycle/network/
+  sensitivity gates have no tests), C-7 (`know()`, `forget()`,
+  `hasPathRelationship()`, `sync()`, `load()` untested).
+
+**Why 2.5 (before Cycle 3):** Cycle 3's nonce dedupe and PEP lock assume the
+runtime's state model is per-world. Landing C-2 after Cycle 3 would require
+re-verifying every PEP test under the correct state model. Cheaper to fix
+first.
+
+### Wave 1 — Recon (Haiku × 5)
+
+| Agent | File | Look for |
+|-------|------|----------|
+| R1 | `src/engine/loop.ts` + `loops.ts` + `tick.ts` + `substrate.ts` | Enumerate every module-level `let/const`; map which tick impl is wired from `boot.ts` |
+| R2 | `src/engine/persist.ts` | `NONCE_SEEN`, `LIFECYCLE_CACHE`, `isToxic` export surface, PEP-4/5 stubs at lines 674/858 |
+| R3 | `src/engine/wal.ts` + `world.ts` | `flushToD1` callsite graph, where D1 handle enters from Astro `locals` |
+| R4 | `src/engine/rubric.ts` + `rubric-score.ts` + `wave-runner.ts` | Which `markDims` is imported where; verify threshold mismatch |
+| R5 | repo-wide grep | Every `process.env`, `globalThis.process?.env`, `require()` in `src/engine/` + `src/lib/` |
+
+### Wave 2 — Decide (Opus × 1)
+
+1. **State-model decision:** `TickState` struct attached to each
+   `PersistentWorld` instance; `NONCE_SEEN`, `LIFECYCLE_CACHE`,
+   `previousTarget`, `chainDepth`, `taskFailures`, `tagFailures` all move to
+   instance fields. Delete exported `resetTick()`.
+2. **One tick winner:** designate `tick.ts` as canonical; migrate
+   `loop.ts` features (`computePValueFromD1`, hypothesis reflex) into
+   `loops.ts` primitives; delete `substrate.ts` tick and `loop.ts::tick`.
+3. **`isToxic` single source:** re-export from `persist.ts`; delete three
+   copies; fix `chairman.ts` to return `{ dissolved: true }` not `undefined`.
+4. **`markDims` single source:** delete `rubric.ts::markDims` (0.5 threshold);
+   `wave-runner.ts` imports from `rubric-score.ts` (0.65, canonical).
+5. **Env access policy:** `import.meta.env` for build-time constants;
+   `getEnv(locals)` from `cf-env.ts` for runtime secrets. No `process.env`
+   in the engine. `specialist-leaf.ts:59` is the reference pattern.
+6. **Schema source of truth:** rename `one.tql` → `one-conceptual.tql` with
+   a prominent header; runtime is `world.tql`. Update CLAUDE.md.
+7. **WAL:** thread `D1Database` handle from Astro `locals` through `boot()`
+   into `world.ts`; parameterise `prepare(...).bind(...)` everywhere.
+8. **Bridge fail-closed:** replace `/* malformed → fail open */` with
+   `allowedHosts: []` + a logged warn.
+
+### Wave 3 — Edits (Sonnet × 10, parallel)
+
+| Job | File | Edits |
+|-----|------|-------|
+| E1 | `src/engine/persist.ts` | Move `NONCE_SEEN` + `LIFECYCLE_CACHE` to instance; wrap KEK write in try/catch fallback |
+| E2 | `src/engine/tick.ts` + `loops.ts` | Absorb `loop.ts` features; delete `loop.ts::tick` + `substrate.ts` tick duplication |
+| E3 | `src/engine/one-complete.ts` + `one-prod.ts` + `chairman.ts` | Remove `isToxic` copies; import from `persist.ts`; fix `chairman.ts` dissolved return |
+| E4 | `src/engine/rubric.ts` + `wave-runner.ts` | Delete `rubric.ts::markDims`; switch `wave-runner.ts` to `rubric-score.ts::markDims` + `compositeScore()` for both store + gate |
+| E5 | `src/engine/wal.ts` + `world.ts` + `boot.ts` + `substrate.ts` | Parameterised D1 prepare/bind; thread `D1Database` handle end-to-end |
+| E6 | `src/engine/bridge.ts` | Replace fail-open catch with `allowedHosts: []` + warn log |
+| E7 | `src/engine/ceo-classifier.ts` + `agentverse-connect.ts` + `context.ts` + `src/lib/auth.ts` + `src/lib/logger.ts` | Replace `process.env` with `import.meta.env` or `getEnv(locals)` |
+| E8 | `src/lib/typedb.ts` | Fallback URL → `'https://api.one.ie'` |
+| E9 | `src/schema/one.tql` | Rename to `one-conceptual.tql` + header banner; update all doc references |
+| E10 | `loop.test.ts` + `adl.test.ts` + `persist.test.ts` | Add `tick()` orchestration tests (7 loop counters + timing guards); three ADL gate `describe` blocks; `know()`/`forget()`/`hasPathRelationship()`/`sync()`/`load()`/`checkNonce()` tests |
+
+### Wave 4 — Verify (Sonnet × 4)
+
+| Shard | Checks |
+|-------|--------|
+| V1 | Consistency — zero module-level mutable state in `src/engine/`; single `tick` export; single `isToxic` export; single `markDims` export |
+| V2 | Cross-ref — `boot.ts` wires D1 handle; every `process.env` in engine replaced; `one-conceptual.tql` referenced where `one.tql` was |
+| V3 | Invariants — two concurrent worlds share no pheromone state; nonce replay rejected per-world only; WAL batch writes land in D1; `loop.test.ts` fails if `TickResult` shape changes |
+| V4 | Rubric — ≥ 0.65 on all dims |
+
+**Exit:**
+- `grep -r 'let [A-Z_]\+.*=' src/engine/` returns zero module-level mutables.
+- `boot.ts` passes `D1Database` into `world()`; WAL writes visible in D1 after a tick.
+- `loop.test.ts` covers all seven loops' counters.
+- ADL gates: three scenarios green (410 retired, 403 unlisted host, audit on sensitive→public).
+- `forget()` cascade test proves private hypotheses deleted.
+
+---
+
 ## Cycle 3 — LOCK-PEP: The One Authorization Function
 
 **Scope:** centralize and lock the order of checks in `persist().signal()`.
 Add per-signal nonce + 5-min dedupe. Enforce via lint that only `src/engine/`
 imports `world`.
+
+**Audit findings covered (the big sweep):**
+- **Unauthenticated write endpoints** — C-8 (`/api/query`), C-9 (Gateway
+  `/typedb/query`), C-11 (seed endpoints ×3), C-12 (`/api/decay`,
+  `/api/resistance` — pheromone poisoning), C-13 (`faucet-internal.ts` —
+  wallet drainable), C-17 (`commend`/`flag`), C-18 (group signal caller not
+  verified), H-16 (`/api/tick`), H-17 (signal scope bypass by omitting Auth
+  header), H-18 (`/api/pay` + caller-controlled `from`), H-19 (`/api/harden` —
+  signs Sui tx as any agent), H-20 (`/api/subscribe`), H-21 (GDPR forget reads
+  uid from unverified cookie), H-22 (status/sync/adl), H-30 (`/api/hypotheses`),
+  M-19–M-22 (wave claim, expire, rubric clamp), M-26 (`/api/mcp/[tool]`).
+- **TQL injection** — C-16 (endemic across agents/groups/marketplace) plus
+  L-14 (`signals.ts since` param) and L-15 (null-guard on mark/warn). One
+  `validateUid + escapeTqlString` pattern from `signal.ts` rolled across all
+  routes as a single W3 fan-out.
+- **Scope leakage** — M-24 (marketplace surfaces private signals), M-25
+  (`/api/discover` joins without scope filter). Already planned as Cycle 3 E6
+  (`tenantScope()` sweep).
+- **Stubs** — H-4 (PEP-4/5 budget + rate-limit stubs) is the PEP completion
+  this cycle exists to ship.
 
 **Files:**
 - `src/engine/persist.ts` (PEP order, nonce dedupe)
@@ -280,6 +469,22 @@ rate-limit, injection, role-change, revoke, forget, bridge-create/dissolve.
 Each also emits `warn(0.3)` on `caller → auth-boundary`. Push-invalidation
 on revoke via existing WsHub.
 
+**Audit findings covered:**
+- **SSRF** — C-10 (`/proxy/sse` fetches arbitrary URLs + forwards
+  Authorization header), M-14 (SSE proxy header passthrough), M-23 (brand
+  extract — no scheme or RFC-1918 block). Allowlist + header scrub, emit
+  `ssrf-probe` event on mismatch.
+- **Gateway hardening** — H-27 (`!==` secret compare → `timingSafeEqual`),
+  H-28 (task mutation routes unauthenticated — can inject WS events into
+  every browser), M-13 (connect-count TOCTOU), M-15 (raw TypeDB error text
+  in 500s), M-16 (JWT decode crashes isolate), M-17 (token-cache stampede),
+  M-18 (CORS `startsWith` subdomain spoof).
+- **Revocation + stale state** — M-27 (revoked keys valid 5 min — directly
+  Cycle 4 E5 cache invalidation + broadcast), M-29 (`stream.ts cancel` no-op
+  → ghost polling).
+- **Config safety** — M-28 (`INVITE_SECRET` falls back to `"dev-secret"`
+  → hard-fail 503 if env unset).
+
 **Files:**
 - `src/lib/api-auth.ts` (emit on failure)
 - `src/engine/persist.ts` (emit on dissolve/policy fail)
@@ -348,6 +553,11 @@ Decisions:
 private-scope signal encryption, append-only audit row enforcement, daily
 Merkle root anchored on Sui. Worker-scoped JWT replaces `BROADCAST_SECRET`.
 
+**Audit findings covered:** C-4 (`tenant-kek` entity not in `world.tql` —
+`encryptForGroup` throws on first call; directly Cycle 5 E5 adds the entity +
+three attributes), M-30 (raw `seed||uid` SHA-256 → HKDF with `info =
+"one-agent:" + uid` — directly Cycle 5 E1).
+
 **Files:**
 - `src/lib/sui.ts` (HKDF derivation, versioned)
 - `src/lib/kek.ts` (new — tenant KEK derivation + envelope encrypt)
@@ -414,15 +624,133 @@ Shard B — Audit + worker JWT:
 
 ---
 
+## Cycle 7 — SUI-LOCK: Move Contract Access Control Before Phase 3
+
+**Scope:** add capability-based access control to the Move contract. Treasury,
+routing graph mutations, colony membership, dissolution, and `harden` must
+require proof of authority. Fix arithmetic overflow. Cap `rate` and `fee_bps`.
+Bundle into a single package upgrade alongside Phase 3 escrow changes.
+
+**Why last:** Every other cycle is off-chain (TypeScript + schema). This one
+ships a Move `package upgrade` — once-deployed, harder to iterate. All prior
+tests must be green; Phase 3 escrow plan must be locked. **Treasury is
+drainable on testnet right now** — this cycle exists because of that.
+
+**Audit findings covered (every Move critical + high):**
+- **Treasury drainable** — C-19 (`withdraw_protocol_fees()` +
+  `set_fee_bps()` on shared `Protocol` with no `AdminCap` — one tx drains
+  everything).
+- **Routing graph corruption** — C-20 (`mark()` + `warn(u64::MAX)` callable
+  by anyone; no sender check against Unit owner).
+- **Arithmetic + validation** — C-21 (`amount * fee_bps` overflows u64
+  before `/10000`; reorder as `amount / 10000 * fee_bps` and cap `fee_bps ≤
+  10000` in `set_fee_bps`), C-22 (`fade(rate=0)` zeros strength +
+  resistance; `rate > 100` overflows — `assert!(rate > 0 && rate <= 100)`).
+- **Escrow + lifecycle** — H-23 (`release_escrow()` has no rubric gate;
+  Phase 3 workers can self-release for bad work before deadline — add
+  `RubricVerdict` oracle capability), H-26 (`harden()` takes immutable ref
+  and creates a new Highway every call; change to `&mut Path` + `hardened:
+  bool` guard).
+- **Ownership gaps** — H-24 (`join_colony()` needs `ColonyAdminCap`
+  transferred to creator), H-25 (`dissolve()` consumes a Unit with no
+  ownership check; marketplace buyer can drain seller's Unit balance — add
+  `owner: address` field + assert `ctx.sender() == unit.owner`).
+- **Off-chain settlement** — H-29 (`bridge.ts::settleEscrow()` fire-and-
+  forget; Sui failure leaves Escrow locked on-chain with no alert — return
+  a Promise, write `escrow-status "settlement-failed"` on failure, add a
+  reconciliation cron).
+- **Lows** — L-18 (1ms deadline boundary gap), L-19 (`harden()` bakes in
+  misleading Laplace `+1`), L-20 (`register_task()` aborts on duplicate —
+  TypeScript caller lacks guard), M-31 (`create_path()` allows duplicates —
+  pheromone splits across paths).
+
+### Wave 1 — Recon (Haiku × 4)
+
+| Agent | File | Look for |
+|-------|------|----------|
+| R1 | `src/move/one/sources/one.move` | Every `public fun`; sender-check presence; capability objects in `init()` |
+| R2 | `src/move/one/sources/one.move` lines 257/353/483 + 574-577 | Multiplication-before-division sites; `fade()` arithmetic; `harden()` mutation pattern |
+| R3 | `src/engine/bridge.ts` + `src/lib/sui.ts` | Current escrow flow; `settleEscrow` caller expectations; where Phase 3 needs gating |
+| R4 | `src/pages/api/harden.ts` + `src/pages/api/tick.ts` + any caller of `mark`/`warn` on-chain | All off-chain callers of the functions whose signatures change |
+
+### Wave 2 — Decide (Opus × 2 shards)
+
+Shard A — Capability design:
+1. **`AdminCap`** minted in `init()`, transferred to deployer. Required
+   parameter on `withdraw_protocol_fees()`, `set_fee_bps()`.
+2. **`ColonyAdminCap`** minted in `create_colony()`, transferred to creator.
+   Required on `join_colony()`. Transferable so ownership can change.
+3. **`UnitOwnerCap`** OR `owner: address` field on Unit struct (prefer
+   field — Unit has `key, store` for marketplace transfer; capability-only
+   model is awkward for resale). `dissolve()` asserts `ctx.sender() ==
+   unit.owner`.
+4. **Path ownership:** `mark()` / `warn()` require `ctx.sender()` is owner
+   of source Unit OR target Unit. Pass the owner cap or look up owner
+   field.
+5. **`RubricVerdict`** hot potato (unique, must-consume-in-same-tx)
+   minted by a trusted oracle address; `release_escrow()` requires it.
+   Oracle config is shelved for post-Phase-3; placeholder uses deployer
+   address.
+
+Shard B — Arithmetic + settlement:
+1. **Overflow:** reorder `amount / 10000 * fee_bps` in all three pay
+   sites. Add `assert!(fee_bps <= 10000, EInvalidFee);` in
+   `set_fee_bps()`. Add `assert!(rate > 0 && rate <= 100, EInvalidRate);`
+   in `fade()`.
+2. **Harden guard:** `harden()` takes `path: &mut Path`; add `hardened:
+   bool` field; `assert!(!path.hardened, EAlreadyHardened)`; set to true
+   before emitting Highway.
+3. **Settlement recovery:** `bridge.ts::settleEscrow()` returns
+   `Promise<SettlementResult>`; failure writes `escrow-status
+   "settlement-failed"` with error string to TypeDB. Reconciliation cron
+   (new worker or Sync cron) retries failed escrows every 10 minutes,
+   max 3 attempts before surfacing to admin dashboard.
+4. **Package upgrade coordination:** bundle with Phase 3 escrow changes
+   in a single upgrade — see `docs/TODO-SUI.md` Phase 3 W2 decisions.
+
+### Wave 3 — Edits (Sonnet × 8, parallel)
+
+| Job | File | Edits |
+|-----|------|-------|
+| E1 | `src/move/one/sources/one.move` (init + Protocol) | Add `AdminCap` struct; mint + transfer in `init()`; gate admin fns |
+| E2 | `src/move/one/sources/one.move` (pay + fee) | Reorder arithmetic; add `fee_bps` + `rate` asserts; `EInvalidFee` + `EInvalidRate` error codes |
+| E3 | `src/move/one/sources/one.move` (Colony + Unit) | `ColonyAdminCap`; `owner: address` on Unit; `dissolve()` sender check |
+| E4 | `src/move/one/sources/one.move` (Path + mark/warn) | Sender-is-owner check; `create_path()` uniqueness guard (M-31) |
+| E5 | `src/move/one/sources/one.move` (harden) | `&mut Path` + `hardened: bool` guard |
+| E6 | `src/move/one/sources/one.move` (release_escrow) | `RubricVerdict` hot-potato parameter |
+| E7 | `src/engine/bridge.ts` + new `workers/escrow-reconcile/` (or Sync cron) | Promise-returning `settleEscrow` + status writes + retry cron |
+| E8 | `src/pages/api/harden.ts` + `mark.ts` + `warn.ts` + any on-chain caller | Pass new capability args; update integration tests |
+
+### Wave 4 — Verify (Sonnet × 4)
+
+| Shard | Checks |
+|-------|--------|
+| V1 | Consistency — `sui move build` clean; `sui move test` green (including new negative tests for unauthorized caller) |
+| V2 | Cross-ref — every TypeScript on-chain caller passes the new cap arg; no orphan `public fun` without sender check or cap |
+| V3 | Invariants — unauthorized `withdraw_protocol_fees` aborts `ENotAuthorized`; `fee_bps = u64::MAX` attempt aborts `EInvalidFee`; `fade(0)` aborts; `harden` twice aborts; `dissolve` by non-owner aborts; `release_escrow` without verdict aborts |
+| V4 | Rubric — ≥ 0.65 |
+
+**Exit:**
+- `sui move test` reports ≥ 8 new tests covering every new abort path.
+- Testnet upgrade deployed; treasury no longer drainable (verified by
+  attempted unauthorized `withdraw_protocol_fees` → abort).
+- `bridge.ts` reconciliation cron logs a retry + recovery on a simulated
+  failure.
+- `docs/TODO-SUI.md` Phase 3 checklist tied into this cycle's exit.
+
+---
+
 ## How Loops Drive This Roadmap
 
 | Cycle | What changes | Loops activated |
 |-------|-------------|-----------------|
 | 1 WIRE-DELETE | Surface shrinks, false signals removed | L1 baseline only |
 | 2 SCOPE-KEYS | Keys carry scope, blast radius narrows | L1 + L4 (economic boundary at capability) |
+| 2.5 ENGINE-HARDEN | Per-instance state, one tick, one markDims; tests fill coverage holes | L1–L7 (runtime now trustworthy for all loops) |
 | 3 LOCK-PEP | Authorization becomes one function with replay guard | L1–L3 (pheromone now reliable) |
 | 4 LEARN-SIGNALS | Security events feed pheromone, attackers auto-routed-around | L1–L3 + L6 (`know()` on security patterns) |
 | 5 SHIELD-DATA | Persistence hardened, audit immutable, crypto-shred live | L1–L7 (L7 spawns frontier hypotheses on anomaly clusters) |
+| 7 SUI-LOCK | On-chain access control, arithmetic safe, escrow reconciles | L4 (economic loop closes end-to-end on-chain) |
 
 Each cycle gate runs `know()` — the substrate's "promote highways to durable
 learning" step. Cycle 4's `know()` is especially important: it turns repeated

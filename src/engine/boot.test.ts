@@ -96,10 +96,10 @@ vi.mock('./context', () => ({
 import { readParsed } from '@/lib/typedb'
 import { setAuditPheromone } from './adl-cache'
 import { connectAgentverse } from './agentverse-connect'
+import { boot } from './boot'
 import { registerBridges } from './bridges'
 import { registerBuilder } from './builder'
 import { wireChairmanChain } from './chairman-chain'
-import { boot } from './boot'
 import { tick } from './loop'
 import { registerPayUnit } from './pay'
 
@@ -381,7 +381,7 @@ describe('Act 5: TypeDB failure — graceful degradation', () => {
     vi.mocked(readParsed).mockRejectedValue(new Error('TypeDB unavailable'))
 
     // boot uses .catch(() => []) on the readParsed call — should not throw
-    const result = await expect(boot(undefined, 100_000)).resolves.toBeDefined()
+    const _result = await expect(boot(undefined, 100_000)).resolves.toBeDefined()
     // Clean up
     const r = await boot(undefined, 100_000)
     r.stop()

@@ -66,9 +66,7 @@ export function DevDashboard() {
   }
 
   if (loading || !usage) {
-    return (
-      <div className="mx-auto max-w-md text-center py-20 text-zinc-500 text-sm font-mono">loading…</div>
-    )
+    return <div className="mx-auto max-w-md text-center py-20 text-zinc-500 text-sm font-mono">loading…</div>
   }
 
   const pct = usage.api_limit > 0 ? Math.min(100, (usage.calls_this_month / usage.api_limit) * 100) : 0
@@ -94,10 +92,7 @@ export function DevDashboard() {
             <span className="text-sm text-zinc-500 font-normal ml-2">/ {usage.api_limit.toLocaleString()}</span>
           </p>
           <div className="mt-3 h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
-            <div
-              className={`h-full ${pct > 80 ? 'bg-amber-400' : 'bg-emerald-400'}`}
-              style={{ width: `${pct}%` }}
-            />
+            <div className={`h-full ${pct > 80 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${pct}%` }} />
           </div>
           <p className="text-xs text-zinc-500 mt-2">{pct.toFixed(0)}% used</p>
         </div>
@@ -114,9 +109,7 @@ export function DevDashboard() {
               style={{ width: `${agentPct}%` }}
             />
           </div>
-          <p className="text-xs text-zinc-500 mt-2">
-            {usage.highways_count} hardened highways in your graph
-          </p>
+          <p className="text-xs text-zinc-500 mt-2">{usage.highways_count} hardened highways in your graph</p>
         </div>
       </section>
 
@@ -125,7 +118,9 @@ export function DevDashboard() {
         <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-white">Your agents</h2>
-            <p className="text-xs text-zinc-500 mt-1">Units you've registered. Each has a Sui wallet derived from its UID.</p>
+            <p className="text-xs text-zinc-500 mt-1">
+              Units you've registered. Each has a Sui wallet derived from its UID.
+            </p>
           </div>
           <a
             href="/build"
@@ -137,8 +132,15 @@ export function DevDashboard() {
         <div className="divide-y divide-zinc-800">
           {agents.length === 0 ? (
             <div className="p-6 text-sm text-zinc-500 text-center">
-              No agents yet. <a href="/build" className="text-emerald-300 hover:underline">Create one</a> or{' '}
-              <a href="/quickstart" className="text-emerald-300 hover:underline">follow the quickstart</a>.
+              No agents yet.{' '}
+              <a href="/build" className="text-emerald-300 hover:underline">
+                Create one
+              </a>{' '}
+              or{' '}
+              <a href="/quickstart" className="text-emerald-300 hover:underline">
+                follow the quickstart
+              </a>
+              .
             </div>
           ) : (
             agents.map((a) => (
@@ -160,11 +162,17 @@ export function DevDashboard() {
 
       {/* Quick links */}
       <section className="grid gap-3 md:grid-cols-4">
-        <a href="/settings/keys" className="border border-zinc-800 rounded-md p-4 hover:border-emerald-500/50 bg-zinc-900/50">
+        <a
+          href="/settings/keys"
+          className="border border-zinc-800 rounded-md p-4 hover:border-emerald-500/50 bg-zinc-900/50"
+        >
           <p className="text-emerald-300 text-sm font-semibold mb-1">→ API keys</p>
           <p className="text-xs text-zinc-500">Rotate, revoke, create new</p>
         </a>
-        <a href="/quickstart" className="border border-zinc-800 rounded-md p-4 hover:border-emerald-500/50 bg-zinc-900/50">
+        <a
+          href="/quickstart"
+          className="border border-zinc-800 rounded-md p-4 hover:border-emerald-500/50 bg-zinc-900/50"
+        >
           <p className="text-emerald-300 text-sm font-semibold mb-1">→ Quickstart</p>
           <p className="text-xs text-zinc-500">Send your first signal</p>
         </a>
@@ -172,7 +180,10 @@ export function DevDashboard() {
           <p className="text-emerald-300 text-sm font-semibold mb-1">→ Marketplace</p>
           <p className="text-xs text-zinc-500">Discover capabilities</p>
         </a>
-        <a href="/platform" className="border border-zinc-800 rounded-md p-4 hover:border-emerald-500/50 bg-zinc-900/50">
+        <a
+          href="/platform"
+          className="border border-zinc-800 rounded-md p-4 hover:border-emerald-500/50 bg-zinc-900/50"
+        >
           <p className="text-emerald-300 text-sm font-semibold mb-1">→ Upgrade</p>
           <p className="text-xs text-zinc-500">More calls, more loops</p>
         </a>

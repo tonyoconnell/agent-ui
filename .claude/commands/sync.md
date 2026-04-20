@@ -19,7 +19,7 @@ Reconcile substrate state — tick loops, absorb markdown, propagate knowledge.
 | `know` | Fire L6 only — harden highways + hypothesize | L6 |
 | `frontier` | Fire L7 only — detect unexplored tag clusters | L7 |
 | `pay <receiver> <amt>` | Emit L4 payment signal | L4 |
-| `<path>` | Absorb any markdown file or directory into substrate | L6 |
+| `<path>` | Auto-detect: plan file → compile thing-tree · else absorb into substrate | L6 / L1 |
 
 ## Routing
 
@@ -174,11 +174,35 @@ set of listings ready to receive offers. See `docs/TODO-trade-lifecycle.md § Cy
 
 ### `<path>`
 
+Dispatch by content. `/sync` inspects the file's frontmatter and routes to
+the matching branch. Keeps one verb, three behaviors.
+
 1. Read markdown file or directory at `<path>` from `$ARGUMENTS`
-2. If directory: scan all `*.md` files recursively
-3. Parse content → extract concepts, tasks, or agent specs as appropriate
-4. Write to memory → TypeDB
-5. Report: files processed, entities written
+2. **If frontmatter has `type: plan` OR `status: (PLAN|SYNCED|RUNNING|CLOSED)`**
+   (i.e. the file is a plan in `one/template-plan.md` format):
+   → POST `http://localhost:4321/api/sync/plan` with `{ path: "<path>" }`
+   → compiles into TypeDB as a thing-tree: `thing-type="plan"` +
+     `thing-type="cycle"` + `thing-type="task"` + `containment` +
+     `blocks` relations
+   → also reads the sibling `<slug>-todo.md` (swap `.md` → `-todo.md`)
+     to extract the per-cycle task rows
+   → report: `branch: plan | cycles: N | tasks: M | blocks: K | tagged: J`
+3. **Else if path matches `docs/TODO-*.md`:**
+   → existing `scanTodos` + `POST /api/tasks/sync` path (legacy task entity)
+   → report: `branch: todo | synced: N | blocks: M`
+4. **Else (directory or plain markdown):**
+   → existing L6 `know()` absorption path (concepts + hypotheses)
+   → report: `branch: absorb | files: N | concepts: M`
+
+**Dry-run:** `GET /api/sync/plan?path=<path>` — parse without writing.
+Useful to preview what a sync would emit before running it.
+
+**Example:**
+
+```bash
+/sync one/chairman.md
+# Expected: { branch: plan, cycles: 3, tasks: 13, blocks: 12, tagged: 7 }
+```
 
 ---
 

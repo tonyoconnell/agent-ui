@@ -154,8 +154,8 @@ export function QuickstartIsland() {
           <h2 className="text-xl font-semibold text-white">Try it live (uses your session)</h2>
         </div>
         <p className="text-sm text-zinc-400 mb-4">
-          If you're signed in, this hits <code className="text-emerald-300">/api/signal</code> with your session
-          cookie. No key needed in the browser.
+          If you're signed in, this hits <code className="text-emerald-300">/api/signal</code> with your session cookie.
+          No key needed in the browser.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-[150px_1fr_auto] mb-4">

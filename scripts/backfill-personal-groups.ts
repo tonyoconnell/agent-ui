@@ -59,20 +59,24 @@ function esc(s: string): string {
 async function main() {
   console.log(`Gateway: ${GATEWAY_URL}${DRY_RUN ? '  (dry-run)' : ''}`)
 
-  const humans = parseRows(await tql(`
+  const humans = parseRows(
+    await tql(`
     match $u isa unit, has unit-kind "human", has uid $uid;
     select $uid;
-  `))
+  `),
+  )
   console.log(`Found ${humans.length} human units`)
 
   const orphans: string[] = []
   for (const { uid } of humans) {
-    const rows = parseRows(await tql(`
+    const rows = parseRows(
+      await tql(`
       match $u isa unit, has uid "${esc(uid)}";
             $g isa group, has gid "${esc(`group:${uid}`)}";
             (member: $u, group: $g) isa membership;
       select $u;
-    `))
+    `),
+    )
     if (rows.length === 0) orphans.push(uid)
   }
 
@@ -90,7 +94,8 @@ async function main() {
   for (const uid of orphans) {
     const pgid = `group:${uid}`
     try {
-      await tql(`
+      await tql(
+        `
         match $u isa unit, has uid "${esc(uid)}";
         not { $g isa group, has gid "${esc(pgid)}"; };
         insert $g isa group,
@@ -98,13 +103,18 @@ async function main() {
           has name "${esc(uid)}",
           has group-type "personal",
           has status "active";
-      `, true)
-      await tql(`
+      `,
+        true,
+      )
+      await tql(
+        `
         match $u isa unit, has uid "${esc(uid)}";
               $g isa group, has gid "${esc(pgid)}";
         not { (group: $g, member: $u) isa membership; };
         insert (group: $g, member: $u) isa membership, has member-role "chairman";
-      `, true)
+      `,
+        true,
+      )
       ok++
       console.log(`  ✓ ${uid}`)
     } catch (err) {

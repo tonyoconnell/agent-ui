@@ -93,41 +93,55 @@ Quality marks up: every step emits `auth:*` or `handoff:*` signals;
 
 ---
 
-### Cycle 3 — Custody graduation
+### Cycle 3 — `/u/` as the action surface
 
-**Intent:** the `/u/` wallet is a training-wheels default; users can claim sole custody when ready.
+**Intent:** every identity action — sign-in, pay, hire, claim, delegate, handoff — happens on `/u/<name>`. No parallel settings pages.
 
-- [ ] **C3.1** — `/api/wallet/claim` — body `{uid, externalAddr, signature}`; verifies the user actually controls `externalAddr` via SIWS flow; writes `identity-link`; updates canonical `unit.wallet`. *id: wallet-claim · value: 8 · effort: 2 · phase: W2 · persona: edge-api · tags: [sui, claim, custody]*
-- [ ] **C3.2** — `/settings/wallet` page — shows custody address, external linked addresses, claim button, revoke button. *id: wallet-settings · value: 5 · effort: 2 · phase: W3 · persona: react-islands · tags: [ui, settings]*
-- [ ] **C3.3** — optional on-chain sweeper — agent that scans custody addresses with balance > epsilon, forwards to linked external. Fires on `claim` and on schedule. *id: custody-sweep · value: 5 · effort: 3 · phase: W3 · persona: sui-bridge · tags: [sui, L4-economic]*
+- [ ] **C3.1** — extend `src/pages/u/[name].astro` — compute `mode = 'self' | 'owner' | 'visitor'` via `resolveUnitFromSession` + `ownerOf`; fetch `identity-link` rows; pass `mode`, `viewerUid`, `links` to `UnitProfile`. *id: u-mode · value: 8 · effort: 2 · phase: W1 · persona: edge-api · blocks: [u-panels] · tags: [ui, auth, refactor]*
+- [ ] **C3.2** — `UnitProfile` action panels — three modes render three panels from one component. Visitor: pay/hire/message + inlined `<SignInWithAnything />`. Self: edit/claim/keys/delegations tabs. Owner: withdraw/rotate/act-as/mint-handoff. *id: u-panels · value: 13 · effort: 4 · phase: W2 · persona: react-islands · blocks: [u-claim, u-delegations, u-keys] · tags: [ui, conversion]*
+- [ ] **C3.3** — inline sign-in flow — queued action before auth fires after auth on the same page (no navigation). Action queue lives in `UnitProfile` state; `<SignInWithAnything />` resolves a promise. *id: u-inline-auth · value: 8 · effort: 2 · phase: W2 · persona: react-islands · tags: [ui, conversion, auth]*
 
-**Exit:** a user can bring their external wallet, link it, and sweep any custody balance in one flow.
-**Rubric target:** truth ≥ 0.90 (no funds lost), fit ≥ 0.75, form ≥ 0.70, taste ≥ 0.75.
-
----
-
-### Cycle 4 — Delegation capsules (handoff)
-
-**Intent:** agents act on behalf of users without ever seeing their key.
-
-- [ ] **C4.1** — `/api/handoff/mint` — agent POSTs `{action, params, ttl}`; server returns signed JWT URL (HANDOFF_SECRET). Emits `handoff:${action}:minted`. *id: handoff-mint · value: 8 · effort: 2 · phase: W3 · persona: edge-api · tags: [handoff, delegation]*
-- [ ] **C4.2** — `/handoff` page — parses JWT, shows intent (human-readable), auto-connects wallet via `<SignInWithAnything />`, user signs `ONE handoff: ${jwt}`. *id: handoff-page · value: 8 · effort: 2 · phase: W3 · persona: react-islands · blocks: [handoff-execute] · tags: [handoff, ui]*
-- [ ] **C4.3** — `/api/handoff/execute` — verifies JWT + signature; calls `ensureHumanUnit`; mints `delegation-capsule`; sets session cookie; runs the action as user with `actAs=agent`. Emits `handoff:${action}:executed` or `:rejected`. Marks path `agent→user` on success. *id: handoff-execute · value: 13 · effort: 4 · phase: W3 · persona: edge-api · tags: [handoff, delegation, substrate]*
-- [ ] **C4.4** — capsule validator middleware — `X-Delegation: <capsule-id>` on agent requests; cross-checks capsule.grantee matches key's user, action matches, not expired/revoked. *id: capsule-middleware · value: 8 · effort: 2 · phase: W3 · persona: edge-api · tags: [security, middleware]*
-- [ ] **C4.5** — `/settings/delegations` — user sees active capsules, one-click revoke per capsule. Emits `capsule:revoked`. *id: delegation-settings · value: 5 · effort: 1 · phase: W3 · persona: react-islands · tags: [ui, settings, trust]*
-
-**Exit:** an agent can send a user a link, the user signs once with any wallet, the action executes, and subsequent actions in that scope don't re-prompt until expiry.
-**Rubric target:** truth ≥ 0.90, fit ≥ 0.85 (solves the "key-passing" problem stated), form ≥ 0.80, taste ≥ 0.85.
+**Exit:** `/u/tony` works three different ways for Tony, Tony's CEO, and a random visitor — same URL, different affordances, same component.
+**Rubric target:** fit ≥ 0.85 (consolidates 4 pages into 1), form ≥ 0.80, truth ≥ 0.75, taste ≥ 0.85.
 
 ---
 
-### Cycle 5 — Verify + learn
+### Cycle 4 — Custody graduation
 
-- [ ] **C5.1** — integration test: end-to-end SIWS → hire → handoff → revoke, across all four front doors (mocked where needed: zkLogin, Snap). *id: wallet-e2e · value: 8 · effort: 3 · phase: W4 · persona: test-author · tags: [integration, test]*
-- [ ] **C5.2** — pheromone dashboard tile at `/dashboard` — top `front-door` by conversion, top `handoff:action` by strength. *id: wallet-dashboard · value: 3 · effort: 1 · phase: W4 · persona: react-islands · tags: [ui, telemetry]*
-- [ ] **C5.3** — docs sync — update `auth.md` flow diagram, add wallet section to `one/backend-tutorial.md`, reference from `README.md`. *id: wallet-docs · value: 3 · effort: 1 · phase: W4 · persona: docs · tags: [docs]*
+**Intent:** the `/u/` wallet is a training-wheels default; users claim sole custody from their own `/u/` page.
 
-**Exit:** all 5 cycles pass `npm run verify`; rubric scored ≥ 0.70 overall; live site shows at least one handoff path forming on `/world`.
+- [ ] **C4.1** — `/api/wallet/claim` — body `{uid, externalAddr, signature}`; verifies signature via `verifyPersonalMessageSignature`; writes `identity-link`; updates canonical `unit.wallet`. *id: u-claim · value: 8 · effort: 2 · phase: W2 · persona: edge-api · blocks: [custody-sweep] · tags: [sui, claim, custody]*
+- [ ] **C4.2** — claim UI inside `UnitProfile` self-mode — "Link external wallet" button, shows both addresses after claim, labels custody as "legacy — swept on withdrawal". *id: u-claim-ui · value: 5 · effort: 1 · phase: W3 · persona: react-islands · tags: [ui, settings]*
+- [ ] **C4.3** — delegations tab in self-mode — lists active `delegation-capsule` rows for this user, one-click revoke per capsule (emits `capsule:revoked`). *id: u-delegations · value: 5 · effort: 1 · phase: W3 · persona: react-islands · tags: [ui, trust]*
+- [ ] **C4.4** — keys tab in self-mode — lists `api-key` rows, mint new scoped key, revoke. (Relocates `/settings/keys` into `/u/`.) *id: u-keys · value: 5 · effort: 1 · phase: W3 · persona: react-islands · tags: [ui, security]*
+- [ ] **C4.5** — optional on-chain sweeper — worker that scans custody addresses with balance > epsilon, forwards to linked external. Fires on `claim` and on schedule. Runs in restricted env (no direct `SUI_SEED`). *id: custody-sweep · value: 5 · effort: 3 · phase: W3 · persona: sui-bridge · tags: [sui, L4-economic, security]*
+
+**Exit:** a user can bring their external wallet, link it from their own `/u/`, sweep any custody balance, and revoke delegations — all on one page.
+**Rubric target:** truth ≥ 0.90 (no funds lost), fit ≥ 0.80, form ≥ 0.75, taste ≥ 0.80.
+
+---
+
+### Cycle 5 — Delegation capsules (handoff)
+
+**Intent:** agents act on behalf of users without ever seeing their key. Handoff URL lands on the agent's `/u/` page for trust context.
+
+- [ ] **C5.1** — `/api/handoff/mint` — agent POSTs `{action, params, ttl}`; server returns signed JWT URL `https://one.ie/u/<agent>/handoff#t=<jwt>` (HANDOFF_SECRET). Emits `handoff:${action}:minted`. *id: handoff-mint · value: 8 · effort: 2 · phase: W3 · persona: edge-api · tags: [handoff, delegation]*
+- [ ] **C5.2** — `/u/[name]/handoff.astro` — reuses `UnitProfile` for agent context (reputation, capabilities, past handoff rate) + overlays intent card with Approve button. Parses JWT client-side for display; server re-verifies on execute. *id: handoff-page · value: 13 · effort: 3 · phase: W3 · persona: react-islands · blocks: [handoff-execute] · tags: [handoff, ui, trust]*
+- [ ] **C5.3** — `/api/handoff/execute` — verifies JWT + signature via `verifyPersonalMessageSignature`; calls `ensureHumanUnit`; mints `delegation-capsule`; sets session cookie; runs the action as user with `actAs=agent`. Emits `handoff:${action}:executed` or `:rejected`. Marks path `agent→user` on success. *id: handoff-execute · value: 13 · effort: 4 · phase: W3 · persona: edge-api · tags: [handoff, delegation, substrate]*
+- [ ] **C5.4** — capsule validator middleware — `X-Delegation: <capsule-id>` on agent requests; cross-checks `capsule.grantee` matches key's user, action matches, not expired/revoked. *id: capsule-middleware · value: 8 · effort: 2 · phase: W3 · persona: edge-api · tags: [security, middleware]*
+
+**Exit:** an agent can send a user a link to its own `/u/`, the user sees who's asking on the same page they approve on, signs once with any wallet, the action executes, and subsequent actions in that scope don't re-prompt until expiry.
+**Rubric target:** truth ≥ 0.90, fit ≥ 0.85 (solves the "key-passing" problem), form ≥ 0.80, taste ≥ 0.90.
+
+---
+
+### Cycle 6 — Verify + learn
+
+- [ ] **C6.1** — integration test: end-to-end SIWS → visit `/u/<agent>` → hire inline → handoff → revoke, across all four front doors (mocked where needed: zkLogin, Snap). *id: wallet-e2e · value: 8 · effort: 3 · phase: W4 · persona: test-author · tags: [integration, test]*
+- [ ] **C6.2** — pheromone dashboard tile at `/dashboard` — top `front-door` by conversion, top `/u/<x>` by `ui:u:view → ui:u:hire` ratio, top `handoff:action` by strength. *id: wallet-dashboard · value: 3 · effort: 1 · phase: W4 · persona: react-islands · tags: [ui, telemetry]*
+- [ ] **C6.3** — docs sync — update `auth.md` flow diagram, add wallet section to `one/backend-tutorial.md`, add `/u/` unification note to `src/pages/CLAUDE.md`, reference from `README.md`. *id: wallet-docs · value: 3 · effort: 1 · phase: W4 · persona: docs · tags: [docs]*
+
+**Exit:** all 6 cycles pass `npm run verify`; rubric scored ≥ 0.70 overall; live site shows at least one handoff path forming on `/world` and the `/u/<agent>/handoff` flow working end-to-end.
 
 ---
 

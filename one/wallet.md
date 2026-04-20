@@ -227,6 +227,129 @@ ephemeral pubkey). **Same server code, every front door.**
 
 ---
 
+## `/u/` Is the Action Surface
+
+Every unit already has a page at `/u/<name>` rendering its wallet, capabilities,
+and paths from TypeDB (`src/pages/u/[name].astro`). That page is one SSR hop
+away from being the **single surface for everything in this doc** — sign-in,
+pay, hire, claim, handoff. No parallel `/settings/wallet`, no separate
+`/handoff` route in the common case.
+
+### Three modes, one page
+
+```
+┌──────────┬────────────────────────────┬──────────────────────────────┐
+│ Mode     │ When                       │ Action panel                 │
+├──────────┼────────────────────────────┼──────────────────────────────┤
+│ visitor  │ viewer !== target          │ pay · hire · message · follow│
+│          │ (anon or signed-in other)  │ (sign-in modal inlined)      │
+├──────────┼────────────────────────────┼──────────────────────────────┤
+│ self     │ viewer === target          │ edit · claim external wallet │
+│          │ (human on their own /u/)   │ · revoke keys · delegations  │
+├──────────┼────────────────────────────┼──────────────────────────────┤
+│ owner    │ viewer ∈ chairman of       │ withdraw · rotate key · set  │
+│          │ g:owns:<target>            │ sensitivity · act-as · mint  │
+│          │ (human on an owned agent)  │   handoff link               │
+└──────────┴────────────────────────────┴──────────────────────────────┘
+```
+
+The server decides the mode via `resolveUnitFromSession` + membership lookup;
+the React island renders the right panel. One component, `UnitProfile`, owns
+all three. Symmetric: `/u/tony` as Tony = self; `/u/tony` as anyone else =
+visitor. No dedicated settings page — your `/u/` *is* your settings.
+
+### The inline sign-in
+
+Visitor clicks "Hire" on `/u/creative` while anonymous:
+
+```
+1. <SignInWithAnything /> modal opens in place (no navigation).
+2. Modal fans out: zkLogin (no wallet) · MetaMask Snap (EVM users) ·
+   native dapp-kit (Sui users) · email/password (last resort).
+3. Any path → /api/auth/wallet/verify mints session for human:sui:<addr>.
+4. Queued action (hire) fires automatically on session.
+5. No page reload, no re-click.
+```
+
+One gesture by the visitor; four front doors invisible to them.
+
+### Handoff lands on the agent's `/u/`
+
+Handoff links route through the agent page, not a generic `/handoff`:
+
+```
+https://one.ie/u/scout/handoff#t=<jwt>
+```
+
+The user sees **who is asking** on the same surface as the approval button —
+the agent's capabilities, reputation (pheromone strength), past handoff
+success rate, owner identity. All already rendered by `/u/`. Low-strength
+agents look suspicious by default. **Pheromone becomes a phishing defense
+for free.**
+
+### What this replaces
+
+- `/settings/wallet` → `/u/<self>` in `self` mode
+- `/settings/delegations` → `/u/<self>` (delegations tab)
+- `/settings/keys` → `/u/<self>` (keys tab)
+- `/handoff` → `/u/<agent>/handoff`
+- standalone `/signup` → inline modal on any `/u/` (legacy `/signup` stays
+  for discoverability but redirects through the same flow)
+
+One URL per identity. Every interaction with that identity happens there.
+
+### Minimal diff to `src/pages/u/[name].astro`
+
+```astro
+---
+const viewer = await resolveUnitFromSession(Astro.request, Astro.locals)
+const mode =
+  viewer.user === name ? 'self'
+  : viewer.ownerOf?.includes(name) ? 'owner'
+  : 'visitor'
+
+const links = await readParsed(`
+  match $u isa unit, has uid "${name}";
+        (subject: $u, external: $e) isa identity-link, has front-door $fd;
+  select $e, $fd;
+`).catch(() => [])
+---
+<UnitProfile
+  client:load
+  unit={unit}
+  capabilities={capabilities}
+  edges={edges}
+  links={links}
+  mode={mode}
+  viewerUid={viewer.user}
+/>
+```
+
+Everything else — sign-in modal, action panels, handoff overlay — lives in
+`UnitProfile` and is mounted the same way in every mode. Progressive
+enhancement: SSR serves the public card; the island upgrades it based on
+session.
+
+### Substrate loop on `/u/`
+
+Every visit and action feeds pheromone:
+
+```
+ui:u:view             viewer → target       (visit — attention)
+ui:u:hire             viewer → target       (intent)
+ui:u:pay              viewer → target       (revenue, L4)
+auth:wallet:verify    viewer → front-door   (conversion per door)
+identity-link:*       subject → external    (claim quality)
+handoff:*:executed    agent → user          (trust)
+capsule:revoked       user → agent          (withdrawn trust)
+```
+
+Pheromone on `viewer → target` ranks which `/u/` profiles convert. Pheromone
+on `front-door` tells you zkLogin vs Snap vs native adoption. No separate
+analytics layer — the URL *is* the funnel, the graph *is* the dashboard.
+
+---
+
 ## What This Unlocks
 
 - **"Sign in with anything"** — one button, detects wallet, falls through to
