@@ -5,6 +5,7 @@ The LLM is the only probabilistic component. Everything else is math.
 
 **Ontology:** `src/schema/one.tql` — 100 lines, 6 dimensions, stable forever.
 **Naming:** `docs/dictionary.md` — canonical names, retired names, never rename again.
+**System context:** `CONTEXT.md` — real purpose, core abstractions, key workflows, design decisions, failure modes. Complementary to this file: CLAUDE.md defines what to do, CONTEXT.md explains why.
 
 **Environments:**
 - **Dev (live):** `dev.one.ie` — Astro Worker, every `main` deploy
