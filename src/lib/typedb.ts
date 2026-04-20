@@ -12,7 +12,13 @@
  */
 
 // Gateway URL — all queries route through Cloudflare Worker
-const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://one-gateway.oneie.workers.dev'
+const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie'
+const GATEWAY_API_KEY: string = import.meta.env.GATEWAY_API_KEY || ''
+
+/** Escape a string value for safe interpolation into a TypeQL query. */
+export function escapeTqlString(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
 
 /** Execute a TypeQL query via Cloudflare gateway */
 async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<unknown[]> {
@@ -24,7 +30,10 @@ async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<un
   const timeoutMs = txType === 'write' ? 8000 : 30000
   const res = await fetch(`${GATEWAY_URL}/typedb/query`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(GATEWAY_API_KEY && { Authorization: `Bearer ${GATEWAY_API_KEY}` }),
+    },
     body: JSON.stringify({
       query: tql,
       transactionType: txType,

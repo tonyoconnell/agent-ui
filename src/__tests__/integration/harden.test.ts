@@ -20,12 +20,17 @@ vi.mock('@/lib/sui', () => ({
 }))
 
 vi.mock('@/lib/typedb', () => ({
+  escapeTqlString: (s: string) => s,
   readParsed: vi.fn(),
   writeSilent: vi.fn(),
 }))
 
 vi.mock('@/lib/net', () => ({
   getNet: vi.fn(),
+}))
+
+vi.mock('@/lib/api-auth', () => ({
+  validateApiKey: vi.fn().mockResolvedValue({ isValid: true, user: 'alice' }),
 }))
 
 import { getNet } from '@/lib/net'

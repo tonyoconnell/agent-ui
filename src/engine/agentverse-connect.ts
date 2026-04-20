@@ -42,10 +42,10 @@ export type Agentverse = {
 }
 
 export const connectAgentverse = async (w: World, config: AgentverseConfig = {}): Promise<Agentverse | null> => {
-  const key = config.apiKey ?? process.env.AGENTVERSE_API_KEY
+  const key = config.apiKey ?? import.meta.env.AGENTVERSE_API_KEY
   if (!key) return null
 
-  const baseUrl = config.apiUrl ?? process.env.AGENTVERSE_API_URL ?? DEFAULT_URL
+  const baseUrl = config.apiUrl ?? import.meta.env.AGENTVERSE_API_URL ?? DEFAULT_URL
 
   // One HTTP hop. Network error → null → substrate treats as `dissolved` (warn 0.5).
   const post = async (address: string, data: unknown): Promise<unknown> => {

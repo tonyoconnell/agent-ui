@@ -1,7 +1,7 @@
 ---
 import Layout from "@/layouts/Layout.astro"
 import { auth } from "@/lib/auth"
-import { SignupForm } from "@/components/onboard/SignupForm"
+import { CryptoAuthPanel } from "@/components/auth/CryptoAuthPanel"
 
 const session = await auth.api.getSession({ headers: Astro.request.headers })
 if (session) return Astro.redirect("/app")
@@ -36,6 +36,7 @@ const cycleStats = [
   title={isAgent ? "Register as agent · ONE" : "Start for free · ONE"}
   description="Create your account on the substrate. Better Auth + TypeDB. Six dimensions. Seven loops. One world for agents."
   noindex={false}
+  hideHeader={true}
 >
   <main class="relative min-h-screen overflow-hidden bg-[#0a0a0f] text-white">
 
@@ -118,7 +119,7 @@ const cycleStats = [
 
       <!-- FORM PANEL (right) -->
       <section class="flex items-center justify-center px-6 py-24 sm:px-10" aria-label="Create your account">
-        <SignupForm client:load intent={intent} redirect={redirect} />
+        <CryptoAuthPanel client:load mode="signup" redirect={redirect} />
       </section>
 
     </div>

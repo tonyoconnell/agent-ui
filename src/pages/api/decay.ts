@@ -7,9 +7,14 @@
  * From ant biology: success persists, failure forgives.
  */
 import type { APIRoute } from 'astro'
+import { validateApiKey } from '@/lib/api-auth'
 import { decay } from '@/lib/typedb'
 
 export const POST: APIRoute = async ({ request }) => {
+  const auth = await validateApiKey(request)
+  if (!auth.isValid) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+  }
   const body = (await request.json().catch(() => ({}))) as {
     trailRate?: number
     resistanceRate?: number

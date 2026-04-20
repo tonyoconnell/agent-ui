@@ -11,7 +11,7 @@
   "scripts": {
     "build:pkgs": "cd packages/sdk && bun run build && cd ../cli && bun run build && cd ../mcp && bun run build && cd ../templates && bun run build",
     "postinstall": "bun run build:pkgs",
-    "dev": "astro dev",
+    "dev": "bun --env-file=.env astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "test": "vitest run",

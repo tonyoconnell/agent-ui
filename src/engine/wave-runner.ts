@@ -22,7 +22,8 @@
  */
 
 import type { PersistentWorld } from './persist'
-import { markDims, score } from './rubric'
+import { score } from './rubric'
+import { markDims } from './rubric-score'
 import type { AuditResult } from './skill-audit'
 import { WAVE_MODEL } from './task-parse'
 import type { Unit } from './world'

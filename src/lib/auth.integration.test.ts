@@ -35,6 +35,7 @@ vi.mock('@/lib/auth', () => ({
 
 vi.mock('@/lib/api-key', () => ({
   generateApiKey: vi.fn().mockReturnValue('api_new_key_k2'),
+  getKeyPrefix: vi.fn().mockReturnValue('testpfx1'),
   hashKey: vi.fn().mockResolvedValue('$pbkdf2$100000$salt$hash'),
   verifyKey: vi.fn(),
 }))

@@ -10,7 +10,7 @@
  *   - Revocation: invalidateKeyCache(keyId) uses secondary map for reliable eviction
  */
 
-import { verifyKey } from '@/lib/api-key'
+import { getKeyPrefix, verifyKey } from '@/lib/api-key'
 import { auth } from '@/lib/auth'
 import { getD1 } from '@/lib/cf-env'
 import { getNet } from '@/lib/net'
@@ -120,10 +120,11 @@ export async function validateApiKey(
   }
 
   try {
-    // Slow path: fetch all active keys, verify each with PBKDF2
+    // Slow path: narrow by key-prefix first (O(1) index → 1-2 PBKDF2 calls max)
+    const prefix = getKeyPrefix(key)
     const rows = await readParsed(`
       match $k isa api-key, has api-key-id $id, has key-hash $h, has user-id $u,
-        has permissions $p, has key-status "active";
+        has permissions $p, has key-status "active", has key-prefix "${prefix}";
       optional { $k has expires-at $exp; }
       optional { $k has scope-group $sg; }
       optional { $k has scope-skill $ss; }
@@ -355,13 +356,21 @@ export async function ensureHumanUnit(
 async function resolveSuiSession(token: string, locals?: App.Locals): Promise<AuthContext> {
   const INVALID: AuthContext = { user: '', permissions: [], keyId: '', isValid: false }
   const [payloadB64, sig] = token.split('.')
-  if (!payloadB64 || !sig) return INVALID
+  if (!payloadB64 || !sig) {
+    emitSecurityEvent({ kind: 'auth-fail', caller: 'unknown', reason: 'sui-session-invalid-format' })
+    warnAuthBoundary('unknown')
+    return INVALID
+  }
 
   const env =
     (locals as { runtime?: { env?: Record<string, string> } } | undefined)?.runtime?.env ??
     (process.env as Record<string, string>)
   const secret = env.SUI_SESSION_SECRET ?? env.WALLET_NONCE_SECRET
-  if (!secret) return INVALID
+  if (!secret) {
+    emitSecurityEvent({ kind: 'auth-fail', caller: 'unknown', reason: 'sui-session-no-secret' })
+    warnAuthBoundary('unknown')
+    return INVALID
+  }
 
   try {
     const key = await crypto.subtle.importKey(
@@ -376,7 +385,11 @@ async function resolveSuiSession(token: string, locals?: App.Locals): Promise<Au
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '')
-    if (expected !== sig) return INVALID
+    if (expected !== sig) {
+      emitSecurityEvent({ kind: 'auth-fail', caller: 'unknown', reason: 'sui-session-sig-mismatch' })
+      warnAuthBoundary('unknown')
+      return INVALID
+    }
 
     const pad = payloadB64.length % 4 ? 4 - (payloadB64.length % 4) : 0
     const b64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(pad)
@@ -385,7 +398,11 @@ async function resolveSuiSession(token: string, locals?: App.Locals): Promise<Au
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
     const payload = JSON.parse(new TextDecoder().decode(bytes)) as { u: string; e: number }
 
-    if (payload.e < Date.now()) return INVALID
+    if (payload.e < Date.now()) {
+      emitSecurityEvent({ kind: 'auth-fail', caller: 'unknown', reason: 'sui-session-expired' })
+      warnAuthBoundary('unknown')
+      return INVALID
+    }
 
     const uid = payload.u
     const role = await getRoleForUser(uid).catch(() => undefined)
@@ -406,6 +423,8 @@ async function resolveSuiSession(token: string, locals?: App.Locals): Promise<Au
       personalGid: `group:${uid}`,
     }
   } catch {
+    emitSecurityEvent({ kind: 'auth-fail', caller: 'unknown', reason: 'sui-session-exception' })
+    warnAuthBoundary('unknown')
     return INVALID
   }
 }
@@ -452,6 +471,8 @@ export async function resolveUnitFromSession(request: Request, locals?: App.Loca
     /* fail-closed */
   }
   if (!session?.user) {
+    emitSecurityEvent({ kind: 'auth-fail', caller: 'unknown', reason: 'betterauth-no-session' })
+    warnAuthBoundary('unknown')
     return { user: '', permissions: [], keyId: '', isValid: false }
   }
 

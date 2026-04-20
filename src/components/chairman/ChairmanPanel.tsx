@@ -8,10 +8,12 @@ import {
 import '@mysten/dapp-kit/dist/index.css'
 import { getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { WalletSignIn } from '@/components/auth/WalletSignIn'
+import { useChairmanStream } from '@/lib/use-chairman-stream'
 import { emitClick } from '@/lib/ui-signal'
 import { OrgChart } from './OrgChart'
+import { RoleCatalog } from './RoleCatalog'
 
 interface HiredUnit {
   uid: string
@@ -24,8 +26,6 @@ interface OrgUnit {
   name: string
 }
 
-const DIRECTOR_UIDS = ['roles:cto', 'roles:cmo', 'roles:cfo']
-
 const { networkConfig } = createNetworkConfig({
   testnet: { url: getJsonRpcFullnodeUrl('testnet'), network: 'testnet' },
   mainnet: { url: getJsonRpcFullnodeUrl('mainnet'), network: 'mainnet' },
@@ -37,17 +37,8 @@ function ChairmanPanelContent() {
   const [hiring, setHiring] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
-  const [orgUnits, setOrgUnits] = useState<OrgUnit[]>([])
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  const stopPolling = useCallback(() => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current)
-      pollRef.current = null
-    }
-  }, [])
-
-  useEffect(() => () => stopPolling(), [stopPolling])
+  const { units: orgUnits, pending, addPending } = useChairmanStream()
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(['cto', 'cmo', 'cfo'])
 
   const hireCeo = async () => {
     emitClick('ui:chairman:hire-ceo')
@@ -76,35 +67,19 @@ function ChairmanPanelContent() {
     emitClick('ui:chairman:build-team')
     setBuilding(true)
     setError(null)
-
+    const roles = selectedRoles.length > 0 ? selectedRoles : ['cto', 'cmo', 'cfo']
+    addPending(roles)
     try {
-      await fetch('/api/chairman/build-team', { method: 'POST' })
+      await fetch('/api/chairman/build-team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roles }),
+      })
     } catch {
       setError('Build team signal failed')
+    } finally {
       setBuilding(false)
-      return
     }
-
-    let elapsed = 0
-    stopPolling()
-    pollRef.current = setInterval(async () => {
-      elapsed += 1000
-      try {
-        const res = await fetch('/api/export/units')
-        const data = (await res.json()) as { units?: { uid: string; name: string }[] }
-        const found = (data.units ?? []).filter((u) => DIRECTOR_UIDS.includes(u.uid))
-        if (found.length > 0) setOrgUnits(found)
-        if (found.length >= DIRECTOR_UIDS.length || elapsed >= 10000) {
-          stopPolling()
-          setBuilding(false)
-        }
-      } catch {
-        if (elapsed >= 10000) {
-          stopPolling()
-          setBuilding(false)
-        }
-      }
-    }, 1000)
   }
 
   return (
@@ -145,30 +120,33 @@ function ChairmanPanelContent() {
         </div>
       ) : (
         /* Post-hire: org chart fills remaining height */
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 min-h-0">
-            <OrgChart unit={unit} orgUnits={orgUnits} building={building} />
-          </div>
+        <div className="flex-1 flex min-h-0">
+          <RoleCatalog selected={selectedRoles} onChange={setSelectedRoles} />
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 min-h-0">
+              <OrgChart unit={unit} orgUnits={orgUnits} building={building} pending={pending} />
+            </div>
 
-          {/* Controls below chart */}
-          <div className="px-8 py-5 shrink-0 flex items-center gap-4 border-t border-[#1a1a2e]">
-            {orgUnits.length === 0 && (
-              <button
-                type="button"
-                onClick={buildTeam}
-                disabled={building}
-                className="px-6 py-2.5 bg-violet-700 hover:bg-violet-600 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
-              >
-                {building ? 'Building team…' : 'Build Team'}
-              </button>
-            )}
-            {orgUnits.length > 0 && (
-              <span className="text-xs text-slate-500">
-                {orgUnits.length} director{orgUnits.length !== 1 ? 's' : ''} hired —{' '}
-                {orgUnits.map((u) => u.uid.replace('roles:', '').toUpperCase()).join(', ')}
-              </span>
-            )}
-            {error && <p className="text-sm text-red-400 ml-auto">{error}</p>}
+            {/* Controls below chart */}
+            <div className="px-8 py-5 shrink-0 flex items-center gap-4 border-t border-[#1a1a2e]">
+              {orgUnits.length === 0 && (
+                <button
+                  type="button"
+                  onClick={buildTeam}
+                  disabled={building}
+                  className="px-6 py-2.5 bg-violet-700 hover:bg-violet-600 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
+                >
+                  {building ? 'Building team…' : 'Build Team'}
+                </button>
+              )}
+              {orgUnits.length > 0 && (
+                <span className="text-xs text-slate-500">
+                  {orgUnits.length} director{orgUnits.length !== 1 ? 's' : ''} hired —{' '}
+                  {orgUnits.map((u) => u.uid.replace('roles:', '').toUpperCase()).join(', ')}
+                </span>
+              )}
+              {error && <p className="text-sm text-red-400 ml-auto">{error}</p>}
+            </div>
           </div>
         </div>
       )}

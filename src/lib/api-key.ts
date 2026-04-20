@@ -19,6 +19,16 @@ export function generateApiKey(): string {
 }
 
 /**
+ * Extract a short prefix from a key for O(1) TypeDB lookup.
+ * Takes 8 chars of the random segment (alphanumeric only — no TQL escaping needed).
+ */
+export function getKeyPrefix(key: string): string {
+  const parts = key.split('_')
+  const random = parts.length >= 3 ? parts.slice(2).join('') : key
+  return random.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)
+}
+
+/**
  * Hash an API key using PBKDF2 (Web Crypto API)
  */
 export async function hashKey(key: string): Promise<string> {

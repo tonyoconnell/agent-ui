@@ -220,6 +220,16 @@ Organization and team structures.
 | `/api/export/groups` | GET | All groups with members |
 | `/api/team` | GET | Team structure for current world |
 
+### Chairman Routes
+
+Org scaffolding endpoints. No auth required. Used by `src/components/chairman/` (C3, shipped 2026-04-20).
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/chairman/roles` | GET | List available roles parsed from `agents/roles/*.md`. Returns `{roles: RoleEntry[]}` where each entry is `{filename, name, group, skills, tags, prompt}`. 10s cache-control. Used by `RoleCatalog.tsx`. |
+| `/api/chairman/hire` | POST | Hire a single agent into the world: parse role markdown → syncAgent → TypeDB. Body: `{role, group?}`. |
+| `/api/chairman/build-team` | POST | Hire a set of roles in parallel. Body: `{roles?: string[]}` — defaults to `['cto','cmo','cfo']` if absent. Returns `{hired: string[], errors: string[]}`. |
+
 ---
 
 ## Infrastructure

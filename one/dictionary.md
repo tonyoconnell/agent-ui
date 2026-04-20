@@ -1406,6 +1406,30 @@ These were renamed or removed. Using them causes schema/query drift.
 
 ---
 
+## Broadcast Types (WsMessage)
+
+Discriminated union carried over WsHub `/ws` and the Gateway `/broadcast` relay.
+The allowlist in `gateway/src/index.ts` must include every type below — unlisted
+types are rejected 400. Added/renamed types require a gateway deploy.
+
+| Type            | Payload fields                                                | Loop | Surfaces |
+|-----------------|---------------------------------------------------------------|------|----------|
+| `mark`          | `tid`, `strength`                                             | L2   | TaskBoard edge thickness |
+| `warn`          | `tid`, `resistance`                                           | L2   | TaskBoard edge color |
+| `pick`          | `tid`, `owner`, `started_at`                                  | L1   | TaskBoard "picked" state |
+| `verify`        | `tid`, `rubric`, `verified_at`                                | L2   | TaskBoard W4 completion |
+| `rubric-update` | `tid`, `rubric` (partial)                                     | L2   | TaskBoard rubric dims |
+| `sync`          | `tasks[]` with `{tid, strength, resistance}`                  | L3   | TaskBoard bulk refresh |
+| `task-update`   | `task` (partial, with `tid`)                                  | L1   | TaskBoard any field |
+| `unblock`       | `tid`                                                         | L2   | TaskBoard status → open |
+| `complete`      | `tid` *(deprecated — aliased to `verify` w/ default rubric)*  | L2   | Legacy clients |
+| `unit-hired`    | `uid`, `role`, `wallet`, `skills[]`, `from`                   | L1   | `/chairman` OrgChart (C1+) |
+| `ping` / `pong` | —                                                             | —    | Keepalive only |
+
+**`unit-hired` is emitted by `src/engine/chairman.ts`** after `mark(edge, 1)` resolves and before the recursive `registerHire()` fires. Consumed by `src/lib/use-chairman-stream.ts` to paint the org live as it assembles. No polling, no hardcoded role list — the stream IS the truth.
+
+---
+
 ## See Also
 
 - [DSL.md](one/DSL.md) — The programming model in depth

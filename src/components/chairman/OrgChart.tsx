@@ -1,4 +1,3 @@
-import dagre from '@dagrejs/dagre'
 import {
   Background,
   type Edge,
@@ -12,6 +11,11 @@ import {
 } from '@xyflow/react'
 import { useEffect, useMemo } from 'react'
 import '@xyflow/react/dist/style.css'
+import { pheromoneEdgeStyle } from '@/components/graph/nodes/PheromoneEdge'
+import { useNodeLayout } from '@/components/graph/nodes/useNodeLayout'
+import { useOrgPaths } from '@/lib/use-org-paths'
+import { PendingNode } from './nodes/PendingNode'
+import { UnitNode } from './nodes/UnitNode'
 
 // ─── palette ────────────────────────────────────────────────────────────────
 
@@ -27,15 +31,6 @@ const C = {
 
 interface ChairmanData {
   label: string
-  [key: string]: unknown
-}
-
-interface UnitData {
-  uid: string
-  role: string
-  wallet: string | null
-  skills: string[]
-  status: 'hired' | 'hiring'
   [key: string]: unknown
 }
 
@@ -68,88 +63,10 @@ function ChairmanNode({ data }: NodeProps) {
   )
 }
 
-function UnitNode({ data }: NodeProps) {
-  const d = data as UnitData
-  const isCeo = d.role === 'ceo'
-  const isHiring = d.status === 'hiring'
-  const colors = isCeo ? C.ceo : C.director
-
-  return (
-    <div
-      className={`rounded-xl border select-none px-4 py-3 min-w-[168px] transition-all duration-300 ${isHiring ? 'animate-pulse' : ''}`}
-      style={{
-        backgroundColor: colors.bg,
-        borderColor: isHiring ? `${colors.border}60` : colors.border,
-        boxShadow: isHiring ? 'none' : `0 0 20px ${colors.accent}25`,
-      }}
-    >
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={{ width: 8, height: 8, backgroundColor: colors.border, border: `2px solid ${C.bg}`, top: -4 }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{ width: 8, height: 8, backgroundColor: colors.accent, border: `2px solid ${C.bg}`, bottom: -4 }}
-      />
-
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-semibold text-slate-100">{d.role.toUpperCase()}</span>
-        {!isHiring && (
-          <span
-            className="text-[9px] px-1.5 py-0.5 rounded-full"
-            style={{ backgroundColor: `${C.hired}18`, color: C.hired }}
-          >
-            hired
-          </span>
-        )}
-      </div>
-
-      <div className="text-[10px] font-mono truncate max-w-[148px]" style={{ color: colors.text }}>
-        {d.uid}
-      </div>
-
-      {d.wallet && (
-        <div className="text-[9px] font-mono truncate max-w-[148px] mt-0.5 text-slate-600">
-          {d.wallet.slice(0, 18)}…
-        </div>
-      )}
-
-      {!isHiring && d.skills.length > 0 && (
-        <div className="flex gap-1 flex-wrap mt-2">
-          {d.skills.slice(0, 3).map((s) => (
-            <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-[#1a1a2e] text-slate-500">
-              {s}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── layout ──────────────────────────────────────────────────────────────────
-
-const NODE_W = 184
-const NODE_H = 80
-
-function applyLayout(nodes: Node[], edges: Edge[]): Node[] {
-  const g = new dagre.graphlib.Graph()
-  g.setGraph({ rankdir: 'TB', ranksep: 80, nodesep: 52 })
-  g.setDefaultEdgeLabel(() => ({}))
-  for (const n of nodes) g.setNode(n.id, { width: NODE_W, height: NODE_H })
-  for (const e of edges) g.setEdge(e.source, e.target)
-  dagre.layout(g)
-  return nodes.map((n) => {
-    const { x, y } = g.node(n.id)
-    return { ...n, position: { x: x - NODE_W / 2, y: y - NODE_H / 2 } }
-  })
-}
 
 // ─── component ───────────────────────────────────────────────────────────────
 
-const NODE_TYPES = { chairman: ChairmanNode, unit: UnitNode }
+const NODE_TYPES = { chairman: ChairmanNode, unit: UnitNode, pending: PendingNode }
 
 interface HiredUnit {
   uid: string
@@ -166,9 +83,11 @@ interface Props {
   unit: HiredUnit | null
   orgUnits: OrgUnit[]
   building: boolean
+  pending: string[]
 }
 
-export function OrgChart({ unit, orgUnits, building }: Props) {
+export function OrgChart({ unit, orgUnits, building, pending }: Props) {
+  const paths = useOrgPaths()
   const rawNodes = useMemo<Node[]>(() => {
     const ns: Node[] = [
       {
@@ -200,35 +119,59 @@ export function OrgChart({ unit, orgUnits, building }: Props) {
         data: { uid: u.uid, role: u.uid.replace('roles:', ''), wallet: null, skills: [], status: 'hired' },
       })
     }
+    for (const role of pending) {
+      ns.push({
+        id: `pending:${role}`,
+        type: 'pending',
+        position: { x: 0, y: 0 },
+        data: { role },
+      })
+    }
     return ns
-  }, [unit, orgUnits, building])
+  }, [unit, orgUnits, building, pending])
 
   const rawEdges = useMemo<Edge[]>(() => {
     const es: Edge[] = []
     if (unit) {
+      const p = paths.get('chairman→ceo')
       es.push({
         id: 'chairman→ceo',
         source: 'chairman',
         target: 'ceo',
         type: 'smoothstep',
         animated: building,
-        style: { stroke: C.ceo.border, strokeWidth: 2, strokeOpacity: 0.8 },
+        style: p
+          ? pheromoneEdgeStyle(p.strength, p.resistance, { stroke: C.ceo.border })
+          : { stroke: C.ceo.border, strokeWidth: 2, strokeOpacity: 0.8 },
       })
     }
     for (const u of orgUnits) {
+      const p = paths.get(`ceo→${u.uid}`)
       es.push({
         id: `ceo→${u.uid}`,
         source: 'ceo',
         target: u.uid,
         type: 'smoothstep',
         animated: false,
-        style: { stroke: C.director.border, strokeWidth: 1.5, strokeOpacity: 0.7 },
+        style: p
+          ? pheromoneEdgeStyle(p.strength, p.resistance, { stroke: C.director.border })
+          : { stroke: C.director.border, strokeWidth: 1.5, strokeOpacity: 0.7 },
+      })
+    }
+    for (const role of pending) {
+      es.push({
+        id: `ceo→pending:${role}`,
+        source: 'ceo',
+        target: `pending:${role}`,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: C.director.border, strokeWidth: 1, strokeOpacity: 0.4, strokeDasharray: '4 4' },
       })
     }
     return es
-  }, [unit, orgUnits, building])
+  }, [unit, orgUnits, building, pending, paths])
 
-  const laidOut = useMemo(() => applyLayout(rawNodes, rawEdges), [rawNodes, rawEdges])
+  const laidOut = useNodeLayout(rawNodes, rawEdges, { rankdir: 'TB', nodesep: 52, ranksep: 80, nodeW: 184, nodeH: 80 })
 
   const [nodes, setNodes, onNodesChange] = useNodesState(laidOut)
   const [edges, setEdges, onEdgesChange] = useEdgesState(rawEdges)

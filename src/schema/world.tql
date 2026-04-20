@@ -102,6 +102,7 @@ entity unit,
     owns perm-cpu-percent,
     owns perm-duration-s,
     owns dissolved-at,             # datetime: when graceful dissolve was called
+    owns key-version,              # wallet derivation version: 0=SHA-256, 1=HKDF
     plays path:source,
     plays path:target,
     plays capability:provider,
@@ -283,6 +284,9 @@ entity api-key,
     owns created,
     owns last-used,
     owns expires-at,
+    owns scope-group @card(0..),
+    owns scope-skill @card(0..),
+    owns key-prefix,
     plays api-authorization:api-key;
 
 relation api-authorization,
@@ -364,6 +368,9 @@ attribute key-hash, value string;
 attribute user-id, value string;
 attribute permissions, value string;
 attribute key-status, value string;
+attribute scope-group, value string;
+attribute scope-skill, value string;
+attribute key-prefix, value string;
 
 # BetterAuth attributes
 attribute auth-id, value string;
@@ -512,6 +519,18 @@ attribute perm-cpu-percent, value double;    # resource limit (%)
 attribute perm-duration-s, value integer;    # max signal duration (seconds)
 attribute input-schema, value string;        # JSON Schema for tool input (skill attribute)
 attribute output-schema, value string;       # JSON Schema for tool output (skill attribute)
+attribute key-version, value integer;        # wallet derivation version: 0=legacy SHA-256, 1=HKDF
+attribute group-id, value string;            # group identifier (for tenant-kek ownership)
+
+# --- KEK (Key Encryption Key) for private signal encryption ---
+attribute kek-ciphertext, value string;      # AES-256-GCM ciphertext (base64)
+attribute kek-iv, value string;              # AES-GCM nonce (base64)
+
+# --- Tenant KEK entity ---
+entity tenant-kek,
+    owns group-id,               # which group this KEK belongs to
+    owns kek-ciphertext,         # AES-256-GCM ciphertext of the master KEK
+    owns kek-iv;                 # AES-GCM nonce used during encryption
 
 
 # =============================================================================

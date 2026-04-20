@@ -23,7 +23,7 @@
 
 import type { APIRoute } from 'astro'
 import { resolveUnitFromSession } from '@/lib/api-auth'
-import { generateApiKey, hashKey } from '@/lib/api-key'
+import { generateApiKey, getKeyPrefix, hashKey } from '@/lib/api-key'
 import { getD1 } from '@/lib/cf-env'
 import { emitSecurityEvent } from '@/lib/security-signals'
 import { addressFor, ensureFunded } from '@/lib/sui'
@@ -180,17 +180,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Always generate a fresh API key
     const apiKey = generateApiKey()
     const keyHash = await hashKey(apiKey)
-    const keyId = `key-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+    const keyId = `key-${Date.now().toString(36)}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`
     const now = new Date().toISOString().replace('Z', '')
 
+    const keyPrefix = getKeyPrefix(apiKey)
+    const expiresAt = new Date(Date.now() + 86_400_000).toISOString().replace('Z', '')
     await write(`
       insert $k isa api-key,
         has api-key-id "${esc(keyId)}",
         has key-hash "${esc(keyHash)}",
         has user-id "${esc(uid)}",
-        has permissions "read,write",
+        has key-prefix "${keyPrefix}",
+        has permissions "read",
         has key-status "active",
-        has created ${now};
+        has created ${now},
+        has expires-at ${expiresAt};
     `)
 
     // Link key to unit

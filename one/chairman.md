@@ -224,6 +224,25 @@ curl -s -X POST https://dev.one.ie/api/chairman/hire -d '{"role":"ceo"}'  # { un
 
 ### Cycle 2 — Pheromone overlay (B)
 
+> **Shipped 2026-04-20.** Three extracted primitives live under
+> `src/components/graph/nodes/` and `src/lib/`:
+>
+> | Primitive | Consumer |
+> |-----------|----------|
+> | `PheromoneEdge.pheromoneEdgeStyle(s, r, opts)` | OrgChart edges (chairman→ceo, ceo→director) |
+> | `useNodeLayout(nodes, edges, opts)` | OrgChart TB layout + ready for `/world` adoption |
+> | `useOrgPaths()` | Polls `/api/export/paths` every 3s → `Map<edge, {strength, resistance, toxic}>` |
+>
+> **Scope decision:** `WorldGraph.tsx` uses a manual BFS layout and `s/8` linear
+> stroke formula — fundamentally different from PheromoneGraph's `log(s+1)×2` and
+> dagre LR layout. Forcing a shared primitive would require rewriting WorldGraph,
+> which is outside this cycle. `useNodeLayout` is ready; WorldGraph's migration
+> is a separate TODO when its rendering model unifies with PheromoneGraph.
+>
+> **UnitNode** moved to `src/components/chairman/nodes/UnitNode.tsx` and now
+> fetches `/api/agents/detail?id={uid}` on mount for directors whose `skills[]`
+> arrives empty via the `unit-hired` event (CEO arrives fully populated).
+
 **Deliverable:** Org chart edges show strength as width and resistance as red-channel opacity. Directors render with full skills/wallet/status like CEO. Shared graph primitives factored to `src/components/graph/nodes/`.
 
 **Exit:** Every edge visible on `/chairman` reflects `/api/export/paths` live. Resistance ≥ 10 on any edge shades it red. Node tooltip shows full markdown role preview.
@@ -357,21 +376,21 @@ The capability is free (`price: 0.00`) but the *roles* it hires are priced indiv
 
 ## 11 — Status
 
-- [ ] **Cycle 1 — Live stream (A)**
+- [x] **Cycle 1 — Live stream (A)**
   - [x] W1 recon (5 parallel)
-  - [ ] W2 decide + docs
-  - [ ] W3 edits (parallel by file)
-  - [ ] W4 verify
-- [ ] **Cycle 2 — Pheromone overlay (B)**
-  - [ ] W1 recon (4 parallel)
-  - [ ] W2 decide + docs
-  - [ ] W3 edits (parallel by file)
-  - [ ] W4 verify
-- [ ] **Cycle 3 — Role catalog (C)**
-  - [ ] W1 recon (4 parallel)
-  - [ ] W2 decide + docs
-  - [ ] W3 edits (parallel by file)
-  - [ ] W4 verify
+  - [x] W2 decide + docs
+  - [x] W3 edits (parallel by file)
+  - [x] W4 verify
+- [x] **Cycle 2 — Pheromone overlay (B)**
+  - [x] W1 recon (4 parallel)
+  - [x] W2 decide + docs
+  - [x] W3 edits (parallel by file)
+  - [x] W4 verify
+- [x] **Cycle 3 — Role catalog (C)**
+  - [x] W1 recon (4 parallel)
+  - [x] W2 decide + docs
+  - [x] W3 edits (parallel by file)
+  - [x] W4 verify
 
 ---
 

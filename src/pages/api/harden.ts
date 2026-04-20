@@ -13,9 +13,10 @@
  * Returns: { digest, highwayId, strength, resistance }
  */
 import type { APIRoute } from 'astro'
+import { validateApiKey } from '@/lib/api-auth'
 import { getNet } from '@/lib/net'
 import { harden as suiHarden } from '@/lib/sui'
-import { readParsed, writeSilent } from '@/lib/typedb'
+import { escapeTqlString, readParsed, writeSilent } from '@/lib/typedb'
 
 const HARDEN_THRESHOLD = 50
 
@@ -30,6 +31,15 @@ export const POST: APIRoute = async ({ request }) => {
   const { uid, from, to } = body
   if (!uid || !from || !to) {
     return Response.json({ error: 'uid, from, and to are required' }, { status: 400 })
+  }
+
+  // ── 0. Verify caller owns the unit being hardened ────────────────────────
+  const auth = await validateApiKey(request)
+  if (!auth.isValid) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (auth.user !== uid) {
+    return Response.json({ error: 'Forbidden: key does not belong to this unit' }, { status: 403 })
   }
 
   // ── 1. Validate strength - resistance >= 50 ──────────────────────────────
@@ -52,10 +62,13 @@ export const POST: APIRoute = async ({ request }) => {
     )
   }
 
+  const ef = escapeTqlString(from)
+  const et = escapeTqlString(to)
+
   // ── 2. Resolve sui-path-id from TypeDB ───────────────────────────────────
   const rows = await readParsed(`
-    match $src isa unit, has uid "${from}";
-          $tgt isa unit, has uid "${to}";
+    match $src isa unit, has uid "${ef}";
+          $tgt isa unit, has uid "${et}";
           $p (source: $src, target: $tgt) isa path,
              has sui-path-id $pid;
     select $pid;
@@ -80,8 +93,8 @@ export const POST: APIRoute = async ({ request }) => {
   // ── 4. Persist sui-highway-id + hardened-at back to TypeDB ───────────────
   const nowIso = new Date().toISOString().replace('Z', '')
   writeSilent(`
-    match $src isa unit, has uid "${from}";
-          $tgt isa unit, has uid "${to}";
+    match $src isa unit, has uid "${ef}";
+          $tgt isa unit, has uid "${et}";
           $p (source: $src, target: $tgt) isa path;
     insert $p has sui-highway-id "${highwayId}",
               has hardened-at ${nowIso};

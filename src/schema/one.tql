@@ -46,7 +46,8 @@ entity actor,
     plays membership:member,
     plays signal:sender,
     plays signal:receiver,
-    plays wallet-link:substrate;
+    plays wallet-link:substrate,
+    plays identity-link:subject;
 
 # 3. THINGS — what exists
 entity thing,
@@ -234,6 +235,10 @@ attribute scope, value string;            # private/group/public
 attribute visibility, value string;       # private/group/public — group visibility
 attribute bridge-kind, value string;      # federation/export/escrow — cross-root edge type
 
+# IDENTITY LINK — bridges substrate actor to external identity providers
+attribute linked-at, value long;          # unix ms timestamp of link creation
+attribute front-door, value string;       # which identity front-door created the link (e.g. "google", "github", "sui")
+
 # WORLD-CONFIG KNOBS — group-level governance tuning (added 2026-04-20 for Chairman dashboard)
 attribute sensitivity, value double;          # explore ↔ exploit (0..1, default 0.7)
 attribute fade-rate, value double;            # L3 decay rate (0..1, default 0.05)
@@ -250,6 +255,13 @@ entity ext-wallet,
 relation wallet-link,
     relates substrate,
     relates external;
+
+# IDENTITY LINK — maps actor to external identity (OAuth, DID, chain address)
+relation identity-link,
+    relates subject,
+    relates external,
+    owns linked-at,
+    owns front-door;
 
 # ESCROW SETTLEMENT — locked payment for async tasks (Sui Phase 3)
 entity escrow,

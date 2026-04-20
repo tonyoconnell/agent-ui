@@ -34,26 +34,6 @@ export const isToxic = (
   return r >= 10 && r > s * 2 && r + s > 5
 }
 
-// ── PEP support: nonce dedup + lifecycle cache ───────────────────────────────
-
-// Nonce dedup (PEP-2): 5-min TTL window. Kills replay in O(1) — no TypeDB read.
-const NONCE_TTL_MS = 5 * 60 * 1000
-const NONCE_SEEN = new Map<string, number>() // nonce → expiresMs
-
-function checkNonce(nonce: string): 'ok' | 'replay' {
-  const now = Date.now()
-  for (const [n, exp] of NONCE_SEEN) {
-    if (exp < now) NONCE_SEEN.delete(n) // prune stale entries
-  }
-  if (NONCE_SEEN.has(nonce)) return 'replay'
-  NONCE_SEEN.set(nonce, now + NONCE_TTL_MS)
-  return 'ok'
-}
-
-// ADL lifecycle cache (PEP-3.5): avoid TypeDB read on every ask()
-const LIFECYCLE_TTL_MS = 5 * 60 * 1000
-const LIFECYCLE_CACHE = new Map<string, { status?: string; sunsetAt?: number; expires: number }>()
-
 // ADL schema cache (PEP-4): shared from adl-cache.ts (Cycle 1.6 consolidation).
 // Invalidated by `invalidateAdlCache(uid)` on every ADL write path.
 
@@ -137,6 +117,22 @@ export interface PersistentWorld extends World {
 
 export const world = (): PersistentWorld => {
   const net = createWorld()
+
+  // ── Per-instance PEP caches (C-2: must not bleed across concurrent worlds) ──
+  const NONCE_TTL_MS = 5 * 60 * 1000
+  const nonceSeen = new Map<string, number>() // nonce → expiresMs
+  const LIFECYCLE_TTL_MS = 5 * 60 * 1000
+  const lifecycleCache = new Map<string, { status?: string; sunsetAt?: number; expires: number }>()
+
+  function checkNonce(nonce: string): 'ok' | 'replay' {
+    const now = Date.now()
+    for (const [n, exp] of nonceSeen) {
+      if (exp < now) nonceSeen.delete(n)
+    }
+    if (nonceSeen.has(nonce)) return 'replay'
+    nonceSeen.set(nonce, now + NONCE_TTL_MS)
+    return 'ok'
+  }
 
   // ── TypeDB-synced pheromone ────────────────────────────────────────────
 
@@ -740,14 +736,6 @@ export const world = (): PersistentWorld => {
       return { dissolved: true }
     }
 
-    // PEP-2: nonce dedup
-    const nonce = (s.data as Record<string, unknown>)?.nonce as string | undefined
-    if (nonce && checkNonce(nonce) === 'replay') {
-      emitSecurityEvent({ kind: 'replay', edge, nonce })
-      net.warn(`${from}→auth-boundary`, 0.3)
-      return { dissolved: true }
-    }
-
     // PEP-3: capability check — skip if the unit has the task handler
     // registered in-memory. The handler IS the capability; a runtime route
     // like `ceo:route` or `marketing-cmo:respond` is wired via chairman-chain
@@ -765,13 +753,14 @@ export const world = (): PersistentWorld => {
         ).catch(() => [])
         if (!ok.length) {
           emitSecurityEvent({ kind: 'capability-missing', receiver: uid })
+          net.warn(edge, 0.3)
           return { dissolved: true }
         }
       }
     }
 
     // PEP-3.5: lifecycle gate — skip retired/deprecated/past-sunset units (5-min cache)
-    const lcCached = LIFECYCLE_CACHE.get(uid)
+    const lcCached = lifecycleCache.get(uid)
     const lcNow = Date.now()
     let lcStatus: string | undefined
     let lcSunsetAt: number | undefined
@@ -787,7 +776,7 @@ export const world = (): PersistentWorld => {
       `).catch(() => [])
       lcStatus = lcRows[0]?.st as string | undefined
       lcSunsetAt = lcRows[0]?.sun ? new Date(lcRows[0].sun as string).getTime() : undefined
-      LIFECYCLE_CACHE.set(uid, { status: lcStatus, sunsetAt: lcSunsetAt, expires: lcNow + LIFECYCLE_TTL_MS })
+      lifecycleCache.set(uid, { status: lcStatus, sunsetAt: lcSunsetAt, expires: lcNow + LIFECYCLE_TTL_MS })
     }
     if (lcStatus === 'retired' || lcStatus === 'deprecated') {
       const mode = enforcementMode()
@@ -853,10 +842,21 @@ export const world = (): PersistentWorld => {
           mode,
           reason: `skill ${skill} input-schema validation failed`,
         })
-        if (mode === 'enforce') return { dissolved: true }
+        if (mode === 'enforce') {
+          emitSecurityEvent({ kind: 'auth-fail', caller: from, reason: `schema-mismatch:${skill}` })
+          return { dissolved: true }
+        }
       }
     }
-    // PEP-5: budget + rate-limit stubs (pass-through)
+    // PEP-5a: nonce dedup (after capability/lifecycle/schema gates — only consume nonce if delivery will proceed)
+    const nonce = (s.data as Record<string, unknown>)?.nonce as string | undefined
+    if (nonce && checkNonce(nonce) === 'replay') {
+      emitSecurityEvent({ kind: 'replay', edge, nonce })
+      net.warn(`${from}→auth-boundary`, 0.3)
+      return { dissolved: true }
+    }
+
+    // PEP-5b: budget + rate-limit stubs (pass-through)
 
     // PEP-6: deliver
     const outcome = await net.ask(s, from, timeout)

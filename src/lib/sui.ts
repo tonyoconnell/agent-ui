@@ -62,7 +62,7 @@ export function getClient(): SuiJsonRpcClient {
  *
  * For agents that bring their own wallet (Phase 2), skip this and use their keypair.
  */
-export async function deriveKeypair(uid: string): Promise<Ed25519Keypair> {
+export async function deriveKeypair(uid: string, version = 0): Promise<Ed25519Keypair> {
   const seedB64 = readSeedB64()
   if (!seedB64)
     throw new Error(
@@ -72,11 +72,21 @@ export async function deriveKeypair(uid: string): Promise<Ed25519Keypair> {
   const seed = Uint8Array.from(atob(seedB64), (c) => c.charCodeAt(0))
   const encoder = new TextEncoder()
 
-  // HKDF-like: SHA-256(seed || uid) → 32 bytes → Ed25519 keypair
+  if (version === 1) {
+    // HKDF-SHA-256: salt="one-agent", IKM=seed, info=uid
+    const ikm = await crypto.subtle.importKey('raw', seed, 'HKDF', false, ['deriveBits'])
+    const bits = await crypto.subtle.deriveBits(
+      { name: 'HKDF', hash: 'SHA-256', salt: encoder.encode('one-agent'), info: encoder.encode(uid) },
+      ikm,
+      256,
+    )
+    return Ed25519Keypair.fromSecretKey(new Uint8Array(bits))
+  }
+
+  // version 0 (default): SHA-256(seed || uid) — preserves all existing on-chain wallets
   const material = new Uint8Array(seed.length + uid.length)
   material.set(seed)
   material.set(encoder.encode(uid), seed.length)
-
   const hash = await crypto.subtle.digest('SHA-256', material)
   return Ed25519Keypair.fromSecretKey(new Uint8Array(hash))
 }

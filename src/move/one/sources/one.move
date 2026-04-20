@@ -46,6 +46,10 @@ module one::substrate {
     const EWrongWorker: u64 = 4;
     const EWrongPoster: u64 = 5;
     const EZeroAmount: u64 = 6;
+    const ENotAuthorized: u64 = 7;
+    const EInvalidFee: u64 = 8;
+    const EInvalidRate: u64 = 9;
+    const EAlreadyHardened: u64 = 10;
 
     // =========================================================================
     // OBJECTS
@@ -63,6 +67,7 @@ module one::substrate {
         failure_count: u64,
         activity: u64,
         balance: Balance<SUI>,      // real tokens
+        owner: address,             // ctx.sender() at creation; mark/warn gate
     }
 
     /// Colony — a group of units.
@@ -103,6 +108,7 @@ module one::substrate {
         hits: u64,                  // successful traversals
         misses: u64,                // failed traversals
         revenue: u64,               // total SUI flowed through this path (MIST)
+        hardened: bool,
     }
 
     /// Highway — hardened knowledge. Frozen on-chain.
@@ -128,6 +134,10 @@ module one::substrate {
         deadline: u64,              // ms timestamp — auto-cancel after this
         path_id: ID,                // path to mark on success / warn on failure
     }
+
+    /// AdminCap — minted once in init(), transferred to deployer.
+    /// Required to withdraw treasury fees or change fee rate.
+    public struct AdminCap has key, store { id: UID }
 
     /// Protocol — singleton fee treasury.
     /// Shared object: collects protocol fees from every payment.
@@ -168,6 +178,7 @@ module one::substrate {
             fee_bps: 50,
         };
         transfer::share_object(protocol);
+        transfer::transfer(AdminCap { id: object::new(ctx) }, ctx.sender());
     }
 
     // =========================================================================
@@ -188,6 +199,7 @@ module one::substrate {
             failure_count: 0,
             activity: 0,
             balance: balance::zero(),
+            owner: ctx.sender(),
         };
         event::emit(UnitCreated {
             unit_id: object::id(&unit),
@@ -254,7 +266,7 @@ module one::substrate {
         assert!(amount > 0, EZeroAmount);
         assert!(balance::value(&from.balance) >= amount, EInsufficientBalance);
 
-        let fee_amount = (amount * protocol.fee_bps) / 10000;
+        let fee_amount = (amount / 10000) * protocol.fee_bps;
 
         let mut payment = balance::split(&mut from.balance, amount);
 
@@ -350,7 +362,7 @@ module one::substrate {
 
         let amount = balance::value(&bounty);
 
-        let fee_amount = (amount * protocol.fee_bps) / 10000;
+        let fee_amount = (amount / 10000) * protocol.fee_bps;
         let mut payment = bounty;
 
         if (fee_amount > 0) {
@@ -480,7 +492,7 @@ module one::substrate {
         let amount = balance::value(&payment);
 
         if (amount > 0) {
-            let fee_amount = (amount * protocol.fee_bps) / 10000;
+            let fee_amount = (amount / 10000) * protocol.fee_bps;
             let mut received = payment;
 
             if (fee_amount > 0) {
@@ -539,12 +551,15 @@ module one::substrate {
             hits: 0,
             misses: 0,
             revenue: 0,
+            hardened: false,
         };
         transfer::share_object(path);
     }
 
     /// Mark a path. Positive weight. Strength increases.
-    public fun mark(path: &mut Path, amount: u64) {
+    public fun mark(caller: &Unit, path: &mut Path, amount: u64, ctx: &TxContext) {
+        assert!(object::id(caller) == path.source, ENotAuthorized);
+        assert!(ctx.sender() == caller.owner, ENotAuthorized);
         path.strength = path.strength + amount;
         path.hits = path.hits + 1;
         event::emit(Marked {
@@ -556,7 +571,9 @@ module one::substrate {
     }
 
     /// Warn a path. Negative weight. Resistance increases.
-    public fun warn(path: &mut Path, amount: u64) {
+    public fun warn(caller: &Unit, path: &mut Path, amount: u64, ctx: &TxContext) {
+        assert!(object::id(caller) == path.source, ENotAuthorized);
+        assert!(ctx.sender() == caller.owner, ENotAuthorized);
         path.resistance = path.resistance + amount;
         path.misses = path.misses + 1;
         event::emit(Warned {
@@ -572,6 +589,7 @@ module one::substrate {
     // =========================================================================
 
     public fun fade(path: &mut Path, rate: u64) {
+        assert!(rate > 0 && rate <= 100, EInvalidRate);
         path.strength = path.strength * rate / 100;
         path.resistance = path.resistance * rate / 100;
     }
@@ -581,10 +599,12 @@ module one::substrate {
     // =========================================================================
 
     public fun harden(
-        path: &Path,
+        path: &mut Path,
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
+        assert!(!path.hardened, EAlreadyHardened);
+        path.hardened = true;
         assert!(path.strength >= 50, ENotHighway);
 
         let highway = Highway {
@@ -620,6 +640,7 @@ module one::substrate {
             failure_count: _,
             activity: _,
             balance,
+            owner: _,
         } = unit;
 
         let returned = balance::value(&balance);
@@ -637,6 +658,7 @@ module one::substrate {
     // =========================================================================
 
     public fun withdraw_protocol_fees(
+        _cap: &AdminCap,
         protocol: &mut Protocol,
         amount: u64,
         ctx: &mut TxContext,
@@ -646,7 +668,8 @@ module one::substrate {
         coin::from_balance(b, ctx)
     }
 
-    public fun set_fee_bps(protocol: &mut Protocol, new_fee_bps: u64) {
+    public fun set_fee_bps(_cap: &AdminCap, protocol: &mut Protocol, new_fee_bps: u64) {
+        assert!(new_fee_bps <= 10000, EInvalidFee);
         protocol.fee_bps = new_fee_bps;
     }
 

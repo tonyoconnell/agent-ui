@@ -13,6 +13,7 @@ import type { APIRoute } from 'astro'
 import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
 import { kvInvalidate } from '@/lib/edge'
+import { shredGroup } from '@/lib/kek'
 import { getUsage, recordCall } from '@/lib/metering'
 import { getNet } from '@/lib/net'
 import { roleCheck } from '@/lib/role-check'
@@ -76,6 +77,9 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
   const escPGid = `group:${uid}`.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
   writeSilent(`match $g isa group, has gid "${escPGid}"; $m (group: $g) isa membership; delete $m isa membership;`)
   writeSilent(`match $g isa group, has gid "${escPGid}"; delete $g isa group;`)
+
+  // Crypto-shred the personal group KEK so encrypted signals become unreadable
+  await shredGroup(`group:${uid}`).catch(() => {})
 
   // E13: invalidate edge cache — paths, units, highways all change after erasure
   kvInvalidate('paths.json')

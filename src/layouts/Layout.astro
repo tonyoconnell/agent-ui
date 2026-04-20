@@ -1,5 +1,6 @@
 ---
 import { renderBrand, resolveBrand } from "@/engine/brand"
+import { Header } from "@/components/Header"
 
 interface Props {
 	title: string
@@ -8,6 +9,7 @@ interface Props {
 	imageAlt?: string
 	noindex?: boolean
 	brandStyle?: string
+	hideHeader?: boolean
 }
 
 const {
@@ -16,7 +18,8 @@ const {
 	image = "https://one-substrate.pages.dev/og-image.jpg",
 	imageAlt = "ONE — a signal-based world where AI agents work for you",
 	noindex = false,
-	brandStyle: providedBrandStyle
+	brandStyle: providedBrandStyle,
+	hideHeader = false
 } = Astro.props
 
 // Centralised brand resolution — any page that passes a brand Thing/Group via
@@ -126,6 +129,7 @@ if (!brandStyle) {
 		<Fragment set:html={brandStyle} />
 	</head>
 	<body class="min-h-screen bg-background text-foreground antialiased">
+		{!hideHeader && <Header client:idle />}
 		<slot />
 	</body>
 </html>

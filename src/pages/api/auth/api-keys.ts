@@ -13,7 +13,8 @@
 
 import type { APIRoute } from 'astro'
 import { hasPermission, validateApiKey } from '@/lib/api-auth'
-import { generateApiKey, hashKey } from '@/lib/api-key'
+import { generateApiKey, getKeyPrefix, hashKey } from '@/lib/api-key'
+import { emitSecurityEvent } from '@/lib/security-signals'
 import { write } from '@/lib/typedb'
 
 export const prerender = false
@@ -35,22 +36,34 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const body = await request.json().catch(() => ({}))
-    const { permissions = 'read,write' } = body as { permissions?: string }
+    const {
+      permissions = 'read',
+      scopeGroup,
+      scopeSkill,
+    } = body as { permissions?: string; scopeGroup?: string; scopeSkill?: string }
 
     // Generate new API key
     const apiKey = generateApiKey()
     const keyHash = await hashKey(apiKey)
-    const keyId = `key-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+    const keyId = `key-${Date.now().toString(36)}-${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`
     const now = new Date().toISOString()
 
+    const keyPrefix = getKeyPrefix(apiKey)
+    const expiresAt = new Date(Date.now() + 86_400_000).toISOString()
+    const scopeClauses = [
+      scopeGroup ? `,\n        has scope-group "${esc(scopeGroup)}"` : '',
+      scopeSkill ? `,\n        has scope-skill "${esc(scopeSkill)}"` : '',
+    ].join('')
     await write(`
       insert $k isa api-key,
         has api-key-id "${esc(keyId)}",
         has key-hash "${esc(keyHash)}",
         has user-id "${esc(auth.user)}",
+        has key-prefix "${keyPrefix}",
         has permissions "${esc(permissions)}",
         has key-status "active",
-        has created ${now};
+        has created ${now},
+        has expires-at ${expiresAt}${scopeClauses};
     `)
 
     // Link to unit via api-authorization
@@ -116,6 +129,8 @@ export const DELETE: APIRoute = async ({ request }) => {
       delete $old of $k;
       insert $k has key-status "revoked";
     `)
+
+    emitSecurityEvent({ kind: 'revoke', keyId, userId: auth.user })
 
     return new Response(JSON.stringify({ keyId, status: 'revoked' }), {
       headers: { 'Content-Type': 'application/json' },

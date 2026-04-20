@@ -24,7 +24,9 @@ interface Env {
   DB?: D1Database
   KV?: KVNamespace
   BROADCAST_SECRET?: string
+  GATEWAY_API_KEY: string
   WS_HUB: DurableObjectNamespace
+  ALLOWED_SSE_HOSTS?: string
 }
 
 // Token cache (per-isolate, 61s TTL)
@@ -32,7 +34,7 @@ let cachedToken: { token: string; expires: number } | null = null
 
 // Security: Limits and allowed message types
 const MAX_WS_CONNECTIONS = 100
-const ALLOWED_MESSAGE_TYPES = ['complete', 'unblock', 'mark', 'warn', 'task-update', 'sync']
+const ALLOWED_MESSAGE_TYPES = ['complete', 'unblock', 'mark', 'warn', 'task-update', 'sync', 'unit-hired', 'revoke']
 
 /**
  * WsHub — Durable Object that centralizes WebSocket connections.
@@ -443,6 +445,10 @@ export default {
 
     // POST /typedb/query — proxy TypeQL queries to TypeDB Cloud /v1/query
     if (url.pathname === '/typedb/query' && request.method === 'POST') {
+      const gwKey = request.headers.get('Authorization')?.replace('Bearer ', '')
+      if (!gwKey || gwKey !== env.GATEWAY_API_KEY) {
+        return Response.json({ error: 'Unauthorized' }, { status: 401, headers })
+      }
       try {
         const body = (await request.json()) as {
           query: string
@@ -517,7 +523,12 @@ export default {
       if (!isOriginAllowed(sseOrigin, agentAllowed, CORS_ORIGINS)) {
         return new Response('Origin not allowed', { status: 403, headers })
       }
-      return sseProxy(decodeURIComponent(upstream), request, sseOrigin)
+      return sseProxy(
+        decodeURIComponent(upstream),
+        request,
+        sseOrigin,
+        (env.ALLOWED_SSE_HOSTS ?? '').split(',').filter(Boolean),
+      )
     }
 
     // Index — useful for health checks on root

@@ -299,6 +299,16 @@ export interface WsComplete {
   tid: string
 }
 
+/** Unit hired — a new unit joined the org (chairman C1). */
+export interface WsUnitHired {
+  type: 'unit-hired'
+  uid: string
+  role: string
+  wallet: string | null
+  skills: string[]
+  from: string
+}
+
 /** Ping / pong — keepalive. */
 export interface WsPing {
   type: 'ping'
@@ -318,5 +328,6 @@ export type WsMessage =
   | WsTaskUpdate
   | WsUnblock
   | WsComplete
+  | WsUnitHired
   | WsPing
   | WsPong

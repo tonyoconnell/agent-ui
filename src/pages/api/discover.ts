@@ -6,20 +6,22 @@
  * Falls back to manual join when functions aren't available.
  */
 import type { APIRoute } from 'astro'
-import { readParsed } from '@/lib/typedb'
+import { escapeTqlString, readParsed } from '@/lib/typedb'
 
 export const GET: APIRoute = async ({ url }) => {
   const taskFilter = url.searchParams.get('task')
   const fromUnit = url.searchParams.get('from')
   const sortBy = url.searchParams.get('sort') || 'strength'
+  const eFrom = fromUnit ? escapeTqlString(fromUnit) : ''
+  const eTask = taskFilter ? escapeTqlString(taskFilter.toLowerCase()) : ''
 
   try {
     // Fast path: suggest_route() when we have from + task
     if (fromUnit && taskFilter) {
       const routes = await readParsed(`
         match
-          $from isa unit, has uid "${fromUnit}";
-          $task isa skill, has name $tn; $tn contains "${taskFilter.toLowerCase()}";
+          $from isa unit, has uid "${eFrom}";
+          $task isa skill, has name $tn; $tn contains "${eTask}";
           (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, offered: $task) isa capability, has price $p;
           $to has uid $uid, has name $n, has unit-kind $k,
@@ -51,7 +53,7 @@ export const GET: APIRoute = async ({ url }) => {
       const cheap = await readParsed(`
         match
           (provider: $u, offered: $t) isa capability, has price $p;
-          $t isa skill, has name $tn; $tn contains "${taskFilter.toLowerCase()}";
+          $t isa skill, has name $tn; $tn contains "${eTask}";
           $u has uid $uid, has name $n, has unit-kind $k,
             has reputation $rep, has success-rate $sr;
         sort $p asc; limit 20;
@@ -77,7 +79,7 @@ export const GET: APIRoute = async ({ url }) => {
     }
 
     // Fallback: manual join (original approach)
-    const taskMatch = taskFilter ? `$t has name $tn; $tn contains "${taskFilter.toLowerCase()}";` : `$t has name $tn;`
+    const taskMatch = taskFilter ? `$t has name $tn; $tn contains "${eTask}";` : `$t has name $tn;`
 
     const rows = await readParsed(`
       match

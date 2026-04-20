@@ -11,6 +11,7 @@ import { join } from 'node:path'
 import { parse, syncAgentWithIdentity } from '@/engine/agent-md'
 import type { PersistentWorld } from '@/engine/persist'
 import type { World } from '@/engine/world'
+import { relayToGateway, wsManager } from '@/lib/ws-server'
 
 const ROLES_DIR = join(process.cwd(), 'agents', 'roles')
 
@@ -43,6 +44,18 @@ export function registerHire(net: World | PersistentWorld, uid: string): void {
     const hired = spec.group ? `${spec.group}:${spec.name}` : spec.name
 
     net.mark(edge, 1) // pheromone: hiring path strengthens on success
+
+    const msg = {
+      type: 'unit-hired' as const,
+      uid: hired,
+      role,
+      wallet: (spec as { wallet?: string | null }).wallet ?? null,
+      skills: (spec as { skills?: { name: string }[] }).skills?.map((s) => s.name) ?? [],
+      from: uid,
+    }
+    wsManager.broadcast(msg)
+    relayToGateway(msg)
+
     registerHire(net, hired) // recursion: hired unit inherits hire skill
     return hired
   })
@@ -56,10 +69,13 @@ export function registerChairman(net: World | PersistentWorld): void {
 
   // Wire build-team on top — CEO-specific fan-out
   const ceo = net.get(ceoId)!
-  ceo.on('build-team', async (_data, emit) => {
-    for (const role of ['cto', 'cmo', 'cfo']) {
+  ceo.on('build-team', async (data, emit) => {
+    const d = data as { roles?: string[] } | null
+    const requested = d?.roles?.filter((r) => typeof r === 'string' && r.length > 0) ?? []
+    const roles = requested.length > 0 ? requested : ['cto', 'cmo', 'cfo']
+    for (const role of roles) {
       emit({ receiver: `${ceoId}:hire`, data: { role } })
     }
-    return { building: ['cto', 'cmo', 'cfo'] }
+    return { building: roles }
   })
 }

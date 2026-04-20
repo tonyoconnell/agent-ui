@@ -35,6 +35,7 @@ vi.mock('@/lib/security-signals', () => ({
 // ── Mock api-key verifyKey — control pass/fail without PBKDF2 cost ─────────
 vi.mock('./api-key', () => ({
   generateApiKey: vi.fn().mockReturnValue('api_test_32characterrandomstringhere'),
+  getKeyPrefix: vi.fn().mockReturnValue('testpfx1'),
   hashKey: vi.fn().mockResolvedValue('$pbkdf2$100000$fakesalt$fakehash'),
   verifyKey: vi.fn().mockResolvedValue(false), // default: reject
 }))

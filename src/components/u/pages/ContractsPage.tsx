@@ -39,7 +39,6 @@ import { Label } from '@/components/ui/label'
 import { Toaster } from '@/components/ui/toaster'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
-import { secureGetItem, secureSetItem } from '@/lib/security'
 import { cn } from '@/lib/utils'
 
 // Contract template definitions with prompts
@@ -217,7 +216,7 @@ export function ContractsPage() {
       if (stored) setContracts(JSON.parse(stored))
 
       const envApiKey = import.meta.env.PUBLIC_OPENROUTER_API_KEY
-      const savedKey = envApiKey || secureGetItem(STORAGE_KEY)
+      const savedKey = envApiKey || sessionStorage.getItem(STORAGE_KEY)
       if (savedKey) setApiKey(savedKey)
     }
   }, [])
@@ -328,7 +327,7 @@ export function ContractsPage() {
                   className="w-full"
                   onClick={() => {
                     if (apiKey) {
-                      secureSetItem(STORAGE_KEY, apiKey)
+                      sessionStorage.setItem(STORAGE_KEY, apiKey)
                       toast({ title: 'Saved', description: 'API key saved successfully' })
                     }
                     setShowSettings(false)

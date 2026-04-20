@@ -26,6 +26,7 @@
 | `market.astro` | `/market` | `MarketView` | `client:load` |
 | `market/[sid].astro` | `/market/[sid]` | `MarketSignal` | `client:load` |
 | `signup.astro` | `/signup` | `SignupForm` | `client:load` |
+| `signin.astro` | `/signin` | `SigninForm` | `client:load` |
 | `speed.astro` | `/speed` | `LifecycleSpeedrun` | `client:load` |
 | `speedtest.astro` | `/speedtest` | `SpeedTest` | `client:load` |
 | `team.astro` | `/team` | `TeamView` | `client:load` |

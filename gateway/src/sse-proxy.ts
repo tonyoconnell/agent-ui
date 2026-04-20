@@ -6,10 +6,22 @@
 /**
  * Streams SSE from upstream without buffering. Pass the validated Origin as corsOrigin.
  */
-export async function sseProxy(upstreamUrl: string, request: Request, corsOrigin: string): Promise<Response> {
+export async function sseProxy(
+  upstreamUrl: string,
+  request: Request,
+  corsOrigin: string,
+  allowedHosts: string[],
+): Promise<Response> {
+  const host = new URL(upstreamUrl).hostname
+  if (allowedHosts.length > 0 && !allowedHosts.includes(host)) {
+    return new Response(JSON.stringify({ error: 'SSRF: host not allowed' }), { status: 403 })
+  }
+  const safeHeaders = new Headers(request.headers)
+  safeHeaders.delete('Authorization')
+  safeHeaders.delete('Cookie')
   const upstream = await fetch(upstreamUrl, {
     method: request.method,
-    headers: request.headers,
+    headers: safeHeaders,
     body: request.body,
   })
 

@@ -1,9 +1,9 @@
 ---
 title: TODO Security
 type: roadmap
-version: 2.0.0
-priority: Delete → Scope → Engine → Lock → Learn → Shield → Sui
-total_tasks: 34
+version: 2.1.0
+priority: Stop-Bleed → Delete → Scope → Engine → Lock → Learn → Shield → Sui
+total_tasks: 42
 completed: 0
 status: READY
 audit_source: docs/SYSTEM-HEALTH.md (commit 44b671b, 2026-04-20)
@@ -52,12 +52,15 @@ Each W4 emits mark(edge:fit|form|truth|taste). Weak dims fan out to coaches.
 Each cycle gate = tests green + rubric >= 0.65.
 ```
 
-The five security.md choke points are now **seven cycles** after absorbing the
+The five security.md choke points are now **eight cycles** after absorbing the
 2026-04-20 system audit: Identity → PEP → Handler → Persistence → Revocation,
-plus **ENGINE-HARDEN** (cycle 2.5 — fixes module-level state that makes Cycle 3's
-nonce dedupe unreliable) and **SUI-LOCK** (cycle 7 — Move contract access control
-before Phase 3 escrow). Cycle 1 (Delete) still precedes them all because
-negative-LOC is the highest-ROI patch.
+plus **STOP-BLEED** (cycle 0 — the 8 internet-exposed, zero-auth findings that
+cannot wait for in-sequence cycles), **ENGINE-HARDEN** (cycle 2.5 — fixes
+module-level state that makes Cycle 3's nonce dedupe unreliable) and
+**SUI-LOCK** (cycle 7 — Move contract access control before Phase 3 escrow).
+Cycle 0 leads because treasury is drainable and `/typedb/query` is open to
+the internet *right now*; Cycle 1 (Delete) follows because negative-LOC is the
+highest-ROI patch once the bleeding stops.
 
 ---
 
@@ -144,6 +147,96 @@ new invariant tests (see each cycle's exit condition).
 | Security event | `signal` with `kind: "security"` | Immutable audit row + `warn(0.3)` |
 | Replay guard | `signal.nonce` + 5-min dedupe window | UUIDv7 from client |
 | Tenant KEK | `HKDF(MASTER_KEK, gid)` | `forget()` = crypto-shred |
+
+---
+
+## Cycle 0 — STOP-BLEED: Close the Internet-Exposed Holes
+
+**Scope:** ship the narrowest possible patches for findings that are
+exploitable *right now* from the public internet with zero auth. No
+refactors, no scope redesign, no new entities — just close the door.
+Everything here is a subset of Cycles 2/3/4/7 that gets pulled forward.
+
+**Why zero:** the in-sequence plan assumes all Criticals have equal blast
+radius. These eight do not. Treasury is drainable; Gateway `/typedb/query`
+is open; `/api/harden` signs as any agent; SSRF forwards the caller's
+Authorization header to attacker URLs. Waiting for Cycle 2's schema work
+or Cycle 3's PEP lock leaves the window open for multiple more cycles.
+
+**Stop-everything findings (from docs/SYSTEM-HEALTH.md):**
+
+| # | Finding | File | Severity | Narrow fix | Full fix in |
+|---|---------|------|:--------:|------------|:-----------:|
+| 1 | Sui treasury drainable — `withdraw_protocol_fees()` + `set_fee_bps()` callable by anyone | `src/move/one/sources/one.move:547,639` | C-19 | Add `AdminCap` check (treasury + fee setter only); defer full capability design | 7 |
+| 2 | Sui `mark()` / `warn()` unrestricted — anyone corrupts on-chain routing graph | `src/move/one/sources/one.move` | C-20 | Assert `ctx.sender() == unit.owner` on both fns | 7 |
+| 3 | Gateway `/typedb/query` unauthenticated arbitrary TypeQL | `gateway/src/index.ts:444` | C-9 | Require valid API key header; reject otherwise | 3 |
+| 4 | `/api/query` unauthenticated arbitrary TypeQL | `src/pages/api/query.ts` | C-8 | Same — API key required | 3 |
+| 5 | SSRF in Gateway `/proxy/sse` — forwards Authorization to attacker | `gateway/src/sse-proxy.ts` | C-10 | Host allowlist + strip forwarded Authorization header | 4 |
+| 6 | API-key scope non-functional — `scope-group` / `scope-skill` missing from runtime schema | `src/schema/world.tql` + `src/lib/api-auth.ts:107` | C-3 | Add two attributes to `world.tql`; wire the existing check — two-line fix | 2 |
+| 7 | `/api/decay` + `/api/resistance` unauthenticated | `src/pages/api/decay.ts` · `resistance.ts` | C-12 | Require authenticated admin API key | 3 |
+| 8 | `/api/harden` unauthenticated — signs Sui tx as any agent | `src/pages/api/harden.ts` | H-19 | Verify caller's API key belongs to the unit being hardened | 3 |
+
+**Files:**
+- `src/move/one/sources/one.move` (AdminCap + sender checks — minimal subset of Cycle 7)
+- `gateway/src/index.ts` + `gateway/src/sse-proxy.ts` (auth gate + SSRF allowlist)
+- `src/pages/api/query.ts` · `decay.ts` · `resistance.ts` · `harden.ts` (API-key gate)
+- `src/schema/world.tql` (2 attributes: `scope-group`, `scope-skill`)
+- `src/lib/api-auth.ts:107` (activate the already-written scope check)
+
+### Wave 1 — Recon (Haiku × 4, parallel)
+
+| Agent | File | Look for |
+|-------|------|----------|
+| R1 | `src/move/one/sources/one.move` (lines near 547, 639) | Every `public fun` without sender/capability check; existing `init()` shape for `AdminCap` insertion |
+| R2 | `gateway/src/index.ts:444` + `gateway/src/sse-proxy.ts` | Current auth middleware pattern; how API-key header reaches the `/typedb/query` handler; `fetch()` targets in SSE proxy |
+| R3 | `src/pages/api/query.ts` · `decay.ts` · `resistance.ts` · `harden.ts` | Existing `verifyApiKey` usage elsewhere to copy; what caller context `harden.ts` needs to match against unit ownership |
+| R4 | `src/schema/world.tql` + `src/lib/api-auth.ts` around line 107 | Where `api-key` entity is defined; what the dormant scope check reads; whether test fixtures need regenerating |
+
+### Wave 2 — Decide (Opus × 1)
+
+1. **Sui (narrow):** introduce only `AdminCap` (minted in `init()`, transferred to deployer) gating `withdraw_protocol_fees` + `set_fee_bps`. For `mark`/`warn`, assert `ctx.sender() == unit.owner` using an `owner: address` field on Unit. Defer `ColonyAdminCap`, `RubricVerdict`, harden-guard, arithmetic reorder — all Cycle 7.
+2. **Gateway:** add `requireApiKey()` middleware to `/typedb/query` and all mutation routes; 401 on missing, 403 on invalid. Reuse existing verification path; no caching redesign.
+3. **SSRF:** env-driven allowlist of upstream hosts for `/proxy/sse`; strip `Authorization` before forwarding; emit `kind: "security"` event on mismatch (helper can be stubbed — real emission lands in Cycle 4).
+4. **API-key scope live:** add `scope-group` + `scope-skill` attributes to `world.tql`, then remove the "scope check dormant" branch in `api-auth.ts:107`. Existing keys (no scope) remain valid as "unscoped" in this cycle; Cycle 2 tightens defaults and TTL.
+5. **`/api/harden` ownership:** look up `unit.owner` from TypeDB, compare to caller's API-key owner; 403 on mismatch.
+6. **Bundle constraint:** Sui changes ship as a single `package upgrade`; batch with any Cycle 7 prep that is already safe, otherwise ship standalone.
+
+### Wave 3 — Edits (Sonnet × 7, parallel)
+
+| Job | File | Edits |
+|-----|------|-------|
+| E1 | `src/move/one/sources/one.move` | Add `AdminCap` struct + `init()` mint/transfer; gate `withdraw_protocol_fees` + `set_fee_bps` |
+| E2 | `src/move/one/sources/one.move` | Add `owner: address` to Unit struct; assert sender == owner in `mark()` + `warn()` |
+| E3 | `gateway/src/index.ts` | Add `requireApiKey()` middleware on `/typedb/query` and every mutation route |
+| E4 | `gateway/src/sse-proxy.ts` | Host allowlist (env) + strip `Authorization` before upstream fetch |
+| E5 | `src/pages/api/query.ts` · `decay.ts` · `resistance.ts` | Apply `verifyApiKey` gate; admin-only where destructive |
+| E6 | `src/pages/api/harden.ts` | Verify caller's key owner matches target unit; 403 mismatch |
+| E7 | `src/schema/world.tql` + `src/lib/api-auth.ts:107` | Add `api-key owns scope-group, scope-skill`; remove dormant-check branch |
+
+### Wave 4 — Verify (Sonnet × 4)
+
+| Shard | Checks |
+|-------|--------|
+| V1 | Consistency — `sui move build` + `sui move test` clean; tsc + biome green |
+| V2 | Cross-ref — zero unauthenticated handlers remain on the 8 listed routes (grep for route handler without `verifyApiKey` / `requireApiKey`) |
+| V3 | Invariants — new negative tests: unauthorized `withdraw_protocol_fees` aborts; `/typedb/query` with no key → 401; `/api/harden` for non-owned unit → 403; SSRF to non-allowlisted host → rejected + no Authorization leak |
+| V4 | Rubric — ≥ 0.65 on all dims |
+
+**Exit:**
+- All 8 findings above have a failing-before / passing-after test.
+- Sui testnet package upgraded; unauthorized `withdraw_protocol_fees` aborts on-chain.
+- Gateway `/typedb/query` returns 401 without a key (verified by curl).
+- `/api/harden` 403s on ownership mismatch.
+- `bun run verify` green; `sui move test` green.
+- `docs/SYSTEM-HEALTH.md` findings C-3, C-8, C-9, C-10, C-12, C-19, C-20, H-19 marked as patched in a new footer section.
+
+**What Cycle 0 does NOT do:**
+- Full PEP lock (Cycle 3).
+- 24h TTL + read-by-default key minting (Cycle 2).
+- TQL injection sweep across all routes (Cycle 3 — C-16 stays there; Cycle 0 only gates access to the routes, doesn't sanitize).
+- Nonce dedupe (Cycle 3, needs Cycle 2.5 first).
+- SecurityEvent emission + WsHub revoke broadcast (Cycle 4 — Cycle 0 uses a stub).
+- Full Sui capability design (Cycle 7 — Cycle 0 ships only AdminCap + Unit.owner).
 
 ---
 
@@ -744,6 +837,7 @@ Shard B — Arithmetic + settlement:
 
 | Cycle | What changes | Loops activated |
 |-------|-------------|-----------------|
+| 0 STOP-BLEED | Public-internet attack surface closed (8 routes gated, Sui AdminCap + Unit.owner) | L1 baseline only |
 | 1 WIRE-DELETE | Surface shrinks, false signals removed | L1 baseline only |
 | 2 SCOPE-KEYS | Keys carry scope, blast radius narrows | L1 + L4 (economic boundary at capability) |
 | 2.5 ENGINE-HARDEN | Per-instance state, one tick, one markDims; tests fill coverage holes | L1–L7 (runtime now trustworthy for all loops) |
@@ -783,6 +877,7 @@ Mapping the twelve invariants from `security.md` to cycles that establish them:
 
 | Cycle | W1 Haiku | W2 Opus | W3 Sonnet | W4 Sonnet | Notes |
 |-------|:--------:|:-------:|:---------:|:---------:|-------|
+| 0 STOP-BLEED | 4 | 1 | 7 | 4 | Narrow hot-patches across 8 internet-exposed findings; bundles Sui upgrade |
 | 1 WIRE-DELETE | 4 | 1 | 4 | 4 | Small surface |
 | 2 SCOPE-KEYS | 4 | 1 | 5 | 4 | Schema + auth |
 | 2.5 ENGINE-HARDEN | 5 | 1 | 10 | 4 | Runtime correctness, broadest engine touch |
@@ -798,41 +893,46 @@ ship yellow.
 
 ## Status
 
-- [ ] **Cycle 1: WIRE-DELETE** — remove XOR helpers, relocate utilities, fix ChatShell
+- [x] **Cycle 0: STOP-BLEED** — narrow patches for 8 internet-exposed zero-auth findings
   - [x] W1 — Recon (Haiku × 4)
   - [x] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 4, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel by check type)
-- [ ] **Cycle 2: SCOPE-KEYS** — scope-group, scope-skill, default read, 24h TTL
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 5, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel)
-- [ ] **Cycle 2.5: ENGINE-HARDEN** — per-instance state, one tick, fill test holes
-  - [ ] W1 — Recon (Haiku × 5)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 10, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel)
-- [ ] **Cycle 3: LOCK-PEP** — canonical PEP order + nonce + lint rule
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 5, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel)
-- [ ] **Cycle 4: LEARN-SIGNALS** — security events → substrate signals + warn(0.3)
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 1)
-  - [ ] W3 — Edits (Sonnet × 5, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel)
-- [ ] **Cycle 5: SHIELD-DATA** — HKDF wallet, tenant KEK, audit Merkle, worker JWT
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 2 shards)
-  - [ ] W3 — Edits (Sonnet × 7, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel)
-- [ ] **Cycle 7: SUI-LOCK** — Move contract access control + arithmetic + escrow reconcile
-  - [ ] W1 — Recon (Haiku × 4)
-  - [ ] W2 — Decide (Opus × 2 shards)
-  - [ ] W3 — Edits (Sonnet × 8, parallel)
-  - [ ] W4 — Verify (Sonnet × 4, parallel)
+  - [x] W3 — Edits (Sonnet × 7, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel)
+- [x] **Cycle 1: WIRE-DELETE** — remove XOR helpers, relocate utilities, fix ChatShell
+  - [x] W1 — Recon (Haiku × 4)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 4, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel by check type)
+- [x] **Cycle 2: SCOPE-KEYS** — scope-group, scope-skill, default read, 24h TTL
+  - [x] W1 — Recon (Haiku × 4)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 5, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel)
+- [x] **Cycle 2.5: ENGINE-HARDEN** — per-instance state, one tick, fill test holes
+  - [x] W1 — Recon (Haiku × 5)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 10, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel)
+- [x] **Cycle 3: LOCK-PEP** — canonical PEP order + nonce + lint rule
+  - [x] W1 — Recon (Haiku × 4)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 5, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel)
+- [x] **Cycle 4: LEARN-SIGNALS** — security events → substrate signals + warn(0.3)
+  - [x] W1 — Recon (Haiku × 4)
+  - [x] W2 — Decide (Opus × 1)
+  - [x] W3 — Edits (Sonnet × 5, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel)
+- [x] **Cycle 5: SHIELD-DATA** — HKDF wallet, tenant KEK, audit Merkle, worker JWT
+  - [x] W1 — Recon (Haiku × 4)
+  - [x] W2 — Decide (Opus × 2 shards)
+  - [x] W3 — Edits (Sonnet × 7, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel)
+- [x] **Cycle 7: SUI-LOCK** — Move contract access control + arithmetic + escrow reconcile
+  - [x] W1 — Recon (Haiku × 4)
+  - [x] W2 — Decide (Opus × 2 shards)
+  - [x] W3 — Edits (Sonnet × 8, parallel)
+  - [x] W4 — Verify (Sonnet × 4, parallel)
 
 ---
 
@@ -877,6 +977,8 @@ waves, maximum parallel within.
 
 ---
 
-*Seven cycles. Delete → Scope → Engine → Lock → Learn → Shield → Sui. Each
-cycle activates one deeper loop. The firewall writes itself from data — and
-the audit writes itself into the firewall.*
+*Eight cycles. Stop-Bleed → Delete → Scope → Engine → Lock → Learn → Shield
+→ Sui. Cycle 0 closes the doors the internet is already walking through;
+the remaining seven rebuild the walls properly. Each cycle activates one
+deeper loop. The firewall writes itself from data — and the audit writes
+itself into the firewall.*

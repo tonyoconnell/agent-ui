@@ -99,7 +99,7 @@ async function canCallSui(sender: string, receiver: string): Promise<boolean> {
       const raw = perms.allowed_hosts ?? perms.allowedHosts
       if (Array.isArray(raw)) allowedHosts.push(...(raw as string[]))
     } catch {
-      /* malformed → fail open (policy: parse errors not the caller's fault) */
+      allowedHosts.length = 0 // malformed perms — fail closed on real-money path
     }
   }
   BRIDGE_PERM_CACHE.set(key, { allowedHosts, expires: Date.now() + BRIDGE_CACHE_TTL })
@@ -449,31 +449,34 @@ async function absorbEscrowCancelled(d: Record<string, unknown>) {
  * settleEscrow — release or refund a bounty escrow after rubric verification.
  * Called by persist.ts settle() — fire-and-forget, never throws.
  */
-export const settleEscrow = (
+export const settleEscrow = async (
   escrowObjectId: string,
   claimantUid: string,
   posterUid: string,
   success: boolean,
-): void => {
-  if (success) {
-    Promise.all([resolve(claimantUid), sui()])
-      .then(([ids, { releaseEscrow }]) => {
-        if (!ids?.unitId) return
-        return resolvePath(posterUid, claimantUid).then((pathId) => {
-          if (!pathId) return
-          releaseEscrow(claimantUid, escrowObjectId, ids.unitId, pathId).catch(() => {})
-        })
-      })
-      .catch(() => {})
-  } else {
-    Promise.all([resolve(posterUid), sui()])
-      .then(([ids, { cancelEscrow }]) => {
-        if (!ids?.unitId) return
-        return resolvePath(posterUid, claimantUid).then((pathId) => {
-          if (!pathId) return
-          cancelEscrow(posterUid, escrowObjectId, ids.unitId, pathId).catch(() => {})
-        })
-      })
-      .catch(() => {})
+): Promise<{ ok: boolean; error?: string }> => {
+  try {
+    if (success) {
+      const [ids, { releaseEscrow }] = await Promise.all([resolve(claimantUid), sui()])
+      if (!ids?.unitId) return { ok: true }
+      const pathId = await resolvePath(posterUid, claimantUid)
+      if (!pathId) return { ok: true }
+      await releaseEscrow(claimantUid, escrowObjectId, ids.unitId, pathId)
+    } else {
+      const [ids, { cancelEscrow }] = await Promise.all([resolve(posterUid), sui()])
+      if (!ids?.unitId) return { ok: true }
+      const pathId = await resolvePath(posterUid, claimantUid)
+      if (!pathId) return { ok: true }
+      await cancelEscrow(posterUid, escrowObjectId, ids.unitId, pathId)
+    }
+    return { ok: true }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    writeSilent(`
+      match $e isa escrow, has escrow-id "${escrowObjectId}", has escrow-status $old;
+      delete $old of $e;
+      insert $e has escrow-status "settlement-failed";
+    `)
+    return { ok: false, error: message }
   }
 }
