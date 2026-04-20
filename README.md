@@ -34,6 +34,12 @@ These compound. Breaking either breaks the flywheel.
 
 ## Status (2026-04-20)
 
+✅ **Universal Wallet Hardened (2026-04-20)** — `/u/*` wallet fully hardened: 24 integration test files (vault AES-256-GCM, chain adapters × 6, signer abstraction, auth claim). Signer abstraction layer — 4 adapters (vault/dapp-kit/snap/zklogin), `useSigner` hook, `SignPage`. Lifecycle signals wired in `useVault` + `useWallets`.
+
+✅ **Human-Agent Ownership Claim (2026-04-20)** — `POST /api/auth/agent/:uid/claim`: human cookie session + agent bearer → creates `g:owns:{uid}` ownership group, human becomes `chairman`, bootstrap key revoked, scoped key minted. `deriveHumanUid` slugifies email → `human:{slug}`. Re-mint gate behind `AUTH_AGENT_REMINT_MODE=audit|enforce`.
+
+✅ **Better Auth Plugins (2026-04-20)** — `suiWallet()` plugin: SIWE-style nonce/verify for Sui wallet sign-in. `zkLogin()` plugin: Google OAuth → Sui zkLogin address → Better Auth session. Both registered in `src/lib/auth.ts`, replacing DIY `/api/auth/wallet/*` endpoints.
+
 ✅ **Workers Migration Shipped (2026-04-18)** — Astro 6 + `@astrojs/cloudflare@13` with CF Workers Static Assets. `dev.one.ie` is the live Worker; Pages (`one-substrate.pages.dev`) is now a paused rollback safety net.
 
 ✅ **Payment Rails Live** — Four user-facing rails: `/pay/[skillId]` (Sui wallet, default) · `/pay/card/[skillId]` (Stripe) · `/pay/crypto/[skillId]` (QR + link) · `/pay/chat/[skillId]` (in-chat). Every view emits `ui:pay:page:<rail>:view` to the substrate — pheromone learns rail preference.
@@ -375,7 +381,7 @@ See [docs/deploy.md](deploy.md) for full tutorial, or [docs/speed.md](one/speed.
 
 | Layer | Tech |
 |-------|------|
-| Framework | [Astro 5](https://astro.build) + [React 19](https://react.dev) |
+| Framework | [Astro 6](https://astro.build) + [React 19](https://react.dev) |
 | Brain | [TypeDB 3.0](https://typedb.com) Cloud |
 | Edge | [Cloudflare](https://cloudflare.com) Workers + Pages + D1 + KV + Queue |
 | Visualization | [ReactFlow](https://reactflow.dev) |
@@ -410,6 +416,9 @@ Routes implement the Six Verbs from [dictionary.md](dictionary.md): `send`, `mar
 | `/api/memory/reveal/:uid` | GET | — | Full memory card (GDPR portability) |
 | `/api/memory/forget/:uid` | DELETE | — | Structural erasure (GDPR Article 17) |
 | `/api/memory/frontier/:uid` | GET | — | Unexplored tag clusters for actor |
+| `/api/auth/agent` | POST | — | Mint agent credentials (remint gate: `AUTH_AGENT_REMINT_MODE`) |
+| `/api/auth/agent/:uid/claim` | POST | — | Human claims agent: cookie + bearer → ownership group + scoped key |
+| `/api/auth/api-keys` | GET/POST | — | API key management |
 | `/api/pay/create-link` | POST | — | Shareable crypto payment link |
 | `/api/pay/status/:ref` | GET | — | Poll payment status |
 | `/api/pay/stripe/create-intent` | POST | — | Stripe PaymentIntent |
@@ -437,15 +446,41 @@ src/engine/                    The substrate (~670 lines)
 ├── llm.ts                     LLM as unit
 ├── agent-md.ts                Parse markdown → TypeDB → runtime
 ├── adl.ts                     Parse ADL JSON → TypeDB (v0.2.0 spec)
-├── adl.test.ts                26 tests: parse, validate, toTypeDB, sensitivity
 └── index.ts                   Exports
 
 src/schema/world.tql           TypeDB schema (6 dimensions, 19 functions, +16 ADL attributes)
 
-src/pages/api/agents/adl.ts    POST/GET ADL import + dry-run endpoint
-src/pages/.well-known/agents.json.ts  ADL discovery endpoint
+src/lib/
+├── auth.ts                    Better Auth config + suiWallet() + zkLogin() plugins
+├── auth-plugins/
+│   ├── sui-wallet.ts          SIWE-style nonce/verify for Sui wallet sign-in
+│   └── zklogin.ts             Google OAuth → Sui zkLogin address → session
+├── human-unit.ts              ensureHumanUnit() — create human actor + personal group + chairman role
+├── api-auth.ts                API request auth middleware + deriveHumanUid + invalidateKeyCache
+└── api-key.ts                 API key generation, PBKDF2 verify, getKeyPrefix
+
+src/pages/api/auth/
+├── agent.ts                   Mint agent credentials (remint gate: AUTH_AGENT_REMINT_MODE)
+└── agent/[uid]/claim.ts       Human-agent claim handshake → ownership group + scoped key
+
+src/components/u/lib/signer/  Signer abstraction layer (4 adapters)
+├── types.ts                   Signer interface
+├── vault-signer.ts            Vault (AES-GCM) adapter
+├── dapp-kit-signer.ts         Sui dapp-kit adapter
+├── snap-signer.ts             MetaMask Snap adapter
+├── zklogin-signer.ts          zkLogin adapter
+├── resolve.ts                 useSigner hook — picks active adapter
+└── index.ts                   Exports
+
+src/__tests__/integration/     24 integration test files
+├── auth-claim.test.ts         Claim handshake + remint gate + deriveHumanUid (14 tests)
+├── u-vault-*.test.ts          Vault: AES-GCM, HKDF, migration, sentinel, auto-lock (×10)
+├── u-chain-*.test.ts          Chain adapters: BTC/ETH/ONE/SOL/SUI/USDC (×6)
+├── u-signer-iface.test.ts     Signer interface contract
+├── u-zklogin-optional.test.ts zkLogin isolation (no direct imports from /u components)
+└── u-pages-smoke.test.ts      Page structure smoke tests
+
 src/pages/api/signal.ts        Permission gates: lifecycle, network, sensitivity (with cache)
-src/pages/api/signal.test.ts   25 tests: all permission gate scenarios
 
 gateway/src/index.ts           TypeDB proxy worker (128 lines)
 workers/sync/index.ts          TypeDB → KV sync worker

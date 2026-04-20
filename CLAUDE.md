@@ -39,7 +39,7 @@ Three of six dimensions have on-chain twins (economic, permanent). Two (Things, 
 ```bash
 bun run dev      # Start dev server (localhost:4321)
 bun run build    # Production build
-/deploy          # Deploy all services (Gateway + Sync + NanoClaw + Pages)
+/deploy          # Deploy all services (Gateway + Sync + NanoClaw + Workers)
 ```
 
 ## Tunnels (Dev)
@@ -186,6 +186,14 @@ persist()
 - **Federation:** `recall({federated: true})` filters scope (excludes private hypotheses from other worlds)
 - **Key functions:** `roleCheck(role, action)` in `src/lib/role-check.ts` · `getRoleForUser(uid)` in `src/lib/api-auth.ts` · `hasPathRelationship(uid, from, to)` in `src/engine/persist.ts`
 - **Governance UI:** `/ceo` (CEOPanel) · `/board` (BoardPanel, read-only) · `/chairman` (blocked, needs config API)
+
+**Agent Credential Lifecycle (2026-04-20):**
+- **Mint:** `POST /api/auth/agent` → `{uid, apiKey, wallet}`. First call is open. Re-mint requires proof (bearer or chairman).
+- **Claim:** `POST /api/auth/agent/:uid/claim` — human cookie + agent bearer → lazy-creates `g:owns:{uid}` ownership group (group-type: "owns"), human becomes `chairman`, bootstrap key revoked, scoped key minted. Key shown once.
+- **Remint gate:** `AUTH_AGENT_REMINT_MODE=audit` (log only) · `enforce` (403 without proof). Proof = possession (bearer.user === uid) OR ownership (chairman in `g:owns:{uid}`).
+- **Human uid:** `deriveHumanUid({id, email})` → `"human:{slug}"` where slug is email local-part with non-alphanumeric → hyphens.
+- **Sign-in options:** password (Better Auth) · Sui wallet SIWE (`suiWallet()` plugin) · Google zkLogin (`zkLogin()` plugin → Sui address).
+- **Cache invalidation:** `invalidateKeyCache(keyId)` — evicts from `KEY_CACHE` via secondary `KEYID_TO_BEARER` map on key revoke.
 
 ### Tags
 Flat labels on skills and units. No hierarchy. Filter with `?tag=build&tag=P0`.
@@ -353,11 +361,31 @@ See `docs/ADL-integration.md` for full reference.
 src/
   engine/       # Core: world.ts, persist.ts, loop.ts, boot.ts, llm.ts, agent-md.ts
   components/   # React 19 + shadcn/ui
-  pages/        # Astro routes + 30 API endpoints
+    u/          # Universal Wallet (/u/*) — 17 pages, 38+ components
+      lib/
+        vault/  # AES-256-GCM + HKDF + PBKDF2 + WebAuthn PRF vault
+        signer/ # Signer abstraction: vault/dapp-kit/snap/zklogin adapters + useSigner
+  pages/        # Astro routes + 50+ API endpoints
+    api/
+      auth/
+        agent.ts           # Mint credentials (AUTH_AGENT_REMINT_MODE=audit|enforce)
+        agent/[uid]/claim.ts  # Human-agent claim handshake
+        wallet/            # Sui wallet nonce/verify (deprecated — use Better Auth plugin)
+        zklogin/           # zkLogin callback (Google OAuth → Sui address)
   pages/api/export/  # TypeDB → JSON snapshots (paths, units, skills, highways, toxic)
   layouts/      # Astro layouts
   schema/       # TypeDB schema (world.tql)
-  lib/          # TypeDB client, auth, edge helpers, utils
+  lib/
+    auth.ts              # Better Auth config + suiWallet() + zkLogin() plugins
+    auth-plugins/
+      sui-wallet.ts      # SIWE-style Sui wallet sign-in plugin
+      zklogin.ts         # Google OAuth → Sui zkLogin plugin
+    human-unit.ts        # ensureHumanUnit() — human actor + personal group + chairman role
+    api-auth.ts          # Auth middleware + deriveHumanUid + invalidateKeyCache
+    api-key.ts           # Key generation, PBKDF2 verify, getKeyPrefix (TQL-safe)
+  __tests__/
+    integration/  # 24 integration test files (vault, chains, signer, auth-claim)
+    fixtures/     # vault-v1.json (migration test fixture)
 docs/           # Architecture, deploy, cloudflare, nanoclaw, strategy
 gateway/        # CF Worker: TypeDB proxy + WsHub DO (api.one.ie)
                 # Routes: /typedb/query, /tasks, /ws, /broadcast, /messages, /health
@@ -379,7 +407,7 @@ agents/         # Markdown agent definitions
 migrations/     # D1 schema (signals, messages, tasks, sync_log)
 .claude/
   commands/     # Slash commands: /see, /create, /do, /close, /sync
-  skills/       # /sui, /deploy, /typedb, /astro, /react19, /reactflow, /shadcn
+  skills/       # /sui, /deploy, /typedb, /astro, /react19, /reactflow, /shadcn, /zklogin
   rules/        # Auto-loaded rules for engine, react, astro
 ```
 

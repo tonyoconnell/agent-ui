@@ -352,6 +352,8 @@ function build(): number {
     env: {
       NODE_ENV: 'production',
       NODE_OPTIONS: process.env.NODE_OPTIONS ?? '--max-old-space-size=8192',
+      // Baked into the Worker bundle at build time by Vite — must be forwarded explicitly.
+      PUBLIC_GATEWAY_URL: process.env.PUBLIC_GATEWAY_URL ?? 'https://api.one.ie',
     },
     silent: true,
   })
