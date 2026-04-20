@@ -7,6 +7,8 @@
 
 import { betterAuth } from 'better-auth'
 import { bearer } from 'better-auth/plugins'
+import { suiWallet } from './auth-plugins/sui-wallet'
+import { zkLogin } from './auth-plugins/zklogin'
 import { typedbAdapter } from './typedb-auth-adapter'
 
 // PBKDF2 password hashing (Web Crypto API)
@@ -102,6 +104,13 @@ export function createAuth() {
       },
     },
 
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ['sui-wallet', 'zklogin'],
+      },
+    },
+
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
@@ -114,7 +123,22 @@ export function createAuth() {
 
     trustedOrigins: ['http://localhost:4321', 'http://localhost:3000'],
 
-    plugins: [bearer()],
+    plugins: [
+      bearer(),
+      suiWallet({
+        nonceSecret: (globalThis as any).WALLET_NONCE_SECRET || import.meta.env.WALLET_NONCE_SECRET || '',
+        sessionSecret: (globalThis as any).SUI_SESSION_SECRET || import.meta.env.SUI_SESSION_SECRET,
+      }),
+      zkLogin({
+        nonceSecret: (globalThis as any).WALLET_NONCE_SECRET || import.meta.env.WALLET_NONCE_SECRET || '',
+        sessionSecret: (globalThis as any).SUI_SESSION_SECRET || import.meta.env.SUI_SESSION_SECRET,
+        googleClientId: (globalThis as any).GOOGLE_OAUTH_CLIENT_ID || import.meta.env.GOOGLE_OAUTH_CLIENT_ID || '',
+        googleRedirectUri:
+          (globalThis as any).GOOGLE_OAUTH_REDIRECT_URI ||
+          import.meta.env.GOOGLE_OAUTH_REDIRECT_URI ||
+          'http://localhost:4321/api/auth/zklogin/callback',
+      }),
+    ],
   })
 }
 

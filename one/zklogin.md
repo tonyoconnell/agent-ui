@@ -1,9 +1,9 @@
 ---
 title: zkLogin — Better Auth plugin + production hardening
 slug: zklogin
-goal: Every sign-in (wallet, Google zkLogin, Apple, MetaMask Snap) mints a Better Auth session; authClient.useSession() sees every user identically; all MVP security gaps closed.
+goal: Every sign-in (wallet, Google zkLogin, Apple, MetaMask Snap) mints a Better Auth session; authClient.useSession() sees every user identically; all MVP security gaps closed; full governance integration (role assignment, pheromone gates, scope enforcement).
 group: ONE
-cycles: 4
+cycles: 5
 route_hints:
   primary: [auth, zklogin, better-auth, wallet]
   secondary: [jose, jwks, prover, enoki]
@@ -20,13 +20,15 @@ downstream:
   price: 0.00
   scope: public
 source_of_truth:
+  - one/auth.md
+  - one/governance-todo.md
   - one/dictionary.md
   - one/patterns.md
   - one/rubrics.md
   - one/routing.md
   - one/lifecycle.md
-  - .claude/skills/zklogin.md
-  - .claude/skills/sui.md
+  - .claude/skills/zklogin/SKILL.md
+  - .claude/skills/sui/SKILL.md
 status: PLAN
 ---
 
@@ -45,7 +47,16 @@ status: PLAN
 
 ## 1 — Vision
 
-Every sign-in door (native Sui wallet, Google zkLogin, Apple, Facebook, Twitch, MetaMask Snap) lands in the same Better Auth session. The Header reads one `authClient.useSession()`, sees every user. The substrate records front-door provenance via Better Auth's `account` table. JWTs are verified via JWKS on the way in; nonces can't be replayed; salts live in a server-side store that can rotate without breaking users. Account linking works — same human, three auth methods, one uid. Payments inherit the same cryptographic trust root as sign-in. Zero friction, zero vendor lock (Enoki optional, not required).
+Every sign-in door (native Sui wallet, Google zkLogin, Apple, Facebook, Twitch, MetaMask Snap) lands in the same Better Auth session. The Header reads one `authClient.useSession()`, sees every user. The substrate records front-door provenance via Better Auth's `account` table. JWTs are verified via JWKS on the way in; nonces can't be replayed; salts live in a server-side store that can rotate without breaking users. Account linking works — same human, three auth methods, one uid. Payments inherit the same cryptographic trust root as sign-in.
+
+**Governance integration (from auth.md + governance-todo.md):**
+- Every zkLogin user is auto-joined to the default group with `role: 'agent'`
+- Chairman can promote to operator/ceo/board via CEOPanel
+- Pheromone gate (`hasPathRelationship`) applies to mark/warn — you can only affect paths you've touched
+- Scope enforcement (private/group/public) applies to zkLogin users identically to wallet users
+- Agent claim flow: human can claim ownership of an agent via `/api/auth/agent/:uid/claim`
+
+Zero friction, zero vendor lock (Enoki optional, not required), full governance integration.
 
 ---
 
@@ -400,15 +411,69 @@ curl -sb /tmp/cookies http://localhost:4321/api/auth/list-accounts | jq '.[] | .
 
 ---
 
+### Cycle 5 — Governance enforcement (optional, post-launch)
+
+**Deliverable:** Full governance gates for zkLogin users — role promotion via CEOPanel, agent ownership claims via `/api/auth/agent/:uid/claim`, pheromone gate wiring, scope defaults. zkLogin users are first-class citizens with identical permissions as wallet users.
+
+**Exit:** zkLogin user can claim an agent → ownership group created → bootstrap key revoked → human becomes chairman of agent's group. Chairman can promote zkLogin user to operator via CEOPanel → role persists in TypeDB membership.
+
+**Rubric override:** 0.40 / 0.15 / 0.30 / 0.15 (fit-heavy — governance is about access control correctness).
+
+#### W1 — Recon (Haiku × 4, parallel)
+- `/api/agents/:uid/claim` flow from auth.md — the handshake contract
+- Pheromone gate coverage (`hasPathRelationship`) for zkLogin users
+- Ownership group pattern `g:owns:<agent-uid>` with `group-type: "owns"`
+- CEOPanel role promotion flow — does it work with zkLogin users?
+
+#### W2 — Decide (Opus × 1)
+- Claim endpoint spec: cookie session (human) + bearer (agent bootstrap) → ownership group → new scoped key
+- Role promotion flow: CEOPanel → update membership role → cache invalidation
+- Scope defaults: paths/hypotheses created by zkLogin users default to `scope: 'group'`
+- Audit logging: all governance actions emit signals for pheromone tracking
+
+#### W3 — Edit (Sonnet × M)
+- `src/pages/api/auth/agent/[uid]/claim.ts` (new endpoint)
+- `src/components/ceo/CEOPanel.tsx` — verify role promotion works for zkLogin users
+- `src/lib/api-auth.ts` — add scope defaults for zkLogin-created entities
+- `.claude/skills/zklogin/SKILL.md` § "Governance integration" (update with implementation details)
+- `one/auth.md` — update "Closed Gaps" section
+
+#### W4 — Verify (Sonnet × 2)
+- zkLogin user claims agent → ownership group created in TypeDB
+- Chairman promotes zkLogin user → membership.role updated
+- Pheromone gate blocks unauthorized mark/warn
+- Scope defaults apply to new paths
+
+#### Cycle 5 gate
+```bash
+bun run verify
+# Claim flow:
+curl -X POST /api/auth/agent/swift-scout/claim \
+  -b cookies.txt \
+  -H "Authorization: Bearer <agent-bootstrap-key>"
+# Returns { owned: true, ownerUid, agentUid, group, newKey }
+
+# TypeDB query confirms ownership:
+# match $g isa group, has group-id "g:owns:swift-scout";
+#       (group: $g, member: $a, role: $r) isa membership; select $a, $r;
+# Returns 2 rows: agent with role "agent", human with role "chairman"
+```
+
+---
+
 ## 8 — Source of truth (auto-loaded in every W2)
 
 | Doc | Locks |
 |-----|-------|
+| `one/auth.md` | unified 3-door identity model, ownership semantics, 6 gaps |
+| `one/governance-todo.md` | role/permission schema (LOCKED 2026-04-18), auth flow |
 | `one/dictionary.md` | canonical names; C1 adds "Better Auth plugin session" term |
 | `one/patterns.md` | closed loop + zero returns (every auth attempt closes) |
 | `one/rubrics.md` | fit/form/truth/taste scoring per wave |
-| `.claude/skills/zklogin.md` | full technical reference (705 lines, shipped 2026-04-20) |
-| `.claude/skills/sui.md` | wallet signing patterns, `verifyPersonalMessageSignature` |
+| `.claude/skills/zklogin/SKILL.md` | full technical reference (~800 lines, governance-integrated) |
+| `.claude/skills/sui/SKILL.md` | wallet signing patterns, `verifyPersonalMessageSignature` |
+| `src/lib/api-auth.ts` | `ensureHumanUnit`, `getRoleForUser`, `hasPathRelationship` |
+| `src/lib/role-check.ts` | `roleCheck(role, action)` — pure permission matrix |
 | `.claude/rules/documentation.md` | docs updated in W2, edited in W3, verified in W4 |
 | Better Auth docs | https://www.better-auth.com/docs/plugins + createAuthEndpoint + additionalFields |
 
@@ -436,12 +501,12 @@ THEN pause C2; evaluate adoption of official plugin; our custom plugin becomes r
 
 ## 10 — Downstream pitch (fires at plan close)
 
-After Cycle 4 closes:
+After Cycle 4 closes (C5 is optional):
 
 ```yaml
 pitch:
   headline: "Open source Better Auth plugins for Sui wallet and zkLogin."
-  body: "Two plugins, production-hardened. JWKS via jose, nonce-replay blocked in KV, account linking across all doors. Drop them into any Astro/Node project running Better Auth and you're live in a day. First public reference implementation."
+  body: "Two plugins, production-hardened. JWKS via jose, nonce-replay blocked in KV, account linking across all doors, governance-integrated (roles, pheromone gates, scope). Drop them into any Astro/Node project running Better Auth and you're live in a day. First public reference implementation with full identity→permission flow."
   demo_url: /signin
   publish_target:
     - npm: @oneie/better-auth-sui-wallet
@@ -456,22 +521,27 @@ The plugins are free; the social proof is "ONE runs on them at scale." Fetch.ai,
 ## 11 — Status
 
 - [ ] **Cycle 1 — sui-wallet Better Auth plugin**
-  - [ ] W1 recon (4 parallel)
+  - [ ] W1 recon (5 parallel) — includes governance patterns
   - [ ] W2 decide + docs
   - [ ] W3 edits (parallel by file)
   - [ ] W4 verify
 - [ ] **Cycle 2 — zkLogin Better Auth plugin**
-  - [ ] W1 recon (4 parallel)
+  - [ ] W1 recon (5 parallel) — includes governance patterns
   - [ ] W2 decide + docs
   - [ ] W3 edits (parallel by file)
   - [ ] W4 verify
 - [ ] **Cycle 3 — Production hardening (JWKS + nonce + salt)**
-  - [ ] W1 recon (3 parallel)
+  - [ ] W1 recon (4 parallel) — includes pheromone gate check
   - [ ] W2 decide + docs
   - [ ] W3 edits (parallel by file)
   - [ ] W4 verify
 - [ ] **Cycle 4 — Account linking + multi-door**
-  - [ ] W1 recon (3 parallel)
+  - [ ] W1 recon (4 parallel) — includes ownership model
+  - [ ] W2 decide + docs
+  - [ ] W3 edits (parallel by file)
+  - [ ] W4 verify
+- [ ] **Cycle 5 — Governance enforcement** (optional, post-launch)
+  - [ ] W1 recon (4 parallel)
   - [ ] W2 decide + docs
   - [ ] W3 edits (parallel by file)
   - [ ] W4 verify
@@ -493,15 +563,25 @@ See `one/zklogin-todo.md` for the live task dashboard that reflects this plan's 
 
 ## See also
 
-- `.claude/skills/zklogin.md` — 705-line technical reference (providers, SDK, prover, JWKS, salt, epoch, Enoki)
+### Source of truth
+- `one/auth.md` — unified 3-door identity model, ownership semantics, claim flow
+- `one/governance-todo.md` — role/permission schema (LOCKED 2026-04-18), auth flow
+- `.claude/skills/zklogin/SKILL.md` — ~800-line technical reference (governance-integrated)
+
+### Implementation
 - `src/lib/auth.ts` — current Better Auth config (email/pw only)
+- `src/lib/api-auth.ts` — `ensureHumanUnit`, `getRoleForUser`, `hasPathRelationship`
+- `src/lib/role-check.ts` — `roleCheck(role, action)` pure permission matrix
 - `src/pages/api/auth/{wallet,zklogin}/*.ts` — current DIY implementations (to be retired)
 - `src/components/auth/{CryptoAuthPanel,SignInWithAnything,WalletSignIn}.tsx` — UI surfaces
 - `src/components/Header.tsx` — consumer of `authClient.useSession()`
+
+### Reference
 - `one/chairman.md` — reference plan shape (this plan modelled after it)
+- `one/zklogin-todo.md` — live task dashboard
 - [Better Auth plugin docs](https://www.better-auth.com/docs/concepts/plugins)
 - [Better Auth SIWE plugin](https://www.better-auth.com/docs/plugins/siwe) — template for our sui-wallet plugin
 
 ---
 
-*One session. Every door. Zero compromise on security. Plugins publish back as open source — ONE becomes the reference.*
+*One session. Every door. Zero compromise on security. Full governance integration. Plugins publish back as open source — ONE becomes the reference.*

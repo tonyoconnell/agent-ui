@@ -113,7 +113,7 @@ export function WalletCard({ wallet, chain }: WalletCardProps) {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="Wallet options">
                   ⋮
                 </Button>
               </DropdownMenuTrigger>
@@ -408,6 +408,7 @@ export function WalletCard({ wallet, chain }: WalletCardProps) {
                   variant="secondary"
                   className="absolute -top-2 -right-2 h-8 w-8 p-0 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={copyAddress}
+                  aria-label="Copy address"
                 >
                   {copied ? '✓' : '📋'}
                 </Button>

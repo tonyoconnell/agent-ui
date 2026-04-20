@@ -62,6 +62,7 @@
         "effect": "^3.21.1",
         "embla-carousel-react": "^8.6.0",
         "input-otp": "^1.4.2",
+        "jose": "^6.2.2",
         "lucide-react": "^1.8.0",
         "marked": "^18.0.1",
         "motion": "^12.38.0",
@@ -93,6 +94,7 @@
         "@types/jsdom": "^28.0.1",
         "@types/node": "^25.6.0",
         "@vitest/coverage-v8": "^4.1.4",
+        "fake-indexeddb": "^6.2.5",
         "jsdom": "^29.0.2",
         "typescript": "6.0.3",
         "vitest": "^4.1.4",
@@ -100,13 +102,13 @@
     },
     "packages/cli": {
       "name": "oneie",
-      "version": "3.8.0",
+      "version": "3.8.3",
       "bin": {
         "oneie": "./dist/index.js",
         "one": "./dist/index.js",
       },
       "dependencies": {
-        "@oneie/sdk": "workspace:*",
+        "@oneie/sdk": "^0.7.0",
         "chalk": "^5.3.0",
         "fs-extra": "^11.2.0",
         "glob": "^10.3.10",
@@ -123,7 +125,7 @@
     },
     "packages/mcp": {
       "name": "@oneie/mcp",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "bin": {
         "oneie-mcp": "./dist/index.js",
       },
@@ -137,7 +139,7 @@
     },
     "packages/sdk": {
       "name": "@oneie/sdk",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "dependencies": {
         "zod": "^4.3.6",
       },
@@ -1277,6 +1279,8 @@
 
     "extend": ["extend@3.0.2", "", {}, "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g=="],
 
+    "fake-indexeddb": ["fake-indexeddb@6.2.5", "", {}, "sha512-CGnyrvbhPlWYMngksqrSSUT1BAVP49dZocrHuK0SvtR0D5TMs5wP0o3j7jexDJW01KSadjBp1M/71o/KR3nD1w=="],
+
     "fast-check": ["fast-check@3.23.2", "", { "dependencies": { "pure-rand": "^6.1.0" } }, "sha512-h5+1OzzfCC3Ef7VbtKdcv7zsstUQwUDlYpUTvjeUsJAssPgLn7QzbboPtL5ro04Mq0rPOsMzl7q5hIbRs2wD1A=="],
 
     "fast-deep-equal": ["fast-deep-equal@3.1.3", "", {}, "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q=="],
@@ -2141,6 +2145,8 @@
 
     "@noble/curves/@noble/hashes": ["@noble/hashes@2.2.0", "", {}, "sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg=="],
 
+    "@oneie/mcp/@oneie/sdk": ["@oneie/sdk@0.7.0", "", { "dependencies": { "zod": "^4.3.6" }, "peerDependencies": { "react": "^19" }, "optionalPeers": ["react"] }, "sha512-cEX343bpWljqX4N/2A0hO3ypYsxTuDk7cvwfBoMpcir/0EjIFj0VUHSEPsmralqtvBwefHCqFZM26zLyMdmeFw=="],
+
     "@oneie/mcp/typescript": ["typescript@5.9.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A=="],
 
     "@oneie/sdk/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
@@ -2254,6 +2260,8 @@
     "miniflare/undici": ["undici@7.24.8", "", {}, "sha512-6KQ/+QxK49Z/p3HO6E5ZCZWNnCasyZLa5ExaVYyvPxUwKtbCPMKELJOqh7EqOle0t9cH/7d2TaaTRRa6Nhs4YQ=="],
 
     "miniflare/ws": ["ws@8.18.0", "", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw=="],
+
+    "oneie/@oneie/sdk": ["@oneie/sdk@0.7.0", "", { "dependencies": { "zod": "^4.3.6" }, "peerDependencies": { "react": "^19" }, "optionalPeers": ["react"] }, "sha512-cEX343bpWljqX4N/2A0hO3ypYsxTuDk7cvwfBoMpcir/0EjIFj0VUHSEPsmralqtvBwefHCqFZM26zLyMdmeFw=="],
 
     "oneie/@types/node": ["@types/node@20.19.39", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-orrrD74MBUyK8jOAD/r0+lfa1I2MO6I+vAkmAWzMYbCcgrN4lCrmK52gRFQq/JRxfYPfonkr4b0jcY7Olqdqbw=="],
 

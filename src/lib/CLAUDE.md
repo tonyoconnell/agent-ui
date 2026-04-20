@@ -15,6 +15,9 @@
 | `net.ts` | In-process substrate network instance (pattern execution surface) | — |
 | `edge.ts` | In-process KV cache (`globalThis._edgeKvCache`), `kvInvalidate()` | — |
 | `api-auth.ts` | API request authentication middleware + `getRoleForUser(uid)` + `getGroupsForUser(uid, roles?)` | — |
+| `human-unit.ts` | `ensureHumanUnit(uid, user)` — create human actor + personal group + chairman role | — |
+| `auth-plugins/sui-wallet.ts` | Better Auth plugin for Sui wallet sign-in (SIWE-style) | `/sui` |
+| `auth-plugins/zklogin.ts` | Better Auth plugin for zkLogin (Google OAuth → Sui address) | `/sui` |
 | `role-check.ts` | Governance role permission matrix: `roleCheck(role, action)`, `isGovernanceRole()` | — |
 | `api-key.ts` | API key generation and validation | — |
 | `streamSignals.ts` | SSE stream of substrate signals; carries agent lifecycle events | — |

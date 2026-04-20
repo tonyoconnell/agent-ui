@@ -1,0 +1,15 @@
+---
+export const prerender = true;
+
+/**
+ * /u/sign - Sign Message
+ *
+ * Minimal signing flow for arbitrary messages and challenges.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { SignPage } from "@/components/u/pages/SignPage";
+---
+
+<Layout title="Sign Message — ONE">
+  <SignPage client:only="react" />
+</Layout>

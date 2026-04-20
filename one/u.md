@@ -1,20 +1,29 @@
 # U — The Universal Wallet
 
-**`/u/*` is the envelopes wallet surface. One vault, many chains, zero servers.
-Keys live in the browser, encrypted under a passkey (WebAuthn PRF) or password.
+**`/u/*` is the envelopes wallet surface. Sui-native at the core, multi-chain
+at the edges. Zero servers. Keys live in the browser, encrypted under a
+passkey (WebAuthn PRF) or password; OR the user signs via zkLogin / native
+Sui wallet / MetaMask Sui Snap — every door lands at the same Sui address.
 This doc is the plan to harden, test, and verify every path end-to-end.**
+
+> **Sui is the core.** Every signer path produces a Sui address. Every pay
+> path settles through Sui (or Stripe for fiat, per pay.md). The vault is the
+> only surface that extends beyond Sui — BTC/ETH/SOL/USDC are *additive*
+> conveniences for users who want a single self-custody UI, but the substrate
+> doesn't need them. Cut non-Sui chains and `/u` still works.
 
 > Every wallet action is a signal. Every unlock, reveal, sign, export emits
 > `ui:u:<action>` to the substrate. The graph learns which flows convert and
 > which flows fail. Keys never leave the device; pheromone never leaves the
 > graph.
 
-**Status:** PORTED + LIVE. This doc is the hardening plan (see [u-todo.md](u-todo.md)).
+**Status:** PORTED + LIVE + HARDENED (C1-C4 complete — see [u-todo.md](u-todo.md)). 24 integration test files, Signer abstraction layer, lifecycle signals wired. Rubric: fit=0.90 form=0.88 truth=0.92 taste=0.85.
 Builds on [auth.md](auth.md) (session/API-key identity), [pay.md](pay.md) (the
 wallet is the buyer UI for Stripe/Sui rails), [SUI.md](SUI.md) (deterministic
 agent wallets; the `/u` flow is the *human* equivalent — non-deterministic,
-user-held keys), and [adl-integration.md](adl-integration.md) (sensitivity +
-network gates on any `/u` route that posts outbound).
+user-held keys), [zklogin.md](zklogin.md) (OAuth → Sui address, the *optional*
+no-install sibling front door), and [adl-integration.md](adl-integration.md)
+(sensitivity + network gates on any `/u` route that posts outbound).
 
 ---
 
@@ -177,6 +186,217 @@ Libs:
 | Sentinel (`ONE_VAULT_CHECK`) detects wrong password | `vault.ts:verifyPassword` | Wrong-password test: throws `VaultError('wrong-password')` |
 | Recovery phrase re-derives same master | `recovery.ts` | Round-trip: enroll → lock → unlock via phrase → decrypt existing wallet |
 | No secret crosses HKDF domain | `types.ts` — enforced by `info` string | Cross-decrypt test: wallet-A subkey fails to decrypt wallet-B record |
+
+### Two front doors, one substrate identity
+
+`/u` is ONE of THREE identity front doors (see [auth.md](auth.md) and
+[zklogin.md](zklogin.md) skill). zkLogin is a **sibling**, not a dependency —
+the wallet ships, tests, and ships again without a single zkLogin call.
+
+```
+  VAULT (this doc)              zkLogin                   NATIVE WALLET
+  device-held keys              OAuth-derived keys         browser extension
+  ─────────────────             ──────────────────         ──────────────────
+  passkey / password            Google / Apple / Twitch    Sui Wallet / Suiet
+  recovery phrase backup        recovery = Google login    user manages keys
+  AES-GCM in IndexedDB          no client key ever         no /u surface used
+  6-chain (ETH/BTC/SOL/…)       Sui-only (today)           chain per extension
+  self-custodial                quasi-custodial (OAuth)    self-custodial
+                                │
+                                ▼
+                  ensureHumanUnit("human:sui:<addr>", {front-door})
+                                │
+                                ▼
+                      one uid · one role · one pheromone graph
+```
+
+**How zkLogin CAN plug into `/u`:**
+
+- A zkLogin-signed-in user can **opt into** the vault later to add non-Sui chains (BTC/ETH/SOL) or to back up their Sui keys client-side. The OAuth identity stays; the vault becomes additive storage for *extra* chains.
+- `/u/send` and `/u/swap` accept a Sui address regardless of its origin — zkLogin-derived addresses sign transactions via `getZkLoginSignature()` (see zkLogin skill § Signing transactions). The wallet UI doesn't branch on provenance; it reads `wallet` + `front-door` from the session.
+- Gas-sponsored transactions (Enoki or DIY sponsor pattern) let zkLogin users pay **zero** gas. A vault-only user pays their own gas. The wallet UI can surface "gas sponsored" when `frontDoor === 'zklogin'`.
+- Multi-chain balances for zkLogin users still show a `wallets[]` array — just one Sui entry, no BTC/ETH/SOL — until the user adds a vault.
+
+**How we DON'T HAVE TO use zkLogin:**
+
+- The vault stands alone. Every invariant, every test, every signal in this doc works without any OAuth call. Deleting `src/pages/api/auth/zklogin/**` leaves `/u` fully functional.
+- A user who arrives via native wallet (dapp-kit `ConnectButton`) or vault-first sign-up never triggers zkLogin code paths. No JWKS, no prover, no Google tokens.
+- Users concerned about OAuth (privacy, custody, provider risk) get the vault as their *only* path. Recovery phrase is the backup; no third party is in the trust chain.
+- zkLogin's production blockers (JWKS verify, nonce replay, salt upgrade — see zkLogin skill) are **not** `/u` blockers. Treat zkLogin hardening as a separate cycle (`zklogin-todo.md`); this cycle's rubric is vault-correctness, full stop.
+
+**When to prefer which:**
+
+| User profile | Prefer | Why |
+|---|---|---|
+| Crypto-native, self-custody, multi-chain | **Vault** | 6 chains, device-held, no third party |
+| First-time user, Sui-only, friction-averse | **zkLogin** | Zero install, gas sponsored, Google = recovery |
+| Agent (not human) | neither — `/sui` | Deterministic seed+uid derivation (see SUI.md) |
+| Advanced: both | **Vault + zkLogin** | OAuth for Sui/gas, vault for BTC/ETH/SOL/… |
+
+**Anti-goal (locked):** this TODO does not harden zkLogin. If zkLogin is buggy,
+it does not block `/u` from shipping. Parallel cycles, shared identity root.
+
+---
+
+## Sign / Pay with Any Wallet
+
+`/u` is a **signer-agnostic surface**. The user picks their door once
+(`SignInWithAnything` — live in `src/components/auth/`); every downstream flow
+(sign, send, swap, pay, generate link, claim) resolves the signer from session
++ dapp-kit state. No `/u` component hard-codes "vault only".
+
+### Sui-first framing (core vs extensions)
+
+```
+                     CORE (substrate native)
+                 ┌──────────────────────────────┐
+                 │           SUI                │
+                 │  signers: all 4              │
+                 │  pay rail: native + pay.one  │
+                 │  escrow: src/move/one/       │
+                 │  agent wallets: /sui skill   │
+                 │  zkLogin: address IS Sui     │
+                 └──────────────┬───────────────┘
+                                │
+                   EXTENSIONS (vault-only; optional)
+                 ┌──────────────┴───────────────┐
+                 │                              │
+            ETH · BTC · SOL · USDC        ONE (token)
+            multi-chain convenience      substrate unit
+            BlockchainService.ts         (settles on Sui)
+```
+
+Cutting the extensions is a menu item, not an architecture change. The signer
+layer, the pay flow, the escrow flow, agent identity, zkLogin — all Sui-first.
+The four signers below ALL produce a Sui address; only the **vault** extends to
+other chains (BTC/ETH/SOL/USDC) as additive, opt-in storage.
+
+### The four signers
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │          ANY /u COMPONENT               │
+                    │  SendPage / SwapPage / CryptoPayment…   │
+                    │                                         │
+                    │   signer.signMessage(bytes)             │
+                    │   signer.signTransaction(tx)            │
+                    │   signer.address                        │
+                    └───────────────┬─────────────────────────┘
+                                    │ resolveSigner(session, walletState)
+                                    ▼
+         ┌──────────────┬───────────────────┬───────────────┬──────────────┐
+         │              │                   │               │              │
+    ┌────▼────┐    ┌────▼────┐         ┌────▼────┐     ┌────▼────┐
+    │  VAULT  │    │ZKLOGIN  │         │DAPP-KIT │     │METAMASK │
+    │         │    │         │         │ (native │     │  SNAP   │
+    │ unlock  │    │ Enoki   │         │ wallets)│     │ (Sui on │
+    │ → AES   │    │ or DIY  │         │  Sui    │     │   MM)   │
+    │ decrypt │    │getZkSig │         │ Wallet, │     │         │
+    │ → sign  │    │         │         │ Suiet,  │     │         │
+    │         │    │         │         │ Phantom │     │         │
+    └────┬────┘    └────┬────┘         └────┬────┘     └────┬────┘
+         └──────────────┴───────────────────┴───────────────┘
+                                    │ all return Ed25519 signature bytes
+                                    ▼
+                        ┌─────────────────────────┐
+                        │   Sui fullnode / RPC    │
+                        └─────────────────────────┘
+```
+
+### The `Signer` interface (locked)
+
+```typescript
+// src/components/u/lib/signer/types.ts  (NEW — C3 front 'signer-iface')
+export interface Signer {
+  readonly kind: 'vault' | 'zklogin' | 'dapp-kit' | 'metamask-snap'
+  readonly chain: 'sui' | 'eth' | 'btc' | 'sol' | 'usdc' | 'one'
+  readonly address: string
+  readonly frontDoor: 'wallet' | 'zklogin'   // provenance from session
+  signMessage(bytes: Uint8Array): Promise<Uint8Array>
+  signTransaction(tx: unknown): Promise<{ bytes: Uint8Array; signature: string }>
+  canSign(chain: string): boolean            // vault is multi-chain; others Sui-only (today)
+}
+
+// src/components/u/lib/signer/resolve.ts
+export function resolveSigner(
+  session: Session,
+  dappKit: WalletState,
+  vault: VaultSession | null,
+): Signer | null
+```
+
+Each signer adapter is ≤ 80 LOC and lives in `src/components/u/lib/signer/`:
+- `vault-signer.ts` — wraps `lib/vault/vault.ts` — only signer that supports non-Sui chains today
+- `zklogin-signer.ts` — wraps `getZkLoginSignature()` — caches proof per `(addressSeed, maxEpoch)` in IndexedDB
+- `dapp-kit-signer.ts` — wraps `@mysten/dapp-kit` `useSignTransaction` / `useSignPersonalMessage`
+- `snap-signer.ts` — wraps the MetaMask Sui Snap (`wallet_invokeSnap`)
+
+### How the surface composes
+
+| User does | Component calls | Signer used | Door they arrived through |
+|---|---|---|---|
+| Sign in | `SignInWithAnything` | — | picks: wallet / zkLogin / Snap |
+| Approve auth challenge | `signer.signMessage(nonce)` | whichever | any |
+| Send SUI | `SendPage` → `signer.signTransaction(txb)` | whichever has chain='sui' | any |
+| Send BTC | `SendPage` → `signer.signTransaction(…)` | **vault only** (others are Sui-only) | wallet (vault required) |
+| Generate pay link | `CryptoPaymentLink` → `PayService.createShortlink({to: signer.address})` | any (only reads address + optional challenge sig) | any |
+| Pay an incoming link | `/pay/crypto/[skillId].astro` → `signer.signTransaction(…)` | any with chain='sui' | any |
+| Claim escrow | `useEscrow` → `signer.signTransaction(consumeTx)` | any with chain='sui' | any |
+
+### Payment links (universal contract)
+
+One shape, three producers, three consumers:
+
+```typescript
+// POST /api/pay/link  (existing, via PayService.createShortlink)
+{
+  to: signer.address,            // any signer produces this
+  amount: 29.99,
+  unit: 'SUI' | 'USD',
+  memo?: string,
+  rail: 'crypto' | 'card' | 'auto',
+  expiresIn?: number
+}
+// → { linkUrl: 'https://pay.one.ie/sl_abc123', ref: 'sl_abc123', qr: '<dataurl>' }
+```
+
+**Producer side** (in `/u`):
+- `CryptoPaymentLink.tsx` renders a form; on submit it:
+  1. Calls `signer.signMessage(challenge)` to prove the user controls `to` (optional, for non-anon links)
+  2. Posts to `/api/pay/link`
+  3. Shows `linkUrl` + QR; `emitClick('ui:u:pay-link:created')`
+- Works for vault, zkLogin, dapp-kit, Snap users identically
+
+**Consumer side** (on the other end of the link):
+- `/pay/crypto/[skillId].astro` (already live, per pay-todo C5) reads the link, shows pay UI, calls `signer.signTransaction(...)` on the consumer's signer, submits to Sui
+- Consumer may be anon (Stripe rail) or signed-in via any door (crypto rail); the page branches on `session` + `?rail=`
+- `substrate:pay` signal emits with `content.ref = sl_abc123` for reconciliation
+
+**Recurring / request links** (future, per pay.md Cycle 3 — outside this TODO):
+- `CryptoPaymentLink` already has the scaffold; add `mode: 'one-shot' | 'recurring' | 'request'` in a follow-up cycle.
+
+### What this means for `/u` pages
+
+Before this plan: `SendPage` assumes `useVault()`, breaks for zkLogin or native-wallet users.
+After this plan: `SendPage` takes `signer = useSigner()`, works for all four signer kinds.
+
+| Page | Before | After |
+|---|---|---|
+| `/u/send` | vault-only | any signer, multi-chain for vault, Sui-only for others |
+| `/u/receive` | vault-only | any signer (just reads address) |
+| `/u/swap` | vault-only | any signer with chain='sui' |
+| `/u/keys` | vault-only (it IS the vault) | vault-only (correct — this page manages vault keys specifically) |
+| `/u/transactions` | vault-only | any signer (queries address history from RPC) |
+| Sign payload (auth challenge, capability claim) | vault-only | any signer |
+
+### Anti-goals (signer layer)
+
+- **No wallet adapter soup.** One `Signer` interface, four adapters, ≤ 80 LOC each. If an adapter grows past that, split or drop.
+- **No automatic signer election.** If a user has both vault and dapp-kit, `resolveSigner` returns the one declared in `session.frontDoor`. UI can offer a picker ("Sign with ______") but never auto-swap mid-flow.
+- **No chain fallback.** If user picks zkLogin and tries to send BTC, UI says "BTC requires the vault — set it up?". We do NOT silently route through a server-side key.
+- **No key re-export across signers.** Vault keys stay in the vault. zkLogin's ephemeral key stays in its adapter. dapp-kit never sees anything. Signing is delegated, never secrets-swapped.
+
+---
 
 **Threat model (explicit):**
 
@@ -357,6 +577,7 @@ taste ≥ 0.70  — one signal shape family; one vault API; pages are shells
 - **No new chains.** ETH/BTC/SOL/SUI/USDC/ONE is the supported set. Adding chains is a separate proposal.
 - **No server-side keystore.** The entire design rests on device-local secrets. Never add a "sync my keys" path that ships private material to a server — recovery phrase IS the sync mechanism.
 - **No KYC.** `/u` is identity-free. Pay flows that need KYC (Stripe high-risk) get it via Stripe's own surface, not envelopes.
+- **No zkLogin coupling.** `/u` does not depend on, import from, or block on `src/pages/api/auth/zklogin/**`. zkLogin bugs don't stall `/u` shipping. See § Two front doors above.
 - **No custom BIP-39 or crypto primitives.** Wrap WebCrypto + vetted libs only.
 - **No session "remember me" longer than auto-lock.** Even with the box checked, `autoLockMs` is the ceiling.
 - **No telemetry of mnemonic / private-key reveal content.** The signal records the *event*, never the *material*.
@@ -384,6 +605,8 @@ taste ≥ 0.70  — one signal shape family; one vault API; pages are shells
 - [auth.md](auth.md) — session + API-key identity; `/u` is the *wallet* layer, `/auth` is the *session* layer
 - [pay.md](pay.md) — Stripe / Sui / weight rails; `/u/send` is the crypto-rail buyer UI
 - [SUI.md](SUI.md) — deterministic agent wallets (seed + uid → keypair). `/u` is the *human* counterpart (device-held keys)
+- [zklogin.md](zklogin.md) — OAuth → Sui address; the sibling front door. Optional, not required by `/u`
+- `.claude/skills/zklogin/` — production checklist (JWKS verify, nonce replay, salt TEE, Enoki migration)
 - [adl-integration.md](adl-integration.md) — sensitivity + network gates on `/u`-originated outbound calls
 - [ingestion.md](ingestion.md) — wallet lifecycle signals feed `ui:u:*` + `substrate:u:*` into the pheromone taxonomy
 - [buy-and-sell.md](buy-and-sell.md) — `/u/swap` and `/u/send` are buyer surfaces for the EXECUTE / SETTLE steps

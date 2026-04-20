@@ -1,0 +1,25 @@
+{
+  "_note": "test-only-fixture — synthetic mnemonic, no real keys",
+  "u_wallets": [
+    {
+      "id": "wallet-test-001",
+      "chain": "SUI",
+      "address": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "publicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "mnemonic": "test test test test test test test test test test test test test test test test test test test test test test test sauce",
+      "balance": "0.00",
+      "usdValue": 0,
+      "name": "Test Wallet 1"
+    },
+    {
+      "id": "wallet-test-002",
+      "chain": "ETH",
+      "address": "0x0000000000000000000000000000000000000002",
+      "publicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB=",
+      "balance": "0.00",
+      "usdValue": 0,
+      "name": "Test Wallet 2"
+    }
+  ],
+  "u_secure_wallets": []
+}

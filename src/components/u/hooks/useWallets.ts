@@ -174,6 +174,15 @@ export function useWallets(): UseWalletsReturn {
       // Update state
       setWallets((prev) => [...prev, newWallet])
 
+      void fetch('/api/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiver: 'substrate:u:generate',
+          data: { weight: 1, tags: ['u', 'vault', chain ?? ''], content: { verb: 'generate', chain, outcome: 'ok' } },
+        }),
+      })
+
       return newWallet
     },
     [network.id, isTestnet],
@@ -184,6 +193,14 @@ export function useWallets(): UseWalletsReturn {
       const updated = wallets.filter((w) => w.id !== id)
       setWallets(updated)
       WalletAdapter.toLocalStorage(updated)
+      void fetch('/api/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiver: 'substrate:u:delete',
+          data: { weight: 1, tags: ['u', 'vault'], content: { verb: 'delete', outcome: 'ok' } },
+        }),
+      })
     },
     [wallets],
   )

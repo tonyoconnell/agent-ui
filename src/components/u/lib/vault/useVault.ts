@@ -183,8 +183,33 @@ export function useVault(opts: Options = {}): UseVaultResult {
       await Vault.unlockWithPasskey()
       await refresh()
       emitClick('ui:vault:unlock', { method: 'passkey' })
+      void fetch('/api/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiver: 'substrate:u:unlock',
+          data: { weight: 1, tags: ['u', 'vault'], content: { verb: 'unlock', method: 'passkey', outcome: 'ok' } },
+        }),
+      })
     } catch (e) {
       setError((e as Error).message)
+      void fetch('/api/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiver: 'substrate:u:unlock',
+          data: {
+            weight: 1,
+            tags: ['u', 'vault'],
+            content: {
+              verb: 'unlock',
+              method: 'passkey',
+              outcome: 'fail',
+              reason: (e as VaultError)?.code ?? 'unknown',
+            },
+          },
+        }),
+      })
       throw e
     }
   }, [refresh])
@@ -196,8 +221,33 @@ export function useVault(opts: Options = {}): UseVaultResult {
         await Vault.unlockWithPassword(password)
         await refresh()
         emitClick('ui:vault:unlock', { method: 'password' })
+        void fetch('/api/signal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiver: 'substrate:u:unlock',
+            data: { weight: 1, tags: ['u', 'vault'], content: { verb: 'unlock', method: 'password', outcome: 'ok' } },
+          }),
+        })
       } catch (e) {
         setError((e as Error).message)
+        void fetch('/api/signal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiver: 'substrate:u:unlock',
+            data: {
+              weight: 1,
+              tags: ['u', 'vault'],
+              content: {
+                verb: 'unlock',
+                method: 'password',
+                outcome: 'fail',
+                reason: (e as VaultError)?.code ?? 'unknown',
+              },
+            },
+          }),
+        })
         throw e
       }
     },
@@ -211,8 +261,33 @@ export function useVault(opts: Options = {}): UseVaultResult {
         await Vault.unlockWithRecovery(phrase)
         await refresh()
         emitClick('ui:vault:unlock', { method: 'recovery' })
+        void fetch('/api/signal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiver: 'substrate:u:unlock',
+            data: { weight: 1, tags: ['u', 'vault'], content: { verb: 'unlock', method: 'recovery', outcome: 'ok' } },
+          }),
+        })
       } catch (e) {
         setError((e as Error).message)
+        void fetch('/api/signal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiver: 'substrate:u:unlock',
+            data: {
+              weight: 1,
+              tags: ['u', 'vault'],
+              content: {
+                verb: 'unlock',
+                method: 'recovery',
+                outcome: 'fail',
+                reason: (e as VaultError)?.code ?? 'unknown',
+              },
+            },
+          }),
+        })
         throw e
       }
     },
@@ -223,6 +298,14 @@ export function useVault(opts: Options = {}): UseVaultResult {
     Vault.lock()
     void refresh()
     emitClick('ui:vault:lock')
+    void fetch('/api/signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        receiver: 'substrate:u:lock',
+        data: { weight: 1, tags: ['u', 'vault'], content: { verb: 'lock', outcome: 'ok' } },
+      }),
+    })
   }, [refresh])
 
   const saveWallet = useCallback(async (input: Vault.SaveWalletInput) => {

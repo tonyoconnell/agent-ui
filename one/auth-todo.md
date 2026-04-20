@@ -4,8 +4,11 @@ type: roadmap
 version: 1.0.0
 priority: Close-the-loop on agent credentials
 total_tasks: 6
-completed: 0
-status: ACTIVE
+completed: 6
+status: DONE
+completed_cycles: 1
+current_cycle: complete
+rubric: "fit=0.88 form=0.85 truth=0.90 taste=0.82"
 ---
 
 # TODO: Human-Agent Ownership & Login

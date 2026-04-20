@@ -1,3 +1,9 @@
+---
+name: zklogin
+description: zkLogin OAuth → Sui address (no wallet install). Use when editing src/pages/api/auth/zklogin/**, implementing OAuth sign-in (Google/Apple/Facebook/Twitch), JWT + JWKS verification with jose, nonce + ephemeral keypair generation, Groth16 prover (self-host or Enoki), salt management (HMAC vs TEE), session cookies, epoch refresh, or migrating from DIY to Enoki. Covers the 3-step flow (start → bounce → mint) already shipped in ONE and the production hardening checklist.
+allowed-tools: Read(*) Bash(*) Write(*) Edit(*)
+---
+
 # zkLogin — OAuth → Sui address, no wallet install
 
 **Users sign in with Google (or Facebook, Twitch, Apple, etc.). We get a Sui address they control. No private key on our server, no wallet extension, no pop-up.**
@@ -11,7 +17,7 @@ The user's OAuth `id_token` + an ephemeral keypair + a Groth16 zero-knowledge pr
 | Decision | Path | When |
 |----------|------|------|
 | I want zkLogin shipped in a day, zero infra | **Enoki** (`@mysten/enoki`) | Default. Mysten manages prover + salt + JWT. Free tier exists; paid tiers for scale. |
-| I want full control, no vendor lock | **DIY** (what ONE has today) | You run/self-host the prover, manage salts in a TEE, verify JWTs yourself. ~2–3 weeks to production-grade. |
+| I want full control, no vendor lock | **DIY** (what ONE has today) | You run/self-host the prover, manage salts in a TEE, verify JWTs yourself. ~2-3 weeks to production-grade. |
 | I want to migrate from DIY to Enoki later | Start DIY, keep addresses stable | Enoki-derived addresses match DIY addresses for the same `(sub, iss, aud, salt)` — migration is session-level, not address-level. |
 
 ONE currently runs the **DIY path**. This skill documents it in detail AND lays out Enoki as the migration target.
@@ -28,6 +34,92 @@ ONE currently runs the **DIY path**. This skill documents it in detail AND lays 
 | `/cloudflare` | Production deploy — secrets via `wrangler secret put`, not `.env`.              |
 | `/react19`    | Client-side hooks (`useZkLogin`, Enoki integration) use React 19 patterns.       |
 | `/typedb`     | `ensureHumanUnit(uid, meta)` persists zkLogin users — uid pattern `human:sui:<addr>`. |
+
+---
+
+## Integration with ONE Auth Model
+
+zkLogin is ONE of THREE front doors to the substrate. All three converge to the same identity primitives from [auth.md](../../../one/auth.md) and [governance-todo.md](../../../one/governance-todo.md):
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        THREE FRONT DOORS → ONE IDENTITY                     │
+│                                                                             │
+│  WALLET (native Sui)        zkLogin (OAuth)         EMAIL (BetterAuth)      │
+│      │                           │                        │                 │
+│      │ sign nonce               │ id_token + salt        │ email/password   │
+│      │                           │                        │                 │
+│      └─────────────────┬─────────┴────────────────────────┘                 │
+│                        ▼                                                     │
+│               ┌─────────────────┐                                           │
+│               │  ensureHumanUnit │  ← uid = "human:sui:<address>"           │
+│               │                 │    wallet = derived Sui address            │
+│               │                 │    auth-hash = API key hash (optional)     │
+│               │                 │    front-door = 'wallet' | 'zklogin'       │
+│               └────────┬────────┘                                           │
+│                        ▼                                                     │
+│               ┌─────────────────┐                                           │
+│               │   MEMBERSHIP    │  ← auto-join default group on signin      │
+│               │                 │    role = 'agent' (default)               │
+│               │                 │    chairman can promote to operator/ceo   │
+│               └────────┬────────┘                                           │
+│                        ▼                                                     │
+│               ┌─────────────────┐                                           │
+│               │  SESSION COOKIE │  ← Better Auth (target) or DIY HMAC (now) │
+│               │                 │    payload: {u: uid, e: exp, fd: door}     │
+│               └─────────────────┘                                           │
+│                                                                             │
+│  PERMISSION = ROLE × PHEROMONE                                              │
+│    You can only mark/warn paths you've participated in.                     │
+│    Role gates: chairman > ceo > operator > agent > auditor                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Ontology Mapping (from auth.md)
+
+| Dimension | Auth Entity | zkLogin maps to |
+|-----------|-------------|-----------------|
+| **Actors** (2) | `actor` entity | `ensureHumanUnit(uid)` creates it; `wallet` attr = derived address |
+| **Things** (3) | `api-key` entity | optional — zkLogin users can mint API keys post-signin |
+| **Paths** (4) | `api-authorization` | Key → Unit relation; zkLogin session is cookie-based |
+| **Events** (5) | `identity-link` relation | Records front-door provenance: `front-door: "zklogin"` |
+| **Groups** (1) | `membership` relation | Auto-join world's default group; role assigned |
+
+### Governance Integration (from governance-todo.md)
+
+zkLogin users are subject to the same governance model as wallet users:
+
+```tql
+# Schema (locked 2026-04-18)
+relation membership,
+    relates group,
+    relates member,
+    owns role;    # chairman/board/ceo/operator/agent/auditor
+
+entity actor,
+    owns wallet,      # Sui address (0x...)
+    owns auth-hash;   # bcrypt hash of API key (never raw)
+
+relation path,
+    owns scope;       # private/group/public
+
+entity hypothesis,
+    owns scope;       # private/group/public
+```
+
+**Role Permission Matrix** (applies to zkLogin users equally):
+
+| Role | add unit | remove | mark | warn | tune sensitivity | read highways | appoint |
+|------|----------|--------|------|------|------------------|---------------|---------|
+| chairman | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| board | - | - | - | - | - | ✓ | - |
+| ceo | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | - |
+| operator | ✓ | - | ✓ | ✓ | - | ✓ | - |
+| agent | - | - | ✓* | ✓* | - | - | - |
+| auditor | - | - | - | - | - | ✓ | - |
+
+*Agents can only mark/warn paths they participate in (pheromone gate: `hasPathRelationship(uid, from, to)`)
 
 ---
 
@@ -56,8 +148,10 @@ ONE currently runs the **DIY path**. This skill documents it in detail AND lays 
      derive salt = HMAC(WALLET_NONCE_SECRET, sub)   // MVP; swap for salt service
      address = jwtToAddress(id_token, salt)
      ensureHumanUnit("human:sui:<addr>", {id, email})
-     mint `one.sui.session` cookie (HMAC, 30-day TTL)
-     return { uid, wallet, frontDoor: 'zklogin' }
+     auto-join default group with role='agent'  // governance integration
+     record identity-link (front-door: 'zklogin')
+     mint session cookie (HMAC, 30-day TTL)
+     return { uid, wallet, frontDoor: 'zklogin', role: 'agent' }
 ```
 
 Three redirects, two cookies, one session. Zero wallet installs.
@@ -73,8 +167,63 @@ Three redirects, two cookies, one session. Zero wallet installs.
 | `src/components/auth/SignInWithAnything.tsx` | "Continue with Google" button — `window.location = '/api/auth/zklogin/start'` |
 | `src/components/auth/CryptoAuthPanel.tsx` | Wraps `SignInWithAnything` with mode=signin/signup copy |
 | `src/components/Header.tsx` | Reads session via `authClient.useSession()`, shows signed-in chip |
-| `src/lib/api-auth.ts` | `ensureHumanUnit`, `getRoleForUser`, `resolveUnitFromSession` |
+| `src/lib/api-auth.ts` | `ensureHumanUnit`, `getRoleForUser`, `resolveUnitFromSession`, `hasPathRelationship` |
+| `src/lib/role-check.ts` | `roleCheck(role, action)` — pure permission matrix lookup |
 | `src/pages/api/auth/me.ts` | Reads session cookie, returns `{uid, wallet, role}` |
+
+---
+
+## Auth Flow (5-step verification from governance-todo.md)
+
+Every zkLogin session is verified the same way as wallet sessions:
+
+```
+REQUEST                           VERIFICATION
+────────                          ────────────
+1. Session cookie OR API key      → HMAC verify (session) or bcrypt.compare (api-key)
+
+2. Lookup actor                   → match $a isa actor, has uid "<uid>", has wallet $w;
+
+3. Lookup membership + role       → match (group: $g, member: $a, role: $r) isa membership;
+   
+4. Check role permission          → ROLE_PERMISSIONS[role][action] via roleCheck()
+
+5. Check pheromone (for mark/warn)→ hasPathRelationship(uid, from, to)
+                                    (can only affect paths you have relationship with)
+
+6. Check scope (for cross-org)    → path has scope "public" OR same group membership
+
+7. Execute OR reject 403
+```
+
+---
+
+## Unified Identity Flow (from auth.md)
+
+```
+      Authorization: Bearer …            Cookie: one.sui.session (DIY)
+             │                                    │
+             ▼                                    ▼
+     ┌────────────────┐              ┌─────────────────────────┐
+     │ validateApiKey │              │  parseSessionCookie     │
+     │  (KEY_CACHE)   │              │  (HMAC verify)          │
+     └───────┬────────┘              └──────────┬──────────────┘
+             │                                   │
+             │                         deriveHumanUid(wallet)
+             │                                   │
+             │                         ensureHumanUnit(uid, meta)  ← idempotent
+             │                                   │
+             │                         getRoleForUser(uid)
+             │                                   │
+             └──────────┬────────────────────────┘
+                        ▼
+                ┌───────────────┐
+                │  AuthContext  │  ← { user: uid, role, permissions, wallet, frontDoor }
+                └───────────────┘
+                        │
+                        ▼
+        (every gated route: /api/me/*, /api/mark, /api/signal, …)
+```
 
 ---
 
@@ -237,7 +386,7 @@ docker run -d \
 }
 ```
 
-**Latency:** cold ~500 ms–2 s, warm ~200–500 ms. Proof is valid until `currentEpoch ≥ maxEpoch`.
+**Latency:** cold ~500 ms-2 s, warm ~200-500 ms. Proof is valid until `currentEpoch ≥ maxEpoch`.
 
 ### Cache the proof client-side
 
@@ -254,14 +403,14 @@ await idb.set(key, proof)
 
 ---
 
-## JWKS verification — the MUST-DO
+## JWKS verification — the MUST-DO (MVP Gap #1)
 
-MVP gap #1: `callback.ts` currently trust-on-parses the JWT. **Before mainnet**, verify Google's signature using `jose`.
+`callback.ts` currently trust-on-parses the JWT. **Before mainnet**, verify Google's signature using `jose`.
 
 ### The 5-line pattern
 
 ```ts
-import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { createRemoteJWKSet, jwtVerify, errors } from 'jose'
 
 const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'))
 
@@ -324,7 +473,26 @@ const { payload } = await jwtVerify(testToken, JWKS, { issuer, audience })
 
 ---
 
-## Salt management — the HMAC shortcut and the real path
+## Nonce replay protection — MVP Gap #2
+
+Even with nonce-in-JWT, a stolen id_token could be replayed against our callback. Block by tracking consumed nonces:
+
+```ts
+// CF Workers KV (or D1)
+const nonceKey = `zk:nonce:${payload.nonce}`
+if (await env.KV.get(nonceKey)) return Response.json({ error: 'nonce reused' }, { status: 401 })
+await env.KV.put(nonceKey, '1', { expirationTtl: 600 })  // 10 min > state cookie TTL
+```
+
+Cost: one KV read + write per sign-in. Worth it.
+
+### CSRF via signed state cookie (already implemented)
+
+`one.zk.state` cookie carries the HMAC-signed state. The callback verifies HMAC before trusting. Don't weaken `SameSite=Lax` → `SameSite=None` unless you absolutely must (and then add a double-submit token).
+
+---
+
+## Salt management — MVP Gap #3
 
 ONE's current MVP: `salt = HMAC(WALLET_NONCE_SECRET, sub)`. Deterministic, no state. Works fine until `WALLET_NONCE_SECRET` leaks — then every user's salt is predictable, linking their OAuth identity to their Sui address.
 
@@ -352,40 +520,6 @@ sessionStorage.setItem('salt', salt)     // same
 // GOOD
 // Salt lives server-side in a TEE or managed by Enoki. Client only sees the derived ADDRESS.
 ```
-
----
-
-## Nonce binding + replay protection
-
-### The nonce IS the state binding
-
-```
-nonce = Poseidon(eph_pk, maxEpoch, randomness)
-```
-
-This commits to:
-- The ephemeral public key (only the holder can sign later)
-- The max epoch (expires the session)
-- Random entropy (each flow unique)
-
-The nonce goes into the OAuth request. Google embeds it in the id_token. We verify on return. If anything changes, the `jwtToAddress` derivation and the proof both break.
-
-### Add a nonce tracker (KV with TTL)
-
-Even with nonce-in-JWT, a stolen id_token could be replayed against our callback. Block by tracking consumed nonces:
-
-```ts
-// CF Workers KV (or D1)
-const nonceKey = `zk:nonce:${payload.nonce}`
-if (await env.KV.get(nonceKey)) return Response.json({ error: 'nonce reused' }, { status: 401 })
-await env.KV.put(nonceKey, '1', { expirationTtl: 600 })  // 10 min > state cookie TTL
-```
-
-Cost: one KV read + write per sign-in. Worth it.
-
-### CSRF via signed state cookie (already implemented)
-
-`one.zk.state` cookie carries the HMAC-signed state. The callback verifies HMAC before trusting. Don't weaken `SameSite=Lax` → `SameSite=None` unless you absolutely must (and then add a double-submit token).
 
 ---
 
@@ -441,7 +575,8 @@ Set-Cookie: one.sui.session=<HMAC-signed payload>;
   e: sessionExp,             // unix ms
   me: maxEpoch,              // for refresh detection
   la: legacyAddress,         // v1 vs v2 derivation flag
-  fd: 'zklogin' | 'wallet'   // front-door provenance
+  fd: 'zklogin' | 'wallet',  // front-door provenance
+  r: 'agent'                 // role at signin time (may change; re-fetch for gated ops)
 }
 ```
 
@@ -451,13 +586,13 @@ Set-Cookie: one.sui.session=<HMAC-signed payload>;
 
 ## Cloudflare Workers specifics
 
-✅ **Works:**
+**Works:**
 - `crypto.subtle` (HMAC, SHA-256, key import) — native WebCrypto
 - `jose` — uses only WebCrypto
 - Fetch to Sui fullnode + JWKS + prover — standard
 - HMAC-signed cookies for state + session
 
-⚠️ **Watch:**
+**Watch:**
 - **Poseidon hash is NOT native.** `generateNonce()` computes it inside the SDK; `@mysten/sui/zklogin` bundles the implementation. Bundle size with full zklogin import: ~200 KB. Verify it stays under the 10 MiB worker limit.
 - **Groth16 proof verifier is large** (~5 MiB). Keep it out of the worker — run proof generation on the prover service, not in-worker. Sign-in only needs address derivation, not verification.
 - **KV for nonce tracking** — eventual consistency means a replay attacker with a 1-second window between two CF isolates could slip through. For high-value flows, use D1 (strongly consistent) or Durable Object.
@@ -601,6 +736,13 @@ No on-chain migration. No address change. No lost assets.
 - [ ] **Secrets** — `GOOGLE_OAUTH_CLIENT_ID`, `WALLET_NONCE_SECRET`, `SUI_SESSION_SECRET` deployed as `wrangler secret put` on every Worker that reads them.
 - [ ] **Epoch refresh endpoint** — silent `zklogin/start?prompt=none` when `maxEpoch` is within 2 of current. Required before users can sign transactions past day 2.
 
+### Governance integration (blockers for full substrate access)
+
+- [ ] **Auto-join default group** — zkLogin callback should add the user to the world's default group with `role: 'agent'`.
+- [ ] **Role assignment on invite** — if the user is invited before first signin (by uid), honor the pre-assigned role.
+- [ ] **Pheromone gate wiring** — `hasPathRelationship(uid, from, to)` must return true before user can mark/warn an edge.
+- [ ] **Scope enforcement** — zkLogin users respect path/hypothesis scope (private/group/public) same as wallet users.
+
 ### UX (blockers for launch)
 
 - [ ] **Multi-provider** — at minimum Google + Apple for mainstream coverage. Add `zklogin/start/<provider>` branches.
@@ -612,6 +754,7 @@ No on-chain migration. No address change. No lost assets.
 - [ ] Every step emits `ui:auth:zklogin:*` or `api:auth:zklogin:*` signals so pheromone tracks conversion funnel.
 - [ ] Front-door provenance persisted via `identity-link` relation (already in callback).
 - [ ] Failed verifications log the JWKS check error class (`JWTExpired` vs `JWTClaimValidationFailed` vs `JWTInvalid`) for debugging.
+- [ ] Role changes logged via signal for audit trail.
 
 ---
 
@@ -668,6 +811,7 @@ describe('zklogin callback JWKS verify', () => {
 4. Land on `/chairman` (or `redirect` param)
 5. Header flips to signed-in chip with truncated address
 6. `curl -s /api/auth/me` returns `{uid, wallet, role}`
+7. Verify role is 'agent' (default) and can be promoted by chairman
 
 ---
 
@@ -679,6 +823,7 @@ The same cryptographic root that identifies the user signs their payments. For O
 - **First payment needs the Groth16 proof** (~500 ms from Enoki or self-hosted prover). Proof is cached per-maxEpoch → every subsequent tx in the next 48 h is as fast as a regular wallet.
 - **No wallet install.** A signed-in Google user can pay you in SUI without downloading Sui Wallet, MetaMask Snap, or anything else. Enoki also sponsors gas — users pay literally zero.
 - **One identity root for everything.** Chairman governance, agent ownership, payment sender, capability buyer — all the same address. The BaaS → Payments story compresses into one cryptographic primitive.
+- **Pheromone inherits identity.** Every mark/warn is tied to the user's wallet address. The governance model (Role × Pheromone = Permission) works identically for zkLogin and native wallet users.
 
 > zkLogin IS the superfast payments infrastructure. Every other door (native wallets, MetaMask Snap) adds steps; zkLogin removes them.
 
@@ -686,14 +831,21 @@ The same cryptographic root that identifies the user signs their payments. For O
 
 ## See Also
 
-- [/sui](./sui.md) — Move contracts the zkLogin address signs; Phase 2 agent wallet derivation shares the ephemeral keypair pattern.
-- [/signal](./signal.md) — `ui:auth:zklogin:*` telemetry shape.
-- `src/pages/api/auth/zklogin/start.ts` — reference implementation (start flow).
-- `src/pages/api/auth/zklogin/callback.ts` — reference implementation (bounce + mint).
-- `src/lib/api-auth.ts` — `ensureHumanUnit`, `getRoleForUser`.
+### Internal docs
+- [one/auth.md](../../../one/auth.md) — unified auth model (3 front doors, 1 identity)
+- [one/governance-todo.md](../../../one/governance-todo.md) — role/permission schema (locked 2026-04-18)
+- [one/zklogin.md](../../../one/zklogin.md) — Better Auth plugin plan (4 cycles)
+- [one/zklogin-todo.md](../../../one/zklogin-todo.md) — live task dashboard
+- [/sui skill](../sui/SKILL.md) — Move contracts the zkLogin address signs
+- [/signal skill](../signal/SKILL.md) — `ui:auth:zklogin:*` telemetry shape
+
+### Implementation files
+- `src/pages/api/auth/zklogin/start.ts` — reference implementation (start flow)
+- `src/pages/api/auth/zklogin/callback.ts` — reference implementation (bounce + mint)
+- `src/lib/api-auth.ts` — `ensureHumanUnit`, `getRoleForUser`, `hasPathRelationship`
+- `src/lib/role-check.ts` — `roleCheck(role, action)` permission matrix
 
 ### External canon
-
 - [Sui zkLogin concepts](https://docs.sui.io/concepts/cryptography/zklogin)
 - [Sui zkLogin integration guide](https://docs.sui.io/guides/developer/cryptography/zklogin-integration)
 - [Mysten SDK zkLogin reference](https://sdk.mystenlabs.com/typescript/zklogin)

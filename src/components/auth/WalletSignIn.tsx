@@ -25,7 +25,7 @@ export function WalletSignIn({ onSuccess, label = 'Sign in with Sui' }: Props) {
     setError(null)
     setPhase('nonce')
     try {
-      const nonceRes = await fetch(`/api/auth/wallet/nonce?addr=${account.address}`)
+      const nonceRes = await fetch(`/api/auth/sui-wallet/nonce?addr=${account.address}`)
       if (!nonceRes.ok) {
         const { error: e } = (await nonceRes.json().catch(() => ({}))) as { error?: string }
         throw new Error(e ?? 'nonce fetch failed')
@@ -38,7 +38,7 @@ export function WalletSignIn({ onSuccess, label = 'Sign in with Sui' }: Props) {
       })
 
       setPhase('verifying')
-      const verifyRes = await fetch('/api/auth/wallet/verify', {
+      const verifyRes = await fetch('/api/auth/sui-wallet/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: account.address, signature, nonce }),
