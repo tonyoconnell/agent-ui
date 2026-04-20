@@ -28,7 +28,15 @@ const ICONS: Record<Dimension, NavigationItem['icon']> = {
   learning: Lightbulb,
 }
 
-export function Inbox({ clawUrl = 'https://debby-claw.oneie.workers.dev' }: { clawUrl?: string }) {
+export function Inbox({
+  clawUrl = 'https://debby-claw.oneie.workers.dev',
+  groupId,
+  groups = [],
+}: {
+  clawUrl?: string
+  groupId?: string
+  groups?: Array<{ gid: string; name: string; role: string }>
+}) {
   const isMobile = useIsMobile()
   const [liveEntities, setLiveEntities] = useState<InboxEntity[]>([])
   const DATA: InboxData = useMemo(
@@ -72,7 +80,7 @@ export function Inbox({ clawUrl = 'https://debby-claw.oneie.workers.dev' }: { cl
       const [unitsRes, convRes, sessRes] = await Promise.allSettled([
         fetch('/api/export/units'),
         fetch(`${clawUrl}/conversations`),
-        fetch('/api/in/sessions'),
+        fetch(groupId ? `/api/in/sessions?group=${encodeURIComponent(groupId)}` : '/api/in/sessions'),
       ])
       const units =
         unitsRes.status === 'fulfilled' && unitsRes.value.ok
@@ -217,6 +225,24 @@ export function Inbox({ clawUrl = 'https://debby-claw.oneie.workers.dev' }: { cl
       <div className="grid h-full bg-background text-foreground" style={{ gridTemplateColumns: '20% 30% 50%' }}>
         <aside className="flex flex-col border-r border-border bg-card">
           <ProfileHeader name="Anthony O'Connell" initial="A" />
+          {groups.length > 1 && (
+            <div className="border-b border-border px-4 py-2">
+              <select
+                value={groupId ?? groups[0]?.gid ?? ''}
+                onChange={(e) => {
+                  emitClick('ui:in:switch-group', { groupId: e.target.value })
+                  window.location.href = `/in/${e.target.value}`
+                }}
+                className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {groups.map((g) => (
+                  <option key={g.gid} value={g.gid}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <Navigation items={nav} active={dimension} onChange={setDimension} />
           <div className="border-t border-border px-4 py-3">
             <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">

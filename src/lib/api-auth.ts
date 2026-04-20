@@ -250,6 +250,26 @@ export async function getRoleForUser(uid: string): Promise<string | undefined> {
   }
 }
 
+export async function getGroupsForUser(
+  uid: string,
+  roles?: string[],
+): Promise<Array<{ gid: string; name: string; role: string }>> {
+  const safeUid = uid.replace(/[^a-zA-Z0-9_:.-]/g, '')
+  try {
+    const rows = await readParsed(`
+      match $u isa unit, has uid "${safeUid}";
+      (member: $u, group: $g) isa membership, has member-role $r;
+      $g has group-id $gid, has name $gname;
+      select $gid, $gname, $r;
+    `)
+    return rows
+      .filter((r) => !roles || roles.includes(r.r as string))
+      .map((r) => ({ gid: r.gid as string, name: r.gname as string, role: r.r as string }))
+  } catch {
+    return []
+  }
+}
+
 // Session cache: cookie-header value → verified identity (5-min TTL).
 // Keyed by the raw Cookie header so cookie rotation naturally invalidates.
 const SESSION_CACHE = new Map<string, { ctx: AuthContext; expires: number }>()

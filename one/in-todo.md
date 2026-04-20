@@ -297,7 +297,7 @@ Gate: curls + greps clean.
 ## Status
 
 - [x] **C1 WIRE** — W1 · W2 · W3 · W4
-- [ ] **C2 PROVE** — W1 · W2 · W3 · W4
+- [x] **C2 PROVE** — W1 · W2 · W3 · W4
 - [ ] **C3 GROW** — W1 · W2 · W3 · W4
 
 ---
