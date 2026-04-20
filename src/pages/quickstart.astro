@@ -1,0 +1,27 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { QuickstartIsland } from "@/components/landing/QuickstartIsland"
+
+export const prerender = false
+---
+
+<Layout
+  title="Quickstart — ship your first signal in 60 seconds · ONE"
+  description="Get an API key, call /api/signal via REST/SDK/CLI, watch the response. No setup, no framework, no lock-in."
+>
+  <main class="min-h-screen bg-[#0a0a0f] text-white">
+    <section class="max-w-4xl mx-auto px-6 py-16 sm:py-24">
+      <p class="text-xs font-mono tracking-widest text-emerald-400 uppercase mb-4">Quickstart</p>
+      <h1 class="text-4xl sm:text-6xl font-bold tracking-tight mb-6">
+        First signal in<br />
+        <span class="text-emerald-400">60 seconds.</span>
+      </h1>
+      <p class="text-lg text-zinc-400 max-w-2xl mb-12">
+        Four steps: grab a key, copy a snippet, send a signal, see it in your dashboard.
+        Works locally, on Cloudflare, on Vercel, anywhere with <code class="text-emerald-300">fetch</code>.
+      </p>
+
+      <QuickstartIsland client:load />
+    </section>
+  </main>
+</Layout>

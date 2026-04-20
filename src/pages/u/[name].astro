@@ -1,4 +1,6 @@
 ---
+import Layout from '@/layouts/Layout.astro'
+import { UnitProfile } from '@/components/onboard/UnitProfile'
 import { readParsed } from '@/lib/typedb'
 
 const { name } = Astro.params
@@ -21,7 +23,7 @@ let unit = {
   sampleCount: 0,
 }
 
-let _capabilities: Array<{
+let capabilities: Array<{
   taskName: string
   taskType: string
   price: number
@@ -83,28 +85,27 @@ try {
   const capRows = await readParsed(`
     match
       $u isa unit, has uid "${name}";
-      (provider: $u, skill: $t) isa capability, has price $p;
-      $t has name $tn, has task-type $tt;
+      (provider: $u, offered: $t) isa capability, has price $p;
+      $t has name $tn, has thing-type $tt;
     select $tn, $tt, $p;
   `).catch(() => [])
 
-  _capabilities = capRows.map((r) => ({
+  capabilities = capRows.map((r) => ({
     taskName: (r.tn as string) || '',
     taskType: (r.tt as string) || '',
     price: (r.p as number) || 0,
     currency: 'SUI',
   }))
 
-  // Fetch edges (connections where this unit is the source)
+  // Fetch edges (paths where this unit is the source)
   const edgeRows = await readParsed(`
     match
       $u isa unit, has uid "${name}";
-      $e (source: $u, target: $t) isa edge,
+      $e (source: $u, target: $t) isa path,
         has strength $s,
-        has traversals $tr,
-        has revenue $rev;
-      $t has name $tn, has unit-kind $tk;
-    select $tn, $tk, $s, $tr, $rev;
+        has traversals $tr;
+      $t isa unit, has name $tn, has unit-kind $tk;
+    select $tn, $tk, $s, $tr;
   `).catch(() => [])
 
   edges = edgeRows.map((r) => ({
@@ -112,19 +113,18 @@ try {
     targetKind: (r.tk as string) || '',
     strength: (r.s as number) || 0,
     traversals: (r.tr as number) || 0,
-    revenue: (r.rev as number) || 0,
+    revenue: 0,
   }))
 
-  // Also fetch edges where this unit is the target
+  // Also fetch paths where this unit is the target
   const inboundRows = await readParsed(`
     match
       $u isa unit, has uid "${name}";
-      $e (source: $s, target: $u) isa edge,
+      $e (source: $s, target: $u) isa path,
         has strength $str,
-        has traversals $tr,
-        has revenue $rev;
-      $s has name $sn, has unit-kind $sk;
-    select $sn, $sk, $str, $tr, $rev;
+        has traversals $tr;
+      $s isa unit, has name $sn, has unit-kind $sk;
+    select $sn, $sk, $str, $tr;
   `).catch(() => [])
 
   const inbound = inboundRows.map((r) => ({
@@ -132,7 +132,7 @@ try {
     targetKind: (r.sk as string) || '',
     strength: (r.str as number) || 0,
     traversals: (r.tr as number) || 0,
-    revenue: (r.rev as number) || 0,
+    revenue: 0,
   }))
 
   edges = [...edges, ...inbound]

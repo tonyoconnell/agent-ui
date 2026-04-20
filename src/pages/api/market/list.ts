@@ -22,33 +22,89 @@ export type CapabilityListing = {
   weight: number
 }
 
+// 30s in-process cache keyed on (tag, maxPrice, limit).
+// CF isolate-local — warms on first hit, cleared on redeploy.
+declare global {
+  var _marketListCache: Map<string, { v: unknown; ts: number }> | undefined
+}
+const _mCache = (globalThis._marketListCache ??= new Map())
+const CACHE_TTL = 30_000
+const DEFAULT_LIMIT = 50
+
 export const GET: APIRoute = async ({ url }) => {
   try {
     const tag = url.searchParams.get('tag')
     const maxPrice = url.searchParams.getAll('maxPrice')[0]
+    const rawLimit = Number(url.searchParams.get('limit'))
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 500) : DEFAULT_LIMIT
 
-    // 1. Capabilities + skill info only — fast, narrow query
-    const capRows = await readParsed(`
-      match
-        (provider: $u, offered: $s) isa capability, has price $p;
-        $s isa skill, has skill-id $sid, has name $sname;
-        $u has uid $uid;
-      select $sid, $sname, $p, $uid;
-    `).catch(() => [])
+    const cacheKey = `${tag ?? ''}|${maxPrice ?? ''}|${limit}`
+    const now = Date.now()
+    const hit = _mCache.get(cacheKey)
+    if (hit && now - hit.ts < CACHE_TTL) {
+      return Response.json(hit.v, { headers: { 'Cache-Control': 'public, max-age=5' } })
+    }
 
-    // 1a. Unit info (name + success-rate) — separate query, fast independently
-    const unitRows = await readParsed(`
-      match
-        $u isa unit, has uid $uid, has name $uname;
-        try { $u has success-rate $sr; };
-      select $uid, $uname, $sr;
-    `).catch(async () =>
-      // Fallback without try{} for schemas that don't support it
+    // All 4 reads run in parallel — they're independent.
+    // Split (not joined) because TypeDB 3.x's planner hangs on
+    // relation-join + multi-attr projection in a single match.
+    const unitFallback = () =>
       readParsed(`
         match
           $u isa unit, has uid $uid, has name $uname, has success-rate $sr;
         select $uid, $uname, $sr;
+      `).catch(() => [])
+
+    // Race the paths query against a 2s timeout — it hits TypeDB's planner
+    // trio issue (relation-join + attribute-filter + multi-attr projection
+    // hangs 30s+). If we can't get it fast, fall back to zero pheromone so
+    // the page still loads. Cache then memoizes the slow read for 30s.
+    const pathsFast: Promise<Array<Record<string, unknown>>> = Promise.race([
+      readParsed(`
+        match
+          (source: $from, target: $to) isa path, has strength $s, has resistance $r;
+          $to has uid $uid;
+        select $uid, $s, $r;
       `).catch(() => []),
+      new Promise<Array<Record<string, unknown>>>((resolve) => setTimeout(() => resolve([]), 2000)),
+    ])
+
+    // Overall 4s ceiling on the whole fetch block. If TypeDB is degraded, we
+    // return empty immediately rather than hanging the browser for 30s. Cache
+    // absorbs the next request in prod; dev re-pays the ceiling until TypeDB
+    // recovers.
+    const withTimeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+      Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))])
+
+    const [capRows, unitRows, pathRows, tagRows] = await withTimeout(
+      Promise.all([
+        readParsed(`
+          match
+            (provider: $u, offered: $s) isa capability, has price $p;
+            $s isa skill, has skill-id $sid, has name $sname;
+            $u has uid $uid;
+          select $sid, $sname, $p, $uid;
+        `).catch(() => []),
+        readParsed(`
+          match
+            $u isa unit, has uid $uid, has name $uname;
+            try { $u has success-rate $sr; };
+          select $uid, $uname, $sr;
+        `).catch(unitFallback),
+        pathsFast,
+        readParsed(`
+          match
+            $s isa skill, has skill-id $sid, has tag $t;
+          select $sid, $t;
+        `).catch(() => []),
+      ]),
+      4000,
+      [[], [], [], []] as [
+        Array<Record<string, unknown>>,
+        Array<Record<string, unknown>>,
+        Array<Record<string, unknown>>,
+        Array<Record<string, unknown>>,
+      ],
     )
 
     const unitMap = new Map<string, { name: string; successRate: number }>()
@@ -58,14 +114,6 @@ export const GET: APIRoute = async ({ url }) => {
         successRate: (r.sr as number) ?? 0.5,
       })
     }
-
-    // 1b. Path pheromone (strength/resistance) for each seller
-    const pathRows = await readParsed(`
-      match
-        (source: $from, target: $to) isa path, has strength $s, has resistance $r;
-        $to has uid $uid;
-      select $uid, $s, $r;
-    `).catch(() => [])
 
     const pheromoneMap = new Map<string, { strength: number; resistance: number }>()
     for (const r of pathRows) {
@@ -77,20 +125,10 @@ export const GET: APIRoute = async ({ url }) => {
     }
 
     if (!capRows.length) {
-      return Response.json(
-        { capabilities: [] },
-        {
-          headers: { 'Cache-Control': 'public, max-age=5' },
-        },
-      )
+      const empty = { capabilities: [], total: 0 }
+      _mCache.set(cacheKey, { v: empty, ts: now })
+      return Response.json(empty, { headers: { 'Cache-Control': 'public, max-age=5' } })
     }
-
-    // 2. Tags for each skill
-    const tagRows = await readParsed(`
-      match
-        $s isa skill, has skill-id $sid, has tag $t;
-      select $sid, $t;
-    `).catch(() => [])
 
     const tagMap = new Map<string, string[]>()
     for (const r of tagRows) {
@@ -122,10 +160,7 @@ export const GET: APIRoute = async ({ url }) => {
       }
     })
 
-    // Sort by weight (pheromone ranking) by default
-    capabilities.sort((a, b) => b.weight - a.weight)
-
-    // Optional server-side filters
+    // Filter BEFORE sort+slice so the cap counts visible results, not pre-filter.
     if (tag) {
       capabilities = capabilities.filter((c) => c.tags.includes(tag))
     }
@@ -136,12 +171,15 @@ export const GET: APIRoute = async ({ url }) => {
       }
     }
 
-    return Response.json(
-      { capabilities },
-      {
-        headers: { 'Cache-Control': 'public, max-age=5' },
-      },
-    )
+    const total = capabilities.length
+    capabilities.sort((a, b) => b.weight - a.weight)
+    capabilities = capabilities.slice(0, limit)
+
+    const payload = { capabilities, total }
+    _mCache.set(cacheKey, { v: payload, ts: now })
+    return Response.json(payload, {
+      headers: { 'Cache-Control': 'public, max-age=5' },
+    })
   } catch {
     return Response.json(
       { capabilities: [] },

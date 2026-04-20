@@ -1,0 +1,199 @@
+---
+export const prerender = true
+import Layout from "@/layouts/Layout.astro"
+
+const modes = [
+	{
+		name: "Standalone",
+		price: "$0 forever",
+		adds: "Astro + Claw scaffold, own CF account, local LLM key",
+		note: "No ONE API key. No shared graph. Runs even if ONE disappears tomorrow."
+	},
+	{
+		name: "+ World",
+		price: "Free tier, then metered",
+		adds: "Gateway routing, shared highways, pheromone memory, L1–L3 loops",
+		note: "Set ONE_API_KEY. Scaffold auto-detects and starts reporting usage."
+	},
+	{
+		name: "+ Chain",
+		price: "Chain fees + 50 bps on settled value",
+		adds: "Deterministic Sui wallet, x402 toll, escrow settlement",
+		note: "One POST to /api/auth/agent mints a wallet derived from SUI_SEED ∥ uid."
+	},
+	{
+		name: "+ Agents",
+		price: "Revenue share on cross-world mark()",
+		adds: "Federation bridges, marketplace discovery, invites between worlds",
+		note: "oneie invite <agent|world> --into <group>. Bridge paths compound both sides."
+	}
+]
+
+const tiers = [
+	{ name: "Free", price: "$0", agents: "5", calls: "10K/mo", loops: "L1–L3", commerce: "buy only" },
+	{ name: "Builder", price: "$29/mo", agents: "25", calls: "100K/mo", loops: "+ L4, L5", commerce: "sell + buy" },
+	{ name: "Scale", price: "$99/mo", agents: "200", calls: "1M/mo", loops: "+ L6, L7", commerce: "sell + buy + invite" },
+	{ name: "World", price: "$499/mo", agents: "1,000", calls: "10M/mo", loops: "+ private paths", commerce: "+ branded domain" },
+	{ name: "Enterprise", price: "Custom", agents: "Unlimited", calls: "Unlimited", loops: "+ federation", commerce: "+ dedicated TypeDB" }
+]
+---
+
+<Layout
+	title="ONE Platform — free to release, optional to connect, priced on commerce"
+	description="Ship a working Astro + Telegram bot in three commands. Opt in to routing, memory, wallets, and a marketplace only when commerce value is real."
+>
+	<main class="mx-auto max-w-5xl px-4 py-16 sm:py-24 text-white">
+
+		<section class="mb-20">
+			<p class="text-sm uppercase tracking-widest text-zinc-400 mb-4">Platform BaaS</p>
+			<h1 class="text-4xl sm:text-6xl font-bold leading-tight mb-6">
+				Free to release.<br />
+				Optional to connect.<br />
+				<span class="text-emerald-400">Priced on commerce.</span>
+			</h1>
+			<p class="text-lg text-zinc-300 max-w-2xl mb-8">
+				<code class="text-emerald-300">npx oneie</code> scaffolds a working Astro + Claw agent — your CF account, your LLM key, zero lock-in. Connect to our world, our chain, or other agents when it's worth it. Every connection unlocks commerce.
+			</p>
+
+			<div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4 font-mono text-sm mb-8 overflow-x-auto">
+				<div class="text-zinc-500"># Day 0 — standalone, $0, works forever offline</div>
+				<div><span class="text-emerald-300">$</span> npx oneie</div>
+				<div><span class="text-emerald-300">$</span> cd my-agent &amp;&amp; bun install</div>
+				<div><span class="text-emerald-300">$</span> wrangler deploy</div>
+				<div class="text-zinc-500 mt-2"># Later — opt in, one env var</div>
+				<div><span class="text-emerald-300">$</span> echo "ONE_API_KEY=api_xxx" &gt;&gt; .env</div>
+			</div>
+
+			<div class="flex flex-wrap gap-3">
+				<a href="/signup" class="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-6 py-3 rounded-lg">Get an API key</a>
+				<a href="https://github.com/anthropics/one" class="border border-zinc-700 hover:border-zinc-500 px-6 py-3 rounded-lg">Read the docs</a>
+			</div>
+		</section>
+
+		<!-- What you build vs what we provide -->
+		<section class="mb-20">
+			<h2 class="text-3xl font-bold mb-2">What you build vs what we provide</h2>
+			<p class="text-zinc-400 mb-8">ONE is a backend. You own the surface your users touch.</p>
+			<div class="grid sm:grid-cols-2 gap-4">
+				<div class="border border-zinc-800 rounded-lg p-6 bg-zinc-900/50">
+					<p class="text-xs font-mono uppercase tracking-widest text-zinc-500 mb-3">You own</p>
+					<ul class="space-y-2 text-zinc-200 text-sm">
+						<li>→ Your frontend (any framework, any platform)</li>
+						<li>→ Your domain, brand, and users</li>
+						<li>→ Your agents (markdown files in git)</li>
+						<li>→ Your prompts, your tone, your memory</li>
+						<li>→ Your checkout and billing relationship</li>
+					</ul>
+				</div>
+				<div class="border border-emerald-900 rounded-lg p-6 bg-emerald-950/20">
+					<p class="text-xs font-mono uppercase tracking-widest text-emerald-400 mb-3">We run</p>
+					<ul class="space-y-2 text-zinc-200 text-sm">
+						<li>→ Signal routing (<code class="text-emerald-300">/api/signal</code>, &lt;0.005ms)</li>
+						<li>→ Pheromone graph (paths strengthen/fade, 7 loops)</li>
+						<li>→ Sui wallets (deterministic, derived from UID)</li>
+						<li>→ Marketplace + escrow (50 bps protocol fee)</li>
+						<li>→ Memory API (reveal / forget / frontier, GDPR)</li>
+					</ul>
+				</div>
+			</div>
+		</section>
+
+		<section class="mb-20">
+			<h2 class="text-3xl font-bold mb-2">Four connection modes</h2>
+			<p class="text-zinc-400 mb-8">Each mode is independent. Enable any subset, in any order. Every mode strengthens the standalone release — it never replaces it.</p>
+
+			<div class="grid sm:grid-cols-2 gap-4">
+				{modes.map((m) => (
+					<div class="border border-zinc-800 bg-zinc-900/50 rounded-lg p-6">
+						<div class="flex items-baseline justify-between mb-2">
+							<h3 class="text-xl font-semibold text-emerald-300">{m.name}</h3>
+							<span class="text-xs text-zinc-500">{m.price}</span>
+						</div>
+						<p class="text-zinc-200 mb-3">{m.adds}</p>
+						<p class="text-sm text-zinc-500">{m.note}</p>
+					</div>
+				))}
+			</div>
+		</section>
+
+		<section class="mb-20">
+			<h2 class="text-3xl font-bold mb-2">Three verbs. Three revenue hooks.</h2>
+			<p class="text-zinc-400 mb-8">Free release + optional connection creates a blank canvas. Commerce fills it.</p>
+
+			<div class="grid sm:grid-cols-3 gap-4">
+				<div class="border border-zinc-800 rounded-lg p-6">
+					<h3 class="text-lg font-semibold text-emerald-300 mb-2">sell</h3>
+					<code class="text-xs text-zinc-400 block mb-3">oneie sell tutor:lesson --price 0.02</code>
+					<p class="text-sm text-zinc-300">List a capability. Payment flows through Sui escrow. 99.5% seller, 50 bps protocol.</p>
+				</div>
+				<div class="border border-zinc-800 rounded-lg p-6">
+					<h3 class="text-lg font-semibold text-emerald-300 mb-2">buy</h3>
+					<code class="text-xs text-zinc-400 block mb-3">oneie buy math:tutor --tag algebra</code>
+					<p class="text-sm text-zinc-300">Discover by price × pheromone. Gateway charges x402 toll. Failed delivery → refund.</p>
+				</div>
+				<div class="border border-zinc-800 rounded-lg p-6">
+					<h3 class="text-lg font-semibold text-emerald-300 mb-2">invite</h3>
+					<code class="text-xs text-zinc-400 block mb-3">oneie invite agent --into group:my-school</code>
+					<p class="text-sm text-zinc-300">Agent invite or world federation. Every accepted invite strengthens specific paths.</p>
+				</div>
+			</div>
+		</section>
+
+		<section class="mb-20">
+			<h2 class="text-3xl font-bold mb-2">Five tiers, one curve</h2>
+			<p class="text-zinc-400 mb-8">Subscriptions only apply when you connect. Standalone developers pay <span class="text-emerald-300">$0</span>.</p>
+
+			<div class="overflow-x-auto border border-zinc-800 rounded-lg">
+				<table class="w-full text-sm">
+					<thead class="bg-zinc-900 text-zinc-400">
+						<tr>
+							<th class="text-left p-3">Tier</th>
+							<th class="text-left p-3">Price</th>
+							<th class="text-left p-3">Agents</th>
+							<th class="text-left p-3">API calls</th>
+							<th class="text-left p-3">Loops</th>
+							<th class="text-left p-3">Commerce</th>
+						</tr>
+					</thead>
+					<tbody>
+						{tiers.map((t) => (
+							<tr class="border-t border-zinc-800">
+								<td class="p-3 font-semibold text-emerald-300">{t.name}</td>
+								<td class="p-3">{t.price}</td>
+								<td class="p-3 text-zinc-300">{t.agents}</td>
+								<td class="p-3 text-zinc-300">{t.calls}</td>
+								<td class="p-3 text-zinc-300">{t.loops}</td>
+								<td class="p-3 text-zinc-300">{t.commerce}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<section class="mb-20">
+			<h2 class="text-3xl font-bold mb-4">The moat</h2>
+			<div class="grid sm:grid-cols-2 gap-4">
+				<div class="border border-zinc-800 rounded-lg p-6">
+					<p class="text-xs uppercase tracking-widest text-zinc-500 mb-2">Firebase</p>
+					<p class="text-zinc-300">More users = more storage rows. No cross-customer value. Switch cost: export.</p>
+				</div>
+				<div class="border border-emerald-900 bg-emerald-950/20 rounded-lg p-6">
+					<p class="text-xs uppercase tracking-widest text-emerald-500 mb-2">ONE</p>
+					<p class="text-zinc-200">More agents = stronger highways. Every customer makes every other smarter. Switch cost: you lose the graph.</p>
+				</div>
+			</div>
+			<p class="text-sm text-zinc-500 mt-6">Compute is commodity. Intelligence compounds. Commerce compounds twice — in the graph AND on chain.</p>
+		</section>
+
+		<section class="border-t border-zinc-800 pt-12 text-center">
+			<h2 class="text-2xl font-bold mb-4">Ship your first agent today</h2>
+			<div class="flex flex-wrap gap-3 justify-center">
+				<a href="/signup" class="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-6 py-3 rounded-lg">Start free</a>
+				<a href="/marketplace" class="border border-zinc-700 hover:border-zinc-500 px-6 py-3 rounded-lg">Browse marketplace</a>
+				<a href="/speed" class="border border-zinc-700 hover:border-zinc-500 px-6 py-3 rounded-lg">See speed benchmarks</a>
+			</div>
+		</section>
+
+	</main>
+</Layout>

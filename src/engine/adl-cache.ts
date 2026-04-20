@@ -165,6 +165,7 @@ export type AuditGate =
   | 'bridge-network'
   | 'bridge-error'
   | `stage-${string}`
+  | `role:${string}`
 
 export type AuditDecision = 'deny' | 'allow-audit' | 'fail-closed' | 'observe' | 'would-deny'
 
@@ -256,6 +257,8 @@ export function pheromoneWeight(decision: AuditDecision): number {
     case 'fail-closed':
       return 1.0
     case 'allow-audit':
+      return 0.3
+    case 'would-deny':
       return 0.3
     case 'observe':
       return 0

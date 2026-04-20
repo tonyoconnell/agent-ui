@@ -1,0 +1,27 @@
+---
+interface Props {
+  endpoint?: string
+  sdkLink?: string
+  note?: string
+}
+const { endpoint, sdkLink = "/platform", note } = Astro.props
+---
+<div class="border-b border-emerald-900/40 bg-emerald-950/20 px-4 py-2.5 text-center text-xs text-emerald-200/90">
+  <span class="font-mono text-emerald-400">◆ reference implementation</span>
+  <span class="mx-2 text-emerald-800">·</span>
+  <span>This page is built on the ONE backend.</span>
+  {endpoint && (
+    <>
+      <span class="mx-2 text-emerald-800">·</span>
+      <span>Underlying API: <code class="text-emerald-300">{endpoint}</code></span>
+    </>
+  )}
+  {note && (
+    <>
+      <span class="mx-2 text-emerald-800">·</span>
+      <span>{note}</span>
+    </>
+  )}
+  <span class="mx-2 text-emerald-800">·</span>
+  <a href={sdkLink} class="underline hover:text-emerald-100">Build your own →</a>
+</div>

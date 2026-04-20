@@ -1,5 +1,8 @@
 ---
 import Layout from "@/layouts/Layout.astro"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Check } from "lucide-react"
 
 export const prerender = false
 
@@ -9,29 +12,34 @@ const masked = ref.length > 12 ? ref.slice(0, 6) + "…" + ref.slice(-4) : ref
 ---
 
 <Layout title="Payment complete">
-  <main class="min-h-screen bg-[#0a0a0f] text-slate-100 flex items-center justify-center p-4">
-    <div class="max-w-md w-full rounded-lg border border-[#252538] bg-[#161622] p-8 text-center">
-      <div class="text-5xl mb-4">&#10003;</div>
-      <h1 class="text-2xl font-semibold mb-2">Payment complete</h1>
-      <p class="text-sm text-slate-400 mb-6">Your payment has been received.</p>
-      <div class="rounded bg-[#0a0a0f] border border-[#252538] px-4 py-3 text-xs text-slate-500 mb-6">
-        <span class="text-slate-600">Reference:</span>
-        <code class="ml-2 text-slate-300">{masked}</code>
-      </div>
-      <a href="/" class="inline-block rounded bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-5 py-2 transition-colors">
-        Return home
-      </a>
-    </div>
+  <main class="fixed inset-0 flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+    <Card className="w-full max-w-sm border-primary/20 shadow-lg">
+      <CardHeader className="items-center text-center space-y-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Check className="h-6 w-6" />
+        </div>
+        <CardTitle>Payment complete</CardTitle>
+        <CardDescription>Your payment has been received.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div class="rounded-md border bg-background px-3 py-2 text-xs flex items-center justify-between">
+          <span class="text-muted-foreground">Reference</span>
+          <code class="font-mono text-foreground">{masked}</code>
+        </div>
+        <Button asChild className="w-full">
+          <a href="/">Return home</a>
+        </Button>
+      </CardContent>
+    </Card>
   </main>
+  <script is:inline define:vars={{ ref }}>
+    fetch('/api/signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        receiver: 'ui:pay:page:done:view',
+        data: { tags: ['pay','page','view','done'], content: { ref } }
+      })
+    }).catch(() => {})
+  </script>
 </Layout>
-
-<script is:inline define:vars={{ ref }}>
-  fetch('/api/signal', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      receiver: 'ui:pay:page:done:view',
-      data: { tags: ['pay','page','view','done'], content: { ref } }
-    })
-  }).catch(() => {})
-</script>

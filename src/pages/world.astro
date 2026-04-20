@@ -1,12 +1,14 @@
 ---
 import Layout from '@/layouts/Layout.astro'
 import { WorldPageWrapper } from '@/components/WorldPageWrapper'
+import ReferenceBanner from '@/components/landing/ReferenceBanner.astro'
 
 // Check if user is authenticated (from session or headers)
 const isAuthenticated = !!Astro.locals.session?.user
 ---
 
 <Layout title="ONE World">
+  <ReferenceBanner endpoint="GET /api/loop/highways" note="Same graph data is yours via SDK — build a different visualization" />
   <WorldPageWrapper client:only="react" initialSkin="team" isAuthenticated={isAuthenticated} />
 </Layout>
 

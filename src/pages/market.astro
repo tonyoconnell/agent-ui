@@ -1,8 +1,10 @@
 ---
 import Layout from "@/layouts/Layout.astro"
 import { MarketView } from "@/components/market/MarketView"
+import ReferenceBanner from "@/components/landing/ReferenceBanner.astro"
 ---
 
 <Layout title="Market — ONE">
+  <ReferenceBanner endpoint="GET /api/market/list" note="Fork it or embed via @oneie/sdk" />
   <MarketView client:load />
 </Layout>

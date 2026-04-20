@@ -7,13 +7,17 @@
  * Body: { role: string, owner?: string, markdown?: string }
  * Returns: { unit: { uid, wallet, skills }, paths: [] }
  */
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import type { APIRoute } from 'astro'
 import { type AgentSpec, parse, syncAgentWithIdentity } from '@/engine/agent-md'
 import { registerChairman } from '@/engine/chairman'
 import { getNet } from '@/lib/net'
 import { writeSilent } from '@/lib/typedb'
+
+const roleTemplates = import.meta.glob('../../../../agents/roles/*.md', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
 
 export const prerender = false
 
@@ -37,12 +41,12 @@ export const POST: APIRoute = async ({ request }) => {
   if (customMarkdown) {
     markdown = customMarkdown
   } else {
-    try {
-      const rolePath = join(process.cwd(), 'agents', 'roles', `${role}.md`)
-      markdown = await readFile(rolePath, 'utf-8')
-    } catch {
+    const entry = Object.entries(roleTemplates).find(([path]) => path.endsWith(`/${role}.md`))
+    const template = entry?.[1]
+    if (!template) {
       return Response.json({ dissolved: true, error: `No role template for: ${role}` }, { status: 404 })
     }
+    markdown = template
   }
 
   let spec: AgentSpec

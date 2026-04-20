@@ -6,10 +6,15 @@
  *
  * Returns: { ok: true, building: string[] }
  */
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import type { APIRoute } from 'astro'
 import { parse, syncAgentWithIdentity } from '@/engine/agent-md'
+
+const roleTemplates = import.meta.glob('../../../../agents/roles/*.md', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
 import { registerChairman } from '@/engine/chairman'
 import { getNet } from '@/lib/net'
 
@@ -22,8 +27,7 @@ export const POST: APIRoute = async () => {
   registerChairman(net)
 
   // Check CEO exists in TypeDB — sync if not already live
-  const ceoPath = join(process.cwd(), 'agents', 'roles', 'ceo.md')
-  const markdown = await readFile(ceoPath, 'utf-8').catch(() => null)
+  const markdown = Object.entries(roleTemplates).find(([p]) => p.endsWith('/ceo.md'))?.[1] ?? null
   if (markdown && !net.has('ceo')) {
     await syncAgentWithIdentity(parse(markdown))
   }

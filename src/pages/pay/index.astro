@@ -1,6 +1,7 @@
 ---
 import Layout from "@/layouts/Layout.astro"
 import { PayShowcase } from "@/components/pay/PayShowcase"
+import ReferenceBanner from "@/components/landing/ReferenceBanner.astro"
 
 export const prerender = false
 ---
@@ -9,6 +10,7 @@ export const prerender = false
   title="Accept payments — Stripe, Sui, crypto links · ONE"
   description="Accept payments on every rail at once. One API, one signal. Stripe Elements for cards, Sui dapp-kit for wallets, shareable links for crypto. The graph routes tomorrow's buyers down the lanes that paid yesterday."
 >
+  <ReferenceBanner endpoint="POST /api/pay/stripe/create-intent, /api/sui/escrow/*" note="Drop into your checkout — Stripe + Sui rails, one SDK call" />
   <main class="min-h-screen bg-[#0a0a0f] text-slate-100">
     <PayShowcase client:only="react" />
   </main>

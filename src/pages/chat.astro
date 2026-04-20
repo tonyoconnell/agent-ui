@@ -2,8 +2,10 @@
 export const prerender = true
 import Layout from "@/layouts/Layout.astro"
 import { ChairmanChat } from "@/components/ai/ChairmanChat"
+import ReferenceBanner from "@/components/landing/ReferenceBanner.astro"
 ---
 
 <Layout title="ONE — Chat with your team">
+  <ReferenceBanner endpoint="POST /api/chat" note="Ship your own chat UI — SDK exposes streaming + memory" />
   <ChairmanChat client:only="react" />
 </Layout>

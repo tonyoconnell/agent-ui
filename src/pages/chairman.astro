@@ -1,10 +1,12 @@
 ---
 import Layout from '@/layouts/Layout.astro'
 import { ChairmanPanel } from '@/components/chairman/ChairmanPanel'
+import ReferenceBanner from '@/components/landing/ReferenceBanner.astro'
 
 export const prerender = false
 ---
 
 <Layout title="Chairman · ONE">
+  <ReferenceBanner endpoint="POST /api/chairman/hire, /api/chairman/build-team" note="Embed governance in your own admin UI" />
   <ChairmanPanel client:only="react" />
 </Layout>

@@ -49,7 +49,7 @@ export function AgentDetail({ agentId }: Props) {
 
   useEffect(() => {
     fetch(`/api/agents/detail?id=${encodeURIComponent(agentId)}`, {
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(20000),
     })
       .then((r) => {
         if (!r.ok) throw new Error(r.status === 404 ? 'Agent not found' : `Error ${r.status}`)

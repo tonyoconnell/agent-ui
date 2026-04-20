@@ -1,8 +1,27 @@
 ---
 import Layout from "@/layouts/Layout.astro"
-import { Dashboard } from "@/components/Dashboard"
+import { DevDashboard } from "@/components/DevDashboard"
+
+export const prerender = false
 ---
 
-<Layout title="ONE Dashboard">
-  <Dashboard client:load />
+<Layout
+  title="Dashboard · ONE"
+  description="Your tier, your API calls, your agents. Scoped to the key you're signed in with."
+>
+  <main class="min-h-screen bg-[#0a0a0f] text-white">
+    <section class="max-w-6xl mx-auto px-6 py-12">
+      <div class="mb-8 flex items-end justify-between">
+        <div>
+          <p class="text-xs font-mono tracking-widest text-emerald-400 uppercase mb-2">Developer dashboard</p>
+          <h1 class="text-3xl sm:text-4xl font-bold text-white">Your backend at a glance</h1>
+          <p class="text-sm text-zinc-400 mt-2 max-w-2xl">
+            Scoped to your API key. Updates every 30 seconds. For system-wide metrics see <a href="/world" class="text-emerald-300 hover:underline">/world</a>.
+          </p>
+        </div>
+      </div>
+
+      <DevDashboard client:load />
+    </section>
+  </main>
 </Layout>

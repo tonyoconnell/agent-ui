@@ -28,8 +28,8 @@ export function RoleEditor({ gid = DEFAULT_GID }: { gid?: string }) {
 
   const load = useCallback(() => {
     fetch(`/api/groups/${encodeURIComponent(gid)}/members`, { credentials: 'same-origin' })
-      .then((r) => r.json())
-      .then((data: { members?: Member[]; error?: string }) => {
+      .then((r) => r.json() as Promise<{ members?: Member[]; error?: string }>)
+      .then((data) => {
         if (Array.isArray(data.members)) setMembers(data.members)
         else if (data.error) setError(data.error)
       })

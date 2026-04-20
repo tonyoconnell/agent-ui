@@ -23,7 +23,7 @@ const STRIPE_WEBHOOK_SECRET = import.meta.env.STRIPE_WEBHOOK_SECRET as string | 
 
 const stripe = STRIPE_SECRET_KEY
   ? new Stripe(STRIPE_SECRET_KEY, {
-      apiVersion: '2025-09-30.clover' as Stripe.LatestApiVersion,
+      apiVersion: '2026-03-25.dahlia',
       typescript: true,
     })
   : null

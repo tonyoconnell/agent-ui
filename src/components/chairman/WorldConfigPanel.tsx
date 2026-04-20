@@ -27,7 +27,7 @@ export function WorldConfigPanel({ gid = DEFAULT_GID }: { gid?: string }) {
   useEffect(() => {
     let cancelled = false
     fetch(`/api/world-config?gid=${encodeURIComponent(gid)}`, { credentials: 'same-origin' })
-      .then((r) => r.json())
+      .then((r) => r.json() as Promise<Config>)
       .then((data) => {
         if (!cancelled) setCfg(data)
       })

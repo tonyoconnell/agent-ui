@@ -10,31 +10,86 @@ import { TrustBar } from "@/components/landing/TrustBar"
 >
   <div class="min-h-screen bg-[#0a0a0f] text-white">
 
-    <!-- 1. HERO -->
-    <section class="px-6 py-24 sm:py-36 text-center max-w-4xl mx-auto" aria-label="Hero section">
-      <pre class="text-xs text-gray-600 mb-8 leading-relaxed font-mono hidden sm:block" aria-hidden="true">signal ──→ agent ──→ result
-   ↑                    │
-   └──── pheromone ─────┘
-         (paths remember)</pre>
-      <h1 class="text-5xl sm:text-7xl font-bold tracking-tight mb-6 text-white">
-        A world where agents work for you.
-      </h1>
-      <p class="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-        Six dimensions. Seven loops. One substrate.<br />
-        Every request teaches the network what works.
-      </p>
+    <!-- 1. HERO — BaaS positioning -->
+    <section class="px-6 py-24 sm:py-32 max-w-6xl mx-auto" aria-label="Hero section">
+      <div class="text-center mb-12">
+        <p class="text-xs font-mono tracking-widest text-emerald-400 uppercase mb-4">Backend-as-a-Service for AI Agents</p>
+        <h1 class="text-5xl sm:text-7xl font-bold tracking-tight mb-6 text-white">
+          Your frontend.<br />
+          <span class="text-emerald-400">Our backend.</span>
+        </h1>
+        <p class="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+          Ship AI agents with signals, memory, wallets, and commerce.<br class="hidden sm:block" />
+          Call the API. Render your own UI. Keep your brand.
+        </p>
+      </div>
+
+      <!-- Three code snippets: REST, SDK, CLI -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 max-w-5xl mx-auto">
+        <div class="border border-gray-800 bg-gray-900/60 rounded-lg p-4">
+          <p class="text-xs font-mono text-emerald-400 uppercase tracking-widest mb-3">REST</p>
+          <pre class="text-xs text-gray-300 font-mono leading-relaxed overflow-x-auto">curl -X POST one.ie/api/signal \
+  -H "Authorization: Bearer $KEY" \
+  -d '&#123;"receiver":"tutor",
+       "data":&#123;"content":"..."&#125;&#125;'</pre>
+        </div>
+        <div class="border border-emerald-800/50 bg-emerald-950/20 rounded-lg p-4">
+          <p class="text-xs font-mono text-emerald-400 uppercase tracking-widest mb-3">SDK</p>
+          <pre class="text-xs text-gray-300 font-mono leading-relaxed overflow-x-auto">import &#123; sdk &#125; from "@oneie/sdk"
+
+const &#123; result &#125; = await sdk.ask(&#123;
+  receiver: "tutor",
+  data: &#123; content: '...' &#125;
+&#125;)</pre>
+        </div>
+        <div class="border border-gray-800 bg-gray-900/60 rounded-lg p-4">
+          <p class="text-xs font-mono text-emerald-400 uppercase tracking-widest mb-3">CLI</p>
+          <pre class="text-xs text-gray-300 font-mono leading-relaxed overflow-x-auto">$ npx oneie init my-app
+$ cd my-app
+$ oneie ask tutor "..."
+→ paths strengthen, result streams</pre>
+        </div>
+      </div>
+
       <nav class="flex flex-col sm:flex-row gap-4 justify-center" aria-label="Primary actions">
-        <a href="/signup?intent=human"
-          class="px-8 py-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors text-lg"
-          aria-label="Launch your first agent as a human user">
-          Launch your first agent →
+        <a href="/signup"
+          class="px-8 py-4 bg-emerald-500 text-black font-semibold rounded-lg hover:bg-emerald-400 transition-colors text-lg"
+          aria-label="Get an API key and start building">
+          Get an API key →
         </a>
-        <a href="/signup?intent=agent-owner"
+        <a href="/platform"
           class="px-8 py-4 border border-gray-600 text-white font-semibold rounded-lg hover:border-gray-400 hover:bg-white/5 transition-colors text-lg"
-          aria-label="Register and earn as an agent">
-          Register and earn →
+          aria-label="See platform modes and pricing">
+          See the modes →
         </a>
       </nav>
+      <p class="text-center text-sm text-gray-500 mt-6">
+        $0 to ship · Free tier 10K calls/mo · 99.5% to sellers · 50 bps protocol
+      </p>
+    </section>
+
+    <!-- 1b. What you build vs what we provide -->
+    <section class="px-6 py-12 max-w-5xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border border-gray-800 rounded-lg p-6 bg-white/[0.02]">
+          <p class="text-xs font-mono uppercase tracking-widest text-gray-500 mb-3">You build</p>
+          <ul class="space-y-2 text-gray-300 text-sm">
+            <li>→ Your UI (React, Vue, Swift, whatever)</li>
+            <li>→ Your brand, your domain, your checkout flow</li>
+            <li>→ Your agent personalities (markdown in git)</li>
+            <li>→ Your customer relationships</li>
+          </ul>
+        </div>
+        <div class="border border-emerald-800/50 rounded-lg p-6 bg-emerald-950/10">
+          <p class="text-xs font-mono uppercase tracking-widest text-emerald-400 mb-3">We provide</p>
+          <ul class="space-y-2 text-gray-300 text-sm">
+            <li>→ Signal routing + pheromone memory (150+ endpoints)</li>
+            <li>→ Sui wallets derived deterministically from UID</li>
+            <li>→ Marketplace, escrow, settlement</li>
+            <li>→ Governance gates, GDPR memory, federation</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
     <!-- 2. TWO-AUDIENCE TABLE -->
@@ -244,8 +299,10 @@ Payments settle in Move.</pre>
     <!-- 9. FOOTER -->
     <footer class="px-6 py-10 border-t border-gray-800 max-w-5xl mx-auto" aria-label="Footer">
       <nav class="flex flex-wrap gap-6 justify-center text-sm text-gray-500" aria-label="Footer links">
+        <a href="/quickstart" class="hover:text-emerald-300 transition-colors" aria-label="Quickstart">Quickstart</a>
+        <a href="/platform" class="hover:text-gray-300 transition-colors" aria-label="Platform modes and pricing">Platform</a>
+        <a href="/dashboard" class="hover:text-gray-300 transition-colors" aria-label="Developer dashboard">Dashboard</a>
         <a href="/docs" class="hover:text-gray-300 transition-colors" aria-label="Documentation">Docs</a>
-        <a href="/docs/schema" class="hover:text-gray-300 transition-colors" aria-label="Schema reference">Schema</a>
         <a href="https://github.com/one-ie/one" class="hover:text-gray-300 transition-colors" aria-label="GitHub repository">GitHub</a>
         <a href="https://t.me/onedotbot" class="hover:text-gray-300 transition-colors" aria-label="Telegram bot">tg @onedotbot</a>
       </nav>

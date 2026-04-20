@@ -1,8 +1,29 @@
 ---
 import Layout from "@/layouts/Layout.astro"
 import { AgentList } from "@/components/agents/AgentList"
+import type { ListAgentsResponse } from "@oneie/sdk"
+
+// SSR-seed: fetch the agent list server-side so the island hydrates with data
+// already in-hand. No client-side loading spinner, no extra round-trip.
+// Falls back to empty shape on error; client hook will refetch.
+let initialData: ListAgentsResponse | null = null
+try {
+  const res = await fetch(new URL("/api/agents/list", Astro.url))
+  if (res.ok) initialData = (await res.json()) as ListAgentsResponse
+} catch {
+  initialData = null
+}
+
+// Browser + CDN cache for the rendered HTML. Even with an API cache miss the
+// rendered page is identical across visitors for up to 60s.
+// stale-while-revalidate lets a stale copy ship instantly while a fresh one
+// warms in the background.
+Astro.response.headers.set(
+  "Cache-Control",
+  "public, max-age=30, s-maxage=60, stale-while-revalidate=120",
+)
 ---
 
 <Layout title="Agents — ONE">
-  <AgentList client:load />
+  <AgentList client:load initialData={initialData} />
 </Layout>

@@ -13,7 +13,7 @@ import Stripe from 'stripe'
 export const prerender = false
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-09-30.clover' as Stripe.LatestApiVersion,
+  apiVersion: '2026-03-25.dahlia',
   typescript: true,
 })
 

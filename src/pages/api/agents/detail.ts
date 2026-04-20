@@ -24,6 +24,31 @@ function sensitivityToNumber(raw: unknown): number {
   }
 }
 
+// ── In-process cache ────────────────────────────────────────────────────────
+// Agent details change rarely (only on markdown re-sync). Cold load is ~5s
+// due to gateway round-trips; warm load is ~0ms. Dedup in-flight promises so
+// concurrent requests for the same id don't multiply TypeDB traffic.
+type CacheEntry = { json: string; expiresAt: number }
+const CACHE_TTL_MS = 60_000
+type GlobalCache = {
+  _agentDetailCache?: Map<string, CacheEntry>
+  _agentDetailInflight?: Map<string, Promise<Response>>
+}
+const g = globalThis as unknown as GlobalCache
+const cache = (g._agentDetailCache ??= new Map())
+const inflight = (g._agentDetailInflight ??= new Map())
+
+function cachedResponse(json: string, cached: boolean): Response {
+  return new Response(json, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+      'X-Cache': cached ? 'HIT' : 'MISS',
+    },
+  })
+}
+
 export const GET: APIRoute = async ({ url }) => {
   const id = url.searchParams.get('id')
   if (!id) {
@@ -33,13 +58,63 @@ export const GET: APIRoute = async ({ url }) => {
   // Sanitise: reject any id containing quote characters to prevent TQL injection
   const safeId = id.replace(/["\\]/g, '')
 
-  // ── Stage 1: unit core attrs ──────────────────────────────────────────────
-  const unitRows = await readParsed(`
-    match
-      $u isa unit, has uid "${safeId}",
-        has name $name, has model $model, has system-prompt $sp;
-    select $name, $model, $sp;
-  `).catch(() => [])
+  // Cache hit?
+  const hit = cache.get(safeId)
+  if (hit && hit.expiresAt > Date.now()) {
+    return cachedResponse(hit.json, true)
+  }
+
+  // In-flight dedup: if another request is already fetching, reuse its promise.
+  const pending = inflight.get(safeId)
+  if (pending) return pending.then((r) => r.clone())
+
+  const work = buildDetail(safeId).finally(() => inflight.delete(safeId))
+  inflight.set(safeId, work)
+  return work.then((r) => r.clone())
+}
+
+async function buildDetail(safeId: string): Promise<Response> {
+
+  // ── Stages 1-4 (independent, uid-keyed): fan out in parallel ─────────────
+  // Each stage is its own TypeDB query; the gateway handles each in ~1-8s.
+  // Serial = sum of latencies (~30-40s). Parallel = max latency (~8s).
+  const [unitRows, sensitivityRows, tagRows, capPairRows, membershipRows] = await Promise.all([
+    readParsed(`
+      match
+        $u isa unit, has uid "${safeId}",
+          has name $name, has model $model, has system-prompt $sp;
+      select $name, $model, $sp;
+    `).catch(() => []),
+    readParsed(`
+      match
+        $u isa unit, has uid "${safeId}", has data-sensitivity $ds;
+      select $ds;
+    `).catch(() => []),
+    readParsed(`
+      match
+        $u isa unit, has uid "${safeId}", has tag $tag;
+      select $tag;
+    `).catch(() => []),
+    // Planner-friendly order: hoist projected-attribute bindings above the
+    // relation pattern. With ($u has uid ...) at the top the planner fans
+    // out from the unit across all capabilities before projecting skill-id,
+    // which hangs >30s on cold paths. Binding `$s has skill-id $sid` first
+    // gives the planner a concrete start set. See memory: typedb_planner_trio.
+    readParsed(`
+      match
+        $s isa skill, has skill-id $sid;
+        (provider: $u, offered: $s) isa capability;
+        $u has uid "${safeId}";
+      select $sid;
+    `).catch(() => []),
+    readParsed(`
+      match
+        $g isa group, has gid $gid;
+        (group: $g, member: $u) isa membership;
+        $u has uid "${safeId}";
+      select $gid;
+    `).catch(() => []),
+  ])
 
   if (unitRows.length === 0) {
     return Response.json({ error: 'Agent not found' }, { status: 404 })
@@ -50,31 +125,8 @@ export const GET: APIRoute = async ({ url }) => {
   const unitModel = (unitRow.model as string) || 'default'
   const systemPrompt = (unitRow.sp as string) || ''
 
-  // Optional: data-sensitivity (may not be present on every unit)
-  const sensitivityRows = await readParsed(`
-    match
-      $u isa unit, has uid "${safeId}", has data-sensitivity $ds;
-    select $ds;
-  `).catch(() => [])
   const sensitivity = sensitivityRows.length > 0 ? sensitivityToNumber(sensitivityRows[0].ds) : 0.5
-
-  // ── Stage 2: unit tags ────────────────────────────────────────────────────
-  const tagRows = await readParsed(`
-    match
-      $u isa unit, has uid "${safeId}", has tag $tag;
-    select $tag;
-  `).catch(() => [])
   const tags = tagRows.map((r) => r.tag as string).filter(Boolean)
-
-  // ── Stage 3: capabilities — inline literal uid (TypeDB 3.x rejects `$var in [...]` syntax)
-  // 3a: capability pairs for this unit
-  const capPairRows = await readParsed(`
-    match
-      (provider: $u, offered: $s) isa capability;
-      $u has uid "${safeId}";
-      $s has skill-id $sid;
-    select $sid;
-  `).catch(() => [])
 
   const skillIds = [...new Set(capPairRows.map((r) => r.sid as string).filter(Boolean))]
 
@@ -84,37 +136,35 @@ export const GET: APIRoute = async ({ url }) => {
     // OR-chain instead of `$sid in [...]` which is not valid TypeQL in 3.x
     const sidOr = skillIds.map((s) => `{$sid == "${s}";}`).join(' or ')
 
-    // 3b: skill core attrs
-    const skillAttrRows = await readParsed(`
-      match
-        $s isa skill, has skill-id $sid;
-        ${sidOr};
-        $s has name $sn, has price $sp;
-      select $sid, $sn, $sp;
-    `).catch(() => [])
-
-    // 3b-optional: skill descriptions (may not exist on every skill)
-    const skillDescRows = await readParsed(`
-      match
-        $s isa skill, has skill-id $sid;
-        ${sidOr};
-        $s has description $desc;
-      select $sid, $desc;
-    `).catch(() => [])
+    // 3b/3b-desc/3c are all keyed on the same sidOr — fan out in parallel.
+    const [skillAttrRows, skillDescRows, skillTagRows] = await Promise.all([
+      readParsed(`
+        match
+          $s isa skill, has skill-id $sid;
+          ${sidOr};
+          $s has name $sn, has price $sp;
+        select $sid, $sn, $sp;
+      `).catch(() => []),
+      readParsed(`
+        match
+          $s isa skill, has skill-id $sid;
+          ${sidOr};
+          $s has description $desc;
+        select $sid, $desc;
+      `).catch(() => []),
+      readParsed(`
+        match
+          $s isa skill, has skill-id $sid;
+          ${sidOr};
+          $s has tag $tag;
+        select $sid, $tag;
+      `).catch(() => []),
+    ])
 
     const descBySid: Record<string, string> = {}
     for (const r of skillDescRows) {
       if (r.sid && r.desc) descBySid[r.sid as string] = r.desc as string
     }
-
-    // 3c: skill tags
-    const skillTagRows = await readParsed(`
-      match
-        $s isa skill, has skill-id $sid;
-        ${sidOr};
-        $s has tag $tag;
-      select $sid, $tag;
-    `).catch(() => [])
 
     const tagsBySid: Record<string, string[]> = {}
     for (const r of skillTagRows) {
@@ -137,19 +187,11 @@ export const GET: APIRoute = async ({ url }) => {
     }
   }
 
-  // ── Stage 4: group membership — inline literal uid
-  const membershipRows = await readParsed(`
-    match
-      (group: $g, member: $u) isa membership;
-      $u has uid "${safeId}";
-      $g has gid $gid;
-    select $gid;
-  `).catch(() => [])
   const group = membershipRows.length > 0 ? (membershipRows[0].gid as string) : 'standalone'
 
   const mergedTags = [...new Set([...tags, ...skills.flatMap((s) => s.tags)])].sort()
 
-  return Response.json({
+  const payload = {
     id: safeId,
     name: unitName,
     group,
@@ -159,5 +201,9 @@ export const GET: APIRoute = async ({ url }) => {
     channels: [], // not stored in TypeDB — markdown-only field
     sensitivity,
     prompt: systemPrompt,
-  })
+  }
+
+  const json = JSON.stringify(payload)
+  cache.set(safeId, { json, expiresAt: Date.now() + CACHE_TTL_MS })
+  return cachedResponse(json, false)
 }

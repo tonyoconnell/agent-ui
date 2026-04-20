@@ -18,17 +18,20 @@ const FALLBACK: ListAgentsResponse = { agents: [], groups: {}, tags: [], count: 
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
-export function AgentList() {
+export function AgentList({ initialData }: { initialData?: ListAgentsResponse | null }) {
   return (
     <SdkProvider>
-      <AgentListInner />
+      <AgentListInner initialData={initialData} />
     </SdkProvider>
   )
 }
 
-function AgentListInner() {
-  const { data: rawData, loading } = useAgentList()
-  const data = rawData ?? FALLBACK
+function AgentListInner({ initialData }: { initialData?: ListAgentsResponse | null }) {
+  const { data: rawData, loading: hookLoading } = useAgentList()
+  // Prefer SSR-seeded data on first paint; once the hook resolves, swap to the
+  // live value (keeps cache fresh without a visible flash).
+  const data = rawData ?? initialData ?? FALLBACK
+  const loading = hookLoading && !initialData && !rawData
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
   const [search, setSearch] = useState('')

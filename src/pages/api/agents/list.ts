@@ -34,81 +34,176 @@ function sensitivityToNumber(ds: unknown): number {
   return typeof ds === 'string' ? (map[ds] ?? 0.5) : 0.5
 }
 
-export const GET: APIRoute = async () => {
+// 60s in-process cache — agent list changes slowly, and each isolate warms
+// on first hit. Cuts repeat /agents page loads to ~0ms. In-flight dedup so
+// concurrent cold hits share a single TypeDB pass.
+declare global {
+  var _agentListCache: { v: Record<string, unknown>; ts: number } | undefined
+  var _agentListInflight: Map<number, Promise<Response>> | undefined
+}
+const CACHE_TTL = 60_000
+const inflight = (globalThis._agentListInflight ??= new Map())
+
+const DEFAULT_LIMIT = 50
+
+function jsonResponse(v: Record<string, unknown>, cached: boolean): Response {
+  return new Response(JSON.stringify(v), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=30, stale-while-revalidate=120',
+      'X-Cache': cached ? 'HIT' : 'MISS',
+    },
+  })
+}
+
+export const GET: APIRoute = async ({ url }) => {
+  const raw = Number(url.searchParams.get('limit'))
+  const limit = Number.isFinite(raw) && raw > 0 ? Math.min(raw, 500) : DEFAULT_LIMIT
+
+  const now = Date.now()
+  const hit = globalThis._agentListCache
+  // Cache key includes limit so /list and /list?limit=200 don't collide.
+  if (hit && now - hit.ts < CACHE_TTL && (hit.v as { _limit?: number })._limit === limit) {
+    return jsonResponse(hit.v, true)
+  }
+
+  // In-flight dedup: multiple concurrent cold hits share one build.
+  const pending = inflight.get(limit)
+  if (pending) return pending.then((r) => r.clone())
+  const work = buildList(limit).finally(() => inflight.delete(limit))
+  inflight.set(limit, work)
+  return work.then((r) => r.clone())
+}
+
+async function buildList(limit: number): Promise<Response> {
+  const now = Date.now()
+
   try {
-    // STAGE 1: All units with basic attrs.
-    // system-prompt is fetched separately (Stage 1b) because including it
-    // here alongside other attrs hangs the TypeDB 3.x planner.
-    const unitRows = await readParsed(`
-      match
-        $u isa unit, has uid $uid, has name $n, has model $m, has generation $g;
-      select $uid, $n, $m, $g;
-    `).catch(() => [])
+    // All non-cap stages run in parallel — they're independent reads.
+    // Split into separate queries (not joined) because TypeDB 3.x's planner
+    // hangs on relation-join + multi-attr projection in a single match.
+    //
+    // The cap join `(provider:, offered:) isa capability` with BOTH $uid and
+    // $sid projected and unbound hangs >30s at the gateway (verified 2026-04-20)
+    // — the planner can't handle the double-unbound cross-side projection.
+    // Solution: fetch units first, slice to the visible window, then fan out
+    // per-unit cap queries with a concrete uid literal (which IS fast — see
+    // /api/agents/detail.ts). See memory: typedb_attr_before_relation.
+    const unitPromise = readParsed(`
+        match
+          $u isa unit, has uid $uid, has name $n, has model $m, has generation $g;
+        select $uid, $n, $m, $g;
+      `).catch(() => [])
+
+    const othersPromise = Promise.all([
+      readParsed(`
+        match
+          $u isa unit, has uid $uid, has system-prompt $sp;
+        select $uid, $sp;
+      `).catch(() => []),
+      readParsed(`
+        match
+          $u isa unit, has uid $uid, has tag $tag;
+        select $uid, $tag;
+      `).catch(() => []),
+      readParsed(`
+        match
+          $s isa skill, has skill-id $sid, has name $sn, has price $sp;
+        select $sid, $sn, $sp;
+      `).catch(() => []),
+      readParsed(`
+        match
+          $s isa skill, has skill-id $sid, has tag $tag;
+        select $sid, $tag;
+      `).catch(() => []),
+      readParsed(`
+        match
+          $g isa group, has gid $gid;
+          (group: $g, member: $u) isa membership;
+          $u has uid $uid;
+        select $gid, $uid;
+      `).catch(() => []),
+      readParsed(`
+        match
+          $u isa unit, has uid $uid, has data-sensitivity $ds;
+        select $uid, $ds;
+      `).catch(() => []),
+    ])
+
+    // Kick off cap queries as soon as we know the visible uid slice —
+    // don't wait for the other 6 queries to finish.
+    const capPromise = unitPromise.then(async (rows) => {
+      rows.sort((a, b) => String(a.uid).localeCompare(String(b.uid)))
+      const slice = rows.slice(0, limit)
+      const visibleUids = slice.map((r) => r.uid as string).filter(Boolean)
+      const pairs: { uid: string; sid: string }[] = []
+      const POOL = 8
+      for (let i = 0; i < visibleUids.length; i += POOL) {
+        const batch = visibleUids.slice(i, i + POOL)
+        const batchResults = await Promise.all(
+          batch.map((uid) =>
+            readParsed(`
+              match
+                $s isa skill, has skill-id $sid;
+                (provider: $u, offered: $s) isa capability;
+                $u has uid "${uid.replace(/["\\]/g, '')}";
+              select $sid;
+            `).catch(() => []),
+          ),
+        )
+        batchResults.forEach((br, idx) => {
+          const uid = batch[idx]
+          for (const r of br) if (r.sid) pairs.push({ uid, sid: r.sid as string })
+        })
+      }
+      return pairs
+    })
+
+    const [unitRows, [promptRows, unitTagRows, skillRows, skillTagRows, memberRows, sensitivityRows], capPairs] =
+      await Promise.all([unitPromise, othersPromise, capPromise])
 
     if (unitRows.length === 0) {
-      return Response.json({ agents: [], groups: {}, tags: [], count: 0 })
+      const empty = { agents: [], groups: {}, tags: [], count: 0, _limit: limit }
+      globalThis._agentListCache = { v: empty, ts: now }
+      return jsonResponse(empty, false)
     }
 
-    // STAGE 1b: system-prompt separately — avoids planner hang when joined above.
-    const promptRows = await readParsed(`
-      match
-        $u isa unit, has uid $uid, has system-prompt $sp;
-      select $uid, $sp;
-    `).catch(() => [])
+    // Sort by uid first so the slice is stable across reloads, then cap.
+    // Keeping this before the JS merge means we only pay merge cost for the
+    // agents we're actually returning.
+    unitRows.sort((a, b) => String(a.uid).localeCompare(String(b.uid)))
+    const totalUnits = unitRows.length
+    const capped = unitRows.slice(0, limit)
+    const visibleUids = new Set(capped.map((r) => r.uid as string))
 
+    // Skip unit-scoped merges for uids outside the visible slice — this is
+    // where the JS-side speedup comes from when the system has 100s of agents.
     const promptByUid: Record<string, string> = {}
     for (const r of promptRows) {
-      if (r.uid) promptByUid[r.uid as string] = r.sp as string
+      const uid = r.uid as string
+      if (uid && visibleUids.has(uid)) promptByUid[uid] = r.sp as string
     }
-
-    // STAGE 2: Unit tags.
-    const unitTagRows = await readParsed(`
-      match
-        $u isa unit, has uid $uid, has tag $tag;
-      select $uid, $tag;
-    `).catch(() => [])
 
     const unitTagsByUid: Record<string, string[]> = {}
     for (const r of unitTagRows) {
       const uid = r.uid as string
+      if (!visibleUids.has(uid)) continue
       if (!unitTagsByUid[uid]) unitTagsByUid[uid] = []
       unitTagsByUid[uid].push(r.tag as string)
     }
 
-    // STAGE 3: All capabilities (unit → skill pairs).
-    const capRows = await readParsed(`
-      match
-        (provider: $u, offered: $s) isa capability;
-        $u has uid $uid;
-        $s has skill-id $sid;
-      select $uid, $sid;
-    `).catch(() => [])
-
     const capsByUid: Record<string, string[]> = {}
-    for (const r of capRows) {
-      const uid = r.uid as string
-      if (!capsByUid[uid]) capsByUid[uid] = []
-      capsByUid[uid].push(r.sid as string)
+    for (const p of capPairs) {
+      if (!visibleUids.has(p.uid)) continue
+      if (!capsByUid[p.uid]) capsByUid[p.uid] = []
+      capsByUid[p.uid].push(p.sid)
     }
-
-    // STAGE 4: All skills with price.
-    const skillRows = await readParsed(`
-      match
-        $s isa skill, has skill-id $sid, has name $sn, has price $sp;
-      select $sid, $sn, $sp;
-    `).catch(() => [])
 
     const skillById: Record<string, { name: string; price: number }> = {}
     for (const r of skillRows) {
       skillById[r.sid as string] = { name: r.sn as string, price: (r.sp as number) || 0 }
     }
-
-    // STAGE 5: Skill tags.
-    const skillTagRows = await readParsed(`
-      match
-        $s isa skill, has skill-id $sid, has tag $tag;
-      select $sid, $tag;
-    `).catch(() => [])
 
     const skillTagsBySid: Record<string, string[]> = {}
     for (const r of skillTagRows) {
@@ -117,34 +212,20 @@ export const GET: APIRoute = async () => {
       skillTagsBySid[sid].push(r.tag as string)
     }
 
-    // STAGE 6: Group membership.
-    const memberRows = await readParsed(`
-      match
-        (group: $g, member: $u) isa membership;
-        $g has gid $gid;
-        $u has uid $uid;
-      select $gid, $uid;
-    `).catch(() => [])
-
     const groupByUid: Record<string, string> = {}
     for (const r of memberRows) {
-      groupByUid[r.uid as string] = r.gid as string
+      const uid = r.uid as string
+      if (visibleUids.has(uid)) groupByUid[uid] = r.gid as string
     }
-
-    // STAGE 7 (optional): data-sensitivity per unit.
-    const sensitivityRows = await readParsed(`
-      match
-        $u isa unit, has uid $uid, has data-sensitivity $ds;
-      select $uid, $ds;
-    `).catch(() => [])
 
     const sensitivityByUid: Record<string, unknown> = {}
     for (const r of sensitivityRows) {
-      sensitivityByUid[r.uid as string] = r.ds
+      const uid = r.uid as string
+      if (visibleUids.has(uid)) sensitivityByUid[uid] = r.ds
     }
 
-    // JS merge — build AgentSummary for each unit.
-    const agents: AgentSummary[] = unitRows.map((r) => {
+    // JS merge — build AgentSummary for the capped slice only.
+    const agents: AgentSummary[] = capped.map((r) => {
       const uid = r.uid as string
       const name = (r.n as string) || uid
       const group = groupByUid[uid] || 'standalone'
@@ -187,8 +268,19 @@ export const GET: APIRoute = async () => {
 
     const allTags = [...new Set(agents.flatMap((a) => a.tags))].sort()
 
-    return Response.json({ agents, groups, tags: allTags, count: agents.length })
+    // `count` reports visible agents; `total` exposes the full set so the UI
+    // can show e.g. "Showing 50 of 247 agents" if we want that later.
+    const payload = {
+      agents,
+      groups,
+      tags: allTags,
+      count: agents.length,
+      total: totalUnits,
+      _limit: limit,
+    }
+    globalThis._agentListCache = { v: payload, ts: now }
+    return jsonResponse(payload, false)
   } catch {
-    return Response.json({ agents: [], groups: {}, tags: [], count: 0 })
+    return jsonResponse({ agents: [], groups: {}, tags: [], count: 0 }, false)
   }
 }
