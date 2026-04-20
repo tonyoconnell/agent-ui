@@ -18,7 +18,7 @@ import { roleCheck } from '@/lib/role-check'
 import { emitSecurityEvent } from '@/lib/security-signals'
 import { addressFor } from '@/lib/sui'
 import { resolveTier, type Tier } from '@/lib/tier-limits'
-import { readParsed, write, writeSilent } from '@/lib/typedb'
+import { readParsed, write, writeSilent, writeTracked } from '@/lib/typedb'
 
 export interface AuthContext {
   user: string
@@ -330,24 +330,26 @@ export async function ensureHumanUnit(
     /* best-effort; next request retries */
   })
 
-  // Auto-create personal group (idempotent)
+  // Auto-create personal group (idempotent). writeTracked so schema drift
+  // surfaces in logs instead of silently orphaning humans from /in.
   const escPGid = esc(`group:${uid}`)
-  writeSilent(`
+  const groupOk = await writeTracked(`
     match $u isa unit, has uid "${esc(uid)}";
     not { $g isa group, has gid "${escPGid}"; };
     insert $g isa group,
       has gid "${escPGid}",
       has name "${esc(uid)}",
       has group-type "personal",
-      has visibility "private",
       has status "active";
   `)
-  writeSilent(`
+  if (!groupOk) console.warn(`[ensureHumanUnit] personal group create failed for ${uid}`)
+  const memOk = await writeTracked(`
     match $u isa unit, has uid "${esc(uid)}";
           $g isa group, has gid "${escPGid}";
     not { (group: $g, member: $u) isa membership; };
     insert (group: $g, member: $u) isa membership, has member-role "chairman";
   `)
+  if (!memOk) console.warn(`[ensureHumanUnit] chairman membership create failed for ${uid}`)
 }
 
 /**
@@ -490,7 +492,7 @@ export async function requireRole(
 
   const auth = await validateApiKey(request)
   const role = auth.role ?? 'agent'
-  const gate = context?.gate ?? `role:${action}`
+  const gate = (context?.gate ?? `role:${action}`) as import('@/engine/adl-cache').AuditGate
 
   // Not authenticated at all
   if (!auth.isValid) {
