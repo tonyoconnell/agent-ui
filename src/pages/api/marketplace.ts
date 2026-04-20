@@ -15,13 +15,14 @@ export const GET: APIRoute = async ({ url }) => {
     match
       $from isa unit, has uid $from_id;
       $to isa unit, has uid $to_id;
+      try { $to has success-rate $sr; };
       $sig (sender: $from, receiver: $to) isa signal,
         has data $task, has amount $amt;
       $amt > 0;
       $e (source: $from, target: $to) isa path,
         has strength $str, has revenue $rev, has resistance $res, has traversals $trv;
     ${typeFilter ? `$task = "${typeFilter}";` : ''}
-    select $from_id, $to_id, $task, $amt, $str, $rev, $res, $trv;
+    select $from_id, $to_id, $task, $amt, $str, $rev, $res, $trv, $sr;
   `
 
   const rows = await readParsed(tql).catch(() => [])
@@ -38,6 +39,9 @@ export const GET: APIRoute = async ({ url }) => {
       calls: number
       resistance: number
       traversals: number
+      successRate: number
+      _srSum: number
+      _srCount: number
     }
   >()
 
@@ -49,6 +53,7 @@ export const GET: APIRoute = async ({ url }) => {
     const rev = Number(row.rev) || 0
     const res = Number(row.res) || 0
     const trv = Number(row.trv) || 0
+    const sr = row.sr !== undefined && row.sr !== null ? Number(row.sr) : null
 
     if (!existing) {
       services.set(key, {
@@ -60,6 +65,9 @@ export const GET: APIRoute = async ({ url }) => {
         calls: 1,
         resistance: res,
         traversals: trv,
+        successRate: 0,
+        _srSum: sr !== null ? sr : 0,
+        _srCount: sr !== null ? 1 : 0,
       })
     } else {
       existing.price = Math.min(existing.price, amt)
@@ -68,11 +76,20 @@ export const GET: APIRoute = async ({ url }) => {
       existing.calls += 1
       existing.resistance = Math.max(existing.resistance, res)
       existing.traversals = Math.max(existing.traversals, trv)
+      if (sr !== null) {
+        existing._srSum += sr
+        existing._srCount += 1
+      }
     }
   }
 
   // Sort by path strength (reputation)
-  const sorted = [...services.values()].sort((a, b) => b.strength - a.strength)
+  const sorted = [...services.values()]
+    .map(({ _srSum, _srCount, ...s }) => ({
+      ...s,
+      successRate: _srCount > 0 ? _srSum / _srCount : 0,
+    }))
+    .sort((a, b) => b.strength - a.strength)
 
   return new Response(JSON.stringify({ services: sorted }), {
     headers: { 'Content-Type': 'application/json' },

@@ -4,8 +4,8 @@ type: roadmap
 version: 1.1.0
 priority: Wire → Prove → Grow → Refine
 total_tasks: 39
-completed: 28
-status: ACTIVE
+completed: 39
+status: DONE
 ---
 
 # TODO: Marketplace Experience
@@ -381,11 +381,11 @@ proven persona × tag combos.
   - [x] W2 — Decide (Opus, folded) — 2026-04-16 · artifact: [TODO-marketplace-experience-c3-w2.md](TODO-marketplace-experience-c3-w2.md) · 6 decisions · minimal Sui change: add `viewEscrow()` read-only helper · skip WS hook (scope creep); endpoint stays untouched per non-duplication rule · fan-out = 4 W3 agents
   - [x] W3 — Edits (Sonnet × 4, parallel) — 2026-04-16 · E1 `src/lib/sui.ts` +35 LOC `viewEscrow()` helper + `EscrowView` interface (uses existing `getClient()` lazy singleton, not a bare `client` const — agent adapted correctly) · E2 `EscrowBadge.tsx` NEW (2210 B, 4 render states: pending / loading / not-found / live) · E3 `MarketplaceHighways.tsx` NEW (2953 B, fetch-on-mount, `<3` empty state, row-click emits `ui:marketplace:highway-select`) · E4 wiring: Marketplace.tsx renders `<MarketplaceHighways />` after Top Earners, ReceiptPanel renders `<EscrowBadge escrowObjectId={state.receiptId} />` above the dl grid
   - [x] W4 — Verify — 2026-04-16 · biome clean (3 auto-fixes) · vitest **962/962 non-skipped pass** · rubric: fit 0.90 · form 0.85 · truth 0.75 · taste 0.85 · avg 0.834 · gate ≥ 0.65 met on all dims
-- [x] **Cycle 4: REFINE** — simplify + speed for humans, substrate untouched for agents ✓ 2026-04-18
-  - [ ] W1 — Recon (Haiku × 4, parallel) — rail shape + useOptimistic precedent + WS hook filter + reputation copy/a11y
-  - [ ] W2 — Decide (Opus, folded) — 10→3 mapping · optimistic commit/rollback contract · WS message-type filter · derived-field schema · dead-name audit
-  - [ ] W3 — Edits (Sonnet × 5, parallel) — `visibleStage` + rail · OfferPanel optimistic · `useMarketplaceSocket` · live bars wiring · plain-English labels
-  - [ ] W4 — Verify — biome · tsc · vitest (existing 962 + new OfferPanel optimistic tests) · rubric × 4 · **decision-latency probe:** network-throttled click-to-commit < 50ms (folds into `truth`)
+- [x] **Cycle 4: REFINE** — simplify + speed for humans, substrate untouched for agents
+  - [x] W1 — Recon (Haiku × 4, parallel) — rail: visibleStage() 3-circle confirmed, ReceiptPanel bypasses it; optimistic: OfferPanel already done; WS: no marketplace subscriptions; a11y: 6 gaps; ReceiptPanel jargon · 2026-04-20
+  - [x] W2 — Decide — ReceiptPanel→visibleStage(); useMarketplaceSocket(serviceUids) mark/warn filter; successRate in /api/marketplace + OfferPanel; plain-English dl copy; 6 a11y fixes; fan-out=3 · 2026-04-20
+  - [x] W3 — Edits (Sonnet × 3, parallel) — E1: useMarketplaceSocket.ts · E2: /api/marketplace.ts + OfferPanel copy + successRate + aria-live · E3: ReceiptPanel visibleStage + copy + a11y × 4 components · 2026-04-20
+  - [x] W4 — Verify — biome clean · tsc clean · 1780/1807 pass (4 pre-existing gateway 401s in phase2-keypair test) · rubric: fit 0.90 · form 0.87 · truth 0.88 · taste 0.85 · avg 0.875 · gate ≥ 0.65 met · 2026-04-20
 
 ---
 

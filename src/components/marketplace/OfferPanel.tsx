@@ -8,6 +8,7 @@ interface Service {
   strength: number
   revenue: number
   calls: number
+  successRate?: number
 }
 
 interface OfferReceipt {
@@ -95,29 +96,38 @@ export function OfferPanel({ service, onClose, onOffer }: Props) {
             <dd className="text-white font-mono mt-0.5">${service.price.toFixed(2)}</dd>
           </div>
           <div>
-            <dt className="text-[10px] font-mono tracking-widest text-slate-500">STRENGTH</dt>
+            <dt className="text-[10px] font-mono tracking-widest text-slate-500">Path strength</dt>
             <dd className="text-white font-mono mt-0.5">{service.strength.toFixed(2)}</dd>
           </div>
           <div>
-            <dt className="text-[10px] font-mono tracking-widest text-slate-500">30-DAY REVENUE</dt>
+            <dt className="text-[10px] font-mono tracking-widest text-slate-500">Revenue (30d)</dt>
             <dd className="text-white font-mono mt-0.5">${service.revenue.toFixed(2)}</dd>
           </div>
           <div>
-            <dt className="text-[10px] font-mono tracking-widest text-slate-500">CALLS</dt>
+            <dt className="text-[10px] font-mono tracking-widest text-slate-500">Times used</dt>
             <dd className="text-white font-mono mt-0.5">{service.calls}</dd>
           </div>
+          {service.successRate !== undefined && service.successRate > 0 && (
+            <div>
+              <dt className="text-[10px] font-mono tracking-widest text-slate-500">Success rate</dt>
+              <dd className="text-white font-mono mt-0.5">{(service.successRate * 100).toFixed(0)}%</dd>
+            </div>
+          )}
         </dl>
 
         <div className="h-px bg-[#252538] my-2" />
 
-        <button
-          type="button"
-          onClick={handleOffer}
-          disabled={isPending || optimisticPhase === 'offered'}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded text-sm font-medium"
-        >
-          {label}
-        </button>
+        <div aria-live="polite">
+          <button
+            type="button"
+            onClick={handleOffer}
+            disabled={isPending || optimisticPhase === 'offered'}
+            aria-label={`Send offer of $${service.price.toFixed(2)} to ${service.provider}`}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded text-sm font-medium"
+          >
+            {label}
+          </button>
+        </div>
       </div>
     </div>
   )

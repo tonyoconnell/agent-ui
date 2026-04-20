@@ -31,7 +31,13 @@ export function LifecycleRail({ stage, className }: Props) {
   const activeIndex = VISIBLE_STAGES.indexOf(current)
 
   return (
-    <div className={cn('flex items-center gap-0', className)} role="progressbar" aria-label="Trade progress">
+    <div
+      className={cn('flex items-center gap-0', className)}
+      role="progressbar"
+      aria-label="Trade progress"
+      aria-valuenow={activeIndex + 1}
+      aria-valuemax={VISIBLE_STAGES.length}
+    >
       {VISIBLE_STAGES.map((vs, i) => {
         const isDone = activeIndex > i
         const isActive = activeIndex === i && !isDispute
@@ -63,7 +69,10 @@ export function LifecycleRail({ stage, className }: Props) {
               </span>
             </div>
             {i < VISIBLE_STAGES.length - 1 && (
-              <div className={cn('w-12 h-px mx-1 mb-4', isDone ? 'bg-indigo-600' : 'bg-[#252538]')} />
+              <div
+                aria-hidden="true"
+                className={cn('w-12 h-px mx-1 mb-4', isDone ? 'bg-indigo-600' : 'bg-[#252538]')}
+              />
             )}
           </div>
         )

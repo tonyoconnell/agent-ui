@@ -58,13 +58,14 @@ export function MarketplaceHighways() {
               key={`${h.from}→${h.to}`}
               type="button"
               onClick={() => handleRowClick(h)}
+              aria-label={`Highway from ${h.from} to ${h.to}, strength ${h.strength.toFixed(1)}`}
               className="w-full flex items-center gap-3 px-5 py-3 border-b border-[#252538] last:border-b-0 hover:bg-[#1a1a28] text-left transition-colors"
             >
               <span className="text-slate-500 text-xs font-mono w-6">#{i + 1}</span>
               <span className="font-mono text-sm text-white truncate flex-1">
                 {h.from} <span className="text-slate-600">→</span> {h.to}
               </span>
-              <div className="w-24 h-1.5 bg-[#0a0a0f] rounded-full overflow-hidden">
+              <div aria-hidden="true" className="w-24 h-1.5 bg-[#0a0a0f] rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-indigo-600 to-violet-500 rounded-full"
                   style={{ width: `${strengthPct}%` }}
