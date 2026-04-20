@@ -24,12 +24,13 @@ function sensitivityToNumber(raw: unknown): number {
   }
 }
 
-// ── In-process cache ────────────────────────────────────────────────────────
-// Agent details change rarely (only on markdown re-sync). Cold load is ~5s
-// due to gateway round-trips; warm load is ~0ms. Dedup in-flight promises so
-// concurrent requests for the same id don't multiply TypeDB traffic.
-type CacheEntry = { json: string; expiresAt: number }
-const CACHE_TTL_MS = 60_000
+// ── In-process cache (SWR) ─────────────────────────────────────────────────
+// Agent details change rarely (only on markdown re-sync). Cold build ~5s;
+// warm <10ms. Stale bytes serve instantly past TTL while a background
+// refresh runs — so once warmed, a detail is effectively always instant.
+type CacheEntry = { json: string; ts: number }
+const FRESH_TTL = 60_000
+const STALE_TTL = 600_000
 type GlobalCache = {
   _agentDetailCache?: Map<string, CacheEntry>
   _agentDetailInflight?: Map<string, Promise<Response>>
@@ -38,15 +39,26 @@ const g = globalThis as unknown as GlobalCache
 const cache = (g._agentDetailCache ??= new Map())
 const inflight = (g._agentDetailInflight ??= new Map())
 
-function cachedResponse(json: string, cached: boolean): Response {
+function cachedResponse(json: string, age: 'HIT' | 'STALE' | 'MISS'): Response {
   return new Response(json, {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
-      'X-Cache': cached ? 'HIT' : 'MISS',
+      'X-Cache': age,
     },
   })
+}
+
+/** Warm a detail in the background. No-op if already inflight. Used by /list
+ *  to preload the visible slice so first click is instant. */
+export function prewarmDetail(safeId: string): void {
+  if (inflight.has(safeId)) return
+  const hit = cache.get(safeId)
+  if (hit && Date.now() - hit.ts < FRESH_TTL) return
+  const work = buildDetail(safeId).finally(() => inflight.delete(safeId))
+  inflight.set(safeId, work)
+  work.catch(() => {})
 }
 
 export const GET: APIRoute = async ({ url }) => {
@@ -58,13 +70,21 @@ export const GET: APIRoute = async ({ url }) => {
   // Sanitise: reject any id containing quote characters to prevent TQL injection
   const safeId = id.replace(/["\\]/g, '')
 
-  // Cache hit?
+  const now = Date.now()
   const hit = cache.get(safeId)
-  if (hit && hit.expiresAt > Date.now()) {
-    return cachedResponse(hit.json, true)
+
+  // Fresh — instant HIT.
+  if (hit && now - hit.ts < FRESH_TTL) {
+    return cachedResponse(hit.json, 'HIT')
   }
 
-  // In-flight dedup: if another request is already fetching, reuse its promise.
+  // Stale — serve instantly, refresh in background.
+  if (hit && now - hit.ts < STALE_TTL) {
+    prewarmDetail(safeId)
+    return cachedResponse(hit.json, 'STALE')
+  }
+
+  // Truly cold — dedup + block.
   const pending = inflight.get(safeId)
   if (pending) return pending.then((r) => r.clone())
 
@@ -74,7 +94,6 @@ export const GET: APIRoute = async ({ url }) => {
 }
 
 async function buildDetail(safeId: string): Promise<Response> {
-
   // ── Stages 1-4 (independent, uid-keyed): fan out in parallel ─────────────
   // Each stage is its own TypeDB query; the gateway handles each in ~1-8s.
   // Serial = sum of latencies (~30-40s). Parallel = max latency (~8s).
@@ -204,6 +223,6 @@ async function buildDetail(safeId: string): Promise<Response> {
   }
 
   const json = JSON.stringify(payload)
-  cache.set(safeId, { json, expiresAt: Date.now() + CACHE_TTL_MS })
-  return cachedResponse(json, false)
+  cache.set(safeId, { json, ts: Date.now() })
+  return cachedResponse(json, 'MISS')
 }

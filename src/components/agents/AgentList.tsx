@@ -192,6 +192,22 @@ function AgentListInner({ initialData }: { initialData?: ListAgentsResponse | nu
 
 // ─── Agent Card ────────────────────────────────────────────────────────────
 
+// Track which agent ids we've already warmed so hovering over the same card
+// repeatedly doesn't fire duplicate network requests. Lives at module scope
+// so it survives across card re-renders within the session.
+const prefetched = new Set<string>()
+
+function prefetchAgent(id: string) {
+  if (prefetched.has(id)) return
+  prefetched.add(id)
+  // Fire and forget — the response populates the in-process cache on the
+  // server side and (via Cache-Control) the browser's HTTP cache. Errors
+  // are non-fatal; the click-triggered fetch will retry normally.
+  fetch(`/api/agents/detail?id=${encodeURIComponent(id)}`, { priority: 'low' } as RequestInit).catch(() => {
+    prefetched.delete(id) // allow retry on next hover
+  })
+}
+
 function AgentCard({ agent }: { agent: AgentSummary }) {
   const totalPrice = agent.skills.reduce((sum, s) => sum + s.price, 0)
   const modelShort = agent.model.split('/').pop() || agent.model
@@ -200,6 +216,8 @@ function AgentCard({ agent }: { agent: AgentSummary }) {
     <a
       href={`/agents/${agent.id}`}
       onClick={() => emitClick('ui:agents:select', { id: agent.id })}
+      onMouseEnter={() => prefetchAgent(agent.id)}
+      onFocus={() => prefetchAgent(agent.id)}
       className="block hover:ring-1 hover:ring-primary/40 rounded-xl transition-all"
     >
       <Card className="h-full">

@@ -10,6 +10,7 @@
 
 import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
+import { prewarmDetail } from './detail'
 
 interface AgentSummary {
   id: string
@@ -34,27 +35,47 @@ function sensitivityToNumber(ds: unknown): number {
   return typeof ds === 'string' ? (map[ds] ?? 0.5) : 0.5
 }
 
-// 60s in-process cache — agent list changes slowly, and each isolate warms
-// on first hit. Cuts repeat /agents page loads to ~0ms. In-flight dedup so
-// concurrent cold hits share a single TypeDB pass.
+// Stale-while-revalidate in-process cache. Once the list is warmed ONE time,
+// every subsequent hit is ~0ms — even past TTL we serve stale bytes and kick
+// off a background refresh. Cache effectively never goes cold under traffic.
 declare global {
-  var _agentListCache: { v: Record<string, unknown>; ts: number } | undefined
+  var _agentListCache: Map<number, { v: Record<string, unknown>; ts: number }> | undefined
   var _agentListInflight: Map<number, Promise<Response>> | undefined
+  var _agentListWarmed: boolean | undefined
 }
-const CACHE_TTL = 60_000
-const inflight = (globalThis._agentListInflight ??= new Map())
+const FRESH_TTL = 60_000 // serve as HIT if younger than this
+const STALE_TTL = 600_000 // serve stale (with SWR) up to 10 min past fresh
+// Defensive init: previous module versions may have populated globalThis with
+// a plain object (pre-SWR shape). Replace if the current value isn't a Map so
+// HMR reloads don't crash with `cache.get is not a function`.
+if (!(globalThis._agentListCache instanceof Map)) {
+  globalThis._agentListCache = new Map()
+}
+if (!(globalThis._agentListInflight instanceof Map)) {
+  globalThis._agentListInflight = new Map()
+}
+const cache = globalThis._agentListCache
+const inflight = globalThis._agentListInflight
 
 const DEFAULT_LIMIT = 50
 
-function jsonResponse(v: Record<string, unknown>, cached: boolean): Response {
+function jsonResponse(v: Record<string, unknown>, age: 'HIT' | 'STALE' | 'MISS'): Response {
   return new Response(JSON.stringify(v), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'public, max-age=30, stale-while-revalidate=120',
-      'X-Cache': cached ? 'HIT' : 'MISS',
+      'X-Cache': age,
     },
   })
+}
+
+// Kick off a background refresh (no awaited Response — caller already returned).
+function refreshInBackground(limit: number) {
+  if (inflight.has(limit)) return
+  const work = buildList(limit).finally(() => inflight.delete(limit))
+  inflight.set(limit, work)
+  work.catch(() => {}) // swallow errors; cache stays stale until next refresh
 }
 
 export const GET: APIRoute = async ({ url }) => {
@@ -62,18 +83,32 @@ export const GET: APIRoute = async ({ url }) => {
   const limit = Number.isFinite(raw) && raw > 0 ? Math.min(raw, 500) : DEFAULT_LIMIT
 
   const now = Date.now()
-  const hit = globalThis._agentListCache
-  // Cache key includes limit so /list and /list?limit=200 don't collide.
-  if (hit && now - hit.ts < CACHE_TTL && (hit.v as { _limit?: number })._limit === limit) {
-    return jsonResponse(hit.v, true)
+  const hit = cache.get(limit)
+
+  // Fresh — instant HIT.
+  if (hit && now - hit.ts < FRESH_TTL) {
+    return jsonResponse(hit.v, 'HIT')
   }
 
-  // In-flight dedup: multiple concurrent cold hits share one build.
+  // Stale but usable — serve now, refresh in background (SWR).
+  if (hit && now - hit.ts < STALE_TTL) {
+    refreshInBackground(limit)
+    return jsonResponse(hit.v, 'STALE')
+  }
+
+  // Truly cold — dedup concurrent builds, block on one.
   const pending = inflight.get(limit)
   if (pending) return pending.then((r) => r.clone())
   const work = buildList(limit).finally(() => inflight.delete(limit))
   inflight.set(limit, work)
   return work.then((r) => r.clone())
+}
+
+// Kick off a warm-up on module load so the FIRST user of a fresh isolate
+// doesn't pay the 9s TypeDB round-trip. Only fires once per isolate.
+if (!globalThis._agentListWarmed) {
+  globalThis._agentListWarmed = true
+  refreshInBackground(DEFAULT_LIMIT)
 }
 
 async function buildList(limit: number): Promise<Response> {
@@ -165,8 +200,8 @@ async function buildList(limit: number): Promise<Response> {
 
     if (unitRows.length === 0) {
       const empty = { agents: [], groups: {}, tags: [], count: 0, _limit: limit }
-      globalThis._agentListCache = { v: empty, ts: now }
-      return jsonResponse(empty, false)
+      cache.set(limit, { v: empty, ts: now })
+      return jsonResponse(empty, 'MISS')
     }
 
     // Sort by uid first so the slice is stable across reloads, then cap.
@@ -278,9 +313,17 @@ async function buildList(limit: number): Promise<Response> {
       total: totalUnits,
       _limit: limit,
     }
-    globalThis._agentListCache = { v: payload, ts: now }
-    return jsonResponse(payload, false)
+    cache.set(limit, { v: payload, ts: now })
+
+    // Preload the detail cache for the top visible agents. Spread over a
+    // short window so we don't stampede the gateway — one every 50ms.
+    // Only preload the first 8; that covers the fold for typical viewports.
+    for (const [idx, a] of agents.slice(0, 8).entries()) {
+      setTimeout(() => prewarmDetail(a.id), idx * 50)
+    }
+
+    return jsonResponse(payload, 'MISS')
   } catch {
-    return jsonResponse({ agents: [], groups: {}, tags: [], count: 0 }, false)
+    return jsonResponse({ agents: [], groups: {}, tags: [], count: 0 }, 'MISS')
   }
 }
