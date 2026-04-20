@@ -8,7 +8,7 @@
 
 Two fields. That's all that flows. The LLM is the only probabilistic component. Everything else is math.
 
-**Live now:** [api.one.ie](https://api.one.ie/health) · [app](https://one-substrate.pages.dev) · [@onedotbot](https://t.me/onedotbot) on Telegram
+**Live now:** [dev.one.ie](https://dev.one.ie) · [api.one.ie](https://api.one.ie/health) · [@onedotbot](https://t.me/onedotbot) on Telegram
 
 ---
 
@@ -32,7 +32,11 @@ These compound. Breaking either breaks the flywheel.
 
 ---
 
-## Status (2026-04-18)
+## Status (2026-04-20)
+
+✅ **Workers Migration Shipped (2026-04-18)** — Astro 6 + `@astrojs/cloudflare@13` with CF Workers Static Assets. `dev.one.ie` is the live Worker; Pages (`one-substrate.pages.dev`) is now a paused rollback safety net.
+
+✅ **Payment Rails Live** — Four user-facing rails: `/pay/[skillId]` (Sui wallet, default) · `/pay/card/[skillId]` (Stripe) · `/pay/crypto/[skillId]` (QR + link) · `/pay/chat/[skillId]` (in-chat). Every view emits `ui:pay:page:<rail>:view` to the substrate — pheromone learns rail preference.
 
 ✅ **Memory System Complete** — C1-C3 (schema + engine + routes) + C4 (governance + federation + lifecycle). GDPR Article 17 (right to erasure) + Article 20 (data portability) via reveal/forget/frontier primitives. 60 tests pass.
 
@@ -218,8 +222,9 @@ See [docs/ADL-integration.md](ADL-integration.md) for full spec.
 
 | Service | URL | What |
 |---------|-----|------|
-| **Pages** | [one-substrate.pages.dev](https://one-substrate.pages.dev) | Astro SSR + React 19 + 30 API routes |
-| **Gateway** | [api.one.ie](https://api.one.ie/health) | TypeDB proxy, JWT cache, CORS |
+| **Workers** | [dev.one.ie](https://dev.one.ie) | Astro 6 SSR + React 19 + 50+ API routes (CF Workers Static Assets, cut over 2026-04-18) |
+| **Pages (legacy idle)** | [one-substrate.pages.dev](https://one-substrate.pages.dev) | Paused — rollback safety net only |
+| **Gateway** | [api.one.ie](https://api.one.ie/health) | TypeDB proxy + WsHub Durable Object, JWT cache, CORS |
 | **Sync** | one-sync.oneie.workers.dev | TypeDB → KV snapshots every 1 min (hash-gated) |
 | **NanoClaw** | [nanoclaw.oneie.workers.dev](https://nanoclaw.oneie.workers.dev/health) | Edge agents: instant Telegram/Discord, API, queue |
 | **Donal-Claw** | [donal-claw.oneie.workers.dev](https://donal-claw.oneie.workers.dev/health) | OO Marketing CMO bot (API key auth) |
@@ -405,6 +410,17 @@ Routes implement the Six Verbs from [dictionary.md](dictionary.md): `send`, `mar
 | `/api/memory/reveal/:uid` | GET | — | Full memory card (GDPR portability) |
 | `/api/memory/forget/:uid` | DELETE | — | Structural erasure (GDPR Article 17) |
 | `/api/memory/frontier/:uid` | GET | — | Unexplored tag clusters for actor |
+| `/api/pay/create-link` | POST | — | Shareable crypto payment link |
+| `/api/pay/status/:ref` | GET | — | Poll payment status |
+| `/api/pay/stripe/create-intent` | POST | — | Stripe PaymentIntent |
+| `/api/pay/stripe/confirm` | POST | — | Stripe confirm |
+| `/api/pay/stripe/webhook` | POST | — | Stripe webhook handler |
+| `/api/buy/hire` | POST | send | EXECUTE verb — hire a capability |
+| `/api/buy/bounty` | POST | send | Post a bounty |
+| `/api/escrow/release/:id` | POST | — | SETTLE verb — release escrow on-chain |
+| `/api/billing/subscribe` | POST | — | Create subscription |
+| `/api/billing/portal` | POST | — | Stripe billing portal link |
+| `/api/billing/webhook` | POST | — | Billing webhook handler |
 
 Full API docs: [src/pages/api/CLAUDE.md](src/pages/api/CLAUDE.md)
 
