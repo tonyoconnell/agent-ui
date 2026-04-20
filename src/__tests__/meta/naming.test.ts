@@ -25,10 +25,10 @@ const DEAD_NAMES = [
 // whole point of those files.
 const METAPHOR_PATHS = [/src\/skins\//, /\.test\.ts$/, /CLAUDE\.md$/]
 
-// Baseline ratchet: current known offenders as of 2026-04-16. The gate
+// Baseline ratchet: current known offenders as of 2026-04-20. The gate
 // fails when the count grows — not when it's non-zero. Shrink this number
 // as dead-name usage gets cleaned up. Never raise it.
-const BASELINE_OFFENDERS = 8
+const BASELINE_OFFENDERS = 5
 
 describe('naming — dead names', () => {
   test('dead-name count does not exceed baseline', async () => {

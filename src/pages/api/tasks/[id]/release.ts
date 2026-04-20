@@ -5,8 +5,8 @@ export const POST: APIRoute = async ({ request, params }) => {
   const { sessionId } = (await request.json()) as { sessionId: string }
   const id = (params as { id: string }).id
 
-  const match = `match $t isa task, has task-id "${id}", has task-status $s, has owner $o, has claimed-at $c; $o = "${sessionId}";`
-  const patch = `delete $s of $t; delete $o of $t; delete $c of $t; insert $t has task-status "open";`
+  const match = `match $t isa task, has task-id "${id}", has task-status $s, has owner $o; $o = "${sessionId}";`
+  const patch = `delete $s of $t; delete $o of $t; insert $t has task-status "open";`
   const q = `${match} ${patch}`
 
   try {

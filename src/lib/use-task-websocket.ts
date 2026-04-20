@@ -13,7 +13,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import type { WsMessage } from '@/lib/ws-server'
+import type { Task, TaskStatus, WsMessage } from '@/types/task'
+import { normalizeStatus } from '@/types/task'
 
 const GATEWAY_URL = (import.meta.env.PUBLIC_GATEWAY_URL as string | undefined) ?? ''
 
@@ -23,21 +24,13 @@ const HEARTBEAT_INTERVAL = 30_000 // 30s
 const HEARTBEAT_TIMEOUT = 45_000 // 45s (allow 15s jitter)
 const POLL_INTERVAL = 5_000 // 5s fallback polling
 
-// Minimal shape the hook requires. TaskBoard's Task satisfies this.
-interface TaskLike {
-  tid: string
-  trailPheromone: number
-  alarmPheromone: number
-  status: string
-}
-
 export interface UseTaskWebSocketState {
   connected: boolean
   polling: boolean
   reconnectAttempt: number
 }
 
-export function useTaskWebSocket<T extends TaskLike>(
+export function useTaskWebSocket<T extends Pick<Task, 'tid' | 'strength' | 'resistance' | 'task_status'>>(
   setTasks: (fn: (prev: T[]) => T[]) => void,
 ): UseTaskWebSocketState {
   const wsRef = useRef<WebSocket | null>(null)
@@ -54,16 +47,56 @@ export function useTaskWebSocket<T extends TaskLike>(
     const handleMessage = (msg: WsMessage) => {
       switch (msg.type) {
         case 'mark':
-          setTasks((prev) => prev.map((t) => (t.tid === msg.taskId ? { ...t, trailPheromone: msg.strength } : t)))
+          setTasks((prev) => prev.map((t) => (t.tid === msg.tid ? { ...t, strength: msg.strength } : t)))
           break
         case 'warn':
-          setTasks((prev) => prev.map((t) => (t.tid === msg.taskId ? { ...t, alarmPheromone: msg.resistance } : t)))
+          setTasks((prev) => prev.map((t) => (t.tid === msg.tid ? { ...t, resistance: msg.resistance } : t)))
           break
         case 'complete':
-          setTasks((prev) => prev.map((t) => (t.tid === msg.taskId ? { ...t, status: 'complete' as const } : t)))
+          // @deprecated — alias to 'verify' with default passing rubric
+          if (import.meta.env.DEV) {
+            console.warn('[use-task-websocket] deprecated: use "verify" instead of "complete"')
+          }
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.tid === msg.tid
+                ? {
+                    ...t,
+                    task_status: 'verified' as TaskStatus,
+                    rubric: { fit: 0.65, form: 0.65, truth: 0.65, taste: 0.65 },
+                    verified_at: new Date().toISOString(),
+                  }
+                : t,
+            ),
+          )
           break
         case 'unblock':
-          setTasks((prev) => prev.map((t) => (t.tid === msg.taskId ? { ...t, status: 'todo' as const } : t)))
+          setTasks((prev) => prev.map((t) => (t.tid === msg.tid ? { ...t, task_status: 'open' as TaskStatus } : t)))
+          break
+        case 'pick':
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.tid === msg.tid
+                ? { ...t, task_status: 'picked' as TaskStatus, owner: msg.owner, started_at: msg.started_at }
+                : t,
+            ),
+          )
+          break
+        case 'verify':
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.tid === msg.tid
+                ? { ...t, task_status: 'verified' as TaskStatus, rubric: msg.rubric, verified_at: msg.verified_at }
+                : t,
+            ),
+          )
+          break
+        case 'rubric-update':
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.tid === msg.tid ? { ...t, rubric: { ...((t as any).rubric ?? {}), ...msg.rubric } as any } : t,
+            ),
+          )
           break
         case 'sync':
           // Full sync — replace pheromone values for matching tasks
@@ -72,7 +105,7 @@ export function useTaskWebSocket<T extends TaskLike>(
             setTasks((prev) =>
               prev.map((t) => {
                 const update = taskMap.get(t.tid)
-                return update ? { ...t, trailPheromone: update.strength, alarmPheromone: update.resistance } : t
+                return update ? { ...t, strength: update.strength, resistance: update.resistance } : t
               }),
             )
           }
@@ -80,7 +113,15 @@ export function useTaskWebSocket<T extends TaskLike>(
         case 'task-update':
           if (msg.task) {
             setTasks((prev) =>
-              prev.map((t) => (t.tid === msg.task.tid ? { ...t, status: msg.task.status as T['status'] } : t)),
+              prev.map((t) =>
+                t.tid === msg.task.tid
+                  ? {
+                      ...t,
+                      ...msg.task,
+                      task_status: normalizeStatus((msg.task as any).status ?? msg.task.task_status),
+                    }
+                  : t,
+              ),
             )
           }
           break
@@ -201,8 +242,8 @@ export function useTaskWebSocket<T extends TaskLike>(
             return update
               ? {
                   ...t,
-                  trailPheromone: update.strength ?? t.trailPheromone,
-                  alarmPheromone: update.resistance ?? t.alarmPheromone,
+                  strength: update.strength ?? t.strength,
+                  resistance: update.resistance ?? t.resistance,
                 }
               : t
           }),

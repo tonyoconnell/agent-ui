@@ -140,14 +140,15 @@ export const world = (): PersistentWorld => {
 
   // ── TypeDB-synced pheromone ────────────────────────────────────────────
 
-  const mark = (edge: string, strength = 1) => {
-    net.mark(edge, strength)
+  const mark = (edge: string, strength = 1, opts?: { scope?: string }) => {
+    const scopedEdge = opts?.scope ? `${opts.scope}:${edge}` : edge
+    net.mark(scopedEdge, strength)
     const [from, to] = edge.split('→')
     if (!from || !to) return
     // Broadcast pheromone change to connected TaskBoard clients (task edges only)
     const taskMatch = to.trim().match(/^builder:(.+)$/)
     if (taskMatch?.[1]) {
-      const markMsg = { type: 'mark' as const, taskId: taskMatch[1], strength: net.sense(edge), timestamp: Date.now() }
+      const markMsg = { type: 'mark' as const, tid: taskMatch[1], strength: net.sense(edge) }
       wsManager.broadcast(markMsg)
       relayToGateway(markMsg) // reach production WS clients via Gateway
     }
@@ -174,19 +175,15 @@ export const world = (): PersistentWorld => {
     }
   }
 
-  const warn = (edge: string, strength = 1) => {
-    net.warn(edge, strength)
+  const warn = (edge: string, strength = 1, opts?: { scope?: string }) => {
+    const scopedEdge = opts?.scope ? `${opts.scope}:${edge}` : edge
+    net.warn(scopedEdge, strength)
     const [from, to] = edge.split('→')
     if (!from || !to) return
     // Broadcast pheromone change to connected TaskBoard clients (task edges only)
     const taskMatch = to.trim().match(/^builder:(.+)$/)
     if (taskMatch?.[1]) {
-      const warnMsg = {
-        type: 'warn' as const,
-        taskId: taskMatch[1],
-        resistance: net.danger(edge),
-        timestamp: Date.now(),
-      }
+      const warnMsg = { type: 'warn' as const, tid: taskMatch[1], resistance: net.danger(edge) }
       wsManager.broadcast(warnMsg)
       relayToGateway(warnMsg) // reach production WS clients via Gateway
     }
@@ -536,6 +533,10 @@ export const world = (): PersistentWorld => {
       ),
     ])
     await writeSilent(`match $u isa unit, has uid "${safeUid}"; delete $u isa unit;`).catch(() => {})
+    // Cascade personal group
+    const escPGid = `group:${safeUid}`.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+    writeSilent(`match $g isa group, has gid "${escPGid}"; $m (group: $g) isa membership; delete $m isa membership;`)
+    writeSilent(`match $g isa group, has gid "${escPGid}"; delete $g isa group;`)
     // In-memory: remove unit from runtime (orphaned paths decay via L3 fade)
     if (net.has(uid)) net.remove(uid)
   }

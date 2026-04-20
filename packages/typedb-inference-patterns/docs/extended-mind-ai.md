@@ -1,6 +1,6 @@
 # Extended Mind AI: TypeDB as a Cognitive Substrate
 
-How TypeDB inference rules enable a new AI architecture where intelligence lives in the database, not the model.
+How TypeDB classifier functions enable a new AI architecture where intelligence lives in the database, not the model.
 
 ## The Problem with Traditional AI
 
@@ -25,7 +25,7 @@ Extended Mind:  Environment contains intelligence, agents are appendages
 
 ## TypeDB as Extended Mind
 
-TypeDB's inference rules make this concrete. Knowledge isn't just stored — it's **active**. Rules fire automatically, deriving new facts from existing data without any agent involvement.
+TypeDB's classifier functions make this concrete. Knowledge isn't just stored — it's **active**. Classifier functions evaluate on every query, and explicit `match ... update ...` pipelines materialize derived facts on a schedule. Both are visible in code, type-checked, and auditable — no hidden rule engine.
 
 ### Memory → Attribute Values
 

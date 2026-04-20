@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { sdk } from '@/lib/sdk'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -40,12 +41,7 @@ export function LearningPanel({ groupId: _groupId }: Props) {
 
     async function fetchHypotheses() {
       try {
-        const res = await fetch('/api/hypotheses')
-        if (!res.ok) {
-          if (active) setError(`Request failed: ${res.status}`)
-          return
-        }
-        const raw: unknown = await res.json()
+        const raw = await sdk.recall()
         if (!Array.isArray(raw)) {
           if (active) setError('Unexpected response shape')
           return

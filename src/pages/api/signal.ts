@@ -49,7 +49,10 @@ import {
   invalidatePermCache,
   setCached,
 } from '@/engine/adl-cache'
+import { resolveUnitFromSession } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
+import { getUsage, recordCall } from '@/lib/metering'
+import { checkApiCallLimit, tierLimitResponse } from '@/lib/tier-limits'
 import { isWarm } from '@/lib/ui-prefetch'
 
 // 5-min cache for sender|receiver group-share resolution.
@@ -86,7 +89,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       { status: 400, headers: { 'content-type': 'application/json' } },
     )
   }
-  const { sender, receiver, data, amount = 0, task, scope } = body
+  const { sender, receiver: receiverRaw, data, amount = 0, task, scope } = body
+  let receiver = receiverRaw
 
   if (!sender || !receiver) {
     return new Response(JSON.stringify({ error: 'Missing sender or receiver' }), { status: 400 })
@@ -106,6 +110,44 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Validate amount
   if (typeof amount !== 'number' || amount < 0 || amount > 1_000_000) {
     return new Response(JSON.stringify({ error: 'Invalid amount' }), { status: 400 })
+  }
+
+  // ── TAG RECEIVER ROUTING (Stage 12: Subscribe — Cycle 2) ────────────────────
+  // Resolve tag:X receivers to the best public subscriber before metering.
+  // Aborted tag signals (no subscriber) never consume API quota or ADL checks.
+  if (receiver.startsWith('tag:')) {
+    const { resolveTagReceiver } = await import('@/lib/subscribe-routing')
+    const resolvedUid = await resolveTagReceiver(receiver.slice(4), db)
+    if (!resolvedUid) {
+      return new Response(JSON.stringify({ dissolved: true, reason: 'no-subscriber', tag: receiver }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    receiver = resolvedUid
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BAAS METERING (Platform tier gate — Cycle 1 T-B1-04)
+  //
+  // Run BEFORE ADL gates so a rate-limited caller never touches the ADL
+  // permission cache or TypeDB. Anonymous callers fall through — they get
+  // rate-limited by the Cloudflare frontdoor, not here.
+  // ═══════════════════════════════════════════════════════════════════════════
+  const auth = await resolveUnitFromSession(request, locals).catch(() => null)
+  if (auth?.isValid) {
+    const tier = auth.tier ?? 'free'
+    const usage = await getUsage(db, auth.keyId)
+    const gate = checkApiCallLimit(tier, usage)
+    if (!gate.ok) {
+      // Warn the caller's boundary once so pheromone learns which keys hit the wall.
+      void import('@/lib/security-signals')
+        .then((m) => m.emitSecurityEvent({ kind: 'rate-limit', edge: `${auth.keyId}→tier-${tier}` }))
+        .catch(() => {})
+      return tierLimitResponse(gate)
+    }
+    // Fire-and-forget: record this call in D1. Never blocks the request.
+    void recordCall(db, auth.keyId)
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -257,11 +299,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // Scope enforcement (Cycle 3): only fires when caller is authenticated.
   // Unauthed callers skip (preserves fail-open legacy behavior).
+  // Reuses `auth` already resolved at the metering gate (avoids a second lookup).
   try {
-    const hasIdentity = request.headers.get('Authorization') || request.headers.get('Cookie')
-    if (hasIdentity) {
-      const { resolveUnitFromSession } = await import('@/lib/api-auth')
-      const ctx = await resolveUnitFromSession(request)
+    if (auth?.isValid) {
+      const ctx = auth
       if (ctx.isValid) {
         const effectiveScope = scope ?? 'group'
         if (effectiveScope === 'private' && sender !== receiver) {
@@ -289,6 +330,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
             ).catch(() => [])
             sharesGroup = rows.length > 0
             SCOPE_CACHE.set(cacheKey, { shares: sharesGroup, expires: Date.now() + 5 * 60 * 1000 })
+          }
+          // Hierarchy fallback: sibling sub-groups under same parent world share scope
+          if (!sharesGroup) {
+            const sorted = [sender, receiver].sort().join('|')
+            const hierKey = `hier:${sorted}`
+            const hierCached = SCOPE_CACHE.get(hierKey)
+            if (hierCached && hierCached.expires > Date.now()) {
+              sharesGroup = hierCached.shares
+            } else {
+              const safeSender = sender.replace(/[^a-zA-Z0-9_:.-]/g, '')
+              const safeReceiver = receiver.replace(/[^a-zA-Z0-9_:.-]/g, '')
+              const hierRows = await readParsed(`
+                match $a isa unit, has uid "${safeSender}";
+                      $b isa unit, has uid "${safeReceiver}";
+                      (member: $a, group: $ga) isa membership;
+                      (member: $b, group: $gb) isa membership;
+                      (parent: $root, child: $ga) isa hierarchy;
+                      (parent: $root, child: $gb) isa hierarchy;
+                select $root; limit 1;
+              `).catch(() => [])
+              sharesGroup = hierRows.length > 0
+              SCOPE_CACHE.set(hierKey, { shares: sharesGroup, expires: Date.now() + 5 * 60 * 1000 })
+            }
           }
           // Self-signals always allowed regardless of group
           if (!sharesGroup && sender !== receiver) {

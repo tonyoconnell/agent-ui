@@ -105,12 +105,12 @@ export const POST: APIRoute = async ({ request }) => {
   const groupId = `hire:${buyerUid}:${providerUid}:${Date.now()}`
 
   try {
-    writeSilent(`insert $g isa group, has group-id "${groupId}", has name "hire:${providerUid}", has tag "hire";`)
+    writeSilent(`insert $g isa group, has gid "${groupId}", has name "hire:${providerUid}", has tag "hire";`)
     writeSilent(
-      `match $g isa group, has group-id "${groupId}"; $b isa unit, has uid "${buyerUid}"; insert (member: $b, group: $g) isa membership, has role "buyer";`,
+      `match $g isa group, has gid "${groupId}"; $b isa unit, has uid "${buyerUid}"; insert (member: $b, group: $g) isa membership, has member-role "buyer";`,
     )
     writeSilent(
-      `match $g isa group, has group-id "${groupId}"; $p isa unit, has uid "${providerUid}"; insert (member: $p, group: $g) isa membership, has role "provider";`,
+      `match $g isa group, has gid "${groupId}"; $p isa unit, has uid "${providerUid}"; insert (member: $p, group: $g) isa membership, has member-role "provider";`,
     )
   } catch {
     return Response.json({ error: 'group creation failed' }, { status: 500 })

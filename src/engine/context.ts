@@ -25,7 +25,7 @@ const _initFs = async () => {
   try {
     fs = await import('node:fs')
     path = await import('node:path')
-    DOCS_DIR = path.join(process.cwd(), 'docs')
+    DOCS_DIR = path.join(process.cwd(), 'one')
     return true
   } catch {
     return false
@@ -37,7 +37,7 @@ if (typeof window === 'undefined') {
   try {
     fs = require('node:fs')
     path = require('node:path')
-    DOCS_DIR = path?.join(process.cwd(), 'docs') ?? ''
+    DOCS_DIR = path?.join(process.cwd(), 'one') ?? ''
   } catch {
     /* browser */
   }
@@ -53,7 +53,7 @@ import { type AuditResult, auditSkills } from './skill-audit'
 /** Canonical docs that define the system */
 export const CANONICAL = {
   routing: 'routing.md',
-  dsl: 'DSL.md',
+  dsl: 'dsl.md',
   dictionary: 'dictionary.md',
   metaphors: 'metaphors.md',
   sdk: 'sdk.md',

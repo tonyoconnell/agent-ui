@@ -1,28 +1,44 @@
 # =============================================================================
-# LESSON 3: Hypothesis Lifecycle Management
+# LESSON 3 (TypeDB 3.x): Hypothesis Lifecycle — State Machines via Functions
 # =============================================================================
 #
-# DIFFICULTY: Intermediate
-# PREREQUISITE: quality-rules.tql (Lesson 2 — teaches rules and chaining)
-# NEXT: task-management.tql (Lesson 4)
+# DIFFICULTY:   Intermediate
+# PREREQUISITE: quality-rules.tql (Lesson 2 — classifier functions)
+# NEXT:         task-management.tql (Lesson 4)
+#
+# WHAT CHANGED FROM 2.x:
+#   In 2.x, rules could fire transitions ("when p-value <= 0.05 AND
+#   observations >= 50 then action-ready = true"). The rule engine did
+#   the work silently; your code only saw the after-state.
+#
+#   In 3.x, transitions are EXPLICIT. Either:
+#     (A) classifier function tells you whether a transition is
+#         currently valid (derived-on-demand), or
+#     (B) a write pipeline fires the transition (materialized).
+#
+#   You now see the transition in code. This is the explicit-state-machine
+#   pattern: state is an attribute, transitions are pipelines guarded by
+#   classifier functions.
 #
 # WHAT YOU'LL LEARN:
-#   How to model a state machine in TypeDB where transitions happen
-#   via inference. A hypothesis moves from "proposed" to "confirmed"
-#   automatically when it has enough observations and statistical significance.
+#   - How to express a state machine using an attribute + classifier functions
+#     (replacing 2.x's rule-driven transitions).
+#   - Function composition via `let` for rate calculations (e.g. confirmation
+#     rate = confirmed / concluded).
+#   - `@values` to lock a state-attribute to its valid state set.
+#   - `@cascade` on observation/hypothesis roles so cleanup is automatic.
 #
 # BIOLOGY (Chapter 2 — Task Allocation Without Instructions):
-#   Ant task switching is PROBABILISTIC, not deterministic. An ant doesn't
-#   switch tasks after exactly N encounters — it accumulates evidence
-#   (encounter frequency) until a probabilistic threshold is crossed.
-#   The transition from "performing task A" to "performing task B" is a
-#   state machine driven by accumulated observations.
+#   Ant task-switching is probabilistic. An ant accumulates evidence
+#   (encounter frequency) until a probabilistic threshold is crossed. The
+#   transition from "performing task A" to "performing task B" is a state
+#   machine driven by accumulated observations.
 #
-#   In TypeDB: a hypothesis accumulates observations and transitions through
-#   states (pending → testing → confirmed) when statistical thresholds are
-#   met. The "action-ready" rule fires only when p-value <= 0.05 AND
-#   observations >= 50 — preventing premature transitions, just as ants
-#   require sustained encounter rates before committing to a task switch.
+#   In 3.x: hypotheses accumulate observations; `is_action_ready()` is the
+#   classifier that checks whether the statistical thresholds have been
+#   crossed. The promotion to "actionable" is an explicit pipeline step —
+#   you choose when to materialize that state change. That mirrors the
+#   ant's commitment cost: the switch is decisive and visible.
 #
 #   Reference: https://ants-at-work.com/book/2/
 #
@@ -34,159 +50,252 @@
 #   - Product hypothesis validation
 #
 # AFTER LOADING, TEST WITH:
-#   match $h isa hypothesis, has hyp-status "actionable"; select $h;
-#   # Expected: Returns hypotheses with confidence >= 0.95 AND observations >= 100
-#   #           that were auto-promoted by inference rules.
+#   match let $h = action_ready_hypotheses();
+#         $h has hypothesis-statement $s;
+#   select $s;
 #
 # =============================================================================
 
 define
 
-# --- Schema ---
+# =============================================================================
+# SCHEMA
+# =============================================================================
+# State-machine best practices:
+#   - `hypothesis-status` is locked with `@values` — you can never insert an
+#     invalid state like "probably".
+#   - `outcome` is locked to `@values("success","failure")`.
+#   - `generated-by` is locked to `@values("human","algorithm","llm")`.
+#   - `tests:hypothesis` is `@cascade` — deleting a hypothesis removes all
+#     `tests` relation entries that referenced it, preventing orphaned
+#     observations from silently lingering.
 
 entity hypothesis,
     owns hypothesis-id @key,
     owns hypothesis-statement,     # "Users who see banner X convert 20% more"
-    owns test-condition,           # How to test it
-    owns hypothesis-status,        # "pending", "testing", "confirmed", "rejected"
-    owns observations-count,       # Total observations
+    owns test-condition,           # how to test it
+    owns hypothesis-status,        # state: pending → testing → confirmed/rejected
+    owns observations-count,
     owns success-count,
     owns failure-count,
-    owns p-value,                  # Statistical significance
-    owns generated-by,             # "human", "algorithm", "llm"
-    owns action-if-confirmed,      # What to do if true
-    owns resulting-action,         # What was actually done
-    owns action-ready,             # INFERRED: ready for action?
+    owns p-value,                  # statistical significance (0..1)
+    owns generated-by,
+    owns action-if-confirmed,      # what to do if confirmed
+    owns resulting-action,         # what was actually done
+    owns action-ready,             # optional materialization of is_action_ready()
     owns created-at,
     owns concluded-at,
     plays tests:hypothesis,
-    plays generates:output;
+    plays generates:source;
 
-attribute hypothesis-id, value string;
-attribute hypothesis-statement, value string;
-attribute test-condition, value string;
-attribute hypothesis-status, value string;
-attribute observations-count, value integer;
-attribute success-count, value integer;
-attribute failure-count, value integer;
-attribute p-value, value double;
-attribute generated-by, value string;
-attribute action-if-confirmed, value string;
-attribute resulting-action, value string;
-attribute action-ready, value boolean;
-attribute created-at, value datetime;
-attribute concluded-at, value datetime;
+attribute hypothesis-id,         value string;
+attribute hypothesis-statement,  value string;
+attribute test-condition,        value string;
+attribute hypothesis-status,     value string @values("pending", "testing", "confirmed", "rejected");
+attribute observations-count,    value integer;
+attribute success-count,         value integer;
+attribute failure-count,         value integer;
+attribute p-value,               value double  @range(0.0..1.0);
+attribute generated-by,          value string  @values("human", "algorithm", "llm");
+attribute action-if-confirmed,   value string;
+attribute resulting-action,      value string;
+attribute action-ready,          value boolean;
+attribute created-at,            value datetime;
+attribute concluded-at,          value datetime;
 
 # Observation records linked to hypotheses
 entity observation,
     owns observation-id @key,
     owns observed-at,
-    owns outcome,                  # "success", "failure"
-    owns context-data,             # JSON or descriptive string
+    owns outcome,
+    owns context-data,
     plays tests:observation;
 
-attribute observation-id, value string;
-attribute observed-at, value datetime;
-attribute outcome, value string;
-attribute context-data, value string;
+attribute observation-id,  value string;
+attribute observed-at,     value datetime;
+attribute outcome,         value string @values("success", "failure");
+attribute context-data,    value string;
 
 relation tests,
-    relates hypothesis,
+    relates hypothesis @cascade,   # delete hypothesis → tests-relation evaporates
     relates observation;
 
-# What hypotheses generate (actions, rules, etc.)
+# Artifacts generated by a confirmed hypothesis (derived rules, config changes, flags)
 entity generated-artifact,
     owns artifact-id @key,
-    owns artifact-type,            # "rule", "config_change", "feature_flag"
+    owns artifact-type,
     owns artifact-content,
     owns generation-quality,
     plays generates:output;
 
-attribute artifact-id, value string;
-attribute artifact-type, value string;
-attribute artifact-content, value string;
-attribute generation-quality, value double;
+attribute artifact-id,         value string;
+attribute artifact-type,       value string @values("heuristic", "config-change", "feature-flag");
+attribute artifact-content,    value string;
+attribute generation-quality,  value double @range(0.0..1.0);
 
 relation generates,
-    relates source,
+    relates source @cascade,       # delete hypothesis → remove generates links
     relates output;
 
-hypothesis plays generates:source;
-
 
 # =============================================================================
-# RULE: Hypothesis Ready for Action
+# CLASSIFIER FUNCTIONS — replacing the 2.x transition rule
 # =============================================================================
+
+# --- Action-readiness as a boolean classifier ---
 #
-# A hypothesis is action-ready when:
-#   1. Status is "confirmed"
-#   2. p-value <= 0.05 (statistically significant at 95% confidence)
-#   3. observations >= 50 (enough data)
+# Replaces 2.x rule: hypothesis-action-ready
 #
-# This prevents premature action on hypotheses that are "confirmed"
-# but haven't been tested thoroughly enough.
+# Returns `first true` if the hypothesis has crossed BOTH thresholds
+# (p-value <= 0.05 AND observations >= 50) while in state "confirmed".
+# Returns empty otherwise (no match → no binding for the caller).
 #
-rule hypothesis-action-ready:
-    when {
-        $h isa hypothesis,
-            has hypothesis-status "confirmed",
-            has p-value $p,
-            has observations-count $n;
+fun is_action_ready($h: hypothesis) -> boolean:
+    match
+        $h has hypothesis-status "confirmed",
+           has p-value $p,
+           has observations-count $n;
         $p <= 0.05;
         $n >= 50;
-    } then {
-        $h has action-ready true;
-    };
+    return first true;
 
 
-# =============================================================================
-# QUERY FUNCTIONS
-# =============================================================================
-
-# Get hypotheses ready for action (inferred)
-fun actionable_hypotheses() -> { hypothesis }:
+# --- Stream of all action-ready hypotheses ---
+#
+# Same predicate, different shape. Use this when you want the SET of
+# action-ready hypotheses rather than a yes/no per one.
+# Composes cleanly in `match let $h = action_ready_hypotheses();`
+#
+fun action_ready_hypotheses() -> { hypothesis }:
     match
         $h isa hypothesis,
-            has action-ready true;
+           has hypothesis-status "confirmed",
+           has p-value $p,
+           has observations-count $n;
+        $p <= 0.05;
+        $n >= 50;
     return { $h };
 
-# Get hypotheses currently being tested
-fun active_tests() -> { hypothesis }:
-    match
-        $h isa hypothesis,
-            has hypothesis-status "testing";
-    return { $h };
 
-# Get pending hypotheses (not yet started)
+# --- State-partition streams ---
+#
+# These were already functions in the 2.x file but belong in the classifier
+# block conceptually.
+#
 fun pending_hypotheses() -> { hypothesis }:
-    match
-        $h isa hypothesis,
-            has hypothesis-status "pending";
+    match $h isa hypothesis, has hypothesis-status "pending";
     return { $h };
 
-# Get confirmation rate across all concluded hypotheses
+fun active_tests() -> { hypothesis }:
+    match $h isa hypothesis, has hypothesis-status "testing";
+    return { $h };
+
+fun rejected_hypotheses() -> { hypothesis }:
+    match $h isa hypothesis, has hypothesis-status "rejected";
+    return { $h };
+
+fun confirmed_hypotheses() -> { hypothesis }:
+    match $h isa hypothesis, has hypothesis-status "confirmed";
+    return { $h };
+
+
+# =============================================================================
+# AGGREGATE FUNCTIONS — composition via let
+# =============================================================================
+
+# Scalar: count of hypotheses in a given state
+fun count_in_state($state: string) -> integer:
+    match $h isa hypothesis, has hypothesis-status $state;
+    return count($h);
+
+# Scalar: count of all concluded hypotheses (confirmed OR rejected)
+fun concluded_count() -> integer:
+    match
+        $h isa hypothesis, has hypothesis-status $s;
+        $s in ["confirmed", "rejected"];
+    return count($h);
+
+# Scalar: confirmation rate over concluded hypotheses
+#
+# 3.x best practice: compose aggregates by calling scalar functions and
+# combining their results via `let`. This gives the planner visibility
+# into both numerator and denominator and lets it parallelize.
+#
 fun confirmation_rate() -> double:
     match
-        $h isa hypothesis,
-            has hypothesis-status $s;
-        $s in ["confirmed", "rejected"];
-        let $confirmed = count($h) filter ($s == "confirmed");
-        let $total = count($h);
-    return $confirmed / $total;
+        let $confirmed = count_in_state("confirmed");
+        let $total     = concluded_count();
+        $total > 0;                          # guard against div-by-zero
+    return first $confirmed / $total;
 
-# Get hypotheses by generator
+# Stream: hypotheses filtered by generator
 fun hypotheses_by_source($source: string) -> { hypothesis }:
-    match
-        $h isa hypothesis,
-            has generated-by $source;
+    match $h isa hypothesis, has generated-by $source;
     return { $h };
 
 
 # =============================================================================
-# USAGE EXAMPLES
+# USAGE — STATE TRANSITIONS AS EXPLICIT PIPELINES
 # =============================================================================
 #
-# Insert a new hypothesis:
+# In 2.x, rules silently inserted state changes. In 3.x, you run a
+# pipeline. The classifier function is the GUARD; the insert is the
+# TRANSITION.
+#
+# --- Transition: pending → testing (human-initiated) ---
+#
+#   match $h isa hypothesis, has hypothesis-id "hyp-001",
+#         has hypothesis-status "pending";
+#   update $h has hypothesis-status "testing";
+#
+# Note: `update` works because `hypothesis-status` has cardinality 1. It
+# replaces the existing value. Use it for single-valued transitions.
+#
+# --- Transition: testing → confirmed (after threshold crossed) ---
+#
+#   # Guard: only hypotheses whose thresholds ARE crossed
+#   match
+#     $h isa hypothesis, has hypothesis-status "testing",
+#        has p-value $p, has observations-count $n;
+#     $p <= 0.05;
+#     $n >= 50;
+#   update $h has hypothesis-status "confirmed";
+#
+# --- Transition: confirmed → action-ready (materialize the label) ---
+#
+#   match let $h = action_ready_hypotheses();
+#   update $h has action-ready true;
+#
+# Run any of these pipelines on a cron, a webhook, or a test result.
+# The state machine is now visible, auditable, and transactional.
+#
+# =============================================================================
+# USAGE — DERIVED-ON-DEMAND (no materialization)
+# =============================================================================
+#
+# Find hypotheses ready for action right now:
+#
+#   match let $h = action_ready_hypotheses();
+#         $h has hypothesis-statement $s;
+#   select $s;
+#
+# Check a single hypothesis:
+#
+#   match $h isa hypothesis, has hypothesis-id "hyp-001";
+#         let $ready = is_action_ready($h);
+#   select $h;
+#
+# Aggregate confirmation rate across the whole population:
+#
+#   match let $rate = confirmation_rate();
+#   select $rate;
+#
+# =============================================================================
+# USAGE — INSERT / RECORD OBSERVATION
+# =============================================================================
+#
+# Insert a new hypothesis in "pending" state:
+#
 #   insert $h isa hypothesis,
 #       has hypothesis-id "hyp-001",
 #       has hypothesis-statement "Dark mode increases session duration by 15%",
@@ -195,20 +304,20 @@ fun hypotheses_by_source($source: string) -> { hypothesis }:
 #       has observations-count 0,
 #       has success-count 0,
 #       has failure-count 0,
+#       has p-value 1.0,
 #       has generated-by "human",
 #       has action-if-confirmed "Enable dark mode as default",
 #       has created-at 2026-02-01T00:00:00;
 #
-# Record an observation:
-#   match $h isa hypothesis, has hypothesis-id "hyp-001";
-#   insert $o isa observation,
-#       has observation-id "obs-001",
-#       has observed-at 2026-02-01T12:00:00,
-#       has outcome "success",
-#       has context-data "session_duration: 45min (dark), 38min (light)";
-#   (tests: $h, observation: $o) isa tests;
+# Record an observation and link it:
 #
-# Get actionable hypotheses:
-#   match let $h in actionable_hypotheses(); $h has hypothesis-statement $s; select $s;
+#   match $h isa hypothesis, has hypothesis-id "hyp-001";
+#   insert
+#     $o isa observation,
+#         has observation-id "obs-001",
+#         has observed-at 2026-02-01T12:00:00,
+#         has outcome "success",
+#         has context-data "session_duration: 45min (dark), 38min (light)";
+#     (hypothesis: $h, observation: $o) isa tests;
 #
 # =============================================================================

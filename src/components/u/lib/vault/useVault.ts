@@ -317,6 +317,80 @@ export function useVault(opts: Options = {}): UseVaultResult {
     return n
   }, [])
 
+  /** Inline migration that uses public Vault.saveWallet — requires unlock. */
+  const runInlineMigration = useCallback(
+    async (oldPassword?: string): Promise<{ migrated: number; errors: string[] }> => {
+      const errors: string[] = []
+      let migrated = 0
+      const inv = inspectLegacy()
+      const existing = await Vault.listWallets()
+      const known = new Set(existing.map((w) => `${w.chain}:${w.address}`))
+
+      // Plaintext
+      if (inv.plaintextCount > 0) {
+        const raw = localStorage.getItem('u_wallets')
+        if (raw) {
+          try {
+            const arr = JSON.parse(raw) as Array<{
+              id: string
+              chain: string
+              address: string
+              publicKey?: string
+              mnemonic?: string
+              balance?: string
+              usdValue?: number
+              name?: string
+            }>
+            for (const w of arr) {
+              if (known.has(`${w.chain}:${w.address}`)) continue
+              try {
+                await Vault.saveWallet({
+                  id: w.id,
+                  chain: w.chain,
+                  address: w.address,
+                  publicKey: w.publicKey,
+                  mnemonic: w.mnemonic,
+                  balance: w.balance,
+                  usdValue: w.usdValue,
+                  name: w.name,
+                })
+                migrated++
+              } catch (e) {
+                errors.push(`plaintext ${w.id}: ${(e as Error).message}`)
+              }
+            }
+            localStorage.setItem('u_wallets_backup_unencrypted', raw)
+            localStorage.removeItem('u_wallets')
+          } catch (e) {
+            errors.push(`plaintext parse: ${(e as Error).message}`)
+          }
+        }
+      }
+
+      // Encrypted requires the old password. Delegate to migration.ts so we share
+      // the legacy decrypt path.
+      if (inv.encryptedCount > 0 && oldPassword) {
+        try {
+          // We can't reach the in-memory master CryptoKey from here, so re-route
+          // via migration.ts which writes directly to storage.ts. That writes
+          // ciphertext under the master via vault internals — except it needs
+          // the master. The clean fix: expose a vault.getMasterKey() function.
+          // Until then, log a clear error.
+          errors.push('encrypted migration requires upcoming Vault.runMigration() helper')
+        } catch (e) {
+          errors.push(`encrypted: ${(e as Error).message}`)
+        }
+      } else if (inv.encryptedCount > 0 && !oldPassword) {
+        errors.push(`${inv.encryptedCount} encrypted wallets require old password`)
+      }
+
+      void migrateLegacy // referenced to keep import alive for future encrypted-path fix
+      void requiresOldPassword
+      return { migrated, errors }
+    },
+    [],
+  )
+
   const migrate = useCallback(
     async (oldPassword?: string) => {
       const s = await Vault.getStatus()
@@ -335,77 +409,6 @@ export function useVault(opts: Options = {}): UseVaultResult {
     },
     [runInlineMigration],
   )
-
-  /** Inline migration that uses public Vault.saveWallet — requires unlock. */
-  async function runInlineMigration(oldPassword?: string): Promise<{ migrated: number; errors: string[] }> {
-    const errors: string[] = []
-    let migrated = 0
-    const inv = inspectLegacy()
-    const existing = await Vault.listWallets()
-    const known = new Set(existing.map((w) => `${w.chain}:${w.address}`))
-
-    // Plaintext
-    if (inv.plaintextCount > 0) {
-      const raw = localStorage.getItem('u_wallets')
-      if (raw) {
-        try {
-          const arr = JSON.parse(raw) as Array<{
-            id: string
-            chain: string
-            address: string
-            publicKey?: string
-            mnemonic?: string
-            balance?: string
-            usdValue?: number
-            name?: string
-          }>
-          for (const w of arr) {
-            if (known.has(`${w.chain}:${w.address}`)) continue
-            try {
-              await Vault.saveWallet({
-                id: w.id,
-                chain: w.chain,
-                address: w.address,
-                publicKey: w.publicKey,
-                mnemonic: w.mnemonic,
-                balance: w.balance,
-                usdValue: w.usdValue,
-                name: w.name,
-              })
-              migrated++
-            } catch (e) {
-              errors.push(`plaintext ${w.id}: ${(e as Error).message}`)
-            }
-          }
-          localStorage.setItem('u_wallets_backup_unencrypted', raw)
-          localStorage.removeItem('u_wallets')
-        } catch (e) {
-          errors.push(`plaintext parse: ${(e as Error).message}`)
-        }
-      }
-    }
-
-    // Encrypted requires the old password. Delegate to migration.ts so we share
-    // the legacy decrypt path.
-    if (inv.encryptedCount > 0 && oldPassword) {
-      try {
-        // We can't reach the in-memory master CryptoKey from here, so re-route
-        // via migration.ts which writes directly to storage.ts. That writes
-        // ciphertext under the master via vault internals — except it needs
-        // the master. The clean fix: expose a vault.getMasterKey() function.
-        // Until then, log a clear error.
-        errors.push('encrypted migration requires upcoming Vault.runMigration() helper')
-      } catch (e) {
-        errors.push(`encrypted: ${(e as Error).message}`)
-      }
-    } else if (inv.encryptedCount > 0 && !oldPassword) {
-      errors.push(`${inv.encryptedCount} encrypted wallets require old password`)
-    }
-
-    void migrateLegacy // referenced to keep import alive for future encrypted-path fix
-    void requiresOldPassword
-    return { migrated, errors }
-  }
 
   const setAutoLockMs = useCallback(
     async (ms: number) => {

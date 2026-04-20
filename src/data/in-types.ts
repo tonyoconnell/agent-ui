@@ -1,14 +1,17 @@
-// Shape of the /in inbox dataset. Data lives in `in.json` and is imported
-// at build time — the JSON is bundled into the JS and loaded in memory from
-// first paint. Zero fetch, zero round-trip.
-//
-// Dimensions follow the six canonical names from docs/dictionary.md. Any
-// page can create its own JSON matching this schema and mount the Inbox
-// component with its own data.
+// Shape of the /in inbox dataset. Live data fetched from substrate + claw APIs.
+// Dimensions follow the six canonical names from docs/dictionary.md.
 
 export type Dimension = 'groups' | 'actors' | 'things' | 'paths' | 'events' | 'learning'
 
 export type Status = 'now' | 'top' | 'todo' | 'done'
+
+export type EntityType = 'conversation' | 'session' | 'actor' | 'path' | 'hypothesis' | 'generic'
+
+export interface SessionMessage {
+  sender: string
+  content: string
+  ts: number
+}
 
 export interface InboxEntity {
   id: string
@@ -27,6 +30,9 @@ export interface InboxEntity {
   group?: string
   channel?: string
   properties?: Record<string, unknown>
+  type?: EntityType
+  messages?: SessionMessage[]
+  sessionId?: string
 }
 
 export interface InboxData {

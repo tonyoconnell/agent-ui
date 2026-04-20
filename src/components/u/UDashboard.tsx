@@ -111,7 +111,7 @@ interface Transaction {
 
 export function UDashboard() {
   // Use unified wallet hook (connects to pay.one.ie API)
-  const { wallets, createWallet, deleteWallet, setWallets, isLoading, refreshBalances } = useWallets()
+  const { wallets, createWallet, deleteWallet, setWallets: _setWallets, isLoading, refreshBalances } = useWallets()
 
   const [_tokens, setTokens] = useState<Token[]>([])
   const [_products, setProducts] = useState<Product[]>([])

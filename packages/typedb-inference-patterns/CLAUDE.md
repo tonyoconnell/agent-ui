@@ -21,9 +21,9 @@ L7 Frontier        → this package IS the L7 classification engine: unexplored 
 
 **This package covers L4–L7.** L1–L3 are present in `world.tql` as runtime classification. L4–L6 are implemented in the standalone reference files. L7 (frontier/classification) is the unique contribution of this package: `autonomous-goals.tql` + `frontier` entity + `spawns` relation compose into the self-directing intelligence tier.
 
-**ECONOMICS.md integration:** `ECONOMICS.md` in this package maps to [revenue.md](../../docs/revenue.md): token issuance = Layer 3 (infra); capability pricing = Layer 4 (marketplace); contribution rewards = Layer 5 (intelligence). When editing economic logic, cross-reference both.
+**ECONOMICS.md integration:** `ECONOMICS.md` in this package maps to [revenue.md](one/revenue.md): token issuance = Layer 3 (infra); capability pricing = Layer 4 (marketplace); contribution rewards = Layer 5 (intelligence). When editing economic logic, cross-reference both.
 
-**Context:** [patterns.md](../../docs/patterns.md) — the 10 patterns that emerge from these 6 lessons. [routing.md](../../docs/routing.md) — this package classifies the formula's inputs: `unit_classification()` (L1) determines which units `select()` routes toward (proven/active/at-risk change effective weight); `path_status()` (L2) labels formula output (highway/fresh/fading/toxic feeds `follow()` vs `warn()`); L7 frontier detection creates new paths for the formula to route through, bootstrapping cold-start exploration. [rubrics.md](../../docs/rubrics.md) — quality scoring adds resolution to L2. [DSL.md](../../docs/DSL.md) — signal grammar that all pattern outputs must conform to (`signal = { receiver, data }`). [dictionary.md](../../docs/dictionary.md) — canonical names used in every standalone TQL file (`mark`, `fade`, `warn`, `unit`, `edge`). [lifecycle.md](../../docs/lifecycle.md) — the hypothesis lifecycle (pending→testing→confirmed→rejected) in `hypothesis-lifecycle.tql` IS the agent journey (register→signal→highway→harden) expressed in TQL. [buy-and-sell.md](../../docs/buy-and-sell.md) — `task-management.tql` (L4) models the EXECUTE step; `cheapest_provider()` in one.tql is the DISCOVER step. [revenue.md](../../docs/revenue.md) — L4 task routing = Layer 1 routing revenue; L5 contribution aggregates = Layer 5 intelligence revenue; `ECONOMICS.md` in this package maps to Layers 3–5.
+**Context:** [patterns.md](one/patterns.md) — the 10 patterns that emerge from these 6 lessons. [routing.md](routing.md) — this package classifies the formula's inputs: `unit_classification()` (L1) determines which units `select()` routes toward (proven/active/at-risk change effective weight); `path_status()` (L2) labels formula output (highway/fresh/fading/toxic feeds `follow()` vs `warn()`); L7 frontier detection creates new paths for the formula to route through, bootstrapping cold-start exploration. [rubrics.md](rubrics.md) — quality scoring adds resolution to L2. [DSL.md](one/DSL.md) — signal grammar that all pattern outputs must conform to (`signal = { receiver, data }`). [dictionary.md](dictionary.md) — canonical names used in every standalone TQL file (`mark`, `fade`, `warn`, `unit`, `edge`). [lifecycle.md](one/lifecycle.md) — the hypothesis lifecycle (pending→testing→confirmed→rejected) in `hypothesis-lifecycle.tql` IS the agent journey (register→signal→highway→harden) expressed in TQL. [buy-and-sell.md](buy-and-sell.md) — `task-management.tql` (L4) models the EXECUTE step; `cheapest_provider()` in one.tql is the DISCOVER step. [revenue.md](one/revenue.md) — L4 task routing = Layer 1 routing revenue; L5 contribution aggregates = Layer 5 intelligence revenue; `ECONOMICS.md` in this package maps to Layers 3–5.
 
 ## Canonical Schema
 
@@ -58,14 +58,18 @@ trail = task→task sequence      — NOT pheromone-trail
 |------|---------|-----------|
 | `standalone/seed.tql` | Bootstrap data for one.tql | YES — load after one.tql |
 | `standalone/substrate.tql` | DEPRECATED — pointer to one.tql | NO |
-| `standalone/classification.tql` | L1 reference (different entities) | NO — reference only |
-| `standalone/quality-rules.tql` | L2 reference | NO — reference only |
-| `standalone/hypothesis-lifecycle.tql` | L3 reference | NO — reference only |
-| `standalone/task-management.tql` | L4 reference | NO — reference only |
-| `standalone/contribution-tracking.tql` | L5 reference | NO — reference only |
-| `standalone/autonomous-goals.tql` | L6 reference | NO — reference only |
-| `standalone/genesis.tql` | Legacy complete schema | NO — reference only |
-| `standalone/launchpad.tql` | Token launch intelligence | NO — reference only |
+| `standalone/classification.tql` | **L1** — TypeDB 3.x reference (different entities from one.tql) | reference only |
+| `standalone/quality-rules.tql` | **L2** — TypeDB 3.x (migrated 2026-04-20) — cascading classifier fun; derived-on-demand vs materialized pattern | reference only |
+| `standalone/hypothesis-lifecycle.tql` | **L3** — TypeDB 3.x (migrated 2026-04-20) — state machine via is_action_ready(), update-based transitions | reference only |
+| `standalone/task-management.tql` | **L4** — TypeDB 3.x (migrated 2026-04-20) — NEGATION via ready_tasks, pheromone trail_status composition | reference only |
+| `standalone/contribution-tracking.tql` | **L5** — TypeDB 3.x reference | reference only |
+| `standalone/autonomous-goals.tql` | **L6** — TypeDB 3.x reference | reference only |
+| `examples/ecommerce.tql` | TypeDB 3.x domain overlay (migrated 2026-04-20) — customer_tier + product_health | reference only |
+| `examples/iot-monitoring.tql` | TypeDB 3.x domain overlay (migrated 2026-04-20) — device_health + is_maintenance_due | reference only |
+| `examples/social-network.tql` | TypeDB 3.x domain overlay (migrated 2026-04-20) — reputation_tier + moderator composition | reference only |
+| `examples/supply-chain.tql` | TypeDB 3.x domain overlay (migrated 2026-04-20) — supplier_tier + shipment_risk + single-source detection | reference only |
+| `standalone/archive/genesis-pre-3x.tql` | **ARCHIVED** — legacy pre-3.x schema, superseded by one.tql + world.tql | archive |
+| `standalone/archive/launchpad-pre-3x.tql` | **ARCHIVED** — depended on genesis; resurrect as overlay on world.tql if needed | archive |
 | `runtime/colony.ts` | 70-line world substrate with all 6 lessons | TS runtime |
 | `OPERATIONS.md` | Write operations reference | Documentation |
 | `LIFECYCLE.md` | Entity state machines | Documentation |

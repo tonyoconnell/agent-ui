@@ -12,7 +12,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Task } from './task-parse'
+import type { ParsedTask } from './task-parse'
 
 // ── Mock TypeDB — isolate task-sync.ts from the database ──────────────────────
 
@@ -38,7 +38,7 @@ import { markTaskDone, selfCheckoff, syncTasks, taskBlockers } from './task-sync
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Act 1: Task TQL Insert Generation', () => {
-  const mockTask: Task = {
+  const mockTask: ParsedTask = {
     id: 'test-task-1',
     name: 'Build API endpoint',
     done: false,
@@ -119,7 +119,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
   })
 
   it('marks task as done when done=true', async () => {
-    const doneTask: Task = { ...mockTask, done: true }
+    const doneTask: ParsedTask = { ...mockTask, done: true }
     vi.mocked(readParsed).mockResolvedValueOnce([])
     vi.mocked(write).mockResolvedValue([])
     await syncTasks([doneTask])
@@ -129,7 +129,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
   })
 
   it('escapes special characters in name and context', async () => {
-    const escapedTask: Task = {
+    const escapedTask: ParsedTask = {
       ...mockTask,
       name: 'Fix "quote" issue',
       context: ['path\\with\\backslash'],
@@ -154,7 +154,7 @@ describe('Act 1: Task TQL Insert Generation', () => {
   })
 
   it('omits exit condition when empty', async () => {
-    const noExitTask: Task = { ...mockTask, exit: '' }
+    const noExitTask: ParsedTask = { ...mockTask, exit: '' }
     vi.mocked(readParsed).mockResolvedValueOnce([])
     vi.mocked(write).mockResolvedValue([])
     await syncTasks([noExitTask])
@@ -186,7 +186,7 @@ describe('Act 2: syncTasks — Batch insertion with duplicate skipping', () => {
   })
 
   it('skips tasks that already exist in TypeDB', async () => {
-    const task1: Task = {
+    const task1: ParsedTask = {
       id: 'existing-task',
       name: 'Already synced',
       done: false,
@@ -205,7 +205,7 @@ describe('Act 2: syncTasks — Batch insertion with duplicate skipping', () => {
       formula: 'base',
     }
 
-    const task2: Task = {
+    const task2: ParsedTask = {
       id: 'new-task',
       name: 'Not yet synced',
       done: false,
@@ -237,7 +237,7 @@ describe('Act 2: syncTasks — Batch insertion with duplicate skipping', () => {
   })
 
   it('returns counts: synced + blocks + errors', async () => {
-    const tasks: Task[] = [
+    const tasks: ParsedTask[] = [
       {
         id: 'task-1',
         name: 'Task 1',
@@ -289,7 +289,7 @@ describe('Act 2: syncTasks — Batch insertion with duplicate skipping', () => {
   })
 
   it('falls back to per-task insertion on batch failure', async () => {
-    const tasks: Task[] = [
+    const tasks: ParsedTask[] = [
       {
         id: 'good-task',
         name: 'Will succeed',
@@ -351,7 +351,7 @@ describe('Act 3: Blocks Relations — Task blocking relationships', () => {
   })
 
   it('creates blocks relation when task has blocks list', async () => {
-    const taskA: Task = {
+    const taskA: ParsedTask = {
       id: 'task-a',
       name: 'Task A',
       done: false,
@@ -370,7 +370,7 @@ describe('Act 3: Blocks Relations — Task blocking relationships', () => {
       formula: 'base',
     }
 
-    const taskB: Task = {
+    const taskB: ParsedTask = {
       id: 'task-b',
       name: 'Task B',
       done: false,
@@ -405,7 +405,7 @@ describe('Act 3: Blocks Relations — Task blocking relationships', () => {
   })
 
   it('ignores blocks to tasks not in the current sync batch', async () => {
-    const taskA: Task = {
+    const taskA: ParsedTask = {
       id: 'task-a',
       name: 'Task A',
       done: false,
@@ -435,7 +435,7 @@ describe('Act 3: Blocks Relations — Task blocking relationships', () => {
   })
 
   it('handles multiple tasks with multiple blocking relationships', async () => {
-    const tasks: Task[] = [
+    const tasks: ParsedTask[] = [
       {
         id: 'task-1',
         name: 'Task 1',
@@ -529,7 +529,7 @@ describe('Act 4: markTaskDone — Task completion and notifications', () => {
     expect(wsManager.broadcast).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'complete',
-        taskId: 'task-xyz',
+        tid: 'task-xyz',
       }),
     )
   })
@@ -542,7 +542,7 @@ describe('Act 4: markTaskDone — Task completion and notifications', () => {
     expect(relayToGateway).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'complete',
-        taskId: 'task-relay',
+        tid: 'task-relay',
       }),
     )
   })
@@ -558,7 +558,7 @@ describe('Act 5: Tag extraction and application', () => {
   })
 
   it('deduplicates tags in task insert', async () => {
-    const taskWithDupeTags: Task = {
+    const taskWithDupeTags: ParsedTask = {
       id: 'task-dupe',
       name: 'Task with duplicate tags',
       done: false,
@@ -589,7 +589,7 @@ describe('Act 5: Tag extraction and application', () => {
   })
 
   it('applies tags to both task and skill entities in single batch', async () => {
-    const taskWithTags: Task = {
+    const taskWithTags: ParsedTask = {
       id: 'task-tagged',
       name: 'Tagged task',
       done: false,
@@ -625,7 +625,7 @@ describe('Act 5: Tag extraction and application', () => {
   })
 
   it('preserves tag order when tags come from task context', async () => {
-    const taskWithOrderedTags: Task = {
+    const taskWithOrderedTags: ParsedTask = {
       id: 'task-ordered',
       name: 'Ordered tags',
       done: false,

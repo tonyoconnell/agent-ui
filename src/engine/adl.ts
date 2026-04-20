@@ -432,6 +432,100 @@ export async function augmentPromptWithADL(uid: string, basePrompt: string): Pro
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PAY SKILL REGISTRATION (ported from pay-plan.md section 6 on 2026-04-20)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PAY_ACCEPT_INPUT_SCHEMA = JSON.stringify({
+  type: 'object',
+  properties: {
+    to: { type: 'string', description: 'Recipient unit uid' },
+    rail: { type: 'string', enum: ['card', 'crypto', 'weight'] },
+    amount: { type: 'number', minimum: 0 },
+    sku: { type: 'string' },
+    from: { type: 'string' },
+    currency: { type: 'string', default: 'usd' },
+    memo: { type: 'string' },
+  },
+  required: ['to', 'rail', 'amount'],
+})
+
+const PAY_ACCEPT_OUTPUT_SCHEMA = JSON.stringify({
+  type: 'object',
+  properties: {
+    linkUrl: { type: 'string' },
+    qr: { type: 'string' },
+    intent: { type: 'string' },
+  },
+  required: ['linkUrl'],
+})
+
+const PAY_REQUEST_INPUT_SCHEMA = JSON.stringify({
+  type: 'object',
+  properties: {
+    from: { type: 'string', description: 'Requesting unit uid' },
+    rail: { type: 'string', enum: ['card', 'crypto', 'weight'] },
+    amount: { type: 'number', minimum: 0 },
+    sku: { type: 'string' },
+    currency: { type: 'string', default: 'usd' },
+    memo: { type: 'string' },
+  },
+  required: ['from', 'rail', 'amount'],
+})
+
+const PAY_REQUEST_OUTPUT_SCHEMA = JSON.stringify({
+  type: 'object',
+  properties: {
+    linkUrl: { type: 'string' },
+    qr: { type: 'string' },
+    intent: { type: 'string' },
+  },
+  required: ['linkUrl'],
+})
+
+/**
+ * Register pay.accept and pay.request as ADL skills in TypeDB.
+ * Idempotent — checks for existence before inserting.
+ * Called once at boot (boot call wired in a later cycle).
+ */
+export async function registerPaySkills(): Promise<void> {
+  const skills = [
+    {
+      id: 'pay.accept',
+      name: 'Accept Payment',
+      description: 'Create a payment link on any rail (card, crypto, weight)',
+      inputSchema: PAY_ACCEPT_INPUT_SCHEMA,
+      outputSchema: PAY_ACCEPT_OUTPUT_SCHEMA,
+    },
+    {
+      id: 'pay.request',
+      name: 'Request Payment',
+      description: 'Create a request-to-pay link',
+      inputSchema: PAY_REQUEST_INPUT_SCHEMA,
+      outputSchema: PAY_REQUEST_OUTPUT_SCHEMA,
+    },
+  ]
+
+  for (const skill of skills) {
+    // Idempotency: check if skill exists
+    const existing = await readParsed(`
+      match $s isa skill, has skill-id "${skill.id}";
+      select $s;
+    `).catch(() => [])
+
+    if (existing.length > 0) continue // already registered
+
+    await write(`
+      insert $s isa skill,
+        has skill-id "${skill.id}",
+        has name "${escapeString(skill.name)}",
+        has description "${escapeString(skill.description)}",
+        has input-schema "${escapeString(skill.inputSchema)}",
+        has output-schema "${escapeString(skill.outputSchema)}";
+    `).catch((e: unknown) => console.warn('registerPaySkills: insert error:', e instanceof Error ? e.message : e))
+  }
+}
+
 export default {
   parse,
   validate,
@@ -439,4 +533,5 @@ export default {
   syncAdl,
   adlFromUnit,
   adlFromAgentSpec,
+  registerPaySkills,
 }

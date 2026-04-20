@@ -5,8 +5,6 @@
  * Caching: 1s
  */
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
 
@@ -43,51 +41,50 @@ type EntityResponse = {
 }
 
 export const GET: APIRoute = async ({ params }): Promise<Response> => {
-  const id = params.id as string
+  const id = decodeURIComponent(params.id as string).replace(/["\\]/g, '')
 
   if (!id) {
     return Response.json({ kind: 'not-found', id: '' } as EntityResponse, { status: 404 })
   }
 
-  // Look up in agents.json before falling back to stub
   try {
-    const raw = readFileSync(join(process.cwd(), 'public/agents.json'), 'utf-8')
-    const data = JSON.parse(raw)
-    const agent = (data.agents || []).find((a: { id: string }) => a.id === id)
-    if (agent) {
-      return Response.json(
-        {
-          kind: 'unit',
-          id,
-          spec: {
-            name: agent.name,
-            kind: agent.caste || 'unit',
-            model: agent.model || 'meta-llama/llama-4-maverick',
-            tags: agent.tags || [],
-          },
-          stats: { successRate: agent.successRate ?? 75 },
-        } as EntityResponse,
-        { headers: { 'Cache-Control': 'public, max-age=1' } },
-      )
-    }
-  } catch {
-    /* fall through */
-  }
-
-  try {
-    // Try to find as unit
+    // Stage 1a — core required attrs only (name + uid)
     const unitRows = await readParsed(`
       match
-        $u isa unit, has uid "${id}", has name $name, has unit-kind $k,
-          has model $m, has system-prompt $sp, has generation $g,
-          has success-rate $sr, has balance $bal, has reputation $rep,
-          has sample-count $sc, has wallet $w;
-        ?$u has last-used $lu;
-      select $name, $k, $m, $sp, $g, $sr, $bal, $rep, $sc, $w, $lu;
+        $u isa unit, has uid "${id}", has name $name;
+      select $name;
     `).catch(() => [])
 
     if (unitRows.length > 0) {
-      const r = unitRows[0]
+      // Stage 1b — optional attrs, each in its own query to survive missing data
+      const [kindRows, modelRows, spRows, genRows, srRows, balRows, repRows, scRows, walletRows, luRows] =
+        await Promise.all([
+          readParsed(`match $u isa unit, has uid "${id}", has unit-kind $k; select $k;`).catch(() => []),
+          readParsed(`match $u isa unit, has uid "${id}", has model $m; select $m;`).catch(() => []),
+          readParsed(`match $u isa unit, has uid "${id}", has system-prompt $sp; select $sp;`).catch(() => []),
+          readParsed(`match $u isa unit, has uid "${id}", has generation $g; select $g;`).catch(() => []),
+          readParsed(`match $u isa unit, has uid "${id}", has success-rate $sr; select $sr;`).catch(() => []),
+          readParsed(`match $u isa unit, has uid "${id}", has balance $bal; select $bal;`).catch(() => []),
+          readParsed(`match $u isa unit, has uid "${id}", has reputation $rep; select $rep;`).catch(() => []),
+          readParsed(`match $u isa unit, has uid "${id}", has sample-count $sc; select $sc;`).catch(() => []),
+          readParsed(`match $u isa unit, has uid "${id}", has wallet $w; select $w;`).catch(() => []),
+          readParsed(`match $u isa unit, has uid "${id}", has last-used $lu; select $lu;`).catch(() => []),
+        ])
+
+      const r = {
+        name: unitRows[0].name,
+        k: kindRows[0]?.k,
+        m: modelRows[0]?.m,
+        sp: spRows[0]?.sp,
+        g: genRows[0]?.g,
+        sr: srRows[0]?.sr,
+        bal: balRows[0]?.bal,
+        rep: repRows[0]?.rep,
+        sc: scRows[0]?.sc,
+        w: walletRows[0]?.w,
+        lu: luRows[0]?.lu,
+      }
+
       const tagRows = await readParsed(`
         match $u isa unit, has uid "${id}", has tag $tag;
         select $tag;
@@ -95,26 +92,49 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
 
       const tags = tagRows.map((tr) => tr.tag as string)
 
-      // Recent signals
-      const signalRows = await readParsed(`
-        match
-          $s (sender: $from, receiver: $to) isa signal;
-          ($from has uid "${id}") or ($to has uid "${id}");
-          $s has ts $ts, has data $data, has amount $amt, has success $ok;
-          $from has uid $fid, has name $fn;
-          $to has uid $tid, has name $tn;
-        sort $ts desc; limit 5;
-        select $fid, $fn, $tid, $tn, $data, $amt, $ok, $ts;
-      `).catch(() => [])
+      // Recent signals — split sender/receiver queries (TypeDB 3.x OR syntax unreliable)
+      const [senderRows, receiverRows] = await Promise.all([
+        readParsed(`
+          match
+            $s (sender: $from, receiver: $to) isa signal;
+            $from has uid "${id}";
+            $s has ts $ts, has data $data, has amount $amt, has success $ok;
+            $from has uid $fid, has name $fn;
+            $to has uid $tid, has name $tn;
+          sort $ts desc; limit 5;
+          select $fid, $fn, $tid, $tn, $data, $amt, $ok, $ts;
+        `).catch(() => []),
+        readParsed(`
+          match
+            $s (sender: $from, receiver: $to) isa signal;
+            $to has uid "${id}";
+            $s has ts $ts, has data $data, has amount $amt, has success $ok;
+            $from has uid $fid, has name $fn;
+            $to has uid $tid, has name $tn;
+          sort $ts desc; limit 5;
+          select $fid, $fn, $tid, $tn, $data, $amt, $ok, $ts;
+        `).catch(() => []),
+      ])
 
-      const recentSignals = signalRows.map((sr) => ({
-        id: `${sr.fid}-${sr.tid}-${sr.ts}`,
-        from: sr.fn as string,
-        to: sr.tn as string,
-        skill: (sr.data as string) || '',
-        outcome: (sr.ok as boolean) ? 'success' : 'failure',
-        revenue: sr.amt as number,
-        ts: sr.ts as string,
+      const seen = new Set<string>()
+      const signalRows = [...senderRows, ...receiverRows]
+        .sort((a, b) => String(b.ts).localeCompare(String(a.ts)))
+        .filter((row) => {
+          const key = `${row.fid}-${row.tid}-${row.ts}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        .slice(0, 5)
+
+      const recentSignals = signalRows.map((row) => ({
+        id: `${row.fid}-${row.tid}-${row.ts}`,
+        from: row.fn as string,
+        to: row.tn as string,
+        skill: (row.data as string) || '',
+        outcome: (row.ok as boolean) ? 'success' : 'failure',
+        revenue: row.amt as number,
+        ts: row.ts as string,
       }))
 
       const response: EntityResponse = {

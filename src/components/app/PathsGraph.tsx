@@ -8,6 +8,7 @@ import {
   useNodesState,
 } from '@xyflow/react'
 import { useEffect, useState } from 'react'
+import { sdk } from '@/lib/sdk'
 import '@xyflow/react/dist/style.css'
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -87,9 +88,7 @@ export function PathsGraph({ groupId: _groupId }: Props) {
 
     async function load() {
       try {
-        const res = await fetch('/api/export/highways')
-        if (!res.ok) return
-        const data: Highway[] = (await res.json()) as Highway[]
+        const data = (await sdk.exportData('highways')) as Highway[]
         if (cancelled) return
         if (!data.length) {
           setEmpty(true)

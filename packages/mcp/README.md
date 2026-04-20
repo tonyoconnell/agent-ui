@@ -1,6 +1,6 @@
 # @oneie/mcp
 
-MCP server for the ONE substrate — 12 substrate + 5 lifecycle + 10 commerce + 3 discovery tools = 30 tools.
+MCP server for the ONE substrate — 12 substrate + 5 lifecycle + 10 commerce + 10 observability + 3 discovery tools = 40 tools.
 
 Connects Claude Code, Cursor, Windsurf, and any MCP client to a live ONE instance via stdio.
 
@@ -81,6 +81,21 @@ Or point at production:
 | `escrow_create` | L4 | Create a Sui on-chain escrow for a task between two units |
 | `harden` | L5 | Harden a strong path on-chain; promotes it to a permanent highway |
 
+### Observability
+
+| Tool | Loop | What |
+|------|------|------|
+| `stats` | L2 | Aggregate substrate stats: unit counts, highways, revenue totals |
+| `health` | L1 | Substrate health: world state, unit count, revenue, top group |
+| `revenue` | L4 | Revenue breakdown: GDP, total transactions, top earners by unit |
+| `frontiers_global` | L7 | Unexplored frontier hypotheses with expected value >= 0.5 |
+| `hypotheses_global` | L6 | All hypotheses; filterable by status (pending\|testing\|confirmed\|rejected) |
+| `export_units` | L1 | Export all units as JSON snapshot (uid, name, kind, successRate, generation) |
+| `export_highways` | L2 | Export top weighted paths (strength >= 20) with optional context hints |
+| `intent_learn` | L6 | Unrecognized queries ranked by frequency; discovers new intent patterns |
+| `ingest_event` | L1 | Ingest a pheromone event (email\|stripe\|rating\|analytics) into the substrate |
+| `chat_turn` | L1 | Send a chat turn to the substrate LLM; returns streamed text and next-turn tags |
+
 ### Discovery
 
 | Tool | What |
@@ -88,6 +103,14 @@ Or point at production:
 | `scaffold_agent` | Create an agent from a preset template |
 | `list_agents` | List all available agent presets |
 | `get_agent` | Get a preset by name |
+
+### Pay tools
+
+- `pay_create_link` — create a shareable payment link for an agent skill. Args: `{ to, amount, rail: "card"|"crypto"|"auto", memo?, sku? }` → `{ linkUrl, qr?, intent? }`. Flows through `persist.signal()` so ADL PEP gates apply.
+- `pay_check_status` — check status of a payment by ref. Args: `{ ref: "pi_... | 0x... | sl_..." }` → `{ status, ref, amount?, rail? }`.
+- `pay_cancel` — cancel a pending payment. Args: `{ ref }` → null on success.
+
+See [one/pay-todo.md](../../one/pay-todo.md) and [one/pay-plan.md](../../one/pay-plan.md).
 
 ### Lifecycle
 

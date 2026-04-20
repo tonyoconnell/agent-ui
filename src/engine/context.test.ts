@@ -95,7 +95,7 @@ describe('loadContext', () => {
     const result = loadContext(['dsl', 'dictionary'])
     expect(result).toContain('---')
     // Both doc filenames appear as section headers
-    expect(result).toContain('DSL.md')
+    expect(result).toContain('dsl.md')
     expect(result).toContain('dictionary.md')
   })
 
@@ -113,18 +113,18 @@ describe('contextForSkill', () => {
   it('"routing" → loads routing + dsl', () => {
     const result = contextForSkill('routing')
     expect(result).toContain('routing.md')
-    expect(result).toContain('DSL.md')
+    expect(result).toContain('dsl.md')
   })
 
   it('"mark" → loads routing + dsl', () => {
     const result = contextForSkill('mark')
     expect(result).toContain('routing.md')
-    expect(result).toContain('DSL.md')
+    expect(result).toContain('dsl.md')
   })
 
   it('"unknown-skill" → falls back to dsl only', () => {
     const result = contextForSkill('unknown-skill')
-    expect(result).toContain('DSL.md')
+    expect(result).toContain('dsl.md')
     // routing.md should not appear as a section header (only dsl is loaded)
     expect(result).not.toMatch(/^# routing\.md/m)
   })
@@ -175,7 +175,7 @@ describe('docIndex', () => {
 
   it('includes DSL.md', () => {
     const index = docIndex()
-    const dsl = index.find((d) => d.name === 'DSL.md')
+    const dsl = index.find((d) => d.name === 'dsl.md')
     expect(dsl).toBeDefined()
     expect(dsl!.lines).toBeGreaterThan(10)
   })

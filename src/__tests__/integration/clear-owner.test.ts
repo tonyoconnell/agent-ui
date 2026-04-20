@@ -24,9 +24,9 @@ function resetStore() {
 /** Simulate the claim operation: set status + owner metadata */
 function _claimTask(tid: string, sessionId: string): boolean {
   const task = store.getTask(tid)
-  if (!task || task.status !== 'todo') return false
+  if (!task || task.task_status !== 'open') return false
   store.updateTask(tid, {
-    status: 'active',
+    task_status: 'picked',
     // Store owner in tags as a runtime annotation (store doesn't have owner field natively)
     // Real claim writes to TypeDB; here we use a dedicated extended update
   })
@@ -38,8 +38,8 @@ const ownerRegistry = new Map<string, { owner: string; claimedAt: string }>()
 
 function claimWithOwner(tid: string, sessionId: string): boolean {
   const task = store.getTask(tid)
-  if (!task || task.status !== 'todo') return false
-  store.updateTask(tid, { status: 'active' })
+  if (!task || task.task_status !== 'open') return false
+  store.updateTask(tid, { task_status: 'picked' })
   ownerRegistry.set(tid, { owner: sessionId, claimedAt: new Date().toISOString() })
   return true
 }
@@ -47,10 +47,10 @@ function claimWithOwner(tid: string, sessionId: string): boolean {
 function completeTask(tid: string, failed = false): void {
   if (failed) {
     store.markPheromone(tid, 'alarm', 8.0)
-    store.updateTask(tid, { status: 'failed' })
+    store.updateTask(tid, { task_status: 'failed' })
   } else {
     store.markPheromone(tid, 'trail', 5.0)
-    store.updateTask(tid, { status: 'complete' })
+    store.updateTask(tid, { task_status: 'verified' })
     store.cascadeUnblock(tid)
   }
   // Clear owner (mirrors TypeDB writeSilent in complete.ts)
@@ -60,7 +60,7 @@ function completeTask(tid: string, failed = false): void {
 function releaseTask(tid: string, sessionId: string): boolean {
   const claim = ownerRegistry.get(tid)
   if (!claim || claim.owner !== sessionId) return false
-  store.updateTask(tid, { status: 'todo' })
+  store.updateTask(tid, { task_status: 'open' })
   ownerRegistry.delete(tid)
   return true
 }
@@ -75,16 +75,13 @@ describe('clear-owner: owner is set on claim and cleared on complete', () => {
     store.createTask({
       tid: TID,
       name: 'Clear Owner Task',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C2',
-      value: 'high',
-      persona: 'agent',
+      task_status: 'open',
+      task_priority: 0.75,
       tags: ['test', 'owner'],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
+      strength: 0,
+      resistance: 0,
     })
   })
 
@@ -95,7 +92,7 @@ describe('clear-owner: owner is set on claim and cleared on complete', () => {
 
   it('no owner before claim', () => {
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.status).toBe('todo')
+    expect(store.getTask(TID)?.task_status).toBe('open')
   })
 
   it('owner is set after claim', () => {
@@ -105,7 +102,7 @@ describe('clear-owner: owner is set on claim and cleared on complete', () => {
     const claim = ownerRegistry.get(TID)
     expect(claim?.owner).toBe(SESSION)
     expect(claim?.claimedAt).toBeTruthy()
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
   })
 
   it('owner is cleared after successful complete', () => {
@@ -115,7 +112,7 @@ describe('clear-owner: owner is set on claim and cleared on complete', () => {
     completeTask(TID, false)
 
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.status).toBe('complete')
+    expect(store.getTask(TID)?.task_status).toBe('verified')
   })
 
   it('owner is cleared after failed complete', () => {
@@ -125,7 +122,7 @@ describe('clear-owner: owner is set on claim and cleared on complete', () => {
     completeTask(TID, true)
 
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.status).toBe('failed')
+    expect(store.getTask(TID)?.task_status).toBe('failed')
   })
 
   it('owner is cleared after release', () => {
@@ -135,7 +132,7 @@ describe('clear-owner: owner is set on claim and cleared on complete', () => {
     const ok = releaseTask(TID, SESSION)
     expect(ok).toBe(true)
     expect(ownerRegistry.has(TID)).toBe(false)
-    expect(store.getTask(TID)?.status).toBe('todo')
+    expect(store.getTask(TID)?.task_status).toBe('open')
   })
 
   it('wrong session cannot release', () => {
@@ -146,7 +143,7 @@ describe('clear-owner: owner is set on claim and cleared on complete', () => {
 
     // Owner still intact
     expect(ownerRegistry.get(TID)?.owner).toBe(SESSION)
-    expect(store.getTask(TID)?.status).toBe('active')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
   })
 
   it('double-claim fails for same task', () => {
@@ -161,23 +158,23 @@ describe('clear-owner: owner is set on claim and cleared on complete', () => {
     expect(ownerRegistry.get(TID)?.owner).toBe(SESSION)
   })
 
-  it('trail pheromone accumulates on success', () => {
+  it('strength accumulates on success', () => {
     claimWithOwner(TID, SESSION)
-    const before = store.getTask(TID)?.trailPheromone ?? 0
+    const before = store.getTask(TID)?.strength ?? 0
 
     completeTask(TID, false)
 
-    const after = store.getTask(TID)?.trailPheromone ?? 0
+    const after = store.getTask(TID)?.strength ?? 0
     expect(after).toBeGreaterThan(before)
   })
 
-  it('alarm pheromone accumulates on failure', () => {
+  it('resistance accumulates on failure', () => {
     claimWithOwner(TID, SESSION)
-    const before = store.getTask(TID)?.alarmPheromone ?? 0
+    const before = store.getTask(TID)?.resistance ?? 0
 
     completeTask(TID, true)
 
-    const after = store.getTask(TID)?.alarmPheromone ?? 0
+    const after = store.getTask(TID)?.resistance ?? 0
     expect(after).toBeGreaterThan(before)
   })
 })

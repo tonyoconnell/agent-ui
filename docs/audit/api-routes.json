@@ -1,0 +1,2452 @@
+{
+  "generatedAt": "2026-04-20T01:12:28.397Z",
+  "summary": {
+    "total": 165,
+    "public": 84,
+    "internal": 56,
+    "unclear": 25,
+    "publicWithoutSdk": 62
+  },
+  "routes": [
+    {
+      "file": "src/pages/api/absorb.ts",
+      "path": "/api/absorb",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/adl/denials.ts",
+      "path": "/api/adl/denials",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agency/create.ts",
+      "path": "/api/agency/create",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents.ts",
+      "path": "/api/agents",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/[id]/authorize.ts",
+      "path": "/api/agents/:id/authorize",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/[id]/capabilities.ts",
+      "path": "/api/agents/:id/capabilities",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/[id]/commend.ts",
+      "path": "/api/agents/:id/commend",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/[id]/flag.ts",
+      "path": "/api/agents/:id/flag",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/[id]/status.ts",
+      "path": "/api/agents/:id/status",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/adl.ts",
+      "path": "/api/agents/adl",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        },
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/conversations.ts",
+      "path": "/api/agents/conversations",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/create-onchain.ts",
+      "path": "/api/agents/create-onchain",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/create-path.ts",
+      "path": "/api/agents/create-path",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/deploy-on-behalf.ts",
+      "path": "/api/agents/deploy-on-behalf",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "deployOnBehalf()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/detail.ts",
+      "path": "/api/agents/detail",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/discover.ts",
+      "path": "/api/agents/discover",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "discover()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/list.ts",
+      "path": "/api/agents/list",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "listAgents()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/register.ts",
+      "path": "/api/agents/register",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "register()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/agents/sync.ts",
+      "path": "/api/agents/sync",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "syncAgent()"
+        },
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/analytics.ts",
+      "path": "/api/analytics",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/ask.ts",
+      "path": "/api/ask",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "ask()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/ask/reply.ts",
+      "path": "/api/ask/reply",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/auth/[...all].ts",
+      "path": "/api/auth/:...all",
+      "methods": [
+        "ALL"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "ALL",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/auth/agent.ts",
+      "path": "/api/auth/agent",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "authAgent()"
+        },
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/auth/agent/[uid]/claim.ts",
+      "path": "/api/auth/agent/:uid/claim",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/auth/api-keys.ts",
+      "path": "/api/auth/api-keys",
+      "methods": [
+        "POST",
+        "DELETE"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        },
+        {
+          "method": "DELETE",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/av/in.ts",
+      "path": "/api/av/in",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/board/join.ts",
+      "path": "/api/board/join",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "join()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/brand/extract.ts",
+      "path": "/api/brand/extract",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/brand/highways.ts",
+      "path": "/api/brand/highways",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/brand/palette.ts",
+      "path": "/api/brand/palette",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/brand/save.ts",
+      "path": "/api/brand/save",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/buy/bounty.ts",
+      "path": "/api/buy/bounty",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/buy/hire.ts",
+      "path": "/api/buy/hire",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "hire()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/capabilities/list.ts",
+      "path": "/api/capabilities/list",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/capabilities/publish.ts",
+      "path": "/api/capabilities/publish",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "publish()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/capability/hire/settle-status.ts",
+      "path": "/api/capability/hire/settle-status",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/capability/hire/settle.ts",
+      "path": "/api/capability/hire/settle",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chain/balance.ts",
+      "path": "/api/chain/balance",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chain/history.ts",
+      "path": "/api/chain/history",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chain/price.ts",
+      "path": "/api/chain/price",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chairman/build-team.ts",
+      "path": "/api/chairman/build-team",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chairman/hire.ts",
+      "path": "/api/chairman/hire",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/channels.ts",
+      "path": "/api/channels",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chat-chairman.ts",
+      "path": "/api/chat-chairman",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chat-claude-code.ts",
+      "path": "/api/chat-claude-code",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chat-config.ts",
+      "path": "/api/chat-config",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chat-director.ts",
+      "path": "/api/chat-director",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chat.ts",
+      "path": "/api/chat",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "chat()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chat/summarize.ts",
+      "path": "/api/chat/summarize",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/chat/turn.ts",
+      "path": "/api/chat/turn",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/claw.ts",
+      "path": "/api/claw",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "claw()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/context.ts",
+      "path": "/api/context",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/context/ingest.ts",
+      "path": "/api/context/ingest",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        },
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/dashboard/kpis.ts",
+      "path": "/api/dashboard/kpis",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/decay-cycle.ts",
+      "path": "/api/decay-cycle",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "fade()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/decay.ts",
+      "path": "/api/decay",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/discover.ts",
+      "path": "/api/discover",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/entity/[id].ts",
+      "path": "/api/entity/:id",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/escrow/cancel/[id].ts",
+      "path": "/api/escrow/cancel/:id",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/escrow/create.ts",
+      "path": "/api/escrow/create",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/escrow/release/[id].ts",
+      "path": "/api/escrow/release/:id",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/groups.json.ts",
+      "path": "/api/export/groups.json",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/groups.ts",
+      "path": "/api/export/groups",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/highways.ts",
+      "path": "/api/export/highways",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/paths.ts",
+      "path": "/api/export/paths",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/public/groups.ts",
+      "path": "/api/export/public/groups",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/public/paths.ts",
+      "path": "/api/export/public/paths",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/public/units.ts",
+      "path": "/api/export/public/units",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/skills.ts",
+      "path": "/api/export/skills",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/toxic.ts",
+      "path": "/api/export/toxic",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/units.json.ts",
+      "path": "/api/export/units.json",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/export/units.ts",
+      "path": "/api/export/units",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/faucet-internal.ts",
+      "path": "/api/faucet-internal",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/faucet.ts",
+      "path": "/api/faucet",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/frontiers.ts",
+      "path": "/api/frontiers",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/g/[gid]/highways.ts",
+      "path": "/api/g/:gid/highways",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/g/[gid]/mcp.ts",
+      "path": "/api/g/:gid/mcp",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/g/[gid]/signal.ts",
+      "path": "/api/g/:gid/signal",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/g/[gid]/units.ts",
+      "path": "/api/g/:gid/units",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/harden.ts",
+      "path": "/api/harden",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/health.ts",
+      "path": "/api/health",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "health()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/hypotheses.ts",
+      "path": "/api/hypotheses",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "recall()"
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/identity/[uid]/address.ts",
+      "path": "/api/identity/:uid/address",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "walletFor()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/identity/claim.ts",
+      "path": "/api/identity/claim",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        },
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/identity/forget.ts",
+      "path": "/api/identity/forget",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/ingest/analytics.ts",
+      "path": "/api/ingest/analytics",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/ingest/email.ts",
+      "path": "/api/ingest/email",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/ingest/rating.ts",
+      "path": "/api/ingest/rating",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/ingest/stats.ts",
+      "path": "/api/ingest/stats",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/ingest/stripe.ts",
+      "path": "/api/ingest/stripe",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/intents/learn.ts",
+      "path": "/api/intents/learn",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/intents/seed.ts",
+      "path": "/api/intents/seed",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/intents/stats.ts",
+      "path": "/api/intents/stats",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/invites/accept.ts",
+      "path": "/api/invites/accept",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/invites/create.ts",
+      "path": "/api/invites/create",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/keys.ts",
+      "path": "/api/keys",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        },
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/loop/close.ts",
+      "path": "/api/loop/close",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "closeLoop()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/loop/highways.ts",
+      "path": "/api/loop/highways",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "highways()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/loop/mark-dims.ts",
+      "path": "/api/loop/mark-dims",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "mark()/warn()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/loop/stage.ts",
+      "path": "/api/loop/stage",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "select()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/mark.ts",
+      "path": "/api/mark",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/market/bounty.ts",
+      "path": "/api/market/bounty",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "bounties()"
+        },
+        {
+          "method": "POST",
+          "sdkMethod": "bounty()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/market/bounty/[id].ts",
+      "path": "/api/market/bounty/:id",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/market/bundle.ts",
+      "path": "/api/market/bundle",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/market/bundle/[id].ts",
+      "path": "/api/market/bundle/:id",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/market/list.ts",
+      "path": "/api/market/list",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "listMarket()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/marketplace.ts",
+      "path": "/api/marketplace",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/mcp/[tool].ts",
+      "path": "/api/mcp/:tool",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/me/agents.ts",
+      "path": "/api/me/agents",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/me/groups/[gid]/invite.ts",
+      "path": "/api/me/groups/:gid/invite",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/memory/forget/[uid].ts",
+      "path": "/api/memory/forget/:uid",
+      "methods": [
+        "DELETE"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "DELETE",
+          "sdkMethod": "forget()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/memory/frontier/[uid].ts",
+      "path": "/api/memory/frontier/:uid",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "frontier()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/memory/reveal/[uid].ts",
+      "path": "/api/memory/reveal/:uid",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "reveal()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/messages.ts",
+      "path": "/api/messages",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/paths/[id]/scope.ts",
+      "path": "/api/paths/:id/scope",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "promotePathScope()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/pay.ts",
+      "path": "/api/pay",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "pay()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/pay/create-link.ts",
+      "path": "/api/pay/create-link",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "payCreateLink()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/pay/status/[ref].ts",
+      "path": "/api/pay/status/:ref",
+      "methods": [
+        "GET",
+        "DELETE"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "payCheckStatus()"
+        },
+        {
+          "method": "DELETE",
+          "sdkMethod": "payCancel()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/pay/stripe/confirm.ts",
+      "path": "/api/pay/stripe/confirm",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/pay/stripe/create-intent.ts",
+      "path": "/api/pay/stripe/create-intent",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/pay/stripe/webhook.ts",
+      "path": "/api/pay/stripe/webhook",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/query.ts",
+      "path": "/api/query",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/resistance.ts",
+      "path": "/api/resistance",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/revenue.ts",
+      "path": "/api/revenue",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "revenue()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/security/gate-stats.ts",
+      "path": "/api/security/gate-stats",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "securityGateStats()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/seed.ts",
+      "path": "/api/seed",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/seed/all-agents.ts",
+      "path": "/api/seed/all-agents",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        },
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/seed/marketing.ts",
+      "path": "/api/seed/marketing",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        },
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/settings/keys.ts",
+      "path": "/api/settings/keys",
+      "methods": [
+        "GET",
+        "POST",
+        "DELETE"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        },
+        {
+          "method": "DELETE",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/signal.ts",
+      "path": "/api/signal",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "signal()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/signals.ts",
+      "path": "/api/signals",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "signals()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/signup.ts",
+      "path": "/api/signup",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/skills/[sid]/price.ts",
+      "path": "/api/skills/:sid/price",
+      "methods": [
+        "PATCH"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "PATCH",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/skills/audit.ts",
+      "path": "/api/skills/audit",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/speed/journey.ts",
+      "path": "/api/speed/journey",
+      "methods": [
+        "POST"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/speedtest/run.ts",
+      "path": "/api/speedtest/run",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/state.ts",
+      "path": "/api/state",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "state()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/stats.ts",
+      "path": "/api/stats",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "stats()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/stats/live.ts",
+      "path": "/api/stats/live",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/stream.ts",
+      "path": "/api/stream",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/subscribe.ts",
+      "path": "/api/subscribe",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": "subscribe()"
+        },
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/sui/escrow/[id].ts",
+      "path": "/api/sui/escrow/:id",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/sync/d1-marks.ts",
+      "path": "/api/sync/d1-marks",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/[category].ts",
+      "path": "/api/tasks/:category",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/[id]/assign.ts",
+      "path": "/api/tasks/:id/assign",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/[id]/claim.ts",
+      "path": "/api/tasks/:id/claim",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/[id]/complete.ts",
+      "path": "/api/tasks/:id/complete",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/[id]/release.ts",
+      "path": "/api/tasks/:id/release",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/claims.ts",
+      "path": "/api/tasks/claims",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/expire.ts",
+      "path": "/api/tasks/expire",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/import-roadmap.ts",
+      "path": "/api/tasks/import-roadmap",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/index.ts",
+      "path": "/api/tasks",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/sync.ts",
+      "path": "/api/tasks/sync",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tasks/update/[tid].ts",
+      "path": "/api/tasks/update/:tid",
+      "methods": [
+        "PATCH"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "PATCH",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/team.ts",
+      "path": "/api/team",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tick.ts",
+      "path": "/api/tick",
+      "methods": [
+        "GET"
+      ],
+      "classification": "public",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": "know()"
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/tutorial.ts",
+      "path": "/api/tutorial",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/warn.ts",
+      "path": "/api/warn",
+      "methods": [
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/waves/[docname]/claim.ts",
+      "path": "/api/waves/:docname/claim",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/waves/[docname]/release.ts",
+      "path": "/api/waves/:docname/release",
+      "methods": [
+        "POST"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/waves/expire.ts",
+      "path": "/api/waves/expire",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/worlds/tenant.ts",
+      "path": "/api/worlds/tenant",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        },
+        {
+          "method": "POST",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/ws-test.ts",
+      "path": "/api/ws-test",
+      "methods": [
+        "GET"
+      ],
+      "classification": "internal",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    },
+    {
+      "file": "src/pages/api/ws.ts",
+      "path": "/api/ws",
+      "methods": [
+        "GET"
+      ],
+      "classification": "unclear",
+      "sdkMethods": [
+        {
+          "method": "GET",
+          "sdkMethod": null
+        }
+      ]
+    }
+  ]
+}

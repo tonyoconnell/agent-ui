@@ -1,0 +1,37 @@
+---
+import Layout from "@/layouts/Layout.astro"
+
+export const prerender = false
+
+const url = new URL(Astro.request.url)
+const ref = url.searchParams.get("ref") ?? "unknown"
+const masked = ref.length > 12 ? ref.slice(0, 6) + "…" + ref.slice(-4) : ref
+---
+
+<Layout title="Payment complete">
+  <main class="min-h-screen bg-[#0a0a0f] text-slate-100 flex items-center justify-center p-4">
+    <div class="max-w-md w-full rounded-lg border border-[#252538] bg-[#161622] p-8 text-center">
+      <div class="text-5xl mb-4">&#10003;</div>
+      <h1 class="text-2xl font-semibold mb-2">Payment complete</h1>
+      <p class="text-sm text-slate-400 mb-6">Your payment has been received.</p>
+      <div class="rounded bg-[#0a0a0f] border border-[#252538] px-4 py-3 text-xs text-slate-500 mb-6">
+        <span class="text-slate-600">Reference:</span>
+        <code class="ml-2 text-slate-300">{masked}</code>
+      </div>
+      <a href="/" class="inline-block rounded bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-5 py-2 transition-colors">
+        Return home
+      </a>
+    </div>
+  </main>
+</Layout>
+
+<script is:inline define:vars={{ ref }}>
+  fetch('/api/signal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      receiver: 'ui:pay:page:done:view',
+      data: { tags: ['pay','page','view','done'], content: { ref } }
+    })
+  }).catch(() => {})
+</script>

@@ -12,9 +12,12 @@
 
 import { verifyKey } from '@/lib/api-key'
 import { auth } from '@/lib/auth'
+import { getD1 } from '@/lib/cf-env'
 import { getNet } from '@/lib/net'
+import { roleCheck } from '@/lib/role-check'
 import { emitSecurityEvent } from '@/lib/security-signals'
 import { addressFor } from '@/lib/sui'
+import { resolveTier, type Tier } from '@/lib/tier-limits'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 
 export interface AuthContext {
@@ -25,6 +28,12 @@ export interface AuthContext {
   role?: string
   scopeGroups?: string[]
   scopeSkills?: string[]
+  realUser?: string // originating human identity when acting as another unit
+  actAs?: string // explicit act-as request (validated, identity swapped)
+  ownerOf?: string[] // agents this user has chairman membership in
+  tier?: Tier // Platform BaaS tier (free|builder|scale|world|enterprise). Populated when locals is passed.
+  personalGid?: string // personal group: "group:{uid}" — auto-created on sign-up
+  suggestedJoins?: string[] // public groups to surface on sign-up; TQL-driven, fallback ["one"]
 }
 
 // In-process cache: plaintext bearer → verified identity (5-min TTL).
@@ -39,6 +48,7 @@ const KEY_CACHE = new Map<
     role?: string
     scopeGroups: string[]
     scopeSkills: string[]
+    tier?: Tier
   }
 >()
 const CACHE_TTL_MS = 5 * 60 * 1000
@@ -60,10 +70,13 @@ function warnAuthBoundary(caller: string): void {
  * Format: "Bearer api_xxx_yyy"
  *
  * @param context - Optional scope context for per-call scope enforcement
+ * @param locals  - Optional Astro locals (for D1 tier lookup). If provided,
+ *                  AuthContext.tier will be populated from `developer_tiers`.
  */
 export async function validateApiKey(
   request: Request,
   context?: { group?: string; skill?: string },
+  locals?: App.Locals,
 ): Promise<AuthContext> {
   const authHeader = request.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -87,6 +100,13 @@ export async function validateApiKey(
       warnAuthBoundary(cached.keyId)
       return { user: '', permissions: [], keyId: '', isValid: false }
     }
+    // Tier: populate on first caller to supply locals, then cache for the TTL.
+    let tier = cached.tier
+    if (tier === undefined && locals !== undefined) {
+      const db = await getD1(locals)
+      tier = await resolveTier(cached.user, db)
+      cached.tier = tier
+    }
     return {
       user: cached.user,
       permissions: cached.permissions,
@@ -95,6 +115,7 @@ export async function validateApiKey(
       role: cached.role,
       scopeGroups: cached.scopeGroups,
       scopeSkills: cached.scopeSkills,
+      tier,
     }
   }
 
@@ -142,8 +163,27 @@ export async function validateApiKey(
         const nowMs = Date.now()
 
         // Cache — secondary map lets invalidateKeyCache(keyId) find and evict the right entry
-        // Role is looked up separately via getRoleForUser() to keep validateApiKey at 1 TypeDB call
-        KEY_CACHE.set(key, { user, permissions, keyId, expires: nowMs + CACHE_TTL_MS, scopeGroups, scopeSkills })
+        // Role lookup: one extra TypeDB query per cache miss (~5 min per key), acceptable cost
+        const role = await getRoleForUser(user).catch(() => undefined)
+
+        // Tier lookup (optional — only when locals is available for D1 access).
+        // Missing / unreachable D1 → 'free'. Cached alongside role for the TTL.
+        let tier: Tier | undefined
+        if (locals !== undefined) {
+          const db = await getD1(locals)
+          tier = await resolveTier(user, db)
+        }
+
+        KEY_CACHE.set(key, {
+          user,
+          permissions,
+          keyId,
+          expires: nowMs + CACHE_TTL_MS,
+          role,
+          scopeGroups,
+          scopeSkills,
+          tier,
+        })
         KEYID_TO_BEARER.set(keyId, key)
 
         // Update last-used (fire-and-forget; best-effort)
@@ -157,7 +197,7 @@ export async function validateApiKey(
           insert $k has last-used ${nowTs};
         `)
 
-        return { user, permissions, keyId, isValid: true, scopeGroups, scopeSkills }
+        return { user, permissions, keyId, isValid: true, role, scopeGroups, scopeSkills, tier }
       }
     }
 
@@ -198,17 +238,39 @@ export function hasPermission(auth: AuthContext, required: string, group?: strin
  * Look up governance role for a user uid from membership relation.
  * Called separately from validateApiKey to keep auth at 1 TypeDB query.
  */
-export async function getRoleForUser(uid: string): Promise<string | undefined> {
+export async function getRoleForUser(uid: string, gid?: string): Promise<string | undefined> {
   const safeUid = uid.replace(/[^a-zA-Z0-9_:.-]/g, '')
+  const groupFilter = gid ? `$g isa group, has gid "${gid.replace(/[^a-zA-Z0-9_:.-]/g, '')}";` : ''
   try {
     const rows = await readParsed(
       `match $u isa unit, has uid "${safeUid}";
-       (member: $u, group: $g) isa membership, has role $r;
+       ${groupFilter}
+       (member: $u, group: $g) isa membership, has member-role $r;
        select $r; limit 1;`,
     )
     return rows[0]?.r as string | undefined
   } catch {
     return undefined
+  }
+}
+
+export async function getGroupsForUser(
+  uid: string,
+  roles?: string[],
+): Promise<Array<{ gid: string; name: string; role: string }>> {
+  const safeUid = uid.replace(/[^a-zA-Z0-9_:.-]/g, '')
+  try {
+    const rows = await readParsed(`
+      match $u isa unit, has uid "${safeUid}";
+      (member: $u, group: $g) isa membership, has member-role $r;
+      $g has gid $gid, has name $gname;
+      select $gid, $gname, $r;
+    `)
+    return rows
+      .filter((r) => !roles || roles.includes(r.r as string))
+      .map((r) => ({ gid: r.gid as string, name: r.gname as string, role: r.r as string }))
+  } catch {
+    return []
   }
 }
 
@@ -267,6 +329,25 @@ export async function ensureHumanUnit(
   `).catch(() => {
     /* best-effort; next request retries */
   })
+
+  // Auto-create personal group (idempotent)
+  const escPGid = esc(`group:${uid}`)
+  writeSilent(`
+    match $u isa unit, has uid "${esc(uid)}";
+    not { $g isa group, has gid "${escPGid}"; };
+    insert $g isa group,
+      has gid "${escPGid}",
+      has name "${esc(uid)}",
+      has group-type "personal",
+      has visibility "private",
+      has status "active";
+  `)
+  writeSilent(`
+    match $u isa unit, has uid "${esc(uid)}";
+          $g isa group, has gid "${escPGid}";
+    not { (group: $g, member: $u) isa membership; };
+    insert (group: $g, member: $u) isa membership, has member-role "chairman";
+  `)
 }
 
 /**
@@ -279,11 +360,11 @@ export async function ensureHumanUnit(
  * Result shape matches AuthContext so gated routes stay uniform.
  * Cache: 5-min TTL, keyed by cookie header (bearer path already has KEY_CACHE).
  */
-export async function resolveUnitFromSession(request: Request): Promise<AuthContext> {
+export async function resolveUnitFromSession(request: Request, locals?: App.Locals): Promise<AuthContext> {
   // Front door 1: Bearer (agents, CLI, BetterAuth bearer plugin)
   const authHeader = request.headers.get('Authorization')
   if (authHeader?.startsWith('Bearer ')) {
-    const bearer = await validateApiKey(request)
+    const bearer = await validateApiKey(request, undefined, locals)
     if (bearer.isValid) return bearer
   }
 
@@ -310,6 +391,62 @@ export async function resolveUnitFromSession(request: Request): Promise<AuthCont
   await ensureHumanUnit(uid, session.user)
   const role = await getRoleForUser(uid)
 
+  // Tier (opportunistic): populated when the caller supplies locals for D1 access.
+  // Missing D1 (dev mode, tests) → 'free'. See tier-limits.ts § resolveTier.
+  let tier: Tier | undefined
+  if (locals !== undefined) {
+    const db = await getD1(locals)
+    tier = await resolveTier(uid, db)
+  }
+
+  // Act-as: cookie session can act as owned agents if chairman in g:owns:<target>
+  const actAsParam = new URL(request.url).searchParams.get('actAs')
+  const actAsHeader = request.headers.get('X-Act-As')
+  const actAsTarget = actAsParam || actAsHeader
+
+  if (actAsTarget) {
+    const ownershipGroup = `g:owns:${actAsTarget}`
+    const membershipRows = await readParsed(`
+      match
+        $u isa unit, has uid "${esc(uid)}";
+        $g isa group, has gid "${esc(ownershipGroup)}";
+        (member: $u, group: $g) isa membership, has member-role $r;
+        select $r;
+    `).catch(() => [])
+    const isChairman = (membershipRows as Array<{ r: string }>).some((row) => row.r === 'chairman')
+
+    if (!isChairman) {
+      emitSecurityEvent({ kind: 'auth-fail', caller: uid, reason: 'act-as-unauthorized' })
+      warnAuthBoundary(uid)
+      return { user: '', permissions: [], keyId: '', isValid: false }
+    }
+
+    const actAsRole = await getRoleForUser(actAsTarget).catch(() => undefined)
+    // Tier follows the real user (billing stays with the session holder, not the target).
+    // actAs context is not cached — always fresh (prevents stale ownership after revoke)
+    return {
+      user: actAsTarget,
+      permissions: ['read', 'write'],
+      keyId: `sess:${session.session.id}`,
+      isValid: true,
+      role: actAsRole,
+      scopeGroups: [ownershipGroup],
+      scopeSkills: [],
+      realUser: uid,
+      actAs: actAsTarget,
+      tier,
+    }
+  }
+
+  const suggestedJoins = await readParsed(`
+    match $g isa group, has gid $gid, has name $n, has visibility "public";
+    not { $g has group-type "personal"; };
+    select $gid, $n; limit 5;
+  `)
+    .then((rows) => rows.map((r) => String(r.gid)))
+    .catch(() => ['one'])
+    .then((gs) => (gs.length > 0 ? gs : ['one']))
+
   const ctx: AuthContext = {
     user: uid,
     permissions: ['read', 'write'],
@@ -318,6 +455,9 @@ export async function resolveUnitFromSession(request: Request): Promise<AuthCont
     role,
     scopeGroups: [],
     scopeSkills: [],
+    tier,
+    personalGid: `group:${uid}`,
+    suggestedJoins,
   }
   SESSION_CACHE.set(cookie, { ctx, expires: Date.now() + CACHE_TTL_MS })
   return ctx
@@ -333,4 +473,61 @@ export function requireAuth(ctx: AuthContext, required?: string) {
   if (required && !hasPermission(ctx, required)) {
     throw new Error(`Forbidden: Missing permission '${required}'`)
   }
+}
+
+// Gate helper — single function for all role-gated routes
+// Uses ADL_ENFORCEMENT_MODE (audit|enforce) from @/engine/adl-cache
+// In audit mode: logs would-deny, returns ok:true (caller proceeds)
+// In enforce mode: returns ok:false with 403 Response
+export async function requireRole(
+  request: Request,
+  action: string,
+  context?: { uid?: string; gate?: string },
+): Promise<{ ok: true; auth: AuthContext; role: string } | { ok: false; res: Response }> {
+  // Lazy import to avoid circular deps (adl-cache → persist → api-auth)
+  const { enforcementMode, audit } = await import('@/engine/adl-cache')
+  const mode = enforcementMode()
+
+  const auth = await validateApiKey(request)
+  const role = auth.role ?? 'agent'
+  const gate = context?.gate ?? `role:${action}`
+
+  // Not authenticated at all
+  if (!auth.isValid) {
+    audit({
+      sender: 'anonymous',
+      receiver: context?.uid ?? 'unknown',
+      gate,
+      decision: mode === 'enforce' ? 'deny' : 'would-deny',
+      mode,
+      reason: 'no bearer token',
+    })
+    if (mode === 'enforce') {
+      return {
+        ok: false,
+        res: Response.json({ error: 'bearer token required', gate, required: action }, { status: 401 }),
+      }
+    }
+    return { ok: true, auth, role }
+  }
+
+  const allowed = roleCheck(role, action as any)
+  if (!allowed) {
+    audit({
+      sender: auth.user,
+      receiver: context?.uid ?? 'unknown',
+      gate,
+      decision: mode === 'enforce' ? 'deny' : 'would-deny',
+      mode,
+      reason: `role ${role} cannot ${action}`,
+    })
+    if (mode === 'enforce') {
+      return {
+        ok: false,
+        res: Response.json({ error: 'insufficient role', gate, required: action, have: role }, { status: 403 }),
+      }
+    }
+  }
+
+  return { ok: true, auth, role }
 }

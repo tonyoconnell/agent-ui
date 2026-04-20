@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { sdk } from '@/lib/sdk'
 import { emitClick } from '@/lib/ui-signal'
 
 interface Highway {
@@ -18,10 +19,8 @@ export function MarketplaceHighways() {
 
   const fetchHighways = useCallback(async () => {
     try {
-      const res = await fetch('/api/export/highways?limit=10', { signal: AbortSignal.timeout(10000) })
-      if (!res.ok) throw new Error(`status ${res.status}`)
-      const data = (await res.json()) as Highway[]
-      setHighways(Array.isArray(data) ? data : [])
+      const data = (await sdk.exportData('highways')) as Highway[]
+      setHighways(Array.isArray(data) ? data.slice(0, 10) : [])
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'load failed')

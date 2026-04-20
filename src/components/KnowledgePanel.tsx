@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { sdk } from '@/lib/sdk'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -149,13 +150,16 @@ export function KnowledgePanel() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [hRes, fRes] = await Promise.all([fetch('/api/hypotheses'), fetch('/api/frontiers')])
-      if (hRes.ok) {
-        const hData = (await hRes.json()) as any
-        if (hData.hypotheses?.length) setHypotheses(hData.hypotheses)
+      const [hData, fRes] = await Promise.all([
+        sdk.recall().catch(() => null),
+        fetch('/api/frontiers').catch(() => null),
+      ])
+      if (hData && typeof hData === 'object' && 'hypotheses' in hData) {
+        const hs = (hData as { hypotheses?: Hypothesis[] }).hypotheses
+        if (hs?.length) setHypotheses(hs)
       }
-      if (fRes.ok) {
-        const fData = (await fRes.json()) as any
+      if (fRes?.ok) {
+        const fData = (await fRes.json()) as { frontiers?: Frontier[] }
         if (fData.frontiers?.length) setFrontiers(fData.frontiers)
       }
     } catch {

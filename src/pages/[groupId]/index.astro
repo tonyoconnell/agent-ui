@@ -27,7 +27,7 @@ let units: PublicUnit[] = []
 
 try {
   const groupRows = await readParsed(`
-    match $g isa group, has group-id "${groupId}", has name $n;
+    match $g isa group, has gid "${groupId}", has name $n;
     select $n;
   `)
   if (groupRows.length > 0) {
@@ -36,7 +36,7 @@ try {
 
   const unitRows = await readParsed(`
     match
-      $g isa group, has group-id "${groupId}";
+      $g isa group, has gid "${groupId}";
       $u isa unit, has uid $id, has name $n;
       (member: $u, group: $g) isa membership;
     select $id, $n;

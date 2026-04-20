@@ -212,8 +212,8 @@ insert (source-task: $from, destination-task: $to) isa pheromone-trail,
 ```
 
 **Inference triggers:**
-- `fresh-trail` rule fires (trail-pheromone >= 10.0 AND < 70.0 AND completions < 10)
-- `attractive-task` rule may fire for $to if trail-pheromone >= 50.0
+- `trail_status($trail)` returns "fresh" (trail-pheromone >= 10.0 AND < 70.0 AND completions < 10)
+- `attractive_tasks()` includes $to if trail-pheromone >= 50.0
 - `exploratory_tasks()` no longer includes $to
 
 ---
@@ -238,8 +238,8 @@ insert $trail has trail-pheromone $new_tp,
 ```
 
 **Inference triggers:**
-- `proven-trail` rule fires when trail-pheromone >= 70.0 AND completions >= 10
-- `attractive-task` rule fires for destination when trail-pheromone >= 50.0
+- `trail_status($trail)` returns "proven" when trail-pheromone >= 70.0 AND completions >= 10
+- `attractive_tasks()` returns destination when trail-pheromone >= 50.0
 - `superhighway_trails()` includes trail when proven
 
 ---
@@ -264,8 +264,7 @@ insert $trail has alarm-pheromone $new_ap,
 ```
 
 **Inference triggers:**
-- `repelled-task` rule fires when alarm-pheromone >= 30.0 AND alarm > trail
-- `repelled_tasks()` includes destination task
+- `repelled_tasks()` includes destination task when alarm-pheromone >= 30.0 AND alarm > trail
 
 ---
 
@@ -415,7 +414,7 @@ insert $h has hypothesis-status "testing";
 
 **Inference triggers:**
 - `active_tests()` includes hypotheses with status "testing"
-- `hypothesis-action-ready` rule fires when status = "confirmed" AND p-value <= 0.05 AND observations >= 50
+- `is_action_ready($h)` returns true when status = "confirmed" AND p-value <= 0.05 AND observations >= 50
 
 ---
 
@@ -454,8 +453,8 @@ insert $h has hypothesis-status "confirmed",
 ```
 
 **Inference triggers:**
-- `hypothesis-action-ready` rule fires if observations >= 50
-- `actionable_hypotheses()` includes this hypothesis
+- `is_action_ready($h)` returns true if observations >= 50
+- `action_ready_hypotheses()` includes this hypothesis
 
 ---
 
@@ -670,11 +669,11 @@ HOMEOSTASIS (L2)
 
 HYPOTHESIS (L3)
   INSERT hypothesis → INSERT observation → UPDATE p-value
-  → hypothesis-action-ready rule fires
+  → is_action_ready($h) returns true → pipeline materializes action-ready
 
 TASK ALLOCATION (L4)
-  INSERT task → INSERT dependency → ready_tasks() calculates
-  INSERT pheromone-trail → attractive-task rule fires
+  INSERT task → INSERT dependency → ready_tasks() evaluates
+  INSERT pheromone-trail → attractive_tasks() includes destination
 
 CONTRIBUTION (L5)
   INSERT contribution → total_contribution() aggregates

@@ -457,10 +457,33 @@ export function getPaymentUrl(params: {
 }
 
 /**
- * Generate a QR code URL
+ * Generate a QR code image URL for an arbitrary payload (URL, address, etc.)
+ *
+ * Uses api.qrserver.com — free, CORS-open, returns a PNG. The previous
+ * `pay.one.ie/qr?address=&chain=` endpoint 404s; scanning a raw address
+ * is also worse UX than scanning the full pay.one.ie checkout URL because
+ * wallets do different things with bare addresses vs. URIs.
+ */
+export function getPaymentQRForData(data: string, size: number = 280): string {
+  const base = 'https://api.qrserver.com/v1/create-qr-code/'
+  const q = new URLSearchParams({
+    size: `${size}x${size}`,
+    data,
+    margin: '4',
+    bgcolor: 'ffffff', // white bg keeps wallet cameras happy
+    color: '000000',
+    qzone: '2',
+  })
+  return `${base}?${q.toString()}`
+}
+
+/**
+ * Generate a QR code URL for a receive-address card. Encodes the full
+ * pay.one.ie/pay URL so scanning opens a funded checkout, not a bare address.
  */
 export function getPaymentQRUrl(address: string, chain: string = 'eth'): string {
-  return `https://pay.one.ie/qr?address=${address}&chain=${chain}`
+  const payUrl = getPaymentUrl({ to: address, chain })
+  return getPaymentQRForData(payUrl)
 }
 
 /**

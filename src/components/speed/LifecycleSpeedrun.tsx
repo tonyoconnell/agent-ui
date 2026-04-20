@@ -19,7 +19,17 @@ import { cn } from '@/lib/utils'
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type Status = 'idle' | 'running' | 'done' | 'error'
-type StageKey = 'wallet' | 'fund' | 'list' | 'discover' | 'message' | 'sell' | 'subscribe' | 'browse' | 'buy' | 'verify'
+type StageKey =
+  | 'wallet'
+  | 'fund'
+  | 'list'
+  | 'discover'
+  | 'message'
+  | 'sell'
+  | 'subscribe'
+  | 'browse'
+  | 'buy'
+  | 'advocate'
 
 interface StageRow {
   key: StageKey
@@ -29,16 +39,16 @@ interface StageRow {
 }
 
 const STAGES: StageRow[] = [
-  { key: 'wallet', idx: 0, label: 'Create Wallet', hint: 'derive Sui address' },
-  { key: 'fund', idx: 1, label: 'Fund Wallet', hint: 'testnet faucet → real SUI' },
-  { key: 'list', idx: 2, label: 'List Service', hint: 'register skill [sell, test]' },
-  { key: 'discover', idx: 3, label: 'Discover', hint: 'buyer finds seller' },
-  { key: 'message', idx: 4, label: 'Message', hint: 'first signal' },
-  { key: 'sell', idx: 5, label: 'Sell', hint: 'receive payment' },
-  { key: 'subscribe', idx: 6, label: 'Subscribe', hint: 'subscribe to [buy]' },
-  { key: 'browse', idx: 7, label: 'Browse', hint: 'marketplace query' },
-  { key: 'buy', idx: 8, label: 'Buy', hint: 'spend earnings' },
-  { key: 'verify', idx: 9, label: 'Verify', hint: 'real chain data' },
+  { key: 'wallet', idx: 0, label: 'Create Wallet', hint: 'derive Sui address · zero' },
+  { key: 'fund', idx: 1, label: 'Fund Wallet', hint: 'testnet faucet → real SUI · zero' },
+  { key: 'list', idx: 2, label: 'List Service', hint: 'register skill · seller' },
+  { key: 'discover', idx: 3, label: 'Discover', hint: 'buyer finds seller · seller' },
+  { key: 'message', idx: 4, label: 'Message', hint: 'first signal · seller' },
+  { key: 'sell', idx: 5, label: 'Sell', hint: 'receive payment · seller' },
+  { key: 'subscribe', idx: 6, label: 'Subscribe', hint: 'subscribe to [buy] · buyer' },
+  { key: 'browse', idx: 7, label: 'Browse', hint: 'marketplace query · buyer' },
+  { key: 'buy', idx: 8, label: 'Buy', hint: 'spend earnings · buyer' },
+  { key: 'advocate', idx: 9, label: 'Advocate', hint: 'harden path → hypothesis → referral earnings' },
 ]
 
 interface StageData {
@@ -56,6 +66,7 @@ interface ChainData {
   funded: boolean
   earned: number
   spent: number
+  hardened: number
   digests: { stage: string; digest: string }[]
 }
 
@@ -117,6 +128,7 @@ export function LifecycleSpeedrun() {
     funded: false,
     earned: 0,
     spent: 0,
+    hardened: 0,
     digests: [],
   })
   const [totalMs, setTotalMs] = useState(0)
@@ -162,6 +174,7 @@ export function LifecycleSpeedrun() {
       funded: false,
       earned: 0,
       spent: 0,
+      hardened: 0,
       digests: [],
     }
 
@@ -411,14 +424,42 @@ export function LifecycleSpeedrun() {
     })
     up()
 
-    // ── 9 VERIFY ─────────────────────────────────────────────
-    tick(
-      'verify',
-      { ms: 0, ok: true },
-      {
-        note: 'all data collected — open verification panel',
-      },
-    )
+    // ── 9 ADVOCATE ───────────────────────────────────────────
+    // Agent has now sold AND bought — it has proven a path.
+    // Mark the quality of the exchange, then query highways to
+    // confirm the path has graduated. The substrate's L6 know()
+    // loop promotes highways to permanent hypotheses; advocates
+    // earn Layer-2 referral fees on future traffic through their path.
+    const rAdv = await timed(async () => {
+      const [dimsRes, highwaysRes] = await Promise.all([
+        postJson('/api/loop/mark-dims', {
+          edge: `${sellerUid}→${buyerUid}`,
+          fit: 0.9,
+          form: 0.85,
+          truth: 0.9,
+          taste: 0.85,
+          source: 'advocate',
+        }).catch(() => ({ ok: false })),
+        getJson('/api/loop/highways', 5000).catch(() => ({ highways: [] })),
+      ])
+      const highways = Array.isArray((highwaysRes as Record<string, unknown>)?.highways)
+        ? ((highwaysRes as Record<string, unknown>).highways as unknown[])
+        : []
+      return { dims: dimsRes, highways, highwayCount: highways.length }
+    })
+    const advd = rAdv.data as Record<string, unknown> | undefined
+    ch.hardened = Number(advd?.highwayCount ?? 0)
+    tick('advocate', rAdv, {
+      edge: `${sellerUid} → ${buyerUid}`,
+      scores: { fit: 0.9, form: 0.85, truth: 0.9, taste: 0.85 },
+      highwaysNow: ch.hardened,
+      hypothesis:
+        ch.hardened > 0
+          ? 'path qualified for L6 know() — will harden on next tick'
+          : 'path strengthened — more signals needed',
+      earns: 'Layer-2 referral fees on future traffic through this path',
+      note: 'advocate stage complete — arc: zero → seller → buyer → advocate',
+    })
     up()
 
     // Functional merge so any background-mint digests that already landed
@@ -510,7 +551,7 @@ export function LifecycleSpeedrun() {
                       : 'bg-slate-600',
               )}
             />
-            <h2 className="text-lg font-medium text-slate-100">Sell-First Lifecycle</h2>
+            <h2 className="text-lg font-medium text-slate-100">Zero → Seller → Buyer → Advocate</h2>
           </div>
           <span className="font-mono text-sm text-cyan-400">{formatMs(totalMs)}</span>
         </div>
@@ -712,6 +753,7 @@ function VerifyDialog({
       earned: chain.earned,
       spent: chain.spent,
       net: chain.earned - chain.spent,
+      hardened: chain.hardened,
       digests: chain.digests,
       stages: Object.fromEntries(Object.entries(stages).map(([k, v]) => [k, { ms: v?.ms, ok: v?.ok }])),
       totalMs: Math.round(totalMs),
@@ -729,7 +771,7 @@ function VerifyDialog({
         <DialogHeader>
           <DialogTitle className="text-slate-100">Chain Verification</DialogTitle>
           <DialogDescription className="text-slate-400">
-            {passCount}/{Object.keys(stages).length} stages in {formatMs(totalMs)}. Real Sui testnet data.
+            {passCount}/{Object.keys(stages).length} stages in {formatMs(totalMs)}. Zero → Seller → Buyer → Advocate.
           </DialogDescription>
         </DialogHeader>
 
@@ -758,7 +800,7 @@ function VerifyDialog({
           {/* Economics */}
           <section>
             <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-2">Economics</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               <div className="text-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
                 <div className="text-lg font-mono text-emerald-400">{chain.earned}</div>
                 <div className="text-[10px] uppercase tracking-wider text-slate-500">Earned (SUI)</div>
@@ -770,6 +812,10 @@ function VerifyDialog({
               <div className="text-center rounded-lg bg-violet-500/10 border border-violet-500/20 p-3">
                 <div className="text-lg font-mono text-violet-400">{(chain.earned - chain.spent).toFixed(4)}</div>
                 <div className="text-[10px] uppercase tracking-wider text-slate-500">Net (SUI)</div>
+              </div>
+              <div className="text-center rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-3">
+                <div className="text-lg font-mono text-cyan-400">{chain.hardened}</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-500">Highways</div>
               </div>
             </div>
           </section>

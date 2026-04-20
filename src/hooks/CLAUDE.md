@@ -7,15 +7,15 @@
 Hooks connect React components to the substrate's learning state. Future hooks will expose pheromone data, highway state, and rubric scores as reactive values — the UI learns as the graph learns.
 
 **Context:**
-- [DSL.md](../../docs/DSL.md) — signal grammar hooks will expose
-- [speed.md](../../docs/speed.md) — why real-time reactivity is possible (`<10ms` KV reads)
-- [dictionary.md](../../docs/dictionary.md) — canonical names for signal, unit, path, and strength used in hook return types
-- [routing.md](../../docs/routing.md) — hooks sit at the L1 boundary (signal delivery) and L2 boundary (trail observation)
-- [rubrics.md](../../docs/rubrics.md) — future hooks will expose rubric scores (fit/form/truth/taste) as reactive values per agent response
-- [lifecycle.md](../../docs/lifecycle.md) — `use-task-websocket.ts` surfaces agent lifecycle events (register→signal→highway→harden) that hooks consume
-- [patterns.md](../../docs/patterns.md) — hook state machines (pending→streaming→settled) mirror substrate state machines from patterns.md
-- [buy-and-sell.md](../../docs/buy-and-sell.md) — payment signal events (x402 receipts at SETTLE step) will be observable via hooks
-- [revenue.md](../../docs/revenue.md) — Layer 2 discovery signals flow through `streamSignals.ts` and are consumed by `useChat`-family hooks
+- [DSL.md](one/DSL.md) — signal grammar hooks will expose
+- [speed.md](one/speed.md) — why real-time reactivity is possible (`<10ms` KV reads)
+- [dictionary.md](dictionary.md) — canonical names for signal, unit, path, and strength used in hook return types
+- [routing.md](routing.md) — hooks sit at the L1 boundary (signal delivery) and L2 boundary (trail observation)
+- [rubrics.md](rubrics.md) — future hooks will expose rubric scores (fit/form/truth/taste) as reactive values per agent response
+- [lifecycle.md](one/lifecycle.md) — `use-task-websocket.ts` surfaces agent lifecycle events (register→signal→highway→harden) that hooks consume
+- [patterns.md](one/patterns.md) — hook state machines (pending→streaming→settled) mirror substrate state machines from patterns.md
+- [buy-and-sell.md](buy-and-sell.md) — payment signal events (x402 receipts at SETTLE step) will be observable via hooks
+- [revenue.md](one/revenue.md) — Layer 2 discovery signals flow through `streamSignals.ts` and are consumed by `useChat`-family hooks
 
 ## Files
 

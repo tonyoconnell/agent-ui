@@ -60,6 +60,10 @@ export default defineConfig({
         "shiki",
         "@shikijs/core",
         "@shikijs/types",
+        // Stripe: server SDK used in /api/pay/stripe/* — large, keep out of worker bundle
+        "stripe",
+        "@stripe/react-stripe-js",
+        "@stripe/stripe-js",
       ],
     },
     build: {

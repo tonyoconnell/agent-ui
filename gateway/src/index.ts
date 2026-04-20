@@ -118,6 +118,7 @@ const CORS_ORIGINS = [
   'http://localhost:4321',
   'http://localhost:3000',
   'https://one.ie',
+  'https://dev.one.ie',
   'https://app.one.ie',
   'https://www.one.ie',
 ]

@@ -616,16 +616,61 @@ import { group, unit } from "@/engine/world"
 import { Card } from "@/components/ui/card"
 ```
 
+## SDK
+
+`@oneie/sdk` is workspace-linked. **Browser and scripts only** — server-side Astro routes must call the engine directly (fetch → own endpoint is pointless latency).
+
+```typescript
+// Browser React: import the singleton (same-origin via window.location.origin)
+import { sdk } from "@/lib/sdk"
+const stats = await sdk.stats()
+const highways = await sdk.highways(10)
+const data = await sdk.exportData("units")
+
+// React hooks: wrap island in <SdkProvider>, then use hooks
+import { SdkProvider } from "@/components/providers/SdkProvider"
+import { useAgentList, useHighways, useStats } from "@oneie/sdk/react"
+
+function MyComponent() {
+  const { data, loading, refetch } = useAgentList()
+  const { data: highways } = useHighways(10)
+}
+
+// Scripts: construct an explicit client
+import { SubstrateClient } from "@oneie/sdk"
+const client = new SubstrateClient({ baseUrl: process.env.ONE_API_URL })
+```
+
+**React Hooks:** `useAgent(uid)`, `useAgentList()`, `useDiscover(skill)`, `useHighways(limit)`, `useStats()`, `useHealth()`, `useRevenue()`, `useRecall(status?)`
+
+**CLI uses SDK internally:** `packages/cli` imports `@oneie/sdk` — commands call `getClient().<method>()`. See `one/sdk-cli-integration.md`.
+
+Every SDK call emits `toolkit:sdk:<method>` to `/api/signal` — pheromone tracks which client surfaces are used.
+
+## Telemetry
+
+**Every surface emits signals. The graph learns what works.**
+
+| Surface | Receiver Pattern | Tags | File |
+|---------|------------------|------|------|
+| SDK | `toolkit:sdk:<method>` | `[telemetry, ...]` | `packages/sdk/src/telemetry.ts` |
+| CLI | `toolkit:cli:<verb>` | `[telemetry, cli, verb, node-N, platform]` | `packages/cli/src/lib/telemetry.ts` |
+| MCP | `toolkit:mcp:<tool>` | `[telemetry, mcp, tool]` | `packages/mcp/src/telemetry.ts` |
+| UI | `ui:<surface>:<action>` | `[ui, click, surface, action]` | `src/lib/ui-signal.ts` |
+| API | `api:<route>:<method>` | `[telemetry, api, method, status]` | `src/lib/telemetry.ts` |
+
+Tags become paths. Paths become highways. The install base IS the learning signal.
+Rate limit: 100-500/hour per session. Opt-out: `ONEIE_TELEMETRY_DISABLE=1` or `~/.oneie/config.json`.
+
+See `one/telemetry.md` for full architecture.
+
 ## Deploy
 
 **One script. Same code path locally and in CI. `wrangler` CLI direct + async parallel workers.**
 
-> **Migration in progress (2026-04-18):** Astro 5 + CF Pages → Astro 6 + CF Workers
-> with Static Assets. Cycles 1-2 shipped on `feature/cf-workers-migration-c1-c2`;
-> Cycle 3 W3 partial — `PUBLIC_GATEWAY_URL` env fix in `deploy.yml` + DNS flip
-> tool `scripts/cf-cutover.ts` both ready; pending redeploy + health verify +
-> `bun run cf-cutover --execute`.
-> See [docs/TODO-cf-workers-migration.md](docs/TODO-cf-workers-migration.md).
+> **Migration complete (2026-04-18):** Astro 6 + `@astrojs/cloudflare@13` + CF Workers
+> with Static Assets. `dev.one.ie` serves the `one-substrate` Worker; 140 units healthy.
+> Pages project paused at `one-substrate.pages.dev` as rollback safety net.
 
 ### Deploy
 ```bash
@@ -635,9 +680,6 @@ bun run deploy -- --strict        # no flaky test allowance
 bun run deploy -- --preview-only  # build + smoke only
 bun run deploy -- --skip-tests    # skip W0 (risky)
 DEPLOY_CONFIRM=yes bun run deploy # non-interactive approval (CI)
-
-bun run cf-cutover                # Pages→Workers DNS flip, dry-run (safe)
-bun run cf-cutover --execute      # real cutover: route + detach + verify + signal
 ```
 
 ### GitHub Actions (CI) — `.github/workflows/deploy.yml`
@@ -658,17 +700,16 @@ Required secrets: `CLOUDFLARE_GLOBAL_API_KEY`, `CLOUDFLARE_EMAIL`, `CLOUDFLARE_A
 7. Deploy — Gateway + Sync + NanoClaw **parallel** (24s), then Astro Worker (~16s)
 8. Health — 3 retries with backoff + record to substrate via `/api/signal`
 
-**Verified speed (2026-04-15, pre-migration):** 74.9s total.
-Workers parallel 16.7s (vs ~42s sequential — 2.5× speedup) • Pages 29.6s • health 4/4 in 287-666ms.
-Preview URL format: pre-migration `📎 https://<hash>.one-substrate.pages.dev`;
-post-migration `📎 https://one-substrate.<account>.workers.dev` (regex matches both during the transition).
+**Verified speed (2026-04-15):** 74.9s total.
+Workers parallel 16.7s (vs ~42s sequential — 2.5× speedup) • Astro Worker 29.6s • health 4/4 in 287-666ms.
+Preview URL: `📎 https://one-substrate.<account>.workers.dev`
 
 **CF bundle size — LOCKED rules (do not revert, apply to Pages AND Workers):**
 Three rules keep the SSR worker under the CF free-tier limit (~10 MiB uncompressed):
 1. `markdown: { syntaxHighlight: false }` — kills ~5.8 MiB of Shiki grammars from worker
 2. `ssr.external: ["shiki", "@mysten/sui", "@mysten/bcs", "node:async_hooks"]` — bare import references without inlining; safe only when the package is never called server-side (`shiki` callers are all `client:only`)
 3. Pure-shell pages use `export const prerender = true` + `client:only="react"` — component tree stays out of worker, page handler collapses to 63-byte stub
-Verified 2026-04-15: 21 MiB → 9.5 MiB. Pages: FAILED → ✓. Full diagnosis: `docs/deploy.md` § Bundle Size.
+Verified 2026-04-15: 21 MiB → 9.5 MiB. Workers deploy: ✓. Full diagnosis: `docs/deploy.md` § Bundle Size.
 
 **Auth is non-negotiable:** Global API Key only. `.env` stores it as `CLOUDFLARE_GLOBAL_API_KEY`, script maps to `CLOUDFLARE_API_KEY` for wrangler and blanks `CLOUDFLARE_API_TOKEN` in the spawned env. Scoped tokens are forbidden — they lack permissions for workers + custom domains. See `/cloudflare` skill.
 
@@ -850,10 +891,15 @@ They must stay in sync with `src/engine/loop.ts`, `src/schema/*.tql`, and each o
 | `docs/speed.md` | Performance benchmarks — routing `<0.005ms`, gateway `<10ms`, TTFB `<200ms` | `gateway/`, `src/lib/edge.ts`, all API routes |
 | `docs/patterns.md` | Reusable patterns — closed loop, deterministic sandwich, zero returns, toxicity | `world.ts`, `persist.ts`, `.claude/rules/engine.md` |
 | `docs/sdk.md` | SDK contract — register, discover, hire, earn | Public API surface |
+| `one/backend-tutorial.md` | **DEVELOPER GUIDE** — auth → six verbs → commerce → memory → tiers → deploy. 15 parts, machine-verified against source. Entry point for external developers. | `packages/sdk/src/client.ts`, `src/lib/tier-limits.ts`, all API routes |
+| `one/quickstart-baas.md` | 5-minute first signal — API key + SDK init | `src/pages/api/auth/agent.ts` |
+| `one/quickstart-workers.md` | 3-command CF Workers deploy | `packages/cli/src/commands/init.ts` |
 | `docs/world-map-page.md` | BUILD SPEC — /world page design, direct manipulation, personas, visitor mode, 12-component limit | `src/pages/world.astro`, `src/components/WorldMap/*` |
 | `docs/TODO-governance.md` | **GOVERNANCE** — Permission = Role × Pheromone. Schema locked 2026-04-18. Auth implementation + UI + federation. | `src/schema/one.tql`, `src/lib/role-check.ts`, `src/engine/persist.ts` |
 | `docs/auth.md` | Auth implementation — API key flows, role lookup, session management | `src/lib/api-auth.ts`, `src/lib/role-check.ts` |
 | `docs/loop-close.md` | **LOOP CLOSE** — verify→signal→propagate; one `do:close` signal, one learnings log, hard cycle gate | `.claude/commands/close.md`, `.claude/commands/do.md`, `docs/learnings.md` |
+| `one/telemetry.md` | **TELEMETRY** — distributed pheromone from SDK/CLI/MCP/UI/API; tags→paths→highways; install base = learning | `packages/*/src/telemetry.ts`, `src/lib/telemetry.ts`, `src/lib/ui-signal.ts` |
+| `one/do.md` | **TASK MANAGEMENT** — /do tutorial, intent mode, skill pre-flight, wave mechanics, learning flywheel | `.claude/commands/do.md`, `one/template-plan.md` |
 
 **Sync rules:**
 - File references in docs must match actual engine filenames

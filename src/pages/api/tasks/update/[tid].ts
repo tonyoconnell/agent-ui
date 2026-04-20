@@ -36,7 +36,17 @@ export const PATCH: APIRoute = async ({ params, request }) => {
   }
 
   // Update local store first (always works)
-  const updated = store.updateTask(tid, { status: status as store.ProjectTask['status'] })
+  // Map legacy status to canonical task_status
+  type TaskStatus = 'open' | 'blocked' | 'picked' | 'done' | 'verified' | 'failed' | 'dissolved'
+  const canonicalStatus: TaskStatus =
+    status === 'todo'
+      ? 'open'
+      : status === 'in_progress'
+        ? 'picked'
+        : status === 'complete'
+          ? 'verified'
+          : (status as TaskStatus)
+  const updated = store.updateTask(tid, { task_status: canonicalStatus })
 
   // Cascade unblock if completing
   let unblocked: string[] = []
@@ -62,20 +72,14 @@ export const PATCH: APIRoute = async ({ params, request }) => {
   // Broadcast status change to all connected clients
   const taskUpdateMsg = {
     type: 'task-update' as const,
-    task: { tid, name: updated?.name || tid, status },
-    timestamp: Date.now(),
+    task: { tid, name: updated?.name || tid, task_status: canonicalStatus },
   }
   wsManager.broadcast(taskUpdateMsg)
   relayToGateway(taskUpdateMsg)
 
   // Broadcast unblock events for cascaded tasks
   for (const unblockedTid of unblocked) {
-    const unblockMsg = {
-      type: 'unblock' as const,
-      taskId: unblockedTid,
-      unblockedBy: tid,
-      timestamp: Date.now(),
-    }
+    const unblockMsg = { type: 'unblock' as const, tid: unblockedTid }
     wsManager.broadcast(unblockMsg)
     relayToGateway(unblockMsg)
   }

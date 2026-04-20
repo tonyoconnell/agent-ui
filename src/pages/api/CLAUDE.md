@@ -202,6 +202,21 @@ Organization and team structures.
 
 | Route | Method | Purpose |
 |-------|--------|---------|
+| `/api/groups` | GET | List groups (own + public for authed, public-only for anon) |
+| `/api/groups` | POST | Create group (auth required; auto-adds creator as chairman) |
+| `/api/groups/:gid` | GET | Group details (403 if private + non-member) |
+| `/api/groups/:gid` | PATCH | Update group (update_group permission) |
+| `/api/groups/:gid` | DELETE | Delete group + cascade (delete_group permission) |
+| `/api/groups/:gid/members` | GET | List members (members only) |
+| `/api/groups/:gid/invite` | POST | Invite a unit to a private group (invite_member permission) |
+| `/api/groups/:gid/role` | PATCH | Change member role; ownership transfer auto-demotes |
+| `/api/groups/join` | POST | Join a group (public: auto; private: 403 invite required) |
+| `/api/groups/leave` | POST | Leave a group (personal or chairman: 409) |
+| `/api/paths/bridge` | POST | Federation handshake — two chairmen bridge two groups |
+| `/api/paths/bridge` | DELETE | Dissolve a bridge path |
+| `/api/inbox/:uid` | GET | Unified signal inbox across all memberships |
+| `/api/in/sessions` | GET | Owner inbox session bus — list sessions or fetch by `?sessionId=` |
+| `/api/in/sessions` | POST | Upsert session message `{sessionId, sender, content}` — bridges `/chat` → `/in` |
 | `/api/export/groups` | GET | All groups with members |
 | `/api/team` | GET | Team structure for current world |
 
@@ -219,6 +234,19 @@ Organization and team structures.
 | `/api/revenue` | GET | Revenue by path |
 | `/api/absorb` | POST | Poll Sui events, sync to TypeDB (bridge) |
 | `/api/ws` | GET | WebSocket upgrade for real-time updates |
+
+### Pay Routes
+
+C3 port. All routes emit `substrate:pay` on success. ADL PEP-3/3.5/4 gates applied on every request. See [one/pay-todo.md](../../one/pay-todo.md) and [one/pay-plan.md](../../one/pay-plan.md) for full contract.
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/pay/create-link` | POST | Create card or crypto payment link; emits `substrate:pay` with `status: pending`. ADL lifecycle/network/schema gates applied. Body: `{skill, price, rail: "card"|"crypto"|"auto", memo?}` |
+| `/api/pay/status/[ref]` | GET | Check payment status; detects `pi_ / 0x / sl_` prefix to route to Stripe or pay.one.ie |
+| `/api/pay/status/[ref]` | DELETE | Cancel a pending payment by ref |
+| `/api/pay/stripe/create-intent` | POST | Stripe PaymentIntent creation (server-side cart validation against `capability` relation) |
+| `/api/pay/stripe/confirm` | POST | Stripe confirm handler; marks path on success |
+| `/api/pay/stripe/webhook` | POST | Stripe webhook; verifies signature, redacts `pan/cvc/buyer.email` before emitting `substrate:pay`; refund/dispute events emit `warn()` |
 
 ### Export Endpoints
 
@@ -309,3 +337,5 @@ POST /api/claw       → generate config → deploy → tools available
 - [buy-and-sell.md](../../docs/buy-and-sell.md) — Four-step trade mechanics: `/api/pay`, `/api/revenue`, `/api/agents/:id/capabilities` are the commerce surface
 - [revenue.md](../../docs/revenue.md) — Five revenue layers; `/api/signal` = Layer 1 toll, `/api/agents/discover` = Layer 2, `/api/stats` (revenue field) = Layer 4 take rate
 - [patterns.md](../../docs/patterns.md) — Canonical code patterns: zero returns, closed loop, toxicity guard, agent identity
+- [one/pay-todo.md](../../one/pay-todo.md) — C3 port task list for the pay surface
+- [one/pay-plan.md](../../one/pay-plan.md) — Locked W2 decision: target layout, SDK shape, MCP tools, ADL gates

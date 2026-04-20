@@ -64,7 +64,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     await write(`
-      match $u isa unit, has uid "${uid}"; $g isa group, has group-id "${gid}";
+      match $u isa unit, has uid "${uid}"; $g isa group, has gid "${gid}";
       insert (member: $u, group: $g) isa membership;
     `)
   } catch (err) {

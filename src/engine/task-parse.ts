@@ -15,6 +15,9 @@
  *     tags: marketing, build, P0
  */
 
+import type { Task } from '@/types/task'
+import { priorityFromLabel } from '@/types/task'
+
 let _node: { readdir: any; readFile: any; join: any; basename: any } | null = null
 async function node() {
   if (_node) return _node
@@ -46,7 +49,7 @@ export const WAVE_MODEL: Record<Wave, string> = {
   W4: 'sonnet',
 }
 
-export interface Task {
+export interface ParsedTask {
   id: string
   name: string
   done: boolean
@@ -121,10 +124,10 @@ function slugify(text: string): string {
 const CHECKBOX = /^- \[([ x])\] (.+)$/
 const META = /^ {2}(\w[\w-]*):\s*(.+)$/
 
-export function parseTodoFile(content: string, source: string): Task[] {
+export function parseTodoFile(content: string, source: string): ParsedTask[] {
   const lines = content.split('\n')
-  const tasks: Task[] = []
-  let current: Partial<Task> | null = null
+  const tasks: ParsedTask[] = []
+  let current: Partial<ParsedTask> | null = null
   let currentLine = 0
 
   const flush = () => {
@@ -262,7 +265,7 @@ export function parseTodoFile(content: string, source: string): Task[] {
 
 // ── Scan all TODO-*.md files ────────────────────────────────────────────
 
-export async function scanTodos(docsDir: string): Promise<Task[]> {
+export async function scanTodos(docsDir: string): Promise<ParsedTask[]> {
   const { readdir, readFile, join, basename } = await node()
   const entries = await readdir(docsDir).catch(() => [])
   const todoFiles = entries.filter(
@@ -270,7 +273,7 @@ export async function scanTodos(docsDir: string): Promise<Task[]> {
     (f: string) => f.startsWith('TODO-') && f.endsWith('.md') && !/^TODO-template.*\.md$/.test(f),
   )
 
-  const all: Task[] = []
+  const all: ParsedTask[] = []
   for (const file of todoFiles) {
     const content = await readFile(join(docsDir, file), 'utf-8')
     const source = basename(file, '.md').replace('TODO-', '')
@@ -285,4 +288,43 @@ export async function scanTodos(docsDir: string): Promise<Task[]> {
     seen.add(t.id)
     return true
   })
+}
+
+// ── Canonical mapper ────────────────────────────────────────────────────
+
+/**
+ * Convert a ParsedTask (from markdown) to a canonical Task.
+ * Omits pheromone fields (strength/resistance) — those come from the DB.
+ */
+export function parsedToCanonical(p: ParsedTask): Omit<Task, 'strength' | 'resistance'> {
+  return {
+    tid: p.id,
+    thing_type: 'task',
+    name: p.name,
+    task_status: p.done ? 'verified' : 'open',
+    task_wave: (p.wave as any) ?? null,
+    task_priority: typeof p.priority === 'number' ? p.priority : priorityFromLabel('P2'),
+    task_effort: typeof p.effort === 'number' ? p.effort : 0.5,
+    task_value: valueEnumToNumber(p.value),
+    task_variant: null,
+    exit_condition: p.exit,
+    tags: p.tags ?? [],
+    blocks: p.blocks ?? [],
+    blocked_by: [],
+  }
+}
+
+function valueEnumToNumber(v: 'critical' | 'high' | 'medium' | 'low' | undefined): number {
+  switch (v) {
+    case 'critical':
+      return 0.95
+    case 'high':
+      return 0.75
+    case 'medium':
+      return 0.5
+    case 'low':
+      return 0.25
+    default:
+      return 0.5
+  }
 }

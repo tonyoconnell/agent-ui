@@ -491,8 +491,7 @@ workflow_dispatch →  manual trigger
 
 - `docs/TODO-cf-workers-migration.md` — C1+C2+C3 shipped; cutover live on `dev.one.ie`
 - `docs/deploy.md` — 8-step pipeline, bundle diagnosis, LOCKED rules
-- `.claude/commands/deploy.md` — pipeline script + bundle rules
-- `.claude/skills/deploy.md` — skill version
+- `.claude/commands/deploy.md` — pipeline script + bundle rules + known-flaky + first-time setup (merged from skills/deploy.md 2026-04-19)
 - [CF Workers Static Assets docs](https://developers.cloudflare.com/workers/static-assets/)
 - [wrangler 4 configuration](https://developers.cloudflare.com/workers/wrangler/configuration/)
 - [CF Workers framework guide — Astro](https://developers.cloudflare.com/workers/frameworks/framework-guides/astro/)

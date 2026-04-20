@@ -1,12 +1,28 @@
 /**
- * GET /api/agents/detail?id=group:name — Read a single agent from markdown
+ * GET /api/agents/detail?id=group:name — Read a single agent from TypeDB
  *
  * Returns full agent spec including system prompt for chat.
+ * Replaces filesystem scan (broken on CF Workers Static Assets).
  */
 
-import { readdir, readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import type { APIRoute } from 'astro'
+import { readParsed } from '@/lib/typedb'
+
+// Map data-sensitivity enum → number (inverse of agent-md.ts:173-177)
+function sensitivityToNumber(raw: unknown): number {
+  switch (raw) {
+    case 'public':
+      return 0.3
+    case 'internal':
+      return 0.5
+    case 'confidential':
+      return 0.7
+    case 'restricted':
+      return 0.9
+    default:
+      return 0.5
+  }
+}
 
 export const GET: APIRoute = async ({ url }) => {
   const id = url.searchParams.get('id')
@@ -14,86 +30,134 @@ export const GET: APIRoute = async ({ url }) => {
     return Response.json({ error: 'id parameter required' }, { status: 400 })
   }
 
-  // Parse id: "group:name" or just "name"
-  const parts = id.split(':')
-  const name = parts.length > 1 ? parts[parts.length - 1] : parts[0]
-  const group = parts.length > 1 ? parts[0] : null
+  // Sanitise: reject any id containing quote characters to prevent TQL injection
+  const safeId = id.replace(/["\\]/g, '')
 
-  const agentsDir = join(process.cwd(), 'agents')
+  // ── Stage 1: unit core attrs ──────────────────────────────────────────────
+  const unitRows = await readParsed(`
+    match
+      $u isa unit, has uid "${safeId}",
+        has name $name, has model $model, has system-prompt $sp;
+    select $name, $model, $sp;
+  `).catch(() => [])
 
-  // Search for the agent markdown file
-  const searchDirs = group
-    ? [join(agentsDir, group)]
-    : [
-        agentsDir,
-        ...(await readdir(agentsDir, { withFileTypes: true }).then((entries) =>
-          entries.filter((e) => e.isDirectory()).map((e) => join(agentsDir, e.name)),
-        )),
-      ]
+  if (unitRows.length === 0) {
+    return Response.json({ error: 'Agent not found' }, { status: 404 })
+  }
 
-  for (const dir of searchDirs) {
-    const entries = await readdir(dir).catch(() => [] as string[])
-    for (const file of entries) {
-      if (!file.endsWith('.md') || file === 'README.md') continue
-      const content = await readFile(join(dir, file), 'utf-8').catch(() => '')
-      if (!content) continue
+  const unitRow = unitRows[0]
+  const unitName = (unitRow.name as string) || safeId
+  const unitModel = (unitRow.model as string) || 'default'
+  const systemPrompt = (unitRow.sp as string) || ''
 
-      const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
-      if (!match) continue
+  // Optional: data-sensitivity (may not be present on every unit)
+  const sensitivityRows = await readParsed(`
+    match
+      $u isa unit, has uid "${safeId}", has data-sensitivity $ds;
+    select $ds;
+  `).catch(() => [])
+  const sensitivity = sensitivityRows.length > 0 ? sensitivityToNumber(sensitivityRows[0].ds) : 0.5
 
-      const nameMatch = match[1].match(/^name:\s*(.+)/m)
-      if (!nameMatch || nameMatch[1].trim() !== name) continue
+  // ── Stage 2: unit tags ────────────────────────────────────────────────────
+  const tagRows = await readParsed(`
+    match
+      $u isa unit, has uid "${safeId}", has tag $tag;
+    select $tag;
+  `).catch(() => [])
+  const tags = tagRows.map((r) => r.tag as string).filter(Boolean)
 
-      // Found the agent — parse it
-      const meta = match[1]
-      const body = match[2].trim()
+  // ── Stage 3: capabilities — inline literal uid (TypeDB 3.x rejects `$var in [...]` syntax)
+  // 3a: capability pairs for this unit
+  const capPairRows = await readParsed(`
+    match
+      (provider: $u, offered: $s) isa capability;
+      $u has uid "${safeId}";
+      $s has skill-id $sid;
+    select $sid;
+  `).catch(() => [])
 
-      const modelMatch = meta.match(/^model:\s*(.+)/m)
-      const groupMatch = meta.match(/^group:\s*(.+)/m)
-      const sensitivityMatch = meta.match(/^sensitivity:\s*(.+)/m)
+  const skillIds = [...new Set(capPairRows.map((r) => r.sid as string).filter(Boolean))]
 
-      // Parse channels
-      const channelsMatch = meta.match(/^channels:\s*\[([^\]]*)\]/m)
-      const channels = channelsMatch ? channelsMatch[1].split(',').map((s) => s.trim()) : []
+  const skills: { name: string; price: number; tags: string[]; description?: string }[] = []
 
-      // Parse skills (simplified)
-      const skills: { name: string; price: number; tags: string[]; description?: string }[] = []
-      const skillBlocks = meta.split(/\n\s+-\s+name:\s*/)
-      for (let i = 1; i < skillBlocks.length; i++) {
-        const block = skillBlocks[i]
-        const sName = block.split('\n')[0].trim()
-        const priceM = block.match(/price:\s*([\d.]+)/)
-        const tagsM = block.match(/tags:\s*\[([^\]]*)\]/)
-        const descM = block.match(/description:\s*(.+)/)
-        skills.push({
-          name: sName,
-          price: priceM ? Number(priceM[1]) : 0,
-          tags: tagsM ? tagsM[1].split(',').map((s) => s.trim()) : [],
-          description: descM ? descM[1].trim() : undefined,
-        })
+  if (skillIds.length > 0) {
+    // OR-chain instead of `$sid in [...]` which is not valid TypeQL in 3.x
+    const sidOr = skillIds.map((s) => `{$sid == "${s}";}`).join(' or ')
+
+    // 3b: skill core attrs
+    const skillAttrRows = await readParsed(`
+      match
+        $s isa skill, has skill-id $sid;
+        ${sidOr};
+        $s has name $sn, has price $sp;
+      select $sid, $sn, $sp;
+    `).catch(() => [])
+
+    // 3b-optional: skill descriptions (may not exist on every skill)
+    const skillDescRows = await readParsed(`
+      match
+        $s isa skill, has skill-id $sid;
+        ${sidOr};
+        $s has description $desc;
+      select $sid, $desc;
+    `).catch(() => [])
+
+    const descBySid: Record<string, string> = {}
+    for (const r of skillDescRows) {
+      if (r.sid && r.desc) descBySid[r.sid as string] = r.desc as string
+    }
+
+    // 3c: skill tags
+    const skillTagRows = await readParsed(`
+      match
+        $s isa skill, has skill-id $sid;
+        ${sidOr};
+        $s has tag $tag;
+      select $sid, $tag;
+    `).catch(() => [])
+
+    const tagsBySid: Record<string, string[]> = {}
+    for (const r of skillTagRows) {
+      const sid = r.sid as string | undefined
+      if (sid) {
+        tagsBySid[sid] = tagsBySid[sid] || []
+        tagsBySid[sid].push(r.tag as string)
       }
+    }
 
-      // Collect tags
-      const tagsMatch = meta.match(/^tags:\s*\[([^\]]*)\]/m)
-      const explicitTags = tagsMatch ? tagsMatch[1].split(',').map((s) => s.trim()) : []
-      const skillTags = skills.flatMap((s) => s.tags)
-      const allTags = [...new Set([...explicitTags, ...skillTags])]
-
-      const agentGroup = groupMatch ? groupMatch[1].trim() : group || 'standalone'
-
-      return Response.json({
-        id: `${agentGroup !== 'standalone' ? `${agentGroup}:` : ''}${name}`,
-        name,
-        group: agentGroup,
-        model: modelMatch ? modelMatch[1].trim() : 'default',
-        tags: allTags,
-        skills,
-        channels,
-        sensitivity: sensitivityMatch ? Number(sensitivityMatch[1]) : 0.5,
-        prompt: body,
+    for (const r of skillAttrRows) {
+      const sid = r.sid as string | undefined
+      if (!sid) continue
+      skills.push({
+        name: (r.sn as string) || sid,
+        price: (r.sp as number) || 0,
+        tags: tagsBySid[sid] || [],
+        description: descBySid[sid],
       })
     }
   }
 
-  return Response.json({ error: 'Agent not found' }, { status: 404 })
+  // ── Stage 4: group membership — inline literal uid
+  const membershipRows = await readParsed(`
+    match
+      (group: $g, member: $u) isa membership;
+      $u has uid "${safeId}";
+      $g has gid $gid;
+    select $gid;
+  `).catch(() => [])
+  const group = membershipRows.length > 0 ? (membershipRows[0].gid as string) : 'standalone'
+
+  const mergedTags = [...new Set([...tags, ...skills.flatMap((s) => s.tags)])].sort()
+
+  return Response.json({
+    id: safeId,
+    name: unitName,
+    group,
+    model: unitModel,
+    tags: mergedTags,
+    skills,
+    channels: [], // not stored in TypeDB — markdown-only field
+    sensitivity,
+    prompt: systemPrompt,
+  })
 }

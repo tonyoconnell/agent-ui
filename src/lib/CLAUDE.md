@@ -14,12 +14,15 @@
 | `utils.ts` | cn() and other utilities | `/shadcn` |
 | `net.ts` | In-process substrate network instance (pattern execution surface) | — |
 | `edge.ts` | In-process KV cache (`globalThis._edgeKvCache`), `kvInvalidate()` | — |
-| `api-auth.ts` | API request authentication middleware + `getRoleForUser(uid)` | — |
+| `api-auth.ts` | API request authentication middleware + `getRoleForUser(uid)` + `getGroupsForUser(uid, roles?)` | — |
 | `role-check.ts` | Governance role permission matrix: `roleCheck(role, action)`, `isGovernanceRole()` | — |
 | `api-key.ts` | API key generation and validation | — |
 | `streamSignals.ts` | SSE stream of substrate signals; carries agent lifecycle events | — |
 | `signalSender.ts` | HTTP helper to POST signals to `/api/signal` | — |
+| `claw-registry.ts` | `groupId → clawUrl` map + `getClawUrl(gid)` helper | — |
+| `sdk.ts` | `@oneie/sdk` singleton `SubstrateClient` for browser/scripts — same-origin via `window.location.origin`, retry on 5xx/429. **Preferred for all API calls.** | — |
 | `ui-signal.ts` | `emitClick(id, payload?)` — every UI onClick emits to substrate | `/react19` |
+| `telemetry.ts` | API telemetry — `emit()` writes `api:<route>:<method>` signals to TypeDB | — |
 | `security-signals.ts` | Emit security/audit signals (auth failure, rate-limit, toxicity) | — |
 | `claude-code-events.ts` | Bridge Claude Code hook events → substrate signals | — |
 | `tasks-store.ts` | In-memory task state store (pattern execution surface) | — |
@@ -78,7 +81,7 @@ mark() in engine  →  writeSilent() in typedb.ts  →  TypeDB Cloud
 
 `readParsed()` hydrates the in-memory state from TypeDB on boot. After that, the engine runs at memory speed. TypeDB catches up asynchronously via `writeSilent()`. This is why mark/warn is `<0.001ms` — the write to TypeDB is fire-and-forget.
 
-**Context:** [DSL.md](../../docs/DSL.md) — what flows through these clients. [routing.md](../../docs/routing.md) — lib is the persistence layer for the routing formula: `typedb.ts` reads/writes `path.strength` and `path.resistance` (the formula's inputs); `typedb.ts:decay()` IS `fade()` for the TypeDB layer; `streamSignals.ts` surfaces the four outcomes (result/timeout/dissolved/failure) as SSE events; `edge.ts` caches the formula inputs at 0ms for hot routing decisions. [speed.md](../../docs/speed.md) — why fire-and-forget matters (43,200 marks/day at memory speed). [buy-and-sell.md](../../docs/buy-and-sell.md) — `sui.ts` implements the on-chain settlement path: `pay()`, `send()`, `consume()` are Steps 3–4. [revenue.md](../../docs/revenue.md) — `typedb.ts` persists `path.revenue`; `sui.ts` moves the coin that IS that revenue. [dictionary.md](../../docs/dictionary.md) — canonical names for every type used here (`signal`, `mark`, `unit`, `edge`). [rubrics.md](../../docs/rubrics.md) — `rubric-score.ts` in `src/engine/` writes dimension scores via the TypeDB client here. [lifecycle.md](../../docs/lifecycle.md) — `streamSignals.ts` and `ws-server.ts` carry agent lifecycle events (register→signal→highway→harden). [patterns.md](../../docs/patterns.md) — `net.ts` and `tasks-store.ts` are pattern execution surfaces.
+**Context:** [DSL.md](one/DSL.md) — what flows through these clients. [routing.md](routing.md) — lib is the persistence layer for the routing formula: `typedb.ts` reads/writes `path.strength` and `path.resistance` (the formula's inputs); `typedb.ts:decay()` IS `fade()` for the TypeDB layer; `streamSignals.ts` surfaces the four outcomes (result/timeout/dissolved/failure) as SSE events; `edge.ts` caches the formula inputs at 0ms for hot routing decisions. [speed.md](one/speed.md) — why fire-and-forget matters (43,200 marks/day at memory speed). [buy-and-sell.md](buy-and-sell.md) — `sui.ts` implements the on-chain settlement path: `pay()`, `send()`, `consume()` are Steps 3–4. [revenue.md](one/revenue.md) — `typedb.ts` persists `path.revenue`; `sui.ts` moves the coin that IS that revenue. [dictionary.md](dictionary.md) — canonical names for every type used here (`signal`, `mark`, `unit`, `edge`). [rubrics.md](rubrics.md) — `rubric-score.ts` in `src/engine/` writes dimension scores via the TypeDB client here. [lifecycle.md](one/lifecycle.md) — `streamSignals.ts` and `ws-server.ts` carry agent lifecycle events (register→signal→highway→harden). [patterns.md](one/patterns.md) — `net.ts` and `tasks-store.ts` are pattern execution surfaces.
 
 ## TypeDB Client Usage
 

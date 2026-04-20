@@ -11,11 +11,19 @@
  *
  * Lifecycle gate: creates unit + capability relations in one call.
  * Rate limit: 10 wallet-link writes per uid per day (returns 429 if exceeded).
+ *
+ * BaaS tier gate (Cycle 1 T-B1-09): authenticated callers' agent counts
+ * are tracked in D1 `developer_agents` and capped by tier. Anonymous callers
+ * fall through (preserves zero-friction onboarding and existing tests).
  */
 
 import type { APIRoute } from 'astro'
 import { world } from '@/engine/persist'
+import { resolveUnitFromSession } from '@/lib/api-auth'
+import { getD1 } from '@/lib/cf-env'
+import { getAgentCount, recordAgent } from '@/lib/metering'
 import { addressFor } from '@/lib/sui'
+import { checkAgentLimit, tierLimitResponse } from '@/lib/tier-limits'
 import { writeSilent } from '@/lib/typedb'
 
 // In-memory rate limiter: uid → { count, day }
@@ -38,7 +46,7 @@ function checkRateLimit(uid: string): boolean {
   return true
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = (await request.json()) as {
       uid?: string
@@ -50,6 +58,35 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (!body.uid) {
       return Response.json({ error: 'uid required' }, { status: 400 })
+    }
+
+    // Gate stage-9: validate capability scope BEFORE any side effects
+    if (Array.isArray(body.capabilities)) {
+      for (const cap of body.capabilities as Array<Record<string, unknown>>) {
+        const scope = cap.scope as string | undefined
+        if (scope === 'private') {
+          return Response.json(
+            {
+              error: 'capability scope cannot be private — capabilities must be discoverable',
+              gate: 'stage-9',
+              valid: ['group', 'public'],
+            },
+            { status: 400 },
+          )
+        }
+        if (!scope) cap.scope = 'group'
+      }
+    }
+
+    // BaaS tier gate (opportunistic — anonymous callers fall through).
+    // Enforced against developer_agents count in D1.
+    const db = await getD1(locals)
+    const auth = await resolveUnitFromSession(request, locals).catch(() => null)
+    if (auth?.isValid) {
+      const tier = auth.tier ?? 'free'
+      const current = await getAgentCount(db, auth.keyId)
+      const gate = checkAgentLimit(tier, current)
+      if (!gate.ok) return tierLimitResponse(gate)
     }
 
     const net = world()
@@ -85,6 +122,20 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const suiWallet = await addressFor(body.uid).catch(() => null)
+
+    // Write owner attribute when caller is authenticated (tracks who registered this agent)
+    const callerUid = auth?.isValid ? auth.user : null
+    if (callerUid) {
+      const escUid = body.uid.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      const escCaller = callerUid.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      writeSilent(`match $u isa unit, has uid "${escUid}"; insert $u has owner "${escCaller}";`)
+    }
+
+    // Record in D1 AFTER successful creation (idempotent via ON CONFLICT DO NOTHING).
+    if (auth?.isValid) {
+      void recordAgent(db, auth.keyId, body.uid)
+    }
+
     return Response.json({
       ok: true,
       uid: body.uid,

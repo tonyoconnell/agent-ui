@@ -24,8 +24,8 @@ const ownerRegistry = new Map<string, { owner: string; claimedAt: string }>()
 
 function claimWithOwner(tid: string, sessionId: string): boolean {
   const task = store.getTask(tid)
-  if (!task || task.status !== 'todo') return false
-  store.updateTask(tid, { status: 'active' })
+  if (!task || task.task_status !== 'open') return false
+  store.updateTask(tid, { task_status: 'picked' })
   ownerRegistry.set(tid, { owner: sessionId, claimedAt: new Date().toISOString() })
   return true
 }
@@ -36,7 +36,7 @@ function completeTask(tid: string, sessionId: string): { ok: boolean; status: nu
   if (claim.owner !== sessionId) return { ok: false, status: 403 }
 
   store.markPheromone(tid, 'trail', 5.0)
-  store.updateTask(tid, { status: 'complete' })
+  store.updateTask(tid, { task_status: 'verified' })
   store.cascadeUnblock(tid)
   ownerRegistry.delete(tid)
   return { ok: true, status: 200 }
@@ -46,16 +46,13 @@ function makeTask(tid: string, name: string) {
   store.createTask({
     tid,
     name,
-    status: 'todo',
-    priority: 'P1',
-    phase: 'C3',
-    value: 'high',
-    persona: 'agent',
+    task_status: 'open',
+    task_priority: 0.75,
     tags: ['test', 'parallel'],
-    blockedBy: [],
+    blocked_by: [],
     blocks: [],
-    trailPheromone: 0,
-    alarmPheromone: 0,
+    strength: 0,
+    resistance: 0,
   })
 }
 
@@ -77,9 +74,9 @@ describe('parallel-sessions: two sessions claim and complete distinct tasks conc
     ownerRegistry.clear()
   })
 
-  it('both tasks start as todo', () => {
-    expect(store.getTask(TID_A)?.status).toBe('todo')
-    expect(store.getTask(TID_B)?.status).toBe('todo')
+  it('both tasks start as open', () => {
+    expect(store.getTask(TID_A)?.task_status).toBe('open')
+    expect(store.getTask(TID_B)?.task_status).toBe('open')
   })
 
   it('parallel claims on different tasks both succeed', async () => {
@@ -91,8 +88,8 @@ describe('parallel-sessions: two sessions claim and complete distinct tasks conc
     expect(okA).toBe(true)
     expect(okB).toBe(true)
 
-    expect(store.getTask(TID_A)?.status).toBe('active')
-    expect(store.getTask(TID_B)?.status).toBe('active')
+    expect(store.getTask(TID_A)?.task_status).toBe('picked')
+    expect(store.getTask(TID_B)?.task_status).toBe('picked')
 
     expect(ownerRegistry.get(TID_A)?.owner).toBe(SESSION_A)
     expect(ownerRegistry.get(TID_B)?.owner).toBe(SESSION_B)
@@ -128,8 +125,8 @@ describe('parallel-sessions: two sessions claim and complete distinct tasks conc
     expect(ownerRegistry.has(TID_B)).toBe(false)
 
     // Both tasks complete
-    expect(store.getTask(TID_A)?.status).toBe('complete')
-    expect(store.getTask(TID_B)?.status).toBe('complete')
+    expect(store.getTask(TID_A)?.task_status).toBe('verified')
+    expect(store.getTask(TID_B)?.task_status).toBe('verified')
   })
 
   it('trail pheromone accumulates on both tasks after parallel completion', async () => {
@@ -141,8 +138,8 @@ describe('parallel-sessions: two sessions claim and complete distinct tasks conc
       Promise.resolve(completeTask(TID_B, SESSION_B)),
     ])
 
-    expect(store.getTask(TID_A)?.trailPheromone).toBeGreaterThan(0)
-    expect(store.getTask(TID_B)?.trailPheromone).toBeGreaterThan(0)
+    expect(store.getTask(TID_A)?.strength).toBeGreaterThan(0)
+    expect(store.getTask(TID_B)?.strength).toBeGreaterThan(0)
   })
 
   it('session-A cannot complete session-B task even after parallel claim', async () => {
@@ -157,7 +154,7 @@ describe('parallel-sessions: two sessions claim and complete distinct tasks conc
     expect(wrongRes.status).toBe(403)
 
     // TID_B still active, still owned by SESSION_B
-    expect(store.getTask(TID_B)?.status).toBe('active')
+    expect(store.getTask(TID_B)?.task_status).toBe('picked')
     expect(ownerRegistry.get(TID_B)?.owner).toBe(SESSION_B)
   })
 

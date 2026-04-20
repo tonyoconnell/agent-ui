@@ -67,7 +67,7 @@ signal({ receiver: 'marketing', data: { task: 'launch-campaign', budget: 5000 } 
 | [seo.md](seo.md) | Search optimization, keywords | Content, Analyst |
 | [content.md](content.md) | Blog, social, email | SEO, Creative, Social |
 | [social.md](social.md) | All platforms, community, calendar | Content, Creative, Analyst |
-| [analyst.md](analyst.md) | Metrics, attribution, insights | All agents |
+| [analyst.md](agents/marketing/analyst.md) | Metrics, attribution, insights | All agents |
 | [ads.md](ads.md) | Campaign management, targeting | Media Buyer, Creative |
 
 ## Weight-Based Routing
@@ -278,8 +278,8 @@ signal({ receiver: 'marketing', data: { campaign: '...' } })
 
 ## See Also
 
-- [cloudflare.md](../../docs/cloudflare.md) — Free hosting for the team
-- [routing.md](../../docs/routing.md) — Weight-based routing mechanics
-- [lifecycle.md](../../docs/lifecycle.md) — The ONE lifecycle we're marketing
-- [agent-launch.md](../../docs/agent-launch.md) — What we're marketing
-- [strategy.md](../../docs/strategy.md) — The bigger picture
+- [cloudflare.md](cloudflare.md) — Free hosting for the team
+- [routing.md](routing.md) — Weight-based routing mechanics
+- [lifecycle.md](one/lifecycle.md) — The ONE lifecycle we're marketing
+- [agent-launch.md](agent-launch.md) — What we're marketing
+- [strategy.md](one/strategy.md) — The bigger picture

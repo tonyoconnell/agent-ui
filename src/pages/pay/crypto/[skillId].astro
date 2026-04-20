@@ -1,0 +1,83 @@
+---
+export const prerender = false
+
+import Layout from "@/layouts/Layout.astro"
+import { CryptoAcceptAddress } from "@/components/pay/crypto/CryptoAcceptAddress"
+import { CryptoPaymentLink } from "@/components/pay/crypto/CryptoPaymentLink"
+
+const { skillId } = Astro.params
+
+// SSR: look up skill info from KV snapshot
+let skill: { name: string; price: number; seller: string } | null = null
+
+try {
+  const kv = await import("@/lib/edge")
+  const skills = await kv.kvGet("skills") as any[] | null
+  const found = skills?.find((s: any) => s.skillId === skillId || s.id === skillId)
+  if (found) {
+    skill = {
+      name: found.name ?? skillId,
+      price: found.price ?? 0,
+      seller: found.seller ?? found.uid ?? "unknown",
+    }
+  }
+} catch {
+  // Fallback: render with just the skillId
+}
+
+if (!skill) {
+  return new Response("Skill not found", { status: 404, headers: { "Content-Type": "text/plain" } })
+}
+
+// Resolve seller uid → Sui wallet address for CryptoAcceptAddress
+const { addressFor } = await import("@/lib/sui").catch(() => ({ addressFor: null }))
+let walletAddress: string
+try {
+  walletAddress = addressFor ? await addressFor(skill.seller) : skill.seller
+} catch {
+  walletAddress = skill.seller  // fallback if derivation fails
+}
+---
+
+<Layout title={`Receive crypto · ${skill.name}`}>
+  <main class="min-h-screen bg-[#0a0a0f] p-4">
+    <div class="max-w-4xl mx-auto space-y-6">
+      <!-- Header -->
+      <div class="pt-8 pb-4 border-b border-[#252538]">
+        <h1 class="text-2xl font-semibold text-white">{skill.name}</h1>
+        <p class="mt-1 text-slate-300 text-sm">
+          Receive crypto payment for this skill
+          {skill.price > 0 && (
+            <span class="ml-2 text-slate-400">· suggested price: <span class="text-white font-mono">{skill.price}</span></span>
+          )}
+        </p>
+      </div>
+
+      <!-- Two-column grid: address QR left, payment link right -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CryptoAcceptAddress
+          client:only="react"
+          address={walletAddress}
+          size="md"
+        />
+
+        <CryptoPaymentLink
+          client:only="react"
+          sellerUid={skill.seller}
+          defaultAmount={skill.price > 0 ? String(skill.price) : undefined}
+        />
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script is:inline define:vars={{ skillId }}>
+  fetch('/api/signal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      receiver: 'ui:pay:page:crypto:view',
+      data: { tags: ['pay', 'page', 'view', 'crypto'], content: { skillId } },
+    }),
+  }).catch(() => {})
+</script>

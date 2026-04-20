@@ -13,12 +13,30 @@
  *   score <  0.5 → warn()   path resists
  *
  * Implements Rule 1 (Closed Loop) for human-driven rubric scoring via /close.
+ *
+ * BaaS metering (Cycle 1 T-B1-06): L2 feature — available on all tiers.
+ * Authenticated callers are metered and rate-limited.
  */
 import type { APIRoute } from 'astro'
 import { DEFAULT_WEIGHTS, markDims } from '@/engine/rubric'
+import { resolveUnitFromSession } from '@/lib/api-auth'
+import { getD1 } from '@/lib/cf-env'
+import { getUsage, recordCall } from '@/lib/metering'
 import { getNet } from '@/lib/net'
+import { checkApiCallLimit, tierLimitResponse } from '@/lib/tier-limits'
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  // BaaS metering gate
+  const db = await getD1(locals)
+  const auth = await resolveUnitFromSession(request, locals).catch(() => null)
+  if (auth?.isValid) {
+    const tier = auth.tier ?? 'free'
+    const usage = await getUsage(db, auth.keyId)
+    const gate = checkApiCallLimit(tier, usage)
+    if (!gate.ok) return tierLimitResponse(gate)
+    void recordCall(db, auth.keyId)
+  }
+
   const body = (await request.json().catch(() => ({}))) as {
     edge?: string
     fit?: number

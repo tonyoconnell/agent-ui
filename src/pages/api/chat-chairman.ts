@@ -230,6 +230,12 @@ export const POST: APIRoute = async ({ request }) => {
   if (!content) return Response.json({ error: 'content required' }, { status: 400 })
   if (!sessionId) return Response.json({ error: 'sessionId required' }, { status: 400 })
 
+  fetch(new URL('/api/in/sessions', request.url).toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, sender: 'chairman', content }),
+  }).catch(() => {})
+
   // ── 2. Auth ──────────────────────────────────────────────────────────────
   const isProd = (globalThis as any).process?.env?.NODE_ENV === 'production'
   if (isProd) {
@@ -365,6 +371,15 @@ export const POST: APIRoute = async ({ request }) => {
           totalMs: Math.round(performance.now() - t0),
           specialist: specialistUid,
         })
+
+        if (finalOutcome === 'result' && outcome.result !== undefined) {
+          const resultContent = typeof outcome.result === 'string' ? outcome.result : String(outcome.result)
+          fetch(new URL('/api/in/sessions', request.url).toString(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, sender: specialistUid ?? 'specialist', content: resultContent }),
+          }).catch(() => {})
+        }
 
         if (!closed) {
           closed = true

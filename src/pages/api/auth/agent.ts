@@ -22,8 +22,12 @@
  */
 
 import type { APIRoute } from 'astro'
+import { resolveUnitFromSession } from '@/lib/api-auth'
 import { generateApiKey, hashKey } from '@/lib/api-key'
+import { getD1 } from '@/lib/cf-env'
+import { emitSecurityEvent } from '@/lib/security-signals'
 import { addressFor, ensureFunded } from '@/lib/sui'
+import { setTier } from '@/lib/tier-limits'
 import { readParsed, write } from '@/lib/typedb'
 
 export const prerender = false
@@ -88,7 +92,7 @@ function autoName(): string {
   return `${adj}-${noun}`
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = (await request.json().catch(() => ({}))) as {
       name?: string
@@ -113,6 +117,26 @@ export const POST: APIRoute = async ({ request }) => {
     `).catch(() => [])
 
     const returning = existing.length > 0
+
+    // Re-mint gate: returning agents require proof of possession or ownership
+    if (returning) {
+      const remintMode = (import.meta.env.AUTH_AGENT_REMINT_MODE as string | undefined) ?? 'audit'
+      const authCtx = await resolveUnitFromSession(request)
+      const hasPossession = authCtx.isValid && authCtx.user === uid
+      const hasOwnership =
+        authCtx.isValid && authCtx.role === 'chairman' && (authCtx.scopeGroups?.includes(`g:owns:${uid}`) ?? false)
+
+      if (!hasPossession && !hasOwnership) {
+        emitSecurityEvent({ kind: 'auth-fail', caller: authCtx.user || 'unknown', reason: 'remint-no-proof' })
+        if (remintMode === 'enforce') {
+          return new Response(JSON.stringify({ error: 'Re-mint requires proof of possession or ownership' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        // audit mode: log the denial but do not block
+      }
+    }
 
     // If new, create the unit
     if (!returning) {
@@ -180,7 +204,43 @@ export const POST: APIRoute = async ({ request }) => {
       // Relation creation is best-effort — key still works via user-id match
     })
 
+    // Auto-create personal group for new units (idempotent — IF NOT EXISTS pattern)
+    if (!returning) {
+      const gid = `group:${uid}`
+      await write(`
+        insert $g isa group,
+          has gid "${esc(gid)}",
+          has name "${esc(name)}",
+          has group-type "personal",
+          has visibility "private";
+      `).catch(() => {
+        /* group may already exist */
+      })
+      await write(`
+        match
+          $g isa group, has gid "${esc(`group:${uid}`)}";
+          $u isa unit, has uid "${esc(uid)}";
+        insert
+          (group: $g, member: $u) isa membership, has member-role "chairman";
+      `).catch(() => {
+        /* membership may already exist */
+      })
+
+      // Pin tier='free' in D1 on first onboarding. resolveTier() would default to
+      // 'free' anyway, but the explicit row makes the grant auditable and lets
+      // billing webhooks do an ON CONFLICT UPDATE against a known primary key.
+      const db = await getD1(locals)
+      void setTier(uid, 'free', db)
+    }
+
     const existingName = returning && existing[0]?.n ? (existing[0].n as string) : name
+
+    const group = `group:${uid}`
+    const quickstart = [
+      `import { SubstrateClient } from '@oneie/sdk'`,
+      `const client = SubstrateClient.fromApiKey('${apiKey}')`,
+      `await client.signal({ receiver: '${uid}', data: { content: 'hello' } })`,
+    ].join('\n')
 
     return new Response(
       JSON.stringify({
@@ -191,6 +251,8 @@ export const POST: APIRoute = async ({ request }) => {
         apiKey,
         keyId,
         returning,
+        group,
+        quickstart,
       }),
       {
         status: returning ? 200 : 201,

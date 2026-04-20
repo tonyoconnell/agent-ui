@@ -1,14 +1,19 @@
 # =============================================================================
-# DOMAIN EXAMPLE: E-Commerce Product & Customer Intelligence
+# DOMAIN EXAMPLE (TypeDB 3.x): E-Commerce Product & Customer Intelligence
 # =============================================================================
 #
-# Shows inference patterns applied to e-commerce:
-#   - Customer segmentation (VIP, standard, at-risk, churned)
-#   - Product health scoring
-#   - Recommendation readiness
-#   - Cross-sell opportunity detection
+# Migrated to 3.x 2026-04-20 — see ../standalone/quality-rules.tql for the
+# classifier-function template this example follows.
 #
-# Based on: classification.tql, quality-rules.tql
+# Demonstrates:
+#   - Customer segmentation (VIP / standard / at-risk / churned) via cascading fun
+#   - Product health scoring (healthy / warning / critical)
+#   - Cross-sell opportunity detection (relation traversal with rate threshold)
+#   - Review attribute has its own type alias to avoid collision with
+#     `return-rate` on both customer and product (3.x allows the same attribute
+#     on two entities, so no rename needed here)
+#
+# Based on patterns from: classification.tql, quality-rules.tql
 # =============================================================================
 
 define
@@ -23,8 +28,7 @@ entity customer,
     owns total-spend,
     owns average-order-value,
     owns days-since-last-order,
-    owns return-rate,             # 0.0 - 1.0
-    owns customer-tier,           # INFERRED: "vip", "standard", "at-risk", "churned"
+    owns return-rate,
     plays purchased:buyer;
 
 entity product,
@@ -32,148 +36,189 @@ entity product,
     owns product-name,
     owns product-category,
     owns units-sold,
-    owns review-score,            # 0.0 - 5.0
+    owns review-score,
     owns review-count,
-    owns return-rate,
-    owns product-health,          # INFERRED: "healthy", "warning", "critical"
+    owns return-rate,              # shared attribute — both customer & product own it
     plays purchased:item,
     plays cross-sell:source-product,
     plays cross-sell:target-product;
 
+
+# --- Attributes (with 3.x constraints) ---
+
+attribute customer-id,              value string;
+attribute customer-name,            value string;
+attribute customer-email,           value string @regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+attribute total-orders,             value integer;
+attribute total-spend,              value double;
+attribute average-order-value,      value double;
+attribute days-since-last-order,    value integer;
+attribute return-rate,              value double  @range(0.0..1.0);
+
+attribute product-id,               value string;
+attribute product-name,             value string;
+attribute product-category,         value string;
+attribute units-sold,               value integer;
+attribute review-score,             value double  @range(0.0..5.0);
+attribute review-count,             value integer;
+
+attribute purchase-date,            value datetime;
+attribute purchase-amount,          value double;
+attribute co-purchase-count,        value integer;
+attribute co-purchase-rate,         value double  @range(0.0..1.0);
+
+
+# --- Relations (with @cascade for customer/product deletion hygiene) ---
+
 relation purchased,
-    relates buyer,
+    relates buyer @cascade,            # delete customer → remove purchase rows
     relates item,
     owns purchase-date,
     owns purchase-amount;
 
 relation cross-sell,
-    relates source-product,
+    relates source-product @cascade,
     relates target-product,
     owns co-purchase-count,
     owns co-purchase-rate;
 
-# Attributes
-attribute customer-id, value string;
-attribute customer-name, value string;
-attribute customer-email, value string;
-attribute total-orders, value integer;
-attribute total-spend, value double;
-attribute average-order-value, value double;
-attribute days-since-last-order, value integer;
-attribute return-rate, value double;
-attribute customer-tier, value string;
-
-attribute product-id, value string;
-attribute product-name, value string;
-attribute product-category, value string;
-attribute units-sold, value integer;
-attribute review-score, value double;
-attribute review-count, value integer;
-attribute product-health, value string;
-
-attribute purchase-date, value datetime;
-attribute purchase-amount, value double;
-attribute co-purchase-count, value integer;
-attribute co-purchase-rate, value double;
-
 
 # =============================================================================
-# CUSTOMER SEGMENTATION RULES
+# CLASSIFIER FUNCTIONS — replacing 2.x rules
 # =============================================================================
 
-# VIP: High spend, frequent orders, low returns
-rule vip-customer:
-    when {
-        $c isa customer,
-            has total-orders $orders,
+# --- Customer tier: cascading classifier (replaces 3 rules) ---
+#
+# Order matters — "churned" must be checked before "at-risk" because the
+# 180-day threshold is the strictest. "VIP" overrides activity bands for
+# high-value customers.
+#
+fun customer_tier($c: customer) -> string:
+    match
+        $c has total-orders $orders,
             has total-spend $spend,
-            has return-rate $rr;
-        $orders >= 10;
-        $spend >= 1000.0;
-        $rr < 0.10;
-    } then {
-        $c has customer-tier "vip";
-    };
-
-# At-risk: Haven't ordered in 60+ days
-rule at-risk-customer:
-    when {
-        $c isa customer,
-            has days-since-last-order $days,
-            has total-orders $orders;
-        $days >= 60;
-        $days < 180;
-        $orders >= 2;
-    } then {
-        $c has customer-tier "at-risk";
-    };
-
-# Churned: Haven't ordered in 180+ days
-rule churned-customer:
-    when {
-        $c isa customer,
-            has days-since-last-order $days;
-        $days >= 180;
-    } then {
-        $c has customer-tier "churned";
-    };
-
-# =============================================================================
-# PRODUCT HEALTH RULES
-# =============================================================================
-
-# Healthy: Good reviews, low returns, decent sales
-rule healthy-product:
-    when {
-        $p isa product,
-            has review-score $rs,
-            has review-count $rc,
-            has return-rate $rr;
-        $rs >= 4.0;
-        $rc >= 10;
-        $rr < 0.05;
-    } then {
-        $p has product-health "healthy";
-    };
-
-# Critical: Bad reviews or high returns
-rule critical-product:
-    when {
-        $p isa product,
-            has review-score $rs,
             has return-rate $rr,
-            has review-count $rc;
-        $rc >= 5;
-        { $rs < 2.5; } or { $rr >= 0.20; };
-    } then {
-        $p has product-health "critical";
-    };
+            has days-since-last-order $days;
+    return first
+        if ($days >= 180)
+            then "churned"
+        else if ($orders >= 10 and $spend >= 1000.0 and $rr < 0.10)
+            then "vip"
+        else if ($days >= 60 and $orders >= 2)
+            then "at-risk"
+        else "standard";
+
+
+# --- Product health: cascading classifier (replaces 2 rules + implicit default) ---
+#
+fun product_health($p: product) -> string:
+    match
+        $p has review-score $rs,
+           has review-count $rc,
+           has return-rate $rr;
+    return first
+        if ($rc >= 5 and ($rs < 2.5 or $rr >= 0.20))
+            then "critical"
+        else if ($rs >= 4.0 and $rc >= 10 and $rr < 0.05)
+            then "healthy"
+        else if ($rc < 5)
+            then "new"
+        else "warning";
 
 
 # =============================================================================
 # QUERY FUNCTIONS
 # =============================================================================
 
-# Get VIP customers
+# --- Customer partitions via the tier classifier ---
+
 fun vip_customers() -> { customer }:
-    match $c isa customer, has customer-tier "vip";
+    match
+        $c isa customer;
+        let $tier = customer_tier($c);
+        $tier == "vip";
     return { $c };
 
-# Get at-risk customers (for retention campaigns)
 fun at_risk_customers() -> { customer }:
-    match $c isa customer, has customer-tier "at-risk";
+    match
+        $c isa customer;
+        let $tier = customer_tier($c);
+        $tier == "at-risk";
     return { $c };
 
-# Get cross-sell opportunities for a product
+fun churned_customers() -> { customer }:
+    match
+        $c isa customer;
+        let $tier = customer_tier($c);
+        $tier == "churned";
+    return { $c };
+
+
+# --- Product partitions via the health classifier ---
+
+fun critical_products() -> { product }:
+    match
+        $p isa product;
+        let $h = product_health($p);
+        $h == "critical";
+    return { $p };
+
+fun healthy_products() -> { product }:
+    match
+        $p isa product;
+        let $h = product_health($p);
+        $h == "healthy";
+    return { $p };
+
+
+# --- Cross-sell: products frequently co-purchased ---
+
 fun cross_sell_for($product_id: string) -> { product }:
     match
         $source isa product, has product-id $product_id;
-        $rel(source-product: $source, target-product: $target) isa cross-sell,
+        $rel (source-product: $source, target-product: $target) isa cross-sell,
             has co-purchase-rate $rate;
         $rate >= 0.15;
     return { $target };
 
-# Get critical products needing attention
-fun critical_products() -> { product }:
-    match $p isa product, has product-health "critical";
-    return { $p };
+
+# --- Aggregates ---
+
+fun total_revenue_from_vips() -> double:
+    match
+        let $vip = vip_customers();
+        $vip has total-spend $s;
+    return sum($s);
+
+fun count_by_tier($tier: string) -> integer:
+    match
+        $c isa customer;
+        let $t = customer_tier($c);
+        $t == $tier;
+    return count($c);
+
+
+# =============================================================================
+# USAGE
+# =============================================================================
+#
+# Retention campaign: get at-risk customers
+#   match let $c = at_risk_customers();
+#         $c has customer-email $email, has customer-name $name;
+#   select $email, $name;
+#
+# Kill list: products to pull from catalog
+#   match let $p = critical_products();
+#         $p has product-name $n, has return-rate $rr, has review-score $rs;
+#   select $n, $rr, $rs;
+#
+# Recommendation engine: for a product page, surface cross-sells
+#   match let $rec = cross_sell_for("SKU-12345");
+#         $rec has product-name $n;
+#   select $n;
+#
+# Revenue concentration: VIP share
+#   match let $vip_revenue = total_revenue_from_vips();
+#   select $vip_revenue;
+#
+# =============================================================================

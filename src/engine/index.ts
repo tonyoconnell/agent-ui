@@ -126,7 +126,7 @@ export {
 export type { SubstrateOptions, TickResult as SubstrateTickResult } from './substrate'
 export type { HandlerConfig, SopConfig, SubstrateConfig, TimerConfig, WorkflowConfig } from './substrate-config'
 export { extractAll, extractAndWrite, extractTasks } from './task-extract'
-export type { Effort, Phase, Task, Value, Wave } from './task-parse'
+export type { Effort, ParsedTask, Phase, Value, Wave } from './task-parse'
 // Task management — parse, sync, extract (uses Node.js APIs)
 export { computePriority, EFFORT_MODEL, effectivePriority, parseTodoFile, scanTodos, WAVE_MODEL } from './task-parse'
 export { loadTasks, markTaskDone, selfCheckoff, syncTasks } from './task-sync'

@@ -77,8 +77,7 @@ export function utf8Decode(b: Uint8Array): string {
 // signatures want BufferSource (ArrayBufferView | ArrayBuffer with concrete
 // ArrayBuffer). Shape is correct at runtime — this cast reconciles the
 // generic-parameter mismatch only. See microsoft/TypeScript#58468.
-// biome-ignore lint/suspicious/noExplicitAny: deliberate type bridge
-const bs = (u: any): BufferSource => u as BufferSource
+const bs = (u: unknown): BufferSource => u as BufferSource
 
 // ===== HASH =====
 

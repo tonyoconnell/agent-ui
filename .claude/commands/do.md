@@ -12,11 +12,114 @@ Drive work through the substrate — select and execute.
 
 | Mode | What | Loop |
 |------|------|------|
+| `<intent>` | Natural language → find context → fastest path | L1, L2 |
 | `<TODO-file>` | Advance next wave of the TODO (wave-at-a-time) | L1, L2 |
 | `<TODO> --auto` | Run W1→W4 continuously until all cycles done | L1, L2 |
 | `<TODO> --wave N` | Run a specific wave (override auto-detect) | L1, L2 |
 | *(empty)* | Autonomous loop: pick → execute → mark → repeat | L1, L2 |
 | `--once` | Single iteration of the autonomous loop | L1, L2 |
+
+---
+
+## Intent Mode — `/do <natural language>`
+
+When arguments are NOT a TODO filename, --auto, --wave, --once, or empty,
+treat them as **intent** and route to the fastest execution path.
+
+### Step 1: Extract Topic
+
+Parse the intent into a **topic slug** (kebab-case, 2-4 words max):
+
+```
+"create a landing page"     → landing-page
+"fix the auth middleware"   → auth-middleware
+"add payment tracking"      → payment-tracking
+"refactor the loop"         → loop
+```
+
+### Step 2: Search for Context
+
+Search for existing files matching the topic (run in parallel):
+
+```bash
+# Pattern 1: TODO files
+glob "**/TODO*{topic}*.md" | head -5
+
+# Pattern 2: Spec/plan docs
+glob "**/*{topic}*.md" | head -10
+
+# Pattern 3: Source files (for fix/refactor intents)
+glob "**/*{topic}*" --type ts,tsx,astro | head -10
+
+# Pattern 4: Task mentions in one/
+glob "one/**/*{topic}*.md" | head -5
+```
+
+Collect: `{ todos: [], specs: [], sources: [], tasks: [] }`
+
+### Step 3: Reflect — What Do We Have?
+
+| Found | State | Fastest Path |
+|-------|-------|--------------|
+| TODO file exists | Execution queued | → Use existing TODO mode |
+| Spec exists, no TODO | Spec defines scope | → Create TODO from spec, then execute |
+| Sources exist, no spec | Code is the spec | → Direct execution (simple) or create TODO (complex) |
+| Nothing exists | Greenfield | → Ask user for scope OR create minimal TODO |
+
+**Complexity heuristic** (determines TODO vs direct):
+- "create" / "add" / "build" → likely needs TODO (multi-wave)
+- "fix" / "update" / "tweak" → likely direct execution
+- "refactor" → read scope first, then decide
+
+### Step 4: Report and Route
+
+Output a reflection block before proceeding:
+
+```
+┌─ /do intent: "{original intent}"
+│
+│  Topic:   {topic-slug}
+│  Found:   {N} TODOs, {M} specs, {K} sources
+│
+│  Context:
+│    • {file1} — {one-line summary}
+│    • {file2} — {one-line summary}
+│    ...
+│
+│  Decision: {direct | create-todo | use-existing}
+│  Rationale: {why this path is fastest}
+│
+└─ Proceeding with: {next action}
+```
+
+### Step 5: Execute
+
+**If TODO exists:** Switch to `<TODO-file>` mode with that file.
+
+**If spec exists, no TODO:**
+1. Read the spec fully
+2. Extract: goal, scope, constraints, exit criteria
+3. Create `docs/TODO-{topic}.md` using the TODO template
+4. Populate cycles/waves from spec structure
+5. Switch to `<TODO-file>` mode with new TODO
+
+**If sources exist, no spec (simple):**
+1. Read the relevant source files
+2. Execute the fix/update directly
+3. Run `bun run verify`
+4. Mark outcome via `/close`
+
+**If sources exist, no spec (complex):**
+1. Read the relevant source files
+2. Create minimal TODO with one cycle
+3. Switch to `<TODO-file>` mode
+
+**If nothing exists:**
+1. Ask: "No existing context for '{topic}'. What's the goal? (one sentence)"
+2. Create `docs/TODO-{topic}.md` with user's answer as the goal
+3. Switch to `<TODO-file>` mode
+
+---
 
 ## Routing
 
@@ -26,6 +129,7 @@ mark() on result, warn() on failure, warn(0.5) on dissolved, neutral on timeout.
 
 | Mode | Primitive | Termination |
 |------|-----------|-------------|
+| `<intent>` | search → reflect → route | routes to one of below |
 | `<TODO>` | wave handler | one wave completes |
 | `--auto` | wave handler × N | all cycles complete |
 | `--wave N` | wave handler | one wave completes |
@@ -45,6 +149,157 @@ Every task has a `task-wave` attribute (W1/W2/W3/W4) that drives model selection
 
 When selecting next task, use `task.task-wave` to route the execution to the correct model.
 Fallback to `EFFORT_MODEL` (Sonnet) if `task-wave` is absent.
+
+---
+
+## Skill Pre-flight Check
+
+**Before executing ANY task**, verify required skills exist and are current.
+This prevents mid-execution failures due to missing capabilities.
+
+### Step 1: Infer Required Skills
+
+Extract skills from task tags, intent, and file types:
+
+```
+Task tags: [ui, landing, astro]     → skills: [/astro, /shadcn, /react19]
+Task tags: [typedb, schema]          → skills: [/typedb]
+Task tags: [sui, wallet, bridge]     → skills: [/sui]
+File types: *.astro, *.tsx           → skills: [/astro, /react19]
+Intent: "create a landing page"      → skills: [/astro, /shadcn]
+```
+
+**Skill inference map:**
+
+| Tag/Pattern | Required Skill | Why |
+|-------------|----------------|-----|
+| `ui`, `component`, `*.tsx` | `/react19` | React 19 patterns |
+| `astro`, `page`, `*.astro` | `/astro` | Astro 6 + CF Workers |
+| `shadcn`, `card`, `badge` | `/shadcn` | shadcn/ui components |
+| `typedb`, `schema`, `tql` | `/typedb` | TypeDB 3.0 syntax |
+| `sui`, `wallet`, `move` | `/sui` | Sui Move contracts |
+| `graph`, `flow`, `node` | `/reactflow` | ReactFlow patterns |
+| `deploy`, `worker`, `cf` | `/deploy` | Cloudflare deploy |
+| `api`, `sdk`, `anthropic` | `/claude-api` | Claude API patterns |
+
+### Step 2: Check Skill Status
+
+For each required skill, check:
+
+```bash
+# Skill exists?
+ls .claude/skills/{skill-name}/ 2>/dev/null
+
+# Skill is current? (modified within 30 days)
+find .claude/skills/{skill-name}/ -mtime -30 -type f | head -1
+```
+
+**Status categories:**
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| `ready` | Skill exists, recently updated | Proceed |
+| `stale` | Skill exists, > 30 days old | Suggest refresh |
+| `missing` | Skill doesn't exist | Create or skip |
+| `external` | Skill from MCP/plugin | Check MCP connection |
+
+### Step 3: Report Skill Status
+
+Output skill check before execution:
+
+```
+┌─ Skill Pre-flight
+│
+│  Required: /astro, /shadcn, /react19
+│
+│  Status:
+│    ✓ /astro      ready    (updated 2d ago)
+│    ✓ /shadcn     ready    (updated 5d ago)
+│    ⚠ /react19    stale    (updated 45d ago)
+│
+│  Action: Proceed with warning — /react19 may need refresh
+│
+└─ Continuing...
+```
+
+### Step 4: Handle Missing Skills
+
+**If skill is missing but required:**
+
+```
+┌─ Skill Pre-flight
+│
+│  Required: /sui
+│
+│  Status:
+│    ✗ /sui        missing
+│
+│  Options:
+│    1. Create skill: /skill new sui (scaffold from template)
+│    2. Skip task: This task requires Sui knowledge
+│    3. Proceed anyway: Risk of incorrect Move syntax
+│
+└─ Choice? [1/2/3]
+```
+
+**Auto-create for common patterns:**
+
+If the missing skill matches a known template in `.claude/skills/templates/`:
+- Offer to scaffold it immediately
+- Or fetch from skill registry if available
+
+### Step 5: Refresh Stale Skills
+
+**If skill is stale (> 30 days):**
+
+```
+┌─ Skill Refresh Suggested
+│
+│  /react19 last updated 45 days ago
+│
+│  Recent changes in ecosystem:
+│    • React 19.1 released (check for new patterns)
+│    • use() hook behavior clarified
+│
+│  Options:
+│    1. Refresh now: Re-read React 19 docs, update skill
+│    2. Proceed: Use current skill (may be outdated)
+│    3. Skip: Don't use this skill for this task
+│
+└─ Choice? [1/2/3]
+```
+
+### Integration with Execution
+
+The skill check gates execution:
+
+```
+/do "create a landing page"
+     │
+     ▼
+┌─ Intent Mode ─────────────────────┐
+│  Topic: landing-page              │
+│  Found: plan-landing.md           │
+└───────────────────────────────────┘
+     │
+     ▼
+┌─ Skill Pre-flight ────────────────┐
+│  Required: /astro, /shadcn        │
+│  Status: ✓ ready, ✓ ready         │
+└───────────────────────────────────┘
+     │
+     ▼
+┌─ Execute ─────────────────────────┐
+│  Running W3 of plan-landing.md    │
+└───────────────────────────────────┘
+```
+
+**If skills not ready, execution pauses** until resolved. This prevents:
+- TypeDB 2.x syntax in a 3.x schema (missing `/typedb`)
+- React class components in a hooks codebase (stale `/react19`)
+- Move 1.0 patterns in a Move 2.0 contract (missing `/sui`)
+
+---
 
 ## Steps
 

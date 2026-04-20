@@ -5,6 +5,7 @@
  */
 
 import { readParsed } from '@/lib/typedb'
+import { registerPaySkills } from './adl'
 import { pheromoneWeight, setAuditPheromone } from './adl-cache'
 import { connectAgentverse } from './agentverse-connect'
 import { registerBridges } from './bridges'
@@ -46,6 +47,12 @@ export const boot = async (complete?: (prompt: string) => Promise<string>, inter
 
   // Register pay unit (Sui-native USDC commerce, L4 Marketplace)
   registerPayUnit(w)
+
+  // Register pay skill schemas in TypeDB so PEP-4 has input/output
+  // schemas to validate against. Idempotent — safe to call on every boot.
+  await registerPaySkills().catch((e: unknown) =>
+    console.warn('[boot] registerPaySkills failed:', e instanceof Error ? e.message : e),
+  )
 
   // Bridge Agentverse — 2M agents routable as 'av:*' receivers
   // Pheromone in THIS world tracks which AV agents are reliable.

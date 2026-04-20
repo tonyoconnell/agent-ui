@@ -8,7 +8,7 @@
 
 Two fields. That's all that flows. The LLM is the only probabilistic component. Everything else is math.
 
-**Live now:** [api.one.ie](https://api.one.ie/health) · [app](https://one-substrate.pages.dev) · [@onedotbot](https://t.me/onedotbot) on Telegram
+**Live now:** [dev.one.ie](https://dev.one.ie) · [api.one.ie](https://api.one.ie/health) · [@onedotbot](https://t.me/onedotbot) on Telegram
 
 ---
 
@@ -32,7 +32,11 @@ These compound. Breaking either breaks the flywheel.
 
 ---
 
-## Status (2026-04-18)
+## Status (2026-04-20)
+
+✅ **Workers Migration Shipped (2026-04-18)** — Astro 6 + `@astrojs/cloudflare@13` with CF Workers Static Assets. `dev.one.ie` is the live Worker; Pages (`one-substrate.pages.dev`) is now a paused rollback safety net.
+
+✅ **Payment Rails Live** — Four user-facing rails: `/pay/[skillId]` (Sui wallet, default) · `/pay/card/[skillId]` (Stripe) · `/pay/crypto/[skillId]` (QR + link) · `/pay/chat/[skillId]` (in-chat). Every view emits `ui:pay:page:<rail>:view` to the substrate — pheromone learns rail preference.
 
 ✅ **Memory System Complete** — C1-C3 (schema + engine + routes) + C4 (governance + federation + lifecycle). GDPR Article 17 (right to erasure) + Article 20 (data portability) via reveal/forget/frontier primitives. 60 tests pass.
 
@@ -210,7 +214,7 @@ curl /.well-known/agents.json
 
 Markdown agents auto-convert to ADL. Permission gates run on every signal (lifecycle, network, sensitivity). Backward compatible — legacy agents work unchanged.
 
-See [docs/ADL-integration.md](docs/ADL-integration.md) for full spec.
+See [docs/ADL-integration.md](ADL-integration.md) for full spec.
 
 ---
 
@@ -218,8 +222,9 @@ See [docs/ADL-integration.md](docs/ADL-integration.md) for full spec.
 
 | Service | URL | What |
 |---------|-----|------|
-| **Pages** | [one-substrate.pages.dev](https://one-substrate.pages.dev) | Astro SSR + React 19 + 30 API routes |
-| **Gateway** | [api.one.ie](https://api.one.ie/health) | TypeDB proxy, JWT cache, CORS |
+| **Workers** | [dev.one.ie](https://dev.one.ie) | Astro 6 SSR + React 19 + 50+ API routes (CF Workers Static Assets, cut over 2026-04-18) |
+| **Pages (legacy idle)** | [one-substrate.pages.dev](https://one-substrate.pages.dev) | Paused — rollback safety net only |
+| **Gateway** | [api.one.ie](https://api.one.ie/health) | TypeDB proxy + WsHub Durable Object, JWT cache, CORS |
 | **Sync** | one-sync.oneie.workers.dev | TypeDB → KV snapshots every 1 min (hash-gated) |
 | **NanoClaw** | [nanoclaw.oneie.workers.dev](https://nanoclaw.oneie.workers.dev/health) | Edge agents: instant Telegram/Discord, API, queue |
 | **Donal-Claw** | [donal-claw.oneie.workers.dev](https://donal-claw.oneie.workers.dev/health) | OO Marketing CMO bot (API key auth) |
@@ -362,7 +367,7 @@ bun run deploy -- --preview-only # build + smoke, no production push
 
 `main` branch requires human approval. Other branches auto-deploy after tests pass. Known-flaky stochastic tests don't block deploy; real failures always do. Global API Key is auto-enforced — scoped tokens are blanked in the wrangler env.
 
-See [docs/deploy.md](docs/deploy.md) for full tutorial, or [docs/speed.md](docs/speed.md) for the verified pipeline breakdown.
+See [docs/deploy.md](deploy.md) for full tutorial, or [docs/speed.md](one/speed.md) for the verified pipeline breakdown.
 
 ---
 
@@ -381,7 +386,7 @@ See [docs/deploy.md](docs/deploy.md) for full tutorial, or [docs/speed.md](docs/
 
 ## API Routes
 
-Routes implement the Six Verbs from [dictionary.md](docs/dictionary.md): `send`, `mark`, `warn`, `fade`, `follow`, `harden`.
+Routes implement the Six Verbs from [dictionary.md](dictionary.md): `send`, `mark`, `warn`, `fade`, `follow`, `harden`.
 
 | Route | Method | Verb | Purpose |
 |-------|--------|------|---------|
@@ -405,6 +410,17 @@ Routes implement the Six Verbs from [dictionary.md](docs/dictionary.md): `send`,
 | `/api/memory/reveal/:uid` | GET | — | Full memory card (GDPR portability) |
 | `/api/memory/forget/:uid` | DELETE | — | Structural erasure (GDPR Article 17) |
 | `/api/memory/frontier/:uid` | GET | — | Unexplored tag clusters for actor |
+| `/api/pay/create-link` | POST | — | Shareable crypto payment link |
+| `/api/pay/status/:ref` | GET | — | Poll payment status |
+| `/api/pay/stripe/create-intent` | POST | — | Stripe PaymentIntent |
+| `/api/pay/stripe/confirm` | POST | — | Stripe confirm |
+| `/api/pay/stripe/webhook` | POST | — | Stripe webhook handler |
+| `/api/buy/hire` | POST | send | EXECUTE verb — hire a capability |
+| `/api/buy/bounty` | POST | send | Post a bounty |
+| `/api/escrow/release/:id` | POST | — | SETTLE verb — release escrow on-chain |
+| `/api/billing/subscribe` | POST | — | Create subscription |
+| `/api/billing/portal` | POST | — | Stripe billing portal link |
+| `/api/billing/webhook` | POST | — | Billing webhook handler |
 
 Full API docs: [src/pages/api/CLAUDE.md](src/pages/api/CLAUDE.md)
 
@@ -466,45 +482,45 @@ agents/                        Markdown agent definitions
 
 | Doc | What it defines |
 |-----|----------------|
-| [DSL](docs/DSL.md) | The programming model — signal, emit, mark, warn, fade, follow, select |
-| [Dictionary](docs/dictionary.md) | Every name, every concept, the full vocabulary |
-| [Routing](docs/routing.md) | How signals find their way — formula, layers, tick, outcomes |
-| [Architecture](docs/architecture.md) | System design, two layers, seven loops |
-| [ADL Integration](docs/ADL-integration.md) | Agent Definition Language v0.2.0 — identity, permissions, lifecycle, discovery |
+| [DSL](one/DSL.md) | The programming model — signal, emit, mark, warn, fade, follow, select |
+| [Dictionary](dictionary.md) | Every name, every concept, the full vocabulary |
+| [Routing](routing.md) | How signals find their way — formula, layers, tick, outcomes |
+| [Architecture](one/architecture.md) | System design, two layers, seven loops |
+| [ADL Integration](ADL-integration.md) | Agent Definition Language v0.2.0 — identity, permissions, lifecycle, discovery |
 
 ### Deploy
 
 | Doc | What it covers |
 |-----|---------------|
-| [Deploy](docs/deploy.md) | Step-by-step deployment tutorial (every command proven) |
-| [Cloudflare](docs/cloudflare.md) | Platform architecture, 4 workers, agent castes, economics |
-| [Tunnels](docs/PLAN-tunnels.md) | Dev tunnels — expose localhost, test webhooks, zero trust |
-| [Claw](docs/claw.md) | Autonomous edge agent — smart routing, web browsing, rich messaging |
-| [TODO](docs/TODO.md) | Roadmap, status, what's next |
+| [Deploy](deploy.md) | Step-by-step deployment tutorial (every command proven) |
+| [Cloudflare](cloudflare.md) | Platform architecture, 4 workers, agent castes, economics |
+| [Tunnels](PLAN-tunnels.md) | Dev tunnels — expose localhost, test webhooks, zero trust |
+| [Claw](claw.md) | Autonomous edge agent — smart routing, web browsing, rich messaging |
+| [TODO](one/TODO.md) | Roadmap, status, what's next |
 
 ### Implementation
 
 | Doc | What it covers |
 |-----|----------------|
-| [NanoClaw TODO](docs/TODO-claw.md) | 3-cycle completion: consolidate respond() unit, add missing endpoints, ship 3 persona workers (24 tasks) |
-| [Collision Avoidance](docs/PLAN-collusion-mitigation.md) | Multi-session locking, atomic claims, TTL recovery, wave-locking |
-| [TODO: Collision Avoidance](docs/TODO-collusion.md) | 3-cycle implementation (76 tests, 0 regressions, 0.89 rubric) |
+| [NanoClaw TODO](TODO-claw.md) | 3-cycle completion: consolidate respond() unit, add missing endpoints, ship 3 persona workers (24 tasks) |
+| [Collision Avoidance](PLAN-collusion-mitigation.md) | Multi-session locking, atomic claims, TTL recovery, wave-locking |
+| [TODO: Collision Avoidance](TODO-collusion.md) | 3-cycle implementation (76 tests, 0 regressions, 0.89 rubric) |
 
 ### Concepts
 
 | Doc | What it covers |
 |-----|---------------|
-| [Metaphors](docs/metaphors.md) | Six skins, one truth — ant/brain/team/mail/water/radio |
-| [Ontology](docs/one-ontology.md) | The 6 dimensions |
-| [Strategy](docs/strategy.md) | The play — wire substrate quietly, let adoption speak |
-| [SDK](docs/sdk.md) | Public API contract — register, discover, hire, earn |
-| [Substrate Learning](docs/substrate-learning.md) | How 70 lines route messages AND train models |
+| [Metaphors](metaphors.md) | Six skins, one truth — ant/brain/team/mail/water/radio |
+| [Ontology](one-ontology.md) | The 6 dimensions |
+| [Strategy](one/strategy.md) | The play — wire substrate quietly, let adoption speak |
+| [SDK](one/sdk.md) | Public API contract — register, discover, hire, earn |
+| [Substrate Learning](substrate-learning.md) | How 70 lines route messages AND train models |
 
 ### Commerce
 
 | Doc | What it covers |
 |-----|---------------|
-| [Agent Launch](docs/agent-launch.md) | Agent Launch Toolkit, tokenization, revenue sharing |
+| [Agent Launch](agent-launch.md) | Agent Launch Toolkit, tokenization, revenue sharing |
 | [ASI World](docs/asi-world.md) | AgentVerse economics, FET/ASI integration |
 
 ---

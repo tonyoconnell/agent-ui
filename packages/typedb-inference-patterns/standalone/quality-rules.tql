@@ -1,31 +1,43 @@
 # =============================================================================
-# LESSON 2: Quality Classification via Inference Rules
+# LESSON 2 (TypeDB 3.x): Quality Classification via Typed Functions
 # =============================================================================
 #
 # DIFFICULTY: Beginner-Intermediate
 # PREREQUISITE: classification.tql (Lesson 1)
-# NEXT: hypothesis-lifecycle.tql (Lesson 3)
+# NEXT:         hypothesis-lifecycle.tql (Lesson 3)
+#
+# WHAT CHANGED FROM 2.x:
+#   2.x had `rule name: when { } then { };` — rules fired automatically on
+#   every query and magically inserted derived attributes.
+#
+#   3.x replaces rules with typed FUNCTIONS (`fun`). You now pick one of two
+#   patterns explicitly:
+#
+#     (A) DERIVED-ON-DEMAND — call the classifier function inside any query.
+#         No stored label. Always correct, always recomputed.
+#
+#     (B) MATERIALIZED — run a `match let $q = fn($x); insert $x has q;`
+#         pipeline periodically. Stored label. Faster reads, staleness risk.
+#
+#   Both patterns are in this file. Choose based on read/write ratio.
 #
 # WHAT YOU'LL LEARN:
-#   How rules differ from functions: rules fire AUTOMATICALLY on every query.
-#   You insert data, and quality labels appear without explicit classification.
-#   Also: how to chain rules so one rule's output feeds another.
+#   - How a single cascading `if/else` inside `fun` replaces N mutually-
+#     exclusive `rule` definitions.
+#   - How to compose classifier functions (cascade_sources calls record_quality).
+#   - When to materialize vs derive-on-demand.
+#   - 3.x schema best practices: `@values` for enum constraints, `@range` for
+#     bounded probabilities, `@cascade` on relation roles for dependent cleanup.
 #
 # BIOLOGY (Chapter 2 — Task Allocation Without Instructions):
 #   Individual ants have different RESPONSE THRESHOLDS for switching tasks.
-#   Some ants switch at low encounter rates (sensitive), others require many
-#   encounters before switching (persistent). These thresholds create bands:
-#   high-sensitivity ants respond to weak signals, low-sensitivity ants only
-#   respond to strong signals.
+#   High-sensitivity ants respond to weak signals, low-sensitivity ants only
+#   respond to strong signals. Population variance in thresholds is essential.
 #
-#   In TypeDB: inference rules fire automatically at different thresholds.
-#   High quality >= 0.7, medium >= 0.4, low < 0.4. Each band triggers a
-#   different response — exactly like ants with different switching thresholds.
-#   The key insight: mutually exclusive bands prevent oscillation. An entity
-#   is classified once, not constantly reclassified.
-#
-#   Population variance in thresholds is ESSENTIAL. If all rules fire at
-#   the same threshold, the system can't distinguish signal from noise.
+#   In TypeDB 3.x: cascading `if/else` inside a function creates mutually-
+#   exclusive bands. Unlike 2.x rules (which could overlap and cause
+#   ambiguity), a single function with an ordered cascade guarantees exactly
+#   one band per instance. The first branch that matches wins.
 #
 #   Reference: https://ants-at-work.com/book/2/
 #
@@ -35,130 +47,55 @@
 #   - Service level classification
 #   - Performance review bands
 #
-# KEY CONCEPT: Rules with OVERLAPPING conditions must be mutually exclusive.
-#              Use >= and < together to create clean bands.
-#
 # AFTER LOADING, TEST WITH:
-#   match $r isa learning-rule, has quality-label $q; select $r, $q;
-#   # Expected: Each rule automatically gets "high", "medium", or "low"
-#   #           based on its effectiveness attribute. No manual labeling needed.
+#   # Derived-on-demand (no materialization needed):
+#   match
+#     $r isa learning-record;
+#     let $q = record_quality($r);
+#   select $r, $q;
 #
 # =============================================================================
 
 define
 
-# --- Schema ---
+# =============================================================================
+# SCHEMA
+# =============================================================================
+# Best practices demonstrated:
+#   @values on record-type + quality-label + cycle-quality — type-validated enums
+#   @range on effectiveness, chain-strength, accuracy-* — bounded probabilities
+#   @cascade on learning-chain:source — deleting a source record dissolves the
+#                                       chain rows that depended on it
 
 entity learning-record,
     owns record-id @key,
-    owns record-type,          # "insight", "rule", "hypothesis"
-    owns source-system,        # which system generated this
-    owns applied,              # has this been put into practice?
-    owns effectiveness,        # 0.0 - 1.0 (measured after application)
-    owns quality-label,        # "high", "medium", "low" (INFERRED)
-    owns cascade-potential,    # does this lead to further learnings? (INFERRED)
+    owns record-type,
+    owns source-system,
+    owns applied,
+    owns effectiveness,
+    owns quality-label,          # optional: set by the materialization pipeline
+    owns cascade-potential,      # optional: set by the materialization pipeline
     owns insight-text,
     plays learning-chain:source,
     plays learning-chain:derived;
 
-attribute record-id, value string;
-attribute record-type, value string;
-attribute source-system, value string;
-attribute applied, value boolean;
-attribute effectiveness, value double;
-attribute quality-label, value string;
-attribute cascade-potential, value boolean;
-attribute insight-text, value string;
+attribute record-id,          value string;
+attribute record-type,        value string @values("insight", "rule", "hypothesis");
+attribute source-system,      value string;
+attribute applied,            value boolean;
+attribute effectiveness,      value double @range(0.0..1.0);
+attribute quality-label,      value string @values("high", "medium", "low");
+attribute cascade-potential,  value boolean;
+attribute insight-text,       value string;
 
-# Chain of derived learnings
 relation learning-chain,
-    relates source,
+    relates source @cascade,     # delete a source record → chain entries go too
     relates derived,
     owns chain-strength,
     owns chain-timestamp;
 
-attribute chain-strength, value double;
-attribute chain-timestamp, value datetime;
-
-
-# =============================================================================
-# RULE 1: High Quality
-# =============================================================================
-#
-# Applied learnings with effectiveness >= 70% are high quality.
-# Both conditions (applied=true AND effectiveness >= 0.7) must hold.
-#
-rule high-quality-record:
-    when {
-        $r isa learning-record,
-            has applied true,
-            has effectiveness $e;
-        $e >= 0.7;
-    } then {
-        $r has quality-label "high";
-    };
-
-
-# =============================================================================
-# RULE 2: Medium Quality
-# =============================================================================
-#
-# Applied learnings with 40% <= effectiveness < 70%.
-# Note the UPPER BOUND (< 0.7) prevents overlap with high quality.
-#
-rule medium-quality-record:
-    when {
-        $r isa learning-record,
-            has applied true,
-            has effectiveness $e;
-        $e >= 0.4;
-        $e < 0.7;
-    } then {
-        $r has quality-label "medium";
-    };
-
-
-# =============================================================================
-# RULE 3: Low Quality
-# =============================================================================
-#
-# Applied learnings with effectiveness < 40%.
-#
-rule low-quality-record:
-    when {
-        $r isa learning-record,
-            has applied true,
-            has effectiveness $e;
-        $e < 0.4;
-    } then {
-        $r has quality-label "low";
-    };
-
-
-# =============================================================================
-# RULE 4: Cascade Detection (Chained Rules)
-# =============================================================================
-#
-# A learning has cascade potential when:
-#   1. It is high quality (derived by rules above)
-#   2. It led to ANOTHER high-quality learning
-#
-# This demonstrates CHAINED INFERENCE: Rule 4 depends on Rules 1-3.
-# TypeDB resolves the dependency automatically.
-#
-rule cascade-detected:
-    when {
-        $source isa learning-record, has quality-label "high";
-        $chain (source: $source, derived: $derived) isa learning-chain;
-        $derived isa learning-record, has quality-label "high";
-    } then {
-        $source has cascade-potential true;
-    };
-
-
-# =============================================================================
-# PATTERN: Cycle/Sprint Quality Assessment
-# =============================================================================
+attribute chain-strength,     value double @range(0.0..1.0);
+attribute chain-timestamp,    value datetime;
 
 entity work-cycle,
     owns cycle-id @key,
@@ -169,89 +106,158 @@ entity work-cycle,
     owns items-created,
     owns accuracy-before,
     owns accuracy-after,
-    owns improvement-delta,     # after - before
-    owns cycle-quality;         # "excellent", "good", "average", "poor" (INFERRED)
+    owns improvement-delta,
+    owns cycle-quality;          # optional: set by the materialization pipeline
 
-attribute cycle-id, value string;
-attribute cycle-timestamp, value datetime;
-attribute cycle-duration-seconds, value integer;
-attribute items-completed, value integer;
-attribute items-tested, value integer;
-attribute items-created, value integer;
-attribute accuracy-before, value double;
-attribute accuracy-after, value double;
-attribute improvement-delta, value double;
-attribute cycle-quality, value string;
-
-
-# =============================================================================
-# RULES 5-8: Cycle Quality Bands
-# =============================================================================
-#
-# Classify work cycles by improvement delta.
-# Four mutually exclusive bands with no gaps.
-#
-
-# Excellent: improvement >= 5%
-rule excellent-cycle:
-    when {
-        $c isa work-cycle,
-            has improvement-delta $d;
-        $d >= 0.05;
-    } then {
-        $c has cycle-quality "excellent";
-    };
-
-# Good: 2% <= improvement < 5%
-rule good-cycle:
-    when {
-        $c isa work-cycle,
-            has improvement-delta $d;
-        $d >= 0.02;
-        $d < 0.05;
-    } then {
-        $c has cycle-quality "good";
-    };
-
-# Average: 0% <= improvement < 2%
-rule average-cycle:
-    when {
-        $c isa work-cycle,
-            has improvement-delta $d;
-        $d >= 0.0;
-        $d < 0.02;
-    } then {
-        $c has cycle-quality "average";
-    };
-
-# Poor: improvement < 0% (regression)
-rule poor-cycle:
-    when {
-        $c isa work-cycle,
-            has improvement-delta $d;
-        $d < 0.0;
-    } then {
-        $c has cycle-quality "poor";
-    };
+attribute cycle-id,                 value string;
+attribute cycle-timestamp,          value datetime;
+attribute cycle-duration-seconds,   value integer;
+attribute items-completed,          value integer;
+attribute items-tested,             value integer;
+attribute items-created,            value integer;
+attribute accuracy-before,          value double @range(0.0..1.0);
+attribute accuracy-after,           value double @range(0.0..1.0);
+attribute improvement-delta,        value double;
+attribute cycle-quality,            value string @values("excellent", "good", "average", "poor");
 
 
 # =============================================================================
-# USAGE EXAMPLES
+# CLASSIFIER FUNCTIONS — replacing 2.x rules
+# =============================================================================
+
+# --- Quality band for an applied learning-record ---
+#
+# Replaces 2.x rules: high-quality-record, medium-quality-record, low-quality-record
+# The three rules collapse into one function with a cascading if/else.
+#
+# The `match` pattern filters to APPLIED records; unapplied records
+# will not bind $e, so callers simply won't see a band for them
+# (effectively: no label = not-yet-rated).
+#
+fun record_quality($r: learning-record) -> string:
+    match $r has applied true, has effectiveness $e;
+    return first
+        if ($e >= 0.7)      then "high"
+        else if ($e >= 0.4) then "medium"
+        else                     "low";
+
+
+# --- Cascade detection (composed classifier) ---
+#
+# Replaces 2.x rule: cascade-detected
+#
+# A record has "cascade potential" if it is high-quality AND its derived
+# learnings are also high-quality — evidence that applying it catalyzed
+# further high-quality outcomes downstream.
+#
+# 3.x best practice: compose classifiers inside the match via `let`.
+# The planner sees both record_quality calls and can push the filter
+# through the chain.
+#
+fun cascade_sources() -> { learning-record }:
+    match
+        (source: $src, derived: $der) isa learning-chain;
+        let $src_q = record_quality($src);
+        let $der_q = record_quality($der);
+        $src_q == "high";
+        $der_q == "high";
+    return { $src };
+
+
+# --- Cycle quality band ---
+#
+# Replaces 2.x rules: excellent-cycle, good-cycle, average-cycle, poor-cycle
+# Four rules collapse to one function. Cascading if/else guarantees exactly
+# one band per cycle — no overlap, no gaps.
+#
+fun cycle_quality($c: work-cycle) -> string:
+    match $c has improvement-delta $d;
+    return first
+        if ($d >= 0.05) then "excellent"
+        else if ($d >= 0.02) then "good"
+        else if ($d >= 0.0)  then "average"
+        else                      "poor";
+
+
+# =============================================================================
+# USAGE PATTERN A — DERIVED-ON-DEMAND (no materialization)
 # =============================================================================
 #
-# Get high-quality learnings (quality-label is inferred, not inserted):
-#   match $r isa learning-record, has quality-label "high"; select $r;
+# Compute the label at query time. Always correct, zero staleness.
+# Use when: writes are frequent, the label is queried by a few callers.
 #
-# Find cascade learnings:
-#   match $r isa learning-record, has cascade-potential true; select $r;
+# Query "high quality records":
+#   match
+#       $r isa learning-record;
+#       let $q = record_quality($r);
+#       $q == "high";
+#   select $r;
 #
-# Get excellent cycles:
-#   match $c isa work-cycle, has cycle-quality "excellent"; select $c;
+# Group records by quality band:
+#   match
+#       $r isa learning-record;
+#       let $q = record_quality($r);
+#   reduce $n = count groupby $q;
 #
-# Get poor cycles (regressions):
-#   match $c isa work-cycle, has cycle-quality "poor"; select $c;
+# Find cascade sources (records that catalyzed high-quality derivations):
+#   match let $src = cascade_sources();
+#   select $src;
 #
-# Count by quality:
-#   match $r isa learning-record, has quality-label "high"; reduce $n = count($r);
+# Fetch JSON with computed label embedded:
+#   match $r isa learning-record;
+#   fetch {
+#       "record": $r.record-id,
+#       "effectiveness": $r.effectiveness,
+#       "band": record_quality($r)
+#   };
+#
+# =============================================================================
+# USAGE PATTERN B — MATERIALIZATION PIPELINE
+# =============================================================================
+#
+# Persist the label with a write pipeline. Faster reads, but must be re-run
+# whenever the source attributes change.
+# Use when: the label is queried heavily, writes are rare.
+#
+# Materialize record quality:
+#   match
+#       $r isa learning-record, has applied true;
+#       let $q = record_quality($r);
+#   insert $r has quality-label $q;
+#
+# Materialize cycle quality:
+#   match
+#       $c isa work-cycle;
+#       let $q = cycle_quality($c);
+#   insert $c has cycle-quality $q;
+#
+# Materialize cascade-potential flag:
+#   match let $src = cascade_sources();
+#   insert $src has cascade-potential true;
+#
+# Staleness rule: always clear previous labels before re-materializing:
+#   match $r isa learning-record, has quality-label $q;
+#   delete has $q of $r;
+#   # ... then re-run the materialization pipeline above.
+#
+# =============================================================================
+# WHEN TO CHOOSE WHICH
+# =============================================================================
+#
+# DERIVED-ON-DEMAND (A):
+#   + Always correct (no staleness)
+#   + Schema stays thin (no redundant attributes)
+#   + Classifier logic has a single source of truth (the `fun` body)
+#   − Every query recomputes — cost scales with read frequency
+#
+# MATERIALIZED (B):
+#   + Fast reads by label (indexed attribute lookup)
+#   + Suitable for reporting, dashboards, aggregation over labels
+#   − Must re-run when source data changes
+#   − Duplicate truth (the attribute and the function can disagree)
+#
+# RULE OF THUMB: start with (A), migrate to (B) only when a profiler shows
+# the classifier is a hot path. The function body never changes when you
+# switch modes — only how often you write the label.
 #
 # =============================================================================

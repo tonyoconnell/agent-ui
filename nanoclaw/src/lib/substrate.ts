@@ -448,3 +448,95 @@ export async function markModelOutcome(env: Env, edge: string, success: boolean,
   // Invalidate cache entry
   _pheromoneCache.delete(edge)
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTENT — Local D1 keyword resolution (fast path, no TypeDB/LLM)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface IntentMatch {
+  intent: string
+  confidence: number
+}
+
+export async function resolveIntentLocal(env: Env, text: string): Promise<IntentMatch | null> {
+  if (!env.DB) return null
+  const intents = await env.DB.prepare('SELECT name, keywords FROM intents LIMIT 100')
+    .all<{ name: string; keywords: string }>()
+    .catch(() => null)
+  if (!intents?.results?.length) return null
+
+  const lower = text.toLowerCase()
+  let best: IntentMatch | null = null
+
+  for (const row of intents.results) {
+    let keywords: string[] = []
+    try {
+      keywords = JSON.parse(row.keywords)
+    } catch {
+      continue
+    }
+    for (const kw of keywords) {
+      if (lower.includes(kw.toLowerCase())) {
+        const confidence = kw.length >= 6 ? 0.85 : 0.7
+        if (!best || confidence > best.confidence) {
+          best = { intent: row.name, confidence }
+        }
+        break
+      }
+    }
+  }
+  return best
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATTERN REGISTRY — D1-backed configurable per-claw patterns
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface PatternMatch {
+  id: number
+  action: 'reply' | 'tag' | 'block'
+  value: string | null
+  name: string
+}
+
+// Module-level pattern cache: 60s TTL per isolate
+const _patternCache = new Map<string, { rows: Array<PatternMatch & { pattern: string }>; expiresAt: number }>()
+
+export async function matchClawPattern(env: Env, text: string): Promise<PatternMatch | null> {
+  if (!env.DB) return null
+
+  const CACHE_KEY = 'claw_patterns'
+  const now = Date.now()
+  let cached = _patternCache.get(CACHE_KEY)
+  if (!cached || cached.expiresAt <= now) {
+    const rows = await env.DB.prepare(
+      'SELECT id, name, pattern, action, value FROM claw_patterns WHERE active = 1 ORDER BY priority ASC LIMIT 200',
+    )
+      .all<{ id: number; name: string; pattern: string; action: string; value: string | null }>()
+      .catch(() => null)
+    const entries = (rows?.results ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      pattern: r.pattern,
+      action: r.action as PatternMatch['action'],
+      value: r.value,
+    }))
+    cached = { rows: entries, expiresAt: now + 60_000 }
+    _patternCache.set(CACHE_KEY, cached)
+  }
+
+  for (const p of cached.rows) {
+    try {
+      if (new RegExp(p.pattern, 'i').test(text)) {
+        env.DB.prepare('UPDATE claw_patterns SET hit_count = hit_count + 1 WHERE id = ?')
+          .bind(p.id)
+          .run()
+          .catch(() => {})
+        return { id: p.id, name: p.name, action: p.action, value: p.value }
+      }
+    } catch {
+      // invalid regex in D1 — skip
+    }
+  }
+  return null
+}

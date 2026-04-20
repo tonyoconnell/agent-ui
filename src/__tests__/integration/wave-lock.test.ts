@@ -38,9 +38,9 @@ type ClaimResult =
 function claimTask(tid: string, sessionId: string): ClaimResult {
   const task = store.getTask(tid)
   if (!task) return { ok: false, status: 404, reason: 'not_found' }
-  if (task.status !== 'todo') return { ok: false, status: 422, reason: 'not_todo' }
+  if (task.task_status !== 'open') return { ok: false, status: 422, reason: 'not_todo' }
 
-  const wave = task.phase
+  const wave = task.task_wave ?? 'W3'
 
   // Check wave lock
   const lockHolder = waveLocks.get(wave)
@@ -53,7 +53,7 @@ function claimTask(tid: string, sessionId: string): ClaimResult {
     waveLocks.set(wave, sessionId)
   }
 
-  store.updateTask(tid, { status: 'active' })
+  store.updateTask(tid, { task_status: 'picked' })
   ownerRegistry.set(tid, { owner: sessionId, claimedAt: new Date().toISOString() })
   return { ok: true, status: 200 }
 }
@@ -70,12 +70,12 @@ function releaseTask(tid: string, sessionId: string): ReleaseResult {
   if (claim.owner !== sessionId) return { ok: false, status: 403, reason: 'wrong_session' }
 
   const task = store.getTask(tid)
-  store.updateTask(tid, { status: 'todo' })
+  store.updateTask(tid, { task_status: 'open' })
   ownerRegistry.delete(tid)
 
   // Release wave lock if no other active tasks in this wave belong to this session
   if (task) {
-    const wave = task.phase
+    const wave = task.task_wave ?? 'W3'
     const stillActive = Array.from(ownerRegistry.values()).some((c) => c.owner === sessionId)
     if (!stillActive) {
       waveLocks.delete(wave)
@@ -85,20 +85,18 @@ function releaseTask(tid: string, sessionId: string): ReleaseResult {
   return { ok: true, status: 200 }
 }
 
-function makeTask(tid: string, name: string, phase = 'W3') {
+function makeTask(tid: string, name: string, phase: string = 'W3') {
   store.createTask({
     tid,
     name,
-    status: 'todo',
-    priority: 'P1',
-    phase,
-    value: 'high',
-    persona: 'agent',
+    task_status: 'open',
+    task_priority: 0.75,
+    task_wave: phase as import('@/types/task').TaskWave,
     tags: ['test', 'wave-lock'],
-    blockedBy: [],
+    blocked_by: [],
     blocks: [],
-    trailPheromone: 0,
-    alarmPheromone: 0,
+    strength: 0,
+    resistance: 0,
   })
 }
 
@@ -140,8 +138,8 @@ describe('wave-lock: exclusive wave ownership between sessions', () => {
       expect(res.reason).toBe('wave_locked')
     }
 
-    // TID_B must still be todo — not claimed
-    expect(store.getTask(TID_B)?.status).toBe('todo')
+    // TID_B must still be open — not claimed
+    expect(store.getTask(TID_B)?.task_status).toBe('open')
   })
 
   it('session-A releases → session-B can then claim', () => {
@@ -178,7 +176,7 @@ describe('wave-lock: exclusive wave ownership between sessions', () => {
 
     // Wave lock still belongs to A
     expect(waveLocks.get(WAVE)).toBe(SESSION_A)
-    expect(store.getTask(TID_A)?.status).toBe('active')
+    expect(store.getTask(TID_A)?.task_status).toBe('picked')
   })
 
   it('same session can claim multiple tasks in the same wave', () => {

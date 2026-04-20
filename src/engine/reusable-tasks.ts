@@ -34,7 +34,7 @@
  */
 
 import { write, writeSilent } from '@/lib/typedb'
-import type { Effort, Phase, Task, Value, Wave } from './task-parse'
+import type { Effort, ParsedTask, Phase, Value, Wave } from './task-parse'
 import { syncTasks } from './task-sync'
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -254,7 +254,7 @@ export async function loadTemplates(dir: string): Promise<ReusableTaskTemplate[]
  * becomes `donal:seo:audit`. Block references are scoped the same way so
  * relations stay intact within the world.
  */
-export function instantiateTemplates(templates: ReusableTaskTemplate[], opts: ImportOptions): Task[] {
+export function instantiateTemplates(templates: ReusableTaskTemplate[], opts: ImportOptions): ParsedTask[] {
   const { worldId } = opts
   const scope = (id: string) => `${worldId}:${id}`
   return templates.map((tpl) => ({
@@ -284,7 +284,7 @@ export function instantiateTemplates(templates: ReusableTaskTemplate[], opts: Im
  * attributes that the base task format doesn't know about: rubric weights,
  * listing price, listing currency, template-source traceability.
  */
-async function writeTemplateExtensions(scoped: Task[], templates: ReusableTaskTemplate[]): Promise<number> {
+async function writeTemplateExtensions(scoped: ParsedTask[], templates: ReusableTaskTemplate[]): Promise<number> {
   let count = 0
   for (let i = 0; i < scoped.length; i++) {
     const task = scoped[i]

@@ -2,7 +2,7 @@
 
 Every millisecond matters. This is the speed contract for this repo.
 
-See [docs/fastest-ai.md](docs/fastest-ai.md) for the full positioning.
+See [docs/fastest-ai.md](fastest-ai.md) for the full positioning.
 
 ---
 
@@ -86,7 +86,7 @@ This is how we win: **not smarter, faster**.
 
 ## See Also
 
-- [docs/fastest-ai.md](docs/fastest-ai.md) — Full stack speed story
-- [docs/speed.md](docs/speed.md) — Detailed benchmarks
-- [docs/agent-speed-advantage.md](docs/agent-speed-advantage.md) — Economic impact
-- [docs/routing.md](docs/routing.md) — How routing works
+- [docs/fastest-ai.md](fastest-ai.md) — Full stack speed story
+- [docs/speed.md](one/speed.md) — Detailed benchmarks
+- [docs/agent-speed-advantage.md](agent-speed-advantage.md) — Economic impact
+- [docs/routing.md](routing.md) — How routing works

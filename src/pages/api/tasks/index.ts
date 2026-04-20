@@ -13,6 +13,7 @@ import { getNet } from '@/lib/net'
 import * as store from '@/lib/tasks-store'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 import { updateTasksCache } from '@/lib/ws-cache'
+import { normalizeStatus, priorityFromLabel } from '@/types/task'
 
 type Row = Record<string, unknown>
 
@@ -40,42 +41,40 @@ export const GET: APIRoute = async ({ url }) => {
       filtered = filtered.filter((t) => filterTags.every((tag) => t.tags.includes(tag)))
     }
     if (phase) {
-      filtered = filtered.filter((t) => t.phase === phase)
+      filtered = filtered.filter((t) => t.task_wave === phase)
     }
     if (value) {
-      filtered = filtered.filter((t) => t.value === value)
+      const valueNum = value === 'critical' ? 0.95 : value === 'high' ? 0.75 : value === 'medium' ? 0.55 : 0.25
+      filtered = filtered.filter((t) => t.task_value === valueNum)
     }
 
     const net = await getNet()
 
     const result = filtered
-      .filter((t) => t.status !== 'in_progress' && t.status !== 'active')
+      .filter((t) => (t.task_status as string) !== 'picked')
       .map((t) => {
-        const repelled = t.alarmPheromone >= 30 && t.alarmPheromone > t.trailPheromone
-        const attractive = t.trailPheromone >= 50
-        const exploratory = t.trailPheromone === 0 && t.alarmPheromone === 0
+        const repelled = t.resistance >= 30 && t.resistance > t.strength
+        const attractive = t.strength >= 50
+        const exploratory = t.strength === 0 && t.resistance === 0
         const category = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
-        const taskAny = t as unknown as Record<string, unknown>
         return {
           tid: t.tid,
           name: t.name,
-          status: t.status,
-          priority: t.priority,
-          phase: t.phase,
-          value: t.value,
-          persona: t.persona,
+          task_status: t.task_status,
+          task_priority: t.task_priority,
+          task_wave: t.task_wave,
+          task_value: t.task_value,
           tags: t.tags,
-          blockedBy: t.blockedBy,
+          blocked_by: t.blocked_by,
           blocks: t.blocks,
-          trailPheromone: t.trailPheromone,
-          alarmPheromone: t.alarmPheromone,
+          strength: t.strength,
+          resistance: t.resistance,
           category,
           attractive,
           repelled,
-          strength: net.sense(`loop→builder:${t.tid}`) || 0,
-          resistance: net.danger(`loop→builder:${t.tid}`) || 0,
-          wave: (taskAny.wave as string | undefined) || 'W3',
-          context: (taskAny.context as string[] | undefined) || [],
+          netStrength: net.sense(`loop→builder:${t.tid}`) || 0,
+          netResistance: net.danger(`loop→builder:${t.tid}`) || 0,
+          wave: t.task_wave || 'W3',
         }
       })
 
@@ -93,10 +92,24 @@ export const GET: APIRoute = async ({ url }) => {
   const phaseMatch = phase ? `$t has task-phase "${phase}";` : ''
   const valueMatch = value ? `$t has task-value "${value}";` : ''
 
+  // FIRST try: new canonical `thing` entity with thing-type="task"
+  const thingRows = (await readParsed(`
+    match $t isa thing, has thing-type "task", has tid $id,
+      has name $name, has task-status $status;
+    not { $t has task-status "active"; };
+    ${tagMatch}
+    ${phaseMatch}
+    ${valueMatch}
+    select $id, $name, $status;
+  `).catch(() => [])) as Row[]
+
+  // Collect IDs found in new entity for merge preference
+  const thingIds = new Set(thingRows.map((r) => r.id as string))
+
   // Query tasks from TypeDB. Note: TypeQL 3.x requires the `not {}` block on
   // its own statement (ended by `;`) — it can't continue a `has` chain with a
   // comma. Keeping clauses on separate `;` statements is the safe canonical form.
-  const tasks = (await readParsed(`
+  const legacyTasks = (await readParsed(`
     match $t isa task,
       has task-id $id, has name $name, has done $done,
       has task-value $val, has task-phase $ph, has task-persona $persona,
@@ -108,6 +121,10 @@ export const GET: APIRoute = async ({ url }) => {
     ${valueMatch}
     select $id, $name, $done, $val, $ph, $persona, $priority, $formula, $source, $status;
   `).catch(() => [])) as Row[]
+
+  // MERGE: prefer `thing` rows when both exist; append legacy-only rows
+  const thingById = new Map(thingRows.map((r) => [r.id as string, r]))
+  const tasks: Row[] = [...thingRows, ...legacyTasks.filter((r) => !thingIds.has(r.id as string))]
 
   // Get tags per task
   const tagRows = (await readParsed(`
@@ -203,9 +220,17 @@ export const GET: APIRoute = async ({ url }) => {
       traversals: ph.traversals,
       unit: unitId,
       source: t.source as string,
-      status: t.status as string,
+      status: normalizeStatus(t.status as string | null | undefined),
       wave: (t.wave as string | undefined) || 'W3',
       context: (t.context as string[] | undefined) || [],
+      // Canonical fields from new `thing` entity (present when row from thingById)
+      ...(thingById.has(id)
+        ? {
+            task_wave: (t.task_wave as string | undefined) ?? null,
+            task_priority: typeof t.task_priority === 'number' ? (t.task_priority as number) : null,
+            rubric: t.rubric ?? undefined,
+          }
+        : {}),
     }
   })
 
@@ -253,19 +278,16 @@ export const POST: APIRoute = async ({ request }) => {
   const priority = priorityTag || (score >= 90 ? 'P0' : score >= 70 ? 'P1' : score >= 50 ? 'P2' : 'P3')
 
   // Write to local store (always works, fast)
+  // Convert value string to numeric task_value
+  const taskValueNum = value === 'critical' ? 0.95 : value === 'high' ? 0.75 : value === 'medium' ? 0.55 : 0.25
   store.createTask({
     tid: body.id,
     name: body.name,
-    status: 'todo',
-    priority,
-    phase,
-    value,
-    persona,
+    task_wave: phase as store.ProjectTask['task_wave'],
+    task_value: taskValueNum,
     tags,
-    blockedBy: [],
+    blocked_by: [],
     blocks,
-    trailPheromone: 0,
-    alarmPheromone: 0,
   })
 
   const tagInserts = tags.map((t) => `has tag "${t}"`).join(', ')
@@ -288,6 +310,20 @@ export const POST: APIRoute = async ({ request }) => {
       ${tagInserts ? `${tagInserts},` : ''}
       has created ${new Date().toISOString().replace('Z', '')};
   `).catch(() => {})
+
+  // DUAL-WRITE: new canonical `thing` entity (backward-compat parallel insert)
+  const taskPriorityNum = priorityFromLabel(priority as 'P0' | 'P1' | 'P2' | 'P3')
+  await writeSilent(`
+    insert $tnew isa thing,
+      has thing-id "${esc(body.id)}",
+      has tid "${esc(body.id)}",
+      has thing-type "task",
+      has name "${esc(body.name)}",
+      has task-status "open",
+      has task-priority ${taskPriorityNum},
+      has task-effort 0.5,
+      has task-value ${taskValueNum};
+  `)
 
   // Create matching skill for capability routing
   await writeSilent(`

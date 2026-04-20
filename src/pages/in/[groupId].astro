@@ -1,0 +1,21 @@
+---
+export const prerender = false
+import Layout from "@/layouts/Layout.astro"
+import { Inbox } from "@/components/in/Inbox"
+import { getGroupsForUser, resolveUnitFromSession } from '@/lib/api-auth'
+
+const OWNER_ROLES = ['chairman', 'ceo', 'operator']
+const auth = await resolveUnitFromSession(Astro.request, Astro.locals).catch(() => null)
+if (!auth?.isValid) return Astro.redirect('/', 302)
+
+const { groupId } = Astro.params
+const groups = await getGroupsForUser(auth.user, OWNER_ROLES)
+const thisGroup = groups.find((g) => g.gid === groupId)
+if (!thisGroup) return Astro.redirect('/', 302)
+---
+
+<Layout title={`/in/${groupId} — ONE`}>
+  <div class="h-screen w-screen overflow-hidden">
+    <Inbox client:only="react" groupId={groupId} groups={groups} />
+  </div>
+</Layout>

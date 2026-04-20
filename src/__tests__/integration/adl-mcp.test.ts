@@ -12,19 +12,19 @@ import { describe, expect, it } from 'vitest'
 
 describe('ADL Cycle 3: MCP surface decision', () => {
   it('adl-mcp.md decision doc exists', () => {
-    const docPath = resolve(process.cwd(), 'docs/adl-mcp.md')
+    const docPath = resolve(process.cwd(), 'one/adl-mcp.md')
     expect(() => readFileSync(docPath)).not.toThrow()
   })
 
   it('decision doc states MCP is pending and routes through persist.signal()', () => {
-    const docPath = resolve(process.cwd(), 'docs/adl-mcp.md')
+    const docPath = resolve(process.cwd(), 'one/adl-mcp.md')
     const content = readFileSync(docPath, 'utf8')
     expect(content).toContain('persist.signal()')
     expect(content).toContain('pending')
   })
 
   it('decision doc lists current gate coverage table', () => {
-    const docPath = resolve(process.cwd(), 'docs/adl-mcp.md')
+    const docPath = resolve(process.cwd(), 'one/adl-mcp.md')
     const content = readFileSync(docPath, 'utf8')
     expect(content).toContain('Gate Coverage')
   })

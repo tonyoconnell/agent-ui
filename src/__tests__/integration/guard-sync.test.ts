@@ -23,58 +23,41 @@ function resetStore() {
 }
 
 /** Simulates what syncTasks does: upsert tasks from parsed docs.
- * If the task already exists, it only updates non-runtime fields (name, tags, value, phase).
+ * If the task already exists, it only updates non-runtime fields (name, tags).
  * It must NOT reset status/owner back to defaults.
  */
-function simulateSyncUpsert(tid: string, fields: Pick<store.ProjectTask, 'name' | 'tags' | 'value' | 'phase'>) {
+function simulateSyncUpsert(tid: string, fields: { name: string; tags: string[] }) {
   const existing = store.getTask(tid)
   if (!existing) {
     // New task from doc — insert with defaults
     store.createTask({
       tid,
       name: fields.name,
-      status: 'todo',
-      priority: 'P2',
-      phase: fields.phase,
-      value: fields.value,
-      persona: 'agent',
       tags: fields.tags,
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
     })
   } else {
     // Existing task — update only metadata, preserve runtime status
     store.updateTask(tid, {
       name: fields.name,
       tags: fields.tags,
-      value: fields.value,
-      phase: fields.phase,
-      // status intentionally NOT overwritten
+      // task_status intentionally NOT overwritten
     })
   }
 }
 
 describe('guard-sync: sync does not reset claimed tasks', () => {
   const TID = 'guard-sync-T1'
-  const _SESSION = 'session-abc-123'
 
   beforeEach(() => {
     resetStore()
     store.createTask({
       tid: TID,
       name: 'Guard Sync Task',
-      status: 'todo',
-      priority: 'P1',
-      phase: 'C2',
-      value: 'high',
-      persona: 'agent',
       tags: ['test', 'guard'],
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
-      trailPheromone: 0,
-      alarmPheromone: 0,
     })
   })
 
@@ -82,70 +65,62 @@ describe('guard-sync: sync does not reset claimed tasks', () => {
     resetStore()
   })
 
-  it('task starts as todo', () => {
+  it('task starts as open', () => {
     const task = store.getTask(TID)
-    expect(task?.status).toBe('todo')
+    expect(task?.task_status).toBe('open')
   })
 
-  it('claimed task remains active after sync upsert', () => {
+  it('claimed task remains picked after sync upsert', () => {
     // Claim the task
-    store.updateTask(TID, { status: 'active' })
-    expect(store.getTask(TID)?.status).toBe('active')
+    store.updateTask(TID, { task_status: 'picked' })
+    expect(store.getTask(TID)?.task_status).toBe('picked')
 
     // Sync runs — re-parses doc with same task data
     simulateSyncUpsert(TID, {
       name: 'Guard Sync Task',
       tags: ['test', 'guard'],
-      value: 'high',
-      phase: 'C2',
     })
 
-    // Task must still be active
+    // Task must still be picked
     const task = store.getTask(TID)
-    expect(task?.status).toBe('active')
+    expect(task?.task_status).toBe('picked')
   })
 
   it('sync updates metadata without touching status', () => {
-    store.updateTask(TID, { status: 'active' })
+    store.updateTask(TID, { task_status: 'picked' })
 
     // Sync with updated name/tags
     simulateSyncUpsert(TID, {
       name: 'Guard Sync Task (renamed)',
       tags: ['test', 'guard', 'updated'],
-      value: 'high',
-      phase: 'C2',
     })
 
     const task = store.getTask(TID)
-    expect(task?.status).toBe('active')
+    expect(task?.task_status).toBe('picked')
     expect(task?.name).toBe('Guard Sync Task (renamed)')
     expect(task?.tags).toContain('updated')
   })
 
-  it('sync of new task from doc inserts as todo', () => {
+  it('sync of new task from doc inserts as open', () => {
     const NEW_TID = 'guard-sync-T-new'
     simulateSyncUpsert(NEW_TID, {
       name: 'New Task From Doc',
       tags: ['new'],
-      value: 'medium',
-      phase: 'C2',
     })
 
     const task = store.getTask(NEW_TID)
-    expect(task?.status).toBe('todo')
+    expect(task?.task_status).toBe('open')
     store.deleteTask(NEW_TID)
   })
 
-  it('in_progress task also survives sync', () => {
-    store.updateTask(TID, { status: 'in_progress' })
+  it('picked task survives sync', () => {
+    store.updateTask(TID, { task_status: 'picked' })
 
     simulateSyncUpsert(TID, {
       name: 'Guard Sync Task',
       tags: ['test', 'guard'],
-      value: 'high',
-      phase: 'C2',
     })
 
-    expect(store.getTask(TID)?.status).toBe('in_progress')
+    expect(store.getTask(TID)?.task_status).toBe('picked')
   })
 })

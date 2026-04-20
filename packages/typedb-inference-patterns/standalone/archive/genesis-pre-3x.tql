@@ -1,0 +1,1449 @@
+# =============================================================================
+# ⚠  PRE-TYPEDB-3.0 REFERENCE — DO NOT LOAD AS-IS
+# =============================================================================
+# Uses TypeDB 2.x `rule name: when { } then { };` syntax, which 3.x REPLACED
+# with typed functions (`fun`). The pedagogy (entity shapes, classification
+# logic, lesson flow) is correct; the `rule` keyword is not. For production
+# 3.x TypeQL, see:
+#   - src/schema/world.tql           # live substrate schema using `fun`
+#   - src/schema/one.tql             # canonical 6-dimension ontology
+#   - .claude/skills/typedb/SKILL.md # canonical 3.x syntax reference
+#   - ../README.md                   # rule→fun translation sketch
+# =============================================================================
+
+# =============================================================================
+# GENESIS.TQL - Unified Colony Bootstrap Schema
+# =============================================================================
+#
+# THE ONE FILE TO LOAD THEM ALL
+#
+# This is the GENESIS file - loading this single file bootstraps the entire
+# ant colony infrastructure with all inference patterns, pheromone trails,
+# hypothesis management, task dependencies, and autonomous goal generation.
+#
+# USAGE:
+#   typedb console
+#   > database create ants-colony
+#   > transaction ants-colony schema write
+#   > source genesis.tql
+#   > commit
+#
+# WHAT'S INCLUDED:
+#   - Agent entity (unified from scored-item, contributor, assignee)
+#   - Pheromone trail infrastructure (edge-based, with decay rules)
+#   - Hypothesis/observation structures (state machine lifecycle)
+#   - Task/dependency structures (negation-based readiness)
+#   - Learning record quality classification (automatic tiering)
+#   - Contribution tracking (synergy measurement)
+#   - Frontier/objective structures (autonomous goal generation)
+#   - Work cycle assessment (performance bands)
+#   - Swarm infrastructure (dynamic team formation + dissolution)
+#
+# INFERENCE RULES (17 total):
+#   - Quality bands: high/medium/low quality records
+#   - Cycle quality: excellent/good/average/poor cycles
+#   - Cascade detection: learning chains that compound
+#   - Hypothesis action-ready: statistical significance gate
+#   - Trail status: proven/fresh/fading/dead trails
+#   - Task attractiveness: pheromone-weighted selection
+#   - Task repulsion: alarm pheromone avoidance
+#   - Swarm activation: min-size triggers active status
+#   - Swarm dissolution: 100% progress triggers dissolve
+#   - Recruitment satisfaction: respondents reach max
+#
+# INFERENCE FUNCTIONS (50+ total):
+#   - Entity classification (elite_agents, at_risk_agents, etc.)
+#   - Task selection (ready_tasks, attractive_tasks, exploratory_tasks)
+#   - Pheromone analysis (superhighway_trails, fading_trails)
+#   - Contribution measurement (total_contribution, best_synergy)
+#   - Goal generation (promising_frontiers, active_objectives)
+#   - Hypothesis management (actionable_hypotheses, active_tests)
+#   - Swarm coordination (joinable_swarms, my_swarm, swarm_members)
+#
+# BIOLOGY FOUNDATION:
+#   Based on Deborah Gordon's research on harvester ant task allocation.
+#   "The task an ant is performing depends not on any property of the
+#   individual ant, but on what the ant has experienced recently."
+#
+#   Reference: https://ants-at-work.com/book/
+#
+# VERSION: 1.0.0 (Genesis)
+# TYPEDB: 3.0+ ONLY (TypeQL 2.x syntax is FORBIDDEN)
+#
+# =============================================================================
+
+define
+
+
+# =============================================================================
+# SECTION 1: CORE AGENT ENTITY
+# =============================================================================
+#
+# The unified AGENT entity replaces scored-item, contributor, and assignee.
+# Every actor in the colony is an agent - human, AI, or automated system.
+#
+# Agents have:
+#   - Performance metrics (success-rate, activity-score)
+#   - Classification tiers (elite, standard, at-risk)
+#   - Contribution tracking (impact, synergy)
+#   - Task assignment capability
+#
+# BIOLOGY: Ants are identified by cuticular hydrocarbons - chemical signatures
+# encoding caste, task history, and colony membership. Our agents have
+# equivalent digital signatures: metrics that encode their capabilities.
+
+entity agent,
+    owns agent-id @key,
+    owns agent-name,
+    owns agent-type,              # "human", "ai", "bot", "team", "ant"
+    owns caste,                   # "scout", "forager", "harvester", "nurse", etc.
+    owns success-rate,            # 0.0 - 1.0 (historical performance)
+    owns activity-score,          # 0.0 - 100.0 (recent activity level)
+    owns sample-count,            # number of observations
+    owns agent-tier,              # "elite", "standard", "at-risk" (can be inferred)
+    owns promotion-ready,         # boolean (can be inferred)
+    owns total-impact,            # aggregate contribution impact
+    owns created-at,
+    owns last-active-at,
+    plays assignment:assigned-to,
+    plays contribution-event:contributor-agent;
+
+attribute agent-id, value string;
+attribute agent-name, value string;
+attribute agent-type, value string;
+attribute caste, value string;
+attribute success-rate, value double;
+attribute activity-score, value double;
+attribute sample-count, value integer;
+attribute agent-tier, value string;
+attribute promotion-ready, value boolean;
+attribute total-impact, value double;
+
+
+# =============================================================================
+# SECTION 2: TASK MANAGEMENT
+# =============================================================================
+#
+# Tasks are the fundamental unit of work. They have:
+#   - Dependencies (blocker/dependent relationships)
+#   - Pheromone trails connecting them (what sequence works?)
+#   - Assignments to agents
+#   - Categories, milestones, and tags for organization
+#
+# BIOLOGY: Ants don't receive instructions. They detect available work
+# (tasks with no blockers) and allocate themselves based on encounter
+# rates. ready_tasks() implements this - negation-based availability.
+
+entity task,
+    owns task-id @key,
+    owns title,
+    owns description,
+    owns status,                  # "todo", "in_progress", "complete", "blocked"
+    owns priority,                # "P0", "P1", "P2", "P3"
+    owns importance,              # 1-10 numeric score
+    owns estimated-effort,        # effort units (story points, hours, etc.)
+    owns effort-size,             # "micro", "small", "medium", "large"
+    owns source-file,             # origin document or system
+    owns blocked-reason,
+    owns attractive,              # INFERRED: ready + strong pheromone trail
+    owns repelled,                # INFERRED: high alarm pheromone
+    owns created-at,
+    owns updated-at,
+    owns completed-at,
+    plays dependency:dependent,
+    plays dependency:blocker,
+    plays assignment:assigned-task,
+    plays categorization:categorized-task,
+    plays milestone-membership:member-task,
+    plays tag-association:tagged-task,
+    plays pheromone-trail:source-task,
+    plays pheromone-trail:destination-task;
+
+entity task-category,
+    owns category-id @key,
+    owns category-name,
+    owns category-description,
+    owns parent-category,
+    plays categorization:category;
+
+entity milestone,
+    owns milestone-id @key,
+    owns milestone-name,
+    owns milestone-description,
+    owns target-date,
+    owns completion-percentage,
+    owns status,
+    plays milestone-membership:milestone;
+
+entity task-tag,
+    owns tag-id @key,
+    owns tag-name,
+    owns tag-color,
+    plays tag-association:tag;
+
+attribute task-id, value string;
+attribute title, value string;
+attribute description, value string;
+attribute status, value string;
+attribute priority, value string;
+attribute importance, value integer;
+attribute estimated-effort, value integer;
+attribute effort-size, value string;
+attribute source-file, value string;
+attribute blocked-reason, value string;
+attribute attractive, value boolean;
+attribute repelled, value boolean;
+attribute created-at, value datetime;
+attribute updated-at, value datetime;
+attribute completed-at, value datetime;
+
+attribute category-id, value string;
+attribute category-name, value string;
+attribute category-description, value string;
+attribute parent-category, value string;
+
+attribute milestone-id, value string;
+attribute milestone-name, value string;
+attribute milestone-description, value string;
+attribute target-date, value datetime;
+attribute completion-percentage, value double;
+
+attribute tag-id, value string;
+attribute tag-name, value string;
+attribute tag-color, value string;
+
+# Task relations
+relation dependency,
+    relates dependent,
+    relates blocker;
+
+relation assignment,
+    relates assigned-task,
+    relates assigned-to;
+
+relation categorization,
+    relates categorized-task,
+    relates category;
+
+relation milestone-membership,
+    relates member-task,
+    relates milestone;
+
+relation tag-association,
+    relates tagged-task,
+    relates tag;
+
+
+# =============================================================================
+# SECTION 3: PHEROMONE TRAIL INFRASTRUCTURE
+# =============================================================================
+#
+# Pheromone trails live on EDGES between tasks, not on nodes.
+# When completing task A successfully leads to task B, the A->B trail
+# gets reinforced. Failures deposit alarm pheromone instead.
+#
+# BIOLOGY: "Forgetting is intelligence." Trails decay over time,
+# forcing the colony to continually re-validate what works.
+# Alarm pheromone decays faster (80%) than trail pheromone (95%),
+# encouraging retry of failed paths after conditions change.
+
+relation pheromone-trail,
+    relates source-task,
+    relates destination-task,
+    owns trail-pheromone,         # 0.0 - 100.0 (positive reinforcement)
+    owns alarm-pheromone,         # 0.0 - 100.0 (negative reinforcement)
+    owns completions,             # times this sequence succeeded
+    owns failures,                # times this sequence failed
+    owns trail-status;            # "proven", "fresh", "fading", "dead" (INFERRED)
+
+attribute trail-pheromone, value double;
+attribute alarm-pheromone, value double;
+attribute completions, value integer;
+attribute failures, value integer;
+attribute trail-status, value string;
+
+
+# =============================================================================
+# SECTION 4: HYPOTHESIS LIFECYCLE
+# =============================================================================
+#
+# Hypotheses move through states: pending -> testing -> confirmed/rejected
+# The transition to "actionable" requires statistical significance:
+#   - p-value <= 0.05 (95% confidence)
+#   - observations >= 50 (enough data)
+#
+# BIOLOGY: Ant task switching is probabilistic, not deterministic.
+# Evidence accumulates until a threshold is crossed. Same pattern here -
+# hypotheses don't become actionable until statistical thresholds are met.
+
+entity hypothesis,
+    owns hypothesis-id @key,
+    owns hypothesis-statement,
+    owns test-condition,
+    owns hypothesis-status,       # "pending", "testing", "confirmed", "rejected"
+    owns observations-count,
+    owns success-count,
+    owns failure-count,
+    owns p-value,                 # statistical significance
+    owns generated-by,            # "human", "algorithm", "llm"
+    owns action-if-confirmed,
+    owns resulting-action,
+    owns action-ready,            # INFERRED: ready for action?
+    owns concluded-at,
+    plays tests:hypothesis,
+    plays generates:source;
+
+entity observation,
+    owns observation-id @key,
+    owns observed-at,
+    owns outcome,                 # "success", "failure"
+    owns context-data,
+    plays tests:observation;
+
+entity generated-artifact,
+    owns artifact-id @key,
+    owns artifact-type,           # "rule", "config_change", "feature_flag"
+    owns artifact-content,
+    owns generation-quality,
+    plays generates:output;
+
+attribute hypothesis-id, value string;
+attribute hypothesis-statement, value string;
+attribute test-condition, value string;
+attribute hypothesis-status, value string;
+attribute observations-count, value integer;
+attribute success-count, value integer;
+attribute failure-count, value integer;
+attribute p-value, value double;
+attribute generated-by, value string;
+attribute action-if-confirmed, value string;
+attribute resulting-action, value string;
+attribute action-ready, value boolean;
+attribute concluded-at, value datetime;
+
+attribute observation-id, value string;
+attribute observed-at, value datetime;
+attribute outcome, value string;
+attribute context-data, value string;
+
+attribute artifact-id, value string;
+attribute artifact-type, value string;
+attribute artifact-content, value string;
+attribute generation-quality, value double;
+
+relation tests,
+    relates hypothesis,
+    relates observation;
+
+relation generates,
+    relates source,
+    relates output;
+
+hypothesis plays generates:source;
+
+
+# =============================================================================
+# SECTION 5: LEARNING RECORDS & QUALITY CLASSIFICATION
+# =============================================================================
+#
+# Learning records track insights, rules, and hypotheses with automatic
+# quality classification based on effectiveness after application.
+#
+# BIOLOGY: Ants have different response thresholds for task switching.
+# Our quality bands (high/medium/low) work the same way - different
+# thresholds trigger different responses. The key is MUTUAL EXCLUSIVITY:
+# >= 0.7 is high, 0.4-0.7 is medium, < 0.4 is low. No gaps, no overlaps.
+
+entity learning-record,
+    owns record-id @key,
+    owns record-type,             # "insight", "rule", "hypothesis"
+    owns source-system,
+    owns applied,                 # has this been put into practice?
+    owns effectiveness,           # 0.0 - 1.0 (measured after application)
+    owns quality-label,           # "high", "medium", "low" (INFERRED)
+    owns cascade-potential,       # leads to further learnings? (INFERRED)
+    owns insight-text,
+    plays learning-chain:source,
+    plays learning-chain:derived;
+
+attribute record-id, value string;
+attribute record-type, value string;
+attribute source-system, value string;
+attribute applied, value boolean;
+attribute effectiveness, value double;
+attribute quality-label, value string;
+attribute cascade-potential, value boolean;
+attribute insight-text, value string;
+
+relation learning-chain,
+    relates source,
+    relates derived,
+    owns chain-strength,
+    owns chain-timestamp;
+
+attribute chain-strength, value double;
+attribute chain-timestamp, value datetime;
+
+
+# =============================================================================
+# SECTION 6: WORK CYCLES
+# =============================================================================
+#
+# Track work sprints/cycles with automatic quality assessment.
+# Cycles are classified by improvement delta (after - before accuracy).
+
+entity work-cycle,
+    owns cycle-id @key,
+    owns cycle-timestamp,
+    owns cycle-duration-seconds,
+    owns items-completed,
+    owns items-tested,
+    owns items-created,
+    owns accuracy-before,
+    owns accuracy-after,
+    owns improvement-delta,
+    owns cycle-quality;           # "excellent", "good", "average", "poor" (INFERRED)
+
+attribute cycle-id, value string;
+attribute cycle-timestamp, value datetime;
+attribute cycle-duration-seconds, value integer;
+attribute items-completed, value integer;
+attribute items-tested, value integer;
+attribute items-created, value integer;
+attribute accuracy-before, value double;
+attribute accuracy-after, value double;
+attribute improvement-delta, value double;
+attribute cycle-quality, value string;
+
+
+# =============================================================================
+# SECTION 7: CONTRIBUTION TRACKING
+# =============================================================================
+#
+# Track contributions from agents and measure synergy between them.
+# Contributions chain together - one contribution enables another.
+#
+# BIOLOGY: Gordon measures colony behavior by INTERACTION RATES.
+# The strength of a pheromone trail isn't about any single ant -
+# it's the aggregate of all reinforcements. Same here.
+
+entity contribution,
+    owns contribution-id @key,
+    owns contribution-type,       # "code", "review", "hypothesis", "data"
+    owns contribution-timestamp,
+    owns impact-score,            # 0.0 - 10.0
+    owns contribution-detail,
+    plays contribution-chain:contributor,
+    plays contribution-chain:beneficiary,
+    plays contribution-event:contribution;
+
+relation contribution-event,
+    relates contributor-agent,
+    relates contribution;
+
+attribute contribution-id, value string;
+attribute contribution-type, value string;
+attribute contribution-timestamp, value datetime;
+attribute impact-score, value double;
+attribute contribution-detail, value string;
+
+relation contribution-chain,
+    relates contributor,
+    relates beneficiary,
+    owns chain-value,
+    owns chain-type;              # "direct", "indirect", "synergistic"
+
+attribute chain-value, value double;
+attribute chain-type, value string;
+
+
+# =============================================================================
+# SECTION 8: AUTONOMOUS GOAL GENERATION
+# =============================================================================
+#
+# Frontiers are unexplored territories. Objectives spawn autonomously
+# when frontiers meet criteria. Curiosity signals trigger exploration.
+#
+# BIOLOGY: No ant decides what the colony should do. Goals EMERGE from
+# the interaction of agents following local rules. Curiosity signals
+# parallel Gordon's observation that ants increase patrolling when
+# they detect novel stimuli.
+
+entity exploration-frontier,
+    owns frontier-id @key,
+    owns frontier-name,
+    owns frontier-type,           # "market", "technology", "user_segment"
+    owns frontier-description,
+    owns exploration-potential,   # 0.0 - 1.0
+    owns uncertainty-level,       # 0.0 - 1.0
+    owns discovery-probability,   # P(valuable | explore)
+    owns resource-cost,
+    owns expected-value,          # potential * probability / cost
+    owns discovered-at,
+    owns last-explored,
+    owns exploration-count,
+    owns frontier-status,         # "unexplored", "exploring", "exhausted"
+    owns exploration-priority,    # computed priority score
+    plays spawns:frontier;
+
+entity autonomous-objective,
+    owns objective-id @key,
+    owns objective-type,          # "explore", "optimize", "validate"
+    owns objective-description,
+    owns priority-score,
+    owns generated-at,
+    owns source-frontier-id,
+    owns allocated-resources,
+    owns progress,                # 0.0 - 1.0
+    owns objective-outcome,       # "success", "failure", "partial"
+    owns objective-status,        # "pending", "active", "complete"
+    plays spawns:objective;
+
+entity curiosity-signal,
+    owns signal-id @key,
+    owns signal-type,             # "gap_detected", "plateau", "anomaly"
+    owns trigger-condition,
+    owns triggered-at,
+    owns intensity,               # 0.0 - 1.0
+    owns signal-duration-seconds,
+    owns resolved,
+    owns resolved-by-objective-id;
+
+entity self-model-snapshot,
+    owns snapshot-id @key,
+    owns captured-at,
+    owns overall-health,
+    owns component-scores,        # JSON or structured
+    owns total-entities,
+    owns active-objectives,
+    owns learning-velocity,
+    owns improvement-acceleration,
+    owns threshold-level,
+    plays snapshot-sequence:previous-snapshot,
+    plays snapshot-sequence:next-snapshot;
+
+attribute frontier-id, value string;
+attribute frontier-name, value string;
+attribute frontier-type, value string;
+attribute frontier-description, value string;
+attribute exploration-potential, value double;
+attribute uncertainty-level, value double;
+attribute discovery-probability, value double;
+attribute resource-cost, value double;
+attribute expected-value, value double;
+attribute discovered-at, value datetime;
+attribute last-explored, value datetime;
+attribute exploration-count, value integer;
+attribute frontier-status, value string;
+attribute exploration-priority, value double;
+
+attribute objective-id, value string;
+attribute objective-type, value string;
+attribute objective-description, value string;
+attribute priority-score, value double;
+attribute generated-at, value datetime;
+attribute source-frontier-id, value string;
+attribute allocated-resources, value double;
+attribute progress, value double;
+attribute objective-outcome, value string;
+attribute objective-status, value string;
+
+attribute signal-id, value string;
+attribute signal-type, value string;
+attribute trigger-condition, value string;
+attribute triggered-at, value datetime;
+attribute intensity, value double;
+attribute signal-duration-seconds, value integer;
+attribute resolved, value boolean;
+attribute resolved-by-objective-id, value string;
+
+attribute snapshot-id, value string;
+attribute captured-at, value datetime;
+attribute overall-health, value double;
+attribute component-scores, value string;
+attribute total-entities, value integer;
+attribute active-objectives, value integer;
+attribute learning-velocity, value double;
+attribute improvement-acceleration, value double;
+attribute threshold-level, value string;
+attribute last-active-at, value datetime;
+
+relation spawns,
+    relates frontier,
+    relates objective;
+
+relation snapshot-sequence,
+    relates previous-snapshot,
+    relates next-snapshot;
+
+
+# =============================================================================
+# SECTION 9: INFERENCE RULES
+# =============================================================================
+#
+# Rules fire AUTOMATICALLY on every query. You insert data, and
+# classifications/states appear without explicit computation.
+#
+# BIOLOGY: Individual ants have response thresholds for task switching.
+# Our rules are the same - thresholds that trigger state transitions.
+
+
+# -----------------------------------------------------------------------------
+# 9.1 LEARNING RECORD QUALITY BANDS (Mutually Exclusive)
+# -----------------------------------------------------------------------------
+
+# High quality: applied AND effectiveness >= 70%
+rule high-quality-record:
+    when {
+        $r isa learning-record,
+            has applied true,
+            has effectiveness $e;
+        $e >= 0.7;
+    } then {
+        $r has quality-label "high";
+    };
+
+# Medium quality: applied AND 40% <= effectiveness < 70%
+rule medium-quality-record:
+    when {
+        $r isa learning-record,
+            has applied true,
+            has effectiveness $e;
+        $e >= 0.4;
+        $e < 0.7;
+    } then {
+        $r has quality-label "medium";
+    };
+
+# Low quality: applied AND effectiveness < 40%
+rule low-quality-record:
+    when {
+        $r isa learning-record,
+            has applied true,
+            has effectiveness $e;
+        $e < 0.4;
+    } then {
+        $r has quality-label "low";
+    };
+
+# Cascade detection: high-quality learning led to another high-quality learning
+rule cascade-detected:
+    when {
+        $source isa learning-record, has quality-label "high";
+        $chain (source: $source, derived: $derived) isa learning-chain;
+        $derived isa learning-record, has quality-label "high";
+    } then {
+        $source has cascade-potential true;
+    };
+
+
+# -----------------------------------------------------------------------------
+# 9.2 WORK CYCLE QUALITY BANDS (Mutually Exclusive)
+# -----------------------------------------------------------------------------
+
+# Excellent: improvement >= 5%
+rule excellent-cycle:
+    when {
+        $c isa work-cycle,
+            has improvement-delta $d;
+        $d >= 0.05;
+    } then {
+        $c has cycle-quality "excellent";
+    };
+
+# Good: 2% <= improvement < 5%
+rule good-cycle:
+    when {
+        $c isa work-cycle,
+            has improvement-delta $d;
+        $d >= 0.02;
+        $d < 0.05;
+    } then {
+        $c has cycle-quality "good";
+    };
+
+# Average: 0% <= improvement < 2%
+rule average-cycle:
+    when {
+        $c isa work-cycle,
+            has improvement-delta $d;
+        $d >= 0.0;
+        $d < 0.02;
+    } then {
+        $c has cycle-quality "average";
+    };
+
+# Poor: improvement < 0% (regression)
+rule poor-cycle:
+    when {
+        $c isa work-cycle,
+            has improvement-delta $d;
+        $d < 0.0;
+    } then {
+        $c has cycle-quality "poor";
+    };
+
+
+# -----------------------------------------------------------------------------
+# 9.3 HYPOTHESIS LIFECYCLE
+# -----------------------------------------------------------------------------
+
+# Hypothesis is action-ready when confirmed + statistically significant + enough data
+rule hypothesis-action-ready:
+    when {
+        $h isa hypothesis,
+            has hypothesis-status "confirmed",
+            has p-value $p,
+            has observations-count $n;
+        $p <= 0.05;
+        $n >= 50;
+    } then {
+        $h has action-ready true;
+    };
+
+
+# -----------------------------------------------------------------------------
+# 9.4 PHEROMONE TRAIL STATUS (Mutually Exclusive)
+# -----------------------------------------------------------------------------
+
+# Proven trail: high pheromone, many completions, few failures (superhighway)
+rule proven-trail:
+    when {
+        $trail isa pheromone-trail,
+            has trail-pheromone $tp,
+            has completions $c,
+            has failures $f;
+        $tp >= 70.0;
+        $c >= 10;
+        $f < $c;
+    } then {
+        $trail has trail-status "proven";
+    };
+
+# Fresh trail: recently created, not enough data yet
+rule fresh-trail:
+    when {
+        $trail isa pheromone-trail,
+            has trail-pheromone $tp,
+            has completions $c;
+        $tp >= 10.0;
+        $tp < 70.0;
+        $c < 10;
+    } then {
+        $trail has trail-status "fresh";
+    };
+
+# Fading trail: pheromone decaying, needs reinforcement
+rule fading-trail:
+    when {
+        $trail isa pheromone-trail,
+            has trail-pheromone $tp;
+        $tp > 0.0;
+        $tp < 10.0;
+    } then {
+        $trail has trail-status "fading";
+    };
+
+# Dead trail: no pheromone left (the colony forgot this path)
+rule dead-trail:
+    when {
+        $trail isa pheromone-trail,
+            has trail-pheromone $tp;
+        $tp <= 0.0;
+    } then {
+        $trail has trail-status "dead";
+    };
+
+
+# -----------------------------------------------------------------------------
+# 9.5 TASK ATTRACTIVENESS (Pheromone-Weighted Selection)
+# -----------------------------------------------------------------------------
+
+# Task is ATTRACTIVE when: ready + strong pheromone trail leading here
+rule attractive-task:
+    when {
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $blocker) isa dependency;
+            $blocker isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+        $trail (destination-task: $t) isa pheromone-trail,
+            has trail-pheromone $tp;
+        $tp >= 50.0;
+    } then {
+        $t has attractive true;
+    };
+
+# Task is REPELLED when alarm pheromone dominates (previous failures)
+rule repelled-task:
+    when {
+        $t isa task, has status "todo";
+        $trail (destination-task: $t) isa pheromone-trail,
+            has alarm-pheromone $ap,
+            has trail-pheromone $tp;
+        $ap >= 30.0;
+        $ap > $tp;
+    } then {
+        $t has repelled true;
+    };
+
+
+# =============================================================================
+# SECTION 10: INFERENCE FUNCTIONS
+# =============================================================================
+#
+# Functions are called explicitly and return computed results.
+# They implement the colony's query interface.
+
+
+# -----------------------------------------------------------------------------
+# 10.1 AGENT CLASSIFICATION FUNCTIONS
+# -----------------------------------------------------------------------------
+
+# Elite agents: high success rate, high activity, sufficient samples
+fun elite_agents() -> { agent }:
+    match
+        $a isa agent,
+            has success-rate $sr,
+            has activity-score $as,
+            has sample-count $sc;
+        $sr >= 0.75;
+        $as >= 70.0;
+        $sc >= 50;
+    return { $a };
+
+# At-risk agents: low success rate, but active (actively failing)
+fun at_risk_agents() -> { agent }:
+    match
+        $a isa agent,
+            has success-rate $sr,
+            has activity-score $as,
+            has sample-count $sc;
+        $sr < 0.40;
+        $as >= 25.0;
+        $sc >= 30;
+    return { $a };
+
+# Promotion candidates: elite + very high activity
+fun promotion_candidates() -> { agent }:
+    match
+        $a isa agent,
+            has agent-tier "elite",
+            has activity-score $as,
+            has sample-count $sc;
+        $as >= 80.0;
+        $sc >= 100;
+    return { $a };
+
+# High-traffic agents (superhighway - most valuable contributors)
+fun high_traffic_agents() -> { agent }:
+    match
+        $a isa agent,
+            has activity-score $as,
+            has sample-count $sc;
+        $as >= 85.0;
+        $sc >= 100;
+    return { $a };
+
+# Transfer candidates: elite agents suitable for cross-domain work
+fun transfer_candidates() -> { agent }:
+    match
+        $a isa agent,
+            has agent-tier "elite",
+            has success-rate $sr;
+        $sr >= 0.70;
+    return { $a };
+
+# Count elite agents
+fun elite_agent_count() -> integer:
+    match
+        $a isa agent,
+            has success-rate $sr,
+            has activity-score $as,
+            has sample-count $sc;
+        $sr >= 0.75;
+        $as >= 70.0;
+        $sc >= 50;
+    return count($a);
+
+# Count at-risk agents
+fun at_risk_agent_count() -> integer:
+    match
+        $a isa agent,
+            has success-rate $sr,
+            has activity-score $as,
+            has sample-count $sc;
+        $sr < 0.40;
+        $as >= 25.0;
+        $sc >= 30;
+    return count($a);
+
+# Agents by caste
+fun agents_by_caste($c: string) -> { agent }:
+    match
+        $a isa agent, has caste $c;
+    return { $a };
+
+# Agents by type
+fun agents_by_type($t: string) -> { agent }:
+    match
+        $a isa agent, has agent-type $t;
+    return { $a };
+
+
+# -----------------------------------------------------------------------------
+# 10.2 TASK MANAGEMENT FUNCTIONS
+# -----------------------------------------------------------------------------
+
+# Tasks by priority
+fun tasks_by_priority($p: string) -> { task }:
+    match
+        $t isa task, has priority $p;
+    return { $t };
+
+# Tasks by status
+fun tasks_by_status($s: string) -> { task }:
+    match
+        $t isa task, has status $s;
+    return { $t };
+
+# Blocked tasks
+fun blocked_tasks() -> { task }:
+    match
+        $t isa task, has status "blocked";
+    return { $t };
+
+# Tasks blocking a specific task
+fun blockers_of($task_id: string) -> { task }:
+    match
+        $dependent isa task, has task-id $task_id;
+        $dep(dependent: $dependent, blocker: $blocker) isa dependency;
+        $blocker isa task;
+    return { $blocker };
+
+# Tasks blocked by a specific task
+fun dependents_of($blocker_id: string) -> { task }:
+    match
+        $blocker isa task, has task-id $blocker_id;
+        $dep(dependent: $dependent, blocker: $blocker) isa dependency;
+        $dependent isa task;
+    return { $dependent };
+
+# Tasks by category
+fun tasks_by_category($cat_name: string) -> { task }:
+    match
+        $cat isa task-category, has category-name $cat_name;
+        $rel(categorized-task: $t, category: $cat) isa categorization;
+        $t isa task;
+    return { $t };
+
+# Tasks by milestone
+fun tasks_by_milestone($ms_name: string) -> { task }:
+    match
+        $ms isa milestone, has milestone-name $ms_name;
+        $rel(member-task: $t, milestone: $ms) isa milestone-membership;
+        $t isa task;
+    return { $t };
+
+# Tasks by tag
+fun tasks_by_tag($tag_name: string) -> { task }:
+    match
+        $tag isa task-tag, has tag-name $tag_name;
+        $rel(tagged-task: $t, tag: $tag) isa tag-association;
+        $t isa task;
+    return { $t };
+
+# Tasks assigned to an agent
+fun tasks_by_assignee($name: string) -> { task }:
+    match
+        $a isa agent, has agent-name $name;
+        $rel(assigned-task: $t, assigned-to: $a) isa assignment;
+        $t isa task;
+    return { $t };
+
+# Count tasks by status
+fun count_by_status($s: string) -> integer:
+    match
+        $t isa task, has status $s;
+    return count($t);
+
+# Count tasks by priority
+fun count_by_priority($p: string) -> integer:
+    match
+        $t isa task, has priority $p;
+    return count($t);
+
+# High-importance tasks (above threshold)
+fun high_importance_tasks($threshold: integer) -> { task }:
+    match
+        $t isa task, has importance $imp;
+        $imp >= $threshold;
+    return { $t };
+
+# Urgent tasks (P0 or P1, not complete)
+fun urgent_tasks() -> { task }:
+    match
+        $t isa task, has priority $p, has status $s;
+        { $p == "P0"; } or { $p == "P1"; };
+        not { $s == "complete"; };
+    return { $t };
+
+# Category completion percentage
+fun category_completion($cat_name: string) -> double:
+    match
+        $cat isa task-category, has category-name $cat_name;
+        $rel(categorized-task: $t, category: $cat) isa categorization;
+        $t isa task, has status $s;
+    return count(filter($t, $s == "complete")) / count($t);
+
+# READY TASKS: No incomplete blockers (the core ant task allocation pattern)
+fun ready_tasks() -> { task }:
+    match
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $blocker) isa dependency;
+            $blocker isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+    return { $t };
+
+
+# -----------------------------------------------------------------------------
+# 10.3 PHEROMONE-WEIGHTED TASK SELECTION
+# -----------------------------------------------------------------------------
+
+# ATTRACTIVE tasks: ready + strong pheromone trail (EXPLOIT)
+fun attractive_tasks() -> { task }:
+    match
+        $t isa task,
+            has attractive true;
+    return { $t };
+
+# REPELLED tasks: alarm pheromone dominates (AVOID)
+fun repelled_tasks() -> { task }:
+    match
+        $t isa task,
+            has repelled true;
+    return { $t };
+
+# EXPLORATORY tasks: no pheromone trail at all (needs a scout - EXPLORE)
+fun exploratory_tasks() -> { task }:
+    match
+        $t isa task, has status "todo";
+        not {
+            $dep(dependent: $t, blocker: $blocker) isa dependency;
+            $blocker isa task, has status $bs;
+            not { $bs == "complete"; };
+        };
+        not {
+            $trail (destination-task: $t) isa pheromone-trail;
+        };
+    return { $t };
+
+# Trail strength between two tasks
+fun trail_strength($from_id: string, $to_id: string) -> double:
+    match
+        $from isa task, has task-id $from_id;
+        $to isa task, has task-id $to_id;
+        $trail (source-task: $from, destination-task: $to) isa pheromone-trail,
+            has trail-pheromone $tp;
+    return $tp;
+
+# Superhighway trails (proven, heavily-used paths)
+fun superhighway_trails() -> { pheromone-trail }:
+    match
+        $trail isa pheromone-trail,
+            has trail-status "proven";
+    return { $trail };
+
+# Fading trails (need reinforcement or they die)
+fun fading_trails() -> { pheromone-trail }:
+    match
+        $trail isa pheromone-trail,
+            has trail-status "fading";
+    return { $trail };
+
+
+# -----------------------------------------------------------------------------
+# 10.4 HYPOTHESIS MANAGEMENT FUNCTIONS
+# -----------------------------------------------------------------------------
+
+# Actionable hypotheses (confirmed + statistically significant)
+fun actionable_hypotheses() -> { hypothesis }:
+    match
+        $h isa hypothesis,
+            has action-ready true;
+    return { $h };
+
+# Active tests (currently being tested)
+fun active_tests() -> { hypothesis }:
+    match
+        $h isa hypothesis,
+            has hypothesis-status "testing";
+    return { $h };
+
+# Pending hypotheses (not yet started)
+fun pending_hypotheses() -> { hypothesis }:
+    match
+        $h isa hypothesis,
+            has hypothesis-status "pending";
+    return { $h };
+
+# Hypotheses by source
+fun hypotheses_by_source($source: string) -> { hypothesis }:
+    match
+        $h isa hypothesis,
+            has generated-by $source;
+    return { $h };
+
+
+# -----------------------------------------------------------------------------
+# 10.5 CONTRIBUTION TRACKING FUNCTIONS
+# -----------------------------------------------------------------------------
+
+# Total contribution by agent name
+fun total_contribution($name: string) -> double:
+    match
+        $a isa agent, has agent-name $name;
+        $ev(contributor-agent: $a, contribution: $c) isa contribution-event;
+        $c isa contribution, has impact-score $i;
+    return sum($i);
+
+# Best synergy pair (which pair of contributors creates most combined value)
+fun best_synergy() -> { string, string, double }:
+    match
+        $chain (contributor: $a, beneficiary: $b) isa contribution-chain,
+            has chain-value $v;
+        $ea(contributor-agent: $agent_a, contribution: $a) isa contribution-event;
+        $eb(contributor-agent: $agent_b, contribution: $b) isa contribution-event;
+        $agent_a has agent-name $name_a;
+        $agent_b has agent-name $name_b;
+    return { $name_a, $name_b, sum($v) };
+
+# Contributions by type
+fun contributions_by_type($type: string) -> { contribution }:
+    match
+        $c isa contribution,
+            has contribution-type $type;
+    return { $c };
+
+# High-impact contributions
+fun high_impact_contributions($threshold: double) -> { contribution }:
+    match
+        $c isa contribution,
+            has impact-score $i;
+        $i >= $threshold;
+    return { $c };
+
+
+# -----------------------------------------------------------------------------
+# 10.6 AUTONOMOUS GOAL GENERATION FUNCTIONS
+# -----------------------------------------------------------------------------
+
+# Promising frontiers (high expected value, unexplored)
+fun promising_frontiers() -> { exploration-frontier }:
+    match
+        $f isa exploration-frontier,
+            has frontier-status "unexplored",
+            has expected-value $ev;
+        $ev >= 0.5;
+    return { $f };
+
+# Active frontiers (being explored with positive priority)
+fun active_frontiers() -> { exploration-frontier }:
+    match
+        $f isa exploration-frontier,
+            has frontier-status "active",
+            has exploration-priority $p;
+        $p > 0.0;
+    return { $f };
+
+# Active objectives (pending or in progress)
+fun active_objectives() -> { autonomous-objective }:
+    match
+        $o isa autonomous-objective,
+            has objective-status $s;
+        $s in ["pending", "active"];
+    return { $o };
+
+# Unresolved curiosity signals
+fun unresolved_signals() -> { curiosity-signal }:
+    match
+        $s isa curiosity-signal,
+            has resolved false;
+    return { $s };
+
+# Urgent curiosity signals (high intensity)
+fun urgent_signals($threshold: double) -> { curiosity-signal }:
+    match
+        $s isa curiosity-signal,
+            has resolved false,
+            has intensity $i;
+        $i >= $threshold;
+    return { $s };
+
+# Composite score calculation (for expected value)
+fun composite_score($a: double, $b: double, $c: double, $d: double, $e: double) -> double:
+    return $a * $b * $c * $d * $e;
+
+
+# =============================================================================
+# SECTION 11: SWARM INFRASTRUCTURE
+# =============================================================================
+#
+# Swarms are dynamic teams that form around tasks too big for one agent.
+# Formation is STIGMERGIC - no orchestrator assigns teams. Agents:
+#   1. Detect a big task → deposit recruitment pheromone
+#   2. Other agents sense recruitment → join if available
+#   3. Swarm activates when minimum size reached
+#   4. Members collaborate using internal pheromones
+#   5. Task completes → swarm dissolves → rewards distributed
+#
+# BIOLOGY: Army ants form temporary swarms for hunting. Leaf-cutter ants
+# form assembly lines for leaf processing. Same pattern - temporary
+# structures emerge for collective work, then dissolve.
+
+
+# -----------------------------------------------------------------------------
+# 11.1 SWARM ENTITY
+# -----------------------------------------------------------------------------
+
+entity swarm,
+    owns swarm-id @key,
+    owns swarm-purpose,           # "research", "execution", "analysis"
+    owns target-task-id,          # The task this swarm is working on
+    owns swarm-size,              # Current member count
+    owns min-size,                # Minimum agents needed to activate
+    owns max-size,                # Maximum agents allowed
+    owns formation-time,          # When swarm started forming
+    owns activated-time,          # When swarm started working
+    owns dissolved-time,          # When swarm finished
+    owns swarm-status,            # "forming", "active", "dissolving", "dissolved"
+    owns collective-progress,     # 0.0 - 1.0 (aggregate completion)
+    plays swarm-membership:the-swarm,
+    plays swarm-task:working-swarm;
+
+attribute swarm-id, value string;
+attribute swarm-purpose, value string;
+attribute target-task-id, value string;
+attribute swarm-size, value integer;
+attribute min-size, value integer;
+attribute max-size, value integer;
+attribute formation-time, value datetime;
+attribute activated-time, value datetime;
+attribute dissolved-time, value datetime;
+attribute swarm-status, value string;
+attribute collective-progress, value double;
+
+
+# -----------------------------------------------------------------------------
+# 11.2 SWARM MEMBERSHIP RELATION
+# -----------------------------------------------------------------------------
+
+relation swarm-membership,
+    relates the-swarm,
+    relates member-agent,
+    owns joined-at,
+    owns role-in-swarm,           # "founder", "worker", "specialist"
+    owns contribution-share;      # 0.0 - 1.0 (for reward distribution)
+
+# Extend agent to participate in swarms
+agent plays swarm-membership:member-agent;
+
+attribute joined-at, value datetime;
+attribute role-in-swarm, value string;
+attribute contribution-share, value double;
+
+
+# -----------------------------------------------------------------------------
+# 11.3 SWARM ↔ TASK RELATION
+# -----------------------------------------------------------------------------
+
+relation swarm-task,
+    relates working-swarm,
+    relates target-task;
+
+# Extend task to be worked on by swarms
+task plays swarm-task:target-task;
+
+
+# -----------------------------------------------------------------------------
+# 11.4 RECRUITMENT SIGNAL ENTITY
+# -----------------------------------------------------------------------------
+#
+# Recruitment signals are the pheromones that attract agents to form swarms.
+# When an agent finds a task too big to handle alone, it deposits this signal.
+
+entity recruitment-signal,
+    owns recruitment-id @key,
+    owns source-agent-id,         # Who sent the signal
+    owns source-task-id,          # What task needs help
+    owns recruitment-strength,    # 0-100 (urgency/size)
+    owns required-skills,         # Comma-separated skills needed
+    owns current-respondents,     # How many have joined
+    owns max-respondents,         # How many needed
+    owns recruitment-status,      # "active", "satisfied", "expired"
+    owns recruitment-created-at,
+    owns recruitment-expires-at;
+
+attribute recruitment-id, value string;
+attribute source-agent-id, value string;
+attribute source-task-id, value string;
+attribute recruitment-strength, value double;
+attribute required-skills, value string;
+attribute current-respondents, value integer;
+attribute max-respondents, value integer;
+attribute recruitment-status, value string;
+attribute recruitment-created-at, value datetime;
+attribute recruitment-expires-at, value datetime;
+
+
+# -----------------------------------------------------------------------------
+# 11.5 SWARM INFERENCE RULES
+# -----------------------------------------------------------------------------
+
+# Swarm is ready to activate when minimum size reached
+rule swarm-ready-to-activate:
+    when {
+        $s isa swarm,
+            has swarm-status "forming",
+            has swarm-size $size,
+            has min-size $min;
+        $size >= $min;
+    } then {
+        $s has swarm-status "active";
+    };
+
+# Swarm should dissolve when task complete
+rule swarm-should-dissolve:
+    when {
+        $s isa swarm,
+            has swarm-status "active",
+            has collective-progress $p;
+        $p >= 1.0;
+    } then {
+        $s has swarm-status "dissolving";
+    };
+
+# Recruitment signal satisfied when enough respondents
+rule recruitment-satisfied:
+    when {
+        $r isa recruitment-signal,
+            has recruitment-status "active",
+            has current-respondents $curr,
+            has max-respondents $max;
+        $curr >= $max;
+    } then {
+        $r has recruitment-status "satisfied";
+    };
+
+
+# -----------------------------------------------------------------------------
+# 11.6 SWARM QUERY FUNCTIONS
+# -----------------------------------------------------------------------------
+
+# Find active recruitment signals (for agents looking to join)
+fun active_recruitments() -> { recruitment-signal }:
+    match
+        $r isa recruitment-signal,
+            has recruitment-status "active",
+            has recruitment-strength $s;
+        $s > 0.0;
+    return { $r };
+
+# Find urgent recruitment signals (strength >= 50)
+fun urgent_recruitments() -> { recruitment-signal }:
+    match
+        $r isa recruitment-signal,
+            has recruitment-status "active",
+            has recruitment-strength $s;
+        $s >= 50.0;
+    return { $r };
+
+# Find swarms I can join (forming, not full)
+fun joinable_swarms() -> { swarm }:
+    match
+        $s isa swarm,
+            has swarm-status "forming",
+            has swarm-size $size,
+            has max-size $max;
+        $size < $max;
+    return { $s };
+
+# Find active swarms for a specific task
+fun swarms_for_task($task_id: string) -> { swarm }:
+    match
+        $s isa swarm,
+            has target-task-id $task_id,
+            has swarm-status $status;
+        $status in ["forming", "active"];
+    return { $s };
+
+# Get agent's current swarm (if any)
+fun my_swarm($agent_id: string) -> { swarm }:
+    match
+        $a isa agent, has agent-id $agent_id;
+        $m (the-swarm: $s, member-agent: $a) isa swarm-membership;
+        $s has swarm-status $status;
+        $status in ["forming", "active"];
+    return { $s };
+
+# Get all members of a swarm
+fun swarm_members($swarm_id: string) -> { agent }:
+    match
+        $s isa swarm, has swarm-id $swarm_id;
+        $m (the-swarm: $s, member-agent: $a) isa swarm-membership;
+    return { $a };
+
+# Count active swarms
+fun active_swarm_count() -> integer:
+    match
+        $s isa swarm,
+            has swarm-status "active";
+    return count($s);
+
+# Get forming swarms (recruiting)
+fun forming_swarms() -> { swarm }:
+    match
+        $s isa swarm,
+            has swarm-status "forming";
+    return { $s };
+
+
+# =============================================================================
+# END OF GENESIS SCHEMA
+# =============================================================================
+#
+# WHAT'S NEXT?
+#
+# 1. Load this schema:
+#      typedb console
+#      > database create ants-colony
+#      > transaction ants-colony schema write
+#      > source genesis.tql
+#      > commit
+#
+# 2. Insert seed data (agents, tasks, etc.)
+#
+# 3. Query using functions:
+#      match let $t in ready_tasks(); $t has title $title; select $title;
+#      match let $a in elite_agents(); $a has agent-name $name; select $name;
+#      match let $f in promising_frontiers(); $f has frontier-name $n; select $n;
+#
+# 4. Observe inference rules firing automatically:
+#      - Insert a learning-record with effectiveness 0.8 -> gets quality-label "high"
+#      - Insert a task with strong trail -> gets attractive true
+#      - Insert a swarm with size >= min-size -> gets swarm-status "active"
+#      - Insert recruitment with respondents >= max -> gets status "satisfied"
+#
+# 5. Implement pheromone operations externally (reinforcement, decay)
+#
+# 6. Watch swarms form and dissolve:
+#      match let $s in forming_swarms(); $s has swarm-purpose $p; select $p;
+#      match let $a in swarm_members("swarm-123"); $a has agent-name $n; select $n;
+#      match let $r in urgent_recruitments(); $r has source-task-id $t; select $t;
+#
+# The colony is now ready to bootstrap.
+#
+# =============================================================================

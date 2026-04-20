@@ -36,23 +36,22 @@ export const GET: APIRoute = async ({ params, url }) => {
 
     const result = filtered
       .map((t) => {
-        const repelled = t.alarmPheromone >= 30 && t.alarmPheromone > t.trailPheromone
-        const attractive = t.trailPheromone >= 50
-        const exploratory = t.trailPheromone === 0 && t.alarmPheromone === 0
+        const repelled = t.resistance >= 30 && t.resistance > t.strength
+        const attractive = t.strength >= 50
+        const exploratory = t.strength === 0 && t.resistance === 0
         const cat = repelled ? 'repelled' : attractive ? 'attractive' : exploratory ? 'exploratory' : 'ready'
         return {
           tid: t.tid,
           name: t.name,
-          status: t.status,
-          priority: t.priority,
-          phase: t.phase,
-          value: t.value,
-          persona: t.persona,
+          task_status: t.task_status,
+          task_priority: t.task_priority,
+          task_wave: t.task_wave,
+          task_value: t.task_value,
           tags: t.tags,
-          blockedBy: t.blockedBy,
+          blocked_by: t.blocked_by,
           blocks: t.blocks,
-          trailPheromone: t.trailPheromone,
-          alarmPheromone: t.alarmPheromone,
+          strength: t.strength,
+          resistance: t.resistance,
           category: cat,
           attractive,
           repelled,

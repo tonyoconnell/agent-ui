@@ -1,12 +1,6 @@
-export type WsMessage =
-  | { type: 'complete'; taskId: string; timestamp: number }
-  | { type: 'unblock'; taskId: string; unblockedBy: string; timestamp: number }
-  | { type: 'mark'; taskId: string; strength: number; timestamp: number }
-  | { type: 'warn'; taskId: string; resistance: number; timestamp: number }
-  | { type: 'task-update'; task: { tid: string; name: string; status: string }; timestamp: number }
-  | { type: 'sync'; tasks: Array<{ tid: string; strength: number; resistance: number }>; timestamp: number }
-  | { type: 'ping' }
-  | { type: 'pong' }
+import type { WsMessage } from '@/types/task'
+
+export type { WsMessage } from '@/types/task'
 
 // Gateway URL for production relay (resolves same value as typedb.ts)
 const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie'

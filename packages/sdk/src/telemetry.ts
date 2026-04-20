@@ -1,30 +1,34 @@
-import { createHash, randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 const DISABLE_KEY = "ONEIE_TELEMETRY_DISABLE";
 const ENDPOINT = "https://api.one.ie/api/signal";
 const RATE_LIMIT = 100;
 const RATE_WINDOW_MS = 3_600_000;
 
+// Browser-compatible random session ID generation
+function generateSessionId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  }
+  // Fallback for older browsers
+  const arr = new Uint8Array(8);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(arr);
+  } else {
+    for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 let tokenCount = 0;
 let windowStart = Date.now();
-export const sessionId = createHash("sha256")
-  .update(randomBytes(16))
-  .digest("hex")
-  .slice(0, 16);
+export const sessionId = generateSessionId();
 
 function isEnabled(): boolean {
-  if (typeof process === "undefined") return false;
-  if (process.env[DISABLE_KEY]) return false;
-  try {
-    const cfg = JSON.parse(
-      readFileSync(join(process.env["HOME"] ?? "~", ".oneie", "config.json"), "utf8"),
-    ) as Record<string, unknown>;
-    if (cfg["telemetry"] === false) return false;
-  } catch {
-    // Config file absent or unreadable — default to enabled
-  }
+  // In browser: always enabled (no config file access)
+  if (typeof window !== "undefined") return true;
+  // In Node.js: check env var
+  if (typeof process !== "undefined" && process.env?.[DISABLE_KEY]) return false;
+  // Config file check only works in Node.js - skip in browser
+  // Node.js scripts can set ONEIE_TELEMETRY_DISABLE=1 to disable
   return true;
 }
 

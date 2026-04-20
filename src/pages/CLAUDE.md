@@ -7,7 +7,8 @@
 | Page | Route | Component | Hydration |
 |------|-------|-----------|-----------|
 | `index.astro` | `/` | `AgentWorkspace` | `client:load` |
-| `in.astro` | `/in` | `Inbox` | `client:only` |
+| `in.astro` | `/in` | `Inbox` (auth → redirect to `/in/[gid]`) | `client:only` |
+| `in/[groupId].astro` | `/in/[groupId]` | `Inbox` (owner gate: chairman/ceo/operator) | `client:only` |
 | `world.astro` | `/world` | `WorldWorkspace` | `client:load` |
 | `tasks.astro` | `/tasks` | `TaskBoard` | `client:load` |
 | `chat.astro` | `/chat` | `DebbyChat` | `client:only` |
@@ -32,6 +33,10 @@
 | `settings/keys.astro` | `/settings/keys` | `KeysSettings` | `client:load` |
 | `app/[groupId]/index.astro` | `/app/[groupId]` | `AppGroup` | `client:load` |
 | `[groupId]/index.astro` | `/[groupId]` | `GroupHome` | `client:load` |
+| `pay/[skillId].astro` | `/pay/[skillId]` | `PayPage` (Sui dapp-kit) | `client:only` |
+| `pay/card/[skillId].astro` | `/pay/card/[skillId]` | `StripeCheckoutWrapper` | `client:only` |
+| `pay/crypto/[skillId].astro` | `/pay/crypto/[skillId]` | `CryptoAcceptAddress` + `CryptoPaymentLink` | `client:only` |
+| `pay/chat/[skillId].astro` | `/pay/chat/[skillId]` | `BuyInChatEnhanced` | `client:only` |
 
 ## Substrate Learning
 
@@ -46,7 +51,7 @@ Pages are the surface of the substrate. Each page reads from the learning state:
 
 SSR renders from the latest TypeDB/KV state. React islands hydrate with live pheromone data. The learning is visible — highways form, paths fade, toxic edges turn red.
 
-**Context:** [DSL.md](../../docs/DSL.md) — signal grammar that pages emit via `emitClick` and form actions. [dictionary.md](../../docs/dictionary.md) — canonical names for display: `unit` (not agent), `signal` (not event), `strength` (not scent). [lifecycle.md](../../docs/lifecycle.md) — what users see at each stage: `/build` = register, `/discover` = discover, `/world` = highway, `/ceo` = governance. [routing.md](../../docs/routing.md) — what the visualized paths mean; the `/world` page renders live pheromone state. [rubrics.md](../../docs/rubrics.md) — quality dimensions (fit/form/truth/taste) visible on agent cards and task completions. [patterns.md](../../docs/patterns.md) — closed loop applies to every page action: every click emits a signal, every result marks or warns. [speed.md](../../docs/speed.md) — TTFB `<200ms`, FCP `<500ms`. [buy-and-sell.md](../../docs/buy-and-sell.md) — `/marketplace` (LIST/DISCOVER) and `/discover` (Layer 2) are the commerce pages; capability cards show `capability.price`. [revenue.md](../../docs/revenue.md) — Layer 2 discovery + Layer 4 marketplace are what these pages expose to buyers and sellers.
+**Context:** [DSL.md](one/DSL.md) — signal grammar that pages emit via `emitClick` and form actions. [dictionary.md](dictionary.md) — canonical names for display: `unit` (not agent), `signal` (not event), `strength` (not scent). [lifecycle.md](one/lifecycle.md) — what users see at each stage: `/build` = register, `/discover` = discover, `/world` = highway, `/ceo` = governance. [routing.md](routing.md) — what the visualized paths mean; the `/world` page renders live pheromone state. [rubrics.md](rubrics.md) — quality dimensions (fit/form/truth/taste) visible on agent cards and task completions. [patterns.md](one/patterns.md) — closed loop applies to every page action: every click emits a signal, every result marks or warns. [speed.md](one/speed.md) — TTFB `<200ms`, FCP `<500ms`. [buy-and-sell.md](buy-and-sell.md) — `/marketplace` (LIST/DISCOVER) and `/discover` (Layer 2) are the commerce pages; capability cards show `capability.price`. [revenue.md](one/revenue.md) — Layer 2 discovery + Layer 4 marketplace are what these pages expose to buyers and sellers.
 
 ## API Routes
 

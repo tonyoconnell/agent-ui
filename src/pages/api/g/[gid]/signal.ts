@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   try {
     const rows = await readParsed(`
       match
-        $g isa group, has group-id "${gid}";
+        $g isa group, has gid "${gid}";
         $u isa unit, has uid "${unitId}";
         (member: $u, group: $g) isa membership;
       select $u;
