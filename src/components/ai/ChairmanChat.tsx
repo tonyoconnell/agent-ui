@@ -199,6 +199,30 @@ export function ChairmanChat({
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)))
   }, [])
 
+  useEffect(() => {
+    if (!sessionId) return
+    let seenAdminTs = 0
+    const poll = async () => {
+      const res = await fetch(`/api/in/sessions?sessionId=${encodeURIComponent(sessionId)}`).catch(() => null)
+      if (!res?.ok) return
+      const data = (await res.json().catch(() => null)) as {
+        messages?: Array<{ sender: string; content: string; ts: number }>
+      } | null
+      if (!data?.messages) return
+      for (const msg of data.messages) {
+        if (msg.sender === 'admin' && msg.ts > seenAdminTs) {
+          seenAdminTs = msg.ts
+          setMessages((prev) => [
+            ...prev,
+            { id: `admin-${msg.ts}`, role: 'assistant' as const, content: msg.content, timestamp: msg.ts },
+          ])
+        }
+      }
+    }
+    const id = setInterval(() => void poll(), 2000)
+    return () => clearInterval(id)
+  }, [sessionId])
+
   // -----------------------------------------------------------------------
   // Stream handler — fetch + ReadableStream parser for SSE
   // -----------------------------------------------------------------------

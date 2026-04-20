@@ -6,9 +6,10 @@ import { emitClick } from '@/lib/ui-signal'
 
 interface EntityDetailProps {
   entity: InboxEntity | null
+  onReply?: (entityId: string, text: string, entityType?: string, sessionId?: string) => void
 }
 
-export function EntityDetail({ entity }: EntityDetailProps) {
+export function EntityDetail({ entity, onReply }: EntityDetailProps) {
   const [reply, setReply] = useState('')
 
   if (!entity) {
@@ -22,7 +23,10 @@ export function EntityDetail({ entity }: EntityDetailProps) {
     )
   }
 
-  const isMessage = entity.dimension === 'events' && entity.channel !== 'substrate'
+  const isMessage =
+    (entity.dimension === 'events' && entity.channel !== 'substrate') ||
+    entity.type === 'session' ||
+    entity.type === 'conversation'
 
   return (
     <div className="flex h-full flex-col">
@@ -120,6 +124,7 @@ export function EntityDetail({ entity }: EntityDetailProps) {
               e.preventDefault()
               if (!reply.trim()) return
               emitClick('ui:in:send', { entityId: entity.id, text: reply })
+              onReply?.(entity.id, reply, entity.type, entity.sessionId)
               setReply('')
             }}
           >
@@ -132,6 +137,7 @@ export function EntityDetail({ entity }: EntityDetailProps) {
                     e.preventDefault()
                     if (!reply.trim()) return
                     emitClick('ui:in:send', { entityId: entity.id, text: reply })
+                    onReply?.(entity.id, reply, entity.type, entity.sessionId)
                     setReply('')
                   }
                 }}
