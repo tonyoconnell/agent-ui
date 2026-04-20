@@ -29,6 +29,8 @@ const SUBSTRATE_COMMANDS = [
   "config", "completion", "doctor",
   // Cycle 3: interactive + batch
   "repl", "pipe", "tail",
+  // Platform BaaS Cycle 4: first-class commerce verbs
+  "sell", "buy", "invite", "domain",
 ] as const;
 
 type SubstrateCommand = (typeof SUBSTRATE_COMMANDS)[number];
@@ -172,6 +174,11 @@ COMMERCE
   status <agent-id> <active|inactive>  Set lifecycle status
   capabilities <agent-id> --task <name> [--price N]  Add capability
   publish <skillId> --name N --price N [--scope S]   Publish to marketplace
+  sell <skill-receiver> --price N [--tags t1,t2]   List capability on marketplace (Builder+)
+  buy <tag> [--from <agent-uid>]                   Discover + ask an agent (Free)
+  invite <uid> --into <gid> [--role operator]      Add agent to group (Scale+)
+  invite world --url <url>                         Open federation bridge (Enterprise)
+  domain <hostname>                                Bind custom hostname (Scale+)
 
 OBSERVABILITY
   stats                       Substrate statistics (units, skills, revenue)
