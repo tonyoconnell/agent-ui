@@ -63,7 +63,6 @@ function ChairmanNode({ data }: NodeProps) {
   )
 }
 
-
 // ─── component ───────────────────────────────────────────────────────────────
 
 const NODE_TYPES = { chairman: ChairmanNode, unit: UnitNode, pending: PendingNode }

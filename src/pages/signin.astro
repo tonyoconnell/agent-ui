@@ -1,0 +1,117 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { auth } from "@/lib/auth"
+import { CryptoAuthPanel } from "@/components/auth/CryptoAuthPanel"
+
+const session = await auth.api.getSession({ headers: Astro.request.headers })
+if (session) return Astro.redirect("/app")
+
+const redirectParam = Astro.url.searchParams.get("redirect") ?? "/app"
+
+const proof = [
+  { kpi: "670", label: "lines of engine" },
+  { kpi: "0", label: "returns. zero throws." },
+  { kpi: "<5ms", label: "routing decision" },
+]
+
+const cycleStats = [
+  { dotClass: "bg-violet-400", text: "24 agents joined this cycle" },
+  { dotClass: "bg-emerald-400", text: "1,284 signals routed in the last hour" },
+  { dotClass: "bg-sky-400", text: "12 highways formed today" },
+]
+---
+
+<Layout
+  title="Sign in · ONE"
+  description="Sign in to the substrate. Your agents, memory, and highways are waiting."
+  noindex={false}
+  hideHeader={true}
+>
+  <main class="relative min-h-screen overflow-hidden bg-[#0a0a0f] text-white">
+
+    <!-- Ambient pheromone background -->
+    <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+      <div
+        class="absolute inset-0 opacity-60"
+        style="background:
+          radial-gradient(at 12% 18%, rgba(139, 92, 246, 0.18) 0px, transparent 45%),
+          radial-gradient(at 88% 82%, rgba(56, 189, 248, 0.14) 0px, transparent 50%),
+          radial-gradient(at 50% 0%, rgba(236, 72, 153, 0.06) 0px, transparent 55%);">
+      </div>
+      <div
+        class="absolute inset-0 opacity-[0.035]"
+        style="background-image:
+          linear-gradient(to right, rgba(255,255,255,0.4) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255,255,255,0.4) 1px, transparent 1px);
+        background-size: 48px 48px;
+        -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 70%);
+        mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 70%);">
+      </div>
+    </div>
+
+    <!-- Wordmark -->
+    <a href="/"
+       class="absolute left-6 top-6 z-10 inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-white sm:left-8 sm:top-8">
+      <span class="grid size-7 place-items-center rounded-md bg-white text-black text-xs font-bold">1</span>
+      <span>ONE</span>
+    </a>
+
+    <div class="relative z-10 grid min-h-screen lg:grid-cols-2">
+
+      <!-- BRAND PANEL (left, desktop only) -->
+      <aside class="hidden flex-col justify-between border-r border-white/5 px-12 py-20 lg:flex xl:px-20"
+             aria-label="Why ONE">
+
+        <div></div>
+
+        <div class="max-w-md">
+          <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-300/80">
+            The substrate · live
+          </p>
+          <h2 class="text-4xl font-semibold leading-[1.1] tracking-tight text-white xl:text-5xl">
+            Your world, still running.
+          </h2>
+          <p class="mt-5 text-base leading-relaxed text-zinc-400">
+            Paths hardened while you were away. Highways formed. Memory is intact.
+            The substrate never stops learning.
+          </p>
+
+          <!-- Mini pheromone diagram -->
+          <pre class="mt-10 hidden rounded-xl border border-white/5 bg-black/40 p-5 text-[11px] leading-relaxed text-zinc-500 xl:block" aria-hidden="true">signal ──→ agent ──→ result
+   ↑                    │
+   └──── pheromone ─────┘
+         (paths remember)</pre>
+
+          <!-- KPIs -->
+          <dl class="mt-10 grid grid-cols-3 gap-3">
+            {proof.map(p => (
+              <div class="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-4">
+                <dt class="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{p.label}</dt>
+                <dd class="mt-1 text-2xl font-semibold text-white">{p.kpi}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <!-- Live cycle ticker -->
+        <div class="max-w-md space-y-2 text-xs text-zinc-500">
+          <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
+            Now in the world
+          </p>
+          {cycleStats.map(s => (
+            <div class="flex items-center gap-2.5">
+              <span class={`size-1.5 rounded-full ${s.dotClass} animate-pulse`}></span>
+              <span>{s.text}</span>
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      <!-- FORM PANEL (right) -->
+      <section class="flex items-center justify-center px-6 py-24 sm:px-10" aria-label="Sign in to your account">
+        <CryptoAuthPanel client:load mode="signin" redirect={redirectParam} />
+      </section>
+
+    </div>
+  </main>
+</Layout>
