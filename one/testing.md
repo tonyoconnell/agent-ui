@@ -213,7 +213,44 @@ budget (~10s). Adding tests is cheap; keeping the gate fast is the discipline.
 update speed.md with test results
 ---
 
-## Integration / E2E
+## Integration — VCR Cassettes
+
+**Layer 4 integration tests.** Record real TypeDB interactions once; replay from
+disk in all future runs. No network, no credentials, no Docker. Fast.
+
+```bash
+# Replay (CI / local — no credentials needed)
+bun vitest run src/__tests__/integration/signal-flow.test.ts
+bun vitest run src/__tests__/integration/auth-roundtrip.test.ts
+bun vitest run src/__tests__/integration/memory-reveal.test.ts
+# → 6 tests, ~377ms, zero network
+```
+
+**Schema staleness detection.** Each cassette stores a hash of `world.tql`.
+On replay, if the schema changed, the cassette throws immediately:
+
+```
+Error: Cassette 'path-roundtrip' is stale — schema has changed.
+  Recorded against schema: f121c9727aa0
+  Current schema:          3a8b21c44d91
+Re-record with: RECORD=1 GATEWAY_API_KEY=<key> ...
+```
+
+**To re-record** (only needed when `world.tql` changes):
+
+```bash
+TYPEDB_DIRECT_URL="" TYPEDB_DIRECT_USERNAME="" TYPEDB_DIRECT_PASSWORD="" TYPEDB_DIRECT_DATABASE="" \
+  GATEWAY_API_KEY="<your-api.one.ie-key>" \
+  PUBLIC_GATEWAY_URL="https://api.one.ie" \
+  RECORD=1 bun vitest run src/__tests__/integration/<test>.test.ts
+```
+
+Cassettes live in `src/__tests__/cassettes/`. The helper is
+`src/__tests__/helpers/cassette.ts`. Full spec: `docs/TODO-integration-tests.md`.
+
+---
+
+## E2E
 
 Runs before deploy, not on every edit. Validates the real wire:
 browser → Pages → Gateway → TypeDB.

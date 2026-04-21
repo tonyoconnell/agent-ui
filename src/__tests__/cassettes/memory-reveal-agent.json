@@ -1,0 +1,561 @@
+{
+  "schema_hash": "f121c9727aa0",
+  "interactions": [
+    {
+      "id": "memory-reveal-agent-001",
+      "request": {
+        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "method": "POST",
+        "body": {
+          "query": "\n      insert $u isa unit,\n        has uid \"vcr-actor-1776787399947\",\n        has name \"VCR Test Actor\",\n        has tag \"vcr-test\";\n    ",
+          "transactionType": "write",
+          "commit": true
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "queryType": "write",
+          "answerType": "conceptRows",
+          "answers": [
+            {
+              "data": {
+                "u": {
+                  "kind": "entity",
+                  "iid": "0x1e0001000000000000000b",
+                  "type": {
+                    "kind": "entityType",
+                    "label": "unit"
+                  }
+                }
+              },
+              "involvedBlocks": [
+                0
+              ]
+            }
+          ],
+          "query": {
+            "conjunctions": [
+              {
+                "constraints": [
+                  {
+                    "textSpan": {
+                      "begin": 17,
+                      "end": 25
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "entityType",
+                        "label": "unit"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 43,
+                      "end": 68
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "vcr-actor-1776787399947",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 35,
+                      "end": 68
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "1"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 39,
+                      "end": 42
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "uid",
+                        "valueType": "string"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 87,
+                      "end": 103
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "2"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "VCR Test Actor",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 78,
+                      "end": 103
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "2"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 82,
+                      "end": 86
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "2"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "name",
+                        "valueType": "string"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 121,
+                      "end": 131
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "3"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "vcr-test",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 113,
+                      "end": 131
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "3"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 117,
+                      "end": 120
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "3"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "tag",
+                        "valueType": "string"
+                      }
+                    }
+                  }
+                ],
+                "annotations": {
+                  "variableAnnotations": {}
+                }
+              }
+            ],
+            "stages": [
+              {
+                "tag": "insert",
+                "block": 0
+              }
+            ],
+            "variables": {
+              "0": {
+                "name": "u"
+              },
+              "1": {
+                "name": null
+              },
+              "2": {
+                "name": null
+              },
+              "3": {
+                "name": null
+              }
+            },
+            "outputs": [
+              "0",
+              "1",
+              "2",
+              "3"
+            ]
+          },
+          "warning": null
+        }
+      },
+      "recorded_at": "2026-04-21T16:03:20.901Z"
+    },
+    {
+      "id": "memory-reveal-agent-002",
+      "request": {
+        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "method": "POST",
+        "body": {
+          "query": "\n      match $u isa unit, has uid \"vcr-actor-1776787399947\", has name $n;\n      select $n;\n    ",
+          "transactionType": "read",
+          "commit": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "queryType": "read",
+          "answerType": "conceptRows",
+          "answers": [
+            {
+              "data": {
+                "n": {
+                  "kind": "attribute",
+                  "value": "VCR Test Actor",
+                  "valueType": "string",
+                  "type": {
+                    "kind": "attributeType",
+                    "label": "name",
+                    "valueType": "string"
+                  }
+                }
+              },
+              "involvedBlocks": [
+                0
+              ]
+            }
+          ],
+          "query": {
+            "conjunctions": [
+              {
+                "constraints": [
+                  {
+                    "textSpan": {
+                      "begin": 16,
+                      "end": 24
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "entityType",
+                        "label": "unit"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 34,
+                      "end": 59
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "vcr-actor-1776787399947",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 26,
+                      "end": 59
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "1"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 30,
+                      "end": 33
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "uid",
+                        "valueType": "string"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 61,
+                      "end": 72
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "2"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 65,
+                      "end": 69
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "2"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "name",
+                        "valueType": "string"
+                      }
+                    }
+                  }
+                ],
+                "annotations": {
+                  "variableAnnotations": {}
+                }
+              }
+            ],
+            "stages": [
+              {
+                "tag": "match",
+                "block": 0
+              },
+              {
+                "tag": "select",
+                "variables": [
+                  "2"
+                ]
+              }
+            ],
+            "variables": {
+              "0": {
+                "name": "u"
+              },
+              "1": {
+                "name": null
+              },
+              "2": {
+                "name": "n"
+              }
+            },
+            "outputs": [
+              "2"
+            ]
+          },
+          "warning": null
+        }
+      },
+      "recorded_at": "2026-04-21T16:03:21.199Z"
+    },
+    {
+      "id": "memory-reveal-agent-003",
+      "request": {
+        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "method": "POST",
+        "body": {
+          "query": "\n      match $u isa unit, has uid \"vcr-nonexistent-actor-xyz-1776787401201\";\n      select $u;\n    ",
+          "transactionType": "read",
+          "commit": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "queryType": "read",
+          "answerType": "conceptRows",
+          "answers": [],
+          "query": {
+            "conjunctions": [
+              {
+                "constraints": [
+                  {
+                    "textSpan": {
+                      "begin": 16,
+                      "end": 24
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "entityType",
+                        "label": "unit"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 34,
+                      "end": 75
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "vcr-nonexistent-actor-xyz-1776787401201",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 26,
+                      "end": 75
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "1"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 30,
+                      "end": 33
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "uid",
+                        "valueType": "string"
+                      }
+                    }
+                  }
+                ],
+                "annotations": {
+                  "variableAnnotations": {}
+                }
+              }
+            ],
+            "stages": [
+              {
+                "tag": "match",
+                "block": 0
+              },
+              {
+                "tag": "select",
+                "variables": [
+                  "0"
+                ]
+              }
+            ],
+            "variables": {
+              "0": {
+                "name": "u"
+              },
+              "1": {
+                "name": null
+              }
+            },
+            "outputs": [
+              "0"
+            ]
+          },
+          "warning": null
+        }
+      },
+      "recorded_at": "2026-04-21T16:03:21.487Z"
+    }
+  ]
+}

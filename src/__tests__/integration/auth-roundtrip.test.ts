@@ -35,7 +35,9 @@ describe('auth round-trip', () => {
   useCassette('auth-agent-create')
 
   it('creates a key, stores hash, and verifies round-trip', async () => {
-    const apiKey = generateApiKey()
+    // Fixed key so the cassette-recorded hash matches on every replay.
+    // generateApiKey() is random — a fresh key can't verify against an old recorded hash.
+    const apiKey = 'sk_vcr_fixed_replay_safe_auth_roundtrip_1a2b3c'
     const hash = await hashKey(apiKey)
     const safeId = escapeTqlString(keyId)
     const safeUid = escapeTqlString(testUid)

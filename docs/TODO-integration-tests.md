@@ -2,8 +2,8 @@
 
 **Author:** David Cruwys  
 **For:** Tony  
-**Status:** Requirements spec — ready to implement  
-**Recommendation:** Start with VCR (Option 1), then layer in the others as the system matures.
+**Status:** Wave 1 (VCR cassettes) complete — implemented 2026-04-21  
+**Recommendation:** Wave 2 (smoke tests) next, then Wave 3 (Docker TypeDB) when ready.
 
 ---
 
@@ -26,25 +26,20 @@ code so each can be evaluated and implemented.
 
 ## Architecture context (read this first)
 
-TypeDB is **never called directly from tests or API routes**. Everything goes through
-the Cloudflare Gateway worker:
+**Two paths exist in `src/lib/typedb.ts`:**
 
 ```
-Test / API route
-      │
-      ▼
-src/lib/typedb.ts  →  fetch(`${GATEWAY_URL}/typedb/query`, { body: tql })
-      │
-      ▼
-api.one.ie  (Cloudflare Worker: gateway/src/index.ts)
-      │
-      ▼
-TypeDB Cloud  (flsiu1-0.cluster.typedb.com:1729)
+Browser / CI (no direct creds):
+  Test / API route → typedb.ts → fetch(GATEWAY_URL/typedb/query) → api.one.ie → TypeDB Cloud
+
+Server-side SSR (TYPEDB_DIRECT_* vars set at build time):
+  API route → typedb.ts → fetch(TYPEDB_DIRECT_URL/v1/query) → TypeDB Cloud directly
 ```
 
-This means **the interception point for all three options is `fetch` calls to
-`api.one.ie/typedb/query`**. There is no direct TypeDB socket to mock. The gateway
-is the seam.
+**The cassette interception point is the gateway path** — `fetch` calls to
+`PUBLIC_GATEWAY_URL` (defaults to `https://api.one.ie`). Tests run without
+`TYPEDB_DIRECT_*`, so all queries go through the gateway and the cassette can
+intercept them.
 
 `src/lib/typedb.ts` reads `PUBLIC_GATEWAY_URL` from env. In tests this can be
 pointed anywhere — a local server, a staging gateway, or intercepted entirely.
@@ -84,28 +79,35 @@ src/__tests__/cassettes/
   mark-warn-roundtrip.json
 ```
 
-Each cassette is a JSON array of recorded interactions:
+Each cassette is a JSON object with a schema hash and an array of interactions:
 
 ```json
-[
-  {
-    "id": "auth-agent-create-001",
-    "request": {
-      "url": "https://api.one.ie/typedb/query",
-      "method": "POST",
-      "body": {
-        "query": "match $k isa api-key, has user-id \"swift-dawn\"; select $k;",
-        "transactionType": "read"
-      }
-    },
-    "response": {
-      "status": 200,
-      "body": { "answers": [] }
-    },
-    "recorded_at": "2026-04-20T10:00:00Z"
-  }
-]
+{
+  "schema_hash": "f121c9727aa0",
+  "interactions": [
+    {
+      "id": "auth-agent-create-001",
+      "request": {
+        "url": "https://api.one.ie/typedb/query",
+        "method": "POST",
+        "body": {
+          "query": "match $k isa api-key, has user-id \"swift-dawn\"; select $k;",
+          "transactionType": "read"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": { "answers": [] }
+      },
+      "recorded_at": "2026-04-20T10:00:00Z"
+    }
+  ]
+}
 ```
+
+The `schema_hash` is a 12-char SHA-256 prefix of `src/schema/world.tql`. On replay,
+the cassette helper compares this to the current schema hash and throws immediately
+if they differ — rather than silently replaying stale responses.
 
 ### The cassette helper — pre-written
 
@@ -288,27 +290,37 @@ describe('auth round-trip', () => {
 ### Recording workflow
 
 ```bash
-# Step 1: Record (requires access to dev.one.ie)
-RECORD=1 bun vitest run src/__tests__/integration/auth-roundtrip.test.ts
+# Step 1: Record against your gateway (requires live gateway credentials).
+# Non-PUBLIC vars (GATEWAY_API_KEY) don't auto-load in vitest — set them explicitly.
+# Also clear TYPEDB_DIRECT_* so queries route through the gateway (not direct to TypeDB).
+TYPEDB_DIRECT_URL="" TYPEDB_DIRECT_USERNAME="" TYPEDB_DIRECT_PASSWORD="" TYPEDB_DIRECT_DATABASE="" \
+  GATEWAY_API_KEY="<your-gateway-api-key>" \
+  PUBLIC_GATEWAY_URL="<your-gateway-url>" \
+  RECORD=1 bun vitest run src/__tests__/integration/auth-roundtrip.test.ts
 
 # Step 2: Commit the cassette
 git add src/__tests__/cassettes/auth-agent-create.json
 git commit -m "test(cassette): record auth-agent-create interactions"
 
-# Step 3: All future runs replay from disk (no network needed)
+# Step 3: All future runs replay from disk (no network, no credentials needed)
 bun vitest run src/__tests__/integration/auth-roundtrip.test.ts
 ```
 
 ### When cassettes go stale
 
-When the TypeDB schema changes or a new field is added, cassettes need re-recording.
-The cassette helper throws a clear error if an interaction is missing. Add a comment
-in each test file indicating which schema version the cassette was recorded against:
+When `src/schema/world.tql` changes, cassettes automatically detect the mismatch
+on replay and throw with the exact re-record command:
 
-```typescript
-// Cassette recorded: 2026-04-20 · schema: one.tql v1.4
-useCassette('auth-agent-create')
 ```
+Error: Cassette 'path-roundtrip' is stale — schema has changed.
+  Recorded against schema: f121c9727aa0
+  Current schema:          3a8b21c44d91
+Re-record with:
+  RECORD=1 GATEWAY_API_KEY=<key> PUBLIC_GATEWAY_URL=<url> TYPEDB_DIRECT_URL="" bun vitest run <test-file>
+```
+
+No manual version tracking needed — the hash is computed from the file and stored
+in each cassette automatically.
 
 ### Pros
 

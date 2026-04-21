@@ -11,18 +11,77 @@
  *   const rows = parseAnswers(answers)
  */
 
-// Gateway URL — all queries route through Cloudflare Worker
+// Gateway URL — browser queries route through Cloudflare Worker
 const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie'
 const GATEWAY_API_KEY: string = import.meta.env.GATEWAY_API_KEY || ''
+
+// Direct TypeDB connection — server-side only (baked at build time, not exposed to browser)
+// When set, server-side queries bypass the gateway and connect to TypeDB directly.
+const TYPEDB_DIRECT_URL: string = import.meta.env.TYPEDB_DIRECT_URL || ''
+const TYPEDB_DIRECT_USERNAME: string = import.meta.env.TYPEDB_DIRECT_USERNAME || ''
+const TYPEDB_DIRECT_PASSWORD: string = import.meta.env.TYPEDB_DIRECT_PASSWORD || ''
+const TYPEDB_DIRECT_DATABASE: string = import.meta.env.TYPEDB_DIRECT_DATABASE || ''
+
+/** Cached TypeDB JWT for direct connection (server-side only) */
+let _directJwt: string | null = null
+let _directJwtExpiry = 0
+
+/** Sign in to TypeDB and get a JWT token */
+async function typedbSignIn(): Promise<string> {
+  const now = Date.now()
+  if (_directJwt && now < _directJwtExpiry) return _directJwt
+
+  const res = await fetch(`${TYPEDB_DIRECT_URL}/v1/signin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: TYPEDB_DIRECT_USERNAME, password: TYPEDB_DIRECT_PASSWORD }),
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`TypeDB signin failed: ${res.status}`)
+  const data = (await res.json()) as { token: string }
+  _directJwt = data.token
+  _directJwtExpiry = now + 61000 // 61s TTL
+  return _directJwt
+}
+
+/** Execute a TypeQL query directly against TypeDB (server-side only) */
+async function queryDirect(tql: string, txType: 'read' | 'write' = 'read'): Promise<unknown[]> {
+  const token = await typedbSignIn()
+  const res = await fetch(`${TYPEDB_DIRECT_URL}/v1/query`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      databaseName: TYPEDB_DIRECT_DATABASE,
+      query: tql,
+      transactionType: txType,
+      commit: txType === 'write',
+    }),
+    signal: AbortSignal.timeout(txType === 'write' ? 8000 : 30000),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`TypeDB direct query failed: ${res.status} - ${text}`)
+  }
+  const data = (await res.json()) as { answers?: unknown[] }
+  return data.answers || []
+}
 
 /** Escape a string value for safe interpolation into a TypeQL query. */
 export function escapeTqlString(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-/** Execute a TypeQL query via Cloudflare gateway */
+/** Execute a TypeQL query via gateway (browser) or directly (server) */
 async function query(tql: string, txType: 'read' | 'write' = 'read'): Promise<unknown[]> {
-  // Always route through Cloudflare gateway.
+  // Server-side direct TypeDB connection when credentials are available
+  if (TYPEDB_DIRECT_URL && TYPEDB_DIRECT_USERNAME && TYPEDB_DIRECT_PASSWORD) {
+    return queryDirect(tql, txType)
+  }
+
+  // Browser (or server without direct creds): route through Cloudflare gateway.
   // Timeout: reads get more headroom than writes. TypeDB 3.x's query
   // planner can spend 8-15s on compound join/attr-projection queries
   // (discovery, capability scans). Short writes should still fail

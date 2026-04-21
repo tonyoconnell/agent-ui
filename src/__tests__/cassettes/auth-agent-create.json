@@ -1,0 +1,547 @@
+{
+  "schema_hash": "f121c9727aa0",
+  "interactions": [
+    {
+      "id": "auth-agent-create-001",
+      "request": {
+        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "method": "POST",
+        "body": {
+          "query": "\n      insert $k isa api-key,\n        has api-key-id \"key-vcr-1776787399947\",\n        has key-hash \"$pbkdf2$100000$o3FHbiByKpjP6wwzqfV71w==$tOCuIO1hnRtnaz7jbffte4/ZGbD+gnZxff0GZmGAEN4=\",\n        has user-id \"vcr-user-1776787399947\",\n        has permissions \"read,write\",\n        has key-status \"active\";\n    ",
+          "transactionType": "write",
+          "commit": true
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "queryType": "write",
+          "answerType": "conceptRows",
+          "answers": [
+            {
+              "data": {
+                "k": {
+                  "kind": "entity",
+                  "iid": "0x1e00090000000000000002",
+                  "type": {
+                    "kind": "entityType",
+                    "label": "api-key"
+                  }
+                }
+              },
+              "involvedBlocks": [
+                0
+              ]
+            }
+          ],
+          "query": {
+            "conjunctions": [
+              {
+                "constraints": [
+                  {
+                    "textSpan": {
+                      "begin": 17,
+                      "end": 28
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "entityType",
+                        "label": "api-key"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 53,
+                      "end": 76
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "key-vcr-1776787399947",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 38,
+                      "end": 76
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "1"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 42,
+                      "end": 52
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "api-key-id",
+                        "valueType": "string"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 99,
+                      "end": 185
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "2"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "$pbkdf2$100000$o3FHbiByKpjP6wwzqfV71w==$tOCuIO1hnRtnaz7jbffte4/ZGbD+gnZxff0GZmGAEN4=",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 86,
+                      "end": 185
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "2"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 90,
+                      "end": 98
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "2"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "key-hash",
+                        "valueType": "string"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 207,
+                      "end": 231
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "3"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "vcr-user-1776787399947",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 195,
+                      "end": 231
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "3"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 199,
+                      "end": 206
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "3"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "user-id",
+                        "valueType": "string"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 257,
+                      "end": 269
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "4"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "read,write",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 241,
+                      "end": 269
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "4"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 245,
+                      "end": 256
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "4"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "permissions",
+                        "valueType": "string"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 294,
+                      "end": 302
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "5"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "active",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 279,
+                      "end": 302
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "5"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 283,
+                      "end": 293
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "5"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "key-status",
+                        "valueType": "string"
+                      }
+                    }
+                  }
+                ],
+                "annotations": {
+                  "variableAnnotations": {}
+                }
+              }
+            ],
+            "stages": [
+              {
+                "tag": "insert",
+                "block": 0
+              }
+            ],
+            "variables": {
+              "0": {
+                "name": "k"
+              },
+              "1": {
+                "name": null
+              },
+              "2": {
+                "name": null
+              },
+              "3": {
+                "name": null
+              },
+              "4": {
+                "name": null
+              },
+              "5": {
+                "name": null
+              }
+            },
+            "outputs": [
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          "warning": null
+        }
+      },
+      "recorded_at": "2026-04-21T16:03:20.915Z"
+    },
+    {
+      "id": "auth-agent-create-002",
+      "request": {
+        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "method": "POST",
+        "body": {
+          "query": "\n      match $k isa api-key, has api-key-id \"key-vcr-1776787399947\", has key-hash $h;\n      select $h;\n    ",
+          "transactionType": "read",
+          "commit": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "queryType": "read",
+          "answerType": "conceptRows",
+          "answers": [
+            {
+              "data": {
+                "h": {
+                  "kind": "attribute",
+                  "value": "$pbkdf2$100000$o3FHbiByKpjP6wwzqfV71w==$tOCuIO1hnRtnaz7jbffte4/ZGbD+gnZxff0GZmGAEN4=",
+                  "valueType": "string",
+                  "type": {
+                    "kind": "attributeType",
+                    "label": "key-hash",
+                    "valueType": "string"
+                  }
+                }
+              },
+              "involvedBlocks": [
+                0
+              ]
+            }
+          ],
+          "query": {
+            "conjunctions": [
+              {
+                "constraints": [
+                  {
+                    "textSpan": {
+                      "begin": 16,
+                      "end": 27
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "entityType",
+                        "label": "api-key"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 44,
+                      "end": 67
+                    },
+                    "tag": "comparison",
+                    "lhs": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "rhs": {
+                      "tag": "value",
+                      "kind": "value",
+                      "value": "key-vcr-1776787399947",
+                      "valueType": "string"
+                    },
+                    "comparator": "=="
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 29,
+                      "end": 67
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "1"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 33,
+                      "end": 43
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "1"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "api-key-id",
+                        "valueType": "string"
+                      }
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 69,
+                      "end": 84
+                    },
+                    "tag": "has",
+                    "owner": {
+                      "tag": "variable",
+                      "id": "0"
+                    },
+                    "attribute": {
+                      "tag": "variable",
+                      "id": "2"
+                    }
+                  },
+                  {
+                    "textSpan": {
+                      "begin": 73,
+                      "end": 81
+                    },
+                    "tag": "isa",
+                    "instance": {
+                      "tag": "variable",
+                      "id": "2"
+                    },
+                    "type": {
+                      "tag": "label",
+                      "type": {
+                        "kind": "attributeType",
+                        "label": "key-hash",
+                        "valueType": "string"
+                      }
+                    }
+                  }
+                ],
+                "annotations": {
+                  "variableAnnotations": {}
+                }
+              }
+            ],
+            "stages": [
+              {
+                "tag": "match",
+                "block": 0
+              },
+              {
+                "tag": "select",
+                "variables": [
+                  "2"
+                ]
+              }
+            ],
+            "variables": {
+              "0": {
+                "name": "k"
+              },
+              "1": {
+                "name": null
+              },
+              "2": {
+                "name": "h"
+              }
+            },
+            "outputs": [
+              "2"
+            ]
+          },
+          "warning": null
+        }
+      },
+      "recorded_at": "2026-04-21T16:03:21.229Z"
+    }
+  ]
+}

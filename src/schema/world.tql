@@ -729,8 +729,8 @@ fun total_contribution($name: string) -> double:
           $c has impact-score $i;
     return sum($i);
 
-fun highway_count(threshold: double = 10.0) -> integer:
-    match $e isa path, has strength $s; $s >= threshold;
+fun highway_count($threshold: double) -> integer:
+    match $e isa path, has strength $s; $s >= $threshold;
     return count($e);
 
 fun total_revenue() -> double:
