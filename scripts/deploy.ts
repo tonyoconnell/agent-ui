@@ -634,6 +634,26 @@ async function main() {
     console.log(`    ${c.yellow("⚠ Some SEO/a11y tests failed — inspect but don't block deploy")}`)
   }
 
+  // Step 9: Post-deploy smoke tests (auth round-trip + signal flow against dev.one.ie)
+  console.log()
+  console.log(`  Smoke tests:`)
+  const smokeResult = spawnSync(
+    'bun',
+    ['vitest', 'run', 'src/__tests__/smoke/post-deploy.test.ts', '--reporter=verbose'],
+    {
+      env: { ...process.env, TEST_ENV: 'dev', SMOKE_URL: 'https://dev.one.ie' },
+      stdio: ['inherit', 'pipe', 'pipe'],
+      encoding: 'utf-8',
+    },
+  )
+  const smokePassed = smokeResult.status === 0
+  console.log(
+    `    ${smokePassed ? c.green('✓') : c.yellow('⚠')} ${smokePassed ? 'all smoke tests pass' : 'smoke tests failed — deployment may be degraded'}`,
+  )
+  if (!smokePassed && smokeResult.stdout) {
+    console.log(smokeResult.stdout.split('\n').slice(-10).join('\n'))
+  }
+
   // Rule 3: record deploy to substrate — let the world learn from its own deploys
   await recordToSubstrate({
     branch,
