@@ -17,13 +17,13 @@ Append new entries at the bottom. Never edit existing entries.
       (was completely untested): hydration, wiring order, TypeDB failure
       handling, tick start/stop, consecutive failure backoff
 - [x] Confirmed `loop.ts` already has 81 tests — no work needed there
-- [x] Written `docs/TODO-integration-tests.md` — full integration test spec
+- [x] Written `one/integration-tests.md` — full integration test spec
       with three options (VCR, Docker TypeDB, smoke tests) and pre-written
       code for all three
 
 ### Tony to do ❌
 
-- [ ] Implement Wave 1 (VCR cassettes) from `docs/TODO-integration-tests.md`
+- [ ] Implement Wave 1 (VCR cassettes) from `one/integration-tests.md`
       — code is pre-written, one afternoon of work
 - [ ] Implement Wave 2 (smoke tests) from same doc — also pre-written, ~1 hour
 - [ ] Wave 3 (Docker TypeDB) — discuss with David first, more infrastructure
@@ -153,7 +153,7 @@ needed in CI. No TypeDB access needed. No gateway needed.
       - `memory-reveal-agent.json` — 3 interactions (unit write + read + nonexistent)
       - `path-roundtrip.json` — 5 interactions (two units + path write + read + nonexistent)
 - [x] All 3 tests pass in replay: 6/6, 377ms, zero network, zero credentials
-- [x] Updated `docs/TODO-integration-tests.md` — status, cassette format, record command,
+- [x] Updated `one/integration-tests.md` — status, cassette format, record command,
       schema staleness section
 - [x] Updated `one/testing.md` — added VCR cassette section to Integration / E2E
 
@@ -188,7 +188,7 @@ process env beats .env).
 
 ### Outstanding
 
-- [ ] Wave 2 (smoke tests) — still to do, pre-written in `docs/TODO-integration-tests.md`
+- [ ] Wave 2 (smoke tests) — still to do, pre-written in `one/integration-tests.md`
 - [ ] Wave 3 (Docker TypeDB) — discuss with David first
 - [ ] H-27: Broadcast secret timing attack — `!==` comparison (from 2026-04-21 audit)
 - [ ] H-8: `process.env` in `ceo-classifier.ts`, `auth.ts` — broken in CF Workers

@@ -246,7 +246,7 @@ TYPEDB_DIRECT_URL="" TYPEDB_DIRECT_USERNAME="" TYPEDB_DIRECT_PASSWORD="" TYPEDB_
 ```
 
 Cassettes live in `src/__tests__/cassettes/`. The helper is
-`src/__tests__/helpers/cassette.ts`. Full spec: `docs/TODO-integration-tests.md`.
+`src/__tests__/helpers/cassette.ts`. Full spec: `one/integration-tests.md`.
 
 ---
 
