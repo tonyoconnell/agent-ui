@@ -4,6 +4,12 @@ import type { APIRoute } from 'astro'
 import { ingestMessage, measureOutcome } from '@/engine/chat'
 import { buildPack, systemPromptWithPack } from '@/lib/chat/context-pack'
 import { warmUI } from '@/lib/ui-prefetch'
+import {
+  isBuilderIntent,
+  builderResponse,
+  initialBuilderState,
+  type BuilderArcState,
+} from '@/components/chat/arcs/builder'
 
 export const prerender = false
 
@@ -36,9 +42,10 @@ export const POST: APIRoute = async ({ request }) => {
       apiKey?: string
       actorUid?: string
       lastTags?: string[]
+      builderState?: BuilderArcState
     }
 
-    const { messages, model, apiKey: clientApiKey, actorUid, lastTags = [] } = body
+    const { messages, model, apiKey: clientApiKey, actorUid, lastTags = [], builderState } = body
 
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: 'No messages provided' }), {
@@ -57,6 +64,22 @@ export const POST: APIRoute = async ({ request }) => {
 
     const selectedModel = model ?? 'meta-llama/llama-4-maverick'
     const lastUserMessage = messages[messages.length - 1]?.content ?? ''
+
+    // Builder arc: detect "I want an AI team" intent and handle via dedicated arc
+    // instead of routing through the LLM. Clients pass builderState back each turn
+    // so the arc can advance through discover → configure → deploy → done.
+    const activeBuilderState = builderState ?? (isBuilderIntent(lastUserMessage) ? initialBuilderState() : null)
+    if (activeBuilderState) {
+      const arc = builderResponse(activeBuilderState, lastUserMessage)
+      const payload = JSON.stringify({
+        reply: arc.reply,
+        builderState: arc.newState,
+        ...(arc.richPayload !== undefined ? { richPayload: arc.richPayload } : {}),
+      })
+      return new Response(payload, {
+        headers: { 'Content-Type': 'application/json', 'X-Arc': 'builder' },
+      })
+    }
 
     // Step 1: classify + ensure actor
     const { uid, tags } = ingestMessage(lastUserMessage, actorUid)
