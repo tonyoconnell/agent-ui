@@ -178,6 +178,7 @@ export function useWallets(): UseWalletsReturn {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          sender: 'ui',
           receiver: 'substrate:u:generate',
           data: { weight: 1, tags: ['u', 'vault', chain ?? ''], content: { verb: 'generate', chain, outcome: 'ok' } },
         }),

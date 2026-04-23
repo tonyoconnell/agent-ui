@@ -194,21 +194,8 @@ export function UDashboard() {
       // })
     }
 
-    // Save private key
-    if (privateKey) {
-      keys.push({
-        id: `privkey-${walletId}`,
-        name: `${chain} Private Key`,
-        type: 'private_key',
-        value: privateKey,
-        createdAt: Date.now(),
-        chain: chain,
-        walletId: walletId,
-      })
-    }
-
-    // REMOVED: localStorage.setItem('u_keys', JSON.stringify(keys))
-    // TODO: keys are now stored encrypted in vault IndexedDB
+    // Private key stored encrypted in vault IndexedDB — not in localStorage
+    void walletId; void chain; void privateKey
   }
 
   const handleGenerateWallet = async (chainId: string, password?: string, showSecurityDialog = true) => {
