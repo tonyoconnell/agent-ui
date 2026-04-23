@@ -180,6 +180,7 @@ export function SignPage() {
             }}
             title={record?.address}
             aria-label="Copy wallet address"
+            data-testid="wallet-address"
           >
             {displayName || addrShort}
           </button>
