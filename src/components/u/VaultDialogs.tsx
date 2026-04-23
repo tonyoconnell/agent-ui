@@ -53,7 +53,7 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
   const hasPassword = vaultStatus?.hasPassword ?? false
 
   const defaultTab: 'passkey' | 'password' | 'recovery' =
-    hasPasskey && prf ? 'passkey' : hasPassword ? 'password' : 'recovery'
+    hasPasskey ? 'passkey' : hasPassword ? 'password' : 'recovery'
 
   const [tab, setTab] = useState<string>(defaultTab)
   const [password, setPassword] = useState('')
@@ -156,12 +156,12 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
           className="w-full"
         >
           <TabsList className="bg-[#161622] border border-[#252538]">
-            {hasPasskey && prf && <TabsTrigger value="passkey">Passkey</TabsTrigger>}
+            {hasPasskey && <TabsTrigger value="passkey">Passkey</TabsTrigger>}
             {hasPassword && <TabsTrigger value="password">Password</TabsTrigger>}
             <TabsTrigger value="recovery">Recovery phrase</TabsTrigger>
           </TabsList>
 
-          {hasPasskey && prf && (
+          {hasPasskey && (
             <TabsContent value="passkey" className="pt-4 space-y-3">
               <Card className="bg-[#161622] border-[#252538]">
                 <CardContent className="pt-4 pb-4 flex items-start gap-3">

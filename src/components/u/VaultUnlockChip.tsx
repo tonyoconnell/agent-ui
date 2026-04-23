@@ -101,20 +101,11 @@ export function VaultUnlockChip({ className }: Props) {
 
   if (isLocked) {
     const canPasskey = hasPasskey && prf
+    // Always open the dialog — let the user pick the unlock method explicitly.
+    // Silent passkey attempts that fail look like "nothing happened" to users.
     const handle = () => {
-      if (canPasskey) {
-        emitClick('ui:vault-chip:unlock-passkey')
-        startTransition(async () => {
-          try {
-            await vault.unlockWithPasskey()
-          } catch {
-            setShowUnlock(true)
-          }
-        })
-      } else {
-        emitClick('ui:vault-chip:unlock-password')
-        setShowUnlock(true)
-      }
+      emitClick(canPasskey ? 'ui:vault-chip:unlock-open' : 'ui:vault-chip:unlock-password')
+      setShowUnlock(true)
     }
     return (
       <>
