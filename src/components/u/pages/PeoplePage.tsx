@@ -226,21 +226,25 @@ export function PeoplePage() {
                     <h3 className="font-semibold mb-4">Connected Wallets</h3>
                     <div className="grid grid-cols-2 gap-4">
                       {(() => {
-                        const wallets = localStorage.getItem('u_wallets')
-                        if (!wallets) return <p className="text-muted-foreground col-span-2">No wallets connected</p>
-                        return JSON.parse(wallets).map((w: any) => (
-                          <Card key={w.id}>
-                            <CardContent className="py-3">
-                              <div className="flex items-center gap-3">
-                                <span className="text-xl">{CHAIN_ICONS[w.chain] || '🔗'}</span>
-                                <div>
-                                  <div className="font-medium">{w.chain.toUpperCase()}</div>
-                                  <code className="text-xs text-muted-foreground">{w.address.slice(0, 12)}...</code>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))
+                        // REMOVED: localStorage.getItem('u_wallets') read
+                        // TODO: read from IndexedDB via useVault() hook instead
+                        // For now, return empty state
+                        return <p className="text-muted-foreground col-span-2">No wallets connected (TODO: migrate to vault)</p>
+                        // const wallets = localStorage.getItem('u_wallets')
+                        // if (!wallets) return <p className="text-muted-foreground col-span-2">No wallets connected</p>
+                        // return JSON.parse(wallets).map((w: any) => (
+                        //   <Card key={w.id}>
+                        //     <CardContent className="py-3">
+                        //       <div className="flex items-center gap-3">
+                        //         <span className="text-xl">{CHAIN_ICONS[w.chain] || '🔗'}</span>
+                        //         <div>
+                        //           <div className="font-medium">{w.chain.toUpperCase()}</div>
+                        //           <code className="text-xs text-muted-foreground">{w.address.slice(0, 12)}...</code>
+                        //         </div>
+                        //       </div>
+                        //     </CardContent>
+                        //   </Card>
+                        // ))
                       })()}
                     </div>
                   </div>

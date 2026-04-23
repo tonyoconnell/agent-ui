@@ -55,12 +55,14 @@ export function ReceiveDetailPage({ walletId }: ReceiveDetailPageProps) {
   const sharingRef = useRef(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem('u_wallets')
-    if (stored) {
-      const wallets = JSON.parse(stored)
-      const found = wallets.find((w: Wallet) => w.id === walletId)
-      if (found) setWallet(found)
-    }
+    // REMOVED: localStorage.getItem('u_wallets') read
+    // TODO: read from IndexedDB via useVault() hook instead
+    // const stored = localStorage.getItem('u_wallets')
+    // if (stored) {
+    //   const wallets = JSON.parse(stored)
+    //   const found = wallets.find((w: Wallet) => w.id === walletId)
+    //   if (found) setWallet(found)
+    // }
   }, [walletId])
 
   const copyAddress = async () => {

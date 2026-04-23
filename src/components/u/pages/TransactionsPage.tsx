@@ -87,14 +87,16 @@ export function TransactionsPage() {
     }
 
     // Load wallets
-    const storedWallets = localStorage.getItem('u_wallets')
-    if (storedWallets) {
-      try {
-        setWallets(JSON.parse(storedWallets))
-      } catch (e) {
-        console.error('Failed to parse wallets:', e)
-      }
-    }
+    // REMOVED: localStorage.getItem('u_wallets') read
+    // TODO: read from IndexedDB via useVault() hook instead
+    // const storedWallets = localStorage.getItem('u_wallets')
+    // if (storedWallets) {
+    //   try {
+    //     setWallets(JSON.parse(storedWallets))
+    //   } catch (e) {
+    //     console.error('Failed to parse wallets:', e)
+    //   }
+    // }
   }, [])
 
   // Fetch transactions from all wallets

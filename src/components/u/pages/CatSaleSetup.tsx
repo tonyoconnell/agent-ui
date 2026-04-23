@@ -57,19 +57,12 @@ export function CatSaleSetup() {
           })
 
           // Save wallet to localStorage
-          const storedWallets = localStorage.getItem('u_wallets')
-          const walletsList = storedWallets ? JSON.parse(storedWallets) : []
-          walletsList.push({
-            id: `wallet_${Date.now()}_${chain.id}`,
-            chain: chain.id,
-            address: response.data.address,
-            balance: '0',
-            usdValue: 0,
-            createdAt: Date.now(),
-            name: `${walletName} (${chain.name})`,
-            privateKey: response.data.privateKey,
-          })
-          localStorage.setItem('u_wallets', JSON.stringify(walletsList))
+          // REMOVED: localStorage read/write for wallet storage
+          // TODO: write to IndexedDB via useVault().saveWallet() instead
+          // const storedWallets = localStorage.getItem('u_wallets')
+          // const walletsList = storedWallets ? JSON.parse(storedWallets) : []
+          // walletsList.push({...})
+          // localStorage.setItem('u_wallets', JSON.stringify(walletsList))
         } else {
           results.push({
             address: '',

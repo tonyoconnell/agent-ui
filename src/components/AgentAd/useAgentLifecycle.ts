@@ -236,7 +236,9 @@ export function useAgentLifecycle({ agentId, skill }: { agentId: string; skill: 
       dispatch({ type: 'WALLET', buyerAddress, sellerAddress, ms: performance.now() - st, digests: walletDigests })
 
       if (buyerAddress && typeof localStorage !== 'undefined') {
-        localStorage.setItem('one-buyer-address', buyerAddress)
+        // REMOVED: localStorage.setItem('one-buyer-address', buyerAddress)
+        // TODO: buyer address should be stored in session state or vault if needed
+        // localStorage is not safe for wallet-related data
       }
     } catch {
       dispatch({ type: 'ERROR', error: 'wallet creation failed' })

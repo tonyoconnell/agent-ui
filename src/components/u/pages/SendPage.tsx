@@ -74,11 +74,13 @@ export function SendPage() {
 
   // Load wallets from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('u_wallets')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      setWallets(parsed.filter((w: Wallet) => w.id && w.address))
-    }
+    // REMOVED: localStorage.getItem('u_wallets') read
+    // TODO: read from IndexedDB via useVault() hook instead
+    // const stored = localStorage.getItem('u_wallets')
+    // if (stored) {
+    //   const parsed = JSON.parse(stored)
+    //   setWallets(parsed.filter((w: Wallet) => w.id && w.address))
+    // }
 
     // Initialize prices from CHAINS config
     const initialPrices: Record<string, number> = {}

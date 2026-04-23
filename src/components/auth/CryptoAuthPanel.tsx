@@ -1,10 +1,10 @@
 /**
  * CryptoAuthPanel — the crypto-first auth surface used by /signin and /signup.
  *
- * Wraps SignInWithAnything (Sui wallet + Google zkLogin + MetaMask Snap) with
- * mode-specific copy. Sign-up and sign-in collapse to the same flow in a
- * crypto-first world: `wallet/verify` creates a session regardless of whether
- * the wallet has signed in before — if it's new, a user record is created.
+ * Wraps SignInWithAnything (Sui wallet + Google zkLogin) with mode-specific copy.
+ * Sign-up and sign-in collapse to the same flow in a crypto-first world:
+ * `wallet/verify` creates a session regardless of whether the wallet has signed in
+ * before — if it's new, a user record is created.
  *
  * Fast-payments framing: the same wallet that signs your identity signs your
  * payments. No password step between "I am X" and "I am paying Y."

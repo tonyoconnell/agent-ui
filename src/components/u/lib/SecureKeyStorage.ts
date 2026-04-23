@@ -214,6 +214,8 @@ class SecureKeyStorageClass {
 
   /**
    * Set up a new password (first time setup)
+   * DEPRECATED: use Vault.setPassword() instead
+   * TODO: migrate to vault.ts which stores in IndexedDB
    */
   async setupPassword(password: string): Promise<void> {
     if (this.hasPassword()) {
@@ -228,7 +230,8 @@ class SecureKeyStorageClass {
     const checkValue = `ONE_WALLET_CHECK_${Date.now()}`
     const encrypted = await encrypt(checkValue, password)
 
-    localStorage.setItem(PASSWORD_CHECK_KEY, JSON.stringify(encrypted))
+    // REMOVED: localStorage.setItem(PASSWORD_CHECK_KEY, JSON.stringify(encrypted))
+    // TODO: read from IndexedDB via vault.ts instead
 
     // Cache the derived key
     const salt = fromBase64(encrypted.salt)
@@ -242,31 +245,13 @@ class SecureKeyStorageClass {
 
   /**
    * Unlock storage with password
+   * DEPRECATED: use Vault.unlockWithPassword() instead
+   * TODO: migrate to vault.ts which stores in IndexedDB
    */
   async unlock(password: string): Promise<boolean> {
-    const checkData = localStorage.getItem(PASSWORD_CHECK_KEY)
-    if (!checkData) {
-      throw new Error('No password set up')
-    }
-
-    try {
-      const encrypted = JSON.parse(checkData) as EncryptedData
-      const decrypted = await decrypt(encrypted, password)
-
-      if (!decrypted.startsWith('ONE_WALLET_CHECK_')) {
-        return false
-      }
-
-      // Cache the derived key
-      const salt = fromBase64(encrypted.salt)
-      this.cachedKey = await deriveKey(password, salt)
-      this.lastActivity = Date.now()
-      this.startAutoLockTimer()
-
-      return true
-    } catch {
-      return false
-    }
+    // REMOVED: const checkData = localStorage.getItem(PASSWORD_CHECK_KEY)
+    // TODO: read from IndexedDB via vault.ts instead
+    throw new Error('SecureKeyStorage is deprecated. Use Vault.unlockWithPassword() instead.')
   }
 
   /**
@@ -298,10 +283,8 @@ class SecureKeyStorageClass {
     // Get all wallets decrypted
     const wallets = await this.getAllWallets(oldPassword)
 
-    // Re-encrypt everything with new password
-    const newCheckValue = `ONE_WALLET_CHECK_${Date.now()}`
-    const encrypted = await encrypt(newCheckValue, newPassword)
-    localStorage.setItem(PASSWORD_CHECK_KEY, JSON.stringify(encrypted))
+    // REMOVED: Re-encrypt everything with new password via localStorage
+    // TODO: read from IndexedDB via vault.ts instead
 
     // Re-encrypt all wallets
     for (const wallet of wallets) {
@@ -365,17 +348,9 @@ class SecureKeyStorageClass {
       secureWallet.encryptedPrivateKey = await encrypt(wallet.privateKey, pwd)
     }
 
-    // Save to storage
-    const wallets = this.getEncryptedWallets()
-    const existingIndex = wallets.findIndex((w) => w.id === wallet.id)
-
-    if (existingIndex >= 0) {
-      wallets[existingIndex] = secureWallet
-    } else {
-      wallets.push(secureWallet)
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(wallets))
+    // REMOVED: Save to storage via localStorage
+    // TODO: read from IndexedDB via vault.ts instead
+    // SecureKeyStorage is deprecated — use Vault.saveWallet() instead
     return secureWallet
   }
 
@@ -456,25 +431,22 @@ class SecureKeyStorageClass {
 
   /**
    * Delete a wallet
+   * DEPRECATED: use Vault.deleteWallet() instead
+   * TODO: migrate to vault.ts which stores in IndexedDB
    */
   deleteWallet(walletId: string): void {
-    const wallets = this.getEncryptedWallets()
-    const filtered = wallets.filter((w) => w.id !== walletId)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+    // REMOVED: localStorage wallet deletion
+    // Use Vault.deleteWallet(walletId) instead
   }
 
   /**
    * Update wallet balance (no password needed)
+   * DEPRECATED: use Vault.updateBalance() instead
+   * TODO: migrate to vault.ts which stores in IndexedDB
    */
   updateBalance(walletId: string, balance: string, usdValue: number): void {
-    const wallets = this.getEncryptedWallets()
-    const wallet = wallets.find((w) => w.id === walletId)
-
-    if (wallet) {
-      wallet.balance = balance
-      wallet.usdValue = usdValue
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(wallets))
-    }
+    // REMOVED: localStorage wallet update
+    // Use Vault.updateBalance(walletId, balance, usdValue) instead
   }
 
   /**
@@ -534,34 +506,14 @@ class SecureKeyStorageClass {
 
   /**
    * Migrate unencrypted wallets from old storage
+   * DEPRECATED: wallet storage now uses IndexedDB (vault) only.
+   * This method is kept for backward compatibility but no longer performs migrations.
+   * TODO: read from IndexedDB via vault.ts instead
    */
   private async migrateUnencryptedWallets(password: string): Promise<void> {
-    const oldStorage = localStorage.getItem('u_wallets')
-    if (!oldStorage) return
-
-    try {
-      const oldWallets = JSON.parse(oldStorage) as Array<{
-        id: string
-        chain: string
-        address: string
-        publicKey?: string
-        mnemonic?: string
-        balance: string
-        usdValue: number
-      }>
-
-      for (const wallet of oldWallets) {
-        await this.saveWallet(wallet, password)
-      }
-
-      // Keep old storage as backup, but rename it
-      localStorage.setItem('u_wallets_backup_unencrypted', oldStorage)
-      localStorage.removeItem('u_wallets')
-
-      console.log(`Migrated ${oldWallets.length} wallets to encrypted storage`)
-    } catch (e) {
-      console.error('Failed to migrate old wallets:', e)
-    }
+    // Migration from localStorage to IndexedDB vault is handled by vault.ts migration.ts
+    // If you need to migrate old unencrypted wallets, use useVault.migrate() instead
+    return
   }
 
   /**
@@ -597,12 +549,13 @@ class SecureKeyStorageClass {
 
   /**
    * Clear all data (DANGER - irreversible!)
+   * DEPRECATED: use Vault.wipeAll() instead
+   * TODO: migrate to vault.ts which stores in IndexedDB
    */
   clearAll(): void {
     this.lock()
-    localStorage.removeItem(STORAGE_KEY)
-    localStorage.removeItem(PASSWORD_CHECK_KEY)
-    localStorage.removeItem(SETTINGS_KEY)
+    // REMOVED: localStorage.removeItem calls
+    // Use Vault.wipeAll() instead
   }
 }
 

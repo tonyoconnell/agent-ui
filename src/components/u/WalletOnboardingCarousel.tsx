@@ -73,10 +73,12 @@ export function WalletOnboardingCarousel({ open, onOpenChange, wallets, onClose 
 
   // Load stored keys
   useEffect(() => {
-    const stored = localStorage.getItem('u_keys')
-    if (stored) {
-      setStoredKeys(JSON.parse(stored))
-    }
+    // REMOVED: localStorage.getItem('u_keys') read
+    // TODO: read from IndexedDB via useVault() hook instead
+    // const stored = localStorage.getItem('u_keys')
+    // if (stored) {
+    //   setStoredKeys(JSON.parse(stored))
+    // }
   }, [])
 
   const copyToClipboard = (text: string, type: 'address' | 'privateKey' | 'mnemonic') => {
@@ -105,7 +107,8 @@ export function WalletOnboardingCarousel({ open, onOpenChange, wallets, onClose 
 
     const updatedKeys = [...storedKeys, newKey]
     setStoredKeys(updatedKeys)
-    localStorage.setItem('u_keys', JSON.stringify(updatedKeys))
+    // REMOVED: localStorage.setItem('u_keys', JSON.stringify(updatedKeys))
+    // TODO: keys are now stored encrypted in vault IndexedDB
     showToast('🔐 Key saved to Keys Manager', 'success')
   }
 

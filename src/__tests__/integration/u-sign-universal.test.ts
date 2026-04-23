@@ -25,9 +25,4 @@ describe('u-sign: universal signing across signer kinds', () => {
     await expect(signer.signMessage(new Uint8Array([1, 2, 3]))).rejects.toThrow()
   })
 
-  it('zklogin signer without getSignature throws gracefully', async () => {
-    const { createZkLoginSigner } = await import('@/components/u/lib/signer/zklogin-signer')
-    const signer = createZkLoginSigner({ address: '0xzktest' })
-    await expect(signer.signMessage(new Uint8Array([1]))).rejects.toThrow('getSignature not provided')
-  })
 })

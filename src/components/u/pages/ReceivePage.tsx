@@ -33,8 +33,10 @@ export function ReceivePage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
-    const stored = localStorage.getItem('u_wallets')
-    if (stored) setWallets(JSON.parse(stored))
+    // REMOVED: localStorage.getItem('u_wallets') read
+    // TODO: read from IndexedDB via useVault() hook instead
+    // const stored = localStorage.getItem('u_wallets')
+    // if (stored) setWallets(JSON.parse(stored))
   }, [])
 
   const copyAddress = async (wallet: Wallet) => {

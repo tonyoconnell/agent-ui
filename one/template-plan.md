@@ -1,7 +1,7 @@
 ---
 title: Plan Template
 type: plan
-version: 2.0.0
+version: 2.1.0
 status: TEMPLATE
 ---
 
@@ -19,6 +19,62 @@ attribute or a substrate relation.
 > **Group-agnostic.** Route hints are tags, never names. Any group's
 > chairman → CEO → director → agent chain picks up the plan via its own
 > pheromone. Same doc, different paths.
+
+---
+
+## 0 — Pre-flight (classifier — run before writing the plan)
+
+Most plans don't need the full machinery below. Check four priors — if all four
+say yes, the plan body is **lean** (5 embedded sections in the spec doc that owns
+the deliverable: goal, speed, tasks, verify, close). Any no → use the **full**
+template body below.
+
+| Prior | Question | Y/N |
+| --- | --- | --- |
+| **Spec locked** | Is the "what" decided and cited in a spec doc this plan references? | |
+| **Variance known** | Is there one plausible shape, or are we discovering which works? | |
+| **Exit scalar** | Is "done" a number / check / pass-fail — not an aggregate judgment? | |
+| **Files known** | Is recon already done in the spec (paths identified)? | |
+
+**Rule:** 4 yes → **lean** · ≤ 2 yes → **full**, recon-first · 3 yes (one uncertain)
+→ **mixed** — full plan but mark the lean-eligible cycles `mode: lean`, full waves
+only on the uncertain cycle.
+
+### Lifecycle → default mode
+
+| Lifecycle | Typical priors | Default mode |
+| --- | --- | --- |
+| **discovery** | unlocked spec + unknown variance + unmapped files | full, recon-heavy |
+| **construction** | locked spec + known variance + scalar exit + known files | **lean** |
+| **evolution** | locked spec + *unknown* variance + known files + rubric-scored | full, split-test-heavy |
+| **maintenance** | bug fix / small change + scalar exit + known file | **lean** |
+| **retirement** | sunset / deprecate, exit is "paths redirect or 404s replaced" | **lean** |
+
+Mode + lifecycle land in frontmatter below. On every `/close`, they tag the emitted
+pheromone (`mode:lean`, `lifecycle:construction`), so the substrate learns which
+shapes of work succeed in which mode. If lean-mode plans start missing budgets
+>20%, the classifier tightens on its own — this is self-correcting.
+
+**If mode: lean** — skip the rest of this template. Write the lean 5-section plan
+inline in the spec doc that owns the deliverable (e.g., the "Build plan" section
+of `website.md`):
+
+```markdown
+### {n} · {slug} — {one-line goal}
+- **goal:** {what changes when done}
+- **speed:** {metric, target, where measured}
+- **tasks:**
+  - [ ] {id} — {deliverable} — exit: {exact check}
+- **verify gate:** `bun run verify` · speed budget hit on `/speed` · {rule-file compliance} · {threat-model row} still holds
+- **close:** `/close --surface {slug}` → `mark(surface-path, score)` + signal
+```
+
+Frontmatter (§1 below) still applies for lean plans; `cycles`, `rubric_weights`,
+`split_tests`, and all §5-§14 are optional/omitted.
+
+**If mode: full** — continue to §1 below. Recon earns its keep when the priors
+don't hold. The Haiku × N → Opus → Sonnet × M → Sonnet × K cascade is designed
+precisely for unlocked specs, unknown variance, and unmapped files.
 
 ---
 
@@ -60,8 +116,19 @@ source_of_truth:                           # 🔒 docs W2 auto-loads
   - one/patterns.md
   - one/rubrics.md
   - {additional plan-specific docs}
+mode: lean | full | mixed                  # 🔒 decided by §0 classifier
+lifecycle: discovery|construction|evolution|maintenance|retirement  # 🔒
+classifier:                                # 🔒 evidence for the mode choice
+  spec_locked: {yes|no — cite doc:section}
+  variance_known: {yes|no — if no, name the dimension}
+  exit_scalar: {yes|no — name the metric}
+  files_known: {yes|no — list paths or "needs W1"}
 status: PLAN                               # 🔒 PLAN → SYNCED → RUNNING → CLOSED
 ---
+
+> **Mode-dependent fields:** `cycles`, `rubric_weights`, `split_tests`, and §5-§14
+> below apply only when `mode: full`. Lean plans omit them and embed the 5-section
+> body in their owning spec doc (see §0).
 ```
 
 ---

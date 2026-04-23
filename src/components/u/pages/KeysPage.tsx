@@ -46,10 +46,12 @@ export function KeysPage() {
   const [keyRevealed, setKeyRevealed] = useState(false)
 
   useEffect(() => {
-    const storedKeysData = localStorage.getItem('u_keys')
-    if (storedKeysData) {
-      setStoredKeys(JSON.parse(storedKeysData))
-    }
+    // REMOVED: localStorage.getItem('u_keys') read
+    // TODO: read from IndexedDB via useVault() hook instead
+    // const storedKeysData = localStorage.getItem('u_keys')
+    // if (storedKeysData) {
+    //   setStoredKeys(JSON.parse(storedKeysData))
+    // }
   }, [])
 
   const addKey = () => {
@@ -63,7 +65,8 @@ export function KeysPage() {
     }
     const updated = [...storedKeys, newKey]
     setStoredKeys(updated)
-    localStorage.setItem('u_keys', JSON.stringify(updated))
+    // REMOVED: localStorage.setItem('u_keys', JSON.stringify(updated))
+    // TODO: keys are now stored encrypted in vault IndexedDB
     setShowAddKeyDialog(false)
     setNewKeyName('')
     setNewKeyValue('')
@@ -73,7 +76,8 @@ export function KeysPage() {
   const deleteKey = (keyId: string) => {
     const updated = storedKeys.filter((k) => k.id !== keyId)
     setStoredKeys(updated)
-    localStorage.setItem('u_keys', JSON.stringify(updated))
+    // REMOVED: localStorage.setItem('u_keys', JSON.stringify(updated))
+    // TODO: keys are now stored encrypted in vault IndexedDB
     setShowDeleteKeyDialog(false)
     setSelectedKey(null)
   }

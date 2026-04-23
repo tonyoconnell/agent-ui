@@ -352,7 +352,7 @@ Each agent owns ONE file. Apply its diff specs from W2. Never edit outside the s
 - [revenue.md](one/revenue.md) — five revenue layers
 - [lifecycle.md](one/lifecycle.md) — agent career arc
 - [TODO-template.md](one/TODO-template.md) — wave structure template
-- [docs/CLAUDE.md](CLAUDE.md) — docs folder rules
+- [docs/CLAUDE.md](one.ie/one/CLAUDE.md) — docs folder rules
 
 ---
 

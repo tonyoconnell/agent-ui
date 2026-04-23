@@ -28,31 +28,12 @@ describe('u-pay: universal payment across signer kinds', () => {
     expect(shape.data.content.ref).toBeDefined()
   })
 
-  it('all 4 signer kinds have canSign(sui) = true', async () => {
+  it('vault signer can sign Sui and BTC', async () => {
     const { createVaultSigner } = await import('@/components/u/lib/signer/vault-signer')
-    const { createZkLoginSigner } = await import('@/components/u/lib/signer/zklogin-signer')
-    const { createDappKitSigner } = await import('@/components/u/lib/signer/dapp-kit-signer')
-    const { createSnapSigner } = await import('@/components/u/lib/signer/snap-signer')
 
     const vault = createVaultSigner({ address: '0x1', chain: 'sui', getPrivateKey: async () => new Uint8Array(32) })
-    const zklogin = createZkLoginSigner({ address: '0x2' })
-    const dappkit = createDappKitSigner({ address: '0x3' })
-    const snap = createSnapSigner({ address: '0x4' })
 
     expect(vault.canSign('sui')).toBe(true)
-    expect(zklogin.canSign('sui')).toBe(true)
-    expect(dappkit.canSign('sui')).toBe(true)
-    expect(snap.canSign('sui')).toBe(true)
-  })
-
-  it('only vault can sign BTC', async () => {
-    const { createVaultSigner } = await import('@/components/u/lib/signer/vault-signer')
-    const { createZkLoginSigner } = await import('@/components/u/lib/signer/zklogin-signer')
-
-    const vault = createVaultSigner({ address: '0x1', chain: 'sui', getPrivateKey: async () => new Uint8Array(32) })
-    const zklogin = createZkLoginSigner({ address: '0x2' })
-
     expect(vault.canSign('btc')).toBe(true)
-    expect(zklogin.canSign('btc')).toBe(false)
   })
 })

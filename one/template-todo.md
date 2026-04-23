@@ -1,7 +1,7 @@
 ---
 title: Dashboard Template (todo.md)
 type: dashboard
-version: 4.1.0
+version: 4.2.0
 status: TEMPLATE
 ---
 
@@ -50,16 +50,47 @@ match $p isa thing,
   has thing-type "plan",
   has status "RUNNING",
   has goal ?goal,
-  has cycles-planned ?total;
+  has cycles-planned ?total,
+  has mode ?mode,
+  has lifecycle ?lifecycle;
 # joined with cycle completion count + rubric avg + escape risk
 ```
 
-| Plan | Goal | Cycles done / total | Rubric (7d) | Escape risk | Next wave | Open this cycle |
-|------|------|---------------------|-------------|-------------|-----------|-----------------|
-| `{slug}` | {goal} | {n}/{N} | {0.XX} ({±trend}) | {low\|med\|high} | C{n}/W{m} | {count} |
-| ... | | | | | | |
+| Plan | Goal | Mode | Lifecycle | Cycles done / total | Rubric (7d) | Escape risk | Next wave | Open this cycle |
+|------|------|------|-----------|---------------------|-------------|-------------|-----------|-----------------|
+| `{slug}` | {goal} | lean\|full\|mixed | discovery\|construction\|evolution\|maintenance\|retirement | {n}/{N} | {0.XX} ({±trend}) | {low\|med\|high} | C{n}/W{m} *(lean: —)* | {count} |
+| ... | | | | | | | | |
 
-*Clicking a plan slug opens `plans/{group}/{slug}.md` (the full plan doc).*
+*Clicking a plan slug opens `plans/{group}/{slug}.md` (the full plan doc) — or the spec section that owns it for lean plans.*
+
+---
+
+## 1b — Mode distribution (self-correcting classifier signal)
+
+```tql
+match $p isa thing, has thing-type "plan", has mode ?m, has lifecycle ?l, has status "RUNNING";
+group ?m, ?l; count;
+# joined with budget-hit rate + avg wall-time
+```
+
+| Mode | Lifecycle | Count | Budget hit rate (7d) | Avg wall-time to close | Avg rubric (full only) |
+|------|-----------|------:|---------------------:|-----------------------:|-----------------------:|
+| lean | construction | {N} | {0.XX} | {duration} | — |
+| lean | maintenance | {N} | {0.XX} | {duration} | — |
+| lean | retirement | {N} | {0.XX} | {duration} | — |
+| full | discovery | {N} | — | {duration} | {0.XX} |
+| full | evolution | {N} | — | {duration} | {0.XX} |
+| mixed | {various} | {N} | partial | {duration} | {0.XX} on full cycles |
+
+**Classifier health signal:** if lean-mode budget-hit rate drops below 80% for 7d,
+the §0 classifier is too permissive — tighten the priors or require a second review
+on `mode: lean` for that lifecycle. If full-mode plans close faster than lean-mode
+plans on average (unusual), the classifier is too strict — relax the priors on
+low-variance deliverables.
+
+Every close tags pheromone with `mode:{m}` + `lifecycle:{l}` — `select()` learns
+which shapes reliably hit their budgets in which mode. The distribution table is
+the human-readable face of that learning.
 
 ---
 

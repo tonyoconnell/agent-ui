@@ -75,14 +75,16 @@ export function WalletsPage() {
   const [storedKeys, setStoredKeys] = useState<StoredKey[]>([])
 
   useEffect(() => {
-    const stored = localStorage.getItem('u_wallets')
-    if (stored) {
-      setWallets(JSON.parse(stored))
-    }
-    const storedKeysData = localStorage.getItem('u_keys')
-    if (storedKeysData) {
-      setStoredKeys(JSON.parse(storedKeysData))
-    }
+    // REMOVED: localStorage.getItem('u_wallets') read
+    // TODO: read from IndexedDB via useVault() hook instead
+    // const stored = localStorage.getItem('u_wallets')
+    // if (stored) {
+    //   setWallets(JSON.parse(stored))
+    // }
+    // const storedKeysData = localStorage.getItem('u_keys')
+    // if (storedKeysData) {
+    //   setStoredKeys(JSON.parse(storedKeysData))
+    // }
   }, [])
 
   const totalValue = wallets.reduce((sum, w) => sum + w.usdValue, 0)
@@ -114,7 +116,8 @@ export function WalletsPage() {
 
     const updated = [...wallets, newWallet]
     setWallets(updated)
-    localStorage.setItem('u_wallets', JSON.stringify(updated))
+    // REMOVED: localStorage.setItem('u_wallets', JSON.stringify(updated))
+    // TODO: read from IndexedDB via useVault().saveWallet() instead
     // Register as substrate actor (fire-and-forget)
     fetch('/api/agents/register', {
       method: 'POST',
@@ -134,7 +137,8 @@ export function WalletsPage() {
     }
     const updatedKeys = [...storedKeys, newKey]
     setStoredKeys(updatedKeys)
-    localStorage.setItem('u_keys', JSON.stringify(updatedKeys))
+    // REMOVED: localStorage.setItem('u_keys', JSON.stringify(updatedKeys))
+    // TODO: keys are now stored encrypted in vault IndexedDB
   }
 
   const saveWalletKey = (wallet: Wallet) => {
@@ -156,19 +160,22 @@ export function WalletsPage() {
     }
     const updatedKeys = [...storedKeys, newKey]
     setStoredKeys(updatedKeys)
-    localStorage.setItem('u_keys', JSON.stringify(updatedKeys))
+    // REMOVED: localStorage.setItem('u_keys', JSON.stringify(updatedKeys))
+    // TODO: keys are now stored encrypted in vault IndexedDB
   }
 
   const renameWallet = (walletId: string, newName: string) => {
     const updated = wallets.map((w) => (w.id === walletId ? { ...w, name: newName } : w))
     setWallets(updated)
-    localStorage.setItem('u_wallets', JSON.stringify(updated))
+    // REMOVED: localStorage.setItem('u_wallets', JSON.stringify(updated))
+    // TODO: read from IndexedDB via useVault().saveWallet() instead
   }
 
   const deleteWallet = (walletId: string) => {
     const updated = wallets.filter((w) => w.id !== walletId)
     setWallets(updated)
-    localStorage.setItem('u_wallets', JSON.stringify(updated))
+    // REMOVED: localStorage.setItem('u_wallets', JSON.stringify(updated))
+    // TODO: read from IndexedDB via useVault().saveWallet() instead
     setShowDeleteDialog(false)
     setDeleteConfirmText('')
     setSelectedWallet(null)

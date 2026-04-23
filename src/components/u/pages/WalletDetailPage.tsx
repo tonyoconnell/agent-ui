@@ -479,15 +479,17 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
     }
 
     // Load wallets from localStorage
-    const storedWallets = localStorage.getItem('u_wallets')
-    if (storedWallets) {
-      const wallets: Wallet[] = JSON.parse(storedWallets)
-      setAllWallets(wallets)
-      const found = wallets.find((w) => w.id === walletId)
-      if (found) {
-        setWallet(found)
-      }
-    }
+    // REMOVED: localStorage.getItem('u_wallets') read
+    // TODO: read from IndexedDB via useVault() hook instead
+    // const storedWallets = localStorage.getItem('u_wallets')
+    // if (storedWallets) {
+    //   const wallets: Wallet[] = JSON.parse(storedWallets)
+    //   setAllWallets(wallets)
+    //   const found = wallets.find((w) => w.id === walletId)
+    //   if (found) {
+    //     setWallet(found)
+    //   }
+    // }
 
     // Load transactions by walletId only; the second effect re-filters once
     // wallet state is populated (address-based matches).
@@ -566,7 +568,8 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
         setWallet(updatedWallet)
 
         const wallets = allWallets.map((w) => (w.id === wallet.id ? updatedWallet : w))
-        localStorage.setItem('u_wallets', JSON.stringify(wallets))
+        // REMOVED: localStorage.setItem('u_wallets', JSON.stringify(wallets))
+        // TODO: write to IndexedDB via useVault().updateBalance() instead
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error)

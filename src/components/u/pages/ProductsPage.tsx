@@ -173,8 +173,10 @@ export function ProductsPage() {
       setProducts(productsWithDefaults)
     }
 
-    const storedWallets = localStorage.getItem('u_wallets')
-    if (storedWallets) setWallets(JSON.parse(storedWallets))
+    // REMOVED: localStorage.getItem('u_wallets') read
+    // TODO: read from IndexedDB via useVault() hook instead
+    // const storedWallets = localStorage.getItem('u_wallets')
+    // if (storedWallets) setWallets(JSON.parse(storedWallets))
   }, [])
 
   // Save products to localStorage

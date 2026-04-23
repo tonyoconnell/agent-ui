@@ -172,21 +172,26 @@ export function UDashboard() {
   }, [wallets.length, isLoading, wallets?.[0]?.id])
 
   // Helper function to save keys to u_keys storage
+  // DEPRECATED: localStorage keys are not safe for seed material
+  // TODO: use vault.ts which stores encrypted in IndexedDB instead
   const saveToKeysStorage = (walletId: string, chain: string, mnemonic?: string, privateKey?: string) => {
-    const existingKeys = localStorage.getItem('u_keys')
-    const keys = existingKeys ? JSON.parse(existingKeys) : []
+    // REMOVED: localStorage.getItem('u_keys') read
+    // const existingKeys = localStorage.getItem('u_keys')
+    // const keys = existingKeys ? JSON.parse(existingKeys) : []
 
     // Save mnemonic (recovery phrase)
+    // NOTE: Keys are now managed by vault.ts which encrypts them in IndexedDB
     if (mnemonic) {
-      keys.push({
-        id: `mnemonic-${walletId}`,
-        name: `${chain} Recovery Phrase`,
-        type: 'mnemonic',
-        value: mnemonic,
-        createdAt: Date.now(),
-        chain: chain,
-        walletId: walletId,
-      })
+      // REMOVED: localStorage write
+      // keys.push({
+      //   id: `mnemonic-${walletId}`,
+      //   name: `${chain} Recovery Phrase`,
+      //   type: 'mnemonic',
+      //   value: mnemonic,
+      //   createdAt: Date.now(),
+      //   chain: chain,
+      //   walletId: walletId,
+      // })
     }
 
     // Save private key
@@ -202,7 +207,8 @@ export function UDashboard() {
       })
     }
 
-    localStorage.setItem('u_keys', JSON.stringify(keys))
+    // REMOVED: localStorage.setItem('u_keys', JSON.stringify(keys))
+    // TODO: keys are now stored encrypted in vault IndexedDB
   }
 
   const handleGenerateWallet = async (chainId: string, password?: string, showSecurityDialog = true) => {

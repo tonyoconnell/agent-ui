@@ -1,5 +1,4 @@
 import { emitClick } from '@/lib/ui-signal'
-import { MetaMaskSnapPrompt } from './MetaMaskSnapPrompt'
 import { WalletSignIn } from './WalletSignIn'
 
 interface Props {
@@ -14,7 +13,7 @@ export function SignInWithAnything({ onSuccess }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-xs">
-      {/* Door 1: native Sui wallet (dapp-kit auto-detects including installed Snap) */}
+      {/* Door 1: native Sui wallet (dapp-kit) */}
       <WalletSignIn onSuccess={onSuccess} label="Sign in with Sui wallet" />
 
       <div className="flex items-center gap-2 w-full text-xs text-slate-600">
@@ -31,9 +30,6 @@ export function SignInWithAnything({ onSuccess }: Props) {
       >
         Continue with Google
       </button>
-
-      {/* Door 3: MetaMask Snap — shown only when MetaMask detected without Sui Snap */}
-      <MetaMaskSnapPrompt />
     </div>
   )
 }

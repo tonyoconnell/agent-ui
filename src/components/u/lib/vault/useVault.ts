@@ -409,45 +409,12 @@ export function useVault(opts: Options = {}): UseVaultResult {
       const existing = await Vault.listWallets()
       const known = new Set(existing.map((w) => `${w.chain}:${w.address}`))
 
-      // Plaintext
+      // Plaintext migration
+      // REMOVED: localStorage.getItem('u_wallets') read for plaintext migration
+      // Migration from localStorage to IndexedDB vault is handled by vault.ts migration.ts
+      // If you need to migrate old unencrypted wallets, use the migration.ts module directly
       if (inv.plaintextCount > 0) {
-        const raw = localStorage.getItem('u_wallets')
-        if (raw) {
-          try {
-            const arr = JSON.parse(raw) as Array<{
-              id: string
-              chain: string
-              address: string
-              publicKey?: string
-              mnemonic?: string
-              balance?: string
-              usdValue?: number
-              name?: string
-            }>
-            for (const w of arr) {
-              if (known.has(`${w.chain}:${w.address}`)) continue
-              try {
-                await Vault.saveWallet({
-                  id: w.id,
-                  chain: w.chain,
-                  address: w.address,
-                  publicKey: w.publicKey,
-                  mnemonic: w.mnemonic,
-                  balance: w.balance,
-                  usdValue: w.usdValue,
-                  name: w.name,
-                })
-                migrated++
-              } catch (e) {
-                errors.push(`plaintext ${w.id}: ${(e as Error).message}`)
-              }
-            }
-            localStorage.setItem('u_wallets_backup_unencrypted', raw)
-            localStorage.removeItem('u_wallets')
-          } catch (e) {
-            errors.push(`plaintext parse: ${(e as Error).message}`)
-          }
-        }
+        errors.push('plaintext wallet migration: direct localStorage reads removed. Use migration.ts instead.')
       }
 
       // Encrypted requires the old password. Delegate to migration.ts so we share

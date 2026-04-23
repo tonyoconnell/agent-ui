@@ -30,6 +30,7 @@
     "bootstrap": "bash scripts/bootstrap.sh",
     "seed:tasks": "bun run scripts/seed-tasks.ts",
     "seed:agents": "bun run scripts/seed-agents.ts",
+    "canary": "bun run scripts/canary.ts",
     "deploy": "bun scripts/deploy.ts",
     "release": "bun scripts/release.ts",
     "cf-cutover": "bun scripts/cf-cutover.ts",

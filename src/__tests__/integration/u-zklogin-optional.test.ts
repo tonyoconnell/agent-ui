@@ -26,15 +26,15 @@ describe('u-zklogin: isolation contract', () => {
   const uComponentsDir = join(process.cwd(), 'src/components/u')
   const uPagesDir = join(process.cwd(), 'src/pages/u')
 
-  // lib/signer/ is the designated signer adapter layer — it may reference zklogin internally
+  // lib/signer/ is the designated signer adapter layer
   const signerDir = join(uComponentsDir, 'lib', 'signer')
   const allUFiles = [...collectFiles(uComponentsDir), ...collectFiles(uPagesDir)].filter(
     (f) => !f.startsWith(signerDir),
   )
 
   it('zero files in /u import from zklogin API endpoints', () => {
-    // Checks for actual import statements only — comments referencing these modules are allowed.
-    // lib/signer/zklogin-signer.ts is the integration adapter and may reference module names in comments.
+    // Checks for actual import statements only — zklogin + dapp-kit signers have been deleted
+    // Replaced with passkey-PRF Ed25519 signing via vault-signer
     const forbidden = [
       /import[^'"]*from\s+['"]api\/auth\/zklogin/,
       /import[^'"]*from\s+['"]@mysten\/sui\/zklogin/,

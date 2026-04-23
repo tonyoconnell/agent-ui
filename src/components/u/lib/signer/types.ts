@@ -1,5 +1,5 @@
 export interface Signer {
-  readonly kind: 'vault' | 'zklogin' | 'dapp-kit' | 'metamask-snap'
+  readonly kind: 'vault' | 'zklogin' | 'dapp-kit'
   readonly chain: 'sui' | 'eth' | 'btc' | 'sol' | 'usdc' | 'one'
   readonly address: string
   readonly frontDoor: 'wallet' | 'zklogin'

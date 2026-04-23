@@ -17,45 +17,32 @@ export interface Wallet {
   isCloudBacked?: boolean
 }
 
+/**
+ * DEPRECATED: WalletAdapter uses localStorage which is not safe for seed material.
+ * Wallet state now lives in IndexedDB only via Vault (src/components/u/lib/vault/).
+ * Use useVault hook or Vault.listWallets() to read wallets.
+ * TODO: migrate all localStorage reads to vault.ts
+ */
 export const WalletAdapter = {
   /**
    * Load wallets from local storage
+   * DEPRECATED: use Vault.listWallets() instead
+   * TODO: read from IndexedDB via vault.ts instead
    */
   fromLocalStorage(filter?: { chain?: string; context?: 'mainnet' | 'testnet' }): Wallet[] {
-    try {
-      const stored = localStorage.getItem('u_wallets')
-      if (!stored) return []
-
-      let wallets: Wallet[] = JSON.parse(stored)
-
-      if (filter?.chain) {
-        wallets = wallets.filter((w) => w.chain === filter.chain)
-      }
-
-      if (filter?.context) {
-        wallets = wallets.filter((w) => w.context === filter.context)
-      }
-
-      return wallets
-    } catch (e) {
-      console.error('Failed to load wallets', e)
-      return []
-    }
+    // REMOVED: localStorage.getItem('u_wallets')
+    console.warn('WalletAdapter.fromLocalStorage is deprecated. Use Vault.listWallets() instead.')
+    return []
   },
 
   /**
    * Save wallets to local storage
+   * DEPRECATED: use Vault.saveWallet() instead
+   * TODO: write to IndexedDB via vault.ts instead
    */
   toLocalStorage(wallets: Wallet[]) {
-    // Merge with existing
-    const existing = this.fromLocalStorage()
-    const map = new Map(existing.map((w) => [w.address, w]))
-
-    // Update or add new
-    wallets.forEach((w) => map.set(w.address, w))
-
-    const plain = Array.from(map.values())
-    localStorage.setItem('u_wallets', JSON.stringify(plain))
+    // REMOVED: localStorage.setItem calls
+    console.warn('WalletAdapter.toLocalStorage is deprecated. Use Vault.saveWallet() instead.')
   },
 
   /**
