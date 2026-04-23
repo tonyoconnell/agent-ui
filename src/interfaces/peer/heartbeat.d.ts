@@ -2,7 +2,7 @@
 export interface HeartbeatPayload {
   agentUid: string
   walletId?: string
-  timestamp: string     // ISO
+  timestamp: string // ISO
 }
 
 // Emit a heartbeat (writes liveness_last_verified_at to TypeDB unit)

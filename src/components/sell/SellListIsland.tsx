@@ -7,8 +7,8 @@
  * Empty state prompts "Create your first listing".
  */
 import { useEffect, useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 
 interface CapabilityItem {
   sid: string
@@ -54,11 +54,7 @@ export function SellListIsland() {
   }
 
   if (error) {
-    return (
-      <div className="rounded-md border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-        {error}
-      </div>
-    )
+    return <div className="rounded-md border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">{error}</div>
   }
 
   if (listings.length === 0) {
@@ -84,10 +80,7 @@ export function SellListIsland() {
         )
 
         return (
-          <Card
-            key={cap.sid}
-            className="border-zinc-800 bg-zinc-900/60 transition-colors hover:bg-zinc-900/80"
-          >
+          <Card key={cap.sid} className="border-zinc-800 bg-zinc-900/60 transition-colors hover:bg-zinc-900/80">
             <CardContent className="p-4">
               <div className="mb-2 flex items-start justify-between gap-2">
                 <span className="truncate text-sm font-medium text-white">{cap.name}</span>
@@ -110,17 +103,11 @@ export function SellListIsland() {
               {visibleTags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {visibleTags.slice(0, 4).map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      className="border-zinc-700 px-1.5 py-0 text-xs text-zinc-500"
-                    >
+                    <Badge key={tag} variant="outline" className="border-zinc-700 px-1.5 py-0 text-xs text-zinc-500">
                       {tag}
                     </Badge>
                   ))}
-                  {visibleTags.length > 4 && (
-                    <span className="text-xs text-zinc-600">+{visibleTags.length - 4}</span>
-                  )}
+                  {visibleTags.length > 4 && <span className="text-xs text-zinc-600">+{visibleTags.length - 4}</span>}
                 </div>
               )}
             </CardContent>

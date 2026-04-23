@@ -1,9 +1,8 @@
 // src/components/u/DevicesIsland.tsx — Enrolled passkey device management.
 // Shows wrappings from IDB as Device cards; lets users revoke individual passkeys.
 
-import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { useCallback, useEffect, useState } from 'react'
+import { getWallet, removeWrapping } from '@/components/u/lib/idb'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,20 +13,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
-import { getWallet, removeWrapping } from '@/components/u/lib/idb'
 import type { PasskeyPrfWrapping } from '../../../interfaces/types-wallet'
 
 interface Device {
-  credId: string      // hex-encoded
-  enrolledAt: string  // ISO
-  isCurrent: boolean  // true if this is the currently-active passkey
+  credId: string // hex-encoded
+  enrolledAt: string // ISO
+  isCurrent: boolean // true if this is the currently-active passkey
 }
 
 // Convert ArrayBuffer → hex string
 function bufToHex(buf: ArrayBuffer): string {
   return Array.from(new Uint8Array(buf))
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 }
 
@@ -68,9 +68,7 @@ export function DevicesIsland() {
         setDevices([])
         return
       }
-      const passkeys = record.wrappings.filter(
-        (w): w is PasskeyPrfWrapping => w.type === 'passkey-prf'
-      )
+      const passkeys = record.wrappings.filter((w): w is PasskeyPrfWrapping => w.type === 'passkey-prf')
       // We don't store enrolledAt on wrappings in the current schema,
       // so we fall back to bip39ShownAt or a stable placeholder.
       const mapped: Device[] = passkeys.map((w) => ({
@@ -113,12 +111,8 @@ export function DevicesIsland() {
   }
 
   const lastDevice = devices.length === 1
-  const confirmingDevice = confirmCredId
-    ? devices.find(d => d.credId === confirmCredId)
-    : null
-  const confirmIndex = confirmCredId
-    ? devices.findIndex(d => d.credId === confirmCredId)
-    : -1
+  const confirmingDevice = confirmCredId ? devices.find((d) => d.credId === confirmCredId) : null
+  const confirmIndex = confirmCredId ? devices.findIndex((d) => d.credId === confirmCredId) : -1
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4 py-12">
@@ -142,9 +136,7 @@ export function DevicesIsland() {
         )}
 
         {/* Loading */}
-        {loading && (
-          <p className="text-slate-500 text-sm text-center py-8">Loading devices…</p>
-        )}
+        {loading && <p className="text-slate-500 text-sm text-center py-8">Loading devices…</p>}
 
         {/* Empty */}
         {!loading && devices.length === 0 && (
@@ -169,16 +161,12 @@ export function DevicesIsland() {
                 role="note"
                 className="rounded-lg border border-amber-800/40 bg-amber-950/20 px-4 py-3 text-amber-400 text-sm"
               >
-                This is your last device. Make sure you have your BIP39 recovery phrase before
-                revoking it.
+                This is your last device. Make sure you have your BIP39 recovery phrase before revoking it.
               </div>
             )}
 
             {devices.map((device, index) => (
-              <Card
-                key={device.credId}
-                className="bg-[#161622] border-[#252538] text-white"
-              >
+              <Card key={device.credId} className="bg-[#161622] border-[#252538] text-white">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <span>Device {index + 1}</span>
@@ -191,12 +179,8 @@ export function DevicesIsland() {
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-4">
                   <div className="space-y-1 min-w-0">
-                    <p className="text-slate-400 text-xs">
-                      Enrolled {formatDate(device.enrolledAt)}
-                    </p>
-                    <p className="font-mono text-slate-600 text-[10px] truncate">
-                      {device.credId.slice(0, 24)}…
-                    </p>
+                    <p className="text-slate-400 text-xs">Enrolled {formatDate(device.enrolledAt)}</p>
+                    <p className="font-mono text-slate-600 text-[10px] truncate">{device.credId.slice(0, 24)}…</p>
                   </div>
                   <Button
                     variant="outline"
@@ -215,10 +199,7 @@ export function DevicesIsland() {
 
         {/* Back link */}
         <div className="pt-2 text-center">
-          <a
-            href="/u"
-            className="text-slate-500 text-xs hover:text-slate-300 underline underline-offset-2"
-          >
+          <a href="/u" className="text-slate-500 text-xs hover:text-slate-300 underline underline-offset-2">
             Back to wallet
           </a>
         </div>
@@ -227,18 +208,18 @@ export function DevicesIsland() {
       {/* Confirmation dialog */}
       <AlertDialog
         open={confirmCredId !== null}
-        onOpenChange={open => { if (!open) setConfirmCredId(null) }}
+        onOpenChange={(open) => {
+          if (!open) setConfirmCredId(null)
+        }}
       >
         <AlertDialogContent className="bg-[#161622] border-[#252538] text-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Device {confirmIndex + 1}?</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-400">
-              Remove this device? You'll need Touch ID on another device or your BIP39
-              recovery phrase to access your wallet.
+              Remove this device? You'll need Touch ID on another device or your BIP39 recovery phrase to access your
+              wallet.
               {lastDevice && (
-                <span className="block mt-2 text-amber-400">
-                  Warning: this is your only enrolled device.
-                </span>
+                <span className="block mt-2 text-amber-400">Warning: this is your only enrolled device.</span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

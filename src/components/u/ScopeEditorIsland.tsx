@@ -10,24 +10,14 @@
 // does not yet exist in the contract. The save handler is stubbed with a comment
 // explaining what the transaction would look like once that entry is deployed.
 
-import { useState, useEffect, useCallback } from 'react'
-import {
-  AlertCircle,
-  ChevronLeft,
-  Loader2,
-  Plus,
-  Save,
-  Shield,
-  Trash2,
-  Wallet,
-  X,
-} from 'lucide-react'
+import { AlertCircle, ChevronLeft, Loader2, Plus, Save, Shield, Trash2, Wallet, X } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 import { emitClick } from '@/lib/ui-signal'
+import { cn } from '@/lib/utils'
 import { UNav } from './UNav'
 
 // ---------------------------------------------------------------------------
@@ -39,15 +29,15 @@ interface ScopedWalletData {
   walletId: string
   owner: string
   agent: string
-  dailyCap: number          // MIST per epoch
-  spentToday: number        // MIST spent in current epoch
+  dailyCap: number // MIST per epoch
+  spentToday: number // MIST spent in current epoch
   epochOfLastReset: number
   paused: boolean
-  allowlist: string[]       // permitted recipient addresses; empty = any
+  allowlist: string[] // permitted recipient addresses; empty = any
 }
 
 interface ScopeEditorIslandProps {
-  agentId: string           // from URL params
+  agentId: string // from URL params
 }
 
 // ---------------------------------------------------------------------------
@@ -238,8 +228,8 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
               </div>
               <h2 className="text-xl font-semibold tracking-tight mb-2">No scope set</h2>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                This agent does not have a ScopedWallet. Create one via the Move contract to
-                grant it bounded spending authority.
+                This agent does not have a ScopedWallet. Create one via the Move contract to grant it bounded spending
+                authority.
               </p>
             </CardContent>
           </Card>
@@ -305,7 +295,9 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
                 </div>
                 <div>
                   <CardTitle className="text-base font-semibold tracking-tight">Daily Cap</CardTitle>
-                  <CardDescription className="text-xs">Maximum spend per epoch (MIST = smallest SUI unit)</CardDescription>
+                  <CardDescription className="text-xs">
+                    Maximum spend per epoch (MIST = smallest SUI unit)
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -331,9 +323,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
 
               {/* Editable cap */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  New cap (SUI)
-                </label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">New cap (SUI)</label>
                 <div className="flex gap-2 items-center">
                   <Input
                     type="number"
@@ -344,9 +334,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
                     onChange={(e) => setCapSui(e.target.value)}
                     className="font-mono max-w-[180px]"
                   />
-                  <span className="text-xs text-muted-foreground">
-                    = {suiToMist(capSui).toLocaleString()} MIST
-                  </span>
+                  <span className="text-xs text-muted-foreground">= {suiToMist(capSui).toLocaleString()} MIST</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1.5">
                   Requires Move <code className="font-mono">update_cap</code> entry — see comment in handler.
@@ -357,9 +345,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
               {scope.paused && (
                 <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
                   <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" strokeWidth={1.75} />
-                  <span className="text-xs text-amber-300 font-medium">
-                    Wallet is paused — spend() will abort
-                  </span>
+                  <span className="text-xs text-amber-300 font-medium">Wallet is paused — spend() will abort</span>
                 </div>
               )}
             </CardContent>
@@ -394,9 +380,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
                       key={addr}
                       className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/40 px-3 py-2"
                     >
-                      <code className="font-mono text-xs text-foreground/80 truncate flex-1">
-                        {addr}
-                      </code>
+                      <code className="font-mono text-xs text-foreground/80 truncate flex-1">{addr}</code>
                       <button
                         type="button"
                         aria-label={`Remove ${shortAddr(addr)}`}
@@ -481,11 +465,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
           )}
 
           {/* Save */}
-          <Button
-            className="w-full gap-2"
-            onClick={handleSave}
-            disabled={saving}
-          >
+          <Button className="w-full gap-2" onClick={handleSave} disabled={saving}>
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
             ) : (

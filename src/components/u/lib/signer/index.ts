@@ -1,13 +1,10 @@
-export { createDappKitSigner } from './dapp-kit-signer'
 export { resolveSigner } from './resolve'
-export { createSnapSigner } from './snap-signer'
 export type { Signer, SignerChain, SignerKind } from './types'
 export { createVaultSigner } from './vault-signer'
-export { createZkLoginSigner } from './zklogin-signer'
 
 // useSigner hook — composes all adapters
 // Import in a React component to get the current signer
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { resolveSigner } from './resolve'
 import type { Signer } from './types'
 

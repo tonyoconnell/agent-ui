@@ -18,9 +18,9 @@
  *   bun vitest run src/__tests__/integration/signal-flow.test.ts
  */
 
-import { describe, it, expect, afterAll } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { useCassette } from '@/__tests__/helpers/cassette'
-import { readParsed, writeSilent, escapeTqlString } from '@/lib/typedb'
+import { escapeTqlString, readParsed, writeSilent } from '@/lib/typedb'
 
 describe('path round-trip', () => {
   const suffix = Date.now()

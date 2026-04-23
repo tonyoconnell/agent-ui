@@ -19,8 +19,8 @@
  */
 
 import type { APIRoute } from 'astro'
-import { readParsed } from '@/lib/typedb'
 import { getClient } from '@/lib/sui'
+import { readParsed } from '@/lib/typedb'
 
 export const prerender = false
 
@@ -28,12 +28,12 @@ export const prerender = false
 
 interface FleetNode {
   walletId: string
-  ownerLabel: string      // "You" (owner === address) or agent name
-  agentLabel: string      // agent uid or "unknown"
-  dailyCapMist: string    // bigint serialised as string for JSON
-  spentTodayMist: string  // bigint serialised as string for JSON
+  ownerLabel: string // "You" (owner === address) or agent name
+  agentLabel: string // agent uid or "unknown"
+  dailyCapMist: string // bigint serialised as string for JSON
+  spentTodayMist: string // bigint serialised as string for JSON
   paused: boolean
-  depth: number           // 0 = root (owned by user), 1 = child, etc.
+  depth: number // 0 = root (owned by user), 1 = child, etc.
   children: FleetNode[]
 }
 
@@ -42,7 +42,7 @@ interface FleetNode {
 interface UnitRow {
   uid: string
   name: string
-  walletId: string        // scoped-wallet-id attribute value
+  walletId: string // scoped-wallet-id attribute value
 }
 
 /** Query all units that have a scoped-wallet-id and return their uid + name. */
@@ -122,11 +122,7 @@ function buildTree(
 ): FleetNode[] {
   const normUser = norm(userAddress)
 
-  function buildLevel(
-    ownerAddresses: Set<string>,
-    depth: number,
-    visited: Set<string>,
-  ): FleetNode[] {
+  function buildLevel(ownerAddresses: Set<string>, depth: number, visited: Set<string>): FleetNode[] {
     if (depth > maxDepth) return []
 
     const nodes: FleetNode[] = []
@@ -141,8 +137,7 @@ function buildTree(
 
       // Gather child agents: units whose ScopedWallet owner === this agent's address
       const agentOwnedAddresses = new Set<string>([norm(chain.agent)])
-      const children =
-        depth < maxDepth ? buildLevel(agentOwnedAddresses, depth + 1, visited) : []
+      const children = depth < maxDepth ? buildLevel(agentOwnedAddresses, depth + 1, visited) : []
 
       nodes.push({
         walletId: unit.walletId,
@@ -203,9 +198,9 @@ export const GET: APIRoute = async ({ url }) => {
       },
     })
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'fleet query failed' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'fleet query failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }

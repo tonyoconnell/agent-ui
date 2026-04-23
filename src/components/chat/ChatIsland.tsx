@@ -9,15 +9,15 @@
  */
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import { ListingCardComponent } from '@/components/chat/arcs/ListingCardComponent'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { emitClick } from '@/lib/ui-signal'
-import { loadCursor, storeCursor } from '@/lib/chat/cursor'
-import { cn } from '@/lib/utils'
-import { ListingCardComponent } from '@/components/chat/arcs/ListingCardComponent'
 import type { ListingCard } from '@/interfaces/rich-message/listing-card'
+import { loadCursor, storeCursor } from '@/lib/chat/cursor'
+import { emitClick } from '@/lib/ui-signal'
+import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -58,9 +58,7 @@ function loadSid(): string {
 function PaymentCard({ payload }: { payload: Record<string, unknown> }) {
   return (
     <Card className="border-border bg-card p-4">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Payment
-      </div>
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payment</div>
       <div className="space-y-1 text-sm">
         {Boolean(payload.receiver) && (
           <div className="flex justify-between">
@@ -91,16 +89,10 @@ function PaymentCard({ payload }: { payload: Record<string, unknown> }) {
 function AgentCard({ payload }: { payload: Record<string, unknown> }) {
   return (
     <Card className="border-border bg-card p-4">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Agent
-      </div>
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Agent</div>
       <div className="space-y-1 text-sm">
-        {Boolean(payload.name) && (
-          <div className="font-semibold text-foreground">{String(payload.name)}</div>
-        )}
-        {Boolean(payload.uid) && (
-          <div className="font-mono text-xs text-muted-foreground">{String(payload.uid)}</div>
-        )}
+        {Boolean(payload.name) && <div className="font-semibold text-foreground">{String(payload.name)}</div>}
+        {Boolean(payload.uid) && <div className="font-mono text-xs text-muted-foreground">{String(payload.uid)}</div>}
         {Array.isArray(payload.tags) && payload.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">
             {(payload.tags as string[]).map((t) => (
@@ -131,9 +123,7 @@ function RichMessage({ rich }: { rich: RichPayload }) {
   // Fallback: render as JSON
   return (
     <Card className="border-border bg-card p-3">
-      <pre className="overflow-x-auto text-xs text-muted-foreground">
-        {JSON.stringify(rich.richPayload, null, 2)}
-      </pre>
+      <pre className="overflow-x-auto text-xs text-muted-foreground">{JSON.stringify(rich.richPayload, null, 2)}</pre>
     </Card>
   )
 }
@@ -169,7 +159,7 @@ export function ChatIsland({ className }: ChatIslandProps) {
   // Auto-scroll whenever messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [])
 
   // Patch a message in-place by id
   const patchMessage = useCallback((id: string, patch: Partial<ChatMessage>) => {
@@ -244,11 +234,7 @@ export function ChatIsland({ className }: ChatIslandProps) {
                 // Plain text chunk — ai-sdk emits lines like: hello (no "data.type")
                 // or as a string directly
                 const textContent =
-                  typeof event === 'string'
-                    ? event
-                    : typeof event.content === 'string'
-                      ? event.content
-                      : null
+                  typeof event === 'string' ? event : typeof event.content === 'string' ? event.content : null
 
                 if (textContent !== null) {
                   accumulated += textContent
@@ -356,21 +342,14 @@ export function ChatIsland({ className }: ChatIslandProps) {
 
           {messages.map((m) => (
             <div key={m.id} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-              <div
-                className={cn(
-                  'flex max-w-[85%] flex-col gap-1.5',
-                  m.role === 'user' ? 'items-end' : 'items-start',
-                )}
-              >
+              <div className={cn('flex max-w-[85%] flex-col gap-1.5', m.role === 'user' ? 'items-end' : 'items-start')}>
                 {m.type === 'rich' && m.rich ? (
                   <RichMessage rich={m.rich} />
                 ) : (
                   <div
                     className={cn(
                       'rounded-2xl px-4 py-2.5 text-sm leading-6 whitespace-pre-wrap',
-                      m.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground',
+                      m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
                       m.error && 'border border-destructive/50 bg-destructive/10 text-destructive',
                     )}
                   >

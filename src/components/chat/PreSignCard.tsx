@@ -1,12 +1,12 @@
-import { Fingerprint, Loader2, Clock, AlertTriangle } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { AlertTriangle, Clock, Fingerprint, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { PreSignCardSchema, type PreSignCard as PreSignCardType } from '@/interfaces/rich-message/pre-sign-card'
 import { emitClick } from '@/lib/ui-signal'
-import { PreSignCardSchema, type PreSignCard } from '@/interfaces/rich-message/pre-sign-card'
 
 interface PreSignCardProps {
-  payload: PreSignCard
+  payload: PreSignCardType
   onSign: () => Promise<void>
   onReject: () => void
 }
@@ -97,11 +97,7 @@ export function PreSignCard({ payload: rawPayload, onSign, onReject }: PreSignCa
       </CardContent>
 
       <CardFooter className="flex flex-col gap-2 pt-0">
-        <Button
-          className="w-full"
-          onClick={handleSign}
-          disabled={isPending || isExpired}
-        >
+        <Button className="w-full" onClick={handleSign} disabled={isPending || isExpired}>
           {isPending ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />

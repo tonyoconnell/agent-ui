@@ -24,5 +24,4 @@ describe('u-sign: universal signing across signer kinds', () => {
     // signMessage currently throws (not yet wired) — verify it throws, not silently fails
     await expect(signer.signMessage(new Uint8Array([1, 2, 3]))).rejects.toThrow()
   })
-
 })

@@ -14,10 +14,10 @@
  * Interfaces:   interfaces/move/scoped-wallet/struct.move.d.ts
  */
 
-import type { SuiAddress } from '../../../../interfaces/types-sui'
-import type { ScopedWalletStruct } from '../../../../interfaces/move/scoped-wallet/struct.move'
 import { Transaction } from '@mysten/sui/transactions'
 import { getClient } from '@/lib/sui'
+import type { ScopedWalletStruct } from '../../../../interfaces/move/scoped-wallet/struct.move'
+import type { SuiAddress } from '../../../../interfaces/types-sui'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -25,13 +25,10 @@ import { getClient } from '@/lib/sui'
 
 /** Read SUI_PACKAGE_ID at call time — supports both Vite build-time and CF runtime. */
 function readPackageId(): string {
-  const fromRuntime =
-    typeof process !== 'undefined' && process.env && process.env.SUI_PACKAGE_ID
+  const fromRuntime = typeof process !== 'undefined' && process.env && process.env.SUI_PACKAGE_ID
   const fromBuild =
-    typeof import.meta !== 'undefined'
-      ? (import.meta as Record<string, any>).env?.SUI_PACKAGE_ID
-      : undefined
-  return ((fromRuntime || fromBuild || '') as string)
+    typeof import.meta !== 'undefined' ? (import.meta as Record<string, any>).env?.SUI_PACKAGE_ID : undefined
+  return (fromRuntime || fromBuild || '') as string
 }
 
 /** Canonical coin type for SUI. */
@@ -80,9 +77,7 @@ async function buildTx(tx: Transaction): Promise<Uint8Array> {
  *
  * The wallet is transferred to the transaction sender (owner) on-chain.
  */
-export async function buildCreateScopedWallet(
-  args: CreateScopedWalletArgs,
-): Promise<Uint8Array> {
+export async function buildCreateScopedWallet(args: CreateScopedWalletArgs): Promise<Uint8Array> {
   const packageId = readPackageId()
   if (!packageId) throw new Error('SUI_PACKAGE_ID not configured')
 
@@ -93,9 +88,9 @@ export async function buildCreateScopedWallet(
     target: `${packageId}::scoped_wallet::create`,
     typeArguments: [SUI_COIN_TYPE],
     arguments: [
-      tx.pure.address(agent),                     // agent: address
-      tx.pure.u64(dailyCapMist),                  // daily_cap: u64
-      tx.pure.vector('address', allowlist),        // allowlist: vector<address>
+      tx.pure.address(agent), // agent: address
+      tx.pure.u64(dailyCapMist), // daily_cap: u64
+      tx.pure.vector('address', allowlist), // allowlist: vector<address>
     ],
   })
 
@@ -140,10 +135,10 @@ export async function buildSpend(
     target: `${packageId}::scoped_wallet::spend`,
     typeArguments: [SUI_COIN_TYPE],
     arguments: [
-      tx.object(walletId),          // wallet: &mut ScopedWallet<T>
-      tx.object(coinId),            // coin: &mut Coin<T>
-      tx.pure.address(to),          // to: address
-      tx.pure.u64(amountMist),      // amount: u64
+      tx.object(walletId), // wallet: &mut ScopedWallet<T>
+      tx.object(coinId), // coin: &mut Coin<T>
+      tx.pure.address(to), // to: address
+      tx.pure.u64(amountMist), // amount: u64
     ],
   })
 
@@ -251,11 +246,7 @@ export async function buildRevoke(walletId: string): Promise<Uint8Array> {
  * @param coinId    - Object ID of the Coin<SUI> to deposit
  * @param amountMist - Amount in MIST to split and deposit (uses tx.splitCoins if > 0, else full coin)
  */
-export async function buildFund(
-  walletId: string,
-  coinId: string,
-  amountMist: bigint,
-): Promise<Uint8Array> {
+export async function buildFund(walletId: string, coinId: string, amountMist: bigint): Promise<Uint8Array> {
   const packageId = readPackageId()
   if (!packageId) throw new Error('SUI_PACKAGE_ID not configured')
 
@@ -268,8 +259,8 @@ export async function buildFund(
     target: `${packageId}::scoped_wallet::fund`,
     typeArguments: [SUI_COIN_TYPE],
     arguments: [
-      tx.object(walletId),  // wallet: &mut ScopedWallet<T>
-      depositCoin,           // coin: Coin<T>
+      tx.object(walletId), // wallet: &mut ScopedWallet<T>
+      depositCoin, // coin: Coin<T>
     ],
   })
 
@@ -294,10 +285,7 @@ export async function buildFund(
  * immediately gains pause/revoke/rotate authority. Emits OwnerRotated.
  * Only current wallet.owner may call this (E_NOT_OWNER = 5).
  */
-export async function buildRotateOwner(
-  walletId: string,
-  newOwner: SuiAddress,
-): Promise<Uint8Array> {
+export async function buildRotateOwner(walletId: string, newOwner: SuiAddress): Promise<Uint8Array> {
   const packageId = readPackageId()
   if (!packageId) throw new Error('SUI_PACKAGE_ID not configured')
 
@@ -306,8 +294,8 @@ export async function buildRotateOwner(
     target: `${packageId}::scoped_wallet::rotate_owner`,
     typeArguments: [SUI_COIN_TYPE],
     arguments: [
-      tx.object(walletId),        // wallet: &mut ScopedWallet<T>
-      tx.pure.address(newOwner),  // new_owner: address
+      tx.object(walletId), // wallet: &mut ScopedWallet<T>
+      tx.pure.address(newOwner), // new_owner: address
     ],
   })
 
@@ -346,8 +334,8 @@ export async function getScopedWallet(walletId: string): Promise<ScopedWalletStr
 
     return {
       id: walletId as import('../../../../interfaces/types-sui').ObjectId,
-      owner: (fields.owner as string) as SuiAddress,
-      agent: (fields.agent as string) as SuiAddress,
+      owner: fields.owner as string as SuiAddress,
+      agent: fields.agent as string as SuiAddress,
       dailyCap: BigInt(String(fields.daily_cap ?? 0)),
       spentToday: BigInt(String(fields.spent_today ?? 0)),
       paused: Boolean(fields.paused ?? false),

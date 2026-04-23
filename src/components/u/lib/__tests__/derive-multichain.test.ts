@@ -13,10 +13,10 @@
 
 import { describe, expect, it } from 'vitest'
 import {
-  deriveMultichainAddresses,
   deriveChainAddress,
-  SUPPORTED_CHAINS,
+  deriveMultichainAddresses,
   type MultichainAddresses,
+  SUPPORTED_CHAINS,
 } from '../derive-multichain'
 
 // ===== FIXTURES =====
@@ -37,42 +37,27 @@ const PRF_B = makePrf(0xaa) // Second test vector — produces different address
 
 describe('determinism', () => {
   it('same PRF output → same Sui address across calls', async () => {
-    const [r1, r2] = await Promise.all([
-      deriveMultichainAddresses(PRF_A),
-      deriveMultichainAddresses(PRF_A),
-    ])
+    const [r1, r2] = await Promise.all([deriveMultichainAddresses(PRF_A), deriveMultichainAddresses(PRF_A)])
     expect(r1.sui).toBe(r2.sui)
   })
 
   it('same PRF output → same ETH address across calls', async () => {
-    const [r1, r2] = await Promise.all([
-      deriveMultichainAddresses(PRF_A),
-      deriveMultichainAddresses(PRF_A),
-    ])
+    const [r1, r2] = await Promise.all([deriveMultichainAddresses(PRF_A), deriveMultichainAddresses(PRF_A)])
     expect(r1.eth).toBe(r2.eth)
   })
 
   it('same PRF output → same SOL address across calls', async () => {
-    const [r1, r2] = await Promise.all([
-      deriveMultichainAddresses(PRF_A),
-      deriveMultichainAddresses(PRF_A),
-    ])
+    const [r1, r2] = await Promise.all([deriveMultichainAddresses(PRF_A), deriveMultichainAddresses(PRF_A)])
     expect(r1.sol).toBe(r2.sol)
   })
 
   it('same PRF output → same BTC address across calls', async () => {
-    const [r1, r2] = await Promise.all([
-      deriveMultichainAddresses(PRF_A),
-      deriveMultichainAddresses(PRF_A),
-    ])
+    const [r1, r2] = await Promise.all([deriveMultichainAddresses(PRF_A), deriveMultichainAddresses(PRF_A)])
     expect(r1.btc).toBe(r2.btc)
   })
 
   it('different PRF output → different addresses', async () => {
-    const [rA, rB] = await Promise.all([
-      deriveMultichainAddresses(PRF_A),
-      deriveMultichainAddresses(PRF_B),
-    ])
+    const [rA, rB] = await Promise.all([deriveMultichainAddresses(PRF_A), deriveMultichainAddresses(PRF_B)])
     // Each chain should differ between the two PRF vectors
     expect(rA.sui).not.toBe(rB.sui)
     expect(rA.eth).not.toBe(rB.eth)
@@ -118,10 +103,10 @@ describe('chain isolation', () => {
 // ===== FORMAT CORRECTNESS =====
 
 describe('address format', () => {
-  let r: MultichainAddresses
+  let _r: MultichainAddresses
 
   it('setup', async () => {
-    r = await deriveMultichainAddresses(PRF_A)
+    _r = await deriveMultichainAddresses(PRF_A)
   })
 
   it('Sui address starts with 0x and is 66 chars (32-byte hex)', async () => {
@@ -142,7 +127,7 @@ describe('address format', () => {
     const hex = addr.slice(2)
     // Re-derive checksum and verify it's already in checksum form
     // (i.e., the address equals itself when checksummed)
-    const lower = hex.toLowerCase()
+    const _lower = hex.toLowerCase()
     // A checksum address round-trips through toEIP55Checksum identically.
     // We verify format here; the checksum function is tested implicitly by
     // the determinism tests — same input always produces same checksum output.
@@ -166,42 +151,27 @@ describe('address format', () => {
 
 describe('deriveChainAddress', () => {
   it('matches full derivation for SUI', async () => {
-    const [full, single] = await Promise.all([
-      deriveMultichainAddresses(PRF_A),
-      deriveChainAddress(PRF_A, 'sui'),
-    ])
+    const [full, single] = await Promise.all([deriveMultichainAddresses(PRF_A), deriveChainAddress(PRF_A, 'sui')])
     expect(single).toBe(full.sui)
   })
 
   it('matches full derivation for ETH', async () => {
-    const [full, single] = await Promise.all([
-      deriveMultichainAddresses(PRF_A),
-      deriveChainAddress(PRF_A, 'eth'),
-    ])
+    const [full, single] = await Promise.all([deriveMultichainAddresses(PRF_A), deriveChainAddress(PRF_A, 'eth')])
     expect(single).toBe(full.eth)
   })
 
   it('matches full derivation for SOL', async () => {
-    const [full, single] = await Promise.all([
-      deriveMultichainAddresses(PRF_A),
-      deriveChainAddress(PRF_A, 'sol'),
-    ])
+    const [full, single] = await Promise.all([deriveMultichainAddresses(PRF_A), deriveChainAddress(PRF_A, 'sol')])
     expect(single).toBe(full.sol)
   })
 
   it('matches full derivation for BTC', async () => {
-    const [full, single] = await Promise.all([
-      deriveMultichainAddresses(PRF_A),
-      deriveChainAddress(PRF_A, 'btc'),
-    ])
+    const [full, single] = await Promise.all([deriveMultichainAddresses(PRF_A), deriveChainAddress(PRF_A, 'btc')])
     expect(single).toBe(full.btc)
   })
 
   it('is deterministic across repeated single-chain calls', async () => {
-    const [a, b] = await Promise.all([
-      deriveChainAddress(PRF_A, 'eth'),
-      deriveChainAddress(PRF_A, 'eth'),
-    ])
+    const [a, b] = await Promise.all([deriveChainAddress(PRF_A, 'eth'), deriveChainAddress(PRF_A, 'eth')])
     expect(a).toBe(b)
   })
 })

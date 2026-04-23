@@ -1,4 +1,4 @@
-import type { Sid } from "../types-session"
+import type { Sid } from '../types-session'
 
 // Conversational checkout via /chat
 export interface PayChatRequest {

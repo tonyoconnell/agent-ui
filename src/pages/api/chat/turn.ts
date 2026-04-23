@@ -1,15 +1,15 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { type ModelMessage, streamText } from 'ai'
 import type { APIRoute } from 'astro'
+import {
+  type BuilderArcState,
+  builderResponse,
+  initialBuilderState,
+  isBuilderIntent,
+} from '@/components/chat/arcs/builder'
 import { ingestMessage, measureOutcome } from '@/engine/chat'
 import { buildPack, systemPromptWithPack } from '@/lib/chat/context-pack'
 import { warmUI } from '@/lib/ui-prefetch'
-import {
-  isBuilderIntent,
-  builderResponse,
-  initialBuilderState,
-  type BuilderArcState,
-} from '@/components/chat/arcs/builder'
 
 export const prerender = false
 

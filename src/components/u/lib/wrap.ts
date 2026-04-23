@@ -4,7 +4,7 @@
 // Reuses vault/passkey.ts for WebAuthn ceremony and vault/crypto.ts for AES-GCM.
 // Never stores the seed or the AES key — both exist only in memory during the call.
 
-import type { Ed25519Seed, PrfOutput, AesKey, Ciphertext, IV, CredId } from '../../../../interfaces/types-crypto'
+import type { AesKey, Ciphertext, CredId, Ed25519Seed, IV, PrfOutput } from '../../../../interfaces/types-crypto'
 import type { PasskeyPrfWrapping } from '../../../../interfaces/types-wallet'
 import { VaultError } from './vault/types'
 
@@ -34,13 +34,7 @@ export async function prfToAesKey(prf: PrfOutput, info?: string): Promise<AesKey
   const infoBytes = info ? new TextEncoder().encode(info) : PRF_SALT
 
   // Import PRF bytes as HKDF base key material
-  const hkdfKey = await crypto.subtle.importKey(
-    'raw',
-    bs(prf),
-    { name: 'HKDF' },
-    false,
-    ['deriveBits', 'deriveKey'],
-  )
+  const hkdfKey = await crypto.subtle.importKey('raw', bs(prf), { name: 'HKDF' }, false, ['deriveBits', 'deriveKey'])
 
   // Derive AES-256-GCM key via HKDF-SHA256
   // RFC 5869: empty salt is fine when input key material (PRF) is already uniformly random.
@@ -73,11 +67,7 @@ export async function wrapSeed(seed: Ed25519Seed, key: AesKey): Promise<{ iv: IV
   const iv = new Uint8Array(12)
   crypto.getRandomValues(iv)
 
-  const ct = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: bs(iv) },
-    key,
-    bs(seed),
-  )
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: bs(iv) }, key, bs(seed))
 
   return {
     iv: iv as IV,
@@ -94,11 +84,7 @@ export async function wrapSeed(seed: Ed25519Seed, key: AesKey): Promise<{ iv: IV
  */
 export async function unwrapSeed(wrapping: PasskeyPrfWrapping, key: AesKey): Promise<Ed25519Seed> {
   try {
-    const pt = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: bs(wrapping.iv) },
-      key,
-      bs(wrapping.ciphertext),
-    )
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bs(wrapping.iv) }, key, bs(wrapping.ciphertext))
     return new Uint8Array(pt) as Ed25519Seed
   } catch {
     // WebCrypto surfaces auth-tag failure as a generic error — translate to domain code.

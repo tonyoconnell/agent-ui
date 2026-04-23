@@ -18,10 +18,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { emitClick } from '@/lib/ui-signal'
-import { signWithPasskey } from '../lib/signer'
-import { getScopedWallet } from '../lib/scoped-wallet'
-import { getWallet } from '../lib/idb'
 import type { ScopedWalletStruct } from '../../../../interfaces/move/scoped-wallet/struct.move'
+import { getWallet } from '../lib/idb'
+import { getScopedWallet } from '../lib/scoped-wallet'
+import { signWithPasskey } from '../lib/signer'
 import { UNav } from '../UNav'
 
 // ===== CONSTANTS =====
@@ -181,20 +181,19 @@ export function SendPage() {
   }, [selectedWallet?.scopedWalletId])
 
   // Detect chain from address format
-  const detectChain = useCallback(
-    (addr: string): { chain: string; confidence: 'high' | 'medium' | 'low' } | null => {
-      if (!addr || addr.length < 10) return null
-      const t = addr.trim()
-      if (t.startsWith('0x') && t.length === 66 && /^0x[a-fA-F0-9]{64}$/.test(t)) return { chain: 'sui', confidence: 'high' }
-      if (t.startsWith('0x') && t.length === 42 && /^0x[a-fA-F0-9]{40}$/.test(t)) return { chain: 'eth', confidence: 'high' }
-      if (/^bc1[a-zA-HJ-NP-Z0-9]{39,59}$/.test(t)) return { chain: 'btc', confidence: 'high' }
-      if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(t)) return { chain: 'btc', confidence: 'high' }
-      if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(t) && !t.startsWith('0x')) return { chain: 'sol', confidence: 'high' }
-      if (t.length >= 20) return { chain: 'eth', confidence: 'low' }
-      return null
-    },
-    [],
-  )
+  const detectChain = useCallback((addr: string): { chain: string; confidence: 'high' | 'medium' | 'low' } | null => {
+    if (!addr || addr.length < 10) return null
+    const t = addr.trim()
+    if (t.startsWith('0x') && t.length === 66 && /^0x[a-fA-F0-9]{64}$/.test(t))
+      return { chain: 'sui', confidence: 'high' }
+    if (t.startsWith('0x') && t.length === 42 && /^0x[a-fA-F0-9]{40}$/.test(t))
+      return { chain: 'eth', confidence: 'high' }
+    if (/^bc1[a-zA-HJ-NP-Z0-9]{39,59}$/.test(t)) return { chain: 'btc', confidence: 'high' }
+    if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(t)) return { chain: 'btc', confidence: 'high' }
+    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(t) && !t.startsWith('0x')) return { chain: 'sol', confidence: 'high' }
+    if (t.length >= 20) return { chain: 'eth', confidence: 'low' }
+    return null
+  }, [])
 
   const detectedChainInfo = useMemo(() => {
     const r = detectChain(destinationAddress)
@@ -222,7 +221,7 @@ export function SendPage() {
 
   // Derived values
   const numAmount = parseFloat(amountUsd) || 0
-  const suiPrice = prices['sui'] ?? 4.12
+  const suiPrice = prices.sui ?? 4.12
   const amountSui = numAmount / suiPrice
   const amountMist = usdToMist(numAmount, suiPrice)
 
@@ -277,21 +276,22 @@ export function SendPage() {
       })
 
       if (!buildRes.ok) {
-        const body = await buildRes.json().catch(() => ({})) as { error?: string }
+        const body = (await buildRes.json().catch(() => ({}))) as { error?: string }
         setSendError(body?.error ?? ERROR_COPY['build-failed'])
         setIsSending(false)
         return
       }
 
-      const { txBytes } = await buildRes.json() as { txBytes: string }
+      const { txBytes } = (await buildRes.json()) as { txBytes: string }
       const txBytesArr = base64ToUint8Array(txBytes)
 
       // 2. Touch ID → sign
       const credIdArr = base64ToUint8Array(selectedWallet.credentialId)
-      let senderSig: string
+      let senderSig: Uint8Array
       try {
         emitClick('ui:send:touch-id')
-        senderSig = await signWithPasskey(txBytesArr, credIdArr)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        senderSig = await signWithPasskey(txBytesArr as any, credIdArr as any)
       } catch (err) {
         const msg = (err as Error)?.message ?? ''
         if (msg.includes('cancelled')) {
@@ -311,13 +311,13 @@ export function SendPage() {
       })
 
       if (!execRes.ok) {
-        const body = await execRes.json().catch(() => ({})) as { error?: string }
+        const body = (await execRes.json().catch(() => ({}))) as { error?: string }
         setSendError(body?.error ?? ERROR_COPY['execute-failed'])
         setIsSending(false)
         return
       }
 
-      const { digest } = await execRes.json() as { digest: string }
+      const { digest } = (await execRes.json()) as { digest: string }
       setTxDigest(digest)
 
       // Emit commerce signal if applicable
@@ -351,7 +351,7 @@ export function SendPage() {
 
       setStep(4)
     } catch {
-      setSendError(ERROR_COPY['network'])
+      setSendError(ERROR_COPY.network)
     } finally {
       setIsSending(false)
     }
@@ -409,12 +409,16 @@ export function SendPage() {
                 >
                   {s.num < step ? '✓' : s.icon}
                 </div>
-                <span className={`text-xs mt-1.5 font-medium ${step === s.num ? 'text-primary' : 'text-muted-foreground'}`}>
+                <span
+                  className={`text-xs mt-1.5 font-medium ${step === s.num ? 'text-primary' : 'text-muted-foreground'}`}
+                >
                   {s.label}
                 </span>
               </button>
               {i < steps.length - 1 && (
-                <div className={`w-12 h-0.5 mx-1 mt-[-16px] transition-all ${s.num < step ? 'bg-green-500' : 'bg-muted'}`} />
+                <div
+                  className={`w-12 h-0.5 mx-1 mt-[-16px] transition-all ${s.num < step ? 'bg-green-500' : 'bg-muted'}`}
+                />
               )}
             </div>
           ))}
@@ -601,7 +605,11 @@ export function SendPage() {
                     <div>
                       <div className="text-2xl font-bold">
                         ${numAmount.toFixed(2)}
-                        {isSuiChain && <span className="text-base font-normal text-muted-foreground ml-2">≈ {amountSui.toFixed(4)} SUI</span>}
+                        {isSuiChain && (
+                          <span className="text-base font-normal text-muted-foreground ml-2">
+                            ≈ {amountSui.toFixed(4)} SUI
+                          </span>
+                        )}
                       </div>
                       <div className="text-muted-foreground text-sm">
                         to <code className="text-xs">{formatAddress(destinationAddress)}</code>
@@ -622,16 +630,20 @@ export function SendPage() {
               </p>
 
               {/* Scoped Wallet Subtitle (when owner ≠ human) */}
-              {selectedWallet?.scopedWalletId && scopedWalletData && userAddress && scopedWalletData.owner !== userAddress && (
-                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm">
-                  <div className="text-blue-600 dark:text-blue-400 font-medium">
-                    Cap set by <span className="font-bold">{selectedWallet.name || 'Agent'}</span>
+              {selectedWallet?.scopedWalletId &&
+                scopedWalletData &&
+                userAddress &&
+                scopedWalletData.owner !== userAddress && (
+                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm">
+                    <div className="text-blue-600 dark:text-blue-400 font-medium">
+                      Cap set by <span className="font-bold">{selectedWallet.name || 'Agent'}</span>
+                    </div>
+                    <div className="text-muted-foreground mt-1">
+                      {(Number(scopedWalletData.spentToday) / 1e9).toFixed(4)} /{' '}
+                      {(Number(scopedWalletData.dailyCap) / 1e9).toFixed(4)} SUI used today
+                    </div>
                   </div>
-                  <div className="text-muted-foreground mt-1">
-                    {(Number(scopedWalletData.spentToday) / 1e9).toFixed(4)} / {(Number(scopedWalletData.dailyCap) / 1e9).toFixed(4)} SUI used today
-                  </div>
-                </div>
-              )}
+                )}
             </div>
 
             {compatibleWallets.length === 0 ? (

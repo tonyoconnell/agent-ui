@@ -1,9 +1,9 @@
-import type { SuiAddress } from "../types-sui"
+import type { SuiAddress } from '../types-sui'
 
 export interface AgentBootConfig {
-  uid: string                // substrate uid (e.g. "marketing:creative")
-  walletAddress: SuiAddress  // derived via addressFor(uid)
-  scopedWalletId?: string    // Move object ID if scoped
+  uid: string // substrate uid (e.g. "marketing:creative")
+  walletAddress: SuiAddress // derived via addressFor(uid)
+  scopedWalletId?: string // Move object ID if scoped
 }
 
 // Boot an agent: read uid, query TypeDB, self-verify against on-chain scope

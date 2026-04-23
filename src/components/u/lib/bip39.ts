@@ -55,7 +55,7 @@ export function mnemonicToSeed(words: string[]): Ed25519Seed {
     throwBip39Error(`Expected 12 words, got ${words.length}`)
   }
 
-  const phrase = words.map(w => w.trim().toLowerCase()).join(' ')
+  const phrase = words.map((w) => w.trim().toLowerCase()).join(' ')
 
   if (!scureValidate(phrase, wordlist)) {
     throwBip39Error('Invalid BIP39 mnemonic — check words and checksum')
@@ -77,6 +77,6 @@ export function mnemonicToSeed(words: string[]): Ed25519Seed {
  */
 export function validateMnemonic(words: string[]): boolean {
   if (words.length !== 12) return false
-  const phrase = words.map(w => w.trim().toLowerCase()).join(' ')
+  const phrase = words.map((w) => w.trim().toLowerCase()).join(' ')
   return scureValidate(phrase, wordlist)
 }

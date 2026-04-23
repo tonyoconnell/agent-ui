@@ -124,12 +124,7 @@ export function createAuth() {
       },
     },
 
-    trustedOrigins: [
-      'http://localhost:4321',
-      'http://localhost:3000',
-      'https://one.ie',
-      'https://pay.one.ie',
-    ],
+    trustedOrigins: ['http://localhost:4321', 'http://localhost:3000', 'https://one.ie', 'https://pay.one.ie'],
 
     plugins: [
       bearer(),

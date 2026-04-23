@@ -229,7 +229,10 @@ export function SwapPage() {
             {SWAP_CHAINS.map((chain) => (
               <button
                 key={chain.id}
-                onClick={() => { emitClick('ui:swap:chain-select', { chain: chain.id }); setSelectedChain(chain.id) }}
+                onClick={() => {
+                  emitClick('ui:swap:chain-select', { chain: chain.id })
+                  setSelectedChain(chain.id)
+                }}
                 className={`p-3 sm:p-4 rounded-xl border-2 transition-all text-center ${
                   selectedChain === chain.id
                     ? 'border-primary bg-primary/10 ring-2 ring-primary'

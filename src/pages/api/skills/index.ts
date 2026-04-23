@@ -17,9 +17,9 @@ import { readParsed } from '@/lib/typedb'
 export type Listing = {
   skillId: string
   name: string
-  priceMist: string      // bigint as string (1 SUI = 1_000_000_000 MIST)
+  priceMist: string // bigint as string (1 SUI = 1_000_000_000 MIST)
   tags: string[]
-  seller: string         // uid
+  seller: string // uid
   description?: string
   pheromoneStrength?: number
 }
@@ -73,11 +73,7 @@ export const GET: APIRoute = async ({ url }) => {
         `).catch(() => []),
       ]),
       4000,
-      [[], [], []] as [
-        Array<Record<string, unknown>>,
-        Array<Record<string, unknown>>,
-        Array<Record<string, unknown>>,
-      ],
+      [[], [], []] as [Array<Record<string, unknown>>, Array<Record<string, unknown>>, Array<Record<string, unknown>>],
     )
 
     if (!capRows.length) {

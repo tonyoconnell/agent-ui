@@ -10,7 +10,7 @@ export type TemplateId = 'trader' | 'researcher' | 'writer' | 'concierge' | 'bla
 export interface AgentTemplate {
   name: string
   description: string
-  defaultCap: bigint    // daily cap in MIST (0 = no scope created)
+  defaultCap: bigint // daily cap in MIST (0 = no scope created)
   defaultAllowlist: string[]
   systemPrompt: string
 }
@@ -19,7 +19,7 @@ export const AGENT_TEMPLATES: Record<TemplateId, AgentTemplate> = {
   trader: {
     name: 'Trader',
     description: 'Monitors markets and executes trades within scope',
-    defaultCap: 100_000_000n,  // 0.1 SUI
+    defaultCap: 100_000_000n, // 0.1 SUI
     defaultAllowlist: [],
     systemPrompt: `You are a trading agent operating within a strict daily spending cap.
 

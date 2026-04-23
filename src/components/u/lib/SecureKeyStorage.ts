@@ -58,7 +58,7 @@ export interface StorageStatus {
 
 const STORAGE_KEY = 'u_secure_wallets'
 const PASSWORD_CHECK_KEY = 'u_password_check'
-const SETTINGS_KEY = 'u_secure_settings'
+const _SETTINGS_KEY = 'u_secure_settings'
 const PBKDF2_ITERATIONS = 100000
 const SCHEMA_VERSION = 1
 const AUTO_LOCK_MS = 15 * 60 * 1000 // 15 minutes

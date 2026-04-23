@@ -15,7 +15,7 @@ const CSP_HEADER = [
   "connect-src 'self' https://api.one.ie wss://api.one.ie https://fullnode.testnet.sui.io",
   "font-src 'self'",
   "frame-ancestors 'none'",
-].join("; ")
+].join('; ')
 
 const CSP_ROUTES = ['/u', '/chat']
 
@@ -48,11 +48,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const response = await next()
 
   // Add CSP header for wallet (/u/*) and chat (/chat/*) surfaces
-  const needsCsp = CSP_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  )
+  const needsCsp = CSP_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))
   if (needsCsp) {
-    response.headers.set("Content-Security-Policy", CSP_HEADER)
+    response.headers.set('Content-Security-Policy', CSP_HEADER)
   }
 
   return response

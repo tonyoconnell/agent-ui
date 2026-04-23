@@ -8,34 +8,28 @@
  * Exit code: 0 if all schemas use .strict(), 1 if violations found
  */
 
-import { execSync } from "node:child_process"
-import * as fs from "node:fs"
-import * as path from "node:path"
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 
-const dirs = [
-  "interfaces/rich-message",
-  "src/interfaces/rich-message",
-]
+const dirs = ['interfaces/rich-message', 'src/interfaces/rich-message']
 
-let violations: string[] = []
+const violations: string[] = []
 
 for (const dir of dirs) {
   if (!fs.existsSync(dir)) {
     continue
   }
 
-  const files = fs
-    .readdirSync(dir)
-    .filter((file) => file.endsWith(".ts"))
+  const files = fs.readdirSync(dir).filter((file) => file.endsWith('.ts'))
 
   for (const file of files) {
     const filePath = path.join(dir, file)
-    const content = fs.readFileSync(filePath, "utf-8")
+    const content = fs.readFileSync(filePath, 'utf-8')
 
     // Check if file contains a Zod schema definition
-    if (content.includes("z.object") || content.includes("z.union")) {
+    if (content.includes('z.object') || content.includes('z.union')) {
       // Check if it has .strict()
-      if (!content.includes(".strict()")) {
+      if (!content.includes('.strict()')) {
         violations.push(filePath)
       }
     }
@@ -43,14 +37,12 @@ for (const dir of dirs) {
 }
 
 if (violations.length > 0) {
-  console.error(
-    "❌ STRICT CHECK FAILED: the following files lack .strict():\n"
-  )
+  console.error('❌ STRICT CHECK FAILED: the following files lack .strict():\n')
   violations.forEach((file) => {
     console.error(`  ${file}`)
   })
   process.exit(1)
 }
 
-console.log("✓ STRICT CHECK OK: all rich-message schemas use .strict()")
+console.log('✓ STRICT CHECK OK: all rich-message schemas use .strict()')
 process.exit(0)

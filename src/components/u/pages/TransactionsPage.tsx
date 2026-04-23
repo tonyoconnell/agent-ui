@@ -9,16 +9,16 @@
  * No localStorage reads. No zkLogin. Testnet by default.
  */
 
+import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { listWallets } from '@/components/u/lib/vault/storage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { getExplorerTxUrl } from '@/lib/chains'
-import { summarizeTx, type TxSummary } from '@/lib/money'
-import { listWallets } from '@/components/u/lib/vault/storage'
+import { summarizeTxResponse, type TxSummary } from '@/components/u/lib/money'
 import { emitClick } from '@/lib/ui-signal'
-import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc'
 import { UNav } from '../UNav'
 
 // ─── Sui client (testnet by default) ─────────────────────────────────────────
@@ -90,7 +90,7 @@ export function TransactionsPage() {
           order: 'descending',
         })
 
-        const summaries = result.data.map((tx) => summarizeTx(tx, address))
+        const summaries = result.data.map((tx) => summarizeTxResponse(tx, address))
 
         setTxs((prev) => (nextCursor ? [...prev, ...summaries] : summaries))
         setCursor(result.nextCursor ?? null)
@@ -201,11 +201,7 @@ export function TransactionsPage() {
               )}
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={refresh}
-            disabled={loading || !address}
-          >
+          <Button variant="outline" onClick={refresh} disabled={loading || !address}>
             {loading ? (
               <>
                 <span className="animate-spin mr-2">⟳</span> Loading…
@@ -221,9 +217,7 @@ export function TransactionsPage() {
           <Card className="mb-6">
             <CardContent className="pt-6 text-center">
               <div className="text-4xl mb-3">💧</div>
-              <p className="text-muted-foreground">
-                No Sui wallet found. Create one first to view transactions.
-              </p>
+              <p className="text-muted-foreground">No Sui wallet found. Create one first to view transactions.</p>
               <Button asChild className="mt-4">
                 <a href="/u/wallets">Create Wallet</a>
               </Button>
@@ -356,20 +350,13 @@ export function TransactionsPage() {
                         </div>
 
                         <div className="text-right shrink-0">
-                          {tx.amountSui > 0 && (
+                          {tx.amountMist && tx.amountMist > 0n && (
                             <div className={`font-semibold text-sm ${kindColor(tx.kind)}`}>
                               {tx.kind === 'receive' ? '+' : tx.kind === 'send' ? '-' : ''}
-                              {tx.amountSui.toFixed(4)} SUI
+                              {(Number(tx.amountMist) / 1e9).toFixed(4)} SUI
                             </div>
                           )}
-                          {tx.usdAmount > 0 && (
-                            <div className="text-xs text-muted-foreground">
-                              ${tx.usdAmount.toFixed(2)}
-                            </div>
-                          )}
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {formatDate(tx.timestampMs)}
-                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">{formatDate(tx.timestampMs ?? 0)}</div>
                         </div>
                       </a>
                     )

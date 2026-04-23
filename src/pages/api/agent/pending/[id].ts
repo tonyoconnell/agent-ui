@@ -21,8 +21,8 @@
  */
 
 import type { APIRoute } from 'astro'
-import { getEnv } from '@/lib/cf-env'
 import { resolveUnitFromSession } from '@/lib/api-auth'
+import { getEnv } from '@/lib/cf-env'
 
 export const prerender = false
 
@@ -186,10 +186,10 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   }
 
   if (req.status !== 'pending') {
-    return new Response(
-      JSON.stringify({ error: `Request is already ${req.status}` }),
-      { status: 409, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: `Request is already ${req.status}` }), {
+      status: 409,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   // ── Reject path ──────────────────────────────────────────────────────────
@@ -213,10 +213,10 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   try {
     digest = await _executeCoSign(req, humanSigB64)
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: (err as Error).message ?? 'Co-sign execution failed' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: (err as Error).message ?? 'Co-sign execution failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   // Mark approved in KV (short TTL — just for observability)
@@ -280,14 +280,14 @@ async function _executeCoSign(req: CoSignRequestWire, humanSigB64: string): Prom
       // This requires the human's Ed25519 public key, which we derive on-demand
       // below if the wallet address is a deterministic agent address, or skip
       // to the fallback if it's a passkey-managed address.
-      void agentPubKey  // used for type narrowing only in this stub
+      void agentPubKey // used for type narrowing only in this stub
 
       // Decode the agent's signature as a Sui serialised signature
       // (flag byte 0x00 for Ed25519 + 32 bytes pubkey + 64 bytes sig = 97 bytes)
       // The client-side agent-sign.ts produces a raw 64-byte HMAC — in full
       // production wiring use Ed25519Keypair.signData() which returns the
       // serialised form. Accept both here.
-      void agentSigBytes  // referenced for future MultiSig wiring
+      void agentSigBytes // referenced for future MultiSig wiring
     }
   } catch {
     // MultiSig not available or agent key not derivable — fall through to
@@ -317,7 +317,7 @@ async function _executeCoSign(req: CoSignRequestWire, humanSigB64: string): Prom
           // Real vault PRF path will send the serialised sig.
           throw new Error(
             'humanSig must be a 97-byte Sui serialised Ed25519 signature. ' +
-            'Ensure the vault signer produces the correct format.',
+              'Ensure the vault signer produces the correct format.',
           )
         })()
 

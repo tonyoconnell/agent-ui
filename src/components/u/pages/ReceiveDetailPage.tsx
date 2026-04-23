@@ -48,7 +48,7 @@ interface ReceiveDetailPageProps {
 }
 
 export function ReceiveDetailPage({ walletId }: ReceiveDetailPageProps) {
-  const [wallet, setWallet] = useState<Wallet | null>(null)
+  const [wallet, _setWallet] = useState<Wallet | null>(null)
   const [copied, setCopied] = useState(false)
   const [requestAmount, setRequestAmount] = useState('')
   const [showRequest, setShowRequest] = useState(false)
@@ -63,7 +63,7 @@ export function ReceiveDetailPage({ walletId }: ReceiveDetailPageProps) {
     //   const found = wallets.find((w: Wallet) => w.id === walletId)
     //   if (found) setWallet(found)
     // }
-  }, [walletId])
+  }, [])
 
   const copyAddress = async () => {
     if (!wallet) return

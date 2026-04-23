@@ -10,15 +10,16 @@
  * Validation: isValidAddress() for Sui hex addresses
  */
 
-import { TransactionDataBuilder } from "@mysten/sui/transactions"
+import { TransactionDataBuilder } from '@mysten/sui/transactions'
 
 /**
  * Sui blockchain address brand — matches interfaces/types-sui.d.ts.
  * Defined locally because the interfaces/ directory is not in this worktree's
  * TypeScript resolution paths (it lives at repo root, outside tsconfig rootDir).
  */
-export type SuiAddress = string & { readonly _brand: "SuiAddress" }
-import { fromBase64 } from "@mysten/bcs"
+export type SuiAddress = string & { readonly _brand: 'SuiAddress' }
+
+import { fromBase64 } from '@mysten/bcs'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -48,9 +49,9 @@ export const STATE1_CAP_MIST: bigint = 20_000_000_000n
 export function formatUsd(suiAmount: bigint, suiPriceUsd: number): string {
   const suiFloat = Number(suiAmount) / 1e9
   const usd = suiFloat * suiPriceUsd
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(usd)
@@ -69,7 +70,7 @@ export function formatSui(suiAmount: bigint): string {
   const frac = suiAmount % MIST_PER_SUI
   // 3 decimal places: take top 3 digits of the fractional MIST amount
   const fracThree = Math.floor(Number(frac) / 1_000_000)
-  const fracStr = fracThree.toString().padStart(3, "0")
+  const fracStr = fracThree.toString().padStart(3, '0')
   return `${whole}.${fracStr} SUI`
 }
 
@@ -99,7 +100,7 @@ export async function summarizeTx(txBytes: Uint8Array): Promise<string> {
     const commands = snap.commands
 
     if (!commands || commands.length === 0) {
-      return "Empty transaction"
+      return 'Empty transaction'
     }
 
     const parts: string[] = []
@@ -107,52 +108,52 @@ export async function summarizeTx(txBytes: Uint8Array): Promise<string> {
     for (const cmd of commands) {
       const kind = cmd.$kind
 
-      if (kind === "TransferObjects") {
+      if (kind === 'TransferObjects') {
         const tc = cmd as {
-          $kind: "TransferObjects"
+          $kind: 'TransferObjects'
           TransferObjects: { objects: unknown[]; address: unknown }
         }
         const count = tc.TransferObjects.objects.length
         const addrArg = tc.TransferObjects.address as { Input?: number }
-        let addrLabel = "unknown"
-        if (typeof addrArg?.Input === "number") {
+        let addrLabel = 'unknown'
+        if (typeof addrArg?.Input === 'number') {
           const inp = snap.inputs[addrArg.Input]
-          if (inp && inp.$kind === "Pure") {
+          if (inp && inp.$kind === 'Pure') {
             addrLabel = _decodePureAddress(inp.Pure as { bytes: string })
           }
         }
-        const objLabel = count === 1 ? "1 object" : `${count} objects`
+        const objLabel = count === 1 ? '1 object' : `${count} objects`
         parts.push(`Transfer ${objLabel} to ${addrLabel}`)
-      } else if (kind === "SplitCoins") {
+      } else if (kind === 'SplitCoins') {
         const sc = cmd as {
-          $kind: "SplitCoins"
+          $kind: 'SplitCoins'
           SplitCoins: { coin: unknown; amounts: unknown[] }
         }
         const count = sc.SplitCoins.amounts.length
-        parts.push(`Split ${count} coin${count !== 1 ? "s" : ""} from gas`)
-      } else if (kind === "MergeCoins") {
-        parts.push("Merge coins")
-      } else if (kind === "MoveCall") {
+        parts.push(`Split ${count} coin${count !== 1 ? 's' : ''} from gas`)
+      } else if (kind === 'MergeCoins') {
+        parts.push('Merge coins')
+      } else if (kind === 'MoveCall') {
         const mc = cmd as {
-          $kind: "MoveCall"
+          $kind: 'MoveCall'
           MoveCall: { package: string; module: string; function: string }
         }
         const { module, function: fn } = mc.MoveCall
         parts.push(`Call ${module}::${fn}`)
-      } else if (kind === "Publish") {
-        parts.push("Publish package")
-      } else if (kind === "Upgrade") {
-        parts.push("Upgrade package")
-      } else if (kind === "MakeMoveVec") {
-        parts.push("Make Move vector")
+      } else if (kind === 'Publish') {
+        parts.push('Publish package')
+      } else if (kind === 'Upgrade') {
+        parts.push('Upgrade package')
+      } else if (kind === 'MakeMoveVec') {
+        parts.push('Make Move vector')
       } else {
-        parts.push(String(kind ?? "Unknown command"))
+        parts.push(String(kind ?? 'Unknown command'))
       }
     }
 
-    return parts.join("; ")
+    return parts.join('; ')
   } catch {
-    return "Unable to parse transaction"
+    return 'Unable to parse transaction'
   }
 }
 
@@ -161,12 +162,51 @@ function _decodePureAddress(pure: { bytes: string }): string {
   try {
     const raw = fromBase64(pure.bytes)
     if (raw.length === 32) {
-      return "0x" + Array.from(raw).map((b) => b.toString(16).padStart(2, "0")).join("")
+      return `0x${Array.from(raw)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')}`
     }
   } catch {
     // ignore
   }
-  return "unknown"
+  return 'unknown'
+}
+
+// ── Transaction response summary ─────────────────────────────────────────────
+
+export interface TxSummary {
+  digest: string
+  description: string
+  kind: "send" | "receive" | "interact"
+  amountMist?: bigint
+  counterparty?: string
+  timestampMs?: number
+  status: "success" | "failure"
+}
+
+/**
+ * Summarize a full Sui RPC transaction response into user-readable form.
+ * Used by TransactionsPage to display history without raw addresses.
+ */
+export function summarizeTxResponse(
+  tx: { digest: string; timestampMs?: string | null; effects?: { status?: { status: string } } | null; transaction?: { data?: { sender?: string } } | null },
+  userAddress: string
+): TxSummary {
+  const sender = tx.transaction?.data?.sender ?? ""
+  const isIncoming = sender !== userAddress
+  const kind: TxSummary["kind"] = isIncoming ? "receive" : "send"
+  const status = tx.effects?.status?.status === "success" ? "success" : "failure"
+  const digest = tx.digest
+  const shortDigest = `${digest.slice(0, 8)}...${digest.slice(-6)}`
+  const description = isIncoming ? `Received — tx ${shortDigest}` : `Sent — tx ${shortDigest}`
+  return {
+    digest,
+    description,
+    kind,
+    counterparty: sender,
+    timestampMs: tx.timestampMs ? Number(tx.timestampMs) : undefined,
+    status,
+  }
 }
 
 // ── Address resolution ─────────────────────────────────────────────────────
@@ -194,11 +234,8 @@ export async function resolveAddress(addr: SuiAddress): Promise<string> {
 
   // Try /u/people endpoint (best-effort; may not be available in all environments)
   try {
-    if (typeof globalThis.fetch === "function") {
-      const base =
-        typeof window !== "undefined"
-          ? window.location.origin
-          : "https://one.ie"
+    if (typeof globalThis.fetch === 'function') {
+      const base = typeof window !== 'undefined' ? window.location.origin : 'https://one.ie'
       const res = await fetch(`${base}/u/people?addr=${encodeURIComponent(addr)}`, {
         signal: AbortSignal.timeout(2000),
       })
@@ -221,7 +258,7 @@ export async function resolveAddress(addr: SuiAddress): Promise<string> {
 /** Shorten a Sui address to "0x1234...abcd" (first 6 + last 4 hex chars). */
 function _shortAddr(addr: string): string {
   // addr is "0x" + 64 hex chars
-  const hex = addr.startsWith("0x") ? addr.slice(2) : addr
+  const hex = addr.startsWith('0x') ? addr.slice(2) : addr
   if (hex.length < 10) return addr
   return `0x${hex.slice(0, 6)}...${hex.slice(-4)}`
 }

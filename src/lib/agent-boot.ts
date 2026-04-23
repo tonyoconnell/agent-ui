@@ -31,7 +31,7 @@ import { readParsed } from '@/lib/typedb'
  */
 export interface AgentBootConfig {
   uid: string
-  walletAddress: string   // Sui address derived from the uid
+  walletAddress: string // Sui address derived from the uid
   scopedWalletId?: string // Move object ID of the ScopedWallet, if set in TypeDB
 }
 
@@ -106,10 +106,7 @@ async function readScopedWalletAgent(scopedWalletId: string): Promise<string | n
  * Throws if addressFor() fails (SUI_SEED not configured).
  */
 export async function bootAgent(uid: string): Promise<AgentBootConfig> {
-  const [walletAddress, scopedWalletId] = await Promise.all([
-    addressFor(uid),
-    queryUnitScopedWallet(uid),
-  ])
+  const [walletAddress, scopedWalletId] = await Promise.all([addressFor(uid), queryUnitScopedWallet(uid)])
 
   return { uid, walletAddress, scopedWalletId }
 }

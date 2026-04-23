@@ -11,7 +11,6 @@
  * Signals: ui:agents:new-select-template, ui:agents:new-submit
  */
 
-import { useState, useEffect, useRef, useTransition } from 'react'
 import {
   AlertCircle,
   ArrowRight,
@@ -25,18 +24,14 @@ import {
   Sparkles,
   User,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
+import { AGENT_TEMPLATES, type AgentTemplate, type TemplateId } from '@/lib/agents/templates'
 import { emitClick } from '@/lib/ui-signal'
-import {
-  AGENT_TEMPLATES,
-  type AgentTemplate,
-  type TemplateId,
-} from '@/lib/agents/templates'
+import { cn } from '@/lib/utils'
 
 // ─── constants ─────────────────────────────────────────────────────────────────
 
@@ -51,18 +46,22 @@ const TEMPLATE_ICONS: Record<TemplateId, React.ReactNode> = {
 }
 
 const TEMPLATE_COLORS: Record<TemplateId, string> = {
-  trader:     'border-cyan-800/60 bg-cyan-950/30 text-cyan-300',
+  trader: 'border-cyan-800/60 bg-cyan-950/30 text-cyan-300',
   researcher: 'border-violet-800/60 bg-violet-950/30 text-violet-300',
-  writer:     'border-amber-800/60 bg-amber-950/30 text-amber-300',
-  concierge:  'border-emerald-800/60 bg-emerald-950/30 text-emerald-300',
-  blank:      'border-slate-700 bg-slate-900/30 text-slate-300',
+  writer: 'border-amber-800/60 bg-amber-950/30 text-amber-300',
+  concierge: 'border-emerald-800/60 bg-emerald-950/30 text-emerald-300',
+  blank: 'border-slate-700 bg-slate-900/30 text-slate-300',
 }
 
 // ─── helpers ───────────────────────────────────────────────────────────────────
 
 /** Slugify an agent name to match how the API derives UIDs. */
 function slugify(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
 }
 
 /** Build the markdown that /api/agents/sync expects. */
@@ -182,17 +181,13 @@ export function NewAgentIsland() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-4 py-10">
       <div className="w-full max-w-lg mx-auto space-y-8">
-
         {/* ── header ── */}
         <div>
           <h1 className="text-2xl font-semibold text-white mb-1">New Agent</h1>
-          <p className="text-slate-400 text-sm">
-            Pick a template, give it a name, and deploy in seconds.
-          </p>
+          <p className="text-slate-400 text-sm">Pick a template, give it a name, and deploy in seconds.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-
           {/* ── template picker ── */}
           <div className="space-y-2">
             <Label className="text-slate-300 text-sm font-medium">Template</Label>
@@ -209,11 +204,19 @@ export function NewAgentIsland() {
                       'flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-all',
                       'hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500',
                       active
-                        ? cn(TEMPLATE_COLORS[id], 'ring-2 ring-offset-1 ring-offset-[#0a0a0f]',
-                            id === 'trader' ? 'ring-cyan-500' :
-                            id === 'researcher' ? 'ring-violet-500' :
-                            id === 'writer' ? 'ring-amber-500' :
-                            id === 'concierge' ? 'ring-emerald-500' : 'ring-slate-500')
+                        ? cn(
+                            TEMPLATE_COLORS[id],
+                            'ring-2 ring-offset-1 ring-offset-[#0a0a0f]',
+                            id === 'trader'
+                              ? 'ring-cyan-500'
+                              : id === 'researcher'
+                                ? 'ring-violet-500'
+                                : id === 'writer'
+                                  ? 'ring-amber-500'
+                                  : id === 'concierge'
+                                    ? 'ring-emerald-500'
+                                    : 'ring-slate-500',
+                          )
                         : 'border-[#252538] bg-[#161622] text-slate-400',
                     )}
                     aria-pressed={active}
@@ -224,9 +227,7 @@ export function NewAgentIsland() {
                 )
               })}
             </div>
-            {template.description && (
-              <p className="text-slate-500 text-xs pl-1 pt-1">{template.description}</p>
-            )}
+            {template.description && <p className="text-slate-500 text-xs pl-1 pt-1">{template.description}</p>}
           </div>
 
           {/* ── name input ── */}
@@ -237,7 +238,10 @@ export function NewAgentIsland() {
             <Input
               id="agent-name"
               value={name}
-              onChange={(e) => { setName(e.target.value); setResult(null) }}
+              onChange={(e) => {
+                setName(e.target.value)
+                setResult(null)
+              }}
               placeholder="e.g. my-trader"
               autoComplete="off"
               spellCheck={false}
@@ -269,9 +273,11 @@ export function NewAgentIsland() {
                     aria-label="Copy address"
                     className="shrink-0 text-slate-500 hover:text-white transition-colors"
                   >
-                    {copied
-                      ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      : <Copy className="w-3.5 h-3.5" />}
+                    {copied ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
                   </button>
                 </div>
               ) : (
@@ -351,10 +357,7 @@ export function NewAgentIsland() {
 
         {/* ── back link ── */}
         <div className="text-center pt-2">
-          <a
-            href="/u"
-            className="text-slate-500 text-xs hover:text-slate-300 underline underline-offset-2"
-          >
+          <a href="/u" className="text-slate-500 text-xs hover:text-slate-300 underline underline-offset-2">
             Back to wallet
           </a>
         </div>

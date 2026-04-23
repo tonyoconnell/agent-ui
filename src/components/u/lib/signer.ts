@@ -12,11 +12,11 @@
 //   - No timing vulnerabilities: address comparison uses constant-time approach
 
 import { Ed25519Keypair, Ed25519PublicKey } from '@mysten/sui/keypairs/ed25519'
-import type { Ed25519Seed, Ed25519Signature, CredId } from '../../../../interfaces/types-crypto'
-import type { TxBytes, SuiAddress } from '../../../../interfaces/types-sui'
+import type { CredId, Ed25519Seed, Ed25519Signature } from '../../../../interfaces/types-crypto'
+import type { SuiAddress, TxBytes } from '../../../../interfaces/types-sui'
 import type { PasskeyPrfWrapping } from '../../../../interfaces/types-wallet'
-import { prfToAesKey, unwrapSeed, PRF_SALT } from './wrap'
 import { VaultError } from './vault/types'
+import { PRF_SALT, prfToAesKey, unwrapSeed } from './wrap'
 
 // TypeScript 5.9 narrows Uint8Array buffer to ArrayBufferLike (includes SharedArrayBuffer),
 // but WebCrypto signatures require BufferSource (concrete ArrayBuffer). Cast reconciles
@@ -117,10 +117,7 @@ async function signWithSeed(txBytes: TxBytes, seed: Ed25519Seed): Promise<Ed2551
   try {
     sigBuf = await crypto.subtle.sign({ name: 'Ed25519' }, cryptoKey, bs(txBytes))
   } catch (err) {
-    throw new VaultError(
-      `Ed25519 sign failed: ${(err as Error)?.message ?? String(err)}`,
-      'crypto-error',
-    )
+    throw new VaultError(`Ed25519 sign failed: ${(err as Error)?.message ?? String(err)}`, 'crypto-error')
   }
 
   return new Uint8Array(sigBuf) as Ed25519Signature
@@ -164,10 +161,7 @@ export async function signWithPasskey(txBytes: TxBytes, credId: CredId): Promise
     prf = await getPrfFromCredId(credId)
   } catch (err) {
     if (err instanceof VaultError) throw err
-    throw new VaultError(
-      `Biometric failed: ${(err as Error)?.message ?? String(err)}`,
-      'passkey-cancelled',
-    )
+    throw new VaultError(`Biometric failed: ${(err as Error)?.message ?? String(err)}`, 'passkey-cancelled')
   }
 
   // 2. PRF → AES-256-GCM key (same derivation as wrap.ts wrapWithPasskey)
@@ -210,10 +204,7 @@ export async function signWithPasskey(txBytes: TxBytes, credId: CredId): Promise
  * @param wrapping - PasskeyPrfWrapping loaded from IDB
  * @returns Sui-formatted signature bytes (97 bytes total)
  */
-export async function signTxWithWrapping(
-  txBytes: TxBytes,
-  wrapping: PasskeyPrfWrapping,
-): Promise<Uint8Array> {
+export async function signTxWithWrapping(txBytes: TxBytes, wrapping: PasskeyPrfWrapping): Promise<Uint8Array> {
   const credId = wrapping.credId as CredId
 
   // 1. PRF ceremony — biometric gate
@@ -222,10 +213,7 @@ export async function signTxWithWrapping(
     prf = await getPrfFromCredId(credId)
   } catch (err) {
     if (err instanceof VaultError) throw err
-    throw new VaultError(
-      `Biometric failed: ${(err as Error)?.message ?? String(err)}`,
-      'passkey-cancelled',
-    )
+    throw new VaultError(`Biometric failed: ${(err as Error)?.message ?? String(err)}`, 'passkey-cancelled')
   }
 
   // 2. PRF → AES key (matches wrap.ts derivation)
@@ -237,10 +225,7 @@ export async function signTxWithWrapping(
     seed = await unwrapSeed(wrapping, aesKey)
   } catch (err) {
     if (err instanceof VaultError) throw err
-    throw new VaultError(
-      `Seed unwrap failed: ${(err as Error)?.message ?? String(err)}`,
-      'crypto-error',
-    )
+    throw new VaultError(`Seed unwrap failed: ${(err as Error)?.message ?? String(err)}`, 'crypto-error')
   }
 
   // 4. Derive public key BEFORE signing (seed will be wiped inside signTx)
@@ -274,11 +259,7 @@ export async function signTxWithWrapping(
  * @param address - Expected signer address (Sui mainnet format)
  * @returns true if signature is valid and address matches
  */
-export async function verifySig(
-  txBytes: TxBytes,
-  sig: Ed25519Signature,
-  address: SuiAddress,
-): Promise<boolean> {
+export async function verifySig(txBytes: TxBytes, sig: Ed25519Signature, address: SuiAddress): Promise<boolean> {
   // We need the public key to verify. With a bare 64-byte Ed25519Signature
   // we cannot recover the public key (Ed25519 is not like secp256k1).
   // The caller must pass a Sui-formatted signature (flag | sig | pubkey).
@@ -312,11 +293,7 @@ export async function verifySig(
  * @param address - Expected signer address
  * @returns true if signature is valid and derived address matches
  */
-export async function verifySuiSig(
-  txBytes: TxBytes,
-  suiSig: Uint8Array,
-  address: SuiAddress,
-): Promise<boolean> {
+export async function verifySuiSig(txBytes: TxBytes, suiSig: Uint8Array, address: SuiAddress): Promise<boolean> {
   if (suiSig.byteLength !== 97) {
     return false
   }
@@ -331,13 +308,7 @@ export async function verifySuiSig(
   // Import public key for verification
   let cryptoKey: CryptoKey
   try {
-    cryptoKey = await crypto.subtle.importKey(
-      'raw',
-      pubkeyBytes,
-      { name: 'Ed25519' },
-      false,
-      ['verify'],
-    )
+    cryptoKey = await crypto.subtle.importKey('raw', pubkeyBytes, { name: 'Ed25519' }, false, ['verify'])
   } catch {
     return false
   }

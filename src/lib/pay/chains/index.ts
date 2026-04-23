@@ -28,9 +28,7 @@ import { addressFor } from '@/lib/sui'
 
 function readSeedBytes(): Uint8Array | null {
   const fromRuntime =
-    typeof process !== 'undefined' && process.env && process.env.SUI_SEED
-      ? process.env.SUI_SEED
-      : undefined
+    typeof process !== 'undefined' && process.env && process.env.SUI_SEED ? process.env.SUI_SEED : undefined
   const fromBuild = import.meta.env.SUI_SEED
   const b64 = (fromRuntime || fromBuild || '').toString()
   if (!b64) return null
@@ -148,7 +146,7 @@ function encodeBech32(hrp: string, bytes20: Uint8Array): string {
   if (bits > 0) data.push((acc << (5 - bits)) & 31)
 
   const checksum = createChecksum(hrp, data)
-  return hrp + '1' + [...data, ...checksum].map((d) => BECH32_CHARSET[d]).join('')
+  return `${hrp}1${[...data, ...checksum].map((d) => BECH32_CHARSET[d]).join('')}`
 }
 
 // ─── per-chain address derivation ────────────────────────────────────────────
@@ -169,7 +167,7 @@ export async function deriveAddressEvm(uid: string): Promise<string> {
   const bytes = await deriveSeedBytes('evm:', uid)
   if (!bytes) throw new Error('SUI_SEED not configured — cannot derive EVM address')
   const addr20 = bytes.slice(12) // last 20 bytes
-  return '0x' + bytesToHex(addr20)
+  return `0x${bytesToHex(addr20)}`
 }
 
 /**

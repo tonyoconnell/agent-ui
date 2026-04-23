@@ -121,7 +121,7 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedProduct, setEditedProduct] = useState<Product | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [wallets, setWallets] = useState<Wallet[]>([])
+  const [wallets, _setWallets] = useState<Wallet[]>([])
   const [copiedLink, setCopiedLink] = useState(false)
   const [showQR, setShowQR] = useState(true) // QR tab shown by default
   const [editWalletInput, setEditWalletInput] = useState('')

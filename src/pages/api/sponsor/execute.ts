@@ -17,9 +17,9 @@
  *   502 — Sui RPC rejected the transaction
  */
 
-import type { APIRoute } from 'astro'
 import { toBase64 } from '@mysten/bcs'
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
+import type { APIRoute } from 'astro'
 import { getClient } from '@/lib/sui'
 
 export const prerender = false
@@ -30,8 +30,7 @@ export const prerender = false
 // Generate: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 // ---------------------------------------------------------------------------
 function loadSponsorKeypair(): Ed25519Keypair {
-  const fromRuntime =
-    typeof process !== 'undefined' && process.env && process.env.SUI_SPONSOR_KEY
+  const fromRuntime = typeof process !== 'undefined' && process.env && process.env.SUI_SPONSOR_KEY
   const fromBuild = import.meta.env.SUI_SPONSOR_KEY
   const raw = ((fromRuntime || fromBuild || '') as string).trim()
 

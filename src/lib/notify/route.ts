@@ -5,8 +5,8 @@
  * At least one channel must succeed, otherwise throws an aggregated error.
  */
 
-import { sendPush } from './push'
 import { sendEmail } from './email'
+import { sendPush } from './push'
 import { sendWebhook, type WebhookPayload } from './webhook'
 
 /** Supported notification channels in priority order. */

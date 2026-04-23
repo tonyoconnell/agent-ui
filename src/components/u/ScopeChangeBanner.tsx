@@ -9,10 +9,10 @@
 //   - Links to /u/agents/[id]/scope for full diff view
 //   - emitClick('ui:scope:banner-view') on "view changes" click
 
-import { useState, useEffect, useRef } from 'react'
 import { Info, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useEffect, useRef, useState } from 'react'
 import { emitClick } from '@/lib/ui-signal'
+import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,7 +28,7 @@ interface ScopeChangedEvent {
   type: 'scope:changed'
   agentId: string
   walletId: string
-  at: number              // Unix ms
+  at: number // Unix ms
 }
 
 // ---------------------------------------------------------------------------
@@ -102,11 +102,7 @@ export function ScopeChangeBanner({ agentId, walletId }: ScopeChangeBannerProps)
           if (dismissedRef.current) return
           try {
             const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : '') as ScopeChangedEvent
-            if (
-              msg.type === 'scope:changed' &&
-              msg.agentId === agentId &&
-              (!walletId || msg.walletId === walletId)
-            ) {
+            if (msg.type === 'scope:changed' && msg.agentId === agentId && (!walletId || msg.walletId === walletId)) {
               setVisible(true)
               setChangedAt(msg.at ?? Date.now())
             }
@@ -146,7 +142,7 @@ export function ScopeChangeBanner({ agentId, walletId }: ScopeChangeBannerProps)
       if (wsRef.current) wsRef.current.close()
       if (pollRef.current) clearInterval(pollRef.current)
     }
-  }, [agentId, walletId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [agentId, walletId, pollForChange]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------------------------------------------------------------------------
   // Handlers
@@ -180,15 +176,9 @@ export function ScopeChangeBanner({ agentId, walletId }: ScopeChangeBannerProps)
         'max-w-[calc(100vw-2rem)] w-full sm:w-auto sm:min-w-[340px] sm:max-w-md',
       )}
     >
-      <Info
-        className="h-4 w-4 text-sky-400 shrink-0"
-        strokeWidth={1.75}
-        aria-hidden="true"
-      />
+      <Info className="h-4 w-4 text-sky-400 shrink-0" strokeWidth={1.75} aria-hidden="true" />
 
-      <span className="flex-1 text-sky-100/90 font-medium">
-        Agent scope updated
-      </span>
+      <span className="flex-1 text-sky-100/90 font-medium">Agent scope updated</span>
 
       <button
         type="button"

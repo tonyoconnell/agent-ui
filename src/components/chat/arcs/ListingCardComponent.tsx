@@ -8,8 +8,8 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { emitClick } from '@/lib/ui-signal'
 import type { ListingCard } from '@/interfaces/rich-message/listing-card'
+import { emitClick } from '@/lib/ui-signal'
 
 export interface ListingCardComponentProps {
   payload: ListingCard
@@ -18,27 +18,21 @@ export interface ListingCardComponentProps {
 
 export function ListingCardComponent({ payload, onBuy }: ListingCardComponentProps) {
   // priceMist is stored as bigint-as-string; display in SUI (1 SUI = 1e9 MIST)
-  const priceSui = payload.priceMist
-    ? (BigInt(payload.priceMist) / 1_000_000_000n).toString()
-    : null
+  const priceSui = payload.priceMist ? (BigInt(payload.priceMist) / 1_000_000_000n).toString() : null
 
   const priceLabel = priceSui !== null && priceSui !== '0' ? `${priceSui} SUI` : 'Free'
 
   return (
     <Card className="border-border bg-card p-4">
       {/* Label */}
-      <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Skill listing
-      </div>
+      <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Skill listing</div>
 
       <div className="space-y-2 text-sm">
         {/* Name */}
         <div className="font-semibold text-foreground">{payload.name}</div>
 
         {/* Description */}
-        {payload.description && (
-          <p className="text-xs leading-5 text-muted-foreground">{payload.description}</p>
-        )}
+        {payload.description && <p className="text-xs leading-5 text-muted-foreground">{payload.description}</p>}
 
         {/* Seller */}
         <div className="flex items-center justify-between">

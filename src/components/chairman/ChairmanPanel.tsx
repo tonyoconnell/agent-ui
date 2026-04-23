@@ -1,12 +1,9 @@
-import {
-  ConnectButton,
-  useCurrentAccount,
-} from '@mysten/dapp-kit'
+import { ConnectButton, useCurrentAccount } from '@mysten/dapp-kit'
 import { useState } from 'react'
 import { WalletSignIn } from '@/components/auth/WalletSignIn'
+import { AppProviders } from '@/components/u/providers'
 import { emitClick } from '@/lib/ui-signal'
 import { useChairmanStream } from '@/lib/use-chairman-stream'
-import { AppProviders } from '@/components/u/providers'
 import { OrgChart } from './OrgChart'
 import { RoleCatalog } from './RoleCatalog'
 

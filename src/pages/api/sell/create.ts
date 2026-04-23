@@ -9,7 +9,7 @@
  * Returns: { capabilityId, payUrl }
  */
 import type { APIRoute } from 'astro'
-import { validateApiKey, requireAuth } from '@/lib/api-auth'
+import { requireAuth, validateApiKey } from '@/lib/api-auth'
 import { createCapability } from '@/lib/sell/capability'
 
 export const prerender = false
@@ -52,9 +52,7 @@ export const POST: APIRoute = async ({ request }) => {
     return Response.json({ error: 'priceMist must be non-negative' }, { status: 400 })
   }
 
-  const tags = Array.isArray(b.tags)
-    ? (b.tags as unknown[]).filter((t): t is string => typeof t === 'string')
-    : []
+  const tags = Array.isArray(b.tags) ? (b.tags as unknown[]).filter((t): t is string => typeof t === 'string') : []
 
   const description = typeof b.description === 'string' ? b.description : undefined
 

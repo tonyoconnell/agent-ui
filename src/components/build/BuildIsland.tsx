@@ -10,7 +10,6 @@
  * Signals: ui:build:step-next, ui:build:step-back, ui:build:deploy
  */
 
-import { useState, useTransition } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
@@ -25,29 +24,26 @@ import {
   User,
   Zap,
 } from 'lucide-react'
+import { useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
+import { AGENT_TEMPLATES, type AgentTemplate, type TemplateId } from '@/lib/agents/templates'
 import { emitClick } from '@/lib/ui-signal'
-import {
-  AGENT_TEMPLATES,
-  type AgentTemplate,
-  type TemplateId,
-} from '@/lib/agents/templates'
+import { cn } from '@/lib/utils'
 
 // ─── constants ─────────────────────────────────────────────────────────────────
 
 const TEMPLATE_ORDER: TemplateId[] = ['trader', 'researcher', 'writer', 'concierge', 'blank']
 
 const TEMPLATE_META: Record<TemplateId, { icon: React.ReactNode; color: string; badge: string }> = {
-  trader:     { icon: <Sparkles className="w-5 h-5" />, color: 'from-cyan-500 to-blue-500',    badge: 'Markets' },
-  researcher: { icon: <Bot className="w-5 h-5" />,      color: 'from-violet-500 to-purple-500', badge: 'Research' },
-  writer:     { icon: <PenLine className="w-5 h-5" />,  color: 'from-amber-500 to-orange-500',  badge: 'Content' },
-  concierge:  { icon: <User className="w-5 h-5" />,     color: 'from-emerald-500 to-teal-500',  badge: 'Coordination' },
-  blank:      { icon: <Zap className="w-5 h-5" />,      color: 'from-slate-500 to-slate-600',   badge: 'Custom' },
+  trader: { icon: <Sparkles className="w-5 h-5" />, color: 'from-cyan-500 to-blue-500', badge: 'Markets' },
+  researcher: { icon: <Bot className="w-5 h-5" />, color: 'from-violet-500 to-purple-500', badge: 'Research' },
+  writer: { icon: <PenLine className="w-5 h-5" />, color: 'from-amber-500 to-orange-500', badge: 'Content' },
+  concierge: { icon: <User className="w-5 h-5" />, color: 'from-emerald-500 to-teal-500', badge: 'Coordination' },
+  blank: { icon: <Zap className="w-5 h-5" />, color: 'from-slate-500 to-slate-600', badge: 'Custom' },
 }
 
 const STEPS = ['Name & template', 'System prompt', 'Deploy'] as const
@@ -56,7 +52,11 @@ type Step = 0 | 1 | 2
 // ─── helpers ───────────────────────────────────────────────────────────────────
 
 function slugify(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
 }
 
 function buildMarkdown(name: string, template: AgentTemplate, prompt: string): string {
@@ -121,22 +121,19 @@ function Step1({ name, setName, template, setTemplate, onNext }: Step1Props) {
                 )}
                 aria-pressed={active}
               >
-                <div className={cn(
-                  'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br',
-                  meta.color,
-                )}>
+                <div
+                  className={cn(
+                    'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br',
+                    meta.color,
+                  )}
+                >
                   {meta.icon}
                 </div>
                 <div className="min-w-0">
                   <div className="font-medium text-sm">{t.name}</div>
-                  {t.description && (
-                    <div className="text-xs text-slate-500 truncate">{t.description}</div>
-                  )}
+                  {t.description && <div className="text-xs text-slate-500 truncate">{t.description}</div>}
                 </div>
-                <Badge
-                  variant="outline"
-                  className="ml-auto shrink-0 text-[10px] border-[#353550] text-slate-500"
-                >
+                <Badge variant="outline" className="ml-auto shrink-0 text-[10px] border-[#353550] text-slate-500">
                   {meta.badge}
                 </Badge>
               </button>
@@ -168,7 +165,10 @@ function Step1({ name, setName, template, setTemplate, onNext }: Step1Props) {
 
       <Button
         type="button"
-        onClick={() => { emitClick('ui:build:step-next'); onNext() }}
+        onClick={() => {
+          emitClick('ui:build:step-next')
+          onNext()
+        }}
         disabled={!slug}
         className="w-full bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40"
       >
@@ -197,9 +197,7 @@ function Step2({ template, prompt, setPrompt, onBack, onNext }: Step2Props) {
           System prompt
         </Label>
         {defaultPrompt && !prompt && (
-          <p className="text-slate-500 text-xs">
-            Leave blank to use the template default, or customise below.
-          </p>
+          <p className="text-slate-500 text-xs">Leave blank to use the template default, or customise below.</p>
         )}
         <textarea
           id="build-prompt"
@@ -229,7 +227,10 @@ function Step2({ template, prompt, setPrompt, onBack, onNext }: Step2Props) {
         <Button
           type="button"
           variant="outline"
-          onClick={() => { emitClick('ui:build:step-back'); onBack() }}
+          onClick={() => {
+            emitClick('ui:build:step-back')
+            onBack()
+          }}
           className="flex-1 border-[#252538] text-slate-300 hover:bg-[#1e1e2a]"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -237,7 +238,10 @@ function Step2({ template, prompt, setPrompt, onBack, onNext }: Step2Props) {
         </Button>
         <Button
           type="button"
-          onClick={() => { emitClick('ui:build:step-next'); onNext() }}
+          onClick={() => {
+            emitClick('ui:build:step-next')
+            onNext()
+          }}
           className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white"
         >
           Next
@@ -280,9 +284,7 @@ function Step3({ name, template, prompt, isPending, result, onBack, onDeploy }: 
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-slate-400">Prompt</span>
-          <span className="text-slate-500 text-xs">
-            {finalPrompt ? `${finalPrompt.slice(0, 40)}…` : 'none'}
-          </span>
+          <span className="text-slate-500 text-xs">{finalPrompt ? `${finalPrompt.slice(0, 40)}…` : 'none'}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-slate-400">Endpoint</span>
@@ -351,7 +353,10 @@ function Step3({ name, template, prompt, isPending, result, onBack, onDeploy }: 
           <Button
             type="button"
             variant="outline"
-            onClick={() => { emitClick('ui:build:step-back'); onBack() }}
+            onClick={() => {
+              emitClick('ui:build:step-back')
+              onBack()
+            }}
             disabled={isPending}
             className="flex-1 border-[#252538] text-slate-300 hover:bg-[#1e1e2a] disabled:opacity-40"
           >
@@ -360,7 +365,10 @@ function Step3({ name, template, prompt, isPending, result, onBack, onDeploy }: 
           </Button>
           <Button
             type="button"
-            onClick={() => { emitClick('ui:build:deploy'); onDeploy() }}
+            onClick={() => {
+              emitClick('ui:build:deploy')
+              onDeploy()
+            }}
             disabled={isPending}
             className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40"
           >
@@ -440,40 +448,32 @@ export function BuildIsland() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-4 py-12">
       <div className="w-full max-w-xl mx-auto space-y-8">
-
         {/* ── header ── */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-            Build an Agent
-          </h1>
-          <p className="text-slate-400 text-sm">
-            Live in &lt;1 minute. Deployed to Cloudflare, remembered in TypeDB.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Build an Agent</h1>
+          <p className="text-slate-400 text-sm">Live in &lt;1 minute. Deployed to Cloudflare, remembered in TypeDB.</p>
         </div>
 
         {/* ── step indicator ── */}
         <div className="flex items-center justify-center gap-2">
           {STEPS.map((label, i) => (
             <div key={label} className="flex items-center gap-2">
-              <div className={cn(
-                'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0',
-                step === i
-                  ? 'bg-cyan-600 text-white'
-                  : step > i
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-[#252538] text-slate-500',
-              )}>
+              <div
+                className={cn(
+                  'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0',
+                  step === i
+                    ? 'bg-cyan-600 text-white'
+                    : step > i
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-[#252538] text-slate-500',
+                )}
+              >
                 {step > i ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
               </div>
-              <span className={cn(
-                'text-xs hidden sm:block',
-                step === i ? 'text-white' : 'text-slate-500',
-              )}>
+              <span className={cn('text-xs hidden sm:block', step === i ? 'text-white' : 'text-slate-500')}>
                 {label}
               </span>
-              {i < STEPS.length - 1 && (
-                <div className={cn('w-8 h-px', step > i ? 'bg-emerald-600' : 'bg-[#252538]')} />
-              )}
+              {i < STEPS.length - 1 && <div className={cn('w-8 h-px', step > i ? 'bg-emerald-600' : 'bg-[#252538]')} />}
             </div>
           ))}
         </div>
@@ -510,7 +510,6 @@ export function BuildIsland() {
             />
           )}
         </div>
-
       </div>
     </div>
   )

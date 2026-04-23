@@ -7,9 +7,9 @@
  * Contract: interfaces/peer/spawn-child.d.ts
  */
 
-import type { SuiAddress } from '../../../interfaces/types-sui'
-import { deriveKeypair, signAndExecute } from '@/lib/sui'
 import { Transaction } from '@mysten/sui/transactions'
+import { deriveKeypair, signAndExecute } from '@/lib/sui'
+import type { SuiAddress } from '../../../interfaces/types-sui'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -18,9 +18,7 @@ import { Transaction } from '@mysten/sui/transactions'
 function readPackageId(): string {
   const fromRuntime = typeof process !== 'undefined' && process.env?.SUI_PACKAGE_ID
   const fromBuild =
-    typeof import.meta !== 'undefined'
-      ? (import.meta as Record<string, any>).env?.SUI_PACKAGE_ID
-      : undefined
+    typeof import.meta !== 'undefined' ? (import.meta as Record<string, any>).env?.SUI_PACKAGE_ID : undefined
   return (fromRuntime || fromBuild || '') as string
 }
 
@@ -96,10 +94,10 @@ export async function spawnChild(args: SpawnChildArgs): Promise<SpawnChildResult
     target: `${PACKAGE_ID}::scoped_wallet::spawn_child`,
     typeArguments: ['0x2::sui::SUI'],
     arguments: [
-      tx.object(parentWalletId),                                           // &ScopedWallet<T>
-      tx.pure.address(childAddress),                                       // child_agent: address
-      tx.pure.u64(dailyCapMist),                                           // child_daily_cap: u64
-      tx.pure.vector('address', allowlist),                                // child_allowlist: vector<address>
+      tx.object(parentWalletId), // &ScopedWallet<T>
+      tx.pure.address(childAddress), // child_agent: address
+      tx.pure.u64(dailyCapMist), // child_daily_cap: u64
+      tx.pure.vector('address', allowlist), // child_allowlist: vector<address>
     ],
   })
 
@@ -112,7 +110,7 @@ export async function spawnChild(args: SpawnChildArgs): Promise<SpawnChildResult
   const childWalletObj = created.find(
     (o: any) =>
       o.owner?.AddressOwner !== undefined || // transferred object
-      o.owner?.ObjectOwner !== undefined,    // object-owned (parent wallet owns it)
+      o.owner?.ObjectOwner !== undefined, // object-owned (parent wallet owns it)
   )
   const scopedWalletId = childWalletObj?.reference?.objectId || ''
 

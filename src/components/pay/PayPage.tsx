@@ -1,10 +1,7 @@
-import {
-  ConnectButton,
-  useCurrentAccount,
-} from '@mysten/dapp-kit'
+import { ConnectButton, useCurrentAccount } from '@mysten/dapp-kit'
 import { useState, useTransition } from 'react'
-import { emitClick } from '@/lib/ui-signal'
 import { AppProviders } from '@/components/u/providers'
+import { emitClick } from '@/lib/ui-signal'
 
 interface Props {
   skillId: string

@@ -57,19 +57,11 @@ async function buildVapidAuth(endpoint: string): Promise<string> {
 
   // Import private key (PKCS8 base64url → CryptoKey)
   const pkcs8 = base64urlToBuffer(privateKey)
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    pkcs8,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['sign'],
-  )
+  const cryptoKey = await crypto.subtle.importKey('pkcs8', pkcs8, { name: 'ECDSA', namedCurve: 'P-256' }, false, [
+    'sign',
+  ])
 
-  const signature = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    cryptoKey,
-    encodeStr(unsignedToken),
-  )
+  const signature = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, cryptoKey, encodeStr(unsignedToken))
 
   const token = `${unsignedToken}.${bufferToBase64url(signature)}`
   return `vapid t=${token},k=${publicKey}`
@@ -83,11 +75,10 @@ async function encryptPayload(
   const salt = crypto.getRandomValues(new Uint8Array(16))
 
   // Generate ephemeral server key pair (P-256)
-  const serverKeyPair = await crypto.subtle.generateKey(
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    ['deriveKey', 'deriveBits'],
-  )
+  const serverKeyPair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, [
+    'deriveKey',
+    'deriveBits',
+  ])
 
   // Import client public key (p256dh)
   const clientPublicKey = await crypto.subtle.importKey(
@@ -121,7 +112,12 @@ async function encryptPayload(
   const clientPublicKeyFixed = toFixed(base64urlToBuffer(subscription.keys.p256dh))
   const emptyBuf = toFixed(new ArrayBuffer(0))
 
-  const ikm = await hkdf(sharedSecretFixed, authSecretFixed, buildInfo('Content-Encoding: auth\0', emptyBuf, emptyBuf), 32)
+  const ikm = await hkdf(
+    sharedSecretFixed,
+    authSecretFixed,
+    buildInfo('Content-Encoding: auth\0', emptyBuf, emptyBuf),
+    32,
+  )
 
   const contentEncryptionKey = await hkdf(
     ikm,
@@ -188,7 +184,10 @@ function base64url(str: string): string {
 }
 
 function base64urlToBuffer(b64: string): ArrayBuffer {
-  const padded = b64.replace(/-/g, '+').replace(/_/g, '/').padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=')
+  const padded = b64
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=')
   const binary = atob(padded)
   const buffer = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i)

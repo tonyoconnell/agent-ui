@@ -7,9 +7,9 @@
  */
 
 export interface ResolveResult {
-  address: string        // canonical Sui address (0x…) or "" when unresolved
-  displayName?: string   // SuiNS name or /u/people handle, if found
-  source: "suins" | "people" | "direct" | "unresolved"
+  address: string // canonical Sui address (0x…) or "" when unresolved
+  displayName?: string // SuiNS name or /u/people handle, if found
+  source: 'suins' | 'people' | 'direct' | 'unresolved'
 }
 
 // ---------------------------------------------------------------------------
@@ -22,20 +22,19 @@ function isAddress(s: string): boolean {
 }
 
 function isSuiNsName(s: string): boolean {
-  return s.endsWith(".sui")
+  return s.endsWith('.sui')
 }
 
 function isHandle(s: string): boolean {
-  return s.startsWith("@")
+  return s.startsWith('@')
 }
 
 // Base URL for /u/people lookup — same-origin in browser, injected in tests
-const PEOPLE_BASE =
-  typeof window !== "undefined" ? window.location.origin : "http://localhost:4321"
+const PEOPLE_BASE = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4321'
 
 // SuiNS resolution endpoint — could be mainnet RPC or a local proxy
-const SUINS_RESOLVE_URL = "https://suins.io/api/v1/resolve"
-const SUINS_REVERSE_URL = "https://suins.io/api/v1/reverse"
+const SUINS_RESOLVE_URL = 'https://suins.io/api/v1/resolve'
+const SUINS_REVERSE_URL = 'https://suins.io/api/v1/reverse'
 
 /** Forward-resolve a *.sui name → Sui address */
 async function suinsForward(name: string): Promise<string | null> {
@@ -107,26 +106,26 @@ export async function resolveRecipient(raw: string): Promise<ResolveResult> {
     // Try /u/people first (cheapest, local)
     const people = await peopleLookupByAddr(trimmed)
     if (people?.handle) {
-      return { address: trimmed, displayName: people.handle, source: "people" }
+      return { address: trimmed, displayName: people.handle, source: 'people' }
     }
 
     // Try SuiNS reverse
     const suinsName = await suinsReverse(trimmed)
     if (suinsName) {
-      return { address: trimmed, displayName: suinsName, source: "suins" }
+      return { address: trimmed, displayName: suinsName, source: 'suins' }
     }
 
     // Address is valid but has no associated name — that's fine
-    return { address: trimmed, source: "direct" }
+    return { address: trimmed, source: 'direct' }
   }
 
   // ── 2. SuiNS name (*.sui) ────────────────────────────────────────────────
   if (isSuiNsName(trimmed)) {
     const address = await suinsForward(trimmed)
     if (address) {
-      return { address, displayName: trimmed, source: "suins" }
+      return { address, displayName: trimmed, source: 'suins' }
     }
-    return { address: "", source: "unresolved" }
+    return { address: '', source: 'unresolved' }
   }
 
   // ── 3. @handle ───────────────────────────────────────────────────────────
@@ -137,12 +136,12 @@ export async function resolveRecipient(raw: string): Promise<ResolveResult> {
       return {
         address: people.address,
         displayName: people.handle ?? trimmed,
-        source: "people",
+        source: 'people',
       }
     }
-    return { address: "", source: "unresolved" }
+    return { address: '', source: 'unresolved' }
   }
 
   // ── 4. Nothing resolved ──────────────────────────────────────────────────
-  return { address: "", source: "unresolved" }
+  return { address: '', source: 'unresolved' }
 }

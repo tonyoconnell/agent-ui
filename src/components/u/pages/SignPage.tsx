@@ -15,11 +15,11 @@
 
 import { useEffect, useState } from 'react'
 import { emitClick } from '@/lib/ui-signal'
-import { generateSeed, initWalletRecord } from '../lib/seed'
+import type { WalletRecord } from '../../../../interfaces/types-wallet'
+import { getBalance, getTokenPrice } from '../lib/BlockchainService'
 import { getWallet, putWallet } from '../lib/idb'
 import { formatUsd, resolveAddress } from '../lib/money'
-import { getBalance, getTokenPrice } from '../lib/BlockchainService'
-import type { WalletRecord } from '../../../../interfaces/types-wallet'
+import { generateSeed, initWalletRecord } from '../lib/seed'
 
 // ── Local helpers ──────────────────────────────────────────────────────────
 
@@ -77,7 +77,9 @@ export function SignPage() {
     }
 
     void init()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // ── Balance fetch ────────────────────────────────────────────────────────
@@ -88,10 +90,7 @@ export function SignPage() {
     async function fetchBalance() {
       setLoadingBalance(true)
       try {
-        const [balResult, price] = await Promise.all([
-          getBalance(record!.address, 'sui'),
-          getTokenPrice('sui'),
-        ])
+        const [balResult, price] = await Promise.all([getBalance(record!.address, 'sui'), getTokenPrice('sui')])
         if (cancelled) return
         // balResult.balance is SUI float string; convert to MIST bigint
         const mistValue = BigInt(Math.round(parseFloat(balResult.balance) * 1e9))
@@ -105,7 +104,9 @@ export function SignPage() {
     }
 
     void fetchBalance()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [record])
 
   // ── State derivation ─────────────────────────────────────────────────────
@@ -132,7 +133,10 @@ export function SignPage() {
           <p className="text-slate-500 text-xs font-mono">{errorMsg}</p>
           <button
             className="mt-4 text-xs text-slate-400 underline"
-            onClick={() => { emitClick('ui:sign:retry'); window.location.reload() }}
+            onClick={() => {
+              emitClick('ui:sign:retry')
+              window.location.reload()
+            }}
           >
             Retry
           </button>
@@ -144,13 +148,10 @@ export function SignPage() {
   // ── Wallet home ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
-
       {/* Save banner — State 1 only */}
       {isState1 && (
         <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between">
-          <p className="text-xs text-amber-300">
-            Your wallet is unprotected — save it with Touch ID
-          </p>
+          <p className="text-xs text-amber-300">Your wallet is unprotected — save it with Touch ID</p>
           <button
             className="text-xs font-medium text-amber-400 hover:text-amber-200 transition-colors ml-4 whitespace-nowrap"
             onClick={() => {
@@ -166,13 +167,9 @@ export function SignPage() {
 
       {/* Main card */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
-
         {/* Balance */}
         <div className="text-center space-y-1">
-          <p
-            className="text-4xl font-bold tabular-nums"
-            aria-label="Wallet balance in US dollars"
-          >
+          <p className="text-4xl font-bold tabular-nums" title="Wallet balance in US dollars">
             {usdDisplay}
           </p>
           <button
@@ -198,7 +195,9 @@ export function SignPage() {
             }}
             aria-label="Receive funds"
           >
-            <span className="text-xl" aria-hidden="true">↓</span>
+            <span className="text-xl" aria-hidden="true">
+              ↓
+            </span>
             <span className="text-xs text-slate-400">Receive</span>
           </button>
 
@@ -210,7 +209,9 @@ export function SignPage() {
             }}
             aria-label="Send funds"
           >
-            <span className="text-xl" aria-hidden="true">↑</span>
+            <span className="text-xl" aria-hidden="true">
+              ↑
+            </span>
             <span className="text-xs text-slate-400">Send</span>
           </button>
         </div>
@@ -229,7 +230,6 @@ export function SignPage() {
             {record?.address}
           </button>
         </div>
-
       </div>
     </div>
   )

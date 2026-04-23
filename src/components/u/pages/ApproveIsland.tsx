@@ -13,8 +13,8 @@
  *   error    → network or vault failure
  */
 
-import { useEffect, useState } from 'react'
 import { CheckCircle2, Clock, Loader2, ShieldAlert, XCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
@@ -62,7 +62,7 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
 
     void fetchRequest()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestId])
+  }, [requestId, fetchRequest])
 
   // Countdown ticker — updates secondsLeft every second while in 'ready' state
   useEffect(() => {
@@ -154,23 +154,16 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
                 <CardTitle className="text-base text-slate-100">Co-sign request</CardTitle>
               </div>
               <CardDescription className="text-slate-400">
-                Agent{' '}
-                <span className="font-mono text-xs text-slate-300">
-                  {state.request.agentUid}
-                </span>{' '}
-                is requesting your approval.
+                Agent <span className="font-mono text-xs text-slate-300">{state.request.agentUid}</span> is requesting
+                your approval.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-4">
               {/* Transaction summary */}
               <div className="rounded-md border border-[#252538] bg-[#0a0a0f] p-4">
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Transaction summary
-                </p>
-                <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-                  {state.request.summary}
-                </p>
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Transaction summary</p>
+                <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{state.request.summary}</p>
               </div>
 
               {/* Countdown */}
@@ -179,11 +172,7 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
                 <span>
                   This request expires in{' '}
                   <span
-                    className={
-                      state.secondsLeft <= 30
-                        ? 'font-semibold text-red-400'
-                        : 'font-semibold text-slate-300'
-                    }
+                    className={state.secondsLeft <= 30 ? 'font-semibold text-red-400' : 'font-semibold text-slate-300'}
                     aria-live="polite"
                   >
                     {state.secondsLeft}s
@@ -231,8 +220,7 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
               <div className="text-center space-y-1">
                 <p className="font-semibold text-slate-100">Transaction submitted</p>
                 <p className="text-xs text-muted-foreground">
-                  Digest:{' '}
-                  <span className="font-mono text-slate-400 break-all">{state.digest}</span>
+                  Digest: <span className="font-mono text-slate-400 break-all">{state.digest}</span>
                 </p>
               </div>
               <Button
@@ -256,9 +244,7 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
               <XCircle className="h-10 w-10 text-slate-400" aria-hidden="true" />
               <div className="text-center space-y-1">
                 <p className="font-semibold text-slate-100">Request rejected</p>
-                <p className="text-sm text-muted-foreground">
-                  The agent has been notified.
-                </p>
+                <p className="text-sm text-muted-foreground">The agent has been notified.</p>
               </div>
               <Button
                 variant="outline"

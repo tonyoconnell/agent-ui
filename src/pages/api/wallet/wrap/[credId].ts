@@ -12,8 +12,8 @@
  */
 
 import type { APIRoute } from 'astro'
-import { getD1 } from '@/lib/cf-env'
 import { resolveUnitFromSession } from '@/lib/api-auth'
+import { getD1 } from '@/lib/cf-env'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // GET — fetch backup
@@ -45,9 +45,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
   }
 
   const row = await db
-    .prepare(
-      'SELECT cred_id, iv, ciphertext, version FROM wallet_backups WHERE user_id = ? AND cred_id = ? LIMIT 1',
-    )
+    .prepare('SELECT cred_id, iv, ciphertext, version FROM wallet_backups WHERE user_id = ? AND cred_id = ? LIMIT 1')
     .bind(session.user, credId)
     .first<{ cred_id: string; iv: string; ciphertext: string; version: number }>()
 
@@ -101,10 +99,7 @@ export const DELETE: APIRoute = async ({ request, params, locals }) => {
     })
   }
 
-  await db
-    .prepare('DELETE FROM wallet_backups WHERE user_id = ? AND cred_id = ?')
-    .bind(session.user, credId)
-    .run()
+  await db.prepare('DELETE FROM wallet_backups WHERE user_id = ? AND cred_id = ?').bind(session.user, credId).run()
 
   return new Response(null, { status: 204 })
 }

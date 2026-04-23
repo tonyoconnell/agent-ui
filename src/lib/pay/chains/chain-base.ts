@@ -27,7 +27,7 @@ function pubkeyToChecksumAddress(pubKey: Uint8Array): string {
     .split('')
     .map((c, i) => (parseInt(hashHex[i], 16) >= 8 ? c.toUpperCase() : c))
     .join('')
-  return '0x' + checksummed
+  return `0x${checksummed}`
 }
 
 // ─── derivation ──────────────────────────────────────────────────────────────

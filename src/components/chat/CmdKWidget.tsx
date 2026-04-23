@@ -121,11 +121,7 @@ export function CmdKWidget() {
                 continue
               }
               const textContent =
-                typeof event === 'string'
-                  ? event
-                  : typeof event.content === 'string'
-                    ? event.content
-                    : null
+                typeof event === 'string' ? event : typeof event.content === 'string' ? event.content : null
               if (textContent !== null) {
                 accumulated += textContent
                 patchMessage(assistantId, { content: accumulated })
@@ -233,16 +229,11 @@ export function CmdKWidget() {
           <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col gap-3 px-4 py-4">
               {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}
-                >
+                <div key={m.id} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
                   <div
                     className={cn(
                       'max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-6 whitespace-pre-wrap',
-                      m.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground',
+                      m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
                       m.error && 'border border-destructive/50 text-destructive',
                     )}
                   >
@@ -297,9 +288,7 @@ export function CmdKWidget() {
               {streaming ? '…' : '⏎'}
             </Button>
           </div>
-          <div className="mt-1.5 text-center text-[10px] text-muted-foreground">
-            ⌘K to toggle · Esc to close
-          </div>
+          <div className="mt-1.5 text-center text-[10px] text-muted-foreground">⌘K to toggle · Esc to close</div>
         </form>
       </div>
     </div>

@@ -7,20 +7,20 @@
  *   3. URI format   — payment URI has the expected scheme prefix
  */
 
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 // Inject a test seed before importing chain modules
 // (SUI_SEED is read lazily inside each module)
 const TEST_SEED = btoa(String.fromCharCode(...new Uint8Array(32).fill(0x42)))
 process.env.SUI_SEED = TEST_SEED
 
-import { deriveAddressEth, buildPaymentUriEth } from '../eth.ts'
-import { deriveAddressSol, buildPaymentUriSol } from '../sol.ts'
-import { deriveAddressBtc, buildPaymentUriBtc } from '../btc.ts'
-import { deriveAddressBase, buildPaymentUriBase } from '../chain-base.ts'
-import { deriveAddressArb, buildPaymentUriArb } from '../chain-arb.ts'
-import { deriveAddressOpt, buildPaymentUriOpt } from '../chain-opt.ts'
-import { deriveAddressSui, buildPaymentUriSui } from '../sui.ts'
+import { buildPaymentUriBtc, deriveAddressBtc } from '../btc.ts'
+import { buildPaymentUriArb, deriveAddressArb } from '../chain-arb.ts'
+import { buildPaymentUriBase, deriveAddressBase } from '../chain-base.ts'
+import { buildPaymentUriOpt, deriveAddressOpt } from '../chain-opt.ts'
+import { buildPaymentUriEth, deriveAddressEth } from '../eth.ts'
+import { buildPaymentUriSol, deriveAddressSol } from '../sol.ts'
+import { buildPaymentUriSui, deriveAddressSui } from '../sui.ts'
 
 const UID_ALICE = 'user:alice'
 const UID_BOB = 'user:bob'

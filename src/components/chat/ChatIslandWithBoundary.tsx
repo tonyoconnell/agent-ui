@@ -6,8 +6,8 @@
  * and shows a minimal fallback so the page never goes blank.
  */
 
-import { ErrorBoundary } from "@/components/ErrorBoundary"
-import { ChatIsland } from "./ChatIsland"
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ChatIsland } from './ChatIsland'
 
 export function ChatIslandWithBoundary() {
   return (

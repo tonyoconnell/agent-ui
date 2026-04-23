@@ -8,12 +8,12 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { emitClick } from '@/lib/ui-signal'
 import { getWallet } from '@/components/u/lib/idb'
-import { UNav } from '../UNav'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { emitClick } from '@/lib/ui-signal'
 import type { WalletRecord } from '../../../../interfaces/types-wallet'
+import { UNav } from '../UNav'
 
 function deviceCount(record: WalletRecord | null): number {
   if (!record) return 0
@@ -43,7 +43,9 @@ export function KeysPage() {
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const devices = deviceCount(record)
@@ -59,22 +61,21 @@ export function KeysPage() {
           <h1 className="text-2xl font-semibold text-white flex items-center gap-2">
             <span aria-hidden="true">🔑</span> Keys &amp; Devices
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Your wallet is protected by passkeys — no password needed.
-          </p>
+          <p className="text-slate-400 text-sm mt-1">Your wallet is protected by passkeys — no password needed.</p>
         </div>
 
         {/* Error */}
         {error && (
-          <div role="alert" className="rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-3 text-red-400 text-sm">
+          <div
+            role="alert"
+            className="rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-3 text-red-400 text-sm"
+          >
             {error}
           </div>
         )}
 
         {/* Loading */}
-        {loading && (
-          <p className="text-slate-500 text-sm text-center py-8">Loading…</p>
-        )}
+        {loading && <p className="text-slate-500 text-sm text-center py-8">Loading…</p>}
 
         {!loading && (
           <>
@@ -101,15 +102,9 @@ export function KeysPage() {
                       ? 'No passkeys enrolled yet'
                       : `${devices} device${devices === 1 ? '' : 's'} enrolled`}
                   </p>
-                  <p className="text-slate-600 text-xs mt-0.5">
-                    Touch ID · Face ID · Windows Hello
-                  </p>
+                  <p className="text-slate-600 text-xs mt-0.5">Touch ID · Face ID · Windows Hello</p>
                 </div>
-                <div
-                  className={`text-2xl font-bold ${
-                    devices === 0 ? 'text-slate-600' : 'text-indigo-400'
-                  }`}
-                >
+                <div className={`text-2xl font-bold ${devices === 0 ? 'text-slate-600' : 'text-indigo-400'}`}>
                   {devices}
                 </div>
               </CardContent>
@@ -134,15 +129,17 @@ export function KeysPage() {
                 <div className="flex items-center gap-2">
                   {bip39 ? (
                     <>
-                      <span className="text-emerald-400 text-sm" aria-hidden="true">✓</span>
+                      <span className="text-emerald-400 text-sm" aria-hidden="true">
+                        ✓
+                      </span>
                       <p className="text-slate-400 text-sm">Phrase was shown — keep it safe offline</p>
                     </>
                   ) : (
                     <>
-                      <span className="text-amber-400 text-sm" aria-hidden="true">⚠</span>
-                      <p className="text-slate-400 text-sm">
-                        No recovery phrase recorded yet
-                      </p>
+                      <span className="text-amber-400 text-sm" aria-hidden="true">
+                        ⚠
+                      </span>
+                      <p className="text-slate-400 text-sm">No recovery phrase recorded yet</p>
                     </>
                   )}
                 </div>
@@ -163,8 +160,8 @@ export function KeysPage() {
             {/* Architecture note */}
             <div className="rounded-lg border border-[#252538] bg-[#161622]/60 px-4 py-3">
               <p className="text-slate-500 text-xs leading-relaxed">
-                Keys are stored encrypted in your browser's IndexedDB (AES-256-GCM), wrapped by
-                your passkey PRF output. No passwords. No cloud. You own your keys.
+                Keys are stored encrypted in your browser's IndexedDB (AES-256-GCM), wrapped by your passkey PRF output.
+                No passwords. No cloud. You own your keys.
               </p>
             </div>
           </>

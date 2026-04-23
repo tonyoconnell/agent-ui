@@ -17,10 +17,7 @@ import { sha256 } from '@noble/hashes/sha2.js'
 // ─── seed ────────────────────────────────────────────────────────────────────
 
 export function readSeedBytes(): Uint8Array {
-  const b64 =
-    (typeof process !== 'undefined' && process.env?.SUI_SEED) ||
-    import.meta.env.SUI_SEED ||
-    ''
+  const b64 = (typeof process !== 'undefined' && process.env?.SUI_SEED) || import.meta.env.SUI_SEED || ''
   if (!b64) throw new Error('SUI_SEED not configured')
   return Uint8Array.from(atob(b64.toString()), (c) => c.charCodeAt(0))
 }

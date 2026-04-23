@@ -21,11 +21,11 @@
 import { useEffect, useState } from 'react'
 import { emitClick } from '@/lib/ui-signal'
 import {
-  getPendingRequests,
   approveCoSign,
+  type CoSignRequest,
+  getPendingRequests,
   rejectCoSign,
   verifySummaryMatch,
-  type CoSignRequest,
 } from './lib/agent-sign'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -60,15 +60,13 @@ export function ApproveIsland() {
         }
 
         // Determine requestId — prefer ?id= query param, else take first pending
-        const params = new URLSearchParams(
-          typeof window !== 'undefined' ? window.location.search : '',
-        )
+        const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
         const requestId = params.get('id')
 
         const all = await getPendingRequests(wallet.address)
         const req = requestId
-          ? all.find((r) => r.id === requestId) ?? null
-          : all.filter((r) => r.status === 'pending')[0] ?? null
+          ? (all.find((r) => r.id === requestId) ?? null)
+          : (all.filter((r) => r.status === 'pending')[0] ?? null)
 
         if (!req) {
           if (!cancelled) {
@@ -79,10 +77,7 @@ export function ApproveIsland() {
         }
 
         // Security invariant: re-derive summary from txBytes, never trust stored
-        const { match, derived: derivedSummary } = await verifySummaryMatch(
-          req.txBytes,
-          req.summary,
-        )
+        const { match, derived: derivedSummary } = await verifySummaryMatch(req.txBytes, req.summary)
 
         if (cancelled) return
 
@@ -190,8 +185,7 @@ export function ApproveIsland() {
         <div className="text-center mb-2">
           <h1 className="text-white font-semibold text-lg">Agent transaction</h1>
           <p className="text-slate-400 text-xs mt-1">
-            Agent:{' '}
-            <span className="text-slate-300 font-mono">{request?.agentUid ?? '—'}</span>
+            Agent: <span className="text-slate-300 font-mono">{request?.agentUid ?? '—'}</span>
           </p>
         </div>
 
@@ -202,21 +196,15 @@ export function ApproveIsland() {
               Warning: the transaction summary doesn&apos;t match. Do NOT sign.
             </p>
             <p className="text-red-200 text-xs leading-relaxed">
-              The agent described this transaction differently than what the raw bytes contain.
-              This may indicate a fabricated or tampered description.
+              The agent described this transaction differently than what the raw bytes contain. This may indicate a
+              fabricated or tampered description.
             </p>
             <div className="mt-3">
-              <p className="text-slate-400 text-xs mb-1">
-                What the transaction actually does:
-              </p>
-              <p className="text-white text-sm font-mono bg-[#0a0a0f] rounded-lg p-3 break-all">
-                {derived}
-              </p>
+              <p className="text-slate-400 text-xs mb-1">What the transaction actually does:</p>
+              <p className="text-white text-sm font-mono bg-[#0a0a0f] rounded-lg p-3 break-all">{derived}</p>
             </div>
             <div className="mt-3">
-              <p className="text-slate-400 text-xs mb-1">
-                What the agent claimed:
-              </p>
+              <p className="text-slate-400 text-xs mb-1">What the agent claimed:</p>
               <p className="text-red-300 text-sm font-mono bg-[#0a0a0f] rounded-lg p-3 break-all line-through opacity-60">
                 {request?.summary ?? '—'}
               </p>
@@ -247,7 +235,9 @@ export function ApproveIsland() {
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={() => { void handleReject() }}
+            onClick={() => {
+              void handleReject()
+            }}
             disabled={isApproving}
             className="flex-1 min-h-[44px] rounded-xl border border-[#252538] bg-[#161622] text-slate-300 text-sm font-medium hover:bg-[#1e1e30] disabled:opacity-50 transition-colors"
           >
@@ -256,7 +246,9 @@ export function ApproveIsland() {
 
           <button
             type="button"
-            onClick={() => { void handleApprove() }}
+            onClick={() => {
+              void handleApprove()
+            }}
             disabled={isApproving || isMismatch}
             className="flex-1 min-h-[44px] rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >

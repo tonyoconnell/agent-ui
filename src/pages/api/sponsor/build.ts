@@ -22,10 +22,10 @@
  *   500 — Sui RPC / build failure
  */
 
-import type { APIRoute } from 'astro'
+import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 import { Transaction } from '@mysten/sui/transactions'
-import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
+import type { APIRoute } from 'astro'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -80,11 +80,7 @@ function sponsorKeypair(): Ed25519Keypair {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function getClient(network: string): SuiJsonRpcClient {
-  const net = (network || import.meta.env.SUI_NETWORK || 'testnet') as
-    | 'testnet'
-    | 'mainnet'
-    | 'devnet'
-    | 'localnet'
+  const net = (network || import.meta.env.SUI_NETWORK || 'testnet') as 'testnet' | 'mainnet' | 'devnet' | 'localnet'
   return new SuiJsonRpcClient({ url: getJsonRpcFullnodeUrl(net), network: net })
 }
 
@@ -105,13 +101,16 @@ function buildTransfer(tx: Transaction, params: Record<string, unknown>): void {
 }
 
 function buildMoveCall(tx: Transaction, params: Record<string, unknown>): void {
-  const { target, args = [], typeArgs = [] } = params as {
+  const {
+    target,
+    args = [],
+    typeArgs = [],
+  } = params as {
     target: string
     args: unknown[]
     typeArgs?: string[]
   }
-  if (!target)
-    throw Object.assign(new Error("params.target is required for txKind 'move-call'"), { status: 400 })
+  if (!target) throw Object.assign(new Error("params.target is required for txKind 'move-call'"), { status: 400 })
 
   // args are passed as-is; callers should supply TransactionArgument-compatible values.
   // For simple primitive values (strings, numbers, booleans) wrap in tx.pure.* at call site.
@@ -141,11 +140,7 @@ function buildScopedSpend(tx: Transaction, params: Record<string, unknown>, pack
 
   tx.moveCall({
     target: `${pkg}::scoped_wallet::spend`,
-    arguments: [
-      tx.object(walletId),
-      tx.pure.address(to),
-      tx.pure.u64(BigInt(Math.floor(amountMist))),
-    ],
+    arguments: [tx.object(walletId), tx.pure.address(to), tx.pure.u64(BigInt(Math.floor(amountMist)))],
   })
 }
 
@@ -187,11 +182,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (walletState === 1) {
     // Resolve the transfer amount from whichever param name the txKind uses
     const rawAmount =
-      typeof params.amount === 'number'
-        ? params.amount
-        : typeof params.amountMist === 'number'
-          ? params.amountMist
-          : 0
+      typeof params.amount === 'number' ? params.amount : typeof params.amountMist === 'number' ? params.amountMist : 0
     const amountMist = BigInt(Math.floor(rawAmount))
     if (amountMist > STATE1_CAP_MIST) {
       return new Response(
@@ -248,16 +239,14 @@ export const POST: APIRoute = async ({ request }) => {
     const sponsorAddress = sponsor.getPublicKey().toSuiAddress()
     const { data: coins } = await client.getCoins({ owner: sponsorAddress })
     if (!coins || coins.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Sponsor has no gas coins', code: 'sponsor_no_gas' }),
-        { status: 503, headers: { 'Content-Type': 'application/json' } },
-      )
+      return new Response(JSON.stringify({ error: 'Sponsor has no gas coins', code: 'sponsor_no_gas' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     // Use the largest coin for gas to minimise fragmentation
-    const gasCoin = coins.reduce((best, c) =>
-      BigInt(c.balance) > BigInt(best.balance) ? c : best,
-    )
+    const gasCoin = coins.reduce((best, c) => (BigInt(c.balance) > BigInt(best.balance) ? c : best))
 
     // 6. Wire up sponsor gas payment
     tx.setGasOwner(sponsorAddress)
@@ -310,11 +299,7 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    if (
-      message.includes('not configured') ||
-      message.includes('SUI_PACKAGE_ID') ||
-      message.includes('no gas')
-    ) {
+    if (message.includes('not configured') || message.includes('SUI_PACKAGE_ID') || message.includes('no gas')) {
       return new Response(JSON.stringify({ error: message, code: 'sponsor_unavailable' }), {
         status: 503,
         headers: { 'Content-Type': 'application/json' },

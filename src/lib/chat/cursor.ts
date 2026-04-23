@@ -52,8 +52,8 @@ export function isCursorStale(incoming: Cursor, lastKnown: Cursor): boolean {
 // Browser-side IndexedDB persistence
 // ---------------------------------------------------------------------------
 
-const IDB_NAME = "one-chat"
-const IDB_STORE = "cursors"
+const IDB_NAME = 'one-chat'
+const IDB_STORE = 'cursors'
 const IDB_VERSION = 1
 
 function openDb(): Promise<IDBDatabase> {
@@ -70,7 +70,7 @@ function openDb(): Promise<IDBDatabase> {
 export async function storeCursor(sid: string, cursor: string): Promise<void> {
   const db = await openDb()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, "readwrite")
+    const tx = db.transaction(IDB_STORE, 'readwrite')
     tx.objectStore(IDB_STORE).put(cursor, sid)
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
@@ -80,7 +80,7 @@ export async function storeCursor(sid: string, cursor: string): Promise<void> {
 export async function loadCursor(sid: string): Promise<string | null> {
   const db = await openDb()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, "readonly")
+    const tx = db.transaction(IDB_STORE, 'readonly')
     const req = tx.objectStore(IDB_STORE).get(sid)
     req.onsuccess = () => resolve((req.result as string | undefined) ?? null)
     req.onerror = () => reject(req.error)

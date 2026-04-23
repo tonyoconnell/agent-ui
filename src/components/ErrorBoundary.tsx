@@ -10,8 +10,8 @@
  *   </ErrorBoundary>
  */
 
-import { Component } from "react"
-import type { ReactNode } from "react"
+import type { ReactNode } from 'react'
+import { Component } from 'react'
 
 interface Props {
   children: ReactNode
@@ -34,13 +34,13 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error): void {
     // Emit signal to substrate — fire and forget, never throws
-    fetch("/api/signal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    fetch('/api/signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         receiver: `error:${this.props.surface}`,
         data: {
-          tags: ["error", this.props.surface],
+          tags: ['error', this.props.surface],
           content: error.message,
         },
       }),
@@ -49,11 +49,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="text-red-400 p-4">
-          Something went wrong. Refresh to try again.
-        </div>
-      )
+      return <div className="text-red-400 p-4">Something went wrong. Refresh to try again.</div>
     }
     return this.props.children
   }

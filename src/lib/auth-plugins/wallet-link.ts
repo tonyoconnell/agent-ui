@@ -39,11 +39,7 @@ function credIdToHex(buf: ArrayBuffer): string {
  *      append the new credId (hex), and write back (dedup, max 20 hints).
  *   3. Return WalletLinkResult with userId, walletAddress, and linkedAt.
  */
-export async function linkWallet(
-  userId: string,
-  address: SuiAddress,
-  credId?: ArrayBuffer,
-): Promise<WalletLinkResult> {
+export async function linkWallet(userId: string, address: SuiAddress, credId?: ArrayBuffer): Promise<WalletLinkResult> {
   const escapedUserId = esc(userId)
   const escapedAddress = esc(address)
   const linkedAt = new Date().toISOString()

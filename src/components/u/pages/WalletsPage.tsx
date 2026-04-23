@@ -138,18 +138,14 @@ export function WalletsPage() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
-                {wallet.name ?? 'Primary Wallet'}
-              </CardTitle>
+              <CardTitle className="text-lg">{wallet.name ?? 'Primary Wallet'}</CardTitle>
               <Badge variant="outline" className="capitalize">
                 {wallet.chain}
               </Badge>
             </div>
             <CardDescription>
               <code className="text-xs font-mono break-all">
-                {wallet.address
-                  ? `${wallet.address.slice(0, 14)}…${wallet.address.slice(-10)}`
-                  : 'No address'}
+                {wallet.address ? `${wallet.address.slice(0, 14)}…${wallet.address.slice(-10)}` : 'No address'}
               </code>
             </CardDescription>
           </CardHeader>
@@ -158,13 +154,9 @@ export function WalletsPage() {
             <div>
               <div className="text-3xl font-bold">
                 {wallet.balance || '0.00'}{' '}
-                <span className="text-base font-normal text-muted-foreground capitalize">
-                  {wallet.chain}
-                </span>
+                <span className="text-base font-normal text-muted-foreground capitalize">{wallet.chain}</span>
               </div>
-              <div className="text-sm text-muted-foreground">
-                ≈ ${(wallet.usdValue ?? 0).toLocaleString()}
-              </div>
+              <div className="text-sm text-muted-foreground">≈ ${(wallet.usdValue ?? 0).toLocaleString()}</div>
             </div>
 
             {/* Actions */}
@@ -197,9 +189,7 @@ export function WalletsPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Enrolled Devices</CardTitle>
-            <CardDescription>
-              Devices that can unlock this wallet via Touch ID or passkey.
-            </CardDescription>
+            <CardDescription>Devices that can unlock this wallet via Touch ID or passkey.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">

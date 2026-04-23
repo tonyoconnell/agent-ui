@@ -458,7 +458,7 @@ async function fetchSolBalance(address: string): Promise<{ balance: string; usdV
 export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [allWallets, setAllWallets] = useState<Wallet[]>([])
+  const [allWallets, _setAllWallets] = useState<Wallet[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchingTx, setFetchingTx] = useState(false)
   const [fetchingBalance, setFetchingBalance] = useState(false)
@@ -567,7 +567,7 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
         const updatedWallet = { ...wallet, balance: result.balance, usdValue: result.usdValue }
         setWallet(updatedWallet)
 
-        const wallets = allWallets.map((w) => (w.id === wallet.id ? updatedWallet : w))
+        const _wallets = allWallets.map((w) => (w.id === wallet.id ? updatedWallet : w))
         // REMOVED: localStorage.setItem('u_wallets', JSON.stringify(wallets))
         // TODO: write to IndexedDB via useVault().updateBalance() instead
       }

@@ -13,9 +13,9 @@
  *   bun vitest run src/__tests__/integration/memory-reveal.test.ts
  */
 
-import { describe, it, expect, afterAll } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { useCassette } from '@/__tests__/helpers/cassette'
-import { readParsed, writeSilent, escapeTqlString } from '@/lib/typedb'
+import { escapeTqlString, readParsed, writeSilent } from '@/lib/typedb'
 
 describe('memory reveal', () => {
   const uid = `vcr-actor-${Date.now()}`

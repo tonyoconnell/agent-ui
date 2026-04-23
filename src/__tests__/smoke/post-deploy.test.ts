@@ -13,7 +13,7 @@
  * The skipIf guard ensures this only runs when explicitly requested.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 const BASE = process.env.SMOKE_URL ?? 'https://dev.one.ie'
 const runSmoke = process.env.TEST_ENV === 'dev' || process.env.TEST_ENV === 'smoke'
@@ -42,7 +42,7 @@ describe.skipIf(!runSmoke)('post-deploy smoke', () => {
         body: JSON.stringify({ name: `smoke-test-${Date.now()}` }),
       })
       if (res.ok) {
-        const data = await res.json() as { uid: string; apiKey: string }
+        const data = (await res.json()) as { uid: string; apiKey: string }
         uid = data.uid
         apiKey = data.apiKey
       }

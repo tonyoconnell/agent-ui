@@ -2,9 +2,9 @@
 // Implements the contract in interfaces/wallet/seed.d.ts.
 // Browser-only (uses crypto.getRandomValues and @mysten/sui).
 
-import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519"
-import type { Ed25519Seed, SeedBuffer } from "../../../../interfaces/types-crypto"
-import type { WalletRecord } from "../../../../interfaces/types-wallet"
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
+import type { Ed25519Seed, SeedBuffer } from '../../../../interfaces/types-crypto'
+import type { WalletRecord } from '../../../../interfaces/types-wallet'
 
 /**
  * Generate a new random 32-byte Ed25519 seed.

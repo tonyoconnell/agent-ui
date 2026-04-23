@@ -30,14 +30,7 @@ export function initialBuilderState(): BuilderArcState {
 // Intent detection
 // ---------------------------------------------------------------------------
 
-const BUILDER_KEYWORDS = [
-  'ai team',
-  'agent team',
-  'hire agents',
-  'build a team',
-  'create agents',
-  'spawn agents',
-]
+const BUILDER_KEYWORDS = ['ai team', 'agent team', 'hire agents', 'build a team', 'create agents', 'spawn agents']
 
 /**
  * Return true if the user message signals an intent to create an agent team.
@@ -113,8 +106,7 @@ function discoverReply(userMessage: string): {
 } {
   // If the user described a purpose, move to configure; otherwise ask.
   const hasPurpose =
-    userMessage.length > 30 ||
-    /\b(trade|research|write|market|analys|content|code|support)\b/i.test(userMessage)
+    userMessage.length > 30 || /\b(trade|research|write|market|analys|content|code|support)\b/i.test(userMessage)
 
   if (hasPurpose) {
     const specs = DEFAULT_TEAM
@@ -128,7 +120,7 @@ function discoverReply(userMessage: string): {
   return {
     reply:
       "I'll help you build an AI team. What do you want the team to do? " +
-      "(e.g. trade crypto, research topics, write content)",
+      '(e.g. trade crypto, research topics, write content)',
     newState: { phase: 'discover', agentSpecs: [] },
   }
 }
@@ -137,9 +129,7 @@ function configureReply(
   userMessage: string,
   state: BuilderArcState,
 ): { reply: string; newState: BuilderArcState; richPayload?: unknown } {
-  const confirmed = /\b(yes|ok|go|deploy|create|do it|looks good|sounds good|sure|confirm)\b/i.test(
-    userMessage,
-  )
+  const confirmed = /\b(yes|ok|go|deploy|create|do it|looks good|sounds good|sure|confirm)\b/i.test(userMessage)
 
   if (confirmed) {
     const cards = state.agentSpecs.map((s) => agentCardPayload(s))
@@ -152,9 +142,7 @@ function configureReply(
   }
 
   // User wants changes — re-propose with default team (simple reset)
-  const list = state.agentSpecs
-    .map((s) => `• **${s.name}** — $${s.scope.dailyCapUsd}/day cap`)
-    .join('\n')
+  const list = state.agentSpecs.map((s) => `• **${s.name}** — $${s.scope.dailyCapUsd}/day cap`).join('\n')
   return {
     reply: `No problem — I'm keeping the team as:\n\n${list}\n\nSay "yes" when you're ready to deploy, or tell me what to change.`,
     newState: { ...state, phase: 'configure' },
@@ -166,9 +154,7 @@ function deployReply(state: BuilderArcState): {
   newState: BuilderArcState
   richPayload?: unknown
 } {
-  const wallets = state.agentSpecs
-    .map((s) => `• **${s.name}**: \`${placeholderWallet(s.name)}\``)
-    .join('\n')
+  const wallets = state.agentSpecs.map((s) => `• **${s.name}**: \`${placeholderWallet(s.name)}\``).join('\n')
 
   return {
     reply:

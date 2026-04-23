@@ -6,8 +6,8 @@
  * Touch ID gate: navigator.credentials.get() with WebAuthn before submission.
  */
 import { useState, useTransition } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
 
 /** Approximate USD → MIST conversion (1 SUI ≈ $1; 1 SUI = 1e9 MIST). */
@@ -32,9 +32,7 @@ export function NewListingIsland() {
   const [isPending, startTransition] = useTransition()
 
   function toggleTag(tag: string) {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    )
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
   }
 
   function addCustomTag() {
@@ -50,14 +48,23 @@ export function NewListingIsland() {
     setErrorMsg(null)
 
     const priceNum = parseFloat(priceUsd)
-    if (!name.trim()) { setErrorMsg('Name is required.'); return }
-    if (Number.isNaN(priceNum) || priceNum < 0) { setErrorMsg('Enter a valid price.'); return }
+    if (!name.trim()) {
+      setErrorMsg('Name is required.')
+      return
+    }
+    if (Number.isNaN(priceNum) || priceNum < 0) {
+      setErrorMsg('Enter a valid price.')
+      return
+    }
 
     emitClick('ui:sell:create')
 
     // Touch ID / WebAuthn gate (non-blocking — gracefully degrades if unavailable)
     try {
-      if (typeof PublicKeyCredential !== 'undefined' && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+      if (
+        typeof PublicKeyCredential !== 'undefined' &&
+        PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable
+      ) {
         const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
         if (available) {
           await navigator.credentials.get({
@@ -95,12 +102,12 @@ export function NewListingIsland() {
         })
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: res.statusText })) as { error?: string }
+          const err = (await res.json().catch(() => ({ error: res.statusText }))) as { error?: string }
           setErrorMsg(err.error ?? 'Failed to create listing.')
           return
         }
 
-        const data = await res.json() as { capabilityId: string; payUrl: string }
+        const data = (await res.json()) as { capabilityId: string; payUrl: string }
         setPayUrl(data.payUrl)
       } catch {
         setErrorMsg('Network error. Please try again.')
@@ -113,7 +120,13 @@ export function NewListingIsland() {
       <Card className="border-zinc-800 bg-zinc-900/60">
         <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-900/40">
-            <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="h-6 w-6 text-emerald-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
@@ -128,15 +141,18 @@ export function NewListingIsland() {
             {payUrl}
           </a>
           <div className="flex gap-3 pt-2">
-            <a
-              href="/sell"
-              className="text-sm text-zinc-400 transition-colors hover:text-white"
-            >
+            <a href="/sell" className="text-sm text-zinc-400 transition-colors hover:text-white">
               ← My listings
             </a>
             <button
               type="button"
-              onClick={() => { setPayUrl(null); setName(''); setPriceUsd(''); setDescription(''); setSelectedTags([]) }}
+              onClick={() => {
+                setPayUrl(null)
+                setName('')
+                setPriceUsd('')
+                setDescription('')
+                setSelectedTags([])
+              }}
               className="text-sm text-indigo-400 transition-colors hover:text-indigo-300"
             >
               Create another
@@ -151,7 +167,6 @@ export function NewListingIsland() {
     <Card className="border-zinc-800 bg-zinc-900/30">
       <CardContent className="p-6 sm:p-8">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-
           {/* Name */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="sl-name" className="text-xs font-medium text-zinc-400">
@@ -173,7 +188,9 @@ export function NewListingIsland() {
               Price (USD)
             </label>
             <div className="relative">
-              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-zinc-500">$</span>
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-zinc-500">
+                $
+              </span>
               <input
                 id="sl-price"
                 type="number"
@@ -246,7 +263,12 @@ export function NewListingIsland() {
               <input
                 value={customTag}
                 onChange={(e) => setCustomTag(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag() } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addCustomTag()
+                  }
+                }}
                 placeholder="Add custom tag…"
                 className="flex-1 rounded-lg border border-zinc-700 bg-[#0a0a0f] px-3 py-2 text-sm text-white placeholder-zinc-600 transition-colors focus:border-zinc-500 focus:outline-none"
               />
@@ -262,9 +284,7 @@ export function NewListingIsland() {
 
           {/* Error */}
           {errorMsg && (
-            <p className="rounded-md border border-red-800 bg-red-950/40 px-3 py-2 text-xs text-red-300">
-              {errorMsg}
-            </p>
+            <p className="rounded-md border border-red-800 bg-red-950/40 px-3 py-2 text-xs text-red-300">{errorMsg}</p>
           )}
 
           {/* Submit */}
@@ -276,9 +296,7 @@ export function NewListingIsland() {
             {isPending ? 'Creating…' : 'Create listing'}
           </button>
 
-          <p className="text-center text-xs text-zinc-600">
-            Touch ID verifies your identity before publishing.
-          </p>
+          <p className="text-center text-xs text-zinc-600">Touch ID verifies your identity before publishing.</p>
         </form>
       </CardContent>
     </Card>

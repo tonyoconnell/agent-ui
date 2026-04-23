@@ -11,7 +11,7 @@
  * these test cases.
  */
 
-import { describe, expect, it, beforeAll } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { STATE1_CAP_MIST } from '../build'
 
 // ─── types ──────────────────────────────────────────────────────────────────
@@ -57,9 +57,9 @@ const SENDER = '0x00000000000000000000000000000000000000000000000000000000000000
 // Note: STATE1_CAP_MIST is 25_000_000_000n. Number() loses precision near the
 // boundary but our LARGE_AMOUNT is 1_000_000 MIST above the cap which is well
 // within safe integer range (2^53 − 1 >> 26_000_000_000).
-const SMALL_AMOUNT = 1_000_000         // 0.001 SUI — well under the 25 SUI cap
-const AT_CAP_AMOUNT = 25_000_000_000  // exactly 25 SUI — boundary: allowed (> not >=)
-const LARGE_AMOUNT = 26_000_000_000   // 26 SUI — over cap
+const SMALL_AMOUNT = 1_000_000 // 0.001 SUI — well under the 25 SUI cap
+const AT_CAP_AMOUNT = 25_000_000_000 // exactly 25 SUI — boundary: allowed (> not >=)
+const LARGE_AMOUNT = 26_000_000_000 // 26 SUI — over cap
 
 // ─── tests ───────────────────────────────────────────────────────────────────
 

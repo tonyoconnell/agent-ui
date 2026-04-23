@@ -93,7 +93,7 @@ export async function sendHeartbeat(uid: string): Promise<void> {
  */
 export async function checkDeadManCascade(parentUid: string): Promise<void> {
   const thresholdMs = DEADMAN_THRESHOLD_DAYS * MS_PER_DAY
-  const cutoff = new Date(Date.now() - thresholdMs).toISOString().slice(0, 19)
+  const _cutoff = new Date(Date.now() - thresholdMs).toISOString().slice(0, 19)
 
   // Query children owned by this parent (g:owns:<childUid> group pattern)
   const children = await readParsed(`

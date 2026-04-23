@@ -140,7 +140,7 @@ const generatePaymentLink = (product: {
 
 export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
-  const [wallets, setWallets] = useState<Wallet[]>([])
+  const [wallets, _setWallets] = useState<Wallet[]>([])
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showPaymentLinkDialog, setShowPaymentLinkDialog] = useState<Product | null>(null)
   const [showEditDialog, setShowEditDialog] = useState<Product | null>(null)

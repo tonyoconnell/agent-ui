@@ -4,7 +4,7 @@
  */
 
 export interface AllowedTarget {
-  kind: "address" | "package" | "move-fn"
+  kind: 'address' | 'package' | 'move-fn'
   value: string
   description?: string
 }
@@ -30,16 +30,16 @@ export function isAllowed(txTargets: string[], allowlist: AllowedTargetSet): boo
   return txTargets.every((target) =>
     allowlist.targets.some((entry) => {
       switch (entry.kind) {
-        case "address":
+        case 'address':
           return target === entry.value
-        case "package":
+        case 'package':
           return target.startsWith(entry.value)
-        case "move-fn":
+        case 'move-fn':
           return target === entry.value
         default:
           return false
       }
-    })
+    }),
   )
 }
 
@@ -50,35 +50,35 @@ export function isAllowed(txTargets: string[], allowlist: AllowedTargetSet): boo
 export function parseAllowedTargets(raw: unknown): AllowedTargetSet {
   function fail(detail: string): never {
     const err: { kind: string; message: string; cause: string } = {
-      kind: "scope-violation",
-      message: "Scope configuration is invalid.",
+      kind: 'scope-violation',
+      message: 'Scope configuration is invalid.',
       cause: detail,
     }
     throw err
   }
 
-  if (raw === null || typeof raw !== "object") fail("root is not an object")
+  if (raw === null || typeof raw !== 'object') fail('root is not an object')
 
   const obj = raw as Record<string, unknown>
 
   if (obj.version !== 1) fail(`version must be 1, got ${String(obj.version)}`)
-  if (!Array.isArray(obj.targets)) fail("targets must be an array")
-  if (typeof obj.createdAt !== "string") fail("createdAt must be a string")
-  if (typeof obj.updatedAt !== "string") fail("updatedAt must be a string")
+  if (!Array.isArray(obj.targets)) fail('targets must be an array')
+  if (typeof obj.createdAt !== 'string') fail('createdAt must be a string')
+  if (typeof obj.updatedAt !== 'string') fail('updatedAt must be a string')
 
   const targets: AllowedTarget[] = (obj.targets as unknown[]).map((t, i) => {
-    if (t === null || typeof t !== "object") fail(`targets[${i}] is not an object`)
+    if (t === null || typeof t !== 'object') fail(`targets[${i}] is not an object`)
     const entry = t as Record<string, unknown>
     const kind = entry.kind
-    if (kind !== "address" && kind !== "package" && kind !== "move-fn") {
+    if (kind !== 'address' && kind !== 'package' && kind !== 'move-fn') {
       fail(`targets[${i}].kind must be "address" | "package" | "move-fn", got ${String(kind)}`)
     }
-    if (typeof entry.value !== "string") fail(`targets[${i}].value must be a string`)
-    if (entry.description !== undefined && typeof entry.description !== "string") {
+    if (typeof entry.value !== 'string') fail(`targets[${i}].value must be a string`)
+    if (entry.description !== undefined && typeof entry.description !== 'string') {
       fail(`targets[${i}].description must be a string or undefined`)
     }
     return {
-      kind: kind as AllowedTarget["kind"],
+      kind: kind as AllowedTarget['kind'],
       value: entry.value as string,
       ...(entry.description !== undefined ? { description: entry.description as string } : {}),
     }

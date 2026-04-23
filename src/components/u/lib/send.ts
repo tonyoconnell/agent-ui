@@ -8,8 +8,8 @@
  * Contract: interfaces/wallet/send.d.ts
  */
 
-import { makeWalletError } from './errors'
 import type { SendOptions, SendResult } from '../../../../interfaces/wallet/send'
+import { makeWalletError } from './errors'
 
 export type { SendOptions, SendResult }
 
@@ -22,11 +22,7 @@ export type { SendOptions, SendResult }
  * @returns         - { digest, confirmedAt } on success
  * @throws          - WalletError with kind "epoch-expired" | "sponsor-unreachable" | "sponsor-rate-limited"
  */
-export async function sendTx(
-  txBytes: Uint8Array,
-  signature: Uint8Array,
-  opts: SendOptions = {},
-): Promise<SendResult> {
+export async function sendTx(txBytes: Uint8Array, signature: Uint8Array, opts: SendOptions = {}): Promise<SendResult> {
   const { maxRetries = 3, retryDelayMs = 200 } = opts
 
   let lastError: unknown
@@ -49,9 +45,7 @@ export async function sendTx(
           await delay(retryDelayMs)
           continue
         }
-        throw makeWalletError(
-          res.status === 503 ? 'network-error' : 'rate-limited',
-        )
+        throw makeWalletError(res.status === 503 ? 'network-error' : 'rate-limited')
       }
 
       return (await res.json()) as SendResult
@@ -80,8 +74,8 @@ export async function sendTx(
 export function isEpochExpiry(err: unknown): boolean {
   if (err == null || typeof err !== 'object') return false
   const obj = err as Record<string, unknown>
-  const msg = String(obj['message'] ?? obj['error'] ?? '')
-  const code = String(obj['code'] ?? '')
+  const msg = String(obj.message ?? obj.error ?? '')
+  const code = String(obj.code ?? '')
   return (
     msg.includes('epoch') ||
     msg.includes('expired') ||

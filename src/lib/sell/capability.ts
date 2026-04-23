@@ -26,7 +26,10 @@ function mistToSui(mist: bigint): number {
 
 /** Derive a URL-safe slug from a capability ID. */
 function slugify(id: string): string {
-  return id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return id
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 /** Escape a string for inline TQL double-quoted literals. */

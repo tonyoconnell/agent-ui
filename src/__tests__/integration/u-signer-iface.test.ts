@@ -16,8 +16,6 @@ describe('u-signer: interface conformance', () => {
     expect(signer).toBeNull()
   })
 
-
-
   it('createVaultSigner conforms to Signer interface', async () => {
     const { createVaultSigner } = await import('@/components/u/lib/signer/vault-signer')
     const signer = createVaultSigner({
@@ -31,5 +29,4 @@ describe('u-signer: interface conformance', () => {
     expect(signer.canSign('btc')).toBe(true) // vault is multi-chain
     expect(signer.canSign('eth')).toBe(true)
   })
-
 })

@@ -7,31 +7,22 @@
 // Data source: GET /api/u/fleet?address=<suiAddress>
 // Address is derived from IDB vault (no server-side session needed).
 
-import { useState, useEffect, useCallback } from 'react'
-import {
-  AlertCircle,
-  ChevronRight,
-  Layers,
-  Loader2,
-  PauseCircle,
-  RefreshCw,
-  Shield,
-  Wallet,
-} from 'lucide-react'
+import { AlertCircle, ChevronRight, Layers, Loader2, PauseCircle, RefreshCw, Shield, Wallet } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import { emitClick } from '@/lib/ui-signal'
+import { cn } from '@/lib/utils'
 
 // ─── types ─────────────────────────────────────────────────────────────────────
 
 export interface FleetNode {
   walletId: string
-  ownerLabel: string      // "You" or agent name
-  agentLabel: string      // agent uid or "unknown"
-  dailyCapMist: string    // bigint as string
-  spentTodayMist: string  // bigint as string
+  ownerLabel: string // "You" or agent name
+  agentLabel: string // agent uid or "unknown"
+  dailyCapMist: string // bigint as string
+  spentTodayMist: string // bigint as string
   paused: boolean
   depth: number
   children: FleetNode[]
@@ -40,7 +31,7 @@ export interface FleetNode {
 // ─── constants ─────────────────────────────────────────────────────────────────
 
 const MIST_PER_SUI = 1_000_000_000n
-const SUI_PRICE_USD = 1.5   // placeholder; ideally fetched at runtime
+const SUI_PRICE_USD = 1.5 // placeholder; ideally fetched at runtime
 
 // ─── helpers ───────────────────────────────────────────────────────────────────
 
@@ -112,9 +103,7 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
       <Card
         className={cn(
           'border transition-colors',
-          paused
-            ? 'bg-[#0f0f14] border-[#1e1e2a] opacity-60'
-            : 'bg-[#161622] border-[#252538]',
+          paused ? 'bg-[#0f0f14] border-[#1e1e2a] opacity-60' : 'bg-[#161622] border-[#252538]',
         )}
       >
         <CardHeader className="pb-2 pt-3 px-4">
@@ -126,10 +115,7 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
                 <Wallet className="w-4 h-4 text-cyan-400 shrink-0" aria-label="Active wallet" />
               )}
               <span
-                className={cn(
-                  'font-mono text-xs truncate',
-                  paused ? 'text-slate-600' : 'text-slate-300',
-                )}
+                className={cn('font-mono text-xs truncate', paused ? 'text-slate-600' : 'text-slate-300')}
                 title={node.agentLabel}
               >
                 {node.agentLabel}
@@ -137,10 +123,7 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {paused && (
-                <Badge
-                  variant="outline"
-                  className="text-[10px] border-slate-700 text-slate-500 bg-transparent"
-                >
+                <Badge variant="outline" className="text-[10px] border-slate-700 text-slate-500 bg-transparent">
                   paused
                 </Badge>
               )}
@@ -174,9 +157,7 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
           {/* Spent today row */}
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-500">Spent today</span>
-            <span className={cn(paused ? 'text-slate-600' : 'text-slate-300')}>
-              {spentUsd}
-            </span>
+            <span className={cn(paused ? 'text-slate-600' : 'text-slate-300')}>{spentUsd}</span>
           </div>
 
           {/* Progress bar */}
@@ -185,13 +166,7 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
               <div
                 className={cn(
                   'h-1.5 rounded-full transition-all',
-                  paused
-                    ? 'bg-slate-700'
-                    : pct >= 90
-                      ? 'bg-red-500'
-                      : pct >= 60
-                        ? 'bg-amber-500'
-                        : 'bg-cyan-500',
+                  paused ? 'bg-slate-700' : pct >= 90 ? 'bg-red-500' : pct >= 60 ? 'bg-amber-500' : 'bg-cyan-500',
                 )}
                 style={{ width: `${Math.min(pct, 100)}%` }}
                 role="progressbar"
@@ -273,7 +248,6 @@ export function FleetIsland() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-4 py-10">
       <div className="w-full max-w-lg mx-auto space-y-6">
-
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -288,7 +262,10 @@ export function FleetIsland() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => { emitClick('ui:fleet:refresh'); load() }}
+            onClick={() => {
+              emitClick('ui:fleet:refresh')
+              load()
+            }}
             disabled={loading}
             aria-label="Refresh fleet"
             className="text-slate-400 hover:text-white hover:bg-[#1e1e2a] shrink-0"
@@ -351,9 +328,7 @@ export function FleetIsland() {
           <>
             <div className="rounded-xl border border-[#252538] bg-[#161622] px-5 py-4 flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs text-slate-500 uppercase tracking-widest mb-0.5">
-                  Total exposure
-                </p>
+                <p className="text-xs text-slate-500 uppercase tracking-widest mb-0.5">Total exposure</p>
                 <p className="text-2xl font-bold text-white">
                   {totalCapUsd}
                   <span className="text-base font-normal text-slate-500 ml-2">/day</span>
@@ -376,10 +351,7 @@ export function FleetIsland() {
 
         {/* Back link */}
         <div className="pt-2 text-center">
-          <a
-            href="/u"
-            className="text-slate-500 text-xs hover:text-slate-300 underline underline-offset-2"
-          >
+          <a href="/u" className="text-slate-500 text-xs hover:text-slate-300 underline underline-offset-2">
             Back to wallet
           </a>
         </div>

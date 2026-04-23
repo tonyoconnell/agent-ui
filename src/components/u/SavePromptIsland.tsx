@@ -30,11 +30,5 @@ export function SavePromptIsland() {
 
   if (dismissed) return null
 
-  return (
-    <SavePrompt
-      onSave={handleSave}
-      onDismiss={handleDismiss}
-      isDismissable={true}
-    />
-  )
+  return <SavePrompt onSave={handleSave} onDismiss={handleDismiss} isDismissable={true} />
 }

@@ -20,13 +20,9 @@ export interface WebhookPayload {
  */
 export async function buildWebhookSig(payload: string, secret: string): Promise<string> {
   const encoder = new TextEncoder()
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  )
+  const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+  ])
   const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload))
   return Array.from(new Uint8Array(sig))
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -41,18 +37,12 @@ export async function buildWebhookSig(payload: string, secret: string): Promise<
  */
 export async function verifyWebhook(payload: string, signature: string, secret: string): Promise<boolean> {
   const encoder = new TextEncoder()
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify'],
-  )
+  const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'verify',
+  ])
 
   // Convert hex signature string → ArrayBuffer
-  const sigBytes = new Uint8Array(
-    signature.match(/.{1,2}/g)?.map((b) => Number.parseInt(b, 16)) ?? [],
-  )
+  const sigBytes = new Uint8Array(signature.match(/.{1,2}/g)?.map((b) => Number.parseInt(b, 16)) ?? [])
 
   if (sigBytes.length !== 32) return false // SHA-256 is always 32 bytes
 

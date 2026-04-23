@@ -1,4 +1,4 @@
-import type { SuiAddress } from "../types-sui"
+import type { SuiAddress } from '../types-sui'
 
 export interface SpawnChildArgs {
   parentUid: string
@@ -9,7 +9,7 @@ export interface SpawnChildArgs {
 }
 
 export interface SpawnChildResult {
-  scopedWalletId: string    // Move object ID
+  scopedWalletId: string // Move object ID
   txDigest: string
 }
 

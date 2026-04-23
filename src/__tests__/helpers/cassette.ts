@@ -33,9 +33,9 @@
  */
 
 import { createHash } from 'node:crypto'
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { beforeAll, afterAll, vi } from 'vitest'
+import { afterAll, beforeAll, vi } from 'vitest'
 
 const CASSETTE_DIR = resolve(process.cwd(), 'src/__tests__/cassettes')
 const SCHEMA_PATH = resolve(process.cwd(), 'src/schema/world.tql')
@@ -79,8 +79,8 @@ export function useCassette(name: string) {
       if (!existsSync(cassettePath)) {
         throw new Error(
           `Cassette not found: ${cassettePath}\n` +
-          `Record it with:\n` +
-          `  RECORD=1 GATEWAY_API_KEY=<key> PUBLIC_GATEWAY_URL=<url> TYPEDB_DIRECT_URL="" bun vitest run <test-file>`,
+            `Record it with:\n` +
+            `  RECORD=1 GATEWAY_API_KEY=<key> PUBLIC_GATEWAY_URL=<url> TYPEDB_DIRECT_URL="" bun vitest run <test-file>`,
         )
       }
 
@@ -90,10 +90,10 @@ export function useCassette(name: string) {
       if (data.schema_hash !== 'unknown' && liveHash !== 'unknown' && data.schema_hash !== liveHash) {
         throw new Error(
           `Cassette '${name}' is stale — schema has changed.\n` +
-          `  Recorded against schema: ${data.schema_hash}\n` +
-          `  Current schema:          ${liveHash}\n` +
-          `Re-record with:\n` +
-          `  RECORD=1 GATEWAY_API_KEY=<key> PUBLIC_GATEWAY_URL=<url> TYPEDB_DIRECT_URL="" bun vitest run <test-file>`,
+            `  Recorded against schema: ${data.schema_hash}\n` +
+            `  Current schema:          ${liveHash}\n` +
+            `Re-record with:\n` +
+            `  RECORD=1 GATEWAY_API_KEY=<key> PUBLIC_GATEWAY_URL=<url> TYPEDB_DIRECT_URL="" bun vitest run <test-file>`,
         )
       }
 
@@ -114,7 +114,11 @@ export function useCassette(name: string) {
         const clone = real.clone()
         const body = await clone.json().catch(() => null)
         let reqBody: unknown = null
-        try { reqBody = JSON.parse(init?.body as string) } catch { /* empty */ }
+        try {
+          reqBody = JSON.parse(init?.body as string)
+        } catch {
+          /* empty */
+        }
 
         recorded.push({
           id: `${name}-${String(recorded.length + 1).padStart(3, '0')}`,
@@ -129,7 +133,7 @@ export function useCassette(name: string) {
         if (!interaction) {
           throw new Error(
             `Cassette '${name}' ran out of interactions at call ${callIndex}.\n` +
-            `Re-record with: RECORD=1 GATEWAY_API_KEY=<key> PUBLIC_GATEWAY_URL=<url> TYPEDB_DIRECT_URL="" bun vitest run <test-file>`,
+              `Re-record with: RECORD=1 GATEWAY_API_KEY=<key> PUBLIC_GATEWAY_URL=<url> TYPEDB_DIRECT_URL="" bun vitest run <test-file>`,
           )
         }
 
@@ -151,7 +155,9 @@ export function useCassette(name: string) {
         interactions: recorded,
       }
       writeFileSync(cassettePath, JSON.stringify(cassette, null, 2))
-      console.log(`[cassette] Recorded ${recorded.length} interactions → ${cassettePath} (schema: ${cassette.schema_hash})`)
+      console.log(
+        `[cassette] Recorded ${recorded.length} interactions → ${cassettePath} (schema: ${cassette.schema_hash})`,
+      )
     }
   })
 }

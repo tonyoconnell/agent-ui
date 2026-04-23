@@ -7,12 +7,12 @@
  */
 
 import { useEffect, useState } from 'react'
+import { getWallet } from '@/components/u/lib/idb'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
-import { getWallet } from '@/components/u/lib/idb'
-import { UNav } from '../UNav'
 import type { WalletRecord } from '../../../../interfaces/types-wallet'
+import { UNav } from '../UNav'
 
 function formatAddress(addr: string): string {
   if (!addr || addr.length < 16) return addr
@@ -48,7 +48,9 @@ export function ReceivePage() {
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const copyAddress = async () => {
@@ -73,15 +75,16 @@ export function ReceivePage() {
 
         {/* Error */}
         {error && (
-          <div role="alert" className="rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-3 text-red-400 text-sm">
+          <div
+            role="alert"
+            className="rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-3 text-red-400 text-sm"
+          >
             {error}
           </div>
         )}
 
         {/* Loading */}
-        {loading && (
-          <p className="text-slate-500 text-sm text-center py-8">Loading wallet…</p>
-        )}
+        {loading && <p className="text-slate-500 text-sm text-center py-8">Loading wallet…</p>}
 
         {/* No wallet */}
         {!loading && !record && !error && (
@@ -106,15 +109,9 @@ export function ReceivePage() {
                 <span className="text-amber-400 mt-0.5 shrink-0">⚠</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-amber-300 text-sm font-medium">Wallet not saved</p>
-                  <p className="text-amber-400/70 text-xs mt-0.5">
-                    Save with Touch ID so you don't lose access.
-                  </p>
+                  <p className="text-amber-400/70 text-xs mt-0.5">Save with Touch ID so you don't lose access.</p>
                 </div>
-                <Button
-                  asChild
-                  size="sm"
-                  className="shrink-0 bg-amber-600 hover:bg-amber-500 text-white"
-                >
+                <Button asChild size="sm" className="shrink-0 bg-amber-600 hover:bg-amber-500 text-white">
                   <a href="/u/save">Save wallet</a>
                 </Button>
               </div>
@@ -142,10 +139,7 @@ export function ReceivePage() {
                 </div>
 
                 {/* Copy button */}
-                <Button
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white"
-                  onClick={copyAddress}
-                >
+                <Button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" onClick={copyAddress}>
                   {copied ? '✓ Copied!' : '📋 Copy address'}
                 </Button>
 
@@ -162,9 +156,7 @@ export function ReceivePage() {
             </Card>
 
             {/* Help text */}
-            <p className="text-center text-xs text-slate-600">
-              Send only SUI and SUI-based tokens to this address
-            </p>
+            <p className="text-center text-xs text-slate-600">Send only SUI and SUI-based tokens to this address</p>
           </>
         )}
       </div>

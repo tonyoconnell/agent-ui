@@ -405,7 +405,7 @@ export function useVault(opts: Options = {}): UseVaultResult {
   const runInlineMigration = useCallback(
     async (oldPassword?: string): Promise<{ migrated: number; errors: string[] }> => {
       const errors: string[] = []
-      let migrated = 0
+      const migrated = 0
       const inv = inspectLegacy()
       const existing = await Vault.listWallets()
       const known = new Set(existing.map((w) => `${w.chain}:${w.address}`))

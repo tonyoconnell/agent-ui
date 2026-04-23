@@ -229,7 +229,11 @@ export function PeoplePage() {
                         // REMOVED: localStorage.getItem('u_wallets') read
                         // TODO: read from IndexedDB via useVault() hook instead
                         // For now, return empty state
-                        return <p className="text-muted-foreground col-span-2">No wallets connected (TODO: migrate to vault)</p>
+                        return (
+                          <p className="text-muted-foreground col-span-2">
+                            No wallets connected (TODO: migrate to vault)
+                          </p>
+                        )
                         // const wallets = localStorage.getItem('u_wallets')
                         // if (!wallets) return <p className="text-muted-foreground col-span-2">No wallets connected</p>
                         // return JSON.parse(wallets).map((w: any) => (

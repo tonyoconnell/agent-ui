@@ -14,24 +14,24 @@ import { ERROR_COPY } from '../src/components/u/lib/errors'
 // Expected values mapped from wallet.md §Error copy table
 const EXPECTED = {
   // Vault / auth state
-  'locked': 'Your wallet is locked. Unlock it to continue.',
+  locked: 'Your wallet is locked. Unlock it to continue.',
   'no-vault': 'No wallet found. Set one up to get started.',
   'wrong-password': 'Incorrect password. Try again.',
-  'wrong-recovery': 'Recovery phrase didn\'t match. Check each word and try again.',
+  'wrong-recovery': "Recovery phrase didn't match. Check each word and try again.",
   // Passkey / WebAuthn
   'passkey-cancelled': null, // silent per wallet.md
-  'passkey-unsupported': 'This browser can\'t save wallets yet. Use Safari 17+ or Chrome 118+.',
+  'passkey-unsupported': "This browser can't save wallets yet. Use Safari 17+ or Chrome 118+.",
   // Integrity
   'tamper-detected': 'Vault data looks unexpected. Re-import your recovery phrase to continue.',
   // Rate limiting
   'rate-limited': 'One moment — finishing a previous action.',
   // Mnemonic
-  'invalid-mnemonic': 'Those words don\'t match a wallet. Check each one.',
+  'invalid-mnemonic': "Those words don't match a wallet. Check each one.",
   // Storage / crypto internals
-  'storage-error': 'Couldn\'t access secure storage. Check your browser settings.',
+  'storage-error': "Couldn't access secure storage. Check your browser settings.",
   'crypto-error': 'A security operation failed. Try again or reload the page.',
   // Network / sponsored transactions
-  'network-error': 'Couldn\'t reach the network. Try again.',
+  'network-error': "Couldn't reach the network. Try again.",
   'epoch-expired': 'Took a moment too long — tap Send again.',
   'cap-exceeded': 'Save this wallet first to receive larger amounts.',
 } as const

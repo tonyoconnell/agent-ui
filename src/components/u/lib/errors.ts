@@ -41,26 +41,26 @@
 
 export type WalletErrorKind =
   // Vault / auth state
-  | 'locked'            // vault is locked; unlock before proceeding
-  | 'no-vault'          // no vault exists; setup required
-  | 'wrong-password'    // password verification failed
-  | 'wrong-recovery'    // recovery phrase did not match
+  | 'locked' // vault is locked; unlock before proceeding
+  | 'no-vault' // no vault exists; setup required
+  | 'wrong-password' // password verification failed
+  | 'wrong-recovery' // recovery phrase did not match
   // Passkey / WebAuthn
   | 'passkey-cancelled' // user dismissed the Touch ID / Face ID prompt — show nothing
   | 'passkey-unsupported' // PRF extension or WebAuthn API unavailable → show browser upgrade
   // Integrity
-  | 'tamper-detected'   // sentinel decrypt mismatch — vault may be corrupted
+  | 'tamper-detected' // sentinel decrypt mismatch — vault may be corrupted
   // Rate limiting
-  | 'rate-limited'      // too many failed attempts; auto-retry in progress
+  | 'rate-limited' // too many failed attempts; auto-retry in progress
   // Mnemonic
-  | 'invalid-mnemonic'  // BIP39 word list validation failed
+  | 'invalid-mnemonic' // BIP39 word list validation failed
   // Storage / crypto internals
-  | 'storage-error'     // IndexedDB unavailable or failed
-  | 'crypto-error'      // WebCrypto API failure
+  | 'storage-error' // IndexedDB unavailable or failed
+  | 'crypto-error' // WebCrypto API failure
   // Network / sponsored transactions
-  | 'network-error'     // sponsor Worker returned 5xx or no connectivity
-  | 'epoch-expired'     // sponsored tx epoch expired between sign and submit
-  | 'cap-exceeded'      // deposit exceeds State 1 (anonymous) wallet cap
+  | 'network-error' // sponsor Worker returned 5xx or no connectivity
+  | 'epoch-expired' // sponsored tx epoch expired between sign and submit
+  | 'cap-exceeded' // deposit exceeds State 1 (anonymous) wallet cap
 
 // ============================================
 // INTERFACE
@@ -90,40 +90,26 @@ export interface WalletError extends Error {
  */
 export const ERROR_COPY: Record<WalletErrorKind, string | null> = {
   // Vault / auth state
-  'locked':
-    'Your wallet is locked. Unlock it to continue.',
-  'no-vault':
-    'No wallet found. Set one up to get started.',
-  'wrong-password':
-    'Incorrect password. Try again.',
-  'wrong-recovery':
-    'Recovery phrase didn\'t match. Check each word and try again.',
+  locked: 'Your wallet is locked. Unlock it to continue.',
+  'no-vault': 'No wallet found. Set one up to get started.',
+  'wrong-password': 'Incorrect password. Try again.',
+  'wrong-recovery': "Recovery phrase didn't match. Check each word and try again.",
   // Passkey / WebAuthn
-  'passkey-cancelled':
-    null, // user cancelled — show nothing per wallet.md
-  'passkey-unsupported':
-    'This browser can\'t save wallets yet. Use Safari 17+ or Chrome 118+.',
+  'passkey-cancelled': null, // user cancelled — show nothing per wallet.md
+  'passkey-unsupported': "This browser can't save wallets yet. Use Safari 17+ or Chrome 118+.",
   // Integrity
-  'tamper-detected':
-    'Vault data looks unexpected. Re-import your recovery phrase to continue.',
+  'tamper-detected': 'Vault data looks unexpected. Re-import your recovery phrase to continue.',
   // Rate limiting
-  'rate-limited':
-    'One moment — finishing a previous action.',
+  'rate-limited': 'One moment — finishing a previous action.',
   // Mnemonic
-  'invalid-mnemonic':
-    'Those words don\'t match a wallet. Check each one.',
+  'invalid-mnemonic': "Those words don't match a wallet. Check each one.",
   // Storage / crypto internals
-  'storage-error':
-    'Couldn\'t access secure storage. Check your browser settings.',
-  'crypto-error':
-    'A security operation failed. Try again or reload the page.',
+  'storage-error': "Couldn't access secure storage. Check your browser settings.",
+  'crypto-error': 'A security operation failed. Try again or reload the page.',
   // Network / sponsored transactions
-  'network-error':
-    'Couldn\'t reach the network. Try again.',
-  'epoch-expired':
-    'Took a moment too long — tap Send again.',
-  'cap-exceeded':
-    'Save this wallet first to receive larger amounts.',
+  'network-error': "Couldn't reach the network. Try again.",
+  'epoch-expired': 'Took a moment too long — tap Send again.',
+  'cap-exceeded': 'Save this wallet first to receive larger amounts.',
 }
 
 // ============================================
@@ -132,9 +118,7 @@ export const ERROR_COPY: Record<WalletErrorKind, string | null> = {
 
 export function isWalletError(err: unknown): err is WalletError {
   return (
-    err instanceof Error &&
-    (err as WalletError).name === 'WalletError' &&
-    typeof (err as WalletError).kind === 'string'
+    err instanceof Error && (err as WalletError).name === 'WalletError' && typeof (err as WalletError).kind === 'string'
   )
 }
 
@@ -151,7 +135,12 @@ export function isWalletError(err: unknown): err is WalletError {
 export function makeWalletError(kind: WalletErrorKind, cause?: unknown): WalletError {
   const userMessage = ERROR_COPY[kind]
   const internalMessage = cause instanceof Error ? cause.message : String(cause ?? kind)
-  const err = new Error(internalMessage) as WalletError & { name: string; kind: WalletErrorKind; userMessage: string | null; cause?: unknown }
+  const err = new Error(internalMessage) as WalletError & {
+    name: string
+    kind: WalletErrorKind
+    userMessage: string | null
+    cause?: unknown
+  }
   err.name = 'WalletError'
   err.kind = kind
   err.userMessage = userMessage

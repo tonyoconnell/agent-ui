@@ -18,8 +18,8 @@
  */
 
 import type { APIRoute } from 'astro'
-import { getEnv } from '@/lib/cf-env'
 import { resolveUnitFromSession, validateApiKey } from '@/lib/api-auth'
+import { getEnv } from '@/lib/cf-env'
 
 export const prerender = false
 
@@ -121,13 +121,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     })
   }
 
-  const {
-    agentUid,
-    txBytesB64,
-    agentSigB64,
-    summary,
-    targetAddress,
-  } = body as Partial<{
+  const { agentUid, txBytesB64, agentSigB64, summary, targetAddress } = body as Partial<{
     agentUid: string
     txBytesB64: string
     agentSigB64: string

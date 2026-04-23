@@ -8,11 +8,11 @@
  */
 
 import { useEffect, useState } from 'react'
+import { formatUsd } from '@/components/u/lib/money'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
-import { formatUsd } from '@/components/u/lib/money'
 import { cn } from '@/lib/utils'
 
 // ── Listing interface (matches /api/skills Listing type) ───────────────────────
@@ -20,9 +20,9 @@ import { cn } from '@/lib/utils'
 interface Listing {
   skillId: string
   name: string
-  priceMist: string        // bigint as string (1 SUI = 1_000_000_000 MIST)
+  priceMist: string // bigint as string (1 SUI = 1_000_000_000 MIST)
   tags: string[]
-  seller: string           // uid
+  seller: string // uid
   description?: string
   pheromoneStrength?: number
 }
@@ -54,9 +54,7 @@ function ListingCard({ listing, onBuy }: ListingCardProps) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-slate-100">{listing.name}</div>
-          <div className="mt-0.5 truncate font-mono text-[11px] text-slate-500">
-            {listing.seller}
-          </div>
+          <div className="mt-0.5 truncate font-mono text-[11px] text-slate-500">{listing.seller}</div>
         </div>
         <div className="shrink-0 text-right">
           <div className="text-sm font-semibold text-slate-200">{priceLabel}</div>
@@ -83,10 +81,7 @@ function ListingCard({ listing, onBuy }: ListingCardProps) {
       {strength > 0 && (
         <div className="flex items-center gap-2">
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-[#252538]">
-            <div
-              className="h-full rounded-full bg-indigo-500/70"
-              style={{ width: `${Math.min(100, strength)}%` }}
-            />
+            <div className="h-full rounded-full bg-indigo-500/70" style={{ width: `${Math.min(100, strength)}%` }} />
           </div>
           <span className="shrink-0 text-[10px] text-slate-600">{Math.round(strength)} str</span>
         </div>
@@ -121,9 +116,7 @@ export function BuyDiscoveryIsland() {
     setLoading(true)
     fetch('/api/skills?sort=strength&limit=20')
       .then((r) =>
-        r.ok
-          ? (r.json() as Promise<{ skills: Listing[] }>)
-          : Promise.reject(new Error(`HTTP ${r.status}`)),
+        r.ok ? (r.json() as Promise<{ skills: Listing[] }>) : Promise.reject(new Error(`HTTP ${r.status}`)),
       )
       .then((data) => {
         setListings(data.skills)
@@ -168,10 +161,7 @@ export function BuyDiscoveryIsland() {
             'focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/30',
           )}
         />
-        <a
-          href="/sell"
-          className="shrink-0 text-xs text-slate-500 transition-colors hover:text-slate-300"
-        >
+        <a href="/sell" className="shrink-0 text-xs text-slate-500 transition-colors hover:text-slate-300">
           Sell something →
         </a>
       </div>
@@ -185,9 +175,7 @@ export function BuyDiscoveryIsland() {
       )}
 
       {/* State: error */}
-      {!loading && error && (
-        <p className="py-8 text-center text-sm text-red-400">Could not load skills: {error}</p>
-      )}
+      {!loading && error && <p className="py-8 text-center text-sm text-red-400">Could not load skills: {error}</p>}
 
       {/* State: empty */}
       {!loading && !error && filtered.length === 0 && (
@@ -200,8 +188,7 @@ export function BuyDiscoveryIsland() {
       {!loading && !error && filtered.length > 0 && (
         <>
           <p className="text-xs text-slate-600">
-            {filtered.length} skill{filtered.length !== 1 ? 's' : ''} · sorted by pheromone
-            strength
+            {filtered.length} skill{filtered.length !== 1 ? 's' : ''} · sorted by pheromone strength
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((l) => (

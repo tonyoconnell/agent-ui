@@ -13,8 +13,8 @@
  * price fluctuations and prevents alert storms on sub-cent deltas.
  */
 
-import { readParsed, writeSilent } from '@/lib/typedb'
 import { getClient } from '@/lib/sui'
+import { readParsed, writeSilent } from '@/lib/typedb'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -121,9 +121,7 @@ export async function reconcileAll(): Promise<ReconcileResult[]> {
       match $u isa unit, has uid $uid, has wallet $w;
       select $uid, $w;
     `)
-    wallets = rows
-      .filter((r) => r.uid && r.w)
-      .map((r) => ({ uid: String(r.uid), wallet: String(r.w) }))
+    wallets = rows.filter((r) => r.uid && r.w).map((r) => ({ uid: String(r.uid), wallet: String(r.w) }))
   } catch {
     // TypeDB unavailable — return empty so the scheduler doesn't crash
     return []
