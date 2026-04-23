@@ -45,7 +45,7 @@ interface Chain {
   decimals: number
 }
 
-import type { Wallet } from './lib/adapters/WalletAdapter'
+import type { Wallet } from './lib/types'
 
 interface EnhancedWalletCardProps {
   wallet: Wallet

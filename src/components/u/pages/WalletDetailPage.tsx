@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { WalletAdapter } from '../lib/adapters/WalletAdapter'
+import * as Vault from '../lib/vault/vault'
 import { ReceiveSheet } from '../sheets/ReceiveSheet'
 import { UNav } from '../UNav'
 
@@ -479,11 +479,29 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       return
     }
 
-    // Load from WalletAdapter (localStorage-backed metadata, safe — no seed material)
-    const stored = WalletAdapter.fromLocalStorage()
-    const found = stored.find((w) => w.id === walletId)
-    // Cast: WalletAdapter.Wallet is a subset of the local Wallet interface
-    if (found) setWallet(found as unknown as Wallet)
+    let cancelled = false
+    void (async () => {
+      try {
+        const v = await Vault.getWallet(walletId)
+        if (!cancelled && v) {
+          setWallet({
+            id: v.id,
+            name: v.name ?? `My ${v.chain.toUpperCase()} Wallet`,
+            address: v.address,
+            chain: v.chain.toLowerCase(),
+            balance: v.balance,
+            context: v.id.startsWith('testnet-') ? 'testnet' : 'mainnet',
+            publicKey: v.publicKey || undefined,
+            usdValue: v.usdValue,
+            lastUpdated: v.createdAt,
+          } as Wallet)
+        }
+      } catch {
+        /* wallet missing or vault unavailable — loading state handles it */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
 
     const storedTx = localStorage.getItem('u_transactions')
     if (storedTx) {
@@ -493,7 +511,9 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       } catch { /* ignore */ }
     }
 
-    setLoading(false)
+    return () => {
+      cancelled = true
+    }
   }, [walletId])
 
   // Re-filter transactions when wallet is loaded
