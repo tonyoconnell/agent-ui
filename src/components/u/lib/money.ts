@@ -282,3 +282,41 @@ function _shortAddr(addr: string): string {
 export function isValidAddress(s: string): s is SuiAddress {
   return /^0x[0-9a-fA-F]{64}$/.test(s)
 }
+
+// ── SuiNS resolution ────────────────────────────────────────────────────────
+
+/** In-process cache for SuiNS handle → address lookups. TTL: 60 seconds. */
+const _handleCache = new Map<string, { address: string | null; expiresAt: number }>()
+
+/**
+ * Resolve a SuiNS handle or raw address to a Sui address.
+ *
+ * - If `handle` starts with `0x` and is exactly 64 hex chars, returns it as-is.
+ * - Otherwise queries the SuiNS registry via the Sui RPC client.
+ * - Results are cached for 60 seconds to avoid repeated RPC calls.
+ *
+ * @param handle - Raw Sui address (`0x…`) or SuiNS name (e.g., `alice.sui`)
+ * @returns Resolved address string, or `null` if name not found
+ */
+export async function resolveHandle(handle: string): Promise<string | null> {
+  // Fast path: already a raw address
+  if (isValidAddress(handle)) return handle
+
+  // Check cache
+  const now = Date.now()
+  const cached = _handleCache.get(handle)
+  if (cached && cached.expiresAt > now) return cached.address
+
+  // Query SuiNS via the RPC client (lazy import to avoid circular deps in non-Sui envs)
+  try {
+    const { getClient } = await import('@/lib/sui')
+    const client = getClient()
+    const address = await client.resolveNameServiceAddress({ name: handle })
+    _handleCache.set(handle, { address, expiresAt: now + 60_000 })
+    return address
+  } catch {
+    // RPC unavailable or name resolution error — cache as null
+    _handleCache.set(handle, { address: null, expiresAt: now + 60_000 })
+    return null
+  }
+}

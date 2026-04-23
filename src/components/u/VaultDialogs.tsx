@@ -1,4 +1,4 @@
-// VaultDialogs — unlock, recovery reveal, backup, settings. All use useVault().
+// VaultDialogs — unlock, recovery reveal, backup, settings. Direct Vault.* API.
 
 import {
   AlertTriangle,
@@ -12,8 +12,9 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react'
-import { useEffect, useMemo, useState, useTransition } from 'react'
-import { useVault } from '@/components/u/lib/useVault'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import * as Vault from '@/components/u/lib/vault/vault'
+import type { VaultStatus } from '@/components/u/lib/vault/types'
 import { isValidRecoveryPhrase, RECOVERY_WORD_COUNT, suggestWords } from '@/components/u/lib/vault'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -41,10 +42,15 @@ interface DialogProps {
 // =====================================================================
 
 export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
-  const vault = useVault()
-  const prf = vault.status?.capabilities.prf ?? false
-  const hasPasskey = vault.status?.hasPasskey ?? false
-  const hasPassword = vault.status?.hasPassword ?? false
+  const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null)
+  const refreshStatus = useCallback(async () => {
+    try { setVaultStatus(await Vault.getStatus()) } catch { /* ignore */ }
+  }, [])
+  useEffect(() => { void refreshStatus() }, [refreshStatus])
+
+  const prf = vaultStatus?.capabilities.prf ?? false
+  const hasPasskey = vaultStatus?.hasPasskey ?? false
+  const hasPassword = vaultStatus?.hasPassword ?? false
 
   const defaultTab: 'passkey' | 'password' | 'recovery' =
     hasPasskey && prf ? 'passkey' : hasPassword ? 'password' : 'recovery'
@@ -76,7 +82,8 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
     setError(null)
     startTransition(async () => {
       try {
-        await vault.unlockWithPasskey()
+        await Vault.unlockWithPasskey()
+        await refreshStatus()
         onOpenChange(false)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Passkey unlock failed')
@@ -89,7 +96,8 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
     setError(null)
     startTransition(async () => {
       try {
-        await vault.unlockWithPassword(password)
+        await Vault.unlockWithPassword(password)
+        await refreshStatus()
         onOpenChange(false)
       } catch (e) {
         setAttempts((n) => n + 1)
@@ -108,7 +116,8 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
     }
     startTransition(async () => {
       try {
-        await vault.unlockWithRecovery(phrase)
+        await Vault.unlockWithRecovery(phrase)
+        await refreshStatus()
         onOpenChange(false)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not unlock with recovery phrase')
@@ -358,7 +367,6 @@ export function VaultRecoveryRevealDialog({ open, onOpenChange }: DialogProps) {
 // =====================================================================
 
 export function VaultBackupDialog({ open, onOpenChange }: DialogProps) {
-  const vault = useVault()
   const [tab, setTab] = useState<string>('export')
 
   const [exportPassword, setExportPassword] = useState('')
@@ -394,7 +402,7 @@ export function VaultBackupDialog({ open, onOpenChange }: DialogProps) {
     setExportError(null)
     startTransition(async () => {
       try {
-        const blob = await vault.exportBackup(exportPassword)
+        const blob = await Vault.exportBackup(exportPassword)
         const file = new Blob([blob], { type: 'application/json' })
         const url = URL.createObjectURL(file)
         const a = document.createElement('a')
@@ -422,7 +430,7 @@ export function VaultBackupDialog({ open, onOpenChange }: DialogProps) {
     setImportError(null)
     startTransition(async () => {
       try {
-        const n = await vault.importBackup(importFile, importPassword)
+        const n = await Vault.importBackup(importFile, importPassword)
         setImportCount(n)
       } catch (e) {
         setImportError(e instanceof Error ? e.message : 'Import failed')
@@ -568,7 +576,12 @@ const AUTO_LOCK_OPTIONS: Array<{ label: string; ms: number }> = [
 ]
 
 export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
-  const vault = useVault()
+  const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null)
+  const refreshStatus = useCallback(async () => {
+    try { setVaultStatus(await Vault.getStatus()) } catch { /* ignore */ }
+  }, [])
+  useEffect(() => { void refreshStatus() }, [refreshStatus])
+
   const [autoLockMs, setAutoLockMs] = useState<number>(30 * 60_000)
   const [lockOnTabClose, setLockOnTabClose] = useState<boolean>(false)
 
@@ -615,7 +628,7 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
     setAutoLockMs(ms)
     startTransition(async () => {
       try {
-        await vault.setAutoLockMs(ms)
+        await Vault.setAutoLockMs(ms)
         flash('Auto-lock updated')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to update auto-lock')
@@ -628,7 +641,7 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
     setLockOnTabClose(enabled)
     startTransition(async () => {
       try {
-        await vault.setLockOnTabClose(enabled)
+        await Vault.setLockOnTabClose(enabled)
         flash('Preference saved')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to update preference')
@@ -641,7 +654,8 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
     setError(null)
     startTransition(async () => {
       try {
-        await vault.addPasskey()
+        await Vault.addPasskey()
+        await refreshStatus()
         flash('Passkey enrolled')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to enroll passkey')
@@ -662,11 +676,12 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
     }
     startTransition(async () => {
       try {
-        await vault.changePassword(oldPassword, newPassword)
+        await Vault.changePassword(oldPassword, newPassword)
         setOldPassword('')
         setNewPassword('')
         setConfirmNewPassword('')
         setShowChangePassword(false)
+        await refreshStatus()
         flash('Password changed')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to change password')
@@ -683,8 +698,9 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
     setError(null)
     startTransition(async () => {
       try {
-        await vault.removePassword()
+        await Vault.removePassword()
         setConfirmRemovePw(false)
+        await refreshStatus()
         flash('Password removed')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to remove password')
@@ -705,7 +721,7 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
     setError(null)
     startTransition(async () => {
       try {
-        await vault.wipeAll()
+        await Vault.wipeAll()
         onOpenChange(false)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to wipe vault')
@@ -713,7 +729,7 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
     })
   }
 
-  const hasPassword = vault.status?.hasPassword ?? false
+  const hasPassword = vaultStatus?.hasPassword ?? false
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

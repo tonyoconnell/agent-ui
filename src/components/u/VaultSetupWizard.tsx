@@ -2,8 +2,9 @@
 // The recovery phrase lives only in component state, never persisted here.
 
 import { Check, Copy, Download, Fingerprint, KeyRound, Loader2, ShieldAlert } from 'lucide-react'
-import { useEffect, useMemo, useState, useTransition } from 'react'
-import { useVault } from '@/components/u/lib/useVault'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import * as Vault from '@/components/u/lib/vault/vault'
+import type { VaultStatus } from '@/components/u/lib/vault/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -35,7 +36,12 @@ function scorePassword(pw: string): number {
 }
 
 export function VaultSetupWizard({ open, onOpenChange, onComplete }: Props) {
-  const vault = useVault()
+  const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null)
+  const refreshStatus = useCallback(async () => {
+    try { setVaultStatus(await Vault.getStatus()) } catch { /* ignore */ }
+  }, [])
+  useEffect(() => { void refreshStatus() }, [refreshStatus])
+
   const [step, setStep] = useState<Step>(0)
   const [methods, setMethods] = useState<Set<Method>>(new Set())
   const [password, setPassword] = useState('')
@@ -46,7 +52,7 @@ export function VaultSetupWizard({ open, onOpenChange, onComplete }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
-  const prfAvailable = !!vault.status?.capabilities.prf
+  const prfAvailable = !!vaultStatus?.capabilities.prf
 
   useEffect(() => {
     if (!open) {
@@ -110,11 +116,12 @@ export function VaultSetupWizard({ open, onOpenChange, onComplete }: Props) {
 
     startTransition(async () => {
       try {
-        const result = await vault.setup({
+        const result = await Vault.setup({
           enrollPasskey: wantsPasskey,
           password: wantsPassword ? password : undefined,
           userIdentifier: 'ONE Vault',
         })
+        await refreshStatus()
         setRecoveryPhrase(result.recoveryPhrase)
         setPassword('')
         setConfirmPassword('')
@@ -421,7 +428,7 @@ export function VaultSetupWizard({ open, onOpenChange, onComplete }: Props) {
             <div>
               <h3 className="text-lg font-medium text-slate-100">Your vault is ready</h3>
               <p className="text-sm text-slate-400 mt-1">
-                {vault.status?.walletCount ?? 0} wallets. Locked by{' '}
+                {vaultStatus?.walletCount ?? 0} wallets. Locked by{' '}
                 {methods.has('passkey') ? 'your device' : 'your password'}.
               </p>
             </div>

@@ -18,20 +18,17 @@ export {
   validateMnemonic,
   type WalletBackup,
 } from './lib/SecureKeyStorage'
-export type { UseVaultResult } from './lib/useVault'
 // Vault — new primary surface (passkey + recovery phrase + IndexedDB).
-export { useVault } from './lib/useVault'
 export {
   detectCapabilities,
   generateRecoveryPhrase,
-  hasLegacyData,
-  inspectLegacy,
   isValidRecoveryPhrase,
   type PasskeyEnrollment,
   VaultError,
   type VaultStatus,
   type VaultWallet,
 } from './lib/vault'
+// migration.ts removed — hasLegacyData, inspectLegacy no longer exported
 export {
   BackupExportDialog,
   BackupImportDialog,

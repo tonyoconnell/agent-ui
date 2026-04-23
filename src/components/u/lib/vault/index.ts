@@ -1,14 +1,6 @@
 // vault/index.ts — public API surface. Import everything via this file.
 // Internal modules (crypto/storage/passkey/recovery) are not part of the API.
 
-export {
-  hasLegacyData,
-  inspectLegacy,
-  type LegacyInventory,
-  type MigrationResult,
-  migrateLegacy,
-  requiresOldPassword,
-} from '../migration'
 export { detectCapabilities, guessAuthenticatorLabel } from './passkey'
 export {
   assertValidRecoveryPhrase,

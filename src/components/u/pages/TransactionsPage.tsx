@@ -12,7 +12,7 @@
 import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { summarizeTxResponse, type TxSummary } from '@/components/u/lib/money'
-import { listWallets } from '@/components/u/lib/vault/storage'
+import { getWallet } from '@/components/u/lib/idb'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -50,17 +50,14 @@ export function TransactionsPage() {
 
   const clientRef = useRef<SuiJsonRpcClient | null>(null)
 
-  // Resolve Sui wallet address from IndexedDB on mount
+  // Resolve Sui wallet address from IndexedDB (idb.ts / one-wallet store)
   useEffect(() => {
-    listWallets()
-      .then((wallets) => {
-        const suiWallet = wallets.find((w) => w.chain === 'sui')
-        if (suiWallet?.address) {
-          setAddress(suiWallet.address)
-        }
+    getWallet()
+      .then((w) => {
+        if (w?.address) setAddress(w.address)
       })
       .catch((err) => {
-        console.warn('[TransactionsPage] Failed to read wallets from IndexedDB:', err)
+        console.warn('[TransactionsPage] Failed to read wallet from IDB:', err)
       })
   }, [])
 

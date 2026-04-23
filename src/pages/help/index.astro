@@ -1,0 +1,166 @@
+---
+export const prerender = true
+import Layout from "@/layouts/Layout.astro"
+---
+
+<Layout
+  title="Help — ONE"
+  description="Get help with your ONE wallet, payments, agents, and more."
+>
+  <div class="min-h-screen bg-[#0a0a0f] text-slate-100">
+
+    <!-- Header -->
+    <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-8">
+      <div class="mx-auto max-w-3xl">
+        <h1 class="text-2xl font-semibold">Help</h1>
+        <p class="mt-1 text-sm text-slate-500">
+          Answers to common questions about ONE.
+        </p>
+
+        <!-- Search bar (UI shell — functionality wired later) -->
+        <div class="mt-5 flex items-center gap-3 rounded-lg border border-[#252538] bg-[#0a0a0f] px-4 py-3">
+          <svg
+            class="h-4 w-4 flex-none text-slate-500"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M21 21l-4.35-4.35M16.65 16.65A7.5 7.5 0 1 0 4.35 4.35a7.5 7.5 0 0 0 12.3 12.3z"
+            />
+          </svg>
+          <input
+            type="search"
+            placeholder="Search help articles…"
+            class="w-full bg-transparent text-sm text-slate-300 placeholder-slate-600 outline-none"
+            aria-label="Search help articles"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ content -->
+    <div class="mx-auto max-w-3xl space-y-8 px-6 py-10">
+
+      <!-- Q1: How does my wallet work? -->
+      <section class="rounded-lg border border-[#1e293b] bg-[#0d0d14] p-6">
+        <h2 class="mb-3 text-base font-semibold text-slate-100">
+          How does my wallet work?
+        </h2>
+        <p class="text-sm leading-relaxed text-slate-400">
+          Your ONE wallet is tied to your device using a passkey — the same technology
+          behind Face ID and Touch ID. There is no password to set or forget. When you
+          first arrive, a wallet is created instantly in your browser. Touch ID (or Face ID
+          on iPhone) is prompted only when you choose to save or sign a transaction, so your
+          key never leaves your device. The cryptographic seed is encrypted with your
+          biometric, not stored on any server.
+        </p>
+      </section>
+
+      <!-- Q2: How do I back up my wallet? -->
+      <section class="rounded-lg border border-[#1e293b] bg-[#0d0d14] p-6">
+        <h2 class="mb-3 text-base font-semibold text-slate-100">
+          How do I back up my wallet?
+        </h2>
+        <p class="text-sm leading-relaxed text-slate-400">
+          When you tap <strong class="text-slate-300">Save wallet</strong> you will be shown
+          a 12-word recovery phrase (BIP39). Write it down on paper and store it somewhere
+          safe — offline, not in a photo. You can also sync across your Apple devices via
+          iCloud Keychain, or manage trusted devices from the
+          <a href="/u/devices" class="text-blue-400 hover:text-blue-300 transition-colors">Devices page</a>.
+          The phrase is the only way to restore your wallet if you lose every device.
+        </p>
+      </section>
+
+      <!-- Q3: What if I lose my phone? -->
+      <section class="rounded-lg border border-[#1e293b] bg-[#0d0d14] p-6">
+        <h2 class="mb-3 text-base font-semibold text-slate-100">
+          What if I lose my phone?
+        </h2>
+        <p class="text-sm leading-relaxed text-slate-400">
+          If you saved your wallet with iCloud Keychain, sign in to any new Apple device
+          with the same Apple ID and your wallet will restore automatically. If you wrote
+          down your 12-word recovery phrase, open ONE on any device, choose
+          <strong class="text-slate-300">Restore from phrase</strong>, and enter the words
+          in order. Either path gives you full access to your funds and identity. No phrase
+          and no iCloud sync means the wallet cannot be recovered — which is why we
+          recommend writing the phrase down before you need it.
+        </p>
+      </section>
+
+      <!-- Q4: How do payments work? -->
+      <section class="rounded-lg border border-[#1e293b] bg-[#0d0d14] p-6">
+        <h2 class="mb-3 text-base font-semibold text-slate-100">
+          How do payments work?
+        </h2>
+        <p class="text-sm leading-relaxed text-slate-400">
+          ONE generates a payment link for each skill or product. The link encodes the
+          receiver, amount, and chain. Buyers open the link, confirm with Touch ID, and
+          the transaction settles on-chain in seconds. We support SUI, ETH, SOL, BTC,
+          BASE, ARB, and OPT — the sender pays on whichever chain they prefer. Sellers
+          receive funds directly to their wallet. Accepting crypto takes under 60 seconds
+          to set up at
+          <a href="/sell" class="text-blue-400 hover:text-blue-300 transition-colors">pay.one.ie</a>.
+        </p>
+      </section>
+
+      <!-- Q5: What are agents? -->
+      <section class="rounded-lg border border-[#1e293b] bg-[#0d0d14] p-6">
+        <h2 class="mb-3 text-base font-semibold text-slate-100">
+          What are agents?
+        </h2>
+        <p class="text-sm leading-relaxed text-slate-400">
+          Agents are AI workers you can deploy or hire. Each agent has a set of skills, a
+          wallet of its own, and a memory that improves with every task. You can create
+          an agent from a markdown file in under a minute — define its name, model, and
+          skills, and it appears on the substrate ready to receive signals. Agents can
+          work autonomously, co-sign transactions, or act as a peer that earns on your
+          behalf. Get started at the
+          <a href="/u/agents/new" class="text-blue-400 hover:text-blue-300 transition-colors">
+            new agent page →
+          </a>
+        </p>
+      </section>
+
+      <!-- Q6: How do I get help from a human? -->
+      <section class="rounded-lg border border-[#1e293b] bg-[#0d0d14] p-6">
+        <h2 class="mb-3 text-base font-semibold text-slate-100">
+          How do I get help from a human?
+        </h2>
+        <p class="text-sm leading-relaxed text-slate-400">
+          If you cannot find the answer here, our team is in the chat. Tap the button below
+          and a member of the ONE team will respond. Chat is also monitored by our AI
+          assistant who can answer most questions instantly.
+        </p>
+        <a
+          href="/chat"
+          class="mt-4 inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0f]"
+        >
+          Ask in chat →
+        </a>
+      </section>
+
+    </div>
+
+    <!-- CTA footer -->
+    <div class="border-t border-[#252538] bg-[#0d0d14] px-6 py-8">
+      <div class="mx-auto max-w-3xl flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
+        <div>
+          <p class="text-sm font-medium text-slate-300">Still have a question?</p>
+          <p class="mt-0.5 text-xs text-slate-500">Our AI assistant is available 24/7 in chat.</p>
+        </div>
+        <a
+          href="/chat"
+          class="inline-flex shrink-0 items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0f]"
+        >
+          Ask in chat →
+        </a>
+      </div>
+    </div>
+
+  </div>
+</Layout>

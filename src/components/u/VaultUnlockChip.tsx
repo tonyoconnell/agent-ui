@@ -1,8 +1,9 @@
 // VaultUnlockChip — header status pill. Owns unlock dialog + setup wizard.
 
 import { Loader2, Lock, LockOpen, ShieldPlus } from 'lucide-react'
-import { useState, useTransition } from 'react'
-import { useVault } from '@/components/u/lib/useVault'
+import { useCallback, useEffect, useState, useTransition } from 'react'
+import * as Vault from '@/components/u/lib/vault/vault'
+import type { VaultStatus } from '@/components/u/lib/vault/types'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 import { VaultUnlockDialog } from './VaultDialogs'
@@ -12,8 +13,49 @@ interface Props {
   className?: string
 }
 
+// Minimal reactive vault state — replaces useVault() for this component.
+function useVaultStatus() {
+  const [loading, setLoading] = useState(true)
+  const [status, setStatus] = useState<VaultStatus | null>(null)
+
+  const refresh = useCallback(async () => {
+    try {
+      const s = await Vault.getStatus()
+      setStatus(s)
+    } catch {
+      // ignore — chip will show loading state
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      setLoading(true)
+      try {
+        const s = await Vault.getStatus()
+        if (!cancelled) setStatus(s)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const unlockWithPasskey = useCallback(async () => {
+    await Vault.unlockWithPasskey()
+    await refresh()
+  }, [refresh])
+
+  const lock = useCallback(() => {
+    Vault.lock()
+    void refresh()
+  }, [refresh])
+
+  return { loading, status, unlockWithPasskey, lock }
+}
+
 export function VaultUnlockChip({ className }: Props) {
-  const vault = useVault()
+  const vault = useVaultStatus()
   const [showUnlock, setShowUnlock] = useState(false)
   const [showSetup, setShowSetup] = useState(false)
   const [pending, startTransition] = useTransition()

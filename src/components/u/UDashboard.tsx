@@ -19,7 +19,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { EnhancedWalletCard } from './EnhancedWalletCard'
 import { GenerateWalletDialog } from './GenerateWalletDialog'
 import { useWallets } from './hooks/useWallets'
-import { useVault } from './lib/useVault'
+import * as Vault from './lib/vault/vault'
+import type { VaultStatus } from './lib/vault/types'
 import { VaultBackupDialog, VaultUnlockDialog } from './VaultDialogs'
 import { VaultUnlockChip } from './VaultUnlockChip'
 
@@ -123,7 +124,11 @@ export function UDashboard() {
   const [isGeneratingAll, setIsGeneratingAll] = useState(false)
 
   // Vault dialog states (chip owns the setup wizard + unlock dialog itself).
-  const vault = useVault()
+  // Minimal reactive vault status — replaces useVault() for status checks only.
+  const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null)
+  useEffect(() => {
+    void Vault.getStatus().then(setVaultStatus).catch(() => {})
+  }, [wallets.length])
   const [showUnlock, setShowUnlock] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
   const [showMnemonic, setShowMnemonic] = useState<{ id: string; name: string } | null>(null)
@@ -216,8 +221,8 @@ export function UDashboard() {
 
         // Save to vault if it exists and is unlocked.
         // Setup wizard handles vault creation; we don't auto-create here.
-        if (vault.status?.hasVault && !vault.status.isLocked) {
-          await vault.saveWallet({
+        if (vaultStatus?.hasVault && !vaultStatus.isLocked) {
+          await Vault.saveWallet({
             id: newWallet.id,
             chain: chainId,
             address: newWallet.address,
@@ -504,7 +509,7 @@ export function UDashboard() {
       <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <VaultUnlockChip />
-          {vault.status?.hasVault && !vault.status.isLocked && (
+          {vaultStatus?.hasVault && !vaultStatus.isLocked && (
             <Button variant="ghost" size="sm" onClick={() => setShowBackup(true)}>
               Backup
             </Button>
@@ -646,7 +651,7 @@ export function UDashboard() {
                     onClick={(walletId) => (window.location.href = `/u/wallet/${walletId}`)}
                     onDelete={(walletId) => {
                       deleteWallet(walletId)
-                      void vault.deleteWallet(walletId).catch(() => {})
+                      void Vault.deleteWallet(walletId).catch(() => {})
                     }}
                     onViewMnemonic={(walletId, walletName) => {
                       setShowMnemonic({ id: walletId, name: walletName })
@@ -748,7 +753,6 @@ function ViewMnemonicWithVault({
   walletName: string
   onClose: () => void
 }) {
-  const vault = useVault()
   const [mnemonic, setMnemonic] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -759,7 +763,8 @@ function ViewMnemonicWithVault({
       setLoading(true)
       try {
         // Step-up before reveal — confirms presence on a sensitive op.
-        const ok = vault.status?.capabilities.prf ? await vault.stepUp() : true
+        const status = await Vault.getStatus()
+        const ok = status.capabilities.prf ? await Vault.stepUpPasskey() : true
         if (!ok) {
           if (!cancelled) {
             setError('Verification cancelled')
@@ -767,7 +772,7 @@ function ViewMnemonicWithVault({
           }
           return
         }
-        const m = await vault.getMnemonic(walletId)
+        const m = await Vault.getMnemonic(walletId)
         if (!cancelled) {
           if (!m) setError('No mnemonic stored for this wallet')
           else setMnemonic(m)
@@ -781,7 +786,7 @@ function ViewMnemonicWithVault({
     return () => {
       cancelled = true
     }
-  }, [walletId, vault])
+  }, [walletId])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
