@@ -13,51 +13,40 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
-import { getMeta, listWallets } from '../lib/vault/storage'
-import type { VaultMeta, VaultWallet } from '../lib/vault/types'
+import { getWallet } from '../lib/idb'
+import type { WalletRecord } from '../../../../interfaces/types-wallet'
 import { UNav } from '../UNav'
 
 export function WalletsPage() {
-  const [wallets, setWallets] = useState<VaultWallet[]>([])
-  const [meta, setMeta] = useState<VaultMeta | null>(null)
+  const [wallet, setWallet] = useState<WalletRecord | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
-        const [ws, m] = await Promise.all([listWallets(), getMeta()])
-        if (cancelled) return
-        setWallets(ws)
-        setMeta(m)
+        const record = await getWallet()
+        if (!cancelled) setWallet(record)
       } catch {
-        // IDB unavailable — treat as empty
-        if (!cancelled) {
-          setWallets([])
-          setMeta(null)
-        }
+        if (!cancelled) setWallet(null)
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     void load()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
-  // Once loading done and still no wallet, redirect to /u after short delay
+  // No wallet yet → redirect to /u to generate one
   useEffect(() => {
-    if (!loading && wallets.length === 0) {
-      const t = setTimeout(() => {
-        window.location.href = '/u'
-      }, 3000)
+    if (!loading && !wallet) {
+      const t = setTimeout(() => { window.location.href = '/u' }, 3000)
       return () => clearTimeout(t)
     }
-  }, [loading, wallets.length])
+  }, [loading, wallet])
 
-  const hasPasskey = Boolean(meta && meta.passkeys.length > 0)
-  const passkeyCount = meta?.passkeys.length ?? 0
+  const passkeyCount = wallet?.wrappings.filter(w => w.type === 'passkey-prf').length ?? 0
+  const hasPasskey = passkeyCount > 0
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
@@ -75,7 +64,7 @@ export function WalletsPage() {
   }
 
   // ── No wallet yet ──────────────────────────────────────────────────────────
-  if (wallets.length === 0) {
+  if (!wallet) {
     return (
       <div className="min-h-screen bg-background">
         <UNav active="wallets" />
@@ -90,9 +79,9 @@ export function WalletsPage() {
     )
   }
 
-  // ── Wallet exists ──────────────────────────────────────────────────────────
-  // One wallet per browser — show the first (primary) wallet
-  const wallet = wallets[0]
+  const shortAddr = wallet.address
+    ? `${wallet.address.slice(0, 10)}…${wallet.address.slice(-8)}`
+    : 'No address'
 
   return (
     <div className="min-h-screen bg-background">
@@ -107,7 +96,7 @@ export function WalletsPage() {
           <p className="text-muted-foreground mt-1">Your universal wallet — one seed, all chains.</p>
         </div>
 
-        {/* State 1 CTA — vault created but not yet secured with passkey */}
+        {/* State 1 CTA */}
         {!hasPasskey && (
           <Card className="border-amber-500/40 bg-amber-500/5">
             <CardContent className="pt-5 pb-4">
@@ -123,7 +112,7 @@ export function WalletsPage() {
                     className="bg-amber-500 hover:bg-amber-600 text-white"
                     onClick={() => {
                       emitClick('ui:wallets:save-cta')
-                      window.location.href = '/u/setup'
+                      window.location.href = '/u/save'
                     }}
                   >
                     Save with Touch ID
@@ -138,29 +127,16 @@ export function WalletsPage() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">{wallet.name ?? 'Primary Wallet'}</CardTitle>
-              <Badge variant="outline" className="capitalize">
-                {wallet.chain}
-              </Badge>
+              <CardTitle className="text-lg">Primary Wallet</CardTitle>
+              <Badge variant="outline">SUI</Badge>
             </div>
             <CardDescription>
-              <code className="text-xs font-mono break-all">
-                {wallet.address ? `${wallet.address.slice(0, 14)}…${wallet.address.slice(-10)}` : 'No address'}
-              </code>
+              <code className="text-xs font-mono break-all">{shortAddr}</code>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Balance */}
-            <div>
-              <div className="text-3xl font-bold">
-                {wallet.balance || '0.00'}{' '}
-                <span className="text-base font-normal text-muted-foreground capitalize">{wallet.chain}</span>
-              </div>
-              <div className="text-sm text-muted-foreground">≈ ${(wallet.usdValue ?? 0).toLocaleString()}</div>
-            </div>
-
             {/* Actions */}
-            <div className="flex gap-2 pt-2 border-t">
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 className="flex-1"
@@ -175,11 +151,11 @@ export function WalletsPage() {
                 variant="outline"
                 className="flex-1"
                 onClick={() => {
-                  emitClick('ui:wallets:detail')
-                  window.location.href = `/u/wallet/${wallet.id}`
+                  emitClick('ui:wallets:send')
+                  window.location.href = '/u/send'
                 }}
               >
-                View Details
+                ↗ Send
               </Button>
             </div>
           </CardContent>
@@ -189,7 +165,7 @@ export function WalletsPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Enrolled Devices</CardTitle>
-            <CardDescription>Devices that can unlock this wallet via Touch ID or passkey.</CardDescription>
+            <CardDescription>Devices that can unlock this wallet via Touch ID.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
@@ -203,8 +179,8 @@ export function WalletsPage() {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {hasPasskey
-                      ? 'Touch ID or hardware key can unlock this wallet'
-                      : 'Add a device to secure your wallet'}
+                      ? 'Touch ID can unlock this wallet'
+                      : 'Add Touch ID to secure your wallet'}
                   </p>
                 </div>
               </div>
@@ -222,36 +198,35 @@ export function WalletsPage() {
           </CardContent>
         </Card>
 
-        {/* Additional wallets for other chains */}
-        {wallets.length > 1 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Other Chains</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {wallets.slice(1).map((w) => (
-                <div
-                  key={w.id}
-                  className="flex items-center justify-between p-3 bg-muted/40 rounded-lg cursor-pointer hover:bg-muted/60 transition-colors"
+        {/* Recovery phrase status */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Recovery Phrase</CardTitle>
+            <CardDescription>Paper break-glass — 12 words to restore on any device.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {wallet.wrappings.some(w => w.type === 'bip39-shown') ? (
+              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                <span>✓</span>
+                <span className="text-sm">Phrase shown and confirmed</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Not yet saved — write it down before you need it.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
-                    emitClick('ui:wallets:chain-select')
-                    window.location.href = `/u/wallet/${w.id}`
+                    emitClick('ui:wallets:bip39-show')
+                    window.location.href = '/u/save'
                   }}
                 >
-                  <div>
-                    <p className="font-medium text-sm capitalize">{w.name ?? w.chain}</p>
-                    <code className="text-xs text-muted-foreground font-mono">
-                      {w.address ? `${w.address.slice(0, 10)}…${w.address.slice(-6)}` : '—'}
-                    </code>
-                  </div>
-                  <Badge variant="outline" className="capitalize text-xs">
-                    {w.chain}
-                  </Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+                  Show phrase
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
