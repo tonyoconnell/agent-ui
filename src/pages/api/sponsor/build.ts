@@ -26,6 +26,9 @@ import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 import { Transaction } from '@mysten/sui/transactions'
 import type { APIRoute } from 'astro'
+import { getConsensusSuiPrice, mistToUsd } from '@/lib/oracle'
+import { screenAddress } from '@/lib/aml'
+import { writeSilent } from '@/lib/typedb'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -38,8 +41,11 @@ type TxKind = 'transfer' | 'move-call' | 'scoped-spend'
  *  State 2+ = at least one passkey wrapping — no server cap. */
 export type WalletState = 1 | 2 | 3 | 4 | 5
 
-/** 25 SUI in MIST. State-1 wallets may not receive more than this per tx. */
+/** 25 SUI in MIST. Kept as a reference constant; active cap is STATE1_CAP_USD. */
 export const STATE1_CAP_MIST = 25_000_000_000n
+
+/** $25 USD cumulative balance cap for State-1 (unsaved) wallets. */
+export const STATE1_CAP_USD = 25
 
 interface BuildRequest {
   sender: string
@@ -176,22 +182,84 @@ export const POST: APIRoute = async ({ request }) => {
     })
   }
 
-  // 2b. State-1 cap: unsaved wallets may not receive more than STATE1_CAP_MIST per tx.
-  // The client self-reports walletState; server enforces the cap. Worst-case: client
-  // lies and *raises* the cap on its own wallet — acceptable, it's their own funds.
+  // 2b. AML screening — block known-bad addresses before building any transaction
+  const toAddress = typeof params.to === 'string' ? params.to : ''
+  const [senderAml, recipientAml] = await Promise.all([
+    screenAddress(sender),
+    toAddress ? screenAddress(toAddress) : Promise.resolve({ blocked: false as const }),
+  ])
+
+  if (senderAml.blocked) {
+    const timestamp = new Date().toISOString()
+    writeSilent(
+      `insert $s isa signal, has data "${JSON.stringify({ address: sender, reason: senderAml.reason, timestamp }).replace(/"/g, '\\"')}";`,
+    )
+    // Fire-and-forget substrate signal
+    fetch('/api/signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        receiver: 'ops:aml',
+        data: { tags: ['aml', 'blocked'], content: { address: sender, reason: senderAml.reason, timestamp } },
+      }),
+    }).catch(() => void 0)
+    return new Response(
+      JSON.stringify({ error: 'aml-blocked', address: sender, reason: senderAml.reason }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+
+  if (recipientAml.blocked) {
+    const timestamp = new Date().toISOString()
+    writeSilent(
+      `insert $s isa signal, has data "${JSON.stringify({ address: toAddress, reason: recipientAml.reason, timestamp }).replace(/"/g, '\\"')}";`,
+    )
+    fetch('/api/signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        receiver: 'ops:aml',
+        data: { tags: ['aml', 'blocked'], content: { address: toAddress, reason: recipientAml.reason, timestamp } },
+      }),
+    }).catch(() => void 0)
+    return new Response(
+      JSON.stringify({ error: 'aml-blocked', address: toAddress, reason: recipientAml.reason }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+
+  // 2c. State-1 cap: unsaved wallets may not push their cumulative balance above $25 USD.
+  // The client self-reports walletState; server enforces the cap via on-chain balance +
+  // oracle price. Worst-case: client lies and *raises* the cap on its own wallet —
+  // acceptable, it's their own funds.
+  // If the oracle is unavailable (both feeds down) we fall through and allow the tx —
+  // oracle unavailability should not block sends.
   if (walletState === 1) {
-    // Resolve the transfer amount from whichever param name the txKind uses
     const rawAmount =
       typeof params.amount === 'number' ? params.amount : typeof params.amountMist === 'number' ? params.amountMist : 0
     const amountMist = BigInt(Math.floor(rawAmount))
-    if (amountMist > STATE1_CAP_MIST) {
-      return new Response(
-        JSON.stringify({
-          error: 'state1-cap-exceeded',
-          message: 'Save this wallet first to receive larger amounts.',
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } },
-      )
+
+    try {
+      const suiClient = getClient(network)
+      const [balanceInfo, price] = await Promise.all([
+        suiClient.getBalance({ owner: sender, coinType: '0x2::sui::SUI' }),
+        getConsensusSuiPrice(),
+      ])
+      const currentUsd = mistToUsd(BigInt(balanceInfo.totalBalance), price)
+      const txUsd = mistToUsd(amountMist, price)
+      if (currentUsd + txUsd > STATE1_CAP_USD) {
+        return new Response(
+          JSON.stringify({
+            error: 'state1-cap-exceeded',
+            currentUsd,
+            txUsd,
+            capUsd: STATE1_CAP_USD,
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+    } catch {
+      // Oracle or RPC unavailable — fall through and allow the tx
     }
   }
 

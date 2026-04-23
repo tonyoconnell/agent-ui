@@ -357,7 +357,10 @@ export async function unlockWithPasskey(): Promise<void> {
   }
 
   audit({ verb: 'unlock', outcome: 'fail', method: 'passkey', detail: 'no enrollment matched' })
-  throw new VaultError('no enrolled passkey could unlock', 'passkey-cancelled')
+  throw new VaultError(
+    'no credential found on this device — passkey may have been deleted from your browser',
+    'passkey-unsupported',
+  )
 }
 
 export async function unlockWithPassword(password: string): Promise<void> {

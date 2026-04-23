@@ -30,6 +30,10 @@ const {
 // `brandStyle` explicitly keep full control and bypass this.
 // Cloudflare sets CF-IPCountry on every request — use it for cookie banner geo.
 const cfCountry = Astro.request.headers.get("cf-ipcountry") ?? undefined
+// Per-request CSP nonce — set by middleware for /u/* and /chat/* surfaces.
+// Astro 6 reads data-astro-csp-nonce on <html> and injects the nonce into
+// every emitted inline <script> tag for island hydration.
+const cspNonce = Astro.locals.cspNonce
 
 let brandStyle = providedBrandStyle ?? ""
 if (!brandStyle) {
@@ -46,7 +50,7 @@ if (!brandStyle) {
 ---
 
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" data-astro-csp-nonce={cspNonce}>
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -55,6 +59,7 @@ if (!brandStyle) {
 		<meta name="theme-color" content="#0a0a0f" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
+		{cspNonce && <meta name="csp-nonce" content={cspNonce} />}
 
 		<!-- Open Graph for social sharing -->
 		<meta property="og:title" content={title} />
@@ -120,10 +125,13 @@ if (!brandStyle) {
 			}
 		})}></script>
 
-		<script is:inline>
+		<script is:inline define:vars={{ cspNonce }}>
 			// Theme init — runs before first paint, no flash.
 			// Default: dark (respects hardcoded html class).
 			// Opt-out: localStorage.theme === "light".
+			// cspNonce is injected by Astro via define:vars so the nonce attribute
+			// is present on this script tag when the CSP header requires it.
+			void cspNonce
 			try {
 				if (localStorage.getItem("theme") === "light") {
 					document.documentElement.classList.remove("dark")
@@ -143,6 +151,8 @@ if (!brandStyle) {
 			</nav>
 		</footer>
 		<CookieBanner client:idle countryCode={cfCountry} />
+		<script defer src='https://static.cloudflareinsights.com/beacon.min.js'
+			data-cf-beacon={`{"token": "${import.meta.env.CF_ANALYTICS_TOKEN ?? 'REPLACE_CF_ANALYTICS_TOKEN'}"}`}></script>
 	</body>
 </html>
 

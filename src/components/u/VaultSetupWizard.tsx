@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { emitClick } from '@/lib/ui-signal'
+import { trackEvent } from '@/lib/analytics'
 
 interface Props {
   open: boolean
@@ -158,6 +159,7 @@ export function VaultSetupWizard({ open, onOpenChange, onComplete }: Props) {
 
   const handleDone = () => {
     emitClick('ui:vault-setup:done')
+    trackEvent('wallet:created')
     setRecoveryPhrase(null)
     setStep(3)
   }

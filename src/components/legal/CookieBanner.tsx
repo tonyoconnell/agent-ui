@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { emitClick } from '@/lib/ui-signal'
+import { initAnalytics } from '@/lib/analytics'
 
 const STORAGE_KEY = 'one:cookie-consent'
 
@@ -111,6 +112,7 @@ export function CookieBanner({ countryCode }: { countryCode?: string }) {
       /* noop */
     }
     emitClick('ui:legal:cookie-accept')
+    void initAnalytics()
     setVisible(false)
   }
 

@@ -40,6 +40,7 @@ declare namespace App {
     }
     cfContext?: ExecutionContext
     user: { id: string; name: string; email: string } | null
+    cspNonce: string
     paths?: Record<string, { strength: number; resistance: number }>
     units?: Record<string, { kind: string; status: string }>
   }

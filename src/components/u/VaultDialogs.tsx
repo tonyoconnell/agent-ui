@@ -86,7 +86,18 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
         await refreshStatus()
         onOpenChange(false)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Passkey unlock failed')
+        const raw = e instanceof Error ? e.message : 'Passkey unlock failed'
+        // Detect the "credential not found on this device" case (Chrome shows the
+        // phone/USB picker because no local passkey matches the stored credId)
+        const lower = raw.toLowerCase()
+        if (lower.includes('cancelled') || lower.includes('cancelled')) {
+          setError("Passkey prompt was cancelled. Tap Unlock to try again, or use Recovery phrase.")
+        } else if (lower.includes('not found') || lower.includes('no credential') || lower.includes('returned no')) {
+          setError("This device doesn't have the saved passkey. It may have been deleted from your browser. Use Recovery phrase to restore.")
+          setTab('recovery')
+        } else {
+          setError(raw)
+        }
       }
     })
   }

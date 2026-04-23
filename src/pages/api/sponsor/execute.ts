@@ -21,6 +21,7 @@ import { toBase64 } from '@mysten/bcs'
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 import type { APIRoute } from 'astro'
 import { getClient } from '@/lib/sui'
+import { screenAddress } from '@/lib/aml'
 
 export const prerender = false
 
@@ -53,11 +54,12 @@ function loadSponsorKeypair(): Ed25519Keypair {
 
 export const POST: APIRoute = async ({ request }) => {
   // --- 1. Parse body ---
-  let txBytes: number[], senderSig: number[]
+  let txBytes: number[], senderSig: number[], sender: string
   try {
-    const body = (await request.json()) as { txBytes?: unknown; senderSig?: unknown }
+    const body = (await request.json()) as { txBytes?: unknown; senderSig?: unknown; sender?: unknown }
     txBytes = body.txBytes as number[]
     senderSig = body.senderSig as number[]
+    sender = (body.sender as string) || ''
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 })
   }
@@ -67,6 +69,24 @@ export const POST: APIRoute = async ({ request }) => {
   }
   if (!Array.isArray(senderSig) || senderSig.length === 0) {
     return Response.json({ error: 'senderSig must be a non-empty number[]' }, { status: 400 })
+  }
+
+  // --- 1b. AML screening — check sender address before signing or submitting ---
+  if (sender) {
+    const amlResult = await screenAddress(sender)
+    if (amlResult.blocked) {
+      const timestamp = new Date().toISOString()
+      // Fire-and-forget substrate signal
+      fetch('/api/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiver: 'ops:aml',
+          data: { tags: ['aml', 'blocked'], content: { address: sender, reason: amlResult.reason, timestamp } },
+        }),
+      }).catch(() => void 0)
+      return Response.json({ error: 'aml-blocked', address: sender, reason: amlResult.reason }, { status: 403 })
+    }
   }
 
   // --- 2. Reconstruct Uint8Arrays ---

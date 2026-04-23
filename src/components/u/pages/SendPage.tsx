@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { emitClick } from '@/lib/ui-signal'
+import { trackEvent } from '@/lib/analytics'
+import { SuiNSPicker } from '@/components/u/SuiNSPicker'
 import type { ScopedWalletStruct } from '../../../../interfaces/move/scoped-wallet/struct.move'
 import { getWallet } from '../lib/idb'
 import { getScopedWallet } from '../lib/scoped-wallet'
@@ -119,6 +121,7 @@ export function SendPage() {
   const [step, setStep] = useState<SendStep>(1)
   const [wallets, setWallets] = useState<WalletInfo[]>([])
   const [destinationAddress, setDestinationAddress] = useState('')
+  const [resolvedDisplayName, setResolvedDisplayName] = useState<string | undefined>(undefined)
   const [amountUsd, setAmountUsd] = useState('')
   const [selectedWallet, setSelectedWallet] = useState<WalletInfo | null>(null)
   const [isSending, setIsSending] = useState(false)
@@ -349,6 +352,7 @@ export function SendPage() {
       const history = stored ? (JSON.parse(stored) as unknown[]) : []
       localStorage.setItem('u_transactions', JSON.stringify([tx, ...history]))
 
+      trackEvent('wallet:tx_sent', { chain: 'sui' })
       setStep(4)
     } catch {
       setSendError(ERROR_COPY.network)
@@ -360,6 +364,7 @@ export function SendPage() {
   const resetFlow = () => {
     setStep(1)
     setDestinationAddress('')
+    setResolvedDisplayName(undefined)
     setAmountUsd('')
     setSelectedWallet(null)
     setSendError(null)
@@ -436,24 +441,34 @@ export function SendPage() {
               </div>
 
               <div className="space-y-4">
-                <div className="relative">
-                  <Input
-                    placeholder="0x... or wallet address"
+                <div className="space-y-1">
+                  <SuiNSPicker
                     value={destinationAddress}
-                    onChange={(e) => setDestinationAddress(e.target.value)}
-                    className="h-14 text-lg font-mono pr-20"
+                    onChange={(address, displayName) => {
+                      emitClick('ui:send:recipient-resolved')
+                      setDestinationAddress(address)
+                      setResolvedDisplayName(displayName)
+                    }}
+                    placeholder="0x... or SuiNS name (e.g. alice.sui)"
                   />
+                  {resolvedDisplayName && destinationAddress && (
+                    <p className="text-xs text-muted-foreground px-1">
+                      Resolved: <span className="font-medium">{resolvedDisplayName}</span>{' '}
+                      → <span className="font-mono">{destinationAddress.slice(0, 10)}…</span>
+                    </p>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    className="w-full justify-start text-muted-foreground"
                     onClick={async () => {
                       emitClick('ui:send:paste-address')
                       const text = await navigator.clipboard.readText()
-                      setDestinationAddress(text)
+                      setDestinationAddress(text.trim())
+                      setResolvedDisplayName(undefined)
                     }}
                   >
-                    📋 Paste
+                    📋 Paste address
                   </Button>
                 </div>
 

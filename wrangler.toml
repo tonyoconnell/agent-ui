@@ -15,6 +15,21 @@ compatibility_flags = ["nodejs_compat"]
 binding = "KV"
 id = "1c1dac4766e54a2c85425022a3b1e9da"
 
+# Cron triggers
+# "0 * * * *" = every hour on the hour → wallet reconciliation tick
+# Add to wrangler.toml and register the route in your Worker's fetch handler,
+# or call POST /api/reconcile directly from the cron handler.
+# See: https://developers.cloudflare.com/workers/platform/triggers/cron-triggers/
+# Uncomment the block below to activate (requires a paid Workers plan for cron):
+#
+# [triggers]
+# crons = ["0 * * * *"]
+#
+# Then in the Worker entry point (dist/_worker.js) add a `scheduled` handler:
+#   async scheduled(event, env, ctx) {
+#     ctx.waitUntil(fetch(new Request("https://one.ie/api/reconcile", { method: "POST" })))
+#   }
+
 # Worker environment configuration
 [env.production]
 vars = { ENVIRONMENT = "production" }
