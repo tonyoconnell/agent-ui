@@ -1,0 +1,28 @@
+---
+// SSR required — dynamic agent scope route
+export const prerender = false;
+
+/**
+ * /u/agents/[id]/scope — Agent ScopedWallet editor
+ *
+ * Lets the owner view and edit the ScopedWallet bound to an agent:
+ *   - Current daily cap and epoch usage
+ *   - Allowlist of permitted recipient addresses
+ *   - Agent address (read-only)
+ *
+ * Move contract: one::scoped_wallet (src/move/one/sources/scoped_wallet.move)
+ * Cap / allowlist mutations require a pending `update_cap` Move entry — see
+ * the save handler in ScopeEditorIsland.tsx for the stubbed tx shape.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { ScopeEditorIsland } from "@/components/u/ScopeEditorIsland";
+
+const { id } = Astro.params;
+
+const title = `Scope · ${id ?? "Agent"} | u`;
+const description = "View and edit the spending scope for this agent's ScopedWallet.";
+---
+
+<Layout title={title} description={description}>
+  <ScopeEditorIsland client:load agentId={id ?? ""} />
+</Layout>

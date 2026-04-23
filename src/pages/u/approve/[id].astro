@@ -1,0 +1,21 @@
+---
+export const prerender = false;
+
+/**
+ * /u/approve/[id] — Agent co-sign approval page
+ *
+ * Human reviews and approves (or rejects) a pending co-sign request from an agent.
+ * The request UUID comes from the URL parameter. The island loads the full
+ * request details from GET /api/agent/pending/:id on mount.
+ *
+ * Pattern A (agents.md): agent signed first, human approves via Touch ID.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { ApproveIsland } from "@/components/u/pages/ApproveIsland";
+
+const { id } = Astro.params;
+---
+
+<Layout title="Approve Co-sign Request — ONE">
+  <ApproveIsland requestId={id ?? ""} client:load />
+</Layout>

@@ -60,7 +60,7 @@ function PaymentCard({ payload }: { payload: Record<string, unknown> }) {
         Payment
       </div>
       <div className="space-y-1 text-sm">
-        {payload.receiver && (
+        {Boolean(payload.receiver) && (
           <div className="flex justify-between">
             <span className="text-muted-foreground">To</span>
             <span className="font-mono text-xs text-foreground">{String(payload.receiver)}</span>
@@ -74,7 +74,7 @@ function PaymentCard({ payload }: { payload: Record<string, unknown> }) {
             </span>
           </div>
         )}
-        {payload.action && (
+        {Boolean(payload.action) && (
           <div className="mt-2 text-center">
             <Badge variant="outline" className="text-xs uppercase">
               {String(payload.action)}
@@ -93,10 +93,10 @@ function AgentCard({ payload }: { payload: Record<string, unknown> }) {
         Agent
       </div>
       <div className="space-y-1 text-sm">
-        {payload.name && (
+        {Boolean(payload.name) && (
           <div className="font-semibold text-foreground">{String(payload.name)}</div>
         )}
-        {payload.uid && (
+        {Boolean(payload.uid) && (
           <div className="font-mono text-xs text-muted-foreground">{String(payload.uid)}</div>
         )}
         {Array.isArray(payload.tags) && payload.tags.length > 0 && (
@@ -264,7 +264,7 @@ export function ChatIsland({ className }: ChatIslandProps) {
         const msg = (err as Error).message || 'Request failed'
         patchMessage(assistantId, {
           error: msg,
-          content: accumulated => (accumulated ? accumulated : `Error: ${msg}`),
+          content: accumulated || `Error: ${msg}`,
           streaming: false,
         })
       } finally {

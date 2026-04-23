@@ -1,406 +1,405 @@
 /**
- * TransactionsPage - Complete Transaction History
+ * TransactionsPage — Sui transaction history
  *
- * Features:
- * - View all transactions across wallets
- * - Filter by chain, type, status
- * - Search by hash or address
- * - Fetch real transactions from blockchain
- * - No fake/sample data
+ * Data sources:
+ *   - Wallet address: IndexedDB via listWallets() (chain === 'sui')
+ *   - Transactions:   Sui RPC — queryTransactionBlocks (FromAddress filter)
+ *   - Descriptions:   summarizeTx() from src/lib/money.ts
+ *
+ * No localStorage reads. No zkLogin. Testnet by default.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getTransactions as fetchChainTransactions, getChain, getExplorerTxUrl } from '@/lib/chains'
+import { getExplorerTxUrl } from '@/lib/chains'
+import { summarizeTx, type TxSummary } from '@/lib/money'
+import { listWallets } from '@/components/u/lib/vault/storage'
+import { emitClick } from '@/lib/ui-signal'
+import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc'
 import { UNav } from '../UNav'
 
-interface Transaction {
-  id: string
-  hash: string
-  type: 'send' | 'receive' | 'swap' | 'mint' | 'burn' | 'deploy' | 'interact'
-  from: string
-  to: string
-  amount: string
-  token: string
-  chain: string
-  status: 'confirmed' | 'pending' | 'failed'
-  timestamp: number
-  gasUsed?: string
-  gasFee?: string
-  walletId?: string
+// ─── Sui client (testnet by default) ─────────────────────────────────────────
+
+const NETWORK: 'testnet' | 'mainnet' = 'testnet'
+const PAGE_SIZE = 20
+
+function getSuiClient(): SuiJsonRpcClient {
+  return new SuiJsonRpcClient({ url: getJsonRpcFullnodeUrl(NETWORK), network: NETWORK })
 }
 
-interface Wallet {
-  id: string
-  chain: string
-  address: string
-  balance: string
-  usdValue: number
-  name?: string
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const CHAIN_FILTERS = [
-  { id: 'all', name: 'All Chains' },
-  { id: 'eth', name: 'Ethereum', icon: '⟠' },
-  { id: 'btc', name: 'Bitcoin', icon: '₿' },
-  { id: 'sol', name: 'Solana', icon: '◎' },
-  { id: 'sui', name: 'Sui', icon: '💧' },
-  { id: 'base', name: 'Base', icon: '🔵' },
-]
+type KindFilter = 'all' | 'send' | 'receive' | 'interact'
 
-const TX_TYPES = [
-  { id: 'all', name: 'All Types' },
-  { id: 'send', name: 'Send', icon: '↗' },
-  { id: 'receive', name: 'Receive', icon: '↙' },
-  { id: 'swap', name: 'Swap', icon: '⇄' },
-  { id: 'mint', name: 'Mint', icon: '✨' },
-  { id: 'interact', name: 'Interact', icon: '⚡' },
-]
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [wallets, setWallets] = useState<Wallet[]>([])
-  const [filter, setFilter] = useState({ chain: 'all', type: 'all', search: '' })
-  const [_isLoading, _setIsLoading] = useState(false)
-  const [isFetching, setIsFetching] = useState(false)
+  const [address, setAddress] = useState<string | null>(null)
+  const [txs, setTxs] = useState<TxSummary[]>([])
+  const [cursor, setCursor] = useState<string | null | undefined>(undefined)
+  const [hasMore, setHasMore] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<{ kind: KindFilter; search: string }>({
+    kind: 'all',
+    search: '',
+  })
 
-  // Load transactions from localStorage on mount
+  const clientRef = useRef<SuiJsonRpcClient | null>(null)
+
+  // Resolve Sui wallet address from IndexedDB on mount
   useEffect(() => {
-    const stored = localStorage.getItem('u_transactions')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        // Filter out any obviously fake transactions (those with random 0x hashes that are 66 chars for non-SUI)
-        const realTxs = parsed.filter((tx: Transaction) => {
-          // Keep all transactions for now - will be replaced when fetching from chain
-          return tx.hash && tx.hash.length > 0
-        })
-        setTransactions(realTxs)
-      } catch (e) {
-        console.error('Failed to parse transactions:', e)
-        setTransactions([])
-      }
-    }
-
-    // Load wallets
-    // REMOVED: localStorage.getItem('u_wallets') read
-    // TODO: read from IndexedDB via useVault() hook instead
-    // const storedWallets = localStorage.getItem('u_wallets')
-    // if (storedWallets) {
-    //   try {
-    //     setWallets(JSON.parse(storedWallets))
-    //   } catch (e) {
-    //     console.error('Failed to parse wallets:', e)
-    //   }
-    // }
+    listWallets()
+      .then((wallets) => {
+        const suiWallet = wallets.find((w) => w.chain === 'sui')
+        if (suiWallet?.address) {
+          setAddress(suiWallet.address)
+        }
+      })
+      .catch((err) => {
+        console.warn('[TransactionsPage] Failed to read wallets from IndexedDB:', err)
+      })
   }, [])
 
-  // Fetch transactions from all wallets
-  const fetchAllTransactions = useCallback(async () => {
-    if (wallets.length === 0) return
+  // Fetch a page of transactions from Sui RPC
+  const fetchPage = useCallback(
+    async (nextCursor?: string | null) => {
+      if (!address) return
 
-    setIsFetching(true)
-    const allNewTxs: Transaction[] = []
+      setLoading(true)
+      setError(null)
 
-    try {
-      for (const wallet of wallets) {
-        try {
-          const chainTxs = await fetchChainTransactions(wallet.address, wallet.chain)
-          // Add wallet ID to transactions
-          const txsWithWallet = chainTxs.map((tx) => ({
-            ...tx,
-            walletId: wallet.id,
-          }))
-          allNewTxs.push(...txsWithWallet)
-        } catch (e) {
-          console.warn(`Failed to fetch transactions for ${wallet.chain}:`, e)
+      try {
+        if (!clientRef.current) {
+          clientRef.current = getSuiClient()
         }
-      }
+        const client = clientRef.current
 
-      if (allNewTxs.length > 0) {
-        // Merge with existing, dedupe by hash
-        const existingHashes = new Set(transactions.map((t) => t.hash))
-        const newUnique = allNewTxs.filter((t) => !existingHashes.has(t.hash))
-        const merged = [...newUnique, ...transactions].sort((a, b) => b.timestamp - a.timestamp)
+        const result = await client.queryTransactionBlocks({
+          filter: { FromAddress: address },
+          options: {
+            showInput: true,
+            showEffects: true,
+            showBalanceChanges: true,
+          },
+          cursor: nextCursor ?? undefined,
+          limit: PAGE_SIZE,
+          order: 'descending',
+        })
 
-        setTransactions(merged)
-        localStorage.setItem('u_transactions', JSON.stringify(merged))
+        const summaries = result.data.map((tx) => summarizeTx(tx, address))
+
+        setTxs((prev) => (nextCursor ? [...prev, ...summaries] : summaries))
+        setCursor(result.nextCursor ?? null)
+        setHasMore(result.hasNextPage)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        setError(`Failed to load transactions: ${msg}`)
+        console.error('[TransactionsPage] RPC error:', err)
+      } finally {
+        setLoading(false)
       }
-    } catch (e) {
-      console.error('Failed to fetch transactions:', e)
-    } finally {
-      setIsFetching(false)
+    },
+    [address],
+  )
+
+  // Initial load when address is resolved
+  useEffect(() => {
+    if (address) {
+      fetchPage(undefined)
     }
-  }, [wallets, transactions])
+  }, [address, fetchPage])
 
-  const filteredTx = transactions.filter((tx) => {
-    if (filter.chain !== 'all' && tx.chain !== filter.chain) return false
-    if (filter.type !== 'all' && tx.type !== filter.type) return false
-    if (filter.search && !tx.hash.toLowerCase().includes(filter.search.toLowerCase())) return false
+  const loadMore = useCallback(() => {
+    emitClick('ui:transactions:loadmore')
+    fetchPage(cursor)
+  }, [cursor, fetchPage])
+
+  const refresh = useCallback(() => {
+    emitClick('ui:transactions:refresh')
+    setTxs([])
+    setCursor(undefined)
+    fetchPage(undefined)
+  }, [fetchPage])
+
+  // Apply client-side filters
+  const filtered = txs.filter((tx) => {
+    if (filter.kind !== 'all' && tx.kind !== filter.kind) return false
+    if (filter.search) {
+      const q = filter.search.toLowerCase()
+      if (!tx.digest.toLowerCase().includes(q) && !tx.description.toLowerCase().includes(q)) {
+        return false
+      }
+    }
     return true
   })
 
-  const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      send: '↗',
-      receive: '↙',
-      swap: '⇄',
-      mint: '✨',
-      burn: '🔥',
-      deploy: '📜',
-      interact: '⚡',
-    }
-    return icons[type] || '•'
-  }
+  // ─── Stats ────────────────────────────────────────────────────────────────
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-500'
-      case 'pending':
-        return 'bg-yellow-500'
-      case 'failed':
-        return 'bg-red-500'
-      default:
-        return 'bg-gray-500'
-    }
-  }
+  const sentCount = txs.filter((t) => t.kind === 'send').length
+  const receivedCount = txs.filter((t) => t.kind === 'receive').length
+  const interactCount = txs.filter((t) => t.kind === 'interact').length
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp)
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    if (days === 0) {
-      const hours = Math.floor(diff / (1000 * 60 * 60))
-      if (hours === 0) {
-        const minutes = Math.floor(diff / (1000 * 60))
-        return `${minutes}m ago`
-      }
-      return `${hours}h ago`
-    } else if (days === 1) {
-      return 'Yesterday'
-    } else if (days < 7) {
-      return `${days}d ago`
-    }
+  function formatDate(ms: number): string {
+    if (!ms) return '—'
+    const date = new Date(ms)
+    const now = Date.now()
+    const diff = now - ms
+    const mins = Math.floor(diff / 60_000)
+    if (mins < 1) return 'Just now'
+    if (mins < 60) return `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    if (days === 1) return 'Yesterday'
+    if (days < 7) return `${days}d ago`
     return date.toLocaleDateString()
   }
 
-  const clearFakeData = () => {
-    // Clear any remaining fake data from localStorage
-    localStorage.removeItem('u_transactions')
-    setTransactions([])
+  function kindIcon(kind: TxSummary['kind']): string {
+    if (kind === 'send') return '↗'
+    if (kind === 'receive') return '↙'
+    return '⚡'
   }
+
+  function kindColor(kind: TxSummary['kind']): string {
+    if (kind === 'send') return 'text-red-500'
+    if (kind === 'receive') return 'text-green-500'
+    return 'text-blue-400'
+  }
+
+  function kindBg(kind: TxSummary['kind']): string {
+    if (kind === 'send') return 'bg-red-100 dark:bg-red-900/30 text-red-600'
+    if (kind === 'receive') return 'bg-green-100 dark:bg-green-900/30 text-green-600'
+    return 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-background">
       <UNav active="transactions" />
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <span>↔️</span> Transactions
             </h1>
-            <p className="text-muted-foreground mt-1">Real transactions from your wallets</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchAllTransactions} disabled={isFetching || wallets.length === 0}>
-              {isFetching ? (
-                <>
-                  <span className="animate-spin mr-2">⟳</span> Fetching...
-                </>
-              ) : (
-                <>📥 Fetch from Chain</>
+            <p className="text-muted-foreground mt-1 text-sm font-mono">
+              {address ? `${address.slice(0, 10)}…${address.slice(-6)}` : 'No Sui wallet found'}
+              {address && (
+                <Badge variant="outline" className="ml-2">
+                  {NETWORK}
+                </Badge>
               )}
-            </Button>
-            {transactions.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearFakeData} title="Clear all transaction data">
-                🗑️
-              </Button>
-            )}
+            </p>
           </div>
+          <Button
+            variant="outline"
+            onClick={refresh}
+            disabled={loading || !address}
+          >
+            {loading ? (
+              <>
+                <span className="animate-spin mr-2">⟳</span> Loading…
+              </>
+            ) : (
+              '⟳ Refresh'
+            )}
+          </Button>
         </div>
+
+        {/* No wallet state */}
+        {!address && !loading && (
+          <Card className="mb-6">
+            <CardContent className="pt-6 text-center">
+              <div className="text-4xl mb-3">💧</div>
+              <p className="text-muted-foreground">
+                No Sui wallet found. Create one first to view transactions.
+              </p>
+              <Button asChild className="mt-4">
+                <a href="/u/wallets">Create Wallet</a>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats */}
-        <div className="grid grid-cols-5 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-3xl font-bold">{transactions.length}</div>
-              <div className="text-sm text-muted-foreground">Total</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-3xl font-bold text-green-500">
-                {transactions.filter((t) => t.type === 'receive').length}
-              </div>
-              <div className="text-sm text-muted-foreground">Received</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-3xl font-bold text-red-500">
-                {transactions.filter((t) => t.type === 'send').length}
-              </div>
-              <div className="text-sm text-muted-foreground">Sent</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-3xl font-bold text-blue-500">
-                {transactions.filter((t) => t.type === 'swap' || t.type === 'interact').length}
-              </div>
-              <div className="text-sm text-muted-foreground">Other</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-3xl font-bold text-yellow-500">
-                {transactions.filter((t) => t.status === 'pending').length}
-              </div>
-              <div className="text-sm text-muted-foreground">Pending</div>
-            </CardContent>
-          </Card>
-        </div>
+        {address && (
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-3xl font-bold">{txs.length}</div>
+                <div className="text-sm text-muted-foreground">Loaded</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-3xl font-bold text-green-500">{receivedCount}</div>
+                <div className="text-sm text-muted-foreground">Received</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-3xl font-bold text-red-500">{sentCount}</div>
+                <div className="text-sm text-muted-foreground">Sent</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-3xl font-bold text-blue-400">{interactCount}</div>
+                <div className="text-sm text-muted-foreground">Interact</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Input
-                  placeholder="Search by transaction hash..."
-                  value={filter.search}
-                  onChange={(e) => setFilter({ ...filter, search: e.target.value })}
-                />
-              </div>
-              <Select value={filter.chain} onValueChange={(v) => setFilter({ ...filter, chain: v })}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CHAIN_FILTERS.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.icon ? `${c.icon} ` : ''}
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filter.type} onValueChange={(v) => setFilter({ ...filter, type: v })}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TX_TYPES.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.icon ? `${t.icon} ` : ''}
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Transaction List */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {filteredTx.length === 0 ? (
-                <div className="p-12 text-center">
-                  <div className="text-5xl mb-4">↔️</div>
-                  <h3 className="text-xl font-semibold mb-2">
-                    {wallets.length === 0 ? 'No Wallets Yet' : 'No Transactions Found'}
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    {wallets.length === 0
-                      ? 'Create a wallet first to see transactions'
-                      : filter.search || filter.chain !== 'all' || filter.type !== 'all'
-                        ? 'Try adjusting your filters'
-                        : "Click 'Fetch from Chain' to load your transaction history"}
-                  </p>
-                  {wallets.length === 0 ? (
-                    <Button asChild>
-                      <a href="/u/wallets">Create Wallet</a>
-                    </Button>
-                  ) : (
-                    <Button onClick={fetchAllTransactions} disabled={isFetching}>
-                      {isFetching ? 'Fetching...' : '📥 Fetch Transactions'}
-                    </Button>
-                  )}
+        {address && (
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Search by digest or description…"
+                    value={filter.search}
+                    onChange={(e) => setFilter({ ...filter, search: e.target.value })}
+                  />
                 </div>
-              ) : (
-                filteredTx
-                  .sort((a, b) => b.timestamp - a.timestamp)
-                  .map((tx) => {
-                    const chainConfig = getChain(tx.chain)
-                    const explorerUrl = getExplorerTxUrl(tx.hash, tx.chain)
-                    const chainFilter = CHAIN_FILTERS.find((c) => c.id === tx.chain)
+                <div className="flex gap-2">
+                  {(['all', 'send', 'receive', 'interact'] as KindFilter[]).map((k) => (
+                    <Button
+                      key={k}
+                      variant={filter.kind === k ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        emitClick(`ui:transactions:filter-${k}`)
+                        setFilter({ ...filter, kind: k })
+                      }}
+                    >
+                      {k === 'all' ? 'All' : k === 'send' ? '↗ Send' : k === 'receive' ? '↙ Receive' : '⚡ Interact'}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
+        {/* Error */}
+        {error && (
+          <Card className="mb-4 border-red-500">
+            <CardContent className="pt-4 text-red-500 text-sm">{error}</CardContent>
+          </Card>
+        )}
+
+        {/* Transaction list */}
+        {address && (
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {filtered.length === 0 && !loading ? (
+                  <div className="p-12 text-center">
+                    <div className="text-5xl mb-4">↔️</div>
+                    <h3 className="text-xl font-semibold mb-2">
+                      {txs.length === 0 ? 'No Transactions' : 'No Results'}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {txs.length === 0
+                        ? 'No transactions found for this wallet on testnet.'
+                        : 'Try adjusting your filters.'}
+                    </p>
+                  </div>
+                ) : (
+                  filtered.map((tx) => {
+                    const explorerUrl = getExplorerTxUrl(tx.digest, 'sui')
                     return (
                       <a
+                        key={tx.digest}
                         href={explorerUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        key={tx.id}
                         className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors cursor-pointer group"
+                        onClick={() => emitClick('ui:transactions:open-explorer')}
                       >
                         <div className="flex items-center gap-4">
                           <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-                              tx.type === 'receive'
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600'
-                                : tx.type === 'send'
-                                  ? 'bg-red-100 dark:bg-red-900/30 text-red-600'
-                                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'
-                            }`}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${kindBg(tx.kind)}`}
                           >
-                            {getTypeIcon(tx.type)}
+                            {kindIcon(tx.kind)}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold capitalize">{tx.type}</span>
-                              <Badge variant="outline">
-                                {chainFilter?.icon || chainConfig.icon} {tx.chain.toUpperCase()}
-                              </Badge>
-                              <div className={`w-2 h-2 rounded-full ${getStatusColor(tx.status)}`} />
+                              <span className="font-medium text-sm">{tx.description}</span>
+                              {tx.status === 'failure' && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Failed
+                                </Badge>
+                              )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 mt-0.5">
                               <code className="text-xs text-muted-foreground">
-                                {tx.hash.slice(0, 12)}...{tx.hash.slice(-8)}
+                                {tx.digest.slice(0, 10)}…{tx.digest.slice(-6)}
                               </code>
                               <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                                🔗 View on Explorer
+                                🔗 Explorer
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="text-right">
-                          <div
-                            className={`font-semibold ${tx.type === 'receive' ? 'text-green-600' : tx.type === 'send' ? 'text-red-600' : ''}`}
-                          >
-                            {tx.type === 'receive' ? '+' : tx.type === 'send' ? '-' : ''}
-                            {tx.amount !== '0' ? tx.amount : ''} {tx.token}
+                        <div className="text-right shrink-0">
+                          {tx.amountSui > 0 && (
+                            <div className={`font-semibold text-sm ${kindColor(tx.kind)}`}>
+                              {tx.kind === 'receive' ? '+' : tx.kind === 'send' ? '-' : ''}
+                              {tx.amountSui.toFixed(4)} SUI
+                            </div>
+                          )}
+                          {tx.usdAmount > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              ${tx.usdAmount.toFixed(2)}
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {formatDate(tx.timestampMs)}
                           </div>
-                          <div className="text-xs text-muted-foreground">{formatDate(tx.timestamp)}</div>
                         </div>
                       </a>
                     )
                   })
+                )}
+
+                {/* Loading skeleton */}
+                {loading && txs.length === 0 && (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <span className="animate-spin inline-block mr-2">⟳</span> Loading transactions…
+                  </div>
+                )}
+              </div>
+
+              {/* Load more */}
+              {hasMore && !loading && filtered.length > 0 && (
+                <div className="p-4 border-t flex justify-center">
+                  <Button variant="outline" onClick={loadMore}>
+                    Load more
+                  </Button>
+                </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+              {loading && txs.length > 0 && (
+                <div className="p-4 border-t text-center text-sm text-muted-foreground">
+                  <span className="animate-spin inline-block mr-2">⟳</span> Loading more…
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )

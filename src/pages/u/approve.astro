@@ -1,0 +1,21 @@
+---
+export const prerender = true;
+
+/**
+ * /u/approve — Co-sign approval page
+ *
+ * Shows a pending agent co-sign request for human review.
+ * The summary is re-derived from txBytes (verifySummaryMatch) before display.
+ * If the derived summary doesn't match the agent-provided summary, the UI
+ * warns the user and blocks approval (Pattern A — agents.md).
+ *
+ * Query params:
+ *   ?id=<requestId>  — specific request UUID; omit to load first pending request
+ */
+import Layout from "@/layouts/Layout.astro";
+import { ApproveIsland } from "@/components/u/ApproveIsland";
+---
+
+<Layout title="Approve transaction — ONE">
+  <ApproveIsland client:only="react" />
+</Layout>
