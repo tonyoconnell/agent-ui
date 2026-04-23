@@ -2,6 +2,7 @@
 // Internal modules (crypto/storage/passkey/recovery) are not part of the API.
 
 export { detectCapabilities, guessAuthenticatorLabel } from './passkey'
+export { registerPasskeyForSignin, signInWithPasskey } from './passkey-cloud'
 export {
   assertValidRecoveryPhrase,
   generateRecoveryPhrase,
@@ -11,6 +12,8 @@ export {
   splitRecoveryPhrase,
   suggestWords,
 } from './recovery'
+export type { CloudBlob } from './sync'
+export { fetchCloudBlob, hasCloudBlob, restoreFromCloud, syncToCloud } from './sync'
 export {
   type AuditEvent,
   type PasskeyCapabilities,

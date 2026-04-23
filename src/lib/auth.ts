@@ -7,6 +7,7 @@
 
 import { betterAuth } from 'better-auth'
 import { bearer } from 'better-auth/plugins'
+import { passkeyWebauthn } from './auth-plugins/passkey-webauthn'
 import { suiWallet } from './auth-plugins/sui-wallet'
 import { typedbAdapter } from './typedb-auth-adapter'
 
@@ -73,10 +74,11 @@ export function createAuth() {
     PUBLIC_SITE_URL: import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321',
   }
 
-  // Runtime/secret config (from Worker env, not build time)
+  // Runtime/secret config: prefer CF Worker bindings (prod) but fall back to
+  // `.env` via `import.meta.env` (localhost dev via `bun --env-file=.env`).
   const runtimeEnv = {
-    TYPEDB_USERNAME: (globalThis as any).TYPEDB_USERNAME || 'admin',
-    TYPEDB_PASSWORD: (globalThis as any).TYPEDB_PASSWORD || '',
+    TYPEDB_USERNAME: (globalThis as any).TYPEDB_USERNAME || import.meta.env.TYPEDB_USERNAME || 'admin',
+    TYPEDB_PASSWORD: (globalThis as any).TYPEDB_PASSWORD || import.meta.env.TYPEDB_PASSWORD || '',
   }
 
   return betterAuth({
@@ -90,6 +92,9 @@ export function createAuth() {
       // Route through the gateway so Better Auth shares the substrate's
       // single TypeDB session — eliminates session-replacement 401s.
       gatewayUrl: import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie',
+      // Same API key the substrate client sends (src/lib/typedb.ts) so the
+      // gateway accepts Better Auth writes (createUser/createSession).
+      gatewayApiKey: (globalThis as any).GATEWAY_API_KEY || import.meta.env.GATEWAY_API_KEY || undefined,
     }),
 
     baseURL: publicEnv.PUBLIC_SITE_URL,
@@ -124,13 +129,32 @@ export function createAuth() {
       },
     },
 
-    trustedOrigins: ['http://localhost:4321', 'http://localhost:3000', 'https://dev.one.ie', 'https://one.ie', 'https://pay.one.ie'],
+    trustedOrigins: [
+      'http://localhost:4321',
+      'http://localhost:3000',
+      'https://dev.one.ie',
+      'https://one.ie',
+      'https://pay.one.ie',
+    ],
 
     plugins: [
       bearer(),
       suiWallet({
         nonceSecret: (globalThis as any).WALLET_NONCE_SECRET || import.meta.env.WALLET_NONCE_SECRET || '',
         sessionSecret: (globalThis as any).SUI_SESSION_SECRET || import.meta.env.SUI_SESSION_SECRET,
+      }),
+      passkeyWebauthn({
+        // Challenge HMAC secret: prefer explicit env, fall back to Better Auth
+        // secret, and finally to a stable dev-only constant on localhost so the
+        // plugin works without any configuration in local dev. In production,
+        // BETTER_AUTH_SECRET must be set — that's already enforced elsewhere.
+        challengeSecret:
+          (globalThis as any).PASSKEY_CHALLENGE_SECRET ||
+          import.meta.env.PASSKEY_CHALLENGE_SECRET ||
+          publicEnv.BETTER_AUTH_SECRET ||
+          (publicEnv.PUBLIC_SITE_URL.startsWith('http://localhost')
+            ? 'dev-only-passkey-challenge-secret-DO-NOT-USE-IN-PROD'
+            : ''),
       }),
     ],
   })

@@ -1,4 +1,7 @@
 import { useState, useTransition } from 'react'
+import { CloudRestorePanel } from '@/components/auth/CloudRestorePanel'
+import { hasCloudBlob } from '@/components/u/lib/vault/sync'
+import { hasVault } from '@/components/u/lib/vault/vault'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,14 +10,19 @@ import { emitClick } from '@/lib/ui-signal'
 
 interface Props {
   redirect?: string
+  /** If provided, called instead of `window.location.href = redirect` when the
+   *  flow completes (after sign-in and any optional restore). Use this when
+   *  the form is embedded in a dialog that should close rather than navigate. */
+  onComplete?: () => void
 }
 
-export function SigninForm({ redirect = '/app' }: Props) {
+export function SigninForm({ redirect = '/app', onComplete }: Props) {
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [showRestore, setShowRestore] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,13 +33,36 @@ export function SigninForm({ redirect = '/app' }: Props) {
       try {
         await signIn(email, password)
         emitClick('ui:signin:success')
-        window.location.href = redirect
+
+        // Offer cloud restore if the server has a vault envelope for this
+        // user AND this device has no local vault yet.
+        let offerRestore = false
+        try {
+          const [cloud, local] = await Promise.all([hasCloudBlob(), hasVault()])
+          offerRestore = cloud && !local
+        } catch {
+          // best-effort — fall through to normal redirect
+        }
+        if (offerRestore) {
+          setShowRestore(true)
+          return
+        }
+        if (onComplete) onComplete()
+        else window.location.href = redirect
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Sign-in failed'
         emitClick('ui:signin:error', { message })
         setError(message)
       }
     })
+  }
+
+  if (showRestore) {
+    const finish = () => {
+      if (onComplete) onComplete()
+      else window.location.href = redirect
+    }
+    return <CloudRestorePanel onRestored={finish} onSkip={finish} />
   }
 
   return (

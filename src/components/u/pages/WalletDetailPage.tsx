@@ -508,7 +508,9 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       try {
         const allTx: Transaction[] = JSON.parse(storedTx)
         setTransactions(allTx.filter((tx) => tx.walletId === walletId))
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     return () => {

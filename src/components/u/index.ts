@@ -6,19 +6,7 @@
  */
 
 export { GenerateWalletDialog } from './GenerateWalletDialog'
-// Legacy storage — kept for migration tooling only. New code should use useVault().
-export {
-  checkPasswordStrength,
-  type EncryptedData,
-  formatMnemonic,
-  generateStrongPassword,
-  SecureKeyStorage,
-  type SecureWallet,
-  type StorageStatus,
-  validateMnemonic,
-  type WalletBackup,
-} from './lib/SecureKeyStorage'
-// Vault — new primary surface (passkey + recovery phrase + IndexedDB).
+// Vault — primary surface (passkey + recovery phrase + IndexedDB).
 export {
   detectCapabilities,
   generateRecoveryPhrase,
@@ -28,15 +16,6 @@ export {
   type VaultStatus,
   type VaultWallet,
 } from './lib/vault'
-// migration.ts removed — hasLegacyData, inspectLegacy no longer exported
-export {
-  BackupExportDialog,
-  BackupImportDialog,
-  SecurityStatus,
-  SetupPasswordDialog,
-  UnlockDialog,
-  ViewMnemonicDialog,
-} from './SecureStorageDialogs'
 export { UDashboard } from './UDashboard'
 export {
   VaultBackupDialog,

@@ -19,9 +19,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { EnhancedWalletCard } from './EnhancedWalletCard'
 import { GenerateWalletDialog } from './GenerateWalletDialog'
 import { useWallets } from './hooks/useWallets'
-import * as Vault from './lib/vault/vault'
 import type { VaultStatus } from './lib/vault/types'
+import * as Vault from './lib/vault/vault'
 import { VaultBackupDialog, VaultUnlockDialog } from './VaultDialogs'
+import { VaultSetupWizard } from './VaultSetupWizard'
 import { VaultUnlockChip } from './VaultUnlockChip'
 
 // Chain configurations - mapped to one-protocol chains (6 chains for 3x2 grid)
@@ -127,9 +128,12 @@ export function UDashboard() {
   // Minimal reactive vault status — replaces useVault() for status checks only.
   const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null)
   useEffect(() => {
-    void Vault.getStatus().then(setVaultStatus).catch(() => {})
+    void Vault.getStatus()
+      .then(setVaultStatus)
+      .catch(() => {})
   }, [wallets.length])
   const [showUnlock, setShowUnlock] = useState(false)
+  const [showVaultSetup, setShowVaultSetup] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
   const [showMnemonic, setShowMnemonic] = useState<{ id: string; name: string } | null>(null)
   const [substrateData, setSubstrateData] = useState<{
@@ -176,64 +180,31 @@ export function UDashboard() {
     }
   }, [wallets.length, isLoading, wallets?.[0]?.id])
 
-  // Helper function to save keys to u_keys storage
-  // DEPRECATED: localStorage keys are not safe for seed material
-  // TODO: use vault.ts which stores encrypted in IndexedDB instead
-  const saveToKeysStorage = (walletId: string, chain: string, mnemonic?: string, privateKey?: string) => {
-    // REMOVED: localStorage.getItem('u_keys') read
-    // const existingKeys = localStorage.getItem('u_keys')
-    // const keys = existingKeys ? JSON.parse(existingKeys) : []
-
-    // Save mnemonic (recovery phrase)
-    // NOTE: Keys are now managed by vault.ts which encrypts them in IndexedDB
-    if (mnemonic) {
-      // REMOVED: localStorage write
-      // keys.push({
-      //   id: `mnemonic-${walletId}`,
-      //   name: `${chain} Recovery Phrase`,
-      //   type: 'mnemonic',
-      //   value: mnemonic,
-      //   createdAt: Date.now(),
-      //   chain: chain,
-      //   walletId: walletId,
-      // })
-    }
-
-    // Private key stored encrypted in vault IndexedDB — not in localStorage
-    void walletId; void chain; void privateKey
-  }
-
   const handleGenerateWallet = async (chainId: string, password?: string, showSecurityDialog = true) => {
     const chain = SUPPORTED_CHAINS.find((c) => c.id === chainId)
     if (!chain) return
 
+    // Vault must exist and be unlocked — saveWallet throws otherwise.
+    // Route the user to the appropriate dialog and bail; they can retry.
+    const status = await Vault.getStatus()
+    setVaultStatus(status)
+    if (!status.hasVault) {
+      setShowVaultSetup(true)
+      return
+    }
+    if (status.isLocked) {
+      setShowUnlock(true)
+      return
+    }
+
     setIsGenerating(chainId)
 
     try {
-      // Use API-connected hook to generate wallet (Unified SDK 3.0)
+      // Vault-backed: useWallets.createWallet persists to the encrypted vault.
+      // The returned newWallet carries privateKey/mnemonic in memory ONCE so
+      // the onboarding carousel can show them; they are not persisted here.
       const newWallet = await createWallet(chainId)
-
-      // Save keys securely if available
-      // Note: useWallets returns a Wallet object which includes privateKey if just generated
-      if (newWallet.privateKey || newWallet.mnemonic) {
-        // Always save both mnemonic and private key to u_keys storage (legacy support)
-        saveToKeysStorage(newWallet.id, chain.name, newWallet.mnemonic, newWallet.privateKey)
-
-        // Save to vault if it exists and is unlocked.
-        // Setup wizard handles vault creation; we don't auto-create here.
-        if (vaultStatus?.hasVault && !vaultStatus.isLocked) {
-          await Vault.saveWallet({
-            id: newWallet.id,
-            chain: chainId,
-            address: newWallet.address,
-            publicKey: newWallet.publicKey || '',
-            mnemonic: newWallet.mnemonic,
-            privateKey: newWallet.privateKey,
-            balance: '0.00',
-            usdValue: 0,
-          })
-        }
-      }
+      void newWallet
 
       // Only transition to dashboard if this is a single wallet generation
       if (showSecurityDialog) {
@@ -650,8 +621,7 @@ export function UDashboard() {
                     chain={chain}
                     onClick={(walletId) => (window.location.href = `/u/wallet/${walletId}`)}
                     onDelete={(walletId) => {
-                      deleteWallet(walletId)
-                      void Vault.deleteWallet(walletId).catch(() => {})
+                      void deleteWallet(walletId)
                     }}
                     onViewMnemonic={(walletId, walletName) => {
                       setShowMnemonic({ id: walletId, name: walletName })
@@ -725,7 +695,25 @@ export function UDashboard() {
       />
 
       {/* Vault Dialogs */}
-      <VaultUnlockDialog open={showUnlock} onOpenChange={setShowUnlock} />
+      <VaultUnlockDialog
+        open={showUnlock}
+        onOpenChange={setShowUnlock}
+        onUnlocked={() =>
+          Vault.getStatus()
+            .then(setVaultStatus)
+            .catch(() => {})
+        }
+      />
+
+      <VaultSetupWizard
+        open={showVaultSetup}
+        onOpenChange={setShowVaultSetup}
+        onComplete={() =>
+          Vault.getStatus()
+            .then(setVaultStatus)
+            .catch(() => {})
+        }
+      />
 
       <VaultBackupDialog open={showBackup} onOpenChange={setShowBackup} />
 

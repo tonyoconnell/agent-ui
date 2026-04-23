@@ -1,15 +1,14 @@
 /**
- * Header — global site header with crypto-first auth.
+ * Header — global site header with vault-first auth.
  *
- * Signed out: [Sign in] [Sign up]  (both route to crypto auth pages)
- * Signed in:  [address · role] [Continue →] [Sign out]
- *
- * Session state comes from better-auth via authClient.useSession().
- * Role (chairman/board/ceo/operator/agent/auditor) is fetched via
- * /api/auth/me — optional, displayed only if available.
+ * Vault is the primary identity (passkey-unlocked device-local keys).
+ * Better Auth password sign-in is kept as a secondary path for users
+ * without a vault/passkey.
  */
 
 import { useEffect, useState } from 'react'
+import { HeaderSignInDialog } from '@/components/auth/HeaderSignInDialog'
+import { VaultUnlockChip } from '@/components/u/VaultUnlockChip'
 import { authClient } from '@/lib/auth-client'
 import { emitClick } from '@/lib/ui-signal'
 
@@ -36,6 +35,7 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
   const { data: session, isPending } = authClient.useSession()
   const [role, setRole] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [signInOpen, setSignInOpen] = useState(false)
 
   const user = session?.user as SessionUser | undefined
   const uid = user?.id
@@ -68,16 +68,9 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
     window.location.href = '/'
   }
 
-  const gotoSignIn = () => {
+  const openSignIn = () => {
     emitClick('ui:header:signin')
-    const ret = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/'
-    window.location.href = `/signin?redirect=${encodeURIComponent(ret)}`
-  }
-
-  const gotoSignUp = () => {
-    emitClick('ui:header:signup')
-    const ret = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/'
-    window.location.href = `/signup?redirect=${encodeURIComponent(ret)}`
+    setSignInOpen(true)
   }
 
   const gotoContinue = () => {
@@ -96,6 +89,9 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
 
         {/* Right: auth controls */}
         <div className="flex items-center gap-2">
+          {/* Primary auth — vault (passkey-unlocked device identity) */}
+          <VaultUnlockChip />
+
           {isPending ? (
             <div className="h-8 w-24 animate-pulse rounded-md bg-white/5" role="status" aria-label="Loading session" />
           ) : session?.user ? (
@@ -189,25 +185,18 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
               </button>
             </>
           ) : (
-            <>
-              <button
-                type="button"
-                onClick={gotoSignIn}
-                className="inline-flex items-center rounded-md border border-white/10 bg-transparent px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/[0.06] transition-colors"
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                onClick={gotoSignUp}
-                className="inline-flex items-center rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-zinc-200 transition-colors"
-              >
-                Sign up
-              </button>
-            </>
+            // Secondary path: Better Auth password sign-in (+ cloud restore) inline.
+            <button
+              type="button"
+              onClick={openSignIn}
+              className="inline-flex items-center rounded-md border border-white/10 bg-transparent px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/[0.06] transition-colors"
+            >
+              Sign in
+            </button>
           )}
         </div>
       </div>
+      <HeaderSignInDialog open={signInOpen} onOpenChange={setSignInOpen} />
     </header>
   )
 }

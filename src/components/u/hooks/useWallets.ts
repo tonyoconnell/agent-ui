@@ -66,13 +66,7 @@ function toWallet(v: VaultWallet): Wallet {
 
 // One-shot: nuke legacy localStorage the first time the new hook loads on
 // this device. The vault is the single source of truth going forward.
-const LEGACY_KEYS = [
-  'u_wallets',
-  'u_keys',
-  'u_secure_wallets',
-  'u_password_check',
-  'u_secure_settings',
-]
+const LEGACY_KEYS = ['u_wallets', 'u_keys', 'u_secure_wallets', 'u_password_check', 'u_secure_settings']
 const LEGACY_CLEARED_FLAG = 'u_legacy_cleared_v1'
 
 function wipeLegacyOnce(): void {

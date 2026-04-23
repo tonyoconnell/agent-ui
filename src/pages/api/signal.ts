@@ -73,7 +73,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let body: {
     sender?: string
     receiver?: string
-    data?: string
+    data?: unknown
     task?: string
     amount?: number
     scope?: 'private' | 'group' | 'public'
@@ -89,8 +89,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
       { status: 400, headers: { 'content-type': 'application/json' } },
     )
   }
-  const { sender, receiver: receiverRaw, data, amount = 0, task, scope } = body
+  const { sender, receiver: receiverRaw, data: dataRaw, amount = 0, task, scope } = body
   let receiver = receiverRaw
+  // Coerce `data` to string — callers occasionally send objects (e.g. when a
+  // UI helper forgets to JSON.stringify), and `escapeTqlString` would blow up
+  // with `str.replace is not a function`. Accept string verbatim, serialize
+  // anything else, ignore nullish.
+  const data: string | undefined =
+    typeof dataRaw === 'string'
+      ? dataRaw
+      : dataRaw == null
+        ? undefined
+        : (() => {
+            try {
+              return JSON.stringify(dataRaw)
+            } catch {
+              return undefined
+            }
+          })()
 
   if (!sender || !receiver) {
     return new Response(JSON.stringify({ error: 'Missing sender or receiver' }), { status: 400 })

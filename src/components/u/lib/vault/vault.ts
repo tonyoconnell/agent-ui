@@ -150,6 +150,31 @@ function audit(ev: Omit<AuditEvent, 'id' | 'at'>): void {
 }
 
 // ============================================
+// MUTATION HOOK — fire-and-forget, best-effort.
+// `cloud sync` registers here so saveWallet/deleteWallet upload automatically.
+// ============================================
+
+type MutationListener = () => void | Promise<void>
+const mutationListeners = new Set<MutationListener>()
+
+export function onMutation(fn: MutationListener): () => void {
+  mutationListeners.add(fn)
+  return () => {
+    mutationListeners.delete(fn)
+  }
+}
+
+function notifyMutation(): void {
+  for (const fn of mutationListeners) {
+    try {
+      void Promise.resolve(fn()).catch(() => {})
+    } catch {
+      // swallow — listeners must never break the mutation path
+    }
+  }
+}
+
+// ============================================
 // STATUS
 // ============================================
 
@@ -476,6 +501,7 @@ export async function saveWallet(input: SaveWalletInput): Promise<VaultWallet> {
 
   await putWallet(wallet)
   audit({ verb: 'save', outcome: 'ok', subject: input.id })
+  notifyMutation()
   return wallet
 }
 
@@ -522,6 +548,7 @@ export async function deleteWallet(walletId: string): Promise<void> {
   touchActivity()
   await storageDeleteWallet(walletId)
   audit({ verb: 'delete', outcome: 'ok', subject: walletId })
+  notifyMutation()
 }
 
 /** Update cached balance/USD — no auth required (display-only data). */
@@ -751,6 +778,284 @@ export async function importBackup(blob: string, exportPassword: string): Promis
   }
   audit({ verb: 'import', outcome: 'ok', detail: `${imported} wallets` })
   return imported
+}
+
+// ============================================
+// CLOUD SYNC — server-held ciphertext envelope
+// ============================================
+//
+// Shape: AES-GCM envelope under a key derived from the vault master. The
+// server stores ciphertext only; decryption requires the recovery phrase
+// (to re-derive the master) or an already-unlocked session.
+//
+// The envelope carries `meta` minus device-bound passkeys (those are
+// re-enrolled per device) plus every wallet record verbatim.
+
+const SYNC_DOMAIN = 'vault.sync.export.v1'
+
+interface SyncEnvelope {
+  version: number
+  createdAt: string
+  meta: Omit<VaultMeta, 'passkeys'>
+  wallets: VaultWallet[]
+  checksum: string
+}
+
+async function deriveSyncSecret(masterKey: CryptoKey): Promise<Uint8Array> {
+  return new Uint8Array(
+    await crypto.subtle.deriveBits(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(0) as unknown as BufferSource,
+        info: utf8Encode(SYNC_DOMAIN) as unknown as BufferSource,
+      },
+      masterKey,
+      256,
+    ),
+  )
+}
+
+/**
+ * Export the vault state as an encrypted envelope safe to upload to the
+ * cloud. Requires an unlocked session. The resulting string is opaque
+ * ciphertext — the server can store and return it but never decrypt.
+ */
+export async function exportSyncBlob(): Promise<string> {
+  const s = requireUnlocked()
+  touchActivity()
+  const meta = await loadMeta()
+  const wallets = await storageListWallets()
+
+  const { passkeys: _passkeys, ...metaWithoutPasskeys } = meta
+  const body = {
+    version: VAULT_SCHEMA_VERSION,
+    createdAt: new Date().toISOString(),
+    meta: metaWithoutPasskeys,
+    wallets,
+  }
+  const bodyJson = JSON.stringify(body, replaceBytes)
+  const checksum = bytesToBase64(await sha256(utf8Encode(bodyJson)))
+  const envelope: SyncEnvelope = { ...body, checksum }
+
+  const syncSecret = await deriveSyncSecret(s.masterKey)
+  const syncKey = await importMasterSecret(syncSecret)
+  const ciphertext = await encryptUnderMaster(JSON.stringify(envelope, replaceBytes), syncKey, SYNC_DOMAIN)
+
+  return JSON.stringify({
+    info: ciphertext.info,
+    iv: bytesToBase64(ciphertext.iv),
+    ciphertext: bytesToBase64(ciphertext.ciphertext),
+    version: ciphertext.version,
+  })
+}
+
+/**
+ * Restore a vault from an encrypted envelope using the BIP-39 recovery
+ * phrase. Bootstraps meta + wallets into IndexedDB and opens a session.
+ *
+ * Throws if a local vault already exists — caller must `wipeAll()` first.
+ * On success, session is open under `method: 'recovery'`; caller typically
+ * offers passkey enrollment next (addPasskey()).
+ */
+export async function importSyncBlob(blob: string, recoveryPhrase: string): Promise<{ walletsRestored: number }> {
+  assertValidRecoveryPhrase(recoveryPhrase)
+  if (await hasVault()) throw new VaultError('a vault already exists on this device', 'storage-error')
+
+  const wrapper = JSON.parse(blob) as {
+    info: string
+    iv: string
+    ciphertext: string
+    version: number
+  }
+  const masterSecret = await recoveryToVaultSecret(recoveryPhrase)
+  const masterKey = await importMasterSecret(masterSecret)
+  const syncSecret = await deriveSyncSecret(masterKey)
+  const syncKey = await importMasterSecret(syncSecret)
+
+  const record: EncryptedRecord = {
+    info: wrapper.info,
+    iv: base64ToBytes(wrapper.iv),
+    ciphertext: base64ToBytes(wrapper.ciphertext),
+    version: wrapper.version,
+  }
+  let envelopeJson: string
+  try {
+    envelopeJson = await decryptUnderMaster(record, syncKey)
+  } catch {
+    audit({ verb: 'import', outcome: 'fail', method: 'recovery', detail: 'sync-decrypt' })
+    throw new VaultError('recovery phrase does not match this cloud backup', 'wrong-recovery')
+  }
+  const envelope = JSON.parse(envelopeJson, reviveBytes) as SyncEnvelope
+
+  // Verify checksum against the stripped body (what the sender hashed).
+  const bodyForHash = {
+    version: envelope.version,
+    createdAt: envelope.createdAt,
+    meta: envelope.meta,
+    wallets: envelope.wallets,
+  }
+  const bodyJson = JSON.stringify(bodyForHash, replaceBytes)
+  const checksum = bytesToBase64(await sha256(utf8Encode(bodyJson)))
+  if (checksum !== envelope.checksum) {
+    throw new VaultError('sync envelope checksum mismatch', 'tamper-detected')
+  }
+
+  // Restore meta with passkeys=[] — device-local, user re-enrolls on this device.
+  const restoredMeta: VaultMeta = {
+    ...envelope.meta,
+    id: 'singleton',
+    passkeys: [],
+  }
+  await putMeta(restoredMeta)
+
+  let restored = 0
+  for (const w of envelope.wallets) {
+    await putWallet(w)
+    restored++
+  }
+
+  session = {
+    masterKey,
+    method: 'recovery',
+    unlockedAt: Date.now(),
+    lastActivityAt: Date.now(),
+  }
+  armAutoLock(restoredMeta.autoLockMs)
+  recordSuccess()
+  audit({ verb: 'import', outcome: 'ok', method: 'recovery', detail: `sync:${restored}` })
+
+  return { walletsRestored: restored }
+}
+
+// ============================================
+// MASTER EXPORT / IMPORT (passkey-cloud integration)
+// ============================================
+
+/** Export the raw 32-byte master. Requires unlocked session. Used by
+ *  passkey-cloud to wrap the master under a PRF-derived key. */
+export async function exportRawMaster(): Promise<Uint8Array> {
+  const s = requireUnlocked()
+  touchActivity()
+  return new Uint8Array(
+    await crypto.subtle.deriveBits(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(0) as unknown as BufferSource,
+        info: utf8Encode(`${HKDF_DOMAINS.masterCheck()}.export`) as unknown as BufferSource,
+      },
+      s.masterKey,
+      256,
+    ),
+  )
+}
+
+/** Bootstrap a local vault around a known master secret. Used after a cloud
+ *  sign-in that produced the master via PRF unwrap but the user has no
+ *  pre-existing blob to import. Opens a session under `method: 'passkey'`.
+ *  Optionally accepts an already-enrolled passkey so the *same* credential
+ *  that did the server sign-in also drives local unlock — one passkey per
+ *  device, two jobs. */
+export async function adoptMaster(
+  masterSecret: Uint8Array,
+  enrollment?: PasskeyEnrollment & { wrappedMaster: EncryptedRecord },
+): Promise<void> {
+  if (await hasVault()) return // already exists — unlock path handles it
+  const masterKey = await importMasterSecret(masterSecret)
+  const meta: VaultMeta = {
+    id: 'singleton',
+    version: VAULT_SCHEMA_VERSION,
+    createdAt: Date.now(),
+    hasPassword: false,
+    passkeys: enrollment ? [enrollment] : [],
+    autoLockMs: DEFAULT_AUTO_LOCK_MS,
+    lockOnTabClose: false,
+    recoveryCheck: await encryptUnderMaster(SENTINEL_PLAINTEXT, masterKey, HKDF_DOMAINS.recoveryCheck()),
+  }
+  await putMeta(meta)
+  session = {
+    masterKey,
+    method: 'passkey',
+    unlockedAt: Date.now(),
+    lastActivityAt: Date.now(),
+  }
+  armAutoLock(meta.autoLockMs)
+  audit({
+    verb: 'setup',
+    outcome: 'ok',
+    method: 'passkey',
+    detail: enrollment ? 'adopted-from-cloud+enrollment' : 'adopted-from-cloud',
+  })
+}
+
+/** Import a cloud blob when the master is already known (e.g. recovered via
+ *  PRF unwrap rather than BIP-39 phrase). Same semantics as importSyncBlob
+ *  but skips the recovery-phrase derivation. */
+export async function importSyncBlobWithMaster(
+  blob: string,
+  masterSecret: Uint8Array,
+): Promise<{ walletsRestored: number }> {
+  if (await hasVault()) throw new VaultError('a vault already exists on this device', 'storage-error')
+
+  const wrapper = JSON.parse(blob) as {
+    info: string
+    iv: string
+    ciphertext: string
+    version: number
+  }
+  const masterKey = await importMasterSecret(masterSecret)
+  const syncSecret = await deriveSyncSecret(masterKey)
+  const syncKey = await importMasterSecret(syncSecret)
+
+  const record: EncryptedRecord = {
+    info: wrapper.info,
+    iv: base64ToBytes(wrapper.iv),
+    ciphertext: base64ToBytes(wrapper.ciphertext),
+    version: wrapper.version,
+  }
+  let envelopeJson: string
+  try {
+    envelopeJson = await decryptUnderMaster(record, syncKey)
+  } catch {
+    audit({ verb: 'import', outcome: 'fail', method: 'passkey', detail: 'sync-decrypt' })
+    throw new VaultError('passkey did not produce a matching vault master', 'tamper-detected')
+  }
+  const envelope = JSON.parse(envelopeJson, reviveBytes) as SyncEnvelope
+
+  const bodyForHash = {
+    version: envelope.version,
+    createdAt: envelope.createdAt,
+    meta: envelope.meta,
+    wallets: envelope.wallets,
+  }
+  const bodyJson = JSON.stringify(bodyForHash, replaceBytes)
+  const checksum = bytesToBase64(await sha256(utf8Encode(bodyJson)))
+  if (checksum !== envelope.checksum) {
+    throw new VaultError('sync envelope checksum mismatch', 'tamper-detected')
+  }
+
+  const restoredMeta: VaultMeta = {
+    ...envelope.meta,
+    id: 'singleton',
+    passkeys: [],
+  }
+  await putMeta(restoredMeta)
+  let restored = 0
+  for (const w of envelope.wallets) {
+    await putWallet(w)
+    restored++
+  }
+  session = {
+    masterKey,
+    method: 'passkey',
+    unlockedAt: Date.now(),
+    lastActivityAt: Date.now(),
+  }
+  armAutoLock(restoredMeta.autoLockMs)
+  recordSuccess()
+  audit({ verb: 'import', outcome: 'ok', method: 'passkey', detail: `sync:${restored}` })
+  return { walletsRestored: restored }
 }
 
 // JSON serialise helpers — Uint8Array round-trip via {__bytes: base64}

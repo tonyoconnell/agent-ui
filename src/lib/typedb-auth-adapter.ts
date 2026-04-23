@@ -21,6 +21,12 @@ export interface TypeDBAdapterConfig {
    * Example: `gatewayUrl: 'https://api.one.ie'`
    */
   gatewayUrl?: string
+  /**
+   * Optional: bearer token sent with every gateway request. Required when the
+   * gateway enforces `GATEWAY_API_KEY` (which the substrate client in
+   * `src/lib/typedb.ts` also sends). Without this, every write returns 401.
+   */
+  gatewayApiKey?: string
 }
 
 // Model → TypeDB entity mapping
@@ -106,10 +112,18 @@ async function getToken(config: TypeDBAdapterConfig, forceFresh = false): Promis
  * collisions with substrate code that also uses the gateway.
  */
 async function query(config: TypeDBAdapterConfig, tql: string, write: boolean): Promise<any[]> {
-  if (config.gatewayUrl) {
+  // Auto-fall-back to direct mode when the gateway is configured but no API
+  // key was provided AND we have direct TypeDB creds. Saves localhost dev
+  // from needing GATEWAY_API_KEY while still preferring the gateway in prod.
+  const canUseDirect = !!(config.url && config.username && config.password)
+  if (config.gatewayUrl && (config.gatewayApiKey || !canUseDirect)) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (config.gatewayApiKey) {
+      headers.Authorization = `Bearer ${config.gatewayApiKey}`
+    }
     const res = await fetch(`${config.gatewayUrl.replace(/\/$/, '')}/typedb/query`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         query: tql,
         transactionType: write ? 'write' : 'read',

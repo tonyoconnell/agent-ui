@@ -2,6 +2,7 @@
 
 import { Loader2, Lock, LockOpen, ShieldPlus } from 'lucide-react'
 import { useCallback, useEffect, useState, useTransition } from 'react'
+import '@/components/u/lib/vault/sync' // side-effect: register cloud-sync on mutations
 import type { VaultStatus } from '@/components/u/lib/vault/types'
 import * as Vault from '@/components/u/lib/vault/vault'
 import { emitClick } from '@/lib/ui-signal'
