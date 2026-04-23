@@ -13,9 +13,9 @@ import {
   Upload,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
-import * as Vault from '@/components/u/lib/vault/vault'
-import type { VaultStatus } from '@/components/u/lib/vault/types'
 import { isValidRecoveryPhrase, RECOVERY_WORD_COUNT, suggestWords } from '@/components/u/lib/vault'
+import type { VaultStatus } from '@/components/u/lib/vault/types'
+import * as Vault from '@/components/u/lib/vault/vault'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -37,23 +37,32 @@ interface DialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+interface UnlockDialogProps extends DialogProps {
+  onUnlocked?: () => void | Promise<void>
+}
+
 // =====================================================================
 // VaultUnlockDialog
 // =====================================================================
 
-export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
+export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: UnlockDialogProps) {
   const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null)
   const refreshStatus = useCallback(async () => {
-    try { setVaultStatus(await Vault.getStatus()) } catch { /* ignore */ }
+    try {
+      setVaultStatus(await Vault.getStatus())
+    } catch {
+      /* ignore */
+    }
   }, [])
-  useEffect(() => { void refreshStatus() }, [refreshStatus])
+  useEffect(() => {
+    void refreshStatus()
+  }, [refreshStatus])
 
   const prf = vaultStatus?.capabilities.prf ?? false
   const hasPasskey = vaultStatus?.hasPasskey ?? false
   const hasPassword = vaultStatus?.hasPassword ?? false
 
-  const defaultTab: 'passkey' | 'password' | 'recovery' =
-    hasPasskey ? 'passkey' : hasPassword ? 'password' : 'recovery'
+  const defaultTab: 'passkey' | 'password' | 'recovery' = hasPasskey ? 'passkey' : hasPassword ? 'password' : 'recovery'
 
   const [tab, setTab] = useState<string>(defaultTab)
   const [password, setPassword] = useState('')
@@ -84,6 +93,7 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
       try {
         await Vault.unlockWithPasskey()
         await refreshStatus()
+        await onUnlocked?.()
         onOpenChange(false)
       } catch (e) {
         const raw = e instanceof Error ? e.message : 'Passkey unlock failed'
@@ -91,9 +101,11 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
         // phone/USB picker because no local passkey matches the stored credId)
         const lower = raw.toLowerCase()
         if (lower.includes('cancelled') || lower.includes('cancelled')) {
-          setError("Passkey prompt was cancelled. Tap Unlock to try again, or use Recovery phrase.")
+          setError('Passkey prompt was cancelled. Tap Unlock to try again, or use Recovery phrase.')
         } else if (lower.includes('not found') || lower.includes('no credential') || lower.includes('returned no')) {
-          setError("This device doesn't have the saved passkey. It may have been deleted from your browser. Use Recovery phrase to restore.")
+          setError(
+            "This device doesn't have the saved passkey. It may have been deleted from your browser. Use Recovery phrase to restore.",
+          )
           setTab('recovery')
         } else {
           setError(raw)
@@ -109,6 +121,7 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
       try {
         await Vault.unlockWithPassword(password)
         await refreshStatus()
+        await onUnlocked?.()
         onOpenChange(false)
       } catch (e) {
         setAttempts((n) => n + 1)
@@ -129,6 +142,7 @@ export function VaultUnlockDialog({ open, onOpenChange }: DialogProps) {
       try {
         await Vault.unlockWithRecovery(phrase)
         await refreshStatus()
+        await onUnlocked?.()
         onOpenChange(false)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not unlock with recovery phrase')
@@ -589,9 +603,15 @@ const AUTO_LOCK_OPTIONS: Array<{ label: string; ms: number }> = [
 export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
   const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null)
   const refreshStatus = useCallback(async () => {
-    try { setVaultStatus(await Vault.getStatus()) } catch { /* ignore */ }
+    try {
+      setVaultStatus(await Vault.getStatus())
+    } catch {
+      /* ignore */
+    }
   }, [])
-  useEffect(() => { void refreshStatus() }, [refreshStatus])
+  useEffect(() => {
+    void refreshStatus()
+  }, [refreshStatus])
 
   const [autoLockMs, setAutoLockMs] = useState<number>(30 * 60_000)
   const [lockOnTabClose, setLockOnTabClose] = useState<boolean>(false)

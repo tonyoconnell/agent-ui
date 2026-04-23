@@ -2,8 +2,8 @@
 
 import { Loader2, Lock, LockOpen, ShieldPlus } from 'lucide-react'
 import { useCallback, useEffect, useState, useTransition } from 'react'
-import * as Vault from '@/components/u/lib/vault/vault'
 import type { VaultStatus } from '@/components/u/lib/vault/types'
+import * as Vault from '@/components/u/lib/vault/vault'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 import { VaultUnlockDialog } from './VaultDialogs'
@@ -38,7 +38,9 @@ function useVaultStatus() {
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const unlockWithPasskey = useCallback(async () => {
@@ -51,7 +53,7 @@ function useVaultStatus() {
     void refresh()
   }, [refresh])
 
-  return { loading, status, unlockWithPasskey, lock }
+  return { loading, status, refresh, unlockWithPasskey, lock }
 }
 
 export function VaultUnlockChip({ className }: Props) {
@@ -94,7 +96,7 @@ export function VaultUnlockChip({ className }: Props) {
           <ShieldPlus className="w-3.5 h-3.5" />
           <span>Set up vault</span>
         </button>
-        <VaultSetupWizard open={showSetup} onOpenChange={setShowSetup} />
+        <VaultSetupWizard open={showSetup} onOpenChange={setShowSetup} onComplete={vault.refresh} />
       </>
     )
   }
@@ -118,7 +120,7 @@ export function VaultUnlockChip({ className }: Props) {
           {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
           <span>{canPasskey ? 'Locked — Tap to unlock' : 'Locked — Enter password'}</span>
         </button>
-        <VaultUnlockDialog open={showUnlock} onOpenChange={setShowUnlock} />
+        <VaultUnlockDialog open={showUnlock} onOpenChange={setShowUnlock} onUnlocked={vault.refresh} />
       </>
     )
   }

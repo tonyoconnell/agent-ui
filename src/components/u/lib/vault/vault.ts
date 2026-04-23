@@ -236,9 +236,12 @@ export async function setup(opts: SetupOptions = {}): Promise<SetupResult> {
 
   // 3. Optional passkey enrollment.
   let enrollment: PasskeyEnrollment | undefined
+  let enrollmentPrfSecret: Uint8Array | undefined
   if (opts.enrollPasskey) {
     try {
-      enrollment = await enrollPasskey(opts.userIdentifier ?? 'ONE Vault', opts.userIdentifier ?? 'ONE Vault')
+      const res = await enrollPasskey(opts.userIdentifier ?? 'ONE Vault', opts.userIdentifier ?? 'ONE Vault')
+      enrollment = res.enrollment
+      enrollmentPrfSecret = res.prfSecret
       enrollment.authenticatorLabel = enrollment.authenticatorLabel ?? guessAuthenticatorLabel()
       meta.passkeys.push(enrollment)
     } catch (e) {
@@ -261,24 +264,16 @@ export async function setup(opts: SetupOptions = {}): Promise<SetupResult> {
     meta.hasPassword = true
   }
 
-  // 5. Wrap master secret under EACH passkey enrollment so unlock can recover it.
-  // We encode the wrapped master in the enrollment-scoped sentinel store keyed by credentialId.
-  // For now keep wrapped-master in meta keyed off credential id (one wrap per passkey).
-  if (enrollment) {
-    const passkeyBaseKey = await importMasterSecret(enrollment.prfSalt) // bootstrap key — will replace below
-    // Actually we need PRF output to wrap. Re-prompt with same salt to get the secret.
-    const prfRes = await passkeyUnlock(enrollment)
-    if (!prfRes.ok) throw new VaultError('passkey verification failed during setup', 'passkey-cancelled')
-    const wrapKey = await importMasterSecret(prfRes.secret)
+  // 5. Wrap master secret under the passkey enrollment so unlock can recover it.
+  // Reuse the PRF secret captured during enrollment verification — no third prompt.
+  if (enrollment && enrollmentPrfSecret) {
+    const wrapKey = await importMasterSecret(enrollmentPrfSecret)
     const wrappedMaster = await encryptUnderMaster(
       bytesToBase64(masterSecret),
       wrapKey,
       `${HKDF_DOMAINS.masterCheck()}.passkey.${bytesToBase64(enrollment.credentialId)}`,
     )
-    // Store the wrapped master on the enrollment record itself via meta.passkeys map.
-    // We extend the enrollment with wrappedMaster — the type allows extra fields via storage.
     ;(enrollment as PasskeyEnrollment & { wrappedMaster: EncryptedRecord }).wrappedMaster = wrappedMaster
-    void passkeyBaseKey // silences unused — we keep import call shape for clarity
   }
 
   await putMeta(meta)
@@ -547,13 +542,11 @@ export async function addPasskey(userIdentifier?: string): Promise<PasskeyEnroll
   touchActivity()
   const meta = await loadMeta()
 
-  const enrollment = await enrollPasskey(userIdentifier ?? 'ONE Vault', userIdentifier ?? 'ONE Vault')
+  const { enrollment, prfSecret } = await enrollPasskey(userIdentifier ?? 'ONE Vault', userIdentifier ?? 'ONE Vault')
   enrollment.authenticatorLabel = enrollment.authenticatorLabel ?? guessAuthenticatorLabel()
 
-  // Re-prompt to obtain the PRF output (we don't keep it from enrollment).
-  const prfRes = await passkeyUnlock(enrollment)
-  if (!prfRes.ok) throw new VaultError('passkey verification failed', 'passkey-cancelled')
-  const wrapKey = await importMasterSecret(prfRes.secret)
+  // Reuse the PRF secret captured during enrollment verification — no extra prompt.
+  const wrapKey = await importMasterSecret(prfSecret)
 
   // We need the raw 32-byte master to wrap, but the session only holds a CryptoKey.
   // Workaround: re-derive a fresh ephemeral via deriveBits using the same HKDF path

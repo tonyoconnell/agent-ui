@@ -103,7 +103,14 @@ function extractPrfSecret(cred: PublicKeyCredential): Uint8Array | null {
 
 // ===== ENROLLMENT =====
 
-export async function enrollPasskey(userIdentifier: string, userDisplayName: string): Promise<PasskeyEnrollment> {
+export interface PasskeyEnrollmentResult {
+  enrollment: PasskeyEnrollment
+  /** PRF secret captured during the verify step — lets setup wrap the master
+   *  without a third biometric prompt. */
+  prfSecret: Uint8Array
+}
+
+export async function enrollPasskey(userIdentifier: string, userDisplayName: string): Promise<PasskeyEnrollmentResult> {
   assertSecureContext()
   assertWebAuthn()
 
@@ -190,10 +197,13 @@ export async function enrollPasskey(userIdentifier: string, userDisplayName: str
   }
 
   return {
-    credentialId,
-    prfSalt,
-    authenticatorLabel: guessAuthenticatorLabel(),
-    createdAt: Date.now(),
+    enrollment: {
+      credentialId,
+      prfSalt,
+      authenticatorLabel: guessAuthenticatorLabel(),
+      createdAt: Date.now(),
+    },
+    prfSecret: verifySecret,
   }
 }
 
