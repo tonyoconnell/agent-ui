@@ -1,0 +1,22 @@
+---
+/**
+ * /build — Form-based agent deploy wizard
+ *
+ * Three-step flow: Name + template → System prompt → Deploy
+ * Live in <1 min. Deployed to CF Worker, remembered in TypeDB.
+ *
+ * Note: /build (root) is still the legacy AgentBuilder (one-step form).
+ * This /build/index route is the new multi-step BuildIsland experience.
+ */
+export const prerender = true
+
+import Layout from "@/layouts/Layout.astro"
+import { BuildIsland } from "@/components/build/BuildIsland"
+
+const title = "Build Agent — ONE"
+const description = "Deploy an agent in under a minute. Pick a template, write a prompt, and go live on Cloudflare."
+---
+
+<Layout title={title} description={description}>
+  <BuildIsland client:load />
+</Layout>

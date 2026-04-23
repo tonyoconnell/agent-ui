@@ -12,12 +12,12 @@ export const prerender = true;
  * Apple-like precision meets Web3 freedom.
  */
 import Layout from "@/layouts/Layout.astro";
-import { UDashboard } from "@/components/u/UDashboard";
+import { UDashboardWithBoundary } from "@/components/u/UDashboardWithBoundary";
 
 const title = "u | Your Universal Wallet";
 const description = "No login required. Generate wallets, create tokens, deploy contracts. Your keys, stored locally, forever yours.";
 ---
 
 <Layout title={title} description={description}>
-  <UDashboard client:only="react" />
+  <UDashboardWithBoundary client:only="react" />
 </Layout>
