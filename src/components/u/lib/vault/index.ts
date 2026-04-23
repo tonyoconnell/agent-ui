@@ -8,7 +8,7 @@ export {
   type MigrationResult,
   migrateLegacy,
   requiresOldPassword,
-} from './migration'
+} from '../migration'
 export { detectCapabilities, guessAuthenticatorLabel } from './passkey'
 export {
   assertValidRecoveryPhrase,

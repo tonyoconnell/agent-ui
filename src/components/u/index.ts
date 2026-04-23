@@ -29,9 +29,9 @@ export {
   type VaultStatus,
   type VaultWallet,
 } from './lib/vault'
-export type { UseVaultResult } from './lib/vault/useVault'
+export type { UseVaultResult } from './lib/useVault'
 // Vault — new primary surface (passkey + recovery phrase + IndexedDB).
-export { useVault } from './lib/vault/useVault'
+export { useVault } from './lib/useVault'
 export {
   BackupExportDialog,
   BackupImportDialog,

@@ -3,7 +3,7 @@
 
 import { Check, Copy, Download, Fingerprint, KeyRound, Loader2, ShieldAlert } from 'lucide-react'
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { useVault } from '@/components/u/lib/vault/useVault'
+import { useVault } from '@/components/u/lib/useVault'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'

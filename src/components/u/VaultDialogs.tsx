@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { isValidRecoveryPhrase, RECOVERY_WORD_COUNT, suggestWords } from '@/components/u/lib/vault'
-import { useVault } from '@/components/u/lib/vault/useVault'
+import { useVault } from '@/components/u/lib/useVault'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'

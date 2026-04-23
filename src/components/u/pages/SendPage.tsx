@@ -21,7 +21,7 @@ import { emitClick } from '@/lib/ui-signal'
 import { signWithPasskey } from '../lib/signer'
 import { getScopedWallet } from '../lib/scoped-wallet'
 import { getWallet } from '../lib/idb'
-import type { ScopedWalletStruct } from '../../../interfaces/move/scoped-wallet/struct.move'
+import type { ScopedWalletStruct } from '../../../../interfaces/move/scoped-wallet/struct.move'
 import { UNav } from '../UNav'
 
 // ===== CONSTANTS =====
@@ -628,7 +628,7 @@ export function SendPage() {
                     Cap set by <span className="font-bold">{selectedWallet.name || 'Agent'}</span>
                   </div>
                   <div className="text-muted-foreground mt-1">
-                    {(scopedWalletData.spentToday / 1e9).toFixed(4)} / {(scopedWalletData.dailyCap / 1e9).toFixed(4)} SUI used today
+                    {(Number(scopedWalletData.spentToday) / 1e9).toFixed(4)} / {(Number(scopedWalletData.dailyCap) / 1e9).toFixed(4)} SUI used today
                   </div>
                 </div>
               )}

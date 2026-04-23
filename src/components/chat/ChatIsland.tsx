@@ -16,13 +16,15 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { emitClick } from '@/lib/ui-signal'
 import { loadCursor, storeCursor } from '@/lib/chat/cursor'
 import { cn } from '@/lib/utils'
+import { ListingCardComponent } from '@/components/chat/arcs/ListingCardComponent'
+import type { ListingCard } from '@/interfaces/rich-message/listing-card'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type MessageRole = 'user' | 'assistant'
 
 interface RichPayload {
-  richType: 'payment-card' | 'agent-card' | string
+  richType: 'payment-card' | 'agent-card' | 'listing-card' | string
   richPayload: Record<string, unknown>
 }
 
@@ -116,6 +118,16 @@ function AgentCard({ payload }: { payload: Record<string, unknown> }) {
 function RichMessage({ rich }: { rich: RichPayload }) {
   if (rich.richType === 'payment-card') return <PaymentCard payload={rich.richPayload} />
   if (rich.richType === 'agent-card') return <AgentCard payload={rich.richPayload} />
+  if (rich.richType === 'listing-card') {
+    return (
+      <ListingCardComponent
+        payload={rich.richPayload as unknown as ListingCard}
+        onBuy={(skillId) => {
+          window.location.href = `/pay/${encodeURIComponent(skillId)}`
+        }}
+      />
+    )
+  }
   // Fallback: render as JSON
   return (
     <Card className="border-border bg-card p-3">

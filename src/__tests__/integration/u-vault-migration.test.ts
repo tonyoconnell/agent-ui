@@ -71,27 +71,27 @@ describe('u-vault: v1 → v2 migration', () => {
   // --- API surface ---
 
   it('migrateLegacy is an exported function', async () => {
-    const { migrateLegacy } = await import('@/components/u/lib/vault/migration')
+    const { migrateLegacy } = await import('@/components/u/lib/migration')
     expect(typeof migrateLegacy).toBe('function')
   })
 
   it('requiresOldPassword is an exported function', async () => {
-    const { requiresOldPassword } = await import('@/components/u/lib/vault/migration')
+    const { requiresOldPassword } = await import('@/components/u/lib/migration')
     expect(typeof requiresOldPassword).toBe('function')
   })
 
   it('hasLegacyData is an exported function', async () => {
-    const { hasLegacyData } = await import('@/components/u/lib/vault/migration')
+    const { hasLegacyData } = await import('@/components/u/lib/migration')
     expect(typeof hasLegacyData).toBe('function')
   })
 
   it('inspectLegacy is an exported function', async () => {
-    const { inspectLegacy } = await import('@/components/u/lib/vault/migration')
+    const { inspectLegacy } = await import('@/components/u/lib/migration')
     expect(typeof inspectLegacy).toBe('function')
   })
 
   it('ensureHasLegacy is an exported function', async () => {
-    const { ensureHasLegacy } = await import('@/components/u/lib/vault/migration')
+    const { ensureHasLegacy } = await import('@/components/u/lib/migration')
     expect(typeof ensureHasLegacy).toBe('function')
   })
 
@@ -100,7 +100,7 @@ describe('u-vault: v1 → v2 migration', () => {
   // In Node these return empty/false/zero so callers can safely call them.
 
   it('inspectLegacy returns empty inventory in Node (no localStorage)', async () => {
-    const { inspectLegacy } = await import('@/components/u/lib/vault/migration')
+    const { inspectLegacy } = await import('@/components/u/lib/migration')
     const inv = inspectLegacy()
     expect(inv.plaintextCount).toBe(0)
     expect(inv.encryptedCount).toBe(0)
@@ -108,17 +108,17 @@ describe('u-vault: v1 → v2 migration', () => {
   })
 
   it('hasLegacyData returns false in Node', async () => {
-    const { hasLegacyData } = await import('@/components/u/lib/vault/migration')
+    const { hasLegacyData } = await import('@/components/u/lib/migration')
     expect(hasLegacyData()).toBe(false)
   })
 
   it('requiresOldPassword returns false in Node', async () => {
-    const { requiresOldPassword } = await import('@/components/u/lib/vault/migration')
+    const { requiresOldPassword } = await import('@/components/u/lib/migration')
     expect(requiresOldPassword()).toBe(false)
   })
 
   it('migrateLegacy returns a no-op MigrationResult in Node (localStorage absent)', async () => {
-    const { migrateLegacy } = await import('@/components/u/lib/vault/migration')
+    const { migrateLegacy } = await import('@/components/u/lib/migration')
     // In Node, localStorage is undefined — migrateLegacy returns early with zeros.
     // We pass a dummy CryptoKey-shaped object; it is never used because the function
     // returns before reaching crypto operations.
@@ -132,7 +132,7 @@ describe('u-vault: v1 → v2 migration', () => {
   // --- function signature (structural) ---
 
   it('migrateLegacy takes masterKey as first arg and optional oldPassword as second', async () => {
-    const { migrateLegacy } = await import('@/components/u/lib/vault/migration')
+    const { migrateLegacy } = await import('@/components/u/lib/migration')
     // TypeScript `?` optional compiles to a plain param in JS — Function.length counts it.
     // Only `= default` parameters are excluded. Both params counted → length 2.
     expect(migrateLegacy.length).toBe(2)

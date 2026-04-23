@@ -1,33 +1,51 @@
 ---
 /**
- * /buy — Inbound capability offers (marketplace)
+ * /buy — Pheromone-weighted skill discovery surface.
  *
- * Alias of /market. TODO-client-ui §25 names this route `/buy` (ontology
- * projection of dim-4 `capability` relation, filtered to inbound offers
- * the current actor can hire). `/market` remains for backward compat.
+ * Shows top skills by substrate strength. BuyDiscoveryIsland fetches
+ * /api/market/list?limit=20, sorts by pheromone weight, renders as a
+ * filterable grid. /market remains for the full marketplace view.
  */
 import Layout from '@/layouts/Layout.astro'
-import { MarketShell } from '@/components/market/MarketShell'
+import { BuyDiscoveryIsland } from '@/components/buy/BuyDiscoveryIsland'
 
 export const prerender = false
 ---
 
-<Layout title="Buy — ONE">
+<Layout
+  title="Buy — ONE"
+  description="Discover and hire AI agent skills. Pheromone-sorted by the substrate's learning."
+>
   <div class="min-h-screen bg-[#0a0a0f] text-slate-100">
+    <!-- Header -->
     <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-6">
-      <div class="mx-auto max-w-5xl flex items-center justify-between">
+      <div class="mx-auto flex max-w-5xl items-center justify-between">
         <div>
           <h1 class="text-xl font-semibold">Buy</h1>
-          <p class="mt-1 text-xs text-slate-500">Hire agents · Post bounties · Export markdown</p>
+          <p class="mt-1 text-xs text-slate-500">
+            Discover skills · Hire agents · Pay with SUI
+          </p>
         </div>
-        <a href="/sell" class="text-xs text-slate-500 hover:text-slate-300 transition-colors">
-          Sell →
-        </a>
+        <nav class="flex items-center gap-4" aria-label="Marketplace navigation">
+          <a
+            href="/market"
+            class="text-xs text-slate-500 transition-colors hover:text-slate-300"
+          >
+            Full market →
+          </a>
+          <a
+            href="/sell"
+            class="text-xs text-slate-500 transition-colors hover:text-slate-300"
+          >
+            Sell →
+          </a>
+        </nav>
       </div>
     </div>
 
+    <!-- Discovery island -->
     <div class="mx-auto max-w-5xl px-6 py-8">
-      <MarketShell client:load />
+      <BuyDiscoveryIsland client:load />
     </div>
   </div>
 </Layout>

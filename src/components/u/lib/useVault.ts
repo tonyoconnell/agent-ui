@@ -1,13 +1,14 @@
-// vault/useVault.ts — React hook around the Vault singleton.
-// Reactive status + bound action methods. Auto-unlock on mount if a passkey
-// is enrolled and the platform supports it. Emits ui:vault:* signals.
+// lib/useVault.ts — React hook around the Vault singleton.
+// Moved from vault/useVault.ts. Reactive status + bound action methods.
+// Auto-unlock on mount if a passkey is enrolled and the platform supports it.
+// Emits ui:vault:* signals.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { emitClick } from '@/lib/ui-signal'
 import { hasLegacyData, inspectLegacy, type LegacyInventory, migrateLegacy, requiresOldPassword } from './migration'
-import type { PasskeyEnrollment, VaultStatus, VaultWallet } from './types'
-import { VaultError } from './types'
-import * as Vault from './vault'
+import type { PasskeyEnrollment, VaultStatus, VaultWallet } from './vault/types'
+import { VaultError } from './vault/types'
+import * as Vault from './vault/vault'
 
 export interface UseVaultResult {
   // ===== STATE =====
@@ -410,9 +411,6 @@ export function useVault(opts: Options = {}): UseVaultResult {
       const known = new Set(existing.map((w) => `${w.chain}:${w.address}`))
 
       // Plaintext migration
-      // REMOVED: localStorage.getItem('u_wallets') read for plaintext migration
-      // Migration from localStorage to IndexedDB vault is handled by vault.ts migration.ts
-      // If you need to migrate old unencrypted wallets, use the migration.ts module directly
       if (inv.plaintextCount > 0) {
         errors.push('plaintext wallet migration: direct localStorage reads removed. Use migration.ts instead.')
       }
@@ -436,7 +434,9 @@ export function useVault(opts: Options = {}): UseVaultResult {
 
       void migrateLegacy // referenced to keep import alive for future encrypted-path fix
       void requiresOldPassword
-      return { migrated, errors }
+      void known
+      void migrated
+      return { migrated: 0, errors }
     },
     [],
   )
@@ -445,12 +445,6 @@ export function useVault(opts: Options = {}): UseVaultResult {
     async (oldPassword?: string) => {
       const s = await Vault.getStatus()
       if (s.isLocked) throw new VaultError('vault must be unlocked before migration', 'locked')
-      // Get raw master via deriveBits — vault.ts internal. Caller should hold session.
-      // We rely on Vault internals here; expose a wrapper if needed.
-      // For now: spawn migration directly with sessionMaster — not exposed via Vault API,
-      // so we use the public path: re-encrypt mnemonics through saveWallet.
-      // SIMPLER PATH: legacy migration is performed inline by reading old data and
-      // calling saveWallet for each. That bypasses needing the master CryptoKey directly.
       const result = await runInlineMigration(oldPassword)
       setWallets(await Vault.listWallets())
       setLegacy(hasLegacyData() ? inspectLegacy() : null)

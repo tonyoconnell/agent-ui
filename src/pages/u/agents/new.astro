@@ -1,0 +1,20 @@
+---
+/**
+ * /u/agents/new — New agent creation wizard
+ *
+ * SSR shell around NewAgentIsland.
+ * The island handles template picking, name entry, address preview,
+ * and submission to /api/agents/sync.
+ */
+export const prerender = true
+
+import Layout from "@/layouts/Layout.astro"
+import { NewAgentIsland } from "@/components/u/NewAgentIsland"
+
+const title = "New Agent | u"
+const description = "Create a new agent. Pick a template, name it, and deploy in seconds."
+---
+
+<Layout title={title} description={description}>
+  <NewAgentIsland client:load />
+</Layout>

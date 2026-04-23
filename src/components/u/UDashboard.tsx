@@ -19,7 +19,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { EnhancedWalletCard } from './EnhancedWalletCard'
 import { GenerateWalletDialog } from './GenerateWalletDialog'
 import { useWallets } from './hooks/useWallets'
-import { useVault } from './lib/vault/useVault'
+import { useVault } from './lib/useVault'
 import { VaultBackupDialog, VaultUnlockDialog } from './VaultDialogs'
 import { VaultUnlockChip } from './VaultUnlockChip'
 

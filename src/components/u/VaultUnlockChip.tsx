@@ -2,7 +2,7 @@
 
 import { Loader2, Lock, LockOpen, ShieldPlus } from 'lucide-react'
 import { useState, useTransition } from 'react'
-import { useVault } from '@/components/u/lib/vault/useVault'
+import { useVault } from '@/components/u/lib/useVault'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 import { VaultUnlockDialog } from './VaultDialogs'

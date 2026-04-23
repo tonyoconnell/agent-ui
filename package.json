@@ -27,6 +27,7 @@
     "typecheck": "bash scripts/typecheck.sh",
     "audit:design": "bun run scripts/audit-design-tokens.ts",
     "check:strict": "bun run scripts/check-strict.ts",
+    "check:error-copy": "bun run scripts/check-error-copy.ts",
     "verify": "biome check . && bash scripts/typecheck.sh && vitest run && bun run scripts/audit-design-tokens.ts",
     "bootstrap": "bash scripts/bootstrap.sh",
     "seed:tasks": "bun run scripts/seed-tasks.ts",
