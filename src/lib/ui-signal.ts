@@ -26,13 +26,18 @@ export interface RichMessage {
  *                first are auto-derived into tags: `['ui','click','chat','copy']`.
  * @param payload Optional rich payload attached as `data.rich`.
  */
+// Route UI signals to the Cloudflare gateway so they work in dev
+// (local /api/signal needs TypeDB; gateway is always up and syncs to TypeDB).
+const SIGNAL_URL =
+  (typeof import.meta !== 'undefined' && (import.meta.env?.PUBLIC_GATEWAY_URL as string | undefined))
+    ? `${import.meta.env.PUBLIC_GATEWAY_URL as string}/signal`
+    : 'https://api.one.ie/signal'
+
 export function emitClick(id: string, payload?: Record<string, unknown>): void {
   const segments = id.split(':')
   const derived = segments.length > 1 ? segments.slice(1) : []
   const tags = ['ui', 'click', ...derived]
 
-  // signal.ts expects data as a string (TQL string attribute).
-  // Stringify the convention object so escapeTqlString() receives a string.
   const dataObj: Record<string, unknown> = { tags }
   if (payload !== undefined) dataObj.rich = payload
 
@@ -42,7 +47,7 @@ export function emitClick(id: string, payload?: Record<string, unknown>): void {
     data: JSON.stringify(dataObj),
   }
 
-  fetch('/api/signal', {
+  fetch(SIGNAL_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),

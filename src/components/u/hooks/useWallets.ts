@@ -5,6 +5,11 @@ import { WalletAdapter } from '../lib/adapters/WalletAdapter'
 import PayService from '../lib/PayService'
 import { useNetwork } from './useNetwork'
 
+const SIGNAL_URL =
+  (typeof import.meta !== 'undefined' && (import.meta.env?.PUBLIC_GATEWAY_URL as string | undefined))
+    ? `${import.meta.env.PUBLIC_GATEWAY_URL as string}/signal`
+    : 'https://api.one.ie/signal'
+
 // Base58 alphabet for Solana addresses and private keys
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
@@ -174,7 +179,7 @@ export function useWallets(): UseWalletsReturn {
       // Update state
       setWallets((prev) => [...prev, newWallet])
 
-      void fetch('/api/signal', {
+      void fetch(SIGNAL_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -194,10 +199,11 @@ export function useWallets(): UseWalletsReturn {
       const updated = wallets.filter((w) => w.id !== id)
       setWallets(updated)
       WalletAdapter.toLocalStorage(updated)
-      void fetch('/api/signal', {
+      void fetch(SIGNAL_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          sender: 'ui',
           receiver: 'substrate:u:delete',
           data: { weight: 1, tags: ['u', 'vault'], content: { verb: 'delete', outcome: 'ok' } },
         }),
