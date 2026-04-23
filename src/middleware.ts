@@ -3,16 +3,17 @@ import { defineMiddleware } from 'astro:middleware'
 const PROTECTED_ROUTES: string[] = []
 
 // CSP for /u/* and /chat/* — wallet and chat surfaces
+// - script-src 'unsafe-inline': Astro injects inline scripts for island hydration; cannot avoid
 // - style-src 'unsafe-inline': required by Tailwind CSS
 // - img-src data:: required for QR codes (wallet receive)
 // - connect-src: substrate gateway + TypeDB proxy + Sui testnet RPC
-// - wss://api.one.ie: live task updates via WsHub Durable Object
+// - frame-ancestors 'none': prevents clickjacking (key protection)
 const CSP_HEADER = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://charts.googleapis.com",
-  "connect-src 'self' https://api.one.ie wss://api.one.ie https://fullnode.testnet.sui.io",
+  "connect-src 'self' https://api.one.ie wss://api.one.ie https://fullnode.testnet.sui.io https://hermes.pyth.network https://api.coingecko.com",
   "font-src 'self'",
   "frame-ancestors 'none'",
 ].join('; ')
