@@ -177,11 +177,11 @@ function _decodePureAddress(pure: { bytes: string }): string {
 export interface TxSummary {
   digest: string
   description: string
-  kind: "send" | "receive" | "interact"
+  kind: 'send' | 'receive' | 'interact'
   amountMist?: bigint
   counterparty?: string
   timestampMs?: number
-  status: "success" | "failure"
+  status: 'success' | 'failure'
 }
 
 /**
@@ -189,13 +189,18 @@ export interface TxSummary {
  * Used by TransactionsPage to display history without raw addresses.
  */
 export function summarizeTxResponse(
-  tx: { digest: string; timestampMs?: string | null; effects?: { status?: { status: string } } | null; transaction?: { data?: { sender?: string } } | null },
-  userAddress: string
+  tx: {
+    digest: string
+    timestampMs?: string | null
+    effects?: { status?: { status: string } } | null
+    transaction?: { data?: { sender?: string } } | null
+  },
+  userAddress: string,
 ): TxSummary {
-  const sender = tx.transaction?.data?.sender ?? ""
+  const sender = tx.transaction?.data?.sender ?? ''
   const isIncoming = sender !== userAddress
-  const kind: TxSummary["kind"] = isIncoming ? "receive" : "send"
-  const status = tx.effects?.status?.status === "success" ? "success" : "failure"
+  const kind: TxSummary['kind'] = isIncoming ? 'receive' : 'send'
+  const status = tx.effects?.status?.status === 'success' ? 'success' : 'failure'
   const digest = tx.digest
   const shortDigest = `${digest.slice(0, 8)}...${digest.slice(-6)}`
   const description = isIncoming ? `Received — tx ${shortDigest}` : `Sent — tx ${shortDigest}`

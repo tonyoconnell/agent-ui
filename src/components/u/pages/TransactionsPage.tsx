@@ -11,13 +11,13 @@
 
 import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { summarizeTxResponse, type TxSummary } from '@/components/u/lib/money'
 import { listWallets } from '@/components/u/lib/vault/storage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { getExplorerTxUrl } from '@/lib/chains'
-import { summarizeTxResponse, type TxSummary } from '@/components/u/lib/money'
 import { emitClick } from '@/lib/ui-signal'
 import { UNav } from '../UNav'
 
