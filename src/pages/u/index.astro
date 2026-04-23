@@ -2,13 +2,18 @@
 export const prerender = true;
 
 /**
- * /u — Wallet home (wallet-v2: IndexedDB seed, passkey-PRF, ephemeral-first)
- * Replaced UDashboard with SignPage; UDashboard still lives at /u/dashboard
+ * /u - The Universal Wallet Dashboard
+ *
+ * Beautiful multi-chain wallet experience.
+ * Wired to wallet-v2: idb.ts (one-wallet IDB), passkey-PRF, BIP39.
  */
 import Layout from "@/layouts/Layout.astro";
-import { SignPage } from "@/components/u/pages/SignPage";
+import { UDashboardWithBoundary } from "@/components/u/UDashboardWithBoundary";
+
+const title = "u | Your Universal Wallet";
+const description = "No login required. Generate wallets, create tokens, deploy contracts. Your keys, stored locally, forever yours.";
 ---
 
-<Layout title="Wallet — ONE">
-  <SignPage client:only="react" />
+<Layout title={title} description={description}>
+  <UDashboardWithBoundary client:only="react" />
 </Layout>

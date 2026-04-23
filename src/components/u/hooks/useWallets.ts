@@ -2,8 +2,35 @@ import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 import { useCallback, useEffect, useState } from 'react'
 import type { Wallet } from '../lib/adapters/WalletAdapter'
 import { WalletAdapter } from '../lib/adapters/WalletAdapter'
+import { getWallet as getV2Wallet } from '../lib/idb'
 import PayService from '../lib/PayService'
 import { useNetwork } from './useNetwork'
+
+// Merge the wallet-v2 (idb.ts / one-wallet IDB) wallet into the multi-chain list.
+// The v2 wallet is the canonical SUI wallet — passkey-PRF protected, BIP39 backed.
+async function mergeV2Wallet(localWallets: Wallet[], context: 'mainnet' | 'testnet'): Promise<Wallet[]> {
+  try {
+    const v2 = await getV2Wallet()
+    if (!v2?.address) return localWallets
+    // If the v2 address is already in the list, don't duplicate
+    if (localWallets.some(w => w.address === v2.address)) return localWallets
+    const v2Wallet: Wallet = {
+      id: `v2-${v2.address.slice(2, 18)}`,
+      name: 'Primary Wallet',
+      address: v2.address,
+      chain: 'sui',
+      context,
+      balance: '0',
+      lastUpdated: Date.now(),
+      isCloudBacked: v2.wrappings.length > 0,
+      tags: ['wallet-v2', ...(v2.wrappings.length === 0 ? ['state-1'] : ['state-2'])],
+      usdValue: 0,
+    }
+    return [v2Wallet, ...localWallets]
+  } catch {
+    return localWallets
+  }
+}
 
 // Base58 alphabet for Solana addresses and private keys
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -101,10 +128,12 @@ export function useWallets(): UseWalletsReturn {
     try {
       const context = isTestnet ? 'testnet' : 'mainnet'
       const local = WalletAdapter.fromLocalStorage({ context })
-      setWallets(local)
+      // Merge in the wallet-v2 (idb.ts) wallet if present
+      const merged = await mergeV2Wallet(local, context)
+      setWallets(merged)
 
-      if (local.length > 0) {
-        refreshBalances(local)
+      if (merged.length > 0) {
+        refreshBalances(merged)
       } else {
         setSyncStatus('local')
       }

@@ -92,7 +92,7 @@ export function createAuth() {
       gatewayUrl: import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie',
     }),
 
-    baseURL: import.meta.env.PUBLIC_SITE_URL,
+    baseURL: publicEnv.PUBLIC_SITE_URL,
 
     cookie: {
       domain: '.one.ie',
@@ -124,7 +124,7 @@ export function createAuth() {
       },
     },
 
-    trustedOrigins: ['http://localhost:4321', 'http://localhost:3000', 'https://one.ie', 'https://pay.one.ie'],
+    trustedOrigins: ['http://localhost:4321', 'http://localhost:3000', 'https://dev.one.ie', 'https://one.ie', 'https://pay.one.ie'],
 
     plugins: [
       bearer(),
