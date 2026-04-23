@@ -19,6 +19,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { emitClick } from '@/lib/ui-signal'
 import { signWithPasskey } from '../lib/signer'
+import { getScopedWallet } from '../lib/scoped-wallet'
+import { getWallet } from '../lib/idb'
+import type { ScopedWalletStruct } from '@/interfaces/move/scoped-wallet/struct.move'
 import { UNav } from '../UNav'
 
 // ===== CONSTANTS =====
@@ -58,6 +61,8 @@ interface WalletInfo {
   credentialId?: string
   /** wallet lifecycle state: 1 = ephemeral, 2 = passkey-saved, 3 = linked */
   walletState?: 1 | 2 | 3
+  /** ScopedWallet object ID on-chain (optional for scoped wallets) */
+  scopedWalletId?: string
 }
 
 // ===== CHAIN CONFIG =====
@@ -120,22 +125,60 @@ export function SendPage() {
   const [sendError, setSendError] = useState<string | null>(null)
   const [txDigest, setTxDigest] = useState<string | null>(null)
   const [prices, setPrices] = useState<Record<string, number>>({})
+  const [userAddress, setUserAddress] = useState<string | null>(null)
+  const [scopedWalletData, setScopedWalletData] = useState<ScopedWalletStruct | null>(null)
 
-  // Load wallets from localStorage
+  // Load wallets from localStorage and user address from vault
   useEffect(() => {
-    const stored = localStorage.getItem('u_wallets')
-    if (stored) {
+    const loadData = async () => {
+      // Load user address from vault
       try {
-        const parsed = JSON.parse(stored) as WalletInfo[]
-        setWallets(parsed.filter((w) => w.id && w.address))
+        const vaultWallet = await getWallet()
+        if (vaultWallet) {
+          setUserAddress(vaultWallet.address)
+        }
       } catch {
-        // ignore corrupt storage
+        // ignore vault errors
+      }
+
+      // Load wallets from localStorage
+      const stored = localStorage.getItem('u_wallets')
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as WalletInfo[]
+          setWallets(parsed.filter((w) => w.id && w.address))
+        } catch {
+          // ignore corrupt storage
+        }
       }
     }
+
+    void loadData()
+
     const initial: Record<string, number> = {}
     for (const [k, v] of Object.entries(CHAINS)) initial[k] = v.usdPrice
     setPrices(initial)
   }, [])
+
+  // Load scoped wallet data when selectedWallet has scopedWalletId
+  useEffect(() => {
+    const loadScopedWallet = async () => {
+      if (!selectedWallet?.scopedWalletId) {
+        setScopedWalletData(null)
+        return
+      }
+
+      try {
+        const data = await getScopedWallet(selectedWallet.scopedWalletId)
+        setScopedWalletData(data)
+      } catch {
+        // ignore errors, just clear data
+        setScopedWalletData(null)
+      }
+    }
+
+    void loadScopedWallet()
+  }, [selectedWallet?.scopedWalletId])
 
   // Detect chain from address format
   const detectChain = useCallback(

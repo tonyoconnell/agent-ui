@@ -1,134 +1,48 @@
 ---
+/**
+ * /sell — My capability listings
+ *
+ * SSR shell. SellListIsland hydrates client-side with the user's skills.
+ */
+import Layout from '@/layouts/Layout.astro'
+import { SellListIsland } from '@/components/sell/SellListIsland'
+
 export const prerender = false
-import Layout from "@/layouts/Layout.astro"
-
-interface Capability {
-  skillId: string
-  name: string
-  price: number
-  pricingMode: string
-  visibility: string
-  strength: number
-  resistance: number
-}
-
-let capabilities: Capability[] = []
-let error = ""
-
-try {
-  const base = new URL(Astro.request.url)
-  const res = await fetch(`${base.origin}/api/capabilities/list?as=seller`, {
-    headers: { cookie: Astro.request.headers.get("cookie") ?? "" },
-  })
-  if (res.ok) {
-    const json = await res.json()
-    capabilities = json.capabilities ?? []
-  } else {
-    error = `Failed to load capabilities (${res.status})`
-  }
-} catch (e) {
-  error = "Could not reach capabilities API"
-}
 ---
 
-<Layout title="My Capabilities — ONE">
-  <main class="min-h-screen bg-[#0a0a0f] text-white px-4 py-10 sm:px-8">
+<Layout title="My Listings — ONE">
+  <div class="min-h-screen bg-[#0a0a0f] text-slate-100">
 
-    <!-- Header -->
-    <div class="mb-8 flex items-center justify-between">
-      <div>
-        <nav class="mb-1 text-xs text-zinc-500">
-          <a href="/" class="hover:text-zinc-300">Home</a>
-          <span class="mx-1">/</span>
-          <span class="text-zinc-300">Sell</span>
-        </nav>
-        <h1 class="text-2xl font-semibold tracking-tight">My Capabilities</h1>
-        <p class="mt-1 text-sm text-zinc-400">Published skills buyers can discover and hire.</p>
+    <!-- Header bar -->
+    <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-6">
+      <div class="mx-auto flex max-w-5xl items-center justify-between">
+        <div>
+          <nav class="mb-1 text-xs text-zinc-500">
+            <a href="/" class="hover:text-zinc-300">Home</a>
+            <span class="mx-1">/</span>
+            <span class="text-zinc-300">Sell</span>
+          </nav>
+          <h1 class="text-xl font-semibold">My Listings</h1>
+          <p class="mt-1 text-xs text-slate-500">Published skills buyers can discover and hire.</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="/buy" class="text-xs text-slate-500 transition-colors hover:text-slate-300">
+            Buy →
+          </a>
+          <a
+            href="/sell/new"
+            class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+          >
+            + New listing
+          </a>
+        </div>
       </div>
-      <a
-        href="/sell/new"
-        class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
-      >
-        + Publish new
-      </a>
     </div>
 
-    <!-- Error -->
-    {error && (
-      <div class="mb-6 rounded-md border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-        {error}
-      </div>
-    )}
+    <!-- Island -->
+    <div class="mx-auto max-w-5xl px-6 py-8">
+      <SellListIsland client:load />
+    </div>
 
-    <!-- Table -->
-    {capabilities.length === 0 && !error ? (
-      <div class="rounded-lg border border-zinc-800 bg-zinc-900/40 px-6 py-12 text-center text-sm text-zinc-500">
-        No capabilities published yet.{" "}
-        <a href="/sell/new" class="text-indigo-400 hover:underline">Publish your first one.</a>
-      </div>
-    ) : (
-      <div class="overflow-x-auto rounded-lg border border-zinc-800">
-        <table class="w-full text-sm">
-          <thead class="border-b border-zinc-800 bg-zinc-900/60 text-xs text-zinc-400 uppercase tracking-wide">
-            <tr>
-              <th class="px-4 py-3 text-left">Skill</th>
-              <th class="px-4 py-3 text-right">Price</th>
-              <th class="px-4 py-3 text-left">Pricing</th>
-              <th class="px-4 py-3 text-left">Visibility</th>
-              <th class="px-4 py-3 text-right">Marks</th>
-              <th class="px-4 py-3 text-right">Warns</th>
-              <th class="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-zinc-800 bg-zinc-950/60">
-            {capabilities.map((cap) => (
-              <tr class="hover:bg-zinc-900/40 transition-colors">
-                <td class="px-4 py-3 font-medium text-white">{cap.name}</td>
-                <td class="px-4 py-3 text-right tabular-nums text-zinc-200">
-                  {cap.price != null ? `$${cap.price.toFixed(4)}` : "—"}
-                </td>
-                <td class="px-4 py-3 text-zinc-400">{cap.pricingMode ?? "per-call"}</td>
-                <td class="px-4 py-3">
-                  <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-                    cap.visibility === "public"
-                      ? "bg-emerald-900/50 text-emerald-300"
-                      : cap.visibility === "group"
-                      ? "bg-blue-900/50 text-blue-300"
-                      : "bg-zinc-800 text-zinc-400"
-                  }`}>
-                    {cap.visibility ?? "private"}
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-right tabular-nums text-emerald-400">{cap.strength ?? 0}</td>
-                <td class="px-4 py-3 text-right tabular-nums text-red-400">{cap.resistance ?? 0}</td>
-                <td class="px-4 py-3 text-right">
-                  <div class="flex items-center justify-end gap-2">
-                    <a
-                      href={`/sell/edit?sid=${cap.skillId}`}
-                      class="text-xs text-zinc-400 hover:text-white transition-colors"
-                    >
-                      Edit
-                    </a>
-                    <a
-                      href={`/api/capabilities/unpublish?sid=${cap.skillId}`}
-                      class="text-xs text-zinc-400 hover:text-red-400 transition-colors"
-                    >
-                      Unpublish
-                    </a>
-                    <a
-                      href={`/api/capabilities/export?sid=${cap.skillId}`}
-                      class="text-xs text-zinc-400 hover:text-indigo-400 transition-colors"
-                    >
-                      Export .md
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )}
-
-  </main>
+  </div>
 </Layout>

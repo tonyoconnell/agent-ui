@@ -6,13 +6,16 @@
  * ADL gates: lifecycle check, network permission check, body schema validation.
  * Emits substrate:pay signal with status:"pending" after link creation.
  *
- * Body: { to: string, rail: "card"|"crypto"|"weight", amount: number, sku?: string, from?: string }
+ * Body: { to: string, rail: "card"|"crypto"|"weight", amount: number,
+ *         chain?: string, sku?: string, from?: string }
+ *       chain — for crypto rail: "sui"|"eth"|"sol"|"btc"|"base"|"arb"|"opt" (default "sui")
  * Returns: { linkUrl: string, qr?: string, intent?: string }
  */
 import type { APIRoute } from 'astro'
 import * as PayService from '@/components/u/lib/PayService'
 import { audit, enforcementMode, invalidateAdlCache } from '@/engine/adl-cache'
 import { readParsed } from '@/lib/typedb'
+import { buildPaymentUri, deriveAddressForChain } from '@/lib/pay/chains'
 
 const _PAY_ONE_API_KEY = import.meta.env.PAY_ONE_API_KEY as string | undefined
 
@@ -23,6 +26,7 @@ interface CreateLinkBody {
   to: string
   rail: Rail
   amount: number
+  chain?: string
   sku?: string
   from?: string
   currency?: string
@@ -148,7 +152,7 @@ export const POST: APIRoute = async ({ request }) => {
     return Response.json({ error: 'invalid JSON body' }, { status: 400 })
   }
 
-  const { to, rail, amount, sku, from = 'anon', currency = 'usd', memo } = body
+  const { to, rail, amount, sku, from = 'anon', currency = 'usd', memo, chain = 'sui' } = body
 
   // Body validation
   if (!to || !rail || amount == null) {
@@ -221,7 +225,63 @@ export const POST: APIRoute = async ({ request }) => {
       return Response.json({ linkUrl: result.data.link, intent: ref })
     }
 
-    // Crypto or weight rail: create shortlink via pay.one.ie
+    if (rail === 'crypto') {
+      // Crypto rail: derive chain-specific receive address for the recipient uid,
+      // build a payment URI, and wrap it as a pay.one.ie shortlink.
+      let receiverAddress: string
+      try {
+        receiverAddress = await deriveAddressForChain(to, chain)
+      } catch (deriveErr) {
+        emitPaySignal({ rail, from, to, ref: 'failed', sku, status: 'failed', provider: 'chain-derive', amount })
+        return Response.json(
+          { error: deriveErr instanceof Error ? deriveErr.message : 'address derivation failed' },
+          { status: 500 },
+        )
+      }
+
+      const paymentUri = buildPaymentUri(receiverAddress, amount, chain)
+
+      const payload = JSON.stringify({
+        to,
+        address: receiverAddress,
+        chain: chain.toLowerCase(),
+        amount,
+        currency: currency.toUpperCase(),
+        paymentUri,
+        sku,
+        from,
+        rail,
+      })
+      const signature = `sig_${Date.now()}` // TODO: real HMAC in production
+
+      const result = await PayService.createShortlink({
+        payload,
+        signature,
+        baseUrl: 'https://pay.one.ie',
+      })
+
+      if (!result.success || !result.data) {
+        emitPaySignal({ rail, from, to, ref: 'failed', sku, status: 'failed', provider: 'pay.one.ie', amount })
+        return Response.json({ error: result.error?.message || 'shortlink creation failed' }, { status: 502 })
+      }
+
+      const ref = `sl_${result.data.code}`
+      emitPaySignal({ rail, from, to, ref, sku, status: 'pending', provider: 'pay.one.ie', amount })
+
+      invalidateAdlCache(to)
+
+      return Response.json({
+        linkUrl: result.data.shortUrl,
+        qr: `https://pay.one.ie/qr?code=${result.data.code}`,
+        intent: ref,
+        // expose the derived address and payment URI to callers
+        address: receiverAddress,
+        chain: chain.toLowerCase(),
+        paymentUri,
+      })
+    }
+
+    // Weight rail: create shortlink via pay.one.ie (passthrough, no chain derivation)
     const payload = JSON.stringify({ to, amount, currency: currency.toUpperCase(), sku, from, rail })
     const signature = `sig_${Date.now()}` // TODO: real HMAC in production
 

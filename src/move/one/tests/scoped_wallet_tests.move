@@ -611,6 +611,45 @@ module one::scoped_wallet_tests {
     }
 
     // =========================================================================
+    // Test: pause↔spend ordering — if paused first, spend in same epoch rejects
+    // (E_PAUSED = 2). Transactions are atomic in Sui; this verifies that a pause
+    // committed in an earlier tx blocks a spend attempted in a later tx within
+    // the same epoch.
+    // =========================================================================
+
+    #[test]
+    #[expected_failure(abort_code = 2)]
+    fun test_pause_blocks_subsequent_spend() {
+        let mut scenario = setup_wallet_open();
+
+        // Owner pauses first
+        test_scenario::next_tx(&mut scenario, OWNER);
+        {
+            let mut wallet =
+                test_scenario::take_from_sender<scoped_wallet::ScopedWallet<SUI>>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            scoped_wallet::pause<SUI>(&mut wallet, ctx);
+            test_scenario::return_to_sender(&scenario, wallet);
+        };
+
+        // Agent tries to spend in a subsequent tx (same epoch) — must abort E_PAUSED
+        test_scenario::next_tx(&mut scenario, AGENT);
+        {
+            let mut wallet =
+                test_scenario::take_from_address<scoped_wallet::ScopedWallet<SUI>>(
+                    &scenario, OWNER,
+                );
+            let ctx = test_scenario::ctx(&mut scenario);
+            let mut coin = coin::mint_for_testing<SUI>(DAILY_CAP, ctx);
+            scoped_wallet::spend<SUI>(&mut wallet, &mut coin, RECIPIENT, 100, ctx);
+            // Unreachable — abort expected
+            coin::burn_for_testing(coin);
+            test_scenario::return_to_address(OWNER, wallet);
+        };
+        test_scenario::end(scenario);
+    }
+
+    // =========================================================================
     // Test: create with zero daily_cap → aborts EZeroDailyCap (0)
     // =========================================================================
 

@@ -1,0 +1,22 @@
+---
+export const prerender = true;
+
+/**
+ * /u/fleet — Agent Fleet View
+ *
+ * Shows the transitive tree of ScopedWallets rooted in the user's Sui address.
+ * Total exposure = sum of all daily caps across every wallet in the tree.
+ *
+ * Data: GET /api/u/fleet?address=<suiAddress>
+ * Component: FleetIsland (derives address from IDB vault on mount)
+ */
+import Layout from "@/layouts/Layout.astro";
+import { FleetIsland } from "@/components/u/FleetIsland";
+
+const title = "Agent Fleet | u";
+const description = "View all ScopedWallets rooted in your address. Manage agent spending exposure across your entire fleet.";
+---
+
+<Layout title={title} description={description}>
+  <FleetIsland client:load />
+</Layout>
