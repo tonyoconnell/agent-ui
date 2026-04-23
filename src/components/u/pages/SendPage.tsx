@@ -620,6 +620,18 @@ export function SendPage() {
                   ? `${compatibleWallets.length} compatible wallet${compatibleWallets.length > 1 ? 's' : ''} found`
                   : `No ${detectedChainInfo.chainData.name} wallets available`}
               </p>
+
+              {/* Scoped Wallet Subtitle (when owner ≠ human) */}
+              {selectedWallet?.scopedWalletId && scopedWalletData && userAddress && scopedWalletData.owner !== userAddress && (
+                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm">
+                  <div className="text-blue-600 dark:text-blue-400 font-medium">
+                    Cap set by <span className="font-bold">{selectedWallet.name || 'Agent'}</span>
+                  </div>
+                  <div className="text-muted-foreground mt-1">
+                    {(scopedWalletData.spentToday / 1e9).toFixed(4)} / {(scopedWalletData.dailyCap / 1e9).toFixed(4)} SUI used today
+                  </div>
+                </div>
+              )}
             </div>
 
             {compatibleWallets.length === 0 ? (
