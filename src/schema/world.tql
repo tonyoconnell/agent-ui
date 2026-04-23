@@ -110,7 +110,10 @@ entity unit,
     plays signal:sender,
     plays signal:receiver,
     plays contribution-event:contributor-unit,
-    plays api-authorization:authorized-unit;
+    plays api-authorization:authorized-unit,
+    plays session:owner,
+    plays session-event:session-owner,
+    plays session-event:actor;
 
 
 # =============================================================================
@@ -353,6 +356,29 @@ entity auth-rate-limit,
 
 
 # =============================================================================
+# DIMENSION 7c: CHAT SESSIONS (resumable; separate from auth-session)
+# =============================================================================
+# Chat sessions with TypeDB backing for stream resumability via cursor.
+# Separate from auth-session — auth-session tracks auth tokens; session tracks
+# the LLM conversation state and can be resumed by any client with the cursor.
+
+relation session,
+    relates owner,                   # the unit (uid) who owns this session
+    owns session-id,
+    owns cursor,
+    owns created-at,
+    owns last-active-at;
+
+relation session-event,
+    relates session-owner,           # back-ref to session
+    relates actor,                   # who sent
+    owns session-id,
+    owns cursor,
+    owns content,
+    owns created-at;
+
+
+# =============================================================================
 # ATTRIBUTES
 # =============================================================================
 
@@ -526,6 +552,13 @@ attribute input-schema, value string;        # JSON Schema for tool input (skill
 attribute output-schema, value string;       # JSON Schema for tool output (skill attribute)
 attribute key-version, value integer;        # wallet derivation version: 0=legacy SHA-256, 1=HKDF
 attribute group-id, value string;            # group identifier (for tenant-kek ownership)
+
+# Chat session attributes
+attribute session-id, value string;
+attribute cursor, value string;
+attribute content, value string;
+attribute created-at, value datetime;
+attribute last-active-at, value datetime;
 
 # --- KEK (Key Encryption Key) for private signal encryption ---
 attribute kek-ciphertext, value string;      # AES-256-GCM ciphertext (base64)

@@ -1,0 +1,23 @@
+---
+// SSR — passkey creation requires browser APIs; client:load for island hydration
+export const prerender = true;
+
+/**
+ * /u/save — Save Your Wallet
+ *
+ * Soft prompt shown after the user's first transaction (State 1 → State 2).
+ * Enrolls a passkey (Touch ID) and shows BIP39 recovery phrase.
+ * No aggressive nag — one-tap enroll or dismiss.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { SavePromptIsland } from "@/components/u/SavePromptIsland";
+
+const title = "Save Your Wallet | u";
+const description = "Protect your wallet with Touch ID in one tap. No account required.";
+---
+
+<Layout title={title} description={description}>
+  <main class="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+    <SavePromptIsland client:load />
+  </main>
+</Layout>

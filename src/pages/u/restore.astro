@@ -1,0 +1,16 @@
+---
+export const prerender = true;
+
+/**
+ * /u/restore — BIP39 Wallet Restore
+ *
+ * The break-glass path. Enter 12 words to recover a wallet on a new device.
+ * DO NOT accept seed phrases anywhere else in the product.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { RestoreIsland } from "@/components/u/RestoreIsland";
+---
+
+<Layout title="Restore Wallet — ONE">
+  <RestoreIsland client:load />
+</Layout>

@@ -10,17 +10,9 @@
  * payments. No password step between "I am X" and "I am paying Y."
  */
 
-import { createNetworkConfig, SuiClientProvider, WalletProvider } from '@mysten/dapp-kit'
-import '@mysten/dapp-kit/dist/index.css'
-import { getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import { AppProviders } from '@/components/u/providers'
 import { SignInWithAnything } from './SignInWithAnything'
-
-const { networkConfig } = createNetworkConfig({
-  testnet: { url: getJsonRpcFullnodeUrl('testnet'), network: 'testnet' },
-  mainnet: { url: getJsonRpcFullnodeUrl('mainnet'), network: 'mainnet' },
-})
 
 interface Props {
   mode: 'signin' | 'signup'
@@ -28,8 +20,6 @@ interface Props {
 }
 
 export function CryptoAuthPanel({ mode, redirect = '/app' }: Props) {
-  const [queryClient] = useState(() => new QueryClient())
-
   const heading = mode === 'signup' ? 'Create your identity' : 'Sign in to ONE'
   const badge = mode === 'signup' ? 'First time here' : 'Welcome back'
   const subline =
@@ -42,10 +32,8 @@ export function CryptoAuthPanel({ mode, redirect = '/app' }: Props) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
-        <WalletProvider autoConnect={mode === 'signin'}>
-          <div className="w-full max-w-md">
+    <AppProviders autoConnect={mode === 'signin'}>
+      <div className="w-full max-w-md">
             <div className="mb-8">
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-violet-300">
                 <span className="size-1.5 rounded-full bg-violet-400 animate-pulse" />
@@ -105,8 +93,6 @@ export function CryptoAuthPanel({ mode, redirect = '/app' }: Props) {
               )}
             </p>
           </div>
-        </WalletProvider>
-      </SuiClientProvider>
-    </QueryClientProvider>
+    </AppProviders>
   )
 }
