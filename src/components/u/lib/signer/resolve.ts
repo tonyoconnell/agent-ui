@@ -17,7 +17,7 @@ export function resolveSigner(
   return null
 }
 
-// Placeholder creator — vault is the default signer
+// Placeholder creator — vault is the only signer kind
 function createVaultSigner(): Signer {
   return {
     kind: 'vault',

@@ -202,7 +202,7 @@ export async function wrapWithPasskey(seed: Ed25519Seed, credId: CredId): Promis
  */
 export async function unwrapWithPasskey(wrapping: PasskeyPrfWrapping): Promise<Ed25519Seed> {
   // 1. PRF ceremony — credId comes from the wrapping
-  const prf = await getPrfOutput(wrapping.credId, PRF_SALT)
+  const prf = await getPrfOutput(wrapping.credId as CredId, PRF_SALT)
 
   // 2. HKDF-SHA256 → AES-256-GCM key (same derivation as wrapWithPasskey)
   const key = await prfToAesKey(prf)

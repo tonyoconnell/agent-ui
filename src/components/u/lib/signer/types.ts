@@ -1,8 +1,8 @@
 export interface Signer {
-  readonly kind: 'vault' | 'zklogin' | 'dapp-kit'
+  readonly kind: 'vault'
   readonly chain: 'sui' | 'eth' | 'btc' | 'sol' | 'usdc' | 'one'
   readonly address: string
-  readonly frontDoor: 'wallet' | 'zklogin'
+  readonly frontDoor: 'wallet'
   signMessage(bytes: Uint8Array): Promise<Uint8Array>
   signTransaction(tx: unknown): Promise<{ bytes: Uint8Array; signature: string }>
   canSign(chain: string): boolean
