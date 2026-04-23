@@ -2,23 +2,19 @@ import { defineMiddleware } from 'astro:middleware'
 
 const PROTECTED_ROUTES: string[] = []
 
-// CSP routes that receive a per-request nonce-based CSP header.
-// - script-src uses 'nonce-{value}' instead of 'unsafe-inline': Astro 6 propagates the
-//   nonce to every emitted inline <script> tag via Astro.locals.cspNonce (set below).
-//   Layout.astro carries the nonce on <html data-astro-csp-nonce> so Astro can inject it.
-// - style-src keeps 'unsafe-inline': Tailwind emits inline styles; lower risk than scripts.
+// CSP routes for /u and /chat surfaces.
+// - script-src 'unsafe-inline': Astro injects inline scripts for island hydration,
+//   theme init, and view transitions. The nonce approach requires every inline
+//   <script> in Layout.astro and Astro's runtime to carry data-astro-cid-nonce —
+//   not yet wired across the codebase, so we accept inline scripts.
+// - style-src 'unsafe-inline': Tailwind emits inline styles
 // - img-src data:: required for QR codes (wallet receive)
-// - connect-src: substrate gateway + TypeDB proxy + Sui testnet RPC
-// - frame-ancestors 'none': prevents clickjacking (key protection)
+// - connect-src: substrate gateway + Sui RPC + price oracles + Cloudflare RUM beacon
+// - frame-ancestors 'none': prevents clickjacking
 const CSP_ROUTES = ['/u', '/chat']
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url
-
-  // Generate a per-request nonce for CSP script-src on protected surfaces.
-  // btoa(randomUUID()) gives a base64 string (~24 chars) with 122 bits of entropy.
-  const nonce = btoa(crypto.randomUUID())
-  context.locals.cspNonce = nonce
 
   // Check session cookie for protected routes
   const sessionData = context.cookies.get('better-auth.session_data')?.value
@@ -50,10 +46,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (needsCsp) {
     const cspHeader = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' https://static.cloudflareinsights.com`,
+      "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https://charts.googleapis.com",
-      "connect-src 'self' https://api.one.ie wss://api.one.ie https://fullnode.testnet.sui.io https://hermes.pyth.network https://api.coingecko.com",
+      "connect-src 'self' https://api.one.ie wss://api.one.ie https://fullnode.testnet.sui.io https://hermes.pyth.network https://api.coingecko.com https://cloudflareinsights.com",
       "font-src 'self'",
       "frame-ancestors 'none'",
     ].join('; ')
