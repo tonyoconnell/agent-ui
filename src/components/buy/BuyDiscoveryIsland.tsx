@@ -1,10 +1,10 @@
 /**
  * BuyDiscoveryIsland — pheromone-weighted skill discovery grid.
  *
- * On mount: GET /api/market/list?limit=20 (sorted by pheromone weight)
+ * On mount: GET /api/skills?sort=strength&limit=20
  * Emits: ui:buy:discover on load, ui:buy:card-click on card click
  * Search: client-side filter by name/tag
- * Buy: navigates to /pay?skillId=X or /chat?skillId=X
+ * Click: navigates to /chat?prefill=I+want+to+buy+{skillName}
  */
 
 import { useEffect, useState } from 'react'
@@ -12,21 +12,36 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
+import { formatUsd } from '@/components/u/lib/money'
 import { cn } from '@/lib/utils'
-import type { CapabilityListing } from '@/pages/api/market/list'
+
+// ── Listing interface (matches /api/skills Listing type) ───────────────────────
+
+interface Listing {
+  skillId: string
+  name: string
+  priceMist: string        // bigint as string (1 SUI = 1_000_000_000 MIST)
+  tags: string[]
+  seller: string           // uid
+  description?: string
+  pheromoneStrength?: number
+}
+
+// Approximate SUI/USD price — used for display only.
+// Production: replace with a live price feed or pass from SSR props.
+const SUI_PRICE_USD = 1.0
 
 // ── ListingCard ────────────────────────────────────────────────────────────────
 
 interface ListingCardProps {
-  listing: CapabilityListing
-  onBuy: (listing: CapabilityListing) => void
+  listing: Listing
+  onBuy: (listing: Listing) => void
 }
 
 function ListingCard({ listing, onBuy }: ListingCardProps) {
-  const priceLabel =
-    listing.pricingMode === 'free' || listing.price === 0 ? 'Free' : `${listing.price} FET`
-
-  const pheromoneStrength = Math.max(0, listing.strength - listing.resistance)
+  const priceMist = BigInt(listing.priceMist)
+  const priceLabel = priceMist === 0n ? 'Free' : formatUsd(priceMist, SUI_PRICE_USD)
+  const strength = listing.pheromoneStrength ?? 0
 
   return (
     <Card
@@ -40,12 +55,12 @@ function ListingCard({ listing, onBuy }: ListingCardProps) {
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-slate-100">{listing.name}</div>
           <div className="mt-0.5 truncate font-mono text-[11px] text-slate-500">
-            {listing.sellerUid}
+            {listing.seller}
           </div>
         </div>
         <div className="shrink-0 text-right">
           <div className="text-sm font-semibold text-slate-200">{priceLabel}</div>
-          {listing.pricingMode === 'free' && (
+          {priceMist === 0n && (
             <Badge variant="secondary" className="mt-0.5 text-[10px]">
               free
             </Badge>
@@ -64,18 +79,16 @@ function ListingCard({ listing, onBuy }: ListingCardProps) {
         </div>
       )}
 
-      {/* Pheromone bar */}
-      {pheromoneStrength > 0 && (
+      {/* Pheromone strength bar */}
+      {strength > 0 && (
         <div className="flex items-center gap-2">
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-[#252538]">
             <div
               className="h-full rounded-full bg-indigo-500/70"
-              style={{ width: `${Math.min(100, pheromoneStrength)}%` }}
+              style={{ width: `${Math.min(100, strength)}%` }}
             />
           </div>
-          <span className="shrink-0 text-[10px] text-slate-600">
-            {Math.round(listing.successRate * 100)}% success
-          </span>
+          <span className="shrink-0 text-[10px] text-slate-600">{Math.round(strength)} str</span>
         </div>
       )}
 
@@ -84,7 +97,7 @@ function ListingCard({ listing, onBuy }: ListingCardProps) {
         size="sm"
         className="mt-auto w-full"
         onClick={() => {
-          emitClick('ui:buy:card-click', { skillId: listing.skillId, price: listing.price })
+          emitClick('ui:buy:card-click', { skillId: listing.skillId })
           onBuy(listing)
         }}
       >
@@ -97,25 +110,23 @@ function ListingCard({ listing, onBuy }: ListingCardProps) {
 // ── BuyDiscoveryIsland ─────────────────────────────────────────────────────────
 
 export function BuyDiscoveryIsland() {
-  const [listings, setListings] = useState<CapabilityListing[]>([])
+  const [listings, setListings] = useState<Listing[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch on mount; emit discover signal
+  // Fetch on mount and emit discover signal
   useEffect(() => {
     emitClick('ui:buy:discover')
     setLoading(true)
-    fetch('/api/market/list?limit=20')
+    fetch('/api/skills?sort=strength&limit=20')
       .then((r) =>
         r.ok
-          ? (r.json() as Promise<{ capabilities: CapabilityListing[] }>)
+          ? (r.json() as Promise<{ skills: Listing[] }>)
           : Promise.reject(new Error(`HTTP ${r.status}`)),
       )
       .then((data) => {
-        // Sort by pheromone weight descending (substrate learning surface)
-        const sorted = [...data.capabilities].sort((a, b) => b.weight - a.weight)
-        setListings(sorted)
+        setListings(data.skills)
         setLoading(false)
       })
       .catch((err: unknown) => {
@@ -130,21 +141,21 @@ export function BuyDiscoveryIsland() {
     const q = search.toLowerCase()
     return (
       l.name.toLowerCase().includes(q) ||
-      l.sellerUid.toLowerCase().includes(q) ||
+      l.seller.toLowerCase().includes(q) ||
       l.tags.some((t) => t.toLowerCase().includes(q))
     )
   })
 
-  const handleBuy = (listing: CapabilityListing) => {
-    // Navigate to pay flow — /pay/[skillId] uses Sui dapp-kit
-    // Fall back to /pay/chat/[skillId] for conversational checkout
-    window.location.href = `/pay/${encodeURIComponent(listing.skillId)}`
+  const handleBuy = (listing: Listing) => {
+    // Navigate to /chat with prefilled message
+    const prefill = encodeURIComponent(`I want to buy ${listing.name}`)
+    window.location.href = `/chat?prefill=${prefill}`
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Search */}
-      <div className="relative">
+      {/* Search + sell link */}
+      <div className="flex items-center gap-3">
         <input
           type="search"
           value={search}
@@ -152,11 +163,17 @@ export function BuyDiscoveryIsland() {
           placeholder="Search by name or tag…"
           aria-label="Search skills"
           className={cn(
-            'w-full rounded-xl border border-[#252538] bg-[#161622]',
+            'flex-1 rounded-xl border border-[#252538] bg-[#161622]',
             'px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600',
             'focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/30',
           )}
         />
+        <a
+          href="/sell"
+          className="shrink-0 text-xs text-slate-500 transition-colors hover:text-slate-300"
+        >
+          Sell something →
+        </a>
       </div>
 
       {/* State: loading */}
@@ -169,9 +186,7 @@ export function BuyDiscoveryIsland() {
 
       {/* State: error */}
       {!loading && error && (
-        <p className="py-8 text-center text-sm text-red-400">
-          Could not load skills: {error}
-        </p>
+        <p className="py-8 text-center text-sm text-red-400">Could not load skills: {error}</p>
       )}
 
       {/* State: empty */}
@@ -185,7 +200,8 @@ export function BuyDiscoveryIsland() {
       {!loading && !error && filtered.length > 0 && (
         <>
           <p className="text-xs text-slate-600">
-            {filtered.length} skill{filtered.length !== 1 ? 's' : ''} · sorted by pheromone strength
+            {filtered.length} skill{filtered.length !== 1 ? 's' : ''} · sorted by pheromone
+            strength
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((l) => (
