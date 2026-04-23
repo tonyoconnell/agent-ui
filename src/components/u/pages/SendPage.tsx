@@ -1,13 +1,16 @@
 /**
- * SendPage - Premium Send Crypto Flow
+ * SendPage — passkey-PRF send flow for SUI.
  *
- * Beautiful, step-by-step sending experience:
- * 1. Enter destination address (auto-detect chain)
- * 2. Enter amount (with real-time USD conversion)
- * 3. Select source wallet (only compatible wallets)
- * 4. Confirm & Send
+ * Flow (SUI):
+ *  1. Enter recipient + amount in USD
+ *  2. Pre-flight: State 1 cap check
+ *  3. POST /api/sponsor/build → txBytes
+ *  4. Touch ID → signWithPasskey(txBytes, credId) → senderSig
+ *  5. POST /api/sponsor/execute → digest
+ *  6. Success screen
  *
- * No mock data - uses real wallets from localStorage
+ * Non-SUI chains fall through to the same UI but skip sponsor flow
+ * and show a "chain not yet supported" message at confirm.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -15,29 +18,51 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { emitClick } from '@/lib/ui-signal'
+import { signWithPasskey } from '../lib/signer'
 import { UNav } from '../UNav'
 
-// Types
-interface Wallet {
+// ===== CONSTANTS =====
+
+/** State 1 wallets (no passkey enrolled) cap: $5 ≈ 5_000_000 MIST at $1/SUI fallback */
+const STATE1_CAP_USD = 5
+/** MIST per SUI */
+const MIST_PER_SUI = 1_000_000_000
+
+// ===== ERROR COPY =====
+
+const ERROR_COPY: Record<string, string> = {
+  'build-failed': 'Could not build transaction. Please try again.',
+  'sign-cancelled': 'Touch ID was cancelled. Tap Send to try again.',
+  'sign-failed': 'Signing failed. Please check your passkey and try again.',
+  'execute-failed': 'Transaction failed on chain. Your balance was not changed.',
+  'no-passkey': 'No passkey enrolled. Save your wallet first to enable Touch ID signing.',
+  'state1-cap': `State 1 wallets are capped at $${STATE1_CAP_USD}. Save your wallet first.`,
+  'chain-unsupported': 'Only SUI transfers are supported right now.',
+  'address-invalid': 'Invalid recipient address.',
+  'amount-invalid': 'Enter a valid amount greater than 0.',
+  network: 'Network error. Check your connection and try again.',
+}
+
+// ===== TYPES =====
+
+type SendStep = 1 | 2 | 3 | 4
+
+interface WalletInfo {
   id: string
   chain: string
   address: string
   balance: string
   usdValue: number
   name?: string
+  /** passkey credentialId — base64, present when vault is enrolled */
+  credentialId?: string
+  /** wallet lifecycle state: 1 = ephemeral, 2 = passkey-saved, 3 = linked */
+  walletState?: 1 | 2 | 3
 }
 
-// Chain configurations with comprehensive detection
-const CHAINS: Record<
-  string,
-  {
-    name: string
-    icon: string
-    color: string
-    symbol: string
-    usdPrice: number // Static prices, could be fetched from API
-  }
-> = {
+// ===== CHAIN CONFIG =====
+
+const CHAINS: Record<string, { name: string; icon: string; color: string; symbol: string; usdPrice: number }> = {
   eth: { name: 'Ethereum', icon: '⟠', color: 'from-blue-500 to-indigo-600', symbol: 'ETH', usdPrice: 3850 },
   btc: { name: 'Bitcoin', icon: '₿', color: 'from-orange-400 to-orange-600', symbol: 'BTC', usdPrice: 98500 },
   sol: { name: 'Solana', icon: '◎', color: 'from-purple-500 to-pink-500', symbol: 'SOL', usdPrice: 245 },
@@ -49,10 +74,9 @@ const CHAINS: Record<
   one: { name: 'ONE', icon: '①', color: 'from-emerald-400 to-teal-600', symbol: 'ONE', usdPrice: 0.1 },
 }
 
-// Compatible chain mappings - which wallet chains can send to which destination chains
 const CHAIN_COMPATIBILITY: Record<string, string[]> = {
   sui: ['sui'],
-  eth: ['eth', 'base', 'arbitrum', 'polygon', 'usdc'], // EVM compatible
+  eth: ['eth', 'base', 'arbitrum', 'polygon', 'usdc'],
   base: ['eth', 'base', 'arbitrum', 'polygon', 'usdc'],
   arbitrum: ['eth', 'base', 'arbitrum', 'polygon', 'usdc'],
   polygon: ['eth', 'base', 'arbitrum', 'polygon', 'usdc'],
@@ -60,196 +84,247 @@ const CHAIN_COMPATIBILITY: Record<string, string[]> = {
   btc: ['btc'],
 }
 
+// ===== HELPERS =====
+
+function formatAddress(addr: string): string {
+  if (!addr) return 'No address'
+  if (addr.length < 16) return addr
+  return `${addr.slice(0, 8)}...${addr.slice(-6)}`
+}
+
+function usdToMist(usdAmount: number, suiPriceUsd: number): bigint {
+  // usd / price = SUI, SUI × MIST_PER_SUI = MIST
+  const sui = usdAmount / suiPriceUsd
+  return BigInt(Math.floor(sui * MIST_PER_SUI))
+}
+
+function base64ToUint8Array(b64: string): Uint8Array {
+  // Accept both standard and base64url
+  const std = b64.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = std + '=='.slice(0, (4 - (std.length % 4)) % 4)
+  const binary = atob(padded)
+  const out = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i)
+  return out
+}
+
+// ===== COMPONENT =====
+
 export function SendPage() {
-  // State
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
-  const [wallets, setWallets] = useState<Wallet[]>([])
+  const [step, setStep] = useState<SendStep>(1)
+  const [wallets, setWallets] = useState<WalletInfo[]>([])
   const [destinationAddress, setDestinationAddress] = useState('')
-  const [amount, setAmount] = useState('')
-  const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null)
+  const [amountUsd, setAmountUsd] = useState('')
+  const [selectedWallet, setSelectedWallet] = useState<WalletInfo | null>(null)
   const [isSending, setIsSending] = useState(false)
-  const [sendSuccess, setSendSuccess] = useState(false)
-  const [_txHash, setTxHash] = useState('')
+  const [sendError, setSendError] = useState<string | null>(null)
+  const [txDigest, setTxDigest] = useState<string | null>(null)
   const [prices, setPrices] = useState<Record<string, number>>({})
 
   // Load wallets from localStorage
   useEffect(() => {
-    // REMOVED: localStorage.getItem('u_wallets') read
-    // TODO: read from IndexedDB via useVault() hook instead
-    // const stored = localStorage.getItem('u_wallets')
-    // if (stored) {
-    //   const parsed = JSON.parse(stored)
-    //   setWallets(parsed.filter((w: Wallet) => w.id && w.address))
-    // }
-
-    // Initialize prices from CHAINS config
-    const initialPrices: Record<string, number> = {}
-    Object.entries(CHAINS).forEach(([key, chain]) => {
-      initialPrices[key] = chain.usdPrice
-    })
-    setPrices(initialPrices)
+    const stored = localStorage.getItem('u_wallets')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as WalletInfo[]
+        setWallets(parsed.filter((w) => w.id && w.address))
+      } catch {
+        // ignore corrupt storage
+      }
+    }
+    const initial: Record<string, number> = {}
+    for (const [k, v] of Object.entries(CHAINS)) initial[k] = v.usdPrice
+    setPrices(initial)
   }, [])
 
   // Detect chain from address format
-  const detectChain = useCallback((addr: string): { chain: string; confidence: 'high' | 'medium' | 'low' } | null => {
-    if (!addr || addr.length < 10) return null
+  const detectChain = useCallback(
+    (addr: string): { chain: string; confidence: 'high' | 'medium' | 'low' } | null => {
+      if (!addr || addr.length < 10) return null
+      const t = addr.trim()
+      if (t.startsWith('0x') && t.length === 66 && /^0x[a-fA-F0-9]{64}$/.test(t)) return { chain: 'sui', confidence: 'high' }
+      if (t.startsWith('0x') && t.length === 42 && /^0x[a-fA-F0-9]{40}$/.test(t)) return { chain: 'eth', confidence: 'high' }
+      if (/^bc1[a-zA-HJ-NP-Z0-9]{39,59}$/.test(t)) return { chain: 'btc', confidence: 'high' }
+      if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(t)) return { chain: 'btc', confidence: 'high' }
+      if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(t) && !t.startsWith('0x')) return { chain: 'sol', confidence: 'high' }
+      if (t.length >= 20) return { chain: 'eth', confidence: 'low' }
+      return null
+    },
+    [],
+  )
 
-    const trimmed = addr.trim()
-
-    // SUI: 0x followed by 64 hex chars (66 total)
-    if (trimmed.startsWith('0x') && trimmed.length === 66 && /^0x[a-fA-F0-9]{64}$/.test(trimmed)) {
-      return { chain: 'sui', confidence: 'high' }
-    }
-
-    // EVM (ETH, Base, Arbitrum, Polygon): 0x followed by 40 hex chars (42 total)
-    if (trimmed.startsWith('0x') && trimmed.length === 42 && /^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
-      return { chain: 'eth', confidence: 'high' } // Could be any EVM chain
-    }
-
-    // Bitcoin: starts with bc1 (bech32), 1, or 3
-    if (/^bc1[a-zA-HJ-NP-Z0-9]{39,59}$/.test(trimmed)) {
-      return { chain: 'btc', confidence: 'high' }
-    }
-    if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(trimmed)) {
-      return { chain: 'btc', confidence: 'high' }
-    }
-
-    // Solana: Base58, 32-44 characters, no 0, O, I, l
-    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmed) && !trimmed.startsWith('0x')) {
-      return { chain: 'sol', confidence: 'high' }
-    }
-
-    // If it looks like an address but we're not sure
-    if (trimmed.length >= 20) {
-      return { chain: 'eth', confidence: 'low' }
-    }
-
-    return null
-  }, [])
-
-  // Detected chain info
   const detectedChainInfo = useMemo(() => {
-    const result = detectChain(destinationAddress)
-    if (!result) return null
-    return {
-      ...result,
-      chainData: CHAINS[result.chain] || CHAINS.eth,
-    }
+    const r = detectChain(destinationAddress)
+    if (!r) return null
+    return { ...r, chainData: CHAINS[r.chain] ?? CHAINS.eth }
   }, [destinationAddress, detectChain])
 
-  // Get compatible wallets for the detected chain
+  const isValidAddress = detectedChainInfo !== null && detectedChainInfo.confidence !== 'low'
+
+  // Compatible wallets for detected chain
   const compatibleWallets = useMemo(() => {
     if (!detectedChainInfo) return []
-
-    const destChain = detectedChainInfo.chain
-
+    const dest = detectedChainInfo.chain
     return wallets
-      .filter((wallet) => {
-        const walletChain = wallet.chain.toLowerCase()
-        const compatible = CHAIN_COMPATIBILITY[walletChain] || [walletChain]
-
-        // Check if wallet chain is compatible with destination
-        // For EVM chains, any EVM wallet can send to any EVM address
-        if (['eth', 'base', 'arbitrum', 'polygon'].includes(destChain)) {
-          return ['eth', 'base', 'arbitrum', 'polygon'].includes(walletChain)
+      .filter((w) => {
+        const wc = w.chain.toLowerCase()
+        const compat = CHAIN_COMPATIBILITY[wc] ?? [wc]
+        if (['eth', 'base', 'arbitrum', 'polygon'].includes(dest)) {
+          return ['eth', 'base', 'arbitrum', 'polygon'].includes(wc)
         }
-
-        return compatible.includes(destChain) || walletChain === destChain
+        return compat.includes(dest) || wc === dest
       })
       .sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance))
   }, [wallets, detectedChainInfo])
 
-  // Calculate USD value
-  const usdValue = useMemo(() => {
-    if (!amount || !detectedChainInfo) return 0
-    const price = prices[detectedChainInfo.chain] || 0
-    return parseFloat(amount) * price
-  }, [amount, detectedChainInfo, prices])
+  // Derived values
+  const numAmount = parseFloat(amountUsd) || 0
+  const suiPrice = prices['sui'] ?? 4.12
+  const amountSui = numAmount / suiPrice
+  const amountMist = usdToMist(numAmount, suiPrice)
 
-  // Helpers
-  const formatAddress = (addr: string) => {
-    if (!addr) return 'No address'
-    if (addr.length < 16) return addr
-    return `${addr.slice(0, 8)}...${addr.slice(-6)}`
-  }
+  // State 1 cap check (SUI only)
+  const isState1 = selectedWallet?.walletState === 1 || (!selectedWallet?.walletState && !selectedWallet?.credentialId)
+  const exceedsState1Cap = isState1 && detectedChainInfo?.chain === 'sui' && numAmount > STATE1_CAP_USD
+  const isSuiChain = detectedChainInfo?.chain === 'sui'
 
-  const isValidAddress = detectedChainInfo !== null && detectedChainInfo.confidence !== 'low'
-
-  // Transaction handler - requires real blockchain SDK for mainnet
+  // ===== PASSKEY-PRF SEND FLOW =====
   const handleSend = async () => {
-    if (!selectedWallet || !destinationAddress || !amount) return
-
+    if (!selectedWallet || !destinationAddress || !amountUsd) return
+    setSendError(null)
     setIsSending(true)
 
-    // TODO: Implement real transaction broadcasting
-    // For SUI: Use @mysten/sui.js
-    // For ETH/Base: Use ethers.js or viem
-    // For SOL: Use @solana/web3.js
+    emitClick('ui:send:initiate', {
+      type: 'payment',
+      payment: { receiver: destinationAddress, amount: numAmount, action: 'send' },
+    })
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      // Guard: only SUI is wired through the sponsor flow
+      if (!isSuiChain) {
+        setSendError(ERROR_COPY['chain-unsupported'])
+        setIsSending(false)
+        return
+      }
 
-    // Commerce detection: URL query param ?product= or ?seller= signals a commerce send
-    const isCommerce =
-      typeof window !== 'undefined' &&
-      (new URLSearchParams(window.location.search).has('product') ||
-        new URLSearchParams(window.location.search).has('seller'))
+      // Guard: State 1 cap
+      if (exceedsState1Cap) {
+        setSendError(ERROR_COPY['state1-cap'])
+        setIsSending(false)
+        return
+      }
 
-    if (isCommerce) {
-      emitClick('ui:send:submit-commerce', {
-        type: 'payment',
-        payment: { receiver: destinationAddress, amount: Number(amount) || 0, action: 'send' },
-      })
-      // Fire-and-forget signal to substrate
-      fetch('/api/signal', {
+      // Guard: passkey required
+      if (!selectedWallet.credentialId) {
+        setSendError(ERROR_COPY['no-passkey'])
+        setIsSending(false)
+        return
+      }
+
+      // 1. Build tx on server
+      const buildRes = await fetch('/api/sponsor/build', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          receiver: 'pay',
-          data: { weight: Number(amount) || 0, content: { to: destinationAddress, chain: selectedWallet.chain } },
+          sender: selectedWallet.address,
+          txKind: 'transfer',
+          params: { to: destinationAddress, amount: amountMist.toString() },
+          walletState: selectedWallet.walletState ?? 1,
         }),
-      }).catch(() => null)
-    } else {
-      emitClick('ui:send:submit-private')
+      })
+
+      if (!buildRes.ok) {
+        const body = await buildRes.json().catch(() => ({})) as { error?: string }
+        setSendError(body?.error ?? ERROR_COPY['build-failed'])
+        setIsSending(false)
+        return
+      }
+
+      const { txBytes } = await buildRes.json() as { txBytes: string }
+      const txBytesArr = base64ToUint8Array(txBytes)
+
+      // 2. Touch ID → sign
+      const credIdArr = base64ToUint8Array(selectedWallet.credentialId)
+      let senderSig: string
+      try {
+        emitClick('ui:send:touch-id')
+        senderSig = await signWithPasskey(txBytesArr, credIdArr)
+      } catch (err) {
+        const msg = (err as Error)?.message ?? ''
+        if (msg.includes('cancelled')) {
+          setSendError(ERROR_COPY['sign-cancelled'])
+        } else {
+          setSendError(ERROR_COPY['sign-failed'])
+        }
+        setIsSending(false)
+        return
+      }
+
+      // 3. Execute on server
+      const execRes = await fetch('/api/sponsor/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txBytes, senderSig }),
+      })
+
+      if (!execRes.ok) {
+        const body = await execRes.json().catch(() => ({})) as { error?: string }
+        setSendError(body?.error ?? ERROR_COPY['execute-failed'])
+        setIsSending(false)
+        return
+      }
+
+      const { digest } = await execRes.json() as { digest: string }
+      setTxDigest(digest)
+
+      // Emit commerce signal if applicable
+      const qs = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+      if (qs && (qs.has('product') || qs.has('seller'))) {
+        emitClick('ui:send:submit-commerce', {
+          type: 'payment',
+          payment: { receiver: destinationAddress, amount: numAmount, action: 'send' },
+        })
+      } else {
+        emitClick('ui:send:submit-private')
+      }
+
+      // Persist tx record
+      const tx = {
+        id: digest,
+        hash: digest,
+        type: 'send',
+        from: selectedWallet.address,
+        to: destinationAddress,
+        amountUsd: numAmount,
+        amountSui,
+        chain: 'sui',
+        status: 'confirmed',
+        timestamp: Date.now(),
+        walletId: selectedWallet.id,
+      }
+      const stored = localStorage.getItem('u_transactions')
+      const history = stored ? (JSON.parse(stored) as unknown[]) : []
+      localStorage.setItem('u_transactions', JSON.stringify([tx, ...history]))
+
+      setStep(4)
+    } catch {
+      setSendError(ERROR_COPY['network'])
+    } finally {
+      setIsSending(false)
     }
-
-    // Create pending transaction (no fake hash)
-    const pendingTxId = `pending-${Date.now()}`
-
-    const tx = {
-      id: pendingTxId,
-      hash: `PENDING-${pendingTxId}`, // Clearly marked as pending
-      type: 'send',
-      from: selectedWallet.address,
-      to: destinationAddress,
-      amount,
-      token: CHAINS[selectedWallet.chain]?.symbol || selectedWallet.chain.toUpperCase(),
-      chain: selectedWallet.chain,
-      status: 'pending', // Pending until real broadcast
-      timestamp: Date.now(),
-      walletId: selectedWallet.id,
-    }
-
-    const storedTx = localStorage.getItem('u_transactions')
-    const transactions = storedTx ? JSON.parse(storedTx) : []
-    localStorage.setItem('u_transactions', JSON.stringify([tx, ...transactions]))
-
-    setTxHash(pendingTxId)
-    setIsSending(false)
-    setSendSuccess(true)
-    setStep(4)
   }
 
   const resetFlow = () => {
     setStep(1)
     setDestinationAddress('')
-    setAmount('')
+    setAmountUsd('')
     setSelectedWallet(null)
-    setSendSuccess(false)
-    setTxHash('')
+    setSendError(null)
+    setTxDigest(null)
   }
 
-  // Step indicators
+  // ===== STEPS =====
+
   const steps = [
     { num: 1, label: 'To', icon: '📍' },
     { num: 2, label: 'Amount', icon: '💰' },
@@ -275,12 +350,10 @@ export function SendPage() {
             <div key={s.num} className="flex items-center">
               <button
                 onClick={() => {
-                  if (s.num < step && !sendSuccess) setStep(s.num as 1 | 2 | 3 | 4)
+                  if (s.num < step && step !== 4) setStep(s.num as SendStep)
                 }}
-                disabled={s.num > step || sendSuccess}
-                className={`flex flex-col items-center transition-all ${
-                  s.num <= step ? 'opacity-100' : 'opacity-40'
-                } ${s.num < step && !sendSuccess ? 'cursor-pointer hover:scale-105' : ''}`}
+                disabled={s.num > step || step === 4}
+                className={`flex flex-col items-center transition-all ${s.num <= step ? 'opacity-100' : 'opacity-40'} ${s.num < step && step !== 4 ? 'cursor-pointer hover:scale-105' : ''}`}
               >
                 <div
                   className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all ${
@@ -293,22 +366,18 @@ export function SendPage() {
                 >
                   {s.num < step ? '✓' : s.icon}
                 </div>
-                <span
-                  className={`text-xs mt-1.5 font-medium ${step === s.num ? 'text-primary' : 'text-muted-foreground'}`}
-                >
+                <span className={`text-xs mt-1.5 font-medium ${step === s.num ? 'text-primary' : 'text-muted-foreground'}`}>
                   {s.label}
                 </span>
               </button>
               {i < steps.length - 1 && (
-                <div
-                  className={`w-12 h-0.5 mx-1 mt-[-16px] transition-all ${s.num < step ? 'bg-green-500' : 'bg-muted'}`}
-                />
+                <div className={`w-12 h-0.5 mx-1 mt-[-16px] transition-all ${s.num < step ? 'bg-green-500' : 'bg-muted'}`} />
               )}
             </div>
           ))}
         </div>
 
-        {/* Step 1: Enter Destination */}
+        {/* Step 1: Destination */}
         {step === 1 && (
           <Card className="overflow-hidden">
             <div className="h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
@@ -332,6 +401,7 @@ export function SendPage() {
                     size="sm"
                     className="absolute right-2 top-1/2 -translate-y-1/2"
                     onClick={async () => {
+                      emitClick('ui:send:paste-address')
                       const text = await navigator.clipboard.readText()
                       setDestinationAddress(text)
                     }}
@@ -340,7 +410,6 @@ export function SendPage() {
                   </Button>
                 </div>
 
-                {/* Detected Chain Display */}
                 {destinationAddress && (
                   <div
                     className={`flex items-center gap-3 p-4 rounded-xl transition-all ${
@@ -379,7 +448,15 @@ export function SendPage() {
                   </div>
                 )}
 
-                <Button size="lg" className="w-full h-14 text-lg" disabled={!isValidAddress} onClick={() => setStep(2)}>
+                <Button
+                  size="lg"
+                  className="w-full h-14 text-lg"
+                  disabled={!isValidAddress}
+                  onClick={() => {
+                    emitClick('ui:send:step1-next')
+                    setStep(2)
+                  }}
+                >
                   Continue →
                 </Button>
               </div>
@@ -387,12 +464,11 @@ export function SendPage() {
           </Card>
         )}
 
-        {/* Step 2: Enter Amount */}
+        {/* Step 2: Amount (USD) */}
         {step === 2 && detectedChainInfo && (
           <Card className="overflow-hidden">
             <div className={`h-2 bg-gradient-to-r ${detectedChainInfo.chainData.color}`} />
             <CardContent className="p-6">
-              {/* Destination Summary */}
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl mb-6">
                 <div
                   className={`w-10 h-10 rounded-full bg-gradient-to-br ${detectedChainInfo.chainData.color} flex items-center justify-center text-white text-lg`}
@@ -410,44 +486,50 @@ export function SendPage() {
 
               <div className="text-center mb-6">
                 <div className="text-4xl mb-2">{detectedChainInfo.chainData.icon}</div>
-                <h2 className="text-xl font-bold">How much {detectedChainInfo.chainData.symbol}?</h2>
+                <h2 className="text-xl font-bold">How much to send?</h2>
+                <p className="text-muted-foreground text-sm">Enter amount in USD</p>
               </div>
 
               <div className="space-y-4">
-                {/* Amount Input */}
                 <div className="relative p-6 bg-muted/30 rounded-2xl">
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="h-20 text-4xl font-bold text-center bg-transparent border-none shadow-none focus-visible:ring-0"
-                  />
-                  <div className="text-center text-lg text-muted-foreground font-medium">
-                    {detectedChainInfo.chainData.symbol}
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-3xl font-bold text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={amountUsd}
+                      onChange={(e) => setAmountUsd(e.target.value)}
+                      className="h-20 text-4xl font-bold text-center bg-transparent border-none shadow-none focus-visible:ring-0 w-48"
+                    />
                   </div>
+                  <div className="text-center text-lg text-muted-foreground font-medium">USD</div>
                 </div>
 
-                {/* Real-time USD Conversion */}
-                <div className="flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl">
-                  <span className="text-2xl">💵</span>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold">
-                      ${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      1 {detectedChainInfo.chainData.symbol} = $
-                      {prices[detectedChainInfo.chain]?.toLocaleString() || '0'}
+                {isSuiChain && numAmount > 0 && (
+                  <div className="flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl">
+                    <span className="text-2xl">💧</span>
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{amountSui.toFixed(4)} SUI</div>
+                      <div className="text-sm text-muted-foreground">1 SUI = ${suiPrice.toFixed(2)}</div>
                     </div>
                   </div>
-                </div>
+                )}
+
+                {exceedsState1Cap && (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-sm text-amber-600 dark:text-amber-400">
+                    <strong>Wallet limit:</strong> {ERROR_COPY['state1-cap']}
+                  </div>
+                )}
 
                 <Button
                   size="lg"
                   className="w-full h-14 text-lg"
-                  disabled={!amount || parseFloat(amount) <= 0}
-                  onClick={() => setStep(3)}
+                  disabled={!amountUsd || numAmount <= 0 || exceedsState1Cap}
+                  onClick={() => {
+                    emitClick('ui:send:step2-next')
+                    setStep(3)
+                  }}
                 >
                   Continue →
                 </Button>
@@ -460,11 +542,10 @@ export function SendPage() {
           </Card>
         )}
 
-        {/* Step 3: Select Source Wallet */}
+        {/* Step 3: Wallet selection + confirm */}
         {step === 3 && detectedChainInfo && (
           <div className="space-y-4">
-            {/* Summary */}
-            <Card className={`overflow-hidden`}>
+            <Card className="overflow-hidden">
               <div className={`h-1 bg-gradient-to-r ${detectedChainInfo.chainData.color}`} />
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -476,16 +557,13 @@ export function SendPage() {
                     </div>
                     <div>
                       <div className="text-2xl font-bold">
-                        {amount} {detectedChainInfo.chainData.symbol}
+                        ${numAmount.toFixed(2)}
+                        {isSuiChain && <span className="text-base font-normal text-muted-foreground ml-2">≈ {amountSui.toFixed(4)} SUI</span>}
                       </div>
                       <div className="text-muted-foreground text-sm">
-                        ≈ ${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        to <code className="text-xs">{formatAddress(destinationAddress)}</code>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-muted-foreground">To</div>
-                    <code className="text-sm">{formatAddress(destinationAddress)}</code>
                   </div>
                 </div>
               </CardContent>
@@ -501,7 +579,6 @@ export function SendPage() {
               </p>
             </div>
 
-            {/* No Compatible Wallets */}
             {compatibleWallets.length === 0 ? (
               <Card className="p-8 text-center">
                 <div
@@ -519,57 +596,58 @@ export function SendPage() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {compatibleWallets.map((wallet, index) => {
-                  const chain = CHAINS[wallet.chain] || CHAINS.eth
-                  const hasEnough = parseFloat(wallet.balance) >= parseFloat(amount || '0')
+                {compatibleWallets.map((wallet, idx) => {
+                  const chain = CHAINS[wallet.chain] ?? CHAINS.eth
+                  const hasEnough = parseFloat(wallet.balance) >= amountSui
                   const isSelected = selectedWallet?.id === wallet.id
+                  const needsPasskey = isSuiChain && !wallet.credentialId
 
                   return (
                     <Card
-                      key={wallet.id || `wallet-${index}`}
+                      key={wallet.id || `wallet-${idx}`}
                       className={`transition-all cursor-pointer ${
                         isSelected
                           ? 'ring-2 ring-primary shadow-lg scale-[1.02]'
-                          : hasEnough
+                          : hasEnough && !needsPasskey
                             ? 'hover:shadow-lg hover:border-primary/50 hover:scale-[1.01]'
-                            : 'opacity-50 cursor-not-allowed'
+                            : 'opacity-60 cursor-not-allowed'
                       }`}
-                      onClick={() => hasEnough && setSelectedWallet(wallet)}
+                      onClick={() => hasEnough && !needsPasskey && setSelectedWallet(wallet)}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
-                          {/* Chain Icon */}
                           <div
                             className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${chain.color} flex items-center justify-center text-white text-2xl shrink-0 shadow-lg`}
                           >
                             {chain.icon}
                           </div>
-
-                          {/* Wallet Info */}
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-lg">{wallet.name || `${chain.name} Wallet`}</div>
                             <code className="text-sm text-muted-foreground">{formatAddress(wallet.address)}</code>
                           </div>
-
-                          {/* Balance */}
                           <div className="text-right">
                             <div className={`text-xl font-bold ${hasEnough ? '' : 'text-red-500'}`}>
-                              {parseFloat(wallet.balance).toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                              {parseFloat(wallet.balance).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                             </div>
                             <div className="text-sm text-muted-foreground">{chain.symbol}</div>
                           </div>
-
-                          {/* Selection indicator */}
                           {isSelected && (
                             <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg">
                               ✓
                             </div>
                           )}
                         </div>
-
                         {!hasEnough && (
                           <div className="mt-3 text-sm text-red-500 flex items-center gap-1">
-                            <span>⚠</span> Insufficient balance (need {amount} {chain.symbol})
+                            <span>⚠</span> Insufficient balance (need {amountSui.toFixed(4)} {chain.symbol})
+                          </div>
+                        )}
+                        {needsPasskey && (
+                          <div className="mt-3 text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <span>🔐</span>{' '}
+                            <a href="/u/keys" className="underline hover:no-underline">
+                              Save wallet first to enable Touch ID signing
+                            </a>
                           </div>
                         )}
                       </CardContent>
@@ -579,19 +657,33 @@ export function SendPage() {
               </div>
             )}
 
-            {/* Action Buttons */}
+            {/* Error */}
+            {sendError && (
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-600 dark:text-red-400">
+                {sendError}
+              </div>
+            )}
+
+            {/* Action buttons */}
             <div className="flex gap-3 pt-4">
               <Button variant="outline" className="flex-1 h-12" onClick={() => setStep(2)}>
                 ← Back
               </Button>
-              <Button className="flex-1 h-12" disabled={!selectedWallet || isSending} onClick={handleSend}>
+              <Button
+                className="flex-1 h-12"
+                disabled={!selectedWallet || isSending}
+                onClick={() => {
+                  emitClick('ui:send:confirm')
+                  void handleSend()
+                }}
+              >
                 {isSending ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Sending...
+                    Sending…
                   </span>
                 ) : (
-                  'Confirm & Send →'
+                  '🔐 Touch ID & Send →'
                 )}
               </Button>
             </div>
@@ -599,55 +691,45 @@ export function SendPage() {
         )}
 
         {/* Step 4: Success */}
-        {step === 4 && sendSuccess && detectedChainInfo && (
+        {step === 4 && detectedChainInfo && (
           <Card className="overflow-hidden text-center">
             <div className={`h-2 bg-gradient-to-r ${detectedChainInfo.chainData.color}`} />
             <CardContent className="p-8">
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-amber-500/10 flex items-center justify-center">
-                <span className="text-6xl">⏳</span>
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-green-500/10 flex items-center justify-center">
+                <span className="text-6xl">✅</span>
               </div>
 
-              <h2 className="text-2xl font-bold mb-2">Transaction Prepared</h2>
-              <p className="text-muted-foreground mb-6">Ready to send {detectedChainInfo.chainData.symbol}</p>
+              <h2 className="text-2xl font-bold mb-2">Sent!</h2>
+              <p className="text-muted-foreground mb-6">
+                ${numAmount.toFixed(2)} · {amountSui.toFixed(4)} SUI to {formatAddress(destinationAddress)}
+              </p>
 
-              <div className="space-y-3 mb-6 text-left">
-                <div className="p-4 bg-muted/50 rounded-xl">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-muted-foreground">Amount</span>
-                    <div className="text-right">
-                      <span className="font-bold text-lg">
-                        {amount} {detectedChainInfo.chainData.symbol}
-                      </span>
-                      <div className="text-sm text-muted-foreground">
-                        ≈ ${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-muted-foreground">To</span>
-                    <code className="text-sm">{formatAddress(destinationAddress)}</code>
+              {txDigest && (
+                <div className="p-4 bg-muted/50 rounded-xl mb-6 text-left space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground text-sm">Transaction</span>
+                    <a
+                      href={`https://suiscan.xyz/testnet/tx/${txDigest}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-mono text-primary hover:underline"
+                    >
+                      {txDigest.slice(0, 10)}…
+                    </a>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className="text-amber-500 font-medium">Pending Broadcast</span>
+                    <span className="text-muted-foreground text-sm">Status</span>
+                    <span className="text-green-500 font-medium text-sm">Confirmed</span>
                   </div>
                 </div>
-
-                {/* Info about next steps */}
-                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                  <p className="text-sm text-blue-600 dark:text-blue-400">
-                    <strong>Next Steps:</strong> To complete this transaction, use your wallet app (like Sui Wallet,
-                    MetaMask, or Phantom) to send the exact amount shown above to the destination address.
-                  </p>
-                </div>
-              </div>
+              )}
 
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={resetFlow}>
                   New Send
                 </Button>
                 <Button className="flex-1" asChild>
-                  <a href="/u/transactions">View Pending</a>
+                  <a href="/u/transactions">View History</a>
                 </Button>
               </div>
             </CardContent>

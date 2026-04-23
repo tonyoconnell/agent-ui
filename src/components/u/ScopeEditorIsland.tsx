@@ -205,7 +205,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <UNav active="agents" />
+        <UNav active="home" />
         <div className="max-w-2xl mx-auto px-6 py-8 flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" strokeWidth={1.5} />
         </div>
@@ -219,7 +219,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
   if (!scope) {
     return (
       <div className="min-h-screen bg-background">
-        <UNav active="agents" />
+        <UNav active="home" />
         <div className="max-w-2xl mx-auto px-6 py-8">
           <Button
             variant="ghost"

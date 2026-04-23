@@ -169,6 +169,7 @@ export function ChatIsland({ className }: ChatIslandProps) {
     async (text: string, assistantId: string, currentSid: string, currentCursor?: string) => {
       const controller = new AbortController()
       abortRef.current = controller
+      let accumulated = ''
 
       try {
         const res = await fetch('/api/chat/stream', {
@@ -188,7 +189,6 @@ export function ChatIsland({ className }: ChatIslandProps) {
 
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
-        let accumulated = ''
         let latestCursor: string | undefined
 
         while (true) {
