@@ -159,6 +159,18 @@ export async function hasVault(): Promise<boolean> {
   return meta !== null
 }
 
+// Check if the wallet-v2 IDB (one-wallet) has any passkey wrappings.
+// /u/save enrolls passkeys into one-wallet.wrappings, not one-vault.meta.passkeys.
+async function hasV2Passkey(): Promise<boolean> {
+  try {
+    const { getWallet } = await import('../idb')
+    const w = await getWallet()
+    return !!w && w.wrappings.some((wr) => wr.type === 'passkey-prf')
+  } catch {
+    return false
+  }
+}
+
 export async function getStatus(): Promise<VaultStatus> {
   const caps = await detectCapabilities()
   if (!isStorageAvailable()) {
@@ -173,9 +185,11 @@ export async function getStatus(): Promise<VaultStatus> {
   }
   const meta = await getMeta()
   const wallets = meta ? await storageListWallets() : []
+  const v2Passkey = await hasV2Passkey()
   return {
-    hasVault: meta !== null,
-    hasPasskey: meta ? meta.passkeys.length > 0 : false,
+    hasVault: meta !== null || v2Passkey,
+    // Bridge: report passkey if either system has one enrolled
+    hasPasskey: (meta ? meta.passkeys.length > 0 : false) || v2Passkey,
     hasPassword: meta ? meta.hasPassword : false,
     isLocked: session === null,
     walletCount: wallets.length,
@@ -311,8 +325,40 @@ async function loadMeta(): Promise<VaultMeta> {
  * Returns silently on success; throws VaultError on failure.
  */
 export async function unlockWithPasskey(): Promise<void> {
-  const meta = await loadMeta()
-  if (meta.passkeys.length === 0) throw new VaultError('no passkey enrolled', 'passkey-unsupported')
+  const meta = await loadMeta().catch(() => null)
+
+  // V2 fallback: vault has no passkey but wallet-v2 does — verify Touch ID + PRF
+  // by attempting to unwrap the v2 seed. Establishes a synthetic session so the
+  // dashboard sees the vault as unlocked.
+  if (!meta || meta.passkeys.length === 0) {
+    const { getWallet } = await import('../idb')
+    const w = await getWallet()
+    const v2Wrapping = w?.wrappings.find((wr) => wr.type === 'passkey-prf')
+    if (!v2Wrapping || v2Wrapping.type !== 'passkey-prf') {
+      throw new VaultError('no passkey enrolled', 'passkey-unsupported')
+    }
+    // Trigger Touch ID + PRF via wrap.ts unwrap (validates the passkey)
+    const { unwrapWithPasskey } = await import('../wrap')
+    try {
+      const seed = await unwrapWithPasskey(v2Wrapping)
+      // Wipe the seed immediately — we only needed it to prove the passkey works
+      ;(seed as Uint8Array).fill(0)
+      // Create synthetic session so the UI shows unlocked state
+      const syntheticMaster = randomBytes(32)
+      const masterKey = await importMasterSecret(syntheticMaster)
+      void syntheticMaster
+      const now = Date.now()
+      session = { method: 'passkey', unlockedAt: now, lastActivityAt: now, masterKey }
+      audit({ verb: 'unlock', outcome: 'ok', method: 'passkey', detail: 'v2-bridge' })
+      return
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'passkey unlock failed'
+      if (msg.includes('cancelled') || msg.includes('NotAllowed')) {
+        throw new VaultError('passkey prompt cancelled', 'passkey-cancelled')
+      }
+      throw new VaultError(msg, 'crypto-error')
+    }
+  }
 
   for (const enrollment of meta.passkeys) {
     const res = await passkeyUnlock(enrollment)
