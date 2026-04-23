@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { WalletAdapter } from '../lib/adapters/WalletAdapter'
 import { ReceiveSheet } from '../sheets/ReceiveSheet'
 import { UNav } from '../UNav'
 
@@ -478,26 +479,18 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       return
     }
 
-    // Load wallets from localStorage
-    // REMOVED: localStorage.getItem('u_wallets') read
-    // TODO: read from IndexedDB via useVault() hook instead
-    // const storedWallets = localStorage.getItem('u_wallets')
-    // if (storedWallets) {
-    //   const wallets: Wallet[] = JSON.parse(storedWallets)
-    //   setAllWallets(wallets)
-    //   const found = wallets.find((w) => w.id === walletId)
-    //   if (found) {
-    //     setWallet(found)
-    //   }
-    // }
+    // Load from WalletAdapter (localStorage-backed metadata, safe — no seed material)
+    const stored = WalletAdapter.fromLocalStorage()
+    const found = stored.find((w) => w.id === walletId)
+    // Cast: WalletAdapter.Wallet is a subset of the local Wallet interface
+    if (found) setWallet(found as unknown as Wallet)
 
-    // Load transactions by walletId only; the second effect re-filters once
-    // wallet state is populated (address-based matches).
     const storedTx = localStorage.getItem('u_transactions')
     if (storedTx) {
-      const allTx: Transaction[] = JSON.parse(storedTx)
-      const walletTx = allTx.filter((tx) => tx.walletId === walletId)
-      setTransactions(walletTx)
+      try {
+        const allTx: Transaction[] = JSON.parse(storedTx)
+        setTransactions(allTx.filter((tx) => tx.walletId === walletId))
+      } catch { /* ignore */ }
     }
 
     setLoading(false)

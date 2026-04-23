@@ -30,24 +30,40 @@ export const WalletAdapter = {
    * TODO: read from IndexedDB via vault.ts instead
    */
   fromLocalStorage(filter?: { chain?: string; context?: 'mainnet' | 'testnet' }): Wallet[] {
-    // REMOVED: localStorage.getItem('u_wallets')
-    console.warn('WalletAdapter.fromLocalStorage is deprecated. Use Vault.listWallets() instead.')
-    return []
+    // Wallet metadata (address, chain, id, name) lives in localStorage.
+    // Seed material never touches localStorage — that lives in vault/idb.ts.
+    try {
+      const raw = localStorage.getItem('u_wallets')
+      if (!raw) return []
+      const wallets: Wallet[] = JSON.parse(raw)
+      if (!Array.isArray(wallets)) return []
+      return wallets.filter((w) => {
+        if (filter?.chain && w.chain !== filter.chain) return false
+        if (filter?.context && w.context !== filter.context) return false
+        return true
+      })
+    } catch {
+      return []
+    }
   },
 
-  /**
-   * Save wallets to local storage
-   * DEPRECATED: use Vault.saveWallet() instead
-   * TODO: write to IndexedDB via vault.ts instead
-   */
   toLocalStorage(wallets: Wallet[]) {
-    // REMOVED: localStorage.setItem calls
-    console.warn('WalletAdapter.toLocalStorage is deprecated. Use Vault.saveWallet() instead.')
+    // Persist wallet metadata only — no private keys or seed phrases.
+    // Called by useWallets after generateing or deleting a wallet.
+    try {
+      const existing = this.fromLocalStorage()
+      const merged = [...existing]
+      for (const w of wallets) {
+        const idx = merged.findIndex((e) => e.id === w.id)
+        // Strip sensitive fields before writing
+        const safe: Wallet = { ...w, privateKey: undefined, mnemonic: undefined }
+        if (idx >= 0) merged[idx] = safe
+        else merged.push(safe)
+      }
+      localStorage.setItem('u_wallets', JSON.stringify(merged))
+    } catch { /* storage unavailable */ }
   },
 
-  /**
-   * Add a single wallet
-   */
   addWallet(wallet: Wallet) {
     this.toLocalStorage([wallet])
   },
