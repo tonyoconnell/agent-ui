@@ -255,7 +255,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="agents" />
+      <UNav active="home" />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <Button
