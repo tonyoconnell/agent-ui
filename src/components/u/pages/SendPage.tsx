@@ -21,7 +21,7 @@ import { emitClick } from '@/lib/ui-signal'
 import { signWithPasskey } from '../lib/signer'
 import { getScopedWallet } from '../lib/scoped-wallet'
 import { getWallet } from '../lib/idb'
-import type { ScopedWalletStruct } from '@/interfaces/move/scoped-wallet/struct.move'
+import type { ScopedWalletStruct } from '../../../interfaces/move/scoped-wallet/struct.move'
 import { UNav } from '../UNav'
 
 // ===== CONSTANTS =====
