@@ -1,0 +1,20 @@
+---
+export const prerender = true;
+
+/**
+ * /u/devices — Enrolled Passkey Devices
+ *
+ * Lists passkeys (credIds) enrolled to access this wallet.
+ * Users can revoke individual devices; revoke removes the wrapping
+ * from IDB and fires a best-effort DELETE to the server backup.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { DevicesIsland } from "@/components/u/DevicesIsland";
+
+const title = "Your Devices | u";
+const description = "Manage the passkeys enrolled to access your wallet.";
+---
+
+<Layout title={title} description={description}>
+  <DevicesIsland client:load />
+</Layout>
