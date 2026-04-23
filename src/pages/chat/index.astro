@@ -1,11 +1,11 @@
 ---
 export const prerender = false
 import Layout from "@/layouts/Layout.astro"
-import { ChatIsland } from "@/components/chat/ChatIsland"
+import { ChatIslandWithBoundary } from "@/components/chat/ChatIslandWithBoundary"
 ---
 
 <Layout title="Chat — ONE">
   <div class="flex h-[calc(100vh-4rem)] flex-col">
-    <ChatIsland client:load />
+    <ChatIslandWithBoundary client:load />
   </div>
 </Layout>
