@@ -34,6 +34,19 @@ export default defineConfig({
   site: "https://one.ie",
   integrations: [react()],
   vite: {
+    // In dev: proxy /api/signal to the live gateway so UI signals reach TypeDB
+    // without needing a local TypeDB connection.
+    ...(isDev ? {
+      server: {
+        proxy: {
+          '/api/signal': {
+            target: 'https://api.one.ie',
+            changeOrigin: true,
+            rewrite: (path) => path,
+          },
+        },
+      },
+    } : {}),
     plugins: [tailwindcss(), ...(devWebSocketMiddleware ? [devWebSocketMiddleware] : [])],
     resolve: {
       alias: {
