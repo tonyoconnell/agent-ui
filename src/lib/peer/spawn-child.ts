@@ -7,7 +7,7 @@
  * Contract: interfaces/peer/spawn-child.d.ts
  */
 
-import type { SuiAddress } from '../../interfaces/types-sui'
+import type { SuiAddress } from '../../../interfaces/types-sui'
 import { deriveKeypair, signAndExecute } from '@/lib/sui'
 import { Transaction } from '@mysten/sui/transactions'
 

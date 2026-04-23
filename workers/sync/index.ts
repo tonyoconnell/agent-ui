@@ -106,6 +106,26 @@ export default {
       console.error('D1 sync error:', e)
     }
 
+    // ── Job 5: Wallet reconciliation ────────────────────────────────────────
+    // Compare on-chain SUI balance vs TypeDB signal ledger per wallet.
+    // Mismatch → auto-pauses wallet + writes security hypothesis (handled in-app).
+
+    let reconcileStats = { ok: 0, mismatch: 0, error: 0 }
+    try {
+      const res = await fetch(`${base}/api/reconcile`, { method: 'POST' })
+      if (res.ok) {
+        const data = (await res.json()) as { ok: number; mismatch: number; error: number }
+        reconcileStats = { ok: data.ok ?? 0, mismatch: data.mismatch ?? 0, error: data.error ?? 0 }
+        if (data.mismatch > 0) {
+          console.warn('[reconcile] mismatches detected:', data.mismatch)
+        }
+      } else {
+        console.error('[reconcile] status:', res.status)
+      }
+    } catch (e) {
+      console.error('[reconcile] error:', e)
+    }
+
     await env.KV.put('synced_at', Date.now().toString())
 
     if (failed.length > 0) {
@@ -115,7 +135,7 @@ export default {
     const changed = synced.filter((s) => s.changed).map((s) => s.key)
     console.log(
       'Sync complete:',
-      JSON.stringify({ synced: synced.length, changed, absorbed, d1_edges: d1Synced.edges_synced }),
+      JSON.stringify({ synced: synced.length, changed, absorbed, d1_edges: d1Synced.edges_synced, reconcile: reconcileStats }),
     )
   },
 

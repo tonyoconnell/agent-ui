@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { emitClick } from '@/lib/ui-signal'
 import { UNav } from '../UNav'
 
 // Supported chains for swapping
@@ -228,7 +229,7 @@ export function SwapPage() {
             {SWAP_CHAINS.map((chain) => (
               <button
                 key={chain.id}
-                onClick={() => setSelectedChain(chain.id)}
+                onClick={() => { emitClick('ui:swap:chain-select', { chain: chain.id }); setSelectedChain(chain.id) }}
                 className={`p-3 sm:p-4 rounded-xl border-2 transition-all text-center ${
                   selectedChain === chain.id
                     ? 'border-primary bg-primary/10 ring-2 ring-primary'

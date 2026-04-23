@@ -1,101 +1,236 @@
-import { useState } from 'react'
-import { emitClick } from '@/lib/ui-signal'
+/**
+ * SignPage — Universal Wallet Home
+ *
+ * The landing screen for /u/sign.
+ *
+ * Lifecycle:
+ *   - Mount: getWallet() from IndexedDB
+ *   - If null: generateSeed() → initWalletRecord() → putWallet()
+ *   - Show: address, balance in USD, Receive / Send buttons
+ *   - State 1 (no wrappings): subtle "Save wallet" banner → /u/save
+ *   - State 2+ (has wrappings): no save prompt
+ *
+ * No zkLogin. No dapp-kit. IndexedDB-backed seed via seed.ts + idb.ts.
+ */
 
-interface Props {
-  challenge?: string
-  onSigned?: (signature: string) => void
+import { useEffect, useState } from 'react'
+import { emitClick } from '@/lib/ui-signal'
+import { generateSeed, initWalletRecord } from '../lib/seed'
+import { getWallet, putWallet } from '../lib/idb'
+import { formatUsd, resolveAddress } from '../lib/money'
+import { getBalance, getTokenPrice } from '../lib/BlockchainService'
+import type { WalletRecord } from '../../../../interfaces/types-wallet'
+
+// ── Local helpers ──────────────────────────────────────────────────────────
+
+/** Shorten a Sui address to "0x1234...abcd". */
+function shortAddr(addr: string): string {
+  const hex = addr.startsWith('0x') ? addr.slice(2) : addr
+  if (hex.length < 10) return addr
+  return `0x${hex.slice(0, 6)}...${hex.slice(-4)}`
 }
 
-export function SignPage({ challenge = '', onSigned }: Props) {
-  const [message, setMessage] = useState(challenge)
-  const [signature, setSignature] = useState<string | null>(null)
-  const [status, setStatus] = useState<'idle' | 'signing' | 'done' | 'error'>('idle')
+// ── Component ──────────────────────────────────────────────────────────────
 
-  async function handleSign() {
-    emitClick('ui:u:sign-challenge')
-    setStatus('signing')
-    try {
-      // In production: calls signer.signMessage(utf8Encode(message))
-      // For now: structural stub
-      const mockSig = `sig_${Date.now()}_${message.slice(0, 8)}`
-      setSignature(mockSig)
-      setStatus('done')
-      void fetch('/api/signal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          receiver: 'substrate:u:sign',
-          data: {
-            weight: 1,
-            tags: ['u', 'vault'],
-            content: { verb: 'sign', outcome: 'ok' },
-          },
-        }),
-      })
-      onSigned?.(mockSig)
-    } catch (_err) {
-      setStatus('error')
-      void fetch('/api/signal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          receiver: 'substrate:u:sign',
-          data: { weight: 1, tags: ['u', 'vault'], content: { verb: 'sign', outcome: 'fail' } },
-        }),
-      })
+type LoadState = 'loading' | 'ready' | 'error'
+
+export function SignPage() {
+  const [loadState, setLoadState] = useState<LoadState>('loading')
+  const [record, setRecord] = useState<WalletRecord | null>(null)
+  const [displayName, setDisplayName] = useState<string>('')
+  const [balanceMist, setBalanceMist] = useState<bigint>(0n)
+  const [suiPrice, setSuiPrice] = useState<number>(0)
+  const [loadingBalance, setLoadingBalance] = useState(true)
+  const [errorMsg, setErrorMsg] = useState<string>('')
+
+  // ── Wallet init ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+
+    async function init() {
+      try {
+        let w = await getWallet()
+
+        if (!w) {
+          // State 0 → State 1: generate fresh seed and persist record
+          const seed = generateSeed()
+          w = initWalletRecord(seed)
+          // Store the seed bytes alongside the record for State 1 signing
+          // (seed is not stored in WalletRecord — the caller holds it in memory
+          //  until wrapping is complete; here we just need the address)
+          await putWallet(w)
+        }
+
+        if (cancelled) return
+        setRecord(w)
+        setLoadState('ready')
+
+        // Resolve display name (best-effort; falls back to short addr)
+        const name = await resolveAddress(w.address as Parameters<typeof resolveAddress>[0])
+        if (!cancelled) setDisplayName(name)
+      } catch (e) {
+        if (!cancelled) {
+          setErrorMsg(e instanceof Error ? e.message : String(e))
+          setLoadState('error')
+        }
+      }
     }
+
+    void init()
+    return () => { cancelled = true }
+  }, [])
+
+  // ── Balance fetch ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!record) return
+    let cancelled = false
+
+    async function fetchBalance() {
+      setLoadingBalance(true)
+      try {
+        const [balResult, price] = await Promise.all([
+          getBalance(record!.address, 'sui'),
+          getTokenPrice('sui'),
+        ])
+        if (cancelled) return
+        // balResult.balance is SUI float string; convert to MIST bigint
+        const mistValue = BigInt(Math.round(parseFloat(balResult.balance) * 1e9))
+        setBalanceMist(mistValue)
+        setSuiPrice(price)
+      } catch {
+        // Non-fatal — show $0.00
+      } finally {
+        if (!cancelled) setLoadingBalance(false)
+      }
+    }
+
+    void fetchBalance()
+    return () => { cancelled = true }
+  }, [record])
+
+  // ── State derivation ─────────────────────────────────────────────────────
+  const isState1 = record !== null && record.wrappings.length === 0
+
+  // ── Render helpers ───────────────────────────────────────────────────────
+  const addrShort = record ? shortAddr(record.address) : ''
+  const usdDisplay = loadingBalance ? '—' : formatUsd(balanceMist, suiPrice)
+
+  // ── Loading / error screens ──────────────────────────────────────────────
+  if (loadState === 'loading') {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <p className="text-slate-400 text-sm animate-pulse">Setting up wallet…</p>
+      </div>
+    )
   }
 
-  return (
-    <div className="max-w-md mx-auto p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Sign Message</h1>
-      <div className="space-y-2">
-        <label className="text-sm text-muted-foreground" htmlFor="message-input">
-          Message to sign
-        </label>
-        <textarea
-          id="message-input"
-          value={message}
-          onChange={(e) => {
-            emitClick('ui:u:sign-message-edit')
-            setMessage(e.target.value)
-          }}
-          className="w-full min-h-[80px] rounded-md border bg-background p-2 text-sm font-mono"
-          placeholder="Enter message or challenge..."
-        />
-      </div>
-      <button
-        onClick={handleSign}
-        disabled={status === 'signing' || !message.trim()}
-        aria-label="Sign message with current signer"
-        className="w-full rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
-      >
-        {status === 'signing' ? 'Signing…' : 'Sign'}
-      </button>
-      {signature && (
-        <div className="rounded-md border bg-muted p-3 space-y-1">
-          <p className="text-xs text-muted-foreground">Signature</p>
-          <span
-            className="text-xs font-mono break-all cursor-pointer block"
-            onClick={() => {
-              emitClick('ui:u:copy-signature')
-              void navigator.clipboard.writeText(signature)
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                emitClick('ui:u:copy-signature')
-                void navigator.clipboard.writeText(signature)
-              }
-            }}
-            aria-label="Copy signature to clipboard"
+  if (loadState === 'error') {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
+        <div className="text-center space-y-2">
+          <p className="text-destructive text-sm">Wallet initialisation failed</p>
+          <p className="text-slate-500 text-xs font-mono">{errorMsg}</p>
+          <button
+            className="mt-4 text-xs text-slate-400 underline"
+            onClick={() => { emitClick('ui:sign:retry'); window.location.reload() }}
           >
-            {signature}
-          </span>
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Wallet home ──────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
+
+      {/* Save banner — State 1 only */}
+      {isState1 && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between">
+          <p className="text-xs text-amber-300">
+            Your wallet is unprotected — save it with Touch ID
+          </p>
+          <button
+            className="text-xs font-medium text-amber-400 hover:text-amber-200 transition-colors ml-4 whitespace-nowrap"
+            onClick={() => {
+              emitClick('ui:sign:save-wallet')
+              window.location.href = '/u/save'
+            }}
+            aria-label="Save wallet with passkey"
+          >
+            Save wallet →
+          </button>
         </div>
       )}
-      {status === 'error' && <p className="text-sm text-destructive">Signing failed. Check your signer.</p>}
+
+      {/* Main card */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+
+        {/* Balance */}
+        <div className="text-center space-y-1">
+          <p
+            className="text-4xl font-bold tabular-nums"
+            aria-label="Wallet balance in US dollars"
+          >
+            {usdDisplay}
+          </p>
+          <button
+            className="text-sm text-slate-400 font-mono hover:text-slate-200 transition-colors"
+            onClick={() => {
+              emitClick('ui:sign:copy-address')
+              void navigator.clipboard.writeText(record?.address ?? '')
+            }}
+            title={record?.address}
+            aria-label="Copy wallet address"
+          >
+            {displayName || addrShort}
+          </button>
+        </div>
+
+        {/* Action row */}
+        <div className="flex gap-4">
+          <button
+            className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl bg-[#161622] border border-[#252538] hover:bg-[#1e1e30] transition-colors min-w-[80px]"
+            onClick={() => {
+              emitClick('ui:sign:receive')
+              window.location.href = '/u/receive'
+            }}
+            aria-label="Receive funds"
+          >
+            <span className="text-xl" aria-hidden="true">↓</span>
+            <span className="text-xs text-slate-400">Receive</span>
+          </button>
+
+          <button
+            className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl bg-[#161622] border border-[#252538] hover:bg-[#1e1e30] transition-colors min-w-[80px]"
+            onClick={() => {
+              emitClick('ui:sign:send')
+              window.location.href = '/u/send'
+            }}
+            aria-label="Send funds"
+          >
+            <span className="text-xl" aria-hidden="true">↑</span>
+            <span className="text-xs text-slate-400">Send</span>
+          </button>
+        </div>
+
+        {/* Address card */}
+        <div className="w-full max-w-sm rounded-2xl bg-[#161622] border border-[#252538] p-4 space-y-2">
+          <p className="text-xs text-slate-500 uppercase tracking-wider">Sui address</p>
+          <button
+            className="w-full text-left text-xs font-mono text-slate-300 break-all hover:text-white transition-colors"
+            onClick={() => {
+              emitClick('ui:sign:copy-address-full')
+              void navigator.clipboard.writeText(record?.address ?? '')
+            }}
+            aria-label="Copy full Sui address"
+          >
+            {record?.address}
+          </button>
+        </div>
+
+      </div>
     </div>
   )
 }

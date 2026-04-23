@@ -11,12 +11,17 @@
 //   - PRF output never stored or logged
 //   - No timing vulnerabilities: address comparison uses constant-time approach
 
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
+import { Ed25519Keypair, Ed25519PublicKey } from '@mysten/sui/keypairs/ed25519'
 import type { Ed25519Seed, Ed25519Signature, CredId } from '../../../../interfaces/types-crypto'
 import type { TxBytes, SuiAddress } from '../../../../interfaces/types-sui'
 import type { PasskeyPrfWrapping } from '../../../../interfaces/types-wallet'
 import { prfToAesKey, unwrapSeed, PRF_SALT } from './wrap'
 import { VaultError } from './vault/types'
+
+// TypeScript 5.9 narrows Uint8Array buffer to ArrayBufferLike (includes SharedArrayBuffer),
+// but WebCrypto signatures require BufferSource (concrete ArrayBuffer). Cast reconciles
+// the generic-parameter mismatch only — shape is correct at runtime.
+const bs = (u: unknown): BufferSource => u as BufferSource
 
 // ============================================
 // INTERNAL: WebAuthn PRF invocation
@@ -99,7 +104,7 @@ async function signWithSeed(txBytes: TxBytes, seed: Ed25519Seed): Promise<Ed2551
   // Import as non-extractable — browser makes raw bytes unrecoverable
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    seed,
+    bs(seed),
     { name: 'Ed25519' },
     false, // non-extractable
     ['sign'],
@@ -110,7 +115,7 @@ async function signWithSeed(txBytes: TxBytes, seed: Ed25519Seed): Promise<Ed2551
 
   let sigBuf: ArrayBuffer
   try {
-    sigBuf = await crypto.subtle.sign({ name: 'Ed25519' }, cryptoKey, txBytes)
+    sigBuf = await crypto.subtle.sign({ name: 'Ed25519' }, cryptoKey, bs(txBytes))
   } catch (err) {
     throw new VaultError(
       `Ed25519 sign failed: ${(err as Error)?.message ?? String(err)}`,
@@ -340,17 +345,17 @@ export async function verifySuiSig(
   // Verify Ed25519 signature
   let valid: boolean
   try {
-    valid = await crypto.subtle.verify({ name: 'Ed25519' }, cryptoKey, sigBytes, txBytes)
+    valid = await crypto.subtle.verify({ name: 'Ed25519' }, cryptoKey, sigBytes, bs(txBytes))
   } catch {
     return false
   }
 
   if (!valid) return false
 
-  // Derive Sui address from public key and compare
+  // Derive Sui address from raw public key bytes and compare
   try {
-    const keypair = Ed25519Keypair.fromPublicKey(pubkeyBytes)
-    const derivedAddress = keypair.toSuiAddress()
+    const pubkey = new Ed25519PublicKey(pubkeyBytes)
+    const derivedAddress = pubkey.toSuiAddress()
     // String compare — deterministic, no timing advantage since addresses are public
     return derivedAddress === address
   } catch {

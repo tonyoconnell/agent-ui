@@ -2,14 +2,16 @@
 export const prerender = true;
 
 /**
- * /u/sign - Sign Message
+ * /u/sign — Universal Wallet Home
  *
- * Minimal signing flow for arbitrary messages and challenges.
+ * No login. No account. Just your wallet.
+ * IndexedDB-backed seed (passkey-PRF vault, wallet-v2 lifecycle).
+ * Shows address, balance, Receive / Send, and Save banner for State 1.
  */
 import Layout from "@/layouts/Layout.astro";
 import { SignPage } from "@/components/u/pages/SignPage";
 ---
 
-<Layout title="Sign Message — ONE">
+<Layout title="Wallet — ONE">
   <SignPage client:only="react" />
 </Layout>

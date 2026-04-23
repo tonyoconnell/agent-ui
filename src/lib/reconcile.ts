@@ -73,14 +73,14 @@ export async function reconcileWallet(uid: string, address: string): Promise<Rec
         $s isa signal, has receiver "${escapedUid}", has tag "fund";
         $s has weight $w;
       select $w;
-    `).catch(() => [] as Record<string, unknown>[])
+    `)
 
     const spendRows = await readParsed(`
       match
         $s isa signal, has receiver "${escapedUid}", has tag "spend";
         $s has weight $w;
       select $w;
-    `).catch(() => [] as Record<string, unknown>[])
+    `)
 
     const sumFund = fundRows.reduce((acc, r) => acc + BigInt(Math.round(Number(r.w ?? 0))), 0n)
     const sumSpend = spendRows.reduce((acc, r) => acc + BigInt(Math.round(Number(r.w ?? 0))), 0n)

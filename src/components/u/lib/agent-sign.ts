@@ -157,6 +157,37 @@ export async function rejectCoSign(requestId: string): Promise<void> {
   }
 }
 
+// ── Summary verification ───────────────────────────────────────────────────
+
+/**
+ * Re-derive the tx summary from raw txBytes (reviewer side).
+ *
+ * Both sides of the 2-of-2 co-sign must produce the same summary from the
+ * same txBytes. If the derived summary doesn't match the agent-provided
+ * summary, the agent fabricated the human-readable description — the UI
+ * MUST refuse to present the summary and warn the user.
+ *
+ * Per agents.md: "both sides must match" — the human approval UI must
+ * re-derive the summary from txBytes, not trust the agent-provided string.
+ *
+ * @param txBytes - Raw BCS-encoded transaction bytes from the co-sign request
+ * @param storedSummary - Agent-provided summary stored in CoSignRequest.summary
+ * @returns { match: boolean, derived: string }
+ *   match — true iff derived.trim() === storedSummary.trim()
+ *   derived — the summary rebuilt from txBytes (show this when match is false)
+ */
+export async function verifySummaryMatch(
+  txBytes: Uint8Array,
+  storedSummary: string,
+): Promise<{ match: boolean; derived: string }> {
+  const { summarizeTx } = await import('./money')
+  const derived = await summarizeTx(txBytes)
+  return {
+    match: derived.trim() === storedSummary.trim(),
+    derived,
+  }
+}
+
 // ── Vault signing (browser-only) ───────────────────────────────────────────
 
 /**
