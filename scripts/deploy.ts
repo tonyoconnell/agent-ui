@@ -545,18 +545,32 @@ async function deployAll(creds: Record<string, string>): Promise<DeployResult[]>
   // Pass `--config wrangler.toml` explicitly so wrangler 4.x doesn't traverse
   // up to the root's `.wrangler/deploy/config.json` (created by `astro build`)
   // and refuse to deploy with a "found both configs" error.
-  console.log(c.gray(`  → Gateway, Sync, NanoClaw, Backup (parallel)...`))
+  console.log(c.gray(`  → Gateway, Sync, NanoClaw (parallel)...`))
   const workerStart = Date.now()
   const workers = await Promise.all([
     deployService('Gateway', join(ROOT, 'gateway'), ['deploy', '--config', 'wrangler.toml'], env),
     deployService('Sync', join(ROOT, 'workers/sync'), ['deploy', '--config', 'wrangler.toml'], env),
     deployService('NanoClaw', join(ROOT, 'nanoclaw'), ['deploy', '--config', 'wrangler.toml'], env),
-    deployService('Backup', join(ROOT, 'workers/backup'), ['deploy', '--config', 'wrangler.toml'], env),
   ])
   const workerElapsed = Date.now() - workerStart
 
   for (const w of workers) {
     console.log(c.green(`  ✓ ${w.name}`) + c.gray(` (${w.elapsed}ms, v${w.version})`))
+  }
+
+  // Backup is a daily cron job — deploy best-effort so a cron limit doesn't block production.
+  {
+    const start = Date.now()
+    const result = await runAsync('wrangler', ['deploy', '--config', 'wrangler.toml'], {
+      cwd: join(ROOT, 'workers/backup'),
+      env,
+    })
+    if (result.ok) {
+      const v = result.stdout.match(/Version ID:\s*([a-f0-9-]+)/i)?.[1]?.slice(0, 12) ?? '?'
+      console.log(c.green(`  ✓ Backup`) + c.gray(` (${Date.now() - start}ms, v${v})`))
+    } else {
+      console.log(c.yellow(`  ⚠ Backup deploy non-fatal: ${result.stderr.slice(0, 200)}`))
+    }
   }
   console.log(
     c.gray(`  (parallel total: ${workerElapsed}ms — vs ~${workers.reduce((a, b) => a + b.elapsed, 0)}ms sequential)`),
