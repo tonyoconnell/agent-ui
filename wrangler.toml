@@ -9,6 +9,12 @@ name = "one-substrate"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
+# D1 — vault passkey hints (cred_id → pub_key, sign_count for WebAuthn verification)
+[[d1_databases]]
+binding = "DB"
+database_name = "one-vault"
+database_id = "3fc6052a-8b50-4db4-89dc-b32f86ee5dbf"
+
 # KV — shared with sync worker (same namespace ID)
 # Snapshots: paths.json, units.json, skills.json, highways.json, toxic.json
 [[kv_namespaces]]

@@ -1,22 +1,20 @@
 -- ONE Substrate — D1 Schema
--- Vault passkey sign-in + cross-device restore.
+-- Vault passkey sign-in hints.
 --
--- One row per (user_id, cred_id). Stores:
---   - WebAuthn credential public key + sign_count for server-side assertion
---     verification (via @simplewebauthn/server).
---   - A wrapping of the vault master key produced by the client using a
---     GLOBAL PRF salt (so any device that can authenticate this passkey can
---     re-derive the wrapping key and unwrap the master).
+-- One row per cred_id. Stores WebAuthn credential public key + sign_count
+-- for server-side assertion verification only (@simplewebauthn/server).
 --
--- Nothing in this table is secret: the wrapped master is AES-GCM ciphertext
--- under a key derivable only with the physical authenticator's PRF output.
+-- PRF-first architecture: the master key is derived entirely client-side
+-- from the passkey's PRF output — HKDF(PRF, "one.ie/vault/master/v2").
+-- The server stores NO cryptographic secrets. wrapped_master is kept as a
+-- nullable column for legacy row compatibility only.
 
 CREATE TABLE IF NOT EXISTS vault_passkey_hints (
   cred_id        TEXT PRIMARY KEY,
   user_id        TEXT NOT NULL,
   pub_key        TEXT NOT NULL,
   sign_count     INTEGER NOT NULL DEFAULT 0,
-  wrapped_master TEXT NOT NULL,
+  wrapped_master TEXT,
   label          TEXT,
   created_at     INTEGER NOT NULL DEFAULT (unixepoch()),
   updated_at     INTEGER NOT NULL DEFAULT (unixepoch())
