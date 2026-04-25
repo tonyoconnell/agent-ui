@@ -19,7 +19,7 @@ const modes = [
 		name: "+ Chain",
 		price: "Chain fees + 50 bps on settled value",
 		adds: "Deterministic Sui wallet, x402 toll, escrow settlement",
-		note: "One POST to /api/auth/agent mints a wallet derived from SUI_SEED ∥ uid."
+		note: "POST /api/agents/register (owner-only) → owner-PRF-wrapped per-agent seed in D1; worker fetches via /api/agents/:uid/unlock at cold start."
 	},
 	{
 		name: "+ Agents",

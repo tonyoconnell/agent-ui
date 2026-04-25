@@ -497,11 +497,11 @@ One human per substrate. Anthony O'Connell. Apple ID + Secure Enclave. The owner
 | Status | Phase 1-3 complete ✅ (testnet wallets live, ephemeral keypairs, GovernanceEvent on-chain). See `/sui` skill + `docs/TODO-SUI.md` |
 
 **Phase 2 — Identity & Wallet (Complete 2026-04-18, superseded by Owner architecture):**
-- `deriveKeypair(uid)` + `addressFor(uid)`: deterministic Ed25519 keypair from `SUI_SEED + uid` *(deprecated — see `/Users/toc/Server/owner.md` gap 1; SUI_SEED is being removed)*
+- `deriveKeypair(uid)` + `addressFor(uid)`: deterministic Ed25519 keypair from `SUI_SEED + uid` — **legacy path, removed in sys-201**. `SUI_SEED` no longer exists in any worker secret or `.env`.
 - `syncAgentWithIdentity()`: wires wallet into agent creation, persists to TypeDB
 - 14 tests pass: determinism + uniqueness + idempotency verified
 - Unblocks Phase 3 (escrow on-chain) and marketplace on-chain discovery
-- **Migration in flight:** `SUI_SEED` deletion + per-agent keys generated at spawn, encrypted under owner PRF, ciphertext in D1. Tracked in `owner.md` gap 1.
+- **Gap 1 (current architecture):** `SUI_SEED` was removed (sys-201). Per-agent random seeds are generated at spawn, wrapped under the owner's WebAuthn PRF (`src/lib/owner-key.ts` — PRF → KEK derivation), stored as ciphertext in D1 `agent_wallet` (`migrations/0031_agent_wallet.sql`). Workers fetch the plaintext seed at cold-start via `POST /api/agents/:uid/unlock` (protocol: `docs/agent-boot-unlock.md`).
 
 ## Key Patterns
 

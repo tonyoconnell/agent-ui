@@ -11,6 +11,17 @@
  *
  * Package ID in env: SUI_PACKAGE_ID
  * Network in env: SUI_NETWORK (testnet | mainnet | devnet)
+ *
+ * Gap 1 (owner-todo): The legacy SUI_SEED-based `deriveKeypair(uid)` and `addressFor(uid)`
+ * functions were removed in sys-201. Per-agent keypairs are now generated at spawn (random
+ * seed), encrypted under the owner's PRF-derived KEK, and stored in D1. See:
+ *   - src/lib/owner-key.ts — HKDF derivation, OwnerOnlyCodePathError guard
+ *   - migrations/0031_agent_wallet.sql — D1 ciphertext store
+ *   - owner.md Gap 1 §1.s3 / §1.s7 — migration plan
+ *
+ * Pure-address-resolution helpers (read-only, no private key exposure) remain safe
+ * in worker contexts. This file ships no private signing material outside of
+ * ephemeral keypairs created per-session via generateEphemeralKeypair().
  */
 
 import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
