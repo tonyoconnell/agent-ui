@@ -11,6 +11,7 @@
  * (cold restore) or the in-memory master key (hot re-sync).
  */
 
+import { VaultError } from './types'
 import * as Vault from './vault'
 import { onMutation } from './vault'
 
@@ -67,7 +68,7 @@ export async function fetchCloudBlob(): Promise<CloudBlob | null> {
   })
   if (res.status === 401) throw new Error('unauthenticated')
   if (res.status === 404) return null
-  if (!res.ok) return null
+  if (!res.ok) throw new VaultError('Your backup is temporarily unavailable — try again in a moment', 'server-error')
   return (await res.json()) as CloudBlob
 }
 

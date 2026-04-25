@@ -392,24 +392,6 @@ export function SwapPage() {
           </CardContent>
         </Card>
 
-        {/* Newsletter CTA */}
-        <Card className="mt-8 sm:mt-12 bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
-          <CardHeader>
-            <CardTitle>Get Notified When We Launch</CardTitle>
-            <CardDescription>Be the first to try one-click swaps directly in your u wallet</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                placeholder="your@email.com"
-                className="flex-1 px-4 py-2 rounded-lg border bg-background"
-              />
-              <Button className="sm:w-auto">Notify Me</Button>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Footer Note */}
         <div className="text-center mt-12 text-sm text-muted-foreground">
           <p>

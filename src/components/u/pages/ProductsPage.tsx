@@ -39,6 +39,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import * as Vault from '../lib/vault/vault'
 import { UNav } from '../UNav'
 
 interface Product {
@@ -140,7 +141,7 @@ const generatePaymentLink = (product: {
 
 export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
-  const [wallets, _setWallets] = useState<Wallet[]>([])
+  const [wallets, setWallets] = useState<Wallet[]>([])
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showPaymentLinkDialog, setShowPaymentLinkDialog] = useState<Product | null>(null)
   const [showEditDialog, setShowEditDialog] = useState<Product | null>(null)
@@ -173,10 +174,21 @@ export function ProductsPage() {
       setProducts(productsWithDefaults)
     }
 
-    // REMOVED: localStorage.getItem('u_wallets') read
-    // TODO: read from IndexedDB via useVault() hook instead
-    // const storedWallets = localStorage.getItem('u_wallets')
-    // if (storedWallets) setWallets(JSON.parse(storedWallets))
+    void Vault.listWallets()
+      .then((vws) =>
+        setWallets(
+          vws.map((w) => ({
+            id: w.id,
+            chain: w.chain,
+            address: w.address,
+            balance: w.balance,
+            usdValue: w.usdValue,
+            createdAt: w.createdAt,
+            name: w.name,
+          })),
+        ),
+      )
+      .catch(() => {})
   }, [])
 
   // Save products to localStorage

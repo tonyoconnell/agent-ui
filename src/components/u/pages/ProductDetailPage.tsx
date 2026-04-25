@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import * as Vault from '../lib/vault/vault'
 import { UNav } from '../UNav'
 
 interface Product {
@@ -121,7 +122,7 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedProduct, setEditedProduct] = useState<Product | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [wallets, _setWallets] = useState<Wallet[]>([])
+  const [wallets, setWallets] = useState<Wallet[]>([])
   const [copiedLink, setCopiedLink] = useState(false)
   const [showQR, setShowQR] = useState(true) // QR tab shown by default
   const [editWalletInput, setEditWalletInput] = useState('')
@@ -138,13 +139,21 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
       }
     }
 
-    // Load wallets
-    // REMOVED: localStorage.getItem('u_wallets') read
-    // TODO: read from IndexedDB via useVault() hook instead
-    // const storedWallets = localStorage.getItem('u_wallets')
-    // if (storedWallets) {
-    //   setWallets(JSON.parse(storedWallets))
-    // }
+    void Vault.listWallets()
+      .then((vws) =>
+        setWallets(
+          vws.map((w) => ({
+            id: w.id,
+            chain: w.chain,
+            address: w.address,
+            balance: w.balance,
+            usdValue: w.usdValue,
+            createdAt: w.createdAt,
+            name: w.name,
+          })),
+        ),
+      )
+      .catch(() => {})
   }, [productId])
 
   const saveProduct = (updatedProduct: Product) => {

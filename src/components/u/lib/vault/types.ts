@@ -215,3 +215,4 @@ export type VaultErrorCode =
   | 'invalid-mnemonic'
   | 'storage-error'
   | 'crypto-error'
+  | 'server-error'

@@ -194,49 +194,23 @@ export async function verifySummaryMatch(
  * Sign bytes with the current vault session's Ed25519 key.
  *
  * Requires an active vault session (Vault.unlock() must have been called).
- * Uses WebCrypto HMAC-SHA-256 as a deterministic signing step — the vault
- * derives an Ed25519 private key from its master secret using HKDF, then
- * signs the txBytes.
- *
- * In a production implementation this would call into the @mysten/sui
- * Ed25519Keypair.signData() using the vault-derived key. For now it
- * produces a deterministic 64-byte signature over the tx intent hash
- * (intent prefix || txBytes) using HMAC-SHA-512 (same bytes, auditable).
+ * Retrieves the wallet's private key from the vault and signs txBytes using
+ * the Ed25519Keypair via createVaultSigner.
  *
  * The server verifies this signature against the stored wallet address before
  * combining with the agent signature.
  */
 async function _signWithVault(txBytes: Uint8Array): Promise<Uint8Array> {
-  // Dynamically import vault to avoid SSR bundling of browser-only code
   const { Vault } = await import('./vault/index')
+  const { createVaultSigner } = await import('./signer/vault-signer')
 
-  // Get the active wallet's private key bytes from the vault
-  // The vault session must already be unlocked (Touch ID prompted by caller)
   const wallets = await Vault.listWallets()
   if (wallets.length === 0) {
     throw new Error('No wallet in vault — unlock the vault first')
   }
-  const wallet = wallets[0]
+  const wallet = wallets.find((w) => w.chain === 'sui') ?? wallets[0]
 
-  // Derive a signing key from the vault-held seed using HKDF
-  // intent prefix 0 = "TransactionData" (matches Sui SDK intent)
-  const intentBytes = new Uint8Array(3) // [0, 0, 0]
-  const intentMessage = new Uint8Array(intentBytes.length + txBytes.length)
-  intentMessage.set(intentBytes)
-  intentMessage.set(txBytes, intentBytes.length)
-
-  // The vault exposes the wallet's address; use HMAC-SHA-256(address, intentMessage)
-  // as a structurally deterministic stand-in for Ed25519 signing until the
-  // vault's Ed25519 sign path is wired (vault-signer.ts TODO(C4)).
-  //
-  // Production path: Vault.signBytes(wallet.address, intentMessage) → Ed25519Sig
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(wallet.address),
-    { name: 'HMAC', hash: 'SHA-512' },
-    false,
-    ['sign'],
-  )
-  const sigBuf = await crypto.subtle.sign('HMAC', keyMaterial, intentMessage)
-  return new Uint8Array(sigBuf)
+  const signer = createVaultSigner({ address: wallet.address, walletId: wallet.id, chain: 'sui' })
+  const { bytes } = await signer.signTransaction(txBytes)
+  return bytes
 }

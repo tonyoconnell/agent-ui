@@ -155,26 +155,28 @@ export async function registerPasskeyForSignin(label?: string): Promise<{ credId
     throw new VaultError(`passkey registration failed: ${(e as Error).message}`, 'passkey-unsupported')
   }
 
-  // Capture PRF via an immediate assertion — registration may not surface PRF
-  // results on all platforms, but assertion always does.
-  const verifyOpts: PublicKeyCredentialRequestOptions = {
-    challenge: b64urlToArrayBuffer(options.challenge) as unknown as BufferSource,
-    rpId: options.rp.id,
-    allowCredentials: [{ id: credential.rawId as unknown as BufferSource, type: 'public-key' }],
-    userVerification: 'required',
-    timeout: 60_000,
-    extensions: {
-      prf: { eval: { first: b64urlToArrayBuffer(prfSalt) } },
-    } as PublicKeyCredentialRequestOptions['extensions'],
-  }
-  let prfSecret: Uint8Array | null = null
-  try {
-    const verifyCred = (await navigator.credentials.get({ publicKey: verifyOpts })) as PublicKeyCredential | null
-    if (verifyCred) prfSecret = extractPrfSecret(verifyCred)
-  } catch (e) {
-    const name = (e as { name?: string })?.name
-    if (name === 'NotAllowedError' || name === 'AbortError') {
-      throw new VaultError('PRF capture cancelled', 'passkey-cancelled')
+  // Apple Passwords and recent Chromium return PRF directly from .create().
+  // Try that first; only fall back to an assertion if the platform didn't.
+  let prfSecret = extractPrfSecret(credential)
+  if (!prfSecret) {
+    const verifyOpts: PublicKeyCredentialRequestOptions = {
+      challenge: b64urlToArrayBuffer(options.challenge) as unknown as BufferSource,
+      rpId: options.rp.id,
+      allowCredentials: [{ id: credential.rawId as unknown as BufferSource, type: 'public-key' }],
+      userVerification: 'required',
+      timeout: 60_000,
+      extensions: {
+        prf: { eval: { first: b64urlToArrayBuffer(prfSalt) } },
+      } as PublicKeyCredentialRequestOptions['extensions'],
+    }
+    try {
+      const verifyCred = (await navigator.credentials.get({ publicKey: verifyOpts })) as PublicKeyCredential | null
+      if (verifyCred) prfSecret = extractPrfSecret(verifyCred)
+    } catch (e) {
+      const name = (e as { name?: string })?.name
+      if (name === 'NotAllowedError' || name === 'AbortError') {
+        throw new VaultError('PRF capture cancelled', 'passkey-cancelled')
+      }
     }
   }
   if (!prfSecret) throw new VaultError('authenticator did not return PRF output', 'passkey-unsupported')
@@ -367,7 +369,11 @@ export async function createAccountWithPasskey(): Promise<{
       await Vault.addEnrollmentToExistingVault(enrollment)
       return { walletsRestored, created: true, recoveryPhrase }
     }
-  } catch {
+  } catch (err) {
+    // Re-throw server errors — wrong master / missing backup are expected and
+    // fall through to the fresh-vault path, but a real server failure might
+    // hide a backup that we'd otherwise overwrite.
+    if (err instanceof VaultError && err.code === 'server-error') throw err
     // No cloud backup or import failed (wrong master / new account) — fresh start.
   }
 
@@ -514,6 +520,9 @@ export async function signInWithPasskey(): Promise<{
     return { walletsRestored: 0 }
   }
 
+  // fetchCloudBlob throws on 5xx — let that propagate so the caller surfaces
+  // "server unavailable, try again" instead of silently creating a blank vault.
+  // It returns null only on 404 (no backup for this account yet).
   const cloud = await fetchCloudBlob()
   if (!cloud) {
     await Vault.adoptMaster(master, enrollment)

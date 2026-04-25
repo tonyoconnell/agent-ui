@@ -526,6 +526,9 @@ export interface SaveWalletInput {
 }
 
 export async function saveWallet(input: SaveWalletInput): Promise<VaultWallet> {
+  if (!input.id || !input.chain || !input.address.trim()) {
+    throw new VaultError('saveWallet: id, chain, and address are required', 'storage-error')
+  }
   const s = requireUnlocked()
   touchActivity()
 

@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { emitClick } from '@/lib/ui-signal'
+import { useNetwork } from './hooks/useNetwork'
 
 interface NavItem {
   title: string
@@ -45,7 +46,7 @@ interface UHeaderProps {
 }
 
 export function UHeader({ onAddWallet, currentPath = '' }: UHeaderProps) {
-  const [isTestnet, setIsTestnet] = useState(true)
+  const { isTestnet, toggleTestnet } = useNetwork()
   const [displayPath, setDisplayPath] = useState(currentPath)
 
   useEffect(() => {
@@ -54,12 +55,6 @@ export function UHeader({ onAddWallet, currentPath = '' }: UHeaderProps) {
 
   const currentNavItem = navItems.find((item) => displayPath.startsWith(item.url))
   const pageTitle = currentNavItem?.title || 'Universal Wallet'
-
-  const handleNetworkToggle = (isTest: boolean) => {
-    setIsTestnet(isTest)
-    // TODO: Implement network switching logic
-    console.log('Network switched to:', isTest ? 'Testnet' : 'Live')
-  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -103,8 +98,8 @@ export function UHeader({ onAddWallet, currentPath = '' }: UHeaderProps) {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-muted/50">
             <button
               onClick={() => {
-                emitClick('ui:dashboard:open-card')
-                handleNetworkToggle(true)
+                emitClick('ui:header:network-testnet')
+                if (!isTestnet) toggleTestnet()
               }}
               className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
                 isTestnet ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'
@@ -115,8 +110,8 @@ export function UHeader({ onAddWallet, currentPath = '' }: UHeaderProps) {
             <div className="w-px h-4 bg-border" />
             <button
               onClick={() => {
-                emitClick('ui:dashboard:open-card')
-                handleNetworkToggle(false)
+                emitClick('ui:header:network-live')
+                if (isTestnet) toggleTestnet()
               }}
               className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
                 !isTestnet

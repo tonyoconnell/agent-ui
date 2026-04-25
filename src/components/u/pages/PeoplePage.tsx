@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import * as Vault from '../lib/vault/vault'
 import { UNav } from '../UNav'
 
 interface Person {
@@ -59,6 +60,13 @@ const CHAIN_ICONS: Record<string, string> = {
 export function PeoplePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [contacts, setContacts] = useState<Person[]>([])
+  const [vaultWallets, setVaultWallets] = useState<Awaited<ReturnType<typeof Vault.listWallets>>>([])
+
+  useEffect(() => {
+    void Vault.listWallets()
+      .then(setVaultWallets)
+      .catch(() => setVaultWallets([]))
+  }, [])
   const [showProfileDialog, setShowProfileDialog] = useState(false)
   const [showAddContactDialog, setShowAddContactDialog] = useState(false)
   const [showRequestDialog, setShowRequestDialog] = useState(false)
@@ -225,31 +233,23 @@ export function PeoplePage() {
                   <div className="mt-8 pt-6 border-t">
                     <h3 className="font-semibold mb-4">Connected Wallets</h3>
                     <div className="grid grid-cols-2 gap-4">
-                      {(() => {
-                        // REMOVED: localStorage.getItem('u_wallets') read
-                        // TODO: read from IndexedDB via useVault() hook instead
-                        // For now, return empty state
-                        return (
-                          <p className="text-muted-foreground col-span-2">
-                            No wallets connected (TODO: migrate to vault)
-                          </p>
-                        )
-                        // const wallets = localStorage.getItem('u_wallets')
-                        // if (!wallets) return <p className="text-muted-foreground col-span-2">No wallets connected</p>
-                        // return JSON.parse(wallets).map((w: any) => (
-                        //   <Card key={w.id}>
-                        //     <CardContent className="py-3">
-                        //       <div className="flex items-center gap-3">
-                        //         <span className="text-xl">{CHAIN_ICONS[w.chain] || '🔗'}</span>
-                        //         <div>
-                        //           <div className="font-medium">{w.chain.toUpperCase()}</div>
-                        //           <code className="text-xs text-muted-foreground">{w.address.slice(0, 12)}...</code>
-                        //         </div>
-                        //       </div>
-                        //     </CardContent>
-                        //   </Card>
-                        // ))
-                      })()}
+                      {vaultWallets.length === 0 ? (
+                        <p className="text-muted-foreground col-span-2">No wallets connected</p>
+                      ) : (
+                        vaultWallets.map((w) => (
+                          <Card key={w.id}>
+                            <CardContent className="py-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xl">{CHAIN_ICONS[w.chain] || '🔗'}</span>
+                                <div>
+                                  <div className="font-medium">{w.chain.toUpperCase()}</div>
+                                  <code className="text-xs text-muted-foreground">{w.address.slice(0, 12)}…</code>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
                     </div>
                   </div>
                 </CardContent>

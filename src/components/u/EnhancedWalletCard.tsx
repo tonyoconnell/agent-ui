@@ -98,12 +98,9 @@ export function EnhancedWalletCard({ wallet, chain, onDelete, onViewMnemonic, on
           amount: sendForm.amount,
         })
 
-        console.warn('Conversion result:', result)
-
         if (result.success && result.data?.amount) {
           setUsdAmount(parseFloat(result.data.amount).toFixed(2))
         } else {
-          console.warn('API conversion failed, using local calculation:', result.error?.message)
           const localUsd = (
             parseFloat(sendForm.amount) *
             ((wallet.usdValue || 0) / (parseFloat(wallet.balance) || 1))
