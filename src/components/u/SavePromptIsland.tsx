@@ -1,26 +1,35 @@
 /**
- * SavePromptIsland — wires SavePrompt to real navigation for the /u/save route.
+ * SavePromptIsland — wires SavePrompt to the real passkey enrollment ceremony.
  *
- * The Astro page can't pass async callback props, so this island owns the
- * onSave / onDismiss logic and renders SavePrompt as a pure display component.
- *
- * onSave:    placeholder — the actual WebAuthn / passkey creation flow will be
- *            wired here once the vault PRF enroll API is available. For now it
- *            navigates to /u (dashboard) after a tick so downstream code can
- *            hook in without re-architecting.
- * onDismiss: returns the user to /u without enrolling.
+ * Called from /u/save when the user wants to protect their wallet with Touch ID.
+ * Runs createAccountWithPasskey() which tries the cloud blob first (restores
+ * existing wallets if the passkey matches), then falls back to a fresh vault.
+ * Shows RecoveryPhraseDialog exactly once if a new vault is created.
  */
 import { useState } from 'react'
+import { RecoveryPhraseDialog } from '@/components/auth/RecoveryPhraseDialog'
+import { createAccountWithPasskey } from '@/components/u/lib/vault/passkey-cloud'
+import { VaultError } from '@/components/u/lib/vault/types'
 import { SavePrompt } from '@/components/u/SavePrompt'
 
 export function SavePromptIsland() {
   const [dismissed, setDismissed] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string | null>(null)
 
   async function handleSave(): Promise<void> {
-    // TODO: call vault PRF enroll (passkeys.md § State 1 → 2 flow).
-    // Placeholder: navigate to dashboard after simulated enroll tick.
-    await Promise.resolve()
-    window.location.href = '/u'
+    setError(null)
+    try {
+      const result = await createAccountWithPasskey()
+      if (result.recoveryPhrase) {
+        setRecoveryPhrase(result.recoveryPhrase)
+      } else {
+        window.location.href = '/u'
+      }
+    } catch (err) {
+      if (err instanceof VaultError && err.code === 'passkey-cancelled') return
+      setError(err instanceof Error ? err.message : 'Failed to enroll passkey')
+    }
   }
 
   function handleDismiss(): void {
@@ -30,5 +39,23 @@ export function SavePromptIsland() {
 
   if (dismissed) return null
 
-  return <SavePrompt onSave={handleSave} onDismiss={handleDismiss} isDismissable={true} />
+  return (
+    <>
+      <SavePrompt onSave={handleSave} onDismiss={handleDismiss} isDismissable={true} />
+      {error && (
+        <p role="alert" className="mt-3 text-center text-xs text-red-400">
+          {error}
+        </p>
+      )}
+      {recoveryPhrase && (
+        <RecoveryPhraseDialog
+          phrase={recoveryPhrase}
+          onConfirm={() => {
+            setRecoveryPhrase(null)
+            window.location.href = '/u'
+          }}
+        />
+      )}
+    </>
+  )
 }

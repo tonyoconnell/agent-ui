@@ -1,29 +1,26 @@
-// src/components/u/RestoreIsland.tsx — BIP39 restore island.
+// src/components/u/RestoreIsland.tsx — 24-word vault recovery phrase restore.
 // DO NOT accept seed phrases anywhere else in the product.
 
 import { wordlist } from '@scure/bip39/wordlists/english.js'
 import { useCallback, useRef, useState } from 'react'
-import { mnemonicToSeed, validateMnemonic } from '@/components/u/lib/bip39'
-import { seedToAddress } from '@/components/u/lib/seed'
+import { assertValidRecoveryPhrase, masterFromRecoveryPhrase } from '@/components/u/lib/vault/recovery'
+import * as Vault from '@/components/u/lib/vault/vault'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { emitClick } from '@/lib/ui-signal'
 
-type RestoreIslandProps = {}
+type Phase = 'entry' | 'restored' | 'error'
 
-type Phase = 'entry' | 'found' | 'error'
-
-const WORD_COUNT = 12
+const WORD_COUNT = 24
 
 function isValidBip39Word(word: string): boolean {
   return wordlist.includes(word.trim().toLowerCase())
 }
 
-export function RestoreIsland(_props: RestoreIslandProps) {
+export function RestoreIsland() {
   const [words, setWords] = useState<string[]>(Array(WORD_COUNT).fill(''))
   const [wordErrors, setWordErrors] = useState<boolean[]>(Array(WORD_COUNT).fill(false))
   const [phase, setPhase] = useState<Phase>('entry')
-  const [address, setAddress] = useState<string>('')
   const [errorMsg, setErrorMsg] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
   const inputRefs = useRef<(HTMLInputElement | null)[]>(Array(WORD_COUNT).fill(null))
@@ -39,8 +36,6 @@ export function RestoreIsland(_props: RestoreIslandProps) {
     const next = [...words]
     next[i] = value
     setWords(next)
-
-    // Validate on change only if user has typed something
     if (value.trim().length > 0) {
       const nextErrors = [...wordErrors]
       nextErrors[i] = !isValidBip39Word(value)
@@ -55,12 +50,11 @@ export function RestoreIsland(_props: RestoreIslandProps) {
   function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === ' ' || e.key === 'Tab' || e.key === 'Enter') {
       if (e.key === ' ' || e.key === 'Enter') e.preventDefault()
-      // Move to next input
       const next = i + 1
       if (next < WORD_COUNT) {
         inputRefs.current[next]?.focus()
       } else if (e.key === 'Enter') {
-        handleSubmit()
+        void handleSubmit()
       }
     }
   }
@@ -73,7 +67,6 @@ export function RestoreIsland(_props: RestoreIslandProps) {
       setWords(pasted)
       const errors = pasted.map((w) => w.length > 0 && !isValidBip39Word(w))
       setWordErrors(errors)
-      // Focus last input
       inputRefs.current[WORD_COUNT - 1]?.focus()
     }
   }
@@ -83,43 +76,39 @@ export function RestoreIsland(_props: RestoreIslandProps) {
     setSubmitting(true)
     setErrorMsg('')
 
-    // Validate all words first
     const errors = words.map((w) => w.trim().length === 0 || !isValidBip39Word(w))
     setWordErrors(errors)
 
-    if (!validateMnemonic(words)) {
+    const phrase = words.map((w) => w.trim().toLowerCase()).join(' ')
+
+    try {
+      assertValidRecoveryPhrase(phrase)
+    } catch (err) {
       setPhase('error')
-      setErrorMsg("Those words don't match a wallet. Check each one.")
+      setErrorMsg(err instanceof Error ? err.message : "Those words don't match a recovery phrase.")
       setSubmitting(false)
       return
     }
 
     try {
-      const seed = mnemonicToSeed(words)
-      const addr = seedToAddress(seed)
-      // Wipe seed from memory immediately — we only need the address for display
-      seed.fill(0)
-      setAddress(addr)
-      setPhase('found')
-    } catch {
+      const master = masterFromRecoveryPhrase(phrase)
+      if (await Vault.hasVault()) {
+        await Vault.wipeAll()
+      }
+      await Vault.adoptMaster(master)
+      setPhase('restored')
+    } catch (err) {
       setPhase('error')
-      setErrorMsg("Those words don't match a wallet. Check each one.")
+      setErrorMsg(err instanceof Error ? err.message : 'Restore failed. Check your words and try again.')
     } finally {
       setSubmitting(false)
     }
-  }
-
-  function handleEnrollPasskey() {
-    emitClick('ui:wallet:restore-enroll-passkey')
-    // Navigate to passkey enrollment flow
-    window.location.href = `/u?restore=1&address=${encodeURIComponent(address)}`
   }
 
   function handleReset() {
     setWords(Array(WORD_COUNT).fill(''))
     setWordErrors(Array(WORD_COUNT).fill(false))
     setPhase('entry')
-    setAddress('')
     setErrorMsg('')
     setTimeout(() => inputRefs.current[0]?.focus(), 50)
   }
@@ -131,22 +120,26 @@ export function RestoreIsland(_props: RestoreIslandProps) {
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-white mb-2">Restore a wallet</h1>
-          <p className="text-slate-400 text-sm">Enter your 12 words to recover your wallet on this device.</p>
+          <h1 className="text-2xl font-semibold text-white mb-2">Restore your vault</h1>
+          <p className="text-slate-400 text-sm">Enter your 24-word recovery phrase to restore access on this device.</p>
         </div>
 
-        {phase === 'found' ? (
+        {phase === 'restored' ? (
           /* Success state */
           <div className="rounded-xl border border-emerald-800/40 bg-emerald-950/30 p-6 text-center space-y-4">
-            <div className="text-emerald-400 text-sm font-medium">Wallet found</div>
-            <div className="font-mono text-white text-xs break-all bg-[#161622] rounded-lg px-4 py-3">{address}</div>
-            <p className="text-slate-400 text-xs">Enroll a passkey to securely save this wallet on this device.</p>
+            <div className="text-emerald-400 text-sm font-medium">Vault restored</div>
+            <p className="text-slate-400 text-xs">
+              Your vault is unlocked. Recreate your wallets in the dashboard — they&apos;ll have the same addresses as
+              before.
+            </p>
             <div className="flex flex-col gap-2 pt-2">
               <Button
                 className="w-full bg-white text-black hover:bg-slate-100 font-medium"
-                onClick={handleEnrollPasskey}
+                onClick={() => {
+                  window.location.href = '/u'
+                }}
               >
-                Save wallet with Touch ID
+                Go to wallet
               </Button>
               <Button
                 variant="ghost"
@@ -160,11 +153,11 @@ export function RestoreIsland(_props: RestoreIslandProps) {
         ) : (
           /* Entry state */
           <div className="space-y-6">
-            {/* 12-word grid */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* 24-word grid — 4 columns */}
+            <div className="grid grid-cols-4 gap-1.5">
               {words.map((word, i) => (
                 <div key={i} className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs select-none w-4 text-right">
+                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-600 text-[10px] select-none w-4 text-right">
                     {i + 1}
                   </span>
                   <Input
@@ -180,7 +173,7 @@ export function RestoreIsland(_props: RestoreIslandProps) {
                     tabIndex={i + 1}
                     aria-label={`Word ${i + 1}`}
                     className={[
-                      'pl-8 pr-2 py-2 text-sm font-mono bg-[#161622] border text-white placeholder-slate-600',
+                      'pl-6 pr-1 py-2 text-xs font-mono bg-[#161622] border text-white placeholder-slate-600',
                       'focus:ring-1 focus:ring-white/20 focus:border-white/20',
                       wordErrors[i]
                         ? 'border-red-700/60 focus:border-red-600/60 focus:ring-red-600/20'
@@ -192,7 +185,7 @@ export function RestoreIsland(_props: RestoreIslandProps) {
             </div>
 
             {/* Paste hint */}
-            <p className="text-center text-slate-600 text-xs">You can paste all 12 words into the first field.</p>
+            <p className="text-center text-slate-600 text-xs">You can paste all 24 words into the first field.</p>
 
             {/* Error message */}
             {phase === 'error' && errorMsg && (
@@ -208,9 +201,9 @@ export function RestoreIsland(_props: RestoreIslandProps) {
             <Button
               className="w-full bg-white text-black hover:bg-slate-100 font-medium disabled:opacity-40"
               disabled={!allFilled || submitting}
-              onClick={handleSubmit}
+              onClick={() => void handleSubmit()}
             >
-              {submitting ? 'Checking…' : 'Restore wallet'}
+              {submitting ? 'Restoring…' : 'Restore vault'}
             </Button>
           </div>
         )}

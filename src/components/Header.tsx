@@ -55,7 +55,7 @@ function useVaultStatus(): { status: VaultStatus | null; refresh: () => Promise<
   return { status, refresh }
 }
 
-export function Header({ continueHref = '/app' }: HeaderProps) {
+export function Header({ continueHref = '/u' }: HeaderProps) {
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const { status: vault, refresh: refreshVault } = useVaultStatus()
   const [role, setRole] = useState<string | null>(null)
@@ -131,14 +131,10 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
           setRecoveryPhrase(result.recoveryPhrase)
           return
         }
-        if (result.blobMismatch) {
-          // Signed in, but vault backup used a different passkey — fresh local
-          // vault was created. Reload to show the unlocked state; the user
-          // can restore wallets from their recovery phrase in Settings.
-          window.location.reload()
-          return
-        }
-        window.location.reload()
+        // Fingerprint ceremony succeeded — land on /u with wallet ready.
+        // blobMismatch case (different passkey backup) also lands on /u; user
+        // can restore wallets from their recovery phrase in Settings there.
+        window.location.href = '/u'
       } catch (err) {
         if (err instanceof VaultError && err.code === 'passkey-cancelled') return
         setSignInError(err instanceof Error ? err.message : 'Failed')
@@ -156,7 +152,7 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
           setRecoveryPhrase(result.recoveryPhrase)
           return
         }
-        window.location.reload()
+        window.location.href = '/u'
       } catch (err) {
         if (err instanceof VaultError && err.code === 'passkey-cancelled') return
         setSignInError(err instanceof Error ? err.message : 'Failed')
@@ -302,7 +298,7 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
             </>
           ) : (
             <div className="flex items-center gap-2">
-              {/* New users: go straight to credentials.create (Touch ID to register) */}
+              {/* New users: fingerprint ceremony → redirect to /u */}
               {!vault?.hasVault && !showUnlock && (
                 <button
                   type="button"
@@ -318,7 +314,7 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
                   <span>{pending ? 'Working…' : 'Create passkey'}</span>
                 </button>
               )}
-              {/* Existing users: credentials.get (use saved passkey) */}
+              {/* Existing users: fingerprint ceremony → redirect to /u (Unlock stays in place) */}
               <button
                 type="button"
                 onClick={handlePrimary}
@@ -349,7 +345,7 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
           phrase={recoveryPhrase}
           onConfirm={() => {
             setRecoveryPhrase(null)
-            window.location.reload()
+            window.location.href = '/u'
           }}
         />
       )}

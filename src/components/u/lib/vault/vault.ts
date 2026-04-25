@@ -305,6 +305,18 @@ export async function getEnrolledPasskeyCredentialIds(): Promise<Uint8Array[]> {
   return meta?.passkeys.map((p) => p.credentialId) ?? []
 }
 
+/** Return summary info for every enrolled passkey — for display in settings UI. */
+export async function getEnrolledPasskeys(): Promise<{ credentialId: Uint8Array; label: string; createdAt: number }[]> {
+  if (!isStorageAvailable()) return []
+  const meta = await getMeta()
+  if (!meta) return []
+  return meta.passkeys.map((p) => ({
+    credentialId: p.credentialId,
+    label: p.authenticatorLabel || 'Unknown device',
+    createdAt: p.createdAt,
+  }))
+}
+
 /**
  * Derive a 32-byte deterministic wallet seed from the vault master.
  * Same passkey → same master → same seed → same keypair → same address.

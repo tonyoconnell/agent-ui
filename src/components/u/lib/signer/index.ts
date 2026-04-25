@@ -56,22 +56,12 @@ export async function signWithPasskey(txBytes: Uint8Array, credId: Uint8Array): 
     .replace(/=+$/, '')
 }
 
-export function useSigner(): Signer | null {
+export function useSigner(chain: string = 'sui'): Signer | null {
   const [signer, setSigner] = useState<Signer | null>(null)
 
   useEffect(() => {
-    // Resolve from available session/wallet state
-    // In a real component, these come from context/hooks
-    // This hook is a composition point — individual pages may pass explicit options
-    const resolved = resolveSigner(
-      typeof window !== 'undefined'
-        ? ((window as { __session?: { frontDoor?: 'wallet' | 'zklogin'; address?: string } }).__session ?? null)
-        : null,
-      null,
-      null,
-    )
-    setSigner(resolved)
-  }, [])
+    void resolveSigner(chain).then(setSigner)
+  }, [chain])
 
   return signer
 }

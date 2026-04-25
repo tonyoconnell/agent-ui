@@ -1,35 +1,23 @@
+import * as Vault from '../vault/vault'
 import type { Signer } from './types'
+import { createVaultSigner } from './vault-signer'
 
-// Minimal vault session shape — only what resolveSigner needs
-interface VaultSessionLike {
-  masterKey: CryptoKey
-}
+/**
+ * Resolve the active signer from the current vault state.
+ * Returns null if the vault is locked or no wallets exist.
+ * Async because it needs to query vault for wallets + status.
+ */
+export async function resolveSigner(chain: string = 'sui'): Promise<Signer | null> {
+  try {
+    const status = await Vault.getStatus()
+    if (!status.hasVault || status.isLocked) return null
 
-export function resolveSigner(
-  session: unknown,
-  dappKit: unknown,
-  vaultSession: VaultSessionLike | null,
-): Signer | null {
-  // vault: vault is unlocked
-  if (vaultSession) {
-    return createVaultSigner()
-  }
-  return null
-}
+    const wallets = await Vault.listWallets()
+    const wallet = wallets.find((w) => w.chain === chain) ?? wallets[0]
+    if (!wallet) return null
 
-// Placeholder creator — vault is the only signer kind
-function createVaultSigner(): Signer {
-  return {
-    kind: 'vault',
-    chain: 'sui',
-    address: '',
-    frontDoor: 'wallet',
-    async signMessage() {
-      throw new Error('vault-signer: address required')
-    },
-    async signTransaction() {
-      throw new Error('vault-signer: address required')
-    },
-    canSign: (_chain) => true,
+    return createVaultSigner({ address: wallet.address, walletId: wallet.id, chain: wallet.chain as Signer['chain'] })
+  } catch {
+    return null
   }
 }

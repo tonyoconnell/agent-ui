@@ -21,9 +21,9 @@ import { Input } from '@/components/ui/input'
 import { trackEvent } from '@/lib/analytics'
 import { emitClick } from '@/lib/ui-signal'
 import type { ScopedWalletStruct } from '../../../../interfaces/move/scoped-wallet/struct.move'
-import { getWallet } from '../lib/idb'
 import { getScopedWallet } from '../lib/scoped-wallet'
 import { signWithPasskey } from '../lib/signer'
+import * as Vault from '../lib/vault/vault'
 import { UNav } from '../UNav'
 
 // ===== CONSTANTS =====
@@ -131,28 +131,41 @@ export function SendPage() {
   const [userAddress, setUserAddress] = useState<string | null>(null)
   const [scopedWalletData, setScopedWalletData] = useState<ScopedWalletStruct | null>(null)
 
-  // Load wallets from localStorage and user address from vault
+  // Load wallets from vault
   useEffect(() => {
     const loadData = async () => {
-      // Load user address from vault
       try {
-        const vaultWallet = await getWallet()
-        if (vaultWallet) {
-          setUserAddress(vaultWallet.address)
-        }
-      } catch {
-        // ignore vault errors
-      }
+        const status = await Vault.getStatus()
+        if (!status.hasVault || status.isLocked) return
 
-      // Load wallets from localStorage
-      const stored = localStorage.getItem('u_wallets')
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored) as WalletInfo[]
-          setWallets(parsed.filter((w) => w.id && w.address))
-        } catch {
-          // ignore corrupt storage
-        }
+        const vaultWallets = await Vault.listWallets()
+        if (vaultWallets.length === 0) return
+
+        // Get the first enrolled passkey credentialId (shared across all wallets)
+        const credIds = await Vault.getEnrolledPasskeyCredentialIds()
+        const credentialId =
+          credIds.length > 0
+            ? btoa(String.fromCharCode(...credIds[0]))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '')
+            : undefined
+
+        const mapped: WalletInfo[] = vaultWallets.map((w) => ({
+          id: w.id,
+          chain: w.chain,
+          address: w.address,
+          balance: w.balance,
+          usdValue: w.usdValue,
+          name: w.name,
+          credentialId,
+          walletState: credentialId ? 2 : 1,
+        }))
+
+        setWallets(mapped)
+        setUserAddress(vaultWallets.find((w) => w.chain === 'sui')?.address ?? vaultWallets[0]?.address ?? null)
+      } catch {
+        // vault locked or unavailable — leave wallets empty
       }
     }
 
