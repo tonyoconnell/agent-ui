@@ -178,6 +178,14 @@ module one::substrate {
     public struct CapabilityMinted has copy, drop { cap_id: ID, unit_id: ID, scope: String, holder: address }
     public struct CapabilityRevoked has copy, drop { cap_id: ID, unit_id: ID }
 
+    public struct GovernanceEvent has copy, drop {
+        kind: String,    // chairman-grant | group-create | key-revoke | role-perm-change
+        subject: String, // uid of the entity being acted on (e.g. "marketing:creative")
+        object: String,  // group id, key id, or permission name
+        actor: address,  // ctx.sender() — the chairman who triggered this
+        timestamp: u64,  // clock timestamp ms
+    }
+
     // Payment events
     public struct PaymentSent has copy, drop { from: ID, to: ID, amount: u64 }
     public struct EscrowCreated has copy, drop { escrow_id: ID, poster: ID, worker: ID, bounty: u64, task: String }
@@ -778,6 +786,29 @@ module one::substrate {
             source: path.source,
             target: path.target,
             resistance: path.resistance,
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GOVERNANCE — Append-only audit log of governance actions
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// Emit a GovernanceEvent as an immutable on-chain audit record.
+    /// Called by the bridge after every TypeDB governance write.
+    /// No auth gate — actor = ctx.sender() provides the on-chain identity receipt.
+    public entry fun emit_governance(
+        kind: String,
+        subject: String,
+        object: String,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        event::emit(GovernanceEvent {
+            kind,
+            subject,
+            object,
+            actor: ctx.sender(),
+            timestamp: clock::timestamp_ms(clock),
         });
     }
 

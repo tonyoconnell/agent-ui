@@ -103,6 +103,7 @@ entity unit,
     owns perm-duration-s,
     owns dissolved-at,             # datetime: when graceful dissolve was called
     owns key-version,              # wallet derivation version: 0=SHA-256, 1=HKDF
+    owns stripe-customer,          # Stripe Customer ID (cus_…) — fiat rail bind
     plays path:source,
     plays path:target,
     plays capability:provider,
@@ -423,6 +424,7 @@ attribute auth-rate-limit-key, value string;
 # State 3: wallet linking attributes on auth-user
 attribute wallet-address, value string;      # Sui address linked after State 3 wallet-link
 attribute passkey-cred-ids, value string;    # JSON array of hex credIds for multi-device hints
+attribute stripe-customer, value string;     # Stripe Customer ID (cus_…) bound to a unit's uid
 # Temporal (epoch millis stored as integer — BetterAuth serializes Date as getTime())
 attribute auth-created-at, value integer;
 attribute auth-updated-at, value integer;

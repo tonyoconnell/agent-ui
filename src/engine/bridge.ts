@@ -23,6 +23,7 @@
  * The bridge is 3 functions. Everything else is plumbing.
  */
 
+import type { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 import { readParsed, writeSilent } from '@/lib/typedb'
 
 // Lazy-load @/lib/sui — the Sui SDK is SSR-externalized and unavailable
@@ -264,6 +265,28 @@ export async function mirrorActor(uid: string, name: string): Promise<{ wallet: 
   }
 }
 
+export async function mirrorGovernance(
+  kind: 'chairman-grant' | 'group-create' | 'key-revoke' | 'role-perm-change',
+  subject: string,
+  object: string,
+  keypair: Ed25519Keypair,
+): Promise<void> {
+  const PACKAGE_ID = import.meta.env.SUI_PACKAGE_ID || ''
+  const CLOCK_ID = '0x0000000000000000000000000000000000000000000000000000000000000006'
+  if (!PACKAGE_ID) return
+
+  const { Transaction } = await import('@mysten/sui/transactions')
+  const tx = new Transaction()
+  tx.moveCall({
+    target: `${PACKAGE_ID}::substrate::emit_governance`,
+    arguments: [tx.pure.string(kind), tx.pure.string(subject), tx.pure.string(object), tx.object(CLOCK_ID)],
+  })
+  const { signAndExecute } = await sui()
+  await signAndExecute(tx, keypair).catch((e: unknown) => {
+    console.warn('[bridge] mirrorGovernance failed:', e)
+  })
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ABSORB — Sui events → TypeDB
 // ═══════════════════════════════════════════════════════════════════════════
@@ -325,6 +348,7 @@ export async function absorb(cursor?: string): Promise<{ count: number; cursor: 
         await absorbEscrowCancelled(d)
         break
     }
+    if (e.type.includes('GovernanceEvent')) await absorbGovernance(e)
   }
 
   return { count: data.length, cursor: nextCursor?.txDigest || cursor || '' }
@@ -438,6 +462,27 @@ async function absorbEscrowCancelled(d: Record<string, unknown>) {
     insert $e has escrow-status "cancelled",
       has escrow-cancelled-ms ${timestampMs},
       has escrow-refund-amount ${amount / 1e9};
+  `)
+}
+
+async function absorbGovernance(ev: SuiEvent): Promise<void> {
+  const fields = ev.parsedJson as {
+    kind?: string
+    subject?: string
+    object?: string
+    actor?: string
+    timestamp?: string
+  }
+  if (!fields.kind || !fields.subject) return
+
+  const tag = `governance:${fields.kind}:${fields.subject}`
+  writeSilent(`
+    insert $h isa hypothesis,
+      has subject "${esc(tag)}",
+      has confidence 1.0,
+      has hypothesis-status "observed",
+      has source "sui",
+      has created ${new Date().toISOString().replace('Z', '')};
   `)
 }
 
