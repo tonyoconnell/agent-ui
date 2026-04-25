@@ -28,11 +28,23 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     const uid = session.user.id
+    const url = new URL(request.url)
+    const groupParam = url.searchParams.get('group') ?? undefined
+
     let role: string | null = null
     try {
-      role = await getRoleForUser(uid)
+      role = (await getRoleForUser(uid)) ?? null
     } catch {
       // role lookup is best-effort — header degrades to no badge
+    }
+
+    let groupRole: string | undefined
+    if (groupParam) {
+      try {
+        groupRole = (await getRoleForUser(uid, groupParam)) ?? undefined
+      } catch {
+        // group role lookup is best-effort — omit if unavailable
+      }
     }
 
     const user = session.user as {
@@ -42,22 +54,24 @@ export const GET: APIRoute = async ({ request }) => {
       wallet?: string
     }
 
-    return new Response(
-      JSON.stringify({
-        uid: user.id,
-        email: user.email ?? null,
-        name: user.name ?? null,
-        wallet: user.wallet ?? null,
-        role,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'private, no-store',
-        },
+    const body: Record<string, unknown> = {
+      uid: user.id,
+      email: user.email ?? null,
+      name: user.name ?? null,
+      wallet: user.wallet ?? null,
+      role,
+    }
+    if (groupParam !== undefined) {
+      body.groupRole = groupRole ?? null
+    }
+
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, no-store',
       },
-    )
+    })
   } catch (err) {
     return new Response(JSON.stringify({ error: (err as Error).message ?? 'session resolution failed' }), {
       status: 500,

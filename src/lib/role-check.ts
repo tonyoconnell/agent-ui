@@ -16,6 +16,11 @@ export type RoleAction =
   | 'delete_group'
   | 'invite_member'
   | 'change_role'
+  | 'customize_vocabulary'
+  | 'edit_schema'
+  | 'mint_capability'
+  | 'add_attribute'
+  | 'view_onchain'
 
 export type GovernanceRole = 'chairman' | 'board' | 'ceo' | 'operator' | 'agent' | 'auditor'
 
@@ -40,8 +45,20 @@ const PERMISSIONS: Record<GovernanceRole, Partial<Record<RoleAction, true>>> = {
     delete_group: true,
     invite_member: true,
     change_role: true,
+    customize_vocabulary: true,
+    edit_schema: true,
+    mint_capability: true,
+    add_attribute: true,
+    view_onchain: true,
   },
-  board: { read_highways: true, read_revenue: true, read_toxic: true, read_memory: true, discover: true },
+  board: {
+    read_highways: true,
+    read_revenue: true,
+    read_toxic: true,
+    read_memory: true,
+    discover: true,
+    view_onchain: true,
+  },
   ceo: {
     add_unit: true,
     remove_unit: true,
@@ -59,6 +76,11 @@ const PERMISSIONS: Record<GovernanceRole, Partial<Record<RoleAction, true>>> = {
     delete_group: true,
     invite_member: true,
     change_role: true,
+    customize_vocabulary: true,
+    edit_schema: true,
+    mint_capability: true,
+    add_attribute: true,
+    view_onchain: true,
   },
   operator: {
     add_unit: true,
@@ -71,9 +93,17 @@ const PERMISSIONS: Record<GovernanceRole, Partial<Record<RoleAction, true>>> = {
     discover: true,
     create_group: true,
     invite_member: true,
+    view_onchain: true,
   },
-  agent: { mark: true, warn: true, discover: true },
-  auditor: { read_highways: true, read_revenue: true, read_toxic: true, read_memory: true, discover: true },
+  agent: { mark: true, warn: true, discover: true, view_onchain: true },
+  auditor: {
+    read_highways: true,
+    read_revenue: true,
+    read_toxic: true,
+    read_memory: true,
+    discover: true,
+    view_onchain: true,
+  },
 }
 
 // In-process cache: role → Set<action>, busts after 60s.

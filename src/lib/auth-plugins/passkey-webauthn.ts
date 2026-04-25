@@ -136,15 +136,41 @@ interface HintRow {
   label?: string | null
 }
 
-/** Process-lifetime Map. Only used when D1 is unavailable AND we're in dev.
- *  Lost on every restart — fine for manual passkey testing on localhost. */
+/** Disk-backed Map. Only used when D1 is unavailable AND we're in dev.
+ *  Persists across `astro dev` restarts so a registered passkey keeps working
+ *  without requiring the user to wipe their local vault every time. */
+const DEV_HINT_FILE = '.dev-passkey-hints.json'
 const devHintStore = new Map<string, HintRow>()
+let devHintStoreLoaded = false
 
 function isDev(): boolean {
   try {
     return import.meta.env.DEV === true
   } catch {
     return false
+  }
+}
+
+async function loadDevHintStore(): Promise<void> {
+  if (devHintStoreLoaded) return
+  devHintStoreLoaded = true
+  try {
+    const fs = await import('node:fs/promises')
+    const raw = await fs.readFile(DEV_HINT_FILE, 'utf8')
+    const parsed = JSON.parse(raw) as Record<string, HintRow>
+    for (const [k, v] of Object.entries(parsed)) devHintStore.set(k, v)
+  } catch {
+    /* first run or unreadable — start empty */
+  }
+}
+
+async function saveDevHintStore(): Promise<void> {
+  try {
+    const fs = await import('node:fs/promises')
+    const obj = Object.fromEntries(devHintStore)
+    await fs.writeFile(DEV_HINT_FILE, JSON.stringify(obj, null, 2), 'utf8')
+  } catch (e) {
+    console.warn('[passkey-webauthn] failed to persist dev hint store:', (e as Error).message)
   }
 }
 
@@ -180,8 +206,10 @@ async function upsertHint(
     }
   }
   if (isDev()) {
+    await loadDevHintStore()
     devHintStore.set(credId, row)
-    console.warn('[passkey-webauthn] stored hint in DEV in-memory fallback (no D1 binding)')
+    await saveDevHintStore()
+    console.warn(`[passkey-webauthn] stored hint in DEV file fallback (${DEV_HINT_FILE})`)
     return { ok: true }
   }
   return { ok: false, err: 'D1 not available on server' }
@@ -206,7 +234,10 @@ async function findHint(db: D1Database | null, credId: string): Promise<{ hint: 
       return { err: `D1 read failed: ${msg}` }
     }
   }
-  if (isDev()) return { hint: devHintStore.get(credId) ?? null }
+  if (isDev()) {
+    await loadDevHintStore()
+    return { hint: devHintStore.get(credId) ?? null }
+  }
   return { err: 'D1 not available on server' }
 }
 
@@ -223,8 +254,12 @@ async function bumpSignCount(db: D1Database | null, credId: string, newCounter: 
     return
   }
   if (isDev()) {
+    await loadDevHintStore()
     const row = devHintStore.get(credId)
-    if (row) devHintStore.set(credId, { ...row, sign_count: newCounter })
+    if (row) {
+      devHintStore.set(credId, { ...row, sign_count: newCounter })
+      await saveDevHintStore()
+    }
   }
 }
 

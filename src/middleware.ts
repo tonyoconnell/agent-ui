@@ -47,6 +47,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const cspHeader = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
+      "worker-src 'self' blob:",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https://charts.googleapis.com",
       "connect-src 'self' https://api.one.ie wss://api.one.ie https://pay.one.ie https://fullnode.testnet.sui.io https://fullnode.mainnet.sui.io https://hermes.pyth.network https://api.coingecko.com https://cloudflareinsights.com",
