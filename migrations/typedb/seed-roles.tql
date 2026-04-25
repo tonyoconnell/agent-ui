@@ -3,14 +3,62 @@
 # Run: once after schema migration adds the role-grant entity.
 # Re-run is idempotent: match-not guards prevent duplicate inserts.
 #
-# chairman — all 17 actions
-# ceo      — 16 actions (no appoint_role)
-# operator — 9 actions
-# board    — 5 actions (read-only)
-# auditor  — 5 actions (read-only)
-# agent    — 3 actions (mark/warn/discover)
+# owner    — all 22 actions (substrate apex; bypasses gates per owner.md)
+# chairman — all 22 actions (per-group apex; subject to scope/network/sensitivity)
+# ceo      — 21 actions (no appoint_role)
+# operator — 11 actions
+# board    — 6 actions (read-only)
+# auditor  — 6 actions (read-only)
+# agent    — 4 actions (mark/warn/discover/view_onchain)
 
 define
+
+# --- owner ---
+
+insert $rg isa role-grant, has rg-id "rg:owner:add_unit",
+  has governance-role "owner", has role-action "add_unit";
+insert $rg isa role-grant, has rg-id "rg:owner:remove_unit",
+  has governance-role "owner", has role-action "remove_unit";
+insert $rg isa role-grant, has rg-id "rg:owner:mark",
+  has governance-role "owner", has role-action "mark";
+insert $rg isa role-grant, has rg-id "rg:owner:warn",
+  has governance-role "owner", has role-action "warn";
+insert $rg isa role-grant, has rg-id "rg:owner:tune_sensitivity",
+  has governance-role "owner", has role-action "tune_sensitivity";
+insert $rg isa role-grant, has rg-id "rg:owner:read_highways",
+  has governance-role "owner", has role-action "read_highways";
+insert $rg isa role-grant, has rg-id "rg:owner:read_revenue",
+  has governance-role "owner", has role-action "read_revenue";
+insert $rg isa role-grant, has rg-id "rg:owner:read_toxic",
+  has governance-role "owner", has role-action "read_toxic";
+insert $rg isa role-grant, has rg-id "rg:owner:appoint_role",
+  has governance-role "owner", has role-action "appoint_role";
+insert $rg isa role-grant, has rg-id "rg:owner:read_memory",
+  has governance-role "owner", has role-action "read_memory";
+insert $rg isa role-grant, has rg-id "rg:owner:delete_memory",
+  has governance-role "owner", has role-action "delete_memory";
+insert $rg isa role-grant, has rg-id "rg:owner:discover",
+  has governance-role "owner", has role-action "discover";
+insert $rg isa role-grant, has rg-id "rg:owner:create_group",
+  has governance-role "owner", has role-action "create_group";
+insert $rg isa role-grant, has rg-id "rg:owner:update_group",
+  has governance-role "owner", has role-action "update_group";
+insert $rg isa role-grant, has rg-id "rg:owner:delete_group",
+  has governance-role "owner", has role-action "delete_group";
+insert $rg isa role-grant, has rg-id "rg:owner:invite_member",
+  has governance-role "owner", has role-action "invite_member";
+insert $rg isa role-grant, has rg-id "rg:owner:change_role",
+  has governance-role "owner", has role-action "change_role";
+insert $rg isa role-grant, has rg-id "rg:owner:customize_vocabulary",
+  has governance-role "owner", has role-action "customize_vocabulary";
+insert $rg isa role-grant, has rg-id "rg:owner:edit_schema",
+  has governance-role "owner", has role-action "edit_schema";
+insert $rg isa role-grant, has rg-id "rg:owner:mint_capability",
+  has governance-role "owner", has role-action "mint_capability";
+insert $rg isa role-grant, has rg-id "rg:owner:add_attribute",
+  has governance-role "owner", has role-action "add_attribute";
+insert $rg isa role-grant, has rg-id "rg:owner:view_onchain",
+  has governance-role "owner", has role-action "view_onchain";
 
 # --- chairman ---
 

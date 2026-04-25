@@ -1,0 +1,27 @@
+# 0029-tony-chairman-to-owner.tql — pivot tony's substrate apex role.
+#
+# Source-of-truth: owner-todo.md Gap 0 task 0.m1.
+#
+# Pre-state:
+#   tony's only membership is in his personal group with role "chairman":
+#     match $u isa unit, has uid "human:tony"; ($u, $g) isa membership, has member-role $r;
+#     → r = "chairman", g.gid = "group:human:tony"
+#
+# Post-state: same membership, role = "owner".
+#
+# Why TypeQL not D1 SQL: role grants live in TypeDB (membership relation
+# with member-role attribute, queried by getRoleForUser in api-auth.ts).
+# The original spec called for migrations/0029_tony_chairman_to_owner.sql
+# but that path was a slip — D1 only stores api keys + audit, not roles.
+#
+# Run: bun run scripts/migrate-tony-to-owner.ts
+# Idempotent: if tony already has role "owner", the match clause finds
+# zero rows and the migration is a no-op.
+
+match
+  $u isa unit, has uid "human:tony";
+  $g isa group, has gid "group:human:tony";
+  $m isa membership, links (group: $g, member: $u);
+  $m has member-role $r;
+delete $r of $m;
+insert $m has member-role "owner";

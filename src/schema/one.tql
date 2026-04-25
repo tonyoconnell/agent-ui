@@ -156,7 +156,7 @@ relation capability,
 relation membership,
     relates group,
     relates member,
-    owns member-role;                 # chairman/board/ceo/operator/agent/auditor (renamed from `role`: reserved keyword in TypeDB 3.x)
+    owns member-role;                 # owner/chairman/board/ceo/operator/agent/auditor (renamed from `role`: reserved keyword in TypeDB 3.x). owner = substrate apex singleton (see owner.md).
 
 # 5. EVENTS — what happened
 relation signal,
@@ -254,7 +254,7 @@ attribute closed-at, value datetime;
 attribute verified-at, value datetime;
 
 # GOVERNANCE — member-role, identity, scope (locked 2026-04-18)
-attribute member-role, value string;      # chairman/board/ceo/operator/agent/auditor (renamed from `role`: reserved in TypeDB 3.x queries)
+attribute member-role, value string;      # owner/chairman/board/ceo/operator/agent/auditor (renamed from `role`: reserved in TypeDB 3.x queries). owner = substrate apex; bypasses scope/network/sensitivity gates per owner.md.
 attribute wallet, value string;           # Sui address (0x...)
 attribute auth-hash, value string;        # bcrypt hash of API key
 attribute scope, value string;            # private/group/public

@@ -265,6 +265,7 @@ export function hasPermission(auth: AuthContext, required: string, group?: strin
  * Called separately from validateApiKey to keep auth at 1 TypeDB query.
  */
 const ROLE_RANK: Record<string, number> = {
+  owner: 7, // substrate apex (singleton); see owner.md
   chairman: 6,
   ceo: 5,
   board: 4,
