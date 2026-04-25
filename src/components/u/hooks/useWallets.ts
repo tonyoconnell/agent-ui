@@ -2,6 +2,7 @@ import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 import { useCallback, useEffect, useState } from 'react'
 import PayService from '../lib/PayService'
 import type { Wallet } from '../lib/types'
+import { syncToCloud } from '../lib/vault/sync'
 import type { VaultWallet } from '../lib/vault/types'
 import * as Vault from '../lib/vault/vault'
 import { useNetwork } from './useNetwork'
@@ -113,6 +114,9 @@ export function useWallets(): UseWalletsReturn {
 
       if (filtered.length > 0) {
         void refreshBalances(filtered)
+        // Push current vault state to cloud on every load so the blob stays
+        // fresh even if a prior wallet-creation sync was lost.
+        void syncToCloud()
       } else {
         setSyncStatus('local')
       }
@@ -180,6 +184,11 @@ export function useWallets(): UseWalletsReturn {
         name,
       })
 
+      // Explicit sync — don't rely solely on the mutation-listener side-effect.
+      void syncToCloud().then((r) => {
+        if (!r.ok) console.warn('[vault] cloud sync failed after createWallet:', r.reason)
+      })
+
       // In-memory Wallet for the UI. privateKey is attached ONCE for the
       // onboarding carousel to display — it is not persisted in React state
       // and will be gone on the next reload.
@@ -220,6 +229,9 @@ export function useWallets(): UseWalletsReturn {
   const deleteWallet = useCallback(
     async (id: string) => {
       await Vault.deleteWallet(id)
+      void syncToCloud().then((r) => {
+        if (!r.ok) console.warn('[vault] cloud sync failed after deleteWallet:', r.reason)
+      })
       const context = isTestnet ? 'testnet' : 'mainnet'
       const all = await Vault.listWallets()
       setWallets(all.filter((w) => contextOf(w.id) === context).map(toWallet))
