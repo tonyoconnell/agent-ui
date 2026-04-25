@@ -44,3 +44,6 @@ release/
 
 # Dev-only passkey hint store (D1 fallback for `astro dev`)
 .dev-passkey-hints.json
+
+# Local scratch dir (vitest UI screenshots, ad-hoc capture)
+.tmp/
