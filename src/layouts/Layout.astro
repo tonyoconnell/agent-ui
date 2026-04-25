@@ -1,6 +1,7 @@
 ---
 import { renderBrand, resolveBrand } from "@/engine/brand"
 import { Header } from "@/components/Header"
+import { Sidebar } from "@/components/Sidebar"
 import { CookieBanner } from "@/components/legal/CookieBanner"
 
 interface Props {
@@ -11,6 +12,8 @@ interface Props {
 	noindex?: boolean
 	brandStyle?: string
 	hideHeader?: boolean
+	hideSidebar?: boolean
+	sidebarCurrent?: string
 }
 
 const {
@@ -20,7 +23,9 @@ const {
 	imageAlt = "ONE — a signal-based world where AI agents work for you",
 	noindex = false,
 	brandStyle: providedBrandStyle,
-	hideHeader = false
+	hideHeader = false,
+	hideSidebar = false,
+	sidebarCurrent = Astro.url.pathname
 } = Astro.props
 
 // Centralised brand resolution — any page that passes a brand Thing/Group via
@@ -140,10 +145,13 @@ if (!brandStyle) {
 		</script>
 		<Fragment set:html={brandStyle} />
 	</head>
-	<body class="min-h-screen bg-background text-foreground antialiased">
+	<body class="min-h-screen flex flex-col bg-background text-foreground antialiased">
 		{!hideHeader && <Header client:idle />}
-		<slot />
-		<footer class="mt-auto border-t border-border px-6 py-6 text-center text-xs text-muted-foreground">
+		{!hideSidebar && <Sidebar client:idle current={sidebarCurrent} />}
+		<main class:list={["flex-1", !hideSidebar && "md:pl-16 pb-20 md:pb-0"]}>
+			<slot />
+		</main>
+		<footer class:list={["border-t border-border px-6 py-6 text-center text-xs text-muted-foreground pb-24 md:pb-6", !hideSidebar && "md:pl-16"]}>
 			<nav aria-label="Legal" class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
 				<span>&copy; {new Date().getFullYear()} One Internet Enterprises Ltd</span>
 				<a href="/legal/terms" class="underline underline-offset-4 hover:text-foreground transition-colors">Terms of Service</a>
@@ -151,8 +159,10 @@ if (!brandStyle) {
 			</nav>
 		</footer>
 		<CookieBanner client:idle countryCode={cfCountry} />
-		<script defer src='https://static.cloudflareinsights.com/beacon.min.js'
-			data-cf-beacon={`{"token": "${import.meta.env.CF_ANALYTICS_TOKEN ?? 'REPLACE_CF_ANALYTICS_TOKEN'}"}`}></script>
+		{import.meta.env.PROD && import.meta.env.CF_ANALYTICS_TOKEN && (
+			<script defer src='https://static.cloudflareinsights.com/beacon.min.js'
+				data-cf-beacon={`{"token": "${import.meta.env.CF_ANALYTICS_TOKEN}"}`}></script>
+		)}
 	</body>
 </html>
 
@@ -163,5 +173,13 @@ if (!brandStyle) {
 	body {
 		min-height: 100vh;
 		min-height: 100dvh;
+	}
+
+	/* Astro custom-element defaults to display: inline. Force block so islands
+	   establish a proper block-formatting context — otherwise children using
+	   min-h-screen / flex / grid can collapse or escape their parent. */
+	astro-island,
+	astro-slot {
+		display: block;
 	}
 </style>

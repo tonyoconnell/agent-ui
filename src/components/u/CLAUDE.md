@@ -52,8 +52,9 @@ const BREAKPOINTS = {
 │
 ├── MobileOnboarding.tsx        # Mobile-first onboarding screen
 ├── MobileWalletCard.tsx        # Mobile-optimized wallet card
-├── MobileBottomNav.tsx         # iOS-style bottom tab bar
 ├── BottomSheet.tsx             # Responsive modal (sheet on mobile)
+                                # NOTE: bottom nav lives in src/components/Sidebar.tsx
+                                # (rendered automatically below md breakpoint by Layout.astro)
 │
 ├── sheets/
 │   ├── SendSheet.tsx           # Send crypto bottom sheet
@@ -136,19 +137,14 @@ import { MobileWalletCard } from "./MobileWalletCard";
 />
 ```
 
-### 4. MobileBottomNav
+### 4. Bottom Navigation
 
-iOS-style bottom navigation:
+The mobile bottom tab bar is part of the global `Sidebar` (`src/components/Sidebar.tsx`).
+`Layout.astro` mounts it on every page; below the `md` breakpoint the desktop rail hides
+and the bottom bar appears. There is nothing per-page to wire — just use `Layout.astro`.
 
-```typescript
-import { MobileBottomNav, WALLET_NAV_ITEMS } from "./MobileBottomNav";
-
-<MobileBottomNav
-  items={WALLET_NAV_ITEMS}
-  activeId="home"
-  onNavigate={(id, href) => navigate(href)}
-/>
-```
+To change which items appear on mobile, set `mobile: true` on entries in `NAV_ITEMS`
+inside `Sidebar.tsx` (currently: Home / Wallets / Send / Receive / Activity).
 
 ### 5. Send/Receive/Swap Sheets
 
@@ -247,20 +243,16 @@ const { isMobile } = useResponsive();
 )}
 ```
 
-**3. Add Bottom Navigation on Mobile:**
+**3. Bottom Navigation on Mobile:**
+
+Already provided by `Layout.astro` via `Sidebar`. No per-page wiring required.
 
 ```typescript
-const { isMobile } = useResponsive();
-
+// (legacy — for reference only; Layout handles this now)
 return (
   <>
     <MainContent />
-    {isMobile && (
-      <MobileBottomNav
-        items={WALLET_NAV_ITEMS}
-        activeId={currentPage}
-      />
-    )}
+    {/* Old per-page mount removed — see Sidebar.tsx for the unified rail+bar */}
   </>
 );
 ```
@@ -309,9 +301,10 @@ bunx astro dev
 
 ## Related Files
 
-- `/web/src/pages/u/index.astro` - Dashboard page
-- `/web/src/layouts/ULayout.astro` - Wallet layout with SidebarU
-- `/web/src/components/SidebarU.tsx` - Sidebar navigation
+- `src/pages/u/index.astro` — Dashboard page
+- `src/layouts/Layout.astro` — Single layout used by every page (header + responsive sidebar + footer)
+- `src/components/Sidebar.tsx` — Unified nav: desktop rail (md+) and mobile bottom bar (<md)
+- `src/components/Header.tsx` — Auth state machine (Sign in / Unlock / identity chip + menu)
 
 ---
 

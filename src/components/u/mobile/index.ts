@@ -9,7 +9,6 @@ export { BottomSheet, BottomSheetContent, BottomSheetFooter } from '../BottomShe
 export type { DeviceType, ResponsiveState } from '../hooks/useResponsive'
 // Hooks
 export { useResponsive, useResponsiveValue } from '../hooks/useResponsive'
-export { FloatingActionButton, MobileBottomNav, WALLET_NAV_ITEMS } from '../MobileBottomNav'
 export { MobileWalletCard, MobileWalletChip } from '../MobileWalletCard'
 export { ReceiveSheet } from '../sheets/ReceiveSheet'
 // Sheets (Send/Receive/Swap)
