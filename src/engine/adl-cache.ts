@@ -176,6 +176,34 @@ export interface AuditRecord {
   decision: AuditDecision
   mode: EnforcementMode
   reason?: string
+  // Owner-tier extension (Gap 2): set when emitting via auditOwner() so the
+  // bypassed action lands in D1 owner_audit (not adl_audit) with the
+  // pre-redaction payload's sha256 + the redacted JSON. Hash lets auditors
+  // verify a record corresponds to a known input without leaking secrets.
+  action?: string // e.g. 'scope-bypass' / 'network-bypass' / 'sensitivity-bypass'
+  payloadHash?: string // sha256 hex of canonical JSON of original payload
+  payloadRedacted?: string // JSON string with secrets stripped
+}
+
+// ── Owner-tier audit-emit failure semantics (Gap 2 rollout flag) ──────────
+
+export type OwnerAuditMode = 'audit' | 'enforce'
+
+/**
+ * Read OWNER_AUDIT_MODE from env. Default during rollout: 'audit' — emit
+ * failure does NOT block the owner allow (defensive). Post-rollout target:
+ * 'enforce' — emit failure → 503 (no bypass without a record).
+ *
+ * Flip via env: OWNER_AUDIT_MODE=enforce. Read fresh each call (no cache);
+ * the env should change at most a few times per substrate lifetime.
+ */
+export function ownerAuditMode(): OwnerAuditMode {
+  const envProc = typeof process !== 'undefined' ? process.env?.OWNER_AUDIT_MODE : undefined
+  const envMeta =
+    typeof import.meta !== 'undefined'
+      ? (import.meta as { env?: Record<string, string> }).env?.OWNER_AUDIT_MODE
+      : undefined
+  return envProc === 'enforce' || envMeta === 'enforce' ? 'enforce' : 'audit'
 }
 
 /**
@@ -225,6 +253,51 @@ export function audit(rec: AuditRecord): void {
     AUDIT_PHEROMONE_HOOK?.(stamped)
   } catch {
     /* pheromone hook must never fail a request */
+  }
+}
+
+// ── Owner-tier audit (Gap 2) — wraps audit() with hash + redact ──────────
+//
+// Every code path that allows an action because `auth.role === 'owner'` MUST
+// call this BEFORE the bypass returns. The ring entry is routed by
+// flushAuditBuffer to D1 `owner_audit` (not adl_audit) so owner activity
+// has its own append-only log, separate from the deny/observe stream.
+//
+// gate is one of 'scope' | 'network' | 'sensitivity' — the gate the owner
+// is bypassing in src/pages/api/signal.ts. action names the operation in
+// human-readable form for grep/filter.
+//
+// Returns true if the record was buffered. False indicates the redaction
+// step threw — the caller (signal.ts) decides whether to surface based on
+// ownerAuditMode(): 'audit' allows through; 'enforce' returns 503.
+
+export interface OwnerAuditInput {
+  sender: string
+  receiver: string
+  action: string
+  gate: 'scope' | 'network' | 'sensitivity'
+  payload: unknown
+  reason?: string
+}
+
+export async function auditOwner(input: OwnerAuditInput): Promise<boolean> {
+  try {
+    const { redactPayload } = await import('@/lib/audit-redact')
+    const { hash, redacted } = await redactPayload(input.payload)
+    audit({
+      sender: input.sender,
+      receiver: input.receiver,
+      gate: 'role:owner' as AuditGate,
+      decision: 'allow-audit',
+      mode: enforcementMode(),
+      reason: input.reason,
+      action: input.action,
+      payloadHash: hash,
+      payloadRedacted: redacted,
+    })
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -317,13 +390,39 @@ export async function flushAuditBuffer(
   if (batch.length === 0) return 0
   let written = 0
   for (const r of batch) {
+    // Owner-tier records (gate === 'role:owner' AND payloadHash set) route
+    // to owner_audit; everything else goes to adl_audit. We do NOT split by
+    // gate alone because non-owner role:* gates may exist; the payloadHash
+    // presence is the discriminator that auditOwner() set.
+    const isOwnerTier = r.gate === 'role:owner' && typeof r.payloadHash === 'string'
     try {
-      await db
-        .prepare(
-          `INSERT INTO adl_audit (ts, sender, receiver, gate, decision, mode, reason) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .bind(r.ts, r.sender, r.receiver, r.gate, r.decision, r.mode, r.reason ?? null)
-        .run()
+      if (isOwnerTier) {
+        const tsEpoch = Math.floor(new Date(r.ts).getTime() / 1000)
+        await db
+          .prepare(
+            `INSERT INTO owner_audit (ts, action, sender, receiver, payload_hash, payload_redacted, gate, decision) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            Number.isFinite(tsEpoch) ? tsEpoch : Math.floor(Date.now() / 1000),
+            r.action ?? 'unknown',
+            r.sender,
+            r.receiver,
+            r.payloadHash ?? '',
+            r.payloadRedacted ?? '',
+            // owner_audit.gate stores the underlying gate name (scope/network/sensitivity),
+            // not the role tag — keep the analytics column human-readable.
+            (r.action ?? '').replace(/-bypass$/, '') || r.gate,
+            r.decision,
+          )
+          .run()
+      } else {
+        await db
+          .prepare(
+            `INSERT INTO adl_audit (ts, sender, receiver, gate, decision, mode, reason) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(r.ts, r.sender, r.receiver, r.gate, r.decision, r.mode, r.reason ?? null)
+          .run()
+      }
       written++
     } catch {
       /* individual insert failures don't block the batch */
