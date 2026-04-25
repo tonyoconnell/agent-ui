@@ -17,7 +17,7 @@ import { ensureHumanUnit } from '@/lib/human-unit'
 // Re-export for backward compatibility
 export { ensureHumanUnit }
 
-import { getD1 } from '@/lib/cf-env'
+import { getD1, getEnv } from '@/lib/cf-env'
 import { getNet } from '@/lib/net'
 import { roleCheck } from '@/lib/role-check'
 import { emitSecurityEvent } from '@/lib/security-signals'
@@ -61,6 +61,27 @@ const CACHE_TTL_MS = 5 * 60 * 1000
 // Required so invalidateKeyCache(keyId) can locate and evict the right cache entry.
 // Without this, the revoke handler only has the DB ID; the cache is keyed by plaintext.
 const KEYID_TO_BEARER = new Map<string, string>()
+
+/**
+ * KV-based per-group per-day rate limiting.
+ * Returns false if the group has exceeded 1000 requests today.
+ * Fail-open: returns true on any error or if KV is unavailable.
+ */
+async function checkGroupQuota(group: string, locals: App.Locals | undefined): Promise<boolean> {
+  try {
+    const env = await getEnv(locals)
+    const kv = env?.KV as KVNamespace | undefined
+    if (!kv) return true
+    const key = `quota:${group}:${new Date().toISOString().slice(0, 10)}`
+    const raw = await kv.get(key)
+    const count = raw ? parseInt(raw, 10) : 0
+    if (count >= 1000) return false
+    await kv.put(key, String(count + 1), { expirationTtl: 86400 })
+    return true
+  } catch {
+    return true
+  }
+}
 
 /** Fire-and-forget warn on the caller's auth-boundary edge. Never throws. */
 function warnAuthBoundary(caller: string): void {
@@ -517,7 +538,8 @@ export function requireAuth(ctx: AuthContext, required?: string) {
 export async function requireRole(
   request: Request,
   action: string,
-  context?: { uid?: string; gate?: string },
+  context?: { uid?: string; gate?: string; group?: string },
+  locals?: App.Locals,
 ): Promise<{ ok: true; auth: AuthContext; role: string } | { ok: false; res: Response }> {
   // Lazy import to avoid circular deps (adl-cache → persist → api-auth)
   const { enforcementMode, audit } = await import('@/engine/adl-cache')
@@ -560,6 +582,25 @@ export async function requireRole(
       return {
         ok: false,
         res: Response.json({ error: 'insufficient role', gate, required: action, have: role }, { status: 403 }),
+      }
+    }
+  }
+
+  // Per-group per-day quota check
+  if (context?.group && locals) {
+    const withinQuota = await checkGroupQuota(context.group, locals)
+    if (!withinQuota) {
+      writeSilent(`
+        insert $s isa signal,
+          has receiver "api:rate-limit:hit",
+          has data "{\"group\":\"${context.group.replace(/"/g, '\\"')}\"}";
+      `)
+      return {
+        ok: false,
+        res: Response.json(
+          { error: 'rate limit exceeded', group: context.group, retryAfter: 86400 },
+          { status: 429, headers: { 'Retry-After': '86400' } },
+        ),
       }
     }
   }

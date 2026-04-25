@@ -13,6 +13,7 @@
 
 import { base64ToBytes, bytesToBase64, encryptUnderMaster, importMasterSecret } from './crypto'
 import { guessAuthenticatorLabel } from './passkey'
+import { generateRecoveryPhrase, recoveryToVaultSecret } from './recovery'
 import { fetchCloudBlob } from './sync'
 import { type EncryptedRecord, HKDF_DOMAINS, type PasskeyEnrollment, VaultError } from './types'
 import * as Vault from './vault'
@@ -190,7 +191,11 @@ export async function registerPasskeyForSignin(label?: string): Promise<{ credId
  * posts everything to `/register-anonymous` which creates a user + hint +
  * session in one shot.
  */
-export async function createAccountWithPasskey(): Promise<{ walletsRestored: number; created: true }> {
+export async function createAccountWithPasskey(): Promise<{
+  walletsRestored: number
+  created: true
+  recoveryPhrase: string
+}> {
   const optsRes = await fetch('/api/auth/passkey-webauthn/register-anonymous/options', {
     method: 'POST',
     credentials: 'same-origin',
@@ -242,34 +247,42 @@ export async function createAccountWithPasskey(): Promise<{ walletsRestored: num
     throw new VaultError(`passkey registration failed: ${(e as Error).message}`, 'passkey-unsupported')
   }
 
-  // Capture PRF output.
-  const verifyOpts: PublicKeyCredentialRequestOptions = {
-    challenge: b64urlToArrayBuffer(options.challenge) as unknown as BufferSource,
-    rpId: options.rp.id,
-    allowCredentials: [{ id: credential.rawId as unknown as BufferSource, type: 'public-key' }],
-    userVerification: 'required',
-    timeout: 60_000,
-    extensions: {
-      prf: { eval: { first: b64urlToArrayBuffer(prfSalt) } },
-    } as PublicKeyCredentialRequestOptions['extensions'],
-  }
-  let prfSecret: Uint8Array | null = null
-  try {
-    const verifyCred = (await navigator.credentials.get({ publicKey: verifyOpts })) as PublicKeyCredential | null
-    if (verifyCred) prfSecret = extractPrfSecret(verifyCred)
-  } catch (e) {
-    const name = (e as { name?: string })?.name
-    if (name === 'NotAllowedError' || name === 'AbortError') {
-      throw new VaultError('PRF capture cancelled', 'passkey-cancelled')
+  // PRF on `.create` — Apple Passwords + recent Chromium return the PRF
+  // output directly in clientExtensionResults. If we get it here, we're
+  // done. If not (older Chrome, some Windows configurations), fall back
+  // to a quick `.get` to capture it. Saves one Touch ID on the happy path.
+  let prfSecret = extractPrfSecret(credential)
+  if (!prfSecret) {
+    const verifyOpts: PublicKeyCredentialRequestOptions = {
+      challenge: b64urlToArrayBuffer(options.challenge) as unknown as BufferSource,
+      rpId: options.rp.id,
+      allowCredentials: [{ id: credential.rawId as unknown as BufferSource, type: 'public-key' }],
+      userVerification: 'required',
+      timeout: 60_000,
+      extensions: {
+        prf: { eval: { first: b64urlToArrayBuffer(prfSalt) } },
+      } as PublicKeyCredentialRequestOptions['extensions'],
+    }
+    try {
+      const verifyCred = (await navigator.credentials.get({ publicKey: verifyOpts })) as PublicKeyCredential | null
+      if (verifyCred) prfSecret = extractPrfSecret(verifyCred)
+    } catch (e) {
+      const name = (e as { name?: string })?.name
+      if (name === 'NotAllowedError' || name === 'AbortError') {
+        throw new VaultError('PRF capture cancelled', 'passkey-cancelled')
+      }
     }
   }
   if (!prfSecret) throw new VaultError('authenticator did not return PRF output', 'passkey-unsupported')
 
-  // Generate a brand-new 32-byte master and wrap it TWICE under two different
-  // HKDF info strings — one for the cloud envelope, one for the local vault's
-  // enrollment record. Same PRF secret drives both; HKDF's `info` domain
-  // separates them so neither ciphertext can cross-decrypt the other.
-  const master = crypto.getRandomValues(new Uint8Array(32))
+  // Derive the master from a fresh BIP-39 recovery phrase (the one secret
+  // the user MUST write down — it's the only way back if both the passkey
+  // and every synced copy of the vault disappear). Then wrap it TWICE under
+  // two different HKDF info strings — one for the cloud envelope, one for
+  // the local vault's enrollment record. Same PRF secret drives both; HKDF's
+  // `info` domain separates them.
+  const recoveryPhrase = generateRecoveryPhrase()
+  const master = await recoveryToVaultSecret(recoveryPhrase)
   const wrapKey = await importMasterSecret(prfSecret)
 
   const cloudRecord = await encryptUnderMaster(bytesToBase64(master), wrapKey, WRAP_INFO)
@@ -312,9 +325,16 @@ export async function createAccountWithPasskey(): Promise<{ walletsRestored: num
     )
   }
 
+  // A brand-new identity implies any existing local vault is orphan state
+  // from a previous account. Wipe before adopting so `adoptMaster` doesn't
+  // short-circuit on `hasVault()` and leave the user stuck on the old keys.
+  if (await Vault.hasVault()) {
+    await Vault.wipeAll()
+  }
+
   // Adopt master locally AND record the enrollment so offline unlock works.
   await Vault.adoptMaster(master, enrollment)
-  return { walletsRestored: 0, created: true }
+  return { walletsRestored: 0, created: true, recoveryPhrase }
 }
 
 function b64urlToUint8Array(s: string): Uint8Array {
@@ -330,7 +350,11 @@ function b64urlToUint8Array(s: string): Uint8Array {
  * `createAccountWithPasskey()` — which requires a second WebAuthn ceremony
  * because we need an attestation (not just an assertion) to register.
  */
-export async function signInWithPasskey(): Promise<{ walletsRestored: number; created?: true }> {
+export async function signInWithPasskey(): Promise<{
+  walletsRestored: number
+  created?: true
+  recoveryPhrase?: string
+}> {
   const optsRes = await fetch('/api/auth/passkey-webauthn/authenticate/options', {
     method: 'POST',
     credentials: 'same-origin',
@@ -366,21 +390,20 @@ export async function signInWithPasskey(): Promise<{ walletsRestored: number; cr
     credential = (await navigator.credentials.get({ publicKey })) as PublicKeyCredential | null
   } catch (e) {
     const name = (e as { name?: string })?.name
-    // No credential on device, or user dismissed the picker without picking —
-    // pivot to create-account flow (second ceremony with .create).
-    if (
-      name === 'NotAllowedError' ||
-      name === 'AbortError' ||
-      name === 'InvalidStateError' ||
-      name === 'NotFoundError'
-    ) {
-      return createAccountWithPasskey()
+    // User cancelled OR there's nothing to sign in with on this device. Do
+    // NOT auto-pivot — a synced passkey from another device might still be
+    // available, just not chosen yet, and creating a duplicate account would
+    // be destructive. Bubble up; the caller can offer a "create new" path.
+    if (name === 'NotAllowedError' || name === 'AbortError') {
+      throw new VaultError('passkey sign-in cancelled', 'passkey-cancelled')
+    }
+    if (name === 'InvalidStateError' || name === 'NotFoundError') {
+      throw new VaultError('no passkey available on this device', 'passkey-cancelled')
     }
     throw new VaultError(`passkey sign-in failed: ${(e as Error).message}`, 'passkey-unsupported')
   }
   if (!credential) {
-    // Same reasoning: no credential selected → treat as "no account yet".
-    return createAccountWithPasskey()
+    throw new VaultError('no passkey selected', 'passkey-cancelled')
   }
 
   const prfSecret = extractPrfSecret(credential)

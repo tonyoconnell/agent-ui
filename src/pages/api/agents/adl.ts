@@ -16,11 +16,10 @@
 
 import type { APIRoute } from 'astro'
 import { parse, syncAdl, toTypeDB, validate } from '@/engine/adl'
-import { validateApiKey } from '@/lib/api-auth'
-
 export const POST: APIRoute = async ({ request }) => {
-  // Validate API key if provided (optional for now, can be required later)
-  const _auth = await validateApiKey(request)
+  const { requireRole } = await import('@/lib/api-auth')
+  const gate = await requireRole(request, 'add_unit', { gate: 'adl-sync' })
+  if (!gate.ok) return gate.res
 
   try {
     const body = (await request.json()) as any

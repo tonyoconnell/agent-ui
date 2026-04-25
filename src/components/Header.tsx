@@ -1,14 +1,22 @@
 /**
- * Header — global site header with vault-first auth.
+ * Header — one button, three states.
  *
- * Vault is the primary identity (passkey-unlocked device-local keys).
- * Better Auth password sign-in is kept as a secondary path for users
- * without a vault/passkey.
+ *   Signed out          → "Sign in"        (Touch ID → server session + vault)
+ *   Signed in + locked  → "Unlock"         (Touch ID → local vault unlock)
+ *   Signed in + unlocked → identity chip   (address · wallet count · menu)
+ *
+ * Brand-new accounts also see RecoveryPhraseDialog exactly once.
+ *
+ * See `lifecycle-auth.md` (root) for the full contract.
  */
 
-import { useEffect, useState } from 'react'
-import { HeaderSignInDialog } from '@/components/auth/HeaderSignInDialog'
-import { VaultUnlockChip } from '@/components/u/VaultUnlockChip'
+import { Fingerprint, Loader2, LockOpen } from 'lucide-react'
+import { useCallback, useEffect, useState, useTransition } from 'react'
+import { RecoveryPhraseDialog } from '@/components/auth/RecoveryPhraseDialog'
+import { signInWithPasskey } from '@/components/u/lib/vault/passkey-cloud'
+import type { VaultStatus } from '@/components/u/lib/vault/types'
+import { VaultError } from '@/components/u/lib/vault/types'
+import * as Vault from '@/components/u/lib/vault/vault'
 import { authClient } from '@/lib/auth-client'
 import { emitClick } from '@/lib/ui-signal'
 
@@ -31,11 +39,30 @@ function shortAddr(a: string | undefined | null): string {
   return `${a.slice(0, 6)}…${a.slice(-4)}`
 }
 
+/** Reactive vault status — refreshes on demand and on mount. */
+function useVaultStatus(): { status: VaultStatus | null; refresh: () => Promise<void> } {
+  const [status, setStatus] = useState<VaultStatus | null>(null)
+  const refresh = useCallback(async () => {
+    try {
+      setStatus(await Vault.getStatus())
+    } catch {
+      // ignore — caller renders a generic state
+    }
+  }, [])
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+  return { status, refresh }
+}
+
 export function Header({ continueHref = '/app' }: HeaderProps) {
-  const { data: session, isPending } = authClient.useSession()
+  const { data: session, isPending: sessionPending } = authClient.useSession()
+  const { status: vault, refresh: refreshVault } = useVaultStatus()
   const [role, setRole] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [signInOpen, setSignInOpen] = useState(false)
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string | null>(null)
+  const [signInError, setSignInError] = useState<string | null>(null)
+  const [pending, startTransition] = useTransition()
 
   const user = session?.user as SessionUser | undefined
   const uid = user?.id
@@ -61,6 +88,11 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
   const signOut = async () => {
     emitClick('ui:header:signout')
     try {
+      Vault.lock()
+    } catch {
+      // ignore
+    }
+    try {
       await authClient.signOut()
     } catch {
       // even if the server rejects, clear locally
@@ -68,15 +100,57 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
     window.location.href = '/'
   }
 
-  const openSignIn = () => {
-    emitClick('ui:header:signin')
-    setSignInOpen(true)
+  // Single entry point. The state machine decides the action:
+  //   session + locked vault   → local passkey unlock (no network)
+  //   any other state          → signInWithPasskey() — assertion first, server
+  //                              decides if the credential is registered;
+  //                              creates an account only on a real 401.
+  // We never short-circuit to create from the client, because a fresh browser
+  // with a *synced* passkey looks identical to a fresh browser with no
+  // account at all. Only the server can tell them apart.
+  const handlePrimary = () => {
+    setSignInError(null)
+    startTransition(async () => {
+      try {
+        const local = await Vault.getStatus()
+        const signedIn = !!session?.user
+        if (signedIn && local.hasVault && local.isLocked && local.hasPasskey) {
+          emitClick('ui:header:unlock')
+          await Vault.unlockWithPasskey()
+          await refreshVault()
+          return
+        }
+        emitClick('ui:header:signin')
+        const result = await signInWithPasskey()
+        if (result.created && result.recoveryPhrase) {
+          setRecoveryPhrase(result.recoveryPhrase)
+          return
+        }
+        window.location.reload()
+      } catch (err) {
+        if (err instanceof VaultError && err.code === 'passkey-cancelled') return
+        setSignInError(err instanceof Error ? err.message : 'Failed')
+      }
+    })
+  }
+
+  const handleLock = () => {
+    emitClick('ui:header:lock')
+    Vault.lock()
+    void refreshVault()
   }
 
   const gotoContinue = () => {
     emitClick('ui:header:continue', { role })
     window.location.href = continueHref
   }
+
+  // ── compute display state ────────────────────────────────────────────────
+  const signedIn = !!session?.user
+  const vaultUnlocked = !!vault && vault.hasVault && !vault.isLocked
+  const showIdentity = signedIn && vaultUnlocked
+  const showUnlock = signedIn && !!vault && vault.hasVault && vault.isLocked
+  const walletCount = vault?.walletCount ?? 0
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur supports-[backdrop-filter]:bg-[#0a0a0f]/70">
@@ -87,41 +161,47 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
           <span>ONE</span>
         </a>
 
-        {/* Right: auth controls */}
+        {/* Right: one button, state machine */}
         <div className="flex items-center gap-2">
-          {/* Primary auth — vault (passkey-unlocked device identity) */}
-          <VaultUnlockChip />
-
-          {isPending ? (
+          {sessionPending ? (
             <div className="h-8 w-24 animate-pulse rounded-md bg-white/5" role="status" aria-label="Loading session" />
-          ) : session?.user ? (
+          ) : showIdentity ? (
             <>
-              {/* Identity chip */}
+              {/* Identity chip — also opens the menu (lock + sign out + nav) */}
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
-                className="group inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/[0.06] transition-colors"
+                className="group inline-flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-500/15 transition-colors"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
-                <span className="inline-block size-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+                <LockOpen className="size-3" aria-hidden="true" />
                 <span className="font-mono">{shortAddr(walletOrId)}</span>
+                <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-emerald-100">
+                  {walletCount}
+                </span>
                 {role && (
                   <span className="rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-violet-300">
                     {role}
                   </span>
                 )}
-                <span aria-hidden="true" className="text-slate-500 group-hover:text-slate-300">
+                <span aria-hidden="true" className="text-emerald-400/70 group-hover:text-emerald-200">
                   ▾
                 </span>
               </button>
 
-              {/* Dropdown */}
               {menuOpen && (
                 <div
                   className="absolute right-6 top-14 mt-1 w-48 rounded-md border border-white/10 bg-[#101018] py-1 shadow-lg"
                   role="menu"
                 >
+                  <a
+                    href="/u"
+                    className="block px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
+                    onClick={() => emitClick('ui:header:menu:wallet')}
+                  >
+                    Wallets ({walletCount})
+                  </a>
                   <a
                     href="/app"
                     className="block px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
@@ -166,6 +246,13 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
                   <div className="my-1 border-t border-white/5" />
                   <button
                     type="button"
+                    onClick={handleLock}
+                    className="block w-full px-3 py-1.5 text-left text-xs text-amber-300 hover:bg-amber-500/10"
+                  >
+                    Lock
+                  </button>
+                  <button
+                    type="button"
                     onClick={signOut}
                     className="block w-full px-3 py-1.5 text-left text-xs text-red-300 hover:bg-red-500/10"
                   >
@@ -174,7 +261,6 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
                 </div>
               )}
 
-              {/* Continue CTA */}
               <button
                 type="button"
                 onClick={gotoContinue}
@@ -185,18 +271,42 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
               </button>
             </>
           ) : (
-            // Secondary path: Better Auth password sign-in (+ cloud restore) inline.
-            <button
-              type="button"
-              onClick={openSignIn}
-              className="inline-flex items-center rounded-md border border-white/10 bg-transparent px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/[0.06] transition-colors"
-            >
-              Sign in
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrimary}
+                disabled={pending}
+                className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/[0.08] transition-colors disabled:opacity-60"
+              >
+                {pending ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Fingerprint className="size-3.5" aria-hidden="true" />
+                )}
+                <span>{pending ? 'Working…' : showUnlock ? 'Unlock' : 'Sign in'}</span>
+              </button>
+              {signInError && (
+                <span
+                  role="alert"
+                  className="hidden text-[11px] text-red-300 sm:inline"
+                  title="Try again, or visit /signin for password sign-in"
+                >
+                  {signInError}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
-      <HeaderSignInDialog open={signInOpen} onOpenChange={setSignInOpen} />
+      {recoveryPhrase && (
+        <RecoveryPhraseDialog
+          phrase={recoveryPhrase}
+          onConfirm={() => {
+            setRecoveryPhrase(null)
+            window.location.reload()
+          }}
+        />
+      )}
     </header>
   )
 }

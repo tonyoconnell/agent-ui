@@ -24,10 +24,13 @@ import {
 import { assertValidRecoveryPhrase, generateRecoveryPhrase, recoveryToVaultSecret } from './recovery'
 import {
   appendAudit,
+  clearSessionRow,
   deleteVaultDb,
   getMeta,
+  getSessionRow,
   isStorageAvailable,
   putMeta,
+  putSessionRow,
   putWallet,
   deleteWallet as storageDeleteWallet,
   getWallet as storageGetWallet,
@@ -50,7 +53,10 @@ import {
 // CONFIG
 // ============================================
 
-const DEFAULT_AUTO_LOCK_MS = 30 * 60 * 1000 // 30 min
+// 0 = never auto-lock. Vault stays unlocked until the user explicitly Locks
+// or Signs out. Aligns with the "stay logged in indefinitely" contract in
+// `lifecycle-auth.md`. armAutoLock() treats 0 as "no timer".
+const DEFAULT_AUTO_LOCK_MS = 0
 const SENTINEL_PLAINTEXT = 'ONE_VAULT_v2_OK'
 const RATE_LIMIT_BACKOFFS_MS = [0, 1_000, 2_000, 4_000, 8_000, 16_000, 30_000] // attempts 1..7
 const RATE_LIMIT_LOCKOUT_MS = 5 * 60 * 1000 // after 7th wrong → 5 min lockout
@@ -70,10 +76,75 @@ function clearSession(): void {
     clearTimeout(autoLockTimer)
     autoLockTimer = null
   }
+  // Also drop the persistent IDB session row so a hard reload doesn't
+  // immediately re-hydrate. Fire-and-forget; the user is leaving regardless.
+  void clearSessionRow().catch(() => {})
+}
+
+/**
+ * Hydrate the in-memory `session` from a persistent IDB row, if any.
+ * Idempotent — running it while already unlocked is a no-op. Called
+ * lazily before any read that needs to know lock state.
+ *
+ * Web Crypto CryptoKey objects survive structured cloning, even when
+ * non-extractable, so a full page reload can re-attach the same key
+ * without re-prompting the user for biometrics.
+ */
+let hydratePromise: Promise<void> | null = null
+async function hydrateFromIdb(): Promise<void> {
+  if (session) return
+  if (hydratePromise) return hydratePromise
+  hydratePromise = (async () => {
+    if (!isStorageAvailable()) return
+    let row: Awaited<ReturnType<typeof getSessionRow>> | null = null
+    try {
+      row = await getSessionRow()
+    } catch {
+      return
+    }
+    if (!row || session) return
+    session = {
+      masterKey: row.masterKey,
+      method: row.method,
+      unlockedAt: row.unlockedAt,
+      lastActivityAt: Date.now(),
+    }
+    try {
+      const meta = await getMeta()
+      if (meta) armAutoLock(meta.autoLockMs)
+      persistSession()
+    } catch {
+      // ignore — auto-lock is best-effort
+    }
+  })()
+  try {
+    await hydratePromise
+  } finally {
+    hydratePromise = null
+  }
+}
+
+/**
+ * Persist the current in-memory session to IDB so a page reload can
+ * resume without prompting. Fire-and-forget; failure is non-fatal.
+ */
+function persistSession(): void {
+  if (!session) return
+  void putSessionRow({
+    masterKey: session.masterKey,
+    method: session.method,
+    unlockedAt: session.unlockedAt,
+  }).catch(() => {})
 }
 
 function armAutoLock(autoLockMs: number): void {
-  if (autoLockTimer) clearTimeout(autoLockTimer)
+  if (autoLockTimer) {
+    clearTimeout(autoLockTimer)
+    autoLockTimer = null
+  }
+  // 0 → never auto-lock (the indefinite-session default). Caller has
+  // already cleared any existing timer above.
+  if (autoLockMs <= 0) return
   autoLockTimer = setTimeout(() => clearSession(), autoLockMs)
 }
 
@@ -84,13 +155,12 @@ function touchActivity(): void {
   // Read meta lazily — caller's autoLockMs may have changed.
   void getMeta().then((meta) => {
     if (meta && session) armAutoLock(meta.autoLockMs)
+    persistSession()
   })
 }
 
 function requireUnlocked(): VaultSession {
   if (!session) throw new VaultError('vault is locked', 'locked')
-  // Re-check timer (in case JS ran a long sync block past the timer).
-  // The timer fires on the next macrotask anyway, so this is belt-and-braces.
   return session
 }
 
@@ -196,6 +266,9 @@ export async function getStatus(): Promise<VaultStatus> {
       capabilities: caps,
     }
   }
+  // Resume any persistent session left behind by a previous page load.
+  // Cheap when already in-memory (early-returns immediately).
+  await hydrateFromIdb()
   const meta = await getMeta()
   const wallets = meta ? await storageListWallets() : []
   return {
@@ -311,6 +384,7 @@ export async function setup(opts: SetupOptions = {}): Promise<SetupResult> {
     lastActivityAt: Date.now(),
   }
   armAutoLock(meta.autoLockMs)
+  persistSession()
 
   audit({ verb: 'setup', outcome: 'ok', method: session.method })
   return { recoveryPhrase, enrollment }
@@ -323,6 +397,13 @@ export async function setup(opts: SetupOptions = {}): Promise<SetupResult> {
 async function loadMeta(): Promise<VaultMeta> {
   const meta = await getMeta()
   if (!meta) throw new VaultError('no vault on this device', 'no-vault')
+  // Migrate legacy 30-min auto-lock default to "never" — pre-existing vaults
+  // were created before the indefinite-session contract. User can still set
+  // a real timeout via setAutoLockMs() if they want one.
+  if (meta.autoLockMs === 30 * 60 * 1000) {
+    meta.autoLockMs = 0
+    await putMeta(meta)
+  }
   return meta
 }
 
@@ -371,6 +452,7 @@ export async function unlockWithPasskey(): Promise<void> {
 
     session = { masterKey, method: 'passkey', unlockedAt: Date.now(), lastActivityAt: Date.now() }
     armAutoLock(meta.autoLockMs)
+    persistSession()
     recordSuccess()
     audit({ verb: 'unlock', outcome: 'ok', method: 'passkey' })
     return
@@ -417,6 +499,7 @@ export async function unlockWithPassword(password: string): Promise<void> {
 
   session = { masterKey, method: 'password', unlockedAt: Date.now(), lastActivityAt: Date.now() }
   armAutoLock(meta.autoLockMs)
+  persistSession()
   recordSuccess()
   audit({ verb: 'unlock', outcome: 'ok', method: 'password' })
 }
@@ -437,6 +520,7 @@ export async function unlockWithRecovery(phrase: string): Promise<void> {
 
   session = { masterKey, method: 'recovery', unlockedAt: Date.now(), lastActivityAt: Date.now() }
   armAutoLock(meta.autoLockMs)
+  persistSession()
   audit({ verb: 'unlock', outcome: 'ok', method: 'recovery' })
 }
 
@@ -922,6 +1006,7 @@ export async function importSyncBlob(blob: string, recoveryPhrase: string): Prom
     lastActivityAt: Date.now(),
   }
   armAutoLock(restoredMeta.autoLockMs)
+  persistSession()
   recordSuccess()
   audit({ verb: 'import', outcome: 'ok', method: 'recovery', detail: `sync:${restored}` })
 
@@ -981,6 +1066,7 @@ export async function adoptMaster(
     lastActivityAt: Date.now(),
   }
   armAutoLock(meta.autoLockMs)
+  persistSession()
   audit({
     verb: 'setup',
     outcome: 'ok',
@@ -1053,6 +1139,7 @@ export async function importSyncBlobWithMaster(
     lastActivityAt: Date.now(),
   }
   armAutoLock(restoredMeta.autoLockMs)
+  persistSession()
   recordSuccess()
   audit({ verb: 'import', outcome: 'ok', method: 'passkey', detail: `sync:${restored}` })
   return { walletsRestored: restored }
@@ -1093,9 +1180,12 @@ export async function wipeAll(): Promise<void> {
 export async function setAutoLockMs(ms: number): Promise<void> {
   requireUnlocked()
   const meta = await loadMeta()
-  meta.autoLockMs = Math.max(60_000, ms) // floor 1 min
+  // 0 disables auto-lock (the new default). Anything positive is floored
+  // to 1 minute so a 1-second timer can't ship by accident.
+  meta.autoLockMs = ms <= 0 ? 0 : Math.max(60_000, ms)
   await putMeta(meta)
   armAutoLock(meta.autoLockMs)
+  persistSession()
 }
 
 export async function setLockOnTabClose(enabled: boolean): Promise<void> {

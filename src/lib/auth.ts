@@ -99,16 +99,25 @@ export function createAuth() {
 
     baseURL: publicEnv.PUBLIC_SITE_URL,
 
-    cookie: {
-      domain: '.one.ie',
-    },
+    // Cookie domain MUST match the request host or browsers silently drop
+    // the Set-Cookie — that's why localhost was getting logged out on every
+    // page reload. Use `.one.ie` only for the real subdomains (cross-SSO
+    // between dev.one.ie / one.ie / pay.one.ie). On localhost, leave it
+    // host-only so the cookie actually attaches.
+    advanced: publicEnv.PUBLIC_SITE_URL.includes('one.ie')
+      ? { crossSubDomainCookies: { enabled: true, domain: '.one.ie' } }
+      : {},
 
     session: {
-      expiresIn: 60 * 60 * 24 * 30, // 30 days
-      updateAge: 60 * 60 * 24, // refresh every 24h
+      // Browsers cap cookie Max-Age at 400 days (RFC 6265bis), so we set the
+      // expiry to 365 days and lean on Better Auth's sliding-window refresh.
+      // Every authenticated request issues a fresh cookie; an active user
+      // stays signed in indefinitely. Only a 365-day idle gap signs them out.
+      expiresIn: 60 * 60 * 24 * 365,
+      updateAge: 60 * 60 * 24, // refresh every 24h of activity
       cookieCache: {
         enabled: true,
-        maxAge: 60 * 60 * 24 * 30,
+        maxAge: 60 * 60 * 24 * 365,
       },
     },
 

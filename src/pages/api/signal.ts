@@ -302,15 +302,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
     sensitivityRank[senderSensitivity as keyof typeof sensitivityRank] >
     sensitivityRank[receiverSensitivity as keyof typeof sensitivityRank]
   ) {
-    // Sender is more sensitive than receiver — audit-only, never blocks.
+    const sensMode = enforcementMode()
     audit({
       sender,
       receiver,
       gate: 'sensitivity',
-      decision: 'observe',
-      mode: enforcementMode(),
+      decision: sensMode === 'enforce' ? 'deny' : 'observe',
+      mode: sensMode,
       reason: `sender=${senderSensitivity} > receiver=${receiverSensitivity}`,
     })
+    if (sensMode === 'enforce') {
+      return new Response(JSON.stringify({ dissolved: true, reason: `sensitivity:${senderSensitivity}>${receiverSensitivity}` }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
   }
 
   // Scope enforcement (Cycle 3): only fires when caller is authenticated.

@@ -30,6 +30,11 @@ id = "1c1dac4766e54a2c85425022a3b1e9da"
 #     ctx.waitUntil(fetch(new Request("https://one.ie/api/reconcile", { method: "POST" })))
 #   }
 
+# R2 backup bucket — used by workers/backup (one-typedb-backup worker)
+# Bucket: one-typedb-backups (provision via: wrangler r2 bucket create one-typedb-backups)
+# Backup worker wrangler.toml: workers/backup/wrangler.toml
+# Restore script: scripts/restore-typedb.ts
+
 # Worker environment configuration
 [env.production]
 vars = { ENVIRONMENT = "production" }

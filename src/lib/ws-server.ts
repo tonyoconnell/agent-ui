@@ -20,7 +20,7 @@ const BROADCAST_SECRET = typeof process !== 'undefined' ? process.env.BROADCAST_
  * Requires X-Broadcast-Secret header for authentication (set in Gateway).
  * Fire-and-forget: never throws, never blocks the caller.
  */
-export function relayToGateway(msg: WsMessage): void {
+export function relayToGateway(msg: WsMessage, group?: string): void {
   // Skip relay if no secret configured (dev mode or browser context)
   if (!BROADCAST_SECRET) return
 
@@ -30,7 +30,7 @@ export function relayToGateway(msg: WsMessage): void {
       'Content-Type': 'application/json',
       'X-Broadcast-Secret': BROADCAST_SECRET,
     },
-    body: JSON.stringify(msg),
+    body: JSON.stringify(group ? { ...msg, group } : msg),
   }).catch(() => {}) // silence network errors — relay is best-effort
 }
 

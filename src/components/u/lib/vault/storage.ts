@@ -5,14 +5,26 @@ import { VaultError } from './types'
 
 // ===== CONFIG =====
 export const DB_NAME = 'one-vault'
-export const DB_VERSION = 1
+// v2 added STORE_SESSION so the unlocked master key survives page reloads
+// (Web Crypto CryptoKey objects round-trip through IndexedDB even when
+// non-extractable — that's the persistent-session pattern).
+export const DB_VERSION = 2
 
 export const STORE_META = 'meta'
 export const STORE_WALLETS = 'wallets'
 export const STORE_AUDIT = 'audit'
+export const STORE_SESSION = 'session'
 
 const INDEX_WALLETS_BY_CHAIN = 'by-chain'
 const INDEX_AUDIT_BY_AT = 'by-at'
+
+/** Persistent session row — key is the singleton id `"active"`. */
+export interface VaultSessionRow {
+  id: 'active'
+  masterKey: CryptoKey
+  method: 'passkey' | 'password' | 'recovery'
+  unlockedAt: number
+}
 
 // Single module-scoped promise — reused across calls so version upgrades
 // don't fight each other and the same connection is shared app-wide.
@@ -55,6 +67,9 @@ export function openVaultDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_AUDIT)) {
         const audit = db.createObjectStore(STORE_AUDIT, { keyPath: 'id', autoIncrement: true })
         audit.createIndex(INDEX_AUDIT_BY_AT, 'at', { unique: false })
+      }
+      if (!db.objectStoreNames.contains(STORE_SESSION)) {
+        db.createObjectStore(STORE_SESSION, { keyPath: 'id' })
       }
     }
 
@@ -250,4 +265,28 @@ export async function pruneAudit(olderThanMs: number): Promise<number> {
   })
   await txDone(store.transaction)
   return deleted
+}
+
+// ===== SESSION (persistent across page reloads) =====
+//
+// CryptoKey objects round-trip through IndexedDB via structured cloning,
+// non-extractable status preserved. This is how we keep the vault unlocked
+// after a hard page reload without re-prompting the user for biometrics.
+
+export async function getSessionRow(): Promise<VaultSessionRow | null> {
+  const store = await tx(STORE_SESSION, 'readonly')
+  const result = await request<VaultSessionRow | undefined>(store.get('active'))
+  return result ?? null
+}
+
+export async function putSessionRow(row: Omit<VaultSessionRow, 'id'>): Promise<void> {
+  const store = await tx(STORE_SESSION, 'readwrite')
+  await request(store.put({ id: 'active', ...row }))
+  await txDone(store.transaction)
+}
+
+export async function clearSessionRow(): Promise<void> {
+  const store = await tx(STORE_SESSION, 'readwrite')
+  await request(store.delete('active'))
+  await txDone(store.transaction)
 }

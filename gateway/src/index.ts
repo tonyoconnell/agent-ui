@@ -223,7 +223,8 @@ export default {
       }
 
       // Security: Enforce global connection limit via DO
-      const hubId = env.WS_HUB.idFromName('global')
+      const group = url.searchParams.get('group') || 'global'
+      const hubId = env.WS_HUB.idFromName(group)
       const hub = env.WS_HUB.get(hubId)
       const countRes = await hub.fetch('https://do/count')
       const { count } = (await countRes.json()) as { count: number }
@@ -255,8 +256,9 @@ export default {
           )
         }
 
-        // Forward to the global WsHub DO — all isolates share this one hub
-        const hubId = env.WS_HUB.idFromName('global')
+        // Forward to the WsHub DO for the target group — all isolates share this hub
+        const broadcastGroup = (parsed.group as string | undefined) || 'global'
+        const hubId = env.WS_HUB.idFromName(broadcastGroup)
         const hub = env.WS_HUB.get(hubId)
         const result = await hub.fetch('https://do/send', {
           method: 'POST',

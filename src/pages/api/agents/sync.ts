@@ -21,6 +21,15 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const body = (await request.json()) as any
 
+    // Group-scoped authorization: if a world/group is specified, require 'hire' permission
+    const bodyGroup = (body as any).world || (body as any).group
+    if (bodyGroup) {
+      const { roleCheck } = await import('@/lib/role-check')
+      if (!roleCheck(gate.auth.role ?? 'agent', 'hire')) {
+        return Response.json({ error: 'insufficient role to sync agents into a group', required: 'hire', group: bodyGroup }, { status: 403 })
+      }
+    }
+
     // Single agent markdown
     if (body.markdown) {
       const spec = await syncAgentWithIdentity(parse(body.markdown))

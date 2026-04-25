@@ -423,6 +423,7 @@ function smokeCheck() {
     { name: 'Gateway config', path: join(ROOT, 'gateway', 'wrangler.toml') },
     { name: 'Sync config', path: join(ROOT, 'workers/sync', 'wrangler.toml') },
     { name: 'NanoClaw config', path: join(ROOT, 'nanoclaw', 'wrangler.toml') },
+    { name: 'Backup config', path: join(ROOT, 'workers/backup', 'wrangler.toml') },
   ]
   let ok = true
   for (const check of checks) {
@@ -541,12 +542,13 @@ async function deployAll(creds: Record<string, string>): Promise<DeployResult[]>
   // Pass `--config wrangler.toml` explicitly so wrangler 4.x doesn't traverse
   // up to the root's `.wrangler/deploy/config.json` (created by `astro build`)
   // and refuse to deploy with a "found both configs" error.
-  console.log(c.gray(`  → Gateway, Sync, NanoClaw (parallel)...`))
+  console.log(c.gray(`  → Gateway, Sync, NanoClaw, Backup (parallel)...`))
   const workerStart = Date.now()
   const workers = await Promise.all([
     deployService('Gateway', join(ROOT, 'gateway'), ['deploy', '--config', 'wrangler.toml'], env),
     deployService('Sync', join(ROOT, 'workers/sync'), ['deploy', '--config', 'wrangler.toml'], env),
     deployService('NanoClaw', join(ROOT, 'nanoclaw'), ['deploy', '--config', 'wrangler.toml'], env),
+    deployService('Backup', join(ROOT, 'workers/backup'), ['deploy', '--config', 'wrangler.toml'], env),
   ])
   const workerElapsed = Date.now() - workerStart
 
