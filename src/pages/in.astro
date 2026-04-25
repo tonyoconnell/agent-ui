@@ -1,14 +1,21 @@
 ---
+export const prerender = false
 import Layout from "@/layouts/Layout.astro"
 import { Inbox } from "@/components/in/Inbox"
 import { getGroupsForUser, resolveUnitFromSession } from '@/lib/api-auth'
 
-const OWNER_ROLES = ['chairman', 'ceo', 'operator']
-const auth = await resolveUnitFromSession(Astro.request, Astro.locals).catch(() => null)
-if (!auth?.isValid) return Astro.redirect('/', 302)
+const auth = await resolveUnitFromSession(Astro.request, Astro.locals).catch((e) => {
+  console.log('[/in] auth threw:', e)
+  return null
+})
+console.log('[/in] auth:', { isValid: auth?.isValid, user: auth?.user, keyId: auth?.keyId })
+if (!auth?.isValid) {
+  console.log('[/in] redirect → / (no auth)')
+  return Astro.redirect('/', 302)
+}
 
-const groups = await getGroupsForUser(auth.user, OWNER_ROLES)
-if (groups.length === 0) return Astro.redirect('/', 302)
+const groups = await getGroupsForUser(auth.user)
+console.log('[/in] groups for', auth.user, '→', groups.length, groups.map(g => `${g.gid}(${g.role})`))
 if (groups.length === 1) return Astro.redirect(`/in/${groups[0].gid}`, 302)
 ---
 

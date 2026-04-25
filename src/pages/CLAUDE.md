@@ -18,7 +18,7 @@
 | `discover.astro` | `/discover` | `DiscoverGrid` | `client:load` |
 | `market.astro` | `/market` | `MarketView` | `client:load` |
 | `marketplace.astro` | `/marketplace` | *(redirects to /market)* | — |
-| `build.astro` | `/build` | `AgentBuilder` | `client:load` |
+| `build/index.astro` | `/build` | `BuildIsland` | `client:load` |
 | `ceo.astro` | `/ceo` | `CEOPanel` | `client:load` |
 | `chairman.astro` | `/chairman` | `ChairmanPanel` | `client:load` |
 | `design.astro` | `/design` | `DesignEditor` | `client:load` |
