@@ -61,15 +61,13 @@ function sumDailyCaps(nodes: FleetNode[]): bigint {
   return total
 }
 
-/** Read the active Sui address from the IDB vault (best-effort). */
+/** Read the active Sui address from the vault (best-effort). */
 async function readAddressFromVault(): Promise<string | null> {
   try {
-    const { getWallet } = await import('@/components/u/lib/idb')
-    const record = await getWallet()
-    if (!record) return null
-    // WalletRecord.address is the stable Sui address (0x...)
-    const addr = record.address
-    return typeof addr === 'string' && addr.startsWith('0x') ? addr : null
+    const Vault = await import('@/components/u/lib/vault/vault')
+    const wallets = await Vault.listWallets()
+    const sui = wallets.find((w) => w.chain === 'sui')
+    return sui?.address ?? null
   } catch {
     return null
   }

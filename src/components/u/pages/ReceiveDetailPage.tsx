@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import * as Vault from '../lib/vault/vault'
 import { UNav } from '../UNav'
 
 interface Wallet {
@@ -55,15 +56,21 @@ export function ReceiveDetailPage({ walletId }: ReceiveDetailPageProps) {
   const sharingRef = useRef(false)
 
   useEffect(() => {
-    // REMOVED: localStorage.getItem('u_wallets') read
-    // TODO: read from IndexedDB via useVault() hook instead
-    // const stored = localStorage.getItem('u_wallets')
-    // if (stored) {
-    //   const wallets = JSON.parse(stored)
-    //   const found = wallets.find((w: Wallet) => w.id === walletId)
-    //   if (found) setWallet(found)
-    // }
-  }, [])
+    void Vault.getWallet(walletId).then((v) => {
+      if (!v) return
+      _setWallet({
+        id: v.id,
+        name: v.name ?? `My ${v.chain.toUpperCase()} Wallet`,
+        address: v.address,
+        chain: v.chain.toLowerCase(),
+        balance: v.balance,
+        context: v.id.startsWith('testnet-') ? 'testnet' : 'mainnet',
+        publicKey: v.publicKey || undefined,
+        usdValue: v.usdValue,
+        lastUpdated: v.createdAt,
+      } as Wallet)
+    })
+  }, [walletId])
 
   const copyAddress = async () => {
     if (!wallet) return

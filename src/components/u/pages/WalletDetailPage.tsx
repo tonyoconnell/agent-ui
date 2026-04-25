@@ -580,13 +580,10 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
       if (result) {
         setLiveBalance(result)
 
-        // Update wallet in storage
+        // Update wallet in vault and local state
         const updatedWallet = { ...wallet, balance: result.balance, usdValue: result.usdValue }
         setWallet(updatedWallet)
-
-        const _wallets = allWallets.map((w) => (w.id === wallet.id ? updatedWallet : w))
-        // REMOVED: localStorage.setItem('u_wallets', JSON.stringify(wallets))
-        // TODO: write to IndexedDB via useVault().updateBalance() instead
+        void Vault.updateBalance(wallet.id, result.balance, result.usdValue ?? 0)
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error)

@@ -1,7 +1,7 @@
 // vault/index.ts — public API surface. Import everything via this file.
 // Internal modules (crypto/storage/passkey/recovery) are not part of the API.
 
-export { detectCapabilities, guessAuthenticatorLabel } from './passkey'
+export { detectCapabilities, guessAuthenticatorLabel, isUserCancellation } from './passkey'
 export { registerPasskeyForSignin, signInWithPasskey } from './passkey-cloud'
 export {
   assertValidRecoveryPhrase,
