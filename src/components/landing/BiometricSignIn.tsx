@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
+import { detectCapabilities, isUserCancellation, signInWithPasskey, VaultError } from '@/components/u/lib/vault'
 import { emitClick } from '@/lib/ui-signal'
-import {
-  detectCapabilities,
-  isUserCancellation,
-  signInWithPasskey,
-  VaultError,
-} from '@/components/u/lib/vault'
 
 type Status = 'idle' | 'checking' | 'unsupported' | 'authenticating' | 'success' | 'error'
 
@@ -122,9 +117,7 @@ export function BiometricSignIn({ redirectTo = '/u' }: Props) {
           </button>
         </p>
       ) : (
-        <p className="text-sm text-gray-500">
-          Wallet appears in &lt; 1 second · Touch ID, Face ID, Windows Hello
-        </p>
+        <p className="text-sm text-gray-500">Wallet appears in &lt; 1 second · Touch ID, Face ID, Windows Hello</p>
       )}
     </div>
   )

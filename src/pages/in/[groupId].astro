@@ -1,6 +1,6 @@
 ---
 export const prerender = false
-import Layout from "@/layouts/Layout.astro"
+import AppLayout from "@/layouts/AppLayout.astro"
 import { Inbox } from "@/components/in/Inbox"
 import { getGroupsForUser, resolveUnitFromSession } from '@/lib/api-auth'
 
@@ -13,8 +13,6 @@ const thisGroup = groups.find((g) => g.gid === groupId)
 if (!thisGroup) return Astro.redirect('/', 302)
 ---
 
-<Layout title={`/in/${groupId} — ONE`}>
-  <div class="h-screen w-screen overflow-hidden">
-    <Inbox client:only="react" groupId={groupId} groups={groups} />
-  </div>
-</Layout>
+<AppLayout title={`/in/${groupId} — ONE`}>
+  <Inbox client:only="react" groupId={groupId} groups={groups} />
+</AppLayout>

@@ -26,10 +26,12 @@ export function detectEmailProvider(): EmailProvider {
 }
 
 async function sendViaPostmark(payload: EmailPayload): Promise<void> {
-  const apiKey = (typeof process !== 'undefined' && process.env?.POSTMARK_API_KEY) ? process.env.POSTMARK_API_KEY : undefined
+  const apiKey =
+    typeof process !== 'undefined' && process.env?.POSTMARK_API_KEY ? process.env.POSTMARK_API_KEY : undefined
   if (!apiKey) throw new Error('POSTMARK_API_KEY is not set')
 
-  const from = (typeof process !== 'undefined' && process.env?.NOTIFY_FROM_EMAIL) ? process.env.NOTIFY_FROM_EMAIL : undefined
+  const from =
+    typeof process !== 'undefined' && process.env?.NOTIFY_FROM_EMAIL ? process.env.NOTIFY_FROM_EMAIL : undefined
   if (!from) throw new Error('NOTIFY_FROM_EMAIL is not set')
 
   const body: Record<string, unknown> = {
@@ -57,10 +59,11 @@ async function sendViaPostmark(payload: EmailPayload): Promise<void> {
 }
 
 async function sendViaResend(payload: EmailPayload): Promise<void> {
-  const apiKey = (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) ? process.env.RESEND_API_KEY : undefined
+  const apiKey = typeof process !== 'undefined' && process.env?.RESEND_API_KEY ? process.env.RESEND_API_KEY : undefined
   if (!apiKey) throw new Error('RESEND_API_KEY is not set')
 
-  const from = (typeof process !== 'undefined' && process.env?.NOTIFY_FROM_EMAIL) ? process.env.NOTIFY_FROM_EMAIL : undefined
+  const from =
+    typeof process !== 'undefined' && process.env?.NOTIFY_FROM_EMAIL ? process.env.NOTIFY_FROM_EMAIL : undefined
   if (!from) throw new Error('NOTIFY_FROM_EMAIL is not set')
 
   const body: Record<string, unknown> = {

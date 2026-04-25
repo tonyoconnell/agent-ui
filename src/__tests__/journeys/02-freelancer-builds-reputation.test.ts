@@ -9,17 +9,17 @@
  * traversed the path to this freelancer's capability. Revenue IS weight.
  */
 
-import { describe, expect, it } from "vitest"
-import { world } from "@/engine/persist"
+import { describe, expect, it } from 'vitest'
+import { world } from '@/engine/persist'
 
 const net = world()
-const ALICE = "freelancer:alice:journey-02"
-const SKILL = "skill:design:journey-02"
+const ALICE = 'freelancer:alice:journey-02'
+const SKILL = 'skill:design:journey-02'
 const ALICE_SKILL = `${ALICE}:${SKILL}`
 
-describe("🧑‍💻  A freelancer builds reputation", () => {
-  describe("Stage 1 · the capability is born", () => {
-    it("Alice publishes a skill — design, price 0.05 SUI, scope public", () => {
+describe('🧑‍💻  A freelancer builds reputation', () => {
+  describe('Stage 1 · the capability is born', () => {
+    it('Alice publishes a skill — design, price 0.05 SUI, scope public', () => {
       // capability(provider: alice, offered: design) isa capability, has price 0.05
       // No review process. No approval. The skill is live the moment the row exists.
       net.mark(`${ALICE}→${ALICE_SKILL}`, 0.1)
@@ -34,16 +34,16 @@ describe("🧑‍💻  A freelancer builds reputation", () => {
     })
   })
 
-  describe("Stage 2 · the first sale", () => {
-    it("a buyer finds Alice via tag search — emits POST /api/capability/hire", () => {
-      const buyer = "buyer:bob:journey-02"
+  describe('Stage 2 · the first sale', () => {
+    it('a buyer finds Alice via tag search — emits POST /api/capability/hire', () => {
+      const buyer = 'buyer:bob:journey-02'
       const path = `${buyer}→${ALICE}`
       const initialStrength = net.sense(path)
       expect(initialStrength).toBe(0) // no prior relationship — payment required
     })
 
-    it("buyer Bob pays 0.05 SUI — escrow → release → settlement → mark", () => {
-      const path = "buyer:bob:journey-02→" + ALICE
+    it('buyer Bob pays 0.05 SUI — escrow → release → settlement → mark', () => {
+      const path = 'buyer:bob:journey-02→' + ALICE
       // The release_escrow Move call atomically:
       //   1. transfers SUI to Alice
       //   2. increments path.revenue
@@ -61,8 +61,8 @@ describe("🧑‍💻  A freelancer builds reputation", () => {
     })
   })
 
-  describe("Stage 3 · word of mouth (in pheromone)", () => {
-    it("nine more buyers traverse the same skill — each leaves strength 1.0", () => {
+  describe('Stage 3 · word of mouth (in pheromone)', () => {
+    it('nine more buyers traverse the same skill — each leaves strength 1.0', () => {
       for (let i = 0; i < 9; i++) {
         const path = `buyer:n${i}:journey-02→${ALICE}`
         net.mark(path, 1)
@@ -81,8 +81,8 @@ describe("🧑‍💻  A freelancer builds reputation", () => {
     })
   })
 
-  describe("Stage 4 · the highway hardens", () => {
-    it("after 50 successful payments, harden() can be called — strength ≥ 50", () => {
+  describe('Stage 4 · the highway hardens', () => {
+    it('after 50 successful payments, harden() can be called — strength ≥ 50', () => {
       // Simulate the remaining payments to reach Highway threshold.
       const current = net.sense(`${ALICE}→${ALICE_SKILL}`)
       const remaining = Math.max(0, 50 - current)
@@ -102,7 +102,7 @@ describe("🧑‍💻  A freelancer builds reputation", () => {
       expect(FROZEN).toBe(true)
     })
 
-    it("Alice never asked anyone to verify her — the chain verified every payment", () => {
+    it('Alice never asked anyone to verify her — the chain verified every payment', () => {
       // No review, no badge, no application. Just paid work, recorded immutably.
       // The Highway IS the verification.
       const strength = net.sense(`${ALICE}→${ALICE_SKILL}`)
@@ -110,7 +110,7 @@ describe("🧑‍💻  A freelancer builds reputation", () => {
     })
   })
 
-  describe("Stage 5 · the substrate routes to her automatically", () => {
+  describe('Stage 5 · the substrate routes to her automatically', () => {
     it("a new buyer asks 'who does design?' — select() returns Alice's path", () => {
       // The substrate's select() routes by weight. Alice's strength dominates.
       // No directory, no marketplace algorithm. Just pheromone, doing what pheromone does.

@@ -31,9 +31,11 @@ function encodeStr(s: string): Uint8Array<ArrayBuffer> {
 
 /** Build a VAPID Authorization header using the Web Crypto API. */
 async function buildVapidAuth(endpoint: string): Promise<string> {
-  const publicKey = (typeof process !== 'undefined' && process.env?.VAPID_PUBLIC_KEY) ? process.env.VAPID_PUBLIC_KEY : undefined
-  const privateKey = (typeof process !== 'undefined' && process.env?.VAPID_PRIVATE_KEY) ? process.env.VAPID_PRIVATE_KEY : undefined
-  const email = (typeof process !== 'undefined' && process.env?.VAPID_EMAIL) ? process.env.VAPID_EMAIL : undefined
+  const publicKey =
+    typeof process !== 'undefined' && process.env?.VAPID_PUBLIC_KEY ? process.env.VAPID_PUBLIC_KEY : undefined
+  const privateKey =
+    typeof process !== 'undefined' && process.env?.VAPID_PRIVATE_KEY ? process.env.VAPID_PRIVATE_KEY : undefined
+  const email = typeof process !== 'undefined' && process.env?.VAPID_EMAIL ? process.env.VAPID_EMAIL : undefined
 
   if (!publicKey || !privateKey || !email) {
     throw new Error('VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, and VAPID_EMAIL must be set')
@@ -208,7 +210,8 @@ function bufferToBase64url(buf: ArrayBuffer): string {
  * Throws if the push service returns a non-2xx status.
  */
 export async function sendPush(subscription: PushSubscription, payload: PushPayload): Promise<void> {
-  const publicKey = (typeof process !== 'undefined' && process.env?.VAPID_PUBLIC_KEY) ? process.env.VAPID_PUBLIC_KEY : undefined
+  const publicKey =
+    typeof process !== 'undefined' && process.env?.VAPID_PUBLIC_KEY ? process.env.VAPID_PUBLIC_KEY : undefined
   if (!publicKey) throw new Error('VAPID_PUBLIC_KEY is not set')
 
   const payloadStr = JSON.stringify(payload)

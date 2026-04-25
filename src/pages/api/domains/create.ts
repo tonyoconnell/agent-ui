@@ -43,9 +43,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // CF for SaaS: create custom hostname via CF API (fire if env vars present)
   let cfHostnameId: string | null = null
-  const cfApiKey = (typeof process !== 'undefined' && process.env?.CLOUDFLARE_GLOBAL_API_KEY) ? process.env.CLOUDFLARE_GLOBAL_API_KEY : undefined
-  const cfEmail = (typeof process !== 'undefined' && process.env?.CLOUDFLARE_EMAIL) ? process.env.CLOUDFLARE_EMAIL : undefined
-  const cfZoneId = (typeof process !== 'undefined' && process.env?.CF_ZONE_ID) ? process.env.CF_ZONE_ID : undefined
+  const cfApiKey =
+    typeof process !== 'undefined' && process.env?.CLOUDFLARE_GLOBAL_API_KEY
+      ? process.env.CLOUDFLARE_GLOBAL_API_KEY
+      : undefined
+  const cfEmail =
+    typeof process !== 'undefined' && process.env?.CLOUDFLARE_EMAIL ? process.env.CLOUDFLARE_EMAIL : undefined
+  const cfZoneId = typeof process !== 'undefined' && process.env?.CF_ZONE_ID ? process.env.CF_ZONE_ID : undefined
   if (cfApiKey && cfEmail && cfZoneId) {
     try {
       const cfRes = await fetch(`https://api.cloudflare.com/client/v4/zones/${cfZoneId}/custom_hostnames`, {

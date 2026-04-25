@@ -48,13 +48,9 @@ function findSqlitePath(): string {
       `[local-d1] No local D1 state at ${D1_DIR}. Run: bunx wrangler d1 migrations apply one-vault --local`,
     )
   }
-  const files = readdirSync(D1_DIR).filter(
-    (f) => f.endsWith('.sqlite') && f !== 'metadata.sqlite',
-  )
+  const files = readdirSync(D1_DIR).filter((f) => f.endsWith('.sqlite') && f !== 'metadata.sqlite')
   if (files.length === 0) {
-    throw new Error(
-      `[local-d1] No DB file in ${D1_DIR}. Run: bunx wrangler d1 migrations apply one-vault --local`,
-    )
+    throw new Error(`[local-d1] No DB file in ${D1_DIR}. Run: bunx wrangler d1 migrations apply one-vault --local`)
   }
   if (files.length > 1) {
     // Multiple D1 bindings would land here — unexpected with current wrangler.toml.
@@ -158,9 +154,7 @@ class LocalD1Database {
     return new LocalPreparedStatement(this.dbPromise, sql)
   }
 
-  async exec(
-    sql: string,
-  ): Promise<{ count: number; duration: number }> {
+  async exec(sql: string): Promise<{ count: number; duration: number }> {
     const db = await this.dbPromise
     const start = performance.now()
     db.exec(sql)

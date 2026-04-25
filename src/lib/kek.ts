@@ -26,7 +26,7 @@ function base64ToBuffer(b64: string): Uint8Array<ArrayBuffer> {
 }
 
 async function getMasterKEK(): Promise<CryptoKey> {
-  const raw = (typeof process !== 'undefined' && process.env?.MASTER_KEK) ? process.env.MASTER_KEK : undefined
+  const raw = typeof process !== 'undefined' && process.env?.MASTER_KEK ? process.env.MASTER_KEK : undefined
   if (!raw) throw new Error('MASTER_KEK env var not set')
   const bytes = base64ToBuffer(raw)
   return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])

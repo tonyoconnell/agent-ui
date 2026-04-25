@@ -1,26 +1,16 @@
 ---
 export const prerender = false
-import Layout from "@/layouts/Layout.astro"
+import AppLayout from "@/layouts/AppLayout.astro"
 import { Inbox } from "@/components/in/Inbox"
 import { getGroupsForUser, resolveUnitFromSession } from '@/lib/api-auth'
 
-const auth = await resolveUnitFromSession(Astro.request, Astro.locals).catch((e) => {
-  console.log('[/in] auth threw:', e)
-  return null
-})
-console.log('[/in] auth:', { isValid: auth?.isValid, user: auth?.user, keyId: auth?.keyId })
-if (!auth?.isValid) {
-  console.log('[/in] redirect → / (no auth)')
-  return Astro.redirect('/', 302)
-}
+const auth = await resolveUnitFromSession(Astro.request, Astro.locals).catch(() => null)
+if (!auth?.isValid) return Astro.redirect('/', 302)
 
 const groups = await getGroupsForUser(auth.user)
-console.log('[/in] groups for', auth.user, '→', groups.length, groups.map(g => `${g.gid}(${g.role})`))
 if (groups.length === 1) return Astro.redirect(`/in/${groups[0].gid}`, 302)
 ---
 
-<Layout title="/in — ONE">
-  <div class="h-screen w-screen overflow-hidden">
-    <Inbox client:only="react" groups={groups} />
-  </div>
-</Layout>
+<AppLayout title="/in — ONE">
+  <Inbox client:only="react" groups={groups} />
+</AppLayout>
