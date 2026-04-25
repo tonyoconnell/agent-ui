@@ -1351,7 +1351,8 @@ The ontology IS the auth model. No separate ACL table. No permissions database. 
 
 | Role | Can | Cannot |
 |------|-----|--------|
-| chairman | everything | — |
+| owner | everything (substrate apex; bypasses scope/network/sensitivity gates per `owner.md`) | exceed `OWNER_HARD_CEILING` rate (rate-limit pre-bypass per Gap 5); skip audit row (every allow emits `audit:owner:{action}` per Gap 2) |
+| chairman | everything | bypass gates (chairman is per-group; owner is substrate-wide) |
 | board | read highways/revenue/toxic | write anything |
 | ceo | hire/fire/commend/flag, tune sensitivity | appoint roles |
 | operator | add units, mark/warn | remove units, tune |

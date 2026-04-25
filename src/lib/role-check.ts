@@ -22,11 +22,43 @@ export type RoleAction =
   | 'add_attribute'
   | 'view_onchain'
 
-export type GovernanceRole = 'chairman' | 'board' | 'ceo' | 'operator' | 'agent' | 'auditor'
+export type GovernanceRole = 'owner' | 'chairman' | 'board' | 'ceo' | 'operator' | 'agent' | 'auditor'
+
+// Substrate owner — the human apex (Anthony O'Connell). Singleton per substrate;
+// holds every action permission (matrix-equivalent to chairman) and additionally
+// bypasses scope/network/sensitivity gates in src/pages/api/signal.ts. Owner-tier
+// API calls are still subject to the rate ceiling (Gap 5) and every allow emits
+// audit:owner:{action} before short-circuiting (Gap 2). See owner.md §"File map"
+// and §"Owner identity vs the consumer wallet."
+const OWNER_ACTIONS: Record<RoleAction, true> = {
+  add_unit: true,
+  remove_unit: true,
+  mark: true,
+  warn: true,
+  tune_sensitivity: true,
+  read_highways: true,
+  read_revenue: true,
+  read_toxic: true,
+  appoint_role: true,
+  read_memory: true,
+  delete_memory: true,
+  discover: true,
+  create_group: true,
+  update_group: true,
+  delete_group: true,
+  invite_member: true,
+  change_role: true,
+  customize_vocabulary: true,
+  edit_schema: true,
+  mint_capability: true,
+  add_attribute: true,
+  view_onchain: true,
+}
 
 // Hard-coded fallback — used when TypeDB is unreachable or role-grant table is empty.
 // Keep in sync with migrations/typedb/seed-roles.tql.
 const PERMISSIONS: Record<GovernanceRole, Partial<Record<RoleAction, true>>> = {
+  owner: OWNER_ACTIONS,
   chairman: {
     add_unit: true,
     remove_unit: true,
