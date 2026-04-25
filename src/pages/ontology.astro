@@ -1,0 +1,12 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import { OntologyEditor } from '@/components/ontology/OntologyEditor'
+
+const user = Astro.locals.user
+const isAuthenticated = !!user
+const initialGroup = user?.id ? `g:owns:${user.id}` : 'g:public'
+---
+
+<Layout title="Ontology — ONE">
+  <OntologyEditor client:only="react" initialGroup={initialGroup} isAuthenticated={isAuthenticated} />
+</Layout>

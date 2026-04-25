@@ -42,6 +42,19 @@ components/
     chat/               # Conversational checkout: BuyInChat / BuyInChatEnhanced / AddressForm /
                         # PaymentProcessor / PurchaseIntent / OrderSummary / OrderConfirmation / ShippingOptions
                         # Ported from shop/buy-in-chatgpt, renamed BuyInChatGPT* → BuyInChat*
+  ontology/             # Owner-grade /ontology surface (one/ontology-editor.md)
+    OntologyEditor.tsx  # Main container — composes hooks, layers, panels
+    EditPalette.tsx     # Drag chips: person/thing/group/insight
+    GroupSwitcher.tsx
+    LayerToggle.tsx
+    InspectorV2.tsx     # Right rail — TypeDB record + Sui twin
+    KpiStrip.tsx        # Top dashboard — revenue/members/capabilities/hypotheses
+    OntologyPrefs.tsx   # Customization panel (chairman-only group params)
+    TqlPreview.tsx      # Drawer that shows the TQL of any owner edit
+    TimeSlider.tsx      # Time travel
+    nodes/              # Custom ReactFlow node types per dimension
+    edges/              # PathEdge with strength/resistance/signal animation
+    lib/at-timestamp.ts # TimeWindow helpers + diff
 ```
 
 **Pay component rule:** every onClick in `pay/` must emit `ui:pay:<action>` via `emitClick()` per `.claude/rules/ui.md`. Ported components conform to this rule.
