@@ -328,8 +328,7 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
               {signInError && (
                 <span
                   role="alert"
-                  className="hidden text-[11px] text-red-300 sm:inline"
-                  title="Try again, or visit /signin for password sign-in"
+                  className="absolute left-0 right-0 top-14 mx-4 rounded-md border border-red-500/20 bg-red-950/80 px-3 py-2 text-[11px] text-red-300 backdrop-blur sm:static sm:mx-0 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
                 >
                   {signInError}
                 </span>
