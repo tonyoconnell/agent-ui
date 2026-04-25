@@ -117,14 +117,12 @@ async function globalPrfSalt(): Promise<Uint8Array> {
  *  Better Auth's `baseURL` includes the `/api/auth` path, which breaks the
  *  strict equality check in @simplewebauthn/server. Strip to origin only. */
 function originFromContext(ctx: { context: { baseURL: string }; request?: Request }): string {
+  // Prefer the live request URL — it reflects the actual origin the browser is on.
+  // baseURL is a build-time constant and may differ from the runtime domain.
   try {
-    return new URL(ctx.context.baseURL).origin
+    return new URL(ctx.request?.url ?? ctx.context.baseURL).origin
   } catch {
-    try {
-      return new URL(ctx.request?.url ?? 'http://localhost').origin
-    } catch {
-      return 'http://localhost'
-    }
+    return 'http://localhost'
   }
 }
 
@@ -265,10 +263,14 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
 
           let rpID = opts.rpID
           if (!rpID) {
+            // Prefer the live request URL — it reflects the actual domain the
+            // browser is on (dev.one.ie, localhost, etc.). baseURL is a
+            // build-time constant (PUBLIC_SITE_URL) and may not match the
+            // domain the user is accessing when the build is reused across envs.
             try {
-              rpID = new URL(ctx.context.baseURL).hostname
+              rpID = new URL(ctx.request?.url ?? ctx.context.baseURL).hostname
             } catch {
-              rpID = new URL(ctx.request?.url ?? 'http://localhost').hostname
+              rpID = 'localhost'
             }
           }
           const rpName = opts.rpName ?? 'ONE'
@@ -332,7 +334,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
 
         const { challenge } = await verifyChallenge(ctx.body.challengeToken, opts.challengeSecret, 'register')
 
-        const rpID = opts.rpID ?? new URL(ctx.context.baseURL).hostname
+        const rpID = opts.rpID ?? new URL(ctx.request?.url ?? ctx.context.baseURL).hostname
         const expectedOrigins = opts.expectedOrigins ?? [originFromContext(ctx)]
 
         let verification: Awaited<ReturnType<typeof verifyRegistrationResponse>>
@@ -384,10 +386,14 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
         try {
           let rpID = opts.rpID
           if (!rpID) {
+            // Prefer the live request URL — it reflects the actual domain the
+            // browser is on (dev.one.ie, localhost, etc.). baseURL is a
+            // build-time constant (PUBLIC_SITE_URL) and may not match the
+            // domain the user is accessing when the build is reused across envs.
             try {
-              rpID = new URL(ctx.context.baseURL).hostname
+              rpID = new URL(ctx.request?.url ?? ctx.context.baseURL).hostname
             } catch {
-              rpID = new URL(ctx.request?.url ?? 'http://localhost').hostname
+              rpID = 'localhost'
             }
           }
           const rpName = opts.rpName ?? 'ONE'
@@ -465,10 +471,14 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
 
           let rpID = opts.rpID
           if (!rpID) {
+            // Prefer the live request URL — it reflects the actual domain the
+            // browser is on (dev.one.ie, localhost, etc.). baseURL is a
+            // build-time constant (PUBLIC_SITE_URL) and may not match the
+            // domain the user is accessing when the build is reused across envs.
             try {
-              rpID = new URL(ctx.context.baseURL).hostname
+              rpID = new URL(ctx.request?.url ?? ctx.context.baseURL).hostname
             } catch {
-              rpID = new URL(ctx.request?.url ?? 'http://localhost').hostname
+              rpID = 'localhost'
             }
           }
           const expectedOrigins = opts.expectedOrigins ?? [originFromContext(ctx)]
@@ -553,10 +563,14 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
           // Derive rpID defensively: fall back to request host if baseURL is missing.
           let rpID = opts.rpID
           if (!rpID) {
+            // Prefer the live request URL — it reflects the actual domain the
+            // browser is on (dev.one.ie, localhost, etc.). baseURL is a
+            // build-time constant (PUBLIC_SITE_URL) and may not match the
+            // domain the user is accessing when the build is reused across envs.
             try {
-              rpID = new URL(ctx.context.baseURL).hostname
+              rpID = new URL(ctx.request?.url ?? ctx.context.baseURL).hostname
             } catch {
-              rpID = new URL(ctx.request?.url ?? 'http://localhost').hostname
+              rpID = 'localhost'
             }
           }
 
@@ -633,10 +647,14 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
 
           let rpID = opts.rpID
           if (!rpID) {
+            // Prefer the live request URL — it reflects the actual domain the
+            // browser is on (dev.one.ie, localhost, etc.). baseURL is a
+            // build-time constant (PUBLIC_SITE_URL) and may not match the
+            // domain the user is accessing when the build is reused across envs.
             try {
-              rpID = new URL(ctx.context.baseURL).hostname
+              rpID = new URL(ctx.request?.url ?? ctx.context.baseURL).hostname
             } catch {
-              rpID = new URL(ctx.request?.url ?? 'http://localhost').hostname
+              rpID = 'localhost'
             }
           }
           const expectedOrigins = opts.expectedOrigins ?? [originFromContext(ctx)]
