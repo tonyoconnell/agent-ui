@@ -145,13 +145,13 @@ if (!brandStyle) {
 		</script>
 		<Fragment set:html={brandStyle} />
 	</head>
-	<body class="min-h-screen flex flex-col bg-background text-foreground antialiased">
-		{!hideHeader && <Header client:idle />}
+	<body class:list={["min-h-screen flex flex-col bg-background text-foreground antialiased", !hideSidebar && "md:pl-16"]}>
 		{!hideSidebar && <Sidebar client:idle current={sidebarCurrent} />}
-		<main class:list={["flex-1", !hideSidebar && "md:pl-16 pb-20 md:pb-0"]}>
+		{!hideHeader && <Header client:idle />}
+		<main class="flex-1">
 			<slot />
 		</main>
-		<footer class:list={["border-t border-border px-6 py-6 text-center text-xs text-muted-foreground pb-24 md:pb-6", !hideSidebar && "md:pl-16"]}>
+		<footer class="border-t border-border px-6 py-6 text-center text-xs text-muted-foreground pb-24 md:pb-6">
 			<nav aria-label="Legal" class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
 				<span>&copy; {new Date().getFullYear()} One Internet Enterprises Ltd</span>
 				<a href="/legal/terms" class="underline underline-offset-4 hover:text-foreground transition-colors">Terms of Service</a>

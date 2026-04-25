@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
 import type { WalletRecord } from '../../../../interfaces/types-wallet'
-import { UNav } from '../UNav'
 
 function deviceCount(record: WalletRecord | null): number {
   if (!record) return 0
@@ -53,8 +52,6 @@ export function KeysPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
-      <UNav active="keys" />
-
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div>

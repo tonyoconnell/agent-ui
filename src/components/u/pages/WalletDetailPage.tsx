@@ -48,7 +48,6 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import * as Vault from '../lib/vault/vault'
 import { ReceiveSheet } from '../sheets/ReceiveSheet'
-import { UNav } from '../UNav'
 
 type ChainStyle = {
   tile: string
@@ -806,7 +805,6 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <UNav active="wallets" />
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex items-center justify-center py-20 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" strokeWidth={1.5} />
@@ -819,7 +817,6 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
   if (!wallet) {
     return (
       <div className="min-h-screen bg-background">
-        <UNav active="wallets" />
         <div className="max-w-6xl mx-auto px-6 py-8">
           <Card className="p-12 text-center">
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[22px] bg-muted ring-1 ring-border">
@@ -856,8 +853,6 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="wallets" />
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Back Button */}
         <Button

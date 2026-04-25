@@ -18,7 +18,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
-import { UNav } from '../UNav'
 
 // Supported chains for swapping
 const SWAP_CHAINS = [
@@ -152,8 +151,6 @@ export function SwapPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="swap" />
-
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Hero Section - Coming Soon */}
         <div className="text-center mb-12 sm:mb-16">

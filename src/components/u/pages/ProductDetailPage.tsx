@@ -30,7 +30,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import * as Vault from '../lib/vault/vault'
-import { UNav } from '../UNav'
 
 interface Product {
   id: string
@@ -219,7 +218,6 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
   if (!product) {
     return (
       <div className="min-h-screen bg-background">
-        <UNav active="products" />
         <div className="max-w-4xl mx-auto px-6 py-8">
           <Card className="p-12 text-center">
             <div className="text-6xl mb-4">🔍</div>
@@ -237,8 +235,6 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="products" />
-
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Back Button */}
         <Button variant="ghost" className="mb-6" onClick={() => (window.location.href = '/u/products')}>

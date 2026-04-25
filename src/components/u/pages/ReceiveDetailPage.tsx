@@ -12,7 +12,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import * as Vault from '../lib/vault/vault'
-import { UNav } from '../UNav'
 
 interface Wallet {
   id: string
@@ -115,7 +114,6 @@ export function ReceiveDetailPage({ walletId }: ReceiveDetailPageProps) {
   if (!wallet) {
     return (
       <div className="min-h-screen bg-background">
-        <UNav active="receive" />
         <div className="max-w-md mx-auto px-4 py-12 text-center">
           <div className="text-4xl mb-4">🔍</div>
           <h2 className="text-xl font-semibold mb-2">Wallet Not Found</h2>
@@ -132,8 +130,6 @@ export function ReceiveDetailPage({ walletId }: ReceiveDetailPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="receive" />
-
       <div className="max-w-md mx-auto px-4 py-6">
         {/* Back Link */}
         <a

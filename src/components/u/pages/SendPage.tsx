@@ -24,7 +24,6 @@ import type { ScopedWalletStruct } from '../../../../interfaces/move/scoped-wall
 import { getScopedWallet } from '../lib/scoped-wallet'
 import { signWithPasskey } from '../lib/signer'
 import * as Vault from '../lib/vault/vault'
-import { UNav } from '../UNav'
 
 // ===== CONSTANTS =====
 
@@ -395,8 +394,6 @@ export function SendPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="send" />
-
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="text-center mb-8">

@@ -40,7 +40,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import * as Vault from '../lib/vault/vault'
-import { UNav } from '../UNav'
 
 interface Product {
   id: string
@@ -338,8 +337,6 @@ export function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="products" />
-
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

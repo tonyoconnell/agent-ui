@@ -16,7 +16,6 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { UNav } from '../UNav'
 
 // Supported testnet chains
 const TESTNET_CHAINS = [
@@ -167,8 +166,6 @@ export function TestnetTokensPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="testnet-tokens" />
-
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Hero Section */}
         <div className="text-center mb-12 sm:mb-16">

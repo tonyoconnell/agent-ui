@@ -24,7 +24,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { UNav } from '../UNav'
 
 interface Token {
   id: string
@@ -87,8 +86,6 @@ export function TokensPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="tokens" />
-
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

@@ -15,7 +15,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { emitClick } from '@/lib/ui-signal'
 import type { WalletRecord } from '../../../../interfaces/types-wallet'
 import { getWallet } from '../lib/idb'
-import { UNav } from '../UNav'
 
 export function WalletsPage() {
   const [wallet, setWallet] = useState<WalletRecord | null>(null)
@@ -56,7 +55,6 @@ export function WalletsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <UNav active="wallets" />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -71,7 +69,6 @@ export function WalletsPage() {
   if (!wallet) {
     return (
       <div className="min-h-screen bg-background">
-        <UNav active="wallets" />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -87,8 +84,6 @@ export function WalletsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="wallets" />
-
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
         {/* Header */}
         <div>

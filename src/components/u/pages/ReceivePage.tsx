@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
 import type { WalletRecord } from '../../../../interfaces/types-wallet'
-import { UNav } from '../UNav'
 
 function formatAddress(addr: string): string {
   if (!addr || addr.length < 16) return addr
@@ -63,8 +62,6 @@ export function ReceivePage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
-      <UNav active="receive" />
-
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="text-center">

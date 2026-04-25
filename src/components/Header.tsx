@@ -180,7 +180,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur supports-[backdrop-filter]:bg-[#0a0a0f]/70">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between pl-16 pr-6 md:px-6">
         {/* Brand */}
         <a href="/" className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-white">
           <span className="grid size-7 place-items-center rounded-md bg-white text-black text-xs font-bold">1</span>

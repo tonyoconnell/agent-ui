@@ -19,7 +19,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { getExplorerTxUrl } from '@/lib/chains'
 import { emitClick } from '@/lib/ui-signal'
-import { UNav } from '../UNav'
 
 // ─── Sui client (testnet by default) ─────────────────────────────────────────
 
@@ -180,8 +179,6 @@ export function TransactionsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <UNav active="transactions" />
-
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
