@@ -172,6 +172,22 @@ export function createAuth() {
           (publicEnv.PUBLIC_SITE_URL.startsWith('http://localhost')
             ? 'dev-only-passkey-challenge-secret-DO-NOT-USE-IN-PROD'
             : ''),
+        // rpID must be a registrable domain suffix of every origin that will use
+        // passkeys. Using 'one.ie' lets dev.one.ie, local.one.ie, main.one.ie, and
+        // one.ie itself all share credentials. On localhost we leave it undefined
+        // so the plugin derives 'localhost' from the baseURL automatically.
+        ...(publicEnv.PUBLIC_SITE_URL.includes('one.ie')
+          ? {
+              rpID: 'one.ie',
+              expectedOrigins: [
+                'https://one.ie',
+                'https://dev.one.ie',
+                'https://local.one.ie',
+                'https://main.one.ie',
+                'https://pay.one.ie',
+              ],
+            }
+          : {}),
       }),
     ],
   })
