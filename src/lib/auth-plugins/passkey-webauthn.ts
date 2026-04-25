@@ -228,6 +228,28 @@ async function bumpSignCount(db: D1Database | null, credId: string, newCounter: 
   }
 }
 
+async function createOrFindUser(
+  ctx: {
+    context: {
+      internalAdapter: {
+        createUser: (...args: never[]) => unknown
+        findUserByEmail: (...args: never[]) => unknown
+      }
+    }
+  },
+  userHandle: string,
+): Promise<{ id: string; email: string | null; name: string | null }> {
+  const email = `${userHandle}@passkey.one.ie`
+  const displayName = `Passkey ${userHandle.slice(0, 8)}`
+  try {
+    return await ctx.context.internalAdapter.createUser({ email, name: displayName, emailVerified: false })
+  } catch {
+    const existing = await ctx.context.internalAdapter.findUserByEmail(email).catch(() => null)
+    if (!existing?.user) throw new Error('could not create or find user for this device handle')
+    return existing.user
+  }
+}
+
 // ─── plugin ─────────────────────────────────────────────────────────────────
 
 export interface PasskeyWebauthnOptions {
@@ -504,29 +526,32 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
           const pubKey = b64url(new Uint8Array(info.credential.publicKey))
           const signCount = info.credential.counter
 
-          // Find or create a Better Auth user for this passkey.
-          // The email is stable: deviceHandle@passkey.one.ie — same device =
-          // same handle = same email = same user. Re-registering on the same
-          // device (e.g. after a dev restart cleared D1) resumes the old account
-          // and its cloud-synced vault instead of creating a duplicate identity.
-          const email = `${ctx.body.userHandle}@passkey.one.ie`
-          const displayName = `Passkey ${ctx.body.userHandle.slice(0, 8)}`
+          const db = await getD1(undefined)
+
+          // If this exact credential was registered before (browser data was
+          // cleared but passkey survived in iCloud Keychain / Apple Passwords),
+          // reuse the existing account — same cred_id = same user = same
+          // cloud-synced vault. This is the cleared-browser-data recovery path.
+          const existingHint = await findHint(db, credId)
           let user: { id: string; email: string | null; name: string | null }
-          try {
-            user = await ctx.context.internalAdapter.createUser({
-              email,
-              name: displayName,
-              emailVerified: false,
-            })
-          } catch {
-            // Email already exists (same device handle). Find and reuse the
-            // existing account so the cloud-synced vault is still accessible.
-            const existing = await ctx.context.internalAdapter.findUserByEmail(email).catch(() => null)
-            if (!existing?.user) return err(500, 'could not create or find user for this device handle')
-            user = existing.user
+          if ('hint' in existingHint && existingHint.hint) {
+            const existingUser = await ctx.context.internalAdapter
+              .findUserById(existingHint.hint.user_id)
+              .catch(() => null)
+            if (existingUser) {
+              user = existingUser
+            } else {
+              // hint exists but user was deleted — fall through to create
+              user = await createOrFindUser(ctx, ctx.body.userHandle)
+            }
+          } else {
+            // Find or create a Better Auth user for this passkey.
+            // The email is stable: deviceHandle@passkey.one.ie — same device =
+            // same handle = same email = same user. Re-registering on the same
+            // device (e.g. after a dev restart cleared D1) resumes the old account.
+            user = await createOrFindUser(ctx, ctx.body.userHandle)
           }
 
-          const db = await getD1(undefined)
           const upsert = await upsertHint(db, credId, {
             user_id: user.id,
             pub_key: pubKey,
