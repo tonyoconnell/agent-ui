@@ -264,9 +264,23 @@ export function hasPermission(auth: AuthContext, required: string, group?: strin
  * Look up governance role for a user uid from membership relation.
  * Called separately from validateApiKey to keep auth at 1 TypeDB query.
  */
+const ROLE_RANK: Record<string, number> = {
+  chairman: 6,
+  ceo: 5,
+  board: 4,
+  operator: 3,
+  auditor: 2,
+  agent: 1,
+}
+
+function bestRole(roles: string[]): string | undefined {
+  return roles.filter((r) => r in ROLE_RANK).sort((a, b) => (ROLE_RANK[b] ?? 0) - (ROLE_RANK[a] ?? 0))[0]
+}
+
 export async function getRoleForUser(uid: string, gid?: string): Promise<string | undefined> {
   const safeUid = uid.replace(/[^a-zA-Z0-9_:.-]/g, '')
-  const groupFilter = gid ? `$g isa group, has gid "${gid.replace(/[^a-zA-Z0-9_:.-]/g, '')}";` : ''
+  const safeGid = gid ? gid.replace(/[^a-zA-Z0-9_:.-]/g, '') : ''
+  const groupFilter = gid ? `$g isa group, has gid "${safeGid}";` : ''
   try {
     const rows = await readParsed(
       `match $u isa unit, has uid "${safeUid}";
@@ -274,7 +288,18 @@ export async function getRoleForUser(uid: string, gid?: string): Promise<string 
        (member: $u, group: $g) isa membership, has member-role $r;
        select $r; limit 1;`,
     )
-    return rows[0]?.r as string | undefined
+    const direct = rows[0]?.r as string | undefined
+    if (direct) return direct
+
+    if (!gid) return undefined
+    const ancestorRows = await readParsed(
+      `match $u isa unit, has uid "${safeUid}";
+       $child isa group, has gid "${safeGid}";
+       let $ancestor in ancestors-of($child);
+       (member: $u, group: $ancestor) isa membership, has member-role $r;
+       select $r;`,
+    )
+    return bestRole(ancestorRows.map((row) => row.r as string))
   } catch {
     return undefined
   }
@@ -593,7 +618,7 @@ export async function requireRole(
       writeSilent(`
         insert $s isa signal,
           has receiver "api:rate-limit:hit",
-          has data "{\"group\":\"${context.group.replace(/"/g, '\\"')}\"}";
+          has data "{"group":"${context.group.replace(/"/g, '\\"')}"}";
       `)
       return {
         ok: false,

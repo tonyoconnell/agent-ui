@@ -17,6 +17,7 @@ import { sseProxy } from './sse-proxy'
 
 interface Env {
   TYPEDB_URL: string
+  TYPEDB_EU_URL?: string
   TYPEDB_DATABASE: string
   TYPEDB_USERNAME: string
   TYPEDB_PASSWORD: string
@@ -24,13 +25,11 @@ interface Env {
   DB?: D1Database
   KV?: KVNamespace
   BROADCAST_SECRET?: string
+  BROADCAST_MASTER?: string
   GATEWAY_API_KEY: string
   WS_HUB: DurableObjectNamespace
   ALLOWED_SSE_HOSTS?: string
 }
-
-// Token cache (per-isolate, 61s TTL)
-let cachedToken: { token: string; expires: number } | null = null
 
 // Security: Limits and allowed message types
 const MAX_WS_CONNECTIONS = 100
@@ -135,12 +134,22 @@ function corsHeaders(origin: string | null): Record<string, string> {
   }
 }
 
-async function getToken(env: Env, forceFresh = false): Promise<string> {
-  if (!forceFresh && cachedToken && cachedToken.expires > Date.now() + 60_000) {
-    return cachedToken.token
+function getTypeDbUrl(env: Env, request?: Request): string {
+  if (env.TYPEDB_EU_URL && request?.cf?.continent === 'EU') return env.TYPEDB_EU_URL
+  return env.TYPEDB_URL
+}
+
+// Per-region token caches (keyed by URL)
+const tokenCache = new Map<string, { token: string; expires: number }>()
+
+async function getToken(env: Env, request?: Request, forceFresh = false): Promise<string> {
+  const url = getTypeDbUrl(env, request)
+  const cached = tokenCache.get(url)
+  if (!forceFresh && cached && cached.expires > Date.now() + 60_000) {
+    return cached.token
   }
 
-  const res = await fetch(`${env.TYPEDB_URL}/v1/signin`, {
+  const res = await fetch(`${url}/v1/signin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -155,8 +164,8 @@ async function getToken(env: Env, forceFresh = false): Promise<string> {
 
   const data = (await res.json()) as { token: string }
   const payload = JSON.parse(atob(data.token.split('.')[1]))
-  cachedToken = { token: data.token, expires: payload.exp * 1000 }
-  return cachedToken.token
+  tokenCache.set(url, { token: data.token, expires: payload.exp * 1000 })
+  return data.token
 }
 
 /**
@@ -167,10 +176,11 @@ async function getToken(env: Env, forceFresh = false): Promise<string> {
  * On a 401 response we null the cached token, re-signin once, and retry.
  * Second 401 surfaces as a real error.
  */
-async function typedbQuery(env: Env, body: object): Promise<Response> {
+async function typedbQuery(env: Env, body: object, request?: Request): Promise<Response> {
+  const url = getTypeDbUrl(env, request)
   for (let attempt = 0; attempt < 2; attempt++) {
-    const token = await getToken(env, attempt === 1)
-    const res = await fetch(`${env.TYPEDB_URL}/v1/query`, {
+    const token = await getToken(env, request, attempt === 1)
+    const res = await fetch(`${url}/v1/query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -179,13 +189,28 @@ async function typedbQuery(env: Env, body: object): Promise<Response> {
       body: JSON.stringify(body),
     })
     if (res.status === 401 && attempt === 0) {
-      cachedToken = null
+      tokenCache.delete(url)
       continue
     }
     return res
   }
   // Unreachable — the loop returns or continues.
   throw new Error('typedbQuery: exhausted retries')
+}
+
+async function deriveGroupSecret(master: string, group: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(master),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(group)))
+  return btoa(String.fromCharCode(...sig))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .slice(0, 32)
 }
 
 export default {
@@ -238,12 +263,6 @@ export default {
 
     // POST /broadcast — relay a WsMessage to all connected WebSocket clients via DO
     if (url.pathname === '/broadcast' && request.method === 'POST') {
-      // Security: Require shared secret
-      const secret = request.headers.get('X-Broadcast-Secret')
-      if (!env.BROADCAST_SECRET || secret !== env.BROADCAST_SECRET) {
-        return Response.json({ error: 'Forbidden' }, { status: 403, headers })
-      }
-
       try {
         const message = await request.text()
         const parsed = JSON.parse(message)
@@ -256,8 +275,24 @@ export default {
           )
         }
 
-        // Forward to the WsHub DO for the target group — all isolates share this hub
+        // Extract group before auth so per-group secret can be derived
         const broadcastGroup = (parsed.group as string | undefined) || 'global'
+
+        // Security: Require shared secret (HMAC-derived per group, with flat-secret fallback)
+        const secret = request.headers.get('X-Broadcast-Secret')
+        let secretOk = false
+        if (env.BROADCAST_MASTER) {
+          const expected = await deriveGroupSecret(env.BROADCAST_MASTER, broadcastGroup)
+          secretOk = secret === expected
+          // Fallback to flat secret for 1 release
+          if (!secretOk && env.BROADCAST_SECRET) secretOk = secret === env.BROADCAST_SECRET
+        } else {
+          secretOk = !!env.BROADCAST_SECRET && secret === env.BROADCAST_SECRET
+        }
+        if (!secretOk) {
+          return Response.json({ error: 'Forbidden' }, { status: 403, headers })
+        }
+
         const hubId = env.WS_HUB.idFromName(broadcastGroup)
         const hub = env.WS_HUB.get(hubId)
         const result = await hub.fetch('https://do/send', {
@@ -292,11 +327,15 @@ export default {
           limit 100;
         `
 
-        const res = await typedbQuery(env, {
-          databaseName: env.TYPEDB_DATABASE,
-          transactionType: 'read',
-          query,
-        })
+        const res = await typedbQuery(
+          env,
+          {
+            databaseName: env.TYPEDB_DATABASE,
+            transactionType: 'read',
+            query,
+          },
+          request,
+        )
 
         if (!res.ok) {
           const text = await res.text()
@@ -458,12 +497,16 @@ export default {
           commit?: boolean
         }
 
-        const res = await typedbQuery(env, {
-          databaseName: env.TYPEDB_DATABASE,
-          transactionType: body.transactionType || 'read',
-          query: body.query,
-          commit: body.commit ?? body.transactionType === 'write',
-        })
+        const res = await typedbQuery(
+          env,
+          {
+            databaseName: env.TYPEDB_DATABASE,
+            transactionType: body.transactionType || 'read',
+            query: body.query,
+            commit: body.commit ?? body.transactionType === 'write',
+          },
+          request,
+        )
 
         if (!res.ok) {
           const text = await res.text()

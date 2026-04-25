@@ -31,7 +31,6 @@ vi.mock('@/lib/net', () => ({
 }))
 
 vi.mock('@/lib/sui', () => ({
-  addressFor: vi.fn().mockResolvedValue(`0x${'a'.repeat(64)}`),
   resolveUnit: vi.fn().mockResolvedValue(null),
   send: vi.fn().mockResolvedValue({ digest: null }),
 }))
@@ -84,7 +83,7 @@ function ctx(method: 'GET' | 'POST', body?: unknown, urlPath = '/api/test') {
 describe('Stage 0: Wallet — POST /api/agents/register', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('should register an agent and return wallet address', async () => {
+  it('should register an agent with empty wallet (platform key removed)', async () => {
     const { POST } = await import('@/pages/api/agents/register')
     const res = await POST(
       ctx('POST', { uid: 'seller-test', kind: 'agent', capabilities: [{ skill: 'copy', price: 0.02 }] }),
@@ -93,7 +92,7 @@ describe('Stage 0: Wallet — POST /api/agents/register', () => {
     const data = (await res.json()) as Record<string, any>
     expect(data.ok).toBe(true)
     expect(data.uid).toBe('seller-test')
-    expect(data.wallet).toMatch(/^0x[a-f0-9]+$/)
+    expect(data.wallet).toBeFalsy()
     expect(data.capabilities).toBe(1)
   })
 
@@ -240,7 +239,7 @@ describe.skip('Sell-First Full Flow', () => {
     )
     expect(r0a.status).toBe(200)
     const seller = (await r0a.json()) as Record<string, any>
-    expect(seller.wallet).toBeTruthy()
+    expect(seller.wallet).toBeFalsy()
 
     const r0b = await registerPost(ctx('POST', { uid: buyerUid, kind: 'agent' }))
     expect(r0b.status).toBe(200)
@@ -279,7 +278,7 @@ describe.skip('Sell-First Full Flow', () => {
     expect(buyData.ok).toBe(true)
 
     // Stage 9: Verify (just aggregation — no API call)
-    expect(seller.wallet).toMatch(/^0x/)
+    expect(seller.wallet).toBeFalsy()
     expect(sellData.amount).toBe(0.02)
     expect(buyData.amount).toBe(0.01)
     const net = sellData.amount - buyData.amount

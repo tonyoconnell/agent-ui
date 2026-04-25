@@ -26,7 +26,10 @@ export const POST: APIRoute = async ({ request }) => {
     if (bodyGroup) {
       const { roleCheck } = await import('@/lib/role-check')
       if (!roleCheck(gate.auth.role ?? 'agent', 'hire')) {
-        return Response.json({ error: 'insufficient role to sync agents into a group', required: 'hire', group: bodyGroup }, { status: 403 })
+        return Response.json(
+          { error: 'insufficient role to sync agents into a group', required: 'hire', group: bodyGroup },
+          { status: 403 },
+        )
       }
     }
 

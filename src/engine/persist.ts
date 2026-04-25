@@ -811,6 +811,16 @@ export const world = (): PersistentWorld => {
       }
     }
 
+    // PEP-3.1: trust gate — external callers must have prior relationship (claim/pay/invite)
+    const isSystemUnit = from.startsWith('agent:') || from.startsWith('human:') || from === 'entry'
+    if (!isSystemUnit) {
+      const { isTrustedActor } = await import('@/lib/trust')
+      const trusted = await isTrustedActor(from)
+      if (!trusted) {
+        return { dissolved: true }
+      }
+    }
+
     // PEP-4: skill schema validation — validate data against input-schema if declared (fail-open)
     if (skill) {
       const schemaKey = `${uid}:${skill}`

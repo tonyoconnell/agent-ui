@@ -34,10 +34,10 @@ const SNAPSHOT_KEYS = ['paths.json', 'units.json', 'skills.json', 'highways.json
 async function fetchBackup(key: string): Promise<unknown[] | null> {
   try {
     // Use wrangler r2 object get to download the file
-    const result = execSync(
-      `wrangler r2 object get ${BUCKET} typedb/${date}/${key} --pipe`,
-      { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-    )
+    const result = execSync(`wrangler r2 object get ${BUCKET} typedb/${date}/${key} --pipe`, {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
     return JSON.parse(result) as unknown[]
   } catch (e) {
     console.error(`[restore] failed to fetch ${key}: ${e}`)

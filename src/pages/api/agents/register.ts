@@ -22,7 +22,6 @@ import { world } from '@/engine/persist'
 import { resolveUnitFromSession } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
 import { getAgentCount, recordAgent } from '@/lib/metering'
-import { addressFor } from '@/lib/sui'
 import { checkAgentLimit, tierLimitResponse } from '@/lib/tier-limits'
 import { writeSilent } from '@/lib/typedb'
 
@@ -121,7 +120,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       walletLinked = true
     }
 
-    const suiWallet = await addressFor(body.uid).catch(() => null)
+    const suiWallet = null
 
     // Write owner attribute when caller is authenticated (tracks who registered this agent)
     const callerUid = auth?.isValid ? auth.user : null

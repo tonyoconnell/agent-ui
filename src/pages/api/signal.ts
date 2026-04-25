@@ -312,10 +312,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       reason: `sender=${senderSensitivity} > receiver=${receiverSensitivity}`,
     })
     if (sensMode === 'enforce') {
-      return new Response(JSON.stringify({ dissolved: true, reason: `sensitivity:${senderSensitivity}>${receiverSensitivity}` }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({ dissolved: true, reason: `sensitivity:${senderSensitivity}>${receiverSensitivity}` }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      )
     }
   }
 
@@ -565,8 +568,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // 6. Push path changes to KV (fire and forget — keeps edge routing fresh)
+    // Targeted sync: only paths.json. Group-scoped if data.group present.
+    // SLA: KV reflects mark/warn ≤2s p99.
     const syncUrl = import.meta.env.SYNC_WORKER_URL || 'https://one-sync.oneie.workers.dev'
-    fetch(`${syncUrl}/sync`, { method: 'POST' }).catch(() => {})
+    const signalGroup = (dataRaw as { group?: string } | null)?.group
+    const syncQs = signalGroup ? `keys=paths&group=${encodeURIComponent(signalGroup)}` : 'keys=paths'
+    fetch(`${syncUrl}/sync?${syncQs}`, { method: 'POST' }).catch(() => {})
 
     // 7. Mirror to Sui (if configured — fire and forget)
     let suiDigest: string | null = null

@@ -385,6 +385,9 @@ src/
     api-key.ts           # Key generation, PBKDF2 verify, getKeyPrefix (TQL-safe)
   __tests__/
     integration/  # 24 integration test files (vault, chains, signer, auth-claim)
+                  # RULE: no vi.mock for TypeDB/Sui/external services — real data or skip
+                  # Use VCR cassettes (src/__tests__/helpers/cassette.ts) for TypeDB replays
+                  # Use it.skip / skipIfNoDb() guard when live service unavailable
     fixtures/     # vault-v1.json (migration test fixture)
 docs/           # Architecture, deploy, cloudflare, nanoclaw, strategy
 gateway/        # CF Worker: TypeDB proxy + WsHub DO (api.one.ie)

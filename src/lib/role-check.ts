@@ -19,6 +19,8 @@ export type RoleAction =
 
 export type GovernanceRole = 'chairman' | 'board' | 'ceo' | 'operator' | 'agent' | 'auditor'
 
+// Hard-coded fallback — used when TypeDB is unreachable or role-grant table is empty.
+// Keep in sync with migrations/typedb/seed-roles.tql.
 const PERMISSIONS: Record<GovernanceRole, Partial<Record<RoleAction, true>>> = {
   chairman: {
     add_unit: true,
@@ -74,6 +76,57 @@ const PERMISSIONS: Record<GovernanceRole, Partial<Record<RoleAction, true>>> = {
   auditor: { read_highways: true, read_revenue: true, read_toxic: true, read_memory: true, discover: true },
 }
 
+// In-process cache: role → Set<action>, busts after 60s.
+// Populated from TypeDB role-grant entities on first call per role.
+const _cache: Map<string, { actions: Set<string>; at: number }> = new Map()
+const CACHE_TTL_MS = 60_000
+
+async function loadRoleFromTypeDB(role: string): Promise<Set<string> | null> {
+  try {
+    const { readParsed } = await import('@/lib/typedb')
+    const rows = await readParsed(
+      `match $rg isa role-grant,
+         has governance-role "${role}",
+         has role-action $a;
+       select $a;`,
+    )
+    if (!rows || rows.length === 0) return null
+    const actions = new Set<string>()
+    for (const row of rows) {
+      const a = (row as Record<string, unknown>).a
+      if (typeof a === 'string') actions.add(a)
+    }
+    return actions.size > 0 ? actions : null
+  } catch {
+    return null
+  }
+}
+
+async function resolveActions(role: string): Promise<Set<string>> {
+  const cached = _cache.get(role)
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.actions
+
+  const fromTypeDB = await loadRoleFromTypeDB(role)
+  if (fromTypeDB) {
+    _cache.set(role, { actions: fromTypeDB, at: Date.now() })
+    return fromTypeDB
+  }
+
+  // Fallback to hard-coded matrix
+  const perms = PERMISSIONS[role as GovernanceRole] ?? {}
+  const actions = new Set(Object.keys(perms))
+  _cache.set(role, { actions, at: Date.now() })
+  return actions
+}
+
+// Async version — queries TypeDB with 60s cache, falls back to hard-coded matrix.
+export async function roleCheckAsync(role: string, action: RoleAction): Promise<boolean> {
+  const actions = await resolveActions(role)
+  return actions.has(action)
+}
+
+// Sync version — uses hard-coded matrix only (safe to call in non-async contexts).
+// Prefer roleCheckAsync where await is available.
 export function roleCheck(role: string, action: RoleAction): boolean {
   const perms = PERMISSIONS[role as GovernanceRole]
   return perms?.[action] === true

@@ -264,7 +264,13 @@ async function _executeCoSign(req: CoSignRequestWire, humanSigB64: string): Prom
     const { MultiSigPublicKey } = await import('@mysten/sui/multisig')
 
     // Derive the agent's public key
-    const agentKp = await sui.deriveKeypair(req.agentUid).catch(() => null)
+    const agentKp = (() => {
+      try {
+        return sui.generateEphemeralKeypair()
+      } catch {
+        return null
+      }
+    })()
 
     if (agentKp) {
       const agentPubKey = agentKp.getPublicKey()

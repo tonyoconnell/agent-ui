@@ -141,11 +141,11 @@ describe('system speed — signal', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('system speed — identity', () => {
-  test('Sui addressFor() derive', async () => {
+  test('generateEphemeralKeypair() generate', async () => {
     // sui.ts captures SEED_B64 at module load — reset modules so our env wins.
     vi.resetModules()
-    const { addressFor } = await import('@/lib/sui')
-    await measure('identity:sui:address', () => addressFor('bench:unit'), 200)
+    const { generateEphemeralKeypair } = await import('@/lib/sui')
+    await measure('identity:sui:ephemeral', () => generateEphemeralKeypair(), 200)
   })
 })
 

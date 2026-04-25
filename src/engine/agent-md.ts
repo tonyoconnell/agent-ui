@@ -22,7 +22,7 @@
 
 import { JSONSchema, Schema } from 'effect'
 import { parse as parseYaml } from 'yaml'
-import { addressFor, createUnit as createUnitOnChain, registerTask as registerTaskOnChain } from '@/lib/sui'
+import { createUnit as createUnitOnChain, registerTask as registerTaskOnChain } from '@/lib/sui'
 import { readParsed, write, writeSilent } from '@/lib/typedb'
 import { loadContext } from './context'
 import type { PersistentWorld } from './persist'
@@ -353,13 +353,6 @@ export const syncAgent = async (spec: AgentSpec): Promise<void> => {
  */
 export const syncAgentWithIdentity = async (spec: AgentSpec): Promise<AgentSpec> => {
   const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
-
-  // Step 1: Derive wallet address (always, even if Sui publish fails)
-  try {
-    spec.wallet = await addressFor(uid)
-  } catch {
-    // SUI_SEED not configured — skip Sui identity
-  }
 
   // Step 2: Sync to TypeDB (includes wallet if derived)
   await syncAgent(spec)

@@ -593,7 +593,7 @@ function CardView({
 
     case 'WALLET': {
       const pending = card.decided === 'pending'
-      const envLine = `SUI_SEED=${b64(new TextEncoder().encode(card.wallet.privateKey.slice(2, 50)))}`
+      const envLine = card.wallet.privateKey
       return (
         <CardShell tone={pending ? 'warn' : 'default'}>
           <StageLabel>wallet handoff · demo keypair</StageLabel>
@@ -623,13 +623,12 @@ function CardView({
             </div>
 
             <div>
-              <div className="font-semibold text-foreground mb-1">option b · .env (sui agent wallet)</div>
-              add this line to your project's <code className="bg-muted px-1 rounded">.env</code>, then restart the
-              substrate. ONE derives your agent keypair from <code>SUI_SEED + uid</code>.
+              <div className="font-semibold text-foreground mb-1">option b · import private key</div>
+              import this private key into any Sui-compatible wallet (Suiet, Sui Wallet browser extension).
               <div className="mt-1.5">
                 <CopyButton
                   text={envLine}
-                  label={card.copied === 'env' ? '✓ copied' : 'copy .env line'}
+                  label={card.copied === 'env' ? '✓ copied' : 'copy private key'}
                   onCopy={() => onCopy('env')}
                 />
               </div>

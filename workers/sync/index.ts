@@ -28,44 +28,61 @@ function hashStr(s: string): string {
   return h.toString(36)
 }
 
+async function exportKeys(
+  env: Env,
+  base: string,
+  keys: readonly string[],
+  group?: string,
+): Promise<{ synced: { key: string; count: number; changed: boolean }[]; failed: { key: string; error: string }[] }> {
+  const results = await Promise.allSettled(
+    keys.map(async (key) => {
+      // Per-group exports use scoped KV key and group-filtered endpoint
+      const kvKey = group ? `${key}:${group}.json` : `${key}.json`
+      const url = group ? `${base}/api/export/${key}?group=${encodeURIComponent(group)}` : `${base}/api/export/${key}`
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`${key}: ${res.status}`)
+      const data = (await res.json()) as unknown[]
+      const json = JSON.stringify(data)
+      const newHash = hashStr(json)
+
+      // Skip KV write if data unchanged
+      const hashKey = group ? `${key}:${group}.hash` : `${key}.hash`
+      const oldHash = await env.KV.get(hashKey)
+      if (oldHash !== newHash) {
+        await env.KV.put(kvKey, json)
+        await env.KV.put(hashKey, newHash)
+        // Bump version for cross-isolate invalidation (sys-110)
+        await env.KV.put(`version:${kvKey}`, Date.now().toString(), { expirationTtl: 3600 })
+      }
+
+      return {
+        key: kvKey,
+        count: Array.isArray(data) ? data.length : Object.keys(data as object).length,
+        changed: oldHash !== newHash,
+      }
+    }),
+  )
+
+  const synced = results
+    .filter((r) => r.status === 'fulfilled')
+    .map((r) => (r as PromiseFulfilledResult<{ key: string; count: number; changed: boolean }>).value)
+
+  const failed = results
+    .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+    .map((r, i) => ({ key: keys[i] as string, error: r.reason?.message }))
+
+  return { synced, failed }
+}
+
+const ALL_ENDPOINTS = ['paths', 'units', 'skills', 'highways', 'toxic'] as const
+
 export default {
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     const base = env.APP_URL || 'https://one.ie'
 
     // ── Job 1: TypeDB → KV ──────────────────────────────────────────────
 
-    const endpoints = ['paths', 'units', 'skills', 'highways', 'toxic'] as const
-
-    const results = await Promise.allSettled(
-      endpoints.map(async (key) => {
-        const res = await fetch(`${base}/api/export/${key}`)
-        if (!res.ok) throw new Error(`${key}: ${res.status}`)
-        const data = (await res.json()) as unknown[]
-        const json = JSON.stringify(data)
-        const newHash = hashStr(json)
-
-        // Skip KV write if data unchanged
-        const oldHash = await env.KV.get(`${key}.hash`)
-        if (oldHash !== newHash) {
-          await env.KV.put(`${key}.json`, json)
-          await env.KV.put(`${key}.hash`, newHash)
-        }
-
-        return {
-          key,
-          count: Array.isArray(data) ? data.length : Object.keys(data as object).length,
-          changed: oldHash !== newHash,
-        }
-      }),
-    )
-
-    const synced = results
-      .filter((r) => r.status === 'fulfilled')
-      .map((r) => (r as PromiseFulfilledResult<{ key: string; count: number; changed: boolean }>).value)
-
-    const failed = results
-      .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-      .map((r, i) => ({ key: endpoints[i], error: r.reason?.message }))
+    const { synced, failed } = await exportKeys(env, base, ALL_ENDPOINTS)
 
     // ── Job 2: Sui → TypeDB ─────────────────────────────────────────────
 
@@ -141,10 +158,16 @@ export default {
 
   // Also handle manual trigger via HTTP
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    if (new URL(request.url).pathname === '/sync') {
-      await this.scheduled({} as ScheduledEvent, env, ctx)
-      const syncedAt = await env.KV.get('synced_at')
-      return Response.json({ ok: true, synced_at: syncedAt })
+    const url = new URL(request.url)
+    if (url.pathname === '/sync') {
+      const keysParam = url.searchParams.get('keys')
+      const groupParam = url.searchParams.get('group') || undefined
+      const targetKeys = keysParam
+        ? keysParam.split(',').filter((k) => (ALL_ENDPOINTS as readonly string[]).includes(k))
+        : [...ALL_ENDPOINTS]
+      const base = env.APP_URL || 'https://one.ie'
+      ctx.waitUntil(exportKeys(env, base, targetKeys, groupParam))
+      return Response.json({ ok: true, keys: targetKeys, group: groupParam ?? null })
     }
     return Response.json({ status: 'sync-worker', trigger: '/sync' })
   },

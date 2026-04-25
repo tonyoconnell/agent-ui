@@ -94,12 +94,6 @@ export function DevicesIsland() {
     try {
       await removeWrapping(hexToBuf(credId))
 
-      // Best-effort server backup deletion (fire-and-forget)
-      fetch(`/api/wallet/wrap/${encodeURIComponent(credId)}`, {
-        method: 'DELETE',
-        keepalive: true,
-      }).catch(() => {})
-
       emitClick('ui:devices:revoke')
       await loadDevices()
     } catch (err) {

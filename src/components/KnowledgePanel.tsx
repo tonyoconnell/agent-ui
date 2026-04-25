@@ -65,7 +65,7 @@ const FALLBACK_HYPOTHESES: Hypothesis[] = [
   },
   {
     hid: 'h-004',
-    statement: 'Alarm pheromone prevents cascading failures',
+    statement: 'Resistance pheromone prevents cascading failures',
     status: 'testing',
     observations: 34,
     pValue: 0.24,

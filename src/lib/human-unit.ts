@@ -7,7 +7,6 @@
  * This module only depends on TypeDB + Sui, not Better Auth.
  */
 
-import { addressFor } from '@/lib/sui'
 import { readParsed, write, writeTracked } from '@/lib/typedb'
 
 function esc(s: string): string {
@@ -32,12 +31,7 @@ export async function ensureHumanUnit(
   `).catch(() => [])
   if (existing.length > 0) return
 
-  let wallet = ''
-  try {
-    wallet = await addressFor(uid)
-  } catch {
-    /* SUI_SEED not set */
-  }
+  const wallet = ''
 
   const name = user.name || user.email || uid
   const now = new Date().toISOString().replace('Z', '')

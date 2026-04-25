@@ -66,7 +66,8 @@ public fun digest(attestation: &NitroAttestationDocument): &vector<u8> {
 }
 
 /// Returns a list of mapping PCREntry containg the index and the PCR bytes.
-/// Currently AWS supports PCR0, PCR1, PCR2, PCR3, PCR4, PCR8.
+/// AWS supports PCR0-31. Required PCRs (index 0-4 & 8) are always included regardless of their 
+/// value. Additional custom PCRs (index 5-7, 9-31) are also included if they are nonzeros.
 public fun pcrs(attestation: &NitroAttestationDocument): &vector<PCREntry> {
     &attestation.pcrs
 }

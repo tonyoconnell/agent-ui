@@ -26,8 +26,8 @@ import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 import { Transaction } from '@mysten/sui/transactions'
 import type { APIRoute } from 'astro'
-import { getConsensusSuiPrice, mistToUsd } from '@/lib/oracle'
 import { screenAddress } from '@/lib/aml'
+import { getConsensusSuiPrice, mistToUsd } from '@/lib/oracle'
 import { writeSilent } from '@/lib/typedb'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -203,10 +203,10 @@ export const POST: APIRoute = async ({ request }) => {
         data: { tags: ['aml', 'blocked'], content: { address: sender, reason: senderAml.reason, timestamp } },
       }),
     }).catch(() => void 0)
-    return new Response(
-      JSON.stringify({ error: 'aml-blocked', address: sender, reason: senderAml.reason }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: 'aml-blocked', address: sender, reason: senderAml.reason }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   if (recipientAml.blocked) {
@@ -222,10 +222,10 @@ export const POST: APIRoute = async ({ request }) => {
         data: { tags: ['aml', 'blocked'], content: { address: toAddress, reason: recipientAml.reason, timestamp } },
       }),
     }).catch(() => void 0)
-    return new Response(
-      JSON.stringify({ error: 'aml-blocked', address: toAddress, reason: recipientAml.reason }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ error: 'aml-blocked', address: toAddress, reason: recipientAml.reason }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   // 2c. State-1 cap: unsaved wallets may not push their cumulative balance above $25 USD.
@@ -251,6 +251,7 @@ export const POST: APIRoute = async ({ request }) => {
         return new Response(
           JSON.stringify({
             error: 'state1-cap-exceeded',
+            message: `Spending cap of $${STATE1_CAP_USD} reached. Save this wallet to upgrade your spending limit.`,
             currentUsd,
             txUsd,
             capUsd: STATE1_CAP_USD,

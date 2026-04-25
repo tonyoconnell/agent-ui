@@ -1,13 +1,14 @@
 /**
- * Sui Client — Keypair derivation, signing, object reads
+ * Sui Client — Ephemeral keypairs, capability-based signing, object reads
  *
- * Every agent derives its own Ed25519 keypair from a platform seed + its UID.
- * The keypair IS the identity. The Sui address IS the agent.
+ * Agents use ephemeral Ed25519 keypairs per Worker session (generated in RAM, never stored).
+ * Chairman mints a Capability granting the ephemeral address authority over the agent's Unit.
+ * No platform seed. No persistent private keys. Agent authority = Capability object.
  *
  * Flow:
- *   agent.md → parse() → deriveKeypair(uid) → sign create_unit() → on-chain
+ *   session start → generateEphemeralKeypair() → chairman mints Capability(holder=ephemeral)
+ *   agent op → signAndExecute(markWithCapTx(...), ephemeralKeypair)
  *
- * Platform seed in env: SUI_SEED (base64, 32 bytes)
  * Package ID in env: SUI_PACKAGE_ID
  * Network in env: SUI_NETWORK (testnet | mainnet | devnet)
  */
@@ -24,21 +25,6 @@ const NETWORK = (import.meta.env.SUI_NETWORK || 'testnet') as 'testnet' | 'mainn
 const PACKAGE_ID = import.meta.env.SUI_PACKAGE_ID || ''
 const PROTOCOL_ID = import.meta.env.SUI_PROTOCOL_ID || ''
 
-// Platform seed — 32 bytes, base64-encoded. Generate once:
-//   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-//
-// Read at call time: Vite's `import.meta.env` only sees build-time values,
-// so a `wrangler secret put SUI_SEED` on the deployed Worker is invisible
-// to the module-level const. process.env comes from CF's runtime bindings
-// when nodejs_compat is on — this is the seam where the secret becomes
-// readable. Falling through to build-time keeps local dev working when
-// SUI_SEED is in .env but not in the Worker runtime.
-function readSeedB64(): string {
-  const fromRuntime = typeof process !== 'undefined' && process.env && process.env.SUI_SEED
-  const fromBuild = import.meta.env.SUI_SEED
-  return (fromRuntime || fromBuild || '').toString()
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // CLIENT
 // ═══════════════════════════════════════════════════════════════════════════
@@ -50,65 +36,17 @@ export function getClient(): SuiJsonRpcClient {
   return _client
 }
 
-// ════════════════════════════════════════��══════════════════════════════════
-// KEYPAIR — Deterministic derivation from platform seed + agent UID
+// ═══════════════════════════════════════════════════════════════════════════
+// KEYPAIR — Ephemeral per Worker session (no persistent secrets)
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Derive a unique Ed25519 keypair for an agent from the platform seed.
- *
- * Uses HKDF-like construction: SHA-256(seed || uid) → 32-byte secret → Ed25519.
- * Same UID always produces the same address. The agent IS its keypair.
- *
- * For agents that bring their own wallet (Phase 2), skip this and use their keypair.
+ * Generate a fresh Ed25519 keypair for the current Worker session.
+ * RAM only — never persisted. Chairman mints a Capability pointing to this
+ * address; agent ops are signed with this key + capability reference.
  */
-export async function deriveKeypair(uid: string, version = 0): Promise<Ed25519Keypair> {
-  const seedB64 = readSeedB64()
-  if (!seedB64)
-    throw new Error(
-      "SUI_SEED not configured. Generate: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
-    )
-
-  const seed = Uint8Array.from(atob(seedB64), (c) => c.charCodeAt(0))
-  const encoder = new TextEncoder()
-
-  if (version === 1) {
-    // HKDF-SHA-256: salt="one-agent", IKM=seed, info=uid
-    const ikm = await crypto.subtle.importKey('raw', seed, 'HKDF', false, ['deriveBits'])
-    const bits = await crypto.subtle.deriveBits(
-      { name: 'HKDF', hash: 'SHA-256', salt: encoder.encode('one-agent'), info: encoder.encode(uid) },
-      ikm,
-      256,
-    )
-    return Ed25519Keypair.fromSecretKey(new Uint8Array(bits))
-  }
-
-  // version 0 (default): SHA-256(seed || uid) — preserves all existing on-chain wallets
-  const material = new Uint8Array(seed.length + uid.length)
-  material.set(seed)
-  material.set(encoder.encode(uid), seed.length)
-  const hash = await crypto.subtle.digest('SHA-256', material)
-  return Ed25519Keypair.fromSecretKey(new Uint8Array(hash))
-}
-
-/**
- * Get the Sui address for an agent UID (without needing the full keypair).
- * Useful for display / TypeDB storage.
- */
-export async function addressFor(uid: string): Promise<string> {
-  const kp = await deriveKeypair(uid)
-  return kp.getPublicKey().toSuiAddress()
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PLATFORM KEYPAIR — Signs on behalf of the substrate
-// ════════════════���══════════════════════════════════════════════════════════
-
-let _platformKp: Ed25519Keypair | null = null
-
-export async function platformKeypair(): Promise<Ed25519Keypair> {
-  if (!_platformKp) _platformKp = await deriveKeypair('__platform__')
-  return _platformKp
+export function generateEphemeralKeypair(): Ed25519Keypair {
+  return Ed25519Keypair.generate()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -142,13 +80,12 @@ export async function signAndExecute(
  * Returns: { address, objectId, digest }
  */
 export async function createUnit(
-  uid: string,
+  keypair: Ed25519Keypair,
   name: string,
   unitType: string = 'agent',
 ): Promise<{ address: string; objectId: string; digest: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
 
-  const keypair = await deriveKeypair(uid)
   const address = keypair.getPublicKey().toSuiAddress()
 
   // Fund the agent if needed (testnet only)
@@ -179,10 +116,13 @@ export async function createUnit(
 // REGISTER TASK — Agent declares a capability
 // ═════════════════���════════════════════════════════��════════════════════════
 
-export async function registerTask(uid: string, unitObjectId: string, taskName: string): Promise<{ digest: string }> {
+export async function registerTask(
+  keypair: Ed25519Keypair,
+  unitObjectId: string,
+  taskName: string,
+): Promise<{ digest: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
 
-  const keypair = await deriveKeypair(uid)
   const tx = new Transaction()
 
   tx.moveCall({
@@ -245,9 +185,12 @@ export async function getOwnedUnits(address: string) {
 // MARK / WARN — Pheromone on-chain
 // ════════════════════════════════════════���══════════════════════════════════
 
-export async function mark(uid: string, pathObjectId: string, amount: number = 1): Promise<{ digest: string }> {
+export async function mark(
+  keypair: Ed25519Keypair,
+  pathObjectId: string,
+  amount: number = 1,
+): Promise<{ digest: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
-  const keypair = await deriveKeypair(uid)
   const tx = new Transaction()
   tx.moveCall({
     target: `${PACKAGE_ID}::substrate::mark`,
@@ -256,9 +199,12 @@ export async function mark(uid: string, pathObjectId: string, amount: number = 1
   return signAndExecute(tx, keypair)
 }
 
-export async function warn(uid: string, pathObjectId: string, amount: number = 1): Promise<{ digest: string }> {
+export async function warn(
+  keypair: Ed25519Keypair,
+  pathObjectId: string,
+  amount: number = 1,
+): Promise<{ digest: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
-  const keypair = await deriveKeypair(uid)
   const tx = new Transaction()
   tx.moveCall({
     target: `${PACKAGE_ID}::substrate::warn`,
@@ -278,7 +224,7 @@ export async function warn(uid: string, pathObjectId: string, amount: number = 1
  * Requires: sender's Unit object ID, receiver's Unit object ID + owner address.
  */
 export async function send(
-  senderUid: string,
+  keypair: Ed25519Keypair,
   senderUnitObjectId: string,
   receiverUnitObjectId: string,
   receiverAddress: string,
@@ -288,7 +234,6 @@ export async function send(
 ): Promise<{ digest: string; signalId: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
 
-  const keypair = await deriveKeypair(senderUid)
   const tx = new Transaction()
 
   tx.moveCall({
@@ -319,7 +264,7 @@ export async function send(
  * The signal is gone from the universe after this. Linear types = no replay.
  */
 export async function consume(
-  receiverUid: string,
+  keypair: Ed25519Keypair,
   signalObjectId: string,
   unitObjectId: string,
   pathObjectId: string,
@@ -327,7 +272,6 @@ export async function consume(
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
   if (!PROTOCOL_ID) throw new Error('SUI_PROTOCOL_ID not configured')
 
-  const keypair = await deriveKeypair(receiverUid)
   const tx = new Transaction()
 
   tx.moveCall({
@@ -347,7 +291,7 @@ export async function consume(
  * Revenue IS weight — same atomic transaction.
  */
 export async function pay(
-  fromUid: string,
+  keypair: Ed25519Keypair,
   fromUnitObjectId: string,
   toUnitObjectId: string,
   pathObjectId: string,
@@ -356,7 +300,6 @@ export async function pay(
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
   if (!PROTOCOL_ID) throw new Error('SUI_PROTOCOL_ID not configured')
 
-  const keypair = await deriveKeypair(fromUid)
   const tx = new Transaction()
 
   tx.moveCall({
@@ -378,14 +321,13 @@ export async function pay(
 // ═══════════════════════════════════════════════════════════════════════════
 
 export async function createPath(
-  uid: string,
+  keypair: Ed25519Keypair,
   sourceUnitId: string,
   targetUnitId: string,
   pathType: string = 'interaction',
 ): Promise<{ digest: string; pathId: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
 
-  const keypair = await deriveKeypair(uid)
   const tx = new Transaction()
 
   tx.moveCall({
@@ -407,10 +349,12 @@ export async function createPath(
 // HARDEN — Freeze highway permanently
 // ═══════════════════════════════════════════════════════════════════════════
 
-export async function harden(uid: string, pathObjectId: string): Promise<{ digest: string; highwayId: string }> {
+export async function harden(
+  keypair: Ed25519Keypair,
+  pathObjectId: string,
+): Promise<{ digest: string; highwayId: string }> {
   if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
 
-  const keypair = await deriveKeypair(uid)
   const tx = new Transaction()
 
   tx.moveCall({
@@ -550,7 +494,7 @@ export function cancelEscrowTx(escrowId: string, posterUnitId: string, pathId: s
 // ═══════════════════════════════════════════════════════════════════════════
 
 export async function createEscrow(
-  posterUid: string,
+  keypair: Ed25519Keypair,
   posterUnitObjectId: string,
   workerUnitObjectId: string,
   taskName: string,
@@ -558,7 +502,6 @@ export async function createEscrow(
   deadlineMs: number,
   pathObjectId: string,
 ): Promise<{ digest: string; escrowId: string }> {
-  const keypair = await deriveKeypair(posterUid)
   const tx = createEscrowTx(posterUnitObjectId, workerUnitObjectId, taskName, amount, deadlineMs, pathObjectId)
 
   const result = await signAndExecute(tx, keypair)
@@ -570,23 +513,21 @@ export async function createEscrow(
 }
 
 export async function releaseEscrow(
-  workerUid: string,
+  keypair: Ed25519Keypair,
   escrowObjectId: string,
   workerUnitObjectId: string,
   pathObjectId: string,
 ): Promise<{ digest: string }> {
-  const keypair = await deriveKeypair(workerUid)
   const tx = releaseEscrowTx(escrowObjectId, workerUnitObjectId, pathObjectId)
   return signAndExecute(tx, keypair)
 }
 
 export async function cancelEscrow(
-  posterUid: string,
+  keypair: Ed25519Keypair,
   escrowObjectId: string,
   posterUnitObjectId: string,
   pathObjectId: string,
 ): Promise<{ digest: string }> {
-  const keypair = await deriveKeypair(posterUid)
   const tx = cancelEscrowTx(escrowObjectId, posterUnitObjectId, pathObjectId)
   return signAndExecute(tx, keypair)
 }
@@ -643,14 +584,139 @@ export async function resolveUnit(uid: string): Promise<{ wallet: string; object
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CAPABILITY — Mint/revoke/operate with chairman-issued agent authority
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Build TX to mint a Capability for an agent's ephemeral address.
+ * Caller must be the unit's owner (chairman). Signed with chairman's keypair.
+ *
+ * scope: "mark" | "warn" | "pay" | "all"
+ * amountCap: max per-op amount in MIST (0 = unlimited)
+ * expiryMs: Unix ms timestamp (0 = never)
+ * holderAddress: agent's ephemeral Sui address for this session
+ */
+export function mintCapabilityTx(
+  unitObjectId: string,
+  scope: string,
+  amountCap: number,
+  expiryMs: number,
+  holderAddress: string,
+): Transaction {
+  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
+  const tx = new Transaction()
+  tx.moveCall({
+    target: `${PACKAGE_ID}::substrate::mint_capability`,
+    arguments: [
+      tx.object(unitObjectId),
+      tx.pure.string(scope),
+      tx.pure.u64(amountCap),
+      tx.pure.u64(expiryMs),
+      tx.pure.address(holderAddress),
+    ],
+  })
+  return tx
+}
+
+export async function mintCapability(
+  unitObjectId: string,
+  scope: string,
+  amountCap: number,
+  expiryMs: number,
+  holderAddress: string,
+  chairmanKeypair: Ed25519Keypair,
+): Promise<{ capabilityId: string; digest: string }> {
+  const tx = mintCapabilityTx(unitObjectId, scope, amountCap, expiryMs, holderAddress)
+  const result = await signAndExecute(tx, chairmanKeypair)
+  const created = (result.effects as any)?.created || []
+  const capObj = created.find((o: any) => o.owner?.AddressOwner === holderAddress)
+  return { capabilityId: capObj?.reference?.objectId || '', digest: result.digest }
+}
+
+/** Build TX to revoke (burn) a Capability. Signed by the holder (agent). */
+export function revokeCapabilityTx(capabilityObjectId: string): Transaction {
+  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
+  const tx = new Transaction()
+  tx.moveCall({
+    target: `${PACKAGE_ID}::substrate::revoke_capability`,
+    arguments: [tx.object(capabilityObjectId)],
+  })
+  return tx
+}
+
+/** Build TX to mark a path using a Capability. Signed by the agent's ephemeral key. */
+export function markWithCapTx(
+  capabilityObjectId: string,
+  unitObjectId: string,
+  pathObjectId: string,
+  amount: number,
+): Transaction {
+  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
+  const tx = new Transaction()
+  tx.moveCall({
+    target: `${PACKAGE_ID}::substrate::mark_with_cap`,
+    arguments: [
+      tx.object(capabilityObjectId),
+      tx.object(unitObjectId),
+      tx.object(pathObjectId),
+      tx.pure.u64(amount),
+      tx.object('0x6'), // Clock
+    ],
+  })
+  return tx
+}
+
+export async function markWithCap(
+  capabilityObjectId: string,
+  unitObjectId: string,
+  pathObjectId: string,
+  amount: number,
+  agentKeypair: Ed25519Keypair,
+): Promise<{ digest: string }> {
+  const tx = markWithCapTx(capabilityObjectId, unitObjectId, pathObjectId, amount)
+  return signAndExecute(tx, agentKeypair)
+}
+
+/** Build TX to warn a path using a Capability. Signed by the agent's ephemeral key. */
+export function warnWithCapTx(
+  capabilityObjectId: string,
+  unitObjectId: string,
+  pathObjectId: string,
+  amount: number,
+): Transaction {
+  if (!PACKAGE_ID) throw new Error('SUI_PACKAGE_ID not configured')
+  const tx = new Transaction()
+  tx.moveCall({
+    target: `${PACKAGE_ID}::substrate::warn_with_cap`,
+    arguments: [
+      tx.object(capabilityObjectId),
+      tx.object(unitObjectId),
+      tx.object(pathObjectId),
+      tx.pure.u64(amount),
+      tx.object('0x6'), // Clock
+    ],
+  })
+  return tx
+}
+
+export async function warnWithCap(
+  capabilityObjectId: string,
+  unitObjectId: string,
+  pathObjectId: string,
+  amount: number,
+  agentKeypair: Ed25519Keypair,
+): Promise<{ digest: string }> {
+  const tx = warnWithCapTx(capabilityObjectId, unitObjectId, pathObjectId, amount)
+  return signAndExecute(tx, agentKeypair)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default {
   getClient,
-  deriveKeypair,
-  addressFor,
-  platformKeypair,
+  generateEphemeralKeypair,
   signAndExecute,
   createUnit,
   registerTask,
@@ -671,4 +737,11 @@ export default {
   resolveUnit,
   mark,
   warn,
+  mintCapabilityTx,
+  mintCapability,
+  revokeCapabilityTx,
+  markWithCapTx,
+  markWithCap,
+  warnWithCapTx,
+  warnWithCap,
 }

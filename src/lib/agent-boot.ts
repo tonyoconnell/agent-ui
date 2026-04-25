@@ -18,7 +18,7 @@
  *   → compares to config.walletAddress
  */
 
-import { addressFor, getClient } from '@/lib/sui'
+import { getClient } from '@/lib/sui'
 import { readParsed } from '@/lib/typedb'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -103,10 +103,10 @@ async function readScopedWalletAgent(scopedWalletId: string): Promise<string | n
  * 3. Returns AgentBootConfig. Callers must call verifyScopeMatch() before
  *    letting the agent proceed.
  *
- * Throws if addressFor() fails (SUI_SEED not configured).
+ * walletAddress is empty string (no platform key; user vault provides wallet).
  */
 export async function bootAgent(uid: string): Promise<AgentBootConfig> {
-  const [walletAddress, scopedWalletId] = await Promise.all([addressFor(uid), queryUnitScopedWallet(uid)])
+  const [walletAddress, scopedWalletId] = await Promise.all([Promise.resolve(''), queryUnitScopedWallet(uid)])
 
   return { uid, walletAddress, scopedWalletId }
 }

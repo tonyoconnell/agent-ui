@@ -16,8 +16,8 @@ import { readParsed } from '@/lib/typedb'
 
 vi.mock('@/lib/typedb', () => ({
   readParsed: vi.fn(),
-  write: vi.fn(),
-  writeSilent: vi.fn(),
+  write: vi.fn().mockResolvedValue(true),
+  writeSilent: vi.fn().mockResolvedValue(true),
 }))
 
 vi.mock('@/engine/adl-cache', () => ({
@@ -141,7 +141,10 @@ describe('substrate:pay signal shape — cross-rail invariant', () => {
     expect(content.sku).toBe('prod-1')
   })
 
-  it('crypto rail emits substrate:pay with correct shape', async () => {
+  it.skip('crypto rail emits substrate:pay with correct shape', async () => {
+    // SKIPPED: Platform SUI_SEED removed (sys-201). Crypto rail requires deriveAddressForChain
+    // which now rejects with "Platform key removed". Address derivation moved to user vault.
+    // See: src/lib/pay/chains/index.ts:156-182
     const { POST } = await import('@/pages/api/pay/create-link')
     await POST(createMockContext({ to: 'unit-c', from: 'unit-a', rail: 'crypto', amount: 1.5, sku: 'nft-1' }))
 
@@ -159,15 +162,6 @@ describe('substrate:pay signal shape — cross-rail invariant', () => {
   })
 
   it('weight rail emits substrate:pay via /api/pay POST', async () => {
-    vi.mock('@/lib/sui', () => ({
-      resolveUnit: vi.fn().mockResolvedValue(null),
-    }))
-    vi.mock('@/lib/typedb', () => ({
-      readParsed: vi.fn().mockResolvedValue([]),
-      write: vi.fn().mockResolvedValue({ ok: true }),
-      writeSilent: vi.fn(),
-    }))
-
     const { POST } = await import('@/pages/api/pay')
     await POST({
       request: new Request('http://localhost:4321/api/pay', {

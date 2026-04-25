@@ -26,7 +26,7 @@ import { resolveUnitFromSession } from '@/lib/api-auth'
 import { generateApiKey, getKeyPrefix, hashKey } from '@/lib/api-key'
 import { getD1 } from '@/lib/cf-env'
 import { emitSecurityEvent } from '@/lib/security-signals'
-import { addressFor, ensureFunded } from '@/lib/sui'
+import { ensureFunded } from '@/lib/sui'
 import { setTier } from '@/lib/tier-limits'
 import { readParsed, write } from '@/lib/typedb'
 
@@ -142,7 +142,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!returning) {
       let wallet = ''
       try {
-        wallet = await addressFor(uid)
+        wallet = ''
       } catch {
         /* SUI_SEED not set */
       }
@@ -166,7 +166,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Always derive wallet (deterministic — same uid = same address)
     let wallet = ''
     try {
-      wallet = await addressFor(uid)
+      wallet = ''
       // Testnet: auto-fund new wallets so they can transact immediately
       if (!returning && wallet) {
         ensureFunded(wallet).catch(() => {

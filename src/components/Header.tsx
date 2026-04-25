@@ -88,6 +88,11 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
   const signOut = async () => {
     emitClick('ui:header:signout')
     try {
+      await Vault.flushPendingSync()
+    } catch {
+      // best-effort — don't block sign-out on sync failure
+    }
+    try {
       Vault.lock()
     } catch {
       // ignore
@@ -97,7 +102,7 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
     } catch {
       // even if the server rejects, clear locally
     }
-    window.location.href = '/'
+    window.location.href = '/signed-out'
   }
 
   // Single entry point. The state machine decides the action:

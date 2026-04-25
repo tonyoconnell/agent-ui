@@ -24,12 +24,6 @@ vi.mock('@/engine/persist', () => ({
   })),
 }))
 
-vi.mock('@/lib/sui', () => ({
-  addressFor: vi.fn(),
-}))
-
-import { addressFor } from '@/lib/sui'
-
 // ── Helper ────────────────────────────────────────────────────────────────────
 
 async function callRegister(body: Record<string, unknown>) {
@@ -50,10 +44,7 @@ describe('POST /api/agents/register — wallet derivation', () => {
     vi.resetModules()
   })
 
-  it('(a) returns wallet address when derivation succeeds', async () => {
-    const mockWallet = '0xdeadbeef1234567890abcdef'
-    vi.mocked(addressFor).mockResolvedValue(mockWallet)
-
+  it('(a) returns null wallet when platform key is removed', async () => {
     const res = await callRegister({ uid: 'buyer-abc123', kind: 'human' })
 
     expect(res.status).toBe(200)
@@ -61,13 +52,10 @@ describe('POST /api/agents/register — wallet derivation', () => {
     expect(body.ok).toBe(true)
     expect(body.uid).toBe('buyer-abc123')
     expect(body.status).toBe('registered')
-    expect(body.wallet).toBe(mockWallet)
-    expect(addressFor).toHaveBeenCalledWith('buyer-abc123')
+    expect(body.wallet).toBeFalsy()
   })
 
-  it('(b) returns wallet: null when addressFor throws (fail gracefully)', async () => {
-    vi.mocked(addressFor).mockRejectedValue(new Error('SUI_SEED not set'))
-
+  it('(b) returns null wallet when address derivation unavailable (fail gracefully)', async () => {
     const res = await callRegister({ uid: 'buyer-no-seed', kind: 'human' })
 
     expect(res.status).toBe(200)
@@ -75,8 +63,8 @@ describe('POST /api/agents/register — wallet derivation', () => {
     expect(body.ok).toBe(true)
     expect(body.uid).toBe('buyer-no-seed')
     expect(body.status).toBe('registered')
-    // Wallet is null when derivation fails — does NOT 500
-    expect(body.wallet).toBeNull()
+    // Wallet is null/falsy when derivation not available — does NOT 500
+    expect(body.wallet).toBeFalsy()
   })
 
   it('(c) returns 400 when uid is missing', async () => {
@@ -85,26 +73,21 @@ describe('POST /api/agents/register — wallet derivation', () => {
     expect(res.status).toBe(400)
     const body = (await res.json()) as Record<string, any>
     expect(body.error).toMatch(/uid/)
-    // addressFor should NOT be called without a uid
-    expect(addressFor).not.toHaveBeenCalled()
   })
 
-  it('(d) passes uid correctly to addressFor (deterministic derivation)', async () => {
+  it('(d) accepts uid correctly (wallet derivation no longer available)', async () => {
     const uid = 'agent-deterministic-test'
-    const mockAddr = '0xcafe5678'
-    vi.mocked(addressFor).mockResolvedValue(mockAddr)
 
-    await callRegister({ uid })
+    const res = await callRegister({ uid })
 
-    // Same uid always produces the same address — the derivation is deterministic
-    // (HKDF-SHA256(seed || uid) → Ed25519 keypair → Sui address)
-    expect(addressFor).toHaveBeenCalledTimes(1)
-    expect(addressFor).toHaveBeenCalledWith(uid)
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as Record<string, any>
+    expect(body.uid).toBe(uid)
+    // Wallet is null/falsy since platform key removed, derivation unavailable
+    expect(body.wallet).toBeFalsy()
   })
 
   it('(e) capabilities count returned correctly', async () => {
-    vi.mocked(addressFor).mockResolvedValue('0xwallet')
-
     const res = await callRegister({
       uid: 'agent-caps',
       capabilities: [

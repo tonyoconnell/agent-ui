@@ -118,11 +118,26 @@ export function closeVaultDb(): void {
   })
 }
 
-export function deleteVaultDb(): Promise<void> {
-  closeVaultDb()
-  if (!isStorageAvailable()) {
-    return Promise.reject(new VaultError('IndexedDB unavailable in this context', 'storage-error'))
+export async function deleteVaultDb(): Promise<void> {
+  // Await and synchronously close our own connection BEFORE requesting the
+  // delete. closeVaultDb() fires db.close() as a microtask, which races with
+  // indexedDB.deleteDatabase() when called synchronously — awaiting the handle
+  // here eliminates that race.
+  const existingPromise = dbPromise
+  dbPromise = null
+  if (existingPromise) {
+    try {
+      const db = await existingPromise
+      db.close()
+    } catch {
+      // db never opened — nothing to close
+    }
   }
+
+  if (!isStorageAvailable()) {
+    throw new VaultError('IndexedDB unavailable in this context', 'storage-error')
+  }
+
   return new Promise<void>((resolve, reject) => {
     let req: IDBOpenDBRequest
     try {
@@ -134,7 +149,10 @@ export function deleteVaultDb(): Promise<void> {
     req.onsuccess = () => resolve()
     req.onerror = () =>
       reject(new VaultError(`Failed to delete vault db: ${req.error?.message ?? 'unknown'}`, 'storage-error'))
-    req.onblocked = () => reject(new VaultError('Vault db delete blocked by another connection', 'storage-error'))
+    // onblocked: other tabs hold the db open. The browser sent them a
+    // versionchange event; once they close, onsuccess fires. Don't reject —
+    // the delete is still pending and will complete without intervention.
+    req.onblocked = () => {}
   })
 }
 

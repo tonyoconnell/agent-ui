@@ -122,7 +122,7 @@ export const POST: APIRoute = async ({ request }) => {
     const message = err instanceof Error ? err.message : 'Unknown error'
 
     // Distinguish between configuration errors (503) and user errors (400)
-    if (message.includes('not configured') || message.includes('SUI_SEED')) {
+    if (message.includes('not configured') || message.includes('SUI_SEED') || message.includes('sys-201')) {
       return new Response(JSON.stringify({ error: 'Sui not configured', code: 'sui_unavailable' }), {
         status: 503,
         headers: { 'Content-Type': 'application/json' },

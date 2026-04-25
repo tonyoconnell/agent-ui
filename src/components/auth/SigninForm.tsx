@@ -155,32 +155,6 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
             </>
           )}
         </Button>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 py-1">
-          <div className="h-px flex-1 bg-zinc-800" />
-          <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">or</span>
-          <div className="h-px flex-1 bg-zinc-800" />
-        </div>
-
-        {/* Sui wallet */}
-        <Button
-          type="button"
-          variant="outline"
-          disabled
-          title="Coming soon — sign in with your Sui wallet"
-          className="h-11 w-full justify-center border-zinc-800 bg-zinc-950/60 text-sm font-medium text-zinc-400 hover:bg-zinc-900 disabled:opacity-70"
-        >
-          <span className="inline-flex items-center gap-2">
-            <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-              <path fill="currentColor" d="M12 2 4 12l8 10 8-10L12 2zm0 3.4L17.6 12 12 18.6 6.4 12 12 5.4z" />
-            </svg>
-            Continue with Sui wallet
-            <span className="rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-violet-300">
-              Soon
-            </span>
-          </span>
-        </Button>
       </form>
 
       {/* Footnote */}

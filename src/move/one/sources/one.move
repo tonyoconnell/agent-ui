@@ -50,6 +50,9 @@ module one::substrate {
     const EInvalidFee: u64 = 8;
     const EInvalidRate: u64 = 9;
     const EAlreadyHardened: u64 = 10;
+    const ECapabilityExpired: u64 = 11;
+    const ECapabilityWrongUnit: u64 = 12;
+    const ECapabilityWrongHolder: u64 = 13;
 
     // =========================================================================
     // OBJECTS
@@ -135,6 +138,19 @@ module one::substrate {
         path_id: ID,                // path to mark on success / warn on failure
     }
 
+    /// Capability — minted by a unit's owner, grants an agent authority to act.
+    /// Owned object: transferred to the agent's ephemeral address.
+    /// Revoked by the holder calling revoke_capability() or by expiry.
+    public struct Capability has key, store {
+        id: UID,
+        unit_id: ID,         // which unit this grants authority over
+        scope: String,       // "mark", "warn", "pay", "all"
+        amount_cap: u64,     // max per-operation amount (0 = unlimited)
+        expiry: u64,         // Unix timestamp in ms; 0 = never expires
+        owner: address,      // chairman who minted this
+        holder: address,     // agent's current ephemeral address
+    }
+
     /// AdminCap — minted once in init(), transferred to deployer.
     /// Required to withdraw treasury fees or change fee rate.
     public struct AdminCap has key, store { id: UID }
@@ -159,6 +175,8 @@ module one::substrate {
     public struct HighwayFormed has copy, drop { highway_id: ID, source: ID, target: ID, strength: u64, revenue: u64 }
     public struct UnitDissolved has copy, drop { unit_id: ID, balance_returned: u64 }
     public struct ColonySplit has copy, drop { parent: ID, child_a: ID, child_b: ID }
+    public struct CapabilityMinted has copy, drop { cap_id: ID, unit_id: ID, scope: String, holder: address }
+    public struct CapabilityRevoked has copy, drop { cap_id: ID, unit_id: ID }
 
     // Payment events
     public struct PaymentSent has copy, drop { from: ID, to: ID, amount: u64 }
@@ -674,6 +692,96 @@ module one::substrate {
     }
 
     // =========================================================================
+    // CAPABILITY — Chairman-minted authority for ephemeral agent keys
+    // =========================================================================
+
+    /// Mint a Capability granting an ephemeral agent address authority over a unit.
+    /// Only the unit's owner (chairman) may call this.
+    /// Transfers the Capability to the agent's current ephemeral address (holder).
+    public fun mint_capability(
+        unit: &Unit,
+        scope: String,
+        amount_cap: u64,
+        expiry: u64,
+        holder: address,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == unit.owner, ENotAuthorized);
+        let cap = Capability {
+            id: object::new(ctx),
+            unit_id: object::id(unit),
+            scope,
+            amount_cap,
+            expiry,
+            owner: ctx.sender(),
+            holder,
+        };
+        event::emit(CapabilityMinted {
+            cap_id: object::id(&cap),
+            unit_id: object::id(unit),
+            scope: cap.scope,
+            holder,
+        });
+        transfer::transfer(cap, holder);
+    }
+
+    /// Revoke a Capability. Only the current holder may do this.
+    /// Destroys the object — agent loses authority immediately.
+    public fun revoke_capability(cap: Capability, ctx: &TxContext) {
+        assert!(ctx.sender() == cap.holder, ECapabilityWrongHolder);
+        let Capability { id, unit_id, scope: _, amount_cap: _, expiry: _, owner: _, holder: _ } = cap;
+        event::emit(CapabilityRevoked { cap_id: object::uid_to_inner(&id), unit_id });
+        object::delete(id);
+    }
+
+    /// Mark a path using a Capability.
+    /// Verifies: capability is for this unit, caller is the holder, not expired.
+    public fun mark_with_cap(
+        cap: &Capability,
+        caller: &Unit,
+        path: &mut Path,
+        amount: u64,
+        clock: &Clock,
+        ctx: &TxContext,
+    ) {
+        assert!(cap.unit_id == object::id(caller), ECapabilityWrongUnit);
+        assert!(cap.holder == ctx.sender(), ECapabilityWrongHolder);
+        assert!(cap.expiry == 0 || clock::timestamp_ms(clock) < cap.expiry, ECapabilityExpired);
+        assert!(object::id(caller) == path.source, ENotAuthorized);
+        path.strength = path.strength + amount;
+        path.hits = path.hits + 1;
+        event::emit(Marked {
+            path_id: object::id(path),
+            source: path.source,
+            target: path.target,
+            strength: path.strength,
+        });
+    }
+
+    /// Warn a path using a Capability.
+    public fun warn_with_cap(
+        cap: &Capability,
+        caller: &Unit,
+        path: &mut Path,
+        amount: u64,
+        clock: &Clock,
+        ctx: &TxContext,
+    ) {
+        assert!(cap.unit_id == object::id(caller), ECapabilityWrongUnit);
+        assert!(cap.holder == ctx.sender(), ECapabilityWrongHolder);
+        assert!(cap.expiry == 0 || clock::timestamp_ms(clock) < cap.expiry, ECapabilityExpired);
+        assert!(object::id(caller) == path.source, ENotAuthorized);
+        path.resistance = path.resistance + amount;
+        path.misses = path.misses + 1;
+        event::emit(Warned {
+            path_id: object::id(path),
+            source: path.source,
+            target: path.target,
+            resistance: path.resistance,
+        });
+    }
+
+    // =========================================================================
     // ACCESSORS
     // =========================================================================
 
@@ -691,6 +799,10 @@ module one::substrate {
     public fun is_toxic(path: &Path): bool { path.resistance > path.strength * 3 }
     public fun escrow_bounty(escrow: &Escrow): u64 { balance::value(&escrow.bounty) }
     public fun escrow_deadline(escrow: &Escrow): u64 { escrow.deadline }
+    public fun capability_unit_id(cap: &Capability): ID { cap.unit_id }
+    public fun capability_expiry(cap: &Capability): u64 { cap.expiry }
+    public fun capability_holder(cap: &Capability): address { cap.holder }
+    public fun capability_scope(cap: &Capability): String { cap.scope }
 
     // =========================================================================
     // TEST HELPERS

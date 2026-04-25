@@ -10,6 +10,7 @@
  * - Responsive design
  */
 
+import { Fingerprint } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import {
   AlertDialog,
@@ -274,7 +275,7 @@ export function EnhancedWalletCard({ wallet, chain, onDelete, onViewMnemonic, on
                   <span className="mr-2">📋</span> Copy Address
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onViewMnemonic?.(wallet.id, wallet.name || chain.name)}>
-                  <span className="mr-2">🔑</span> View Recovery Phrase
+                  <Fingerprint className="mr-2 h-4 w-4" strokeWidth={1.75} /> View Recovery Phrase
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

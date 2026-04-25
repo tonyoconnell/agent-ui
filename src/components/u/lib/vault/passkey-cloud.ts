@@ -435,6 +435,15 @@ export async function signInWithPasskey(): Promise<{
   const masterB64 = await decryptUnderMaster(record, wrapKey)
   const master = base64ToBytes(masterB64)
 
+  // Sign-out only clears the session row — IDB meta + wallets are preserved.
+  // If a local vault already exists, just re-open the session with the known
+  // master rather than trying to re-import the cloud blob (which throws when
+  // vault exists) or adoptMaster (which no-ops when vault exists).
+  if (await Vault.hasVault()) {
+    await Vault.unlockWithMaster(master)
+    return { walletsRestored: 0 }
+  }
+
   const cloud = await fetchCloudBlob()
   if (!cloud) {
     await Vault.adoptMaster(master)

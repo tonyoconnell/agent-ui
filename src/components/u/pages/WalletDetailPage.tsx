@@ -19,9 +19,9 @@ import {
   ChevronLeft,
   Copy,
   ExternalLink,
-  Eye,
   EyeOff,
   FileCode,
+  Fingerprint,
   Flame,
   KeyRound,
   Loader2,
@@ -470,7 +470,9 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
   const [sendAmount, setSendAmount] = useState('')
   const [showOwnWallets, setShowOwnWallets] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [keyRevealed, setKeyRevealed] = useState(false)
+  const [revealedKey, setRevealedKey] = useState<string | null>(null)
+  const [keyRevealLoading, setKeyRevealLoading] = useState(false)
+  const [keyRevealError, setKeyRevealError] = useState<string | null>(null)
   const [liveBalance, setLiveBalance] = useState<{ balance: string; usdValue: number } | null>(null)
 
   useEffect(() => {
@@ -1317,7 +1319,10 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
         open={showExportDialog}
         onOpenChange={(open) => {
           setShowExportDialog(open)
-          if (!open) setKeyRevealed(false)
+          if (!open) {
+            setRevealedKey(null)
+            setKeyRevealError(null)
+          }
         }}
       >
         <DialogContent className="max-w-md">
@@ -1343,23 +1348,46 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
               </ul>
             </div>
 
-            {!keyRevealed ? (
+            {keyRevealError && <p className="text-sm text-red-400">{keyRevealError}</p>}
+
+            {!revealedKey ? (
               <button
                 type="button"
-                className="w-full p-6 bg-muted/60 rounded-2xl text-center hover:bg-muted transition-colors border border-border/60"
-                onClick={() => setKeyRevealed(true)}
+                disabled={keyRevealLoading}
+                className="w-full p-6 bg-muted/60 rounded-2xl text-center hover:bg-muted transition-colors border border-border/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={async () => {
+                  if (!walletId || keyRevealLoading) return
+                  setKeyRevealLoading(true)
+                  setKeyRevealError(null)
+                  try {
+                    const key = await Vault.getPrivateKey(walletId)
+                    setRevealedKey(key ?? '')
+                  } catch (e) {
+                    setKeyRevealError((e as Error).message)
+                  } finally {
+                    setKeyRevealLoading(false)
+                  }
+                }}
               >
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-background ring-1 ring-border">
-                  <Eye className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+                  {keyRevealLoading ? (
+                    <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" strokeWidth={1.5} />
+                  ) : (
+                    <Fingerprint className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+                  )}
                 </div>
-                <p className="font-medium text-sm">Click to reveal private key</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Make sure no one is watching</p>
+                <p className="font-medium text-sm">
+                  {keyRevealLoading ? 'Verifying…' : 'Touch ID to reveal private key'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {keyRevealLoading ? 'Confirm with Touch ID' : 'Make sure no one is watching'}
+                </p>
               </button>
             ) : (
               <div className="space-y-3">
                 <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5">
                   <code className="text-xs font-mono break-all text-amber-200/90">
-                    {wallet.privateKey || 'No key available'}
+                    {revealedKey || 'No key stored for this wallet'}
                   </code>
                 </div>
                 <div className="flex gap-2">
@@ -1367,13 +1395,13 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
                     variant="outline"
                     className="flex-1 gap-1.5"
                     onClick={() => {
-                      navigator.clipboard.writeText(wallet.privateKey || '')
+                      void navigator.clipboard.writeText(revealedKey)
                     }}
                   >
                     <Copy className="h-4 w-4" strokeWidth={1.75} />
                     Copy Key
                   </Button>
-                  <Button variant="outline" className="flex-1 gap-1.5" onClick={() => setKeyRevealed(false)}>
+                  <Button variant="outline" className="flex-1 gap-1.5" onClick={() => setRevealedKey(null)}>
                     <EyeOff className="h-4 w-4" strokeWidth={1.75} />
                     Hide Key
                   </Button>

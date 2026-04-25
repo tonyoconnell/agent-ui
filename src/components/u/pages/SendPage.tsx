@@ -14,12 +14,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { SuiNSPicker } from '@/components/u/SuiNSPicker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { emitClick } from '@/lib/ui-signal'
 import { trackEvent } from '@/lib/analytics'
-import { SuiNSPicker } from '@/components/u/SuiNSPicker'
+import { emitClick } from '@/lib/ui-signal'
 import type { ScopedWalletStruct } from '../../../../interfaces/move/scoped-wallet/struct.move'
 import { getWallet } from '../lib/idb'
 import { getScopedWallet } from '../lib/scoped-wallet'
@@ -453,8 +453,8 @@ export function SendPage() {
                   />
                   {resolvedDisplayName && destinationAddress && (
                     <p className="text-xs text-muted-foreground px-1">
-                      Resolved: <span className="font-medium">{resolvedDisplayName}</span>{' '}
-                      → <span className="font-mono">{destinationAddress.slice(0, 10)}…</span>
+                      Resolved: <span className="font-medium">{resolvedDisplayName}</span> →{' '}
+                      <span className="font-mono">{destinationAddress.slice(0, 10)}…</span>
                     </p>
                   )}
                   <Button

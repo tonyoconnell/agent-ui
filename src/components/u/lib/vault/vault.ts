@@ -21,7 +21,7 @@ import {
   guessAuthenticatorLabel,
   unlockWithPasskey as passkeyUnlock,
 } from './passkey'
-import { assertValidRecoveryPhrase, generateRecoveryPhrase, recoveryToVaultSecret } from './recovery'
+import { assertValidRecoveryPhrase, recoveryToVaultSecret } from './recovery'
 import {
   appendAudit,
   clearSessionRow,
@@ -68,7 +68,12 @@ const RATE_LIMIT_LOCKOUT_MS = 5 * 60 * 1000 // after 7th wrong → 5 min lockout
 let session: VaultSession | null = null
 let autoLockTimer: ReturnType<typeof setTimeout> | null = null
 let failedAttempts = 0
+
+// Pending sync tracking — sync.ts calls notifySyncStart/End; Header.tsx awaits flushPendingSync before signOut.
+let _pendingSyncs = 0
+const _flushResolvers: Array<() => void> = []
 let lockoutUntil = 0
+let _stepUpTime = 0 // timestamp of last successful step-up; 0 = never
 
 function clearSession(): void {
   session = null
@@ -164,7 +169,7 @@ function requireUnlocked(): VaultSession {
   return session
 }
 
-function checkRateLimit(): void {
+function _checkRateLimit(): void {
   if (lockoutUntil > Date.now()) {
     const seconds = Math.ceil((lockoutUntil - Date.now()) / 1000)
     throw new VaultError(`too many failed attempts; try again in ${seconds}s`, 'rate-limited')
@@ -176,12 +181,12 @@ function checkRateLimit(): void {
   }
 }
 
-async function backoffSleep(): Promise<void> {
+async function _backoffSleep(): Promise<void> {
   const backoff = RATE_LIMIT_BACKOFFS_MS[Math.min(failedAttempts, RATE_LIMIT_BACKOFFS_MS.length - 1)]
   if (backoff > 0) await new Promise((r) => setTimeout(r, backoff))
 }
 
-function recordFailure(): void {
+function _recordFailure(): void {
   failedAttempts++
   if (failedAttempts >= RATE_LIMIT_BACKOFFS_MS.length) {
     lockoutUntil = Date.now() + RATE_LIMIT_LOCKOUT_MS
@@ -234,6 +239,29 @@ export function onMutation(fn: MutationListener): () => void {
   }
 }
 
+export function notifySyncStart(): void {
+  _pendingSyncs++
+}
+
+export function notifySyncEnd(): void {
+  _pendingSyncs = Math.max(0, _pendingSyncs - 1)
+  if (_pendingSyncs === 0) {
+    const cbs = _flushResolvers.splice(0)
+    for (const cb of cbs) cb()
+  }
+}
+
+export function flushPendingSync(timeoutMs = 5000): Promise<void> {
+  if (_pendingSyncs === 0) return Promise.resolve()
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, timeoutMs)
+    _flushResolvers.push(() => {
+      clearTimeout(timer)
+      resolve()
+    })
+  })
+}
+
 function notifyMutation(): void {
   for (const fn of mutationListeners) {
     try {
@@ -242,6 +270,20 @@ function notifyMutation(): void {
       // swallow — listeners must never break the mutation path
     }
   }
+}
+
+// ============================================
+// STEP-UP CACHE — 15-second grace window for sensitive ops
+// ============================================
+
+// Throws 'passkey-cancelled' if the user dismisses the Touch ID prompt.
+// No-ops when a successful step-up happened within the last 15 seconds,
+// so back-to-back sensitive ops (e.g. view mnemonic then copy key) don't
+// require a second biometric tap.
+async function _checkRecentStepUp(): Promise<void> {
+  if (Date.now() - _stepUpTime < 15_000) return
+  const ok = await stepUpPasskey()
+  if (!ok) throw new VaultError('passkey prompt cancelled', 'passkey-cancelled')
 }
 
 // ============================================
@@ -281,113 +323,6 @@ export async function getStatus(): Promise<VaultStatus> {
     unlockedAt: session?.unlockedAt,
     capabilities: caps,
   }
-}
-
-// ============================================
-// SETUP
-// ============================================
-
-export interface SetupOptions {
-  /** Enroll a platform passkey (Touch ID / Face ID / Windows Hello). */
-  enrollPasskey?: boolean
-  /** Set a password fallback. */
-  password?: string
-  /** Display label shown in passkey OS prompt. */
-  userIdentifier?: string
-  /** auto-lock idle timeout (default 30 min). */
-  autoLockMs?: number
-  /** lock when tab closes. */
-  lockOnTabClose?: boolean
-}
-
-export interface SetupResult {
-  /** 24-word BIP-39 phrase. SHOW THIS ONCE. The user must write it down. */
-  recoveryPhrase: string
-  /** Passkey enrollment (if requested + supported). */
-  enrollment?: PasskeyEnrollment
-}
-
-/**
- * Bootstrap a new vault. The recovery phrase is the source of truth — every
- * other unlock method (passkey, password) wraps the same master secret.
- */
-export async function setup(opts: SetupOptions = {}): Promise<SetupResult> {
-  if (!isStorageAvailable()) throw new VaultError('IndexedDB unavailable', 'storage-error')
-  if (await hasVault()) throw new VaultError('vault already exists', 'storage-error')
-
-  // 1. Generate recovery phrase — this IS the vault master.
-  const recoveryPhrase = generateRecoveryPhrase()
-  const masterSecret = await recoveryToVaultSecret(recoveryPhrase)
-  const masterBaseKey = await importMasterSecret(masterSecret)
-
-  // 2. Build initial meta record.
-  const meta: VaultMeta = {
-    id: 'singleton',
-    version: VAULT_SCHEMA_VERSION,
-    createdAt: Date.now(),
-    hasPassword: false,
-    passkeys: [],
-    autoLockMs: opts.autoLockMs ?? DEFAULT_AUTO_LOCK_MS,
-    lockOnTabClose: opts.lockOnTabClose ?? false,
-    recoveryCheck: await encryptUnderMaster(SENTINEL_PLAINTEXT, masterBaseKey, HKDF_DOMAINS.recoveryCheck()),
-  }
-
-  // 3. Optional passkey enrollment.
-  let enrollment: PasskeyEnrollment | undefined
-  let enrollmentPrfSecret: Uint8Array | undefined
-  if (opts.enrollPasskey) {
-    try {
-      const res = await enrollPasskey(opts.userIdentifier ?? 'ONE Vault', opts.userIdentifier ?? 'ONE Vault')
-      enrollment = res.enrollment
-      enrollmentPrfSecret = res.prfSecret
-      enrollment.authenticatorLabel = enrollment.authenticatorLabel ?? guessAuthenticatorLabel()
-      meta.passkeys.push(enrollment)
-    } catch (e) {
-      audit({ verb: 'setup', outcome: 'fail', method: 'passkey', detail: (e as Error).message })
-      throw e
-    }
-  }
-
-  // 4. Optional password fallback.
-  if (opts.password) {
-    if (opts.password.length < 8) throw new VaultError('password must be ≥ 8 characters', 'wrong-password')
-    const passwordSalt = randomBytes(SALT_LENGTH)
-    const pwSecret = await deriveSecretFromPassword(opts.password, passwordSalt)
-    const pwBaseKey = await importMasterSecret(pwSecret)
-    // Store the recovery sentinel encrypted under the PASSWORD-derived base key so
-    // password unlock can recover the master too. We do this by storing the master
-    // SECRET (32 bytes) wrapped under the password key. Same for passkey path.
-    meta.passwordCheck = await encryptUnderMaster(bytesToBase64(masterSecret), pwBaseKey, HKDF_DOMAINS.masterCheck())
-    meta.passwordSalt = passwordSalt
-    meta.hasPassword = true
-  }
-
-  // 5. Wrap master secret under the passkey enrollment so unlock can recover it.
-  // Reuse the PRF secret captured during enrollment verification — no third prompt.
-  if (enrollment && enrollmentPrfSecret) {
-    const wrapKey = await importMasterSecret(enrollmentPrfSecret)
-    const wrappedMaster = await encryptUnderMaster(
-      bytesToBase64(masterSecret),
-      wrapKey,
-      `${HKDF_DOMAINS.masterCheck()}.passkey.${bytesToBase64(enrollment.credentialId)}`,
-    )
-    ;(enrollment as PasskeyEnrollment & { wrappedMaster: EncryptedRecord }).wrappedMaster = wrappedMaster
-  }
-
-  await putMeta(meta)
-
-  // 6. Open session immediately — no need to re-prompt the user post-setup.
-  session = {
-    masterKey: masterBaseKey,
-    method: enrollment ? 'passkey' : opts.password ? 'password' : 'recovery',
-    unlockedAt: Date.now(),
-    lastActivityAt: Date.now(),
-  }
-  armAutoLock(meta.autoLockMs)
-  persistSession()
-
-  audit({ verb: 'setup', outcome: 'ok', method: session.method })
-  return { recoveryPhrase, enrollment }
 }
 
 // ============================================
@@ -465,45 +400,6 @@ export async function unlockWithPasskey(): Promise<void> {
   )
 }
 
-export async function unlockWithPassword(password: string): Promise<void> {
-  checkRateLimit()
-  await backoffSleep()
-
-  const meta = await loadMeta()
-  if (!meta.hasPassword || !meta.passwordCheck || !meta.passwordSalt) {
-    throw new VaultError('no password set on this vault', 'wrong-password')
-  }
-
-  const pwSecret = await deriveSecretFromPassword(password, meta.passwordSalt)
-  const pwBaseKey = await importMasterSecret(pwSecret)
-
-  let masterB64: string
-  try {
-    masterB64 = await decryptUnderMaster(meta.passwordCheck, pwBaseKey)
-  } catch {
-    recordFailure()
-    audit({ verb: 'unlock', outcome: 'fail', method: 'password' })
-    throw new VaultError('wrong password', 'wrong-password')
-  }
-  const masterSecret = base64ToBytes(masterB64)
-  const masterKey = await importMasterSecret(masterSecret)
-
-  if (meta.recoveryCheck) {
-    const ok = await verifySentinel(meta.recoveryCheck, masterKey)
-    if (!ok) {
-      recordFailure()
-      audit({ verb: 'unlock', outcome: 'fail', method: 'password', detail: 'sentinel mismatch' })
-      throw new VaultError('decrypted master failed sentinel check', 'tamper-detected')
-    }
-  }
-
-  session = { masterKey, method: 'password', unlockedAt: Date.now(), lastActivityAt: Date.now() }
-  armAutoLock(meta.autoLockMs)
-  persistSession()
-  recordSuccess()
-  audit({ verb: 'unlock', outcome: 'ok', method: 'password' })
-}
-
 export async function unlockWithRecovery(phrase: string): Promise<void> {
   assertValidRecoveryPhrase(phrase)
   const meta = await loadMeta()
@@ -522,6 +418,32 @@ export async function unlockWithRecovery(phrase: string): Promise<void> {
   armAutoLock(meta.autoLockMs)
   persistSession()
   audit({ verb: 'unlock', outcome: 'ok', method: 'recovery' })
+}
+
+/**
+ * Open a session with a known raw master secret. Used by passkey-cloud after
+ * PRF-unwrapping the master from the server's hint record — when a local vault
+ * already exists (sign-out preserves IDB data; only the session row is cleared)
+ * there is no need to import the cloud blob again. Sentinel check confirms the
+ * decrypted master actually matches this vault before opening the session.
+ */
+export async function unlockWithMaster(masterSecret: Uint8Array): Promise<void> {
+  const meta = await loadMeta()
+  const masterKey = await importMasterSecret(masterSecret)
+
+  if (meta.recoveryCheck) {
+    const ok = await verifySentinel(meta.recoveryCheck, masterKey)
+    if (!ok) {
+      audit({ verb: 'unlock', outcome: 'fail', method: 'passkey', detail: 'master-mismatch' })
+      throw new VaultError('master key does not match this vault', 'tamper-detected')
+    }
+  }
+
+  session = { masterKey, method: 'passkey', unlockedAt: Date.now(), lastActivityAt: Date.now() }
+  armAutoLock(meta.autoLockMs)
+  persistSession()
+  recordSuccess()
+  audit({ verb: 'unlock', outcome: 'ok', method: 'passkey' })
 }
 
 // ============================================
@@ -598,6 +520,7 @@ export async function getWallet(id: string): Promise<VaultWallet | null> {
 }
 
 export async function getMnemonic(walletId: string): Promise<string | null> {
+  await _checkRecentStepUp()
   const s = requireUnlocked()
   touchActivity()
   const w = await storageGetWallet(walletId)
@@ -613,6 +536,7 @@ export async function getMnemonic(walletId: string): Promise<string | null> {
 }
 
 export async function getPrivateKey(walletId: string): Promise<string | null> {
+  await _checkRecentStepUp()
   const s = requireUnlocked()
   touchActivity()
   const w = await storageGetWallet(walletId)
@@ -701,56 +625,6 @@ export async function removePasskey(credentialId: Uint8Array): Promise<void> {
 }
 
 // ============================================
-// PASSWORD MANAGEMENT (while unlocked)
-// ============================================
-
-export async function setPassword(password: string): Promise<void> {
-  const s = requireUnlocked()
-  touchActivity()
-  if (password.length < 8) throw new VaultError('password must be ≥ 8 characters', 'wrong-password')
-  const meta = await loadMeta()
-
-  const passwordSalt = randomBytes(SALT_LENGTH)
-  const pwSecret = await deriveSecretFromPassword(password, passwordSalt)
-  const pwBaseKey = await importMasterSecret(pwSecret)
-
-  // Same export-master dance as addPasskey.
-  const rawMaster = new Uint8Array(
-    await crypto.subtle.deriveBits(
-      {
-        name: 'HKDF',
-        hash: 'SHA-256',
-        salt: new Uint8Array(0) as unknown as BufferSource,
-        info: utf8Encode(`${HKDF_DOMAINS.masterCheck()}.export`) as unknown as BufferSource,
-      },
-      s.masterKey,
-      256,
-    ),
-  )
-  meta.passwordCheck = await encryptUnderMaster(bytesToBase64(rawMaster), pwBaseKey, HKDF_DOMAINS.masterCheck())
-  meta.passwordSalt = passwordSalt
-  meta.hasPassword = true
-  await putMeta(meta)
-  audit({ verb: 'setup', outcome: 'ok', method: 'password' })
-}
-
-export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
-  await unlockWithPassword(oldPassword) // verifies, opens session
-  await setPassword(newPassword)
-}
-
-export async function removePassword(): Promise<void> {
-  requireUnlocked()
-  touchActivity()
-  const meta = await loadMeta()
-  meta.hasPassword = false
-  meta.passwordCheck = undefined
-  meta.passwordSalt = undefined
-  await putMeta(meta)
-  audit({ verb: 'setup', outcome: 'ok', method: 'password', detail: 'removed' })
-}
-
-// ============================================
 // STEP-UP — re-verify presence for sensitive ops
 // ============================================
 
@@ -766,6 +640,7 @@ export async function stepUpPasskey(): Promise<boolean> {
   for (const e of meta.passkeys) {
     const res = await passkeyUnlock(e)
     if (res.ok) {
+      _stepUpTime = Date.now()
       audit({ verb: 'step-up', outcome: 'ok', method: 'passkey' })
       touchActivity()
       return true

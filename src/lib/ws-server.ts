@@ -9,6 +9,24 @@ const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie'
 // In browser context this is undefined, which is fine — browser doesn't relay
 const BROADCAST_SECRET = typeof process !== 'undefined' ? process.env.BROADCAST_SECRET : undefined
 
+// Master key for HMAC-derived per-group secrets (preferred over flat BROADCAST_SECRET)
+const BROADCAST_MASTER = typeof process !== 'undefined' ? process.env.BROADCAST_MASTER : undefined
+
+async function deriveGroupSecret(master: string, group: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(master),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(group)))
+  return btoa(String.fromCharCode(...sig))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .slice(0, 32)
+}
+
 /**
  * relayToGateway — POST a WsMessage to the Gateway's /broadcast endpoint.
  *
@@ -21,17 +39,28 @@ const BROADCAST_SECRET = typeof process !== 'undefined' ? process.env.BROADCAST_
  * Fire-and-forget: never throws, never blocks the caller.
  */
 export function relayToGateway(msg: WsMessage, group?: string): void {
-  // Skip relay if no secret configured (dev mode or browser context)
-  if (!BROADCAST_SECRET) return
+  const broadcastGroup = group || 'global'
 
-  fetch(`${GATEWAY_URL}/broadcast`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Broadcast-Secret': BROADCAST_SECRET,
-    },
-    body: JSON.stringify(group ? { ...msg, group } : msg),
-  }).catch(() => {}) // silence network errors — relay is best-effort
+  const doRelay = async () => {
+    let secret: string | undefined
+    if (BROADCAST_MASTER) {
+      secret = await deriveGroupSecret(BROADCAST_MASTER, broadcastGroup)
+    } else if (BROADCAST_SECRET) {
+      secret = BROADCAST_SECRET
+    }
+    if (!secret) return
+
+    await fetch(`${GATEWAY_URL}/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Broadcast-Secret': secret,
+      },
+      body: JSON.stringify(group ? { ...msg, group } : msg),
+    })
+  }
+
+  doRelay().catch(() => {})
 }
 
 // Global dev broadcast function (set by dev-ws-server at runtime)

@@ -440,6 +440,42 @@ bun wrangler deploy
 
 ---
 
+## EU TypeDB Replica (sys-301)
+
+**Goal:** EU requests 150ms → 30ms round-trip to TypeDB.
+
+### Setup steps (one-time)
+
+1. **Provision EU cluster** — TypeDB Cloud → New Cluster → Region: `eu-west-1` → same credentials as primary
+2. **Set env var** — `wrangler secret put TYPEDB_EU_URL --config gateway/wrangler.toml` → value: `https://<eu-cluster>.cluster.typedb.com:1729`
+3. **Deploy gateway** — `cd gateway && wrangler deploy`
+4. **Sync data** — `TYPEDB_EU_URL=<eu-url> bun run scripts/typedb-failover.ts --sync`
+5. **Verify** — `TYPEDB_EU_URL=<eu-url> bun run scripts/typedb-failover.ts --drill`
+
+### How it works
+
+- `getTypeDbUrl(env, request)` in `gateway/src/index.ts` — checks `request.cf?.continent === 'EU'`; if true and `TYPEDB_EU_URL` is set, routes to EU cluster
+- EU requests get their own JWT (per-region `tokenCache` Map); US token cache unaffected
+- `TYPEDB_EU_URL = ""` (blank, default) → disabled, all traffic to US primary
+- Writes: EU cluster is a read-optimised replica; all writes go to US primary via the existing flow
+
+### Failover runbook
+
+```bash
+# Health check
+TYPEDB_URL=<us-url> TYPEDB_EU_URL=<eu-url> bun run scripts/typedb-failover.ts
+
+# Re-sync EU from latest R2 backup (after primary divergence)
+bun run scripts/typedb-failover.ts --sync
+
+# Full drill (health + sync + verify <2min)
+bun run scripts/typedb-failover.ts --drill
+```
+
+Exit 1 = degraded — output explains which cluster is down and what to do.
+
+---
+
 ## Key Facts (learned the hard way)
 
 - TypeDB Cloud HTTPS port is **1729** (not 80, not 443)

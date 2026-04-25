@@ -65,20 +65,18 @@ function ctxGet(params: Record<string, string>) {
 }
 
 describe('Lifecycle Walk — Stage 0: Wallet', () => {
-  it('GET /api/identity/:uid/address returns wallet address', async () => {
+  it('GET /api/identity/:uid/address returns 410 (platform key removed)', async () => {
     const { GET } = await import('@/pages/api/identity/[uid]/address')
     const res = await GET(ctxGet({ uid: 'test-agent' }))
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(410)
     const data = (await res.json()) as any
-    expect(data.uid).toBe('test-agent')
-    expect(data.address).toBeTruthy()
-    expect(data.derivedAt).toBeTruthy()
+    expect(data.error).toBe('platform key derivation removed (sys-201); use user vault for Sui addresses')
   })
 
-  it('returns 400 without uid', async () => {
+  it('returns 410 without uid', async () => {
     const { GET } = await import('@/pages/api/identity/[uid]/address')
     const res = await GET(ctxGet({}))
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(410)
   })
 })
 

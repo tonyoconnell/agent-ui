@@ -13,7 +13,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/typedb', () => ({
   readParsed: vi.fn(),
-  writeSilent: vi.fn(),
+  write: vi.fn().mockResolvedValue(true),
+  writeSilent: vi.fn().mockResolvedValue(true),
+  writeTracked: vi.fn().mockResolvedValue(true),
   parseAnswers: vi.fn(() => []),
   read: vi.fn(() => []),
 }))
@@ -28,6 +30,7 @@ vi.mock('@/engine/bridge', () => ({
 }))
 vi.mock('@/engine/context', () => ({ ingestDocs: vi.fn(), loadContext: vi.fn(() => ({})) }))
 
+import { SKILL_SCHEMA_CACHE } from '@/engine/adl-cache'
 import { readParsed } from '@/lib/typedb'
 
 async function makePersist() {
@@ -56,7 +59,7 @@ function mockReadParsed(schemaRows: Record<string, unknown>[]) {
 describe('ADL Cycle 2: PEP-4 schema validation gate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.resetModules()
+    SKILL_SCHEMA_CACHE.clear()
   })
 
   it('no input-schema → ask() succeeds (result returned)', async () => {
@@ -64,7 +67,7 @@ describe('ADL Cycle 2: PEP-4 schema validation gate', () => {
     // Schema query returns [] — no schema declared, fail-open
     mockReadParsed([])
 
-    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: { text: 'hello' } }, 'caller')
+    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: { text: 'hello' } }, 'agent:caller')
 
     // Should not be dissolved by schema gate; unit exists so result flows through
     expect(outcome).not.toEqual({ dissolved: true })
@@ -76,7 +79,7 @@ describe('ADL Cycle 2: PEP-4 schema validation gate', () => {
     const schema = JSON.stringify({ type: 'object', required: ['text'] })
     mockReadParsed([{ is: schema }])
 
-    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: { text: 'hello' } }, 'caller')
+    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: { text: 'hello' } }, 'agent:caller')
 
     expect(outcome).not.toEqual({ dissolved: true })
     expect(outcome).toHaveProperty('result')
@@ -88,7 +91,7 @@ describe('ADL Cycle 2: PEP-4 schema validation gate', () => {
     mockReadParsed([{ is: schema }])
 
     // data is a string, schema requires object → should fail validation
-    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: 'wrong' }, 'caller')
+    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: 'wrong' }, 'agent:caller')
 
     expect(outcome).toEqual({ dissolved: true })
   })
@@ -99,7 +102,7 @@ describe('ADL Cycle 2: PEP-4 schema validation gate', () => {
     mockReadParsed([{ is: schema }])
 
     // data has 'text' but not 'lang'
-    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: { text: 'hi' } }, 'caller')
+    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: { text: 'hi' } }, 'agent:caller')
 
     expect(outcome).toEqual({ dissolved: true })
   })
@@ -109,7 +112,7 @@ describe('ADL Cycle 2: PEP-4 schema validation gate', () => {
     // Return a row where the value is not valid JSON
     mockReadParsed([{ is: 'not-valid-json-{[' }])
 
-    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: { text: 'hello' } }, 'caller')
+    const outcome = await w.ask({ receiver: 'test-agent:summarise', data: { text: 'hello' } }, 'agent:caller')
 
     // Malformed schema must not block — fail-open
     expect(outcome).not.toEqual({ dissolved: true })

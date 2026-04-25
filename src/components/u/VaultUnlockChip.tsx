@@ -1,6 +1,6 @@
 // VaultUnlockChip — header status pill. Owns unlock dialog + setup wizard.
 
-import { Loader2, Lock, LockOpen, ShieldPlus } from 'lucide-react'
+import { Loader2, Lock, LockOpen } from 'lucide-react'
 import { useCallback, useEffect, useState, useTransition } from 'react'
 import '@/components/u/lib/vault/sync' // side-effect: register cloud-sync on mutations
 import type { VaultStatus } from '@/components/u/lib/vault/types'
@@ -8,7 +8,6 @@ import * as Vault from '@/components/u/lib/vault/vault'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
 import { VaultUnlockDialog } from './VaultDialogs'
-import { VaultSetupWizard } from './VaultSetupWizard'
 
 interface Props {
   className?: string
@@ -60,8 +59,7 @@ function useVaultStatus() {
 export function VaultUnlockChip({ className }: Props) {
   const vault = useVaultStatus()
   const [showUnlock, setShowUnlock] = useState(false)
-  const [showSetup, setShowSetup] = useState(false)
-  const [pending, startTransition] = useTransition()
+  const [pending, _startTransition] = useTransition()
 
   const base =
     'inline-flex items-center gap-2 h-8 px-3 rounded-full text-xs font-medium border transition-colors disabled:opacity-60'
@@ -83,23 +81,7 @@ export function VaultUnlockChip({ className }: Props) {
   const walletCount = s?.walletCount ?? 0
 
   if (!hasVault) {
-    const handle = () => {
-      emitClick('ui:vault-chip:setup')
-      setShowSetup(true)
-    }
-    return (
-      <>
-        <button
-          type="button"
-          onClick={handle}
-          className={cn(base, 'bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20', className)}
-        >
-          <ShieldPlus className="w-3.5 h-3.5" />
-          <span>Set up vault</span>
-        </button>
-        <VaultSetupWizard open={showSetup} onOpenChange={setShowSetup} onComplete={vault.refresh} />
-      </>
-    )
+    return null
   }
 
   if (isLocked) {

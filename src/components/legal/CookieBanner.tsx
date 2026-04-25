@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { emitClick } from '@/lib/ui-signal'
 import { initAnalytics } from '@/lib/analytics'
+import { emitClick } from '@/lib/ui-signal'
 
 const STORAGE_KEY = 'one:cookie-consent'
 

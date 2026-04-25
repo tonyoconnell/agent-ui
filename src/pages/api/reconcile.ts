@@ -151,10 +151,7 @@ export const POST: APIRoute = async () => {
               }
             }
           } catch (e) {
-            console.warn(
-              `[reconcile] TypeDB signal query failed for ${uid}:`,
-              e instanceof Error ? e.message : e,
-            )
+            console.warn(`[reconcile] TypeDB signal query failed for ${uid}:`, e instanceof Error ? e.message : e)
             // Continue with delta = 0n — deviation check runs against full on-chain balance
           }
 

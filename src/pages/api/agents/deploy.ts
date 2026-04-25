@@ -8,7 +8,6 @@
  */
 import type { APIRoute } from 'astro'
 import { resolveUnitFromSession } from '@/lib/api-auth'
-import { addressFor } from '@/lib/sui'
 import { tierAllows } from '@/lib/tier-limits'
 
 export const prerender = false
@@ -41,7 +40,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await syncAgent(spec)
 
     const uid = `${spec.group ? `${spec.group}:` : ''}${spec.name}`
-    const suiAddress = await addressFor(uid).catch(() => '')
+    const suiAddress = ''
     const webhookUrl = `https://nanoclaw.oneie.workers.dev/webhook/telegram?agent=${encodeURIComponent(uid)}`
 
     return Response.json(

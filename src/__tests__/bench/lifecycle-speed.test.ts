@@ -39,12 +39,12 @@ beforeAll(() => {
 
 describe('system speed — lifecycle stages', () => {
   test('REGISTER — parse + derive + wire (substrate-side only)', async () => {
-    const { deriveKeypair } = await freshSui()
+    const { generateEphemeralKeypair } = await freshSui()
     await measure(
       'lifecycle:register',
       async () => {
         const spec = parse(SAMPLE_MD)
-        await deriveKeypair(spec.name)
+        generateEphemeralKeypair()
         const net = createWorld()
         net.add(spec.name)
       },
@@ -127,12 +127,12 @@ describe('system speed — lifecycle stages', () => {
   })
 
   test('E2E — REGISTER → SIGNAL → MARK → HIGHWAY (one sample)', async () => {
-    const { deriveKeypair } = await freshSui()
+    const { generateEphemeralKeypair } = await freshSui()
     await measure(
       'lifecycle:e2e',
       async () => {
         const spec = parse(SAMPLE_MD)
-        await deriveKeypair(spec.name)
+        generateEphemeralKeypair()
         const net = createWorld()
         net.add(spec.name).on('default', async () => 'done')
         for (let i = 0; i < 10; i++) {

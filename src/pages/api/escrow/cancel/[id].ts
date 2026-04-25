@@ -108,7 +108,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
 
-    if (message.includes('not configured') || message.includes('SUI_SEED')) {
+    if (message.includes('not configured') || message.includes('SUI_SEED') || message.includes('sys-201')) {
       return Response.json({ error: 'Sui not configured', code: 'sui_unavailable' }, { status: 503 })
     }
 

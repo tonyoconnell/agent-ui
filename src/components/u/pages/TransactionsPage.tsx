@@ -11,8 +11,8 @@
 
 import { getJsonRpcFullnodeUrl, SuiJsonRpcClient } from '@mysten/sui/jsonRpc'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { summarizeTxResponse, type TxSummary } from '@/components/u/lib/money'
 import { getWallet } from '@/components/u/lib/idb'
+import { summarizeTxResponse, type TxSummary } from '@/components/u/lib/money'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'

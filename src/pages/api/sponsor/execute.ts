@@ -20,8 +20,8 @@
 import { toBase64 } from '@mysten/bcs'
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
 import type { APIRoute } from 'astro'
-import { getClient } from '@/lib/sui'
 import { screenAddress } from '@/lib/aml'
+import { getClient } from '@/lib/sui'
 
 export const prerender = false
 

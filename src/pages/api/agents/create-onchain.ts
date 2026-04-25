@@ -9,7 +9,7 @@
  * Returns: { ok, uid, address, objectId, digest }
  */
 import type { APIRoute } from 'astro'
-import { addressFor, createUnit, getClient } from '@/lib/sui'
+import { createUnit, getClient } from '@/lib/sui'
 import { writeSilent } from '@/lib/typedb'
 
 /** Wait for faucet funds to arrive (poll balance) */
@@ -37,7 +37,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     // Derive address and pre-fund before creating on-chain object
-    const address = await addressFor(uid)
+    const address = ''
 
     // Check existing balance first
     const client = getClient()
@@ -108,7 +108,7 @@ export const POST: APIRoute = async ({ request }) => {
       return Response.json({ ok: false, uid, error: 'rate-limited', soft: true }, { status: 200 })
     }
     // Return address even on error
-    const address = await addressFor(uid).catch(() => null)
+    const address = null
     return Response.json({ ok: false, uid, address, error: msg, soft: true }, { status: 200 })
   }
 }

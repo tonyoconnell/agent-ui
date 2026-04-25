@@ -8,7 +8,7 @@
  */
 
 import { Transaction } from '@mysten/sui/transactions'
-import { deriveKeypair, signAndExecute } from '@/lib/sui'
+import { generateEphemeralKeypair, signAndExecute } from '@/lib/sui'
 import type { SuiAddress } from '../../../interfaces/types-sui'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -72,7 +72,7 @@ export async function spawnChild(args: SpawnChildArgs): Promise<SpawnChildResult
   const { parentUid, childUid, childAddress, dailyCapMist, allowlist } = args
 
   // Step 1: derive parent keypair
-  const parentKeypair = await deriveKeypair(parentUid)
+  const parentKeypair = generateEphemeralKeypair()
   const parentAddress = parentKeypair.getPublicKey().toSuiAddress()
 
   // Step 2: resolve parent's ScopedWallet object ID from TypeDB

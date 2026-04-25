@@ -17,15 +17,24 @@ type PathExport = {
   toxic: boolean
 }
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ request }) => {
+  const gid = new URL(request.url).searchParams.get('group')
   try {
-    const results = await readParsed(`
-      match
+    const tql = gid
+      ? `match
         $p (source: $s, target: $t) isa path, has strength $str, has resistance $r;
         $s has uid $sid;
         $t has uid $tid;
-      select $sid, $tid, $str, $r;
-    `)
+        (group: $g, member: $s) isa membership;
+        (group: $g, member: $t) isa membership;
+        $g has gid "${gid.replace(/"/g, '\\"')}";
+        select $sid, $tid, $str, $r;`
+      : `match
+        $p (source: $s, target: $t) isa path, has strength $str, has resistance $r;
+        $s has uid $sid;
+        $t has uid $tid;
+        select $sid, $tid, $str, $r;`
+    const results = await readParsed(tql)
 
     const paths: PathExport[] = results.map((r) => {
       const strength = r.str as number

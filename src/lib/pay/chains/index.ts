@@ -22,8 +22,6 @@
  *   BTC   → bitcoin:<address>?amount=<btc>
  */
 
-import { addressFor } from '@/lib/sui'
-
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function readSeedBytes(): Uint8Array | null {
@@ -39,7 +37,7 @@ function readSeedBytes(): Uint8Array | null {
  * Derive 32 raw bytes from (seed || namespace || uid) using SHA-256.
  * Returns null when SUI_SEED is not configured (caller returns a graceful error).
  */
-async function deriveSeedBytes(namespace: string, uid: string): Promise<Uint8Array | null> {
+async function _deriveSeedBytes(namespace: string, uid: string): Promise<Uint8Array | null> {
   const seed = readSeedBytes()
   if (!seed) return null
   const ns = new TextEncoder().encode(namespace)
@@ -54,7 +52,7 @@ async function deriveSeedBytes(namespace: string, uid: string): Promise<Uint8Arr
 
 const HEX = '0123456789abcdef'
 
-function bytesToHex(bytes: Uint8Array): string {
+function _bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => HEX[b >> 4] + HEX[b & 0xf])
     .join('')
@@ -63,7 +61,7 @@ function bytesToHex(bytes: Uint8Array): string {
 /** Base58 alphabet (Bitcoin/Solana) */
 const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
-function bytesToBase58(bytes: Uint8Array): string {
+function _bytesToBase58(bytes: Uint8Array): string {
   // count leading zero bytes
   let leadingZeros = 0
   for (const b of bytes) {
@@ -130,7 +128,7 @@ function createChecksum(hrp: string, data: number[]): number[] {
 /**
  * Encode 20 bytes as a bc1q (bech32 segwit v0 P2WPKH) address.
  */
-function encodeBech32(hrp: string, bytes20: Uint8Array): string {
+function _encodeBech32(hrp: string, bytes20: Uint8Array): string {
   // convert 8-bit groups to 5-bit groups
   const data: number[] = [0] // witness version 0
   let acc = 0
@@ -153,41 +151,34 @@ function encodeBech32(hrp: string, bytes20: Uint8Array): string {
 
 /**
  * Derive Sui address for a uid.
- * Uses the standard Ed25519 keypair derivation from src/lib/sui.ts.
+ * Platform SUI_SEED removed (sys-201) — use user vault for address derivation.
  */
 export async function deriveAddressSui(uid: string): Promise<string> {
-  return addressFor(uid)
+  return Promise.reject(new Error('Platform key removed (sys-201)'))
 }
 
 /**
  * Derive an EVM-compatible address (ETH, BASE, ARB, OPT) for a uid.
- * Takes the last 20 bytes of SHA-256(seed || "evm:" || uid) as a 0x hex address.
+ * Platform SUI_SEED removed (sys-201) — use user vault for address derivation.
  */
 export async function deriveAddressEvm(uid: string): Promise<string> {
-  const bytes = await deriveSeedBytes('evm:', uid)
-  if (!bytes) throw new Error('SUI_SEED not configured — cannot derive EVM address')
-  const addr20 = bytes.slice(12) // last 20 bytes
-  return `0x${bytesToHex(addr20)}`
+  return Promise.reject(new Error('Platform key removed (sys-201)'))
 }
 
 /**
  * Derive a Solana address for a uid.
- * Full 32-byte SHA-256 encoded in base58.
+ * Platform SUI_SEED removed (sys-201) — use user vault for address derivation.
  */
 export async function deriveAddressSol(uid: string): Promise<string> {
-  const bytes = await deriveSeedBytes('sol:', uid)
-  if (!bytes) throw new Error('SUI_SEED not configured — cannot derive SOL address')
-  return bytesToBase58(bytes)
+  return Promise.reject(new Error('Platform key removed (sys-201)'))
 }
 
 /**
  * Derive a Bitcoin bech32 (bc1q) address for a uid.
- * Uses the first 20 bytes of SHA-256(seed || "btc:" || uid) as the pubkey hash.
+ * Platform SUI_SEED removed (sys-201) — use user vault for address derivation.
  */
 export async function deriveAddressBtc(uid: string): Promise<string> {
-  const bytes = await deriveSeedBytes('btc:', uid)
-  if (!bytes) throw new Error('SUI_SEED not configured — cannot derive BTC address')
-  return encodeBech32('bc', bytes.slice(0, 20))
+  return Promise.reject(new Error('Platform key removed (sys-201)'))
 }
 
 // ─── dispatcher ──────────────────────────────────────────────────────────────

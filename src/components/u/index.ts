@@ -23,6 +23,5 @@ export {
   VaultSettingsDialog,
   VaultUnlockDialog,
 } from './VaultDialogs'
-export { VaultSetupWizard } from './VaultSetupWizard'
 export { VaultUnlockChip } from './VaultUnlockChip'
 export { WalletCard } from './WalletCard'

@@ -13,8 +13,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { emitClick } from '@/lib/ui-signal'
-import { getWallet } from '../lib/idb'
 import type { WalletRecord } from '../../../../interfaces/types-wallet'
+import { getWallet } from '../lib/idb'
 import { UNav } from '../UNav'
 
 export function WalletsPage() {
@@ -34,18 +34,22 @@ export function WalletsPage() {
       }
     }
     void load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // No wallet yet → redirect to /u to generate one
   useEffect(() => {
     if (!loading && !wallet) {
-      const t = setTimeout(() => { window.location.href = '/u' }, 3000)
+      const t = setTimeout(() => {
+        window.location.href = '/u'
+      }, 3000)
       return () => clearTimeout(t)
     }
   }, [loading, wallet])
 
-  const passkeyCount = wallet?.wrappings.filter(w => w.type === 'passkey-prf').length ?? 0
+  const passkeyCount = wallet?.wrappings.filter((w) => w.type === 'passkey-prf').length ?? 0
   const hasPasskey = passkeyCount > 0
 
   // ── Loading ────────────────────────────────────────────────────────────────
@@ -79,9 +83,7 @@ export function WalletsPage() {
     )
   }
 
-  const shortAddr = wallet.address
-    ? `${wallet.address.slice(0, 10)}…${wallet.address.slice(-8)}`
-    : 'No address'
+  const shortAddr = wallet.address ? `${wallet.address.slice(0, 10)}…${wallet.address.slice(-8)}` : 'No address'
 
   return (
     <div className="min-h-screen bg-background">
@@ -178,9 +180,7 @@ export function WalletsPage() {
                       : `${passkeyCount} device${passkeyCount === 1 ? '' : 's'} enrolled`}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {hasPasskey
-                      ? 'Touch ID can unlock this wallet'
-                      : 'Add Touch ID to secure your wallet'}
+                    {hasPasskey ? 'Touch ID can unlock this wallet' : 'Add Touch ID to secure your wallet'}
                   </p>
                 </div>
               </div>
@@ -205,7 +205,7 @@ export function WalletsPage() {
             <CardDescription>Paper break-glass — 12 words to restore on any device.</CardDescription>
           </CardHeader>
           <CardContent>
-            {wallet.wrappings.some(w => w.type === 'bip39-shown') ? (
+            {wallet.wrappings.some((w) => w.type === 'bip39-shown') ? (
               <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                 <span>✓</span>
                 <span className="text-sm">Phrase shown and confirmed</span>

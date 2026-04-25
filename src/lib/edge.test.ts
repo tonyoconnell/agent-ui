@@ -22,8 +22,8 @@ beforeEach(async () => {
   // edge.ts captures `_cache` by reference at module load, so we must clear
   // keys on the existing object — not reassign globalThis._edgeKvCache.
   await import('./edge')
-  const cache = (globalThis as { _edgeKvCache?: Record<string, unknown> })._edgeKvCache
-  if (cache) for (const k of Object.keys(cache)) delete cache[k]
+  const cache = (globalThis as { _edgeKvCache?: Map<string, unknown> })._edgeKvCache
+  cache?.clear()
 })
 
 describe('edge cache — TTL + invalidation', () => {
@@ -39,7 +39,8 @@ describe('edge cache — TTL + invalidation', () => {
     await getPaths(kv)
     await getPaths(kv)
     await getPaths(kv)
-    expect(kvReads).toBe(1) // cached after first call
+    // fetchFromKv reads data + version:key in parallel (2 reads on cold miss), then cached
+    expect(kvReads).toBe(2)
   })
 
   test('kvInvalidate forces next read to hit KV', async () => {
@@ -54,7 +55,8 @@ describe('edge cache — TTL + invalidation', () => {
     await getPaths(kv)
     kvInvalidate('paths.json')
     await getPaths(kv)
-    expect(kvReads).toBe(2)
+    // 2 reads per cold miss (data + version key)
+    expect(kvReads).toBe(4)
   })
 
   test('missing key returns empty object (not null)', async () => {
@@ -118,7 +120,7 @@ describe('edge — speed', () => {
     const perOp = measureSync(
       'edge:cache:hit:sync-path',
       () => {
-        ;(globalThis as { _edgeKvCache?: Record<string, unknown> })._edgeKvCache?.['paths.json']
+        ;(globalThis as { _edgeKvCache?: Map<string, unknown> })._edgeKvCache?.get('paths.json')
       },
       10_000,
     )

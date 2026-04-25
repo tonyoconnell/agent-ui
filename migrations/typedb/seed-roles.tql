@@ -1,0 +1,143 @@
+# seed-roles.tql — Seed the role-grant permission matrix into TypeDB.
+# Source of truth: src/lib/role-check.ts PERMISSIONS constant.
+# Run: once after schema migration adds the role-grant entity.
+# Re-run is idempotent: match-not guards prevent duplicate inserts.
+#
+# chairman — all 17 actions
+# ceo      — 16 actions (no appoint_role)
+# operator — 9 actions
+# board    — 5 actions (read-only)
+# auditor  — 5 actions (read-only)
+# agent    — 3 actions (mark/warn/discover)
+
+define
+
+# --- chairman ---
+
+insert $rg isa role-grant, has rg-id "rg:chairman:add_unit",
+  has governance-role "chairman", has role-action "add_unit";
+insert $rg isa role-grant, has rg-id "rg:chairman:remove_unit",
+  has governance-role "chairman", has role-action "remove_unit";
+insert $rg isa role-grant, has rg-id "rg:chairman:mark",
+  has governance-role "chairman", has role-action "mark";
+insert $rg isa role-grant, has rg-id "rg:chairman:warn",
+  has governance-role "chairman", has role-action "warn";
+insert $rg isa role-grant, has rg-id "rg:chairman:tune_sensitivity",
+  has governance-role "chairman", has role-action "tune_sensitivity";
+insert $rg isa role-grant, has rg-id "rg:chairman:read_highways",
+  has governance-role "chairman", has role-action "read_highways";
+insert $rg isa role-grant, has rg-id "rg:chairman:read_revenue",
+  has governance-role "chairman", has role-action "read_revenue";
+insert $rg isa role-grant, has rg-id "rg:chairman:read_toxic",
+  has governance-role "chairman", has role-action "read_toxic";
+insert $rg isa role-grant, has rg-id "rg:chairman:appoint_role",
+  has governance-role "chairman", has role-action "appoint_role";
+insert $rg isa role-grant, has rg-id "rg:chairman:read_memory",
+  has governance-role "chairman", has role-action "read_memory";
+insert $rg isa role-grant, has rg-id "rg:chairman:delete_memory",
+  has governance-role "chairman", has role-action "delete_memory";
+insert $rg isa role-grant, has rg-id "rg:chairman:discover",
+  has governance-role "chairman", has role-action "discover";
+insert $rg isa role-grant, has rg-id "rg:chairman:create_group",
+  has governance-role "chairman", has role-action "create_group";
+insert $rg isa role-grant, has rg-id "rg:chairman:update_group",
+  has governance-role "chairman", has role-action "update_group";
+insert $rg isa role-grant, has rg-id "rg:chairman:delete_group",
+  has governance-role "chairman", has role-action "delete_group";
+insert $rg isa role-grant, has rg-id "rg:chairman:invite_member",
+  has governance-role "chairman", has role-action "invite_member";
+insert $rg isa role-grant, has rg-id "rg:chairman:change_role",
+  has governance-role "chairman", has role-action "change_role";
+
+# --- ceo ---
+
+insert $rg isa role-grant, has rg-id "rg:ceo:add_unit",
+  has governance-role "ceo", has role-action "add_unit";
+insert $rg isa role-grant, has rg-id "rg:ceo:remove_unit",
+  has governance-role "ceo", has role-action "remove_unit";
+insert $rg isa role-grant, has rg-id "rg:ceo:mark",
+  has governance-role "ceo", has role-action "mark";
+insert $rg isa role-grant, has rg-id "rg:ceo:warn",
+  has governance-role "ceo", has role-action "warn";
+insert $rg isa role-grant, has rg-id "rg:ceo:tune_sensitivity",
+  has governance-role "ceo", has role-action "tune_sensitivity";
+insert $rg isa role-grant, has rg-id "rg:ceo:read_highways",
+  has governance-role "ceo", has role-action "read_highways";
+insert $rg isa role-grant, has rg-id "rg:ceo:read_revenue",
+  has governance-role "ceo", has role-action "read_revenue";
+insert $rg isa role-grant, has rg-id "rg:ceo:read_toxic",
+  has governance-role "ceo", has role-action "read_toxic";
+insert $rg isa role-grant, has rg-id "rg:ceo:read_memory",
+  has governance-role "ceo", has role-action "read_memory";
+insert $rg isa role-grant, has rg-id "rg:ceo:delete_memory",
+  has governance-role "ceo", has role-action "delete_memory";
+insert $rg isa role-grant, has rg-id "rg:ceo:discover",
+  has governance-role "ceo", has role-action "discover";
+insert $rg isa role-grant, has rg-id "rg:ceo:create_group",
+  has governance-role "ceo", has role-action "create_group";
+insert $rg isa role-grant, has rg-id "rg:ceo:update_group",
+  has governance-role "ceo", has role-action "update_group";
+insert $rg isa role-grant, has rg-id "rg:ceo:delete_group",
+  has governance-role "ceo", has role-action "delete_group";
+insert $rg isa role-grant, has rg-id "rg:ceo:invite_member",
+  has governance-role "ceo", has role-action "invite_member";
+insert $rg isa role-grant, has rg-id "rg:ceo:change_role",
+  has governance-role "ceo", has role-action "change_role";
+
+# --- operator ---
+
+insert $rg isa role-grant, has rg-id "rg:operator:add_unit",
+  has governance-role "operator", has role-action "add_unit";
+insert $rg isa role-grant, has rg-id "rg:operator:mark",
+  has governance-role "operator", has role-action "mark";
+insert $rg isa role-grant, has rg-id "rg:operator:warn",
+  has governance-role "operator", has role-action "warn";
+insert $rg isa role-grant, has rg-id "rg:operator:read_highways",
+  has governance-role "operator", has role-action "read_highways";
+insert $rg isa role-grant, has rg-id "rg:operator:read_toxic",
+  has governance-role "operator", has role-action "read_toxic";
+insert $rg isa role-grant, has rg-id "rg:operator:read_memory",
+  has governance-role "operator", has role-action "read_memory";
+insert $rg isa role-grant, has rg-id "rg:operator:delete_memory",
+  has governance-role "operator", has role-action "delete_memory";
+insert $rg isa role-grant, has rg-id "rg:operator:discover",
+  has governance-role "operator", has role-action "discover";
+insert $rg isa role-grant, has rg-id "rg:operator:create_group",
+  has governance-role "operator", has role-action "create_group";
+insert $rg isa role-grant, has rg-id "rg:operator:invite_member",
+  has governance-role "operator", has role-action "invite_member";
+
+# --- board ---
+
+insert $rg isa role-grant, has rg-id "rg:board:read_highways",
+  has governance-role "board", has role-action "read_highways";
+insert $rg isa role-grant, has rg-id "rg:board:read_revenue",
+  has governance-role "board", has role-action "read_revenue";
+insert $rg isa role-grant, has rg-id "rg:board:read_toxic",
+  has governance-role "board", has role-action "read_toxic";
+insert $rg isa role-grant, has rg-id "rg:board:read_memory",
+  has governance-role "board", has role-action "read_memory";
+insert $rg isa role-grant, has rg-id "rg:board:discover",
+  has governance-role "board", has role-action "discover";
+
+# --- auditor ---
+
+insert $rg isa role-grant, has rg-id "rg:auditor:read_highways",
+  has governance-role "auditor", has role-action "read_highways";
+insert $rg isa role-grant, has rg-id "rg:auditor:read_revenue",
+  has governance-role "auditor", has role-action "read_revenue";
+insert $rg isa role-grant, has rg-id "rg:auditor:read_toxic",
+  has governance-role "auditor", has role-action "read_toxic";
+insert $rg isa role-grant, has rg-id "rg:auditor:read_memory",
+  has governance-role "auditor", has role-action "read_memory";
+insert $rg isa role-grant, has rg-id "rg:auditor:discover",
+  has governance-role "auditor", has role-action "discover";
+
+# --- agent ---
+
+insert $rg isa role-grant, has rg-id "rg:agent:mark",
+  has governance-role "agent", has role-action "mark";
+insert $rg isa role-grant, has rg-id "rg:agent:warn",
+  has governance-role "agent", has role-action "warn";
+insert $rg isa role-grant, has rg-id "rg:agent:discover",
+  has governance-role "agent", has role-action "discover";

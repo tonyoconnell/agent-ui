@@ -130,7 +130,7 @@ async function makeWallet() {
     privateKey: `0x${hex(priv)}`,
     seed: words.join(' '),
     address: `0x${hex(addrBytes)}`,
-    envLine: `SUI_SEED=${b64(envBytes)}`,
+    envLine: '',
   }
 }
 

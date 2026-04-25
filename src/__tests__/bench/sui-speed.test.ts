@@ -9,25 +9,18 @@
  */
 
 import { Transaction } from '@mysten/sui/transactions'
-import { beforeAll, describe, test, vi } from 'vitest'
+import { beforeAll, describe, expect, test, vi } from 'vitest'
 import { measure, measureSync } from '@/__tests__/helpers/speed'
+import { generateEphemeralKeypair } from '@/lib/sui'
 
 beforeAll(() => {
   ;(import.meta.env as Record<string, string>).SUI_SEED = Buffer.from(new Uint8Array(32).fill(7)).toString('base64')
 })
 
 describe('system speed — sui identity + signing', () => {
-  test('deriveKeypair() per call', async () => {
-    vi.resetModules()
-    const { deriveKeypair } = await import('@/lib/sui')
-    await measure('sui:keypair:derive', () => deriveKeypair(`unit-${Math.random()}`), 100)
-  })
-
-  test('platformKeypair() memoized', async () => {
-    vi.resetModules()
-    const { platformKeypair } = await import('@/lib/sui')
-    await platformKeypair() // prime
-    await measure('sui:keypair:platform', () => platformKeypair(), 1_000)
+  test('generateEphemeralKeypair() produces valid Ed25519 keypair', () => {
+    const kp = generateEphemeralKeypair()
+    expect(kp.getPublicKey().toSuiAddress()).toMatch(/^0x[0-9a-f]{64}$/)
   })
 
   test('Transaction build (empty)', () => {
@@ -47,16 +40,6 @@ describe('system speed — sui identity + signing', () => {
       },
       1_000,
     )
-  })
-
-  test('sign bytes with derived keypair (Ed25519)', async () => {
-    vi.resetModules()
-    const { deriveKeypair } = await import('@/lib/sui')
-    const kp = await deriveKeypair('signer')
-    // tx.build() needs real RPC; measure raw Ed25519 sign —
-    // that's what Sui wraps when actually sending transactions.
-    const bytes = new Uint8Array(256)
-    await measure('sui:sign', () => kp.signTransaction(bytes), 200)
   })
 })
 

@@ -16,7 +16,6 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { isValidRecoveryPhrase, RECOVERY_WORD_COUNT, suggestWords } from '@/components/u/lib/vault'
 import type { VaultStatus } from '@/components/u/lib/vault/types'
 import * as Vault from '@/components/u/lib/vault/vault'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -58,25 +57,19 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: UnlockDial
     void refreshStatus()
   }, [refreshStatus])
 
-  const prf = vaultStatus?.capabilities.prf ?? false
   const hasPasskey = vaultStatus?.hasPasskey ?? false
-  const hasPassword = vaultStatus?.hasPassword ?? false
 
-  const defaultTab: 'passkey' | 'password' | 'recovery' = hasPasskey ? 'passkey' : hasPassword ? 'password' : 'recovery'
+  const defaultTab: 'passkey' | 'recovery' = hasPasskey ? 'passkey' : 'recovery'
 
   const [tab, setTab] = useState<string>(defaultTab)
-  const [password, setPassword] = useState('')
   const [words, setWords] = useState<string[]>(() => Array(RECOVERY_WORD_COUNT).fill(''))
-  const [attempts, setAttempts] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   useEffect(() => {
     if (open) {
       setTab(defaultTab)
-      setPassword('')
       setWords(Array(RECOVERY_WORD_COUNT).fill(''))
-      setAttempts(0)
       setError(null)
     }
   }, [open, defaultTab])
@@ -110,22 +103,6 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: UnlockDial
         } else {
           setError(raw)
         }
-      }
-    })
-  }
-
-  const handlePassword = () => {
-    emitClick('ui:vault-unlock:password')
-    setError(null)
-    startTransition(async () => {
-      try {
-        await Vault.unlockWithPassword(password)
-        await refreshStatus()
-        await onUnlocked?.()
-        onOpenChange(false)
-      } catch (e) {
-        setAttempts((n) => n + 1)
-        setError(e instanceof Error ? e.message : 'Wrong password — try again')
       }
     })
   }
@@ -182,7 +159,6 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: UnlockDial
         >
           <TabsList className="bg-[#161622] border border-[#252538]">
             {hasPasskey && <TabsTrigger value="passkey">Passkey</TabsTrigger>}
-            {hasPassword && <TabsTrigger value="password">Password</TabsTrigger>}
             <TabsTrigger value="recovery">Recovery phrase</TabsTrigger>
           </TabsList>
 
@@ -208,43 +184,6 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: UnlockDial
                     <Fingerprint className="w-4 h-4 mr-2" />
                     Unlock with device
                   </>
-                )}
-              </Button>
-            </TabsContent>
-          )}
-
-          {hasPassword && (
-            <TabsContent value="password" className="pt-4 space-y-3">
-              <div className="space-y-2">
-                <Label className="text-slate-300">Password</Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handlePassword()}
-                  placeholder="Your vault password"
-                  className="bg-[#161622] border-[#252538] text-slate-100"
-                  autoFocus
-                />
-              </div>
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              {attempts >= 3 && (
-                <p className="text-xs text-slate-400">
-                  If you've forgotten your password, use the recovery phrase tab.
-                </p>
-              )}
-              <Button
-                onClick={handlePassword}
-                disabled={pending || !password}
-                className="w-full bg-emerald-600 hover:bg-emerald-500"
-              >
-                {pending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Unlocking…
-                  </>
-                ) : (
-                  'Unlock'
                 )}
               </Button>
             </TabsContent>
@@ -601,7 +540,7 @@ const AUTO_LOCK_OPTIONS: Array<{ label: string; ms: number }> = [
 ]
 
 export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
-  const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null)
+  const [_vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null)
   const refreshStatus = useCallback(async () => {
     try {
       setVaultStatus(await Vault.getStatus())
@@ -616,13 +555,6 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
   const [autoLockMs, setAutoLockMs] = useState<number>(30 * 60_000)
   const [lockOnTabClose, setLockOnTabClose] = useState<boolean>(false)
 
-  const [showChangePassword, setShowChangePassword] = useState(false)
-  const [oldPassword, setOldPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmNewPassword, setConfirmNewPassword] = useState('')
-
-  const [confirmRemovePw, setConfirmRemovePw] = useState(false)
-
   const [wipeConfirmText, setWipeConfirmText] = useState('')
   const [wipeStage, setWipeStage] = useState<0 | 1>(0)
 
@@ -632,11 +564,6 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
 
   useEffect(() => {
     if (!open) {
-      setShowChangePassword(false)
-      setOldPassword('')
-      setNewPassword('')
-      setConfirmNewPassword('')
-      setConfirmRemovePw(false)
       setWipeConfirmText('')
       setWipeStage(0)
       setMessage(null)
@@ -694,51 +621,6 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
     })
   }
 
-  const handleChangePassword = () => {
-    emitClick('ui:vault-settings:change-password')
-    setError(null)
-    if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters')
-      return
-    }
-    if (newPassword !== confirmNewPassword) {
-      setError("New passwords don't match")
-      return
-    }
-    startTransition(async () => {
-      try {
-        await Vault.changePassword(oldPassword, newPassword)
-        setOldPassword('')
-        setNewPassword('')
-        setConfirmNewPassword('')
-        setShowChangePassword(false)
-        await refreshStatus()
-        flash('Password changed')
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to change password')
-      }
-    })
-  }
-
-  const handleRemovePassword = () => {
-    emitClick('ui:vault-settings:remove-password', { confirm: confirmRemovePw })
-    if (!confirmRemovePw) {
-      setConfirmRemovePw(true)
-      return
-    }
-    setError(null)
-    startTransition(async () => {
-      try {
-        await Vault.removePassword()
-        setConfirmRemovePw(false)
-        await refreshStatus()
-        flash('Password removed')
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to remove password')
-      }
-    })
-  }
-
   const handleWipe = () => {
     emitClick('ui:vault-settings:wipe', { stage: wipeStage })
     if (wipeStage === 0) {
@@ -759,8 +641,6 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
       }
     })
   }
-
-  const hasPassword = vaultStatus?.hasPassword ?? false
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -820,68 +700,6 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
               <Fingerprint className="w-4 h-4 mr-2" />
               Add another passkey
             </Button>
-
-            {hasPassword ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    emitClick('ui:vault-settings:toggle-change-pw')
-                    setShowChangePassword((v) => !v)
-                  }}
-                  className="w-full justify-start border-[#252538] bg-[#161622] text-slate-200 hover:bg-[#1f1f2e]"
-                >
-                  <KeyRound className="w-4 h-4 mr-2" />
-                  Change password
-                </Button>
-
-                {showChangePassword && (
-                  <div className="space-y-2 rounded-md border border-[#252538] bg-[#0a0a0f] p-3">
-                    <Input
-                      type="password"
-                      value={oldPassword}
-                      onChange={(e) => setOldPassword(e.target.value)}
-                      placeholder="Current password"
-                      className="bg-[#161622] border-[#252538] text-slate-100"
-                    />
-                    <Input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="New password"
-                      className="bg-[#161622] border-[#252538] text-slate-100"
-                    />
-                    <Input
-                      type="password"
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      className="bg-[#161622] border-[#252538] text-slate-100"
-                    />
-                    <Button
-                      onClick={handleChangePassword}
-                      disabled={pending || !oldPassword || !newPassword}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500"
-                    >
-                      {pending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                      Update password
-                    </Button>
-                  </div>
-                )}
-
-                <Button
-                  variant="outline"
-                  onClick={handleRemovePassword}
-                  disabled={pending}
-                  className="w-full justify-start border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  {confirmRemovePw ? 'Tap again to confirm — remove password' : 'Remove password'}
-                </Button>
-              </>
-            ) : (
-              <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/30">No password set</Badge>
-            )}
           </div>
 
           <div className="space-y-2 rounded-md border border-red-500/30 bg-red-500/5 p-3">

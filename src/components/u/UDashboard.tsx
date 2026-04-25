@@ -12,6 +12,7 @@
  * - Encrypted key storage with password protection
  */
 
+import { Fingerprint, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,7 +23,6 @@ import { useWallets } from './hooks/useWallets'
 import type { VaultStatus } from './lib/vault/types'
 import * as Vault from './lib/vault/vault'
 import { VaultBackupDialog, VaultUnlockDialog } from './VaultDialogs'
-import { VaultSetupWizard } from './VaultSetupWizard'
 import { VaultUnlockChip } from './VaultUnlockChip'
 
 // Chain configurations - mapped to one-protocol chains (6 chains for 3x2 grid)
@@ -131,9 +131,8 @@ export function UDashboard() {
     void Vault.getStatus()
       .then(setVaultStatus)
       .catch(() => {})
-  }, [wallets.length])
+  }, [])
   const [showUnlock, setShowUnlock] = useState(false)
-  const [showVaultSetup, setShowVaultSetup] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
   const [showMnemonic, setShowMnemonic] = useState<{ id: string; name: string } | null>(null)
   const [substrateData, setSubstrateData] = useState<{
@@ -189,7 +188,6 @@ export function UDashboard() {
     const status = await Vault.getStatus()
     setVaultStatus(status)
     if (!status.hasVault) {
-      setShowVaultSetup(true)
       return
     }
     if (status.isLocked) {
@@ -705,16 +703,6 @@ export function UDashboard() {
         }
       />
 
-      <VaultSetupWizard
-        open={showVaultSetup}
-        onOpenChange={setShowVaultSetup}
-        onComplete={() =>
-          Vault.getStatus()
-            .then(setVaultStatus)
-            .catch(() => {})
-        }
-      />
-
       <VaultBackupDialog open={showBackup} onOpenChange={setShowBackup} />
 
       {showMnemonic && (
@@ -784,7 +772,13 @@ function ViewMnemonicWithVault({
       >
         <h3 className="text-lg font-semibold text-slate-100">Recovery phrase — {walletName}</h3>
         <p className="mt-1 text-sm text-slate-400">Write this down. Anyone with these words can spend your funds.</p>
-        {loading && <p className="mt-4 text-sm text-slate-400">Verifying…</p>}
+        {loading && (
+          <div className="mt-4 flex items-center gap-2 text-slate-400 text-sm">
+            <Fingerprint className="h-4 w-4 shrink-0" />
+            <span>Touch ID required…</span>
+            <Loader2 className="h-3 w-3 animate-spin" />
+          </div>
+        )}
         {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
         {mnemonic && (
           <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">

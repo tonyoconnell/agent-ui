@@ -1,21 +1,14 @@
-import type { APIRoute } from 'astro'
-import { addressFor } from '@/lib/sui'
-
-export const prerender = false
-
 /**
- * GET /api/identity/:uid/address
- * Returns the deterministic Sui wallet address for a given uid.
- * Pure GET — no TypeDB read, no writes, no side effects.
- * Address is derived from SUI_SEED + uid (Ed25519 keypair, deterministic).
+ * GET /api/identity/[uid]/address — Sui address for a unit
+ *
+ * Platform-held key derivation removed in sys-201.
+ * Agents now use ephemeral keypairs; persistent addresses come from user vault.
  */
-export const GET: APIRoute = async ({ params }) => {
-  const { uid } = params
+import type { APIRoute } from 'astro'
 
-  if (!uid) {
-    return Response.json({ error: 'uid required' }, { status: 400 })
-  }
-
-  const address = await addressFor(uid)
-  return Response.json({ uid, address, derivedAt: new Date().toISOString() })
+export const GET: APIRoute = async () => {
+  return Response.json(
+    { error: 'platform key derivation removed (sys-201); use user vault for Sui addresses' },
+    { status: 410 },
+  )
 }

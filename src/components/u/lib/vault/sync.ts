@@ -28,10 +28,13 @@ export interface CloudBlob {
 export async function syncToCloud(): Promise<{ ok: boolean; reason?: string }> {
   if (Vault.isLocked()) return { ok: false, reason: 'locked' }
 
+  Vault.notifySyncStart()
+
   let blob: string
   try {
     blob = await Vault.exportSyncBlob()
   } catch (err) {
+    Vault.notifySyncEnd()
     return { ok: false, reason: `export: ${(err as Error).message}` }
   }
 
@@ -42,10 +45,12 @@ export async function syncToCloud(): Promise<{ ok: boolean; reason?: string }> {
       credentials: 'same-origin',
       body: JSON.stringify({ blob, version: 1 }),
     })
+    Vault.notifySyncEnd()
     if (res.status === 401) return { ok: false, reason: 'unauthenticated' }
     if (!res.ok) return { ok: false, reason: `http ${res.status}` }
     return { ok: true }
   } catch (err) {
+    Vault.notifySyncEnd()
     return { ok: false, reason: `network: ${(err as Error).message}` }
   }
 }

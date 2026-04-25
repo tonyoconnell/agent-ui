@@ -29,6 +29,14 @@ relation hierarchy,
     relates parent,
     relates child;
 
+fun ancestors-of($g: group) -> { group }:
+    match
+        { (parent: $ancestor, child: $g) isa hierarchy; }
+        or
+        { (parent: $mid, child: $g) isa hierarchy;
+          let $ancestor in ancestors-of($mid); };
+    return { $ancestor };
+
 # 2. ACTORS — who can act
 entity actor,
     owns aid @key,
@@ -40,6 +48,9 @@ entity actor,
     owns tag @card(0..),              # flat labels
     owns wallet,                      # Sui address (0x...) — identity on-chain
     owns auth-hash,                   # bcrypt hash of API key (never raw)
+    owns valid-from,                  # not-before activation date (optional)
+    owns valid-to,                    # expiry date (optional)
+    owns quota-bucket,                # quota grouping key (e.g. "free", "pro")
     plays path:source,
     plays path:target,
     plays capability:provider,
@@ -81,6 +92,9 @@ entity thing,
     owns started-at,
     owns closed-at,
     owns verified-at,
+    owns valid-from,                  # not-before activation date (optional)
+    owns valid-to,                    # expiry date (optional)
+    owns quota-bucket,                # quota grouping key
     plays capability:offered,
     plays blocks:blocker,
     plays blocks:blocked,
@@ -129,7 +143,10 @@ relation path,
     owns resistance,                  # warn() increments
     owns traversals,                  # count
     owns scope,                       # private/group/public — federation boundary
-    owns bridge-kind;                 # federation/export/escrow — cross-root edge type
+    owns bridge-kind,                 # federation/export/escrow — cross-root edge type
+    owns valid-from,                  # not-before date (optional)
+    owns valid-to,                    # expiry date (optional)
+    owns quota-bucket;                # quota grouping key
 
 relation capability,
     relates provider,
@@ -150,7 +167,10 @@ relation signal,
     owns success,
     owns latency,                     # ms from dispatch to outcome
     owns ts,
-    owns scope;                       # private/group/public — federation boundary
+    owns scope,                       # private/group/public — federation boundary
+    owns valid-from,                  # not-before date (optional)
+    owns valid-to,                    # expiry date (optional)
+    owns quota-bucket;                # quota grouping key
 
 # 6. LEARNING — what was discovered
 entity hypothesis,
@@ -159,6 +179,12 @@ entity hypothesis,
     owns confidence,
     owns observations,
     owns scope;                       # private/group/public — shared learning boundary
+
+# ROLE GRANTS — persisted permission matrix (source of truth; overrides hard-coded fallback)
+entity role-grant,
+    owns rg-id @key,
+    owns governance-role,             # chairman/board/ceo/operator/agent/auditor
+    owns role-action;                 # action name matching RoleAction in role-check.ts
 
 # =============================================================================
 # ATTRIBUTES
@@ -288,6 +314,16 @@ attribute escrow-released-ms, value integer;
 attribute escrow-cancelled-ms, value integer;
 attribute escrow-payment-amount, value double;
 attribute escrow-refund-amount, value double;
+
+# TEMPORAL + QUOTA (sys-302)
+attribute valid-from, value datetime;
+attribute valid-to, value datetime;
+attribute quota-bucket, value string;
+
+# ROLE GRANTS (sys-303)
+attribute rg-id, value string;
+attribute governance-role, value string;
+attribute role-action, value string;
 
 # =============================================================================
 # 6 dimensions. 5 entities. 9 relations. 67 attributes. ONE.

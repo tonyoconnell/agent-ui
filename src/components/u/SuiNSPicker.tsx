@@ -11,9 +11,9 @@
  *   - Not found: red ✗ + "Name not found"
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { emitClick } from '@/lib/ui-signal'
-import { resolveHandle, isValidAddress } from './lib/money'
+import { isValidAddress, resolveHandle } from './lib/money'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -38,11 +38,7 @@ function SpinnerIcon() {
       aria-label="Resolving"
     >
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>
   )
 }
@@ -197,13 +193,9 @@ export function SuiNSPicker({ value, onChange, placeholder, disabled }: Props) {
 
       {/* Sub-text feedback */}
       {showCheck && resolvedAddress && (
-        <p className="text-xs text-green-400 font-mono truncate px-1">
-          {resolvedAddress}
-        </p>
+        <p className="text-xs text-green-400 font-mono truncate px-1">{resolvedAddress}</p>
       )}
-      {showX && (
-        <p className="text-xs text-red-400 px-1">Name not found</p>
-      )}
+      {showX && <p className="text-xs text-red-400 px-1">Name not found</p>}
     </div>
   )
 }

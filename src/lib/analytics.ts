@@ -58,7 +58,8 @@ export function trackEvent(event: string, props?: Record<string, unknown>): void
   if (typeof window === 'undefined') return
   try {
     // posthog is attached to window when initialised
-    const ph = (window as unknown as { posthog?: { capture: (e: string, p?: Record<string, unknown>) => void } }).posthog
+    const ph = (window as unknown as { posthog?: { capture: (e: string, p?: Record<string, unknown>) => void } })
+      .posthog
     ph?.capture(event, props)
   } catch {
     // Fail silently

@@ -189,10 +189,9 @@ export function LifecycleSpeedrun() {
     const up = () => setTotalMs(performance.now() - t0)
 
     // ── 0 WALLET ─────────────────────────────────────────────
-    // Register in TypeDB (fast). Derived Sui address comes back in the
-    // response — it's deterministic from SUI_SEED + uid so we don't need
-    // to wait for on-chain minting to know the wallet. We fire the Move
-    // object creation in the background below; the card updates when
+    // Register in TypeDB (fast). Sui address comes back in the
+    // response — agents use ephemeral keypairs (RAM only, no platform key).
+    // We fire the Move object creation in the background below; the card updates when
     // digests arrive without blocking subsequent stages.
     const rW = await timed(async () => {
       const [seller, buyer] = await Promise.all([
@@ -932,7 +931,7 @@ function ChainRow({
           <CopyBtn text={address} label={`addr-${label}`} copied={copied} onCopy={onCopy} />
         </div>
       ) : (
-        <span className="text-xs text-slate-500">no address (SUI_SEED not configured)</span>
+        <span className="text-xs text-slate-500">no address</span>
       )}
     </div>
   )
