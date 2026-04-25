@@ -11,6 +11,89 @@
  */
 
 import type { D1Database } from '@cloudflare/workers-types'
+import { OWNER_HARD_CEILING } from './tier-limits'
+
+// ── Hard rate ceiling (Gap 5) ──────────────────────────────────────────────
+//
+// In-memory per-isolate sliding-window counter keyed by API key id. Runs in
+// signal.ts BEFORE the tier check + role bypass, so even an owner-tier caller
+// is gated. See src/lib/tier-limits.ts OWNER_HARD_CEILING for the values
+// (1000/sec burst, 100_000/day sustained).
+
+interface RateBucket {
+  secWindow: number // unix-second
+  secCount: number
+  dayWindow: number // unix-day
+  dayCount: number
+}
+
+const RATE_BUCKETS = new Map<string, RateBucket>()
+
+export type RateCeilingResult =
+  | { ok: true }
+  | { ok: false; reason: 'sec-ceiling' | 'day-ceiling'; count: number; limit: number; retryAfter: number }
+
+/**
+ * Increment + check both the per-second and per-day counters for `keyId`.
+ * Returns `{ ok: false, reason }` if either ceiling has been crossed by
+ * THIS call (the count includes the current request).
+ *
+ * No D1 — pure in-memory. The counter is per-isolate; the practical effect
+ * is that a single runaway client gets stopped at the ceiling × isolate
+ * count. Acceptable for the failure mode being defended against (owner
+ * self-DOS via single tight loop).
+ */
+export function checkRateCeiling(keyId: string): RateCeilingResult {
+  if (!keyId) return { ok: true }
+  const now = Date.now()
+  const secWin = Math.floor(now / 1000)
+  const dayWin = Math.floor(now / 86_400_000)
+
+  const bucket: RateBucket = RATE_BUCKETS.get(keyId) ?? {
+    secWindow: secWin,
+    secCount: 0,
+    dayWindow: dayWin,
+    dayCount: 0,
+  }
+  if (bucket.secWindow !== secWin) {
+    bucket.secWindow = secWin
+    bucket.secCount = 0
+  }
+  if (bucket.dayWindow !== dayWin) {
+    bucket.dayWindow = dayWin
+    bucket.dayCount = 0
+  }
+  bucket.secCount++
+  bucket.dayCount++
+  RATE_BUCKETS.set(keyId, bucket)
+
+  if (bucket.secCount > OWNER_HARD_CEILING.perSec) {
+    return {
+      ok: false,
+      reason: 'sec-ceiling',
+      count: bucket.secCount,
+      limit: OWNER_HARD_CEILING.perSec,
+      retryAfter: 1,
+    }
+  }
+  if (bucket.dayCount > OWNER_HARD_CEILING.perDay) {
+    // seconds remaining in the current UTC day
+    const secOfDay = Math.floor(now / 1000) % 86_400
+    return {
+      ok: false,
+      reason: 'day-ceiling',
+      count: bucket.dayCount,
+      limit: OWNER_HARD_CEILING.perDay,
+      retryAfter: 86_400 - secOfDay,
+    }
+  }
+  return { ok: true }
+}
+
+/** Test-only: clear all rate buckets between tests. */
+export function resetRateCeilings(): void {
+  RATE_BUCKETS.clear()
+}
 
 /** Returns the current "YYYY-MM" month key (UTC). */
 export function currentMonth(now: Date = new Date()): string {

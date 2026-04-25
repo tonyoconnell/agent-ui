@@ -51,7 +51,7 @@ import {
 } from '@/engine/adl-cache'
 import { resolveUnitFromSession } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
-import { getUsage, recordCall } from '@/lib/metering'
+import { checkRateCeiling, getUsage, recordCall } from '@/lib/metering'
 import { ownerBypass } from '@/lib/role-check'
 import { checkApiCallLimit, tierLimitResponse } from '@/lib/tier-limits'
 import { isWarm } from '@/lib/ui-prefetch'
@@ -185,6 +185,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // ═══════════════════════════════════════════════════════════════════════════
   const auth = await resolveUnitFromSession(request, locals).catch(() => null)
   if (auth?.isValid) {
+    // OWNER HARD CEILING (Gap 5) — runs BEFORE tier check + role bypass.
+    // Applies to every key including owner; prevents owner self-DOS even
+    // when tier=enterprise has unlimited soft quota and the owner role
+    // bypasses scope/network/sensitivity gates.
+    const ceiling = checkRateCeiling(auth.keyId)
+    if (!ceiling.ok) {
+      void import('@/lib/security-signals')
+        .then((m) => m.emitSecurityEvent({ kind: 'rate-limit', edge: `${auth.keyId}→hard-ceiling:${ceiling.reason}` }))
+        .catch(() => {})
+      return new Response(
+        JSON.stringify({
+          error: 'Rate ceiling exceeded',
+          code: 'OWNER_HARD_CEILING_EXCEEDED',
+          reason: ceiling.reason,
+          count: ceiling.count,
+          limit: ceiling.limit,
+        }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json', 'Retry-After': String(ceiling.retryAfter) },
+        },
+      )
+    }
+
     const tier = auth.tier ?? 'free'
     const usage = await getUsage(db, auth.keyId)
     const gate = checkApiCallLimit(tier, usage)

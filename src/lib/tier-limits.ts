@@ -29,6 +29,26 @@ export type TierLimits = {
 
 const INF = Number.POSITIVE_INFINITY
 
+// ── Owner hard ceiling (Gap 5 — owner-todo) ────────────────────────────────
+//
+// Even the substrate owner cannot DOS their own substrate. This ceiling
+// applies to EVERY authenticated key regardless of tier or role; it runs
+// BEFORE the tier-based limits and BEFORE the owner-bypass branch in
+// signal.ts so owner cannot fall through to "infinite" via tier=enterprise.
+//
+// Sliding-window: in-memory per-isolate (CF Worker isolate or Bun process).
+// Imprecise across isolates but precise enough to gate the failure mode we
+// care about: a runaway script holding the owner bearer that would otherwise
+// take the substrate offline by itself.
+//
+// perSec=1000 is the burst cap (catches a tight loop). perDay=100_000 is the
+// sustained cap (~1.16 req/sec averaged over 24h). Either ceiling firing →
+// 429 + emit security:rate-limit:hard-ceiling:{reason}.
+export const OWNER_HARD_CEILING = {
+  perSec: 1000,
+  perDay: 100_000,
+} as const
+
 export const TIER_LIMITS: Record<Tier, TierLimits> = {
   free: {
     agents: 5,
