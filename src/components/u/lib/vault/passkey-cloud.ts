@@ -363,6 +363,21 @@ export async function createAccountWithPasskey(): Promise<{
 
   // Adopt master locally AND record the enrollment so offline unlock works.
   await Vault.adoptMaster(master, enrollment)
+
+  // Try to restore wallets from the cloud blob. This works when the same device
+  // handle maps to an existing user account that already had a synced vault
+  // (e.g. after a dev restart cleared D1, or on a re-registration).
+  // Same passkey = same master = same decryption key, so the blob opens cleanly.
+  try {
+    const cloud = await fetchCloudBlob()
+    if (cloud) {
+      const { walletsRestored } = await Vault.importSyncBlobWithMaster(cloud.blob, master)
+      return { walletsRestored, created: true, recoveryPhrase }
+    }
+  } catch {
+    // No cloud backup or import failed — fresh start is fine.
+  }
+
   return { walletsRestored: 0, created: true, recoveryPhrase }
 }
 

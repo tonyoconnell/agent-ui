@@ -504,7 +504,11 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
           const pubKey = b64url(new Uint8Array(info.credential.publicKey))
           const signCount = info.credential.counter
 
-          // Create a fresh Better Auth user for this passkey.
+          // Find or create a Better Auth user for this passkey.
+          // The email is stable: deviceHandle@passkey.one.ie — same device =
+          // same handle = same email = same user. Re-registering on the same
+          // device (e.g. after a dev restart cleared D1) resumes the old account
+          // and its cloud-synced vault instead of creating a duplicate identity.
           const email = `${ctx.body.userHandle}@passkey.one.ie`
           const displayName = `Passkey ${ctx.body.userHandle.slice(0, 8)}`
           let user: { id: string; email: string | null; name: string | null }
@@ -514,8 +518,12 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
               name: displayName,
               emailVerified: false,
             })
-          } catch (e) {
-            return err(500, `create user failed: ${(e as Error).message}`)
+          } catch {
+            // Email already exists (same device handle). Find and reuse the
+            // existing account so the cloud-synced vault is still accessible.
+            const existing = await ctx.context.internalAdapter.findUserByEmail(email).catch(() => null)
+            if (!existing?.user) return err(500, 'could not create or find user for this device handle')
+            user = existing.user
           }
 
           const db = await getD1(undefined)
