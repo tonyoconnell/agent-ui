@@ -4,12 +4,18 @@ export {
   useAgentList,
   useDeployOnBehalf,
   useDiscover,
+  useGroupMembers,
+  useGroupRole,
+  useGroups,
   useHealth,
   useHighways,
+  useHypotheses,
   useJoin,
   useRecall,
   useRevenue,
+  useSignals,
   useStats,
+  useThings,
   useWallet,
 } from "./hooks.js";
 export { useOptimisticMark, useOptimisticPay } from "./optimistic.js";

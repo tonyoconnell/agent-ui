@@ -289,3 +289,162 @@ export function useRecall(status?: string) {
 
   return { data, loading, error, refetch };
 }
+
+export function useGroups() {
+  const { client } = useSubstrate();
+  const [data, setData] = useState<unknown>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refetch = useCallback(() => {
+    _cache.delete("groups");
+    setLoading(true);
+    cached("groups", () => client.listGroups())
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [client]);
+
+  useEffect(() => {
+    cached("groups", () => client.listGroups())
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [client]);
+
+  return { data, loading, error, refetch };
+}
+
+export function useGroupMembers(gid: string) {
+  const { client } = useSubstrate();
+  const [data, setData] = useState<unknown>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refetch = useCallback(() => {
+    _cache.delete(`groupMembers:${gid}`);
+    setLoading(true);
+    cached(`groupMembers:${gid}`, () => client.groupMembers(gid))
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [gid, client]);
+
+  useEffect(() => {
+    cached(`groupMembers:${gid}`, () => client.groupMembers(gid))
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [gid, client]);
+
+  return { data, loading, error, refetch };
+}
+
+export function useThings(uid: string) {
+  const { client } = useSubstrate();
+  const [data, setData] = useState<unknown>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refetch = useCallback(() => {
+    _cache.delete(`things:${uid}`);
+    setLoading(true);
+    cached(`things:${uid}`, () => client.capabilities(uid))
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [uid, client]);
+
+  useEffect(() => {
+    cached(`things:${uid}`, () => client.capabilities(uid))
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [uid, client]);
+
+  return { data, loading, error, refetch };
+}
+
+export function useSignals(opts?: { limit?: number; from?: number; to?: number }) {
+  const { client } = useSubstrate();
+  const [data, setData] = useState<unknown>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const cacheKey = `signals:${opts?.limit ?? 50}:${opts?.from ?? ""}:${opts?.to ?? ""}`;
+
+  const refetch = useCallback(() => {
+    _cache.delete(cacheKey);
+    setLoading(true);
+    cached(cacheKey, () => client.signals(opts))
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [client, opts, cacheKey]);
+
+  useEffect(() => {
+    cached(cacheKey, () => client.signals(opts))
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [client, cacheKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { data, loading, error, refetch };
+}
+
+export function useHypotheses(status?: string) {
+  const { client } = useSubstrate();
+  const [data, setData] = useState<HypothesesResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const cacheKey = `hypotheses:${status ?? "all"}`;
+
+  const refetch = useCallback(() => {
+    _cache.delete(cacheKey);
+    setLoading(true);
+    cached(cacheKey, () => client.recall(status))
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [client, status, cacheKey]);
+
+  useEffect(() => {
+    cached(cacheKey, () => client.recall(status))
+      .then(setData)
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [client, status, cacheKey]);
+
+  return { data, loading, error, refetch };
+}
+
+export function useGroupRole(gid: string) {
+  const [data, setData] = useState<{ uid: string; role: string | null; groupRole: string | undefined } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const cacheKey = `groupRole:${gid}`;
+
+  const refetch = useCallback(() => {
+    _cache.delete(cacheKey);
+    setLoading(true);
+    cached(cacheKey, () =>
+      fetch(`/api/auth/me?group=${encodeURIComponent(gid)}`).then(r => r.json()),
+    )
+      .then((res) => setData(res as { uid: string; role: string | null; groupRole: string | undefined }))
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [gid, cacheKey]);
+
+  useEffect(() => {
+    cached(cacheKey, () =>
+      fetch(`/api/auth/me?group=${encodeURIComponent(gid)}`).then(r => r.json()),
+    )
+      .then((res) => setData(res as { uid: string; role: string | null; groupRole: string | undefined }))
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))))
+      .finally(() => setLoading(false));
+  }, [gid, cacheKey]);
+
+  return { data, loading, error, refetch };
+}

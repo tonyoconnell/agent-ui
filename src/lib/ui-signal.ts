@@ -39,14 +39,25 @@ export function emitClick(id: string, payload?: Record<string, unknown>): void {
     sender: 'ui',
     receiver: id,
     data: JSON.stringify(dataObj),
+    scope: 'public',
   }
 
-  // /api/signal is proxied to api.one.ie in dev (astro.config.mjs vite.server.proxy)
-  // In production it hits the deployed /api/signal route directly.
+  // Dev auto-degrade: after the first 4xx/5xx, stop emitting for this session
+  // (the gateway secret is missing in local dev — every request would 500).
+  // Production is unaffected.
+  if (signalDisabled) return
   fetch('/api/signal', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
     keepalive: true,
-  }).catch(() => {})
+  })
+    .then((r) => {
+      if (import.meta.env?.DEV && r.status >= 400) signalDisabled = true
+    })
+    .catch(() => {
+      if (import.meta.env?.DEV) signalDisabled = true
+    })
 }
+
+let signalDisabled = false

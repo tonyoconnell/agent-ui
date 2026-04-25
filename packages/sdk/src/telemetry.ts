@@ -22,13 +22,17 @@ let tokenCount = 0;
 let windowStart = Date.now();
 export const sessionId = generateSessionId();
 
+let runtimeDisabled = false;
+
 function isEnabled(): boolean {
-  // In browser: always enabled (no config file access)
-  if (typeof window !== "undefined") return true;
-  // In Node.js: check env var
+  if (runtimeDisabled) return false;
+  // Browser: respect window-scoped opt-out flag (auto-set on first failure).
+  if (typeof window !== "undefined") {
+    if ((window as unknown as { __ONEIE_TELEMETRY_DISABLE__?: boolean }).__ONEIE_TELEMETRY_DISABLE__) return false;
+    return true;
+  }
+  // Node.js: check env var
   if (typeof process !== "undefined" && process.env?.[DISABLE_KEY]) return false;
-  // Config file check only works in Node.js - skip in browser
-  // Node.js scripts can set ONEIE_TELEMETRY_DISABLE=1 to disable
   return true;
 }
 
@@ -49,7 +53,7 @@ export function emit(
   content?: Record<string, unknown>,
 ): void {
   if (!isEnabled() || !consume()) return;
-  void fetch(ENDPOINT, {
+  fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -61,7 +65,14 @@ export function emit(
         content: { id: sessionId, ...content },
       }),
     }),
-  }).catch(() => undefined);
+  })
+    .then((r) => {
+      // Auto-degrade after first failure — endpoint unreachable for this session.
+      if (r.status >= 400) runtimeDisabled = true;
+    })
+    .catch(() => {
+      runtimeDisabled = true;
+    });
 }
 
 export function isDisabled(): boolean {
