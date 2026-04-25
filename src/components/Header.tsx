@@ -13,7 +13,7 @@
 import { Fingerprint, Loader2, LockOpen } from 'lucide-react'
 import { useCallback, useEffect, useState, useTransition } from 'react'
 import { RecoveryPhraseDialog } from '@/components/auth/RecoveryPhraseDialog'
-import { signInWithPasskey } from '@/components/u/lib/vault/passkey-cloud'
+import { createAccountWithPasskey, signInWithPasskey } from '@/components/u/lib/vault/passkey-cloud'
 import type { VaultStatus } from '@/components/u/lib/vault/types'
 import { VaultError } from '@/components/u/lib/vault/types'
 import * as Vault from '@/components/u/lib/vault/vault'
@@ -128,6 +128,24 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
         emitClick('ui:header:signin')
         const result = await signInWithPasskey()
         if (result.created && result.recoveryPhrase) {
+          setRecoveryPhrase(result.recoveryPhrase)
+          return
+        }
+        window.location.reload()
+      } catch (err) {
+        if (err instanceof VaultError && err.code === 'passkey-cancelled') return
+        setSignInError(err instanceof Error ? err.message : 'Failed')
+      }
+    })
+  }
+
+  const handleCreate = () => {
+    setSignInError(null)
+    startTransition(async () => {
+      try {
+        emitClick('ui:header:create-passkey')
+        const result = await createAccountWithPasskey()
+        if (result.recoveryPhrase) {
           setRecoveryPhrase(result.recoveryPhrase)
           return
         }
@@ -277,6 +295,23 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
             </>
           ) : (
             <div className="flex items-center gap-2">
+              {/* New users: go straight to credentials.create (Touch ID to register) */}
+              {!vault?.hasVault && !showUnlock && (
+                <button
+                  type="button"
+                  onClick={handleCreate}
+                  disabled={pending}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-60"
+                >
+                  {pending ? (
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Fingerprint className="size-3.5" aria-hidden="true" />
+                  )}
+                  <span>{pending ? 'Working…' : 'Create passkey'}</span>
+                </button>
+              )}
+              {/* Existing users: credentials.get (use saved passkey) */}
               <button
                 type="button"
                 onClick={handlePrimary}
