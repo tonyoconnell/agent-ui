@@ -1,0 +1,68 @@
+# Cloudflare Worker dev secrets — copy this file to .dev.vars and fill in values.
+# .dev.vars is loaded by wrangler dev / @astrojs/cloudflare adapter as worker bindings.
+# Reference: https://developers.cloudflare.com/workers/configuration/secrets/
+#
+# NEVER commit .dev.vars. It is already listed in .gitignore.
+# This example file IS safe to commit (all values are empty).
+
+# ── Encryption ──────────────────────────────────────────────────────────────
+
+# Vault master Key Encryption Key (32-byte base64). Wraps all tenant KEKs in TypeDB.
+# Generate: openssl rand -base64 32
+MASTER_KEK=
+
+# ── Web Push (VAPID) ─────────────────────────────────────────────────────────
+
+# P-256 VAPID public key (base64url-encoded). Sent to browser on subscribe.
+# Generate keypair: npx web-push generate-vapid-keys
+VAPID_PUBLIC_KEY=
+
+# P-256 VAPID private key (base64url-encoded, PKCS8). Never exposed to client.
+VAPID_PRIVATE_KEY=
+
+# VAPID contact email — sent to push services for abuse contact.
+# Stored without mailto: prefix; code adds it automatically.
+VAPID_EMAIL=
+
+# Push subscription JSON for ops alerts from /api/reconcile (single-target).
+# Value: JSON string of a PushSubscription object, e.g.
+#   {"endpoint":"https://...","keys":{"p256dh":"...","auth":"..."}}
+# Production: replace with a D1 table of per-user subscriptions.
+OPS_PUSH_SUBSCRIPTION=
+
+# ── Email ────────────────────────────────────────────────────────────────────
+
+# Postmark server token (preferred provider when set).
+POSTMARK_API_KEY=
+
+# Resend API key (fallback when POSTMARK_API_KEY is absent).
+RESEND_API_KEY=
+
+# Sender address used by both email providers.
+NOTIFY_FROM_EMAIL=
+
+# ── Cloudflare API (domains/create.ts — CF for SaaS) ────────────────────────
+
+# Cloudflare Global API Key. Required for custom-hostname provisioning.
+# Scoped tokens are NOT supported — they lack custom-hostname permissions.
+CLOUDFLARE_GLOBAL_API_KEY=
+
+# Cloudflare account email matching the Global API Key.
+CLOUDFLARE_EMAIL=
+
+# Zone ID for the one.ie zone (target of custom-hostname CNAME).
+CF_ZONE_ID=
+
+# ── Agentverse ───────────────────────────────────────────────────────────────
+
+# Shared secret for inbound Agentverse webhooks (POST /api/av/in).
+# If unset the endpoint is open (any sender accepted).
+# Generate: openssl rand -hex 32
+AGENTVERSE_WEBHOOK_SECRET=
+
+# ── Sui ──────────────────────────────────────────────────────────────────────
+
+# Sponsor wallet Ed25519 seed (32-byte base64) for POST /api/sponsor/execute.
+# Covers gas for user transactions. Keep it funded on the target network.
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+SUI_SPONSOR_KEY=

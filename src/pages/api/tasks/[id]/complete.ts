@@ -1,14 +1,7 @@
 /**
- * POST /api/tasks/:id/complete — Mark a signal outcome
- *
- * W4 Gate: Runs npm run verify before allowing mark.
- * Blocks if tests regress (deterministic sandwich POST check).
- *
- * :id is a task tid (e.g. "T-2"). body.failed = true for failure.
- * Updates pheromone in local store (fast), TypeDB (silent), and triggers KV sync.
+ * POST /api/tasks/:id/complete — Mark/warn pheromone, write outcome to TypeDB, and broadcast via WS.
  */
 
-import { execSync } from 'node:child_process'
 import type { APIRoute } from 'astro'
 import * as store from '@/lib/tasks-store'
 import { writeSilent } from '@/lib/typedb'
@@ -19,46 +12,15 @@ function triggerKvSync() {
   fetch(`${syncUrl}/sync`, { method: 'POST' }).catch(() => {})
 }
 
-function verifyBaseline(): { ok: boolean; error?: string } {
-  try {
-    execSync('npm run verify', { stdio: 'pipe', encoding: 'utf-8' })
-    return { ok: true }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return {
-      ok: false,
-      error: `W4 verification failed: ${message}. Blocking mark() to prevent pheromone corruption.`,
-    }
-  }
-}
-
 export const POST: APIRoute = async ({ params, request }) => {
   const { id } = params
   if (!id) {
     return new Response(JSON.stringify({ error: 'Missing task id' }), { status: 400 })
   }
 
-  const body = (await request.json().catch(() => ({}))) as { failed?: boolean; from?: string; skipVerify?: boolean }
+  const body = (await request.json().catch(() => ({}))) as { failed?: boolean; from?: string }
   const failed = body.failed === true
   const from = body.from || 'loop'
-  const skipVerify = body.skipVerify === true
-
-  // W4 Gate: Verify baseline before marking success
-  // Blocking mark if tests regress (deterministic sandwich POST check)
-  if (!failed && !skipVerify) {
-    const verification = verifyBaseline()
-    if (!verification.ok) {
-      return new Response(
-        JSON.stringify({
-          error: verification.error,
-          blocked: true,
-          tid: id,
-          reason: 'W4 verification failed',
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } },
-      )
-    }
-  }
 
   // Update local store pheromone
   if (failed) {

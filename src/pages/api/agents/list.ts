@@ -38,9 +38,13 @@ function sensitivityToNumber(ds: unknown): number {
 // Stale-while-revalidate in-process cache. Once the list is warmed ONE time,
 // every subsequent hit is ~0ms — even past TTL we serve stale bytes and kick
 // off a background refresh. Cache effectively never goes cold under traffic.
+//
+// IMPORTANT: `inflight` caches the JSON payload, NOT the Response object.
+// Workerd blocks cross-request stream reads even with `Response.clone()` —
+// every request must build its own Response from the shared payload value.
 declare global {
   var _agentListCache: Map<number, { v: Record<string, unknown>; ts: number }> | undefined
-  var _agentListInflight: Map<number, Promise<Response>> | undefined
+  var _agentListInflight: Map<number, Promise<Record<string, unknown>>> | undefined
   var _agentListWarmed: boolean | undefined
 }
 const FRESH_TTL = 60_000 // serve as HIT if younger than this
@@ -59,7 +63,11 @@ const inflight = globalThis._agentListInflight
 
 const DEFAULT_LIMIT = 50
 
-function jsonResponse(v: Record<string, unknown>, age: 'HIT' | 'STALE' | 'MISS'): Response {
+// Build a fresh Response per request from a shared payload. Workerd's I/O
+// barrier means a Response built in request A can't be read by request B
+// even via clone() — so the inflight cache stores payloads, not Responses,
+// and each requester serializes its own bytes here.
+function payloadResponse(v: Record<string, unknown>, age: 'HIT' | 'STALE' | 'MISS'): Response {
   return new Response(JSON.stringify(v), {
     status: 200,
     headers: {
@@ -87,21 +95,22 @@ export const GET: APIRoute = async ({ url }) => {
 
   // Fresh — instant HIT.
   if (hit && now - hit.ts < FRESH_TTL) {
-    return jsonResponse(hit.v, 'HIT')
+    return payloadResponse(hit.v, 'HIT')
   }
 
   // Stale but usable — serve now, refresh in background (SWR).
   if (hit && now - hit.ts < STALE_TTL) {
     refreshInBackground(limit)
-    return jsonResponse(hit.v, 'STALE')
+    return payloadResponse(hit.v, 'STALE')
   }
 
-  // Truly cold — dedup concurrent builds, block on one.
+  // Truly cold — dedup concurrent builds, block on one. Each requester
+  // builds its own Response from the shared payload (workerd I/O barrier).
   const pending = inflight.get(limit)
-  if (pending) return pending.then((r) => r.clone())
+  if (pending) return payloadResponse(await pending, 'MISS')
   const work = buildList(limit).finally(() => inflight.delete(limit))
   inflight.set(limit, work)
-  return work.then((r) => r.clone())
+  return payloadResponse(await work, 'MISS')
 }
 
 // Kick off a warm-up on module load so the FIRST user of a fresh isolate
@@ -111,7 +120,9 @@ if (!globalThis._agentListWarmed) {
   refreshInBackground(DEFAULT_LIMIT)
 }
 
-async function buildList(limit: number): Promise<Response> {
+// Build the payload value (not a Response). Callers wrap in a fresh
+// Response per request — see payloadResponse + workerd I/O note above.
+async function buildList(limit: number): Promise<Record<string, unknown>> {
   const now = Date.now()
 
   try {
@@ -201,7 +212,7 @@ async function buildList(limit: number): Promise<Response> {
     if (unitRows.length === 0) {
       const empty = { agents: [], groups: {}, tags: [], count: 0, _limit: limit }
       cache.set(limit, { v: empty, ts: now })
-      return jsonResponse(empty, 'MISS')
+      return empty
     }
 
     // Sort by uid first so the slice is stable across reloads, then cap.
@@ -322,8 +333,8 @@ async function buildList(limit: number): Promise<Response> {
       setTimeout(() => prewarmDetail(a.id), idx * 50)
     }
 
-    return jsonResponse(payload, 'MISS')
+    return payload
   } catch {
-    return jsonResponse({ agents: [], groups: {}, tags: [], count: 0 }, 'MISS')
+    return { agents: [], groups: {}, tags: [], count: 0 }
   }
 }

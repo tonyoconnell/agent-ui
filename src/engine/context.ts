@@ -8,43 +8,46 @@
  *   ingestDocs()                     → docs → TypeDB hypotheses
  *   docIndex()                       → TOC of all docs
  *
- * NOTE: Server-side only (uses Node fs). Import dynamically on client.
+ * Docs are bundled at build time via Vite import.meta.glob — no Node fs required.
  */
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DYNAMIC IMPORTS — Only load fs/path on server
-// ═══════════════════════════════════════════════════════════════════════════
-
-let fs: typeof import('fs') | null = null
-let path: typeof import('path') | null = null
-let DOCS_DIR = ''
-
-const _initFs = async () => {
-  if (typeof window !== 'undefined') return false
-  if (fs) return true
-  try {
-    fs = await import('node:fs')
-    path = await import('node:path')
-    DOCS_DIR = path.join(process.cwd(), 'one')
-    return true
-  } catch {
-    return false
-  }
-}
-
-// Sync init for server contexts
-if (typeof window === 'undefined') {
-  try {
-    fs = require('node:fs')
-    path = require('node:path')
-    DOCS_DIR = path?.join(process.cwd(), 'one') ?? ''
-  } catch {
-    /* browser */
-  }
-}
 
 import { writeSilent } from '@/lib/typedb'
 import { type AuditResult, auditSkills } from './skill-audit'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BUNDLED DOCS — resolved at build time by Vite, no fs at runtime.
+//
+// IMPORTANT: only the 8 canonical docs are eager-bundled. Globbing all of
+// `/one/*.md` pulled in 290 files (~5.75 MiB) of plans/todos/strategy that
+// the worker never reads at request time, blowing the CF free-tier limit.
+// docIndex() / ingestDocs() are narrowed to this same set; for full-corpus
+// ingestion run a Bun script that reads from disk directly.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DOC_FILES = import.meta.glob<string>(
+  [
+    '/one/routing.md',
+    '/one/dsl.md',
+    '/one/dictionary.md',
+    '/one/metaphors.md',
+    '/one/sdk.md',
+    '/one/claw.md',
+    '/one/loops.md',
+    '/one/patterns.md',
+  ],
+  {
+    eager: true,
+    query: '?raw',
+    import: 'default',
+  },
+)
+
+// Lookup by basename: 'dsl.md' → raw content
+const DOC_MAP: Record<string, string> = {}
+for (const [filePath, content] of Object.entries(DOC_FILES)) {
+  const name = filePath.split('/').pop()!
+  DOC_MAP[name] = content
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PATHS
@@ -68,12 +71,10 @@ export type DocKey = keyof typeof CANONICAL
 // LOAD — Read docs as context for agents
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** Read a single doc file (server-side only) */
+/** Read a single doc by basename (e.g. 'dsl.md' or 'dsl') */
 export const readDoc = (name: string): string | null => {
-  if (!fs || !path || !DOCS_DIR) return null
-  const filePath = path.join(DOCS_DIR, name.endsWith('.md') ? name : `${name}.md`)
-  if (!fs.existsSync(filePath)) return null
-  return fs.readFileSync(filePath, 'utf-8')
+  const key = name.endsWith('.md') ? name : `${name}.md`
+  return DOC_MAP[key] ?? null
 }
 
 /** Load multiple docs as merged context */
@@ -240,14 +241,12 @@ const extractMeta = (content: string, name: string): DocMeta => {
   return { name, title, description, lines: lines.length }
 }
 
-/** Get index of all docs (server-side only) */
+/** Get index of all bundled docs */
 export const docIndex = (): DocMeta[] => {
-  if (!fs || !DOCS_DIR || !fs.existsSync(DOCS_DIR)) return []
-  return fs
-    .readdirSync(DOCS_DIR)
-    .filter((f) => f.endsWith('.md') && !f.startsWith('TODO') && !f.startsWith('PLAN'))
+  return Object.keys(DOC_MAP)
+    .filter((name) => !name.startsWith('TODO') && !name.startsWith('PLAN'))
     .map((name) => {
-      const content = readDoc(name)
+      const content = DOC_MAP[name]
       return content ? extractMeta(content, name) : null
     })
     .filter((d): d is DocMeta => d !== null)

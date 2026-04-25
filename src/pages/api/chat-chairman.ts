@@ -12,6 +12,10 @@
  *      by then — the leaf sees the full chain from data.chain + self).
  *   6. Emit `delta` per token, `done` on resolution, `error` on auth/validation.
  *
+ * Chain edges are loaded in-memory once per isolate (edgesLoaded flag). If
+ * TypeDB is unreachable the edge map is empty and routing falls back to CEO
+ * self-leaf — the 4s BUDGET_MS already exits gracefully in that condition.
+ *
  * Four Outcomes → SSE done.outcome:
  *   {result}     → outcome=result    + mark in ask()'s edges (world.ts)
  *   {timeout}    → outcome=timeout   + neutral (no warn)
@@ -44,46 +48,10 @@ let edgesLoaded = false
  * the full path table which times out against production TypeDB when there
  * are many paths. We only need edges from chairman/ceo and whoever they hire,
  * so query by specific from-uids — anchored queries return fast (~100ms).
- * Runs on every request but is fast, and results accumulate on the singleton
+ * Runs once per isolate (edgesLoaded flag); results accumulate on the singleton
  * net.strength so subsequent synthesis + routing see them.
  */
-// Local file cache for chain edges. Only available when node:fs can bind; on
-// CF Workers the imports fail and we no-op. In dev, cache survives restarts so
-// TypeDB outages don't force cold starts to re-query an unresponsive gateway.
-const CACHE_PATH = `${(globalThis as { process?: { cwd?: () => string } }).process?.cwd?.() ?? '.'}/node_modules/.cache/chairman-chain-edges.json`
-
-async function readCache(): Promise<Record<string, number>> {
-  try {
-    const { readFile } = await import('node:fs/promises')
-    const text = await readFile(CACHE_PATH, 'utf-8')
-    const parsed = JSON.parse(text) as { edges?: Record<string, number> }
-    return parsed.edges ?? {}
-  } catch {
-    return {}
-  }
-}
-
-async function writeCache(edges: Record<string, number>): Promise<void> {
-  try {
-    const { writeFile, mkdir } = await import('node:fs/promises')
-    const { dirname } = await import('node:path')
-    await mkdir(dirname(CACHE_PATH), { recursive: true }).catch(() => 0)
-    await writeFile(CACHE_PATH, JSON.stringify({ edges, ts: Date.now() }), 'utf-8')
-  } catch {
-    /* no fs, no cache — fine */
-  }
-}
-
 async function loadChainEdges(net: PersistentWorld): Promise<void> {
-  // Apply cache first so routing works when TypeDB is unreachable. Cached
-  // values are overwritten by any fresh higher-strength TypeDB value.
-  const cached = await readCache()
-  for (const [edge, strength] of Object.entries(cached)) {
-    if (typeof strength === 'number' && strength > 0 && (net.strength[edge] ?? 0) < strength) {
-      net.strength[edge] = strength
-    }
-  }
-
   // Total budget — if TypeDB is slow today, give up early rather than block
   // the chat request for 30s+ per round. Uses whatever edges we managed to
   // hydrate; downstream falls back to CEO self-leaf if net.strength is empty.
@@ -104,7 +72,6 @@ async function loadChainEdges(net: PersistentWorld): Promise<void> {
   const visited = new Set<string>()
   let frontier = seeds
   const MAX_ROUNDS = 3
-  const newlyLoaded: Record<string, number> = {}
   for (let r = 0; r < MAX_ROUNDS && frontier.length && Date.now() < deadline; r++) {
     const next = new Set<string>()
     const results = await Promise.all(
@@ -123,17 +90,12 @@ async function loadChainEdges(net: PersistentWorld): Promise<void> {
         if (typeof to === 'string' && typeof strength === 'number' && strength > 0) {
           const edge = `${from}→${to}`
           if ((net.strength[edge] ?? 0) < strength) net.strength[edge] = strength
-          newlyLoaded[edge] = strength
           if (!visited.has(to)) next.add(to)
         }
       }
     }
     frontier = [...next]
   }
-
-  // Persist anything we pulled this session. Next cold start reads this first
-  // and has a working chain even if the gateway is 503 at that moment.
-  if (Object.keys(newlyLoaded).length) void writeCache({ ...cached, ...newlyLoaded })
 }
 
 /**

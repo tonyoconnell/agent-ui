@@ -118,8 +118,8 @@ export const GET = async ({ locals, url }: { locals: any; url: URL }): Promise<R
         `
       SELECT
         COUNT(DISTINCT edge) as edge_count,
-        SUM(CASE WHEN SUM(delta_s) > 5 THEN 1 ELSE 0 END) as surge_count,
-        SUM(CASE WHEN SUM(delta_r) > SUM(delta_s) THEN 1 ELSE 0 END) as decline_count
+        SUM(CASE WHEN delta_s > 5 THEN 1 ELSE 0 END) as surge_count,
+        SUM(CASE WHEN delta_r > delta_s THEN 1 ELSE 0 END) as decline_count
       FROM (
         SELECT
           edge,

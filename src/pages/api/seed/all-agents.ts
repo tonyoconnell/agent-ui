@@ -26,10 +26,15 @@
  * }
  */
 
-import * as fs from 'node:fs'
-import * as path from 'node:path'
 import type { APIRoute } from 'astro'
 import { readParsed, write } from '@/lib/typedb'
+
+// Bundled at build time by Vite — no node:fs, compatible with Cloudflare workerd
+const AGENT_FILES = import.meta.glob<string>('/agents/**/*.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+})
 
 interface AgentData {
   name: string
@@ -213,10 +218,6 @@ export const POST: APIRoute = async ({ request }) => {
   const body = (await request.json()) as { dryRun?: boolean }
   const dryRun = body.dryRun === true
 
-  const agentsDir = '/Users/toc/Server/envelopes/agents'
-  const files = fs.readdirSync(agentsDir)
-  const agentFiles = files.filter((f) => f.endsWith('.md') && f !== 'README.md')
-
   const results: string[] = []
   const agents: Array<{
     uid: string
@@ -229,16 +230,27 @@ export const POST: APIRoute = async ({ request }) => {
   let totalQueries = 0
   let totalExecuted = 0
 
-  // Parse all agents
+  // Parse all agents from Vite-bundled glob (no node:fs needed)
   const parsedAgents = new Map<string, AgentData>()
   const groupAgents = new Map<string, AgentData[]>()
 
-  for (const file of agentFiles) {
-    const filePath = path.join(agentsDir, file)
-    const md = fs.readFileSync(filePath, 'utf-8')
-    const agent = parseAgent(md)
+  for (const [fullPath, md] of Object.entries(AGENT_FILES)) {
+    // fullPath: '/agents/analyst.md' or '/agents/donal/cmo.md' or deeper
+    const parts = fullPath.split('/').filter(Boolean) // strip leading ''
+    // parts[0] === 'agents'; actual segments start at index 1
+    const segments = parts.slice(1) // e.g. ['analyst.md'] or ['donal', 'cmo.md']
+    const file = segments[segments.length - 1]
+    const subdir = segments.length > 1 ? segments[0] : undefined
 
+    if (!file.endsWith('.md') || file === 'README.md') continue
+
+    const agent = parseAgent(md)
     if (!agent.name) continue
+
+    // Default group to subdir name if frontmatter doesn't set one
+    if (!agent.group && subdir) {
+      agent.group = subdir
+    }
 
     parsedAgents.set(agent.name, agent)
 
@@ -248,37 +260,6 @@ export const POST: APIRoute = async ({ request }) => {
         groupAgents.set(agent.group, [])
       }
       groupAgents.get(agent.group)!.push(agent)
-    }
-  }
-
-  // Also check subdirectories
-  const subdirs = fs.readdirSync(agentsDir).filter((f) => {
-    const stat = fs.statSync(path.join(agentsDir, f))
-    return stat.isDirectory()
-  })
-
-  for (const subdir of subdirs) {
-    const subPath = path.join(agentsDir, subdir)
-    const subFiles = fs.readdirSync(subPath).filter((f) => f.endsWith('.md') && f !== 'README.md')
-
-    for (const file of subFiles) {
-      const filePath = path.join(subPath, file)
-      const md = fs.readFileSync(filePath, 'utf-8')
-      const agent = parseAgent(md)
-
-      if (!agent.name) continue
-
-      // Default group to dirname if not specified
-      if (!agent.group) {
-        agent.group = subdir
-      }
-
-      groups.add(agent.group)
-      if (!groupAgents.has(agent.group)) {
-        groupAgents.set(agent.group, [])
-      }
-      groupAgents.get(agent.group)!.push(agent)
-      parsedAgents.set(agent.name, agent)
     }
   }
 

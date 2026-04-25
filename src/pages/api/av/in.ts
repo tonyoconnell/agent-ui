@@ -19,7 +19,7 @@ import { getNet } from '@/lib/net'
 const UID_FORMAT = /^[a-zA-Z0-9:_-]+$/
 
 export const POST: APIRoute = async ({ request }) => {
-  const secret = process.env.AGENTVERSE_WEBHOOK_SECRET
+  const secret = (typeof process !== 'undefined' && process.env?.AGENTVERSE_WEBHOOK_SECRET) ? process.env.AGENTVERSE_WEBHOOK_SECRET : undefined
   if (secret && request.headers.get('X-Agentverse-Secret') !== secret) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
   }
