@@ -5,7 +5,7 @@ slug: system
 group: world:one
 mode: full
 lifecycle: evolution
-status: T0+T1+T2+T3-partial DONE
+status: ALL DONE
 spec: one/system.md
 created: 2026-04-25
 ---
@@ -40,7 +40,7 @@ Close 21 gaps in [system.md](system.md). Base context: [DSL.md](dsl.md) · [dict
 | ~~`sys-301`~~ ✓ | 3 | F | — | 9/8 | `gateway/` `wrangler.toml` `scripts/typedb-failover.ts`(new) `one/cloudflare.md` | Provision EU TypeDB replica; colo-aware Gateway routing; failover script. → EU 150→30ms; drill <2min |
 | ~~`sys-302`~~ ✓ | 3 | F | ‖ | 6/3 | `src/schema/one.tql` | Add `valid-from` `valid-to` `quota-bucket` attrs on actor/path/signal/thing. → TQL `match $x has quota-bucket "x", has valid-from > T;` works across all 4 |
 | ~~`sys-303`~~ ✓ | 3 | M | ‖ | 5/4 | `src/schema/one.tql` `migrations/typedb/seed-roles.tql`(new) `src/lib/role-check.ts` | `entity role-grant`; seed = current matrix; `roleCheckAsync` queries TypeDB w/ 60s cache; hard-coded fallback. → TQL change effective ≤60s w/o redeploy |
-| `sys-304` | 3 | F | — | 7/5 | `src/move/one/sources/one.move` `src/engine/bridge.ts` `one/sui.md` | Move `GovernanceEvent`; `mirrorGovernance({chairman-grant,group-create,key-revoke,role-perm-change})`. → Sui tx ≤60s after TypeDB; replay-from-Sui = identical role state |
+| ~~`sys-304`~~ ✓ | 3 | F | — | 7/5 | `src/move/one/sources/one.move` `src/engine/bridge.ts` `one/sui.md` | Move `GovernanceEvent`; `mirrorGovernance({chairman-grant,group-create,key-revoke,role-perm-change})`. → Sui tx ≤60s after TypeDB; replay-from-Sui = identical role state |
 
 **Block chain:** `sys-110`→sys-106 · `sys-201b`→sys-201 · `sys-203`→sys-202 · `sys-204`→sys-103 · `sys-301`→sys-107+sys-109+sys-101 · `sys-302`→sys-202 · `sys-304`→sys-201+sys-202+sys-303.
 

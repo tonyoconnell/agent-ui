@@ -1,7 +1,7 @@
 // vault/recovery.ts — BIP-39 24-word recovery phrase.
 // Generates, validates, normalises, derives vault master secret.
 
-import { generateMnemonic, mnemonicToSeed, validateMnemonic } from '@scure/bip39'
+import { entropyToMnemonic, generateMnemonic, mnemonicToEntropy, mnemonicToSeed, validateMnemonic } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
 import { VaultError } from './types'
 
@@ -114,6 +114,30 @@ export async function recoveryToVaultSecret(phrase: string, passphrase: string =
   const normalised = normaliseRecoveryPhrase(phrase)
   const seed = await mnemonicToSeed(normalised, passphrase)
   return seed.slice(0, 32)
+}
+
+// ===== MASTER ↔ PHRASE (new deterministic model) =====
+
+/**
+ * Encode a 32-byte vault master as a 24-word BIP-39 phrase.
+ * Deterministic: same master always produces the same phrase.
+ * Used to show the user their emergency backup after PRF-derived vault setup.
+ * The user writes this down; entering it back calls masterFromRecoveryPhrase().
+ */
+export function masterToRecoveryPhrase(master: Uint8Array): string {
+  if (master.length !== 32) throw new VaultError('master must be 32 bytes for phrase encoding', 'crypto-error')
+  return entropyToMnemonic(master, wordlist)
+}
+
+/**
+ * Recover the 32-byte vault master from a phrase created by masterToRecoveryPhrase().
+ * Uses direct entropy extraction (BIP-39 checksum → entropy bytes) — NOT PBKDF2.
+ * Only valid for phrases that were produced by masterToRecoveryPhrase().
+ */
+export function masterFromRecoveryPhrase(phrase: string): Uint8Array {
+  assertValidRecoveryPhrase(phrase)
+  const normalised = normaliseRecoveryPhrase(phrase)
+  return new Uint8Array(mnemonicToEntropy(normalised, wordlist))
 }
 
 // ===== WORDLIST UTILITIES =====

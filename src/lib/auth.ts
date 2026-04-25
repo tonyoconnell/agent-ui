@@ -141,9 +141,17 @@ export function createAuth() {
     trustedOrigins: [
       'http://localhost:4321',
       'http://localhost:3000',
+      'https://local.one.ie',
+      'https://main.one.ie',
       'https://dev.one.ie',
       'https://one.ie',
       'https://pay.one.ie',
+      ...(
+        ((globalThis as any).BETTER_AUTH_TRUSTED_ORIGINS || import.meta.env.BETTER_AUTH_TRUSTED_ORIGINS || '') as string
+      )
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter(Boolean),
     ],
 
     plugins: [

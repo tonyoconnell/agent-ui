@@ -134,7 +134,7 @@ interface HintRow {
   user_id: string
   pub_key: string
   sign_count: number
-  wrapped_master: string
+  wrapped_master?: string | null
   label?: string | null
 }
 
@@ -170,7 +170,7 @@ async function upsertHint(
              label          = excluded.label,
              updated_at     = unixepoch()`,
         )
-        .bind(credId, row.user_id, row.pub_key, row.sign_count, row.wrapped_master, row.label ?? null)
+        .bind(credId, row.user_id, row.pub_key, row.sign_count, row.wrapped_master ?? null, row.label ?? null)
         .run()
       return { ok: true }
     } catch (e) {
@@ -318,7 +318,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
         body: z.object({
           challengeToken: z.string(),
           response: z.record(z.string(), z.unknown()),
-          wrappedMaster: z.string(),
+          wrappedMaster: z.string().optional(),
           label: z.string().max(64).optional(),
         }),
       },
@@ -361,7 +361,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
           user_id: session.user.id,
           pub_key: pubKey,
           sign_count: signCount,
-          wrapped_master: ctx.body.wrappedMaster,
+          wrapped_master: null,
           label: ctx.body.label ?? null,
         })
         if (!result.ok) {
@@ -379,7 +379,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
     // credential matches server-side.
     passkeyRegisterAnonymousOptions: createAuthEndpoint(
       '/passkey-webauthn/register-anonymous/options',
-      { method: 'POST', body: z.object({}).optional() },
+      { method: 'POST', body: z.object({ deviceHandle: z.string().optional() }).optional() },
       async (ctx) => {
         try {
           let rpID = opts.rpID
@@ -397,8 +397,11 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
             })
           }
 
-          // Random 16-byte user handle — finalized into a user row on verify.
-          const userHandle = b64url(crypto.getRandomValues(new Uint8Array(16)))
+          // Use the client's stable device handle as userID when provided.
+          // Same userID + same RP = authenticator replaces existing credential
+          // instead of creating a new one — prevents passkey accumulation.
+          // Fall back to a random handle when none is supplied (older clients).
+          const userHandle = ctx.body?.deviceHandle ?? b64url(crypto.getRandomValues(new Uint8Array(16)))
 
           // `userName` is what Apple Passwords / Chrome Passkey Manager show
           // as the headline label. Keep it friendly; the unique identity lives
@@ -446,7 +449,6 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
         body: z.object({
           challengeToken: z.string(),
           response: z.record(z.string(), z.unknown()),
-          wrappedMaster: z.string(),
           userHandle: z.string(),
           label: z.string().max(64).optional(),
         }),
@@ -511,7 +513,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
             user_id: user.id,
             pub_key: pubKey,
             sign_count: signCount,
-            wrapped_master: ctx.body.wrappedMaster,
+            wrapped_master: null,
             label: ctx.body.label ?? null,
           })
           if (!upsert.ok) return err(500, upsert.err)
@@ -667,7 +669,6 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
 
           return ctx.json({
             ok: true,
-            wrappedMaster: hint.wrapped_master,
             user: { id: user.id, email: user.email, name: user.name },
             session: { token: session.token, expiresAt: session.expiresAt },
           })

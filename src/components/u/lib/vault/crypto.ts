@@ -129,6 +129,28 @@ export async function importMasterSecret(secret: Uint8Array): Promise<CryptoKey>
   return crypto.subtle.importKey('raw', bs(secret), { name: 'HKDF' }, false, ['deriveKey', 'deriveBits'])
 }
 
+/**
+ * Derive the 32-byte vault master from a WebAuthn PRF output.
+ * Same passkey + same PRF salt = same 32 bytes, forever.
+ * This is the root of the deterministic wallet derivation chain:
+ *   Touch ID → PRF → prfToMaster() → HKDF(chain/index) → keypair → address
+ */
+export async function prfToMaster(prfSecret: Uint8Array): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey('raw', bs(prfSecret), { name: 'HKDF' }, false, ['deriveBits'])
+  return new Uint8Array(
+    await crypto.subtle.deriveBits(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: bs(new Uint8Array(0)),
+        info: bs(utf8Encode('one.ie/vault/master/v2')),
+      },
+      key,
+      256,
+    ),
+  )
+}
+
 export async function deriveSubKey(baseKey: CryptoKey, info: string): Promise<CryptoKey> {
   return crypto.subtle.deriveKey(
     {

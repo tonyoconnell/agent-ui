@@ -183,6 +183,10 @@ export const HKDF_DOMAINS = {
   recoveryCheck: () => `vault.v${VAULT_SCHEMA_VERSION}.recovery.check`,
   /** Backup export key */
   backupExport: () => `vault.v${VAULT_SCHEMA_VERSION}.backup.export`,
+  /** Deterministic wallet seed — Touch ID → PRF → master → this seed → keypair.
+   *  Stable wallet ID format: "<context>-<chain>-<index>" e.g. "mainnet-sui-0". */
+  walletSeed: (chain: string, index: number, context: 'mainnet' | 'testnet') =>
+    `vault.v${VAULT_SCHEMA_VERSION}.wallet.seed.${context}.${chain}.${index}`,
 } as const
 
 // ============================================

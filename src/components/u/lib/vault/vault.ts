@@ -10,6 +10,7 @@ import {
   deriveSecretFromPassword,
   encryptUnderMaster,
   importMasterSecret,
+  prfToMaster,
   randomBytes,
   SALT_LENGTH,
   sha256,
@@ -21,7 +22,7 @@ import {
   guessAuthenticatorLabel,
   unlockWithPasskey as passkeyUnlock,
 } from './passkey'
-import { assertValidRecoveryPhrase, recoveryToVaultSecret } from './recovery'
+import { assertValidRecoveryPhrase, masterFromRecoveryPhrase, recoveryToVaultSecret } from './recovery'
 import {
   appendAudit,
   clearSessionRow,
@@ -296,6 +297,46 @@ export async function hasVault(): Promise<boolean> {
   return meta !== null
 }
 
+/** Return the credentialId of every enrolled passkey. Used by passkey-cloud to
+ *  populate `excludeCredentials` so the OS rejects duplicate registration. */
+export async function getEnrolledPasskeyCredentialIds(): Promise<Uint8Array[]> {
+  if (!isStorageAvailable()) return []
+  const meta = await getMeta()
+  return meta?.passkeys.map((p) => p.credentialId) ?? []
+}
+
+/**
+ * Derive a 32-byte deterministic wallet seed from the vault master.
+ * Same passkey → same master → same seed → same keypair → same address.
+ * Requires an unlocked session. The seed is suitable as Ed25519 private key
+ * material or as a BIP-32 root for further derivation.
+ *
+ * @param chain  - chain id, e.g. "sui", "eth"
+ * @param index  - wallet index, 0 = first wallet
+ * @param context - "mainnet" or "testnet"
+ */
+export async function deriveWalletSeed(
+  chain: string,
+  index: number,
+  context: 'mainnet' | 'testnet',
+): Promise<Uint8Array> {
+  const s = requireUnlocked()
+  touchActivity()
+  const info = utf8Encode(HKDF_DOMAINS.walletSeed(chain, index, context))
+  return new Uint8Array(
+    await crypto.subtle.deriveBits(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(0) as unknown as BufferSource,
+        info: info as unknown as BufferSource,
+      },
+      s.masterKey,
+      256,
+    ),
+  )
+}
+
 export async function getStatus(): Promise<VaultStatus> {
   const caps = await detectCapabilities()
   if (!isStorageAvailable()) {
@@ -359,21 +400,9 @@ export async function unlockWithPasskey(): Promise<void> {
       }
       continue // try next enrollment
     }
-    // Recover master from the wrapped sentinel attached to this enrollment.
-    const wrapped = (enrollment as PasskeyEnrollment & { wrappedMaster?: EncryptedRecord }).wrappedMaster
-    if (!wrapped) {
-      // Backwards-compat / corrupt enrollment — can't recover master here.
-      continue
-    }
-    const wrapKey = await importMasterSecret(res.secret)
-    let masterB64: string
-    try {
-      masterB64 = await decryptUnderMaster(wrapped, wrapKey)
-    } catch {
-      audit({ verb: 'unlock', outcome: 'fail', method: 'passkey', detail: 'wrapped-master decrypt' })
-      throw new VaultError('passkey did not produce a valid master', 'tamper-detected')
-    }
-    const masterSecret = base64ToBytes(masterB64)
+    // Derive the master deterministically: same PRF output → same master forever.
+    // No wrappedMaster needed — the biometric IS the key.
+    const masterSecret = await prfToMaster(res.secret)
     const masterKey = await importMasterSecret(masterSecret)
 
     // Sentinel check — proves we have the right master.
@@ -403,14 +432,23 @@ export async function unlockWithPasskey(): Promise<void> {
 export async function unlockWithRecovery(phrase: string): Promise<void> {
   assertValidRecoveryPhrase(phrase)
   const meta = await loadMeta()
-  const masterSecret = await recoveryToVaultSecret(phrase)
-  const masterKey = await importMasterSecret(masterSecret)
+
+  // Try new format first: phrase = masterToRecoveryPhrase(master) → direct entropy extraction.
+  // Fall back to old PBKDF2 derivation for vaults created before this architecture.
+  let masterSecret = masterFromRecoveryPhrase(phrase)
+  let masterKey = await importMasterSecret(masterSecret)
 
   if (meta.recoveryCheck) {
-    const ok = await verifySentinel(meta.recoveryCheck, masterKey)
-    if (!ok) {
-      audit({ verb: 'unlock', outcome: 'fail', method: 'recovery' })
-      throw new VaultError('recovery phrase does not match this vault', 'wrong-recovery')
+    const newOk = await verifySentinel(meta.recoveryCheck, masterKey)
+    if (!newOk) {
+      // Try legacy PBKDF2-based derivation (old vaults)
+      masterSecret = await recoveryToVaultSecret(phrase)
+      masterKey = await importMasterSecret(masterSecret)
+      const oldOk = await verifySentinel(meta.recoveryCheck, masterKey)
+      if (!oldOk) {
+        audit({ verb: 'unlock', outcome: 'fail', method: 'recovery' })
+        throw new VaultError('recovery phrase does not match this vault', 'wrong-recovery')
+      }
     }
   }
 
@@ -573,41 +611,13 @@ export async function updateBalance(walletId: string, balance: string, usdValue:
 // ============================================
 
 export async function addPasskey(userIdentifier?: string): Promise<PasskeyEnrollment> {
-  const s = requireUnlocked()
+  requireUnlocked()
   touchActivity()
   const meta = await loadMeta()
 
-  const { enrollment, prfSecret } = await enrollPasskey(userIdentifier ?? 'ONE Vault', userIdentifier ?? 'ONE Vault')
+  const { enrollment } = await enrollPasskey(userIdentifier ?? 'ONE Vault', userIdentifier ?? 'ONE Vault')
   enrollment.authenticatorLabel = enrollment.authenticatorLabel ?? guessAuthenticatorLabel()
-
-  // Reuse the PRF secret captured during enrollment verification — no extra prompt.
-  const wrapKey = await importMasterSecret(prfSecret)
-
-  // We need the raw 32-byte master to wrap, but the session only holds a CryptoKey.
-  // Workaround: re-derive a fresh ephemeral via deriveBits using the same HKDF path
-  // would change the secret. Instead: round-trip through the existing recoveryCheck —
-  // we already proved the master decrypts the sentinel. We export the raw via
-  // a small dance: encrypt a known plaintext under the master, decrypt with same.
-  // CLEAN approach: serialise master out by re-running HKDF deriveBits from the master
-  // key... but masterKey is non-extractable HKDF base, deriveBits is allowed.
-  const rawMaster = new Uint8Array(
-    await crypto.subtle.deriveBits(
-      {
-        name: 'HKDF',
-        hash: 'SHA-256',
-        salt: new Uint8Array(0) as unknown as BufferSource,
-        info: utf8Encode(`${HKDF_DOMAINS.masterCheck()}.export`) as unknown as BufferSource,
-      },
-      s.masterKey,
-      256,
-    ),
-  )
-  const wrapped = await encryptUnderMaster(
-    bytesToBase64(rawMaster),
-    wrapKey,
-    `${HKDF_DOMAINS.masterCheck()}.passkey.${bytesToBase64(enrollment.credentialId)}`,
-  )
-  ;(enrollment as PasskeyEnrollment & { wrappedMaster: EncryptedRecord }).wrappedMaster = wrapped
+  // No wrappedMaster needed — master is re-derived from PRF on every unlock.
 
   meta.passkeys.push(enrollment)
   await putMeta(meta)
@@ -919,7 +929,7 @@ export async function exportRawMaster(): Promise<Uint8Array> {
  *  device, two jobs. */
 export async function adoptMaster(
   masterSecret: Uint8Array,
-  enrollment?: PasskeyEnrollment & { wrappedMaster: EncryptedRecord },
+  enrollment?: PasskeyEnrollment,
 ): Promise<void> {
   if (await hasVault()) return // already exists — unlock path handles it
   const masterKey = await importMasterSecret(masterSecret)

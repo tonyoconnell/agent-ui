@@ -11,14 +11,35 @@
  * the existing pattern in `vault/passkey.ts`.
  */
 
-import { base64ToBytes, bytesToBase64, encryptUnderMaster, importMasterSecret } from './crypto'
+import { prfToMaster } from './crypto'
 import { guessAuthenticatorLabel } from './passkey'
-import { generateRecoveryPhrase, recoveryToVaultSecret } from './recovery'
+import { masterToRecoveryPhrase } from './recovery'
 import { fetchCloudBlob } from './sync'
-import { type EncryptedRecord, HKDF_DOMAINS, type PasskeyEnrollment, VaultError } from './types'
+import { type PasskeyEnrollment, VaultError } from './types'
 import * as Vault from './vault'
 
-const WRAP_INFO = 'vault.passkey-cloud.wrap.v1'
+const DEVICE_HANDLE_KEY = 'one_vault_device_handle'
+
+/**
+ * Stable per-device user handle stored in localStorage. Used as the WebAuthn
+ * `userID` so that re-registering on the same device replaces the existing
+ * passkey in the authenticator (Apple Passwords, Google PM) instead of
+ * creating a new one alongside it. Not a secret — it's a public correlation
+ * handle, not a cryptographic key.
+ */
+function getOrCreateDeviceHandle(): string {
+  try {
+    const stored = localStorage.getItem(DEVICE_HANDLE_KEY)
+    if (stored) return stored
+    const bytes = crypto.getRandomValues(new Uint8Array(16))
+    const handle = arrayBufferToB64url(bytes)
+    localStorage.setItem(DEVICE_HANDLE_KEY, handle)
+    return handle
+  } catch {
+    // localStorage unavailable (SSR / private browsing) — generate ephemeral.
+    return arrayBufferToB64url(crypto.getRandomValues(new Uint8Array(16)))
+  }
+}
 
 // ─── base64url helpers ────────────────────────────────────────────────────
 
@@ -158,11 +179,8 @@ export async function registerPasskeyForSignin(label?: string): Promise<{ credId
   }
   if (!prfSecret) throw new VaultError('authenticator did not return PRF output', 'passkey-unsupported')
 
-  const master = await Vault.exportRawMaster()
-  const wrapKey = await importMasterSecret(prfSecret)
-  const record = await encryptUnderMaster(bytesToBase64(master), wrapKey, WRAP_INFO)
-  const wrappedMaster = serializeRecord(record)
-
+  // No wrappedMaster needed — the PRF is the master derivation path.
+  // Server stores credential metadata only (pub_key, sign_count) for verification.
   const regRes = await fetch('/api/auth/passkey-webauthn/register', {
     method: 'POST',
     credentials: 'same-origin',
@@ -170,7 +188,6 @@ export async function registerPasskeyForSignin(label?: string): Promise<{ credId
     body: JSON.stringify({
       challengeToken,
       response: serializeAttestation(credential),
-      wrappedMaster,
       label,
     }),
   })
@@ -196,11 +213,22 @@ export async function createAccountWithPasskey(): Promise<{
   created: true
   recoveryPhrase: string
 }> {
+  // Read existing enrolled passkey IDs BEFORE any wipe so we can pass them
+  // as excludeCredentials. This prevents the OS from stacking up duplicate
+  // passkeys for the same authenticator — if the device already has one of
+  // these credentials, navigator.credentials.create throws InvalidStateError
+  // and we surface a friendly error instead of creating another passkey.
+  const existingCredIds = await Vault.getEnrolledPasskeyCredentialIds()
+
   const optsRes = await fetch('/api/auth/passkey-webauthn/register-anonymous/options', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: '{}',
+    // Pass the stable device handle so the server uses the same WebAuthn
+    // userID every time. Authenticators treat same userID + same RP as a
+    // replacement (overwrite) rather than a new credential — preventing
+    // accumulation in Apple Passwords / Google PM.
+    body: JSON.stringify({ deviceHandle: getOrCreateDeviceHandle() }),
   })
   if (!optsRes.ok) {
     const body = await optsRes.text()
@@ -225,10 +253,19 @@ export async function createAccountWithPasskey(): Promise<{
     timeout: options.timeout,
     attestation: options.attestation,
     authenticatorSelection: options.authenticatorSelection,
-    excludeCredentials: options.excludeCredentials?.map((c) => ({
-      id: b64urlToArrayBuffer(c.id) as unknown as BufferSource,
-      type: c.type,
-    })),
+    excludeCredentials: [
+      // Server-side exclusions (existing registered credentials for this user)
+      ...(options.excludeCredentials?.map((c) => ({
+        id: b64urlToArrayBuffer(c.id) as unknown as BufferSource,
+        type: c.type as 'public-key',
+      })) ?? []),
+      // Client-side: local vault's enrolled passkeys — prevents OS from creating
+      // a duplicate passkey on the same authenticator.
+      ...existingCredIds.map((id) => ({
+        id: id.buffer as unknown as BufferSource,
+        type: 'public-key' as const,
+      })),
+    ],
     extensions: {
       prf: { eval: { first: b64urlToArrayBuffer(prfSalt) } },
     } as PublicKeyCredentialCreationOptions['extensions'],
@@ -243,6 +280,14 @@ export async function createAccountWithPasskey(): Promise<{
     const name = (e as { name?: string })?.name
     if (name === 'NotAllowedError' || name === 'AbortError') {
       throw new VaultError('passkey registration cancelled', 'passkey-cancelled')
+    }
+    // InvalidStateError = this authenticator already has one of the excluded
+    // credentials — the user already has a passkey. Surface a clear error.
+    if (name === 'InvalidStateError') {
+      throw new VaultError(
+        'A passkey for this device already exists — use it to sign in instead of creating a new one',
+        'passkey-cancelled',
+      )
     }
     throw new VaultError(`passkey registration failed: ${(e as Error).message}`, 'passkey-unsupported')
   }
@@ -275,35 +320,20 @@ export async function createAccountWithPasskey(): Promise<{
   }
   if (!prfSecret) throw new VaultError('authenticator did not return PRF output', 'passkey-unsupported')
 
-  // Derive the master from a fresh BIP-39 recovery phrase (the one secret
-  // the user MUST write down — it's the only way back if both the passkey
-  // and every synced copy of the vault disappear). Then wrap it TWICE under
-  // two different HKDF info strings — one for the cloud envelope, one for
-  // the local vault's enrollment record. Same PRF secret drives both; HKDF's
-  // `info` domain separates them.
-  const recoveryPhrase = generateRecoveryPhrase()
-  const master = await recoveryToVaultSecret(recoveryPhrase)
-  const wrapKey = await importMasterSecret(prfSecret)
+  // Derive master deterministically from PRF — same passkey = same master = same wallets, forever.
+  // No random entropy, no server-stored secret. The biometric IS the vault.
+  const master = await prfToMaster(prfSecret)
 
-  const cloudRecord = await encryptUnderMaster(bytesToBase64(master), wrapKey, WRAP_INFO)
-  const cloudWrapped = serializeRecord(cloudRecord)
+  // The recovery phrase is the master encoded as 24 BIP-39 words.
+  // Deterministic: same master → same words. User writes this down as emergency backup.
+  const recoveryPhrase = masterToRecoveryPhrase(master)
 
   const credentialId = new Uint8Array(credential.rawId)
-  const credIdB64 = arrayBufferToB64url(credentialId)
-  // Local vault's unlock path decrypts under info `<masterCheck>.passkey.<credId>`
-  // (see vault/vault.ts unlockWithPasskey). Reuse exactly the same info string
-  // so the same PRF secret unlocks locally too.
-  const localInfo = `${HKDF_DOMAINS.masterCheck()}.passkey.${credIdB64}`
-  const localWrapped = await encryptUnderMaster(bytesToBase64(master), wrapKey, localInfo)
-
-  const enrollment: PasskeyEnrollment & { wrappedMaster: typeof localWrapped } = {
+  const enrollment: PasskeyEnrollment = {
     credentialId,
-    // Store the global PRF salt as bytes so unlockWithPasskey can re-derive
-    // the same PRF output on future unlocks.
     prfSalt: b64urlToUint8Array(prfSalt),
     authenticatorLabel: guessAuthenticatorLabel(),
     createdAt: Date.now(),
-    wrappedMaster: localWrapped,
   }
 
   const regRes = await fetch('/api/auth/passkey-webauthn/register-anonymous', {
@@ -313,7 +343,6 @@ export async function createAccountWithPasskey(): Promise<{
     body: JSON.stringify({
       challengeToken,
       response: serializeAttestation(credential),
-      wrappedMaster: cloudWrapped,
       userHandle,
     }),
   })
@@ -370,14 +399,26 @@ export async function signInWithPasskey(): Promise<{
   }
   const { options, challengeToken, prfSalt } = (await optsRes.json()) as AuthOptionsResponse
 
+  // If the local vault already has enrolled passkeys, pass them as
+  // allowCredentials so the browser uses exactly that credential without
+  // showing the "Google PM vs Apple Passwords" picker. Only fall back to
+  // discoverable (empty allowCredentials) when there's no local hint.
+  const localCredIds = await Vault.getEnrolledPasskeyCredentialIds()
+  const allowCredentials =
+    localCredIds.length > 0
+      ? localCredIds.map((id) => ({
+          id: id.buffer as unknown as BufferSource,
+          type: 'public-key' as const,
+        }))
+      : (options.allowCredentials?.map((c) => ({
+          id: b64urlToArrayBuffer(c.id) as unknown as BufferSource,
+          type: c.type as 'public-key',
+        })) ?? [])
+
   const publicKey: PublicKeyCredentialRequestOptions = {
     challenge: b64urlToArrayBuffer(options.challenge) as unknown as BufferSource,
     rpId: options.rpId,
-    allowCredentials:
-      options.allowCredentials?.map((c) => ({
-        id: b64urlToArrayBuffer(c.id) as unknown as BufferSource,
-        type: c.type,
-      })) ?? [],
+    allowCredentials,
     userVerification: options.userVerification ?? 'required',
     timeout: options.timeout,
     extensions: {
@@ -421,19 +462,25 @@ export async function signInWithPasskey(): Promise<{
     // will be prompted once more (WebAuthn.create) and land in a brand-new
     // account tied to a freshly-generated vault master.
     if (verifyRes.status === 401) {
+      // If a local vault exists, the server lost its hint record (e.g. dev
+      // restart cleared the in-memory store). Auto-creating would wipe the
+      // user's wallets. Surface a clear error so they can recover instead.
+      if (await Vault.hasVault()) {
+        throw new VaultError(
+          'Your passkey is not recognised by the server — the server may have restarted. Clear your vault or restore from your recovery phrase.',
+          'passkey-unsupported',
+        )
+      }
       return createAccountWithPasskey()
     }
     const msg = `passkey verify failed [HTTP ${verifyRes.status}]: ${body || '(empty body)'}`
     console.error('[passkey-cloud]', msg)
     throw new VaultError(msg, 'passkey-unsupported')
   }
-  const { wrappedMaster } = (await verifyRes.json()) as { wrappedMaster: string }
-
-  const wrapKey = await importMasterSecret(prfSecret)
-  const record = deserializeRecord(wrappedMaster)
-  const { decryptUnderMaster } = await import('./crypto')
-  const masterB64 = await decryptUnderMaster(record, wrapKey)
-  const master = base64ToBytes(masterB64)
+  // Server verified the credential and minted a session — that's all it does now.
+  // The master is derived client-side from the PRF: same passkey = same master, always.
+  await verifyRes.json()
+  const master = await prfToMaster(prfSecret)
 
   // Sign-out only clears the session row — IDB meta + wallets are preserved.
   // If a local vault already exists, just re-open the session with the known
@@ -494,21 +541,3 @@ function serializeAssertion(credential: PublicKeyCredential): Record<string, unk
   }
 }
 
-function serializeRecord(record: EncryptedRecord): string {
-  return JSON.stringify({
-    info: record.info,
-    iv: bytesToBase64(record.iv),
-    ciphertext: bytesToBase64(record.ciphertext),
-    version: record.version,
-  })
-}
-
-function deserializeRecord(s: string): EncryptedRecord {
-  const o = JSON.parse(s) as { info: string; iv: string; ciphertext: string; version: number }
-  return {
-    info: o.info,
-    iv: base64ToBytes(o.iv),
-    ciphertext: base64ToBytes(o.ciphertext),
-    version: o.version,
-  }
-}

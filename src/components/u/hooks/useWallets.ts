@@ -39,10 +39,12 @@ function generateLocalPrivateKey(chainId: string): string {
   }
 }
 
-// Context (mainnet/testnet) is encoded in the wallet id prefix so the vault
-// can store both without a dedicated column: "<context>-<chain>-<timestamp>".
-function walletIdFor(context: 'mainnet' | 'testnet', chain: string): string {
-  return `${context}-${chain}-${Date.now()}`
+// Stable wallet ID: "<context>-<chain>-<index>". The index is determined at
+// creation time by counting existing wallets for that chain+context. This
+// makes the HKDF derivation domain stable so the same key is re-derived on
+// every sign-in — no cloud backup needed to recover.
+function walletIdFor(context: 'mainnet' | 'testnet', chain: string, index: number): string {
+  return `${context}-${chain}-${index}`
 }
 
 function contextOf(walletId: string): 'mainnet' | 'testnet' {
@@ -164,26 +166,37 @@ export function useWallets(): UseWalletsReturn {
       const chain = (chainOverride || network.id).toLowerCase()
       const context = isTestnet ? 'testnet' : 'mainnet'
 
+      // Index = number of existing wallets for this chain+context. Stable
+      // across devices: the Nth wallet for "mainnet/sui" always gets index N-1.
+      const existingForChain = wallets.filter((w) => w.chain === chain && w.context === context).length
+      const index = existingForChain
+      const id = walletIdFor(context, chain, index)
+
+      // Derive the wallet seed deterministically from the vault master.
+      // Touch ID → PRF → master → HKDF(chain, index, context) → seed.
+      // Same passkey always produces the same seed → same keypair → same address.
+      const seed = await Vault.deriveWalletSeed(chain, index, context)
+
       let address: string
       let privateKey: string
       let publicKey: string
 
       if (chain === 'sui') {
-        const keypair = new Ed25519Keypair()
+        const keypair = Ed25519Keypair.fromSecretKey(seed)
         address = keypair.toSuiAddress()
         privateKey = keypair.getSecretKey()
         publicKey = keypair.getPublicKey().toBase64()
       } else {
-        address = generateLocalAddress(chain)
-        privateKey = generateLocalPrivateKey(chain)
+        // For chains without a proper SDK wired yet, derive deterministically
+        // from seed bytes so address is stable across sessions.
+        const hex = Array.from(seed).map((b) => b.toString(16).padStart(2, '0')).join('')
+        address = chain === 'btc' ? `bc1q${hex.slice(0, 38)}` : `0x${hex.slice(0, 40)}`
+        privateKey = `0x${hex}`
         publicKey = address
       }
 
-      const existingForChain = wallets.filter((w) => w.chain === chain).length
       const chainUpper = chain.toUpperCase()
-      const name =
-        existingForChain === 0 ? `My ${chainUpper} Wallet` : `My ${chainUpper} Wallet ${existingForChain + 1}`
-      const id = walletIdFor(context, chain)
+      const name = existingForChain === 0 ? `My ${chainUpper} Wallet` : `My ${chainUpper} Wallet ${existingForChain + 1}`
 
       // Persist to vault (requires unlocked session). Encryption happens inside.
       await Vault.saveWallet({
