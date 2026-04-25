@@ -197,3 +197,48 @@ export function roleCheck(role: string, action: RoleAction): boolean {
 export function isGovernanceRole(role: string): role is GovernanceRole {
   return role in PERMISSIONS
 }
+
+// ── Owner-tier bypass + audit (Gap 2 — owner-todo task 2.r1) ──────────────
+//
+// Every code path that allows an action because `auth.role === 'owner'` MUST
+// route through ownerBypass() so an owner_audit row is emitted BEFORE the
+// gate short-circuits. This is the "no bypass without a record" invariant
+// from owner.md §Threat model.
+//
+// Decision threading lets call sites stay shallow:
+//
+//   not-owner       → caller falls through to normal gate logic
+//   bypass          → caller skips the gate (owner allowed; audit recorded
+//                     OR audit emit failed in 'audit' rollout mode where
+//                     failure is non-blocking)
+//   enforce-block   → caller MUST return 503 ('enforce' mode + audit emit
+//                     failure → owner cannot act unaudited)
+//
+// Payload should carry gate-specific context (allowedHosts, sensitivity
+// levels, etc.). Secrets in payload are stripped automatically by
+// src/lib/audit-redact.ts via the auditOwner() pipeline.
+
+export type OwnerBypassDecision = 'bypass' | 'enforce-block' | 'not-owner'
+
+export interface OwnerBypassInput {
+  receiver: string
+  action: string // 'scope-bypass' / 'network-bypass' / 'sensitivity-bypass'
+  gate: 'scope' | 'network' | 'sensitivity'
+  payload: unknown
+  reason?: string
+}
+
+export async function ownerBypass(
+  auth: { role?: string; user?: string } | null | undefined,
+  bypass: OwnerBypassInput,
+): Promise<OwnerBypassDecision> {
+  if (!auth || auth.role !== 'owner') return 'not-owner'
+  const sender = auth.user ?? 'unknown'
+  // Lazy-import to avoid a static cycle: adl-cache → audit-redact stay
+  // engine-side; role-check stays a pure-by-default module that callers
+  // can import without dragging the audit chain in.
+  const { auditOwner, ownerAuditMode } = await import('@/engine/adl-cache')
+  const ok = await auditOwner({ sender, ...bypass })
+  if (ok) return 'bypass'
+  return ownerAuditMode() === 'enforce' ? 'enforce-block' : 'bypass'
+}

@@ -52,8 +52,41 @@ import {
 import { resolveUnitFromSession } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
 import { getUsage, recordCall } from '@/lib/metering'
+import { ownerBypass } from '@/lib/role-check'
 import { checkApiCallLimit, tierLimitResponse } from '@/lib/tier-limits'
 import { isWarm } from '@/lib/ui-prefetch'
+
+/**
+ * Helper for owner-bypass gate handling (Gap 2). Call inside a gate's
+ * failure branch BEFORE the existing audit() + deny return. Returns:
+ *   - undefined  → caller is not owner, fall through to normal gate logic
+ *   - Response (503) → owner audit emit failed in 'enforce' mode; caller
+ *                       must return this response (no bypass without a record)
+ *   - Response (200) → sentinel — caller should treat as bypass (skip gate)
+ *
+ * The actual bypass-allow path returns no Response from the helper; signal.ts
+ * pattern is: if ownerBypassResp returns a Response, return it; if it returns
+ * 'bypass', skip the gate; otherwise (not-owner) fall through.
+ */
+async function maybeOwnerBypass(
+  auth: { role?: string; user?: string } | null | undefined,
+  receiver: string,
+  action: 'scope-bypass' | 'network-bypass' | 'sensitivity-bypass',
+  gate: 'scope' | 'network' | 'sensitivity',
+  payload: unknown,
+): Promise<'bypass' | 'not-owner' | Response> {
+  const decision = await ownerBypass(auth, { receiver, action, gate, payload })
+  if (decision === 'enforce-block') {
+    return new Response(
+      JSON.stringify({
+        error: 'owner audit emit failed in enforce mode',
+        code: 'OWNER_AUDIT_REQUIRED',
+      }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+  return decision
+}
 
 // 5-min cache for sender|receiver group-share resolution.
 const SCOPE_CACHE = new Map<string, { shares: boolean; expires: number }>()
@@ -235,26 +268,36 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (Array.isArray(allowedHosts) && allowedHosts.length > 0) {
     const senderAllowed = allowedHosts.includes(sender) || allowedHosts.includes('*')
     if (!senderAllowed) {
-      const mode = enforcementMode()
-      audit({
+      // OWNER BYPASS (Gap 2 — owner-todo task 2.r2): if caller is owner,
+      // emit owner_audit row and skip the gate. Audit emit before bypass.
+      const ob = await maybeOwnerBypass(auth, receiver, 'network-bypass', 'network', {
         sender,
         receiver,
-        gate: 'network',
-        decision: mode === 'audit' ? 'allow-audit' : 'deny',
-        mode,
-        reason: `sender not in allowedHosts=${JSON.stringify(allowedHosts)}`,
+        allowedHosts,
       })
-      if (mode === 'enforce') {
-        return new Response(
-          JSON.stringify({
-            error: 'Sender not in receiver allowedHosts',
-            code: 'PERMISSION_DENIED',
-            sender,
-          }),
-          { status: 403 },
-        )
+      if (ob instanceof Response) return ob
+      if (ob !== 'bypass') {
+        const mode = enforcementMode()
+        audit({
+          sender,
+          receiver,
+          gate: 'network',
+          decision: mode === 'audit' ? 'allow-audit' : 'deny',
+          mode,
+          reason: `sender not in allowedHosts=${JSON.stringify(allowedHosts)}`,
+        })
+        if (mode === 'enforce') {
+          return new Response(
+            JSON.stringify({
+              error: 'Sender not in receiver allowedHosts',
+              code: 'PERMISSION_DENIED',
+              sender,
+            }),
+            { status: 403 },
+          )
+        }
+        // audit mode: fall through
       }
-      // audit mode: fall through
     }
   }
 
@@ -302,23 +345,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
     sensitivityRank[senderSensitivity as keyof typeof sensitivityRank] >
     sensitivityRank[receiverSensitivity as keyof typeof sensitivityRank]
   ) {
-    const sensMode = enforcementMode()
-    audit({
+    // OWNER BYPASS (Gap 2 — owner-todo task 2.r2): owner can route across
+    // sensitivity tiers; audit row goes to owner_audit before bypass.
+    const ob = await maybeOwnerBypass(auth, receiver, 'sensitivity-bypass', 'sensitivity', {
       sender,
       receiver,
-      gate: 'sensitivity',
-      decision: sensMode === 'enforce' ? 'deny' : 'observe',
-      mode: sensMode,
-      reason: `sender=${senderSensitivity} > receiver=${receiverSensitivity}`,
+      senderSensitivity,
+      receiverSensitivity,
     })
-    if (sensMode === 'enforce') {
-      return new Response(
-        JSON.stringify({ dissolved: true, reason: `sensitivity:${senderSensitivity}>${receiverSensitivity}` }),
-        {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+    if (ob instanceof Response) return ob
+    if (ob !== 'bypass') {
+      const sensMode = enforcementMode()
+      audit({
+        sender,
+        receiver,
+        gate: 'sensitivity',
+        decision: sensMode === 'enforce' ? 'deny' : 'observe',
+        mode: sensMode,
+        reason: `sender=${senderSensitivity} > receiver=${receiverSensitivity}`,
+      })
+      if (sensMode === 'enforce') {
+        return new Response(
+          JSON.stringify({ dissolved: true, reason: `sensitivity:${senderSensitivity}>${receiverSensitivity}` }),
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        )
+      }
     }
   }
 
@@ -331,10 +385,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (ctx.isValid) {
         const effectiveScope = scope ?? 'group'
         if (effectiveScope === 'private' && sender !== receiver) {
-          return new Response(JSON.stringify({ dissolved: true, reason: 'scope-private-violation' }), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json' },
+          // OWNER BYPASS (Gap 2 — owner-todo task 2.r2): owner can cross
+          // private scope; audit row goes to owner_audit before bypass.
+          const ob = await maybeOwnerBypass(auth, receiver, 'scope-bypass', 'scope', {
+            sender,
+            receiver,
+            scope: 'private',
           })
+          if (ob instanceof Response) return ob
+          if (ob !== 'bypass') {
+            return new Response(JSON.stringify({ dissolved: true, reason: 'scope-private-violation' }), {
+              status: 403,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          }
         }
         if (effectiveScope === 'group') {
           const cacheKey = [sender, receiver].sort().join('|')
@@ -381,10 +445,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
           }
           // Self-signals always allowed regardless of group
           if (!sharesGroup && sender !== receiver) {
-            return new Response(JSON.stringify({ dissolved: true, reason: 'scope-group-violation' }), {
-              status: 403,
-              headers: { 'Content-Type': 'application/json' },
+            // OWNER BYPASS (Gap 2 — owner-todo task 2.r2): owner can cross
+            // group scope; audit row goes to owner_audit before bypass.
+            const ob = await maybeOwnerBypass(auth, receiver, 'scope-bypass', 'scope', {
+              sender,
+              receiver,
+              scope: 'group',
+              sharesGroup: false,
             })
+            if (ob instanceof Response) return ob
+            if (ob !== 'bypass') {
+              return new Response(JSON.stringify({ dissolved: true, reason: 'scope-group-violation' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' },
+              })
+            }
           }
         }
         // 'public' — no check
