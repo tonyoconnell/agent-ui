@@ -41,3 +41,6 @@ coverage/
 releases*
 release/
 .claude/worktrees/
+
+# Dev-only passkey hint store (D1 fallback for `astro dev`)
+.dev-passkey-hints.json
