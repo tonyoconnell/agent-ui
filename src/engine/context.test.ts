@@ -57,7 +57,7 @@ describe('CANONICAL', () => {
 
 describe('readDoc', () => {
   it('returns string content for an existing doc', () => {
-    const content = readDoc('DSL.md')
+    const content = readDoc('dsl.md')
     expect(typeof content).toBe('string')
     expect(content!.length).toBeGreaterThan(0)
   })
@@ -68,8 +68,8 @@ describe('readDoc', () => {
   })
 
   it('accepts name without .md extension', () => {
-    const withExt = readDoc('DSL.md')
-    const withoutExt = readDoc('DSL')
+    const withExt = readDoc('dsl.md')
+    const withoutExt = readDoc('dsl')
     expect(withExt).toEqual(withoutExt)
   })
 })

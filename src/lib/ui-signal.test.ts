@@ -12,6 +12,10 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 beforeEach(() => {
+  // Reset module state — emitClick has a `signalDisabled` flag that latches
+  // after a 4xx/5xx in dev. Without resetting modules, test 3 (fetch rejects)
+  // poisons tests 4–5.
+  vi.resetModules()
   vi.stubGlobal(
     'fetch',
     vi.fn(() => Promise.resolve(new Response())),

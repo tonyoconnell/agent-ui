@@ -11,7 +11,28 @@
  * these test cases.
  */
 
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
+
+// Deterministic oracle: $1/SUI so the test amounts map predictably to USD.
+// 1_000_000 MIST = $0.001 (under cap) · 25_000_000_000 MIST = $25 (boundary,
+// strict >) · 26_000_000_000 MIST = $26 (over cap → 400).
+vi.mock('@/lib/oracle', () => ({
+  getConsensusSuiPrice: () => Promise.resolve(1.0),
+  mistToUsd: (mist: bigint, price: number) => (Number(mist) * price) / 1_000_000_000,
+}))
+
+// Stub the Sui RPC client — only getBalance is called inside the cap branch,
+// and we want a known-zero balance so the cap math depends only on tx amount.
+vi.mock('@mysten/sui/jsonRpc', () => ({
+  getJsonRpcFullnodeUrl: () => 'mock://test',
+  SuiJsonRpcClient: class {
+    constructor(_opts: unknown) {}
+    async getBalance() {
+      return { totalBalance: '0' }
+    }
+  },
+}))
+
 import { STATE1_CAP_MIST } from '../build'
 
 // ─── types ──────────────────────────────────────────────────────────────────

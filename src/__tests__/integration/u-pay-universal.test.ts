@@ -28,12 +28,14 @@ describe('u-pay: universal payment across signer kinds', () => {
     expect(shape.data.content.ref).toBeDefined()
   })
 
-  it('vault signer can sign Sui and BTC', async () => {
+  it('vault signer signs Sui (sui-only by design)', async () => {
     const { createVaultSigner } = await import('@/components/u/lib/signer/vault-signer')
 
-    const vault = createVaultSigner({ address: '0x1', chain: 'sui', getPrivateKey: async () => new Uint8Array(32) })
+    const vault = createVaultSigner({ address: '0x1', walletId: 'w1', chain: 'sui' })
 
     expect(vault.canSign('sui')).toBe(true)
-    expect(vault.canSign('btc')).toBe(true)
+    // Vault is sui-only — multi-chain payments use per-chain signers (BTC via
+    // a btc-signer adapter, etc.), not the vault. Documented in signer/types.ts.
+    expect(vault.canSign('btc')).toBe(false)
   })
 })

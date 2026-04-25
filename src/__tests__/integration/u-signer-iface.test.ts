@@ -10,9 +10,11 @@ describe('u-signer: interface conformance', () => {
     expect(typeof signerModule.useSigner).toBe('function')
   })
 
-  it('resolveSigner returns null when no session/vault/dappkit', async () => {
+  it('resolveSigner returns null when vault is unavailable', async () => {
     const { resolveSigner } = await import('@/components/u/lib/signer/resolve')
-    const signer = resolveSigner(null, null, null)
+    // Outside a browser the vault module has no IndexedDB; getStatus throws
+    // and resolveSigner catches → null.
+    const signer = await resolveSigner('sui')
     expect(signer).toBeNull()
   })
 
@@ -20,13 +22,15 @@ describe('u-signer: interface conformance', () => {
     const { createVaultSigner } = await import('@/components/u/lib/signer/vault-signer')
     const signer = createVaultSigner({
       address: '0xvault-test',
+      walletId: 'wallet-test',
       chain: 'sui',
-      getPrivateKey: async () => new Uint8Array(32),
     })
     expect(signer.kind).toBe('vault')
     expect(signer.address).toBe('0xvault-test')
+    // Vault signer is sui-only by current design (vault stores Ed25519 secrets);
+    // multi-chain support would require per-chain keypair derivation.
     expect(signer.canSign('sui')).toBe(true)
-    expect(signer.canSign('btc')).toBe(true) // vault is multi-chain
-    expect(signer.canSign('eth')).toBe(true)
+    expect(signer.canSign('btc')).toBe(false)
+    expect(signer.canSign('eth')).toBe(false)
   })
 })
