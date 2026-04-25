@@ -540,4 +540,62 @@ bun run verify
 
 Full gate: **443/443 pass, 4.15s** with auth tests included.
 
+---
+
+## Owner-tier audit (Gap 2)
+
+Every code path that allows an action because `auth.role === "owner"` MUST
+emit one `owner_audit` row BEFORE the bypass short-circuits the gate check.
+This is the "no bypass without a record" invariant — without an audit row,
+the owner is effectively god-mode-without-a-receipt, which the threat model
+in [`owner.md`](../owner.md) §Threat model rejects.
+
+### Row format (D1 `owner_audit`)
+
+```
+ts                INTEGER NOT NULL DEFAULT (unixepoch())
+action            TEXT NOT NULL    -- "scope-bypass" / "network-bypass" / "sensitivity-bypass"
+sender            TEXT NOT NULL    -- caller uid
+receiver          TEXT NOT NULL    -- target receiver
+payload_hash      TEXT NOT NULL    -- sha256 of original payload (hex)
+payload_redacted  TEXT NOT NULL    -- redacted JSON (see redaction policy below)
+gate              TEXT NOT NULL    -- which gate the bypass crossed
+decision          TEXT NOT NULL    -- "owner-bypass-allow" (Gap 2 rollout)
+```
+
+Schema lives in [`migrations/0030_owner_audit.sql`](../migrations/0030_owner_audit.sql).
+Drained from the in-memory ring buffer in
+[`src/engine/adl-cache.ts`](../src/engine/adl-cache.ts) `audit()` /
+`flushAuditBuffer()`.
+
+### Redaction policy
+
+[`src/lib/audit-redact.ts`](../src/lib/audit-redact.ts) `redactPayload(input)`
+returns `{ hash, redacted }`. Hash is sha256 of canonical JSON of the original
+payload (lets auditors verify a redacted record corresponds to a known
+input). Redacted strips:
+
+| Kind | What | How detected |
+|---|---|---|
+| `bearer` | API keys, JWTs, Authorization values | `sk_...` / `api_...` prefix · 3-segment JWT shape · `Bearer ...` prefix |
+| `credId` | WebAuthn credential IDs | base64url ≥ 22 chars under `credId` / `credentialId` / `id` keys (context-aware) |
+| `mnemonic` | BIP39 phrases | 12 or 24 lowercase 3-8-char words separated by single spaces |
+| `seed` | 32-byte hex private keys | 64 hex chars (optionally 0x-prefixed) under `seed` / `privateKey` / `secretKey` keys |
+| `signature` | Crypto signatures | values under `signature` / `sig` keys, opaque |
+
+Allow-list (kept verbatim — these are SAFE business fields):
+`receiver`, `action`, `amount`, `group`, `sender`, `gate`.
+
+### Rollout flag
+
+`OWNER_AUDIT_MODE = audit | enforce` (env)
+
+| Mode | Behavior on audit emit failure |
+|---|---|
+| `audit` (default during rollout) | log via `console.warn[adl-audit]`; **do NOT block** the owner allow |
+| `enforce` (post-rollout target) | return 503 — owner must not act unaudited |
+
+Flip via env. Read in [`src/lib/role-check.ts`](../src/lib/role-check.ts) and
+[`src/pages/api/signal.ts`](../src/pages/api/signal.ts).
+
 *Two paths. One wallet. Zero friction.*

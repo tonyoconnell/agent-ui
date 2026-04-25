@@ -1,4 +1,4 @@
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { CloudRestorePanel } from '@/components/auth/CloudRestorePanel'
 import { hasCloudBlob } from '@/components/u/lib/vault/sync'
 import { hasVault } from '@/components/u/lib/vault/vault'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/useAuth'
+import { detectPasskeyCapabilities, type PasskeyCapabilities, PRF_UPGRADE_HINT } from '@/lib/passkey-capabilities'
 import { emitClick } from '@/lib/ui-signal'
 
 interface Props {
@@ -23,6 +24,11 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [showRestore, setShowRestore] = useState(false)
+  const [caps, setCaps] = useState<PasskeyCapabilities | null>(null)
+
+  useEffect(() => {
+    detectPasskeyCapabilities().then(setCaps)
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -134,6 +140,18 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
             className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300"
           >
             {error}
+          </div>
+        )}
+
+        {/* PRF capability warning — only shown when the capability API
+            definitively reports no PRF support (avoids false-positives on
+            older browsers that lack getClientCapabilities) */}
+        {caps && !caps.prf && caps.detected === 'capability-api' && (
+          <div
+            role="alert"
+            className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-300"
+          >
+            {PRF_UPGRADE_HINT}
           </div>
         )}
 
