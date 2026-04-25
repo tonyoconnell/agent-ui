@@ -118,6 +118,13 @@ source_of_truth:                           # 🔒 docs W2 auto-loads
   - {additional plan-specific docs}
 mode: lean | full | mixed                  # 🔒 decided by §0 classifier
 lifecycle: discovery|construction|evolution|maintenance|retirement  # 🔒
+show: true | false                         # 🔒 if true, /do --auto renders cycle frames
+lifecycle_show:                            # required if show: true
+  C1:
+    customer: "{one sentence — what a human can now do}"
+    agent: "{one sentence — what an agent can now do}"
+    unlocks_stage: "{stage from plan's lifecycle field}"
+  # ... one block per cycle
 classifier:                                # 🔒 evidence for the mode choice
   spec_locked: {yes|no — cite doc:section}
   variance_known: {yes|no — if no, name the dimension}

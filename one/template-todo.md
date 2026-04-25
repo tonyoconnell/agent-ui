@@ -1,12 +1,17 @@
 ---
 title: Dashboard Template (todo.md)
 type: dashboard
-version: 4.2.0
-status: TEMPLATE
+version: 4.3.0
+status: TEMPLATE — example only; contract lives in `.claude/commands/todo.md`
 ---
 
 # Dashboard Template — `todo.md`
 
+> **The contract is the skill, not this file.** `.claude/commands/todo.md`
+> defines what `/todo` produces. This file is the working example: 12 sections
+> with TQL queries already filled in. Copy from here; mutate as needed. If
+> this file and the skill disagree, **the skill wins.**
+>
 > **What this is.** The shape of every group's `todo.md` — a live operational
 > dashboard rendered from TypeDB. Source of truth is the `thing` tree; this
 > markdown is a view. `/todo` regenerates it. Don't hand-edit — your changes

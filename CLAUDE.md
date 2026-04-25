@@ -42,6 +42,28 @@ bun run build    # Production build
 /deploy          # Deploy all services (Gateway + Sync + NanoClaw + Workers)
 ```
 
+### Dev server logs (Claude: read these to debug)
+
+When Claude restarts the dev server it runs detached and pipes both streams to
+**`/tmp/astro-dev.log`**. SSR `console.log`, Vite errors, page redirect
+traces, API handler logs — all land here.
+
+**Rule for Claude:** after the user reproduces an issue in the browser, look
+at the **most recent** lines, not the whole file. The interesting events are
+always at the tail.
+
+```bash
+tail -n 80 /tmp/astro-dev.log                                  # last 80 lines (default)
+tail -f /tmp/astro-dev.log                                     # follow live
+grep -E "\[/in\]|error|warn" /tmp/astro-dev.log | tail -50     # filter then tail
+
+nohup npx --no-install astro dev > /tmp/astro-dev.log 2>&1 &   # restart pattern
+```
+
+`bun run dev` currently fails on this machine (`require is not defined` in
+`react-dom/server.edge.js` under bun's SSR runner) — use `npx astro dev` until
+that's resolved.
+
 ## Tunnels (Dev)
 
 ```bash
@@ -434,6 +456,35 @@ migrations/     # D1 schema (signals, messages, tasks, sync_log)
 | `intent.ts` | 130 | Intent cache — typed text → canonical intent → shared D1 cache entry |
 | `index.ts` | 29 | Exports |
 
+## Owner — the substrate root
+
+**Spec:** `/Users/toc/Server/owner.md` (read this for the full architecture)
+
+One human per substrate. Anthony O'Connell. Apple ID + Secure Enclave. The owner's WebAuthn passkey PRF is the root from which every key descends:
+
+| Salt | Derives | Purpose |
+|---|---|---|
+| `"api-key:owner:v1"` | bearer token | Owner-tier API calls; bypasses scope/network/sensitivity gates |
+| `"wallet:owner:v1"` | Ed25519 seed | Owner's Sui wallet |
+| `"agent-key:{uid}:v1"` | KEK | Wraps each agent's per-agent seed before D1 storage |
+| `"vault-sync:v1"` | sync envelope | Encrypted blob to D1 for cross-device wallet recovery |
+
+**Owner role properties** (per `src/lib/role-check.ts`, target):
+- Bypasses scope, network, and sensitivity gates in `src/pages/api/signal.ts`
+- Subject to rate ceiling regardless of role (DOS prevention)
+- Every owner-tier action emits `audit:owner:{action}` to D1 *before* the bypass — no untraceable god mode
+- Identified by Sui address registered at first-mint; immutable after
+
+**Recursive spawning:** humans spawn agents (one Touch ID), agents spawn sub-agents (Move tx, no biometric), arbitrary depth. Cap inheritance via `Cap` Move objects: child cap ≤ parent remaining cap, enforced by consensus. See `agents.md` Pattern D.
+
+**Six gaps tracked, ordered by dependency:**
+1. Owner audit (must land first — no bypass without a record)
+2. Strip `SUI_SEED` from workers, owner-side per-agent key registration
+3. Rate ceiling for owner key
+4. HKDF context versioning + rotation
+5. Multi-sig recovery for tenant chairmen (not for substrate owner — single-key by design)
+6. Federation: foreign signals downgraded from `owner` to `chairman` semantics
+
 ## Sui Integration (Testnet ✅)
 
 | Component | What |
@@ -442,14 +493,15 @@ migrations/     # D1 schema (signals, messages, tasks, sync_log)
 | `src/lib/sui.ts` | Sui client: all contract functions, keypair derivation (Phase 2 ✅), faucet |
 | `src/engine/bridge.ts` | Mirror/absorb: Runtime ↔ Sui ↔ TypeDB (mark/warn auto-propagate) |
 | `src/schema/world.tql` | TypeQL schema: `sui-unit-id`, `sui-path-id`, `wallet` attributes on unit/path |
-| Testnet Package | `0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e` |
-| Status | Phase 1-2 complete ✅ (testnet wallets live, deterministic derivation, sync integration). Phase 3 ready (escrow settlement plan locked). See `/sui` skill + `docs/TODO-SUI.md` |
+| Testnet Package | `0xd064518697137f39a333d50f3a6066117332aeb079fc23a7617271b9ad5f4980` (v2) |
+| Status | Phase 1-3 complete ✅ (testnet wallets live, ephemeral keypairs, GovernanceEvent on-chain). See `/sui` skill + `docs/TODO-SUI.md` |
 
-**Phase 2 — Identity & Wallet (Complete 2026-04-18):**
-- `deriveKeypair(uid)` + `addressFor(uid)`: deterministic Ed25519 keypair from `SUI_SEED + uid`
+**Phase 2 — Identity & Wallet (Complete 2026-04-18, superseded by Owner architecture):**
+- `deriveKeypair(uid)` + `addressFor(uid)`: deterministic Ed25519 keypair from `SUI_SEED + uid` *(deprecated — see `/Users/toc/Server/owner.md` gap 1; SUI_SEED is being removed)*
 - `syncAgentWithIdentity()`: wires wallet into agent creation, persists to TypeDB
 - 14 tests pass: determinism + uniqueness + idempotency verified
 - Unblocks Phase 3 (escrow on-chain) and marketplace on-chain discovery
+- **Migration in flight:** `SUI_SEED` deletion + per-agent keys generated at spawn, encrypted under owner PRF, ciphertext in D1. Tracked in `owner.md` gap 1.
 
 ## Key Patterns
 
@@ -487,14 +539,24 @@ else               net.warn(edge, 1)             // failure — agent produced n
 const isToxic = (edge) => r >= 10 && r > s * 2 && (r + s) > 5
 ```
 
-### Agent Identity (Sui Wallets)
+### Agent Identity (Sui Wallets) — Owner-rooted, no master seed
+
+**Current legacy (being removed):**
 ```
-SUI_SEED (env, 32 bytes base64) + agent UID → SHA-256 → Ed25519 keypair
+SUI_SEED (env) + agent UID → SHA-256 → Ed25519 keypair
 ```
-No private keys stored. Every agent derives its keypair on-the-fly from the
-platform seed + its UID. Same UID always produces the same address.
-`addressFor(uid)` returns the public address. `deriveKeypair(uid)` returns
-the full keypair for signing. Lose the seed, lose all wallets.
+
+**Target architecture (per `/Users/toc/Server/owner.md`):**
+```
+agent_seed = randomBytes(32)                                    // at spawn
+agent_kek  = HKDF(owner_prf, "agent-key:{uid}:v1")              // owner Touch ID
+ciphertext = AES-GCM(agent_seed, agent_kek)                     // wrap
+D1.agent_wallet.insert({ uid, ciphertext, kdf_version: 1 })     // persist
+```
+
+Per-agent random seeds, encrypted under the owner's biometric-derived KEK, ciphertext in D1. **No `SUI_SEED` anywhere.** Loss of D1 → owner re-derives any agent (via owner PRF + uid). Loss of owner biometric → BIP39 paper recovers PRF → recovers every agent. See `owner.md` gap 1 for the migration plan.
+
+For peer-spawned agents (parent agent spawns child without human Touch ID), child seed = `HKDF(parent_seed, "agent:{nonce}:child")` — parent recovers any descendant from its own seed + the on-chain spawn nonce. See `agents.md` Pattern D.
 
 ## Data Flow (Three Layers)
 

@@ -205,6 +205,13 @@ L7  frontier detection from unexplored tag clusters         every hour
 | [one-ontology.md](one-ontology.md) | The 6 dimensions. |
 | [claude-code-integration.md](one/claude-code-integration.md) | Claude Code as a unit in the colony. |
 
+### Backend & Data
+
+| Doc | What |
+|-----|------|
+| [backend.md](backend.md) | **Universal backend.** Build anything — CRM, e-commerce, SaaS, marketplace. Signals as CRUD. Six dimensions eliminate threat model. Multi-tenant isolation by default. Pheromone learns data patterns. |
+| [quickstart-baas.md](quickstart-baas.md) | Five-minute first signal. API key, SDK, send a signal, check usage. |
+
 ### Architecture
 
 | Doc | What |

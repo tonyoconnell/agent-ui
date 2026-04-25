@@ -1,12 +1,109 @@
 # /do
 
-**Skills:** `/signal` (mark/warn/dissolve outcomes) · `/typedb` (query tasks, write pheromone)
+**Skills:** `/signal` (mark/warn/dissolve outcomes) · `/typedb` (query tasks, write pheromone) · `/todo` (scaffold plans, render dashboard)
 
-> **Before anything else:** Read `docs/TODO.md`.
-> It is the mission briefing — active fronts, top priority, what's built, where we're going.
-> Load it once per session. Let it orient the work.
+> **Before anything else:** Read `docs/TODO.md` AND load the `/todo` skill's *"The world this skill builds for"* block (humans+agents, biometric+Capability, reputation+whitelabel — 7 properties). Every cycle inherits those constraints. A cycle that weakens any of the 7 fails the rubric, regardless of fit/form/truth/taste scores.
 
 Drive work through the substrate — select and execute.
+
+---
+
+## Loop optimizations (compounding — every cycle faster + more accurate than the last)
+
+These fire *automatically*. The wave handlers below reference them by number.
+
+| # | Optimization | Fires | Mechanism |
+|---|---|---|---|
+| 1 | **Recon cache** | W1 | Each agent prompt prepends: *"check `kv:recon:{sha256(path)}:{short_sha}` — hit + age < 14d → return cached, `mark(recon:hit:{topic})`. Miss → read + write cache, `mark(recon:miss:{topic})`."* Stable files become free reads; churning files get re-read. |
+| 2 | **W2 context auto-load** | W2 start | Auto-load (no manual injection): `source_of_truth` from frontmatter + last 20 `learnings.md` entries with overlapping tags + `dictionary.md` + `rubrics.md`. W2 begins warm. |
+| 3 | **W3 prompts auto-gen** | W2 → W3 | W2 outputs `TARGET / ANCHOR / ACTION / NEW / RATIONALE` blocks. Skill mechanically converts each to one Sonnet agent prompt. Spawn N agents in one message. No hand-crafted prompts. |
+| 4 | **Verify-only-what-changed** | W3 → W4 (per-wave) | `git diff --name-only HEAD` → dependency cone (tsc). Run vitest only on tests importing the cone. Full `bun run verify` reserved for cycle close (W4 cycle gate). Cuts W4 latency 70-90% on small cycles. |
+| 5 | **Pheromone-routed SELECT** | autonomous loop SELECT | Score = `priority + strength − resistance + tag-warmth`. `tag-warmth` = sum of `loop:feedback` strength on edges matching candidate tags. Loop discovers which work-styles ship; failing patterns starve at the configured `sensitivity` rate. |
+| 6 | **Split-test in W3** | W3 when frontmatter declares `split_tests` | For each split point: spawn N variants (different model / prompt / approach — see `template-plan.md` frontmatter). All verified at W4. Winner gets `mark()` on its tags + `(model:X, prompt:Y)`. Losers `warn(0.5)`. Outcome logged to `learnings.md`. |
+| 7 | **Cycle-size cap** | every cycle start + every plan write | Refuse cycle with > 5 tasks unless `mode: lean`. Refuse plan > 5 cycles unless every cycle is lean. Hard gate — no override. The 100-cycle anti-pattern dies on arrival. |
+
+**Compounding effect.** #1+#2 cut tokens per cycle. #3+#4 cut wall-clock. #5+#6 make the loop self-tune. #7 keeps every plan shippable. After 50 cycles: materially smarter task selection, materially faster verification, materially less manual prompt-crafting. Not because we improved the algorithm — because the substrate has memory and the loop reads it.
+
+**Constraint set.** *Minimize context. Maximize accuracy. Be succinct. Progressive. Self-learning. Secure.* Every wave handler MUST honor these. If a wave is doing work that's not covered by one of the 7 optimizations, it's manual labor that should be automated next cycle.
+
+---
+
+## `--show` — autonomous build, human delight
+
+Default behavior of `/do <plan> --auto` for any plan with `show: true` in its frontmatter. The loop runs every cycle without intervention; it pauses at each cycle close to render a **cycle frame** — a single 80-column block that shows the human exactly what just shipped, what it unlocked, and what's next. The pause is a render, not an input wait. Press `Ctrl-C` to stop; otherwise it auto-continues to the next cycle.
+
+### The cycle frame format
+
+```
+╭──────────────── C{n} / {plan-slug} / {cycle-name} ────────────────╮
+│  ✓ Cycle {n} of {N} complete                       rubric: 0.XX  │
+│                                                                   │
+│  Wave gates (W0 → W4)                                             │
+│  ───────────────                                                  │
+│    W0  bun run verify          ✓  {pass}/{total}                  │
+│    W1  recon                   ✓  {N} files ({hits} cache hits)   │
+│    W2  decide                  ✓  {decisions} decisions           │
+│    W3  edit (parallel)         ✓  {marked}/{dissolved-retried}    │
+│    W4  verify (scoped)         ✓  +{Δ} tests, biome+tsc clean     │
+│                                                                   │
+│  Rubric                                                           │
+│  ───────                                                          │
+│    fit  {0.XX}  form  {0.XX}  truth  {0.XX}  taste  {0.XX}        │
+│    average {0.XX}    ✓ above 0.65 gate                            │
+│                                                                   │
+│  Speed                                                            │
+│  ─────                                                            │
+│    {metric}  {value}  (target {budget} {✓|✗})                     │
+│                                                                   │
+│  What this unlocks                                                │
+│  ─────────────────                                                │
+│    👤 customer  {one sentence — what a human can now do}          │
+│    🤖 agent     {one sentence — what an agent can now do}         │
+│                                                                   │
+│  Lifecycle  [✓] {stage 1}  →  [✓] ...  →  [ ] {next stage}        │
+│                                                                   │
+│  Next: C{n+1} — {next cycle name + one-line preview}              │
+│                                                                   │
+│  Continuing in --auto... (Ctrl-C to stop)                         │
+╰───────────────────────────────────────────────────────────────────╯
+```
+
+After the final cycle, render a **lifecycle replay**: a short narrative that walks the customer + agent through every stage that the build now supports, in order. This is the moment of delight. The human sees not "4 cycles closed" but "Sarah can now land here, switch groups, edit, rewind time, and verify on-chain — all because of what just shipped."
+
+### What goes in each section
+
+| Section | Source | Rule |
+|---|---|---|
+| Wave gates | telemetry from each wave's logger | one line per wave, ✓/✗ + one number |
+| Rubric | W4 markDims output | four numbers + average + gate-pass status |
+| Speed | `/api/speed` budgets relevant to this cycle | only the metrics this cycle changed |
+| What unlocks | the plan's `lifecycle_show` frontmatter block | exactly two sentences, customer + agent |
+| Lifecycle | the plan's `lifecycle: [stages]` frontmatter | checkbox row, ✓ for done, [ ] for pending |
+| Next | next unchecked cycle in plan + first task | one line; if last cycle, render lifecycle replay instead |
+
+### Frontmatter required for show mode
+
+```yaml
+show: true
+lifecycle: [stage-1, stage-2, stage-3, stage-4, stage-5]   # ordered
+lifecycle_show:                                              # one block per cycle
+  C1:
+    customer: "{one sentence — concrete user, concrete action}"
+    agent: "{one sentence — concrete agent, concrete capability}"
+    unlocks_stage: "stage-1"
+  C2:
+    customer: "..."
+    agent: "..."
+    unlocks_stage: "stage-2"
+```
+
+If `show: true` but no `lifecycle_show` block, render the frame with `(no lifecycle narration)` and warn — the plan author should fill it in. This is the soft-gate that nudges every plan to think about who benefits.
+
+### Why this is the default for `--auto`
+
+Without `--show`, `/do --auto` is a wall of agent JSON and test output. The human watches a log scroll. With `--show`, every cycle is a ceremony — a 30-line frame that says: *here's what we built, here's what it cost, here's what it means, here's what's next.* Same execution. Different rendering. The human stays in the loop without being in the way.
+
+Self-correcting hook: each frame emits `ui:do:show:rendered { cycle, rubric, lifecycle_stage }`. Cycles whose frames the human Ctrl-C's get `warn(0.5)` on the cycle's tag — a rendered frame that's stopped is a signal that something looked wrong. Future cycles with similar tags raise their fit/form bar at W2.
 
 ## Modes
 

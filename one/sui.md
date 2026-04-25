@@ -51,7 +51,7 @@ Published 2026-04-06. All transactions verified.
 
 | Object | ID | Type |
 |--------|-----|------|
-| Package | `0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e` | Immutable |
+| Package | `0xd064518697137f39a333d50f3a6066117332aeb079fc23a7617271b9ad5f4980` | Immutable |
 | Protocol | `0xc30a7702e7c8a4b9914d8bdb4b1da20c5e2c9bc924fed1e8c947ed66ec16e379` | Shared — treasury: 0, fee: 50 bps |
 | Scout Unit | `0x6fd45656222db69f81dbf61c70873fd466ebd8b157bf6694f81314e3e0c13af8` | Owned — name: "scout", balance: 99000 MIST |
 | Analyst Unit | `0x952fea2b99904aa8a365939c5ebc8079014b7cef7ac1ab2375b5a10e4ec6c47d` | Owned — name: "analyst" |
@@ -75,10 +75,10 @@ Published 2026-04-06. All transactions verified.
 
 ```bash
 # Any object
-sui client object 0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e
+sui client object 0xd064518697137f39a333d50f3a6066117332aeb079fc23a7617271b9ad5f4980
 
 # Explorer
-open https://suiscan.xyz/testnet/object/0xa5e6bddae833220f58546ea4d2932a2673208af14a52bb25c4a603492078a09e
+open https://suiscan.xyz/testnet/object/0xd064518697137f39a333d50f3a6066117332aeb079fc23a7617271b9ad5f4980
 ```
 
 ---
@@ -606,6 +606,43 @@ TypeDB is the brain. Move is the body. The substrate needs both.
 > | 5 | The Bridge | **5/5 done** |
 >
 > **Testnet complete.** 33 done, 22 open (phases 2-6).
+
+---
+
+---
+
+## Governance Events (sys-304)
+
+Every TypeDB governance write has an on-chain receipt via `GovernanceEvent`.
+
+### Event shape
+
+```move
+public struct GovernanceEvent has copy, drop {
+    kind: String,    // chairman-grant | group-create | key-revoke | role-perm-change
+    subject: String, // uid of entity acted on
+    object: String,  // group id, key id, or permission name
+    actor: address,  // chairman's address (on-chain identity receipt)
+    timestamp: u64,  // clock ms
+}
+```
+
+### Bridge function
+
+```typescript
+import { mirrorGovernance } from '@/engine/bridge'
+
+// Called after every TypeDB governance write
+await mirrorGovernance('chairman-grant', 'marketing:creative', 'g:marketing', keypair)
+```
+
+### Replay guarantee
+
+`absorb()` ingests `GovernanceEvent` back to TypeDB as `hypothesis { source: "sui" }`. Replaying all `GovernanceEvent`s from the Sui transaction log reconstructs identical role state in TypeDB.
+
+### Emit function
+
+`emit_governance(kind, subject, object, clock, ctx)` — public entry, no auth gate. Authority is established by `actor = ctx.sender()` on-chain. Fake events from non-chairman addresses are detectable by actor mismatch.
 
 ---
 
