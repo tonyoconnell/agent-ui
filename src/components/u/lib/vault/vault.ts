@@ -927,10 +927,7 @@ export async function exportRawMaster(): Promise<Uint8Array> {
  *  Optionally accepts an already-enrolled passkey so the *same* credential
  *  that did the server sign-in also drives local unlock — one passkey per
  *  device, two jobs. */
-export async function adoptMaster(
-  masterSecret: Uint8Array,
-  enrollment?: PasskeyEnrollment,
-): Promise<void> {
+export async function adoptMaster(masterSecret: Uint8Array, enrollment?: PasskeyEnrollment): Promise<void> {
   if (await hasVault()) return // already exists — unlock path handles it
   const masterKey = await importMasterSecret(masterSecret)
   const meta: VaultMeta = {

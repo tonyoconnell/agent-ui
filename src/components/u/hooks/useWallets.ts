@@ -6,39 +6,6 @@ import type { VaultWallet } from '../lib/vault/types'
 import * as Vault from '../lib/vault/vault'
 import { useNetwork } from './useNetwork'
 
-// Base58 alphabet for Solana addresses and private keys
-const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-
-function generateLocalAddress(chainId: string): string {
-  const chain = chainId.toLowerCase()
-  const chars = '0123456789abcdef'
-  switch (chain) {
-    case 'btc':
-      return `bc1q${Array.from({ length: 38 }, () => chars[Math.floor(Math.random() * 16)]).join('')}`
-    case 'sol':
-      return Array.from({ length: 44 }, () => BASE58_ALPHABET[Math.floor(Math.random() * 58)]).join('')
-    case 'sui':
-      return `0x${Array.from({ length: 64 }, () => chars[Math.floor(Math.random() * 16)]).join('')}`
-    default:
-      return `0x${Array.from({ length: 40 }, () => chars[Math.floor(Math.random() * 16)]).join('')}`
-  }
-}
-
-function generateLocalPrivateKey(chainId: string): string {
-  const chain = chainId.toLowerCase()
-  const chars = '0123456789abcdef'
-  switch (chain) {
-    case 'btc':
-      return `5${Array.from({ length: 50 }, () => chars[Math.floor(Math.random() * 16)]).join('')}`
-    case 'sol':
-      return Array.from({ length: 88 }, () => BASE58_ALPHABET[Math.floor(Math.random() * 58)]).join('')
-    case 'sui':
-      return `0x${Array.from({ length: 64 }, () => chars[Math.floor(Math.random() * 16)]).join('')}`
-    default:
-      return `0x${Array.from({ length: 64 }, () => chars[Math.floor(Math.random() * 16)]).join('')}`
-  }
-}
-
 // Stable wallet ID: "<context>-<chain>-<index>". The index is determined at
 // creation time by counting existing wallets for that chain+context. This
 // makes the HKDF derivation domain stable so the same key is re-derived on
@@ -189,14 +156,17 @@ export function useWallets(): UseWalletsReturn {
       } else {
         // For chains without a proper SDK wired yet, derive deterministically
         // from seed bytes so address is stable across sessions.
-        const hex = Array.from(seed).map((b) => b.toString(16).padStart(2, '0')).join('')
+        const hex = Array.from(seed)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('')
         address = chain === 'btc' ? `bc1q${hex.slice(0, 38)}` : `0x${hex.slice(0, 40)}`
         privateKey = `0x${hex}`
         publicKey = address
       }
 
       const chainUpper = chain.toUpperCase()
-      const name = existingForChain === 0 ? `My ${chainUpper} Wallet` : `My ${chainUpper} Wallet ${existingForChain + 1}`
+      const name =
+        existingForChain === 0 ? `My ${chainUpper} Wallet` : `My ${chainUpper} Wallet ${existingForChain + 1}`
 
       // Persist to vault (requires unlocked session). Encryption happens inside.
       await Vault.saveWallet({

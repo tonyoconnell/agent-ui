@@ -540,4 +540,3 @@ function serializeAssertion(credential: PublicKeyCredential): Record<string, unk
     clientExtensionResults: credential.getClientExtensionResults(),
   }
 }
-
