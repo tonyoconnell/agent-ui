@@ -29,27 +29,30 @@ export async function ensureHumanUnit(
     match $u isa unit, has uid "${esc(uid)}";
     select $u;
   `).catch(() => [])
-  if (existing.length > 0) return
 
-  const wallet = ''
-
-  const name = user.name || user.email || uid
-  const now = new Date().toISOString().replace('Z', '')
-  const walletClause = wallet ? `, has wallet "${esc(wallet)}"` : ''
-  await write(`
-    insert $u isa unit,
-      has uid "${esc(uid)}",
-      has name "${esc(name)}",
-      has unit-kind "human",
-      has status "active",
-      has success-rate 0.5,
-      has activity-score 0.0,
-      has sample-count 0,
-      has generation 0${walletClause},
-      has created ${now};
-  `).catch(() => {
-    /* best-effort; next request retries */
-  })
+  // Insert unit only if missing — but ALWAYS fall through to group/membership.
+  // A previous request may have created the unit but failed the group write;
+  // returning early would strand the human with no inbox forever.
+  if (existing.length === 0) {
+    const wallet = ''
+    const name = user.name || user.email || uid
+    const now = new Date().toISOString().replace('Z', '')
+    const walletClause = wallet ? `, has wallet "${esc(wallet)}"` : ''
+    await write(`
+      insert $u isa unit,
+        has uid "${esc(uid)}",
+        has name "${esc(name)}",
+        has unit-kind "human",
+        has status "active",
+        has success-rate 0.5,
+        has activity-score 0.0,
+        has sample-count 0,
+        has generation 0${walletClause},
+        has created ${now};
+    `).catch(() => {
+      /* best-effort; next request retries */
+    })
+  }
 
   // Auto-create personal group (idempotent). writeTracked so schema drift
   // surfaces in logs instead of silently orphaning humans from /in.
