@@ -172,13 +172,16 @@ export function createAuth() {
           (publicEnv.PUBLIC_SITE_URL.startsWith('http://localhost')
             ? 'dev-only-passkey-challenge-secret-DO-NOT-USE-IN-PROD'
             : ''),
-        // rpID must be a registrable domain suffix of every origin that will use
-        // passkeys. Using 'one.ie' lets dev.one.ie, local.one.ie, main.one.ie, and
-        // one.ie itself all share credentials. On localhost we leave it undefined
-        // so the plugin derives 'localhost' from the baseURL automatically.
+        // rpID is left undefined — the plugin derives it from the request origin's
+        // hostname (dev.one.ie → rpId=dev.one.ie, localhost → rpId=localhost).
+        // This avoids the .well-known/webauthn cross-origin fetch that browsers
+        // require when rpId is a parent domain. Cross-subdomain credential sharing
+        // can be wired once one.ie completes its Worker cutover (see CLAUDE.md).
+        //
+        // expectedOrigins: let the plugin default to the current request origin so
+        // new passkeys work on any subdomain without manual list maintenance.
         ...(publicEnv.PUBLIC_SITE_URL.includes('one.ie')
           ? {
-              rpID: 'one.ie',
               expectedOrigins: [
                 'https://one.ie',
                 'https://dev.one.ie',
