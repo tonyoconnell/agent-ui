@@ -131,6 +131,13 @@ export function Header({ continueHref = '/app' }: HeaderProps) {
           setRecoveryPhrase(result.recoveryPhrase)
           return
         }
+        if (result.blobMismatch) {
+          // Signed in, but vault backup used a different passkey — fresh local
+          // vault was created. Reload to show the unlocked state; the user
+          // can restore wallets from their recovery phrase in Settings.
+          window.location.reload()
+          return
+        }
         window.location.reload()
       } catch (err) {
         if (err instanceof VaultError && err.code === 'passkey-cancelled') return

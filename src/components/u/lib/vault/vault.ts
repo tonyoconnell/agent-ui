@@ -610,6 +610,18 @@ export async function updateBalance(walletId: string, balance: string, usdValue:
 // PASSKEY MANAGEMENT (while unlocked)
 // ============================================
 
+/** Add a pre-built enrollment (e.g. from cloud sign-in) to the current vault
+ *  without requiring a fresh WebAuthn ceremony. Idempotent by credentialId. */
+export async function addEnrollmentToExistingVault(enrollment: PasskeyEnrollment): Promise<void> {
+  if (!session) return // vault locked — skip silently
+  const meta = await getMeta()
+  if (!meta) return
+  const alreadyEnrolled = meta.passkeys.some((p) => constantTimeEqual(p.credentialId, enrollment.credentialId))
+  if (alreadyEnrolled) return
+  meta.passkeys.push(enrollment)
+  await putMeta(meta)
+}
+
 export async function addPasskey(userIdentifier?: string): Promise<PasskeyEnrollment> {
   requireUnlocked()
   touchActivity()

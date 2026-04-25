@@ -354,29 +354,28 @@ export async function createAccountWithPasskey(): Promise<{
     )
   }
 
-  // A brand-new identity implies any existing local vault is orphan state
-  // from a previous account. Wipe before adopting so `adoptMaster` doesn't
-  // short-circuit on `hasVault()` and leave the user stuck on the old keys.
-  if (await Vault.hasVault()) {
-    await Vault.wipeAll()
-  }
-
-  // Adopt master locally AND record the enrollment so offline unlock works.
-  await Vault.adoptMaster(master, enrollment)
-
-  // Try to restore wallets from the cloud blob. This works when the same device
-  // handle maps to an existing user account that already had a synced vault
-  // (e.g. after a dev restart cleared D1, or on a re-registration).
-  // Same passkey = same master = same decryption key, so the blob opens cleanly.
+  // Try to restore from cloud blob BEFORE touching the local vault.
+  // importSyncBlobWithMaster requires hasVault()===false, so this must come first.
+  // Works when the device handle maps to an existing account (re-registration
+  // on same device, or browser data cleared but passkey survived in iCloud).
   try {
     const cloud = await fetchCloudBlob()
     if (cloud) {
+      await Vault.wipeAll() // ensure clean slate so import doesn't throw
       const { walletsRestored } = await Vault.importSyncBlobWithMaster(cloud.blob, master)
+      // Blob restored — enroll this credential for offline unlock.
+      await Vault.addEnrollmentToExistingVault(enrollment)
       return { walletsRestored, created: true, recoveryPhrase }
     }
   } catch {
-    // No cloud backup or import failed — fresh start is fine.
+    // No cloud backup or import failed (wrong master / new account) — fresh start.
   }
+
+  // Fresh vault path — wipe any orphan state then adopt the new master.
+  if (await Vault.hasVault()) {
+    await Vault.wipeAll()
+  }
+  await Vault.adoptMaster(master, enrollment)
 
   return { walletsRestored: 0, created: true, recoveryPhrase }
 }
@@ -398,6 +397,7 @@ export async function signInWithPasskey(): Promise<{
   walletsRestored: number
   created?: true
   recoveryPhrase?: string
+  blobMismatch?: true
 }> {
   const optsRes = await fetch('/api/auth/passkey-webauthn/authenticate/options', {
     method: 'POST',
@@ -497,6 +497,14 @@ export async function signInWithPasskey(): Promise<{
   await verifyRes.json()
   const master = await prfToMaster(prfSecret)
 
+  // Build an enrollment record so this credential can drive local unlock later.
+  const enrollment: PasskeyEnrollment = {
+    credentialId: new Uint8Array(credential.rawId),
+    prfSalt: b64urlToUint8Array(prfSalt),
+    authenticatorLabel: guessAuthenticatorLabel(),
+    createdAt: Date.now(),
+  }
+
   // Sign-out only clears the session row — IDB meta + wallets are preserved.
   // If a local vault already exists, just re-open the session with the known
   // master rather than trying to re-import the cloud blob (which throws when
@@ -508,10 +516,23 @@ export async function signInWithPasskey(): Promise<{
 
   const cloud = await fetchCloudBlob()
   if (!cloud) {
-    await Vault.adoptMaster(master)
+    await Vault.adoptMaster(master, enrollment)
     return { walletsRestored: 0 }
   }
-  return Vault.importSyncBlobWithMaster(cloud.blob, master)
+
+  try {
+    const result = await Vault.importSyncBlobWithMaster(cloud.blob, master)
+    // Blob restored — enroll this credential so offline unlock works on this device.
+    await Vault.addEnrollmentToExistingVault(enrollment)
+    return result
+  } catch {
+    // Cloud blob exists but can't be decrypted with this credential's master.
+    // This happens when the user has multiple passkeys and chose one that
+    // doesn't match the vault that was originally set up. Fall back to a
+    // fresh local vault — wallets can be restored via the recovery phrase.
+    await Vault.adoptMaster(master, enrollment)
+    return { walletsRestored: 0, blobMismatch: true }
+  }
 }
 
 // ─── credential serialization (matches SWA's on-wire shape) ───────────────
