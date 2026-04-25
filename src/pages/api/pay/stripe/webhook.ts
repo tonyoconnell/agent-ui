@@ -12,21 +12,15 @@
  * Rule 7: Redacts pan, cvc, buyer.email, cardholder_name before any signal emission.
  */
 import type { APIRoute } from 'astro'
-import Stripe from 'stripe'
+import type Stripe from 'stripe'
 import { mirrorPay } from '@/engine/bridge'
 import { getNet } from '@/lib/net'
+import { getStripeClient } from '@/lib/stripe'
+import { bindStripeCustomer } from '@/lib/stripe-bind'
 
 export const prerender = false
 
-const STRIPE_SECRET_KEY = import.meta.env.STRIPE_SECRET_KEY as string | undefined
 const STRIPE_WEBHOOK_SECRET = import.meta.env.STRIPE_WEBHOOK_SECRET as string | undefined
-
-const stripe = STRIPE_SECRET_KEY
-  ? new Stripe(STRIPE_SECRET_KEY, {
-      apiVersion: '2026-03-25.dahlia',
-      typescript: true,
-    })
-  : null
 
 // Emit substrate:pay — redacted per rule 7 (no pan, cvc, buyer.email, cardholder_name)
 function emitPaySignal(opts: {
@@ -68,6 +62,7 @@ function emitPaySignal(opts: {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  const stripe = getStripeClient()
   if (!stripe) {
     return Response.json({ error: 'Stripe not configured' }, { status: 503 })
   }
@@ -96,8 +91,13 @@ export const POST: APIRoute = async ({ request }) => {
       case 'payment_intent.succeeded': {
         const pi = event.data.object as Stripe.PaymentIntent
 
+        // Bind Stripe customer → unit on first success (idempotent)
+        const uid = pi.metadata?.uid as string | undefined
+        const customerId = typeof pi.customer === 'string' ? pi.customer : pi.customer?.id
+        if (uid && customerId) bindStripeCustomer(uid, customerId).catch(() => {})
+
         // Extract from/to from metadata — redact everything else
-        const from = (pi.metadata?.from as string) || (pi.metadata?.customer as string) || 'anon'
+        const from = (pi.metadata?.from as string) || uid || (pi.metadata?.customer as string) || 'anon'
         const to = (pi.metadata?.to as string) || 'anon'
         const sku = pi.metadata?.sku as string | undefined
         const amount = pi.amount / 100

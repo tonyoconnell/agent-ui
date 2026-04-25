@@ -1,0 +1,74 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { TouchPay } from "@/components/pay/card/TouchPay"
+import { auth } from "@/lib/auth"
+import { deriveHumanUid } from "@/lib/api-auth"
+
+export const prerender = false
+
+const session = await auth.api.getSession({ headers: Astro.request.headers })
+if (!session) return Astro.redirect("/signin?redirect=/pay/touch")
+
+const uid = deriveHumanUid(session.user)
+const email = session.user.email ?? undefined
+
+const amountParam = Number.parseInt(Astro.url.searchParams.get("amount") ?? "", 10)
+const amountMinor = Number.isFinite(amountParam) && amountParam >= 50 ? amountParam : 2999
+const currency = (Astro.url.searchParams.get("currency") ?? "usd").toLowerCase()
+---
+
+<Layout
+  title="Pay with Touch ID · ONE"
+  description="One biometric, two rails. Apple Pay on Apple devices, Stripe Link everywhere else — both keyed to your passkey-bound identity."
+>
+  <main class="min-h-screen bg-[#0a0a0f] text-slate-100">
+    <div class="mx-auto max-w-md px-6 py-16">
+
+      <header class="mb-10 space-y-3">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-300/80">
+          Fiat rail · Stripe
+        </p>
+        <h1 class="text-3xl font-semibold tracking-tight">Pay with Touch ID</h1>
+        <p class="text-sm leading-relaxed text-slate-400">
+          Apple Pay where it works. Stripe Link with your saved card everywhere else.
+          Same identity, same biometric, one tap.
+        </p>
+      </header>
+
+      <section
+        class="rounded-2xl border border-white/5 bg-white/[0.02] p-6 shadow-[0_0_60px_-15px_rgba(139,92,246,0.25)]"
+        aria-label="Pay with Touch ID"
+      >
+        <div class="mb-6 flex items-baseline justify-between text-sm">
+          <span class="text-slate-400">Amount</span>
+          <span class="font-mono text-lg text-white">
+            {(amountMinor / 100).toLocaleString(undefined, { style: "currency", currency: currency.toUpperCase() })}
+          </span>
+        </div>
+
+        <TouchPay
+          client:only="react"
+          uid={uid}
+          email={email}
+          amountMinor={amountMinor}
+          currency={currency}
+        />
+      </section>
+
+      <p class="mt-6 text-center text-[11px] text-slate-600">
+        Card stored on your Stripe customer · {uid}
+      </p>
+    </div>
+  </main>
+</Layout>
+
+<script is:inline>
+  fetch('/api/signal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      receiver: 'ui:pay:touch:view',
+      data: { tags: ['pay', 'touch', 'view', 'page'] }
+    })
+  }).catch(() => {})
+</script>
