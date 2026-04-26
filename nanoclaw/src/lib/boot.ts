@@ -3,41 +3,36 @@
  *
  * Usage (call before any signing operation in a request handler):
  *
- *   import { ensureAgentSeed } from './lib/boot'
+ *   import { ensureAgentKeypair } from './lib/boot'
  *
  *   export default {
  *     async fetch(request: Request, env: Env, ctx: ExecutionContext) {
- *       await ensureAgentSeed(env)   // throws AgentBootError if key unavailable
- *       // ... handle request
+ *       const kp = await ensureAgentKeypair(env)   // throws AgentBootError if key unavailable
+ *       // kp.signData(bytes) — ready for on-chain Sui tx signing
  *     }
  *   }
  *
- * V1 LIMITATION: The token returned by loadAgentToken contains the AES-GCM
- * ciphertext still WRAPPED under the owner's WebAuthn-PRF-derived KEK. Until
- * the owner-Mac unwrap service ships (tracked in owner-todo §"Open carries" /
- * Gap 1 unwrap endpoint), the worker CANNOT derive the actual Ed25519 seed from
- * this token alone. What we CAN do in V1:
- *
- *   - Verify the token was minted correctly (HMAC sig + TTL)
- *   - Hold the verified ciphertextB64 in process memory
- *   - Block unauthenticated boots (fail closed on bad bearer / bad sig)
- *
- * The `bootedSeed` field is therefore a PLACEHOLDER: it stores the ciphertextB64
- * string cast to Uint8Array shape so call sites can pattern-match "seed is
- * available" vs "seed is not yet loaded". Actual Ed25519 signing is unblocked
- * when the unwrap service ships — at that point replace this placeholder with
- * a real `new Uint8Array(seed_bytes)` from the decrypted ciphertext.
- *
  * Sequence:
- *   Cold start → loadAgentToken (POST /api/agents/:uid/unlock) → verify HMAC
- *   → verify TTL → cache token in module-level var → all subsequent calls
- *   return the cached result (no re-fetch per request).
+ *   Cold start
+ *     → loadAgentToken (POST /api/agents/:uid/unlock) — verifies HMAC + TTL
+ *     → POST /api/agents/:uid/unwrap  — proxy to owner-Mac daemon; returns raw seed
+ *     → Ed25519Keypair.fromSecretKey(seedBytes) — ready to sign
+ *     → cache keypair in module-level var — all subsequent calls return cached
  *
  * Error caching:
  *   On AgentBootError, the error is cached in `bootError`. All subsequent calls
- *   re-throw the cached error WITHOUT hitting the unlock endpoint again. This
- *   prevents a retry storm on every request hitting a failed isolate. Only a
- *   new isolate (cold start) will retry.
+ *   re-throw the cached error WITHOUT hitting any endpoint again. This prevents
+ *   a retry storm on every request hitting a failed isolate. Only a new isolate
+ *   (cold start) will retry.
+ *
+ * /unwrap error contract:
+ *   503 owner-locked        → AgentBootError('owner-offline') — Touch ID needed
+ *   503 daemon-*            → AgentBootError('owner-offline') — daemon issue
+ *   401                     → AgentBootError('bad-bearer')
+ *   403                     → AgentBootError('bad-bearer')
+ *   404                     → AgentBootError('no-wallet')
+ *   502                     → AgentBootError('unknown')    — corrupted/KDF mismatch
+ *   200 wrong-length seed   → AgentBootError('unknown')
  *
  * Env vars required:
  *   AGENT_UID          — e.g. "marketing:scout"
@@ -46,51 +41,57 @@
  *   ONE_HOST           — optional; defaults to "https://one.ie"
  */
 
-import type { Env } from '../types'
-import { AgentBootError, loadAgentToken, type UnlockToken } from './agent-key-load'
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
+import { AgentBootError, loadAgentToken } from './agent-key-load'
+
+// ─── Shared b64url decode ─────────────────────────────────────────────────────
+
+function b64urlDecode(s: string): Uint8Array {
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/')
+  const pad = '='.repeat((4 - (b64.length % 4)) % 4)
+  const bin = atob(b64 + pad)
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
 
 // ─── Module-level cache ──────────────────────────────────────────────────────
 // One entry per isolate. Cold starts always re-fetch; warm isolates skip fetch.
 
-/** Verified token from the last successful boot. Null until first boot. */
-let bootedToken: UnlockToken | null = null
+/** Live Ed25519 keypair, null until first successful boot. */
+let bootedKeypair: Ed25519Keypair | null = null
 
-/**
- * V1 placeholder: ciphertextB64 stored as a marker that the boot completed.
- * Replace with `new Uint8Array(decrypted_seed)` once the unwrap service exists.
- *
- * IMPORTANT: This is NOT the raw Ed25519 seed. It is the wrapped ciphertext.
- * Using this value for signing will produce incorrect signatures. The unwrap
- * service (Gap 1 §unwrap endpoint) must ship before this can be used for real
- * Sui transaction signing.
- */
-let bootedSeed: string | null = null // ciphertextB64 placeholder, not a real seed
+/** Sui address derived from the booted keypair. */
+let bootedAddress: string | null = null
 
 /** Cached boot error — re-thrown on every call once set. Prevents retry storms. */
 let bootError: AgentBootError | null = null
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
+interface BootEnv {
+  AGENT_UID?: string
+  AGENT_BEARER?: string
+  UNLOCK_SIGNING_KEY?: string
+  ONE_HOST?: string
+}
+
 /**
- * Ensures the agent seed (V1: token ciphertext) has been fetched and verified
- * for this isolate. Call this at the top of any request handler that requires
- * agent identity, BEFORE performing any signing operation.
+ * Ensures the agent Ed25519 keypair has been derived and cached for this
+ * isolate. Call this at the top of any request handler that requires on-chain
+ * Sui signing, BEFORE the signing operation.
  *
- * Returns the ciphertextB64 placeholder on success.
+ * Returns the live Ed25519Keypair on success.
  * Throws AgentBootError on any boot failure (cached after first failure).
- *
- * Next step (V2): replace the return type with `Uint8Array` (the raw seed) once
- * `src/pages/api/agents/[uid]/unwrap.ts` ships and this function can call it.
  */
-export async function ensureAgentSeed(env: Env): Promise<string> {
+export async function ensureAgentKeypair(env: BootEnv): Promise<Ed25519Keypair> {
   // Fast path: already booted (success)
-  if (bootedSeed !== null) return bootedSeed
+  if (bootedKeypair !== null) return bootedKeypair
 
   // Fast path: already failed (cache the error, prevent retry storm)
   if (bootError !== null) throw bootError
 
-  // Guard: if AGENT_UID or AGENT_BEARER are not provisioned, fail immediately
-  // with a clear error rather than trying the unlock endpoint with empty values.
+  // Guard: fail immediately with a clear error for missing env vars
   if (!env.AGENT_UID) {
     bootError = new AgentBootError('AGENT_UID env var not set — provision via wrangler secret put AGENT_UID', 'unknown')
     throw bootError
@@ -110,56 +111,108 @@ export async function ensureAgentSeed(env: Env): Promise<string> {
     throw bootError
   }
 
+  const ownerHost = (env.ONE_HOST ?? 'https://one.ie').replace(/\/$/, '')
+
   try {
+    // Step 1: fetch + verify the unlock token (HMAC sig + TTL check)
     const token = await loadAgentToken({
-      ownerHost: env.ONE_HOST ?? 'https://one.ie',
+      ownerHost,
       uid: env.AGENT_UID,
       bearer: env.AGENT_BEARER,
       unlockSigningKeyB64: env.UNLOCK_SIGNING_KEY,
-      // 6 attempts: 1s + 2s + 4s + 8s + 16s + 32s = ~63s total before giving up.
-      // Set lower in tests via fetchImpl override on loadAgentToken directly.
       maxAttempts: 6,
     })
 
-    // V1: store the verified ciphertext as the "seed placeholder".
-    // The actual unwrap (AES-GCM decrypt → raw seed → Ed25519Keypair) is
-    // blocked on the owner-Mac unwrap service. Track: owner-todo §Gap 1 unwrap.
-    bootedToken = token
-    bootedSeed = token.ciphertextB64
+    // Step 2: call /unwrap — proxy to owner-Mac daemon — returns raw seed bytes
+    const unwrapRes = await fetch(`${ownerHost}/api/agents/${encodeURIComponent(env.AGENT_UID)}/unwrap`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.AGENT_BEARER}`,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    })
 
-    console.log(`[boot] agent ${env.AGENT_UID} token verified; address=${token.address}`)
-    console.log('[boot] V1: ciphertext held; real Ed25519 seed available after unwrap service ships')
-
-    return bootedSeed
-  } catch (e) {
-    if (e instanceof AgentBootError) {
-      bootError = e
-      throw bootError
+    if (unwrapRes.status === 503) {
+      const body = (await unwrapRes.json().catch(() => ({}))) as Record<string, unknown>
+      const errCode = typeof body.error === 'string' ? body.error : 'owner-locked'
+      throw new AgentBootError(`unwrap blocked: ${errCode} — owner Touch ID required`, 'owner-offline')
     }
-    // Wrap unexpected errors
-    bootError = new AgentBootError(String(e), 'unknown')
+    if (unwrapRes.status === 401) {
+      throw new AgentBootError('bearer rejected at unwrap', 'bad-bearer')
+    }
+    if (unwrapRes.status === 403) {
+      throw new AgentBootError('bearer-uid mismatch at unwrap', 'bad-bearer')
+    }
+    if (unwrapRes.status === 404) {
+      throw new AgentBootError('no agent_wallet at unwrap', 'no-wallet')
+    }
+    if (!unwrapRes.ok) {
+      throw new AgentBootError(`unwrap unexpected status ${unwrapRes.status}`, 'unknown')
+    }
+
+    const { seedB64 } = (await unwrapRes.json()) as { ok: true; seedB64: string }
+    const seedBytes = b64urlDecode(seedB64)
+
+    if (seedBytes.length !== 32) {
+      throw new AgentBootError(`unwrap returned wrong-length seed: ${seedBytes.length}`, 'unknown')
+    }
+
+    const kp = Ed25519Keypair.fromSecretKey(seedBytes)
+    bootedKeypair = kp
+    bootedAddress = token.address
+
+    // Zero the seed bytes — keypair has them internalized
+    seedBytes.fill(0)
+
+    console.log(`[boot] agent ${env.AGENT_UID} keypair ready; address=${token.address}`)
+
+    return kp
+  } catch (e) {
+    bootError = e instanceof AgentBootError ? e : new AgentBootError(String(e), 'unknown')
     throw bootError
   }
 }
 
 /**
- * Returns the last successfully verified unlock token, or null if boot has not
- * completed. Useful for diagnostics (e.g. logging token.address).
- *
- * Do NOT use the token's ciphertextB64 for signing — it is the wrapped ciphertext,
- * not the raw seed. See the V1 limitation note at the top of this file.
+ * Returns the Sui address from the last successful boot, or null if boot has
+ * not completed.
  */
-export function getBootedToken(): UnlockToken | null {
-  return bootedToken
+export function getBootedAddress(): string | null {
+  return bootedAddress
 }
 
 /**
  * Resets the module-level boot cache. ONLY for use in tests.
- * Calling this in production code is a security violation — it forces a re-fetch
- * that may reveal timing information or produce a retry storm.
+ * Calling this in production code is a security violation.
  */
 export function _resetBootCacheForTests(): void {
-  bootedToken = null
-  bootedSeed = null
+  bootedKeypair = null
+  bootedAddress = null
   bootError = null
+}
+
+// ─── Deprecated shim ─────────────────────────────────────────────────────────
+
+/**
+ * @deprecated Use ensureAgentKeypair() instead.
+ *
+ * V1 shim: calls ensureAgentKeypair and returns a dummy string so existing
+ * call sites that pattern-match on "non-null string = booted" continue to
+ * compile. The ciphertextB64 concept is gone; this now returns "keypair:ready"
+ * if boot succeeds, indicating the keypair is live but not exposing the seed.
+ *
+ * Remove once all call sites migrate to ensureAgentKeypair().
+ */
+export async function ensureAgentSeed(env: BootEnv & { [key: string]: unknown }): Promise<string> {
+  await ensureAgentKeypair(env as BootEnv)
+  return 'keypair:ready'
+}
+
+/**
+ * @deprecated Use getBootedAddress() instead.
+ * Returns null — the UnlockToken is no longer cached separately from the keypair.
+ */
+export function getBootedToken(): null {
+  return null
 }
