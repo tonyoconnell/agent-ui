@@ -32,6 +32,11 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// ── Challenge store helpers ────────────────────────────────────────────────
+// Import issueChallenge so test 5 can pre-register a real challenge in the
+// module-level store before the bridge POST validates it (V3 contract).
+import { _clearChallengeStoreForTests, issueChallenge } from '@/pages/api/paths/bridge/challenge'
+
 // ── Hoist mocks ────────────────────────────────────────────────────────────
 
 const { fetchPeerPubkeyMock, verifyAuthenticationResponseMock } = vi.hoisted(() => ({
@@ -148,9 +153,10 @@ describe('POST /api/paths/bridge — Gap 6 V2 + V2.2 peer-discovery verification
     vi.clearAllMocks()
     // Reset user
     currentUser = 'userA'
-    // Re-import clears module cache is NOT done here — the pending Map
-    // is intentionally cleared by using unique group IDs per test so
-    // bridgeKey() produces distinct keys.
+    // Clear the V3 challenge store so tests don't share challenge state.
+    // The bridge pending Map is intentionally NOT reset here — isolation is
+    // achieved via unique group IDs per test so bridgeKey() produces distinct keys.
+    _clearChallengeStoreForTests()
   })
 
   it('1. valid bridge with peerHost + matching discovery → 201 accepted', async () => {
@@ -319,6 +325,7 @@ describe('POST /api/paths/bridge — Gap 6 V2 + V2.2 peer-discovery verification
 
     const from = 'group-a-t6'
     const to = 'group-b-t6'
+    const peerHost = 'https://other.one.ie'
 
     vi.mocked(await import('@/lib/api-auth')).getRoleForUser.mockImplementation((_u: string, gid: string) => {
       if (currentUser === 'userA' && gid === from) return Promise.resolve('chairman')
@@ -328,15 +335,18 @@ describe('POST /api/paths/bridge — Gap 6 V2 + V2.2 peer-discovery verification
 
     await callBridge({ from, to }, 'userA')
 
+    // V3: pre-issue a real challenge in the store so consumeChallenge passes.
+    const { challenge } = issueChallenge(peerHost)
+
     const res = await callBridge(
       {
         from,
         to,
         peerOwnerAddress: PEER_ADDR,
         peerOwnerVersion: 3,
-        peerHost: 'https://other.one.ie',
+        peerHost,
         peerAssertion: VALID_ASSERTION,
-        bridgeChallenge: 'test-nonce-123',
+        bridgeChallenge: challenge,
       },
       'userB',
     )

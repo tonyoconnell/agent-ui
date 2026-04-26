@@ -1,0 +1,16 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { OwnerDashboard } from "@/components/owner/OwnerDashboard"
+import { resolveUnitFromSession } from "@/lib/api-auth"
+
+export const prerender = false
+
+const auth = await resolveUnitFromSession(Astro.request, Astro.locals).catch(() => null)
+if (!auth?.isValid || auth.role !== 'owner') {
+  return Astro.redirect('/signin')
+}
+---
+
+<Layout title="Owner — substrate root">
+  <OwnerDashboard client:only="react" />
+</Layout>

@@ -1,47 +1,50 @@
 /**
  * GET /.well-known/owner-pubkey.json
  *
- * Federation V2.2 — publishes THIS substrate's owner Sui address + COSE
+ * Federation V3 — publishes THIS substrate's owner Sui address + COSE
  * public keys so peer substrates can verify bridge assertions both by
  * address and by cryptographic signature.
  *
- * Response shape (owner-pubkey-v2):
+ * Response shape:
+ *
+ * V3 (keys from D1 owner_pubkeys table — schema 0034):
  * {
- *   "address":     "0x...",        // owner's Sui address (OWNER_EXPECTED_ADDRESS env)
- *   "version":     1,              // owner key version from D1 owner_key table
- *   "publishedAt": 1715000000,     // unix seconds, current time
- *   "schema":      "owner-pubkey-v2",
- *   "keys": [
- *     {
- *       "credId":       "AAAA...", // base64url WebAuthn credential ID
- *       "pubKey":       "BBBB...", // base64url COSE public key bytes
- *       "alg":          "ES256",   // COSE alg name (informational)
- *       "registeredAt": 1715000000
- *     }
- *   ]
+ *   "address":     "0x...",
+ *   "version":     1,
+ *   "publishedAt": 1715000000,
+ *   "schema":      "owner-pubkey-v3",
+ *   "keys": [{ "credId": "...", "pubKey": "...", "alg": "ES256", "registeredAt": 1715000000 }]
  * }
  *
- * When OWNER_PUBKEYS_JSON env var is absent, keys is [] and schema is
- * still "owner-pubkey-v2" — discovery clients treat v1 (no keys) and
- * v2 (keys present or empty) compatibly.
+ * V2 fallback (keys from OWNER_PUBKEYS_JSON env var — V2.2 behaviour preserved):
+ * {
+ *   "address":     "0x...",
+ *   "version":     1,
+ *   "publishedAt": 1715000000,
+ *   "schema":      "owner-pubkey-v2",
+ *   "keys": [...]
+ * }
+ *
+ * Source priority:
+ *   1. D1 `owner_pubkeys` WHERE revoked_at IS NULL — schema="owner-pubkey-v3".
+ *   2. If D1 unavailable OR table empty → OWNER_PUBKEYS_JSON env var — schema="owner-pubkey-v2".
+ *
+ * Discovery clients accept both schemas. V2.2 substrates that only set the env var
+ * continue to work without any change.
  *
  * No auth. Public by design — peers fetch this during bridge handshake.
  * Cache-Control: public, max-age=300 (5 minutes).
  *
- * Version lookup: D1 `owner_key` WHERE (expires_at IS NULL OR expires_at > now())
- *   ORDER BY version DESC LIMIT 1.
- * Falls back to version=1 when D1 is unavailable or the table is empty
- * (substrate not yet registered — still serves the pubkey so peers can at
- * least discover the address for out-of-band verification).
+ * Operator workflow (V3 — preferred, no redeploy needed):
+ *   1. POST /api/auth/owner-pubkeys { credId, pubKey, alg } with owner bearer.
+ *   2. Keys are live immediately in the next well-known response.
+ *   3. To revoke: DELETE /api/auth/owner-pubkeys { credId }.
  *
- * Operator workflow (runbook):
- *   1. Export your WebAuthn credential public key in COSE format (base64url).
- *   2. Set OWNER_PUBKEYS_JSON env var to a JSON array:
- *      '[{"credId":"<base64url>","pubKey":"<base64url>","alg":"ES256","registeredAt":<unix-s>}]'
- *   3. Re-deploy. The well-known endpoint will serve the keys array.
- *   4. Peer substrates can now verify bridge assertions cryptographically.
+ * Operator workflow (V2 fallback — backwards compatible):
+ *   1. Set OWNER_PUBKEYS_JSON env var to a JSON array.
+ *   2. Re-deploy.
  *
- * Gap 6 V2.2 — COSE public key discovery for full WebAuthn assertion verification.
+ * Gap 6 V3 — D1-backed COSE public key discovery (replaces env-var OWNER_PUBKEYS_JSON).
  */
 
 import type { APIRoute } from 'astro'
@@ -118,17 +121,43 @@ export const GET: APIRoute = async ({ locals }) => {
     // D1 unavailable — serve version=1 (best-effort, non-fatal)
   }
 
-  // Read COSE public keys from env (operator-curated, see runbook above)
-  const ownerPubkeysRaw: string | undefined =
-    ((import.meta.env as Record<string, unknown>).OWNER_PUBKEYS_JSON as string | undefined) ??
-    (process.env.OWNER_PUBKEYS_JSON as string | undefined)
-  const keys = parseOwnerPubkeysJson(ownerPubkeysRaw)
+  // ── Step 1: try D1 owner_pubkeys table (V3 — schema 0034) ───────────────────
+  let keys: OwnerKeyEntry[] = []
+  let schema = 'owner-pubkey-v2'
+
+  try {
+    const db = await getD1(locals as App.Locals)
+    if (db) {
+      const d1Result = await db
+        .prepare(
+          `SELECT cred_id AS credId, pub_key AS pubKey, alg, registered_at AS registeredAt
+             FROM owner_pubkeys
+            WHERE revoked_at IS NULL
+            ORDER BY registered_at`,
+        )
+        .all<OwnerKeyEntry>()
+      if (d1Result?.results && d1Result.results.length > 0) {
+        keys = d1Result.results
+        schema = 'owner-pubkey-v3'
+      }
+    }
+  } catch {
+    // D1 unavailable — fall through to env fallback (non-fatal)
+  }
+
+  // ── Step 2: env fallback (V2.2 backwards compat) ─────────────────────────────
+  if (schema === 'owner-pubkey-v2') {
+    const ownerPubkeysRaw: string | undefined =
+      ((import.meta.env as Record<string, unknown>).OWNER_PUBKEYS_JSON as string | undefined) ??
+      (process.env.OWNER_PUBKEYS_JSON as string | undefined)
+    keys = parseOwnerPubkeysJson(ownerPubkeysRaw)
+  }
 
   const body = JSON.stringify({
     address,
     version,
     publishedAt: Math.floor(Date.now() / 1000),
-    schema: 'owner-pubkey-v2',
+    schema,
     keys,
   })
 

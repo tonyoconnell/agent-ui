@@ -17,6 +17,7 @@ import type { APIRoute } from 'astro'
 import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
 import { fetchPeerPubkey } from '@/lib/federation-discovery'
 import { writeSilent } from '@/lib/typedb'
+import { consumeChallenge } from './bridge/challenge'
 
 /** Decode a base64url string to a Uint8Array */
 function b64urlDecode(s: string): Uint8Array {
@@ -251,6 +252,39 @@ export const POST: APIRoute = async ({ request }) => {
   // inbound role-downgrade and version-mismatch checks (§6.s2 inbound flow).
   // ─────────────────────────────────────────────────────────────────────────
 
+  // ── Gap 6 V3: server-issued challenge validation ──────────────────────────
+  // When peerAssertion is present (V2.2 cryptographic path) AND bridgeChallenge
+  // is also present, validate the challenge against the issuer's TTL'd store.
+  // This closes the replay window: a captured handshake cannot be replayed
+  // because the challenge is single-use and consumed on first verify.
+  //
+  // V2.2 backwards compatibility: if bridgeChallenge is absent, the handshake
+  // is still accepted (older substrates may not yet call the challenge endpoint).
+  // A warning header is set so the caller knows they're on the legacy path.
+  let challengeWarning = false
+  const headers: Record<string, string> = {}
+
+  if (body.peerAssertion?.signature && peerHost) {
+    if (body.bridgeChallenge) {
+      const challengeOk = consumeChallenge(body.bridgeChallenge, peerHost)
+      if (!challengeOk) {
+        return Response.json(
+          {
+            error: 'bridge-challenge-stale-or-replayed',
+            detail:
+              'bridgeChallenge does not match an active server-issued nonce for this peer; re-fetch from GET /api/paths/bridge/challenge',
+          },
+          { status: 403 },
+        )
+      }
+    } else {
+      // V2.2 fallback — no challenge supplied
+      challengeWarning = true
+      headers['X-Bridge-Challenge-Missing'] = 'true'
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   pending.delete(key)
 
   // Base bridge path insert (existing behaviour, unchanged)
@@ -295,8 +329,12 @@ export const POST: APIRoute = async ({ request }) => {
       to: body.to,
       bridgeKind: 'federation',
       ...(peerOwnerAddress ? { peerOwnerAddress, peerOwnerVersion } : {}),
+      ...(challengeWarning ? { _warn: 'bridgeChallenge absent — V2.2 fallback; upgrade to V3' } : {}),
     },
-    { status: 201 },
+    {
+      status: 201,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
+    },
   )
 }
 
