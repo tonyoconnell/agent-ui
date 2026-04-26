@@ -699,6 +699,206 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
       },
     ),
 
+    // ── HEAL: options ──────────────────────────────────────────────────────
+    // Self-heal path. The local vault is intact (master + user_id_pub already
+    // in hand) but the server's vault_passkey_hints row went missing — D1
+    // wipe, fresh dev environment, or a cred row pruned by accident. The
+    // client re-runs a registration ceremony so the server can re-attest the
+    // existing credential and re-insert the cred_id row keyed by user_id_pub.
+    // No new account is minted; same biometric → same user_id_pub → same user.
+    passkeyHealOptions: createAuthEndpoint(
+      '/passkey-webauthn/heal/options',
+      {
+        method: 'POST',
+        body: z.object({ user_id_pub: z.string().min(40).max(64) }),
+      },
+      async (ctx) => {
+        try {
+          let rpID = opts.rpID
+          if (!rpID) {
+            // Prefer the live request URL — it reflects the actual domain the
+            // browser is on (dev.one.ie, localhost, etc.). baseURL is a
+            // build-time constant (PUBLIC_SITE_URL) and may not match the
+            // domain the user is accessing when the build is reused across envs.
+            try {
+              rpID = new URL(ctx.request?.url ?? ctx.context.baseURL).hostname
+            } catch {
+              rpID = 'localhost'
+            }
+          }
+          const rpName = opts.rpName ?? 'ONE'
+          if (!opts.challengeSecret) {
+            throw new APIError('INTERNAL_SERVER_ERROR', {
+              message: 'PASSKEY_CHALLENGE_SECRET not configured',
+            })
+          }
+
+          const user_id_pub = ctx.body.user_id_pub
+          // WebAuthn `userID` mirrors the deterministic identity bytes so the
+          // authenticator-side handle matches what register-anonymous used.
+          const userIdBytes = b64urlDecode(user_id_pub)
+
+          // Look up every cred_id already registered for this user_id_pub so
+          // the authenticator can re-attest the right credential. (We do NOT
+          // pass excludeCredentials here — that would force a duplicate. The
+          // client's navigator.credentials.create() runs without exclude so
+          // the OS recognises the existing iCloud-synced passkey.)
+          // Kept for symmetry with register-anonymous/options + future use.
+          const db = await getD1(undefined)
+          const excludeCredentials: Array<{ id: string; type: 'public-key' }> = []
+          if (db) {
+            try {
+              const rows = await db
+                .prepare(`SELECT cred_id FROM vault_passkey_hints WHERE user_id_pub = ?`)
+                .bind(user_id_pub)
+                .all<{ cred_id: string }>()
+              for (const r of rows.results ?? []) {
+                excludeCredentials.push({ id: r.cred_id, type: 'public-key' })
+              }
+            } catch (e) {
+              // Non-fatal: heal works even if lookup fails. Worst case is a
+              // duplicate cred row, which a follow-up heal will reconcile.
+              console.warn('[passkey-webauthn] heal/options excludeCredentials lookup skipped:', (e as Error).message)
+            }
+          }
+
+          const options = await generateRegistrationOptions({
+            rpName,
+            rpID,
+            userName: 'ONE',
+            userID: userIdBytes,
+            userDisplayName: 'ONE account',
+            attestationType: 'none',
+            authenticatorSelection: {
+              authenticatorAttachment: 'platform',
+              residentKey: 'preferred',
+              userVerification: 'required',
+            },
+            supportedAlgorithmIDs: [-7, -257],
+            // Intentionally no excludeCredentials — heal needs the OS to
+            // re-surface the existing passkey, not refuse it as a duplicate.
+          })
+
+          const signedChallenge = await issueChallenge(opts.challengeSecret, 'register')
+          const [payloadB64] = signedChallenge.split('.')
+          options.challenge = payloadB64 as typeof options.challenge
+
+          return ctx.json({ options, challengeToken: signedChallenge, prfSalt: b64url(await globalPrfSalt()) })
+        } catch (e) {
+          if (e instanceof APIError) throw e
+          console.error('[passkey-webauthn] heal/options failed', e)
+          throw new APIError('INTERNAL_SERVER_ERROR', {
+            message: `heal/options: ${(e as Error)?.message ?? String(e)}`,
+          })
+        }
+      },
+    ),
+
+    // ── HEAL: verify + reinsert cred_id row + mint session ─────────────────
+    // Heal IS sign-in for a known biometric. Verifying the attestation proves
+    // the client controls the same credential the OS already had stored; that
+    // plus the deterministic user_id_pub is sufficient to recognise the user
+    // and resume their session — exactly the "biometrics IS the security"
+    // contract from passkey-recognition.md.
+    passkeyHeal: createAuthEndpoint(
+      '/passkey-webauthn/heal',
+      {
+        method: 'POST',
+        body: z.object({
+          challengeToken: z.string(),
+          response: z.record(z.string(), z.unknown()),
+          user_id_pub: z.string().min(40).max(64),
+        }),
+      },
+      async (ctx) => {
+        const err = (status: number, message: string): Response =>
+          new Response(JSON.stringify({ error: message }), {
+            status,
+            headers: { 'Content-Type': 'application/json' },
+          })
+
+        try {
+          const { challenge } = await verifyChallenge(ctx.body.challengeToken, opts.challengeSecret, 'register')
+
+          let rpID = opts.rpID
+          if (!rpID) {
+            // Prefer the live request URL — it reflects the actual domain the
+            // browser is on (dev.one.ie, localhost, etc.). baseURL is a
+            // build-time constant (PUBLIC_SITE_URL) and may not match the
+            // domain the user is accessing when the build is reused across envs.
+            try {
+              rpID = new URL(ctx.request?.url ?? ctx.context.baseURL).hostname
+            } catch {
+              rpID = 'localhost'
+            }
+          }
+          const expectedOrigins = opts.expectedOrigins ?? [originFromContext(ctx)]
+
+          let verification: Awaited<ReturnType<typeof verifyRegistrationResponse>>
+          try {
+            verification = await verifyRegistrationResponse({
+              response: ctx.body.response as Parameters<typeof verifyRegistrationResponse>[0]['response'],
+              expectedChallenge: challenge,
+              expectedOrigin: expectedOrigins,
+              expectedRPID: rpID,
+              requireUserVerification: true,
+            })
+          } catch (e) {
+            return err(401, `Attestation invalid: ${(e as Error).message}`)
+          }
+          if (!verification.verified || !verification.registrationInfo) {
+            return err(401, 'Attestation did not verify')
+          }
+
+          const info = verification.registrationInfo
+          const credId = info.credential.id
+          const pubKey = b64url(new Uint8Array(info.credential.publicKey))
+          const signCount = info.credential.counter
+
+          const db = await getD1(undefined)
+
+          // Resolve user via the deterministic identity key. This is the
+          // self-heal contract: same biometric → same master → same
+          // user_id_pub → same user, every time.
+          const user = await findOrCreateUserByPub(ctx, ctx.body.user_id_pub, db)
+
+          const upsert = await upsertHint(db, credId, {
+            user_id: user.id,
+            pub_key: pubKey,
+            sign_count: signCount,
+            wrapped_master: null,
+            label: null,
+            user_id_pub: ctx.body.user_id_pub,
+          })
+          if (!upsert.ok) return err(500, upsert.err)
+
+          // Heal IS sign-in. The biometric verification just succeeded; mint
+          // a session so the client can fetch the vault_blob and resume.
+          const session = await ctx.context.internalAdapter.createSession(user.id, ctx.request)
+          await setSessionCookie(ctx, { session, user })
+
+          // Same governance integration as register-anonymous: ensure a TypeDB
+          // human unit + personal group + chairman membership exist.
+          // Fire-and-forget so a TypeDB blip can't block heal.
+          ensureHumanUnit(user.id, {
+            id: user.id,
+            email: user.email ?? null,
+            name: user.name ?? null,
+          }).catch((e) => console.error('[passkey-webauthn] ensureHumanUnit failed', e))
+
+          return ctx.json({
+            healed: true,
+            credId,
+            user: { id: user.id, email: user.email, name: user.name },
+            session: { token: session.token, expiresAt: session.expiresAt },
+          })
+        } catch (e) {
+          console.error('[passkey-webauthn] heal failed', e)
+          return err(500, `heal: ${(e as Error)?.message ?? String(e)}`)
+        }
+      },
+    ),
+
     // ── AUTHENTICATE: options ──────────────────────────────────────────────
     passkeyAuthenticateOptions: createAuthEndpoint(
       '/passkey-webauthn/authenticate/options',

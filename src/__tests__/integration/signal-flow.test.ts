@@ -22,14 +22,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { useCassette } from '@/__tests__/helpers/cassette'
 import { escapeTqlString, readParsed, writeSilent } from '@/lib/typedb'
 
-// SKIP: re-record on 2026-04-26 confirmed test/schema drift — the writes
-// commit successfully but the read query returns 0 rows. Symptom: either
-// the `path` relation's source/target role names diverged from the schema's
-// expectation, OR the `(source: $a, target: $b) isa path, has strength $s`
-// shape is no longer valid against world.tql. Needs schema reconciliation
-// before this test makes sense again. auth-roundtrip + memory-reveal cassettes
-// re-recorded successfully and replay clean — only this one is stuck.
-describe.skip('path round-trip', () => {
+describe('path round-trip', () => {
   const suffix = Date.now()
   const uidA = `vcr-src-${suffix}`
   const uidB = `vcr-tgt-${suffix}`
@@ -59,14 +52,16 @@ describe.skip('path round-trip', () => {
       insert $u isa unit, has uid "${safeB}", has name "VCR Target";
     `)
 
-    // Insert path between them with strength 5.0
+    // Insert path between them with strength 5.0.
+    // Note: omits `has scope "public"` — the live schema dropped the `scope`
+    // attribute on path. Test focuses on the strength round-trip, which is
+    // the substrate's load-bearing edge property anyway.
     await writeSilent(`
       match $a isa unit, has uid "${safeA}";
             $b isa unit, has uid "${safeB}";
       insert (source: $a, target: $b) isa path,
         has strength 5.0,
-        has resistance 0.0,
-        has scope "public";
+        has resistance 0.0;
     `)
 
     // Read back path strength
