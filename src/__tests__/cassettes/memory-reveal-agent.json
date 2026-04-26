@@ -1,13 +1,13 @@
 {
-  "schema_hash": "1d539bd66699",
+  "schema_hash": "df85fd9d0166",
   "interactions": [
     {
       "id": "memory-reveal-agent-001",
       "request": {
-        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      insert $u isa unit,\n        has uid \"vcr-actor-1776787399947\",\n        has name \"VCR Test Actor\",\n        has tag \"vcr-test\";\n    ",
+          "query": "\n      insert $u isa unit,\n        has uid \"vcr-actor-1777182177591\",\n        has name \"VCR Test Actor\",\n        has tag \"vcr-test\";\n    ",
           "transactionType": "write",
           "commit": true
         }
@@ -22,7 +22,7 @@
               "data": {
                 "u": {
                   "kind": "entity",
-                  "iid": "0x1e0001000000000000000b",
+                  "iid": "0x1e0001000000000000068f",
                   "type": {
                     "kind": "entityType",
                     "label": "unit"
@@ -69,7 +69,7 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "vcr-actor-1776787399947",
+                      "value": "vcr-actor-1777182177591",
                       "valueType": "string"
                     },
                     "comparator": "=="
@@ -248,15 +248,15 @@
           "warning": null
         }
       },
-      "recorded_at": "2026-04-21T16:03:20.901Z"
+      "recorded_at": "2026-04-26T05:43:00.066Z"
     },
     {
       "id": "memory-reveal-agent-002",
       "request": {
-        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $u isa unit, has uid \"vcr-actor-1776787399947\", has name $n;\n      select $n;\n    ",
+          "query": "\n      match $u isa unit, has uid \"vcr-actor-1777182177591\", has name $n;\n      select $n;\n    ",
           "transactionType": "read",
           "commit": false
         }
@@ -310,7 +310,7 @@
                   {
                     "textSpan": {
                       "begin": 34,
-                      "end": 59
+                      "end": 60
                     },
                     "tag": "comparison",
                     "lhs": {
@@ -320,7 +320,7 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "vcr-actor-1776787399947",
+                      "value": "vcr-actor-1777182177591",
                       "valueType": "string"
                     },
                     "comparator": "=="
@@ -328,7 +328,7 @@
                   {
                     "textSpan": {
                       "begin": 26,
-                      "end": 59
+                      "end": 60
                     },
                     "tag": "has",
                     "owner": {
@@ -361,8 +361,8 @@
                   },
                   {
                     "textSpan": {
-                      "begin": 61,
-                      "end": 72
+                      "begin": 71,
+                      "end": 82
                     },
                     "tag": "has",
                     "owner": {
@@ -376,8 +376,8 @@
                   },
                   {
                     "textSpan": {
-                      "begin": 65,
-                      "end": 69
+                      "begin": 75,
+                      "end": 79
                     },
                     "tag": "isa",
                     "instance": {
@@ -429,15 +429,15 @@
           "warning": null
         }
       },
-      "recorded_at": "2026-04-21T16:03:21.199Z"
+      "recorded_at": "2026-04-26T05:43:03.448Z"
     },
     {
       "id": "memory-reveal-agent-003",
       "request": {
-        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $u isa unit, has uid \"vcr-nonexistent-actor-xyz-1776787401201\";\n      select $u;\n    ",
+          "query": "\n      match $u isa unit, has uid \"vcr-nonexistent-actor-xyz-1777182183449\";\n      select $u;\n    ",
           "transactionType": "read",
           "commit": false
         }
@@ -454,8 +454,8 @@
                 "constraints": [
                   {
                     "textSpan": {
-                      "begin": 16,
-                      "end": 24
+                      "begin": 14,
+                      "end": 22
                     },
                     "tag": "isa",
                     "instance": {
@@ -472,8 +472,8 @@
                   },
                   {
                     "textSpan": {
-                      "begin": 34,
-                      "end": 75
+                      "begin": 32,
+                      "end": 62
                     },
                     "tag": "comparison",
                     "lhs": {
@@ -483,15 +483,15 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "vcr-nonexistent-actor-xyz-1776787401201",
+                      "value": "vcr-nonexistent-actor-xyz-1777182183449",
                       "valueType": "string"
                     },
                     "comparator": "=="
                   },
                   {
                     "textSpan": {
-                      "begin": 26,
-                      "end": 75
+                      "begin": 24,
+                      "end": 62
                     },
                     "tag": "has",
                     "owner": {
@@ -505,8 +505,8 @@
                   },
                   {
                     "textSpan": {
-                      "begin": 30,
-                      "end": 33
+                      "begin": 28,
+                      "end": 31
                     },
                     "tag": "isa",
                     "instance": {
@@ -555,7 +555,7 @@
           "warning": null
         }
       },
-      "recorded_at": "2026-04-21T16:03:21.487Z"
+      "recorded_at": "2026-04-26T05:43:04.994Z"
     }
   ]
 }

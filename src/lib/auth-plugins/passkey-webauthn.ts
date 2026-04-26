@@ -126,7 +126,7 @@ function originFromContext(ctx: { context: { baseURL: string }; request?: Reques
   }
 }
 
-// ─── hint storage (D1 in prod, in-memory Map in localhost dev) ──────────────
+// ─── hint storage (D1 only — file fallback removed by passkey-recognition Track D) ──
 
 interface HintRow {
   user_id: string
@@ -134,136 +134,124 @@ interface HintRow {
   sign_count: number
   wrapped_master?: string | null
   label?: string | null
+  user_id_pub?: string | null
 }
 
-/** Disk-backed Map. Only used when D1 is unavailable AND we're in dev.
- *  Persists across `astro dev` restarts so a registered passkey keeps working
- *  without requiring the user to wipe their local vault every time. */
-const DEV_HINT_FILE = '.dev-passkey-hints.json'
-const devHintStore = new Map<string, HintRow>()
-let devHintStoreLoaded = false
-
-function isDev(): boolean {
-  try {
-    return import.meta.env.DEV === true
-  } catch {
-    return false
-  }
-}
-
-async function loadDevHintStore(): Promise<void> {
-  if (devHintStoreLoaded) return
-  devHintStoreLoaded = true
-  try {
-    const fs = await import('node:fs/promises')
-    const raw = await fs.readFile(DEV_HINT_FILE, 'utf8')
-    const parsed = JSON.parse(raw) as Record<string, HintRow>
-    for (const [k, v] of Object.entries(parsed)) devHintStore.set(k, v)
-  } catch {
-    /* first run or unreadable — start empty */
-  }
-}
-
-async function saveDevHintStore(): Promise<void> {
-  try {
-    const fs = await import('node:fs/promises')
-    const obj = Object.fromEntries(devHintStore)
-    await fs.writeFile(DEV_HINT_FILE, JSON.stringify(obj, null, 2), 'utf8')
-  } catch (e) {
-    console.warn('[passkey-webauthn] failed to persist dev hint store:', (e as Error).message)
-  }
-}
+/** D1 row type that includes user_id_pub (column added by migration 0024).
+ *  Local cast so tsc doesn't complain about the extra column. */
+type HintRowWithPub = HintRow & { user_id_pub: string | null }
 
 async function upsertHint(
   db: D1Database | null,
   credId: string,
   row: HintRow,
-): Promise<{ ok: true } | { ok: false; err: string }> {
-  if (db) {
-    try {
-      await db
-        .prepare(
-          `INSERT INTO vault_passkey_hints
-             (cred_id, user_id, pub_key, sign_count, wrapped_master, label, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, unixepoch())
-           ON CONFLICT(cred_id) DO UPDATE SET
-             user_id        = excluded.user_id,
-             pub_key        = excluded.pub_key,
-             sign_count     = excluded.sign_count,
-             wrapped_master = excluded.wrapped_master,
-             label          = excluded.label,
-             updated_at     = unixepoch()`,
-        )
-        .bind(credId, row.user_id, row.pub_key, row.sign_count, row.wrapped_master ?? null, row.label ?? null)
-        .run()
-      return { ok: true }
-    } catch (e) {
-      const msg = (e as Error).message ?? String(e)
-      if (msg.includes('no such table')) {
-        return { ok: false, err: 'vault_passkey_hints table missing — apply migration 0023_vault_passkey_hints.sql' }
-      }
-      return { ok: false, err: `D1 write failed: ${msg}` }
-    }
+): Promise<{ ok: true } | { ok: false; err: string; status?: number }> {
+  // D1 is mandatory. No file fallback. 503 means "server can't check" —
+  // distinct from 401 ("credential unknown").
+  if (!db) {
+    return { ok: false, err: 'D1 not available on server', status: 503 }
   }
-  if (isDev()) {
-    await loadDevHintStore()
-    devHintStore.set(credId, row)
-    await saveDevHintStore()
-    console.warn(`[passkey-webauthn] stored hint in DEV file fallback (${DEV_HINT_FILE})`)
+  try {
+    await db
+      .prepare(
+        `INSERT INTO vault_passkey_hints
+           (cred_id, user_id, pub_key, sign_count, wrapped_master, label, user_id_pub, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch())
+         ON CONFLICT(cred_id) DO UPDATE SET
+           user_id        = excluded.user_id,
+           pub_key        = excluded.pub_key,
+           sign_count     = excluded.sign_count,
+           wrapped_master = excluded.wrapped_master,
+           label          = excluded.label,
+           user_id_pub    = excluded.user_id_pub,
+           updated_at     = unixepoch()`,
+      )
+      .bind(
+        credId,
+        row.user_id,
+        row.pub_key,
+        row.sign_count,
+        row.wrapped_master ?? null,
+        row.label ?? null,
+        row.user_id_pub ?? null,
+      )
+      .run()
     return { ok: true }
+  } catch (e) {
+    const msg = (e as Error).message ?? String(e)
+    if (msg.includes('no such table')) {
+      return {
+        ok: false,
+        err: 'vault_passkey_hints table missing — apply migration 0023_vault_passkey_hints.sql',
+        status: 503,
+      }
+    }
+    if (msg.includes('no such column') && msg.includes('user_id_pub')) {
+      return {
+        ok: false,
+        err: 'user_id_pub column missing — apply migration 0024_user_id_pub.sql',
+        status: 503,
+      }
+    }
+    return { ok: false, err: `D1 write failed: ${msg}`, status: 503 }
   }
-  return { ok: false, err: 'D1 not available on server' }
 }
 
-async function findHint(db: D1Database | null, credId: string): Promise<{ hint: HintRow | null } | { err: string }> {
-  if (db) {
-    try {
-      const row = await db
-        .prepare(
-          `SELECT user_id, pub_key, sign_count, wrapped_master
-             FROM vault_passkey_hints WHERE cred_id = ? LIMIT 1`,
-        )
-        .bind(credId)
-        .first<HintRow>()
-      return { hint: row ?? null }
-    } catch (e) {
-      const msg = (e as Error).message ?? String(e)
-      if (msg.includes('no such table')) {
-        return { err: 'vault_passkey_hints table missing — apply migration 0023_vault_passkey_hints.sql' }
+async function findHint(
+  db: D1Database | null,
+  credId: string,
+): Promise<{ hint: HintRowWithPub | null } | { err: string; status?: number }> {
+  if (!db) return { err: 'D1 not available on server', status: 503 }
+  try {
+    const row = await db
+      .prepare(
+        `SELECT user_id, pub_key, sign_count, wrapped_master, user_id_pub
+           FROM vault_passkey_hints WHERE cred_id = ? LIMIT 1`,
+      )
+      .bind(credId)
+      .first<HintRowWithPub>()
+    return { hint: row ?? null }
+  } catch (e) {
+    const msg = (e as Error).message ?? String(e)
+    if (msg.includes('no such table')) {
+      return {
+        err: 'vault_passkey_hints table missing — apply migration 0023_vault_passkey_hints.sql',
+        status: 503,
       }
-      return { err: `D1 read failed: ${msg}` }
     }
+    if (msg.includes('no such column') && msg.includes('user_id_pub')) {
+      return {
+        err: 'user_id_pub column missing — apply migration 0024_user_id_pub.sql',
+        status: 503,
+      }
+    }
+    return { err: `D1 read failed: ${msg}`, status: 503 }
   }
-  if (isDev()) {
-    await loadDevHintStore()
-    return { hint: devHintStore.get(credId) ?? null }
-  }
-  return { err: 'D1 not available on server' }
 }
 
 async function bumpSignCount(db: D1Database | null, credId: string, newCounter: number): Promise<void> {
-  if (db) {
-    try {
-      await db
-        .prepare(`UPDATE vault_passkey_hints SET sign_count = ?, updated_at = unixepoch() WHERE cred_id = ?`)
-        .bind(newCounter, credId)
-        .run()
-    } catch {
-      // best-effort
-    }
-    return
-  }
-  if (isDev()) {
-    await loadDevHintStore()
-    const row = devHintStore.get(credId)
-    if (row) {
-      devHintStore.set(credId, { ...row, sign_count: newCounter })
-      await saveDevHintStore()
-    }
+  if (!db) return
+  try {
+    await db
+      .prepare(`UPDATE vault_passkey_hints SET sign_count = ?, updated_at = unixepoch() WHERE cred_id = ?`)
+      .bind(newCounter, credId)
+      .run()
+  } catch {
+    // best-effort
   }
 }
 
-async function createOrFindUser(
+/** Find or create a Better Auth user keyed by `user_id_pub` (the stable
+ *  client-derived identity = SHA256("user-id-v1" || master)). Same biometric
+ *  → same master → same user_id_pub → same user, on any device, forever.
+ *
+ *  Lookup order:
+ *    1. SELECT user WHERE user_id_pub = ?  (the deterministic key)
+ *    2. createUser, then UPDATE user SET user_id_pub = ?
+ *
+ *  Email is still required by Better Auth but no longer the identity key.
+ *  We synthesize it from the first 16 chars of user_id_pub. */
+async function findOrCreateUserByPub(
   ctx: {
     context: {
       internalAdapter: {
@@ -272,17 +260,58 @@ async function createOrFindUser(
       }
     }
   },
-  userHandle: string,
+  user_id_pub: string,
+  db: D1Database | null,
 ): Promise<{ id: string; email: string | null; name: string | null }> {
-  const email = `${userHandle}@passkey.one.ie`
-  const displayName = `Passkey ${userHandle.slice(0, 8)}`
-  try {
-    return await ctx.context.internalAdapter.createUser({ email, name: displayName, emailVerified: false })
-  } catch {
-    const existing = await ctx.context.internalAdapter.findUserByEmail(email).catch(() => null)
-    if (!existing?.user) throw new Error('could not create or find user for this device handle')
-    return existing.user
+  // Step 1: deterministic lookup by user_id_pub
+  if (db) {
+    try {
+      const existing = await db
+        .prepare(`SELECT id, email, name FROM user WHERE user_id_pub = ? LIMIT 1`)
+        .bind(user_id_pub)
+        .first<{ id: string; email: string | null; name: string | null }>()
+      if (existing) return existing
+    } catch (e) {
+      // Column may be missing on old D1 — fall through to create path.
+      const msg = (e as Error).message ?? String(e)
+      if (!msg.includes('no such column')) {
+        console.warn('[passkey-webauthn] user_id_pub lookup failed:', msg)
+      }
+    }
   }
+
+  // Step 2: create new user, then back-fill user_id_pub
+  const handleSlice = user_id_pub.slice(0, 16)
+  const email = `${handleSlice}@passkey.one.ie`
+  const displayName = `Passkey ${handleSlice.slice(0, 8)}`
+  let user: { id: string; email: string | null; name: string | null }
+  try {
+    user = (await ctx.context.internalAdapter.createUser({
+      email,
+      name: displayName,
+      emailVerified: false,
+    })) as { id: string; email: string | null; name: string | null }
+  } catch {
+    const existing = (await ctx.context.internalAdapter.findUserByEmail(email).catch(() => null)) as {
+      user?: { id: string; email: string | null; name: string | null }
+    } | null
+    if (!existing?.user) throw new Error('could not create or find user for this passkey')
+    user = existing.user
+  }
+
+  // Back-fill user_id_pub so future lookups hit step 1.
+  if (db) {
+    try {
+      await db
+        .prepare(`UPDATE user SET user_id_pub = ? WHERE id = ? AND (user_id_pub IS NULL OR user_id_pub = '')`)
+        .bind(user_id_pub, user.id)
+        .run()
+    } catch (e) {
+      console.warn('[passkey-webauthn] failed to back-fill user_id_pub:', (e as Error).message)
+    }
+  }
+
+  return user
 }
 
 // ─── plugin ─────────────────────────────────────────────────────────────────
@@ -432,13 +461,23 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
     ),
 
     // ── REGISTER-ANONYMOUS: options ────────────────────────────────────────
-    // No Better Auth session required. Creates a fresh random user handle
-    // (finalized into a real user row during verify). Used by the
-    // "sign in with passkey" flow to auto-create an account when no
-    // credential matches server-side.
+    // No Better Auth session required. The client now derives a deterministic
+    // `user_id_pub = SHA256("user-id-v1" || master)` from the vault master and
+    // sends it here. Same biometric → same master → same user_id_pub → same
+    // user, on any device. `deviceHandle` is kept as a transition-period
+    // fallback for older clients; once Track E (passkey-cloud.ts) ships, all
+    // clients send `user_id_pub`.
     passkeyRegisterAnonymousOptions: createAuthEndpoint(
       '/passkey-webauthn/register-anonymous/options',
-      { method: 'POST', body: z.object({ deviceHandle: z.string().optional() }).optional() },
+      {
+        method: 'POST',
+        body: z
+          .object({
+            user_id_pub: z.string().min(40).max(64).optional(),
+            deviceHandle: z.string().optional(),
+          })
+          .optional(),
+      },
       async (ctx) => {
         try {
           let rpID = opts.rpID
@@ -460,11 +499,42 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
             })
           }
 
-          // Use the client's stable device handle as userID when provided.
-          // Same userID + same RP = authenticator replaces existing credential
-          // instead of creating a new one — prevents passkey accumulation.
-          // Fall back to a random handle when none is supplied (older clients).
-          const userHandle = ctx.body?.deviceHandle ?? b64url(crypto.getRandomValues(new Uint8Array(16)))
+          // Identity key precedence:
+          //   1. user_id_pub (deterministic from biometric — preferred)
+          //   2. deviceHandle (legacy clients during rollout)
+          //   3. random handle (very old clients only)
+          const user_id_pub = ctx.body?.user_id_pub
+          const userHandle = user_id_pub ?? ctx.body?.deviceHandle ?? b64url(crypto.getRandomValues(new Uint8Array(16)))
+
+          // WebAuthn `userID`: when we have a user_id_pub (b64url 32 bytes),
+          // use the raw decoded bytes — that's the canonical handle for
+          // authenticator-side credential replacement. Otherwise fall back to
+          // encoding the legacy handle string.
+          const userIdBytes = user_id_pub ? b64urlDecode(user_id_pub) : new TextEncoder().encode(userHandle)
+
+          // Server-side excludeCredentials (Gap 6): look up every cred_id
+          // already registered for this user_id_pub so the authenticator
+          // doesn't accidentally mint a duplicate credential when iCloud
+          // Keychain has already synced one across devices.
+          const excludeCredentials: Array<{ id: string; type: 'public-key' }> = []
+          if (user_id_pub) {
+            const db = await getD1(undefined)
+            if (db) {
+              try {
+                const rows = await db
+                  .prepare(`SELECT cred_id FROM vault_passkey_hints WHERE user_id_pub = ?`)
+                  .bind(user_id_pub)
+                  .all<{ cred_id: string }>()
+                for (const r of rows.results ?? []) {
+                  excludeCredentials.push({ id: r.cred_id, type: 'public-key' })
+                }
+              } catch (e) {
+                // Non-fatal: if the column is missing or D1 is flaky, the
+                // worst case is a duplicate cred row, which heal handles.
+                console.warn('[passkey-webauthn] excludeCredentials lookup skipped:', (e as Error).message)
+              }
+            }
+          }
 
           // `userName` is what Apple Passwords / Chrome Passkey Manager show
           // as the headline label. Keep it friendly; the unique identity lives
@@ -473,7 +543,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
             rpName,
             rpID,
             userName: 'ONE',
-            userID: new TextEncoder().encode(userHandle),
+            userID: userIdBytes,
             userDisplayName: 'ONE account',
             attestationType: 'none',
             authenticatorSelection: {
@@ -482,6 +552,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
               userVerification: 'required',
             },
             supportedAlgorithmIDs: [-7, -257],
+            excludeCredentials,
           })
 
           const signedChallenge = await issueChallenge(opts.challengeSecret, 'register')
@@ -512,7 +583,13 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
         body: z.object({
           challengeToken: z.string(),
           response: z.record(z.string(), z.unknown()),
-          userHandle: z.string(),
+          // user_id_pub is the deterministic identity key derived from the
+          // vault master (SHA256("user-id-v1" || master)). Same biometric →
+          // same master → same user_id_pub on every device, forever.
+          user_id_pub: z.string().min(40).max(64),
+          // userHandle kept optional for backward compat with legacy clients
+          // that haven't yet been updated to send user_id_pub.
+          userHandle: z.string().optional(),
           label: z.string().max(64).optional(),
         }),
       },
@@ -577,14 +654,13 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
               user = existingUser
             } else {
               // hint exists but user was deleted — fall through to create
-              user = await createOrFindUser(ctx, ctx.body.userHandle)
+              user = await findOrCreateUserByPub(ctx, ctx.body.user_id_pub, db)
             }
           } else {
-            // Find or create a Better Auth user for this passkey.
-            // The email is stable: deviceHandle@passkey.one.ie — same device =
-            // same handle = same email = same user. Re-registering on the same
-            // device (e.g. after a dev restart cleared D1) resumes the old account.
-            user = await createOrFindUser(ctx, ctx.body.userHandle)
+            // Find or create a Better Auth user keyed by user_id_pub. Same
+            // biometric → same master → same user_id_pub → same user, on any
+            // device. The server is a CACHE of identity, not the source of truth.
+            user = await findOrCreateUserByPub(ctx, ctx.body.user_id_pub, db)
           }
 
           const upsert = await upsertHint(db, credId, {
@@ -593,6 +669,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
             sign_count: signCount,
             wrapped_master: null,
             label: ctx.body.label ?? null,
+            user_id_pub: ctx.body.user_id_pub,
           })
           if (!upsert.ok) return err(500, upsert.err)
 
@@ -681,6 +758,10 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
         body: z.object({
           challengeToken: z.string(),
           response: z.record(z.string(), z.unknown()),
+          // Optional: client may send the deterministic user_id_pub so the
+          // server can fall back to identity-by-pub when the cred_id row is
+          // missing. Primary lookup is still by cred_id from the assertion.
+          user_id_pub: z.string().min(40).max(64).optional(),
         }),
       },
       async (ctx) => {

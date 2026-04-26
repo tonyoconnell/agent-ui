@@ -151,6 +151,26 @@ export async function prfToMaster(prfSecret: Uint8Array): Promise<Uint8Array> {
   )
 }
 
+/** Stable public identifier derived from the vault master.
+ *  Same biometric → same master → same user_id_pub, on any device, forever.
+ *  Safe to send to the server — leaking it does not reveal the master. */
+export async function masterToUserIdPub(master: Uint8Array): Promise<string> {
+  // HKDF-SHA256 over `master`, salt empty, info = "user-id-v1", 256 bits → b64url
+  const key = await crypto.subtle.importKey('raw', bs(master), { name: 'HKDF' }, false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: bs(new Uint8Array(0)),
+      info: bs(utf8Encode('user-id-v1')),
+    },
+    key,
+    256,
+  )
+  // b64url, no padding — self-contained for browser+SSR portability.
+  return bytesToBase64(new Uint8Array(bits)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
 export async function deriveSubKey(baseKey: CryptoKey, info: string): Promise<CryptoKey> {
   return crypto.subtle.deriveKey(
     {

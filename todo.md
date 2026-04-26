@@ -1,11 +1,11 @@
 ---
 type: dashboard
 group: ONE
-refreshed_at: 2026-04-20T14:30:00Z
-refreshed_by: "/close task-system:2 + /close in-workspace:2.0 + in-workspace:2.1 (partial)"
-plans_active: 2
-tasks_open: 0
-tasks_picked: 0
+refreshed_at: 2026-04-26T13:30:00Z
+refreshed_by: "added passkey-recognition plan (5 parallel tracks, Cycle 1 W3 ready)"
+plans_active: 3
+tasks_open: 5
+tasks_picked: 2
 tasks_verified_lifetime: 16
 escape_alerts: 0
 rubric_avg_7d: 0.82
@@ -25,6 +25,7 @@ tests_failing: 0
 
 | Plan | Goal | Cycles | Rubric (7d) | Escape risk | Next action | Status |
 |------|------|:------:|:-----------:|:-----------:|-------------|:------:|
+| [`passkey-recognition`](plans/one/passkey-recognition.md) | Biometrics IS the security — same Touch ID → same vault, every time | 0/1 | — | medium (auth surface) | Spawn 5 parallel W3 agents (Tracks A-E) | `READY` |
 | [`in-workspace`](plans/one/in-workspace.md) | `/tasks` as Apple/Things/Asana-grade workspace | 1/7 (2.1 W3 done, W4 pending) | **0.82** | low | Await W4 verify of 2.1 → start 2.2 recon (in flight) | `RUNNING` |
 | [`task-system`](#) *(doc still owed)* | Merge task/plan/thing; ship workspace | 2/5 (schema + tests) | 0.85 | low | Cycle 3 — vocab propagation (dsl + dictionary update) | `RUNNING` |
 | [`loop-close`](plans/one/loop-close.md) | Plans become pheromones; agents compete; humans sign | 0/5 | — | — | `/plan sync plans/one/loop-close.md` | `PLAN` |
@@ -35,9 +36,9 @@ tests_failing: 0
 
 | Status | Count | Notes |
 |--------|------:|-------|
-| `open` | 0 | |
+| `open` | 5 | passkey-recognition Cycle 1 W3 — Tracks A-E (parallel, no file-edit conflicts) |
 | `blocked` | 0 | |
-| `picked` | 2 | W4 verify (2.1) + Cycle 2.2 recon — in flight via spawned agents |
+| `picked` | 2 | W4 verify (in-workspace:2.1) + Cycle 2.2 recon — in flight via spawned agents |
 | `done` | 0 | |
 | `verified` | **16** | 5 schema + 1 meta + 4 data wiring + 4 wave swim-lanes + 8 test migrations - 1 dissolved test - 1 dissolved polish |
 | `failed` | 0 | |
@@ -101,11 +102,12 @@ $0.00 all layers. First settlement opens when `in-workspace` Cycle 2.6 closes �
 
 ## 8 — Next actions (pheromone-ranked)
 
-1. **Await W4 verify of in-workspace:2.1** (agent running). If pass → check off W4; start 2.2 recon formally.
-2. **Spawn Cycle 2.2 W3** — detail pane + rubric radar + pheromone badge. Uses recon agent's findings (in flight).
-3. **Backfill `plans/one/task-system.md`** — doc debt. Low effort, keeps bookkeeping honest.
-4. **Cycle 3 propagation** — dictionary.md + dsl.md absorb new vocab (task_status values, role letters, WaveKey, WAVES).
-5. **Cleanup deprecated `task` entity** — Cycle 2.2 or 2.3 safe window (after TaskBoard fully reads `thing`).
+1. **🔥 Spawn passkey-recognition Cycle 1 W3 — 5 parallel tracks** (no file-edit conflicts, all green-field or distinct files). Tracks A-E in [`plans/one/passkey-recognition.md`](plans/one/passkey-recognition.md). Evidence: D1 has 1 row, dev-file has 4 rows, vault_blob has 2 orphans on this machine. Same Touch ID, 5 minted users.
+2. **Await W4 verify of in-workspace:2.1** (agent running). If pass → check off W4; start 2.2 recon formally.
+3. **Spawn Cycle 2.2 W3** — detail pane + rubric radar + pheromone badge. Uses recon agent's findings (in flight).
+4. **Backfill `plans/one/task-system.md`** — doc debt. Low effort, keeps bookkeeping honest.
+5. **Cycle 3 propagation** — dictionary.md + dsl.md absorb new vocab (task_status values, role letters, WaveKey, WAVES).
+6. **Cleanup deprecated `task` entity** — Cycle 2.2 or 2.3 safe window (after TaskBoard fully reads `thing`).
 
 ---
 
@@ -113,8 +115,24 @@ $0.00 all layers. First settlement opens when `in-workspace` Cycle 2.6 closes �
 
 | Task ID | Wave | Agent (inferred) | Picked at |
 |---------|------|------------------|-----------|
-| `in-workspace:2.1:v1` | W4 | sonnet-verify (spawned this turn) | 14:29Z |
-| `in-workspace:2.2:r1` | W1 | haiku/sonnet-recon (spawned this turn) | 14:29Z |
+| `in-workspace:2.1:v1` | W4 | sonnet-verify (spawned this turn) | 2026-04-20T14:29Z |
+| `in-workspace:2.2:r1` | W1 | haiku/sonnet-recon (spawned this turn) | 2026-04-20T14:29Z |
+
+### 9a — passkey-recognition Cycle 1 W3 — ready to spawn (parallel)
+
+Five tracks. Five files. Zero edit conflicts. Spawn Sonnets in parallel.
+
+| Track | File (NEW or EDIT) | Owner concern | Closes gaps | Effort |
+|-------|--------------------|---------------|-------------|-------:|
+| **A** | `migrations/0024_user_id_pub.sql` (NEW) | Add `user_id_pub` column + indexes to `user`, `vault_blob`, `vault_passkey_hints` | 1 (forward-compat) | 15 min |
+| **B** | `scripts/migrate-dev-passkey-hints.ts` (NEW) | One-shot: read `.dev-passkey-hints.json` → upsert into D1 → rename file | 2 (split-brain) | 30 min |
+| **C** | `src/components/u/lib/vault/crypto.ts` (EDIT) | Add `masterToUserIdPub(master)` HKDF helper + unit test | 4 (server can derive) | 30 min |
+| **D** | `src/lib/auth-plugins/passkey-webauthn.ts` (EDIT) | Remove file fallback · `user_id_pub` as identity key · `/heal` endpoint · server-side `excludeCredentials` | 1, 2, 3, 5, 6 | 2 h |
+| **E** | `src/components/u/lib/vault/passkey-cloud.ts` (EDIT) | Send `user_id_pub` · auto-heal on 401 · delete misleading "passkey not recognised" branch | 4, 7 | 1.5 h |
+
+**Spawn command (concept):** one Sonnet per track, all in flight simultaneously. Shared context: `plans/one/passkey-recognition.md`. Each agent reads its track's slice, edits its file, runs `bun run verify` for its scope, reports rubric + diff.
+
+**Gate (W4):** all 5 tracks land → `bun run verify` clean → manual test (wipe D1, sign in same Touch ID, vault unlocks via heal path, no orphan user) → rubric ≥ 0.65.
 
 ---
 

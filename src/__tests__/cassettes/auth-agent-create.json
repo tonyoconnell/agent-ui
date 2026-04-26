@@ -1,13 +1,13 @@
 {
-  "schema_hash": "1d539bd66699",
+  "schema_hash": "df85fd9d0166",
   "interactions": [
     {
       "id": "auth-agent-create-001",
       "request": {
-        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      insert $k isa api-key,\n        has api-key-id \"key-vcr-1776787399947\",\n        has key-hash \"$pbkdf2$100000$o3FHbiByKpjP6wwzqfV71w==$tOCuIO1hnRtnaz7jbffte4/ZGbD+gnZxff0GZmGAEN4=\",\n        has user-id \"vcr-user-1776787399947\",\n        has permissions \"read,write\",\n        has key-status \"active\";\n    ",
+          "query": "\n      insert $k isa api-key,\n        has api-key-id \"key-vcr-1777182177591\",\n        has key-hash \"$pbkdf2$100000$iLkjinLcCF8S0pZ1+x2G4Q==$JKREytjwHZ+iprvwM+HxuGtw0nEfIF03aY8s2nk3vwI=\",\n        has user-id \"vcr-user-1777182177591\",\n        has permissions \"read,write\",\n        has key-status \"active\";\n    ",
           "transactionType": "write",
           "commit": true
         }
@@ -22,7 +22,7 @@
               "data": {
                 "k": {
                   "kind": "entity",
-                  "iid": "0x1e00090000000000000002",
+                  "iid": "0x1e0008000000000000002d",
                   "type": {
                     "kind": "entityType",
                     "label": "api-key"
@@ -69,7 +69,7 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "key-vcr-1776787399947",
+                      "value": "key-vcr-1777182177591",
                       "valueType": "string"
                     },
                     "comparator": "=="
@@ -121,7 +121,7 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "$pbkdf2$100000$o3FHbiByKpjP6wwzqfV71w==$tOCuIO1hnRtnaz7jbffte4/ZGbD+gnZxff0GZmGAEN4=",
+                      "value": "$pbkdf2$100000$iLkjinLcCF8S0pZ1+x2G4Q==$JKREytjwHZ+iprvwM+HxuGtw0nEfIF03aY8s2nk3vwI=",
                       "valueType": "string"
                     },
                     "comparator": "=="
@@ -173,7 +173,7 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "vcr-user-1776787399947",
+                      "value": "vcr-user-1777182177591",
                       "valueType": "string"
                     },
                     "comparator": "=="
@@ -360,15 +360,15 @@
           "warning": null
         }
       },
-      "recorded_at": "2026-04-21T16:03:20.915Z"
+      "recorded_at": "2026-04-26T05:42:59.608Z"
     },
     {
       "id": "auth-agent-create-002",
       "request": {
-        "url": "https://david-gateway.david-0b1.workers.dev/typedb/query",
+        "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $k isa api-key, has api-key-id \"key-vcr-1776787399947\", has key-hash $h;\n      select $h;\n    ",
+          "query": "\n      match $k isa api-key, has api-key-id \"key-vcr-1777182177591\", has key-hash $h;\n      select $h;\n    ",
           "transactionType": "read",
           "commit": false
         }
@@ -383,7 +383,7 @@
               "data": {
                 "h": {
                   "kind": "attribute",
-                  "value": "$pbkdf2$100000$o3FHbiByKpjP6wwzqfV71w==$tOCuIO1hnRtnaz7jbffte4/ZGbD+gnZxff0GZmGAEN4=",
+                  "value": "$pbkdf2$100000$iLkjinLcCF8S0pZ1+x2G4Q==$JKREytjwHZ+iprvwM+HxuGtw0nEfIF03aY8s2nk3vwI=",
                   "valueType": "string",
                   "type": {
                     "kind": "attributeType",
@@ -432,7 +432,7 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "key-vcr-1776787399947",
+                      "value": "key-vcr-1777182177591",
                       "valueType": "string"
                     },
                     "comparator": "=="
@@ -541,7 +541,7 @@
           "warning": null
         }
       },
-      "recorded_at": "2026-04-21T16:03:21.229Z"
+      "recorded_at": "2026-04-26T05:43:00.923Z"
     }
   ]
 }

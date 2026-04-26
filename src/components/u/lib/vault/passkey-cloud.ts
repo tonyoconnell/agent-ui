@@ -11,7 +11,7 @@
  * the existing pattern in `vault/passkey.ts`.
  */
 
-import { prfToMaster } from './crypto'
+import { masterToUserIdPub, prfToMaster } from './crypto'
 import { guessAuthenticatorLabel } from './passkey'
 import { masterToRecoveryPhrase } from './recovery'
 import { fetchCloudBlob } from './sync'
@@ -181,6 +181,11 @@ export async function registerPasskeyForSignin(label?: string): Promise<{ credId
   }
   if (!prfSecret) throw new VaultError('authenticator did not return PRF output', 'passkey-unsupported')
 
+  // Derive the stable identity key from the same PRF — server uses it to
+  // anchor the cred_id to a deterministic user (Gap 4).
+  const master = await prfToMaster(prfSecret)
+  const user_id_pub = await masterToUserIdPub(master)
+
   // No wrappedMaster needed — the PRF is the master derivation path.
   // Server stores credential metadata only (pub_key, sign_count) for verification.
   const regRes = await fetch('/api/auth/passkey-webauthn/register', {
@@ -191,6 +196,7 @@ export async function registerPasskeyForSignin(label?: string): Promise<{ credId
       challengeToken,
       response: serializeAttestation(credential),
       label,
+      user_id_pub,
     }),
   })
   if (!regRes.ok) {
@@ -324,7 +330,10 @@ export async function createAccountWithPasskey(): Promise<{
 
   // Derive master deterministically from PRF — same passkey = same master = same wallets, forever.
   // No random entropy, no server-stored secret. The biometric IS the vault.
+  // Computed BEFORE the verify POST so user_id_pub can ride along: server uses it
+  // as the stable identity key (replaces deviceHandle as identity, kept for back-compat).
   const master = await prfToMaster(prfSecret)
+  const user_id_pub = await masterToUserIdPub(master)
 
   // The recovery phrase is the master encoded as 24 BIP-39 words.
   // Deterministic: same master → same words. User writes this down as emergency backup.
@@ -346,6 +355,8 @@ export async function createAccountWithPasskey(): Promise<{
       challengeToken,
       response: serializeAttestation(credential),
       userHandle,
+      user_id_pub,
+      deviceHandle: getOrCreateDeviceHandle(),
     }),
   })
   if (!regRes.ok) {
@@ -471,27 +482,41 @@ export async function signInWithPasskey(): Promise<{
   const prfSecret = extractPrfSecret(credential)
   if (!prfSecret) throw new VaultError('authenticator did not return PRF output', 'passkey-unsupported')
 
+  // Derive master + user_id_pub up front. Same biometric → same master → same
+  // user_id_pub on every device, forever. Sending user_id_pub on /authenticate
+  // lets the server fall back to it if cred_id lookup misses (Gap 4).
+  const master = await prfToMaster(prfSecret)
+  const user_id_pub = await masterToUserIdPub(master)
+
   const verifyRes = await fetch('/api/auth/passkey-webauthn/authenticate', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ challengeToken, response: serializeAssertion(credential) }),
+    body: JSON.stringify({ challengeToken, response: serializeAssertion(credential), user_id_pub }),
   })
   if (!verifyRes.ok) {
     const body = await verifyRes.text()
-    // Server doesn't know this credential — pivot to create flow. The user
-    // will be prompted once more (WebAuthn.create) and land in a brand-new
-    // account tied to a freshly-generated vault master.
+    // Server doesn't know this credential.
     if (verifyRes.status === 401) {
-      // If a local vault exists, the server lost its hint record (e.g. dev
-      // restart cleared the in-memory store). Auto-creating would wipe the
-      // user's wallets. Surface a clear error so they can recover instead.
+      // If a local vault exists, the server lost its cred_id row (e.g. dev
+      // restart cleared the store, or D1 was reset). Self-heal: re-attest
+      // this credential so the server can re-insert the row keyed by the
+      // deterministic user_id_pub. Same biometric → same master → same
+      // user_id_pub → same vault_blob. The local vault is intact; we just
+      // unlock it from the master we already derived.
       if (await Vault.hasVault()) {
+        const healed = await healPasskey(user_id_pub, options.rpId)
+        if (healed) {
+          await Vault.unlockWithMaster(master)
+          return { walletsRestored: 0 }
+        }
         throw new VaultError(
-          'Your passkey is not recognised by the server — the server may have restarted. Clear your vault or restore from your recovery phrase.',
+          'Could not recover the server session for this passkey. Restore from your recovery phrase to continue.',
           'passkey-unsupported',
         )
       }
+      // No local vault — server is the only source of truth for this user.
+      // Pivot to create flow: a brand-new account tied to a fresh master.
       return createAccountWithPasskey()
     }
     const msg = `passkey verify failed [HTTP ${verifyRes.status}]: ${body || '(empty body)'}`
@@ -501,7 +526,6 @@ export async function signInWithPasskey(): Promise<{
   // Server verified the credential and minted a session — that's all it does now.
   // The master is derived client-side from the PRF: same passkey = same master, always.
   await verifyRes.json()
-  const master = await prfToMaster(prfSecret)
 
   // Build an enrollment record so this credential can drive local unlock later.
   const enrollment: PasskeyEnrollment = {
@@ -583,5 +607,72 @@ function serializeAssertion(credential: PublicKeyCredential): Record<string, unk
       userHandle: r.userHandle ? arrayBufferToB64url(r.userHandle) : undefined,
     },
     clientExtensionResults: credential.getClientExtensionResults(),
+  }
+}
+
+// ─── self-heal ────────────────────────────────────────────────────────────
+
+/**
+ * Re-attest an existing credential so the server can re-insert its cred_id row
+ * keyed by `user_id_pub`. Used when the server returned 401 on /authenticate
+ * but the local vault is intact — the master is already in hand, the only
+ * thing missing is the server-side identity record.
+ *
+ * Same biometric → same master → same `user_id_pub`. The server uses
+ * `verifyRegistrationResponse` to validate the attestation, then upserts the
+ * cred_id row pointing at the same logical user. No new account is minted.
+ *
+ * Returns `true` on 200, `false` on any failure. Never throws — the caller
+ * decides what to surface to the user when heal can't recover.
+ */
+async function healPasskey(user_id_pub: string, rpId: string): Promise<boolean> {
+  try {
+    const optsRes = await fetch('/api/auth/passkey-webauthn/heal/options', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id_pub }),
+    })
+    if (!optsRes.ok) return false
+    const { options, challengeToken } = (await optsRes.json()) as RegOptionsResponse
+
+    const publicKey: PublicKeyCredentialCreationOptions = {
+      rp: options.rp ?? { id: rpId, name: rpId },
+      user: {
+        id: b64urlToArrayBuffer(options.user.id) as unknown as BufferSource,
+        name: options.user.name,
+        displayName: options.user.displayName,
+      },
+      challenge: b64urlToArrayBuffer(options.challenge) as unknown as BufferSource,
+      pubKeyCredParams: options.pubKeyCredParams,
+      timeout: options.timeout,
+      attestation: options.attestation,
+      authenticatorSelection: options.authenticatorSelection,
+      // No excludeCredentials — we WANT the OS to recognise the existing
+      // credential and re-attest it. Excluding it would force a duplicate.
+    }
+
+    let credential: PublicKeyCredential
+    try {
+      const raw = (await navigator.credentials.create({ publicKey })) as PublicKeyCredential | null
+      if (!raw) return false
+      credential = raw
+    } catch {
+      return false
+    }
+
+    const healRes = await fetch('/api/auth/passkey-webauthn/heal', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        challengeToken,
+        response: serializeAttestation(credential),
+        user_id_pub,
+      }),
+    })
+    return healRes.ok
+  } catch {
+    return false
   }
 }

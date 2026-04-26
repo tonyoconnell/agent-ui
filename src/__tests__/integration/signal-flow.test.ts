@@ -22,8 +22,13 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { useCassette } from '@/__tests__/helpers/cassette'
 import { escapeTqlString, readParsed, writeSilent } from '@/lib/typedb'
 
-// SKIP: cassette schema_hash mismatch (recorded 1d539bd66699 vs current df85fd9d0166).
-// Re-record with: RECORD=1 GATEWAY_API_KEY=<key> PUBLIC_GATEWAY_URL=<url> TYPEDB_DIRECT_URL="" bun vitest run src/__tests__/integration/signal-flow.test.ts
+// SKIP: re-record on 2026-04-26 confirmed test/schema drift — the writes
+// commit successfully but the read query returns 0 rows. Symptom: either
+// the `path` relation's source/target role names diverged from the schema's
+// expectation, OR the `(source: $a, target: $b) isa path, has strength $s`
+// shape is no longer valid against world.tql. Needs schema reconciliation
+// before this test makes sense again. auth-roundtrip + memory-reveal cassettes
+// re-recorded successfully and replay clean — only this one is stuck.
 describe.skip('path round-trip', () => {
   const suffix = Date.now()
   const uidA = `vcr-src-${suffix}`
