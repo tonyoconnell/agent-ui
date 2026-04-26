@@ -469,21 +469,27 @@ One human per substrate. Anthony O'Connell. Apple ID + Secure Enclave. The owner
 | `"agent-key:{uid}:v1"` | KEK | Wraps each agent's per-agent seed before D1 storage |
 | `"vault-sync:v1"` | sync envelope | Encrypted blob to D1 for cross-device wallet recovery |
 
-**Owner role properties** (per `src/lib/role-check.ts`, target):
-- Bypasses scope, network, and sensitivity gates in `src/pages/api/signal.ts`
-- Subject to rate ceiling regardless of role (DOS prevention)
-- Every owner-tier action emits `audit:owner:{action}` to D1 *before* the bypass — no untraceable god mode
-- Identified by Sui address registered at first-mint; immutable after
+**Owner role properties** (per `src/lib/role-check.ts`, shipped):
+- Bypasses scope, network, and sensitivity gates in `src/pages/api/signal.ts` (4 gate sites; Gap 2 ✅)
+- Subject to hard rate ceiling regardless of role — `OWNER_HARD_CEILING = {perSec:1000, perDay:100_000}` checked before bypass (Gap 5 ✅)
+- Every owner-tier action emits `audit:owner:{action}` to D1 `owner_audit` *before* the bypass — no untraceable god mode (Gap 2 ✅)
+- Identified by Sui address registered at first-mint via `OWNER_EXPECTED_ADDRESS` env + `SubstrateOwner` Move pin; immutable after
 
 **Recursive spawning:** humans spawn agents (one Touch ID), agents spawn sub-agents (Move tx, no biometric), arbitrary depth. Cap inheritance via `Cap` Move objects: child cap ≤ parent remaining cap, enforced by consensus. See `agents.md` Pattern D.
 
-**Six gaps tracked, ordered by dependency:**
-1. Owner audit (must land first — no bypass without a record)
-2. Strip `SUI_SEED` from workers, owner-side per-agent key registration
-3. Rate ceiling for owner key
-4. HKDF context versioning + rotation
-5. Multi-sig recovery for tenant chairmen (not for substrate owner — single-key by design)
-6. Federation: foreign signals downgraded from `owner` to `chairman` semantics
+**Six gaps — all shipped at V1+V2:**
+
+| Gap | Status | Key files |
+|-----|--------|-----------|
+| 0 — Bootstrap + identity migration | ✅ CLOSED v1 rubric 0.855 | `src/move/one/sources/owner.move` (SubstrateOwner pin `0x38a8f796…dde71`), `migrations/typedb/0029-tony-chairman-to-owner.tql`, `src/lib/role-check.ts` (owner row, `ROLE_RANK owner=7`), `src/lib/api-auth.ts` |
+| 2 — Owner audit | ✅ CLOSED v1 rubric 0.8875 | `migrations/0030_owner_audit.sql`, `src/lib/audit-redact.ts`, `src/engine/adl-cache.ts` (`auditOwner`/`flushAuditBuffer`), `src/lib/role-check.ts` (`ownerBypass()`), `src/pages/api/signal.ts` (4 gate sites) |
+| 5 — Hard rate ceiling | ✅ CLOSED v1 rubric 0.9125 | `src/lib/tier-limits.ts` (`OWNER_HARD_CEILING`), `src/lib/metering.ts` (`checkRateCeiling`), `src/pages/api/signal.ts` (ceiling before bypass) |
+| 1 — Strip SUI_SEED + per-agent registration | ✅ CLOSED v1 rubric 0.875 | `src/lib/owner-key.ts`, `src/pages/api/agents/register-owner.ts`, `src/pages/api/agents/[uid]/unlock.ts`, `src/pages/api/agents/[uid]/unwrap.ts`, `nanoclaw/src/lib/agent-key-load.ts`, `nanoclaw/src/lib/boot.ts`, `migrations/0031_agent_wallet.sql`, `apps/owner-daemon/` (V2: audit log + per-bearer rate limit), `com.tonyoconnell.owner-daemon.plist` |
+| 4 — HKDF context versioning + rotation | ✅ CLOSED v1 rubric 0.825 | `src/lib/api-key.ts` (`deriveKey(prf,role,group,version)`), `src/pages/api/auth/owner-key-versions.ts`, `src/lib/api-auth.ts` (expiry check), `migrations/0032_owner_key_versions.sql`, `docs/key-rotation.md` |
+| 3 — Tenant chairman multi-sig | ✅ CLOSED v1+v2 rubric 0.80 | `migrations/0033_chairman_multisig.sql`, `src/lib/role-check.ts` (`MultisigRequirement`), `src/pages/api/groups/[gid]/multisig.ts`, `src/pages/api/auth/passkey/assert.ts` (batched-N; V2: `verifyAuthenticationResponse` + pubKey), `compliance.md` |
+| 6 — Federation downgrade | ✅ CLOSED v1+v2 rubric 0.80 | `src/pages/api/paths/bridge.ts`, `src/engine/federation.ts` (`inbound()` downgrade), `src/pages/.well-known/owner-pubkey.json.ts` (V2), `src/lib/federation-discovery.ts` (V2), `federation.md` |
+
+**V3 carries (none blocking):** daemon log rotation · daemon mTLS · multisig sign_count tracking · federation V2.2 JWKS + signature verify against peer pubkeys. Full architecture: `/Users/toc/Server/owner.md`.
 
 ## Sui Integration (Testnet ✅)
 

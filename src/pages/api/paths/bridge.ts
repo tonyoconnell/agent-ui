@@ -11,10 +11,25 @@
  * are stored as attributes on the bridge path for inbound role downgrade
  * and version-mismatch rejection in src/engine/federation.ts inbound().
  */
+
+import { verifyAuthenticationResponse } from '@simplewebauthn/server'
 import type { APIRoute } from 'astro'
 import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
 import { fetchPeerPubkey } from '@/lib/federation-discovery'
 import { writeSilent } from '@/lib/typedb'
+
+/** Decode a base64url string to a Uint8Array */
+function b64urlDecode(s: string): Uint8Array {
+  // Normalize base64url → base64
+  const b64 = s
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(Math.ceil(s.length / 4) * 4, '=')
+  const binary = atob(b64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
+}
 
 export const prerender = false
 
@@ -52,14 +67,35 @@ interface BridgeBody {
    * Gap 6 V2: foreign substrate's base URL.
    * When present, bridge verification fetches /.well-known/owner-pubkey.json
    * and validates address + version before accepting.
+   * V2.2: when the peer publishes COSE keys (schema=owner-pubkey-v2),
+   * the peerAssertion is also cryptographically verified.
    */
   peerHost?: string
+  /**
+   * Gap 6 V2.2: WebAuthn assertion from the peer's passkey.
+   * Required when the peer publishes v2 keys and you want full
+   * cryptographic proof. Optional for v1 peers (address+version only).
+   *
+   * bridgeChallenge field: In the V2.2 protocol, the receiving substrate
+   * issues a nonce challenge (e.g. via GET /api/paths/bridge/challenge) that
+   * the initiating substrate signs with its owner passkey. The signed result
+   * is submitted as peerAssertion. V3 will persist per-credential counters.
+   * Until the challenge endpoint ships, the challenge must be agreed
+   * out-of-band (e.g. a UUID in the initiating POST body echoed back as a
+   * nonce — this is the `bridgeChallenge` field below).
+   */
   peerAssertion?: {
     credId: string
     clientDataJSON: string
     authenticatorData: string
     signature: string
   }
+  /**
+   * Gap 6 V2.2: server-issued (or agreed) challenge string for the WebAuthn
+   * assertion. The peer must have signed a clientDataJSON whose "challenge"
+   * field matches this value (after base64url encoding).
+   */
+  bridgeChallenge?: string
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -144,13 +180,75 @@ export const POST: APIRoute = async ({ request }) => {
         { status: 403 },
       )
     }
+
+    // ── Gap 6 V2.2: cryptographic assertion verification ─────────────────
+    // When the peer publishes COSE keys (schema=owner-pubkey-v2, keys non-empty),
+    // verify the WebAuthn assertion against the matching published pubKey.
+    // Falls back to V2 (address+version only) when peer has no keys published.
+    if (peerKey.schema === 'owner-pubkey-v2' && Array.isArray(peerKey.keys) && peerKey.keys.length > 0) {
+      if (!body.peerAssertion?.credId) {
+        return Response.json(
+          { error: 'peer-assertion-missing-credId', detail: 'peer publishes v2 keys — peerAssertion.credId required' },
+          { status: 400 },
+        )
+      }
+
+      const peerCred = peerKey.keys.find((k) => k.credId === body.peerAssertion!.credId)
+      if (!peerCred) {
+        return Response.json(
+          {
+            error: 'peer-cred-not-published',
+            detail: `peerAssertion.credId=${body.peerAssertion.credId} not in published keys`,
+          },
+          { status: 403 },
+        )
+      }
+
+      // Verify the WebAuthn assertion against the peer's published COSE pubKey.
+      // expectedRPID = peer's hostname (the RP that issued the credential).
+      // bridgeChallenge: In the full V2.2 protocol, the receiving substrate
+      // issues a nonce challenge that the peer signs. Until the challenge
+      // endpoint ships, use the supplied bridgeChallenge ('' = accept any).
+      // V3 carry: per-credential counter persistence (counter=0 skips counter check).
+      const expectedRPID = new URL(peerHost!).hostname
+      const verification = await verifyAuthenticationResponse({
+        response: {
+          id: body.peerAssertion.credId,
+          rawId: body.peerAssertion.credId,
+          response: {
+            clientDataJSON: body.peerAssertion.clientDataJSON,
+            authenticatorData: body.peerAssertion.authenticatorData,
+            signature: body.peerAssertion.signature,
+          },
+          type: 'public-key',
+          clientExtensionResults: {},
+        },
+        expectedChallenge: body.bridgeChallenge ?? '',
+        expectedOrigin: peerHost!,
+        expectedRPID,
+        credential: {
+          id: peerCred.credId,
+          publicKey: b64urlDecode(peerCred.pubKey),
+          counter: 0,
+        },
+        requireUserVerification: false,
+      }).catch((e: unknown) => ({ verified: false, error: (e as Error).message }))
+
+      if (!verification.verified) {
+        return Response.json(
+          { error: 'peer-signature-verify-failed', detail: 'WebAuthn signature did not match peer pubkey' },
+          { status: 403 },
+        )
+      }
+    }
+    // If schema is v1 OR keys array is empty → fall back to V2 behavior
+    // (address + version match only — backwards compatible with substrates
+    // that haven't published v2 keys yet).
+    // ─────────────────────────────────────────────────────────────────────
   }
   // If peerHost is absent: skip discovery (V1 legacy path — no peerHost supplied).
   // The bridge is still stored with peer_owner_address + peer_owner_version for
   // inbound role-downgrade and version-mismatch checks (§6.s2 inbound flow).
-  // Gap 6 V2.1 note: discovery-only verification is correct for V2;
-  // full WebAuthn assertion verification (V2.2) requires the peer to also
-  // publish JWKS/COSE keys at a companion endpoint.
   // ─────────────────────────────────────────────────────────────────────────
 
   pending.delete(key)

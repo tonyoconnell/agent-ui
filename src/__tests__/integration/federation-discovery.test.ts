@@ -10,6 +10,9 @@
  * 4. Network error → null.
  * 5. Malformed JSON / missing fields → null.
  * 6. Wrong schema string → null.
+ * 7. (V2.2) v2 schema with keys array → parsed into PeerPubkey.keys.
+ * 8. (V2.2) v1 schema (no keys) → still parses, keys is undefined.
+ * 9. (V2.2) v2 schema with malformed keys (missing credId) → null.
  *
  * Mock strategy: vi.stubGlobal('fetch', ...) to control the HTTP layer.
  * No real network calls; no TypeDB; no D1.
@@ -27,6 +30,24 @@ function validPubkeyBody(overrides: Record<string, unknown> = {}): Record<string
     version: 1,
     publishedAt: 1715000000,
     schema: 'owner-pubkey-v1',
+    ...overrides,
+  }
+}
+
+function validV2PubkeyBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    address: '0x37cad0b0271f8e0a51a3d3748d7e648c1582197ad5dbc17956ecb31c63d8de3b',
+    version: 1,
+    publishedAt: 1715000000,
+    schema: 'owner-pubkey-v2',
+    keys: [
+      {
+        credId: 'AAAA1234',
+        pubKey: 'BBBB5678',
+        alg: 'ES256',
+        registeredAt: 1715000000,
+      },
+    ],
     ...overrides,
   }
 }
@@ -162,5 +183,53 @@ describe('fetchPeerPubkey', () => {
 
     // Both hit the same cache key — only one network call
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  // ── V2.2 JWKS shape tests ──────────────────────────────────────────────
+
+  it('7. (V2.2) v2 schema with keys array → parsed correctly into PeerPubkey.keys', async () => {
+    const body = validV2PubkeyBody()
+    mockFetch(body)
+
+    const result = await fetchPeerPubkey('https://v2.one.ie')
+
+    expect(result).not.toBeNull()
+    expect(result?.schema).toBe('owner-pubkey-v2')
+    expect(Array.isArray(result?.keys)).toBe(true)
+    expect(result?.keys).toHaveLength(1)
+    expect(result?.keys?.[0].credId).toBe('AAAA1234')
+    expect(result?.keys?.[0].pubKey).toBe('BBBB5678')
+    expect(result?.keys?.[0].alg).toBe('ES256')
+    expect(result?.keys?.[0].registeredAt).toBe(1715000000)
+  })
+
+  it('8. (V2.2) v1 schema (no keys) → still parses, keys is undefined', async () => {
+    const body = validPubkeyBody() // schema: 'owner-pubkey-v1', no keys field
+    mockFetch(body)
+
+    const result = await fetchPeerPubkey('https://v1.one.ie')
+
+    expect(result).not.toBeNull()
+    expect(result?.schema).toBe('owner-pubkey-v1')
+    // v1 body has no keys — field should be absent (undefined)
+    expect(result?.keys).toBeUndefined()
+  })
+
+  it('9. (V2.2) v2 schema with malformed keys (missing credId) → null', async () => {
+    const body = validV2PubkeyBody({
+      keys: [
+        {
+          // credId missing — should fail validation
+          pubKey: 'BBBB5678',
+          alg: 'ES256',
+          registeredAt: 1715000000,
+        },
+      ],
+    })
+    mockFetch(body)
+
+    const result = await fetchPeerPubkey('https://broken-v2.one.ie')
+
+    expect(result).toBeNull()
   })
 })

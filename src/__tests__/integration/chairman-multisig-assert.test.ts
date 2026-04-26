@@ -1,5 +1,5 @@
 /**
- * Chairman multisig assert endpoint test (owner-todo Gap 3 §3.s3, V2 crypto).
+ * Chairman multisig assert endpoint test (owner-todo Gap 3 §3.s3, V3 sign_count).
  *
  * Covers the `action: 'multisig-action'` branch of
  * POST /api/auth/passkey/assert — server-orchestrated N-of-M assertion
@@ -18,9 +18,12 @@
  *  8. groupId mismatch with stored bundle → 403 'bundle-group-mismatch'.
  *  9. verifyAuthenticationResponse returns { verified: false } → 403 'verify-failed'.
  * 10. verifyAuthenticationResponse throws → 403 'verify-failed'.
+ * 11. Counter increments on success: newCounter=1 persisted; subsequent newCounter=2 persisted.
+ * 12. Replay rejected: library throws counter error → 403 'verify-failed'.
+ * 13. Counter NOT updated on verify failure: row unchanged when verify returns { verified: false }.
  *
  * @simplewebauthn/server is mocked so tests don't need a live WebAuthn device.
- * The mock defaults to returning { verified: true, authenticationInfo: {...} }.
+ * The mock defaults to returning { verified: true, authenticationInfo: { newCounter: 1 } }.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -35,13 +38,16 @@ interface FakeMultisigRow {
 }
 
 function makeFakeD1(rows: FakeMultisigRow[] = []) {
+  // Mutable copy so UPDATE statements can mutate member_credentials in-place
+  const mutableRows = rows.map((r) => ({ ...r }))
+
   const db = {
     prepare: vi.fn((sql: string) => ({
       bind: vi.fn((...args: unknown[]) => ({
         first: vi.fn(async <T>() => {
           if (/FROM chairman_multisig WHERE group_id/i.test(sql)) {
             const gid = args[0] as string
-            const row = rows.find((r) => r.group_id === gid)
+            const row = mutableRows.find((r) => r.group_id === gid)
             if (!row) return null as T
             return {
               threshold_n: row.threshold_n,
@@ -51,8 +57,20 @@ function makeFakeD1(rows: FakeMultisigRow[] = []) {
           }
           return null as T
         }),
+        run: vi.fn(async () => {
+          // Handle UPDATE chairman_multisig SET member_credentials = ? WHERE group_id = ?
+          if (/UPDATE chairman_multisig SET member_credentials/i.test(sql)) {
+            const newCreds = args[0] as string
+            const gid = args[1] as string
+            const row = mutableRows.find((r) => r.group_id === gid)
+            if (row) row.member_credentials = newCreds
+          }
+          return { success: true }
+        }),
       })),
     })),
+    // Expose mutableRows for test assertions
+    _rows: mutableRows,
   }
   return db
 }
@@ -69,9 +87,10 @@ vi.mock('@/engine/adl-cache', () => ({
 }))
 
 // Mock @simplewebauthn/server so tests are not gated on a live WebAuthn device.
-// Default: { verified: true }. Override per-test with vi.mocked(...).mockResolvedValueOnce.
+// Default: { verified: true, authenticationInfo: { newCounter: 1 } }.
+// Override per-test with vi.mocked(...).mockResolvedValueOnce / mockRejectedValueOnce.
 vi.mock('@simplewebauthn/server', () => ({
-  verifyAuthenticationResponse: vi.fn().mockResolvedValue({ verified: true }),
+  verifyAuthenticationResponse: vi.fn().mockResolvedValue({ verified: true, authenticationInfo: { newCounter: 1 } }),
 }))
 
 // ─── Test data ────────────────────────────────────────────────────────────────
@@ -83,11 +102,11 @@ const GROUP_ID = 'g:acme'
 const FAKE_PUB_KEY = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
 
 const MEMBERS = [
-  { uid: 'human:alice', credId: 'CRED_ALICE', pubKey: FAKE_PUB_KEY, addedAt: 0 },
-  { uid: 'human:bob', credId: 'CRED_BOB', pubKey: FAKE_PUB_KEY, addedAt: 0 },
-  { uid: 'human:carol', credId: 'CRED_CAROL', pubKey: FAKE_PUB_KEY, addedAt: 0 },
-  { uid: 'human:david', credId: 'CRED_DAVID', pubKey: FAKE_PUB_KEY, addedAt: 0 },
-  { uid: 'human:eve', credId: 'CRED_EVE', pubKey: FAKE_PUB_KEY, addedAt: 0 },
+  { uid: 'human:alice', credId: 'CRED_ALICE', pubKey: FAKE_PUB_KEY, addedAt: 0, signCount: 0 },
+  { uid: 'human:bob', credId: 'CRED_BOB', pubKey: FAKE_PUB_KEY, addedAt: 0, signCount: 0 },
+  { uid: 'human:carol', credId: 'CRED_CAROL', pubKey: FAKE_PUB_KEY, addedAt: 0, signCount: 0 },
+  { uid: 'human:david', credId: 'CRED_DAVID', pubKey: FAKE_PUB_KEY, addedAt: 0, signCount: 0 },
+  { uid: 'human:eve', credId: 'CRED_EVE', pubKey: FAKE_PUB_KEY, addedAt: 0, signCount: 0 },
 ]
 
 const MULTISIG_ROW: FakeMultisigRow = {
@@ -482,5 +501,126 @@ describe('POST /api/auth/passkey/assert — multisig-action flow (Gap 3 §3.s3)'
     const body = (await res.json()) as { error: string; reason: string }
     expect(body.error).toBe('verify-failed')
     expect(body.reason).toContain('cbor')
+  })
+
+  // ── Case 11: Counter increments on success ────────────────────────────────
+  it('11 — newCounter=1 persisted after first success; newCounter=2 persisted after second', async () => {
+    const { getD1 } = await import('@/lib/cf-env')
+    const fakeDb = makeFakeD1([{ ...MULTISIG_ROW }])
+    vi.mocked(getD1).mockResolvedValue(fakeDb as never)
+
+    const swa = await import('@simplewebauthn/server')
+    // First call: newCounter=1
+    vi.mocked(swa.verifyAuthenticationResponse).mockResolvedValueOnce({
+      verified: true,
+      authenticationInfo: { newCounter: 1 },
+    } as never)
+
+    const { POST, MULTISIG_BUNDLES } = await getEndpoint()
+    MULTISIG_BUNDLES.clear()
+
+    await POST({
+      request: makeRequest({
+        action: 'multisig-action',
+        groupId: GROUP_ID,
+        bundleId: 'bundle-011a',
+        assertion: makeAssertion('CRED_ALICE'),
+      }),
+    } as never)
+
+    // After first assertion the member_credentials JSON stored in the fake D1
+    // should contain signCount: 1 for CRED_ALICE
+    const row = fakeDb._rows.find((r) => r.group_id === GROUP_ID)!
+    const creds = JSON.parse(row.member_credentials) as Array<{ credId: string; signCount: number }>
+    expect(creds.find((c) => c.credId === 'CRED_ALICE')?.signCount).toBe(1)
+
+    // Second call (new bundle, same credId): newCounter=2
+    vi.mocked(swa.verifyAuthenticationResponse).mockResolvedValueOnce({
+      verified: true,
+      authenticationInfo: { newCounter: 2 },
+    } as never)
+
+    await POST({
+      request: makeRequest({
+        action: 'multisig-action',
+        groupId: GROUP_ID,
+        bundleId: 'bundle-011b',
+        assertion: makeAssertion('CRED_ALICE'),
+      }),
+    } as never)
+
+    const creds2 = JSON.parse(fakeDb._rows.find((r) => r.group_id === GROUP_ID)!.member_credentials) as Array<{
+      credId: string
+      signCount: number
+    }>
+    expect(creds2.find((c) => c.credId === 'CRED_ALICE')?.signCount).toBe(2)
+  })
+
+  // ── Case 12: Replay rejected — library throws counter error ───────────────
+  it('12 — library throws counter error → 403 verify-failed (replay detected)', async () => {
+    const { getD1 } = await import('@/lib/cf-env')
+    // Member already has signCount: 5 stored
+    const rowWithCounter: FakeMultisigRow = {
+      ...MULTISIG_ROW,
+      member_credentials: JSON.stringify(MEMBERS.map((m) => (m.credId === 'CRED_ALICE' ? { ...m, signCount: 5 } : m))),
+    }
+    vi.mocked(getD1).mockResolvedValue(makeFakeD1([rowWithCounter]) as never)
+
+    const swa = await import('@simplewebauthn/server')
+    // Simulate @simplewebauthn/server detecting a replay via counter check
+    vi.mocked(swa.verifyAuthenticationResponse).mockRejectedValueOnce(
+      new Error("Counter not greater than authenticator's stored counter"),
+    )
+
+    const { POST, MULTISIG_BUNDLES } = await getEndpoint()
+    MULTISIG_BUNDLES.clear()
+
+    const res = await POST({
+      request: makeRequest({
+        action: 'multisig-action',
+        groupId: GROUP_ID,
+        bundleId: 'bundle-012',
+        assertion: makeAssertion('CRED_ALICE'),
+      }),
+    } as never)
+
+    expect(res.status).toBe(403)
+    const body = (await res.json()) as { error: string; reason: string }
+    expect(body.error).toBe('verify-failed')
+    expect(body.reason).toMatch(/counter/i)
+  })
+
+  // ── Case 13: Counter NOT updated when verify returns { verified: false } ──
+  it('13 — verify returns { verified: false } → row signCount unchanged', async () => {
+    const { getD1 } = await import('@/lib/cf-env')
+    const fakeDb = makeFakeD1([{ ...MULTISIG_ROW }])
+    vi.mocked(getD1).mockResolvedValue(fakeDb as never)
+
+    const swa = await import('@simplewebauthn/server')
+    vi.mocked(swa.verifyAuthenticationResponse).mockResolvedValueOnce({
+      verified: false,
+      authenticationInfo: { newCounter: 99 },
+    } as never)
+
+    const { POST, MULTISIG_BUNDLES } = await getEndpoint()
+    MULTISIG_BUNDLES.clear()
+
+    const res = await POST({
+      request: makeRequest({
+        action: 'multisig-action',
+        groupId: GROUP_ID,
+        bundleId: 'bundle-013',
+        assertion: makeAssertion('CRED_ALICE'),
+      }),
+    } as never)
+
+    expect(res.status).toBe(403)
+    const body = (await res.json()) as { error: string }
+    expect(body.error).toBe('verify-failed')
+
+    // signCount in D1 must still be 0 — no UPDATE should have run
+    const row = fakeDb._rows.find((r) => r.group_id === GROUP_ID)!
+    const creds = JSON.parse(row.member_credentials) as Array<{ credId: string; signCount: number }>
+    expect(creds.find((c) => c.credId === 'CRED_ALICE')?.signCount).toBe(0)
   })
 })

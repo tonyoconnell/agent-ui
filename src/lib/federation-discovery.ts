@@ -4,23 +4,35 @@
  * Fetch + cache the peer substrate's published owner pubkey from
  * /.well-known/owner-pubkey.json.
  *
- * Used by /api/paths/bridge V2 to verify that the `peerOwnerAddress`
+ * Used by /api/paths/bridge to verify that the `peerOwnerAddress`
  * claimed in the bridge body matches the address the foreign substrate
- * actually publishes — a strong step up from V1 (which trusted any caller).
+ * actually publishes, and (V2.2+) to cryptographically verify bridge
+ * assertions via published COSE public keys.
  *
  * V2 acceptance criteria (Gap 6 V2):
  *   - Peer host is reachable.
  *   - Published address matches the claimed peerOwnerAddress.
  *   - Published version matches the claimed peerOwnerVersion.
- * This is NOT full WebAuthn signature verification (that is V2.2, which
- * requires JWKS/COSE keys). V2 binds the bridge to a specific Sui address +
- * version triple published by the peer's well-known endpoint.
  *
- * Gap 6 V2.2 TODO: extend PeerPubkey with a `jwks` field and run
- *   verifyAuthenticationResponse() (from @simplewebauthn/server) against
- *   the peer's published COSE key. Until then, the address+version triple
- *   is the acceptance proof.
+ * V2.2 acceptance criteria (Gap 6 V2.2, this implementation):
+ *   - V2 criteria above, PLUS:
+ *   - schema is "owner-pubkey-v2" and keys is non-empty.
+ *   - peerAssertion.credId matches a published key entry.
+ *   - WebAuthn assertion verifies against the published COSE pubKey.
+ *   Backwards compatible: v1 peers (no keys) fall through to V2 behavior.
  */
+
+/** A single COSE public key published by the peer */
+export interface OwnerKey {
+  /** base64url WebAuthn credential ID */
+  credId: string
+  /** base64url COSE public key bytes */
+  pubKey: string
+  /** COSE algorithm name (informational) */
+  alg: string
+  /** Unix seconds when this key was registered */
+  registeredAt: number
+}
 
 export interface PeerPubkey {
   /** Sui address of the foreign substrate's owner (0x...) */
@@ -29,8 +41,13 @@ export interface PeerPubkey {
   version: number
   /** Unix seconds when the peer published this record */
   publishedAt: number
-  /** Must be "owner-pubkey-v1" */
+  /** "owner-pubkey-v1" (no keys) or "owner-pubkey-v2" (keys present) */
   schema: string
+  /**
+   * COSE public keys for cryptographic assertion verification (V2.2+).
+   * Optional — v1 peers won't have this field.
+   */
+  keys?: OwnerKey[]
 }
 
 /** Cached entry shape */
@@ -53,6 +70,19 @@ function normalise(host: string): string {
   return host.replace(/\/+$/, '').toLowerCase()
 }
 
+function isValidOwnerKey(entry: unknown): entry is OwnerKey {
+  if (!entry || typeof entry !== 'object') return false
+  const obj = entry as Record<string, unknown>
+  return (
+    typeof obj.credId === 'string' &&
+    obj.credId.length > 0 &&
+    typeof obj.pubKey === 'string' &&
+    obj.pubKey.length > 0 &&
+    typeof obj.alg === 'string' &&
+    typeof obj.registeredAt === 'number'
+  )
+}
+
 function isValidPubkey(v: unknown): v is PeerPubkey {
   if (!v || typeof v !== 'object') return false
   const obj = v as Record<string, unknown>
@@ -60,12 +90,25 @@ function isValidPubkey(v: unknown): v is PeerPubkey {
   if (!SUI_ADDRESS_RE.test(obj.address)) return false
   if (typeof obj.version !== 'number') return false
   if (typeof obj.publishedAt !== 'number') return false
-  if (obj.schema !== 'owner-pubkey-v1') return false
+  // Accept v1 (legacy) or v2 (with keys)
+  if (obj.schema !== 'owner-pubkey-v1' && obj.schema !== 'owner-pubkey-v2') return false
+  // V2 schema: if keys is present it must be a valid array
+  if (obj.schema === 'owner-pubkey-v2') {
+    if (!Array.isArray(obj.keys)) return false
+    // Each key entry must be valid (empty array is allowed — operator hasn't published keys yet)
+    for (const entry of obj.keys as unknown[]) {
+      if (!isValidOwnerKey(entry)) return false
+    }
+  }
   return true
 }
 
 /**
  * Fetch + cache the peer substrate's published owner pubkey.
+ *
+ * Returns PeerPubkey for both v1 and v2 schemas:
+ * - v1: no keys field (legacy, address+version check only)
+ * - v2: keys field present (enables cryptographic assertion verification)
  *
  * @param peerHost e.g. "https://other.one.ie" (no trailing slash needed)
  * @returns PeerPubkey or null on any failure (network, malformed, timeout)

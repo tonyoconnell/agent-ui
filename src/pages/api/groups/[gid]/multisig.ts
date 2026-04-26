@@ -75,7 +75,13 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   if (!db) return err(503, 'd1-unavailable')
 
   const memberCreds = JSON.stringify(
-    members.map((m) => ({ uid: m.uid, credId: m.credId, pubKey: m.pubKey, addedAt: Math.floor(Date.now() / 1000) })),
+    members.map((m) => ({
+      uid: m.uid,
+      credId: m.credId,
+      pubKey: m.pubKey,
+      addedAt: Math.floor(Date.now() / 1000),
+      signCount: 0,
+    })),
   )
 
   try {

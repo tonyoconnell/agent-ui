@@ -598,4 +598,39 @@ Allow-list (kept verbatim — these are SAFE business fields):
 Flip via env. Read in [`src/lib/role-check.ts`](../src/lib/role-check.ts) and
 [`src/pages/api/signal.ts`](../src/pages/api/signal.ts).
 
+---
+
+## Owner-key rotation (Gap 4 V1)
+
+Owner-tier keys are version-stamped and expiry-checked. Rotation = bump version, re-derive with Touch ID, register the new hash.
+
+**Derivation:** `deriveKey(prf, role, group, version) → bearer` via HKDF-SHA-256, info string `api-key:{role}:{group}:v{version}`. Lives in [`src/lib/api-key.ts`](../src/lib/api-key.ts).
+
+**Rotation endpoints:** `POST/GET/DELETE /api/auth/owner-key-versions` (owner-only). Schema: [`migrations/0032_owner_key_versions.sql`](../migrations/0032_owner_key_versions.sql) — adds `version`, `expires_at`, `role`, `group_id` columns to `owner_key` D1 table.
+
+**Enforcement:** `src/lib/api-auth.ts` slow-path checks `expires_at` on every PBKDF2 match. Expired key → `auth-fail:owner-key-revoked` (401). Cache-hit path unaffected (5-min TTL).
+
+**Cadence:**
+- Voluntary for owner (no scheduled requirement)
+- 90-day scheduled rotation for chairman+ roles
+- Immediate on suspected compromise
+
+Full runbook: [`docs/key-rotation.md`](../docs/key-rotation.md) — cadence table, lifecycle diagram, threat model.
+
+---
+
+## Multisig assertion (Gap 3 V2)
+
+Tenant chairmen can require N-of-M biometric assertions before a sensitive group action is authorised. Substrate owner is explicitly out of scope (single-key by design).
+
+**Configuration:** `POST /api/groups/:gid/multisig` (chairman-or-owner). Stores threshold `{n, m}` + `member_credentials` JSON (per-member `{uid, credId, pubKey}`) in D1 `chairman_multisig`. Schema: [`migrations/0033_chairman_multisig.sql`](../migrations/0033_chairman_multisig.sql).
+
+**Assertion flow:** `POST /api/auth/passkey/assert` with `action: 'multisig-action'`. Server collects up to M assertion responses within a 5-min bundle TTL; resolves when N pass `verifyAuthenticationResponse` ([@simplewebauthn/server](https://simplewebauthn.dev/docs/packages/server)) against the stored `pubKey` (COSE base64url). V2 upgrade: real cryptographic verify replaces stub acceptance.
+
+**V3 carry:** sign_count tracking per member credential for replay protection beyond the 5-min TTL window.
+
+Full decision rationale: [`compliance.md`](../../../compliance.md) §W2 + [`docs/recon-multisig.md`](../docs/recon-multisig.md).
+
+---
+
 *Two paths. One wallet. Zero friction.*

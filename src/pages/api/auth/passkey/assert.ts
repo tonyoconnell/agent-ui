@@ -134,6 +134,7 @@ interface MemberCredential {
   credId: string
   addedAt?: number
   pubKey: string // base64url-encoded COSE public key bytes; required for cryptographic verify
+  signCount?: number // V3: monotonically-increasing counter per credential; 0 = untracked (default)
 }
 
 interface MultisigRow {
@@ -174,11 +175,11 @@ async function resolveAssertedAddress(uid: string): Promise<string | null> {
  * member_credentials. The `bundleId` is used as the expected challenge — it is
  * server-issued and replay-protected by the 5-minute bundle TTL.
  *
- * Counter tracking: V2 starts counter at 0 on every call (replay-prevention at
- * the sign_count level is deferred to V3 — tracking requires writing a per-member
- * counter back to D1 after each verify, which adds a write per assertion).
+ * Counter tracking: V3 passes the stored sign_count so @simplewebauthn/server
+ * can detect replays (newCounter <= storedCounter → throws / verified: false).
+ * The returned newCounter is persisted back to D1 on success.
  *
- * @returns { verified: true } on success; throws on crypto failure or bad input
+ * @returns verifyAuthenticationResponse result (includes authenticationInfo.newCounter)
  */
 async function verifyMultisigAssertion(
   assertion: MultisigAssertion,
@@ -186,7 +187,7 @@ async function verifyMultisigAssertion(
   bundleId: string,
   requestUrl: string,
   originHeader: string | null,
-): Promise<{ verified: boolean }> {
+): Promise<Awaited<ReturnType<typeof verifyAuthenticationResponse>>> {
   const expectedRPID = envValue('PASSKEY_RP_ID') || new URL(requestUrl).hostname
   const expectedOrigin = originHeader || `https://${expectedRPID}`
 
@@ -209,7 +210,7 @@ async function verifyMultisigAssertion(
     credential: {
       id: assertion.credId,
       publicKey: b64urlDecode(member.pubKey),
-      counter: 0, // V3: track sign_count per member in member_credentials for replay prevention
+      counter: member.signCount ?? 0, // V3: real stored counter for replay detection
     },
   })
 }
@@ -280,7 +281,7 @@ async function handleMultisigAssertion(
     )
   }
 
-  let verifyResult: { verified: boolean }
+  let verifyResult: Awaited<ReturnType<typeof verifyMultisigAssertion>>
   try {
     verifyResult = await verifyMultisigAssertion(
       assertion,
@@ -290,11 +291,25 @@ async function handleMultisigAssertion(
       request.headers.get('origin'),
     )
   } catch (e) {
+    // If the library throws due to counter not advancing, treat as replay attempt
+    const msg = (e as Error).message
+    const isReplay = /counter/i.test(msg)
+    if (isReplay) {
+      void auditOwner({
+        sender: matchedMember.uid,
+        receiver: `group:${groupId}`,
+        action: 'audit:multisig:replay-attempt',
+        gate: 'scope',
+        payload: { bundleId, groupId, credId: assertion.credId, reason: msg },
+      }).catch(() => {
+        /* audit is best-effort */
+      })
+    }
     return Response.json(
       {
         ok: false,
         error: 'verify-failed',
-        reason: (e as Error).message,
+        reason: msg,
       } satisfies MultisigResponse,
       { status: 403 },
     )
@@ -309,6 +324,24 @@ async function handleMultisigAssertion(
       } satisfies MultisigResponse,
       { status: 403 },
     )
+  }
+
+  // V3 NEW: persist updated sign_count back to D1
+  const newCounter = verifyResult.authenticationInfo?.newCounter
+  if (typeof newCounter === 'number' && newCounter > (matchedMember.signCount ?? 0)) {
+    matchedMember.signCount = newCounter
+    const updatedMembers = JSON.stringify(members)
+    await db
+      .prepare('UPDATE chairman_multisig SET member_credentials = ? WHERE group_id = ?')
+      .bind(updatedMembers, groupId)
+      .run()
+      .catch((e) => {
+        // Log but don't fail — the cryptographic verify already succeeded.
+        // The bundle TTL (5 min) prevents replay within the window;
+        // the missing counter write only opens a replay risk for cross-window
+        // attempts before the next successful write catches up.
+        console.error('[multisig] sign_count persist failed:', e)
+      })
   }
 
   // 4. Maintain bundle store
