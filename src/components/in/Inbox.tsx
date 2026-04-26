@@ -79,23 +79,29 @@ export function Inbox({
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [unitsRes, convRes, sessRes] = await Promise.allSettled([
+      // Six dimensions, six fetches — TypeDB-backed via /api/export/* + /api/frontiers,
+      // plus the live conversation/session feeds. Each fetch is independent;
+      // any failure leaves its dimension empty rather than breaking the others.
+      const [unitsRes, convRes, sessRes, groupsRes, skillsRes, highwaysRes, frontiersRes] = await Promise.allSettled([
         fetch('/api/export/units'),
         fetch(`${clawUrl}/conversations`),
         fetch(groupId ? `/api/in/sessions?group=${encodeURIComponent(groupId)}` : '/api/in/sessions'),
+        fetch('/api/export/groups'),
+        fetch('/api/export/skills'),
+        fetch('/api/export/highways?limit=50'),
+        fetch('/api/frontiers'),
       ])
-      const units =
-        unitsRes.status === 'fulfilled' && unitsRes.value.ok
-          ? ((await unitsRes.value.json().catch(() => [])) as Array<Record<string, unknown>>)
-          : []
-      const convData =
-        convRes.status === 'fulfilled' && convRes.value.ok
-          ? ((await convRes.value.json().catch(() => ({}))) as { conversations?: Array<Record<string, unknown>> })
-          : {}
-      const sessions =
-        sessRes.status === 'fulfilled' && sessRes.value.ok
-          ? ((await sessRes.value.json().catch(() => [])) as InboxEntity[])
-          : []
+
+      const jsonOr = async <T,>(r: PromiseSettledResult<Response>, fallback: T): Promise<T> =>
+        r.status === 'fulfilled' && r.value.ok ? ((await r.value.json().catch(() => fallback)) as T) : fallback
+
+      const units = await jsonOr<Array<Record<string, unknown>>>(unitsRes, [])
+      const convData = await jsonOr<{ conversations?: Array<Record<string, unknown>> }>(convRes, {})
+      const sessions = await jsonOr<InboxEntity[]>(sessRes, [])
+      const groupsData = await jsonOr<Array<Record<string, unknown>>>(groupsRes, [])
+      const skillsData = await jsonOr<Array<Record<string, unknown>>>(skillsRes, [])
+      const highwaysData = await jsonOr<Array<Record<string, unknown>>>(highwaysRes, [])
+      const frontiersData = await jsonOr<{ frontiers?: Array<Record<string, unknown>> }>(frontiersRes, {})
 
       const actorEntities: InboxEntity[] = units.map((u) => ({
         id: `actor:${String(u.uid)}`,
@@ -110,24 +116,93 @@ export function Inbox({
         tags: Array.isArray(u.tags) ? (u.tags as string[]) : [],
       }))
 
-      const convEntities: InboxEntity[] = (convData.conversations ?? []).map((c) => ({
-        id: `conv:${String(c.group ?? c.id)}`,
-        dimension: 'events' as const,
-        type: 'conversation' as const,
-        title: String(c.group ?? c.id),
-        subtitle: `${String(c.messageCount ?? 0)} messages`,
-        preview: String(c.lastMessage ?? ''),
-        timestamp: c.ts ? new Date(String(c.ts)).getTime() : Date.now(),
+      const convEntities: InboxEntity[] = (convData.conversations ?? [])
+        .map((c) => {
+          const cid = c.group ?? c.id
+          if (cid == null) return null
+          return {
+            id: `conv:${String(cid)}`,
+            dimension: 'events' as const,
+            type: 'conversation' as const,
+            title: String(cid),
+            subtitle: `${String(c.messageCount ?? 0)} messages`,
+            preview: String(c.lastMessage ?? ''),
+            timestamp: c.ts ? new Date(String(c.ts)).getTime() : Date.now(),
+            unread: false,
+            status: 'now' as const,
+            tags: ['claw', 'conversation'],
+          }
+        })
+        .filter((e): e is InboxEntity => e !== null)
+
+      const groupEntities: InboxEntity[] = groupsData.map((g) => ({
+        id: `group:${String(g.id)}`,
+        dimension: 'groups' as const,
+        type: 'generic' as const,
+        title: String(g.name ?? g.id),
+        subtitle: String(g.id),
+        preview: `${(g.members as string[] | undefined)?.length ?? 0} members · ${String(g.type ?? '')}`,
+        timestamp: Date.now(),
         unread: false,
         status: 'now' as const,
-        tags: ['claw', 'conversation'],
+        tags: [String(g.type ?? 'group')],
       }))
 
-      setLiveEntities([...actorEntities, ...convEntities, ...sessions])
+      const skillEntities: InboxEntity[] = skillsData.map((s) => ({
+        id: `thing:${String(s.id)}`,
+        dimension: 'things' as const,
+        type: 'generic' as const,
+        title: String(s.name ?? s.id),
+        subtitle: String(s.id),
+        preview: `$${Number(s.price ?? 0).toFixed(2)} · ${(s.providers as string[] | undefined)?.length ?? 0} providers`,
+        timestamp: Date.now(),
+        unread: false,
+        status: 'now' as const,
+        tags: Array.isArray(s.tags) ? (s.tags as string[]) : [],
+      }))
+
+      const pathEntities: InboxEntity[] = highwaysData.map((h) => {
+        const from = String(h.from)
+        const to = String(h.to)
+        const str = Number(h.strength ?? 0)
+        return {
+          id: `path:${from}→${to}`,
+          dimension: 'paths' as const,
+          type: 'path' as const,
+          title: `${from} → ${to}`,
+          subtitle: `strength ${str.toFixed(1)}`,
+          preview: `${Number(h.traversals ?? 0)} traversals · ${(Number(h.successRate ?? 0) * 100).toFixed(0)}% success`,
+          timestamp: Date.now(),
+          unread: false,
+          status: str > 50 ? ('top' as const) : ('now' as const),
+          tags: ['highway'],
+        }
+      })
+
+      const learningEntities: InboxEntity[] = (frontiersData.frontiers ?? []).map((f) => ({
+        id: `frontier:${String(f.fid)}`,
+        dimension: 'learning' as const,
+        type: 'hypothesis' as const,
+        title: String(f.fd ?? f.fid),
+        subtitle: String(f.ft ?? 'frontier'),
+        preview: `expected value ${Number(f.ev ?? 0).toFixed(2)} · ${String(f.fs ?? '')}`,
+        timestamp: Date.now(),
+        unread: false,
+        status: 'todo' as const,
+        tags: ['frontier'],
+      }))
+
+      setLiveEntities([
+        ...actorEntities,
+        ...convEntities,
+        ...sessions,
+        ...groupEntities,
+        ...skillEntities,
+        ...pathEntities,
+        ...learningEntities,
+      ])
     }
     void fetchAll()
-    const id = setInterval(() => void fetchAll(), 5000)
-    return () => clearInterval(id)
   }, [clawUrl, groupId])
 
   const handleReply = useCallback(
@@ -224,11 +299,14 @@ export function Inbox({
   return (
     <>
       <Toaster position="top-right" theme="dark" />
-      <div className="grid h-full bg-background text-foreground" style={{ gridTemplateColumns: '20% 30% 50%' }}>
-        <aside className="flex flex-col border-r border-border bg-card">
+      <div
+        className="grid h-full w-full bg-background text-foreground"
+        style={{ gridTemplateColumns: '260px 380px 1fr', gridTemplateRows: '100%' }}
+      >
+        <aside className="flex min-h-0 flex-col border-r border-border bg-card/40">
           <ProfileHeader name={ownerName} initial={ownerInitial} />
           {groups.length > 1 && (
-            <div className="border-b border-border px-4 py-2">
+            <div className="border-b border-border/60 px-4 py-2">
               <select
                 value={groupId ?? groups[0]?.gid ?? ''}
                 onChange={(e) => {
@@ -245,8 +323,10 @@ export function Inbox({
               </select>
             </div>
           )}
-          <Navigation items={nav} active={dimension} onChange={setDimension} />
-          <div className="border-t border-border px-4 py-3">
+          <div className="flex-1 overflow-y-auto">
+            <Navigation items={nav} active={dimension} onChange={setDimension} />
+          </div>
+          <div className="border-t border-border/60 px-4 py-3">
             <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
               <span>{DATA.meta.name}</span>
               <span className="font-mono">v{DATA.meta.version}</span>
@@ -254,17 +334,19 @@ export function Inbox({
           </div>
         </aside>
 
-        <section className="flex flex-col border-r border-border">
+        <section className="flex min-h-0 flex-col border-r border-border bg-card/20">
           <StatusTabs active={status} counts={statusCounts} onChange={setStatus} />
           <SearchBar value={query} onChange={setQuery} />
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto px-3 py-3">
             <EntityList entities={entities} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
           </div>
         </section>
 
-        <BroadcastBar clawUrl={clawUrl} />
-        <section className="overflow-hidden">
-          <EntityDetail entity={selected} onReply={handleReply} />
+        <section className="flex min-h-0 flex-col bg-background">
+          <BroadcastBar clawUrl={clawUrl} />
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <EntityDetail entity={selected} onReply={handleReply} />
+          </div>
         </section>
       </div>
     </>

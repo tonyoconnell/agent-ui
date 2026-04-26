@@ -1,0 +1,65 @@
+---
+interface Props {
+	title: string
+	noindex?: boolean
+}
+
+const { title, noindex = true } = Astro.props
+const cspNonce = Astro.locals.cspNonce
+---
+
+<!doctype html>
+<html lang="en" class="dark" data-astro-csp-nonce={cspNonce}>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="theme-color" content="#0a0a0f" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
+		{cspNonce && <meta name="csp-nonce" content={cspNonce} />}
+
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+		<link rel="manifest" href="/manifest.json" />
+
+		<title>{title}</title>
+
+		<script is:inline define:vars={{ cspNonce }}>
+			void cspNonce
+			try {
+				if (localStorage.getItem("theme") === "light") {
+					document.documentElement.classList.remove("dark")
+				}
+			} catch (_) {}
+		</script>
+	</head>
+	<body class="bg-background text-foreground antialiased h-screen w-screen overflow-hidden">
+		<slot />
+	</body>
+</html>
+
+<style is:global>
+	@import "../styles/global.css";
+
+	html,
+	body {
+		height: 100vh;
+		height: 100dvh;
+		margin: 0;
+	}
+
+	astro-island,
+	astro-slot {
+		display: block;
+	}
+
+	/* App surfaces (/in, etc) want the React root to fill the viewport.
+	   Body is h-screen — cascade height through the astro-island so child
+	   `h-full` resolves. Don't force height on the island's children — that
+	   breaks fragments like <><Toaster/><Grid/></> where multiple roots stack. */
+	body > astro-island {
+		height: 100%;
+		width: 100%;
+	}
+</style>

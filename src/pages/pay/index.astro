@@ -11,7 +11,51 @@ export const prerender = false
   description="Accept payments on every rail at once. One API, one signal. Stripe Elements for cards, Sui dapp-kit for wallets, shareable links for crypto. The graph routes tomorrow's buyers down the lanes that paid yesterday."
 >
   <ReferenceBanner endpoint="POST /api/pay/stripe/create-intent, /api/sui/escrow/*" note="Drop into your checkout — Stripe + Sui rails, one SDK call" />
+
   <main class="min-h-screen bg-[#0a0a0f] text-slate-100">
+
+    <!-- Touch ID hero — passkey-bound fiat rail -->
+    <section class="border-b border-white/5 bg-gradient-to-br from-violet-500/5 via-transparent to-sky-500/5">
+      <div class="mx-auto max-w-5xl px-6 py-12 sm:py-16">
+        <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div class="max-w-xl space-y-3">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-300/80">
+              New · Pattern C
+            </p>
+            <h2 class="text-3xl font-semibold tracking-tight sm:text-4xl">
+              Pay with Touch ID
+            </h2>
+            <p class="text-sm leading-relaxed text-slate-400 sm:text-base">
+              One biometric, two rails. Apple Pay where it works. Stripe Link with your saved card
+              everywhere else. Same passkey-bound identity, one tap.
+            </p>
+          </div>
+          <a
+            href="/pay/touch"
+            class="group inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-slate-200"
+          >
+            Try the demo
+            <span aria-hidden="true" class="transition group-hover:translate-x-0.5">→</span>
+          </a>
+        </div>
+
+        <dl class="mt-10 grid grid-cols-1 gap-4 text-xs sm:grid-cols-3">
+          <div class="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+            <dt class="font-medium uppercase tracking-wider text-slate-500">First buy</dt>
+            <dd class="mt-1 text-sm text-white">≤ 8s · Apple Pay → SCA-skipped → card saved</dd>
+          </div>
+          <div class="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+            <dt class="font-medium uppercase tracking-wider text-slate-500">Returning</dt>
+            <dd class="mt-1 text-sm text-white">≤ 3s · Link prefilled · one-tap OTP or skip</dd>
+          </div>
+          <div class="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+            <dt class="font-medium uppercase tracking-wider text-slate-500">Identity</dt>
+            <dd class="mt-1 text-sm text-white">passkey-bound <code class="font-mono">human:&lt;slug&gt;</code> ↔ Stripe customer</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
     <PayShowcase client:only="react" />
   </main>
 </Layout>

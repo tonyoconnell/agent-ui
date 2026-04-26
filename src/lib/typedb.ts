@@ -15,12 +15,15 @@
 const GATEWAY_URL = import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie'
 const GATEWAY_API_KEY: string = import.meta.env.GATEWAY_API_KEY || ''
 
-// Direct TypeDB connection — server-side only (baked at build time, not exposed to browser)
+// Direct TypeDB connection — server-side only (baked at build time, not exposed to browser).
 // When set, server-side queries bypass the gateway and connect to TypeDB directly.
-const TYPEDB_DIRECT_URL: string = import.meta.env.TYPEDB_DIRECT_URL || ''
-const TYPEDB_DIRECT_USERNAME: string = import.meta.env.TYPEDB_DIRECT_USERNAME || ''
-const TYPEDB_DIRECT_PASSWORD: string = import.meta.env.TYPEDB_DIRECT_PASSWORD || ''
-const TYPEDB_DIRECT_DATABASE: string = import.meta.env.TYPEDB_DIRECT_DATABASE || ''
+// Canonical env names are TYPEDB_URL/USERNAME/PASSWORD/DATABASE (used by .env,
+// auth.ts, env.d.ts, scripts/). The TYPEDB_DIRECT_* names are kept as fallbacks
+// so the test cassette tooling that explicitly unsets them still works.
+const TYPEDB_DIRECT_URL: string = import.meta.env.TYPEDB_DIRECT_URL ?? import.meta.env.TYPEDB_URL ?? ''
+const TYPEDB_DIRECT_USERNAME: string = import.meta.env.TYPEDB_DIRECT_USERNAME ?? import.meta.env.TYPEDB_USERNAME ?? ''
+const TYPEDB_DIRECT_PASSWORD: string = import.meta.env.TYPEDB_DIRECT_PASSWORD ?? import.meta.env.TYPEDB_PASSWORD ?? ''
+const TYPEDB_DIRECT_DATABASE: string = import.meta.env.TYPEDB_DIRECT_DATABASE ?? import.meta.env.TYPEDB_DATABASE ?? ''
 
 /** Cached TypeDB JWT for direct connection (server-side only) */
 let _directJwt: string | null = null
