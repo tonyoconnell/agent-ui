@@ -26,7 +26,6 @@ vi.mock('@/lib/oracle', () => ({
 vi.mock('@mysten/sui/jsonRpc', () => ({
   getJsonRpcFullnodeUrl: () => 'mock://test',
   SuiJsonRpcClient: class {
-    constructor(_opts: unknown) {}
     async getBalance() {
       return { totalBalance: '0' }
     }

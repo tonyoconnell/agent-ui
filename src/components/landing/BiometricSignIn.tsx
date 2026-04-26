@@ -68,7 +68,8 @@ export function BiometricSignIn({ redirectTo = '/u' }: Props) {
         onClick={handleClick}
         disabled={disabled}
         aria-label="Sign in with your fingerprint"
-        className="group inline-flex items-center gap-3 px-10 py-5 bg-emerald-500 text-black text-xl font-bold rounded-2xl shadow-[0_0_40px_rgba(16,185,129,0.4)] hover:bg-emerald-400 hover:shadow-[0_0_60px_rgba(16,185,129,0.55)] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-emerald-500 disabled:hover:shadow-[0_0_40px_rgba(16,185,129,0.4)]"
+        className="group inline-flex items-center gap-3 px-10 py-5 text-xl font-bold rounded-2xl shadow-lg hover:shadow-xl hover:brightness-110 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{ backgroundColor: 'hsl(216 55% 25%)', color: 'hsl(36 8% 96%)' }}
       >
         {status === 'authenticating' ? (
           <span
@@ -105,7 +106,7 @@ export function BiometricSignIn({ redirectTo = '/u' }: Props) {
       {status === 'unsupported' ? (
         <p className="text-sm text-gray-500 text-center max-w-sm">
           Your browser doesn't support platform biometrics here.{' '}
-          <a href={redirectTo} className="text-emerald-400 hover:text-emerald-300 underline">
+          <a href={redirectTo} className="text-primary hover:opacity-80 underline">
             Enter without signing in →
           </a>
         </p>

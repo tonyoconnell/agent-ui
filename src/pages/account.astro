@@ -1,0 +1,28 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { auth } from "@/lib/auth"
+import { AccountPanel } from "@/components/account/AccountPanel"
+
+const session = await auth.api.getSession({ headers: Astro.request.headers })
+if (!session) return Astro.redirect(`/signin?redirect=/account`)
+
+const { user } = session
+---
+
+<Layout
+  title="Account · ONE"
+  description="Manage your ONE account profile and settings."
+  hideSidebar={false}
+  sidebarCurrent="/account"
+>
+  <AccountPanel
+    client:load
+    user={{
+      id: user.id,
+      name: user.name ?? "",
+      email: user.email,
+      image: user.image ?? null,
+      createdAt: user.createdAt.toISOString(),
+    }}
+  />
+</Layout>

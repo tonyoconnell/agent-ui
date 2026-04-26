@@ -28,44 +28,31 @@
 import type { APIRoute } from 'astro'
 import { resolveUnitFromSession } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
+import { hmacSign as _hmacSign, b64urlDecode, b64urlEncode } from '@/lib/owner-crypto'
 
 export const prerender = false
 
-// ─── HMAC signing helpers ─────────────────────────────────────────────────────
+// ─── HMAC signing helper ──────────────────────────────────────────────────────
 
 function readUnlockSigningKey(): Uint8Array | null {
   const raw =
     (typeof process !== 'undefined' && process.env?.UNLOCK_SIGNING_KEY) ||
     (import.meta.env as Record<string, unknown>).UNLOCK_SIGNING_KEY
   if (typeof raw !== 'string' || !raw) return null
-  // base64url-decode
-  const b64 = raw.replace(/-/g, '+').replace(/_/g, '/')
-  const pad = '='.repeat((4 - (b64.length % 4)) % 4)
-  const bin = atob(b64 + pad)
-  const out = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
-  return out
+  return b64urlDecode(raw)
 }
 
 async function hmacSign(input: string): Promise<string> {
   const keyBytes = readUnlockSigningKey()
   if (!keyBytes) throw new Error('UNLOCK_SIGNING_KEY not configured')
-  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input))
-  return btoa(String.fromCharCode(...new Uint8Array(sig)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
+  return _hmacSign(input, keyBytes)
 }
 
 // ─── Base64url encode raw bytes (ArrayBuffer or Uint8Array) ──────────────────
 
 function bytesToBase64url(buf: ArrayBuffer | Uint8Array): string {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
+  return b64urlEncode(bytes)
 }
 
 // ─── D1 row type ──────────────────────────────────────────────────────────────

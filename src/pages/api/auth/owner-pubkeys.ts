@@ -23,6 +23,7 @@
 
 import type { APIRoute } from 'astro'
 import { resolveUnitFromSession } from '@/lib/api-auth'
+import { badRequest, err, forbidden, notFound, ok, serviceUnavailable, unauthorized } from '@/lib/api-response'
 import { getD1 } from '@/lib/cf-env'
 
 export const prerender = false
@@ -47,35 +48,12 @@ interface RevokeBody {
   credId?: string
 }
 
-// ─── Response helpers ─────────────────────────────────────────────────────────
-
-function unauthorized(reason: string) {
-  return new Response(JSON.stringify({ error: 'unauthenticated', reason }), {
-    status: 401,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
-function forbidden(reason: string) {
-  return new Response(JSON.stringify({ error: 'forbidden', reason }), {
-    status: 403,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
-function badRequest(reason: string) {
-  return new Response(JSON.stringify({ error: 'bad-input', reason }), {
-    status: 400,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
 // ─── Auth gate ────────────────────────────────────────────────────────────────
 
 async function requireOwner(request: Request, locals?: App.Locals) {
   const auth = await resolveUnitFromSession(request, locals).catch(() => null)
   if (!auth?.isValid) return { error: unauthorized('no session') }
-  if (auth.role !== 'owner') return { error: forbidden('role must be owner') }
+  if (auth.role !== 'owner') return { error: forbidden('forbidden', 'role must be owner') }
   return { auth }
 }
 
@@ -113,7 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const db = await getD1(locals)
-  if (!db) return new Response(JSON.stringify({ error: 'd1-unavailable' }), { status: 503 })
+  if (!db) return serviceUnavailable('d1-unavailable')
 
   try {
     await db
@@ -126,12 +104,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch (e) {
     const msg = (e as Error).message
     if (/UNIQUE|conflict/i.test(msg)) {
-      return new Response(JSON.stringify({ error: 'already-registered', reason: 'credId already exists' }), {
-        status: 409,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return err(409, 'already-registered', 'credId already exists')
     }
-    return new Response(JSON.stringify({ error: 'd1-failed', reason: msg }), { status: 500 })
+    return err(500, 'd1-failed', msg)
   }
 
   // Fetch the just-inserted row to return registeredAt from D1 (canonical timestamp).
@@ -141,8 +116,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     .first<{ registeredAt: number }>()
     .catch(() => null)
 
-  return Response.json({
-    ok: true,
+  return ok({
     credId: body.credId,
     registeredAt: row?.registeredAt ?? Math.floor(Date.now() / 1000),
   })
@@ -153,7 +127,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if ('error' in gate) return gate.error
 
   const db = await getD1(locals)
-  if (!db) return new Response(JSON.stringify({ error: 'd1-unavailable' }), { status: 503 })
+  if (!db) return serviceUnavailable('d1-unavailable')
 
   const result = await db
     .prepare(
@@ -165,7 +139,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     .all()
     .catch(() => null)
 
-  return new Response(JSON.stringify({ keys: result?.results ?? [] }), {
+  return new Response(JSON.stringify({ ok: true, keys: result?.results ?? [] }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
@@ -182,7 +156,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!body.credId || typeof body.credId !== 'string') return badRequest('credId required')
 
   const db = await getD1(locals)
-  if (!db) return new Response(JSON.stringify({ error: 'd1-unavailable' }), { status: 503 })
+  if (!db) return serviceUnavailable('d1-unavailable')
 
   const now = Math.floor(Date.now() / 1000)
 
@@ -195,10 +169,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     .catch(() => null)
 
   if (!existing) {
-    return new Response(JSON.stringify({ error: 'not-found', reason: 'credId not found' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return notFound('credId not found')
   }
 
   const result = await db
@@ -211,8 +182,8 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     .catch((e) => ({ success: false, error: (e as Error).message }))
 
   if (!('success' in result) || !result.success) {
-    return new Response(JSON.stringify({ error: 'd1-failed' }), { status: 500 })
+    return err(500, 'd1-failed')
   }
 
-  return Response.json({ ok: true, credId: body.credId, revokedAt: now })
+  return ok({ credId: body.credId, revokedAt: now })
 }

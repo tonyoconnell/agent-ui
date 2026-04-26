@@ -43,7 +43,7 @@ describe('🧑‍💻  A freelancer builds reputation', () => {
     })
 
     it('buyer Bob pays 0.05 SUI — escrow → release → settlement → mark', () => {
-      const path = 'buyer:bob:journey-02→' + ALICE
+      const path = `buyer:bob:journey-02→${ALICE}`
       // The release_escrow Move call atomically:
       //   1. transfers SUI to Alice
       //   2. increments path.revenue

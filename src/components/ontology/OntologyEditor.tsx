@@ -142,7 +142,7 @@ function OntologyEditorInner({ initialGroup, isAuthenticated }: Props) {
   const [selected, setSelected] = useState<Node | null>(null)
   const [extraNodes, setExtraNodes] = useState<Node[]>([])
   const [time, setTime] = useState<TimeWindow>({ at: null })
-  const [labels, setLabels] = useState<LabelAliases>(DEFAULT_LABELS)
+  const [_labels, setLabels] = useState<LabelAliases>(DEFAULT_LABELS)
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<TqlAction | null>(null)
 
@@ -214,10 +214,10 @@ function OntologyEditorInner({ initialGroup, isAuthenticated }: Props) {
   }, [groups])
 
   // ── Role-derived permission flags ─────────────────────────────────────────
-  const canMark =
+  const _canMark =
     mode === 'edit' &&
     (groupRole === 'chairman' || groupRole === 'ceo' || groupRole === 'operator' || groupRole === 'agent')
-  const canMintCapability = mode === 'edit' && (groupRole === 'chairman' || groupRole === 'ceo')
+  const _canMintCapability = mode === 'edit' && (groupRole === 'chairman' || groupRole === 'ceo')
   const editable = mode === 'edit' && isAuthenticated
   const isChairman = groupRole === 'chairman' || groupRole === 'ceo'
 

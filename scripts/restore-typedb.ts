@@ -29,7 +29,7 @@ const GATEWAY_KEY = process.env.GATEWAY_API_KEY ?? ''
 
 console.log(`[restore] date=${date} dry-run=${dryRun}`)
 
-const SNAPSHOT_KEYS = ['paths.json', 'units.json', 'skills.json', 'highways.json', 'toxic.json']
+const _SNAPSHOT_KEYS = ['paths.json', 'units.json', 'skills.json', 'highways.json', 'toxic.json']
 
 async function fetchBackup(key: string): Promise<unknown[] | null> {
   try {

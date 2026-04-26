@@ -309,7 +309,7 @@ describe('scenario 6: ivB64 decodes to wrong length → 400', () => {
 
     expect(res.status).toBe(400)
     expect(body.error).toBe('bad-input')
-    expect(body.detail).toMatch(/12 bytes/)
+    expect(body.reason).toMatch(/12 bytes/)
     expect(fakeDb._insertCount()).toBe(0)
   })
 })

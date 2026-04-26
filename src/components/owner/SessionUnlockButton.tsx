@@ -1,34 +1,8 @@
-import { useCallback, useEffect, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
+import { b64urlDecode, b64urlEncode, hmacSign as signBody } from '@/lib/owner-crypto'
 import { emitClick } from '@/lib/ui-signal'
 import { cn } from '@/lib/utils'
-
-// ---------------------------------------------------------------------------
-// HMAC helpers (Web Crypto — browser only)
-// ---------------------------------------------------------------------------
-
-function b64urlDecode(s: string): Uint8Array {
-  const padded = s
-    .replace(/-/g, '+')
-    .replace(/_/g, '/')
-    .padEnd(s.length + ((4 - (s.length % 4)) % 4), '=')
-  const binary = atob(padded)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  return bytes
-}
-
-function b64urlEncode(b: Uint8Array): string {
-  let binary = ''
-  for (let i = 0; i < b.length; i++) binary += String.fromCharCode(b[i])
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-}
-
-async function signBody(body: string, keyBytes: Uint8Array): Promise<string> {
-  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))
-  return b64urlEncode(new Uint8Array(sig))
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,9 +42,25 @@ export function SessionUnlockButton({
   const [expiresAt, setExpiresAt] = useState<number | undefined>(undefined)
   const [errorMsg, setErrorMsg] = useState<string | undefined>(undefined)
   const [isPending, startTransition] = useTransition()
+  // Tick every minute so the TTL countdown stays current
+  const [tick, setTick] = useState(0)
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Localhost safety check
   const isLocalhost = daemonUrl.startsWith('http://127.0.0.1') || daemonUrl.startsWith('http://localhost')
+
+  // ---------------------------------------------------------------------------
+  // 1-minute countdown tick
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (status === 'unlocked' && expiresAt !== undefined) {
+      tickRef.current = setInterval(() => setTick((t) => t + 1), 60_000)
+    }
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current)
+    }
+  }, [status, expiresAt])
 
   // ---------------------------------------------------------------------------
   // Poll /session/status
@@ -202,49 +192,92 @@ export function SessionUnlockButton({
       startTransition(() => {
         void handleUnlock()
       })
-    } else if (status === 'unlocked') {
-      startTransition(() => {
-        void handleLock()
-      })
     }
   }
 
+  function handleLockClick(): void {
+    startTransition(() => {
+      void handleLock()
+    })
+  }
+
   // ---------------------------------------------------------------------------
-  // Derived label
+  // Derived label — tick dependency ensures countdown re-renders each minute
   // ---------------------------------------------------------------------------
 
   function label(): string {
+    void tick // consumed to trigger re-render
     if (status === 'unlocking' || isPending) return 'Unlocking…'
     if (status === 'unlocked' && expiresAt !== undefined) {
-      const minsLeft = Math.ceil((expiresAt * 1000 - Date.now()) / 60_000)
-      return `🔓 Unlocked — ${minsLeft}m remaining`
+      const minsLeft = Math.max(0, Math.ceil((expiresAt * 1000 - Date.now()) / 60_000))
+      return `Unlocked — ${minsLeft}m remaining`
     }
-    if (status === 'unlocked') return '🔓 Unlocked'
+    if (status === 'unlocked') return 'Unlocked'
     if (status === 'unknown') return 'Checking session…'
+    if (status === 'error') return 'Unlock owner session'
     return 'Unlock owner session'
   }
 
   const isDisabled = status === 'unknown' || status === 'unlocking' || isPending
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
+    <div className={cn('space-y-3', className)}>
       {!isLocalhost && (
-        <p className="text-xs text-amber-400">
+        <p className="text-xs text-amber-400" role="alert">
           Warning: daemonUrl is not localhost — refusing to operate over non-local origin.
         </p>
       )}
-      <Button
-        onClick={handleClick}
-        disabled={isDisabled || !isLocalhost}
-        variant={status === 'unlocked' ? 'outline' : 'default'}
-        className={cn(
-          status === 'unlocked' && 'border-green-500/50 text-green-400 hover:bg-green-500/10',
-          status === 'error' && 'border-red-500/50 text-red-400 hover:bg-red-500/10',
+
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Primary action: unlock (when locked/error) */}
+        {status !== 'unlocked' && (
+          <Button
+            onClick={handleClick}
+            disabled={isDisabled || !isLocalhost}
+            variant="default"
+            className={cn(
+              'transition-colors',
+              status === 'error' && 'bg-amber-600/80 hover:bg-amber-600 text-white border-amber-500/50',
+              status === 'unknown' && 'opacity-60',
+            )}
+            aria-label="Unlock owner session"
+          >
+            {label()}
+          </Button>
         )}
-      >
-        {label()}
-      </Button>
-      {errorMsg !== undefined && <p className="text-xs text-red-400 font-mono">{errorMsg}</p>}
+
+        {/* Unlocked state: status badge + lock-now button */}
+        {status === 'unlocked' && (
+          <>
+            <div
+              className="inline-flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/30 rounded-md text-sm text-green-400"
+              aria-live="polite"
+              role="status"
+            >
+              <span
+                className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_2px_rgba(74,222,128,0.4)]"
+                aria-hidden="true"
+              />
+              <span className="font-mono text-xs">{label()}</span>
+            </div>
+            <Button
+              onClick={handleLockClick}
+              disabled={isPending}
+              variant="outline"
+              className="border-slate-600 text-slate-400 hover:border-slate-400 hover:text-white text-xs"
+              aria-label="Lock owner session now"
+            >
+              Lock now
+            </Button>
+          </>
+        )}
+      </div>
+
+      {errorMsg !== undefined && (
+        <p className="text-xs text-red-400 font-mono" role="alert">
+          {errorMsg}
+        </p>
+      )}
     </div>
   )
 }

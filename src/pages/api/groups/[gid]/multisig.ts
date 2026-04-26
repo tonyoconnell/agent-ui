@@ -16,6 +16,7 @@
 
 import type { APIRoute } from 'astro'
 import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
+import { err, ok, serviceUnavailable } from '@/lib/api-response'
 import { getD1 } from '@/lib/cf-env'
 
 export const prerender = false
@@ -24,13 +25,6 @@ interface MultisigBody {
   n?: number
   m?: number
   members?: Array<{ uid?: string; credId?: string; pubKey?: string }>
-}
-
-function err(status: number, error: string, reason?: string) {
-  return new Response(JSON.stringify({ error, reason }), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
 }
 
 export const POST: APIRoute = async ({ request, params, locals }) => {
@@ -72,7 +66,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
 
   // 4. UPSERT chairman_multisig row
   const db = await getD1(locals)
-  if (!db) return err(503, 'd1-unavailable')
+  if (!db) return serviceUnavailable('d1-unavailable')
 
   const memberCreds = JSON.stringify(
     members.map((m) => ({
@@ -102,8 +96,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     return err(500, 'd1-failed', (e as Error).message)
   }
 
-  return Response.json({
-    ok: true,
+  return ok({
     gid,
     n,
     m,
@@ -123,7 +116,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
   if (!callerRole) return err(403, 'forbidden', 'caller is not a member of this group')
 
   const db = await getD1(locals)
-  if (!db) return err(503, 'd1-unavailable')
+  if (!db) return serviceUnavailable('d1-unavailable')
 
   const row = await db
     .prepare(
@@ -142,9 +135,9 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     }>()
     .catch(() => null)
 
-  if (!row) return Response.json({ gid, multisig: null })
+  if (!row) return ok({ gid, multisig: null })
 
-  return Response.json({
+  return ok({
     gid,
     multisig: {
       n: row.n,

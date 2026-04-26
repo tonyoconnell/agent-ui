@@ -31,6 +31,7 @@
 
 import type { APIRoute } from 'astro'
 import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
+import { badRequest, forbidden, ok, unauthorized } from '@/lib/api-response'
 
 // ── Challenge store ─────────────────────────────────────────────────────────
 
@@ -133,7 +134,7 @@ export const GET: APIRoute = async ({ request }) => {
   // Auth check
   const ctx = await resolveUnitFromSession(request)
   if (!ctx.isValid || !ctx.user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    return unauthorized()
   }
 
   // Must be chairman or owner on at least one group.
@@ -203,10 +204,7 @@ export const GET: APIRoute = async ({ request }) => {
   }
 
   if (!isChairmanOrOwner) {
-    return Response.json(
-      { error: 'Forbidden', detail: 'chairman or owner role required; pass X-Group-Id header' },
-      { status: 403 },
-    )
+    return forbidden('forbidden', 'chairman or owner role required; pass X-Group-Id header')
   }
 
   // Validate peer param
@@ -214,15 +212,15 @@ export const GET: APIRoute = async ({ request }) => {
   const peer = url.searchParams.get('peer')
 
   if (!peer || peer.trim() === '') {
-    return Response.json({ error: 'Bad Request', detail: 'peer query param required' }, { status: 400 })
+    return badRequest('peer query param required')
   }
 
   // Validate that peer looks like a URL (must start with https:// or http://)
   if (!/^https?:\/\/.+/.test(peer.trim())) {
-    return Response.json({ error: 'Bad Request', detail: 'peer must be a valid http/https URL' }, { status: 400 })
+    return badRequest('peer must be a valid http/https URL')
   }
 
   const result = issueChallenge(peer.trim())
 
-  return Response.json(result, { status: 200 })
+  return ok(result)
 }

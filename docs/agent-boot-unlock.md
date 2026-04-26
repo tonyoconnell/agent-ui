@@ -119,7 +119,7 @@ written to any persistent store.
 
 ## HTTP Endpoint Specs
 
-### POST /api/agents/register
+### POST /api/agents/register-owner
 
 Owner-only. Creates the D1 `agent_wallet` row and returns the agent's bearer token once.
 
@@ -273,8 +273,8 @@ is GC'd. Every cold start goes through this full sequence — there is no warm-s
 | Owner offline at boot | `/unlock` returns 503 | Fail closed; return 503 on all endpoints; backoff retry (1s -> 2s -> 4s ... cap 60s) | Owner comes online -> next retry succeeds |
 | Token expired between mint and use | `token.expires_at < now` | Refetch: call `/unlock` again immediately | Usually succeeds on retry; if not, treat as 503 and backoff |
 | Token signature mismatch | `verifyOwnerSig` rejects | Emit `security:unlock:bad-sig`; treat as hard failure; do not retry the same token | Operator investigates; may indicate token interception or misconfiguration |
-| Bearer revoked | `/unlock` returns 401 | Hard stop; do not retry | Owner must issue new bearer via `/api/agents/register` and re-provision to worker env |
-| Corrupted D1 row | `/unlock` returns 500 | Hard stop; emit alert | Owner must re-register agent: DELETE row, POST /api/agents/register |
+| Bearer revoked | `/unlock` returns 401 | Hard stop; do not retry | Owner must issue new bearer via `/api/agents/register-owner` and re-provision to worker env |
+| Corrupted D1 row | `/unlock` returns 500 | Hard stop; emit alert | Owner must re-register agent: DELETE row, POST /api/agents/register-owner |
 | KDF version mismatch | `kdf_version` in token does not match expected | Emit `security:unlock:kdf-version-mismatch`; hard stop | Gap 4 versioning tracks which KEK version to use; owner rotates as needed |
 
 ---

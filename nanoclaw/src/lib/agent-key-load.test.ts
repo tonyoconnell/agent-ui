@@ -13,7 +13,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { AgentBootError, type LoadOptions, loadAgentToken } from './agent-key-load'
+import { type LoadOptions, loadAgentToken } from './agent-key-load'
 
 // Test helper: HMAC-sign a canonical string the same way the unlock endpoint does
 async function signToken(

@@ -11,6 +11,10 @@ if (!auth?.isValid || auth.role !== 'owner') {
 }
 ---
 
-<Layout title="Owner — substrate root">
+<Layout
+  title="Owner — substrate root | ONE"
+  description="Private owner-only dashboard. Manage agent wallets, key versions, and owner-tier audit events on the ONE substrate."
+  noindex={true}
+>
   <OwnerDashboard client:only="react" />
 </Layout>

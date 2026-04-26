@@ -197,7 +197,7 @@ describe('GET /api/paths/bridge/challenge', () => {
     expect(res.status).toBe(403)
 
     const json = await res.json()
-    expect(json.error).toBe('Forbidden')
+    expect(json.error).toBe('forbidden')
   })
 
   it('4. missing peer query param → 400', async () => {
@@ -208,7 +208,7 @@ describe('GET /api/paths/bridge/challenge', () => {
     expect(res.status).toBe(400)
 
     const json = await res.json()
-    expect(json.error).toBe('Bad Request')
+    expect(json.error).toBe('bad-input')
   })
 
   it('5. challenge expires after 5 min — consumeChallenge after fake-timer advance → false', () => {

@@ -105,7 +105,7 @@ function hex(bytes: Uint8Array): string {
     .join('')
 }
 
-function b64(bytes: Uint8Array): string {
+function _b64(bytes: Uint8Array): string {
   let s = ''
   for (const b of bytes) s += String.fromCharCode(b)
   return btoa(s)

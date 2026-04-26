@@ -170,7 +170,7 @@ describe('POST /api/owner/daemon-audit', () => {
 
     expect(res.status).toBe(401)
     const data = (await res.json()) as Record<string, unknown>
-    expect(data.code).toBe('bad-sig')
+    expect(data.error).toBe('bad-sig')
   })
 
   it('3. missing OWNER_DAEMON_KEY env → 503', async () => {
@@ -183,7 +183,7 @@ describe('POST /api/owner/daemon-audit', () => {
 
     expect(res.status).toBe(503)
     const data = (await res.json()) as Record<string, unknown>
-    expect(data.code).toBe('key-not-configured')
+    expect(data.error).toBe('key-not-configured')
   })
 
   it('4. bad body — missing required field → 400', async () => {
@@ -198,7 +198,7 @@ describe('POST /api/owner/daemon-audit', () => {
 
     expect(res.status).toBe(400)
     const data = (await res.json()) as Record<string, unknown>
-    expect(data.code).toBe('bad-body')
+    expect(data.error).toBe('bad-body')
   })
 
   it('5. future ts > 1 hour skew → 400 ts-future-skew', async () => {
@@ -215,7 +215,7 @@ describe('POST /api/owner/daemon-audit', () => {
 
     expect(res.status).toBe(400)
     const data = (await res.json()) as Record<string, unknown>
-    expect(data.code).toBe('ts-future-skew')
+    expect(data.error).toBe('ts-future-skew')
   })
 
   it('6. unknown outcome enum → 400', async () => {
@@ -229,7 +229,7 @@ describe('POST /api/owner/daemon-audit', () => {
 
     expect(res.status).toBe(400)
     const data = (await res.json()) as Record<string, unknown>
-    expect(data.code).toBe('bad-body')
+    expect(data.error).toBe('bad-body')
     expect(String(data.reason)).toContain('unknown outcome')
   })
 })

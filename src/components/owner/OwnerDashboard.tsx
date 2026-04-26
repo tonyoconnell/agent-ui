@@ -3,6 +3,7 @@ import { AgentList } from '@/components/owner/AgentList'
 import { AuditLogViewer } from '@/components/owner/AuditLogViewer'
 import { KeyRotationPanel } from '@/components/owner/KeyRotationPanel'
 import { SessionUnlockButton } from '@/components/owner/SessionUnlockButton'
+import { Badge } from '@/components/ui/badge'
 
 // Read daemon config from server-rendered meta tags if present.
 function readMeta(name: string, fallback: string): string {
@@ -19,7 +20,7 @@ async function stubGetPrf(): Promise<Uint8Array> {
 
 function truncateAddress(addr: string): string {
   if (!addr || addr.length <= 14) return addr
-  return `${addr.slice(0, 6)}…${addr.slice(-6)}`
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`
 }
 
 export function OwnerDashboard() {
@@ -31,54 +32,109 @@ export function OwnerDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-foreground">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+        {/* Breadcrumb */}
+        <nav aria-label="breadcrumb">
+          <ol className="flex items-center gap-1.5 text-xs text-slate-500">
+            <li>
+              <a href="/u" className="hover:text-slate-300 transition-colors">
+                /u
+              </a>
+            </li>
+            <li aria-hidden="true" className="text-slate-700">
+              ›
+            </li>
+            <li className="text-slate-400" aria-current="page">
+              owner
+            </li>
+          </ol>
+        </nav>
+
         {/* Header strip */}
-        <div className="flex items-center justify-between border-b border-[#1e293b] pb-4">
-          <div>
-            <h1 className="text-lg font-semibold text-white">Owner Dashboard</h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              <span className="text-purple-400 font-mono">Substrate owner</span>
-              {ownerAddress && (
-                <>
-                  {' '}
-                  —{' '}
-                  <span className="font-mono text-slate-400" title={ownerAddress}>
+        <div className="border-b border-[#1e293b] pb-5">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-lg font-semibold text-white">Owner Dashboard</h1>
+                <Badge className="bg-purple-500/15 text-purple-300 border border-purple-500/30 text-xs font-mono">
+                  substrate root
+                </Badge>
+              </div>
+              {ownerAddress ? (
+                <p className="text-xs text-slate-500 font-mono">
+                  <span className="text-slate-400 cursor-default" title={ownerAddress}>
                     {truncateAddress(ownerAddress)}
                   </span>
-                </>
+                  <span className="ml-2 text-slate-600">· hover for full address</span>
+                </p>
+              ) : (
+                <p className="text-xs text-slate-600">
+                  Set <code className="font-mono text-slate-500">owner-address</code> meta tag to display address.
+                </p>
               )}
-            </p>
+            </div>
+
+            {/* Lock banner — owner-only affirmation */}
+            <div
+              className="flex items-center gap-1.5 text-xs text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-md"
+              role="note"
+            >
+              <span aria-hidden="true">🔒</span>
+              <span>Owner-only</span>
+            </div>
           </div>
         </div>
 
-        {/* Session unlock */}
-        <section>
-          <h2 className="text-sm font-medium text-slate-400 mb-3">Session</h2>
-          {daemonKey ? (
-            <SessionUnlockButton daemonUrl={daemonUrl} daemonKey={daemonKey} getPrf={stubGetPrf} className="max-w-xs" />
-          ) : (
-            <p className="text-xs text-slate-600 font-mono">
-              Set <code>owner-daemon-key</code> meta tag to enable session unlock. The owner daemon must be running
-              locally.
-            </p>
-          )}
-        </section>
+        {/* Top grid: session + quick stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Session unlock — full width on mobile, left column on md+ */}
+          <section aria-label="Session management">
+            <h2 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">Session</h2>
+            {daemonKey ? (
+              <SessionUnlockButton daemonUrl={daemonUrl} daemonKey={daemonKey} getPrf={stubGetPrf} className="w-full" />
+            ) : (
+              <p className="text-xs text-slate-600 font-mono">
+                Set <code className="text-slate-500">owner-daemon-key</code> meta tag to enable session unlock.
+              </p>
+            )}
+          </section>
 
-        {/* Agent list */}
-        <section>
-          <h2 className="text-sm font-medium text-slate-400 mb-3">Agent Wallets</h2>
+          {/* Quick stats placeholder — populated by child components via counts */}
+          <section aria-label="Quick statistics">
+            <h2 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">At a glance</h2>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-[#161622] border border-[#252538] rounded-lg p-3 text-center">
+                <p className="text-xs text-slate-500 mb-1">Agents</p>
+                <p className="text-lg font-semibold text-white font-mono" id="stat-agents">
+                  —
+                </p>
+              </div>
+              <div className="bg-[#161622] border border-[#252538] rounded-lg p-3 text-center">
+                <p className="text-xs text-slate-500 mb-1">Key versions</p>
+                <p className="text-lg font-semibold text-white font-mono" id="stat-keys">
+                  —
+                </p>
+              </div>
+              <div className="bg-[#161622] border border-[#252538] rounded-lg p-3 text-center">
+                <p className="text-xs text-slate-500 mb-1">Audit (24h)</p>
+                <p className="text-lg font-semibold text-white font-mono" id="stat-audit">
+                  —
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Bottom: full-width panels stacked */}
+        <section aria-label="Agent wallets">
           <AgentList />
         </section>
 
-        {/* Key rotation */}
-        <section>
-          <h2 className="text-sm font-medium text-slate-400 mb-3">Key Rotation</h2>
-          <KeyRotationPanel />
+        <section aria-label="Audit log">
+          <AuditLogViewer />
         </section>
 
-        {/* Audit log */}
-        <section>
-          <h2 className="text-sm font-medium text-slate-400 mb-3">Audit Log</h2>
-          <AuditLogViewer />
+        <section aria-label="Key rotation">
+          <KeyRotationPanel />
         </section>
       </div>
     </div>

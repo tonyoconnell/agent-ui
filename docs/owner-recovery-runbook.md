@@ -46,7 +46,7 @@ Run quarterly per `mac.md` §"Quarterly verification ritual". Document the date 
 
 ## §1.t3 — Testnet cut + re-mint
 
-**Goal:** decommission existing testnet `ScopedWallet` Move objects and re-spawn each agent through the new `/api/agents/register` flow, populating `agent_wallet` with V2 ciphertext rows.
+**Goal:** decommission existing testnet `ScopedWallet` Move objects and re-spawn each agent through the new `/api/agents/register-owner` flow, populating `agent_wallet` with V2 ciphertext rows.
 
 **Mainnet:** explicitly NOT in scope — this runbook applies to testnet only. Mainnet cutover is a separate plan with its own destructive-operation gates.
 
@@ -65,7 +65,7 @@ For each agent:
 2. **Identify** the agent's existing on-chain `ScopedWallet` object id (TypeDB `unit.sui-object-id`).
 3. **Generate** a new random 32-byte seed in the owner browser. Compute the new address.
 4. **Wrap** the seed under `deriveAgentKEK(prf, uid)`.
-5. **POST** to `/api/agents/register` with the wrapped payload. Save the returned bearer.
+5. **POST** to `/api/agents/register-owner` with the wrapped payload. Save the returned bearer.
 6. **Update** the worker's `AGENT_BEARER` and `AGENT_UID` secrets (e.g. `wrangler secret put AGENT_BEARER --name=<worker>`).
 7. **Re-deploy** the worker (`wrangler deploy --name=<worker>`).
 8. **Decommission** the old on-chain `ScopedWallet` — call `scoped_wallet::revoke<T>(old_w)` to freeze it. The on-chain event log is preserved (revoke does not delete history).

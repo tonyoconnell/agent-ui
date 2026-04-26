@@ -629,7 +629,7 @@ Tenant chairmen can require N-of-M biometric assertions before a sensitive group
 
 **V3 carry:** sign_count tracking per member credential for replay protection beyond the 5-min TTL window.
 
-Full decision rationale: [`compliance.md`](../../../compliance.md) §W2 + [`docs/recon-multisig.md`](../docs/recon-multisig.md).
+Full decision rationale: [`compliance.md`](../../compliance.md) §W2 + [`docs/recon-multisig.md`](../docs/recon-multisig.md).
 
 ---
 

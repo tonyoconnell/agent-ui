@@ -57,6 +57,7 @@ export class AgentBootError extends Error {
   }
 }
 
+// Synced with src/lib/owner-crypto.ts; update both if changing.
 function b64urlDecode(s: string): Uint8Array {
   const b64 = s.replace(/-/g, '+').replace(/_/g, '/')
   const pad = '='.repeat((4 - (b64.length % 4)) % 4)
@@ -66,6 +67,7 @@ function b64urlDecode(s: string): Uint8Array {
   return out
 }
 
+// Synced with src/lib/owner-crypto.ts; update both if changing.
 function b64urlEncode(bytes: Uint8Array): string {
   let bin = ''
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])

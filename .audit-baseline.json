@@ -1,5 +1,5 @@
 {
-  "count": 1070,
+  "count": 1134,
   "files": [
     "src/components/EdgeInfo.tsx",
     "src/components/sell/NewListingIsland.tsx",
@@ -130,6 +130,7 @@
     "src/pages/speedtest.astro",
     "src/pages/u/save.astro",
     "src/pages/[groupId]/index.astro",
+    "src/pages/security.astro",
     "src/pages/speed.astro",
     "src/pages/api/auth/zklogin/callback.ts",
     "src/pages/api/export/groups.ts",

@@ -23,6 +23,7 @@
 
 import type { APIRoute } from 'astro'
 import { resolveUnitFromSession } from '@/lib/api-auth'
+import { badRequest, err, forbidden, ok, serviceUnavailable, unauthorized } from '@/lib/api-response'
 import { getD1 } from '@/lib/cf-env'
 
 export const prerender = false
@@ -40,31 +41,10 @@ interface RevokeBody {
   keyHash?: string
 }
 
-function unauthorized(reason: string) {
-  return new Response(JSON.stringify({ error: 'unauthenticated', reason }), {
-    status: 401,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
-function forbidden(reason: string) {
-  return new Response(JSON.stringify({ error: 'forbidden', reason }), {
-    status: 403,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
-function badRequest(reason: string) {
-  return new Response(JSON.stringify({ error: 'bad-input', reason }), {
-    status: 400,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
 async function requireOwner(request: Request, locals?: App.Locals) {
   const auth = await resolveUnitFromSession(request, locals).catch(() => null)
   if (!auth?.isValid) return { error: unauthorized('no session') }
-  if (auth.role !== 'owner') return { error: forbidden('role must be owner') }
+  if (auth.role !== 'owner') return { error: forbidden('forbidden', 'role must be owner') }
   return { auth }
 }
 
@@ -87,7 +67,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const db = await getD1(locals)
-  if (!db) return new Response(JSON.stringify({ error: 'd1-unavailable' }), { status: 503 })
+  if (!db) return serviceUnavailable('d1-unavailable')
 
   // Insert. ON CONFLICT (key_hash) → 409.
   try {
@@ -101,16 +81,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch (e) {
     const msg = (e as Error).message
     if (/UNIQUE|conflict/i.test(msg)) {
-      return new Response(JSON.stringify({ error: 'already-registered', reason: 'keyHash exists' }), {
-        status: 409,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return err(409, 'already-registered', 'keyHash exists')
     }
-    return new Response(JSON.stringify({ error: 'd1-failed', reason: msg }), { status: 500 })
+    return err(500, 'd1-failed', msg)
   }
 
-  return Response.json({
-    ok: true,
+  return ok({
     keyHash: body.keyHash,
     role: body.role,
     group: body.group,
@@ -124,7 +100,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if ('error' in gate) return gate.error
 
   const db = await getD1(locals)
-  if (!db) return new Response(JSON.stringify({ error: 'd1-unavailable' }), { status: 503 })
+  if (!db) return serviceUnavailable('d1-unavailable')
 
   const now = Math.floor(Date.now() / 1000)
   const result = await db
@@ -138,7 +114,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     .all()
     .catch(() => null)
 
-  return Response.json({ versions: result?.results ?? [] })
+  return ok({ versions: result?.results ?? [] })
 }
 
 export const DELETE: APIRoute = async ({ request, locals }) => {
@@ -149,7 +125,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!body.keyHash || typeof body.keyHash !== 'string') return badRequest('keyHash required')
 
   const db = await getD1(locals)
-  if (!db) return new Response(JSON.stringify({ error: 'd1-unavailable' }), { status: 503 })
+  if (!db) return serviceUnavailable('d1-unavailable')
 
   const now = Math.floor(Date.now() / 1000)
   const result = await db
@@ -159,8 +135,8 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     .catch((e) => ({ success: false, error: (e as Error).message }))
 
   if (!('success' in result) || !result.success) {
-    return new Response(JSON.stringify({ error: 'd1-failed' }), { status: 500 })
+    return err(500, 'd1-failed')
   }
 
-  return Response.json({ ok: true, keyHash: body.keyHash, expiresAt: now })
+  return ok({ keyHash: body.keyHash, expiresAt: now })
 }

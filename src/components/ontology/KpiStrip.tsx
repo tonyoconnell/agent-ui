@@ -86,7 +86,7 @@ export function KpiStrip({ gid }: Props) {
       const agents: Array<Record<string, unknown>> = (agentsData?.agents ?? []) as Array<Record<string, unknown>>
       const matchingAgents = agents.filter((a) => {
         const agentGroup = String(a.group ?? '')
-        return agentGroup === gid || agentGroup.startsWith(gid + ':')
+        return agentGroup === gid || agentGroup.startsWith(`${gid}:`)
       })
       const members = matchingAgents.length > 0 ? matchingAgents.length : agents.length
 

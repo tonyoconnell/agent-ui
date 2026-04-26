@@ -32,6 +32,7 @@
 import type { APIRoute } from 'astro'
 import { resolveUnitFromSession } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
+import { b64urlDecode, b64urlEncode, hmacSign as signBody } from '@/lib/owner-crypto'
 
 export const prerender = false
 
@@ -41,33 +42,6 @@ function readEnv(name: string): string {
   const fromRuntime = typeof process !== 'undefined' && process.env?.[name]
   const fromBuild = (import.meta.env as Record<string, unknown>)[name]
   return ((fromRuntime || fromBuild || '') as string).toString()
-}
-
-// ─── Base64url helpers ────────────────────────────────────────────────────────
-
-function b64urlDecodeKey(s: string): Uint8Array {
-  // Accept base64url or standard base64
-  const b64 = s.replace(/-/g, '+').replace(/_/g, '/')
-  const pad = '='.repeat((4 - (b64.length % 4)) % 4)
-  const bin = atob(b64 + pad)
-  const out = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
-  return out
-}
-
-function b64urlEncode(b: Uint8Array): string {
-  return btoa(String.fromCharCode(...b))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
-}
-
-// ─── HMAC-SHA-256 (Web Crypto only — no node:crypto) ─────────────────────────
-
-async function signBody(body: string, keyBytes: Uint8Array): Promise<string> {
-  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))
-  return b64urlEncode(new Uint8Array(sig))
 }
 
 // ─── D1 row type ──────────────────────────────────────────────────────────────
@@ -128,7 +102,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   })
 
   // 5. Sign
-  const keyBytes = b64urlDecodeKey(keyB64)
+  const keyBytes = b64urlDecode(keyB64)
   const sig = await signBody(body, keyBytes)
 
   // 6. Call daemon

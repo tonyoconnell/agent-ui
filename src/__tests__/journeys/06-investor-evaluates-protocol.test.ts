@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest'
 import { world } from '@/engine/persist'
 
-const net = world()
+const _net = world()
 
 describe('💼  An investor evaluates the protocol', () => {
   describe('Stage 1 · count the highways (proven paths)', () => {

@@ -138,6 +138,16 @@ export function createAuth() {
       },
     },
 
+    user: {
+      changeEmail: {
+        enabled: true,
+        // Allow immediate email update when the account's email is not yet
+        // verified (common for passkey-first or wallet-first accounts).
+        // Verified accounts will receive an error until email sending is wired up.
+        updateEmailWithoutVerification: true,
+      },
+    },
+
     trustedOrigins: [
       'http://localhost:4321',
       'http://localhost:3000',

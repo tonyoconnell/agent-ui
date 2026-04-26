@@ -589,7 +589,7 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
     } finally {
       setFetchingBalance(false)
     }
-  }, [wallet, allWallets])
+  }, [wallet])
 
   // Auto-fetch balance on load
   useEffect(() => {

@@ -61,7 +61,7 @@ function relativeTime(ts: unknown): string {
 
 /** Extract a display label from a signal record */
 function signalLabel(sig: Record<string, unknown>): string {
-  const receiver = sig.receiver ?? sig['to'] ?? sig['skill'] ?? ''
+  const receiver = sig.receiver ?? sig.to ?? sig.skill ?? ''
   return String(receiver).slice(0, 40) || '—'
 }
 
@@ -132,7 +132,7 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
     return () => {
       cancelled = true
     }
-  }, [node?.id])
+  }, [node?.id, node])
 
   if (!node) return null
 

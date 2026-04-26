@@ -15,6 +15,7 @@
 import { verifyAuthenticationResponse } from '@simplewebauthn/server'
 import type { APIRoute } from 'astro'
 import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
+import { badRequest, err, forbidden, ok, unauthorized } from '@/lib/api-response'
 import { fetchPeerPubkey } from '@/lib/federation-discovery'
 import { writeSilent } from '@/lib/typedb'
 import { consumeChallenge } from './bridge/challenge'
@@ -101,22 +102,22 @@ interface BridgeBody {
 
 export const POST: APIRoute = async ({ request }) => {
   const ctx = await resolveUnitFromSession(request)
-  if (!ctx.isValid || !ctx.user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!ctx.isValid || !ctx.user) return unauthorized()
 
   let body: BridgeBody
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+    return badRequest('invalid JSON')
   }
-  if (!body.from || !body.to) return Response.json({ error: 'from and to required' }, { status: 400 })
-  if (body.from === body.to) return Response.json({ error: 'cannot bridge to self' }, { status: 400 })
+  if (!body.from || !body.to) return badRequest('from and to required')
+  if (body.from === body.to) return badRequest('cannot bridge to self')
 
   // Caller must be chairman of their side
   const fromRole = await getRoleForUser(ctx.user, body.from)
   const toRole = await getRoleForUser(ctx.user, body.to)
   const callerGid = fromRole ? body.from : toRole ? body.to : null
-  if (!callerGid) return Response.json({ error: 'Forbidden — must be chairman of one side' }, { status: 403 })
+  if (!callerGid) return forbidden('forbidden', 'must be chairman of one side')
 
   const key = bridgeKey(body.from, body.to)
   const existing = pending.get(key)
@@ -153,32 +154,26 @@ export const POST: APIRoute = async ({ request }) => {
     const peerKey = await fetchPeerPubkey(peerHost)
 
     if (!peerKey) {
-      return Response.json(
-        {
-          error: 'peer-discovery-failed',
-          detail: `Could not fetch ${peerHost}/.well-known/owner-pubkey.json — host unreachable or response malformed`,
-        },
-        { status: 503 },
+      return err(
+        503,
+        'peer-discovery-failed',
+        `Could not fetch ${peerHost}/.well-known/owner-pubkey.json — host unreachable or response malformed`,
       )
     }
 
     if (peerKey.address.toLowerCase() !== peerOwnerAddress.toLowerCase()) {
-      return Response.json(
-        {
-          error: 'peer-address-mismatch',
-          detail: `discovery published address ${peerKey.address} but body claims ${peerOwnerAddress}`,
-        },
-        { status: 403 },
+      return err(
+        403,
+        'peer-address-mismatch',
+        `discovery published address ${peerKey.address} but body claims ${peerOwnerAddress}`,
       )
     }
 
     if (typeof peerOwnerVersion === 'number' && peerKey.version !== peerOwnerVersion) {
-      return Response.json(
-        {
-          error: 'peer-version-mismatch',
-          detail: `discovery says v${peerKey.version} but body claims v${peerOwnerVersion}`,
-        },
-        { status: 403 },
+      return err(
+        403,
+        'peer-version-mismatch',
+        `discovery says v${peerKey.version} but body claims v${peerOwnerVersion}`,
       )
     }
 
@@ -188,20 +183,15 @@ export const POST: APIRoute = async ({ request }) => {
     // Falls back to V2 (address+version only) when peer has no keys published.
     if (peerKey.schema === 'owner-pubkey-v2' && Array.isArray(peerKey.keys) && peerKey.keys.length > 0) {
       if (!body.peerAssertion?.credId) {
-        return Response.json(
-          { error: 'peer-assertion-missing-credId', detail: 'peer publishes v2 keys — peerAssertion.credId required' },
-          { status: 400 },
-        )
+        return err(400, 'peer-assertion-missing-credid', 'peer publishes v2 keys — peerAssertion.credId required')
       }
 
       const peerCred = peerKey.keys.find((k) => k.credId === body.peerAssertion!.credId)
       if (!peerCred) {
-        return Response.json(
-          {
-            error: 'peer-cred-not-published',
-            detail: `peerAssertion.credId=${body.peerAssertion.credId} not in published keys`,
-          },
-          { status: 403 },
+        return err(
+          403,
+          'peer-cred-not-published',
+          `peerAssertion.credId=${body.peerAssertion.credId} not in published keys`,
         )
       }
 
@@ -236,10 +226,7 @@ export const POST: APIRoute = async ({ request }) => {
       }).catch((e: unknown) => ({ verified: false, error: (e as Error).message }))
 
       if (!verification.verified) {
-        return Response.json(
-          { error: 'peer-signature-verify-failed', detail: 'WebAuthn signature did not match peer pubkey' },
-          { status: 403 },
-        )
+        return err(403, 'peer-signature-verify-failed', 'WebAuthn signature did not match peer pubkey')
       }
     }
     // If schema is v1 OR keys array is empty → fall back to V2 behavior
@@ -268,13 +255,10 @@ export const POST: APIRoute = async ({ request }) => {
     if (body.bridgeChallenge) {
       const challengeOk = consumeChallenge(body.bridgeChallenge, peerHost)
       if (!challengeOk) {
-        return Response.json(
-          {
-            error: 'bridge-challenge-stale-or-replayed',
-            detail:
-              'bridgeChallenge does not match an active server-issued nonce for this peer; re-fetch from GET /api/paths/bridge/challenge',
-          },
-          { status: 403 },
+        return err(
+          403,
+          'bridge-challenge-stale-or-replayed',
+          'bridgeChallenge does not match an active server-issued nonce for this peer; re-fetch from GET /api/paths/bridge/challenge',
         )
       }
     } else {
@@ -321,9 +305,8 @@ export const POST: APIRoute = async ({ request }) => {
     writeSilent(baseInsert)
   }
 
-  return Response.json(
+  return ok(
     {
-      ok: true,
       status: 'accepted',
       from: body.from,
       to: body.to,
@@ -340,20 +323,20 @@ export const POST: APIRoute = async ({ request }) => {
 
 export const DELETE: APIRoute = async ({ request }) => {
   const ctx = await resolveUnitFromSession(request)
-  if (!ctx.isValid || !ctx.user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!ctx.isValid || !ctx.user) return unauthorized()
 
   let body: { from?: string; to?: string }
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+    return badRequest('invalid JSON')
   }
-  if (!body.from || !body.to) return Response.json({ error: 'from and to required' }, { status: 400 })
+  if (!body.from || !body.to) return badRequest('from and to required')
 
   // Either side's chairman can dissolve
   const fromRole = await getRoleForUser(ctx.user, body.from)
   const toRole = await getRoleForUser(ctx.user, body.to)
-  if (!fromRole && !toRole) return Response.json({ error: 'Forbidden' }, { status: 403 })
+  if (!fromRole && !toRole) return forbidden('forbidden', 'must be chairman of one side')
 
   // Clear pending (if any)
   pending.delete(bridgeKey(body.from, body.to))
@@ -371,5 +354,5 @@ export const DELETE: APIRoute = async ({ request }) => {
           $p (source: $b, target: $a) isa path, has bridge-kind "federation";
     delete $p isa path;
   `)
-  return Response.json({ ok: true, status: 'dissolved' })
+  return ok({ status: 'dissolved' })
 }
