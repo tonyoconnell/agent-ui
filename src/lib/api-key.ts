@@ -1,5 +1,15 @@
 /**
- * API Key generation and validation utilities
+ * API Key generation and validation utilities.
+ *
+ * Two key-derivation paths coexist:
+ *   - generateApiKey() — random api_<ts>_<rnd>; the legacy + general path used
+ *     by /api/auth/api-keys for chairman/agent keys.
+ *   - deriveKey()      — owner-PRF-derived via HKDF; the Gap 4 path used for
+ *     rotateable owner-tier keys. Salt info: `api-key:${role}:${group}:v${version}`.
+ *     Version bumps without rotating salt → cutover with overlapping validity.
+ *     Lives alongside the random path because owner keys are derived from the
+ *     biometric-locked PRF (browser-side), while chairman/agent keys can be
+ *     server-minted random tokens.
  */
 
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -8,6 +18,38 @@ const ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
  * Generate a cryptographically secure random API key
  * Format: api_<timestamp>_<random>
  */
+/**
+ * HKDF-derive a versioned key from the owner's WebAuthn PRF.
+ *
+ * Returns 32 raw bytes — caller encodes for transport (e.g. base64url) and
+ * also computes the bcrypt-style hash via hashKey() before storing the row
+ * in D1 owner_key. The PRF itself never leaves the owner's browser — this
+ * function runs only on the owner machine (browser context), so no
+ * server-side guard is needed here; the guard lives in src/lib/owner-key.ts.
+ *
+ * Bumping `version` without changing role/group rotates the key while
+ * keeping the same logical bearer. Cutover window: register v+1, both
+ * accepted until v is force-revoked.
+ *
+ * Spec: owner-todo Gap 4 §4.s1, owner.md §"Owner identity vs the consumer wallet"
+ *       (rotation table row).
+ */
+export async function deriveKey(prf: Uint8Array, role: string, group: string, version = 1): Promise<Uint8Array> {
+  if (!prf || prf.length === 0) throw new Error('deriveKey: prf required')
+  if (!role) throw new Error('deriveKey: role required')
+  if (!group) throw new Error('deriveKey: group required')
+  if (!Number.isInteger(version) || version < 1) throw new Error('deriveKey: version must be a positive integer')
+
+  const baseKey = await crypto.subtle.importKey('raw', prf, 'HKDF', false, ['deriveBits'])
+  const info = new TextEncoder().encode(`api-key:${role}:${group}:v${version}`)
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info },
+    baseKey,
+    256, // 32 bytes
+  )
+  return new Uint8Array(bits)
+}
+
 export function generateApiKey(): string {
   const timestamp = Date.now().toString(36)
   const bytes = crypto.getRandomValues(new Uint8Array(32))

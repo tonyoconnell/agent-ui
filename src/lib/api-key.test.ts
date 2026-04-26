@@ -12,7 +12,68 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { generateApiKey, hashKey, verifyKey } from './api-key'
+import { deriveKey, generateApiKey, hashKey, verifyKey } from './api-key'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACT 0: deriveKey — Gap 4 §4.s1 owner-PRF-derived rotation key
+// ═══════════════════════════════════════════════════════════════════════════
+
+const samplePrf = (seed: number): Uint8Array => {
+  const bytes = new Uint8Array(32)
+  for (let i = 0; i < 32; i++) bytes[i] = (seed * 31 + i) & 0xff
+  return bytes
+}
+const toHex = (b: Uint8Array): string => Array.from(b, (n) => n.toString(16).padStart(2, '0')).join('')
+
+describe('Act 0: deriveKey — Gap 4 §4.s1 versioned HKDF derivation', () => {
+  it('returns 32 raw bytes', async () => {
+    const k = await deriveKey(samplePrf(1), 'owner', 'g:owns:human:tony', 1)
+    expect(k).toBeInstanceOf(Uint8Array)
+    expect(k.length).toBe(32)
+  })
+
+  it('is deterministic for the same inputs', async () => {
+    const a = await deriveKey(samplePrf(1), 'owner', 'g', 1)
+    const b = await deriveKey(samplePrf(1), 'owner', 'g', 1)
+    expect(toHex(a)).toBe(toHex(b))
+  })
+
+  it('different version → different key (rotation isolation)', async () => {
+    const v1 = await deriveKey(samplePrf(1), 'owner', 'g', 1)
+    const v2 = await deriveKey(samplePrf(1), 'owner', 'g', 2)
+    expect(toHex(v1)).not.toBe(toHex(v2))
+  })
+
+  it('different role → different key', async () => {
+    const a = await deriveKey(samplePrf(1), 'owner', 'g', 1)
+    const b = await deriveKey(samplePrf(1), 'chairman', 'g', 1)
+    expect(toHex(a)).not.toBe(toHex(b))
+  })
+
+  it('different group → different key', async () => {
+    const a = await deriveKey(samplePrf(1), 'chairman', 'g:acme', 1)
+    const b = await deriveKey(samplePrf(1), 'chairman', 'g:beta', 1)
+    expect(toHex(a)).not.toBe(toHex(b))
+  })
+
+  it('different prf → different key', async () => {
+    const a = await deriveKey(samplePrf(1), 'owner', 'g', 1)
+    const b = await deriveKey(samplePrf(2), 'owner', 'g', 1)
+    expect(toHex(a)).not.toBe(toHex(b))
+  })
+
+  it('rejects empty prf / role / group', async () => {
+    await expect(deriveKey(new Uint8Array(0), 'owner', 'g', 1)).rejects.toThrow()
+    await expect(deriveKey(samplePrf(1), '', 'g', 1)).rejects.toThrow()
+    await expect(deriveKey(samplePrf(1), 'owner', '', 1)).rejects.toThrow()
+  })
+
+  it('rejects invalid version (must be positive integer)', async () => {
+    await expect(deriveKey(samplePrf(1), 'owner', 'g', 0)).rejects.toThrow(/positive integer/)
+    await expect(deriveKey(samplePrf(1), 'owner', 'g', -1)).rejects.toThrow(/positive integer/)
+    await expect(deriveKey(samplePrf(1), 'owner', 'g', 1.5)).rejects.toThrow(/positive integer/)
+  })
+})
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 1: generateApiKey — format and randomness
