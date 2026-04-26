@@ -1,5 +1,5 @@
 /**
- * Contract test for POST /api/agents/register — owner-only agent wallet
+ * Contract test for POST /api/agents/register-owner — owner-only agent wallet
  * registration endpoint. Owner-todo Gap 1, task 1.s3.
  *
  * Seven scenarios:
@@ -103,7 +103,7 @@ function makeFakeD1(existingCount = 0) {
 // ─── Request factory ──────────────────────────────────────────────────────────
 
 function makeRequest(body: Record<string, unknown>): Request {
-  return new Request('http://localhost/api/agents/register', {
+  return new Request('http://localhost/api/agents/register-owner', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer fake-owner-key' },
     body: JSON.stringify(body),
@@ -146,7 +146,7 @@ describe('scenario 1: valid owner registration', () => {
     } as any)
     vi.mocked(getD1).mockResolvedValue(fakeDb as any)
 
-    const { POST } = await import('@/pages/api/agents/register')
+    const { POST } = await import('@/pages/api/agents/register-owner')
     const res = await POST({ request: makeRequest(validBody()), locals: {} } as any)
     const body = await res.json()
 
@@ -186,7 +186,7 @@ describe('scenario 2: chairman role → 403 not-owner', () => {
     } as any)
     vi.mocked(getD1).mockResolvedValue(fakeDb as any)
 
-    const { POST } = await import('@/pages/api/agents/register')
+    const { POST } = await import('@/pages/api/agents/register-owner')
     const res = await POST({ request: makeRequest(validBody()), locals: {} } as any)
     const body = await res.json()
 
@@ -212,7 +212,7 @@ describe('scenario 3: unauthenticated → 401', () => {
     } as any)
     vi.mocked(getD1).mockResolvedValue(fakeDb as any)
 
-    const { POST } = await import('@/pages/api/agents/register')
+    const { POST } = await import('@/pages/api/agents/register-owner')
     const res = await POST({ request: makeRequest(validBody()), locals: {} } as any)
     const body = await res.json()
 
@@ -239,7 +239,7 @@ describe('scenario 4: invalid uid format → 400', () => {
     } as any)
     vi.mocked(getD1).mockResolvedValue(fakeDb as any)
 
-    const { POST } = await import('@/pages/api/agents/register')
+    const { POST } = await import('@/pages/api/agents/register-owner')
     const res = await POST({
       request: makeRequest({ ...validBody(), uid: 'invalid uid with spaces' }),
       locals: {},
@@ -269,7 +269,7 @@ describe('scenario 5: duplicate uid → 409', () => {
     } as any)
     vi.mocked(getD1).mockResolvedValue(fakeDb as any)
 
-    const { POST } = await import('@/pages/api/agents/register')
+    const { POST } = await import('@/pages/api/agents/register-owner')
     const res = await POST({ request: makeRequest(validBody()), locals: {} } as any)
     const body = await res.json()
 
@@ -300,7 +300,7 @@ describe('scenario 6: ivB64 decodes to wrong length → 400', () => {
     // 11 bytes — should fail the === 12 check
     const badIv = makeBase64url(new Uint8Array(11).fill(0xaa))
 
-    const { POST } = await import('@/pages/api/agents/register')
+    const { POST } = await import('@/pages/api/agents/register-owner')
     const res = await POST({
       request: makeRequest({ ...validBody(), ivB64: badIv }),
       locals: {},
@@ -331,7 +331,7 @@ describe('scenario 7: successful response shape', () => {
     } as any)
     vi.mocked(getD1).mockResolvedValue(fakeDb as any)
 
-    const { POST } = await import('@/pages/api/agents/register')
+    const { POST } = await import('@/pages/api/agents/register-owner')
     const res = await POST({ request: makeRequest(validBody()), locals: {} } as any)
     const body = await res.json()
 

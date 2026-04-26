@@ -351,6 +351,22 @@ export const syncAgent = async (spec: AgentSpec): Promise<void> => {
  * Returns the spec with wallet + suiObjectId populated.
  * Falls back to TypeDB-only if Sui is not configured or fails.
  */
+/**
+ * Owner-todo Gap 1 §1.s4: keyed agents (those that need an on-chain
+ * Sui keypair) MUST go through the owner-browser flow:
+ *   1. Owner clicks "register" in their browser
+ *   2. Browser generates random 32-byte seed
+ *   3. Browser derives agent KEK via deriveAgentKEK(prf, uid) — see
+ *      `src/lib/owner-key.ts` (browser-only by design)
+ *   4. Browser AES-GCM-wraps the seed
+ *   5. Browser POSTs ciphertext + iv to `POST /api/agents/register`
+ *   6. Endpoint stores in D1 agent_wallet, mints agent bearer
+ *
+ * This server-side `syncAgentWithIdentity` continues to work for
+ * markdown-only agents that don't need autonomous on-chain signing
+ * (e.g. read-only personas). Keyed agents skip this path. See
+ * `agents.md` Pattern D for the canonical flow.
+ */
 export const syncAgentWithIdentity = async (spec: AgentSpec): Promise<AgentSpec> => {
   const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
 
