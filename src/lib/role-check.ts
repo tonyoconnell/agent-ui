@@ -24,6 +24,27 @@ export type RoleAction =
 
 export type GovernanceRole = 'owner' | 'chairman' | 'board' | 'ceo' | 'operator' | 'agent' | 'auditor'
 
+/**
+ * Multi-sig requirement for a chairman role per group (Gap 3 §3.s1).
+ *
+ * `false` (default): single-chairman action — one Touch ID, one assertion.
+ * `{ n, m }`        : N-of-M multisig — action requires N verified
+ *                     WebAuthn assertions from distinct members in the
+ *                     group's `chairman_multisig.member_credentials` JSON
+ *                     within the 5-min assertion window.
+ *
+ * Field is computed at request-time by joining membership.role='chairman'
+ * with D1 chairman_multisig WHERE group_id = ?. When the row exists,
+ * multisig_required = { n: row.threshold_n, m: row.threshold_m }; absent
+ * row → multisig_required = false.
+ *
+ * The check fires inside the owner-bypass branch of signal.ts (Gap 2 §2.r2)
+ * for owner-tier actions touching multisig groups. Non-bypass actions
+ * (reads, public scope) bypass multisig — see `compliance.md` §"Action
+ * scope".
+ */
+export type MultisigRequirement = false | { n: number; m: number }
+
 // Substrate owner — the human apex (Anthony O'Connell). Singleton per substrate;
 // holds every action permission (matrix-equivalent to chairman) and additionally
 // bypasses scope/network/sensitivity gates in src/pages/api/signal.ts. Owner-tier
