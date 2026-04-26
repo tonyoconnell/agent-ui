@@ -1,30 +1,71 @@
 /**
- * POST /api/auth/passkey/assert — owner-tier role assertion + first-mint.
+ * POST /api/auth/passkey/assert — owner-tier role assertion + first-mint,
+ * and N-of-M chairman multisig assertion batching (Gap 3 §3.s3).
  *
- * This is the gate that locks substrate owner identity. On first call (when
- * the `owner_key` D1 table is empty), the endpoint:
+ * === FIRST-MINT FLOW (existing, unchanged) ===
+ * When body.action is absent / not 'multisig-action', the existing first-mint
+ * owner flow runs:
  *   1. Verifies the caller's resolved Sui address equals env.OWNER_EXPECTED_ADDRESS
  *   2. Calls Move `init_substrate_owner(pin, addr)` to lock the on-chain pin
  *      (Sui aborts with E_OWNER_LOCKED on second call → 409 Conflict)
  *   3. Inserts the bearer hash into D1 `owner_key`
  * On subsequent calls, the address is checked against the registered owner.
  *
- * Auth model (Gap 0 scope): authenticated session (Better Auth cookie). The
- * session resolves to a TypeDB unit whose `wallet` attribute is the asserted
- * address. Per-call WebAuthn assertion verification is deferred to a follow-up
- * (the existing `passkey-webauthn` plugin verifies WebAuthn at sign-in time;
- * owner-tier assertions inherit that trust until the per-call WebAuthn dance
- * lands). The OWNER_EXPECTED_ADDRESS env gate is the security-critical layer.
+ * === MULTISIG BATCHED FLOW (Gap 3 §3.s3) ===
+ * When body.action === 'multisig-action', the endpoint accepts a SINGLE
+ * WebAuthn assertion from one chairman. The server collects N such assertions
+ * (one per chairman) in an in-process bundle store keyed by bundleId within
+ * a 5-minute window:
  *
- * Atomicity (D1 + Sui): Move call runs FIRST. If the on-chain lock succeeds
- * but the D1 insert fails (rare), the on-chain pin is the source of truth —
- * recovery re-runs the D1 insert with the matching address. If Move fails,
- * D1 is never touched; first-mint stays open for retry.
+ *   POST body: {
+ *     action: 'multisig-action',
+ *     groupId: string,
+ *     bundleId: string,           // UUIDv4 nonce issued by client or server earlier
+ *     assertion: {
+ *       credId: string,
+ *       clientDataJSON: string,   // base64url
+ *       authenticatorData: string, // base64url
+ *       signature: string,         // base64url
+ *     }
+ *   }
  *
- * Spec: owner.md §Bootstrap. owner-todo Gap 0 tasks 0.s3 + 0.s5.
+ *   Responses:
+ *     { ok: false, accepted: N, threshold: M }  — accepted, not yet at threshold
+ *     { ok: true,  accepted: N, threshold: M }  — threshold reached
+ *     { error: '...', ... }                     — failure modes
+ *
+ * Server flow:
+ *   1. Look up chairman_multisig D1 row for group_id → 400 if absent.
+ *   2. Parse member_credentials JSON; find the credId → 403 if unknown.
+ *   3. Verify the WebAuthn assertion (V1: stub — checks credId is in list;
+ *      cryptographic verify is deferred — see TODO below).
+ *   4. Maintain bundle store (module-scope Map, 5-min TTL):
+ *      - First call: create entry, add credId to accepted Set.
+ *      - Subsequent calls: add credId (Set dedupes, can't double-count).
+ *      - Expired bundle: 410 bundle-expired.
+ *      - groupId mismatch: 403 bundle-group-mismatch.
+ *   5. Compare accepted.size vs threshold_n:
+ *      - < n → 200 { ok: false, accepted, threshold: n }
+ *      - >= n → 200 { ok: true, accepted, threshold: n } + emit audit record.
+ *
+ * TODO (cryptographic verification): V1 uses a stub verifier — it confirms the
+ * credId is registered in member_credentials but does NOT verify the WebAuthn
+ * signature cryptographically. Cryptographic verification requires each
+ * member's pubKey to be stored in member_credentials. Current schema stores
+ * {uid, credId} only. Gap 3.s4 (follow-up) will: (a) add pubKey field to
+ * member_credentials JSON, (b) replace the stub with verifyAuthenticationResponse
+ * from @simplewebauthn/server. Until then this endpoint must not be used for
+ * production-value actions without additional out-of-band verification.
+ *
+ * Bundle store: module-scope Map<bundleId, BundleEntry>. In production this
+ * would live in a Durable Object (one per group); in V1 in-process is
+ * acceptable — matches Gap 5's per-isolate counter pattern.
+ *
+ * Spec: compliance.md §"Implementation notes for W3". owner-todo Gap 3 §3.s3.
  */
 
 import type { APIRoute } from 'astro'
+import { auditOwner } from '@/engine/adl-cache'
 import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
 import { generateApiKey, hashKey } from '@/lib/api-key'
 import { getD1 } from '@/lib/cf-env'
@@ -32,6 +73,28 @@ import { lockOnChainOwner } from '@/lib/owner-mint'
 import { readParsed } from '@/lib/typedb'
 
 export const prerender = false
+
+// ─── Multisig bundle store ─────────────────────────────────────────────────
+
+const BUNDLE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
+interface BundleEntry {
+  groupId: string
+  accepted: Set<string> // credIds that have verified
+  expiresAt: number
+}
+
+/** Module-scope bundle store. V1: in-process. V2: Durable Object per group. */
+export const MULTISIG_BUNDLES = new Map<string, BundleEntry>()
+
+function cleanExpiredBundles(): void {
+  const now = Date.now()
+  for (const [id, entry] of MULTISIG_BUNDLES) {
+    if (now > entry.expiresAt) MULTISIG_BUNDLES.delete(id)
+  }
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AssertResponse {
   ok: boolean
@@ -42,6 +105,41 @@ interface AssertResponse {
   pinDigest?: string
   error?: string
   reason?: string
+}
+
+interface MultisigResponse {
+  ok: boolean
+  accepted?: number
+  threshold?: number
+  error?: string
+  reason?: string
+}
+
+interface MultisigAssertion {
+  credId: string
+  clientDataJSON: string
+  authenticatorData: string
+  signature: string
+}
+
+interface MultisigBody {
+  action: 'multisig-action'
+  groupId: string
+  bundleId: string
+  assertion: MultisigAssertion
+}
+
+interface MemberCredential {
+  uid: string
+  credId: string
+  addedAt?: number
+  pubKey?: string // optional in V1; required for cryptographic verify in V2
+}
+
+interface MultisigRow {
+  threshold_n: number
+  threshold_m: number
+  member_credentials: string // JSON
 }
 
 function envValue(name: string): string {
@@ -60,7 +158,223 @@ async function resolveAssertedAddress(uid: string): Promise<string | null> {
   return typeof w === 'string' ? w : null
 }
 
+/**
+ * V1 stub verifier: confirms the credId is in member_credentials but does NOT
+ * cryptographically verify the WebAuthn assertion signature.
+ *
+ * TODO (Gap 3.s4): Replace with verifyAuthenticationResponse from
+ * @simplewebauthn/server once pubKey is stored in member_credentials JSON.
+ * Current schema only stores {uid, credId}; cryptographic verify requires the
+ * public key that was registered with the credential.
+ *
+ * @returns true if credId is registered (V1 stub), false otherwise
+ */
+function verifyAssertionStub(assertion: MultisigAssertion, members: MemberCredential[]): boolean {
+  return members.some((m) => m.credId === assertion.credId)
+}
+
+// ─── Multisig assertion handler ───────────────────────────────────────────────
+
+async function handleMultisigAssertion(
+  body: MultisigBody,
+  db: NonNullable<Awaited<ReturnType<typeof getD1>>>,
+): Promise<Response> {
+  const { groupId, bundleId, assertion } = body
+
+  // 1. Look up chairman_multisig row for this group
+  const row = await db
+    .prepare('SELECT threshold_n, threshold_m, member_credentials FROM chairman_multisig WHERE group_id = ?')
+    .bind(groupId)
+    .first<MultisigRow>()
+    .catch(() => null)
+
+  if (!row) {
+    return Response.json(
+      {
+        ok: false,
+        error: 'no-multisig-config',
+        reason: 'no chairman_multisig row for this group',
+      } satisfies MultisigResponse,
+      { status: 400 },
+    )
+  }
+
+  // 2. Parse member_credentials; find the credId
+  let members: MemberCredential[]
+  try {
+    members = JSON.parse(row.member_credentials) as MemberCredential[]
+  } catch {
+    return Response.json(
+      {
+        ok: false,
+        error: 'invalid-member-credentials',
+        reason: 'member_credentials is not valid JSON',
+      } satisfies MultisigResponse,
+      { status: 500 },
+    )
+  }
+
+  const matchedMember = members.find((m) => m.credId === assertion.credId)
+  if (!matchedMember) {
+    return Response.json(
+      {
+        ok: false,
+        error: 'unknown-cred',
+        reason: "credId is not in this group's member_credentials",
+      } satisfies MultisigResponse,
+      { status: 403 },
+    )
+  }
+
+  // 3. Verify the assertion (V1 stub — see TODO in verifyAssertionStub)
+  const verified = verifyAssertionStub(assertion, members)
+  if (!verified) {
+    return Response.json(
+      {
+        ok: false,
+        error: 'assertion-failed',
+        reason: 'credId not recognized (stub verifier)',
+      } satisfies MultisigResponse,
+      { status: 403 },
+    )
+  }
+
+  // 4. Maintain bundle store
+  // IMPORTANT: look up the target bundle BEFORE cleanExpiredBundles() so we
+  // can return 410 for an expired bundle rather than silently recreating it.
+  // cleanExpiredBundles() would remove the target entry, making the 410 path
+  // unreachable — check expiry first, then clean the rest.
+  const now = Date.now()
+  const preClean = MULTISIG_BUNDLES.get(bundleId)
+
+  if (preClean && now > preClean.expiresAt) {
+    MULTISIG_BUNDLES.delete(bundleId)
+    cleanExpiredBundles()
+    return Response.json(
+      {
+        ok: false,
+        error: 'bundle-expired',
+        reason: 'assertion window (5 min) has elapsed',
+      } satisfies MultisigResponse,
+      { status: 410 },
+    )
+  }
+
+  cleanExpiredBundles()
+  const existing = MULTISIG_BUNDLES.get(bundleId)
+
+  if (existing) {
+    // Check groupId consistency
+    if (existing.groupId !== groupId) {
+      return Response.json(
+        {
+          ok: false,
+          error: 'bundle-group-mismatch',
+          reason: 'bundleId is associated with a different groupId',
+        } satisfies MultisigResponse,
+        { status: 403 },
+      )
+    }
+    // Add credId (Set dedupes — can't double-count one chairman)
+    existing.accepted.add(assertion.credId)
+  } else {
+    // First assertion for this bundleId
+    MULTISIG_BUNDLES.set(bundleId, {
+      groupId,
+      accepted: new Set([assertion.credId]),
+      expiresAt: now + BUNDLE_TTL_MS,
+    })
+  }
+
+  const bundle = MULTISIG_BUNDLES.get(bundleId)!
+  const acceptedCount = bundle.accepted.size
+  const threshold = row.threshold_n
+
+  // 5. Check if threshold is reached
+  if (acceptedCount >= threshold) {
+    // Emit audit record — best-effort, does not block the response
+    void auditOwner({
+      sender: matchedMember.uid,
+      receiver: `group:${groupId}`,
+      action: 'multisig:threshold-reached',
+      gate: 'scope',
+      payload: { bundleId, groupId, accepted: Array.from(bundle.accepted), threshold },
+    }).catch(() => {
+      /* audit is best-effort per gap 2 pattern */
+    })
+
+    return Response.json({
+      ok: true,
+      accepted: acceptedCount,
+      threshold,
+    } satisfies MultisigResponse)
+  }
+
+  return Response.json({
+    ok: false,
+    accepted: acceptedCount,
+    threshold,
+  } satisfies MultisigResponse)
+}
+
+// ─── Main POST handler ────────────────────────────────────────────────────────
+
 export const POST: APIRoute = async ({ request }) => {
+  // Parse body to check action discriminator FIRST (no auth required for
+  // multisig — each assertion is individually verified via WebAuthn)
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    body = {}
+  }
+
+  // ── Multisig batched flow ─────────────────────────────────────────────────
+  if (body.action === 'multisig-action') {
+    const { groupId, bundleId, assertion } = body as Partial<MultisigBody>
+
+    if (!groupId || typeof groupId !== 'string') {
+      return Response.json(
+        { ok: false, error: 'missing-groupId', reason: 'body.groupId is required' } satisfies MultisigResponse,
+        { status: 400 },
+      )
+    }
+    if (!bundleId || typeof bundleId !== 'string') {
+      return Response.json(
+        { ok: false, error: 'missing-bundleId', reason: 'body.bundleId is required' } satisfies MultisigResponse,
+        { status: 400 },
+      )
+    }
+    if (
+      !assertion ||
+      typeof assertion.credId !== 'string' ||
+      typeof assertion.clientDataJSON !== 'string' ||
+      typeof assertion.authenticatorData !== 'string' ||
+      typeof assertion.signature !== 'string'
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error: 'missing-assertion',
+          reason: 'body.assertion must include credId, clientDataJSON, authenticatorData, signature',
+        } satisfies MultisigResponse,
+        { status: 400 },
+      )
+    }
+
+    const db = await getD1()
+    if (!db) {
+      return Response.json(
+        { ok: false, error: 'd1-unavailable', reason: 'D1 not configured' } satisfies MultisigResponse,
+        { status: 503 },
+      )
+    }
+
+    return handleMultisigAssertion({ action: 'multisig-action', groupId, bundleId, assertion } as MultisigBody, db)
+  }
+
+  // ── Existing first-mint / post-first-mint owner flow (unchanged) ──────────
+
   // 1. Authenticate via session (Better Auth cookie)
   const ctx = await resolveUnitFromSession(request).catch(() => null)
   if (!ctx?.user) {

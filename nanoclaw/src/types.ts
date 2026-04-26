@@ -18,6 +18,19 @@ export interface Env {
   BOT_PERSONA?: string
   /** If set, all non-webhook routes require Authorization: Bearer <API_KEY> */
   API_KEY?: string
+  /**
+   * Agent identity — required for owner-architecture key-loading (Gap 1).
+   * Provision via `wrangler secret put <VAR>` before deploy.
+   * See nanoclaw/src/lib/boot.ts and docs/agent-boot-unlock.md.
+   */
+  /** Agent uid, e.g. "marketing:scout". Required for ensureAgentSeed(). */
+  AGENT_UID?: string
+  /** Bearer minted at registration (POST /api/agents/register). Shown once. */
+  AGENT_BEARER?: string
+  /** base64url HMAC key shared with one.ie /api/agents/:uid/unlock endpoint. */
+  UNLOCK_SIGNING_KEY?: string
+  /** Defaults to "https://one.ie". Override for staging / local dev tunnels. */
+  ONE_HOST?: string
 }
 
 export interface Signal {

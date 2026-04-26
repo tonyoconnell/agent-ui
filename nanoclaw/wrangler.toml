@@ -41,3 +41,14 @@ crons = ["* * * * *"]
 # TELEGRAM_TOKEN_ONE      — ONE assistant bot @onedotbot (webhook: /webhook/telegram-one)
 # TELEGRAM_TOKEN_<NAME>   — add your own bot (webhook: /webhook/telegram-<name>)
 # DISCORD_TOKEN
+#
+# Agent identity — Gap 1 owner architecture (docs/agent-boot-unlock.md)
+# Provision AFTER running: POST /api/agents/register on one.ie (owner bearer required).
+# The register call returns bearer + address once; copy the bearer into AGENT_BEARER.
+# AGENT_UID           — agent uid string, e.g. "marketing:scout"
+# AGENT_BEARER        — bearer returned by POST /api/agents/register (shown once)
+# UNLOCK_SIGNING_KEY  — base64url HMAC key; operator generates with:
+#                         openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
+#                       Same value must be set as UNLOCK_SIGNING_KEY on one.ie.
+# ONE_HOST            — optional; defaults to https://one.ie
+#                       Override for staging: wrangler secret put ONE_HOST (value: https://dev.one.ie)
