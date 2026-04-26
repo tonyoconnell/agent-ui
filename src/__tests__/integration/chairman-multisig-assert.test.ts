@@ -1,7 +1,7 @@
 /**
- * Chairman multisig assert endpoint test (owner-todo Gap 3 §3.s3).
+ * Chairman multisig assert endpoint test (owner-todo Gap 3 §3.s3, V2 crypto).
  *
- * Covers the new `action: 'multisig-action'` branch of
+ * Covers the `action: 'multisig-action'` branch of
  * POST /api/auth/passkey/assert — server-orchestrated N-of-M assertion
  * batching within a 5-minute window.
  *
@@ -14,12 +14,13 @@
  *  5. Unknown credId → 403 'unknown-cred'.
  *  6. Group with no multisig config → 400 'no-multisig-config'.
  *  7. Bundle expires after 5 min → 410 'bundle-expired' on next call
- *     (uses vi.useFakeTimers to advance clock).
+ *     (uses direct expiresAt mutation for determinism across ESM isolation).
  *  8. groupId mismatch with stored bundle → 403 'bundle-group-mismatch'.
+ *  9. verifyAuthenticationResponse returns { verified: false } → 403 'verify-failed'.
+ * 10. verifyAuthenticationResponse throws → 403 'verify-failed'.
  *
- * Pattern follows chairman-multisig-config.test.ts: fakeD1 + module mocks.
- * WebAuthn verification is the V1 stub (credId-in-list check). The
- * cryptographic @simplewebauthn/server path is deferred to Gap 3.s4.
+ * @simplewebauthn/server is mocked so tests don't need a live WebAuthn device.
+ * The mock defaults to returning { verified: true, authenticationInfo: {...} }.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -67,16 +68,26 @@ vi.mock('@/engine/adl-cache', () => ({
   auditOwner: vi.fn().mockResolvedValue(true),
 }))
 
+// Mock @simplewebauthn/server so tests are not gated on a live WebAuthn device.
+// Default: { verified: true }. Override per-test with vi.mocked(...).mockResolvedValueOnce.
+vi.mock('@simplewebauthn/server', () => ({
+  verifyAuthenticationResponse: vi.fn().mockResolvedValue({ verified: true }),
+}))
+
 // ─── Test data ────────────────────────────────────────────────────────────────
 
 const GROUP_ID = 'g:acme'
 
+// Minimal 65-byte placeholder COSE public key for P-256.
+// Real keys come from verifyRegistrationResponse.registrationInfo.credential.publicKey.
+const FAKE_PUB_KEY = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+
 const MEMBERS = [
-  { uid: 'human:alice', credId: 'CRED_ALICE', addedAt: 0 },
-  { uid: 'human:bob', credId: 'CRED_BOB', addedAt: 0 },
-  { uid: 'human:carol', credId: 'CRED_CAROL', addedAt: 0 },
-  { uid: 'human:david', credId: 'CRED_DAVID', addedAt: 0 },
-  { uid: 'human:eve', credId: 'CRED_EVE', addedAt: 0 },
+  { uid: 'human:alice', credId: 'CRED_ALICE', pubKey: FAKE_PUB_KEY, addedAt: 0 },
+  { uid: 'human:bob', credId: 'CRED_BOB', pubKey: FAKE_PUB_KEY, addedAt: 0 },
+  { uid: 'human:carol', credId: 'CRED_CAROL', pubKey: FAKE_PUB_KEY, addedAt: 0 },
+  { uid: 'human:david', credId: 'CRED_DAVID', pubKey: FAKE_PUB_KEY, addedAt: 0 },
+  { uid: 'human:eve', credId: 'CRED_EVE', pubKey: FAKE_PUB_KEY, addedAt: 0 },
 ]
 
 const MULTISIG_ROW: FakeMultisigRow = {
@@ -418,5 +429,58 @@ describe('POST /api/auth/passkey/assert — multisig-action flow (Gap 3 §3.s3)'
     expect(res.status).toBe(403)
     const body = (await res.json()) as { error: string }
     expect(body.error).toBe('bundle-group-mismatch')
+  })
+
+  // ── Case 9: verifyAuthenticationResponse returns { verified: false } → 403 ──
+  it('9 — verifyAuthenticationResponse returns { verified: false } → 403 verify-failed', async () => {
+    const { getD1 } = await import('@/lib/cf-env')
+    vi.mocked(getD1).mockResolvedValue(makeFakeD1([MULTISIG_ROW]) as never)
+
+    // Override the mock to return { verified: false } for this test
+    const swa = await import('@simplewebauthn/server')
+    vi.mocked(swa.verifyAuthenticationResponse).mockResolvedValueOnce({ verified: false } as never)
+
+    const { POST, MULTISIG_BUNDLES } = await getEndpoint()
+    MULTISIG_BUNDLES.clear()
+
+    const res = await POST({
+      request: makeRequest({
+        action: 'multisig-action',
+        groupId: GROUP_ID,
+        bundleId: 'bundle-009',
+        assertion: makeAssertion('CRED_ALICE'),
+      }),
+    } as never)
+
+    expect(res.status).toBe(403)
+    const body = (await res.json()) as { error: string }
+    expect(body.error).toBe('verify-failed')
+  })
+
+  // ── Case 10: verifyAuthenticationResponse throws → 403 verify-failed ────────
+  it('10 — verifyAuthenticationResponse throws → 403 verify-failed', async () => {
+    const { getD1 } = await import('@/lib/cf-env')
+    vi.mocked(getD1).mockResolvedValue(makeFakeD1([MULTISIG_ROW]) as never)
+
+    // Override the mock to throw for this test
+    const swa = await import('@simplewebauthn/server')
+    vi.mocked(swa.verifyAuthenticationResponse).mockRejectedValueOnce(new Error('cbor: unexpected end of data'))
+
+    const { POST, MULTISIG_BUNDLES } = await getEndpoint()
+    MULTISIG_BUNDLES.clear()
+
+    const res = await POST({
+      request: makeRequest({
+        action: 'multisig-action',
+        groupId: GROUP_ID,
+        bundleId: 'bundle-010',
+        assertion: makeAssertion('CRED_ALICE'),
+      }),
+    } as never)
+
+    expect(res.status).toBe(403)
+    const body = (await res.json()) as { error: string; reason: string }
+    expect(body.error).toBe('verify-failed')
+    expect(body.reason).toContain('cbor')
   })
 })

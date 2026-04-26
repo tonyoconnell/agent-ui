@@ -96,12 +96,16 @@ async function callGet(gid: string) {
   return GET({ request: req, params: { gid }, locals: {} } as Parameters<typeof GET>[0])
 }
 
+// pubKey is a base64url-encoded 65-byte COSE public key (P-256 uncompressed point).
+// In tests we use a minimal 65-byte placeholder: 0x04 + 32 bytes x + 32 bytes y.
+const FAKE_PUB_KEY = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+
 const validMembers = [
-  { uid: 'human:alice', credId: 'A_CRED' },
-  { uid: 'human:bob', credId: 'B_CRED' },
-  { uid: 'human:carol', credId: 'C_CRED' },
-  { uid: 'human:david', credId: 'D_CRED' },
-  { uid: 'human:eve', credId: 'E_CRED' },
+  { uid: 'human:alice', credId: 'A_CRED', pubKey: FAKE_PUB_KEY },
+  { uid: 'human:bob', credId: 'B_CRED', pubKey: FAKE_PUB_KEY },
+  { uid: 'human:carol', credId: 'C_CRED', pubKey: FAKE_PUB_KEY },
+  { uid: 'human:david', credId: 'D_CRED', pubKey: FAKE_PUB_KEY },
+  { uid: 'human:eve', credId: 'E_CRED', pubKey: FAKE_PUB_KEY },
 ]
 
 describe('POST /api/groups/:gid/multisig (3.s2)', () => {
@@ -218,9 +222,28 @@ describe('POST /api/groups/:gid/multisig (3.s2)', () => {
     vi.mocked(getRoleForUser).mockResolvedValue('chairman')
 
     const bad = [...validMembers]
-    bad[2] = { uid: 'human:carol' } // missing credId
+    bad[2] = { uid: 'human:carol' } as (typeof validMembers)[0] // missing credId + pubKey
     const res = await callPost('g:acme', { n: 3, m: 5, members: bad })
     expect(res.status).toBe(400)
+  })
+
+  it('member missing pubKey → 400 pubkey-required', async () => {
+    const { resolveUnitFromSession, getRoleForUser } = await import('@/lib/api-auth')
+    vi.mocked(resolveUnitFromSession).mockResolvedValue({
+      user: 'human:alice',
+      role: 'chairman',
+      isValid: true,
+      permissions: [],
+      keyId: 'k',
+    } as never)
+    vi.mocked(getRoleForUser).mockResolvedValue('chairman')
+
+    // Strip pubKey from one member — keep uid + credId
+    const bad = validMembers.map((m, i) => (i === 1 ? { uid: m.uid, credId: m.credId } : m))
+    const res = await callPost('g:acme', { n: 3, m: 5, members: bad })
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as { error: string }
+    expect(body.error).toBe('pubkey-required')
   })
 
   it('re-config UPSERTs (replaces previous threshold)', async () => {

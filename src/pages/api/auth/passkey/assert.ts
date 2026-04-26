@@ -37,8 +37,8 @@
  * Server flow:
  *   1. Look up chairman_multisig D1 row for group_id → 400 if absent.
  *   2. Parse member_credentials JSON; find the credId → 403 if unknown.
- *   3. Verify the WebAuthn assertion (V1: stub — checks credId is in list;
- *      cryptographic verify is deferred — see TODO below).
+ *   3. Verify the WebAuthn assertion using verifyAuthenticationResponse from
+ *      @simplewebauthn/server; member.pubKey (COSE key, base64url) is required.
  *   4. Maintain bundle store (module-scope Map, 5-min TTL):
  *      - First call: create entry, add credId to accepted Set.
  *      - Subsequent calls: add credId (Set dedupes, can't double-count).
@@ -48,14 +48,12 @@
  *      - < n → 200 { ok: false, accepted, threshold: n }
  *      - >= n → 200 { ok: true, accepted, threshold: n } + emit audit record.
  *
- * TODO (cryptographic verification): V1 uses a stub verifier — it confirms the
- * credId is registered in member_credentials but does NOT verify the WebAuthn
- * signature cryptographically. Cryptographic verification requires each
- * member's pubKey to be stored in member_credentials. Current schema stores
- * {uid, credId} only. Gap 3.s4 (follow-up) will: (a) add pubKey field to
- * member_credentials JSON, (b) replace the stub with verifyAuthenticationResponse
- * from @simplewebauthn/server. Until then this endpoint must not be used for
- * production-value actions without additional out-of-band verification.
+ * Cryptographic verification: V2 uses verifyAuthenticationResponse from
+ * @simplewebauthn/server. member_credentials JSON now requires pubKey (base64url
+ * COSE key bytes returned from verifyRegistrationResponse). The bundleId is the
+ * expectedChallenge — server-issued and replay-protected by the 5-min TTL.
+ * Counter tracking (sign_count per member) is V3 work — deferred because it
+ * requires a D1 write per assertion; the 5-min TTL is the current replay guard.
  *
  * Bundle store: module-scope Map<bundleId, BundleEntry>. In production this
  * would live in a Durable Object (one per group); in V1 in-process is
@@ -64,6 +62,7 @@
  * Spec: compliance.md §"Implementation notes for W3". owner-todo Gap 3 §3.s3.
  */
 
+import { verifyAuthenticationResponse } from '@simplewebauthn/server'
 import type { APIRoute } from 'astro'
 import { auditOwner } from '@/engine/adl-cache'
 import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
@@ -120,6 +119,7 @@ interface MultisigAssertion {
   clientDataJSON: string
   authenticatorData: string
   signature: string
+  userHandle?: string
 }
 
 interface MultisigBody {
@@ -133,13 +133,22 @@ interface MemberCredential {
   uid: string
   credId: string
   addedAt?: number
-  pubKey?: string // optional in V1; required for cryptographic verify in V2
+  pubKey: string // base64url-encoded COSE public key bytes; required for cryptographic verify
 }
 
 interface MultisigRow {
   threshold_n: number
   threshold_m: number
   member_credentials: string // JSON
+}
+
+function b64urlDecode(s: string): Uint8Array {
+  const pad = s.length % 4 ? 4 - (s.length % 4) : 0
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(pad)
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return bytes
 }
 
 function envValue(name: string): string {
@@ -159,18 +168,50 @@ async function resolveAssertedAddress(uid: string): Promise<string | null> {
 }
 
 /**
- * V1 stub verifier: confirms the credId is in member_credentials but does NOT
- * cryptographically verify the WebAuthn assertion signature.
+ * Verify a WebAuthn assertion cryptographically using @simplewebauthn/server.
  *
- * TODO (Gap 3.s4): Replace with verifyAuthenticationResponse from
- * @simplewebauthn/server once pubKey is stored in member_credentials JSON.
- * Current schema only stores {uid, credId}; cryptographic verify requires the
- * public key that was registered with the credential.
+ * The member must have a `pubKey` (base64url-encoded COSE key bytes) stored in
+ * member_credentials. The `bundleId` is used as the expected challenge — it is
+ * server-issued and replay-protected by the 5-minute bundle TTL.
  *
- * @returns true if credId is registered (V1 stub), false otherwise
+ * Counter tracking: V2 starts counter at 0 on every call (replay-prevention at
+ * the sign_count level is deferred to V3 — tracking requires writing a per-member
+ * counter back to D1 after each verify, which adds a write per assertion).
+ *
+ * @returns { verified: true } on success; throws on crypto failure or bad input
  */
-function verifyAssertionStub(assertion: MultisigAssertion, members: MemberCredential[]): boolean {
-  return members.some((m) => m.credId === assertion.credId)
+async function verifyMultisigAssertion(
+  assertion: MultisigAssertion,
+  member: MemberCredential,
+  bundleId: string,
+  requestUrl: string,
+  originHeader: string | null,
+): Promise<{ verified: boolean }> {
+  const expectedRPID = envValue('PASSKEY_RP_ID') || new URL(requestUrl).hostname
+  const expectedOrigin = originHeader || `https://${expectedRPID}`
+
+  return verifyAuthenticationResponse({
+    response: {
+      id: assertion.credId,
+      rawId: assertion.credId,
+      response: {
+        clientDataJSON: assertion.clientDataJSON,
+        authenticatorData: assertion.authenticatorData,
+        signature: assertion.signature,
+        userHandle: assertion.userHandle,
+      },
+      type: 'public-key' as const,
+      clientExtensionResults: {},
+    },
+    expectedChallenge: bundleId,
+    expectedOrigin,
+    expectedRPID,
+    credential: {
+      id: assertion.credId,
+      publicKey: b64urlDecode(member.pubKey),
+      counter: 0, // V3: track sign_count per member in member_credentials for replay prevention
+    },
+  })
 }
 
 // ─── Multisig assertion handler ───────────────────────────────────────────────
@@ -178,6 +219,7 @@ function verifyAssertionStub(assertion: MultisigAssertion, members: MemberCreden
 async function handleMultisigAssertion(
   body: MultisigBody,
   db: NonNullable<Awaited<ReturnType<typeof getD1>>>,
+  request: Request,
 ): Promise<Response> {
   const { groupId, bundleId, assertion } = body
 
@@ -226,14 +268,44 @@ async function handleMultisigAssertion(
     )
   }
 
-  // 3. Verify the assertion (V1 stub — see TODO in verifyAssertionStub)
-  const verified = verifyAssertionStub(assertion, members)
-  if (!verified) {
+  // 3. Cryptographically verify the WebAuthn assertion
+  if (!matchedMember.pubKey) {
     return Response.json(
       {
         ok: false,
-        error: 'assertion-failed',
-        reason: 'credId not recognized (stub verifier)',
+        error: 'pubkey-missing',
+        reason: 'member_credentials entry is missing pubKey — re-configure multisig with pubKey per member',
+      } satisfies MultisigResponse,
+      { status: 400 },
+    )
+  }
+
+  let verifyResult: { verified: boolean }
+  try {
+    verifyResult = await verifyMultisigAssertion(
+      assertion,
+      matchedMember,
+      bundleId,
+      request.url,
+      request.headers.get('origin'),
+    )
+  } catch (e) {
+    return Response.json(
+      {
+        ok: false,
+        error: 'verify-failed',
+        reason: (e as Error).message,
+      } satisfies MultisigResponse,
+      { status: 403 },
+    )
+  }
+
+  if (!verifyResult.verified) {
+    return Response.json(
+      {
+        ok: false,
+        error: 'verify-failed',
+        reason: 'WebAuthn signature invalid',
       } satisfies MultisigResponse,
       { status: 403 },
     )
@@ -370,7 +442,11 @@ export const POST: APIRoute = async ({ request }) => {
       )
     }
 
-    return handleMultisigAssertion({ action: 'multisig-action', groupId, bundleId, assertion } as MultisigBody, db)
+    return handleMultisigAssertion(
+      { action: 'multisig-action', groupId, bundleId, assertion } as MultisigBody,
+      db,
+      request,
+    )
   }
 
   // ── Existing first-mint / post-first-mint owner flow (unchanged) ──────────

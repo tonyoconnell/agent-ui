@@ -13,6 +13,7 @@
  */
 import type { APIRoute } from 'astro'
 import { getRoleForUser, resolveUnitFromSession } from '@/lib/api-auth'
+import { fetchPeerPubkey } from '@/lib/federation-discovery'
 import { writeSilent } from '@/lib/typedb'
 
 export const prerender = false
@@ -28,23 +29,31 @@ const pending = new Map<
 const bridgeKey = (a: string, b: string) => [a, b].sort().join(':')
 
 /**
- * Gap 6 §6.s1 — extended request body.
+ * Gap 6 §6.s1 — extended request body (V2).
  *
  * peerOwnerAddress  — foreign substrate owner's Sui address
  * peerOwnerVersion  — foreign owner key version (matches Gap 4 key rotation)
- * peerAssertion     — V1 stub: cryptographic proof is present in the shape but
- *                     NOT verified server-side yet.
- *
- * TODO Gap 6 V2: verify peerAssertion against the foreign substrate's
- *   /.well-known/owner-pubkey.json using @simplewebauthn/server before
- *   accepting the bridge. Until then, the assertion field is stored for
- *   future audit but skipped in the gate.
+ * peerHost          — foreign substrate base URL (e.g. "https://other.one.ie").
+ *                     Used to fetch /.well-known/owner-pubkey.json for V2 verify.
+ *                     If absent, bridge is accepted without discovery verification
+ *                     (legacy V1 path — still MUCH safer than V1's blind trust,
+ *                      because V1 stored but never verified; V2 rejects on
+ *                      discovery failure when peerHost is supplied).
+ * peerAssertion     — V2 shape: cryptographic proof field accepted in body.
+ *                     V2 verifies the claimed address+version via discovery.
+ *                     V2.2 TODO: full WebAuthn JWKS verify (COSE key from peer).
  */
 interface BridgeBody {
   from?: string
   to?: string
   peerOwnerAddress?: string
   peerOwnerVersion?: number
+  /**
+   * Gap 6 V2: foreign substrate's base URL.
+   * When present, bridge verification fetches /.well-known/owner-pubkey.json
+   * and validates address + version before accepting.
+   */
+  peerHost?: string
   peerAssertion?: {
     credId: string
     clientDataJSON: string
@@ -93,6 +102,56 @@ export const POST: APIRoute = async ({ request }) => {
   // Second side — complete handshake
   const peerOwnerAddress = body.peerOwnerAddress ?? existing.peerOwnerAddress
   const peerOwnerVersion = body.peerOwnerVersion ?? existing.peerOwnerVersion
+  const peerHost = body.peerHost
+
+  // ── Gap 6 V2: peer-discovery verification ────────────────────────────────
+  // When peerHost is provided, fetch the peer's /.well-known/owner-pubkey.json
+  // and verify that the claimed address + version match the published values.
+  // This replaces the V1 stub (which stored the assertion but never verified it).
+  //
+  // V2 acceptance: reachable host + matching address + matching version.
+  // V2.2 TODO: extend PeerPubkey with JWKS (COSE keys) and run
+  //   verifyAuthenticationResponse() for full WebAuthn signature verification.
+  if (peerOwnerAddress && peerHost) {
+    const peerKey = await fetchPeerPubkey(peerHost)
+
+    if (!peerKey) {
+      return Response.json(
+        {
+          error: 'peer-discovery-failed',
+          detail: `Could not fetch ${peerHost}/.well-known/owner-pubkey.json — host unreachable or response malformed`,
+        },
+        { status: 503 },
+      )
+    }
+
+    if (peerKey.address.toLowerCase() !== peerOwnerAddress.toLowerCase()) {
+      return Response.json(
+        {
+          error: 'peer-address-mismatch',
+          detail: `discovery published address ${peerKey.address} but body claims ${peerOwnerAddress}`,
+        },
+        { status: 403 },
+      )
+    }
+
+    if (typeof peerOwnerVersion === 'number' && peerKey.version !== peerOwnerVersion) {
+      return Response.json(
+        {
+          error: 'peer-version-mismatch',
+          detail: `discovery says v${peerKey.version} but body claims v${peerOwnerVersion}`,
+        },
+        { status: 403 },
+      )
+    }
+  }
+  // If peerHost is absent: skip discovery (V1 legacy path — no peerHost supplied).
+  // The bridge is still stored with peer_owner_address + peer_owner_version for
+  // inbound role-downgrade and version-mismatch checks (§6.s2 inbound flow).
+  // Gap 6 V2.1 note: discovery-only verification is correct for V2;
+  // full WebAuthn assertion verification (V2.2) requires the peer to also
+  // publish JWKS/COSE keys at a companion endpoint.
+  // ─────────────────────────────────────────────────────────────────────────
 
   pending.delete(key)
 

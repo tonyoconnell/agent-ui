@@ -23,7 +23,7 @@ export const prerender = false
 interface MultisigBody {
   n?: number
   m?: number
-  members?: Array<{ uid?: string; credId?: string }>
+  members?: Array<{ uid?: string; credId?: string; pubKey?: string }>
 }
 
 function err(status: number, error: string, reason?: string) {
@@ -66,6 +66,8 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     if (!mem || typeof mem !== 'object') return err(400, 'bad-input', 'each member must be an object')
     if (!mem.uid || typeof mem.uid !== 'string') return err(400, 'bad-input', 'each member needs a uid')
     if (!mem.credId || typeof mem.credId !== 'string') return err(400, 'bad-input', 'each member needs a credId')
+    if (!mem.pubKey || typeof mem.pubKey !== 'string')
+      return err(400, 'pubkey-required', 'each member needs a pubKey (base64url COSE key from registration)')
   }
 
   // 4. UPSERT chairman_multisig row
@@ -73,7 +75,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   if (!db) return err(503, 'd1-unavailable')
 
   const memberCreds = JSON.stringify(
-    members.map((m) => ({ uid: m.uid, credId: m.credId, addedAt: Math.floor(Date.now() / 1000) })),
+    members.map((m) => ({ uid: m.uid, credId: m.credId, pubKey: m.pubKey, addedAt: Math.floor(Date.now() / 1000) })),
   )
 
   try {

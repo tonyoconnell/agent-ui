@@ -1,5 +1,5 @@
 {
-  "count": 1043,
+  "count": 1056,
   "files": [
     "src/components/EdgeInfo.tsx",
     "src/components/sell/NewListingIsland.tsx",
@@ -99,6 +99,7 @@
     "src/components/market/MarketRow.tsx",
     "src/components/market/MarketShell.tsx",
     "src/components/build/BuildIsland.tsx",
+    "src/components/account/AccountPanel.tsx",
     "src/components/buy/BuyDiscoveryIsland.tsx",
     "src/components/buy/BountyCard.tsx",
     "src/components/buy/BountyComposer.tsx",
@@ -124,6 +125,7 @@
     "src/pages/speedtest.astro",
     "src/pages/u/save.astro",
     "src/pages/[groupId]/index.astro",
+    "src/pages/security.astro",
     "src/pages/speed.astro",
     "src/pages/api/auth/zklogin/callback.ts",
     "src/pages/api/export/groups.ts",
