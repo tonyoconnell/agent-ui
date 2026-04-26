@@ -65,6 +65,7 @@ const KNOWN_FLAKY = [
   'allowed-targets.test.ts', // sui allowed-targets: imports bun:test, not compatible with vitest runner
   'State 1 + small amount', // sponsor cap: test env returns 503 (no sponsor key) not the expected 503/400 sequence
   'State 1 + amount exactly at cap', // sponsor cap: same — boundary test requires live sponsor key
+  'writes two units and a path, reads back the strength', // signal-flow cassette: passes standalone + in `bun run verify`; flaky only in parallel `bun run test` worker — cassette state interference suspected
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
