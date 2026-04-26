@@ -179,7 +179,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
   const walletCount = vault?.walletCount ?? 0
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur supports-[backdrop-filter]:bg-[#0a0a0f]/70">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between pl-16 pr-6 md:px-6">
         {/* Brand */}
         <a href="/" className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-white">
@@ -197,13 +197,13 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
-                className="group inline-flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-500/15 transition-colors"
+                className="group inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-primary/15 transition-colors"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
                 <LockOpen className="size-3" aria-hidden="true" />
                 <span className="font-mono">{shortAddr(walletOrId)}</span>
-                <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-emerald-100">
+                <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-foreground">
                   {walletCount}
                 </span>
                 {role && (
@@ -211,26 +211,26 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
                     {role}
                   </span>
                 )}
-                <span aria-hidden="true" className="text-emerald-400/70 group-hover:text-emerald-200">
+                <span aria-hidden="true" className="text-muted-foreground group-hover:text-foreground">
                   ▾
                 </span>
               </button>
 
               {menuOpen && (
                 <div
-                  className="absolute right-6 top-14 mt-1 w-48 rounded-md border border-white/10 bg-[#101018] py-1 shadow-lg"
+                  className="absolute right-6 top-14 mt-1 w-48 rounded-md border border-border bg-card py-1 shadow-lg"
                   role="menu"
                 >
                   <a
                     href="/u"
-                    className="block px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
+                    className="block px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
                     onClick={() => emitClick('ui:header:menu:wallet')}
                   >
                     Wallets ({walletCount})
                   </a>
                   <a
                     href="/app"
-                    className="block px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
+                    className="block px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
                     onClick={() => emitClick('ui:header:menu:app')}
                   >
                     Dashboard
@@ -238,7 +238,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
                   {role === 'chairman' && (
                     <a
                       href="/chairman"
-                      className="block px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
+                      className="block px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
                       onClick={() => emitClick('ui:header:menu:chairman')}
                     >
                       Chairman
@@ -247,7 +247,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
                   {(role === 'ceo' || role === 'chairman') && (
                     <a
                       href="/ceo"
-                      className="block px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
+                      className="block px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
                       onClick={() => emitClick('ui:header:menu:ceo')}
                     >
                       CEO
@@ -256,7 +256,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
                   {(role === 'board' || role === 'chairman') && (
                     <a
                       href="/board"
-                      className="block px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
+                      className="block px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
                       onClick={() => emitClick('ui:header:menu:board')}
                     >
                       Board
@@ -264,12 +264,12 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
                   )}
                   <a
                     href="/settings/keys"
-                    className="block px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
+                    className="block px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
                     onClick={() => emitClick('ui:header:menu:keys')}
                   >
                     API keys
                   </a>
-                  <div className="my-1 border-t border-white/5" />
+                  <div className="my-1 border-t border-border" />
                   <button
                     type="button"
                     onClick={handleLock}
@@ -290,7 +290,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
               <button
                 type="button"
                 onClick={gotoContinue}
-                className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 Continue
                 <span aria-hidden="true">→</span>
@@ -304,7 +304,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
                   type="button"
                   onClick={handleCreate}
                   disabled={pending}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
                 >
                   {pending ? (
                     <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
@@ -319,7 +319,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
                 type="button"
                 onClick={handlePrimary}
                 disabled={pending}
-                className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/[0.08] transition-colors disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-60"
               >
                 {pending ? (
                   <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />

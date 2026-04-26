@@ -85,18 +85,16 @@ function NavLink({ item, current, expanded = false }: { item: NavItem; current: 
         relative flex items-center gap-3 rounded-lg
         h-12 ${expanded ? 'px-3' : 'justify-center'}
         transition-colors duration-200
-        ${isActive ? 'bg-white/[0.06] text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'}
+        ${isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}
       `}
     >
-      {isActive && (
-        <span aria-hidden="true" className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-emerald-400" />
-      )}
+      {isActive && <span aria-hidden="true" className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-primary" />}
       <span
         className={`
           flex items-center justify-center shrink-0
           w-9 h-9 rounded-full
           transition-colors duration-200
-          ${isActive ? `bg-linear-to-br ${item.color} text-white shadow-md` : 'bg-white/[0.04] text-slate-300'}
+          ${isActive ? `bg-linear-to-br ${item.color} text-white shadow-md` : 'bg-muted/50 text-muted-foreground'}
         `}
       >
         <Icon className="w-4 h-4" />
@@ -113,7 +111,7 @@ function NavLink({ item, current, expanded = false }: { item: NavItem; current: 
 function DesktopRail({ current }: { current: string }) {
   return (
     <aside
-      className="hidden md:flex md:flex-col bg-[#0a0a0f]/90 backdrop-blur border-r border-white/5 overflow-hidden shadow-[8px_0_24px_-12px_rgba(0,0,0,0.6)]"
+      className="hidden md:flex md:flex-col bg-background/90 backdrop-blur border-r border-border overflow-hidden shadow-[8px_0_24px_-12px_rgba(0,0,0,0.6)]"
       style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: '4rem', zIndex: 40 }}
       aria-label="Primary navigation"
     >
@@ -141,15 +139,15 @@ function MobileSheet({ current }: { current: string }) {
           fixed top-3 left-3 z-50
           flex items-center justify-center
           w-10 h-10 rounded-lg
-          bg-[#0a0a0f]/90 backdrop-blur
-          border border-white/10
-          text-slate-200 hover:text-white
+          bg-background/90 backdrop-blur
+          border border-border
+          text-muted-foreground hover:text-foreground
           shadow-md
         "
       >
         <Menu className="w-5 h-5" />
       </SheetTrigger>
-      <SheetContent side="left" className="w-64 border-r border-white/5 bg-[#0a0a0f] p-0 text-foreground">
+      <SheetContent side="left" className="w-64 border-r border-border bg-background p-0 text-foreground">
         <SheetTitle className="sr-only">Navigation</SheetTitle>
         <nav className="flex h-full flex-col py-3" aria-label="Primary navigation">
           <ul className="space-y-1 px-2">
