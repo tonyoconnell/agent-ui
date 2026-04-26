@@ -739,12 +739,28 @@ Every surface ends with a numbers report (engine rule 3); miss → warning-flagg
 
 - **Agent income** under bounded `Cap`s — passive earning while owner sleeps
 - **Listing revenue** without 30% platform tax (50bps protocol fee on-chain)
-- **Multi-chain payment acceptance** via pay-link
+- **Multi-chain crypto payment acceptance** via pay.one.ie pay-link (SUI/ETH/SOL/BTC/BASE/ARB/OPT)
+- **Card payment acceptance** at `pages.one.ie/pay/<slug>` — buyer pays with card, seller receives in their wallet (Stripe-shape PSP, no crypto knowledge required from buyer)
+- **Card + crypto unified in `/wallets/timeline`** — one revenue view across rails
 - **Pheromone rank compounding** — successful listings + agents get more traffic
 - **Repeat-customer pheromone weight** — predictable recurring revenue
 - **Federation reach** — one substrate's listings discoverable from another
 - **Strategy publishing** — winning trading strategies as capability listings, others buy them
 - **Protocol treasury fee model** — transparent, on-chain, no hidden cuts (`docs/revenue.md`)
+
+## Platform / BaaS (pages.one.ie)
+
+- **Hosted pages** at `pages.one.ie/<slug>` — text + images + agent embeds + capability listings + payment buttons
+- **Custom domain support** — bring your own domain, point it at the page
+- **Wallet-ready out of the box** — every page has a biometric-rooted wallet to receive payments from minute one
+- **Four payment rails on every page** — card (`/pay/<slug>`) · crypto link (pay.one.ie) · escrow capability listing (`/market`) · direct pay-link
+- **Telemetry on every click + payment event** flows into the substrate (`ui:pages:<action>`, `api:pages:<route>`)
+- **Pheromone-ranked discoverability** if the page lists capabilities
+- **Page-level `Cap` delegation** — let an agent manage the page (promote, edit, reply to buyers) under a scoped `Cap`, revocable in one tx
+- **Group binding** — page can belong to a group; chairman moderation applies
+- **Optional federation** — page reachable from peer substrates
+- **PCI offload** — card data never touches our servers; hosted PSP iframe; we hold token + receipt only
+- **No-crypto on-ramp for buyers** — buyer pays card, seller still owns their keys; bridges H4 (no-crypto buyer) into a substrate-native economy without forcing either side to switch stacks
 
 ## Time / convenience
 
@@ -887,12 +903,14 @@ Rule 1 of `.claude/rules/engine.md` is non-negotiable: every signal closes its l
 
 - **Capability `mint`** — sell themselves or their output as on-chain capabilities
 - **Escrow on delivery** — buyer's funds held until delivery proof or timeout; settlement is consensus, not policy (`src/move/one/sources/one.move`)
-- **Pay-link generation** via pay.one.ie protocol (`apps/enoki-play/` shape ref; replace `EnokiClient` with our sponsor Worker)
+- **Crypto pay-link generation** via pay.one.ie protocol (`apps/enoki-play/` shape ref; replace `EnokiClient` with our sponsor Worker)
+- **Card-payment page provisioning** at `pages.one.ie/pay/<slug>` — agent can request a card-paying surface for a buyer who doesn't hold crypto; settlement still lands in the agent's wallet
 - **Sponsored gas** where available — agent can run sub-3s buy flows without pre-funding gas
 - **50bps protocol fee** fixed and on-chain — predictable cost of doing business
 - **Multi-chain payment acceptance** via pay-link — buyer pays in any of 7 chains, agent gets paid in their chosen chain
 - **Time-boxed subscription auto-expire** — agent doesn't carry zombie customers
 - **First-deliverer-wins bounty** — competitive escrow for open bounties
+- **Page-level `Cap` delegation from owner** — agent can be granted scoped management of a `pages.one.ie` page (edit, promote, reply to buyers) under bounded authority
 
 ## Speed guarantees (the substrate's contract)
 
