@@ -165,6 +165,29 @@ export async function validateApiKey(
           if (!Number.isNaN(expiresAt) && expiresAt < Date.now()) continue
         }
 
+        // Owner-tier rotation check (Gap 4 §4.s3): if this bearer hash is
+        // also tracked in D1 owner_key (i.e. it's an owner-PRF-derived key),
+        // enforce that table's expires_at. Lets force-revoke on the
+        // /api/auth/owner-key-versions DELETE path take effect on next call.
+        // No-ops for non-owner keys (random api_xxx bearers won't have a
+        // row in owner_key, so the lookup returns null and we proceed).
+        if (locals !== undefined) {
+          const db = await getD1(locals)
+          if (db) {
+            const expired = await db
+              .prepare(
+                `SELECT expires_at FROM owner_key WHERE key_hash = ? AND expires_at IS NOT NULL AND expires_at <= unixepoch()`,
+              )
+              .bind(row.h as string)
+              .first<{ expires_at: number }>()
+              .catch(() => null)
+            if (expired) {
+              emitSecurityEvent({ kind: 'auth-fail', caller: row.id as string, reason: 'owner-key-revoked' })
+              continue
+            }
+          }
+        }
+
         const scopeGroups =
           row.sg !== undefined && row.sg !== null
             ? Array.isArray(row.sg)
