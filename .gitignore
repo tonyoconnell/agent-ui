@@ -47,3 +47,6 @@ release/
 
 # Local scratch dir (vitest UI screenshots, ad-hoc capture)
 .tmp/
+
+# Local D1 dumps — may contain user PII / vault ciphertext
+backups/

@@ -146,6 +146,14 @@ export function createAuth() {
         // Verified accounts will receive an error until email sending is wired up.
         updateEmailWithoutVerification: true,
       },
+      additionalFields: {
+        // passkey-recognition: stable public identity derived client-side
+        // from the vault master (HKDF(master, "user-id-v1")). Lets the server
+        // resolve "same biometric → same user" deterministically without
+        // depending on email or device handle. Stored on auth-user in TypeDB
+        // via `auth-user-id-pub` (see typedb-auth-adapter.ts FIELD_TO_ATTR).
+        userIdPub: { type: 'string', required: false },
+      },
     },
 
     trustedOrigins: [

@@ -59,6 +59,17 @@ export default defineConfig({
       },
       dedupe: ["react", "react-dom", "recharts"],
     },
+    optimizeDeps: {
+      include: [
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "@astrojs/react/client.js",
+        "lucide-react",
+      ],
+    },
     ssr: {
       noExternal: [
         "recharts",

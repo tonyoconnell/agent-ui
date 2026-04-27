@@ -189,7 +189,7 @@ async function upsertHint(
     if (msg.includes('no such column') && msg.includes('user_id_pub')) {
       return {
         ok: false,
-        err: 'user_id_pub column missing — apply migration 0024_user_id_pub.sql',
+        err: 'vault_passkey_hints.user_id_pub column missing — apply migration 0036_user_id_pub.sql (run `bun run d1:migrate` locally or `bun run d1:migrate:remote` for prod)',
         status: 503,
       }
     }
@@ -221,7 +221,7 @@ async function findHint(
     }
     if (msg.includes('no such column') && msg.includes('user_id_pub')) {
       return {
-        err: 'user_id_pub column missing — apply migration 0024_user_id_pub.sql',
+        err: 'vault_passkey_hints.user_id_pub column missing — apply migration 0036_user_id_pub.sql (run `bun run d1:migrate` locally or `bun run d1:migrate:remote` for prod)',
         status: 503,
       }
     }
@@ -241,46 +241,58 @@ async function bumpSignCount(db: D1Database | null, credId: string, newCounter: 
   }
 }
 
-/** Find or create a Better Auth user keyed by `user_id_pub` (the stable
- *  client-derived identity = SHA256("user-id-v1" || master)). Same biometric
- *  → same master → same user_id_pub → same user, on any device, forever.
+/** Find or create a Better Auth user keyed by `userIdPub` — the stable
+ *  client-derived identity = HKDF(master, "user-id-v1"). Same biometric →
+ *  same master → same userIdPub → same user, on any device, forever.
+ *
+ *  Better Auth stores users in TypeDB (`auth-user` entity, src/schema/world.tql)
+ *  via `typedbAdapter` — NOT in D1. Lookup uses the generic adapter; create
+ *  passes `userIdPub` as an additionalField (registered in src/lib/auth.ts).
  *
  *  Lookup order:
- *    1. SELECT user WHERE user_id_pub = ?  (the deterministic key)
- *    2. createUser, then UPDATE user SET user_id_pub = ?
- *
- *  Email is still required by Better Auth but no longer the identity key.
- *  We synthesize it from the first 16 chars of user_id_pub. */
+ *    1. adapter.findOne({ model: 'user', where: [{ field: 'userIdPub', value }] })
+ *    2. createUser({ email, name, emailVerified, userIdPub }) — write through
+ *    3. legacy fallback — pre-rollout accounts have a deterministic email but
+ *       no userIdPub; resolve via findUserByEmail and back-fill the field. */
 async function findOrCreateUserByPub(
   ctx: {
     context: {
+      adapter: {
+        findOne: (args: {
+          model: string
+          where: Array<{ field: string; value: unknown }>
+        }) => Promise<Record<string, unknown> | null>
+      }
       internalAdapter: {
         createUser: (...args: never[]) => unknown
         findUserByEmail: (...args: never[]) => unknown
+        updateUser: (...args: never[]) => unknown
       }
     }
   },
   user_id_pub: string,
-  db: D1Database | null,
 ): Promise<{ id: string; email: string | null; name: string | null }> {
-  // Step 1: deterministic lookup by user_id_pub
-  if (db) {
-    try {
-      const existing = await db
-        .prepare(`SELECT id, email, name FROM user WHERE user_id_pub = ? LIMIT 1`)
-        .bind(user_id_pub)
-        .first<{ id: string; email: string | null; name: string | null }>()
-      if (existing) return existing
-    } catch (e) {
-      // Column may be missing on old D1 — fall through to create path.
-      const msg = (e as Error).message ?? String(e)
-      if (!msg.includes('no such column')) {
-        console.warn('[passkey-webauthn] user_id_pub lookup failed:', msg)
+  // Step 1: deterministic lookup by userIdPub via the Better Auth adapter
+  // (TypeDB-backed). Returns the user with all owned attributes parsed back
+  // to camelCase field names.
+  try {
+    const existing = await ctx.context.adapter.findOne({
+      model: 'user',
+      where: [{ field: 'userIdPub', value: user_id_pub }],
+    })
+    if (existing && typeof existing === 'object' && 'id' in existing) {
+      return {
+        id: String(existing.id),
+        email: (existing.email as string) ?? null,
+        name: (existing.name as string) ?? null,
       }
     }
+  } catch (e) {
+    // Adapter or schema not ready — fall through. Don't fail the request.
+    console.warn('[passkey-webauthn] userIdPub lookup failed:', (e as Error).message)
   }
 
-  // Step 2: create new user, then back-fill user_id_pub
+  // Step 2: create the user, write `userIdPub` through in the same call.
   const handleSlice = user_id_pub.slice(0, 16)
   const email = `${handleSlice}@passkey.one.ie`
   const displayName = `Passkey ${handleSlice.slice(0, 8)}`
@@ -290,8 +302,12 @@ async function findOrCreateUserByPub(
       email,
       name: displayName,
       emailVerified: false,
-    })) as { id: string; email: string | null; name: string | null }
+      userIdPub: user_id_pub,
+    } as never)) as { id: string; email: string | null; name: string | null }
+    return user
   } catch {
+    // Duplicate email (or other createUser failure) → resolve the existing
+    // pre-rollout account by deterministic email and back-fill userIdPub.
     const existing = (await ctx.context.internalAdapter.findUserByEmail(email).catch(() => null)) as {
       user?: { id: string; email: string | null; name: string | null }
     } | null
@@ -299,16 +315,17 @@ async function findOrCreateUserByPub(
     user = existing.user
   }
 
-  // Back-fill user_id_pub so future lookups hit step 1.
-  if (db) {
-    try {
-      await db
-        .prepare(`UPDATE user SET user_id_pub = ? WHERE id = ? AND (user_id_pub IS NULL OR user_id_pub = '')`)
-        .bind(user_id_pub, user.id)
-        .run()
-    } catch (e) {
-      console.warn('[passkey-webauthn] failed to back-fill user_id_pub:', (e as Error).message)
-    }
+  // Back-fill userIdPub so future lookups hit Step 1 directly.
+  try {
+    await ctx.context.internalAdapter.updateUser(
+      user.id as never,
+      {
+        userIdPub: user_id_pub,
+      } as never,
+    )
+  } catch (e) {
+    // Non-fatal — the deterministic email path will keep finding the user.
+    console.warn('[passkey-webauthn] failed to back-fill userIdPub:', (e as Error).message)
   }
 
   return user
@@ -654,13 +671,13 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
               user = existingUser
             } else {
               // hint exists but user was deleted — fall through to create
-              user = await findOrCreateUserByPub(ctx, ctx.body.user_id_pub, db)
+              user = await findOrCreateUserByPub(ctx, ctx.body.user_id_pub)
             }
           } else {
             // Find or create a Better Auth user keyed by user_id_pub. Same
             // biometric → same master → same user_id_pub → same user, on any
             // device. The server is a CACHE of identity, not the source of truth.
-            user = await findOrCreateUserByPub(ctx, ctx.body.user_id_pub, db)
+            user = await findOrCreateUserByPub(ctx, ctx.body.user_id_pub)
           }
 
           const upsert = await upsertHint(db, credId, {
@@ -860,7 +877,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
           // Resolve user via the deterministic identity key. This is the
           // self-heal contract: same biometric → same master → same
           // user_id_pub → same user, every time.
-          const user = await findOrCreateUserByPub(ctx, ctx.body.user_id_pub, db)
+          const user = await findOrCreateUserByPub(ctx, ctx.body.user_id_pub)
 
           const upsert = await upsertHint(db, credId, {
             user_id: user.id,

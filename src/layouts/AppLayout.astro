@@ -15,6 +15,7 @@ const cspNonce = Astro.locals.cspNonce
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="theme-color" content="#0a0a0f" />
+		<meta name="mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
 		{cspNonce && <meta name="csp-nonce" content={cspNonce} />}

@@ -67,6 +67,10 @@ const FIELD_TO_ATTR: Record<string, string> = {
   key: 'auth-rate-limit-key',
   count: 'auth-count',
   lastRequest: 'auth-last-request',
+  // passkey-recognition: deterministic public identity derived client-side
+  // from the vault master. Stored on auth-user; used by findOrCreateUserByPub
+  // to look up the same biometric→same user invariant.
+  userIdPub: 'auth-user-id-pub',
 }
 
 const ATTR_TO_FIELD: Record<string, string> = Object.fromEntries(Object.entries(FIELD_TO_ATTR).map(([k, v]) => [v, k]))

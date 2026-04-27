@@ -314,7 +314,8 @@ entity auth-user,
     owns auth-created-at,
     owns auth-updated-at,
     owns wallet-address,              # State 3: Sui address linked to this user (nullable until link)
-    owns passkey-cred-ids;            # State 3: JSON array of hex credIds for multi-device passkey hints
+    owns passkey-cred-ids,            # State 3: JSON array of hex credIds for multi-device passkey hints
+    owns auth-user-id-pub;            # passkey-recognition: deterministic identity = HKDF(master, "user-id-v1") — same biometric → same user, on any device, forever
 
 entity auth-session,
     owns auth-id @key,
@@ -421,6 +422,7 @@ attribute auth-scope, value string;
 attribute auth-identifier, value string;
 attribute auth-value, value string;
 attribute auth-rate-limit-key, value string;
+attribute auth-user-id-pub, value string;    # passkey-recognition: HKDF(master, "user-id-v1") — stable client-derived identity
 # State 3: wallet linking attributes on auth-user
 attribute wallet-address, value string;      # Sui address linked after State 3 wallet-link
 attribute passkey-cred-ids, value string;    # JSON array of hex credIds for multi-device hints
