@@ -1,5 +1,5 @@
 {
-  "schema_hash": "df85fd9d0166",
+  "schema_hash": "47029bcf5549",
   "interactions": [
     {
       "id": "memory-reveal-agent-001",
@@ -7,7 +7,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      insert $u isa unit,\n        has uid \"vcr-actor-1777182177591\",\n        has name \"VCR Test Actor\",\n        has tag \"vcr-test\";\n    ",
+          "query": "\n      insert $u isa unit,\n        has uid \"vcr-actor-1777261547245\",\n        has name \"VCR Test Actor\",\n        has tag \"vcr-test\";\n    ",
           "transactionType": "write",
           "commit": true
         }
@@ -22,7 +22,7 @@
               "data": {
                 "u": {
                   "kind": "entity",
-                  "iid": "0x1e0001000000000000068f",
+                  "iid": "0x1e000100000000000006ac",
                   "type": {
                     "kind": "entityType",
                     "label": "unit"
@@ -69,7 +69,7 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "vcr-actor-1777182177591",
+                      "value": "vcr-actor-1777261547245",
                       "valueType": "string"
                     },
                     "comparator": "=="
@@ -248,7 +248,7 @@
           "warning": null
         }
       },
-      "recorded_at": "2026-04-26T05:43:00.066Z"
+      "recorded_at": "2026-04-27T03:45:49.388Z"
     },
     {
       "id": "memory-reveal-agent-002",
@@ -256,7 +256,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $u isa unit, has uid \"vcr-actor-1777182177591\", has name $n;\n      select $n;\n    ",
+          "query": "\n      match $u isa unit, has uid \"vcr-actor-1777261547245\", has name $n;\n      select $n;\n    ",
           "transactionType": "read",
           "commit": false
         }
@@ -310,7 +310,7 @@
                   {
                     "textSpan": {
                       "begin": 34,
-                      "end": 60
+                      "end": 59
                     },
                     "tag": "comparison",
                     "lhs": {
@@ -320,7 +320,7 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "vcr-actor-1777182177591",
+                      "value": "vcr-actor-1777261547245",
                       "valueType": "string"
                     },
                     "comparator": "=="
@@ -328,7 +328,7 @@
                   {
                     "textSpan": {
                       "begin": 26,
-                      "end": 60
+                      "end": 59
                     },
                     "tag": "has",
                     "owner": {
@@ -361,8 +361,8 @@
                   },
                   {
                     "textSpan": {
-                      "begin": 71,
-                      "end": 82
+                      "begin": 61,
+                      "end": 72
                     },
                     "tag": "has",
                     "owner": {
@@ -376,8 +376,8 @@
                   },
                   {
                     "textSpan": {
-                      "begin": 75,
-                      "end": 79
+                      "begin": 65,
+                      "end": 69
                     },
                     "tag": "isa",
                     "instance": {
@@ -429,7 +429,7 @@
           "warning": null
         }
       },
-      "recorded_at": "2026-04-26T05:43:03.448Z"
+      "recorded_at": "2026-04-27T03:45:49.831Z"
     },
     {
       "id": "memory-reveal-agent-003",
@@ -437,7 +437,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $u isa unit, has uid \"vcr-nonexistent-actor-xyz-1777182183449\";\n      select $u;\n    ",
+          "query": "\n      match $u isa unit, has uid \"vcr-nonexistent-actor-xyz-1777261549832\";\n      select $u;\n    ",
           "transactionType": "read",
           "commit": false
         }
@@ -473,7 +473,7 @@
                   {
                     "textSpan": {
                       "begin": 32,
-                      "end": 62
+                      "end": 56
                     },
                     "tag": "comparison",
                     "lhs": {
@@ -483,7 +483,7 @@
                     "rhs": {
                       "tag": "value",
                       "kind": "value",
-                      "value": "vcr-nonexistent-actor-xyz-1777182183449",
+                      "value": "vcr-nonexistent-actor-xyz-1777261549832",
                       "valueType": "string"
                     },
                     "comparator": "=="
@@ -491,7 +491,7 @@
                   {
                     "textSpan": {
                       "begin": 24,
-                      "end": 62
+                      "end": 56
                     },
                     "tag": "has",
                     "owner": {
@@ -555,7 +555,7 @@
           "warning": null
         }
       },
-      "recorded_at": "2026-04-26T05:43:04.994Z"
+      "recorded_at": "2026-04-27T03:45:50.195Z"
     }
   ]
 }
