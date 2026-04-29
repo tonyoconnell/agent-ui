@@ -5,12 +5,13 @@ import { emitClick } from '@/lib/ui-signal'
 
 interface Props {
   onSuccess?: (result: { uid: string; wallet: string }) => void
+  onError?: (msg: string) => void
   label?: string
 }
 
 type Phase = 'idle' | 'nonce' | 'signing' | 'verifying' | 'done' | 'error'
 
-export function WalletSignIn({ onSuccess, label = 'Sign in with Sui' }: Props) {
+export function WalletSignIn({ onSuccess, onError, label = 'Sign in with Sui' }: Props) {
   const account = useCurrentAccount()
   const { mutateAsync: signPersonalMessage } = useSignPersonalMessage()
   const [phase, setPhase] = useState<Phase>('idle')
@@ -51,7 +52,10 @@ export function WalletSignIn({ onSuccess, label = 'Sign in with Sui' }: Props) {
       setPhase('done')
       onSuccess?.(result)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'sign-in failed')
+      const msg = e instanceof Error ? e.message : 'sign-in failed'
+      setError(msg)
+      onError?.(msg)
+      emitClick('ui:auth:wallet:fail')
       setPhase('error')
     }
   }
@@ -74,7 +78,7 @@ export function WalletSignIn({ onSuccess, label = 'Sign in with Sui' }: Props) {
         type="button"
         onClick={signIn}
         disabled={busy || phase === 'done'}
-        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-sm font-semibold transition-colors"
+        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:opacity-60"
       >
         {labelText}
       </button>

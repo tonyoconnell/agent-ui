@@ -20,6 +20,13 @@ database_id = "0aa5fceb-667a-470e-b08c-40ead2f4525d"
 binding = "KV"
 id = "1c1dac4766e54a2c85425022a3b1e9da"
 
+# KV — auth rate limiting (IP + email composite limits per src/lib/auth-rate-limit.ts)
+# Provision: wrangler kv:namespace create one-auth-rate-limit
+# Then replace PROVISION_NEEDED with the returned namespace ID.
+[[kv_namespaces]]
+binding = "AUTH_RATE_LIMIT"
+id = "PROVISION_NEEDED"
+
 # Queue for agent processing
 [[queues.producers]]
 binding = "AGENT_QUEUE"

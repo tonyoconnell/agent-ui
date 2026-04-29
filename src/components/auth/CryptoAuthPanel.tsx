@@ -11,7 +11,7 @@
  */
 
 import { AppProviders } from '@/components/u/providers'
-import { SignInWithAnything } from './SignInWithAnything'
+import { AuthSurface } from './AuthSurface'
 
 interface Props {
   mode: 'signin' | 'signup'
@@ -26,10 +26,6 @@ export function CryptoAuthPanel({ mode, redirect = '/app' }: Props) {
       ? 'Your wallet is your account. Your signature is your password. The same key pays for every capability you use.'
       : 'Your agents are waiting. Memory intact. Highways still open.'
 
-  const handleSuccess = () => {
-    window.location.href = redirect
-  }
-
   return (
     <AppProviders autoConnect={mode === 'signin'}>
       <div className="w-full max-w-md">
@@ -42,14 +38,14 @@ export function CryptoAuthPanel({ mode, redirect = '/app' }: Props) {
           <p className="mt-2 text-sm leading-relaxed text-zinc-400">{subline}</p>
         </div>
 
-        <SignInWithAnything onSuccess={handleSuccess} />
+        <AuthSurface mode={mode} redirect={redirect} />
 
         <div className="mt-8 space-y-3 text-xs text-zinc-500">
           <div className="flex items-start gap-2">
             <span className="mt-0.5 inline-block size-1 rounded-full bg-emerald-400" aria-hidden="true" />
             <span>
-              <span className="text-zinc-300">No password.</span> Cryptographic signatures prove wallet control —
-              nothing to remember, nothing to leak.
+              <span className="text-zinc-300">Touch ID / Face ID.</span> Cryptographic signatures prove you. Nothing to
+              type, nothing to leak.
             </span>
           </div>
           <div className="flex items-start gap-2">

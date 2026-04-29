@@ -11,34 +11,38 @@
 interface EmailPayload {
   to: string
   subject: string
-  text: string
+  text?: string
   html?: string
+  from?: string
 }
 
 /** Detected provider, for reporting. */
 export type EmailProvider = 'postmark' | 'resend' | 'none'
 
+function getEnv(name: string): string | undefined {
+  const g = globalThis as any
+  return g[name] || import.meta.env[name] || (typeof process !== 'undefined' ? process.env?.[name] : undefined)
+}
+
 /** Returns which provider will be used based on available env vars. */
 export function detectEmailProvider(): EmailProvider {
-  if (typeof process !== 'undefined' && process.env?.POSTMARK_API_KEY) return 'postmark'
-  if (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) return 'resend'
+  if (getEnv('POSTMARK_API_KEY')) return 'postmark'
+  if (getEnv('RESEND_API_KEY')) return 'resend'
   return 'none'
 }
 
 async function sendViaPostmark(payload: EmailPayload): Promise<void> {
-  const apiKey =
-    typeof process !== 'undefined' && process.env?.POSTMARK_API_KEY ? process.env.POSTMARK_API_KEY : undefined
+  const apiKey = getEnv('POSTMARK_API_KEY')
   if (!apiKey) throw new Error('POSTMARK_API_KEY is not set')
 
-  const from =
-    typeof process !== 'undefined' && process.env?.NOTIFY_FROM_EMAIL ? process.env.NOTIFY_FROM_EMAIL : undefined
+  const from = payload.from || getEnv('NOTIFY_FROM_EMAIL')
   if (!from) throw new Error('NOTIFY_FROM_EMAIL is not set')
 
   const body: Record<string, unknown> = {
     From: from,
     To: payload.to,
     Subject: payload.subject,
-    TextBody: payload.text,
+    TextBody: payload.text ?? '',
   }
   if (payload.html) body.HtmlBody = payload.html
 
@@ -59,11 +63,10 @@ async function sendViaPostmark(payload: EmailPayload): Promise<void> {
 }
 
 async function sendViaResend(payload: EmailPayload): Promise<void> {
-  const apiKey = typeof process !== 'undefined' && process.env?.RESEND_API_KEY ? process.env.RESEND_API_KEY : undefined
+  const apiKey = getEnv('RESEND_API_KEY')
   if (!apiKey) throw new Error('RESEND_API_KEY is not set')
 
-  const from =
-    typeof process !== 'undefined' && process.env?.NOTIFY_FROM_EMAIL ? process.env.NOTIFY_FROM_EMAIL : undefined
+  const from = payload.from || getEnv('NOTIFY_FROM_EMAIL')
   if (!from) throw new Error('NOTIFY_FROM_EMAIL is not set')
 
   const body: Record<string, unknown> = {

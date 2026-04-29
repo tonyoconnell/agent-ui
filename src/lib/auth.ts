@@ -6,7 +6,9 @@
  */
 
 import { betterAuth } from 'better-auth'
-import { bearer } from 'better-auth/plugins'
+import { bearer, magicLink } from 'better-auth/plugins'
+import { ensureHumanUnit } from '@/lib/human-unit'
+import { sendEmail } from '@/lib/notify/email'
 import { passkeyWebauthn } from './auth-plugins/passkey-webauthn'
 import { suiWallet } from './auth-plugins/sui-wallet'
 import { typedbAdapter } from './typedb-auth-adapter'
@@ -121,10 +123,31 @@ export function createAuth() {
       },
     },
 
+    socialProviders: {
+      google: {
+        clientId: (globalThis as any).GOOGLE_CLIENT_ID || import.meta.env.GOOGLE_CLIENT_ID || '',
+        clientSecret: (globalThis as any).GOOGLE_CLIENT_SECRET || import.meta.env.GOOGLE_CLIENT_SECRET || '',
+      },
+    },
+
     account: {
       accountLinking: {
         enabled: true,
-        trustedProviders: ['sui-wallet'],
+        trustedProviders: ['sui-wallet', 'google', 'magic-link'],
+      },
+    },
+
+    databaseHooks: {
+      session: {
+        create: {
+          after: async (session: { userId: string }) => {
+            try {
+              await ensureHumanUnit(session.userId, { id: session.userId })
+            } catch (e) {
+              console.error('[session.create.after] ensureHumanUnit failed', e)
+            }
+          },
+        },
       },
     },
 
@@ -209,6 +232,19 @@ export function createAuth() {
               ],
             }
           : {}),
+      }),
+      magicLink({
+        sendMagicLink: async ({ email, url }: { email: string; url: string }) => {
+          await sendEmail({
+            to: email,
+            from: (globalThis as any).RESEND_FROM_EMAIL || import.meta.env.RESEND_FROM_EMAIL || 'tony@one.ie',
+            subject: 'Your sign-in link for ONE',
+            html: `<p>Click to sign in: <a href="${url}">${url}</a></p><p>This link expires in 5 minutes.</p>`,
+            text: `Sign in: ${url} (expires in 5 minutes)`,
+          })
+        },
+        expiresIn: 60 * 5,
+        disableSignUp: false,
       }),
     ],
   })

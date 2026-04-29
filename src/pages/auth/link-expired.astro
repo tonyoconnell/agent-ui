@@ -1,0 +1,75 @@
+---
+import Layout from "@/layouts/Layout.astro"
+---
+
+<Layout
+  title="Link expired · ONE"
+  description="Your sign-in link has expired."
+  noindex={true}
+  hideHeader={true}
+>
+  <main class="relative min-h-screen overflow-hidden bg-[#0a0a0f] text-white flex items-center justify-center px-5">
+    <div class="w-full max-w-md">
+      <div class="mb-8">
+        <div class="mb-2 inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-rose-300">
+          <span class="size-1.5 rounded-full bg-rose-400"></span>
+          Link expired
+        </div>
+        <h1 class="text-2xl font-semibold tracking-tight text-white">This link expired</h1>
+        <p class="mt-2 text-sm leading-relaxed text-zinc-400">
+          Sign-in links are good for 5 minutes. Get a fresh one below.
+        </p>
+      </div>
+
+      <form
+        id="resend-form"
+        class="space-y-3"
+      >
+        <input
+          type="email"
+          name="email"
+          required
+          placeholder="you@example.com"
+          autocomplete="email"
+          class="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-violet-400/40 focus:outline-none"
+        />
+        <button
+          type="submit"
+          id="resend-btn"
+          class="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+        >
+          Send a new link
+        </button>
+        <p id="resend-status" role="status" aria-live="polite" class="hidden text-xs text-violet-300 text-center"></p>
+      </form>
+    </div>
+
+    <script>
+      const form = document.getElementById('resend-form') as HTMLFormElement
+      const btn = document.getElementById('resend-btn') as HTMLButtonElement
+      const status = document.getElementById('resend-status') as HTMLParagraphElement
+
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        const email = (form.elements.namedItem('email') as HTMLInputElement).value
+        btn.disabled = true
+        btn.textContent = 'Sending…'
+        try {
+          await fetch('/api/auth/email/continue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          })
+          status.textContent = `Sent to ${email}. Check your inbox.`
+          status.classList.remove('hidden')
+          btn.textContent = 'Sent ✓'
+        } catch {
+          btn.disabled = false
+          btn.textContent = 'Send a new link'
+          status.textContent = 'Network error — please try again.'
+          status.classList.remove('hidden')
+        }
+      })
+    </script>
+  </main>
+</Layout>
