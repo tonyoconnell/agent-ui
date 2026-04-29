@@ -76,7 +76,6 @@ async function verifyPassword(data: { password: string; hash: string }): Promise
 export function createAuth() {
   const publicEnv = {
     BETTER_AUTH_SECRET: (globalThis as any).BETTER_AUTH_SECRET || import.meta.env.BETTER_AUTH_SECRET || '',
-    PUBLIC_SITE_URL: (globalThis as any).PUBLIC_SITE_URL || import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321',
   }
 
   return betterAuth({
@@ -87,16 +86,23 @@ export function createAuth() {
     // within the same D1 instance, no cross-service latency gap.
     database: kyselyAdapter(kysely, { type: 'sqlite' }),
 
-    baseURL: publicEnv.PUBLIC_SITE_URL,
+    // Dynamic baseURL: derives issuer + callback URLs from the incoming
+    // request host instead of a build-time constant. Required because the
+    // Worker runs on dev.one.ie / one.ie / local.one.ie / localhost and
+    // wrangler.toml vars are runtime-only (not available to import.meta.env
+    // during the Astro build). Dynamic config fixes the MCP OAuth discovery
+    // document showing http://localhost:4321 as the issuer.
+    baseURL: {
+      allowedHosts: ['one.ie', '*.one.ie', 'localhost'],
+      fallback: 'https://dev.one.ie',
+    },
 
-    // Cookie domain MUST match the request host or browsers silently drop
-    // the Set-Cookie — that's why localhost was getting logged out on every
-    // page reload. Use `.one.ie` only for the real subdomains (cross-SSO
-    // between dev.one.ie / one.ie / pay.one.ie). On localhost, leave it
-    // host-only so the cookie actually attaches.
-    advanced: publicEnv.PUBLIC_SITE_URL.includes('one.ie')
-      ? { crossSubDomainCookies: { enabled: true, domain: '.one.ie' } }
-      : {},
+    // Cross-subdomain cookies: share session between dev.one.ie / one.ie /
+    // pay.one.ie. On localhost keep host-only so the cookie attaches.
+    // Dynamic baseURL means we can't check publicEnv.PUBLIC_SITE_URL here;
+    // we always enable cross-subdomain and the domain check is skipped on
+    // localhost because the host won't match '.one.ie'.
+    advanced: { crossSubDomainCookies: { enabled: true, domain: '.one.ie' } },
 
     session: {
       // Browsers cap cookie Max-Age at 400 days (RFC 6265bis), so we set the
@@ -198,9 +204,7 @@ export function createAuth() {
           (globalThis as any).PASSKEY_CHALLENGE_SECRET ||
           import.meta.env.PASSKEY_CHALLENGE_SECRET ||
           publicEnv.BETTER_AUTH_SECRET ||
-          (publicEnv.PUBLIC_SITE_URL.startsWith('http://localhost')
-            ? 'dev-only-passkey-challenge-secret-DO-NOT-USE-IN-PROD'
-            : ''),
+          (!import.meta.env.BETTER_AUTH_SECRET ? 'dev-only-passkey-challenge-secret-DO-NOT-USE-IN-PROD' : ''),
         // rpID is left undefined — the plugin derives it from the request origin's
         // hostname (dev.one.ie → rpId=dev.one.ie, localhost → rpId=localhost).
         // This avoids the .well-known/webauthn cross-origin fetch that browsers
@@ -209,17 +213,14 @@ export function createAuth() {
         //
         // expectedOrigins: let the plugin default to the current request origin so
         // new passkeys work on any subdomain without manual list maintenance.
-        ...(publicEnv.PUBLIC_SITE_URL.includes('one.ie')
-          ? {
-              expectedOrigins: [
-                'https://one.ie',
-                'https://dev.one.ie',
-                'https://local.one.ie',
-                'https://main.one.ie',
-                'https://pay.one.ie',
-              ],
-            }
-          : {}),
+        expectedOrigins: [
+          'https://one.ie',
+          'https://dev.one.ie',
+          'https://local.one.ie',
+          'https://main.one.ie',
+          'https://pay.one.ie',
+          'http://localhost:4321',
+        ],
       }),
       magicLink({
         sendMagicLink: async ({ email, url }: { email: string; url: string }) => {
