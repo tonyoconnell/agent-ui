@@ -7,7 +7,7 @@
 
 import { kyselyAdapter } from '@better-auth/kysely-adapter'
 import { betterAuth } from 'better-auth'
-import { bearer, magicLink } from 'better-auth/plugins'
+import { bearer, magicLink, mcp } from 'better-auth/plugins'
 import { Kysely } from 'kysely'
 import { ensureHumanUnit } from '@/lib/human-unit'
 import { sendEmail } from '@/lib/notify/email'
@@ -233,6 +233,12 @@ export function createAuth() {
         },
         expiresIn: 60 * 5,
         disableSignUp: false,
+      }),
+      // OAuth 2.0 provider for MCP clients (Claude Desktop, Cursor, etc.).
+      // Clients register via POST /api/auth/mcp/register, then authenticate
+      // via the standard OAuth flow before accessing @oneie/mcp tools.
+      mcp({
+        loginPage: '/signin',
       }),
     ],
   })
