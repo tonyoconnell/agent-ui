@@ -5,13 +5,19 @@
  * TypeDB accessed via HTTP proxy.
  */
 
+import { kyselyAdapter } from '@better-auth/kysely-adapter'
 import { betterAuth } from 'better-auth'
 import { bearer, magicLink } from 'better-auth/plugins'
+import { Kysely } from 'kysely'
 import { ensureHumanUnit } from '@/lib/human-unit'
 import { sendEmail } from '@/lib/notify/email'
+import { LazyD1Dialect } from './d1-kysely-dialect'
 import { passkeyWebauthn } from './auth-plugins/passkey-webauthn'
 import { suiWallet } from './auth-plugins/sui-wallet'
-import { typedbAdapter } from './typedb-auth-adapter'
+
+// Kysely instance created once per isolate. LazyD1Dialect defers the actual
+// D1 binding lookup until the first query (always inside a request handler).
+const kysely = new Kysely({ dialect: new LazyD1Dialect() })
 
 // PBKDF2 password hashing (Web Crypto API)
 const PBKDF2_ITERATIONS = 100000
@@ -68,36 +74,18 @@ async function verifyPassword(data: { password: string; hash: string }): Promise
 }
 
 export function createAuth() {
-  // Public build-time config only
   const publicEnv = {
-    TYPEDB_URL: import.meta.env.TYPEDB_URL || '',
-    TYPEDB_DATABASE: import.meta.env.TYPEDB_DATABASE || '',
     BETTER_AUTH_SECRET: import.meta.env.BETTER_AUTH_SECRET || '',
     PUBLIC_SITE_URL: import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321',
-  }
-
-  // Runtime/secret config: prefer CF Worker bindings (prod) but fall back to
-  // `.env` via `import.meta.env` (localhost dev via `bun --env-file=.env`).
-  const runtimeEnv = {
-    TYPEDB_USERNAME: (globalThis as any).TYPEDB_USERNAME || import.meta.env.TYPEDB_USERNAME || 'admin',
-    TYPEDB_PASSWORD: (globalThis as any).TYPEDB_PASSWORD || import.meta.env.TYPEDB_PASSWORD || '',
   }
 
   return betterAuth({
     ...(publicEnv.BETTER_AUTH_SECRET && { secret: publicEnv.BETTER_AUTH_SECRET }),
 
-    database: typedbAdapter({
-      url: publicEnv.TYPEDB_URL,
-      database: publicEnv.TYPEDB_DATABASE,
-      username: runtimeEnv.TYPEDB_USERNAME,
-      password: runtimeEnv.TYPEDB_PASSWORD,
-      // Route through the gateway so Better Auth shares the substrate's
-      // single TypeDB session — eliminates session-replacement 401s.
-      gatewayUrl: import.meta.env.PUBLIC_GATEWAY_URL || 'https://api.one.ie',
-      // Same API key the substrate client sends (src/lib/typedb.ts) so the
-      // gateway accepts Better Auth writes (createUser/createSession).
-      gatewayApiKey: (globalThis as any).GATEWAY_API_KEY || import.meta.env.GATEWAY_API_KEY || undefined,
-    }),
+    // D1 (local to the Worker, <10ms) instead of TypeDB (~100ms via gateway).
+    // Fixes OAuth state_mismatch: the verification record is written and read
+    // within the same D1 instance, no cross-service latency gap.
+    database: kyselyAdapter(kysely, { type: 'sqlite' }),
 
     baseURL: publicEnv.PUBLIC_SITE_URL,
 
