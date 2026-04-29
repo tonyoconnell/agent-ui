@@ -1,10 +1,11 @@
 // >>> auth-ui integration tests
 // Cases 12-14 are unit-testable; remaining cases require live services (skip).
-import { describe, it, expect } from 'vitest'
-import { validateRedirect } from '@/lib/auth-redirect'
-import { checkAuthLimit } from '@/lib/auth-rate-limit'
+
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { checkAuthLimit } from '@/lib/auth-rate-limit'
+import { validateRedirect } from '@/lib/auth-redirect'
 
 const PAGES_ROOT = join(process.cwd(), 'src/pages')
 
@@ -36,16 +37,16 @@ describe('auth-ui-5 email-password-optin', () => {
 // auth-ui-6: ui signals fired
 describe('auth-ui-6 ui-signals-fired', () => {
   it('emitClick is imported in PasskeyButton', async () => {
-    const src = await import('node:fs').then(fs =>
-      fs.readFileSync(join(process.cwd(), 'src/components/auth/PasskeyButton.tsx'), 'utf8')
+    const src = await import('node:fs').then((fs) =>
+      fs.readFileSync(join(process.cwd(), 'src/components/auth/PasskeyButton.tsx'), 'utf8'),
     )
     expect(src).toContain("emitClick('ui:auth:passkey:start')")
     expect(src).toContain("emitClick('ui:auth:passkey:success')")
     expect(src).toContain("emitClick('ui:auth:passkey:fail')")
   })
   it('emitClick is imported in GoogleButton', async () => {
-    const src = await import('node:fs').then(fs =>
-      fs.readFileSync(join(process.cwd(), 'src/components/auth/GoogleButton.tsx'), 'utf8')
+    const src = await import('node:fs').then((fs) =>
+      fs.readFileSync(join(process.cwd(), 'src/components/auth/GoogleButton.tsx'), 'utf8'),
     )
     expect(src).toContain("emitClick('ui:auth:google:start')")
     expect(src).toContain("emitClick('ui:auth:google:fail')")
@@ -60,8 +61,8 @@ describe('auth-ui-7 no-enumeration', () => {
   })
   it('/email/continue endpoint returns { sent: true } shape regardless of email (contract)', async () => {
     // The endpoint source always returns { sent: true } — verify the contract in source
-    const src = await import('node:fs').then(fs =>
-      fs.readFileSync(join(process.cwd(), 'src/pages/api/auth/email/continue.ts'), 'utf8')
+    const src = await import('node:fs').then((fs) =>
+      fs.readFileSync(join(process.cwd(), 'src/pages/api/auth/email/continue.ts'), 'utf8'),
     )
     expect(src).toContain('{ sent: true }')
     // swallows all inner errors
@@ -82,11 +83,10 @@ describe('auth-ui-9 account-linking-merge', () => {
 // auth-ui-10: seed binding per door
 describe('auth-ui-10 seed-binding-per-door', () => {
   it('passkey door maps to wrap mode', async () => {
-    const { useExistingSeed } = await import('@/components/auth/useExistingSeed')
     // The hook is a React hook so we can't call it outside a component.
     // Verify the source contains the correct mode mapping.
-    const src = await import('node:fs').then(fs =>
-      fs.readFileSync(join(process.cwd(), 'src/components/auth/useExistingSeed.ts'), 'utf8')
+    const src = await import('node:fs').then((fs) =>
+      fs.readFileSync(join(process.cwd(), 'src/components/auth/useExistingSeed.ts'), 'utf8'),
     )
     expect(src).toContain("door === 'passkey'")
     expect(src).toContain("'wrap'")
@@ -174,7 +174,11 @@ describe('auth-ui-16 magic-link-expired-shows-route', () => {
     expect(existsSync(join(PAGES_ROOT, 'auth/link-used.astro'))).toBe(true)
   })
   it('link-expired page contains email form to resend', () => {
-    const src = require('node:fs').readFileSync(join(PAGES_ROOT, 'auth/link-expired.astro'), 'utf8')
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const src = (require('node:fs') as typeof import('node:fs')).readFileSync(
+      join(PAGES_ROOT, 'auth/link-expired.astro'),
+      'utf8',
+    )
     expect(src).toContain('/api/auth/email/continue')
   })
 })
