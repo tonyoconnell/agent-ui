@@ -25,7 +25,7 @@ id = "1c1dac4766e54a2c85425022a3b1e9da"
 # Then replace PROVISION_NEEDED with the returned namespace ID.
 [[kv_namespaces]]
 binding = "AUTH_RATE_LIMIT"
-id = "PROVISION_NEEDED"
+id = "1c63b2a515004af19dab84a7939761d0"
 
 # Queue for agent processing
 [[queues.producers]]

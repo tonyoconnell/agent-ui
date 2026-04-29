@@ -26,7 +26,7 @@ id = "1c1dac4766e54a2c85425022a3b1e9da"
 # Then replace PROVISION_NEEDED with the returned namespace ID.
 [[kv_namespaces]]
 binding = "AUTH_RATE_LIMIT"
-id = "PROVISION_NEEDED"
+id = "1c63b2a515004af19dab84a7939761d0"
 
 # Astro 6 + @astrojs/cloudflare v13 auto-binds a "SESSION" KV namespace if one
 # exists. We omit it for now — sessions fall back to in-memory in dev (lost on
