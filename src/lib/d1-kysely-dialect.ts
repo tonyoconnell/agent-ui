@@ -38,6 +38,7 @@ class D1Connection implements DatabaseConnection {
     }
   }
 
+  // biome-ignore lint/correctness/useYield: generator required by interface; D1 has no streaming
   async *streamQuery(): AsyncGenerator<never> {
     throw new Error('D1 does not support streaming queries')
   }

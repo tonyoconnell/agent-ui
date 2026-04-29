@@ -11,9 +11,9 @@ import { bearer, magicLink } from 'better-auth/plugins'
 import { Kysely } from 'kysely'
 import { ensureHumanUnit } from '@/lib/human-unit'
 import { sendEmail } from '@/lib/notify/email'
-import { LazyD1Dialect } from './d1-kysely-dialect'
 import { passkeyWebauthn } from './auth-plugins/passkey-webauthn'
 import { suiWallet } from './auth-plugins/sui-wallet'
+import { LazyD1Dialect } from './d1-kysely-dialect'
 
 // Kysely instance created once per isolate. LazyD1Dialect defers the actual
 // D1 binding lookup until the first query (always inside a request handler).
