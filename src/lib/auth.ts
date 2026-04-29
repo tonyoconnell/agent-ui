@@ -75,8 +75,8 @@ async function verifyPassword(data: { password: string; hash: string }): Promise
 
 export function createAuth() {
   const publicEnv = {
-    BETTER_AUTH_SECRET: import.meta.env.BETTER_AUTH_SECRET || '',
-    PUBLIC_SITE_URL: import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321',
+    BETTER_AUTH_SECRET: (globalThis as any).BETTER_AUTH_SECRET || import.meta.env.BETTER_AUTH_SECRET || '',
+    PUBLIC_SITE_URL: (globalThis as any).PUBLIC_SITE_URL || import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321',
   }
 
   return betterAuth({
