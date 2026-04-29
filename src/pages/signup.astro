@@ -124,7 +124,7 @@ const cycleStats = [
 
       <!-- FORM PANEL (right) -->
       <section class="flex items-center justify-center px-6 py-24 sm:px-10" aria-label="Create your account">
-        <CryptoAuthPanel client:load mode="signup" redirect={redirect} />
+        <CryptoAuthPanel client:only="react" mode="signup" redirect={redirect} />
       </section>
 
     </div>

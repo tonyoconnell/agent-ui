@@ -88,9 +88,13 @@ export default defineConfig({
         // only). Mark external so Vite doesn't try to bundle a Bun-specific
         // module into the worker SSR pass.
         "bun:sqlite",
-        // @mysten/sui & shiki: declared external because all callers are
+        // @mysten/* & shiki: declared external because all callers are
         // client:only — no server-side import path exists. Defends against
         // accidental future imports from server code pulling them in.
+        // dapp-kit must also be external: it depends on @mysten/sui (external)
+        // and importing it for SSR corrupts the React JSX runtime for the
+        // whole request (jsxDEV is not a function).
+        "@mysten/dapp-kit",
         "@mysten/sui",
         "@mysten/bcs",
         "shiki",
