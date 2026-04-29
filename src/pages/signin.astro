@@ -3,7 +3,12 @@ import Layout from "@/layouts/Layout.astro"
 import { auth } from "@/lib/auth"
 import { CryptoAuthPanel } from "@/components/auth/CryptoAuthPanel"
 
-const session = await auth.api.getSession({ headers: Astro.request.headers })
+let session = null
+try {
+  session = await auth.api.getSession({ headers: Astro.request.headers })
+} catch (e) {
+  console.error('[signin] auth.api.getSession failed:', e)
+}
 if (session) return Astro.redirect("/app")
 
 const redirectParam = Astro.url.searchParams.get("redirect") ?? "/app"
