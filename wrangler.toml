@@ -55,5 +55,8 @@ id = "1c63b2a515004af19dab84a7939761d0"
 # Restore script: scripts/restore-typedb.ts
 
 # Worker environment configuration
+[vars]
+PUBLIC_SITE_URL = "https://dev.one.ie"
+
 [env.production]
-vars = { ENVIRONMENT = "production" }
+vars = { ENVIRONMENT = "production", PUBLIC_SITE_URL = "https://dev.one.ie" }
