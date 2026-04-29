@@ -1,11 +1,10 @@
 import type { APIRoute } from 'astro'
-import { createAuth } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 
 export const prerender = false
 
 export const ALL: APIRoute = async ({ request }) => {
   try {
-    const auth = createAuth()
     const res = await auth.handler(request)
     // Dev instrumentation: if Better Auth returned a 5xx, dump the body to
     // the server terminal so we can see the cause. Cloned so we don't drain
