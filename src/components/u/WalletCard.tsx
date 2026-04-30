@@ -179,7 +179,7 @@ export function WalletCard({ wallet, chain }: WalletCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 group relative overflow-hidden transition-all duration-300 hover:border-green-500/50 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+              className="flex-1 group relative overflow-hidden transition-all duration-300 hover:border-tertiary-bright/50 hover:text-tertiary-bright hover:bg-tertiary-bright/10 dark:hover:bg-tertiary-bright/5"
               onClick={() => {
                 emitClick('ui:send:open')
                 setShowSendDialog(true)
@@ -191,7 +191,7 @@ export function WalletCard({ wallet, chain }: WalletCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 group relative overflow-hidden transition-all duration-300 hover:border-blue-500/50 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+              className="flex-1 group relative overflow-hidden transition-all duration-300 hover:border-primary-bright/50 hover:text-primary-bright hover:bg-primary-bright/10 dark:hover:bg-primary-bright/5"
               onClick={() => {
                 emitClick('ui:receive:open')
                 setShowReceiveDialog(true)
@@ -203,7 +203,7 @@ export function WalletCard({ wallet, chain }: WalletCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 group relative overflow-hidden transition-all duration-300 hover:border-purple-500/50 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+              className="flex-1 group relative overflow-hidden transition-all duration-300 hover:border-secondary-bright/50 hover:text-secondary-bright hover:bg-secondary-bright/10 dark:hover:bg-secondary-bright/5"
               onClick={() => {
                 emitClick('ui:swap:open')
                 setShowSwapDialog(true)

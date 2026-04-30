@@ -20,7 +20,7 @@ export default function PayLiveDemo() {
   const [receipt, setReceipt] = useState<string | null>(null)
 
   return (
-    <section id="demo" className="w-full max-w-6xl mx-auto px-4 md:px-6 py-20 border-t border-zinc-900 scroll-mt-14">
+    <section id="demo" className="w-full max-w-6xl mx-auto px-4 md:px-6 py-20 border-t border-border scroll-mt-14">
       <SectionHeader
         eyebrow="Try it live"
         title="Real components. Real Elements. No signup."
@@ -103,13 +103,13 @@ function DemoBlock({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/20 overflow-hidden">
-      <header className={`flex items-start gap-4 px-6 ${compact ? 'py-4' : 'py-5'} border-b border-zinc-800/60`}>
-        <span className="text-xs font-mono text-violet-500 pt-0.5">§ {num}</span>
+    <div className="rounded-2xl border border-border bg-muted/20 overflow-hidden">
+      <header className={`flex items-start gap-4 px-6 ${compact ? 'py-4' : 'py-5'} border-b border-border`}>
+        <span className="text-xs font-mono text-secondary-bright pt-0.5">§ {num}</span>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 mb-1">{eyebrow}</div>
-          <h3 className={`font-semibold text-white ${compact ? 'text-base' : 'text-xl'}`}>{title}</h3>
-          {subtitle && <p className="text-sm text-zinc-400 mt-1">{subtitle}</p>}
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">{eyebrow}</div>
+          <h3 className={`font-semibold text-foreground ${compact ? 'text-base' : 'text-xl'}`}>{title}</h3>
+          {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
         </div>
       </header>
       <div className={compact ? 'p-4' : 'p-6'}>{children}</div>
@@ -128,19 +128,19 @@ function StripeCheckoutDemo({
 
   if (receipt) {
     return (
-      <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-6 max-w-2xl mx-auto">
+      <div className="rounded-xl border border-tertiary-bright/30 bg-tertiary-bright/10 p-6 max-w-2xl mx-auto">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl">
+          <div className="w-10 h-10 rounded-full bg-tertiary-bright/10 flex items-center justify-center text-tertiary-bright text-xl">
             ✓
           </div>
           <div>
-            <h4 className="text-lg font-semibold text-emerald-300">Payment captured</h4>
-            <p className="text-sm text-emerald-200/70">
-              <code className="text-emerald-300">substrate:pay</code> fired · webhook will promote to captured.
+            <h4 className="text-lg font-semibold text-tertiary-bright">Payment captured</h4>
+            <p className="text-sm text-tertiary-bright/70">
+              <code className="text-tertiary-bright">substrate:pay</code> fired · webhook will promote to captured.
             </p>
           </div>
         </div>
-        <div className="rounded bg-black/30 border border-emerald-900/40 px-4 py-3 text-xs text-emerald-200/90 font-mono break-all mb-4">
+        <div className="rounded bg-background/30 border border-tertiary-bright/30 px-4 py-3 text-xs text-tertiary-bright font-mono break-all mb-4">
           ref: {receipt}
         </div>
         <button
@@ -149,7 +149,7 @@ function StripeCheckoutDemo({
             emitClick('ui:pay:showcase:reset')
             setReceipt(null)
           }}
-          className="text-sm text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-1"
+          className="text-sm text-[hsl(var(--color-primary-bright))] hover:text-[hsl(var(--color-primary-bright)/0.8)] inline-flex items-center gap-1"
         >
           Reset demo <ArrowRight className="w-4 h-4" />
         </button>
@@ -158,15 +158,15 @@ function StripeCheckoutDemo({
   }
 
   return (
-    <div className="max-w-2xl mx-auto rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
-      <div className="flex items-center justify-between pb-4 mb-6 border-b border-zinc-800">
+    <div className="max-w-2xl mx-auto rounded-xl border border-border bg-muted/40 p-6">
+      <div className="flex items-center justify-between pb-4 mb-6 border-b border-border">
         <div>
-          <p className="text-xs text-zinc-500 mb-1">Skill</p>
-          <p className="text-sm text-white font-medium">{DEMO_SKILL.skillName}</p>
+          <p className="text-xs text-muted-foreground mb-1">Skill</p>
+          <p className="text-sm text-foreground font-medium">{DEMO_SKILL.skillName}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-zinc-500 mb-1">Total</p>
-          <p className="text-lg text-white font-semibold">${DEMO_SKILL.price.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground mb-1">Total</p>
+          <p className="text-lg text-foreground font-semibold">${DEMO_SKILL.price.toFixed(2)}</p>
         </div>
       </div>
       <StripeCheckoutWrapper
@@ -186,9 +186,9 @@ function StripeCheckoutDemo({
 function SectionHeader({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
   return (
     <header className="text-center mb-10 space-y-2">
-      <div className="text-xs uppercase tracking-[0.2em] text-violet-400">{eyebrow}</div>
-      <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">{title}</h2>
-      {subtitle && <p className="text-base text-zinc-400 max-w-2xl mx-auto">{subtitle}</p>}
+      <div className="text-xs uppercase tracking-[0.2em] text-[hsl(var(--color-secondary-bright))]">{eyebrow}</div>
+      <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{title}</h2>
+      {subtitle && <p className="text-base text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>}
     </header>
   )
 }

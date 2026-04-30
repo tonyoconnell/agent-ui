@@ -6,9 +6,9 @@ interface NetworkStatusProps {
 
 export function NetworkStatus({ network = 'testnet', status = 'live', className = '' }: NetworkStatusProps) {
   const isLive = status === 'live'
-  const pulseColor = isLive ? 'bg-emerald-500' : 'bg-red-500'
-  const textColor = isLive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-  const bgColor = isLive ? 'bg-emerald-50 dark:bg-emerald-950/50' : 'bg-red-50 dark:bg-red-950/50'
+  const pulseColor = isLive ? 'bg-tertiary-bright' : 'bg-destructive'
+  const textColor = isLive ? 'text-tertiary-bright dark:text-tertiary-bright' : 'text-destructive dark:text-destructive'
+  const bgColor = isLive ? 'bg-tertiary-bright/10 dark:bg-tertiary-bright/5' : 'bg-destructive/10 dark:bg-destructive/5'
 
   return (
     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${bgColor} ${className}`}>

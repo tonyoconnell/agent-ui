@@ -133,11 +133,11 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Loading */}
         {state.kind === 'loading' && (
-          <Card className="border-[#252538] bg-[#161622]">
+          <Card className="border-border bg-card">
             <CardContent className="flex flex-col items-center gap-3 py-10">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">Loading co-sign request…</p>
@@ -147,32 +147,32 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
 
         {/* Ready — waiting for human decision */}
         {state.kind === 'ready' && (
-          <Card className="border-[#252538] bg-[#161622]">
+          <Card className="border-border bg-card">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-5 w-5 text-amber-400" aria-hidden="true" />
-                <CardTitle className="text-base text-slate-100">Co-sign request</CardTitle>
+                <CardTitle className="text-base text-font">Co-sign request</CardTitle>
               </div>
-              <CardDescription className="text-slate-400">
-                Agent <span className="font-mono text-xs text-slate-300">{state.request.agentUid}</span> is requesting
+              <CardDescription className="text-muted-foreground">
+                Agent <span className="font-mono text-xs text-foreground">{state.request.agentUid}</span> is requesting
                 your approval.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-4">
               {/* Transaction summary */}
-              <div className="rounded-md border border-[#252538] bg-[#0a0a0f] p-4">
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Transaction summary</p>
-                <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{state.request.summary}</p>
+              <div className="rounded-md border border-border bg-background p-4">
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Transaction summary</p>
+                <p className="text-sm text-font leading-relaxed whitespace-pre-wrap">{state.request.summary}</p>
               </div>
 
               {/* Countdown */}
-              <div className="flex items-center gap-2 text-sm text-slate-400">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>
                   This request expires in{' '}
                   <span
-                    className={state.secondsLeft <= 30 ? 'font-semibold text-red-400' : 'font-semibold text-slate-300'}
+                    className={state.secondsLeft <= 30 ? 'font-semibold text-destructive' : 'font-semibold text-foreground'}
                     aria-live="polite"
                   >
                     {state.secondsLeft}s
@@ -184,7 +184,7 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
             <CardFooter className="flex gap-3">
               <Button
                 variant="outline"
-                className="flex-1 border-[#252538] text-slate-300 hover:bg-[#252538]"
+                className="flex-1 border-border text-foreground hover:bg-muted"
                 onClick={() => void handleReject()}
                 aria-label="Reject this co-sign request"
               >
@@ -203,10 +203,10 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
 
         {/* Signing in progress */}
         {state.kind === 'signing' && (
-          <Card className="border-[#252538] bg-[#161622]">
+          <Card className="border-border bg-card">
             <CardContent className="flex flex-col items-center gap-3 py-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
-              <p className="text-sm text-slate-300">Touch ID prompt active…</p>
+              <p className="text-sm text-foreground">Touch ID prompt active…</p>
               <p className="text-xs text-muted-foreground">Waiting for biometric confirmation</p>
             </CardContent>
           </Card>
@@ -214,18 +214,18 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
 
         {/* Done — approved */}
         {state.kind === 'done' && state.action === 'approved' && (
-          <Card className="border-[#252538] bg-[#161622]">
+          <Card className="border-border bg-card">
             <CardContent className="flex flex-col items-center gap-4 py-10">
               <CheckCircle2 className="h-10 w-10 text-green-400" aria-hidden="true" />
               <div className="text-center space-y-1">
-                <p className="font-semibold text-slate-100">Transaction submitted</p>
+                <p className="font-semibold text-font">Transaction submitted</p>
                 <p className="text-xs text-muted-foreground">
-                  Digest: <span className="font-mono text-slate-400 break-all">{state.digest}</span>
+                  Digest: <span className="font-mono text-muted-foreground break-all">{state.digest}</span>
                 </p>
               </div>
               <Button
                 variant="outline"
-                className="border-[#252538] text-slate-300 hover:bg-[#252538]"
+                className="border-border text-foreground hover:bg-muted"
                 onClick={() => {
                   emitClick('ui:wallet:cosign-done-back')
                   window.location.href = '/u'
@@ -239,16 +239,16 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
 
         {/* Done — rejected */}
         {state.kind === 'done' && state.action === 'rejected' && (
-          <Card className="border-[#252538] bg-[#161622]">
+          <Card className="border-border bg-card">
             <CardContent className="flex flex-col items-center gap-4 py-10">
-              <XCircle className="h-10 w-10 text-slate-400" aria-hidden="true" />
+              <XCircle className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
               <div className="text-center space-y-1">
-                <p className="font-semibold text-slate-100">Request rejected</p>
+                <p className="font-semibold text-font">Request rejected</p>
                 <p className="text-sm text-muted-foreground">The agent has been notified.</p>
               </div>
               <Button
                 variant="outline"
-                className="border-[#252538] text-slate-300 hover:bg-[#252538]"
+                className="border-border text-foreground hover:bg-muted"
                 onClick={() => {
                   emitClick('ui:wallet:cosign-done-back')
                   window.location.href = '/u'
@@ -262,18 +262,18 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
 
         {/* Expired */}
         {state.kind === 'expired' && (
-          <Card className="border-[#252538] bg-[#161622]">
+          <Card className="border-border bg-card">
             <CardContent className="flex flex-col items-center gap-4 py-10">
               <Clock className="h-10 w-10 text-amber-400" aria-hidden="true" />
               <div className="text-center space-y-1">
-                <p className="font-semibold text-slate-100">Request expired</p>
+                <p className="font-semibold text-font">Request expired</p>
                 <p className="text-sm text-muted-foreground">
                   This co-sign request has expired (5-minute TTL). Ask the agent to re-submit.
                 </p>
               </div>
               <Button
                 variant="outline"
-                className="border-[#252538] text-slate-300 hover:bg-[#252538]"
+                className="border-border text-foreground hover:bg-muted"
                 onClick={() => {
                   emitClick('ui:wallet:cosign-expired-back')
                   window.location.href = '/u'
@@ -285,19 +285,19 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
           </Card>
         )}
 
-        {/* Error */}
+        {/* Error state from code omitted for brevity, will fix in single edit */}
         {state.kind === 'error' && (
-          <Card className="border-[#252538] bg-[#161622]">
+          <Card className="border-border bg-card">
             <CardContent className="flex flex-col items-center gap-4 py-10">
               <XCircle className="h-10 w-10 text-destructive" aria-hidden="true" />
               <div className="text-center space-y-1">
-                <p className="font-semibold text-slate-100">Something went wrong</p>
+                <p className="font-semibold text-font">Something went wrong</p>
                 <p className="text-sm text-destructive">{state.message}</p>
               </div>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  className="border-[#252538] text-slate-300 hover:bg-[#252538]"
+                  className="border-border text-foreground hover:bg-muted"
                   onClick={() => {
                     emitClick('ui:wallet:cosign-error-retry')
                     setState({ kind: 'loading' })
@@ -308,7 +308,7 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-[#252538] text-slate-300 hover:bg-[#252538]"
+                  className="border-border text-foreground hover:bg-muted"
                   onClick={() => {
                     emitClick('ui:wallet:cosign-error-back')
                     window.location.href = '/u'

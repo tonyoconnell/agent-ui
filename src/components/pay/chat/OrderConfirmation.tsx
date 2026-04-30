@@ -20,9 +20,9 @@ interface OrderConfirmationProps {
 
 export function OrderConfirmation({ orderId, orderUrl, email, paymentIntentId }: OrderConfirmationProps) {
   return (
-    <Card className="border-green-500">
-      <CardHeader className="bg-green-50 dark:bg-green-950">
-        <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+    <Card className="border-tertiary-bright/40">
+      <CardHeader className="bg-tertiary-bright/10 dark:bg-tertiary-bright/5">
+        <CardTitle className="flex items-center gap-2 text-tertiary-bright dark:text-tertiary-bright">
           <CheckCircle2 className="h-6 w-6" />
           Order Confirmed!
         </CardTitle>

@@ -8,9 +8,9 @@ interface TransactionFinalityProps {
 export function TransactionFinality({ finality = 300, className = '' }: TransactionFinalityProps) {
   // Determine color based on finality speed
   const getFinalityColor = (ms: number) => {
-    if (ms < 250) return { bg: 'bg-blue-50 dark:bg-blue-950/50', text: 'text-blue-600 dark:text-blue-400' }
-    if (ms < 500) return { bg: 'bg-emerald-50 dark:bg-emerald-950/50', text: 'text-emerald-600 dark:text-emerald-400' }
-    return { bg: 'bg-amber-50 dark:bg-amber-950/50', text: 'text-amber-600 dark:text-amber-400' }
+    if (ms < 250) return { bg: 'bg-primary-bright/10 dark:bg-primary-bright/5', text: 'text-primary-bright dark:text-primary-bright' }
+    if (ms < 500) return { bg: 'bg-tertiary-bright/10 dark:bg-tertiary-bright/5', text: 'text-tertiary-bright dark:text-tertiary-bright' }
+    return { bg: 'bg-gold/10 dark:bg-gold/5', text: 'text-gold dark:text-gold' }
   }
 
   const colors = getFinalityColor(finality)

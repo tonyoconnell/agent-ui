@@ -107,13 +107,13 @@ export function MarketView() {
   }, [listings])
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-slate-100 p-6">
+    <div className="min-h-screen bg-background text-font p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Market</h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               {stats.count} skills · {stats.proven} proven · ranked by pheromone
             </p>
           </div>
@@ -122,7 +122,7 @@ export function MarketView() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search skills…"
-              className="bg-[#161622] border border-[#252538] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+              className="bg-card border border-border rounded-lg px-3 py-2 text-sm text-font placeholder-muted-foreground w-48 focus:outline-none focus:ring-1 focus:ring-primary/50"
             />
           </div>
         </div>
@@ -139,8 +139,8 @@ export function MarketView() {
               }}
               className={`text-xs px-3 py-1 rounded-full border transition-colors ${
                 lens === l
-                  ? 'bg-indigo-600 text-white border-indigo-500'
-                  : 'text-slate-400 border-[#252538] hover:border-slate-600 hover:text-slate-100'
+                  ? 'bg-primary text-white border-primary'
+                  : 'text-muted-foreground border-border hover:border-border hover:text-font'
               }`}
             >
               {LENS_LABELS[l]}
@@ -150,7 +150,7 @@ export function MarketView() {
 
         {/* Sort + tag filter */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-slate-500">Sort:</span>
+          <span className="text-xs text-muted-foreground">Sort:</span>
           {(['weight', 'price', 'success'] as SortMode[]).map((mode) => (
             <button
               key={mode}
@@ -161,8 +161,8 @@ export function MarketView() {
               }}
               className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                 sortMode === mode
-                  ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40'
-                  : 'text-slate-400 border-slate-700 hover:border-slate-600'
+                  ? 'bg-primary/20 text-primary-bright border-primary/40'
+                  : 'text-muted-foreground border-muted hover:border-border'
               }`}
             >
               {mode === 'weight' ? 'Recommended' : mode === 'price' ? 'Cheapest' : 'Success rate'}
@@ -171,7 +171,7 @@ export function MarketView() {
 
           {allTags.length > 0 && (
             <>
-              <span className="text-xs text-slate-500 ml-4">Tags:</span>
+              <span className="text-xs text-muted-foreground ml-4">Tags:</span>
               {allTags.slice(0, 8).map((tag) => (
                 <button
                   key={tag}
@@ -179,14 +179,14 @@ export function MarketView() {
                   onClick={() => toggleTag(tag)}
                   className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                     selectedTags.has(tag)
-                      ? 'bg-violet-500/20 text-violet-400 border-violet-500/40'
-                      : 'text-slate-400 border-slate-700 hover:border-slate-600'
+                      ? 'bg-secondary-bright/20 text-secondary-bright border-secondary-bright/40'
+                      : 'text-muted-foreground border-muted hover:border-border'
                   }`}
                 >
                   {tag}
                 </button>
               ))}
-              {allTags.length > 8 && <span className="text-xs text-slate-600">+{allTags.length - 8}</span>}
+              {allTags.length > 8 && <span className="text-xs text-muted-foreground">+{allTags.length - 8}</span>}
             </>
           )}
 
@@ -198,7 +198,7 @@ export function MarketView() {
                 setSearch('')
                 window.history.replaceState({}, '', window.location.pathname)
               }}
-              className="text-xs text-slate-600 hover:text-slate-400 ml-2"
+              className="text-xs text-muted-foreground hover:text-foreground ml-2"
             >
               clear
             </button>
@@ -207,12 +207,12 @@ export function MarketView() {
 
         {/* Grid */}
         {loading ? (
-          <div className="flex items-center gap-2 py-12 justify-center text-sm text-slate-500">
-            <div className="h-4 w-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="flex items-center gap-2 py-12 justify-center text-sm text-muted-foreground">
+            <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
             Loading listings…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="py-12 text-center text-slate-500 text-sm">No skills found.</div>
+          <div className="py-12 text-center text-muted-foreground text-sm">No skills found.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((l) => (
@@ -230,7 +230,7 @@ export function MarketView() {
       {/* Bounty composer overlay */}
       {bountyTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="rounded-xl border border-[#252538] bg-[#0a0a0f] shadow-2xl">
+          <div className="rounded-xl border border-border bg-background shadow-2xl">
             <BountyComposer
               listing={bountyTarget}
               posterUid="user"
@@ -261,19 +261,19 @@ function SkillCard({ listing, onHire, onBounty }: SkillCardProps) {
   const tradeCount = Math.round(weight)
 
   return (
-    <Card className="bg-[#161622] border border-[#252538] hover:border-[#353548] transition-colors group">
+    <Card className="bg-card border border-border hover:border-border transition-colors group">
       <CardContent className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-slate-100 text-sm leading-tight truncate">{name}</h3>
-            <p className="text-xs text-slate-500 truncate">{skillId}</p>
+            <h3 className="font-medium text-font text-sm leading-tight truncate">{name}</h3>
+            <p className="text-xs text-muted-foreground truncate">{skillId}</p>
           </div>
           <span
             className={`shrink-0 text-xs font-mono font-semibold px-2 py-0.5 rounded ${
               pricingMode === 'free'
-                ? 'bg-slate-700/50 text-slate-400'
-                : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                ? 'bg-muted text-muted-foreground'
+                : 'bg-tertiary-bright/20 text-tertiary-bright border border-tertiary-bright/30'
             }`}
           >
             {pricingMode === 'free' ? 'Free' : `$${price.toFixed(2)}`}
@@ -282,31 +282,31 @@ function SkillCard({ listing, onHire, onBounty }: SkillCardProps) {
 
         {/* Pheromone bar */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
                 isToxic
-                  ? 'bg-red-500/70'
+                  ? 'bg-destructive/70'
                   : isProven
-                    ? 'bg-gradient-to-r from-indigo-500 to-violet-500'
-                    : 'bg-indigo-500/50'
+                    ? 'bg-gradient-to-r from-primary to-secondary'
+                    : 'bg-primary/50'
               }`}
               style={{ width: `${Math.min(100, (weight / 50) * 100)}%` }}
             />
           </div>
-          <span className="text-xs text-slate-500 font-mono w-10 text-right">{weight.toFixed(1)}</span>
+          <span className="text-xs text-muted-foreground font-mono w-10 text-right">{weight.toFixed(1)}</span>
         </div>
 
         {/* Seller + success */}
         <div className="flex items-center justify-between gap-2">
           <a
             href={`/u/${sellerUid}`}
-            className="text-xs text-slate-400 hover:text-slate-200 transition-colors truncate"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors truncate"
             onClick={() => emitClick('ui:market:seller', { sellerUid })}
           >
             {sellerName}
           </a>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-muted-foreground">
             {settleRate !== null ? `${settleRate}% settle` : `${Math.round(successRate * 100)}% success`}
             {tradeCount > 0 ? ` · ${tradeCount} trades` : ''}
           </span>
@@ -316,11 +316,11 @@ function SkillCard({ listing, onHire, onBounty }: SkillCardProps) {
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0 text-slate-400 border-slate-700/50">
+              <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0 text-muted-foreground border-border">
                 {tag}
               </Badge>
             ))}
-            {tags.length > 3 && <span className="text-xs text-slate-600">+{tags.length - 3}</span>}
+            {tags.length > 3 && <span className="text-xs text-muted-foreground">+{tags.length - 3}</span>}
           </div>
         )}
 
@@ -328,9 +328,9 @@ function SkillCard({ listing, onHire, onBounty }: SkillCardProps) {
         {(isProven || isToxic) && (
           <div className="flex gap-1.5">
             {isProven && (
-              <Badge className="bg-violet-500/20 text-violet-400 border-violet-500/30 text-xs">proven</Badge>
+              <Badge className="bg-secondary-bright/20 text-secondary-bright border-secondary-bright/30 text-xs">proven</Badge>
             )}
-            {isToxic && <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">toxic</Badge>}
+            {isToxic && <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs">toxic</Badge>}
           </div>
         )}
 
@@ -339,7 +339,7 @@ function SkillCard({ listing, onHire, onBounty }: SkillCardProps) {
           <a
             href={`/market/${skillId}`}
             onClick={() => emitClick('ui:market:view', { skillId })}
-            className="flex-1 text-center text-xs font-medium px-3 py-1.5 rounded-lg border border-[#252538] text-slate-300 hover:bg-[#1d1d2b] hover:border-[#353548] transition-colors"
+            className="flex-1 text-center text-xs font-medium px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-muted hover:border-border transition-colors"
           >
             View
           </a>
@@ -349,14 +349,14 @@ function SkillCard({ listing, onHire, onBounty }: SkillCardProps) {
               emitClick('ui:market:bounty-open', { skillId, sellerUid })
               onBounty(listing)
             }}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-[#252538] text-slate-400 hover:text-slate-100 hover:border-[#353548] transition-colors"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-font hover:border-border transition-colors"
           >
             Bounty
           </button>
           <button
             type="button"
             onClick={() => onHire(listing)}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white transition-colors"
           >
             Hire
           </button>

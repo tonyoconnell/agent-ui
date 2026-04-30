@@ -101,19 +101,19 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
       <Card
         className={cn(
           'border transition-colors',
-          paused ? 'bg-[#0f0f14] border-[#1e1e2a] opacity-60' : 'bg-[#161622] border-[#252538]',
+          paused ? 'bg-card border-border opacity-60' : 'bg-card border-border',
         )}
       >
         <CardHeader className="pb-2 pt-3 px-4">
           <CardTitle className="flex items-center justify-between gap-2 text-sm">
             <div className="flex items-center gap-2 min-w-0">
               {paused ? (
-                <PauseCircle className="w-4 h-4 text-slate-500 shrink-0" aria-label="Paused" />
+                <PauseCircle className="w-4 h-4 text-muted-foreground shrink-0" aria-label="Paused" />
               ) : (
-                <Wallet className="w-4 h-4 text-cyan-400 shrink-0" aria-label="Active wallet" />
+                <Wallet className="w-4 h-4 text-primary-bright shrink-0" aria-label="Active wallet" />
               )}
               <span
-                className={cn('font-mono text-xs truncate', paused ? 'text-slate-600' : 'text-slate-300')}
+                className={cn('font-mono text-xs truncate', paused ? 'text-muted-foreground' : 'text-foreground')}
                 title={node.agentLabel}
               >
                 {node.agentLabel}
@@ -121,7 +121,7 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {paused && (
-                <Badge variant="outline" className="text-[10px] border-slate-700 text-slate-500 bg-transparent">
+                <Badge variant="outline" className="text-[10px] border-border text-muted-foreground bg-transparent">
                   paused
                 </Badge>
               )}
@@ -130,10 +130,10 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
                 className={cn(
                   'text-[10px] border-transparent',
                   node.depth === 0
-                    ? 'bg-cyan-950/40 text-cyan-400'
+                    ? 'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))]'
                     : node.depth === 1
-                      ? 'bg-violet-950/40 text-violet-400'
-                      : 'bg-slate-800/60 text-slate-400',
+                      ? 'bg-[hsl(var(--color-secondary-bright)/0.15)] text-[hsl(var(--color-secondary-bright))]'
+                      : 'bg-muted text-muted-foreground',
                 )}
               >
                 {node.ownerLabel}
@@ -145,26 +145,26 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
         <CardContent className="px-4 pb-3 space-y-2">
           {/* Cap row */}
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500">Daily cap</span>
-            <span className={cn('font-semibold', paused ? 'text-slate-600' : 'text-white')}>
+            <span className="text-muted-foreground">Daily cap</span>
+            <span className={cn('font-semibold', paused ? 'text-muted-foreground' : 'text-font')}>
               {capUsd}
-              <span className="text-slate-500 font-normal ml-1">({capSui} SUI)</span>
+              <span className="text-muted-foreground font-normal ml-1">({capSui} SUI)</span>
             </span>
           </div>
 
           {/* Spent today row */}
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500">Spent today</span>
-            <span className={cn(paused ? 'text-slate-600' : 'text-slate-300')}>{spentUsd}</span>
+            <span className="text-muted-foreground">Spent today</span>
+            <span className={cn(paused ? 'text-muted-foreground' : 'text-foreground')}>{spentUsd}</span>
           </div>
 
           {/* Progress bar */}
           {capMist > 0n && (
-            <div className="w-full bg-[#0a0a0f] rounded-full h-1.5 mt-1">
+            <div className="w-full bg-muted rounded-full h-1.5 mt-1">
               <div
                 className={cn(
                   'h-1.5 rounded-full transition-all',
-                  paused ? 'bg-slate-700' : pct >= 90 ? 'bg-red-500' : pct >= 60 ? 'bg-amber-500' : 'bg-cyan-500',
+                  paused ? 'bg-muted-foreground/40' : pct >= 90 ? 'bg-destructive' : pct >= 60 ? 'bg-gold' : 'bg-[hsl(var(--color-primary-bright))]',
                 )}
                 style={{ width: `${Math.min(pct, 100)}%` }}
                 role="progressbar"
@@ -177,7 +177,7 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
           )}
 
           {/* Wallet ID (truncated) */}
-          <p className="font-mono text-[10px] text-slate-700 truncate" title={node.walletId}>
+          <p className="font-mono text-[10px] text-muted-foreground truncate" title={node.walletId}>
             {node.walletId.slice(0, 20)}…
           </p>
         </CardContent>
@@ -244,16 +244,16 @@ export function FleetIsland() {
   })(nodes)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] px-4 py-10">
+    <div className="min-h-screen bg-background px-4 py-10">
       <div className="w-full max-w-lg mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-white mb-1 flex items-center gap-2">
-              <Layers className="w-6 h-6 text-cyan-400" />
+            <h1 className="text-2xl font-semibold text-font mb-1 flex items-center gap-2">
+              <Layers className="w-6 h-6 text-primary-bright" />
               Agent Fleet
             </h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               ScopedWallets rooted in your address. Total exposure across all agents.
             </p>
           </div>
@@ -266,7 +266,7 @@ export function FleetIsland() {
             }}
             disabled={loading}
             aria-label="Refresh fleet"
-            className="text-slate-400 hover:text-white hover:bg-[#1e1e2a] shrink-0"
+            className="text-muted-foreground hover:text-font hover:bg-muted shrink-0"
           >
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           </Button>
@@ -285,12 +285,12 @@ export function FleetIsland() {
 
         {/* No vault / no address */}
         {!loading && !error && address === null && (
-          <div className="rounded-xl border border-[#252538] bg-[#161622] px-6 py-10 text-center space-y-2">
-            <Shield className="w-8 h-8 text-slate-600 mx-auto" />
-            <p className="text-slate-400 text-sm">No wallet found</p>
-            <p className="text-slate-600 text-xs">
+          <div className="rounded-xl border border-border bg-card px-6 py-10 text-center space-y-2">
+            <Shield className="w-8 h-8 text-muted-foreground mx-auto" />
+            <p className="text-muted-foreground text-sm">No wallet found</p>
+            <p className="text-muted-foreground text-xs">
               Set up your wallet on the{' '}
-              <a href="/u/save" className="text-slate-400 underline underline-offset-2 hover:text-white">
+              <a href="/u/save" className="text-muted-foreground underline underline-offset-2 hover:text-font">
                 Save Wallet
               </a>{' '}
               page first.
@@ -300,7 +300,7 @@ export function FleetIsland() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-16 text-slate-500">
+          <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
             <span className="text-sm">Loading fleet…</span>
           </div>
@@ -308,12 +308,12 @@ export function FleetIsland() {
 
         {/* Empty fleet */}
         {!loading && !error && address && nodes.length === 0 && (
-          <div className="rounded-xl border border-[#252538] bg-[#161622] px-6 py-10 text-center space-y-2">
-            <Wallet className="w-8 h-8 text-slate-600 mx-auto" />
-            <p className="text-slate-400 text-sm">No agent wallets found</p>
-            <p className="text-slate-600 text-xs">
+          <div className="rounded-xl border border-border bg-card px-6 py-10 text-center space-y-2">
+            <Wallet className="w-8 h-8 text-muted-foreground mx-auto" />
+            <p className="text-muted-foreground text-sm">No agent wallets found</p>
+            <p className="text-muted-foreground text-xs">
               Create a{' '}
-              <a href="/u/agents" className="text-slate-400 underline underline-offset-2 hover:text-white">
+              <a href="/u/agents" className="text-muted-foreground underline underline-offset-2 hover:text-font">
                 ScopedWallet
               </a>{' '}
               to let an agent spend on your behalf.
@@ -324,18 +324,18 @@ export function FleetIsland() {
         {/* Exposure summary */}
         {!loading && !error && nodes.length > 0 && (
           <>
-            <div className="rounded-xl border border-[#252538] bg-[#161622] px-5 py-4 flex items-center justify-between gap-4">
+            <div className="rounded-xl border border-border bg-card px-5 py-4 flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs text-slate-500 uppercase tracking-widest mb-0.5">Total exposure</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-xs text-muted-foreground uppercase tracking-widest mb-0.5">Total exposure</p>
+                <p className="text-2xl font-bold text-font">
                   {totalCapUsd}
-                  <span className="text-base font-normal text-slate-500 ml-2">/day</span>
+                  <span className="text-base font-normal text-muted-foreground ml-2">/day</span>
                 </p>
-                <p className="text-xs text-slate-600 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {totalCapSui} SUI across {totalWallets} wallet{totalWallets !== 1 ? 's' : ''}
                 </p>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-600 shrink-0" />
+              <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
             </div>
 
             {/* Tree */}
@@ -349,7 +349,7 @@ export function FleetIsland() {
 
         {/* Back link */}
         <div className="pt-2 text-center">
-          <a href="/u" className="text-slate-500 text-xs hover:text-slate-300 underline underline-offset-2">
+          <a href="/u" className="text-muted-foreground text-xs hover:text-foreground underline underline-offset-2">
             Back to wallet
           </a>
         </div>

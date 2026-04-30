@@ -66,7 +66,7 @@ export function VaultUnlockChip({ className }: Props) {
 
   if (vault.loading) {
     return (
-      <button type="button" disabled className={cn(base, 'bg-[#161622] border-[#252538] text-slate-400', className)}>
+      <button type="button" disabled className={cn(base, 'bg-card border-border text-muted-foreground', className)}>
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
         <span>Loading</span>
       </button>
@@ -98,7 +98,11 @@ export function VaultUnlockChip({ className }: Props) {
           type="button"
           onClick={handle}
           disabled={pending}
-          className={cn(base, 'bg-sky-500/10 border-sky-500/40 text-sky-300 hover:bg-sky-500/20', className)}
+          className={cn(
+            base,
+            'bg-primary-bright/10 border-primary-bright/40 text-primary-bright hover:bg-primary-bright/20',
+            className,
+          )}
         >
           {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
           <span>{canPasskey ? 'Locked — Tap to unlock' : 'Locked — Enter password'}</span>
@@ -119,8 +123,8 @@ export function VaultUnlockChip({ className }: Props) {
       onClick={handleLock}
       className={cn(
         base,
-        'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20',
-        'shadow-[0_0_12px_rgba(16,185,129,0.15)]',
+        'bg-tertiary-bright/10 border-tertiary-bright/40 text-tertiary-bright hover:bg-tertiary-bright/20',
+        'shadow-[0_0_12px_rgba(var(--color-tertiary-bright-rgb),0.15)]',
         className,
       )}
     >

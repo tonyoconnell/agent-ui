@@ -6,9 +6,9 @@ export interface MessageProps {
 
 export function Message({ role, content, timestamp }: MessageProps) {
   const roleColors = {
-    user: 'bg-blue-50 dark:bg-blue-950',
-    assistant: 'bg-gray-50 dark:bg-gray-900',
-    system: 'bg-yellow-50 dark:bg-yellow-950',
+    user: 'bg-[hsl(var(--color-primary-bright)/0.1)] dark:bg-[hsl(var(--color-primary-bright)/0.08)]',
+    assistant: 'bg-muted dark:bg-background',
+    system: 'bg-[hsl(var(--color-gold)/0.1)] dark:bg-[hsl(var(--color-gold)/0.08)]',
   }
 
   const roleLabels = {

@@ -75,29 +75,29 @@ export function BountyComposer({ providerUid, skillId, defaultPrice = 1, onPoste
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel?.()}>
-      <DialogContent className="bg-[#0a0a0f] border-white/10 text-white max-w-md">
+      <DialogContent className="bg-background border-border text-foreground max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-white">Post Bounty</DialogTitle>
+          <DialogTitle className="text-foreground">Post Bounty</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1">
-            <Label className="text-white/70 text-xs">Price (SUI)</Label>
+            <Label className="text-muted-foreground text-xs">Price (SUI)</Label>
             <Input
               type="number"
               min={0}
               step={0.01}
               value={price}
               onChange={(e) => setPrice(Number(e.target.value))}
-              className="bg-white/5 border-white/10 text-white"
+              className="bg-background border-border text-foreground"
             />
           </div>
 
           {dims.map((dim) => (
             <div key={dim} className="space-y-1">
               <div className="flex justify-between">
-                <Label className="text-white/70 text-xs capitalize">{dim}</Label>
-                <span className="text-white/50 text-xs">{rubric[dim].toFixed(2)}</span>
+                <Label className="text-muted-foreground text-xs capitalize">{dim}</Label>
+                <span className="text-muted-foreground text-xs">{rubric[dim].toFixed(2)}</span>
               </div>
               <Slider
                 min={0}
@@ -111,44 +111,48 @@ export function BountyComposer({ providerUid, skillId, defaultPrice = 1, onPoste
           ))}
 
           <div className="space-y-1">
-            <Label className="text-white/70 text-xs">Deadline (hours)</Label>
+            <Label className="text-muted-foreground text-xs">Deadline (hours)</Label>
             <Input
               type="number"
               min={1}
               value={deadline}
               onChange={(e) => setDeadline(Number(e.target.value))}
-              className="bg-white/5 border-white/10 text-white"
+              className="bg-background border-border text-foreground"
             />
           </div>
 
           <div className="space-y-1">
-            <Label className="text-white/70 text-xs">Tags (comma-separated)</Label>
+            <Label className="text-muted-foreground text-xs">Tags (comma-separated)</Label>
             <Input
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="e.g. copy, seo, headlines"
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
           <div className="space-y-1">
-            <Label className="text-white/70 text-xs">Description</Label>
+            <Label className="text-muted-foreground text-xs">Description</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="bg-white/5 border-white/10 text-white resize-none"
+              className="bg-background border-border text-foreground resize-none"
             />
           </div>
 
-          {error && <p className="text-red-400 text-xs">{error}</p>}
+          {error && <p className="text-destructive text-xs">{error}</p>}
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={onCancel} className="text-white/60 hover:text-white">
+          <Button variant="ghost" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={pending} className="bg-violet-600 hover:bg-violet-500">
+          <Button
+            onClick={handleSubmit}
+            disabled={pending}
+            className="bg-secondary-bright hover:bg-secondary-bright/90 text-foreground"
+          >
             {pending ? 'Posting…' : 'Post Bounty'}
           </Button>
         </DialogFooter>

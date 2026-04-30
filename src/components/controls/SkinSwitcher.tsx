@@ -45,8 +45,8 @@ export function SkinSwitcher({ variant = 'full', className }: SkinSwitcherProps)
         value={skinId}
         onChange={(e) => setSkin(e.target.value)}
         className={cn(
-          'bg-black/50 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white',
-          'focus:outline-none focus:ring-2 focus:ring-blue-500',
+          'bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground',
+          'focus:outline-none focus:ring-2 focus:ring-primary',
           className,
         )}
         style={{ borderColor: `${skin.colors.primary}50` }}
@@ -62,14 +62,14 @@ export function SkinSwitcher({ variant = 'full', className }: SkinSwitcherProps)
 
   // Full variant
   return (
-    <div className={cn('flex flex-wrap gap-2 p-2 bg-black/30 rounded-xl', className)}>
+    <div className={cn('flex flex-wrap gap-2 p-2 bg-background rounded-xl', className)}>
       {Object.values(allSkins).map((s) => (
         <button
           key={s.id}
           onClick={() => setSkin(s.id)}
           className={cn(
             'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-            skinId === s.id ? 'text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5',
+            skinId === s.id ? 'text-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground hover:bg-muted',
           )}
           style={{
             backgroundColor: skinId === s.id ? `${s.colors.primary}30` : undefined,

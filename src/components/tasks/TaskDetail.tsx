@@ -27,20 +27,20 @@ interface Props {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const STATUS_PILL: Record<string, string> = {
-  open: 'bg-sky-500/15 text-sky-400 ring-sky-500/25',
-  blocked: 'bg-red-500/15 text-red-400 ring-red-500/25',
-  picked: 'bg-amber-500/15 text-amber-400 ring-amber-500/25',
-  done: 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/25',
-  verified: 'bg-purple-500/15 text-purple-400 ring-purple-500/25',
-  failed: 'bg-rose-500/15 text-rose-400 ring-rose-500/25',
-  dissolved: 'bg-slate-500/15 text-slate-400 ring-slate-500/25',
+  open: 'bg-primary-bright/15 text-primary-bright ring-primary-bright/25',
+  blocked: 'bg-destructive/15 text-destructive ring-destructive/25',
+  picked: 'bg-gold/15 text-gold ring-gold/25',
+  done: 'bg-tertiary-bright/15 text-tertiary-bright ring-tertiary-bright/25',
+  verified: 'bg-secondary-bright/15 text-secondary-bright ring-secondary-bright/25',
+  failed: 'bg-destructive/15 text-destructive ring-destructive/25',
+  dissolved: 'bg-muted-foreground/15 text-muted-foreground ring-muted-foreground/25',
 }
 
 const PRIORITY_PILL: Record<'P0' | 'P1' | 'P2' | 'P3', string> = {
-  P0: 'bg-red-500/15 text-red-400 ring-red-500/25',
-  P1: 'bg-amber-500/15 text-amber-400 ring-amber-500/25',
-  P2: 'bg-sky-500/15 text-sky-400 ring-sky-500/25',
-  P3: 'bg-slate-500/15 text-slate-400 ring-slate-500/25',
+  P0: 'bg-destructive/15 text-destructive ring-destructive/25',
+  P1: 'bg-gold/15 text-gold ring-gold/25',
+  P2: 'bg-primary-bright/15 text-primary-bright ring-primary-bright/25',
+  P3: 'bg-muted-foreground/15 text-muted-foreground ring-muted-foreground/25',
 }
 
 function waveColor(wave: string): string {
@@ -80,7 +80,7 @@ function fmtDate(iso: string | undefined): string {
     if (mins < 60) return `${mins}m ago`
     return `${Math.floor(diffH)}h ago`
   }
-  return d.toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })
+  return d.toLocaleDateString('en-IE', { day: 'numeric', month: 'short' })
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -94,12 +94,12 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
 
   return (
     <aside
-      className="fixed right-0 top-0 h-full z-40 flex flex-col bg-[#0f0f18] border-l border-[#252538] text-slate-100
+      className="fixed right-0 top-0 h-full z-40 flex flex-col bg-muted border-l border-border text-font
                  w-full sm:w-[400px] transform transition-transform duration-200"
       aria-label="Task detail"
     >
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
-      <header className="h-12 flex-none flex items-center gap-2 px-3 border-b border-[#252538] bg-[#0f0f18] sticky top-0 z-10">
+      <header className="h-12 flex-none flex items-center gap-2 px-3 border-b border-border bg-muted sticky top-0 z-10">
         <button
           type="button"
           aria-label="Close detail"
@@ -107,12 +107,12 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
             emitClick('ui:tasks:detail-close', { tid: task.tid })
             onClose()
           }}
-          className="flex-none p-1.5 rounded-md text-slate-400 hover:text-slate-100 hover:bg-white/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+          className="flex-none p-1.5 rounded-md text-muted-foreground hover:text-font hover:bg-white/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <span className="font-mono text-[11px] text-white/50 truncate flex-1">{task.tid}</span>
+        <span className="font-mono text-[11px] text-muted-foreground truncate flex-1">{task.tid}</span>
 
         {/* Status pill */}
         <button
@@ -139,7 +139,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
         {/* 1. Title + priority */}
         <section>
           <div className="flex items-start gap-2">
-            <h2 className="flex-1 text-base font-semibold text-slate-100 leading-snug">{task.name}</h2>
+            <h2 className="flex-1 text-base font-semibold text-font leading-snug">{task.name}</h2>
             <span
               className={`flex-none inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${PRIORITY_PILL[pLabel]}`}
             >
@@ -150,59 +150,59 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
 
         {/* 2. Metadata grid */}
         <section>
-          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Metadata</h3>
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Metadata</h3>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <div>
-              <dt className="text-slate-500 mb-0.5">Wave</dt>
-              <dd className="text-slate-300 font-mono">{wave ?? '—'}</dd>
+              <dt className="text-muted-foreground mb-0.5">Wave</dt>
+              <dd className="text-foreground font-mono">{wave ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-slate-500 mb-0.5">Priority</dt>
-              <dd className="text-slate-300">
-                {pLabel} <span className="text-white/30 font-mono">({task.task_priority.toFixed(2)})</span>
+              <dt className="text-muted-foreground mb-0.5">Priority</dt>
+              <dd className="text-foreground">
+                {pLabel} <span className="text-muted-foreground font-mono">({task.task_priority.toFixed(2)})</span>
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500 mb-0.5">Effort</dt>
+              <dt className="text-muted-foreground mb-0.5">Effort</dt>
               <dd>
                 <DotScale value={task.task_effort} />
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500 mb-0.5">Value</dt>
+              <dt className="text-muted-foreground mb-0.5">Value</dt>
               <dd>
                 <DotScale value={task.task_value} />
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500 mb-0.5">Variant</dt>
-              <dd className="text-slate-300 font-mono">{task.task_variant ?? '—'}</dd>
+              <dt className="text-muted-foreground mb-0.5">Variant</dt>
+              <dd className="text-foreground font-mono">{task.task_variant ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-slate-500 mb-0.5">Owner</dt>
-              <dd className="text-slate-300 truncate">{task.owner ?? 'unassigned'}</dd>
+              <dt className="text-muted-foreground mb-0.5">Owner</dt>
+              <dd className="text-foreground truncate">{task.owner ?? 'unassigned'}</dd>
             </div>
             <div>
-              <dt className="text-slate-500 mb-0.5">Started</dt>
-              <dd className="text-slate-300">{fmtDate(task.started_at)}</dd>
+              <dt className="text-muted-foreground mb-0.5">Started</dt>
+              <dd className="text-foreground">{fmtDate(task.started_at)}</dd>
             </div>
             <div>
-              <dt className="text-slate-500 mb-0.5">Verified</dt>
-              <dd className="text-slate-300">{fmtDate(task.verified_at)}</dd>
+              <dt className="text-muted-foreground mb-0.5">Verified</dt>
+              <dd className="text-foreground">{fmtDate(task.verified_at)}</dd>
             </div>
           </dl>
         </section>
 
         {/* 3. Rubric */}
         <section>
-          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Rubric</h3>
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rubric</h3>
           {task.rubric ? (
             <div className="relative">
               <RubricRadar rubric={task.rubric} />
-              <span className="absolute top-0 right-0 text-[10px] font-mono text-slate-400">avg {avg.toFixed(2)}</span>
+              <span className="absolute top-0 right-0 text[10px] font-mono text-muted-foreground">avg {avg.toFixed(2)}</span>
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-[#252538] px-4 py-3 text-xs text-slate-500 italic">
+            <div className="rounded-lg border border-dashed border-border px-4 py-3 text-xs text-muted-foreground italic">
               Rubric set at W4 verify
             </div>
           )}
@@ -210,21 +210,21 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
 
         {/* 4. Pheromone */}
         <section>
-          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Pheromone</h3>
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pheromone</h3>
           <PheromoneBar strength={task.strength} resistance={task.resistance} />
         </section>
 
         {/* 5. Tags */}
         {task.tags.length > 0 && (
           <section>
-            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Tags</h3>
+            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tags</h3>
             <div className="flex flex-wrap gap-1.5">
               {task.tags.map((tag) => (
                 <button
                   key={tag}
                   type="button"
                   onClick={() => emitClick('ui:tasks:tag-click', { tid: task.tid, tag })}
-                  className="inline-flex items-center rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[11px] text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-colors"
+                  className="inline-flex items-center rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
                 >
                   #{tag}
                 </button>
@@ -236,8 +236,8 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
         {/* 6. Exit condition */}
         {task.exit_condition && (
           <section>
-            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Exit condition</h3>
-            <pre className="rounded-lg bg-[#08080e] border border-[#252538] px-3 py-2 font-mono text-[11px] text-slate-400 whitespace-pre-wrap break-words">
+            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Exit condition</h3>
+            <pre className="rounded-lg bg-background border border-border px-3 py-2 font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
               {task.exit_condition}
             </pre>
           </section>
@@ -246,7 +246,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
         {/* 7a. Blocks */}
         {task.blocks.length > 0 && (
           <section>
-            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Blocks ({task.blocks.length})
             </h3>
             <ul className="space-y-1">
@@ -255,7 +255,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
                   <button
                     type="button"
                     onClick={() => emitClick('ui:tasks:navigate', { tid })}
-                    className="font-mono text-[11px] text-sky-400/80 hover:text-sky-300 transition-colors"
+                    className="font-mono text-[11px] text-primary-bright/80 hover:text-primary-bright transition-colors"
                   >
                     {tid}
                   </button>
@@ -268,7 +268,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
         {/* 7b. Blocked by */}
         {task.blocked_by.length > 0 && (
           <section>
-            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Blocked by ({task.blocked_by.length})
             </h3>
             <ul className="space-y-1">
@@ -277,7 +277,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
                   <button
                     type="button"
                     onClick={() => emitClick('ui:tasks:navigate', { tid })}
-                    className="font-mono text-[11px] text-red-400/80 hover:text-red-300 transition-colors"
+                    className="font-mono text-[11px] text-destructive/80 hover:text-destructive transition-colors"
                   >
                     {tid}
                   </button>
@@ -289,11 +289,11 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
       </div>
 
       {/* ── FOOTER ─────────────────────────────────────────────────────────── */}
-      <footer className="h-14 flex-none flex items-center gap-2 px-3 border-t border-[#252538] bg-[#0f0f18] sticky bottom-0">
+      <footer className="h-14 flex-none flex items-center gap-2 px-3 border-t border-border bg-muted sticky bottom-0">
         {task.task_status === 'open' && (
           <Button
             size="sm"
-            className="bg-sky-600 hover:bg-sky-700 text-white"
+            className="bg-primary-bright hover:bg-primary-bright/90 text-primary-bright-foreground"
             onClick={() => {
               emitClick('ui:tasks:claim', { tid: task.tid })
               onAction?.('claim')
@@ -307,7 +307,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
           <>
             <Button
               size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-tertiary-bright hover:bg-tertiary-bright/90 text-foreground"
               onClick={() => {
                 emitClick('ui:tasks:complete', { tid: task.tid })
                 onAction?.('complete')
@@ -318,7 +318,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
             <Button
               size="sm"
               variant="outline"
-              className="border-rose-500/40 text-rose-400 hover:bg-rose-500/10"
+              className="border-destructive/40 text-destructive hover:bg-destructive/10"
               onClick={() => {
                 emitClick('ui:tasks:fail', { tid: task.tid })
                 onAction?.('fail')
@@ -333,7 +333,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
           <>
             <Button
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-secondary-bright/20 hover:bg-secondary-bright/30 text-secondary-bright"
               onClick={() => {
                 emitClick('ui:tasks:verify', { tid: task.tid })
                 onAction?.('complete')
@@ -344,7 +344,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
             <Button
               size="sm"
               variant="outline"
-              className="border-slate-500/40 text-slate-400 hover:bg-white/5"
+              className="border-muted-foreground/40 text-muted-foreground hover:bg-white/5"
               onClick={() => {
                 emitClick('ui:tasks:request-changes', { tid: task.tid })
                 onAction?.('fail')
@@ -356,7 +356,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
         )}
 
         {task.task_status === 'verified' && (
-          <span className="text-xs text-slate-500 italic">
+          <span className="text-xs text-muted-foreground italic">
             Verified {task.verified_at ? fmtDate(task.verified_at) : ''}
           </span>
         )}
@@ -365,7 +365,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
           <Button
             size="sm"
             disabled={task.blocked_by.length > 0}
-            className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40"
+            className="bg-gold/20 hover:bg-gold/30 text-gold disabled:opacity-40"
             onClick={() => {
               emitClick('ui:tasks:unblock', { tid: task.tid })
               onAction?.('block')
@@ -382,7 +382,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
           <Button
             size="sm"
             variant="outline"
-            className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+            className="border-gold/40 text-gold hover:bg-gold/10"
             onClick={() => {
               emitClick('ui:tasks:retry', { tid: task.tid })
               onAction?.('claim')
@@ -396,7 +396,7 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
           <Button
             size="sm"
             variant="outline"
-            className="border-slate-500/40 text-slate-400 hover:bg-white/5"
+            className="border-muted-foreground/40 text-muted-foreground hover:bg-white/5"
             onClick={() => {
               emitClick('ui:tasks:retry-once', { tid: task.tid })
               onAction?.('claim')
